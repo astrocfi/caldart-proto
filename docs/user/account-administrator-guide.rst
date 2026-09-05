@@ -223,3 +223,56 @@ Common tasks
    Open their record and read the Memberships tab.  The status is worked out
    from the terms listed there, so a missing or cancelled term is the answer;
    the Payments tab shows whether the money arrived.
+
+
+When something goes wrong
+=========================
+
+**"An account with that email address already exists."**
+   Somebody already has an account on that address — very often the person in
+   front of you, from a previous membership.  Search the list for it and edit
+   that record instead of creating a second one.  Capitalisation is ignored,
+   so ``Marta@`` and ``marta@`` collide.
+
+**The new member never got their "set your password" email.**
+   It is only sent when you leave the password box **empty**.  If you typed a
+   password, no email went out and you have to tell them what it is.  If you
+   did leave it empty, ask a user administrator to send a password reset from
+   ``/portal/admin/users``, which does the same job.
+
+**"You cannot delete your own account."**
+   Exactly what it says.  Ask another administrator.
+
+**"Only a system administrator can delete a system administrator."**
+   Deleting an administrator is deliberately harder than deleting a member.
+   Ask a system administrator, or deactivate the account instead — which keeps
+   the history and locks them out just as effectively.
+
+**You cannot change somebody's roles from the member record.**
+   Roles live on the user-administration screen, behind the ``user_admin``
+   role, not on the member record.  See :doc:`user-administrator`.
+
+**A term you granted starts later than you expected.**
+   That is correct.  A term granted to somebody whose membership is still
+   current starts the day *after* their present one ends, so they get the
+   whole year they paid for.  To override it, set the start date explicitly
+   when you grant the term.
+
+**"The end date cannot be before the start date."**
+   You are editing a term's expiry to a date before it began.  Correct the end
+   date, or cancel the term and grant a fresh one.
+
+**A membership term is wrong and you cannot edit its plan or start date.**
+   Only the end date, the status and the note are editable.  Rewriting a
+   term's plan or start date would falsify history rather than correct it —
+   cancel the wrong term and grant the right one, with a note saying why.
+
+**An export downloads far more rows than the screen shows.**
+   It should not: the export carries the filters the screen has.  Check that
+   you pressed **Apply** after typing in the Search or Expiring-within box —
+   the dropdowns apply immediately, those two do not.
+
+**A deletion took the payments with it.**
+   Deleting a member is a hard delete: the profile, the membership history and
+   the payment records all go, and nothing recovers them short of a database
+   restore.  Deactivate rather than delete unless you are certain.
