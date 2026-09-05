@@ -75,6 +75,7 @@ def setup(app):
 
     directives.register_directive("graphviz", _NoGraphviz)
 
+
 # The document that holds the root toctree.
 master_doc = "index"
 root_doc = "index"
