@@ -13,6 +13,7 @@ Start with :doc:`getting-started` and then read the guide for your role.
    getting-started
    member-guide
    payments
+   aircraft
    dart-leader-guide
    user-administrator
    account-administrator-guide
