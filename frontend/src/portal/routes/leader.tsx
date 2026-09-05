@@ -2,16 +2,15 @@
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';
-import { comingSoon } from './placeholder';
-
-const BRANCH = 'feat/aircraft-leader';
+import { LeaderAircraftPage } from '../features/leader/LeaderAircraftPage';
+import { LeaderSearchPage } from '../features/leader/LeaderSearchPage';
 
 export const leaderRoutes: RouteObject[] = [
   {
-    element: <RequireRole roles={['dart_leader']} />,
+    element: <RequireRole roles={['dart_leader', 'account_admin']} />,
     children: [
-      { path: 'leader', element: comingSoon('Member check', BRANCH) },
-      { path: 'leader/aircraft', element: comingSoon('Aircraft check', BRANCH) },
+      { path: 'leader', element: <LeaderSearchPage /> },
+      { path: 'leader/aircraft', element: <LeaderAircraftPage /> },
     ],
   },
 ];
