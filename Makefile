@@ -19,13 +19,37 @@ export DATABASE_URL
 DB_NAME := $(shell printf '%s' "$(DATABASE_URL)" | sed -e 's#.*/##' -e 's/?.*//')
 
 # `make e2e` runs against its own database and its own server, so it never
-# disturbs the one you are developing against.  The login throttle is lifted
-# for that server alone: the specs sign in far more often in a minute than a
-# person ever would (PLAN §6.1).
+# disturbs the one you are developing against.
 E2E_PORT ?= 8021
 E2E_DB ?= caldart_e2e
 E2E_DATABASE_URL ?= postgres://caldart:caldart@localhost:5432/$(E2E_DB)
 E2E_LOG ?= /tmp/caldart-e2e-server.log
+
+# The end-to-end server's whole environment, spelled out rather than inherited.
+# The run has to behave the same on a laptop with a `.env` and on CI without
+# one, and django-environ lets a real environment variable win over the file,
+# so every setting the specs depend on is pinned here:
+#
+#   DEBUG=false        `runserver` only serves frontend/dist itself while DEBUG
+#                      is on.  Rather than depend on that, the target runs
+#                      collectstatic and whitenoise serves the bundle, exactly
+#                      as in production.  (CI sets DEBUG=false anyway; that is
+#                      how 21 of 22 specs met an empty SPA shell.)
+#   EMAIL_URL          the console backend: CI has no Mailpit, and a password
+#                      reset must not fail on a refused SMTP connection.
+#   AUTH_THROTTLE_LOGIN the specs sign in far more often in a minute than a
+#                      person ever would (PLAN §6.1).
+E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
+           DATABASE_URL="$(E2E_DATABASE_URL)" \
+           SECRET_KEY=e2e-insecure-secret-key \
+           DEBUG=false \
+           ALLOWED_HOSTS='localhost,127.0.0.1,[::1]' \
+           SITE_URL="http://localhost:$(E2E_PORT)" \
+           CSRF_TRUSTED_ORIGINS="http://localhost:$(E2E_PORT)" \
+           EMAIL_URL=consolemail:// \
+           DJANGO_VITE_DEV_MODE=false \
+           PAYMENTS_MOCK_ENABLED=true \
+           AUTH_THROTTLE_LOGIN=1000/min
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend e2e lint lint-backend \
@@ -126,15 +150,11 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	@# CI creates the database with psql, having no compose services to exec into.
 	@test -n "$(SKIP_CREATEDB)" \
 	  || $(MAKE) --no-print-directory createdb DATABASE_URL="$(E2E_DATABASE_URL)"
-	DATABASE_URL="$(E2E_DATABASE_URL)" $(MANAGE) db_reset --seed --noinput
+	$(E2E_ENV) $(MANAGE) db_reset --seed --noinput
 	cd frontend && $(NPM) run build
+	$(E2E_ENV) $(MANAGE) collectstatic --noinput
 	@set -e; \
-	  DATABASE_URL="$(E2E_DATABASE_URL)" \
-	  SITE_URL="http://localhost:$(E2E_PORT)" \
-	  DJANGO_VITE_DEV_MODE=false \
-	  PAYMENTS_MOCK_ENABLED=true \
-	  AUTH_THROTTLE_LOGIN=1000/min \
-	    $(MANAGE) runserver 0.0.0.0:$(E2E_PORT) --noreload > $(E2E_LOG) 2>&1 & \
+	  $(E2E_ENV) $(MANAGE) runserver 0.0.0.0:$(E2E_PORT) --noreload > $(E2E_LOG) 2>&1 & \
 	  server=$$!; \
 	  trap 'pkill -P $$server >/dev/null 2>&1; kill $$server >/dev/null 2>&1; true' EXIT INT TERM; \
 	  for i in $$(seq 1 60); do \
@@ -142,7 +162,15 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	    sleep 1; \
 	    test $$i -lt 60 || { echo "Django did not start; see $(E2E_LOG)" >&2; tail -20 $(E2E_LOG) >&2; exit 1; }; \
 	  done; \
-	  cd frontend && E2E_BASE_URL="http://localhost:$(E2E_PORT)" $(NPM) run e2e
+	  bundle=$$(curl -s "http://localhost:$(E2E_PORT)/portal/login" \
+	    | sed -n 's/.*src="\(\/static\/[^"]*\.js\)".*/\1/p' | head -1); \
+	  test -n "$$bundle" \
+	    || { echo "The portal shell names no bundle; see $(E2E_LOG)" >&2; tail -20 $(E2E_LOG) >&2; exit 1; }; \
+	  curl -sf -o /dev/null "http://localhost:$(E2E_PORT)$$bundle" \
+	    || { echo "The portal bundle $$bundle is not served — the SPA would never start." >&2; \
+	         tail -20 $(E2E_LOG) >&2; exit 1; }; \
+	  cd frontend && E2E_BASE_URL="http://localhost:$(E2E_PORT)" $(NPM) run e2e \
+	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
 
 # ----------------------------------------------------------------- lint
 lint: lint-backend lint-frontend ## ruff + eslint + tsc

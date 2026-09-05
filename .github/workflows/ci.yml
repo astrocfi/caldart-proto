@@ -120,11 +120,13 @@ jobs:
           --health-retries 20
 
     env:
-      # `make e2e` resets and seeds this database itself.
+      # `make e2e` resets and seeds this database itself, and pins every
+      # setting its server needs (DEBUG, SECRET_KEY, ALLOWED_HOSTS, …), so
+      # this job deliberately supplies nothing but the database it creates
+      # below and somewhere to put the server log.
       E2E_DATABASE_URL: postgres://caldart:caldart@localhost:5432/caldart_e2e
       DATABASE_URL: postgres://caldart:caldart@localhost:5432/caldart
-      SECRET_KEY: ci-secret-key
-      DEBUG: "false"
+      E2E_LOG: ${{ github.workspace }}/e2e-server.log
 
     steps:
       - uses: actions/checkout@v4
@@ -159,12 +161,23 @@ jobs:
       - name: Run the five flows
         run: make e2e SKIP_CREATEDB=1
 
+      - name: Show the Django log
+        if: failure()
+        run: tail -200 "$E2E_LOG" || true
+
       - name: Upload the report when a flow fails
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: frontend/playwright-report
+          # The HTML report, plus the traces and screenshots it links to, plus
+          # the server's own log: enough to see what the browser and Django
+          # each did without reproducing the run.
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            e2e-server.log
+          if-no-files-found: warn
           retention-days: 7
 
   docs:
