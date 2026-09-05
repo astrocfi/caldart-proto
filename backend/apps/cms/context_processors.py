@@ -8,15 +8,13 @@
 from __future__ import annotations
 
 from django.http import HttpRequest
+from wagtail.models import Page, Site
 
 
 def site_chrome(request: HttpRequest) -> dict:
-    from apps.cms.models import DEFAULT_THEME, SiteSettings
+    from apps.cms.models import DEFAULT_THEME, get_site_settings
 
-    try:
-        settings_obj = SiteSettings.load(request_or_site=request)
-    except Exception:  # pragma: no cover - before the first site exists
-        settings_obj = None
+    settings_obj = get_site_settings(request)
 
     return {
         "site_settings": settings_obj,
@@ -29,27 +27,16 @@ def build_nav(request: HttpRequest) -> list[dict]:
     """Top navigation entries.
 
     Wagtail pages flagged ``show_in_menus`` come first, then the portal links
-    every visitor needs.
+    every visitor needs (PLAN §7).
     """
-    from wagtail.models import Page, Site
-
     entries: list[dict] = []
-    try:
-        site = Site.find_for_request(request)
-        root = site.root_page if site else None
-    except Exception:  # pragma: no cover - no site configured yet
-        root = None
 
+    site = Site.find_for_request(request)
+    root = site.root_page if site else None
     if root is not None:
-        pages = (
-            Page.objects.child_of(root)
-            .live()
-            .in_menu()
-            .only("title", "url_path", "slug", "depth", "path")
-        )
+        pages = Page.objects.child_of(root).live().in_menu()
         entries.extend({"title": p.title, "url": p.url, "active": False} for p in pages)
 
-    path = request.path
     entries.append({"title": "Join", "url": "/portal/join", "active": False})
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:
@@ -57,7 +44,9 @@ def build_nav(request: HttpRequest) -> list[dict]:
     else:
         entries.append({"title": "Log in", "url": "/portal/login", "active": False})
 
+    path = request.path
     for entry in entries:
-        if entry["url"] and entry["url"] != "/" and path.startswith(entry["url"]):
+        url = entry["url"]
+        if url and url != "/" and path.startswith(url):
             entry["active"] = True
     return entries
