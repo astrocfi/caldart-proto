@@ -233,6 +233,8 @@ STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION = env("STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION",
 PAYPAL_CLIENT_ID = env("PAYPAL_CLIENT_ID", default="")
 PAYPAL_CLIENT_SECRET = env("PAYPAL_CLIENT_SECRET", default="")
 PAYPAL_ENV = env("PAYPAL_ENV", default="sandbox")
+# Optional: set it to have the PayPal webhook verify its signature (PLAN §10).
+PAYPAL_WEBHOOK_ID = env("PAYPAL_WEBHOOK_ID", default="")
 PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED", default=True)
 
 # --------------------------------------------------------------------------

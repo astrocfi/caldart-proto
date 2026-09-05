@@ -1,0 +1,235 @@
+/*
+ * Checkout: plan cards, contribution tiers, provider tabs.
+ *
+ * Mobile first — one column until 34rem, then two.  Only semantic tokens are
+ * used, so the three themes need no extra rules (PLAN §9).
+ */
+
+.checkout__section {
+  margin-bottom: var(--space-5);
+}
+
+.checkout__section:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.checkout__hint {
+  font-size: var(--text-sm);
+  max-width: var(--measure);
+  margin: 0 0 var(--space-3);
+}
+
+/* ------------------------------------------------------------ plan cards */
+.plan-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 34rem) {
+  .plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.plan-card {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4);
+  border: var(--hairline) solid var(--color-rule);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: border-color var(--duration) var(--ease);
+}
+
+.plan-card:hover {
+  border-color: var(--color-rule-strong);
+}
+
+.plan-card[data-selected='true'] {
+  border-color: var(--color-primary);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.plan-card:focus-within {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.plan-card input {
+  margin-top: 0.2rem;
+  width: auto;
+  flex: none;
+  accent-color: var(--color-primary);
+}
+
+.plan-card__body {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.plan-card__name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.plan-card__price {
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-card__term,
+.plan-card__description {
+  display: block;
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+}
+
+/* ------------------------------------------------------ contribution tiers */
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-2);
+}
+
+.tier-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline) solid var(--color-rule);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+
+.tier-card:hover {
+  border-color: var(--color-rule-strong);
+}
+
+.tier-card[data-selected='true'] {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+}
+
+.tier-card:focus-within {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.tier-card input {
+  width: auto;
+  flex: none;
+  accent-color: var(--color-primary);
+}
+
+.checkout__other {
+  margin-top: var(--space-3);
+  max-width: 14rem;
+}
+
+.checkout__other-input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ----------------------------------------------------------------- total */
+.checkout__total {
+  margin: 0 0 var(--space-5);
+  padding-top: var(--space-3);
+  border-top: var(--hairline) solid var(--color-rule);
+  font-size: var(--text-sm);
+}
+
+.checkout__total > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-1) 0;
+}
+
+.checkout__total dt,
+.checkout__total dd {
+  margin: 0;
+}
+
+.checkout__total-row {
+  border-top: var(--hairline) solid var(--color-rule);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2) !important;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
+/* ------------------------------------------------------------------ tabs */
+.checkout__pay {
+  border-top: var(--hairline) solid var(--color-rule);
+  padding-top: var(--space-4);
+}
+
+.checkout__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-rule);
+}
+
+.checkout__tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+
+.checkout__tab:hover {
+  color: var(--color-fg);
+}
+
+.checkout__tab[aria-selected='true'] {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+  border-bottom-color: var(--color-accent);
+}
+
+.checkout__panel {
+  min-height: 4rem;
+}
+
+.checkout__error {
+  color: var(--color-bad);
+  background: var(--color-bad-bg);
+  border-left: 3px solid var(--color-bad);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.checkout__fineprint {
+  font-size: var(--text-xs);
+  max-width: var(--measure);
+}

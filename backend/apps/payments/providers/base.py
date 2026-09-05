@@ -7,6 +7,23 @@ from django.http import HttpRequest, HttpResponse
 from apps.payments.models import Payment
 
 
+class PaymentError(RuntimeError):
+    """A payment could not be completed.  The API turns this into HTTP 400."""
+
+
+class ProviderNotConfigured(PaymentError):
+    """The provider is missing its API keys."""
+
+
+class PaymentVerificationError(PaymentError):
+    """The provider's own record of the payment does not match ours.
+
+    Raised when the amount, currency, status or metadata returned by Stripe or
+    PayPal disagrees with the :class:`~apps.payments.models.Payment` row, which
+    is the one thing that must never be trusted to the client.
+    """
+
+
 class Provider:
     """A payment backend.
 
