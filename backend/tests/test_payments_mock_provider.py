@@ -9,6 +9,7 @@ from apps.members.models import Membership, MembershipSource
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.providers import available_providers, get_provider
+from apps.payments.providers.base import ProviderNotConfigured
 from apps.payments.providers.mock import MockPaymentsDisabled
 from apps.payments.services import create_checkout, mark_failed, mark_succeeded
 
@@ -150,9 +151,14 @@ def test_unknown_provider_slug():
 
 
 @pytest.mark.parametrize("slug", ["stripe", "paypal"])
-def test_real_providers_are_registered_but_unimplemented(slug, member, annual_plan):
+def test_real_providers_refuse_to_start_without_keys(slug, member, annual_plan, settings):
+    """Missing keys are a configuration error, not a 500 (PLAN §10)."""
+    settings.STRIPE_SECRET_KEY = ""
+    settings.PAYPAL_CLIENT_ID = ""
+    settings.PAYPAL_CLIENT_SECRET = ""
+
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     provider = get_provider(slug)
     assert provider.slug == slug
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ProviderNotConfigured):
         provider.start(payment)

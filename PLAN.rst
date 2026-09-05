@@ -731,6 +731,7 @@ Env vars (``.env.example`` is the reference): ``DATABASE_URL``,
 ``STRIPE_SECRET_KEY``, ``STRIPE_WEBHOOK_SECRET``,
 ``STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION``, ``PAYPAL_CLIENT_ID``,
 ``PAYPAL_CLIENT_SECRET``, ``PAYPAL_ENV`` (``sandbox``/``live``),
+``PAYPAL_WEBHOOK_ID`` (optional; enables webhook signature verification),
 ``PAYMENTS_MOCK_ENABLED``, ``DJANGO_VITE_DEV_MODE``, ``BACKUP_DIR``,
 ``DB_BACKUP_VIA_DOCKER``.
 
