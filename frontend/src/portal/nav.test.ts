@@ -23,7 +23,19 @@ describe('hasAnyRole', () => {
 
 describe('visibleNavItems', () => {
   it('shows a plain member only the membership entries', () => {
-    expect(labels(['member'])).toEqual(['Dashboard', 'My profile', 'My aircraft', 'Renew']);
+    expect(labels(['member'])).toEqual([
+      'Dashboard',
+      'My profile',
+      'My aircraft',
+      'Renew',
+      'Change password',
+    ]);
+  });
+
+  it('offers every route the portal can render', () => {
+    // A nav entry pointing at nothing, or a screen nothing links to, is the
+    // integration bug this catches.
+    expect(NAV_ITEMS.map((item) => item.to)).toContain('/change-password');
   });
 
   it('adds the leader entries for dart_leader', () => {
