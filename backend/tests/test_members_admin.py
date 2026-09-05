@@ -1,0 +1,704 @@
+"""Account-administrator member management (PLAN §6.4).
+
+Covers the role matrix on every endpoint, each list filter against a
+deliberately mixed data set, ordering, member creation with and without a
+password, nested profile updates, the delete guard rails, and the arithmetic
+of a manually granted term.
+"""
+
+from __future__ import annotations
+
+from datetime import timedelta
+
+import pytest
+from django.contrib.auth import get_user_model
+from django.core import mail
+
+from apps.accounts.roles import (
+    ACCOUNT_ADMIN,
+    DART_LEADER,
+    MEMBER,
+    SYSTEM_ADMIN,
+    USER_ADMIN,
+    WEBSITE_ADMIN,
+)
+from apps.members.models import (
+    MedicalType,
+    MemberProfile,
+    Membership,
+    MembershipSource,
+    MembershipStatusChoices,
+    PilotCertificateType,
+)
+from tests.factories import (
+    AircraftFactory,
+    DartFactory,
+    MemberProfileFactory,
+    MembershipFactory,
+    PaymentFactory,
+    UserFactory,
+)
+
+pytestmark = pytest.mark.django_db
+
+User = get_user_model()
+
+LIST_URL = "/api/v1/admin/members"
+CSV_URL = "/api/v1/admin/members/export.csv"
+PDF_URL = "/api/v1/admin/members/export.pdf"
+
+#: Roles that may use the members-admin API at all (PLAN §4.1).
+ALLOWED_ROLES = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
+DENIED_ROLES = [MEMBER, DART_LEADER, USER_ADMIN, WEBSITE_ADMIN]
+
+
+def detail_url(user) -> str:
+    return f"{LIST_URL}/{user.pk}"
+
+
+def grant_url(user) -> str:
+    return f"{LIST_URL}/{user.pk}/memberships"
+
+
+def membership_url(term) -> str:
+    return f"/api/v1/admin/memberships/{term.pk}"
+
+
+# --------------------------------------------------------------------------
+# Fixtures
+# --------------------------------------------------------------------------
+@pytest.fixture
+def admin_client(api_client, account_admin):
+    api_client.force_login(account_admin)
+    return api_client
+
+
+@pytest.fixture
+def population(annual_plan, life_plan, today, dart):
+    """A mixed member table: current, expiring, expired, lifetime and never."""
+    day = timedelta(days=1)
+    other_dart = DartFactory(name="Livermore", airport_identifier="LVK", city="Livermore")
+    aircraft = AircraftFactory(n_number="N4242C")
+
+    people: dict = {}
+
+    current = UserFactory(email="current@example.test", first_name="Ana", last_name="Bracco")
+    MemberProfileFactory(
+        user=current,
+        dart=dart,
+        phone="415-555-0100",
+        certificate_number="1234567",
+        pilot_certificate_type=PilotCertificateType.PRIVATE,
+        medical_type=MedicalType.THIRD,
+        city="Palo Alto",
+    )
+    current.profile.aircraft.add(aircraft)
+    MembershipFactory(user=current, plan=annual_plan, starts_on=today - 100 * day)
+    people["current"] = current
+
+    expiring = UserFactory(email="expiring@example.test", first_name="Bo", last_name="Chen")
+    MemberProfileFactory(
+        user=expiring,
+        dart=other_dart,
+        phone="510-555-0111",
+        pilot_certificate_type=PilotCertificateType.COMMERCIAL,
+        medical_type=MedicalType.BASICMED,
+    )
+    MembershipFactory(
+        user=expiring, plan=annual_plan, starts_on=today - 350 * day, ends_on=today + 14 * day
+    )
+    people["expiring"] = expiring
+
+    expired = UserFactory(email="expired@example.test", first_name="Cleo", last_name="Duarte")
+    MemberProfileFactory(
+        user=expired,
+        dart=dart,
+        phone="650-555-0122",
+        pilot_certificate_type=PilotCertificateType.STUDENT,
+        medical_type=MedicalType.NONE,
+    )
+    MembershipFactory(
+        user=expired,
+        plan=annual_plan,
+        starts_on=today - 500 * day,
+        ends_on=today - 135 * day,
+        status=MembershipStatusChoices.EXPIRED,
+    )
+    people["expired"] = expired
+
+    lifetime = UserFactory(email="lifetime@example.test", first_name="Dev", last_name="Ellis")
+    MemberProfileFactory(user=lifetime, dart=other_dart, phone="707-555-0133")
+    MembershipFactory(user=lifetime, plan=life_plan, starts_on=today - 900 * day, ends_on=None)
+    people["lifetime"] = lifetime
+
+    never = UserFactory(email="never@example.test", first_name="Eve", last_name="Franco")
+    MemberProfileFactory(user=never, dart=None, phone="")
+    people["never"] = never
+
+    return people
+
+
+#: The fixture members, so a filter assertion can ignore the admin doing the
+#: filtering and any bulk rows a test adds.
+POPULATION_EMAILS = {
+    "current@example.test",
+    "expiring@example.test",
+    "expired@example.test",
+    "lifetime@example.test",
+    "never@example.test",
+}
+
+
+def rows(response) -> list[dict]:
+    return response.json()["results"]
+
+
+def emails(response) -> set[str]:
+    return {row["email"] for row in rows(response)}
+
+
+# --------------------------------------------------------------------------
+# Role matrix (PLAN §5)
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    ("method", "path_for", "payload"),
+    [
+        ("get", lambda u, t: LIST_URL, None),
+        ("get", lambda u, t: CSV_URL, None),
+        ("get", lambda u, t: PDF_URL, None),
+        ("get", lambda u, t: detail_url(u), None),
+        ("post", lambda u, t: LIST_URL, {"email": "anon@example.test"}),
+        ("patch", lambda u, t: detail_url(u), {"first_name": "Nope"}),
+        ("delete", lambda u, t: detail_url(u), None),
+        ("post", lambda u, t: grant_url(u), {"plan": "annual"}),
+        ("patch", lambda u, t: membership_url(t), {"note": "nope"}),
+    ],
+)
+def test_every_endpoint_is_401_when_anonymous(
+    api_client, member, annual_plan, method, path_for, payload
+):
+    term = MembershipFactory(user=member, plan=annual_plan)
+    response = getattr(api_client, method)(path_for(member, term), payload, format="json")
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize("role", DENIED_ROLES)
+def test_reads_are_forbidden_without_account_admin(api_client, all_role_users, population, role):
+    api_client.force_login(all_role_users[role])
+    target = population["current"]
+    for url in (LIST_URL, CSV_URL, PDF_URL, detail_url(target)):
+        assert api_client.get(url).status_code == 403, url
+
+
+@pytest.mark.parametrize("role", DENIED_ROLES)
+def test_writes_are_forbidden_without_account_admin(
+    api_client, all_role_users, population, annual_plan, role
+):
+    api_client.force_login(all_role_users[role])
+    target = population["current"]
+    term = target.memberships.first()
+
+    assert api_client.post(LIST_URL, {"email": "x@example.test"}).status_code == 403
+    assert api_client.patch(detail_url(target), {"first_name": "X"}).status_code == 403
+    assert api_client.post(grant_url(target), {"plan": "annual"}).status_code == 403
+    assert api_client.patch(membership_url(term), {"note": "x"}).status_code == 403
+    assert api_client.delete(detail_url(target)).status_code == 403
+
+
+@pytest.mark.parametrize("role", sorted(ALLOWED_ROLES))
+def test_account_and_system_admins_may_read(api_client, all_role_users, population, role):
+    api_client.force_login(all_role_users[role])
+    assert api_client.get(LIST_URL).status_code == 200
+    assert api_client.get(detail_url(population["current"])).status_code == 200
+    assert api_client.get(CSV_URL).status_code == 200
+    assert api_client.get(PDF_URL).status_code == 200
+
+
+# --------------------------------------------------------------------------
+# List: shape, pagination, filters, ordering
+# --------------------------------------------------------------------------
+def test_row_shape_matches_the_portal_member_row(admin_client, population, today):
+    response = admin_client.get(LIST_URL, {"search": "current@example.test"})
+    assert response.status_code == 200
+    (row,) = rows(response)
+    assert set(row) == {
+        "user_id",
+        "name",
+        "email",
+        "phone",
+        "dart",
+        "is_active",
+        "membership",
+        "pilot_certificate_type",
+        "medical_type",
+        "medical_expiration",
+        "medical_is_current",
+        "aircraft",
+        "joined_on",
+    }
+    assert row["name"] == "Ana Bracco"
+    assert row["dart"] == "Palo Alto"
+    assert row["phone"] == "415-555-0100"
+    assert row["aircraft"] == ["N4242C"]
+    assert row["medical_is_current"] is True
+    assert row["membership"]["status"] == "current"
+    assert row["joined_on"] == (today - timedelta(days=100)).isoformat()
+
+
+def test_list_is_paginated(admin_client, population):
+    response = admin_client.get(LIST_URL, {"page_size": 2})
+    body = response.json()
+    assert body["count"] == User.objects.count()
+    assert len(body["results"]) == 2
+    assert body["next"]
+
+
+@pytest.mark.parametrize(
+    ("status_value", "expected"),
+    [
+        ("current", {"current@example.test", "expiring@example.test", "lifetime@example.test"}),
+        ("expired", {"expired@example.test"}),
+        ("none", {"never@example.test"}),
+    ],
+)
+def test_status_filter(admin_client, population, status_value, expected):
+    """Each of the five fixture members lands in exactly one status bucket."""
+    response = admin_client.get(LIST_URL, {"status": status_value, "page_size": 200})
+    assert emails(response) & POPULATION_EMAILS == expected
+
+
+def test_status_filter_partitions_the_table(admin_client, population):
+    total = admin_client.get(LIST_URL).json()["count"]
+    counts = [
+        admin_client.get(LIST_URL, {"status": value}).json()["count"]
+        for value in ("current", "expired", "none")
+    ]
+    assert sum(counts) == total
+
+
+def test_expiring_within_uses_the_computed_expiry(admin_client, population):
+    response = admin_client.get(LIST_URL, {"expiring_within": 30})
+    assert emails(response) == {"expiring@example.test"}
+    # A lifetime member never turns up in an expiry window.
+    assert "lifetime@example.test" not in emails(response)
+    assert admin_client.get(LIST_URL, {"expiring_within": 400}).json()["count"] == 2
+
+
+def test_expiring_within_follows_a_renewal(admin_client, population, annual_plan, today):
+    """Renewing early moves the member out of the expiring window at once."""
+    expiring = population["expiring"]
+    MembershipFactory(
+        user=expiring,
+        plan=annual_plan,
+        starts_on=today + timedelta(days=15),
+        ends_on=today + timedelta(days=379),
+    )
+    response = admin_client.get(LIST_URL, {"expiring_within": 30})
+    assert "expiring@example.test" not in emails(response)
+
+
+@pytest.mark.parametrize(
+    ("term", "expected"),
+    [
+        ("Bracco", "current@example.test"),
+        ("ana", "current@example.test"),
+        ("expiring@example.test", "expiring@example.test"),
+        ("510-555-0111", "expiring@example.test"),
+        ("1234567", "current@example.test"),
+        ("Ana Bracco", "current@example.test"),
+    ],
+)
+def test_search_covers_name_email_phone_and_certificate_number(
+    admin_client, population, term, expected
+):
+    response = admin_client.get(LIST_URL, {"search": term})
+    assert emails(response) == {expected}
+
+
+def test_certificate_and_medical_filters(admin_client, population):
+    response = admin_client.get(LIST_URL, {"certificate": PilotCertificateType.COMMERCIAL})
+    assert emails(response) == {"expiring@example.test"}
+    response = admin_client.get(LIST_URL, {"medical": MedicalType.BASICMED})
+    assert emails(response) == {"expiring@example.test"}
+
+
+def test_dart_filter_accepts_an_id_or_a_name(admin_client, population, dart):
+    by_id = admin_client.get(LIST_URL, {"dart": dart.pk})
+    assert emails(by_id) == {"current@example.test", "expired@example.test"}
+    by_name = admin_client.get(LIST_URL, {"dart": "Livermore"})
+    assert emails(by_name) == {"expiring@example.test", "lifetime@example.test"}
+
+
+def test_role_filter(admin_client, population, account_admin):
+    response = admin_client.get(LIST_URL, {"role": ACCOUNT_ADMIN})
+    assert emails(response) == {account_admin.email}
+
+
+def test_is_active_filter(admin_client, population):
+    never = population["never"]
+    never.is_active = False
+    never.save(update_fields=["is_active"])
+    assert "never@example.test" in emails(admin_client.get(LIST_URL, {"is_active": "false"}))
+    assert "never@example.test" not in emails(admin_client.get(LIST_URL, {"is_active": "true"}))
+
+
+def test_filters_combine(admin_client, population, dart):
+    response = admin_client.get(LIST_URL, {"status": "current", "dart": dart.pk})
+    assert emails(response) == {"current@example.test"}
+
+
+def test_ordering_by_name_is_the_default(admin_client, population):
+    names = [row["name"] for row in rows(admin_client.get(LIST_URL, {"page_size": 200}))]
+    assert names == sorted(names, key=lambda value: value.split()[-1])
+
+
+@pytest.mark.parametrize("field", ["name", "email", "expires_on", "joined"])
+def test_ordering_accepts_every_documented_field(admin_client, population, field):
+    assert admin_client.get(LIST_URL, {"ordering": field}).status_code == 200
+    assert admin_client.get(LIST_URL, {"ordering": f"-{field}"}).status_code == 200
+
+
+def test_ordering_by_expires_on_puts_lifetime_last(admin_client, population):
+    ordered = rows(admin_client.get(LIST_URL, {"status": "current", "ordering": "expires_on"}))
+    expiries = [row["membership"]["expires_on"] for row in ordered]
+    assert expiries[0] is not None
+    assert expiries[-1] is None
+    dated = [value for value in expiries if value]
+    assert dated == sorted(dated)
+
+
+def test_ordering_by_joined(admin_client, population):
+    ordered = rows(admin_client.get(LIST_URL, {"ordering": "joined", "page_size": 200}))
+    joined = [row["joined_on"] for row in ordered if row["joined_on"]]
+    assert joined == sorted(joined)
+
+
+def test_the_list_does_not_scale_its_query_count_with_the_page(
+    admin_client, population, django_assert_max_num_queries
+):
+    for index in range(30):
+        MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
+    with django_assert_max_num_queries(8):
+        assert admin_client.get(LIST_URL, {"page_size": 50}).status_code == 200
+
+
+# --------------------------------------------------------------------------
+# Retrieve
+# --------------------------------------------------------------------------
+def test_detail_returns_the_whole_record(admin_client, population, annual_plan):
+    member = population["current"]
+    member.profile.notes = "Called about the Napa exercise."
+    member.profile.how_heard = "EAA chapter meeting"
+    member.profile.save()
+    PaymentFactory(user=member, plan=annual_plan, amount_cents=6_500, contribution_cents=2_000)
+
+    body = admin_client.get(detail_url(member)).json()
+    assert set(body) >= {
+        "id",
+        "email",
+        "first_name",
+        "last_name",
+        "name",
+        "is_active",
+        "roles",
+        "membership",
+        "profile",
+        "memberships",
+        "payments",
+        "joined_on",
+    }
+    assert body["profile"]["notes"] == "Called about the Napa exercise."
+    assert body["profile"]["how_heard"] == "EAA chapter meeting"
+    assert body["profile"]["dart"] == {"id": member.profile.dart_id, "name": "Palo Alto"}
+    assert body["profile"]["aircraft"][0]["n_number"] == "N4242C"
+    assert len(body["memberships"]) == 1
+    assert body["payments"][0]["amount_cents"] == 6_500
+    assert body["payments"][0]["contribution_cents"] == 2_000
+
+
+def test_detail_404s_for_an_unknown_id(admin_client):
+    assert admin_client.get(f"{LIST_URL}/999999").status_code == 404
+
+
+# --------------------------------------------------------------------------
+# Create
+# --------------------------------------------------------------------------
+def test_create_with_a_password(admin_client, dart):
+    payload = {
+        "email": "newbie@example.test",
+        "first_name": "Nova",
+        "last_name": "Ito",
+        "password": "correct-horse-battery",
+        "profile": {
+            "phone": "408-555-0199",
+            "city": "San Jose",
+            "dart": dart.pk,
+            "pilot_certificate_type": PilotCertificateType.PRIVATE,
+            "ratings": ["instrument", "cfi"],
+            "notes": "Joined at the Watsonville airshow.",
+        },
+    }
+    response = admin_client.post(LIST_URL, payload, format="json")
+    assert response.status_code == 201
+    body = response.json()
+    assert body["email"] == "newbie@example.test"
+    assert body["roles"] == [MEMBER]
+    assert body["profile"]["phone"] == "408-555-0199"
+    assert body["profile"]["ratings"] == ["instrument", "cfi"]
+    assert body["profile"]["notes"] == "Joined at the Watsonville airshow."
+    assert body["membership"]["status"] == "none"
+
+    user = User.objects.get(email="newbie@example.test")
+    assert user.check_password("correct-horse-battery")
+    assert user.has_role(MEMBER)
+    assert MemberProfile.objects.filter(user=user).exists()
+    assert mail.outbox == []
+
+
+def test_create_without_a_password_emails_an_invitation(
+    admin_client, django_capture_on_commit_callbacks
+):
+    with django_capture_on_commit_callbacks(execute=True):
+        response = admin_client.post(LIST_URL, {"email": "invited@example.test"}, format="json")
+    assert response.status_code == 201
+
+    user = User.objects.get(email="invited@example.test")
+    assert not user.has_usable_password()
+    assert len(mail.outbox) == 1
+    message = mail.outbox[0]
+    assert message.to == ["invited@example.test"]
+    assert "/portal/reset-password?uid=" in message.body
+    assert "token=" in message.body
+
+
+def test_create_rejects_a_duplicate_email(admin_client, population):
+    response = admin_client.post(LIST_URL, {"email": "CURRENT@example.test"}, format="json")
+    assert response.status_code == 400
+    assert "email" in response.json()
+
+
+def test_create_rejects_a_weak_password(admin_client):
+    response = admin_client.post(
+        LIST_URL, {"email": "weak@example.test", "password": "123"}, format="json"
+    )
+    assert response.status_code == 400
+    assert "password" in response.json()
+    assert not User.objects.filter(email="weak@example.test").exists()
+
+
+def test_create_rejects_an_unknown_rating(admin_client):
+    response = admin_client.post(
+        LIST_URL,
+        {"email": "rating@example.test", "profile": {"ratings": ["rocket"]}},
+        format="json",
+    )
+    assert response.status_code == 400
+
+
+# --------------------------------------------------------------------------
+# Update
+# --------------------------------------------------------------------------
+def test_patch_updates_the_user_and_the_nested_profile(admin_client, population, dart):
+    member = population["expired"]
+    response = admin_client.patch(
+        detail_url(member),
+        {
+            "first_name": "Cleopatra",
+            "is_active": False,
+            "profile": {"phone": "650-555-9999", "notes": "Lapsed; sent a note."},
+        },
+        format="json",
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["first_name"] == "Cleopatra"
+    assert body["is_active"] is False
+    assert body["profile"]["phone"] == "650-555-9999"
+    assert body["profile"]["notes"] == "Lapsed; sent a note."
+    # Untouched profile fields survive a partial update.
+    assert body["profile"]["dart"]["name"] == dart.name
+
+    member.refresh_from_db()
+    assert member.first_name == "Cleopatra"
+    assert member.profile.phone == "650-555-9999"
+
+
+def test_patch_can_clear_the_dart(admin_client, population):
+    member = population["current"]
+    response = admin_client.patch(detail_url(member), {"profile": {"dart": None}}, format="json")
+    assert response.status_code == 200
+    assert response.json()["profile"]["dart"] is None
+
+
+def test_patch_rejects_an_email_already_in_use(admin_client, population):
+    response = admin_client.patch(
+        detail_url(population["current"]), {"email": "expired@example.test"}, format="json"
+    )
+    assert response.status_code == 400
+
+
+def test_patch_creates_a_profile_when_the_account_has_none(admin_client):
+    bare = UserFactory(email="bare@example.test", roles=[MEMBER])
+    response = admin_client.patch(
+        detail_url(bare), {"profile": {"phone": "916-555-0000"}}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["profile"]["phone"] == "916-555-0000"
+
+
+def test_put_is_not_offered(admin_client, population):
+    assert admin_client.put(detail_url(population["current"]), {}).status_code == 405
+
+
+# --------------------------------------------------------------------------
+# Delete
+# --------------------------------------------------------------------------
+def test_delete_hard_deletes_and_cascades(admin_client, population, annual_plan):
+    member = population["current"]
+    PaymentFactory(user=member, plan=annual_plan)
+    pk = member.pk
+
+    assert admin_client.delete(detail_url(member)).status_code == 204
+    assert not User.objects.filter(pk=pk).exists()
+    assert not MemberProfile.objects.filter(user_id=pk).exists()
+    assert not Membership.objects.filter(user_id=pk).exists()
+
+
+def test_you_cannot_delete_yourself(admin_client, account_admin):
+    assert admin_client.delete(detail_url(account_admin)).status_code == 403
+    assert User.objects.filter(pk=account_admin.pk).exists()
+
+
+def test_an_account_admin_cannot_delete_a_system_admin(admin_client, system_admin):
+    response = admin_client.delete(detail_url(system_admin))
+    assert response.status_code == 403
+    assert User.objects.filter(pk=system_admin.pk).exists()
+
+
+def test_a_system_admin_can_delete_a_system_admin(api_client, system_admin):
+    other = UserFactory(email="root2@example.test", roles=[MEMBER, SYSTEM_ADMIN])
+    api_client.force_login(system_admin)
+    assert api_client.delete(detail_url(other)).status_code == 204
+    assert not User.objects.filter(pk=other.pk).exists()
+
+
+# --------------------------------------------------------------------------
+# Granting and editing terms
+# --------------------------------------------------------------------------
+def test_grant_to_a_current_member_starts_the_day_after_the_expiry(
+    admin_client, population, annual_plan, account_admin, today
+):
+    member = population["current"]
+    expiry = member.memberships.first().ends_on
+
+    response = admin_client.post(
+        grant_url(member), {"plan": annual_plan.slug, "note": "Comped by the board"}, format="json"
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["starts_on"] == (expiry + timedelta(days=1)).isoformat()
+    assert body["ends_on"] == (expiry + timedelta(days=365)).isoformat()
+    assert body["source"] == MembershipSource.MANUAL
+    assert body["granted_by"] == account_admin.display_name
+    assert body["note"] == "Comped by the board"
+
+
+def test_grant_to_an_expired_member_starts_today(admin_client, population, annual_plan, today):
+    member = population["expired"]
+    response = admin_client.post(grant_url(member), {"plan": annual_plan.slug}, format="json")
+    assert response.status_code == 201
+    assert response.json()["starts_on"] == today.isoformat()
+    assert response.json()["ends_on"] == (today + timedelta(days=364)).isoformat()
+
+
+def test_grant_of_a_lifetime_plan_has_no_end_date(admin_client, population, life_plan, today):
+    member = population["never"]
+    response = admin_client.post(grant_url(member), {"plan": life_plan.slug}, format="json")
+    assert response.status_code == 201
+    assert response.json()["ends_on"] is None
+    assert response.json()["starts_on"] == today.isoformat()
+
+    detail = admin_client.get(detail_url(member)).json()
+    assert detail["membership"] == {
+        "status": "current",
+        "expires_on": None,
+        "plan": life_plan.name,
+        "is_lifetime": True,
+    }
+
+
+def test_grant_honours_an_explicit_start_date(admin_client, population, annual_plan, today):
+    member = population["never"]
+    start = today - timedelta(days=10)
+    response = admin_client.post(
+        grant_url(member), {"plan": annual_plan.slug, "starts_on": start.isoformat()}, format="json"
+    )
+    assert response.status_code == 201
+    assert response.json()["starts_on"] == start.isoformat()
+    assert response.json()["ends_on"] == (start + timedelta(days=364)).isoformat()
+
+
+def test_grant_rejects_an_unknown_plan(admin_client, population):
+    response = admin_client.post(
+        grant_url(population["never"]), {"plan": "platinum"}, format="json"
+    )
+    assert response.status_code == 400
+
+
+def test_grant_404s_for_an_unknown_member(admin_client, annual_plan):
+    response = admin_client.post(
+        f"{LIST_URL}/999999/memberships", {"plan": annual_plan.slug}, format="json"
+    )
+    assert response.status_code == 404
+
+
+def test_patch_a_term_changes_its_end_date_status_and_note(admin_client, population, today):
+    term = population["current"].memberships.first()
+    new_end = today + timedelta(days=5)
+    response = admin_client.patch(
+        membership_url(term),
+        {"ends_on": new_end.isoformat(), "note": "Shortened after a refund"},
+        format="json",
+    )
+    assert response.status_code == 200
+    term.refresh_from_db()
+    assert term.ends_on == new_end
+    assert term.note == "Shortened after a refund"
+
+    listed = admin_client.get(LIST_URL, {"search": "current@example.test"}).json()["results"][0]
+    assert listed["membership"]["expires_on"] == new_end.isoformat()
+
+
+def test_patch_a_term_to_cancelled_drops_the_membership(admin_client, population):
+    term = population["current"].memberships.first()
+    response = admin_client.patch(
+        membership_url(term), {"status": MembershipStatusChoices.CANCELLED}, format="json"
+    )
+    assert response.status_code == 200
+    listed = admin_client.get(LIST_URL, {"search": "current@example.test"}).json()["results"][0]
+    assert listed["membership"]["status"] == "none"
+
+
+def test_patch_a_term_rejects_an_end_before_the_start(admin_client, population, today):
+    term = population["current"].memberships.first()
+    response = admin_client.patch(
+        membership_url(term),
+        {"ends_on": (term.starts_on - timedelta(days=1)).isoformat()},
+        format="json",
+    )
+    assert response.status_code == 400
+    assert "ends_on" in response.json()
+
+
+def test_patch_a_term_cannot_move_its_plan_or_start(admin_client, population, life_plan, today):
+    term = population["current"].memberships.first()
+    original_start = term.starts_on
+    response = admin_client.patch(
+        membership_url(term),
+        {"starts_on": today.isoformat(), "plan": life_plan.slug},
+        format="json",
+    )
+    assert response.status_code == 200
+    term.refresh_from_db()
+    assert term.starts_on == original_start
+    assert term.plan_id != life_plan.pk
