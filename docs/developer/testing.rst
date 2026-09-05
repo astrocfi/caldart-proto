@@ -312,14 +312,19 @@ low-friction flows of ``PLAN.rst`` §1 — the same ones the
 4. an account administrator sees payments per month and per year;
 5. a website administrator adds, edits and deletes a page.
 
-The specs live in ``frontend/e2e/``.  They use the **mock** payment provider,
-so no keys are needed and no money moves; ``PAYMENTS_MOCK_ENABLED`` must be on,
-which it is by default in development.
+The specs live in ``frontend/e2e/``, alongside ``playwright.config.ts``.  They
+use the **mock** payment provider, so no keys are needed and no money moves;
+``PAYMENTS_MOCK_ENABLED`` must be on, which it is by default in development.
 
 Before running them you need what a browser needs: ``make build`` for the
 assets, ``make migrate`` and ``make seed`` for the data, and a server on the
 port the Playwright config expects.  The first run on a machine also needs
 ``npx playwright install`` to fetch the browsers.
+
+If ``make e2e`` reports that it cannot find a configuration file, this suite is
+not in your checkout yet: ``@playwright/test`` and the ``e2e`` script are in
+``package.json``, but the specs themselves land with the integration work.  The
+:doc:`../demo-walkthrough` drives the same five flows by hand in the meantime.
 
 Linting and type-checking
 =========================
