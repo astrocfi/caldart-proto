@@ -2,16 +2,14 @@
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';
-import { comingSoon } from './placeholder';
-
-const BRANCH = 'feat/auth-portal';
+import { UserDetailPage, UsersListPage } from '../features/admin-users';
 
 export const adminUsersRoutes: RouteObject[] = [
   {
     element: <RequireRole roles={['user_admin']} />,
     children: [
-      { path: 'admin/users', element: comingSoon('Users and roles', BRANCH) },
-      { path: 'admin/users/:id', element: comingSoon('User record', BRANCH) },
+      { path: 'admin/users', element: <UsersListPage /> },
+      { path: 'admin/users/:id', element: <UserDetailPage /> },
     ],
   },
 ];
