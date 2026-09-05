@@ -16,6 +16,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Field } from '../../components/Field';
 import './aircraft.css';
 import { InsuranceChip } from './InsuranceChip';
+import { ServiceChip } from './ServiceChip';
 import { useAircraftSearch, useCreateAircraft } from './api';
 import type { AircraftFormValues } from './form';
 import { aircraftPayload, emptyAircraftValues, validateAircraft } from './form';
@@ -101,6 +102,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
                   {aircraft.make} {aircraft.model}
                 </span>
                 <InsuranceChip aircraft={aircraft} />
+                <ServiceChip aircraft={aircraft} />
               </button>
             </li>
           ))}

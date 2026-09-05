@@ -32,10 +32,11 @@ class AircraftFilter(django_filters.FilterSet):
     expiring_within = django_filters.NumberFilter(
         method="filter_expiring_within", label="Expiring within (days)"
     )
+    is_active = django_filters.BooleanFilter(field_name="is_active", label="In service")
 
     class Meta:
         model = Aircraft
-        fields = ["search", "make", "owner_type", "insurance", "expiring_within"]
+        fields = ["search", "make", "owner_type", "insurance", "expiring_within", "is_active"]
 
     def filter_search(self, queryset, name, value):
         """N-number, make, model or owner name.
@@ -72,6 +73,11 @@ class NullsLastOrderingFilter(OrderingFilter):
     Postgres sorts NULLs first on a descending order, which would put every
     aircraft with no insurance on file at the top of "latest expiry" — the
     opposite of what an administrator chasing lapsed cover wants to see.
+
+    Every ordering also ends in the primary key.  Sorting the register by a
+    column many rows share — ``make``, or an expiry date a whole club renews
+    on one day — otherwise leaves the tie order undefined, and page two of a
+    ``LIMIT``/``OFFSET`` query can then repeat or skip rows.
     """
 
     def filter_queryset(self, request, queryset, view):
@@ -84,4 +90,6 @@ class NullsLastOrderingFilter(OrderingFilter):
             else F(term).asc(nulls_last=True)
             for term in ordering
         ]
+        if not any(term.lstrip("-") in {"pk", "id"} for term in ordering):
+            terms.append(F("pk").asc())
         return queryset.order_by(*terms)

@@ -72,13 +72,43 @@ def test_any_member_may_list_the_register(api_client, member, aircraft):
     assert "insurance_summary" in row
 
 
-def test_detail_includes_the_attached_pilots(api_client, member, aircraft, profile):
+def test_detail_shows_the_attached_pilots_to_a_leader(api_client, dart_leader, aircraft, profile):
     profile.aircraft.add(aircraft)
-    api_client.force_login(member)
+    api_client.force_login(dart_leader)
     response = api_client.get(detail_url(aircraft))
     assert response.status_code == 200
-    assert [pilot["user_id"] for pilot in response.data["pilots"]] == [member.pk]
+    assert [pilot["user_id"] for pilot in response.data["pilots"]] == [profile.user_id]
     assert response.data["pilots"][0]["medical_is_current"] is True
+
+
+def test_detail_shows_the_attached_pilots_to_an_account_admin(
+    api_client, account_admin, aircraft, profile
+):
+    profile.aircraft.add(aircraft)
+    api_client.force_login(account_admin)
+    response = api_client.get(detail_url(aircraft))
+    assert [pilot["user_id"] for pilot in response.data["pilots"]] == [profile.user_id]
+
+
+@pytest.mark.parametrize("url_for", [detail_url, lambda a: f"{LOOKUP_URL}?n_number={a.n_number}"])
+def test_a_plain_member_never_learns_who_else_flies_an_aircraft(
+    api_client, member, aircraft, profile, url_for
+):
+    """``pilots`` carries email, membership and medical: that is §6.6 data."""
+    profile.aircraft.add(aircraft)
+    other = UserFactory(email="other@example.test", roles=[MEMBER])
+    api_client.force_login(other)
+    response = api_client.get(url_for(aircraft))
+    assert response.status_code == 200
+    assert "pilots" not in response.data
+    assert response.data["n_number"] == aircraft.n_number
+
+
+def test_lookup_shows_the_pilots_to_a_leader(api_client, dart_leader, aircraft, profile):
+    profile.aircraft.add(aircraft)
+    api_client.force_login(dart_leader)
+    response = api_client.get(LOOKUP_URL, {"n_number": aircraft.n_number})
+    assert [pilot["user_id"] for pilot in response.data["pilots"]] == [profile.user_id]
 
 
 def test_list_is_paginated_and_ordered_by_n_number(api_client, member):
@@ -407,6 +437,41 @@ def test_expiring_within_zero_days_means_expiring_today(api_client, member, regi
     AircraftFactory(n_number="N88TD", insurance_expiration=timezone.localdate())
     api_client.force_login(member)
     assert numbers(api_client.get(LIST_URL, {"expiring_within": 0})) == ["N88TD"]
+
+
+@pytest.mark.parametrize("window", ["999999999", "1e11", "-5"])
+def test_expiring_within_survives_an_absurd_window(api_client, member, register, window):
+    """An overflowing timedelta would be a 500, not a filter."""
+    api_client.force_login(member)
+    response = api_client.get(LIST_URL, {"expiring_within": window})
+    assert response.status_code == 200
+
+
+def test_expiring_within_is_clamped_to_ten_years(api_client, member, register):
+    api_client.force_login(member)
+    wide = numbers(api_client.get(LIST_URL, {"expiring_within": "999999999"}))
+    decade = numbers(api_client.get(LIST_URL, {"expiring_within": "3650"}))
+    assert wide == decade
+
+
+def test_is_active_filter(api_client, member, register):
+    AircraftFactory(n_number="N77OS", is_active=False)
+    api_client.force_login(member)
+    assert "N77OS" in numbers(api_client.get(LIST_URL))
+    assert "N77OS" not in numbers(api_client.get(LIST_URL, {"is_active": "true"}))
+    assert numbers(api_client.get(LIST_URL, {"is_active": "false"})) == ["N77OS"]
+
+
+def test_ordering_is_stable_across_pages(api_client, member):
+    """Ties on a non-unique column must not shuffle between pages."""
+    for index in range(10):
+        AircraftFactory(n_number=f"N{600 + index}TIE", make="Cessna", model="172S")
+    api_client.force_login(member)
+    query = {"ordering": "make", "page_size": 4}
+    seen: list[str] = []
+    for page in (1, 2, 3):
+        seen.extend(numbers(api_client.get(LIST_URL, {**query, "page": page})))
+    assert len(seen) == len(set(seen)) == 10
 
 
 def test_filters_combine(api_client, member, register):

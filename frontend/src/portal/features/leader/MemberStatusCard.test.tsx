@@ -59,6 +59,14 @@ describe('isGo / noGoReasons', () => {
     expect(noGoReasons(status)).toEqual(['No CalDART membership']);
   });
 
+  it('does not call a medical expired when no expiry was ever entered', () => {
+    const status = makeStatus({
+      medical: { type: 'third', expiration: null, is_current: false },
+      go_no_go: { membership: true, medical: false },
+    });
+    expect(noGoReasons(status)).toEqual(['No medical expiry on file']);
+  });
+
   it('says "no medical on file" when none was ever entered', () => {
     const status = makeStatus({
       medical: { type: 'none', expiration: null, is_current: false },

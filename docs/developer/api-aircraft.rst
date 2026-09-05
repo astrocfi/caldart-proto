@@ -65,15 +65,27 @@ Parameter            Meaning
 ``insurance``        ``current`` (expiry ≥ today) | ``expired`` (expiry <
                      today) | ``missing`` (no expiry recorded)
 ``expiring_within``  Integer days: ``today ≤ expiry ≤ today + n``.  Excludes
-                     policies that have already lapsed
+                     policies that have already lapsed.  Clamped to
+                     ``MAX_EXPIRING_WINDOW_DAYS`` (ten years), because
+                     ``today + timedelta(days=999999999)`` raises
+                     ``OverflowError`` and a query string must not be able to
+                     produce a 500
+``is_active``        ``true`` | ``false``.  The register lists both by
+                     default; the member-facing picker asks for ``true`` so an
+                     airframe an administrator has taken out of service is not
+                     offered as one to fly
 ``ordering``         ``n_number``, ``make``, ``model``, ``owner_name``,
                      ``insurance_expiration``; prefix ``-`` to reverse.
                      Defaults to ``n_number``
 ===================  ============================================================
 
-Ordering uses ``NullsLastOrderingFilter``: Postgres sorts ``NULL`` first on a
-descending order, which would put every aeroplane with no policy at the top of
-"latest expiry".  Empty values are pushed to the bottom in both directions.
+Ordering goes through ``NullsLastOrderingFilter``, which does two things.
+Postgres sorts ``NULL`` first on a descending order, which would put every
+aeroplane with no policy at the top of "latest expiry", so empty values are
+pushed to the bottom in both directions.  And every ordering ends in the
+primary key: sorting by a column many rows share — ``make``, or the expiry
+date a whole club renews on — otherwise leaves ties in an undefined order, and
+page two of a ``LIMIT``/``OFFSET`` query can then repeat or skip rows.
 
 A result row::
 
@@ -103,9 +115,17 @@ be set by the client.  Validation:
 ``GET /aircraft/{id}``
 ----------------------
 
-Any authenticated user.  The detail serializer adds ``pilots``: the members
-who list the aeroplane on their profile, each as
+Any authenticated user.  For a ``dart_leader``, ``account_admin`` or
+``system_admin`` the response also carries ``pilots``: the members who list
+the aeroplane on their profile, each as
 ``{user_id, name, email, membership_status, medical_is_current}``.
+
+The key is **absent** for anyone else.  ``pilots`` is other members' email
+addresses, membership state and medical currency — exactly what PLAN §6.6
+gates behind ``dart_leader`` — so serving it from the register to every
+signed-in member would walk around that gate.  ``aircraft_serializer_for()``
+in ``views.py`` picks the serializer per request, and the same rule applies to
+``/aircraft/lookup``.
 
 ``PATCH /aircraft/{id}`` and ``DELETE /aircraft/{id}``
 ------------------------------------------------------
@@ -208,9 +228,9 @@ aircraft, and both ``go_no_go`` flags false.  An unknown ``user_id`` is a
 ``GET /leader/aircraft?n_number=``
 ----------------------------------
 
-The same detail shape as ``GET /aircraft/{id}`` (including ``pilots``), keyed
-by normalised registration: ``404`` when unknown, ``400`` when the parameter
-is empty.
+The same detail shape as ``GET /aircraft/{id}``, keyed by normalised
+registration: ``404`` when unknown, ``400`` when the parameter is empty.
+``pilots`` is always present here, because the endpoint is role-gated already.
 
 
 Where the code lives

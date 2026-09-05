@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import HasAnyRole, IsAccountAdmin
+from apps.accounts.permissions import HasAnyRole, IsAccountAdmin, user_has_any_role
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER
 from apps.aircraft import reports as aircraft_reports
 from apps.aircraft import services
@@ -35,6 +35,22 @@ IsLeader = HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)
 #: PLAN §6.5 names the first three; ``model`` and ``owner_name`` are here so
 #: every column of the admin table is genuinely sortable.
 ORDERING_FIELDS = ["n_number", "make", "insurance_expiration", "model", "owner_name"]
+
+#: Roles that may see who flies an aircraft.
+PILOT_ROLES: tuple[str, ...] = (DART_LEADER, ACCOUNT_ADMIN)
+
+
+def aircraft_serializer_for(request):
+    """The register record, with ``pilots`` only for callers entitled to it.
+
+    ``pilots`` carries other members' email addresses, membership state and
+    medical currency — exactly what PLAN §6.6 gates behind ``dart_leader``.
+    Returning it from the register to every signed-in member would walk
+    straight around that gate, so plain members get the aircraft alone.
+    """
+    if user_has_any_role(request.user, PILOT_ROLES):
+        return AircraftDetailSerializer
+    return AircraftSerializer
 
 
 class AircraftQuerysetMixin:
@@ -61,8 +77,10 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView):
     """``GET/PATCH/DELETE /aircraft/{id}`` with the object rules of §6.5."""
 
     queryset = Aircraft.objects.all()
-    serializer_class = AircraftDetailSerializer
     permission_classes = [AircraftPermission]
+
+    def get_serializer_class(self):
+        return aircraft_serializer_for(self.request)
 
 
 class AircraftLookupView(APIView):
@@ -75,7 +93,8 @@ class AircraftLookupView(APIView):
         if not n_number:
             return Response({"n_number": "Enter a registration, for example N12345."}, status=400)
         aircraft = get_object_or_404(Aircraft, n_number=n_number)
-        return Response(AircraftDetailSerializer(aircraft).data)
+        serializer_class = aircraft_serializer_for(request)
+        return Response(serializer_class(aircraft).data)
 
 
 # --------------------------------------------------------------------------

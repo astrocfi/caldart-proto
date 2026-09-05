@@ -27,9 +27,15 @@ export interface AircraftPilot {
   medical_is_current: boolean;
 }
 
-/** `GET /aircraft/{id}` and the leader's aircraft card carry the pilots too. */
+/**
+ * `GET /aircraft/{id}`, `/aircraft/lookup` and the leader's aircraft card.
+ *
+ * `pilots` names other members and reports their medical currency, so the
+ * server only sends it to a `dart_leader` or `account_admin`; it is absent
+ * for a plain member reading the register.
+ */
 export interface AircraftDetail extends Aircraft {
-  pilots: AircraftPilot[];
+  pilots?: AircraftPilot[];
 }
 
 /** Every filter the list endpoint and both exports understand (PLAN §6.5). */
@@ -104,10 +110,13 @@ export interface AircraftSearchResult {
  * fuzzy search over N-number, make, model and owner (PLAN §6.5).
  */
 export async function findAircraft(term: string, limit = 8): Promise<AircraftSearchResult> {
+  // An exact registration is shown even when it is out of service, so a
+  // member learns why the aeroplane is not on offer rather than being told
+  // "no match" and inventing a duplicate record for it.
   const exact = await lookupAircraft(term);
   if (exact) return { exact, matches: [exact] };
   const page = await api.get<Paginated<Aircraft>>('/aircraft', {
-    query: { search: term, page_size: limit },
+    query: { search: term, page_size: limit, is_active: true },
   });
   return { exact: null, matches: page.results };
 }
