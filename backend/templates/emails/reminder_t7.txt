@@ -1,0 +1,18 @@
+{{ org_name }} — one week left
+
+Hello {{ first_name }},
+
+Seven days left. After {{ expires_on|date:"F j, Y" }} your {{ plan_name }}
+membership shows as expired to DART leaders, and you will not be counted as
+available when a mission is being staffed.
+
+Renewal takes a card, Apple Pay, Google Pay or PayPal, and takes effect the
+moment the payment clears.
+
+Renew now:
+{{ renew_url }}
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because you are a member of {{ org_name }}.
