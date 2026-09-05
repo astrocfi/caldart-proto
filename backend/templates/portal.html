@@ -1,0 +1,24 @@
+{% load django_vite %}<!doctype html>
+{% comment %}
+  The SPA mount point (PLAN §8).  The theme comes from Wagtail Site Settings
+  so the portal and the public site always look like one product.
+{% endcomment %}
+<html lang="en" data-theme="{{ theme|default:'sierra' }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Member portal · {{ site_settings.org_name|default:"CalDART" }}</title>
+    {% vite_hmr_client %}
+    {% vite_asset 'src/portal/main.tsx' %}
+  </head>
+  <body class="portal-body">
+    <div id="portal-root">
+      <noscript>
+        <p style="padding: 2rem">
+          The CalDART member portal needs JavaScript. Everything else on the site works without it.
+        </p>
+      </noscript>
+    </div>
+  </body>
+</html>
