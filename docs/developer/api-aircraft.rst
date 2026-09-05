@@ -1,6 +1,6 @@
-===============================
+==============================
 API: aircraft and leader check
-===============================
+==============================
 
 The ``apps.aircraft`` half of the ``/api/v1/`` contract: the aircraft register
 (PLAN §6.5), its CSV and PDF exports (PLAN §11), and the DART leader check

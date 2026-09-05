@@ -1,6 +1,6 @@
-==============================
-API reference: member profile
-==============================
+========================
+API: member self-service
+========================
 
 The member self-service half of the API (``PLAN.rst`` §6.3, plus the
 attach/detach pair from §6.5).  Every ``/me/...`` endpoint acts on the

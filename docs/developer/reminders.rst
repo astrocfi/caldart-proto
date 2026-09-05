@@ -1,6 +1,6 @@
-==================
+=================
 Renewal reminders
-==================
+=================
 
 CalDART emails members before and after their membership runs out.  The whole
 mechanism is one management command, one log table and ten templates; there is

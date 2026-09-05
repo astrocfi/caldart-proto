@@ -1,6 +1,6 @@
-==========================
-Members administration API
-==========================
+===========================
+API: members administration
+===========================
 
 The ``account_admin`` half of the members app: PLAN §6.4 endpoint by endpoint,
 plus the membership-status rules the list filters on.  The exports these

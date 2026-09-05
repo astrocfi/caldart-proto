@@ -1,6 +1,6 @@
-==============================
-Auth and users-admin API
-==============================
+=============================
+API: authentication and users
+=============================
 
 The endpoints in ``apps.accounts`` — everything under ``/api/v1/auth/``, plus
 ``/api/v1/admin/users`` and ``/api/v1/roles``.  This page is the reference for
