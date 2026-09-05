@@ -21,6 +21,8 @@ every other page defers to.
    api-profile
    api-payments
    cms
+   api-members
+   reports
    theming
    testing
    deployment
