@@ -1,0 +1,7 @@
+<p class="doc-link">
+  <a href="{{ value.document.url }}">{{ value.label|default:value.document.title }}</a>
+  <span class="doc-link__meta mono">
+    {{ value.document.file_extension|upper }}{% if value.document.file_size %} · {{ value.document.file_size|filesizeformat }}{% endif %}
+  </span>
+  {% if value.description %}<span class="doc-link__note muted">{{ value.description }}</span>{% endif %}
+</p>

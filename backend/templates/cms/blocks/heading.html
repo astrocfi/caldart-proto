@@ -1,0 +1,5 @@
+{% if value.level == "h3" %}
+  <h3 class="block-heading block-heading--sub" id="{{ anchor }}">{{ value.text }}</h3>
+{% else %}
+  <h2 class="block-heading" id="{{ anchor }}">{{ value.text }}</h2>
+{% endif %}

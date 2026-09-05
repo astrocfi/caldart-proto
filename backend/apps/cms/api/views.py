@@ -1,4 +1,10 @@
-"""Site configuration endpoint (PLAN §6.10).  Expanded by ``feat/cms-site``."""
+"""Site configuration endpoint (PLAN §6.10).
+
+``GET /api/v1/site/config`` is the one API call the portal makes before it has
+a user: it carries the organisation name, the active theme, the contact
+address and the same navigation the server-rendered site shows.  Members-only
+pages are listed only for callers who may actually open them.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +13,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.cms.context_processors import build_nav
-from apps.cms.models import DEFAULT_THEME, get_site_settings
+from apps.cms.models import (
+    DEFAULT_THEME,
+    get_site_settings,
+    members_only_pages,
+    user_can_access_members_content,
+)
 
 
 class SiteConfigView(APIView):
@@ -17,11 +28,7 @@ class SiteConfigView(APIView):
 
     def get(self, request):
         settings_obj = get_site_settings(request)
-
-        user = request.user
-        can_see_members = bool(
-            user and user.is_authenticated and getattr(user, "can_access_members_content", False)
-        )
+        can_see_members = user_can_access_members_content(request.user)
 
         return Response(
             {
@@ -29,7 +36,10 @@ class SiteConfigView(APIView):
                 "theme": (settings_obj.theme if settings_obj else DEFAULT_THEME) or DEFAULT_THEME,
                 "contact_email": settings_obj.contact_email if settings_obj else "",
                 "nav": build_nav(request),
-                # `feat/cms-site` fills this from the members-only page tree.
-                "members_pages": [] if can_see_members else [],
+                "members_pages": (
+                    [{"title": page.title, "url": page.url} for page in members_only_pages(request)]
+                    if can_see_members
+                    else []
+                ),
             }
         )

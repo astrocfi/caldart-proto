@@ -1,0 +1,7 @@
+<div class="block-cta">
+  <a
+    class="button{% if value.style == "secondary" %} button--secondary{% elif value.style == "quiet" %} button--quiet{% endif %}"
+    href="{{ href }}"
+  >{{ value.label }}</a>
+  {% if value.note %}<p class="block-cta__note">{{ value.note }}</p>{% endif %}
+</div>

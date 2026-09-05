@@ -1,0 +1,9 @@
+{% load wagtailcore_tags %}
+<div class="columns">
+  <div class="columns__col">
+    {% for child in value.left %}{% include_block child %}{% endfor %}
+  </div>
+  <div class="columns__col">
+    {% for child in value.right %}{% include_block child %}{% endfor %}
+  </div>
+</div>
