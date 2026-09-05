@@ -48,6 +48,7 @@ ORDERING_FIELDS = (
     "contribution_cents",
     "status",
     "provider",
+    "plan__name",
     "user__last_name",
     "user__email",
 )

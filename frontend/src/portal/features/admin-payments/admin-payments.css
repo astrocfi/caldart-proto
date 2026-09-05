@@ -1,0 +1,107 @@
+/*
+ * The payments dashboard: stat tiles, the period table's toggle, the pager.
+ * Mobile first; the tiles stack until 40rem.
+ */
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .stat-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.stat-tile {
+  padding: var(--space-4) 0 var(--space-4) var(--space-4);
+  border-left: 2px solid var(--color-primary);
+}
+
+.stat-tile__value {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  font-variant-numeric: tabular-nums;
+  margin: var(--space-1) 0 0;
+}
+
+.stat-tile__meta {
+  font-size: var(--text-xs);
+  margin: var(--space-1) 0 0;
+}
+
+/* ---------------------------------------------------------- period table */
+.period-table__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.period-table__title {
+  font-size: var(--text-lg);
+  margin: 0;
+}
+
+.period-table__total {
+  font-weight: var(--weight-semibold);
+}
+
+/* Month / Year toggle. */
+.segmented {
+  display: inline-flex;
+  border: var(--hairline) solid var(--color-rule-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.segmented__option {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: var(--space-1) var(--space-4);
+  min-height: 2.25rem;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-fg);
+  cursor: pointer;
+}
+
+.segmented__option + .segmented__option {
+  border-left: var(--hairline) solid var(--color-rule-strong);
+}
+
+.segmented__option[aria-pressed='true'] {
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+  font-weight: var(--weight-medium);
+}
+
+/* --------------------------------------------------------------- filters */
+.payment-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.payment-filters .field {
+  margin-bottom: 0;
+  min-width: 9rem;
+}
+
+/* ----------------------------------------------------------------- pager */
+.pager {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: var(--hairline) solid var(--color-rule);
+}
+
+.pager__status {
+  font-size: var(--text-sm);
+}

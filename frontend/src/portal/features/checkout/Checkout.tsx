@@ -1,30 +1,217 @@
 /**
- * Shared checkout widget.
+ * The shared checkout widget used by both `/join` and `/renew` (PLAN §6.7).
  *
- * This is the *interface* `feat/profile-join` codes against; `feat/payments`
- * replaces the body with the Stripe Payment Element, the PayPal buttons and
- * the mock "Succeed / Fail" pair.  Do not change the props without telling
- * both branches.
+ * Choose a plan, optionally add a contribution, then pay with whichever
+ * providers this deployment has keys for.  The props are the interface
+ * `feat/profile-join` codes against, so they do not change.
  */
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
+import type { PaymentProvider } from '../../api/types';
 import { Card } from '../../components/Card';
-import type { MembershipStatus } from '../../api/types';
+import { EmptyState } from '../../components/EmptyState';
+import { formatCents } from '../../components/Money';
+import { PROVIDER_LABELS, PROVIDER_ORDER, usePaymentsConfig } from './api';
+import { ContributionChooser } from './ContributionChooser';
+import { MockPanel } from './MockPanel';
+import { PayPalPanel } from './PayPalPanel';
+import { PlanChooser } from './PlanChooser';
+import { StripePanel } from './StripePanel';
+import type { CheckoutProps, CheckoutResult } from './types';
+import './checkout.css';
 
-export interface CheckoutResult {
-  paymentId: number;
-  membership: MembershipStatus;
-}
+/** Renewals default to the annual plan (PLAN §10). */
+const DEFAULT_PLAN = 'annual';
 
-export interface CheckoutProps {
-  mode: 'join' | 'renew';
-  onSuccess: (result: CheckoutResult) => void;
-}
+export type { CheckoutProps, CheckoutResult } from './types';
 
-export function Checkout(props: CheckoutProps): JSX.Element {
+export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
+  const queryClient = useQueryClient();
+  const { data: config, isPending, error } = usePaymentsConfig();
+
+  const [plan, setPlan] = useState<string>(DEFAULT_PLAN);
+  const [contributionCents, setContributionCents] = useState(0);
+  const [isOther, setIsOther] = useState(false);
+  const [provider, setProvider] = useState<PaymentProvider | null>(null);
+  const chosenPlan = useRef(false);
+
+  const providers = useMemo(
+    () => PROVIDER_ORDER.filter((slug) => config?.providers.includes(slug)),
+    [config],
+  );
+
+  // Fall back to the first plan the server offers if there is no "annual".
+  useEffect(() => {
+    if (!config || chosenPlan.current) return;
+    const slugs = config.plans.map((entry) => entry.slug);
+    if (!slugs.includes(plan) && slugs[0]) setPlan(slugs[0]);
+    chosenPlan.current = true;
+  }, [config, plan]);
+
+  useEffect(() => {
+    if (provider === null && providers[0]) setProvider(providers[0]);
+  }, [providers, provider]);
+
+  if (isPending) {
+    return (
+      <Card eyebrow={mode === 'renew' ? 'Renewal' : 'Membership'} title="Payment">
+        <p className="muted" role="status">
+          Loading payment options…
+        </p>
+      </Card>
+    );
+  }
+
+  if (error || !config) {
+    return (
+      <Card eyebrow={mode === 'renew' ? 'Renewal' : 'Membership'} title="Payment">
+        <EmptyState
+          title="Payment options could not be loaded"
+          description="Please reload the page, or contact CalDART if it keeps happening."
+        />
+      </Card>
+    );
+  }
+
+  const selectedPlan = config.plans.find((entry) => entry.slug === plan) ?? null;
+  const planCents = selectedPlan?.price_cents ?? 0;
+  const totalCents = planCents + contributionCents;
+
+  function handleSuccess(result: CheckoutResult) {
+    void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    void queryClient.invalidateQueries({ queryKey: ['membership'] });
+    onSuccess(result);
+  }
+
+  const panelProps = {
+    plan,
+    contributionCents,
+    amountCents: totalCents,
+    onSuccess: handleSuccess,
+  };
+
   return (
-    <Card eyebrow={props.mode === 'renew' ? 'Renewal' : 'Membership'} title="Payment">
-      <p className="muted">Payment coming soon</p>
+    <Card
+      eyebrow={mode === 'renew' ? 'Renewal' : 'Membership'}
+      title={mode === 'renew' ? 'Renew your membership' : 'Join CalDART'}
+      className="checkout"
+    >
+      <PlanChooser plans={config.plans} value={plan} onChange={setPlan} />
+
+      <ContributionChooser
+        tiers={config.contribution_tiers}
+        value={contributionCents}
+        onChange={setContributionCents}
+        isOther={isOther}
+        onOther={(next) => {
+          setIsOther(next);
+          if (next) setContributionCents(0);
+        }}
+      />
+
+      <dl className="checkout__total">
+        <div>
+          <dt>{selectedPlan?.name ?? 'Membership'}</dt>
+          <dd className="mono">{formatCents(planCents)}</dd>
+        </div>
+        {contributionCents > 0 ? (
+          <div>
+            <dt>Contribution</dt>
+            <dd className="mono">{formatCents(contributionCents)}</dd>
+          </div>
+        ) : null}
+        <div className="checkout__total-row">
+          <dt>Total today</dt>
+          <dd className="mono" data-testid="checkout-total">
+            {formatCents(totalCents)}
+          </dd>
+        </div>
+      </dl>
+
+      {providers.length === 0 ? (
+        <EmptyState
+          title="Online payment is not set up yet"
+          description="Please contact CalDART to pay by cheque, or try again later."
+        />
+      ) : (
+        <ProviderTabs
+          providers={providers}
+          active={provider}
+          onChange={setProvider}
+          config={config}
+          panelProps={panelProps}
+        />
+      )}
     </Card>
+  );
+}
+
+interface ProviderTabsProps {
+  providers: PaymentProvider[];
+  active: PaymentProvider | null;
+  onChange: (provider: PaymentProvider) => void;
+  config: { stripe_publishable_key: string; paypal_client_id: string };
+  panelProps: {
+    plan: string;
+    contributionCents: number;
+    amountCents: number;
+    onSuccess: (result: CheckoutResult) => void;
+  };
+}
+
+function ProviderTabs({ providers, active, onChange, config, panelProps }: ProviderTabsProps) {
+  const current = active ?? providers[0]!;
+
+  function onKeyDown(event: React.KeyboardEvent) {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    event.preventDefault();
+    const step = event.key === 'ArrowRight' ? 1 : -1;
+    const index = providers.indexOf(current);
+    const next = providers[(index + step + providers.length) % providers.length];
+    if (next) onChange(next);
+  }
+
+  return (
+    <section className="checkout__pay">
+      <h3 className="eyebrow">How would you like to pay?</h3>
+      <div
+        className="checkout__tabs"
+        role="tablist"
+        aria-label="Payment method"
+        onKeyDown={onKeyDown}
+      >
+        {providers.map((slug) => (
+          <button
+            key={slug}
+            type="button"
+            role="tab"
+            id={`checkout-tab-${slug}`}
+            aria-selected={slug === current}
+            aria-controls={`checkout-panel-${slug}`}
+            tabIndex={slug === current ? 0 : -1}
+            className="checkout__tab"
+            onClick={() => onChange(slug)}
+          >
+            {PROVIDER_LABELS[slug]}
+          </button>
+        ))}
+      </div>
+
+      <div
+        role="tabpanel"
+        id={`checkout-panel-${current}`}
+        aria-labelledby={`checkout-tab-${current}`}
+      >
+        {current === 'stripe' ? (
+          <StripePanel publishableKey={config.stripe_publishable_key} {...panelProps} />
+        ) : null}
+        {current === 'paypal' ? (
+          <PayPalPanel clientId={config.paypal_client_id} {...panelProps} />
+        ) : null}
+        {current === 'mock' ? <MockPanel {...panelProps} /> : null}
+      </div>
+    </section>
   );
 }
