@@ -22,7 +22,7 @@ import type { AircraftFilters } from '../aircraft/api';
 import { aircraftExportUrl, useAircraftList, useCreateAircraft } from '../aircraft/api';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, emptyAircraftValues } from '../aircraft/form';
 import { useDebounced } from '../aircraft/useDebounced';
-import { AircraftForm } from './AircraftForm';
+import { AircraftForm } from '../aircraft/AircraftForm';
 
 const PAGE_SIZE = 25;
 

@@ -1,3 +1,5 @@
+export { AircraftForm } from './AircraftForm';
+export type { AircraftFormProps } from './AircraftForm';
 export { AircraftPicker } from './AircraftPicker';
 export type { AircraftPickerProps } from './AircraftPicker';
 export { InsuranceChip } from './InsuranceChip';
