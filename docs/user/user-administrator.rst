@@ -75,7 +75,12 @@ Roles
 
 The Roles section lists every role with a one-line description of what it
 grants, straight from the server, so the list stays right as roles are added.
-Tick or untick, then **Save changes** — nothing is saved until you do.
+
+#. Open **Users & roles** and find the account.
+#. Open it, and scroll to **Roles**.
+#. Tick the roles they should have; untick the ones they should not.
+#. Press **Save changes** — nothing is saved until you do.
+#. Tell them to reload the portal, so their menu picks up the change.
 
 Things worth knowing:
 
@@ -148,6 +153,44 @@ A few common tasks
 **"They can sign in but the page says 403."**
    That is a missing role, not a broken account.  The 403 page names the role
    the page wanted; tick it and save.
+
+
+When something goes wrong
+=========================
+
+**"Only a system administrator can grant or revoke the system_admin role."**
+   Exactly what it says, and holding the Django superuser flag is not a
+   substitute — the check asks for the role itself.  Ask a system
+   administrator.
+
+**"You cannot deactivate your own account."**
+   Deliberate, so the last administrator cannot lock everybody out by
+   accident.  Ask a colleague.
+
+**The email address will not save.**
+   Another account already uses it, case ignored.  Search for that address:
+   you have probably found the duplicate account you were looking for.
+
+**Send password reset is greyed out.**
+   The account is deactivated.  Tick **Active**, save, then send the link.
+
+**Send password reset says no email was sent.**
+   Same cause, if the account was deactivated between opening the page and
+   pressing the button.  Reload the record and check the Active box.
+
+**You ticked a role and the person still cannot see the page.**
+   They are holding an old session's menu.  Ask them to reload the portal.  If
+   it still does not appear, check you pressed **Save changes** — the
+   checkboxes do not save themselves.
+
+**You cannot find an account you are sure exists.**
+   Search matches first name, last name and email, and ANDs the words you
+   type, so a middle name or a typo excludes everybody.  Search for one word,
+   or for a fragment of the email address.
+
+**You need to change a member's profile, membership or payments.**
+   None of that is on this screen.  It belongs to an account administrator —
+   see :doc:`account-administrator-guide`.
 
 
 See also
