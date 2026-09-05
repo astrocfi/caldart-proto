@@ -27,11 +27,14 @@ an account — reset the password rather than making a second one.
 Creating one
 ------------
 
-Visit **Join CalDART** on the public site, or go straight to
-``/portal/join``.  The first step of the wizard creates the account: your name,
-your email address and a password.  As soon as that step succeeds you are
-signed in, an empty member profile is waiting for you, and you hold the
-``member`` role.
+#. Follow **Join** in the public site's top navigation, or go straight to
+   ``/portal/join``.
+#. Fill in the first step of the wizard: your first and last name, your email
+   address, and a password.
+#. Submit.  You are signed in immediately, an empty member profile is waiting
+   for you, and you hold the ``member`` role.
+
+The wizard then moves on to your profile and to payment.
 
 Paying for a membership term is a later step in the same wizard.  You can stop
 after creating the account and come back to pay: you will have a portal login,
@@ -75,16 +78,18 @@ Role                 What it adds
                      reminder runs.
 ===================  ==================================================
 
-If a menu entry you expect is missing, or you open a page and get a **403 — you
-do not have access**, you are missing the role rather than doing something
-wrong.  Ask a user administrator (see :doc:`user-administrator`).
+If a menu entry you expect is missing, or you open a page and are told **"You
+do not have access to this page"** under a **403**, you are missing the role
+rather than doing something wrong.  The page names the role it wanted.  Ask a
+user administrator (see :doc:`user-administrator`).
 
 
 Signing in
 ==========
 
-Go to ``/portal/`` and you land on the sign-in page, or use **Login** in the
-public site's top navigation.  Enter your email address and password.
+Go to ``/portal/`` and you land on the sign-in page, or use **Log in** in the
+public site's top navigation — the button changes to **Members** once you are
+signed in.  Enter your email address and password.
 
 * If you were following a link into a particular page — say a leader sent you
   ``/portal/profile`` — signing in takes you straight back there.
@@ -104,8 +109,11 @@ matters on a shared or borrowed computer.
 Forgotten passwords
 ===================
 
-From the sign-in page, follow **Forgot your password?**, type your email
-address, and submit.
+#. From the sign-in page, follow **Forgot your password?**.
+#. Type the email address your account uses, and submit.
+#. Open the email and follow its link.
+#. Choose a new password, type it twice, and submit.
+#. Sign in with the new password.
 
 The site always answers the same way — *if an account uses that address, a reset
 link is on its way* — whether or not it recognises the address.  That is on
@@ -119,8 +127,6 @@ to know about it:
   a new password, gives you *that password reset link is invalid or has
   expired*.  Ask for a fresh one.
 * **It expires.**  Links are good for three days by default.
-
-Open the link, choose a new password, type it twice, and sign in with it.
 
 Nothing arrived?
 ----------------

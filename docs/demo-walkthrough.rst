@@ -108,6 +108,14 @@ clears.*
    rest of the system useful.  Pick a DART from the list; it is populated from
    ``GET /api/v1/darts``.
 
+   .. important::
+
+      Fill in **address line 1** as well, even though the form does not mark
+      it required.  The wizard decides whether you may move on from the
+      server's ``profile_complete`` flag, and that flag counts a street
+      address — so a profile without one saves cleanly and then holds you on
+      this step.
+
    If you enter a medical class you must also enter its expiry date, and if
    you enter a certificate type you must also give the certificate number.
    The form says so inline rather than at submit time.
@@ -203,9 +211,11 @@ naming the date the membership ran out.
 **What can go wrong.**
 
 - *"Phone is required."*  The portal's form asks for phone, city, state and
-  postal code — the four fields ``MemberProfile.is_complete`` tests, and
-  therefore what the dashboard's "finish your profile" nudge keys off.  The
-  API itself only insists on phone.
+  postal code.  The API itself only insists on phone, so a client that is not
+  the portal may store a partial profile.
+- *The "finish your profile" nudge will not go away.*  It reads
+  ``profile_complete``, which tests a longer list than the form requires —
+  including a street address.  Fill in address line 1 as well.
 - *An aircraft will not attach.*  Attaching is idempotent, so a second attempt
   at the same aeroplane is silently fine; a genuinely unknown id is a 404.
 - *You cannot see a members-only page you expect to see.*  Membership status
@@ -320,8 +330,11 @@ Flow E — a website administrator adds, edits and deletes a page
 
 1. Sign out and sign in to the Wagtail admin at
    http://localhost:8000/admin/ as ``webadmin@example.org`` /
-   ``caldart-demo``.  This is a different sign-in screen from the portal's;
-   the ``website_admin`` role is what grants access to it.
+   ``caldart-demo``.  Wagtail has its own login form but shares the portal's
+   session and the same account, so signing in to ``/portal/`` first would
+   have let you straight in.  What decides the matter is the ``website_admin``
+   role: sign in as ``member@example.org`` and ``/admin/`` bounces you back to
+   the login form.
 2. Open **Pages** and walk down to *Home*.  The tree is: Home; About Us with
    History, the DART directory and its sixteen team pages, and Directors and
    Officers; News with three posts; Join CalDART; Donate; Sponsors; Contact

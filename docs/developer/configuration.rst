@@ -4,9 +4,17 @@ Configuration
 
 Every runtime setting comes from the environment.  ``.env.example`` at the
 repository root is the reference copy with working development defaults;
-``make setup`` copies it to ``.env`` if you do not have one, and a production
-box keeps the same variables in ``/etc/caldart/caldart.env``, read by the
-systemd units.
+``make setup`` copies it to ``.env`` if you do not have one.  A production box
+keeps its values in ``/etc/caldart/caldart.env`` instead, read by the systemd
+units — and needs more than ``.env.example`` lists, because the hardening and
+logging variables ``prod.py`` reads have sensible defaults and are therefore
+not in the development template at all.  This page is the complete list either
+way.
+
+.. note::
+
+   Nothing re-reads the environment while the application is running.  After
+   editing ``/etc/caldart/caldart.env``, ``systemctl restart caldart-web``.
 
 Specified in PLAN §14.
 
@@ -22,9 +30,11 @@ Where settings are read
    exported variables at all.  Everything else imports from here.
 
 ``dev.py``
-   ``DEBUG`` on, ``ALLOWED_HOSTS=["*"]``, unhashed static storage.  The default:
-   ``manage.py`` and ``wsgi.py`` both set
-   ``DJANGO_SETTINGS_MODULE=caldart.settings.dev`` when nothing else is set.
+   ``DEBUG`` on, unhashed static storage, and ``ALLOWED_HOSTS`` defaulting to
+   ``["*"]`` — but only when the variable is *absent*, and ``.env.example``
+   sets it, so a standard checkout gets the list from ``.env``.  The default
+   settings module: ``manage.py``, ``wsgi.py`` and ``asgi.py`` all
+   ``setdefault`` ``DJANGO_SETTINGS_MODULE=caldart.settings.dev``.
 
 ``prod.py``
    ``DEBUG`` off, TLS and cookie hardening, hashed static manifest, logging to
@@ -76,8 +86,10 @@ Core
    Comma-separated hostnames Django will answer for.  A request with any other
    ``Host`` header gets a ``DisallowedHost`` error.
 
-   :Development: ``localhost,127.0.0.1,[::1]`` — ``dev.py`` widens this to
-      ``*`` so a phone on the LAN can reach the dev server.
+   :Development: ``localhost,127.0.0.1,[::1]``, from ``.env.example``.
+      ``dev.py`` falls back to ``*`` only when the variable is not set at all,
+      so to reach the dev server from a phone on the LAN either add the
+      machine's address to the list or comment the line out.
    :Production: **required**; every hostname the vhost serves, including the
       ``www.`` form.
 
@@ -157,6 +169,16 @@ Covered in full, with test cards and account setup, in :doc:`payments-setup`.
 
    :Development: ``sandbox``
    :Production: ``live``
+
+``PAYPAL_WEBHOOK_ID``
+   Optional.  Set it and ``POST /payments/paypal/webhook`` verifies each
+   notification's signature with PayPal before acting on it; leave it blank and
+   the webhook files the payload against the payment and changes nothing.
+   Either way the *capture* call is what activates a membership, so a missing
+   webhook id costs you a safety net rather than the flow.
+
+   :Development: blank
+   :Production: the webhook id from the PayPal dashboard
 
 ``PAYMENTS_MOCK_ENABLED``
    Enables the mock provider, which renders "Succeed" and "Fail" buttons
