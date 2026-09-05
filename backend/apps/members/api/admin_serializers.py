@@ -360,7 +360,6 @@ class MemberCreateSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
     last_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    is_active = serializers.BooleanField(required=False, default=True)
     profile = AdminProfileSerializer(required=False)
 
     def validate_email(self, value):
@@ -383,7 +382,6 @@ class MemberCreateSerializer(serializers.Serializer):
             email=validated_data["email"],
             first_name=validated_data.get("first_name", ""),
             last_name=validated_data.get("last_name", ""),
-            is_active=validated_data.get("is_active", True),
         )
         if password:
             user.set_password(password)
