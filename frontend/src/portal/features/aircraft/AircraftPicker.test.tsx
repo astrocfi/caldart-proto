@@ -125,6 +125,17 @@ describe('AircraftPicker', () => {
     expect(screen.getByText(/already on your list/i)).toBeInTheDocument();
   });
 
+  it('does not offer to create one the member has already attached', async () => {
+    const user = userEvent.setup();
+    server.use(...searchOnly([makeAircraft({ id: 1, n_number: 'N172SP' })]));
+
+    renderWithProviders(<AircraftPicker onSelect={vi.fn()} excludeIds={[1]} />);
+    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n172sp');
+
+    expect(await screen.findByText(/already on your list/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No aircraft matches that/i)).not.toBeInTheDocument();
+  });
+
   it('offers to create an aircraft when nothing matches', async () => {
     const user = userEvent.setup();
     server.use(...searchOnly([]));

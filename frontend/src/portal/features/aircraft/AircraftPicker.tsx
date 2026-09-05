@@ -39,7 +39,9 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
   const results = found.filter((aircraft) => !excludeIds.includes(aircraft.id));
   const attached = found.filter((aircraft) => excludeIds.includes(aircraft.id));
   const searched = debounced.length > 0 && search.isSuccess;
-  const nothingToAdd = searched && results.length === 0;
+  // Offering "add a new aircraft" when the only match is already attached
+  // would invite a duplicate registration; say so instead.
+  const nothingToAdd = searched && results.length === 0 && attached.length === 0;
 
   const startAdding = (): void => {
     create.reset();
