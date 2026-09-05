@@ -7,10 +7,13 @@ Makefile needs them from day one, so the commands live here already.
 from __future__ import annotations
 
 import gzip
+import re
 import shutil
 import subprocess
+import tomllib
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -19,6 +22,11 @@ from django.db import connection
 from django.utils import timezone
 
 BACKUP_SUFFIX = ".sql.gz"
+
+#: A backup file name we are willing to open.  No directory separators, no
+#: leading dot, and the suffix we write — which is what makes
+#: ``GET /system/backups/<name>/download`` safe against path traversal.
+BACKUP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$")
 
 
 class BackupError(RuntimeError):
@@ -113,6 +121,26 @@ def list_backups() -> list[BackupFile]:
     return sorted(files, key=lambda f: f.created_at, reverse=True)
 
 
+def resolve_backup(name: str) -> Path:
+    """The path of the dump called ``name`` inside ``BACKUP_DIR``.
+
+    Rejects anything that is not a plain ``*.sql.gz`` file name, and then
+    re-checks the resolved path really is a direct child of the backup
+    directory, so ``../``, an absolute path or a symlink out of the directory
+    can never be downloaded.
+    """
+    if not BACKUP_NAME_RE.fullmatch(name):
+        raise BackupError(f"Not a backup file name: {name!r}")
+
+    root = backup_dir().resolve()
+    path = (root / name).resolve()
+    if path.parent != root:
+        raise BackupError(f"Not a backup file name: {name!r}")
+    if not path.is_file():
+        raise BackupError(f"No such backup: {name}")
+    return path
+
+
 def create_backup(name: str | None = None) -> BackupFile:
     """Dump the database to ``backups/caldart-<timestamp>.sql.gz``."""
     argv = _pg_command("pg_dump")
@@ -135,8 +163,13 @@ def create_backup(name: str | None = None) -> BackupFile:
     return _backup_file(target)
 
 
-def restore_backup(path: Path) -> None:
-    """Restore a gzipped dump over the current database."""
+def restore_backup(path: Path, *, drop_first: bool = True) -> None:
+    """Restore a gzipped dump over the current database.
+
+    ``pg_dump`` writes ``CREATE TABLE`` without ``DROP``, so the schema has to
+    go first or every statement collides with what is already there
+    (PLAN §4.7).  ``drop_first=False`` is for restoring into an empty database.
+    """
     if not path.is_file():
         raise BackupError(f"No such backup: {path}")
 
@@ -147,6 +180,9 @@ def restore_backup(path: Path) -> None:
     opener = gzip.open if path.name.endswith(".gz") else open
     with opener(path, "rb") as handle:
         sql = handle.read()
+
+    if drop_first:
+        drop_schema()
 
     result = _run_pg([*argv, "--quiet", "--dbname", _dbname_url_for(argv)], input=sql)
     if result.returncode != 0:
@@ -169,8 +205,28 @@ def pending_migrations() -> list[tuple[str, str]]:
     return [migration.key for migration, _backwards in executor.migration_plan(targets)]
 
 
+@lru_cache(maxsize=1)
+def app_version() -> str:
+    """``[project] version`` from ``pyproject.toml``.
+
+    The deployed tree always has the file next to it, so the version reported by
+    ``/system/health`` is the one that was actually installed.  Falls back to
+    ``settings.CALDART_VERSION`` if the file is missing or unreadable.
+    """
+    path = Path(settings.REPO_ROOT) / "pyproject.toml"
+    try:
+        with path.open("rb") as handle:
+            return tomllib.load(handle)["project"]["version"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        return settings.CALDART_VERSION
+
+
 def health() -> dict:
-    """The payload behind ``GET /system/health`` (PLAN §6.9)."""
+    """The payload behind ``GET /system/health`` (PLAN §6.9).
+
+    Disk space is measured on ``BACKUP_DIR``: that is the filesystem that fills
+    up first, and the one that has to have room for the next ``pg_dump``.
+    """
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
@@ -179,7 +235,7 @@ def health() -> dict:
     except Exception as exc:  # pragma: no cover - only on a broken database
         db_status = f"error: {exc}"
 
-    usage = shutil.disk_usage(settings.REPO_ROOT)
+    usage = shutil.disk_usage(backup_dir())
     backups = list_backups()
 
     return {
@@ -187,6 +243,6 @@ def health() -> dict:
         "pending_migrations": len(pending_migrations()) if db_status == "ok" else -1,
         "disk_free_mb": usage.free // (1024 * 1024),
         "last_backup": backups[0].created_at.isoformat() if backups else None,
-        "version": settings.CALDART_VERSION,
+        "version": app_version(),
         "debug": settings.DEBUG,
     }
