@@ -1,0 +1,100 @@
+# CalDART application server -- gunicorn behind Apache or nginx (PLAN.rst §13).
+#
+# Deploy path: /srv/caldart  -- a checkout of this repository, owned by root
+# and readable by the "caldart" service user, with the uv-managed virtualenv at
+# /srv/caldart/.venv and the Django project at /srv/caldart/backend.
+#
+# Install:
+#   sudo useradd --system --home-dir /srv/caldart --shell /usr/sbin/nologin caldart
+#   sudo install -d -m 0750 -o root -g caldart /etc/caldart
+#   sudo install -m 0640 -o root -g caldart .env.example /etc/caldart/caldart.env
+#   # edit /etc/caldart/caldart.env -- see PLAN.rst §14 for every variable
+#   sudo install -d -o caldart -g caldart /srv/caldart/backend/media \
+#        /srv/caldart/backend/staticfiles /srv/caldart/backups
+#   sudo cp deploy/systemd/caldart-web.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now caldart-web.service
+#
+# Logs: journalctl -u caldart-web -f
+
+[Unit]
+Description=CalDART web application (gunicorn)
+Documentation=file:///srv/caldart/docs/developer/deployment.rst
+# Postgres runs in Docker (compose service "db"); the socket must be up first.
+After=network.target docker.service
+Wants=network-online.target
+
+[Service]
+# gunicorn speaks the sd_notify protocol, so systemd waits for workers to be
+# ready before considering the unit started and before Apache is reloaded.
+Type=notify
+
+User=caldart
+Group=caldart
+UMask=0027
+
+# manage.py, media/ and staticfiles/ resolve relative to the Django project.
+WorkingDirectory=/srv/caldart/backend
+
+# Secrets and per-host configuration. Root-owned, mode 0640, group caldart.
+# Holds DATABASE_URL, SECRET_KEY, DEBUG, ALLOWED_HOSTS, SITE_URL, EMAIL_URL,
+# DEFAULT_FROM_EMAIL, the STRIPE_* and PAYPAL_* keys, PAYMENTS_MOCK_ENABLED,
+# DJANGO_VITE_DEV_MODE, BACKUP_DIR and DB_BACKUP_VIA_DOCKER (PLAN.rst §14).
+EnvironmentFile=/etc/caldart/caldart.env
+
+Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+ExecStart=/srv/caldart/.venv/bin/gunicorn --config /srv/caldart/deploy/gunicorn.conf.py
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Finish in-flight requests, then exit; matches graceful_timeout in
+# gunicorn.conf.py with room to spare.
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=45
+
+Restart=always
+RestartSec=3
+
+# --- Hardening --------------------------------------------------------------
+# The service only needs to read the checkout, write three directories, and
+# talk to Postgres, SMTP, Stripe and PayPal.
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+RemoveIPC=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# ProtectSystem=strict mounts everything read-only, including /srv/caldart, so
+# the code cannot rewrite itself. These three are the only writable paths:
+#   media/        Wagtail image and document uploads
+#   staticfiles/  collectstatic output served by whitenoise
+#   backups/      pg_dump output from manage.py db_backup (BACKUP_DIR)
+ReadWritePaths=/srv/caldart/backend/media
+ReadWritePaths=/srv/caldart/backend/staticfiles
+ReadWritePaths=/srv/caldart/backups
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,293 @@
+/*
+ * Portal-only layout on top of the shared design system.
+ * Left rail on desktop, a drawer under 60rem.
+ */
+
+.portal {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------------- bar */
+.portal__bar {
+  border-bottom: var(--hairline) solid var(--color-rule);
+  background: var(--color-bg);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.portal__bar-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  max-width: var(--page-max);
+  margin-inline: auto;
+}
+
+.portal__wordmark {
+  line-height: 1.05;
+}
+
+.portal__identity {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.portal__email {
+  font-size: var(--text-sm);
+}
+
+.portal__drawer-toggle {
+  display: none;
+}
+
+/* ----------------------------------------------------------------- frame */
+.portal__frame {
+  flex: 1;
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: 0 var(--space-4) var(--space-7);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 60rem) {
+  .portal__frame {
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    gap: var(--space-7);
+  }
+}
+
+/* ------------------------------------------------------------------ rail */
+.portal__rail {
+  padding-top: var(--space-5);
+  border-bottom: var(--hairline) solid var(--color-rule);
+  padding-bottom: var(--space-4);
+}
+
+@media (min-width: 60rem) {
+  .portal__rail {
+    border-bottom: 0;
+    border-right: var(--hairline) solid var(--color-rule);
+    padding-right: var(--space-4);
+    position: sticky;
+    top: 4.5rem;
+    align-self: start;
+    max-height: calc(100vh - 5.5rem);
+    overflow-y: auto;
+  }
+}
+
+.portal__nav-group + .portal__nav-group {
+  margin-top: var(--space-5);
+}
+
+.portal__rail ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.portal__nav-link {
+  display: block;
+  padding: var(--space-1) 0 var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-fg);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+
+.portal__nav-link:hover {
+  color: var(--color-accent);
+  border-left-color: var(--color-rule-strong);
+}
+
+.portal__nav-link.is-active {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+  border-left-color: var(--color-accent);
+}
+
+.portal__rail-footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-3);
+  border-top: var(--hairline) solid var(--color-rule);
+  font-size: var(--text-xs);
+}
+
+/* Under 60rem the rail becomes a drawer toggled from the bar. */
+@media (max-width: 59.99rem) {
+  .portal__drawer-toggle {
+    display: inline-flex;
+  }
+
+  .portal[data-drawer-open='false'] .portal__rail {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ main */
+.portal__main {
+  padding-top: var(--space-5);
+  min-width: 0;
+}
+
+.portal__main:focus {
+  outline: none;
+}
+
+.portal-loading {
+  padding: var(--space-6) 0;
+  color: var(--color-muted);
+}
+
+/* ------------------------------------------------------------------ page */
+.page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-rule);
+  margin-bottom: var(--space-5);
+}
+
+.page__title {
+  font-size: var(--text-2xl);
+  margin: 0;
+}
+
+.page__lede {
+  margin-top: var(--space-2);
+}
+
+.page__body > * + * {
+  margin-top: var(--space-6);
+}
+
+.auth-card {
+  max-width: 26rem;
+}
+
+/* ----------------------------------------------------------- empty state */
+.empty-state {
+  padding: var(--space-6) 0;
+  border-top: var(--hairline) solid var(--color-rule);
+}
+
+.empty-state__title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  margin: 0;
+}
+
+.empty-state__body {
+  margin-top: var(--space-2);
+}
+
+.empty-state__action {
+  margin-top: var(--space-4);
+}
+
+/* ------------------------------------------------------------ data table */
+.data-table__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.data-table__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+.data-table__filters .field {
+  margin-bottom: 0;
+}
+
+.data-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.data-table__sort:hover {
+  color: var(--color-accent);
+}
+
+.data-table__caret {
+  width: 0.75em;
+}
+
+.data-table__loading {
+  font-size: var(--text-sm);
+  padding-top: var(--space-2);
+}
+
+/* ---------------------------------------------------------------- toasts */
+.toast-viewport {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: min(24rem, calc(100vw - 2 * var(--space-4)));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-raised);
+  border: var(--hairline) solid var(--color-rule-strong);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+}
+
+.toast--success {
+  border-left-color: var(--color-ok);
+}
+
+.toast--error {
+  border-left-color: var(--color-bad);
+}
+
+.toast--info {
+  border-left-color: var(--color-primary);
+}
+
+.toast__close {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-size: var(--text-lg);
+  line-height: 1;
+  color: var(--color-muted);
+}

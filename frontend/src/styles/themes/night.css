@@ -1,0 +1,29 @@
+/* Night (PLAN §9): the dark theme.  Status colours are lifted for contrast. */
+
+:root[data-theme='night'] {
+  --color-bg: #151719;
+  --color-bg-raised: #1d2023;
+  --color-bg-sunken: #101214;
+  --color-fg: #ece9e1;
+  --color-primary: #7fb69b;
+  --color-primary-fg: #10201a;
+  --color-primary-hover: #98c9b0;
+  --color-accent: #ff7a52;
+  --color-secondary: #f2c14e;
+  --color-rule: #2c3034;
+  --color-rule-strong: #444a50;
+  --color-muted: #9aa1a8;
+  --color-selection: #f2c14e33;
+
+  --color-ok: #6cc08c;
+  --color-warn: #e5b74a;
+  --color-bad: #f0796a;
+  --color-ok-bg: #6cc08c26;
+  --color-warn-bg: #e5b74a26;
+  --color-bad-bg: #f0796a26;
+  --color-neutral-bg: #9aa1a81f;
+
+  --color-focus: #f2c14e;
+
+  color-scheme: dark;
+}

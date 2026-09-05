@@ -1,0 +1,29 @@
+/* Sierra — the default theme (PLAN §9): warm paper, deep conifer, signal orange. */
+
+:root[data-theme='sierra'] {
+  --color-bg: #f4f1ea;
+  --color-bg-raised: #fbfaf6;
+  --color-bg-sunken: #ebe7dd;
+  --color-fg: #1b1f24;
+  --color-primary: #1f4d3a;
+  --color-primary-fg: #f7f5ef;
+  --color-primary-hover: #17392b;
+  --color-accent: #e4572e;
+  --color-secondary: #f2a900;
+  --color-rule: #d9d3c7;
+  --color-rule-strong: #b9b1a0;
+  --color-muted: #6b6f76;
+  --color-selection: #f2a90033;
+
+  --color-ok: #2e7d4f;
+  --color-warn: #c98a00;
+  --color-bad: #b23a2b;
+  --color-ok-bg: #2e7d4f1f;
+  --color-warn-bg: #c98a001f;
+  --color-bad-bg: #b23a2b1f;
+  --color-neutral-bg: #6b6f7617;
+
+  --color-focus: #1f4d3a;
+
+  color-scheme: light;
+}

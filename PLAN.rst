@@ -1,6 +1,6 @@
-=====================================================
+========================================================
 CalDART Website & Member Management System — Master Plan
-=====================================================
+========================================================
 
 :Status: authoritative spec for all implementation work
 :Audience: implementers (human or agent) and reviewers
@@ -161,15 +161,15 @@ Slug                 Grants
 ===================  ==================================================
 ``member``           own profile, own payments/membership, join/renew,
                      members-only content *when membership is current*
-``dart_leader``      + look up any member; see membership / medical /
+``dart_leader``      \+ look up any member; see membership / medical /
                      certificate / aircraft insurance currency
-``user_admin``       + list users, assign roles, activate/deactivate,
+``user_admin``       \+ list users, assign roles, activate/deactivate,
                      trigger password reset
-``account_admin``    + create/edit/delete members and profiles, grant or
+``account_admin``    \+ create/edit/delete members and profiles, grant or
                      extend memberships manually, aircraft CRUD, payment
                      history and payment reports, membership and
                      aircraft reports (CSV/PDF)
-``website_admin``    + Wagtail admin: create/edit/delete/publish pages,
+``website_admin``    \+ Wagtail admin: create/edit/delete/publish pages,
                      images, documents, site settings
 ``system_admin``     everything above + backups, health, reminder run,
                      Django superuser
@@ -557,24 +557,24 @@ credentials same-origin, CSRF header, JSON errors → typed ``ApiError``).
 Route ownership (one file per feature in ``src/portal/routes/``; each
 exports ``RouteObject[]``; ``routes/index.tsx`` concatenates them):
 
-===================  =====================================================
-File                 Routes
-===================  =====================================================
-``auth.tsx``         ``/login``, ``/logout``, ``/forgot-password``,
-                     ``/reset-password``, ``/change-password``
-``join.tsx``         ``/join`` (wizard: account → profile → pay → done),
-                     ``/renew``
-``dashboard.tsx``    ``/`` (member home: status card, renew CTA, quick links,
-                     members-only pages list)
-``profile.tsx``      ``/profile`` (edit), ``/profile/aircraft`` (attach/create)
-``leader.tsx``       ``/leader`` (search + status card), ``/leader/aircraft``
-``admin-members.tsx`` ``/admin/members``, ``/admin/members/new``,
-                     ``/admin/members/:id``
-``admin-aircraft.tsx`` ``/admin/aircraft``, ``/admin/aircraft/:id``
-``admin-payments.tsx`` ``/admin/payments`` (summary + table + export)
-``admin-users.tsx``  ``/admin/users``, ``/admin/users/:id``
-``system.tsx``       ``/system`` (health, backups, reminders)
-===================  =====================================================
+======================  =====================================================
+File                    Routes
+======================  =====================================================
+``auth.tsx``            ``/login``, ``/logout``, ``/forgot-password``,
+                        ``/reset-password``, ``/change-password``
+``join.tsx``            ``/join`` (wizard: account → profile → pay → done),
+                        ``/renew``
+``dashboard.tsx``       ``/`` (member home: status card, renew CTA, quick links,
+                        members-only pages list)
+``profile.tsx``         ``/profile`` (edit), ``/profile/aircraft`` (attach/create)
+``leader.tsx``          ``/leader`` (search + status card), ``/leader/aircraft``
+``admin-members.tsx``   ``/admin/members``, ``/admin/members/new``,
+                        ``/admin/members/:id``
+``admin-aircraft.tsx``  ``/admin/aircraft``, ``/admin/aircraft/:id``
+``admin-payments.tsx``  ``/admin/payments`` (summary + table + export)
+``admin-users.tsx``     ``/admin/users``, ``/admin/users/:id``
+``system.tsx``          ``/system`` (health, backups, reminders)
+======================  =====================================================
 
 ``nav.ts`` defines every nav entry with its required role(s) up front so
 feature work never edits it. ``components/`` holds shared primitives:
@@ -809,8 +809,10 @@ edit other owners' files; rebase on ``origin/main`` before opening PR)
                             ``features/system``, ``deploy/``, ops docs
 
 Phase 3 — after all Phase 2 PRs are merged
+
   ``feat/integration-qa``   full-suite run, cross-feature fixes, Playwright
                             e2e for the five flows, seed sanity, README
+
   ``feat/docs``             complete user + developer docs
 
 Conventions
