@@ -11,7 +11,15 @@
  * Option order is the order the lists render in, which is why these are arrays
  * rather than records; `labelFor` turns one into a lookup.
  */
-import type { IfrRated, MedicalType, PilotCertificateType, Rating } from './api/types';
+import type {
+  IfrRated,
+  MedicalType,
+  PaymentProvider,
+  PaymentState,
+  PaymentWallet,
+  PilotCertificateType,
+  Rating,
+} from './api/types';
 
 export interface Choice<Value extends string> {
   value: Value;
@@ -91,3 +99,35 @@ export const medicalLabel = (value: string) => labelFor(MEDICAL_TYPES, value);
 export function ratingLabels(ratings: readonly Rating[]): string {
   return ratings.map((rating) => RATING_LABELS[rating] ?? rating).join(', ');
 }
+
+/* ------------------------------------------------------------- payments */
+
+/**
+ * Short names for the payment enums (PLAN §4.4).
+ *
+ * The checkout's own `PROVIDER_LABELS` is a different thing — it describes
+ * what a provider *offers* ("Card · Apple Pay · Google Pay") to label a tab.
+ * These name the provider itself, for a table cell or a filter.
+ */
+export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = {
+  stripe: 'Stripe',
+  paypal: 'PayPal',
+  mock: 'Test',
+};
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentState, string> = {
+  pending: 'Pending',
+  succeeded: 'Succeeded',
+  failed: 'Failed',
+  refunded: 'Refunded',
+};
+
+export const PAYMENT_WALLET_LABELS: Record<PaymentWallet, string> = {
+  card: 'Card',
+  apple_pay: 'Apple Pay',
+  google_pay: 'Google Pay',
+  link: 'Link',
+  paypal: 'PayPal',
+  mock: 'Test',
+  unknown: '—',
+};

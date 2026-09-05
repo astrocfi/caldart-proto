@@ -20,9 +20,11 @@ export {
   CurrencyChip,
   EXPIRING_WINDOW_DAYS,
   MembershipChip,
+  PaymentChip,
   StatusChip,
   daysUntil,
   membershipTone,
+  paymentStatusTone,
 } from './StatusChip';
 export type { StatusChipProps, StatusTone } from './StatusChip';
 export { ToastProvider, ToastViewport, useToast } from './Toast';
