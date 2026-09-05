@@ -40,6 +40,12 @@ describe('visibleNavItems', () => {
     expect(visible).not.toContain('System');
   });
 
+  it('offers the leader checks to account_admin, as the API and guards do', () => {
+    const visible = labels(['member', 'account_admin']);
+    expect(visible).toContain('Member check');
+    expect(visible).toContain('Aircraft check');
+  });
+
   it('gives user_admin only the users screen on top of membership', () => {
     const visible = labels(['member', 'user_admin']);
     expect(visible).toContain('Users & roles');
