@@ -1,4 +1,5 @@
-import type { MembershipStatus } from '../api/types';
+import type { MembershipStatus, PaymentState } from '../api/types';
+import { PAYMENT_STATUS_LABELS } from '../choices';
 
 export type StatusTone = 'current' | 'expiring' | 'expired' | 'none';
 
@@ -83,4 +84,16 @@ export function CurrencyChip({
   ) : (
     <StatusChip tone="expired" label="Expired" />
   );
+}
+
+/** A payment's state, in the shared status palette (PLAN §4.4). */
+export function paymentStatusTone(status: PaymentState): StatusTone {
+  if (status === 'succeeded') return 'current';
+  if (status === 'pending') return 'expiring';
+  if (status === 'failed') return 'expired';
+  return 'none';
+}
+
+export function PaymentChip({ status }: { status: PaymentState }) {
+  return <StatusChip tone={paymentStatusTone(status)} label={PAYMENT_STATUS_LABELS[status]} />;
 }
