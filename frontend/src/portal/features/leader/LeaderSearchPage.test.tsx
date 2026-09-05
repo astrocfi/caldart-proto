@@ -103,6 +103,21 @@ describe('LeaderSearchPage', () => {
     expect(await screen.findByText('GO')).toBeInTheDocument();
   });
 
+  it('ignores a member id that is not a record id', async () => {
+    let asked = false;
+    server.use(
+      searchReturns([]),
+      http.get(`${API}/leader/members/:id/status`, () => {
+        asked = true;
+        return HttpResponse.json(STATUS);
+      }),
+    );
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader?member=abc' });
+    expect(await screen.findByLabelText(/Name, email or N-number/i)).toBeInTheDocument();
+    expect(asked).toBe(false);
+  });
+
   it('explains a 404 rather than showing an empty card', async () => {
     server.use(
       http.get(`${API}/leader/members/7/status`, () =>

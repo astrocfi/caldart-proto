@@ -14,6 +14,7 @@ import { Page } from '../../components/Page';
 import { StatusChip } from '../../components/StatusChip';
 import { useToast } from '../../components/Toast';
 import { InsuranceChip } from '../aircraft/InsuranceChip';
+import { ServiceChip } from '../aircraft/ServiceChip';
 import '../aircraft/aircraft.css';
 import { useAircraft, useDeleteAircraft, useUpdateAircraft } from '../aircraft/api';
 import { aircraftToValues } from '../aircraft/form';
@@ -21,16 +22,20 @@ import { AircraftForm } from './AircraftForm';
 
 export function AircraftRecordPage() {
   const { id } = useParams<{ id: string }>();
+  // `:id` matches any path segment, so `/admin/aircraft/abc` reaches this
+  // page.  Treat an id that is not a record id as a record that is not there,
+  // rather than asking the server about `NaN`.
   const aircraftId = Number(id);
+  const knownId = Number.isInteger(aircraftId) && aircraftId > 0;
   const navigate = useNavigate();
   const toast = useToast();
 
-  const record = useAircraft(Number.isFinite(aircraftId) ? aircraftId : null);
+  const record = useAircraft(knownId ? aircraftId : null);
   const update = useUpdateAircraft(aircraftId);
   const remove = useDeleteAircraft(aircraftId);
   const [confirming, setConfirming] = useState(false);
 
-  if (record.isPending) {
+  if (knownId && record.isPending) {
     return (
       <Page title="Aircraft" eyebrow="Administration">
         <p className="muted" role="status">
@@ -40,8 +45,8 @@ export function AircraftRecordPage() {
     );
   }
 
-  if (record.isError || !record.data) {
-    const missing = record.error instanceof ApiError && record.error.status === 404;
+  if (!knownId || record.isError || !record.data) {
+    const missing = !knownId || (record.error instanceof ApiError && record.error.status === 404);
     return (
       <Page title="Aircraft" eyebrow="Administration">
         <EmptyState
@@ -62,6 +67,8 @@ export function AircraftRecordPage() {
   }
 
   const aircraft = record.data;
+  // Absent for a caller without a leader or administrator role (PLAN §6.6).
+  const pilots = aircraft.pilots ?? [];
 
   const save = (payload: AircraftPatch): void => {
     update.mutate(payload, {
@@ -86,7 +93,12 @@ export function AircraftRecordPage() {
       title={aircraft.n_number}
       eyebrow="Aircraft record"
       lede={`${aircraft.make} ${aircraft.model}`.trim()}
-      actions={<InsuranceChip aircraft={aircraft} />}
+      actions={
+        <>
+          <InsuranceChip aircraft={aircraft} />
+          <ServiceChip aircraft={aircraft} />
+        </>
+      }
     >
       <Card eyebrow="Register" title="Details">
         <AircraftForm
@@ -101,11 +113,11 @@ export function AircraftRecordPage() {
       </Card>
 
       <Card eyebrow="Members" title="Pilots who fly this aircraft">
-        {aircraft.pilots.length === 0 ? (
+        {pilots.length === 0 ? (
           <p className="muted">No member lists this aircraft on their profile.</p>
         ) : (
           <ul className="aircraft-pilots">
-            {aircraft.pilots.map((pilot) => (
+            {pilots.map((pilot) => (
               <li key={pilot.user_id}>
                 <span>{pilot.name}</span>
                 <span className="aircraft-pilots__email mono">{pilot.email}</span>

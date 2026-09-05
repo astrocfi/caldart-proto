@@ -179,6 +179,38 @@ describe('AircraftRecordPage', () => {
     expect(screen.getByRole('button', { name: 'Delete this aircraft' })).toBeInTheDocument();
   });
 
+  it('does not sit on "Loading…" for an id that is not a record id', async () => {
+    let asked = false;
+    server.use(
+      http.get(`${API}/aircraft/:id`, () => {
+        asked = true;
+        return HttpResponse.json(makeDetail());
+      }),
+    );
+
+    renderRecord('/admin/aircraft/abc');
+    expect(await screen.findByText('No such aircraft')).toBeInTheDocument();
+    expect(asked).toBe(false);
+  });
+
+  it('renders a record the server sent without a pilot list', async () => {
+    const { pilots: _pilots, ...withoutPilots } = makeDetail();
+    server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(withoutPilots)));
+
+    renderRecord();
+    expect(await screen.findByRole('heading', { name: 'N172SP' })).toBeInTheDocument();
+    expect(screen.getByText(/No member lists this aircraft/)).toBeInTheDocument();
+  });
+
+  it('flags an airframe that is out of service', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail({ is_active: false }))),
+    );
+
+    renderRecord();
+    expect(await screen.findByText('Out of service')).toBeInTheDocument();
+  });
+
   it('explains a record that is not there', async () => {
     server.use(
       http.get(`${API}/aircraft/1`, () =>

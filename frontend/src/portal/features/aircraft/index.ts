@@ -2,6 +2,8 @@ export { AircraftPicker } from './AircraftPicker';
 export type { AircraftPickerProps } from './AircraftPicker';
 export { InsuranceChip } from './InsuranceChip';
 export type { InsuranceChipProps } from './InsuranceChip';
+export { ServiceChip } from './ServiceChip';
+export type { ServiceChipProps } from './ServiceChip';
 export {
   aircraftExportUrl,
   aircraftQuery,

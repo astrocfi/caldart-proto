@@ -88,6 +88,9 @@ Expiring within      30, 60 or 90 days — cover that is still valid but is abou
                      to lapse.  Already-expired policies are *not* included
 ===================  ============================================================
 
+The register lists in-service and out-of-service airframes alike, so nothing
+disappears from an administrator's view.
+
 Every column sorts, and sorting happens on the server, so it sorts the whole
 register rather than the page you are looking at.  Aeroplanes with no
 insurance on file always sort to the bottom, whichever direction you sort the
@@ -122,7 +125,12 @@ Click a registration to open the record.  It is in four sections:
 - **Insurance** — carrier, policy number, liability per occurrence and per
   person, hull value, and the expiry date.  Amounts are entered in dollars and
   stored as integer cents; nothing may be negative.
-- **Administration** — free-text notes and an "in service" flag.
+- **Administration** — free-text notes and an "in service" flag.  Clearing
+  it marks the airframe **Out of service**: it is labelled that way in the
+  register, on the record, and on a DART leader's aircraft check, and it stops
+  being offered to members searching for a plane to add to their profile.  A
+  member who types its exact registration still sees it, labelled, so they do
+  not try to add a second record for the same aeroplane.
 
 Underneath, **Pilots who fly this aircraft** lists every member who has
 attached it, with their membership and medical currency — the same facts a
@@ -130,7 +138,8 @@ DART leader would see.
 
 **Delete this aircraft** removes it from the register permanently, and from
 every profile that had it attached.  It asks once for confirmation.  Prefer
-clearing the "in service" flag if the aeroplane may come back.
+clearing the "in service" flag if the aeroplane may come back — the history
+stays, and a leader checking the tail number can still see what was on file.
 
 
 Who may do what

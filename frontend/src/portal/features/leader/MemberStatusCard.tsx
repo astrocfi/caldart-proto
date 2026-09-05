@@ -34,7 +34,12 @@ export function noGoReasons(status: LeaderStatus): string[] {
     );
   }
   if (!status.go_no_go.medical) {
-    reasons.push(status.medical.type === 'none' ? 'No medical on file' : 'Medical expired');
+    // A medical can also fail because the member picked a class but never
+    // entered the date; saying "expired" would send the leader chasing a
+    // renewal that is not due.
+    if (status.medical.type === 'none') reasons.push('No medical on file');
+    else if (status.medical.expiration === null) reasons.push('No medical expiry on file');
+    else reasons.push('Medical expired');
   }
   return reasons;
 }

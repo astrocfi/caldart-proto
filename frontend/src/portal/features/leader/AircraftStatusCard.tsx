@@ -6,6 +6,7 @@ import { DateText } from '../../components/DateText';
 import { Money } from '../../components/Money';
 import { StatusChip } from '../../components/StatusChip';
 import { InsuranceChip } from '../aircraft/InsuranceChip';
+import { ServiceChip } from '../aircraft/ServiceChip';
 import type { AircraftDetail } from '../aircraft/api';
 import { OWNER_TYPE_LABELS } from '../aircraft/form';
 import { insuranceTone } from '../aircraft/insurance';
@@ -26,6 +27,8 @@ export interface AircraftStatusCardProps {
 export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps) {
   const tone = insuranceTone(aircraft, today);
   const verdict = VERDICT[tone] ?? VERDICT.none!;
+  // Only a leader or administrator is sent the pilot list (PLAN §6.6).
+  const pilots = aircraft.pilots ?? [];
 
   return (
     <section className="leader-card" aria-label={`Insurance for ${aircraft.n_number}`}>
@@ -39,6 +42,7 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
 
       <header className="leader-card__head">
         <h2 className="leader-card__name mono">{aircraft.n_number}</h2>
+        <ServiceChip aircraft={aircraft} />
         <p className="leader-card__meta muted">
           {aircraft.make} {aircraft.model}
           {aircraft.year ? ` · ${aircraft.year}` : ''}
@@ -92,13 +96,13 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
       </dl>
 
       <h3 className="leader-card__subhead">Members who fly it</h3>
-      {aircraft.pilots.length === 0 ? (
+      {pilots.length === 0 ? (
         <p className="leader-aircraft-card__limits muted">
           No member lists this aircraft on their profile.
         </p>
       ) : (
         <ul className="leader-aircraft">
-          {aircraft.pilots.map((pilot) => (
+          {pilots.map((pilot) => (
             <li key={pilot.user_id} className="leader-aircraft__row">
               <span className="leader-search__name">{pilot.name}</span>
               <StatusChip

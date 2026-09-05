@@ -125,6 +125,41 @@ describe('AircraftPicker', () => {
     expect(screen.getByText(/already on your list/i)).toBeInTheDocument();
   });
 
+  it('leaves out-of-service aircraft out of the fuzzy search', async () => {
+    const user = userEvent.setup();
+    let params: URLSearchParams | null = null;
+    server.use(
+      http.get(`${API}/aircraft/lookup`, () =>
+        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+      ),
+      http.get(`${API}/aircraft`, ({ request }) => {
+        params = new URL(request.url).searchParams;
+        return HttpResponse.json({ count: 0, next: null, previous: null, results: [] });
+      }),
+    );
+
+    renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
+    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'cessna');
+    await screen.findByText(/No aircraft matches that/i);
+
+    expect(params!.get('is_active')).toBe('true');
+  });
+
+  it('flags an exact match that is out of service rather than hiding it', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${API}/aircraft/lookup`, () =>
+        HttpResponse.json({ ...makeAircraft({ is_active: false }), pilots: [] }),
+      ),
+    );
+
+    renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
+    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n172sp');
+
+    expect(await screen.findByText('N172SP')).toBeInTheDocument();
+    expect(screen.getByText('Out of service')).toBeInTheDocument();
+  });
+
   it('does not offer to create one the member has already attached', async () => {
     const user = userEvent.setup();
     server.use(...searchOnly([makeAircraft({ id: 1, n_number: 'N172SP' })]));

@@ -22,8 +22,10 @@ import './leader.css';
 
 export function LeaderSearchPage() {
   const [params, setParams] = useSearchParams();
-  const selected = params.get('member');
-  const memberId = selected ? Number(selected) : null;
+  // `?member=` comes from a link or a hand-edited URL: only a real record id
+  // opens the card, so a stray value cannot become a request for member NaN.
+  const selected = Number(params.get('member'));
+  const memberId = Number.isInteger(selected) && selected > 0 ? selected : null;
 
   const [term, setTerm] = useState('');
   const debounced = useDebounced(term.trim());

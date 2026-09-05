@@ -16,6 +16,7 @@ import { Field } from '../../components/Field';
 import { Page } from '../../components/Page';
 import { useToast } from '../../components/Toast';
 import { InsuranceChip } from '../aircraft/InsuranceChip';
+import { ServiceChip } from '../aircraft/ServiceChip';
 import '../aircraft/aircraft.css';
 import type { AircraftFilters } from '../aircraft/api';
 import { aircraftExportUrl, useAircraftList, useCreateAircraft } from '../aircraft/api';
@@ -87,9 +88,12 @@ export function AircraftRegisterPage() {
       key: 'n_number',
       header: 'N-number',
       render: (row) => (
-        <Link className="mono" to={`/admin/aircraft/${row.id}`}>
-          {row.n_number}
-        </Link>
+        <span className="cluster">
+          <Link className="mono" to={`/admin/aircraft/${row.id}`}>
+            {row.n_number}
+          </Link>
+          <ServiceChip aircraft={row} />
+        </span>
       ),
     },
     { key: 'make', header: 'Make', render: (row) => row.make },
