@@ -71,28 +71,31 @@ Entity relationships
 
    .. code-block:: text
 
-                          auth.Group  (name = role slug)
-                               |  m2m
-                               |
-                        accounts.User
-                     /     |    |    \\    \\
-             1--1  /       |    |     \\    \\  created_by
-      MemberProfile        |    |      \\    +------------> aircraft.Aircraft
-        |      |           |    |       \\                        ^
-        | dart |  m2m "planes commonly flown" (related: pilots)   |
-        v      +-------------------------------------------------+
-     members.Dart                |    |
-        ^                        |    |
-        | dart (PROTECT)         |    |
-     cms.DartPage                |    |
-                                 |    |
-                members.Membership    payments.Payment
-                    |      |   \\____ 1--1 ____/
-                    |      |          (payment, nullable)
-                    |      +--------> members.MembershipPlan  (PROTECT)
+                        auth.Group  (name = role slug)
+                             |
+                             | m2m  (User.roles)
+                             |
+                       accounts.User
+          1--1  .------------+------------.  created_by
+                |            |            |
+       members.MemberProfile |      aircraft.Aircraft
+          |         |        |            ^
+          | dart    |        |            | m2m "planes commonly flown"
+          |         '--------|------------'    (related name: pilots)
+          v                  |
+       members.Dart          +-------------------.
+          ^                  |                   |
+          | dart (PROTECT)   |                   |
+       cms.DartPage          |                   |
+                             |                   |
+                 members.Membership       payments.Payment
+                    |     |      '--- 1--1 ---'  |
+                    |     |    (Membership.payment, nullable)
+                    |     |                      |
+                    |     '-> members.MembershipPlan <-'  (PROTECT)
                     |
-                    +--------------- reminders.ReminderLog
-                                     (user, membership, kind — unique together)
+                    '------- reminders.ReminderLog
+                             (user, membership, kind — unique together)
 
 accounts
 ========
