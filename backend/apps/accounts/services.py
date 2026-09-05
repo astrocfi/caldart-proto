@@ -107,7 +107,7 @@ def send_password_reset_email(user: User, *, request=None) -> bool:
         "expiry_days": max(1, settings.PASSWORD_RESET_TIMEOUT // 86_400),
     }
 
-    subject = f"Reset your {context['org_name']} password"
+    subject = f"{context['org_name']}: reset your password"
     text_body = render_to_string("emails/password_reset.txt", context)
     html_body = render_to_string("emails/password_reset.html", context)
 
