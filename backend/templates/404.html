@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% comment %}Page not found.  Uses the ordinary site chrome, so the reader is not stranded.{% endcomment %}
+
+{% block title %}Page not found{% endblock %}
+{% block body_class %}error{% endblock %}
+
+{% block content %}
+  <div class="section grid">
+    <div class="col-text stack error-page">
+      <p class="eyebrow">Error 404</p>
+      <h1>That page is not here</h1>
+      <p class="lede">
+        The address may have changed, or the page may have been unpublished. Nothing is
+        broken — you just took a wrong turn.
+      </p>
+      <p class="cluster">
+        <a class="button" href="/">Back to the home page</a>
+        <a class="button button--quiet" href="/portal/">Member portal</a>
+      </p>
+    </div>
+  </div>
+{% endblock %}

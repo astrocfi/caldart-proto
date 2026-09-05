@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% comment %}
+  Contact: the intro the editor writes, and the address block pulled straight
+  from Site Settings so it is only ever maintained in one place (PLAN §4.6).
+{% endcomment %}
+
+{% block body_class %}contact{% endblock %}
+
+{% block content %}
+  {% include "cms/includes/page_header.html" with rich_intro=page.intro|richtext %}
+
+  <div class="section grid">
+    <div class="col-text stack prose">
+      {% for block in page.body %}{% include_block block %}{% endfor %}
+    </div>
+
+    <aside class="col-side page-aside">
+      <div class="page-aside__sticky">
+        <dl class="facts">
+          {% if site_settings.contact_email %}
+            <div class="facts__row">
+              <dt>Email</dt>
+              <dd><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></dd>
+            </div>
+          {% endif %}
+          {% if site_settings.contact_phone %}
+            <div class="facts__row">
+              <dt>Phone</dt>
+              <dd class="mono">{{ site_settings.contact_phone }}</dd>
+            </div>
+          {% endif %}
+          {% if site_settings.mailing_address %}
+            <div class="facts__row">
+              <dt>Post</dt>
+              <dd>{{ site_settings.mailing_address|linebreaksbr }}</dd>
+            </div>
+          {% endif %}
+          {% if site_settings.ein %}
+            <div class="facts__row">
+              <dt>EIN</dt>
+              <dd class="mono">{{ site_settings.ein }}</dd>
+            </div>
+          {% endif %}
+        </dl>
+      </div>
+    </aside>
+  </div>
+{% endblock %}
