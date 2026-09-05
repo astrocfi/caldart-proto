@@ -12,7 +12,8 @@ from wagtail import urls as wagtail_urls
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail.documents import urls as wagtaildocs_urls
 
-from caldart.views import apple_pay_domain_association, portal_shell
+from apps.payments.views import apple_pay_domain_association
+from caldart.views import portal_shell
 
 urlpatterns = [
     path("admin/", include(wagtailadmin_urls)),

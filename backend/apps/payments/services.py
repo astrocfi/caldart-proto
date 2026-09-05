@@ -105,3 +105,18 @@ def mark_failed(payment: Payment, raw: dict | None = None) -> Payment:
         payment.raw = raw
     payment.save(update_fields=["status", "raw", "updated_at"])
     return payment
+
+
+@transaction.atomic
+def record_provider_event(payment: Payment, payload: dict) -> Payment:
+    """File a provider notification against a payment without changing its state.
+
+    Used by the PayPal webhook, which is a recorder rather than an authority:
+    the capture call is what activates a membership.
+    """
+    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    raw = dict(payment.raw or {})
+    raw["last_webhook"] = payload
+    payment.raw = raw
+    payment.save(update_fields=["raw", "updated_at"])
+    return payment
