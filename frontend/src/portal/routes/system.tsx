@@ -2,13 +2,11 @@
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';
-import { comingSoon } from './placeholder';
-
-const BRANCH = 'feat/ops';
+import { SystemPage } from '../features/system';
 
 export const systemRoutes: RouteObject[] = [
   {
     element: <RequireRole roles={['system_admin']} />,
-    children: [{ path: 'system', element: comingSoon('Health, backups and reminders', BRANCH) }],
+    children: [{ path: 'system', element: <SystemPage /> }],
   },
 ];

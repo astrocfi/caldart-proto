@@ -1,0 +1,18 @@
+{{ org_name }} — today is the last day
+
+Hello {{ first_name }},
+
+Your {{ plan_name }} membership ends on {{ expires_on|date:"F j, Y" }} — that is
+today. From tomorrow it reads as expired: the members-only pages close, and DART
+leaders checking you before a flight will see a red chip rather than a green one.
+
+Renew today and nothing lapses at all:
+{{ renew_url }}
+
+If you have already renewed in the last few minutes, ignore this — the portal is
+the record that counts.
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because you are a member of {{ org_name }}.

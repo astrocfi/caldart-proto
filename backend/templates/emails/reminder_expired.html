@@ -1,0 +1,22 @@
+{% extends "emails/reminder_base.html" %}
+
+{% block preheader %}Today is the last day of your {{ plan_name }} membership.{% endblock %}
+
+{% block heading %}Today is the last day{% endblock %}
+
+{% block lede %}Your {{ plan_name }} membership ends on {{ expires_on|date:"F j, Y" }} — that is today.{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  <p style="margin:0 0 14px 0;">
+    From tomorrow your membership reads as expired: the members-only pages close,
+    and DART leaders checking you before a flight will see a red chip rather than
+    a green one.
+  </p>
+  <p style="margin:0 0 14px 0;">
+    Renew today and nothing lapses at all. If you have already renewed in the
+    last few minutes, ignore this — the portal is the record that counts.
+  </p>
+{% endblock %}
+
+{% block cta_label %}Renew today{% endblock %}
