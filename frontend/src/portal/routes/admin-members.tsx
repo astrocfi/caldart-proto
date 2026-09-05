@@ -2,17 +2,15 @@
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';
-import { comingSoon } from './placeholder';
-
-const BRANCH = 'feat/members-admin';
+import { MemberCreatePage, MemberDetailPage, MembersListPage } from '../features/admin-members';
 
 export const adminMembersRoutes: RouteObject[] = [
   {
     element: <RequireRole roles={['account_admin']} />,
     children: [
-      { path: 'admin/members', element: comingSoon('Members administration', BRANCH) },
-      { path: 'admin/members/new', element: comingSoon('Add a member', BRANCH) },
-      { path: 'admin/members/:id', element: comingSoon('Member record', BRANCH) },
+      { path: 'admin/members', element: <MembersListPage /> },
+      { path: 'admin/members/new', element: <MemberCreatePage /> },
+      { path: 'admin/members/:id', element: <MemberDetailPage /> },
     ],
   },
 ];
