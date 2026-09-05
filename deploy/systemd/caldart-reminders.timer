@@ -1,0 +1,32 @@
+# Daily trigger for the CalDART renewal reminder scan (PLAN.rst §12).
+#
+# Deploy path: /srv/caldart. Enable with:
+#   sudo systemctl enable --now caldart-reminders.timer
+# Inspect with:
+#   systemctl list-timers caldart-reminders.timer
+
+[Unit]
+Description=Run the CalDART renewal reminder scan daily at 07:00
+Documentation=file:///srv/caldart/docs/developer/deployment.rst
+
+[Timer]
+Unit=caldart-reminders.service
+
+# 07:00 every day, in the system timezone -- early enough that reminders land
+# before members start their day, late enough to be a sane send time.
+OnCalendar=*-*-* 07:00:00
+
+# If the machine was off or suspended at 07:00, run as soon as it comes back
+# rather than skipping that day's reminders entirely.
+Persistent=true
+
+# Reminders are date-driven, not time-critical to the second; letting systemd
+# coalesce the wakeup is cheaper.
+AccuracySec=1min
+
+# Spread the start over five minutes so the scan does not land at the same
+# instant as every other 07:00 job on the host.
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target
