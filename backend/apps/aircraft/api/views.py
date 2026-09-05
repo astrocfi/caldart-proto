@@ -110,7 +110,16 @@ class AircraftExportMixin(AircraftQuerysetMixin):
         return aircraft_reports.export_queryset(self.filter_queryset(self.get_queryset()))
 
     def applied_filters(self) -> dict[str, str]:
-        wanted = ("search", "make", "owner_type", "insurance", "expiring_within", "ordering")
+        """Every filter the list accepts, so the PDF says what it left out."""
+        wanted = (
+            "search",
+            "make",
+            "owner_type",
+            "insurance",
+            "expiring_within",
+            "is_active",
+            "ordering",
+        )
         return {key: self.request.query_params.get(key, "") for key in wanted}
 
     def filename(self, suffix: str) -> str:

@@ -47,8 +47,8 @@ export function ProfileStep({ onDone }: ProfileStepProps) {
   return (
     <Card className="join-card" eyebrow="Step 2 of 4" title="About you">
       <p className="muted">
-        CalDART needs a way to reach you during an activation. Everything except your phone, city,
-        state and ZIP can wait until later.
+        CalDART needs a way to reach you during an activation. Everything except your phone and
+        address can wait until later.
       </p>
       <ProfileForm
         initialValues={profile.data ? profileToForm(profile.data) : EMPTY_PROFILE_FORM}

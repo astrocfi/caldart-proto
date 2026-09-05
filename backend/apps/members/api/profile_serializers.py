@@ -11,7 +11,7 @@ import re
 
 from rest_framework import serializers
 
-from apps.aircraft.models import Aircraft
+from apps.aircraft.api.serializers import AircraftSummarySerializer
 from apps.members.models import (
     RATING_VALUES,
     Dart,
@@ -54,30 +54,6 @@ class PlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = MembershipPlan
         fields = ["slug", "name", "price_cents", "duration_days", "description"]
-        read_only_fields = fields
-
-
-class AircraftSummarySerializer(serializers.ModelSerializer):
-    """The aircraft shape embedded in a profile (``AircraftSummary``, §6.5).
-
-    Declared here rather than imported from ``apps.aircraft`` so this branch
-    does not depend on a module another Phase 2 branch is still writing.
-    """
-
-    insurance_is_current = serializers.BooleanField(read_only=True)
-    insurance_summary = serializers.CharField(read_only=True)
-
-    class Meta:
-        model = Aircraft
-        fields = [
-            "id",
-            "n_number",
-            "make",
-            "model",
-            "insurance_is_current",
-            "insurance_expiration",
-            "insurance_summary",
-        ]
         read_only_fields = fields
 
 

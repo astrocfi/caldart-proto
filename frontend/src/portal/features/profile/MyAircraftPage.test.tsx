@@ -42,16 +42,22 @@ const PICKED: Aircraft = {
 
 const excluded = vi.fn<(ids: number[] | undefined) => void>();
 
-vi.mock('@/portal/features/aircraft', () => ({
-  AircraftPicker: (props: AircraftPickerProps) => {
-    excluded(props.excludeIds);
-    return (
-      <button type="button" onClick={() => props.onSelect(PICKED)}>
-        Pick N54321
-      </button>
-    );
-  },
-}));
+vi.mock('@/portal/features/aircraft', async (importOriginal) => {
+  // Keep the real module — the editor on this page is built from it — and
+  // stand in only for the picker.
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    AircraftPicker: (props: AircraftPickerProps) => {
+      excluded(props.excludeIds);
+      return (
+        <button type="button" onClick={() => props.onSelect(PICKED)}>
+          Pick N54321
+        </button>
+      );
+    },
+  };
+});
 
 describe('<MyAircraftPage/>', () => {
   beforeEach(() => {
@@ -172,5 +178,65 @@ describe('<MyAircraftPage/>', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
 
     expect(await screen.findByText('Not found.')).toBeInTheDocument();
+  });
+});
+
+describe('<MyAircraftPage/> editing', () => {
+  /** The full register record behind the summary on the profile. */
+  function record(createdBy: number | null): Aircraft {
+    return {
+      ...PICKED,
+      id: TEST_AIRCRAFT.id,
+      n_number: TEST_AIRCRAFT.n_number,
+      make: TEST_AIRCRAFT.make,
+      model: TEST_AIRCRAFT.model,
+      insurance_expiration: TEST_AIRCRAFT.insurance_expiration,
+      insurance_is_current: TEST_AIRCRAFT.insurance_is_current,
+      insurance_summary: TEST_AIRCRAFT.insurance_summary,
+      created_by: createdBy,
+    };
+  }
+
+  beforeEach(() => {
+    server.use(
+      signedInAs(makeUser({ id: 1 })),
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: [TEST_AIRCRAFT] })),
+      ),
+    );
+  });
+
+  it('lets a member correct an aircraft they added themselves', async () => {
+    let patched: Record<string, unknown> | null = null;
+    server.use(
+      http.get(`${API}/aircraft/7`, () => HttpResponse.json(record(1))),
+      http.patch(`${API}/aircraft/7`, async ({ request }) => {
+        patched = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(record(1));
+      }),
+    );
+
+    renderWithProviders(<MyAircraftPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    const expiry = await screen.findByLabelText('Insurance expires');
+    await userEvent.clear(expiry);
+    await userEvent.type(expiry, '2028-05-31');
+    await userEvent.click(screen.getByRole('button', { name: 'Save aircraft' }));
+
+    await waitFor(() => expect(patched).not.toBeNull());
+    expect(patched).toMatchObject({ insurance_expiration: '2028-05-31' });
+    expect(await screen.findByText('N12345 updated.')).toBeInTheDocument();
+  });
+
+  it("sends the member to an administrator for someone else's record", async () => {
+    server.use(http.get(`${API}/aircraft/7`, () => HttpResponse.json(record(99))));
+
+    renderWithProviders(<MyAircraftPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    expect(await screen.findByText('Someone else added this aircraft')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save aircraft' })).not.toBeInTheDocument();
   });
 });

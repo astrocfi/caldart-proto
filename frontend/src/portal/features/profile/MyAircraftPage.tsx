@@ -6,6 +6,7 @@
  * back and shows the insurance currency a DART leader will check.
  */
 import { AircraftPicker } from '@/portal/features/aircraft';
+import { useState } from 'react';
 
 import { ApiError } from '../../api/client';
 import type { AircraftSummary } from '../../api/types';
@@ -15,6 +16,8 @@ import { EmptyState } from '../../components/EmptyState';
 import { Page } from '../../components/Page';
 import { CurrencyChip } from '../../components/StatusChip';
 import { useToast } from '../../components/Toast';
+import { useAuth } from '../../auth/useAuth';
+import { AircraftEditor } from './AircraftEditor';
 import { useAttachAircraft, useDetachAircraft, useProfile } from './api';
 import './profile.css';
 
@@ -23,6 +26,10 @@ export function MyAircraftPage() {
   const attach = useAttachAircraft();
   const detach = useDetachAircraft();
   const toast = useToast();
+  const { user } = useAuth();
+  // The record open for editing, if any.  A member may correct an aeroplane
+  // they added themselves (PLAN §6.5).
+  const [editing, setEditing] = useState<number | null>(null);
 
   const aircraft: AircraftSummary[] = profile.data?.aircraft ?? [];
   const busy = attach.isPending || detach.isPending;
@@ -68,6 +75,14 @@ export function MyAircraftPage() {
                     variant="quiet"
                     small
                     disabled={busy}
+                    onClick={() => setEditing((open) => (open === plane.id ? null : plane.id))}
+                  >
+                    {editing === plane.id ? 'Close' : 'Edit'}
+                  </Button>
+                  <Button
+                    variant="quiet"
+                    small
+                    disabled={busy}
                     onClick={() =>
                       detach.mutate(plane.id, {
                         onSuccess: () => toast.show(`${plane.n_number} removed.`, 'success'),
@@ -83,6 +98,15 @@ export function MyAircraftPage() {
           </ul>
         )}
       </Card>
+
+      {editing !== null ? (
+        <AircraftEditor
+          aircraftId={editing}
+          userId={user?.id ?? null}
+          onClose={() => setEditing(null)}
+          onSaved={() => setEditing(null)}
+        />
+      ) : null}
 
       <AircraftPicker
         excludeIds={aircraft.map((plane) => plane.id)}

@@ -2,11 +2,14 @@
  * The coded values the admin screens show that the member's own screens do not.
  *
  * The profile vocabularies — certificate, IFR, medical, ratings, volunteer
- * interests, county suggestions — belong to `features/profile/constants`, and
- * are re-exported here so the filter bar, the admin form and `/profile` can
- * never label the same code differently.
+ * interests, county suggestions — come from the portal's shared `choices`
+ * module through `features/profile/constants`, and are re-exported here so the
+ * filter bar, the admin form and `/profile` can never label the same code
+ * differently.
  */
 import type { RoleSlug } from '../../api/types';
+import { labelFor } from '../../choices';
+import type { Choice } from '../../choices';
 import {
   CERTIFICATE_TYPES,
   IFR_OPTIONS,
@@ -17,11 +20,8 @@ import {
 
 export { CA_COUNTIES } from '../profile/constants';
 export { CERTIFICATE_TYPES, IFR_OPTIONS, MEDICAL_TYPES, RATINGS, VOLUNTEER_INTERESTS };
-
-export interface Choice<Value extends string> {
-  value: Value;
-  label: string;
-}
+export { certificateLabel, medicalLabel } from '../../choices';
+export type { Choice };
 
 export const ROLE_CHOICES: Choice<RoleSlug>[] = [
   { value: 'member', label: 'Member' },
@@ -44,13 +44,4 @@ export const TERM_STATUS_CHOICES: Choice<'active' | 'expired' | 'cancelled'>[] =
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
-function labelFrom<Value extends string>(
-  choices: readonly { value: Value; label: string }[],
-  value: string,
-): string {
-  return choices.find((choice) => choice.value === value)?.label ?? value;
-}
-
-export const certificateLabel = (value: string) => labelFrom(CERTIFICATE_TYPES, value);
-export const medicalLabel = (value: string) => labelFrom(MEDICAL_TYPES, value);
-export const roleLabel = (value: string) => labelFrom(ROLE_CHOICES, value);
+export const roleLabel = (value: string) => labelFor(ROLE_CHOICES, value);

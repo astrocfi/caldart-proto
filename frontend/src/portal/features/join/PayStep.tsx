@@ -10,9 +10,8 @@ import { Checkout } from '@/portal/features/checkout';
 import type { CheckoutResult } from '@/portal/features/checkout';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { AUTH_ME_KEY } from '../../auth/useAuth';
 import { Card } from '../../components/Card';
-import { MEMBERSHIP_KEY, PAYMENTS_KEY } from '../profile/api';
+import { refreshAfterPayment } from './refresh';
 import './join.css';
 
 export interface PayStepProps {
@@ -25,9 +24,7 @@ export function PayStep({ onDone }: PayStepProps) {
   function handleSuccess(_result: CheckoutResult) {
     // Membership, payment history and `profile_complete`/`membership` on the
     // user payload have all just moved.
-    void queryClient.invalidateQueries({ queryKey: AUTH_ME_KEY });
-    void queryClient.invalidateQueries({ queryKey: MEMBERSHIP_KEY });
-    void queryClient.invalidateQueries({ queryKey: PAYMENTS_KEY });
+    refreshAfterPayment(queryClient);
     onDone();
   }
 

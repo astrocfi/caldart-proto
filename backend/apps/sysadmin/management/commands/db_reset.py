@@ -43,9 +43,6 @@ class Command(BaseCommand):
         if options["seed"]:
             self.stdout.write("Seeding…")
             call_command("seed_demo")
-            try:
-                call_command("seed_content")
-            except Exception as exc:  # pragma: no cover - until feat/cms-site lands
-                self.stdout.write(self.style.WARNING(f"seed_content skipped: {exc}"))
+            call_command("seed_content")
 
         self.stdout.write(self.style.SUCCESS(f"Database '{name}' reset."))

@@ -32,9 +32,11 @@ export function PeriodTable({ rows, group, onGroupChange, isLoading = false }: P
   const newestFirst = [...rows].reverse();
 
   return (
-    <section className="stack">
+    <section className="stack period-table" aria-labelledby="payments-by-period">
       <div className="period-table__bar">
-        <h2 className="period-table__title">Payments by period</h2>
+        <h2 className="period-table__title" id="payments-by-period">
+          Payments by period
+        </h2>
         <div className="segmented" role="group" aria-label="Group payments by">
           {(['month', 'year'] as SummaryGroup[]).map((option) => (
             <button

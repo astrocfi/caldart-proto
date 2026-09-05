@@ -10,6 +10,7 @@
  * `routes/join.tsx` renders this at `/join/done`.
  */
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
@@ -23,6 +24,12 @@ export const POLL_INTERVAL_MS = 1_000;
 
 export interface CheckoutReturnProps {
   onSuccess: (result: CheckoutResult) => void;
+  /**
+   * Offered beneath the message when the payment cannot be confirmed — the
+   * join wizard puts a way back to the payment step there, so a declined card
+   * is not a dead end.
+   */
+  action?: ReactNode;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -31,7 +38,7 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-export function CheckoutReturn({ onSuccess }: CheckoutReturnProps) {
+export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
   const [params] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
@@ -101,7 +108,7 @@ export function CheckoutReturn({ onSuccess }: CheckoutReturnProps) {
   }, [paymentId, paymentIntentId, onSuccess]);
 
   if (error) {
-    return <EmptyState title="Payment not confirmed" description={error} />;
+    return <EmptyState title="Payment not confirmed" description={error} action={action} />;
   }
 
   return (

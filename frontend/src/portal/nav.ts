@@ -24,9 +24,24 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/profile', label: 'My profile', roles: [], group: 'Membership' },
   { to: '/profile/aircraft', label: 'My aircraft', roles: [], group: 'Membership' },
   { to: '/renew', label: 'Renew', roles: [], group: 'Membership' },
+  // `/change-password` is a real route with a real screen; without an entry
+  // here nothing in the portal linked to it.
+  { to: '/change-password', label: 'Change password', roles: [], group: 'Membership' },
 
-  { to: '/leader', label: 'Member check', roles: ['dart_leader'], group: 'Operations' },
-  { to: '/leader/aircraft', label: 'Aircraft check', roles: ['dart_leader'], group: 'Operations' },
+  // The leader API and `routes/leader.tsx` both admit `account_admin`, so the
+  // rail has to as well or an account administrator reaches these by URL only.
+  {
+    to: '/leader',
+    label: 'Member check',
+    roles: ['dart_leader', 'account_admin'],
+    group: 'Operations',
+  },
+  {
+    to: '/leader/aircraft',
+    label: 'Aircraft check',
+    roles: ['dart_leader', 'account_admin'],
+    group: 'Operations',
+  },
 
   { to: '/admin/members', label: 'Members', roles: ['account_admin'], group: 'Administration' },
   { to: '/admin/aircraft', label: 'Aircraft', roles: ['account_admin'], group: 'Administration' },
