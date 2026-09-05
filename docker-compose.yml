@@ -1,0 +1,34 @@
+# Fixed project name so every git worktree shares the same containers.
+name: caldart
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: caldart
+      POSTGRES_PASSWORD: caldart
+      POSTGRES_DB: caldart
+    ports:
+      - "5432:5432"
+    volumes:
+      - caldart_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caldart -d caldart"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+volumes:
+  caldart_pgdata:

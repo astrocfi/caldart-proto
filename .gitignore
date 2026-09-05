@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- CalDART ---
+backups/
+frontend/dist/
+frontend/node_modules/
+node_modules/
+.env
+.venv/
+backend/media/
+backend/staticfiles/
+docs/_build/
+playwright-report/
+test-results/
