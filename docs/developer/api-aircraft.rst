@@ -1,16 +1,12 @@
-===============================
+==============================
 API: aircraft and leader check
-===============================
+==============================
 
 The ``apps.aircraft`` half of the ``/api/v1/`` contract: the aircraft register
 (PLAN §6.5), its CSV and PDF exports (PLAN §11), and the DART leader check
 (PLAN §6.6).  Conventions from :doc:`api-reference` apply throughout — session
 authentication, ``X-CSRFToken`` on unsafe methods, DRF error bodies, and
 ``401`` (never ``403``) for an unauthenticated request.
-
-.. contents:: On this page
-   :local:
-   :depth: 2
 
 
 N-number normalisation

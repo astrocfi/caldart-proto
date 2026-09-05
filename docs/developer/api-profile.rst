@@ -1,6 +1,6 @@
-==============================
-API reference: member profile
-==============================
+========================
+API: member self-service
+========================
 
 The member self-service half of the API (``PLAN.rst`` §6.3, plus the
 attach/detach pair from §6.5).  Every ``/me/...`` endpoint acts on the
@@ -10,10 +10,6 @@ join wizard can render before the visitor has an account.
 Conventions are the ones in :doc:`api-reference`: session authentication,
 ``X-CSRFToken`` on unsafe methods, ISO-8601 dates, DRF error bodies.  An
 unauthenticated request to a protected endpoint returns **401**, not 403.
-
-.. contents:: Endpoints
-   :local:
-   :depth: 1
 
 
 Summary
@@ -139,12 +135,18 @@ A rejection is a normal DRF 400:
 
    {"medical_expiration": ["Give the expiration date of your medical certificate."]}
 
-The portal's form applies the same rules before it sends anything, plus
-``city``, ``state`` and ``postal_code`` as required — those four fields are
-what ``MemberProfile.is_complete`` (and therefore ``profile_complete`` on
-the user payload, and the dashboard nudge) tests for.  The server stays
-authoritative: only ``phone`` is required there, so an API client may store
-a partial profile.
+The portal's form applies the same rules before it sends anything, and marks
+``phone``, ``city``, ``state`` and ``postal_code`` as required on top of them.
+The server stays authoritative: only ``phone`` is required there, so an API
+client may store a partial profile.
+
+Do not confuse either set with ``profile_complete`` on the user payload, which
+is what the dashboard nudge and the join wizard's step gating read.  That flag
+tests ``PROFILE_COMPLETE_FIELDS`` in ``apps/accounts/api/serializers.py`` —
+``phone``, ``address_line1``, ``city``, ``postal_code`` and
+``pilot_certificate_type`` — a different list again, and one that includes a
+field the form does not require.  See the warning under ``is_complete`` in
+:doc:`data-model`.
 
 
 ``POST /me/profile/aircraft``
