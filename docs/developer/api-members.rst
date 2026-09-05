@@ -139,19 +139,38 @@ states the same rules as correlated subqueries on the user queryset:
 
 ``covers_today``
    ``EXISTS`` an active term with ``starts_on <= today`` and ``ends_on``
-   either null or ``>= today``.
-``coverage_end``
+   either null or ``>= today``.  This is what ``?status=current`` filters on.
+``has_started_term``
+   ``EXISTS`` a non-cancelled term with ``starts_on <= today``.  Paired with
+   ``covers_today`` it separates the other two statuses: not covering but
+   started is ``expired``, neither is ``none``.
+``coverage_end`` / ``coverage_plan``
    The earliest active term ending on or after today that **no** other active
    term continues — where "continues" means starting no later than
-   ``ends_on + 1 day`` and reaching further.  Terms inside the chain always
-   have a continuation, and terms after a gap always end later, so the
-   earliest such boundary is exactly where the Python walk stops.  ``NULL``
-   means the chain reaches a lifetime term.
+   ``ends_on + 1 day`` and reaching further — and that term's plan name.
+   Terms inside the chain always have a continuation, and terms after a gap
+   always end later, so the earliest such boundary is exactly where the Python
+   walk stops.  ``NULL`` means the chain reaches a lifetime term, or that
+   nothing covers today.
+``lifetime_plan``
+   The plan name of an active term with no end date, read instead of
+   ``coverage_plan`` when ``coverage_end`` is ``NULL`` — because a lifetime
+   member has no boundary row to take a name from.
 ``past_end`` / ``past_plan``
    The most recent non-cancelled term that has started, reported when nothing
    covers today.
 ``joined_on``
    The earliest term's ``starts_on``.
+``full_name``
+   ``first_name`` and ``last_name`` concatenated, so ``?search=`` can match a
+   full name in one ``icontains``.
+
+One more annotation is derived from those, in ``derived_annotations()``:
+
+``effective_expiry``
+   ``coverage_end`` when ``covers_today``, else ``past_end``.  This is the
+   column ``?ordering=expires_on`` actually sorts on, with ``NULL`` — lifetime
+   members and people who never joined — forced to the end in both directions.
 
 ``membership_payload(user)`` reads those annotations back into the
 ``membership_status`` dictionary, and the whole page costs one query.

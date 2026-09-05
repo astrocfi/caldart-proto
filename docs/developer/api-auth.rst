@@ -220,6 +220,9 @@ Parameter          Effect
 ``is_active``      ``true`` / ``false``.
 ``ordering``       One of ``last_name``, ``first_name``, ``email``,
                    ``is_active``, ``created_at``; prefix with ``-`` to reverse.
+                   Unlike ``role``, an unrecognised field is *ignored* rather
+                   than rejected, so a typo silently gives you the default
+                   order.
 ``page``,          Standard pagination.
 ``page_size``
 =================  ============================================================
@@ -234,8 +237,9 @@ One user payload; 404 for an unknown id.
 
 Accepts any of ``first_name``, ``last_name``, ``email``, ``is_active`` and
 ``roles``, and returns the updated payload.  ``PUT`` and ``DELETE`` are 405:
-this API edits accounts, it does not replace or remove them (deleting members is
-``feat/members-admin``'s ``DELETE /admin/members/{user_id}``).
+this API edits accounts, it does not replace or remove them.  Deleting a member
+is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
+:doc:`api-members`.
 
 Three rules are enforced in ``AdminUserSerializer``:
 
