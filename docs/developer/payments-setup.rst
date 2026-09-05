@@ -15,8 +15,12 @@ This page is the recipe for setting the real ones up.
 Environment variables
 =====================
 
-Everything lives in ``.env`` at the repository root (copy ``.env.example`` if
-you have not already).  ``backend/caldart/settings/base.py`` reads each one.
+In development everything lives in ``.env`` at the repository root (copy
+``.env.example`` if you have not already).  In production the same names live
+in ``/etc/caldart/caldart.env``, which the systemd units load as an
+``EnvironmentFile`` — and nothing re-reads it while the process is up, so
+``systemctl restart caldart-web`` after every edit.  Either way
+``backend/caldart/settings/base.py`` reads each one.
 
 .. list-table::
    :header-rows: 1
@@ -121,6 +125,22 @@ a test event in another terminal:
 
    $ stripe trigger payment_intent.succeeded
 
+.. note::
+
+   ``stripe trigger`` builds an intent of its own, with no
+   ``metadata.payment_id``, so the endpoint finds no payment to match and
+   answers ``{"received": true, "handled": false}`` while logging that the
+   event "referenced an unknown payment".  That is the *correct* response and
+   it proves the route, the signature and the secret — but it is not a test of
+   activation.  For that, take a real checkout through the Payment Element and
+   watch the second, matching event arrive.
+
+Both webhook views are ``csrf_exempt`` with no authentication and no
+permission classes: the provider's signature over the body is the whole gate.
+Make sure the reverse proxy passes ``/api/v1/payments/stripe/webhook`` and
+``/api/v1/payments/paypal/webhook`` through unauthenticated, and does not
+strip the ``Stripe-Signature`` or ``Paypal-*`` headers.
+
 In production, create the endpoint in the dashboard instead
 (**Developers → Webhooks → Add endpoint**), pointing at
 ``https://<your-domain>/api/v1/payments/stripe/webhook`` and subscribing to:
@@ -180,6 +200,11 @@ served from that domain.
    A 404 means the variable is unset or the path is wrong; Apple Pay then
    simply never appears, which is why this is a 404 and not a 500.
 
+   The view answers ``GET`` and ``HEAD`` only, serves ``text/plain``, and sets
+   ``Cache-Control: public, max-age=3600``.  That last one is the usual reason
+   a path that has just been fixed still looks broken: give it an hour, or ask
+   for it past any intermediate cache, before concluding the file is wrong.
+
 4. Click **Verify** in the Stripe dashboard.
 
 To try it: open the portal in **Safari on macOS or iOS**, signed in to an
@@ -212,8 +237,10 @@ Stripe agrees about all of:
 * ``metadata.payment_id`` names that same payment.
 
 The wallet stored against the payment comes from
-``latest_charge.payment_method_details``: ``card.wallet.type`` of
-``apple_pay``, ``google_pay`` or ``link``, else plain ``card``.
+``latest_charge.payment_method_details``: ``card.wallet.type`` of ``apple_pay``
+or ``google_pay``, a payment method whose own ``type`` is ``link``, else plain
+``card``.  When the charge or its details are missing altogether the wallet is
+recorded as ``unknown`` rather than guessed at.
 
 
 PayPal
@@ -308,8 +335,11 @@ Set ``PAYMENTS_MOCK_ENABLED=false`` in production.  The endpoint then answers
 404, not 403: a production deployment should not even advertise that a way to
 grant yourself a membership once existed.
 
-The Playwright end-to-end tests and ``seed_demo``'s payment history both rely
-on this provider, which is why a checkout with no keys at all still works.
+The end-to-end tests use this provider, which is why the five headline flows
+run with no payment keys at all.  ``seed_demo`` does not: its two years of
+history is dealt out between ``stripe`` and ``paypal`` in a 70 / 30 split with
+plausible wallets, so the payment reports have something realistic to group
+by.
 
 
 Going live: checklist
@@ -328,7 +358,11 @@ Going live: checklist
    [ ] PAYPAL_WEBHOOK_ID set if the PayPal webhook is in use
    [ ] PAYMENTS_MOCK_ENABLED=false
    [ ] DEBUG=false, HTTPS enforced, SITE_URL and ALLOWED_HOSTS correct
-   [ ] Secrets are in the deployment environment, not in git
+   [ ] Secrets are in /etc/caldart/caldart.env, not in git
+   [ ] systemctl restart caldart-web after the last edit to that file
+   [ ] Both webhook paths reachable unauthenticated through the proxy
+   [ ] One real payment taken, refunded in the provider's dashboard, and the
+       membership term corrected by hand (CalDART does not record refunds)
    [ ] One real payment made and refunded from the Stripe dashboard
    [ ] Receipt email arrives (Stripe sends it to the PaymentIntent's
        receipt_email, which is the member's address)
@@ -346,9 +380,12 @@ Troubleshooting
   ``GET /api/v1/payments/config`` lists only providers whose keys are all set.
   Check ``.env`` and restart Django.
 
-**"Stripe is not configured" on checkout.**
-  ``STRIPE_SECRET_KEY`` is empty.  The API answers 400 rather than 500 for
-  this, deliberately.
+**"'stripe' is not configured." on checkout.**
+  One of the two Stripe keys is empty.  ``available_providers()`` needs both
+  ``STRIPE_SECRET_KEY`` and ``STRIPE_PUBLISHABLE_KEY``, and the checkout
+  endpoint rejects an unconfigured provider with a 400 before it ever reaches
+  the provider class — deliberately, so a half-configured deployment fails
+  with a sentence rather than a traceback.
 
 **Webhook deliveries 400.**
   The signing secret does not match the endpoint.  ``stripe listen`` prints a
