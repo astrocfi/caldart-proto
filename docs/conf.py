@@ -1,10 +1,14 @@
 """Sphinx configuration for the CalDART documentation set (PLAN.rst §16).
 
-Kept deliberately minimal: no extensions beyond the built-in defaults, so
-``make docs`` needs nothing in the environment except Sphinx and the ``furo``
-theme.  The whole set must build clean under ``sphinx-build -W`` (warnings are
-errors) -- CI runs it that way on every PR (PLAN.rst §15).
+Kept deliberately minimal: ``make docs`` needs nothing in the environment
+except Sphinx and the ``furo`` theme, both of which are in the ``dev``
+dependency group.  Graphviz is used when it is installed and skipped cleanly
+when it is not (see ``extensions`` below).  The whole set must build clean
+under ``sphinx-build -W`` (warnings are errors) -- CI runs it that way on every
+PR (PLAN.rst §15).
 """
+
+import shutil
 
 # -- Project information -----------------------------------------------------
 
@@ -18,9 +22,58 @@ release = ""
 
 # -- General configuration ---------------------------------------------------
 
-# No extensions on purpose.  Anything added here becomes a new dependency in
-# pyproject.toml, so add one only when a page genuinely needs it.
-extensions: list[str] = []
+# Only ``sphinx.ext.graphviz``, and only when it can actually work.  It ships
+# with Sphinx, so it adds nothing to pyproject.toml, but it shells out to
+# Graphviz's ``dot`` and warns when that binary is missing -- which, under
+# ``-W``, would fail the build on any machine without Graphviz installed.
+#
+# So the extension is enabled only when ``dot`` is on PATH, and the ``graphviz``
+# build tag records the decision.  ``docs/developer/data-model.rst`` draws the
+# entity-relationship diagram inside ``.. only:: graphviz`` and keeps an ASCII
+# equivalent inside ``.. only:: not graphviz``, so both environments get a
+# diagram and neither gets a warning.  Install Graphviz for the nicer one.
+_HAS_DOT = shutil.which("dot") is not None
+
+extensions: list[str] = ["sphinx.ext.graphviz"] if _HAS_DOT else []
+
+if _HAS_DOT:
+    tags.add("graphviz")  # noqa: F821 - Sphinx injects ``tags`` into conf.py
+
+graphviz_output_format = "svg"
+
+
+def setup(app):
+    """Keep ``.. graphviz::`` parseable even when the extension is not loaded.
+
+    ``.. only::`` prunes the doctree *after* parsing, so a ``graphviz``
+    directive inside a branch that will be discarded is still parsed -- and an
+    unknown directive is a warning, which ``-W`` turns into a failed build.
+    Registering a no-op under the same name closes that hole; the ``only``
+    directive then discards the (empty) result as intended.
+    """
+    if _HAS_DOT:
+        return
+
+    from docutils.parsers.rst import Directive, directives
+
+    class _NoGraphviz(Directive):
+        has_content = True
+        required_arguments = 0
+        optional_arguments = 1
+        final_argument_whitespace = True
+        option_spec = {
+            "alt": directives.unchanged,
+            "align": directives.unchanged,
+            "caption": directives.unchanged,
+            "class": directives.class_option,
+            "layout": directives.unchanged,
+            "name": directives.unchanged,
+        }
+
+        def run(self):
+            return []
+
+    directives.register_directive("graphviz", _NoGraphviz)
 
 # The document that holds the root toctree.
 master_doc = "index"
