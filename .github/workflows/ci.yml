@@ -100,6 +100,73 @@ jobs:
       - name: Build
         run: npm run build
 
+  e2e:
+    name: End-to-end (Playwright, Chromium)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: caldart
+          POSTGRES_PASSWORD: caldart
+          POSTGRES_DB: caldart
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U caldart -d caldart"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # `make e2e` resets and seeds this database itself.
+      E2E_DATABASE_URL: postgres://caldart:caldart@localhost:5432/caldart_e2e
+      DATABASE_URL: postgres://caldart:caldart@localhost:5432/caldart
+      SECRET_KEY: ci-secret-key
+      DEBUG: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen
+          cd frontend && npm ci
+
+      - name: Install Chromium
+        run: cd frontend && npx playwright install --with-deps chromium
+
+      - name: Create the end-to-end database
+        run: psql "$DATABASE_URL" -c 'CREATE DATABASE caldart_e2e OWNER caldart'
+        env:
+          PGPASSWORD: caldart
+
+      - name: Run the five flows
+        run: make e2e SKIP_CREATEDB=1
+
+      - name: Upload the report when a flow fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
+
   docs:
     name: Docs (sphinx -W)
     runs-on: ubuntu-latest
