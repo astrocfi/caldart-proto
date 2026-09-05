@@ -108,14 +108,6 @@ clears.*
    rest of the system useful.  Pick a DART from the list; it is populated from
    ``GET /api/v1/darts``.
 
-   .. important::
-
-      Fill in **address line 1** as well, even though the form does not mark
-      it required.  The wizard decides whether you may move on from the
-      server's ``profile_complete`` flag, and that flag counts a street
-      address — so a profile without one saves cleanly and then holds you on
-      this step.
-
    If you enter a medical class you must also enter its expiry date, and if
    you enter a certificate type you must also give the certificate number.
    The form says so inline rather than at submit time.
@@ -210,12 +202,13 @@ naming the date the membership ran out.
 
 **What can go wrong.**
 
-- *"Phone is required."*  The portal's form asks for phone, city, state and
-  postal code.  The API itself only insists on phone, so a client that is not
-  the portal may store a partial profile.
+- *"Phone is required."*  The portal's form asks for phone, street address,
+  city and ZIP code — the same list the server uses for ``profile_complete``.
+  The API itself only insists on phone, so a client that is not the portal may
+  store a partial profile.
 - *The "finish your profile" nudge will not go away.*  It reads
-  ``profile_complete``, which tests a longer list than the form requires —
-  including a street address.  Fill in address line 1 as well.
+  ``profile_complete``; open **Profile** and fill in whichever of those four
+  fields is still blank.
 - *An aircraft will not attach.*  Attaching is idempotent, so a second attempt
   at the same aeroplane is silently fine; a genuinely unknown id is a 404.
 - *You cannot see a members-only page you expect to see.*  Membership status

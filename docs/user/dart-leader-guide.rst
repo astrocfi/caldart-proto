@@ -8,10 +8,10 @@ aircraft they are about to fly insured?  The **member check** answers all
 three on one screen, and it is designed to be read on a phone while you are
 standing on the ramp.
 
-You need the ``dart_leader`` role.  Account and system administrators may open
-the same screens, but only a DART leader gets the menu entries for them — an
-account administrator has to type ``/portal/leader`` or
-``/portal/leader/aircraft`` into the address bar.
+You need the ``dart_leader`` or ``account_admin`` role; both get the
+**Member check** and **Aircraft check** entries under *Operations* in the
+portal menu.  System administrators may open the same screens
+(``/portal/leader`` and ``/portal/leader/aircraft``).
 
 
 The check, in ten seconds
