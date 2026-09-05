@@ -20,6 +20,8 @@ every other page defers to.
    api-auth
    api-profile
    api-payments
+   api-members
+   reports
    theming
    testing
    deployment
