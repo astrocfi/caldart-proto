@@ -13,4 +13,6 @@ app_name = "members"
 urlpatterns: list = [
     # -- profile (feat/profile-join) ---------------------------------------
     path("", include("apps.members.api.profile_urls")),
+    # -- admin (feat/members-admin) ----------------------------------------
+    path("", include("apps.members.api.admin_urls")),
 ]
