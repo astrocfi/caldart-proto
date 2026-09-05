@@ -19,6 +19,7 @@ every other page defers to.
    api-reference
    api-auth
    api-profile
+   api-payments
    theming
    testing
    deployment
