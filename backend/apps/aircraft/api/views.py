@@ -32,7 +32,9 @@ User = get_user_model()
 #: them; ``system_admin`` passes through ``user_has_any_role`` (PLAN §5).
 IsLeader = HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)
 
-ORDERING_FIELDS = ["n_number", "make", "insurance_expiration"]
+#: PLAN §6.5 names the first three; ``model`` and ``owner_name`` are here so
+#: every column of the admin table is genuinely sortable.
+ORDERING_FIELDS = ["n_number", "make", "insurance_expiration", "model", "owner_name"]
 
 
 class AircraftQuerysetMixin:
