@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% comment %}
+  The members-only wall (PLAN §4.6).  Served with HTTP 403 in place of a page
+  flagged `members_only`.  `wall_state` decides the single next step: sign in,
+  renew, or join.  The page title is still shown — knowing a page exists is not
+  the secret; its content is.
+{% endcomment %}
+
+{% block title %}{{ page.title }}{% endblock %}
+{% block body_class %}members-wall{% endblock %}
+
+{% block content %}
+  <div class="section grid">
+    <div class="col-text stack wall">
+      <p class="eyebrow">Members only</p>
+      <h1>{{ page.title }}</h1>
+
+      {% if wall_state == "anonymous" %}
+        <p class="lede">
+          This page is open to CalDART members with a current membership, and to DART leaders
+          and administrators. Sign in to read it.
+        </p>
+        <p class="cluster">
+          <a class="button" href="/portal/login?next={{ request.path|urlencode }}">Sign in</a>
+          <a class="button button--secondary" href="/portal/join">Join CalDART</a>
+        </p>
+        <p class="muted">Membership is $45 a year, or $650 for life.</p>
+
+      {% elif wall_state == "expired" %}
+        <p class="lede">
+          Your membership lapsed{% if membership.expires_on %} on
+          <span class="mono">{{ membership.expires_on|date:"j F Y" }}</span>{% endif %}, so this
+          page is closed for now. Renewing takes a minute and reopens it immediately.
+        </p>
+        <p class="cluster">
+          <a class="button" href="/portal/renew">Renew my membership</a>
+          <a class="button button--quiet" href="/portal/">Member portal</a>
+        </p>
+
+      {% else %}
+        <p class="lede">
+          You are signed in, but your account has no current membership, so this page is
+          closed. Joining takes a minute and reopens it immediately.
+        </p>
+        <p class="cluster">
+          <a class="button" href="/portal/join">Join CalDART</a>
+          <a class="button button--quiet" href="/portal/">Member portal</a>
+        </p>
+      {% endif %}
+
+      <p class="wall__help muted">
+        Already paid, or think this is wrong?
+        {% if site_settings.contact_email %}
+          Write to <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a>
+          and we will sort it out.
+        {% else %}
+          Contact the membership secretary and we will sort it out.
+        {% endif %}
+      </p>
+    </div>
+
+    <aside class="col-side page-aside">
+      <div class="page-aside__sticky stack-tight">
+        <p class="eyebrow">What membership includes</p>
+        <ul class="wall__list">
+          <li>Handbooks, exercise material and forms</li>
+          <li>The DART leader and member roster</li>
+          <li>Training and exercise invitations</li>
+          <li>A membership record your DART leader can check</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+{% endblock %}

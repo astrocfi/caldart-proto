@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% comment %}
+  The DART directory as a table — name, airport, city, leader — because that is
+  the shape of the question a visitor is asking: "which team is nearest me?"
+{% endcomment %}
+
+{% block body_class %}dart-index{% endblock %}
+
+{% block content %}
+  {% include "cms/includes/page_header.html" with intro=page.intro %}
+
+  <div class="section">
+    {% if dart_pages %}
+      <div class="table-wrap">
+        <table class="dart-table">
+          <caption>{{ dart_pages|length }} teams across California.</caption>
+          <thead>
+            <tr>
+              <th scope="col">DART</th>
+              <th scope="col">Airport</th>
+              <th scope="col">City</th>
+              <th scope="col">Leader</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dart_page in dart_pages %}
+              <tr>
+                <th scope="row"><a href="{{ dart_page.url }}">{{ dart_page.title }}</a></th>
+                <td class="mono">{{ dart_page.airport_identifier|default:"—" }}</td>
+                <td>{{ dart_page.city|default:"—" }}</td>
+                <td>{{ dart_page.leader_name|default:"—" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No teams listed yet.</p>
+    {% endif %}
+  </div>
+
+  {% if page.body %}
+    <div class="section grid">
+      <div class="col-text stack prose">
+        {% for block in page.body %}{% include_block block %}{% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
