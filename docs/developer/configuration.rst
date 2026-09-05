@@ -109,6 +109,41 @@ Core
       slash.
 
 
+Authentication rate limits
+==========================
+
+Three anonymous endpoints are throttled by client address.  Each takes a DRF
+rate as ``<count>/<period>``, where the period is ``second``, ``minute``,
+``hour`` or ``day`` (or their initials).  Setting one to an empty value turns
+that throttle **off**, which is what ``caldart.settings.test`` does to all
+three so tests never race a shared counter.  Exceeding a rate is a **429**.
+
+``AUTH_THROTTLE_LOGIN``
+   ``POST /auth/login``.
+
+   :Development: ``20/min``
+   :Production: ``20/min``.  Generous enough for a household behind one
+      address, tight enough that guessing is hopeless.
+
+``AUTH_THROTTLE_REGISTER``
+   ``POST /auth/register``.  Counted by address even though registration signs
+   the new account in, so a script cannot escape the counter by using the
+   session it just created.
+
+   :Development: ``10/hour``
+   :Production: ``10/hour``
+
+``AUTH_THROTTLE_PASSWORD_RESET``
+   ``POST /auth/password/reset`` and ``POST /auth/password/reset/confirm``.
+
+   :Development: ``10/hour``
+   :Production: ``10/hour``
+
+The rates land in the ``AUTH_THROTTLE_RATES`` setting and are read by
+``apps.accounts.throttling``.  There is no project-wide throttle; every other
+endpoint is unlimited.  See :doc:`api-reference`.
+
+
 Email
 =====
 
@@ -232,7 +267,10 @@ Backups
 Production hardening
 ====================
 
-All of these are read only by ``prod.py`` and all have sensible defaults.
+These take effect only in production and all have sensible defaults, so none
+of them is in ``.env.example``.  All but the last are read by ``prod.py``;
+``WEB_CONCURRENCY`` is read by gunicorn's own configuration file and never by
+Django at all.
 
 ``SECURE_SSL_REDIRECT``
    Redirect plain HTTP to HTTPS.  Default ``true``.  Only turn it off if
