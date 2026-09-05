@@ -188,3 +188,56 @@ password** in the portal.
 
 If your account has been deactivated, signing in tells you so; contact
 CalDART to have it reopened.
+
+
+When something goes wrong
+=========================
+
+**"An account already uses that email address."**
+   You have registered before.  Do not make a second account — use **Forgot
+   your password?** on the sign-in screen instead.  Capitalisation does not
+   matter, so ``Marta@example.org`` and ``marta@example.org`` are the same
+   account.
+
+**The site turns down your password.**
+   It is checked against four rules: at least 8 characters, not one of the
+   few thousand most common passwords, not entirely numeric, and not too
+   similar to your own name or email address.  The message says which rule
+   you tripped.
+
+**"Give the expiration date of your medical certificate."**
+   You chose a medical class without a date.  A medical means nothing to a
+   DART leader without one, so the form insists on both or neither.  The same
+   rule applies to a pilot certificate and its number: *"Give your pilot
+   certificate number."*
+
+**The state or postal code box is rejected.**
+   *"Use the two-letter state code, for example CA."* and *"Use a ZIP code
+   like 95035 or 95035-1234."*  The state field takes two letters, and the
+   postal code five digits or five plus four.
+
+**Your profile saves but the dashboard still nags you to finish it.**
+   Four fields count as "complete": phone, city, state and postal code.
+   Fill in all four and the nudge goes.
+
+**You paid but you are still shown as expired.**
+   Reload first — the dashboard may be showing a cached answer.  If it
+   persists, look at your recent payments on the dashboard: a payment marked
+   *failed* means no money moved and no term was created, so try again.  A
+   payment marked *succeeded* with no membership behind it is a fault; tell
+   the office the date and the amount.
+
+**You cannot edit an aircraft.**
+   *"Only the member who added this aircraft, or an administrator, can change
+   it."*  One register is shared by everybody, so a record is not yours to
+   change simply because you fly the aeroplane.  Ask an account administrator
+   to correct it.
+
+**A members-only page shows a wall instead of the page.**
+   Your membership has lapsed, or you are signed out.  The wall says which,
+   and links to the right remedy.
+
+**You are stuck part-way through joining.**
+   Go back to ``/portal/join``.  The wizard works out how far you actually
+   got from your account, your profile and your membership, so it puts you
+   back where you left off — no matter which browser or device you return on.

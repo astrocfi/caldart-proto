@@ -155,3 +155,46 @@ Export CSV / PDF           no          no          no          yes
 
 "Creator" means the member who added that particular aeroplane.
 ``system_admin`` may do everything in the table.
+
+
+When something goes wrong
+=========================
+
+**"An aircraft with this N-number is already on file."**
+   The register already has it, under whatever spelling somebody first used.
+   Search for it and attach the existing record instead of adding a second —
+   that is the whole point of one shared register.  Registrations are
+   normalised, so ``N12345``, ``n-12345`` and ``12345`` cannot be entered as
+   three separate aeroplanes.
+
+**"Enter a registration, for example N12345."**
+   The lookup box got something it could not read as a tail number.  Letters
+   and digits are all it needs; punctuation, spaces and case are ignored.
+
+**The picker finds nothing, but you know the aeroplane is on file.**
+   The fuzzy search leaves out aeroplanes marked *out of service*.  Type the
+   exact registration and it will still be found, labelled as out of service,
+   so you do not add a duplicate.
+
+**You are told only the member who added it, or an administrator, may change it.**
+   You are not the record's creator.  Ask an account administrator to make the
+   change — including for a record with no creator recorded, which is
+   administrator-only by default.
+
+**"Only an account administrator can delete an aircraft."**
+   Deleting is never granted to the creator alone, because the record may be
+   attached to other people's profiles.  If the aeroplane is simply out of
+   use, clear the **in service** flag rather than asking for a deletion.
+
+**An insurance chip says "No insurance on file" and you think it is insured.**
+   That state means the record has no expiration date, which is different from
+   an expired policy.  Somebody has to enter the carrier, the limits and the
+   expiry before a DART leader can rely on it.
+
+**"Enter an amount of $0 or more."**
+   One of the three money boxes has a negative value in it.  Enter dollars;
+   commas and a leading ``$`` are accepted and stripped for you.
+
+**You removed an aeroplane and worry you deleted it.**
+   **Remove** on your own profile only detaches it from you.  The record, and
+   everybody else's link to it, is untouched.

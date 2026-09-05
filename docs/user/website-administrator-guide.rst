@@ -272,3 +272,55 @@ Things worth knowing
   page.
 * **Preview before you publish**, especially on a phone-width window: the
   design is built mobile-first and long headings behave differently there.
+
+
+When something goes wrong
+=========================
+
+**You cannot sign in to** ``/admin/``.
+   That is the Wagtail admin, and it is a different sign-in from the portal's.
+   You need the ``website_admin`` role; ask a user administrator.  Being able
+   to sign in to ``/portal/`` proves nothing about this.
+
+**The page type you want is not offered.**
+   The tree constrains itself on purpose: a news post may only be added under
+   the news index, and a DART page only under the DART directory.  Add the
+   child from the right parent and the type appears.
+
+**The raw HTML block is missing from the block picker.**
+   It is restricted to website and system administrators.  The block list is
+   rebuilt for the person editing, so somebody without the role simply does
+   not see it — nothing is broken.
+
+**Your edits are not on the live site.**
+   Saving a draft is not publishing.  Open the page and use **Publish**; the
+   explorer marks pages that have unpublished changes.
+
+**A page you published is not in the top navigation.**
+   The menu is built from pages with **Show in menus** ticked, which lives on
+   the **Promote** tab, not on the content tab.
+
+**A page 404s that used to work.**
+   Its slug changed, which changes its URL.  Wagtail's **Redirects** tool, in
+   the left-hand menu, will point the old address at the new one.
+
+**A members-only page shows the wall to you as well.**
+   Only while you are signed out of the *portal*.  Signed in, any role beyond
+   plain ``member`` gets through whatever your own membership is doing.
+
+**A DART page shows the wrong airport or city.**
+   Those are read from the membership database, not typed on the page.  An
+   account administrator corrects the DART record and every page follows.
+
+**Your Site settings edits disappeared after a re-seed.**
+   They should not — ``seed_content`` only fills in settings that are still
+   blank, so a theme or a contact address you chose survives.  Page *content*
+   is a different matter: the seeded pages are rewritten, so make your own
+   changes on pages you added.
+
+**An image or document will not upload.**
+   The allowed types are fixed: images as GIF, JPEG, PNG, WebP or SVG, and
+   documents as CSV, DOCX, KEY, ODT, PDF, PPTX, RTF, TXT, XLSX or ZIP.  On the
+   live site there is also a 25 MB size cap.  Photographs straight off a
+   camera are usually far larger than a web page needs — resize before
+   uploading and the site will be quicker as well.
