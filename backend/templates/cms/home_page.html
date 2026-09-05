@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags wagtailimages_tags %}
+
+{% comment %}
+  A minimal, styled home page so `/` renders something real from day one.
+  `feat/cms-site` replaces this with the full hero, concept-of-operations
+  StreamField, tax-status block and featured news.
+{% endcomment %}
+
+{% block content %}
+  <section class="section grid hero">
+    <div class="col-text stack">
+      <p class="eyebrow">{{ site_settings.org_name|default:"The California DART Network" }}</p>
+      <h1>{{ page.hero_heading|default:page.title }}</h1>
+      {% if page.hero_lede %}<p class="lede">{{ page.hero_lede }}</p>{% endif %}
+      <p class="cluster">
+        {% if page.primary_cta_label %}
+          <a class="button" href="{{ page.primary_cta_url|default:'/portal/join' }}">{{ page.primary_cta_label }}</a>
+        {% endif %}
+        {% if page.secondary_cta_label %}
+          <a class="button button--secondary" href="{{ page.secondary_cta_url|default:'/' }}">{{ page.secondary_cta_label }}</a>
+        {% endif %}
+      </p>
+    </div>
+
+    <aside class="col-side stack-tight">
+      {% if page.hero_image %}
+        {% image page.hero_image width-640 %}
+      {% endif %}
+      <p class="eyebrow">Already a member?</p>
+      <p><a href="/portal/">Sign in to the member portal</a> to update your profile, check your
+        membership, or renew.</p>
+    </aside>
+  </section>
+
+  {% if page.mission_statement %}
+    <section class="section grid">
+      <div class="col-text stack">
+        <p class="eyebrow">Our mission</p>
+        {{ page.mission_statement|richtext }}
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="section grid">
+    <div class="col-text stack">
+      <p class="eyebrow">Concept of operations</p>
+      <h2>Pilots, aircraft and ground crews, organised before the emergency</h2>
+      <p>
+        CalDART DARTs are local teams built around a home airport. Members keep their
+        certificates, medicals and aircraft insurance current so that when a county activates,
+        the aircraft that show up are ready to fly.
+      </p>
+    </div>
+    <div class="col-side stack-tight">
+      <p class="eyebrow">501(c)(3)</p>
+      <p>{{ site_settings.footer_text|default:"CalDART is a 501(c)(3) non-profit. Contributions are tax deductible." }}</p>
+    </div>
+  </section>
+{% endblock %}

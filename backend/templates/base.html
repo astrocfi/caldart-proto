@@ -1,0 +1,77 @@
+{% load static wagtailcore_tags django_vite %}<!doctype html>
+{% comment %}
+  The public-site shell (PLAN §7, §9).
+
+  `nav` comes from `apps.cms.context_processors.site_chrome` as a list of
+  {title, url, active} dicts, so page templates never build the menu.
+{% endcomment %}
+<html lang="en" data-theme="{{ theme|default:'sierra' }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{{ page.seo_title|default:page.title|default:"CalDART" }}{% endblock %}{% block title_suffix %} · {{ site_settings.org_name|default:"CalDART" }}{% endblock %}</title>
+    <meta
+      name="description"
+      content="{% block meta_description %}{{ site_settings.tagline|default:'Volunteer disaster air transportation for California.' }}{% endblock %}"
+    />
+    {% vite_hmr_client %}
+    {% vite_asset 'src/site/main.ts' %}
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="site {% block body_class %}{% endblock %}">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="shell site-header__inner">
+        <a class="wordmark" href="/">
+          Cal<span>DART</span>
+          <span class="wordmark__sub">{{ site_settings.tagline|default:"California DART Network" }}</span>
+        </a>
+
+        <button
+          type="button"
+          class="button button--quiet button--small nav-toggle"
+          data-nav-toggle
+          aria-expanded="false"
+          aria-controls="site-nav"
+        >
+          Menu
+        </button>
+
+        <nav class="site-nav" id="site-nav" data-site-nav aria-label="Main">
+          <ul>
+            {% for item in nav %}
+              <li>
+                <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="shell">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell grid">
+        <div class="col-text stack-tight">
+          <p class="eyebrow">{{ site_settings.org_name|default:"The California DART Network" }}</p>
+          <p>{{ site_settings.footer_text|default:"CalDART is a 501(c)(3) non-profit. Contributions are tax deductible." }}</p>
+          {% if site_settings.ein %}<p>EIN {{ site_settings.ein }}</p>{% endif %}
+        </div>
+        <div class="col-side stack-tight">
+          {% if site_settings.contact_email %}
+            <p><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></p>
+          {% endif %}
+          {% if site_settings.contact_phone %}<p>{{ site_settings.contact_phone }}</p>{% endif %}
+          {% if site_settings.mailing_address %}<p>{{ site_settings.mailing_address|linebreaksbr }}</p>{% endif %}
+          <p><a href="/portal/">Member portal</a></p>
+        </div>
+      </div>
+    </footer>
+
+    {% block extra_body %}{% endblock %}
+  </body>
+</html>

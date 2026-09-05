@@ -1,0 +1,59 @@
+[project]
+name = "caldart"
+version = "0.1.0"
+description = "CalDART website and member management system (prototype)"
+readme = "README.rst"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.1,<6.0",
+    "wagtail>=6.3",
+    "djangorestframework>=3.15",
+    "django-filter>=24.3",
+    "django-environ>=0.11",
+    "psycopg[binary]>=3.2",
+    "django-vite>=3.0",
+    "whitenoise>=6.7",
+    "gunicorn>=23.0",
+    "stripe>=11.0",
+    "httpx>=0.27",
+    "reportlab>=4.2",
+    "faker>=30.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "factory-boy>=3.3",
+    "freezegun>=1.5",
+    "respx>=0.21",
+    "ruff>=0.7",
+    "sphinx>=8.0",
+    "furo>=2024.8.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "caldart.settings.test"
+python_files = ["test_*.py", "*_test.py"]
+pythonpath = ["backend"]
+testpaths = ["backend/tests"]
+addopts = "-ra --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning:wagtail.*",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["**/migrations/*"]
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ", "C4", "W"]
+ignore = ["B008", "DJ001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["caldart", "apps"]
