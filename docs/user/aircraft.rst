@@ -150,7 +150,7 @@ Action                     Member      Creator     DART        Account
 Search the register        yes         yes         yes         yes
 Add an aircraft            yes         yes         yes         yes
 Attach one to own profile  yes         yes         yes         yes
-Edit a record              no          API only    no          yes
+Edit a record              no          yes         no          yes
 Delete a record            no          no          no          yes
 Export CSV / PDF           no          no          no          yes
 =========================  ==========  ==========  ==========  ==========
@@ -158,10 +158,11 @@ Export CSV / PDF           no          no          no          yes
 "Creator" means the member who added that particular aeroplane.
 ``system_admin`` may do everything in the table.
 
-**API only** is exactly what it says: the creator's right to edit their own
-record exists in the API (:doc:`../developer/api-aircraft`) but no portal
-screen offers it, because the register's edit form is on the account
-administrator's side.  In practice, a member asks an administrator.
+A creator edits from **My aircraft** (``/portal/profile/aircraft``): each
+aircraft they added carries an **Edit** action that opens the same form the
+register uses, minus the administrator-only controls.  The API enforces the
+same rule (:doc:`../developer/api-aircraft`), so a member who did not add the
+record gets a 403 however they reach it.
 
 
 When something goes wrong
