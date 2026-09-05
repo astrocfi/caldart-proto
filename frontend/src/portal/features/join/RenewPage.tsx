@@ -10,13 +10,13 @@ import { useNavigate } from 'react-router-dom';
 
 import { Checkout } from '@/portal/features/checkout';
 
-import { AUTH_ME_KEY } from '../../auth/useAuth';
 import { Card } from '../../components/Card';
 import { DateText } from '../../components/DateText';
 import { Page } from '../../components/Page';
 import { MembershipChip, daysUntil } from '../../components/StatusChip';
 import { useToast } from '../../components/Toast';
-import { MEMBERSHIP_KEY, PAYMENTS_KEY, useMembership } from '../profile/api';
+import { useMembership } from '../profile/api';
+import { refreshAfterPayment } from './refresh';
 import './join.css';
 
 export function RenewPage() {
@@ -29,9 +29,7 @@ export function RenewPage() {
   const days = status ? daysUntil(status.expires_on) : null;
 
   function handleSuccess() {
-    void queryClient.invalidateQueries({ queryKey: AUTH_ME_KEY });
-    void queryClient.invalidateQueries({ queryKey: MEMBERSHIP_KEY });
-    void queryClient.invalidateQueries({ queryKey: PAYMENTS_KEY });
+    refreshAfterPayment(queryClient);
     toast.show('Thank you — your membership is renewed.', 'success');
     navigate('/');
   }
