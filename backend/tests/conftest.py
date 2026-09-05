@@ -6,7 +6,9 @@ duplicating them in app test packages.
 
 from __future__ import annotations
 
+import json
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -36,6 +38,74 @@ from tests.factories import (
 )
 
 User = get_user_model()
+
+
+# --------------------------------------------------------------------------
+# Vite manifest
+#
+# `templates/base.html` and `templates/portal.html` call `{% vite_asset %}`,
+# which raises when the entry is missing from `frontend/dist/.vite/manifest.json`.
+# Backend tests must not depend on `npm run build` having been run — CI runs the
+# two suites in separate jobs — so stub the manifest when there is no real build
+# and remember that we did, for the tests that assert on the real bundle.
+# --------------------------------------------------------------------------
+REPO_ROOT = Path(__file__).resolve().parents[2]
+VITE_MANIFEST = REPO_ROOT / "frontend" / "dist" / ".vite" / "manifest.json"
+
+STUB_MANIFEST = {
+    "src/site/main.ts": {
+        "file": "assets/site-stub.js",
+        "src": "src/site/main.ts",
+        "isEntry": True,
+        "css": ["assets/index-stub.css"],
+    },
+    "src/portal/main.tsx": {
+        "file": "assets/portal-stub.js",
+        "src": "src/portal/main.tsx",
+        "isEntry": True,
+        "css": ["assets/index-stub.css", "assets/portal-stub.css"],
+    },
+}
+
+_stubbed_manifest = False
+
+
+def _reload_vite_loader() -> None:
+    """Make django-vite re-read the manifest.
+
+    Its ``AppConfig.ready()`` parses the manifest once and caches the loader,
+    and that ran during ``django.setup()`` — before this hook — so a manifest
+    written here would otherwise be ignored.
+    """
+    from django_vite.core.asset_loader import DjangoViteAssetLoader
+
+    DjangoViteAssetLoader._instance = None
+    DjangoViteAssetLoader.instance()
+
+
+def pytest_configure(config):
+    global _stubbed_manifest
+    if not VITE_MANIFEST.is_file():
+        VITE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+        VITE_MANIFEST.write_text(json.dumps(STUB_MANIFEST, indent=2))
+        _stubbed_manifest = True
+    _reload_vite_loader()
+
+
+def pytest_unconfigure(config):
+    """Leave the tree as we found it."""
+    if not _stubbed_manifest:
+        return
+    VITE_MANIFEST.unlink(missing_ok=True)
+    for directory in (VITE_MANIFEST.parent, VITE_MANIFEST.parent.parent):
+        if directory.is_dir() and not any(directory.iterdir()):
+            directory.rmdir()
+
+
+@pytest.fixture(scope="session")
+def frontend_is_built() -> bool:
+    """False when the manifest is the stub above rather than a real build."""
+    return not _stubbed_manifest
 
 
 @pytest.fixture(autouse=True)

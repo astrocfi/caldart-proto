@@ -1,8 +1,8 @@
 """The server-rendered shells: home page and the portal SPA mount (PLAN §7, §8).
 
-The vite-asset assertions only run when ``frontend/dist`` has been built; on a
-fresh checkout ``make build`` has not run yet, so those checks skip rather than
-fail.
+These run whether or not the frontend has been built — ``conftest.py`` stubs
+the Vite manifest when there is no real build, and the two tests that assert on
+the actual bundle skip unless ``frontend_is_built``.
 """
 
 from __future__ import annotations
@@ -10,19 +10,14 @@ from __future__ import annotations
 import json
 
 import pytest
-from django.conf import settings
 
-MANIFEST = settings.REPO_ROOT / "frontend" / "dist" / ".vite" / "manifest.json"
+from tests.conftest import VITE_MANIFEST
 
 pytestmark = pytest.mark.django_db
 
-requires_build = pytest.mark.skipif(
-    not MANIFEST.is_file(), reason="frontend/dist not built (run `make build`)"
-)
-
 
 def manifest_entry(source: str) -> dict:
-    return json.loads(MANIFEST.read_text())[source]
+    return json.loads(VITE_MANIFEST.read_text())[source]
 
 
 def test_portal_shell_renders(client, site_settings):
@@ -47,8 +42,9 @@ def test_portal_theme_follows_site_settings(client, site_settings):
     assert 'data-theme="night"' in client.get("/portal/").content.decode()
 
 
-@requires_build
-def test_portal_shell_includes_the_built_bundle(client, site_settings):
+def test_portal_shell_includes_the_portal_bundle(client, site_settings, frontend_is_built):
+    if not frontend_is_built:
+        pytest.skip("frontend/dist not built (run `make build`)")
     body = client.get("/portal/").content.decode()
     entry = manifest_entry("src/portal/main.tsx")
     assert entry["file"] in body
@@ -72,11 +68,11 @@ def test_home_page_nav_comes_from_the_context_processor(client, home_page, site_
     assert 'href="/portal/login"' in body
 
 
-@requires_build
-def test_home_page_includes_the_site_bundle(client, home_page, site_settings):
+def test_home_page_includes_the_site_bundle(client, home_page, site_settings, frontend_is_built):
+    if not frontend_is_built:
+        pytest.skip("frontend/dist not built (run `make build`)")
     body = client.get("/").content.decode()
-    entry = manifest_entry("src/site/main.ts")
-    assert entry["file"] in body
+    assert manifest_entry("src/site/main.ts")["file"] in body
 
 
 def test_wagtail_admin_login_page(client):
