@@ -8,8 +8,10 @@ the machines this is aimed at already run it; an nginx configuration ships as
 the alternative and is called out where the two differ.
 
 Specified in PLAN §13.  Every path below assumes the deploy root
-``/srv/caldart``; if you use another, change it consistently in the four files
-under ``deploy/``.
+``/srv/caldart``.  If you use another, change it in all six files that name it:
+``deploy/gunicorn.conf.py``, ``deploy/apache/caldart.conf``,
+``deploy/nginx/caldart.conf`` and all three units under ``deploy/systemd/``.
+``grep -rn /srv/caldart deploy/`` finds every occurrence.
 
 
 What you are deploying
@@ -99,8 +101,16 @@ and container upgrades::
   sudo docker compose up -d db
   sudo docker compose ps
 
-Postgres listens on ``127.0.0.1:5432``.  Change the password from the
-development default before anything real goes in::
+.. warning::
+
+   ``docker-compose.yml`` publishes the database as ``"5432:5432"``, which
+   binds **every** interface, not just loopback.  That is right for a
+   development machine and wrong for a server.  Before this box is reachable
+   from anywhere, either change the mapping to ``"127.0.0.1:5432:5432"`` or
+   block 5432 at the firewall — and change the password either way.
+
+Change the password from the development default before anything real goes
+in::
 
   sudo docker compose exec -T db psql -U caldart -d postgres \
       -c "ALTER USER caldart WITH PASSWORD 'a-long-random-password';"
@@ -214,8 +224,11 @@ The unit runs ``/srv/caldart/.venv/bin/gunicorn --config
 /srv/caldart/deploy/gunicorn.conf.py`` as ``caldart``, with
 ``DJANGO_SETTINGS_MODULE=caldart.settings.prod`` and the environment file from
 step 5.  ``deploy/gunicorn.conf.py`` binds loopback only, sizes the worker pool
-at ``2 × cores + 1``, sets a 60 second worker timeout, logs to stdout, and
-trusts ``X-Forwarded-*`` only from ``127.0.0.1``.
+at ``2 × cores + 1`` **capped at 12** — every worker preloads Django and
+Wagtail, so a large machine would otherwise spend its memory on idle processes
+— sets a 60 second worker timeout, logs to stdout, and trusts
+``X-Forwarded-*`` only from ``127.0.0.1``.  Set ``WEB_CONCURRENCY`` in the
+environment file to override the count outright.
 
 It is hardened with the usual systemd sandbox — ``ProtectSystem=strict``,
 ``NoNewPrivileges``, an empty capability set — so the only writable paths are
@@ -337,7 +350,10 @@ What                         Where
 ===========================  =================================================
 Application, gunicorn        ``journalctl -u caldart-web -f``
 Reminder runs                ``journalctl -u caldart-reminders -n 50``
-Apache access / error        ``/var/log/apache2/caldart-{access,error}.log``
+Apache :443 access / error   ``/var/log/apache2/caldart-{access,error}.log``
+Apache :80 access / error    ``/var/log/apache2/caldart-http-{access,error}.log``
+                             — the redirect vhost, and therefore where a
+                             failing ACME challenge shows up
 nginx access / error         ``/var/log/nginx/caldart-{access,error}.log``
 Postgres                     ``sudo docker compose logs -f db``
 ===========================  =================================================

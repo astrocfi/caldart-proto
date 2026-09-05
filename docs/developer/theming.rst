@@ -1,6 +1,6 @@
-#######
+=======
 Theming
-#######
+=======
 
 One design system dresses both halves of CalDART: the server-rendered Wagtail
 site and the React member portal.  Both read the same CSS custom properties,
@@ -9,10 +9,6 @@ comes from a single dropdown in Wagtail Site Settings.  Changing the whole look
 is therefore one file, or one choice by a website administrator.
 
 This page documents PLAN §9.
-
-.. contents::
-   :local:
-   :depth: 2
 
 
 Where the files are
@@ -69,11 +65,18 @@ Token                      Meaning
 ``--color-rule-strong``    Input borders, the strongest hairline
 ``--color-muted``          Secondary text
 ``--color-focus``          Focus ring
+``--color-selection``      ``::selection`` background, at low alpha
 ``--color-ok``             Status foreground: current, paid, in date
 ``--color-warn``           Status foreground: expiring soon
 ``--color-bad``            Status foreground: expired, failed
-``--color-ok-bg`` etc.     The matching status fills, at low alpha
+``--color-ok-bg``,         The matching status fills, at low alpha
+``--color-warn-bg``,
+``--color-bad-bg``
+``--color-neutral-bg``     Fill for a chip with no status at all
 =========================  ==================================================
+
+That is the whole set a theme redefines — twenty-one tokens, listed above in
+the order ``themes/sierra.css`` declares them.
 
 Type
 ----
@@ -91,14 +94,16 @@ Type
     certificate numbers, money, dates in tables, the EIN, airport identifiers.
 
 Sizes run ``--text-xs`` … ``--text-4xl`` on a 1.25 scale anchored at 16px, with
-``--leading-tight/snug/normal`` and ``--weight-normal/medium/semibold/bold``.
+``--leading-tight/snug/normal``, ``--weight-normal/medium/semibold/bold`` and
+``--tracking-eyebrow`` for the small-caps labels.
 
 Space, shape and layout
 -----------------------
 
 ``--space-1`` … ``--space-8`` (0.25rem → 6rem), ``--radius`` (2px — near-square
 by design), ``--radius-pill``, ``--hairline`` (1px), ``--measure`` (68ch),
-``--page-max``, ``--rail-width``, and ``--duration`` / ``--ease`` for motion.
+``--page-max``, ``--rail-width``, and ``--duration``, ``--duration-fast`` and
+``--ease`` for motion.
 
 
 How a theme reaches the page
@@ -120,11 +125,20 @@ Previewing a theme
 ------------------
 
 Website and system administrators can append ``?theme=<slug>`` to any public
-URL.  ``context_processors.can_preview_theme`` sets
-``data-theme-preview="allowed"`` on ``<html>``, and ``site/main.ts`` swaps
-``data-theme`` client side when — and only when — that attribute is present and
-the slug is one that ships.  It writes nothing to the server and nobody else
-sees it.
+URL.  Three things have to line up:
+
+#. ``context_processors.can_preview_theme(user)`` returns ``True``, and
+   ``site_chrome`` puts that boolean in the template context.
+#. ``base.html`` turns it into an attribute —
+   ``{% if can_preview_theme %} data-theme-preview="allowed"{% endif %}`` on
+   ``<html>``.
+#. ``site/main.ts`` swaps ``data-theme`` client side when, and only when, that
+   attribute is present and the slug is one that ships.
+
+It writes nothing to the server and nobody else sees it.
+
+``portal.html`` does **not** emit the attribute, so ``?theme=`` previews the
+public site only; the portal always renders the saved theme.
 
 
 The shipped themes
@@ -167,13 +181,24 @@ Adding a theme
          --color-muted: #6f665c;
          --color-focus: #6b3f2a;
          --color-selection: #d99a2b33;
+
+         --color-ok: #2e7d4f;
+         --color-warn: #c98a00;
+         --color-bad: #b23a2b;
+         --color-ok-bg: #2e7d4f1f;
+         --color-warn-bg: #c98a001f;
+         --color-bad-bg: #b23a2b1f;
+         --color-neutral-bg: #6f665c17;
+
          color-scheme: light;
        }
 
-   Redefine every token the shipped themes redefine; a token you leave out
-   falls back to the ``sierra`` value in ``tokens.css``, which is rarely what
-   you want.  A dark theme must also set ``color-scheme: dark`` so form
-   controls and scrollbars follow.
+   That is the complete set: every shipped theme redefines exactly these
+   twenty-one tokens, status colours and their translucent fills included.  A
+   token you leave out falls back to the ``sierra`` value in ``tokens.css``,
+   which is rarely what you want — and on a dark theme is usually unreadable.
+   A dark theme must also set ``color-scheme: dark`` so form controls and
+   scrollbars follow.
 
 #. Import it in ``styles/index.css``, after the other themes.
 
@@ -235,11 +260,16 @@ House rules
   ``--color-rule`` and generous space.  No drop shadows, no background-colour
   bands, no floating rounded cards.
 * **Near-square corners.**  ``--radius`` is 2px and stays that way.
-* **Asymmetry is deliberate.**  The 12-column grid runs text at 7 columns and
-  the aside at 4, with a column of air between them (``.col-text`` /
-  ``.col-side``).
-* **Mobile first.**  Every breakpoint in the system is ``min-width``; the
-  narrow layout is the base case.
+* **Asymmetry is deliberate.**  From ``min-width: 60rem`` the 12-column grid
+  runs text at 7 columns and the aside at 4, with a column of air between them
+  (``.col-text`` / ``.col-side``); below that both span the full width, which
+  is what makes the layout work on a phone.  ``.col-full`` and ``.col-half``
+  are there for content that wants the whole grid or half of it.
+* **Mobile first.**  Layout breakpoints are ``min-width`` and the narrow
+  layout is the base case.  A handful of ``max-width`` queries exist for the
+  opposite job — collapsing the site nav below ``47.99rem`` and the portal
+  rail below ``59.99rem`` — but reach for ``min-width`` unless you are
+  genuinely undoing something wide.
 * **Focus rings are never removed**, and ``prefers-reduced-motion`` is
   honoured globally in ``base.css``.
 * **Contrast ≥ 4.5:1** for text in every theme.

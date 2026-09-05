@@ -1,6 +1,6 @@
-###########################
+===========================
 Website administrator guide
-###########################
+===========================
 
 This guide is for people who hold the ``website_admin`` role: you look after
 the public |org| website — the pages, their words and pictures, the members-only
@@ -8,10 +8,6 @@ area, and the organisation details that appear in the header and footer.
 
 You do not need to know anything about the member database, payments or
 reports.  Those live in the member portal and belong to other roles.
-
-.. contents::
-   :local:
-   :depth: 2
 
 
 Signing in
@@ -23,9 +19,10 @@ The content management system is Wagtail, and it lives at ``/admin/``:
 * local development: ``http://localhost:8000/admin/``
 
 Sign in with the same email address and password you use for the member
-portal.  If Wagtail sends you back to the login form with "You do not have
-permission to access the admin", your account is missing the ``website_admin``
-role — ask a user administrator to add it.
+portal — it is the same account and the same session, so if you are already
+signed in to the portal, ``/admin/`` opens without asking again.  If Wagtail
+sends you back to the login form instead, your account is missing the
+``website_admin`` role — ask a user administrator to add it.
 
 The demo data ships with ``webadmin@example.org`` (password ``caldart-demo``)
 already in the role.
@@ -267,8 +264,9 @@ Things worth knowing
 ====================
 
 * **Changing a slug changes the URL.**  Old links, printed flyers and search
-  results will 404.  If you must, ask a developer to add a redirect —
-  Wagtail's **Redirects** tool is in the left-hand menu.
+  results will 404.  Wagtail has a **Redirects** tool that would fix that, but
+  the ``website_admin`` role is not currently granted permission to use it, so
+  ask a system administrator.
 * **The home page's news list is automatic.**  Publish a news post and it
   appears; there is nothing to update by hand.
 * **DART pages read the airport and city from the membership database.**  If
@@ -276,3 +274,58 @@ Things worth knowing
   page.
 * **Preview before you publish**, especially on a phone-width window: the
   design is built mobile-first and long headings behave differently there.
+
+
+When something goes wrong
+=========================
+
+**You cannot get into** ``/admin/``.
+   It is the role, not the password.  Wagtail shares the portal's session, so
+   if you are already signed in to ``/portal/`` and ``/admin/`` still bounces
+   you to a login form, your account is missing ``website_admin`` — ask a user
+   administrator to add it.
+
+**The page type you want is not offered.**
+   The tree constrains itself on purpose: a news post may only be added under
+   the news index, and a DART page only under the DART directory.  Add the
+   child from the right parent and the type appears.
+
+**The raw HTML block is missing from the block picker.**
+   It is restricted to website and system administrators.  The block list is
+   rebuilt for the person editing, so somebody without the role simply does
+   not see it — nothing is broken.
+
+**Your edits are not on the live site.**
+   Saving a draft is not publishing.  Open the page and use **Publish**; the
+   explorer marks pages that have unpublished changes.
+
+**A page you published is not in the top navigation.**
+   The menu is built from pages with **Show in menus** ticked, which lives on
+   the **Promote** tab, not on the content tab.
+
+**A page 404s that used to work.**
+   Its slug changed, which changes its URL.  Setting the slug back is the
+   quickest fix.  A redirect from the old address is a system administrator's
+   job: the Redirects tool is not part of what ``website_admin`` grants, so it
+   will not appear in your menu.
+
+**A members-only page shows the wall to you as well.**
+   Only while you are signed out of the *portal*.  Signed in, any role beyond
+   plain ``member`` gets through whatever your own membership is doing.
+
+**A DART page shows the wrong airport or city.**
+   Those are read from the membership database, not typed on the page.  An
+   account administrator corrects the DART record and every page follows.
+
+**Your Site settings edits disappeared after a re-seed.**
+   They should not — ``seed_content`` only fills in settings that are still
+   blank, so a theme or a contact address you chose survives.  Page *content*
+   is a different matter: the seeded pages are rewritten, so make your own
+   changes on pages you added.
+
+**An image or document will not upload.**
+   The allowed types are fixed: images as GIF, JPEG, PNG, WebP or SVG, and
+   documents as CSV, DOCX, KEY, ODT, PDF, PPTX, RTF, TXT, XLSX or ZIP.  On the
+   live site there is also a 25 MB size cap.  Photographs straight off a
+   camera are usually far larger than a web page needs — resize before
+   uploading and the site will be quicker as well.

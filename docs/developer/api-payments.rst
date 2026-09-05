@@ -1,6 +1,6 @@
-======================
-Payments API reference
-======================
+=============
+API: payments
+=============
 
 Every endpoint under ``/api/v1/payments/`` and ``/api/v1/admin/payments``,
 implementing PLAN §6.7 and §6.8.  General API conventions — session
@@ -13,10 +13,6 @@ The rule that shapes all of this: **the server never trusts a client-supplied
 amount**.  A checkout request names a plan slug and a contribution; the total
 is recomputed from the plan's price every time, and again when the provider is
 asked to confirm.
-
-.. contents::
-   :local:
-   :depth: 2
 
 
 Checkout

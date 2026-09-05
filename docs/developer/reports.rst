@@ -3,17 +3,40 @@ Reports
 =======
 
 CalDART exports data as CSV, for a spreadsheet, and as PDF, for a board pack.
-PLAN §11 defines three reports: membership, aircraft and payments.  This page
-covers the shared machinery and the membership report; the other two are built
-on the same helpers by ``feat/aircraft-leader`` and ``feat/payments``.
+PLAN §11 defines three reports — membership, aircraft and payments — and all
+three are built on one set of helpers in ``backend/caldart/reports.py``.
 
-Two rules hold for every report:
+.. list-table::
+   :header-rows: 1
+   :widths: 22 20 24 34
 
-1. **An export is the list you are looking at.**  The export endpoints take the
-   same filters and the same ``?ordering=`` as the list they belong to, and
-   they are not paginated: you get every matching row, not the page on screen.
-2. **One column list per report.**  The CSV and the PDF read the same
-   definition, so they cannot disagree about what a column means.
+   * - Report
+     - Formats
+     - Owned by
+     - Endpoints
+   * - Membership
+     - CSV, PDF
+     - ``apps/members/reports.py``
+     - ``/admin/members/export.{csv,pdf}``
+   * - Aircraft
+     - CSV, PDF
+     - ``apps/aircraft/reports.py``
+     - ``/admin/aircraft/export.{csv,pdf}``
+   * - Payments
+     - CSV only
+     - ``apps/payments/reports.py``
+     - ``/admin/payments/export.csv``
+
+All six endpoints are ``account_admin`` (and therefore ``system_admin``); none
+of them is paginated.
+
+One rule holds everywhere:
+
+**An export is the list you are looking at.**  The export endpoints take the
+same filters as the list they belong to, so a download always matches the
+screen it came from.  ``?ordering=`` is the one exception: the members and
+aircraft exports honour it, and the payments export ignores it and always
+sorts by payment date, newest first.
 
 
 Shared helpers
@@ -23,15 +46,18 @@ Shared helpers
 it:
 
 ``csv_response(filename, header, rows)``
-   A ``StreamingHttpResponse`` with a download disposition.  Rows are consumed
-   lazily — pass a generator or a queryset iterator and the whole table never
-   sits in memory at once.  ``None`` is written as an empty cell; quoting is
-   the ``csv`` module's problem.
+   A ``StreamingHttpResponse``, ``text/csv; charset=utf-8``, with a download
+   disposition.  Rows are consumed lazily — pass a generator or a queryset
+   iterator and the whole table never sits in memory at once.  ``None`` is
+   written as an empty cell; quoting is the ``csv`` module's problem.
 ``pdf_table_response(filename, *, title, subtitle, header, rows, landscape)``
    A reportlab table in the CalDART palette: hairline rules instead of boxes,
    zebra rows, the header repeated on every page, and a footer carrying
    "CalDART · generated <timestamp>" and "Page n of m".  ``landscape`` defaults
-   to true, which is landscape US letter (792 × 612 points).
+   to true, which is landscape US letter (792 × 612 points).  Unlike the CSV
+   path this returns an ordinary ``HttpResponse``: reportlab needs the whole
+   document before it can write any of it, so a PDF export does hold its rows
+   in memory.
 ``build_pdf_table(buffer, …)``
    The same, into any writable binary stream, for tests and for anything that
    is not an HTTP response.
@@ -135,6 +161,79 @@ The PDF divides the page width evenly between columns, so each new column
 makes them all narrower.  Sixteen columns is comfortable on landscape letter
 at 7.5pt; past about twenty, drop a column or split the report rather than
 shrinking the type.
+
+
+The aircraft report
+===================
+
+Served by ``GET /api/v1/admin/aircraft/export.csv`` and ``export.pdf`` to
+``account_admin``.  Filenames carry the date: ``caldart-aircraft-2026-09-04.csv``.
+Both formats render from one row builder in ``backend/apps/aircraft/reports.py``,
+so they cannot disagree about the data — but unlike the membership report they
+do **not** share a header tuple or a money format:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 40 40
+
+   * -
+     - CSV (``HEADER``)
+     - PDF (``PDF_HEADER``)
+   * - Column names
+     - machine names: ``n_number``, ``liability_per_occurrence``, …
+     - human titles: "N-number", "Liability / occurrence", …
+   * - Money
+     - plain decimals, ``1000000.00``
+     - currency, ``$1,000,000``
+
+That split is deliberate — one file is parsed and the other is read — and it
+is the reason ``_dollars(cents, *, currency)`` takes a keyword.
+
+The twelve columns, in order: ``n_number``, ``make``, ``model``, ``owner``,
+``owner_type``, ``insurance_carrier``, ``liability_per_occurrence``,
+``liability_per_person``, ``hull``, ``insurance_expiration``,
+``insurance_current``, and ``pilots`` — the display names of the members who
+have attached the aeroplane, from ``apps.aircraft.services.pilot_names``.
+
+Both exports take the register's full filter set: ``search``, ``make``,
+``owner_type``, ``insurance`` (``current`` / ``expired`` / ``missing``),
+``expiring_within``, ``is_active`` and ``ordering``.
+
+.. warning::
+
+   ``is_active`` is applied to the data but is missing from the PDF subtitle's
+   filter list (``AircraftExportMixin.applied_filters``), so an
+   ``?is_active=false`` PDF is a filtered document that does not say it is
+   filtered.  Add it to that tuple when you touch the file.
+
+
+The payments report
+===================
+
+Served by ``GET /api/v1/admin/payments/export.csv`` to ``account_admin``.
+Three things set it apart from the other two:
+
+* **CSV only.**  There is no PDF export; the account-administrator screen has
+  a period table on it instead, and a board pack takes a screenshot of that or
+  a spreadsheet built from this file.
+* **The filename has no date in it** — it is always ``caldart-payments.csv``.
+* **It ignores ``?ordering=``** and always sorts by payment date, newest
+  first, even though the list endpoint beside it honours ten ordering fields.
+
+Columns, from ``CSV_HEADER`` in ``backend/apps/payments/reports.py``:
+``paid_on``, ``name``, ``email``, ``plan``, ``plan_amount``, ``contribution``,
+``total``, ``provider``, ``wallet``, ``status``, ``provider_ref``.  Money is a
+plain decimal; ``plan`` is empty for a pure donation.
+
+Filters are ``from``, ``to``, ``provider``, ``status`` and ``search``.  The
+export includes **every** status, while ``GET /admin/payments/summary`` counts
+only ``succeeded`` rows — so an export and a period total will differ whenever
+there are failed attempts in the range, which is expected rather than a fault.
+
+``paid_on`` comes from the ``paid_at`` annotation,
+``Coalesce(completed_at, created_at)``.  The list, the summary and this export
+all key off it, which is what stops the three answering "when was this paid?"
+differently.
 
 
 Testing a report

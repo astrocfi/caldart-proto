@@ -13,7 +13,14 @@ How a dump is taken
 
 ``manage.py db_backup`` runs ``pg_dump`` with ``--no-owner --no-privileges``,
 gzips the output, and writes it to ``BACKUP_DIR`` as
-``caldart-<YYYYMMDD-HHMMSS>.sql.gz``.
+``caldart-<YYYYMMDD-HHMMSS>.sql.gz``.  ``--name`` overrides that file name, for
+a dump you want to find again by hand::
+
+  manage.py db_backup --name before-the-schema-change.sql.gz
+
+Keep the ``.sql.gz`` ending whatever you call it.  The download endpoint only
+serves names matching ``^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$``, and
+``db_restore`` expects gzip.
 
 It finds ``pg_dump`` in one of two places:
 
@@ -49,11 +56,20 @@ Production::
       DJANGO_SETTINGS_MODULE=caldart.settings.prod \
       /srv/caldart/.venv/bin/python manage.py db_backup
 
-Or from a browser: ``/portal/system`` → **Backups** → **Create backup**.  The
-button calls ``POST /system/backups``, which runs the same code path
-synchronously; on a large database the request takes as long as ``pg_dump``
-does.  The same panel lists what is on disk with sizes and dates, and offers a
-download link per file.
+Or from a browser: ``/portal/system`` → **Backups** → **Create backup**.  Three
+endpoints back that panel, all ``system_admin`` only:
+
+.. code-block:: text
+
+   GET  /api/v1/system/backups                  → [{name, size_bytes, created_at}]
+   POST /api/v1/system/backups                  → 201 {name, size_bytes, created_at}
+   GET  /api/v1/system/backups/{name}/download  → application/gzip
+
+``GET`` lists ``BACKUP_DIR`` — a dump written anywhere else is invisible here
+and cannot be downloaded.  ``POST`` runs the same code path as the command,
+synchronously, so on a large database the request takes as long as ``pg_dump``
+does; a ``BackupError`` comes back as a **400** with the message in ``detail``.
+There is deliberately no restore endpoint.
 
 Scheduling
 ----------

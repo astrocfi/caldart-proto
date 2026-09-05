@@ -7,10 +7,6 @@ commonly fly and attach them to their profile; account administrators keep the
 insurance details straight; DART leaders read the result before a mission.
 This page covers both halves.
 
-.. contents:: On this page
-   :local:
-   :depth: 1
-
 
 N-numbers
 =========
@@ -31,9 +27,11 @@ person adding it happened to type the number.
 For members: adding an aeroplane you fly
 ========================================
 
-Open **My aircraft** in the portal menu and search the register.  Type the
-registration, or the make, model or owner if you do not have the number to
-hand.  Pick the aeroplane from the results and it is attached to your profile.
+#. Open **My aircraft** in the portal menu.
+#. Search the register in the panel underneath: type the registration, or the
+   make, model or owner if you do not have the number to hand.
+#. Pick the aeroplane from the results.  It is attached to your profile
+   straight away and appears in the list above with its insurance chip.
 
 Aeroplanes already on your list are filtered out of the results and named
 underneath, so you can tell the difference between "not in the register" and
@@ -55,10 +53,10 @@ Insurance expires      Optional, and the single most useful field on the form
 
 Saving adds the aeroplane to the register *and* attaches it to your profile.
 
-You may edit any aircraft you added yourself — carrier, expiry, owner details
-— from the same screens.  You may not edit an aeroplane somebody else added,
-and you may not delete one at all: another member may be flying it.  Ask an
-account administrator.
+Adding is as far as a member goes.  There is no member-facing screen for
+editing an aircraft — not even one you added — and none for deleting one, since
+another member may be flying it.  To correct a carrier, a limit or an expiry
+date, ask an account administrator.
 
 .. tip::
 
@@ -152,10 +150,59 @@ Action                     Member      Creator     DART        Account
 Search the register        yes         yes         yes         yes
 Add an aircraft            yes         yes         yes         yes
 Attach one to own profile  yes         yes         yes         yes
-Edit a record              no          yes         no          yes
+Edit a record              no          API only    no          yes
 Delete a record            no          no          no          yes
 Export CSV / PDF           no          no          no          yes
 =========================  ==========  ==========  ==========  ==========
 
 "Creator" means the member who added that particular aeroplane.
 ``system_admin`` may do everything in the table.
+
+**API only** is exactly what it says: the creator's right to edit their own
+record exists in the API (:doc:`../developer/api-aircraft`) but no portal
+screen offers it, because the register's edit form is on the account
+administrator's side.  In practice, a member asks an administrator.
+
+
+When something goes wrong
+=========================
+
+**"An aircraft with this N-number is already on file."**
+   The register already has it, under whatever spelling somebody first used.
+   Search for it and attach the existing record instead of adding a second —
+   that is the whole point of one shared register.  Registrations are
+   normalised, so ``N12345``, ``n-12345`` and ``12345`` cannot be entered as
+   three separate aeroplanes.
+
+**"Enter a registration, for example N12345."**
+   The lookup box got something it could not read as a tail number.  Letters
+   and digits are all it needs; punctuation, spaces and case are ignored.
+
+**The picker finds nothing, but you know the aeroplane is on file.**
+   The fuzzy search leaves out aeroplanes marked *out of service*.  Type the
+   exact registration and it will still be found, labelled as out of service,
+   so you do not add a duplicate.
+
+**You are told only the member who added it, or an administrator, may change it.**
+   You are not the record's creator.  Ask an account administrator to make the
+   change — including for a record with no creator recorded, which is
+   administrator-only by default.
+
+**"Only an account administrator can delete an aircraft."**
+   Deleting is never granted to the creator alone, because the record may be
+   attached to other people's profiles.  If the aeroplane is simply out of
+   use, clear the **in service** flag rather than asking for a deletion.
+
+**An insurance chip says "No insurance on file" and you think it is insured.**
+   That state means the record has no expiration date, which is different from
+   an expired policy.  Somebody has to enter the carrier, the limits and the
+   expiry before a DART leader can rely on it.
+
+**"Enter an amount of $0 or more."**
+   One of the three money boxes holds something that is not a positive amount
+   — a negative number, or text the form cannot read as one.  Enter dollars;
+   commas and a leading ``$`` are accepted and stripped for you.
+
+**You removed an aeroplane and worry you deleted it.**
+   **Remove** on your own profile only detaches it from you.  The record, and
+   everybody else's link to it, is untouched.

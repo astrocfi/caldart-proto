@@ -1,15 +1,11 @@
-#################
+=================
 The CMS (Wagtail)
-#################
+=================
 
 ``backend/apps/cms`` is the public website: the Wagtail page models, the
 StreamField blocks they are built from, the site settings that carry the
 organisation details and the theme, the members-only wall, and the templates
 under ``backend/templates/``.  It implements PLAN §4.6, §6.10, §7 and §9.
-
-.. contents::
-   :local:
-   :depth: 2
 
 
 Layout
@@ -51,14 +47,16 @@ Model                Notes
 ``HomePage``         The site root.  Hero, ``mission_statement``,
                      ``concept_of_operations`` (a stream of ``step`` blocks)
                      and ``tax_status``.  ``featured_news`` returns the three
-                     most recent live, public news posts.
+                     most recent live, public news posts, members-only ones
+                     excluded whoever is looking.
 ``StandardPage``     ``intro`` + ``body``; carries ``MembersOnlyMixin``.
 ``NewsIndexPage``    Paginates its child posts, ``NEWS_PAGE_SIZE`` at a time,
                      and hides members-only posts from visitors who could not
                      open them.
 ``NewsPage``         ``date``, ``intro``, ``image``, ``body``; carries
                      ``MembersOnlyMixin``.  Only allowed under a news index.
-``DartIndexPage``    Renders its children as a table.
+``DartIndexPage``    ``intro`` + ``body`` above its children, which it renders
+                     as a table.
 ``DartPage``         ``dart`` (FK to ``members.Dart``), ``leader_name``,
                      ``leader_contact``, ``body``.  ``airport_identifier``
                      and ``city`` are read through the FK, so the page never
@@ -125,10 +123,11 @@ matches the list in PLAN §4.6: ``heading``, ``paragraph``, ``image``,
 ``ColumnStreamBlock`` is the reduced set allowed inside a two-column block, so
 columns cannot nest.
 
-Each block names its own template under ``cms/blocks/``; nothing renders from a
-default.  ``heading`` computes a slug anchor through ``heading_anchor`` so long
-pages get a table of contents, and ``stream_headings`` collects the H2 headings
-for the aside.
+Each block names its own template under ``cms/blocks/``, with one deliberate
+exception: ``raw_html`` is a plain ``RawHTMLBlock`` and emits its content
+unwrapped, which is the whole point of it.  ``heading`` computes a slug anchor
+through ``heading_anchor`` so long pages get a table of contents, and
+``stream_headings`` collects the H2 headings for the aside.
 
 Adding a block
 --------------
@@ -166,7 +165,10 @@ Adding a page type
    ``models.py``.
 #. Declare ``content_panels``, ``search_fields``, ``template``, and
    ``parent_page_types`` / ``subpage_types``.
-#. Add ``__str__`` — ruff's ``DJ008`` asks for one on every concrete model.
+#. Give it a ``Meta.verbose_name``, so Wagtail's "add a child page" chooser
+   names it the way an editor would.  A ``__str__`` is worth adding when the
+   page's title is not the whole story — ``DartPage`` has one, the index pages
+   do not.
 #. Write ``backend/templates/cms/<snake_name>.html`` extending ``base.html``.
 #. ``manage.py makemigrations cms``.
 #. Extend ``seed_content`` if the example site should have one.
@@ -191,9 +193,11 @@ supplies four names:
 
 ``nav``
     ``build_nav(request)``: the live top-level pages flagged *show in menus*
-    as ``kind="page"``, then ``Join`` → ``/portal/join`` and ``Log in`` /
-    ``Members`` → ``/portal/`` as ``kind="portal"``.  ``base.html`` renders
-    the first group as links and the second as buttons.
+    as ``kind="page"``, then two ``kind="portal"`` entries — always ``Join`` →
+    ``/portal/join``, followed by ``Members`` → ``/portal/`` for a signed-in
+    visitor or ``Log in`` → ``/portal/login`` for an anonymous one.
+    ``base.html`` renders the first group as links and the second as buttons.
+    An entry is marked ``active`` when the request path starts with its URL.
 
 ``can_preview_theme``
     True for website and system administrators.  ``base.html`` turns it into

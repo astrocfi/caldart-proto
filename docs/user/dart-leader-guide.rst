@@ -8,12 +8,10 @@ aircraft they are about to fly insured?  The **member check** answers all
 three on one screen, and it is designed to be read on a phone while you are
 standing on the ramp.
 
-You need the ``dart_leader`` role.  Account administrators and system
-administrators can use the same screens.
-
-.. contents:: On this page
-   :local:
-   :depth: 1
+You need the ``dart_leader`` role.  Account and system administrators may open
+the same screens, but only a DART leader gets the menu entries for them — an
+account administrator has to type ``/portal/leader`` or
+``/portal/leader/aircraft`` into the address bar.
 
 
 The check, in ten seconds
@@ -100,10 +98,11 @@ Checking an aircraft on its own
 ===============================
 
 **Aircraft check** (``/portal/leader/aircraft``) takes a tail number and shows
-one card: **INSURED** or **NOT INSURED**, the carrier and policy number, the
-liability limits per occurrence and per person, the hull value, the expiry
-date, the owner, and every member who lists that aeroplane on their profile
-with their own membership and medical currency.
+one card: **INSURED** or **NOT INSURED**, the carrier, the liability limits per
+occurrence and per person, the hull value, the expiry date, the owner, and
+every member who lists that aeroplane on their profile with their own
+membership and medical currency.  The policy number is on the record but not on
+this card; an account administrator can read it out of the register.
 
 Use it when the aeroplane in front of you is not the one on the member's
 profile — a club aeroplane, or one they have just started flying.  As on the
