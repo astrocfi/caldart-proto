@@ -1,0 +1,149 @@
+/**
+ * `/admin/aircraft/:id` — one record: edit it, see who flies it, delete it
+ * (PLAN §6.5, §8).
+ */
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+
+import { ApiError } from '../../api/client';
+import type { AircraftPatch } from '../../api/types';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
+import { EmptyState } from '../../components/EmptyState';
+import { Page } from '../../components/Page';
+import { StatusChip } from '../../components/StatusChip';
+import { useToast } from '../../components/Toast';
+import { InsuranceChip } from '../aircraft/InsuranceChip';
+import '../aircraft/aircraft.css';
+import { useAircraft, useDeleteAircraft, useUpdateAircraft } from '../aircraft/api';
+import { aircraftToValues } from '../aircraft/form';
+import { AircraftForm } from './AircraftForm';
+
+export function AircraftRecordPage() {
+  const { id } = useParams<{ id: string }>();
+  const aircraftId = Number(id);
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  const record = useAircraft(Number.isFinite(aircraftId) ? aircraftId : null);
+  const update = useUpdateAircraft(aircraftId);
+  const remove = useDeleteAircraft(aircraftId);
+  const [confirming, setConfirming] = useState(false);
+
+  if (record.isPending) {
+    return (
+      <Page title="Aircraft" eyebrow="Administration">
+        <p className="muted" role="status">
+          Loading…
+        </p>
+      </Page>
+    );
+  }
+
+  if (record.isError || !record.data) {
+    const missing = record.error instanceof ApiError && record.error.status === 404;
+    return (
+      <Page title="Aircraft" eyebrow="Administration">
+        <EmptyState
+          title={missing ? 'No such aircraft' : 'That record could not be loaded'}
+          description={
+            missing
+              ? 'It may have been deleted from the register.'
+              : (record.error as Error)?.message
+          }
+          action={
+            <Link className="button button--secondary" to="/admin/aircraft">
+              Back to the register
+            </Link>
+          }
+        />
+      </Page>
+    );
+  }
+
+  const aircraft = record.data;
+
+  const save = (payload: AircraftPatch): void => {
+    update.mutate(payload, {
+      onSuccess: (saved) => toast.show(`${saved.n_number} saved.`, 'success'),
+    });
+  };
+
+  const destroy = (): void => {
+    remove.mutate(undefined, {
+      onSuccess: () => {
+        toast.show(`${aircraft.n_number} deleted from the register.`, 'success');
+        navigate('/admin/aircraft');
+      },
+      onError: (error) => toast.show((error as Error).message, 'error'),
+    });
+  };
+
+  const serverErrors = update.error instanceof ApiError ? update.error.fieldErrors : undefined;
+
+  return (
+    <Page
+      title={aircraft.n_number}
+      eyebrow="Aircraft record"
+      lede={`${aircraft.make} ${aircraft.model}`.trim()}
+      actions={<InsuranceChip aircraft={aircraft} />}
+    >
+      <Card eyebrow="Register" title="Details">
+        <AircraftForm
+          key={aircraft.id}
+          initial={aircraftToValues(aircraft)}
+          submitLabel="Save changes"
+          pending={update.isPending}
+          serverErrors={serverErrors}
+          onSubmit={save}
+          withAdminFields
+        />
+      </Card>
+
+      <Card eyebrow="Members" title="Pilots who fly this aircraft">
+        {aircraft.pilots.length === 0 ? (
+          <p className="muted">No member lists this aircraft on their profile.</p>
+        ) : (
+          <ul className="aircraft-pilots">
+            {aircraft.pilots.map((pilot) => (
+              <li key={pilot.user_id}>
+                <span>{pilot.name}</span>
+                <span className="aircraft-pilots__email mono">{pilot.email}</span>
+                <StatusChip
+                  tone={pilot.membership_status === 'current' ? 'current' : 'expired'}
+                  label={
+                    pilot.membership_status === 'current' ? 'Member current' : 'Member expired'
+                  }
+                />
+                <StatusChip
+                  tone={pilot.medical_is_current ? 'current' : 'expired'}
+                  label={pilot.medical_is_current ? 'Medical current' : 'Medical not current'}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <div className="aircraft-danger">
+        {confirming ? (
+          <div className="cluster">
+            <p className="field__error" role="alert">
+              Delete {aircraft.n_number} permanently? It will disappear from every member's profile.
+            </p>
+            <Button variant="danger" disabled={remove.isPending} onClick={destroy}>
+              {remove.isPending ? 'Deleting…' : 'Yes, delete it'}
+            </Button>
+            <Button variant="quiet" onClick={() => setConfirming(false)}>
+              Keep it
+            </Button>
+          </div>
+        ) : (
+          <Button variant="danger" onClick={() => setConfirming(true)}>
+            Delete this aircraft
+          </Button>
+        )}
+      </div>
+    </Page>
+  );
+}
