@@ -18,6 +18,15 @@ export DATABASE_URL
 
 DB_NAME := $(shell printf '%s' "$(DATABASE_URL)" | sed -e 's#.*/##' -e 's/?.*//')
 
+# `make e2e` runs against its own database and its own server, so it never
+# disturbs the one you are developing against.  The login throttle is lifted
+# for that server alone: the specs sign in far more often in a minute than a
+# person ever would (PLAN §6.1).
+E2E_PORT ?= 8021
+E2E_DB ?= caldart_e2e
+E2E_DATABASE_URL ?= postgres://caldart:caldart@localhost:5432/$(E2E_DB)
+E2E_LOG ?= /tmp/caldart-e2e-server.log
+
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend e2e lint lint-backend \
         lint-frontend format backup restore reminders docs shell superuser \
@@ -113,8 +122,27 @@ test-backend: ## pytest (Postgres)
 test-frontend: ## vitest
 	cd frontend && $(NPM) run test
 
-e2e: ## Playwright end-to-end tests
-	cd frontend && $(NPM) run e2e
+e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
+	@# CI creates the database with psql, having no compose services to exec into.
+	@test -n "$(SKIP_CREATEDB)" \
+	  || $(MAKE) --no-print-directory createdb DATABASE_URL="$(E2E_DATABASE_URL)"
+	DATABASE_URL="$(E2E_DATABASE_URL)" $(MANAGE) db_reset --seed --noinput
+	cd frontend && $(NPM) run build
+	@set -e; \
+	  DATABASE_URL="$(E2E_DATABASE_URL)" \
+	  SITE_URL="http://localhost:$(E2E_PORT)" \
+	  DJANGO_VITE_DEV_MODE=false \
+	  PAYMENTS_MOCK_ENABLED=true \
+	  AUTH_THROTTLE_LOGIN=1000/min \
+	    $(MANAGE) runserver 0.0.0.0:$(E2E_PORT) --noreload > $(E2E_LOG) 2>&1 & \
+	  server=$$!; \
+	  trap 'pkill -P $$server >/dev/null 2>&1; kill $$server >/dev/null 2>&1; true' EXIT INT TERM; \
+	  for i in $$(seq 1 60); do \
+	    curl -sf -o /dev/null "http://localhost:$(E2E_PORT)/portal/login" && break; \
+	    sleep 1; \
+	    test $$i -lt 60 || { echo "Django did not start; see $(E2E_LOG)" >&2; tail -20 $(E2E_LOG) >&2; exit 1; }; \
+	  done; \
+	  cd frontend && E2E_BASE_URL="http://localhost:$(E2E_PORT)" $(NPM) run e2e
 
 # ----------------------------------------------------------------- lint
 lint: lint-backend lint-frontend ## ruff + eslint + tsc
