@@ -1,0 +1,92 @@
+/*
+ * CalDART design tokens (PLAN §9).
+ *
+ * Components only ever reference the SEMANTIC tokens below.  A theme file in
+ * `styles/themes/` overrides them under `:root[data-theme="<name>"]`, so
+ * changing the whole look is one file, or one dropdown in Wagtail Site
+ * Settings.
+ *
+ * The default values here are the `sierra` theme, so the site is correct even
+ * before a theme attribute is applied.
+ */
+
+:root {
+  /* -- colour ---------------------------------------------------------- */
+  --color-bg: #f4f1ea; /* paper */
+  --color-bg-raised: #fbfaf6; /* cards, table stripes */
+  --color-bg-sunken: #ebe7dd; /* code, wells */
+  --color-fg: #1b1f24; /* ink */
+  --color-primary: #1f4d3a; /* deep conifer */
+  --color-primary-fg: #f7f5ef;
+  --color-primary-hover: #17392b;
+  --color-accent: #e4572e; /* signal orange */
+  --color-secondary: #f2a900; /* poppy gold */
+  --color-rule: #d9d3c7;
+  --color-rule-strong: #b9b1a0;
+  --color-muted: #6b6f76;
+  --color-selection: #f2a90033;
+
+  --color-ok: #2e7d4f;
+  --color-warn: #c98a00;
+  --color-bad: #b23a2b;
+  --color-ok-bg: #2e7d4f1f;
+  --color-warn-bg: #c98a001f;
+  --color-bad-bg: #b23a2b1f;
+  --color-neutral-bg: #6b6f7617;
+
+  --color-focus: #1f4d3a;
+
+  /* -- type ------------------------------------------------------------ */
+  --font-display:
+    'Fraunces Variable', 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  /* A modest modular scale (1.25) anchored on 16px. */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.563rem;
+  --text-2xl: 1.953rem;
+  --text-3xl: 2.441rem;
+  --text-4xl: 3.052rem;
+
+  --leading-tight: 1.08;
+  --leading-snug: 1.25;
+  --leading-normal: 1.6;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --tracking-eyebrow: 0.12em;
+
+  /* -- space ----------------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2.5rem;
+  --space-7: 4rem;
+  --space-8: 6rem;
+
+  /* -- shape ----------------------------------------------------------- */
+  --radius: 2px;
+  --radius-pill: 999px;
+  --hairline: 1px;
+
+  /* -- layout ---------------------------------------------------------- */
+  --measure: 68ch; /* comfortable reading width */
+  --page-max: 76rem;
+  --rail-width: 14rem;
+
+  /* -- motion ---------------------------------------------------------- */
+  --duration-fast: 90ms;
+  --duration: 160ms;
+  --ease: cubic-bezier(0.2, 0, 0.2, 1);
+
+  color-scheme: light;
+}
