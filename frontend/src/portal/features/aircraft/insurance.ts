@@ -1,0 +1,64 @@
+/**
+ * Aircraft helpers shared by the picker, the admin register and the leader
+ * check: N-number normalisation (the same rule as the server) and the
+ * insurance state every screen colours its chips by.
+ */
+import type { AircraftSummary } from '../../api/types';
+import { EXPIRING_WINDOW_DAYS, daysUntil } from '../../components/StatusChip';
+import type { StatusTone } from '../../components/StatusChip';
+
+const PUNCTUATION = /[^A-Za-z0-9]/g;
+
+/**
+ * `12345`, `n12345` and `N-12345` are all `N12345` (PLAN §4.3).
+ *
+ * Mirrors `apps.aircraft.models.normalize_n_number` so the UI can show the
+ * canonical form before the round trip.
+ */
+export function normalizeNNumber(value: string): string {
+  const cleaned = value.replace(PUNCTUATION, '').toUpperCase();
+  if (!cleaned) return '';
+  return /^\d/.test(cleaned) ? `N${cleaned}` : cleaned;
+}
+
+/** True when a search term could be a registration: a registration has digits. */
+export function looksLikeRegistration(value: string): boolean {
+  return /\d/.test(value);
+}
+
+/** Insurance currency as one of the four chip tones. */
+export function insuranceTone(
+  aircraft: Pick<AircraftSummary, 'insurance_is_current' | 'insurance_expiration'>,
+  today: Date = new Date(),
+): StatusTone {
+  if (!aircraft.insurance_expiration) return 'none';
+  if (!aircraft.insurance_is_current) return 'expired';
+  const days = daysUntil(aircraft.insurance_expiration, today);
+  return days !== null && days <= EXPIRING_WINDOW_DAYS ? 'expiring' : 'current';
+}
+
+const INSURANCE_LABEL: Record<StatusTone, string> = {
+  current: 'Insured',
+  expiring: 'Expiring soon',
+  expired: 'Insurance expired',
+  none: 'No insurance on file',
+};
+
+export function insuranceLabel(tone: StatusTone): string {
+  return INSURANCE_LABEL[tone];
+}
+
+/** `"1,000,000"` typed into a dollars box becomes 100000000 cents. */
+export function dollarsToCents(value: string): number | null {
+  const cleaned = value.replace(/[$,\s]/g, '');
+  if (!cleaned) return null;
+  const amount = Number(cleaned);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return Math.round(amount * 100);
+}
+
+/** Cents back into a plain dollars string for an editable input. */
+export function centsToDollars(cents: number | null | undefined): string {
+  if (cents === null || cents === undefined) return '';
+  return Number.isInteger(cents / 100) ? String(cents / 100) : (cents / 100).toFixed(2);
+}
