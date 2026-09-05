@@ -173,26 +173,53 @@ const STATE_RE = /^[A-Za-z]{2}$/;
 const POSTAL_RE = /^\d{5}(-\d{4})?$/;
 
 /**
+ * The fields that make a profile "complete" — PLAN §6.1's `profile_complete`
+ * list, and the same one `MemberProfile.COMPLETE_FIELDS` uses on the server.
+ *
+ * The wizard cannot ask for less than this (the visitor would be stuck on step
+ * 2, because `profile_complete` would still be false) nor more (they would be
+ * nagged by a dashboard that thinks they have finished).  `pilot_certificate_type`
+ * is a select that always holds a value, so it is listed for the record.
+ */
+export const REQUIRED_PROFILE_FIELDS = [
+  'phone',
+  'address_line1',
+  'city',
+  'postal_code',
+  'pilot_certificate_type',
+] as const satisfies readonly (keyof ProfileFormValues)[];
+
+const REQUIRED_MESSAGES: Record<(typeof REQUIRED_PROFILE_FIELDS)[number], string> = {
+  phone: 'A phone number is required.',
+  address_line1: 'Your street address is required.',
+  city: 'Your city is required.',
+  postal_code: 'Your ZIP code is required.',
+  pilot_certificate_type: 'Choose a certificate, or "Not a pilot".',
+};
+
+/**
  * Inline validation.
  *
- * The four contact fields are required because they are what makes a profile
- * "complete" for the dashboard nudge and the join wizard; the rest of the
- * rules are the server's, checked here so the member sees them without a
- * round trip.
+ * The required fields are exactly what makes a profile "complete" for the
+ * dashboard nudge and the join wizard; the rest of the rules are the server's,
+ * checked here so the member sees them without a round trip.
  */
 export function validateProfileForm(values: ProfileFormValues): ProfileFormErrors {
   const errors: ProfileFormErrors = {};
 
-  if (!values.phone.trim()) errors.phone = 'A phone number is required.';
-  if (!values.city.trim()) errors.city = 'Your city is required.';
+  for (const field of REQUIRED_PROFILE_FIELDS) {
+    if (!String(values[field] ?? '').trim()) errors[field] = REQUIRED_MESSAGES[field];
+  }
 
   const state = values.state.trim();
-  if (!state) errors.state = 'Your state is required.';
-  else if (!STATE_RE.test(state)) errors.state = 'Use the two-letter state code, for example CA.';
+  if (state && !STATE_RE.test(state)) {
+    errors.state = 'Use the two-letter state code, for example CA.';
+  }
 
   const postal = values.postal_code.trim();
-  if (!postal) errors.postal_code = 'Your ZIP code is required.';
-  else if (!POSTAL_RE.test(postal)) errors.postal_code = 'Use a ZIP code like 95035 or 95035-1234.';
+  if (postal && !POSTAL_RE.test(postal)) {
+    errors.postal_code = 'Use a ZIP code like 95035 or 95035-1234.';
+  }
 
   if (values.medical_type !== 'none' && !values.medical_expiration) {
     errors.medical_expiration = 'Give the expiration date of your medical certificate.';
