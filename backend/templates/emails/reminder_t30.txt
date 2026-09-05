@@ -1,0 +1,18 @@
+{{ org_name }} — one month left
+
+Hello {{ first_name }},
+
+Thirty days from now your {{ plan_name }} membership lapses, and with it your
+access to the members-only area and your place on the roster your DART leader
+works from. It expires on {{ expires_on|date:"F j, Y" }}.
+
+Renewing now costs you nothing in time already paid for: the new term begins the
+day after {{ expires_on|date:"F j, Y" }}.
+
+Renew here:
+{{ renew_url }}
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because you are a member of {{ org_name }}.

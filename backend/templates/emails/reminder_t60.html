@@ -1,0 +1,23 @@
+{% extends "emails/reminder_base.html" %}
+
+{% block preheader %}Your {{ plan_name }} membership runs out on {{ expires_on|date:"F j, Y" }}. Renewing takes a minute.{% endblock %}
+
+{% block heading %}Two months to go{% endblock %}
+
+{% block lede %}Your {{ plan_name }} membership expires on {{ expires_on|date:"F j, Y" }}.{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  <p style="margin:0 0 14px 0;">
+    This is an early heads-up, not a bill you have to pay today. Your membership
+    is good through {{ expires_on|date:"F j, Y" }}, and renewing before then keeps
+    your coverage unbroken — the new term starts the day the current one ends.
+  </p>
+  <p style="margin:0 0 14px 0;">
+    While you are in the portal, it is worth checking that your medical, flight
+    review and aircraft insurance dates are still right. DART leaders read those
+    fields when they are putting a mission together.
+  </p>
+{% endblock %}
+
+{% block cta_label %}Renew early{% endblock %}

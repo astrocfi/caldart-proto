@@ -24,4 +24,5 @@ every other page defers to.
    testing
    deployment
    backup-restore
+   reminders
    roadmap

@@ -14,6 +14,7 @@ from this file.
 """
 
 import multiprocessing
+import os
 
 # --- Application ------------------------------------------------------------
 
@@ -38,17 +39,25 @@ backlog = 2048
 
 # --- Worker processes -------------------------------------------------------
 
-# The usual (2 x cores) + 1 heuristic for synchronous workers, computed at
-# start-up so the same file suits a 2-core VM and a 16-core box.
-workers = multiprocessing.cpu_count() * 2 + 1
+# The usual (2 x cores) + 1 heuristic, computed at start-up so the same file
+# suits a 2-core VM and a 16-core box -- but capped.  Every worker preloads
+# Django and Wagtail, so on a large host the heuristic buys nothing and costs
+# a few hundred MB: CalDART's load is a few hundred members, not a few
+# thousand requests a second.  WEB_CONCURRENCY in /etc/caldart/caldart.env
+# overrides both if a particular box needs something else.
+MAX_WORKERS = 12
+workers = int(
+    os.environ.get("WEB_CONCURRENCY") or min(multiprocessing.cpu_count() * 2 + 1, MAX_WORKERS)
+)
 
-# Plain prefork workers.  Django here is synchronous (psycopg 3, httpx calls to
-# Stripe/PayPal made inline during checkout), so sync workers are the right
-# default; revisit only if a request path becomes genuinely I/O-bound.
+# Prefork workers.  Django here is synchronous (psycopg 3, httpx calls to
+# Stripe/PayPal made inline during checkout), so prefork is the right default;
+# revisit only if a request path becomes genuinely I/O-bound.
+#
+# Note that gunicorn promotes "sync" to the threaded "gthread" worker whenever
+# threads > 1, which is what we want: a couple of threads per worker absorbs a
+# slow upstream payment API call without multiplying process memory.
 worker_class = "sync"
-
-# A couple of threads per worker absorbs slow upstream payment API calls
-# without multiplying process memory.
 threads = 2
 
 # Ceiling on concurrent connections per worker.
