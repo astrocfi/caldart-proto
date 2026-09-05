@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { makeProfile } from './fixtures';
-import { EMPTY_PROFILE_FORM, formToPatch, profileToForm, validateProfileForm } from './form';
+import {
+  EMPTY_PROFILE_FORM,
+  REQUIRED_PROFILE_FIELDS,
+  formToPatch,
+  profileToForm,
+  validateProfileForm,
+} from './form';
 
 describe('profileToForm', () => {
   it('flattens the nested dart onto the select value', () => {
@@ -59,9 +65,21 @@ describe('validateProfileForm', () => {
     expect(validateProfileForm(profileToForm(makeProfile()))).toEqual({});
   });
 
-  it('requires the four fields that make a profile usable', () => {
+  it('requires exactly the fields that make a profile complete', () => {
     const errors = validateProfileForm({ ...EMPTY_PROFILE_FORM, state: '', postal_code: '' });
-    expect(Object.keys(errors).sort()).toEqual(['city', 'phone', 'postal_code', 'state']);
+    // `pilot_certificate_type` is in the same list but is a select that always
+    // holds a value, so it cannot be missing from a rendered form.
+    expect(Object.keys(errors).sort()).toEqual(['address_line1', 'city', 'phone', 'postal_code']);
+  });
+
+  it('lists the same fields the server calls a complete profile', () => {
+    expect([...REQUIRED_PROFILE_FIELDS].sort()).toEqual([
+      'address_line1',
+      'city',
+      'phone',
+      'pilot_certificate_type',
+      'postal_code',
+    ]);
   });
 
   it('rejects a state that is not two letters', () => {

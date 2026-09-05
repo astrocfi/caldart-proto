@@ -112,7 +112,7 @@ export function ProfileForm({
               />
             )}
           </Field>
-          <Field label="Address" error={errorFor('address_line1')}>
+          <Field label="Address" required error={errorFor('address_line1')}>
             {(props) => (
               <input
                 {...props}
@@ -148,7 +148,7 @@ export function ProfileForm({
               />
             )}
           </Field>
-          <Field label="State" required error={errorFor('state')} hint="Two letters, e.g. CA">
+          <Field label="State" error={errorFor('state')} hint="Two letters, e.g. CA">
             {(props) => (
               <input
                 {...props}

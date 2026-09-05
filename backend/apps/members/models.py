@@ -168,10 +168,27 @@ class MemberProfile(TimestampedModel):
         ]
         return [f.removeprefix("vol_") for f in fields if getattr(self, f)]
 
+    #: The fields PLAN §6.1 names for ``profile_complete``.  One list, used by
+    #: :py:meth:`is_complete`, by the ``user`` payload the API returns, and —
+    #: mirrored — by the portal's profile form, so the join wizard can never
+    #: accept a profile the server then calls incomplete.
+    COMPLETE_FIELDS = (
+        "phone",
+        "address_line1",
+        "city",
+        "postal_code",
+        "pilot_certificate_type",
+    )
+
     @property
     def is_complete(self) -> bool:
-        """Enough detail entered for the portal to stop nagging."""
-        return bool(self.phone and self.city and self.state and self.postal_code)
+        """Enough detail entered for the portal to stop nagging (PLAN §6.1).
+
+        ``pilot_certificate_type`` is tested for *a value*, not for "not
+        ``none``": a ground-team volunteer who has genuinely answered "Not a
+        pilot" has finished the form.
+        """
+        return all(getattr(self, field, "") for field in self.COMPLETE_FIELDS)
 
 
 class MembershipPlan(TimestampedModel):

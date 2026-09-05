@@ -12,16 +12,6 @@ from apps.accounts.services import user_from_uid
 
 User = get_user_model()
 
-#: The profile fields a member must fill in before the portal stops nagging
-#: (PLAN §6.1, ``profile_complete``).
-PROFILE_COMPLETE_FIELDS = (
-    "phone",
-    "address_line1",
-    "city",
-    "postal_code",
-    "pilot_certificate_type",
-)
-
 
 class MembershipStatusSerializer(serializers.Serializer):
     """The ``membership_status`` dict returned by ``members.services``."""
@@ -60,10 +50,9 @@ class UserSerializer(serializers.ModelSerializer):
         return MembershipStatusSerializer(obj.membership_status).data
 
     def get_profile_complete(self, obj) -> bool:
+        """``MemberProfile.is_complete`` is the one definition (PLAN §6.1)."""
         profile = getattr(obj, "profile", None)
-        if profile is None:
-            return False
-        return all(getattr(profile, field, "") for field in PROFILE_COMPLETE_FIELDS)
+        return bool(profile and profile.is_complete)
 
 
 class PasswordField(serializers.CharField):
