@@ -64,10 +64,7 @@ makemigrations: ## Generate migrations for changed models
 seed: ## Seed roles, demo data and example content
 	$(MANAGE) seed_roles
 	$(MANAGE) seed_demo
-	@# seed_content arrives with feat/cms-site; skip it cleanly until then.
-	@$(MANAGE) help seed_content >/dev/null 2>&1 \
-	  && $(MANAGE) seed_content \
-	  || echo "seed_content not available yet (feat/cms-site) — skipped"
+	$(MANAGE) seed_content
 
 reset: ## DESTROY the dev database, then migrate and re-seed
 	@echo "Resetting $(DB_NAME) — every table will be dropped."
