@@ -76,9 +76,10 @@ reset: ## DESTROY the dev database, then migrate and re-seed
 backup: ## Write a gzipped pg_dump to backups/
 	$(MANAGE) db_backup
 
-restore: ## Restore a dump: make restore FILE=backups/caldart-....sql.gz
+restore: ## Restore a dump: make restore FILE=backups/caldart-....sql.gz [YES=1]
 	@test -n "$(FILE)" || (echo "Usage: make restore FILE=backups/caldart-....sql.gz" >&2; exit 1)
-	$(MANAGE) db_restore $(FILE)
+	@echo "Restoring into $(DB_NAME) — every existing table is dropped first."
+	$(MANAGE) db_restore $(FILE) $(if $(YES),--yes,)
 
 # ---------------------------------------------------------------- serve
 run: ## Run Django on :8000
