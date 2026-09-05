@@ -1,0 +1,107 @@
+"""Payment services (PLAN §4.4).
+
+The server never trusts a client-supplied amount: totals are recomputed from
+the plan price plus the contribution.
+"""
+
+from __future__ import annotations
+
+from django.db import transaction
+from django.utils import timezone
+from rest_framework.exceptions import ValidationError
+
+from apps.members.models import MembershipPlan, MembershipSource
+from apps.members.services import activate_term
+from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
+
+
+@transaction.atomic
+def create_checkout(
+    user,
+    plan_slug: str | None,
+    contribution_cents: int = 0,
+    provider: str = PaymentProvider.MOCK,
+) -> Payment:
+    """Create a ``pending`` payment for ``plan_slug`` plus an optional donation."""
+    if provider not in PaymentProvider.values:
+        raise ValidationError({"provider": f"Unknown payment provider '{provider}'."})
+
+    contribution_cents = int(contribution_cents or 0)
+    if contribution_cents < 0:
+        raise ValidationError({"contribution_cents": "Contribution cannot be negative."})
+
+    plan = None
+    plan_amount_cents = 0
+    if plan_slug:
+        plan = MembershipPlan.objects.filter(slug=plan_slug, is_active=True).first()
+        if plan is None:
+            raise ValidationError({"plan": f"Unknown membership plan '{plan_slug}'."})
+        plan_amount_cents = plan.price_cents
+
+    amount_cents = plan_amount_cents + contribution_cents
+    if amount_cents <= 0:
+        raise ValidationError({"amount_cents": "Nothing to charge."})
+
+    return Payment.objects.create(
+        user=user,
+        plan=plan,
+        amount_cents=amount_cents,
+        plan_amount_cents=plan_amount_cents,
+        contribution_cents=contribution_cents,
+        currency="usd",
+        provider=provider,
+        status=PaymentStatus.PENDING,
+    )
+
+
+@transaction.atomic
+def mark_succeeded(
+    payment: Payment,
+    *,
+    wallet: str = PaymentWallet.UNKNOWN,
+    raw: dict | None = None,
+    provider_ref: str | None = None,
+) -> Payment:
+    """Mark a payment succeeded and activate the membership term.
+
+    Idempotent: a second call is a no-op that returns the same payment, so
+    webhook and client confirmation can race safely.
+    """
+    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+
+    if payment.status == PaymentStatus.SUCCEEDED:
+        return payment
+
+    payment.status = PaymentStatus.SUCCEEDED
+    payment.completed_at = timezone.now()
+    if wallet:
+        payment.wallet = wallet
+    if provider_ref:
+        payment.provider_ref = provider_ref
+    if raw is not None:
+        payment.raw = raw
+    payment.save(
+        update_fields=["status", "completed_at", "wallet", "provider_ref", "raw", "updated_at"]
+    )
+
+    if payment.plan_id:
+        activate_term(
+            payment.user,
+            payment.plan,
+            source=MembershipSource.PAYMENT,
+            payment=payment,
+        )
+    return payment
+
+
+@transaction.atomic
+def mark_failed(payment: Payment, raw: dict | None = None) -> Payment:
+    """Mark a pending payment failed.  A succeeded payment is never downgraded."""
+    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    if payment.status == PaymentStatus.SUCCEEDED:
+        return payment
+    payment.status = PaymentStatus.FAILED
+    if raw is not None:
+        payment.raw = raw
+    payment.save(update_fields=["status", "raw", "updated_at"])
+    return payment
