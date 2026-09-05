@@ -17,6 +17,7 @@ every other page defers to.
    payments-setup
    data-model
    api-reference
+   api-auth
    api-profile
    theming
    testing
