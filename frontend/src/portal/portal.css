@@ -21,10 +21,16 @@
 .portal__bar-inner {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   max-width: var(--page-max);
   margin-inline: auto;
+}
+
+@media (min-width: 40rem) {
+  .portal__bar-inner {
+    gap: var(--space-4);
+  }
 }
 
 .portal__wordmark {
@@ -40,6 +46,19 @@
 
 .portal__email {
   font-size: var(--text-sm);
+  /* A long address must not push the sign-out button off a narrow screen. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 18ch;
+}
+
+/* On a phone the bar is already carrying a menu button and the wordmark;
+   the member does not need to be told their own address as well. */
+@media (max-width: 40rem) {
+  .portal__email {
+    display: none;
+  }
 }
 
 .portal__drawer-toggle {

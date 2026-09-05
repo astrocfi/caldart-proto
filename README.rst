@@ -1,6 +1,6 @@
-=============================================
+==============================================
 CalDART — website and member management system
-=============================================
+==============================================
 
 A prototype for **The California DART Network**: a Wagtail-managed public
 website plus a React member portal with roles, profiles, an aircraft
@@ -28,15 +28,15 @@ the compose stack provides one.
 
 Then open:
 
-=============================  ============================================
-URL                            What it is
-=============================  ============================================
-http://localhost:8000/         public site (Wagtail)
-http://localhost:8000/portal/  member portal (React SPA)
-http://localhost:8000/admin/   Wagtail admin
+===================================  ========================================
+URL                                  What it is
+===================================  ========================================
+http://localhost:8000/               public site (Wagtail)
+http://localhost:8000/portal/        member portal (React SPA)
+http://localhost:8000/admin/         Wagtail admin
 http://localhost:8000/django-admin/  Django admin
-http://localhost:8025/         Mailpit — every email sent in development
-=============================  ============================================
+http://localhost:8025/               Mailpit — every email sent in development
+===================================  ========================================
 
 For hot module reload while working on the frontend, set
 ``DJANGO_VITE_DEV_MODE=true`` in ``.env`` and run ``make dev-frontend`` in a
@@ -71,6 +71,7 @@ Everyday commands
 .. code-block:: console
 
    $ make test           # pytest + vitest
+   $ make e2e            # Playwright, end to end (see below)
    $ make lint           # ruff + tsc + eslint + prettier
    $ make docs           # Sphinx, warnings are errors
    $ make reset          # destroy and re-seed the dev database
@@ -78,6 +79,48 @@ Everyday commands
    $ make help           # every target
 
 Run ``make help`` for the full list.
+
+
+End-to-end tests
+================
+
+``frontend/e2e`` holds Playwright specs for the five flows in ``PLAN.rst``
+§1, driven through a real browser against a real server, paying with the mock
+provider. Install the browser once:
+
+.. code-block:: console
+
+   $ cd frontend && npx playwright install chromium
+
+Then, from the repository root:
+
+.. code-block:: console
+
+   $ make e2e
+
+That creates and seeds its own ``caldart_e2e`` database, builds the frontend,
+collects the static files, starts Django on :8021, runs the specs and stops the
+server again — your development database is never touched. Add ``E2E_PORT=…``
+or ``E2E_DB=…`` to move either. The target pins every setting the run needs
+(``DEBUG``, ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, the mock provider,
+the login throttle), so it behaves the same with your ``.env`` and without one
+— which is what CI has. To watch a run, or to work on one spec:
+
+.. code-block:: console
+
+   $ cd frontend && E2E_BASE_URL=http://localhost:8000 npx playwright test --headed leader
+
+against a server you started yourself with ``make run``.
+
+If Chromium will not start for want of system libraries, install them with
+``npx playwright install-deps chromium``, which needs ``sudo``:
+
+.. code-block:: console
+
+   $ sudo $(which npx) playwright install-deps chromium
+
+CI installs them itself (``playwright install --with-deps chromium`` on
+``ubuntu-latest``), so nothing there needs a privileged step.
 
 
 Layout

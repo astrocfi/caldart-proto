@@ -229,3 +229,6 @@ backend/staticfiles/
 docs/_build/
 playwright-report/
 test-results/
+
+# Claude Code agent worktrees and local session state
+.claude/

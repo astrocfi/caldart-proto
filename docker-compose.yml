@@ -10,7 +10,10 @@ services:
       POSTGRES_PASSWORD: caldart
       POSTGRES_DB: caldart
     ports:
-      - "5432:5432"
+      # Loopback only: these are development containers with a password of
+      # "caldart", and nothing outside this machine has any business reaching
+      # them.
+      - "127.0.0.1:5432:5432"
     volumes:
       - caldart_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -23,8 +26,8 @@ services:
     image: axllent/mailpit
     restart: unless-stopped
     ports:
-      - "8025:8025"
-      - "1025:1025"
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
     environment:
       MP_MAX_MESSAGES: 5000
       MP_SMTP_AUTH_ACCEPT_ANY: 1

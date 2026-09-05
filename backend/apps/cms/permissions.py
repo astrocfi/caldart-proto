@@ -8,6 +8,8 @@ permission rows off that group:
 * add / change / publish / bulk-delete / lock on the **root page**, which
   cascades to every page in the tree;
 * add / change / choose on the **root collection** for images and documents;
+* add / change / delete on ``wagtailredirects.Redirect``, so an editor who
+  renames a page can point the old address at the new one themselves;
 * ``cms.change_sitesettings`` for the Site Settings form.
 
 :func:`grant_website_admin_permissions` is called from a cms data migration and
@@ -47,6 +49,11 @@ COLLECTION_PERMISSIONS: tuple[tuple[str, str, str], ...] = (
 MODEL_PERMISSIONS: tuple[tuple[str, str, str], ...] = (
     ("wagtailadmin", "admin", "access_admin"),
     ("cms", "sitesettings", "change_sitesettings"),
+    # Renaming a page changes its URL; without these the editor who did it
+    # cannot fix the 404 they just made.
+    ("wagtailredirects", "redirect", "add_redirect"),
+    ("wagtailredirects", "redirect", "change_redirect"),
+    ("wagtailredirects", "redirect", "delete_redirect"),
 )
 
 #: Human names, so a freshly created permission row is not blank in the admin.
@@ -59,6 +66,9 @@ PERMISSION_NAMES: dict[str, str] = {
     "add_document": "Can add document",
     "change_document": "Can change document",
     "choose_document": "Can choose document",
+    "add_redirect": "Can add redirect",
+    "change_redirect": "Can change redirect",
+    "delete_redirect": "Can delete redirect",
 }
 
 

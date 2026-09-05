@@ -23,7 +23,19 @@ describe('hasAnyRole', () => {
 
 describe('visibleNavItems', () => {
   it('shows a plain member only the membership entries', () => {
-    expect(labels(['member'])).toEqual(['Dashboard', 'My profile', 'My aircraft', 'Renew']);
+    expect(labels(['member'])).toEqual([
+      'Dashboard',
+      'My profile',
+      'My aircraft',
+      'Renew',
+      'Change password',
+    ]);
+  });
+
+  it('offers every route the portal can render', () => {
+    // A nav entry pointing at nothing, or a screen nothing links to, is the
+    // integration bug this catches.
+    expect(NAV_ITEMS.map((item) => item.to)).toContain('/change-password');
   });
 
   it('adds the leader entries for dart_leader', () => {
@@ -38,6 +50,12 @@ describe('visibleNavItems', () => {
     expect(visible).toEqual(expect.arrayContaining(['Members', 'Aircraft', 'Payments']));
     expect(visible).not.toContain('Users & roles');
     expect(visible).not.toContain('System');
+  });
+
+  it('offers the leader checks to account_admin, as the API and guards do', () => {
+    const visible = labels(['member', 'account_admin']);
+    expect(visible).toContain('Member check');
+    expect(visible).toContain('Aircraft check');
   });
 
   it('gives user_admin only the users screen on top of membership', () => {

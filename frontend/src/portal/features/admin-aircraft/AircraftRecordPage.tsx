@@ -18,7 +18,7 @@ import { ServiceChip } from '../aircraft/ServiceChip';
 import '../aircraft/aircraft.css';
 import { useAircraft, useDeleteAircraft, useUpdateAircraft } from '../aircraft/api';
 import { aircraftToValues } from '../aircraft/form';
-import { AircraftForm } from './AircraftForm';
+import { AircraftForm } from '../aircraft/AircraftForm';
 
 export function AircraftRecordPage() {
   const { id } = useParams<{ id: string }>();

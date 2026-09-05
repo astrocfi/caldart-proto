@@ -7,14 +7,9 @@ import { useState } from 'react';
 import type { AircraftPatch } from '../../api/types';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
-import '../aircraft/aircraft.css';
-import type { AircraftFormValues } from '../aircraft/form';
-import {
-  OWNER_TYPES,
-  OWNER_TYPE_LABELS,
-  aircraftPayload,
-  validateAircraft,
-} from '../aircraft/form';
+import './aircraft.css';
+import type { AircraftFormValues } from './form';
+import { OWNER_TYPES, OWNER_TYPE_LABELS, aircraftPayload, validateAircraft } from './form';
 
 export interface AircraftFormProps {
   initial: AircraftFormValues;

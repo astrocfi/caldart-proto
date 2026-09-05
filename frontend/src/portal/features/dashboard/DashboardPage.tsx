@@ -14,7 +14,7 @@ import { DateText } from '../../components/DateText';
 import { EmptyState } from '../../components/EmptyState';
 import { Money } from '../../components/Money';
 import { Page } from '../../components/Page';
-import { MembershipChip, membershipTone } from '../../components/StatusChip';
+import { MembershipChip, PaymentChip, membershipTone } from '../../components/StatusChip';
 import { groupedNavItems } from '../../nav';
 import { useMembership, useMyPayments, useSiteConfig } from '../profile/api';
 import './dashboard.css';
@@ -154,7 +154,9 @@ export function DashboardPage() {
                         <td className="numeric">
                           <Money cents={payment.amount_cents} />
                         </td>
-                        <td>{payment.status}</td>
+                        <td>
+                          <PaymentChip status={payment.status} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>

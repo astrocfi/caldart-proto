@@ -5,7 +5,7 @@
  * `/admin/payments`, delivered by `feat/payments`; this table is the per-member
  * slice an administrator needs while looking at one record.
  */
-import { Card, DataTable, DateText, Money } from '../../components';
+import { Card, DataTable, DateText, Money, PaymentChip } from '../../components';
 import type { Column } from '../../components';
 import type { MemberDetail, MemberPayment } from './types';
 
@@ -35,7 +35,11 @@ const COLUMNS: Column<MemberPayment>[] = [
     render: (payment) => <Money cents={payment.amount_cents} />,
   },
   { key: 'provider', header: 'Provider', render: (payment) => payment.provider },
-  { key: 'status', header: 'Status', render: (payment) => payment.status },
+  {
+    key: 'status',
+    header: 'Status',
+    render: (payment) => <PaymentChip status={payment.status} />,
+  },
 ];
 
 export function MemberPaymentsTab({ member }: { member: MemberDetail }) {

@@ -7,7 +7,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { API, makeUser, signedInAs } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
 import { server } from '../../../test/server';
-import type { MembershipDetail, MembershipStatus, SiteConfig, User } from '../../api/types';
+import type {
+  MembershipDetail,
+  MembershipStatus,
+  PaymentsConfig,
+  SiteConfig,
+  User,
+} from '../../api/types';
 import { TEST_DARTS, makeProfile } from '../profile/fixtures';
 import { JoinWizard } from './JoinWizard';
 
@@ -34,6 +40,26 @@ const NONE: MembershipStatus = {
 };
 
 const CURRENT_DETAIL: MembershipDetail = { ...CURRENT, history: [] };
+
+/** Enough of `GET /payments/config` for the pay step to render its one tab. */
+const PAYMENTS_CONFIG: PaymentsConfig = {
+  providers: ['mock'],
+  stripe_publishable_key: '',
+  paypal_client_id: '',
+  plans: [
+    {
+      slug: 'annual',
+      name: 'Annual',
+      price_cents: 4500,
+      duration_days: 365,
+      description: 'Membership for one year.',
+    },
+  ],
+  contribution_tiers: [{ label: 'No contribution', cents: 0 }],
+};
+
+const paymentsConfigHandler = () =>
+  http.get(API + '/payments/config', () => HttpResponse.json(PAYMENTS_CONFIG));
 
 /** Prints the current path so the redirects can be asserted on. */
 function Path() {
@@ -69,6 +95,7 @@ function stubApi(user: User | null) {
     http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
     http.get(`${API}/me/membership`, () => HttpResponse.json(CURRENT_DETAIL)),
     http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)),
+    paymentsConfigHandler(),
   );
 }
 
@@ -161,6 +188,7 @@ describe('<JoinWizard/> step progression', () => {
       http.get(`${API}/darts`, () => HttpResponse.json(TEST_DARTS)),
       http.get(`${API}/me/membership`, () => HttpResponse.json(CURRENT_DETAIL)),
       http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)),
+      paymentsConfigHandler(),
     );
   });
 
@@ -280,5 +308,65 @@ describe('<JoinWizard/> step progression', () => {
       'href',
       '/members/ops-manual/',
     );
+  });
+});
+
+describe('<JoinWizard/> returning from a redirect payment', () => {
+  /** What Stripe's `return_url` looks like when the browser comes back. */
+  const RETURN = '/join/done?payment_id=42&payment_intent=pi_1';
+
+  it('confirms the payment on /join/done instead of bouncing back to pay', async () => {
+    let confirmed: Record<string, unknown> | null = null;
+    // The server has not activated the membership yet — exactly the state the
+    // wizard used to read as "you still owe us the fee".
+    let user = makeUser({ profile_complete: true, membership: NONE });
+    server.use(
+      http.get(`${API}/auth/me`, () => HttpResponse.json(user)),
+      http.get(`${API}/me/membership`, () => HttpResponse.json(CURRENT_DETAIL)),
+      http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)),
+      http.post(`${API}/payments/stripe/confirm`, async ({ request }) => {
+        confirmed = (await request.json()) as Record<string, unknown>;
+        user = makeUser({ profile_complete: true, membership: CURRENT });
+        return HttpResponse.json({ status: 'succeeded', membership: CURRENT });
+      }),
+    );
+
+    renderWizard(RETURN);
+
+    // Step 4 arrives only once the payment has settled.
+    expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
+    expect(confirmed).toEqual({ payment_id: 42, payment_intent_id: 'pi_1' });
+    // …and the payment reference is spent, so a refresh cannot replay it.
+    await waitFor(() => expect(path()).toBe('/join/done'));
+  });
+
+  it('offers a way back to paying when the payment was declined', async () => {
+    server.use(
+      signedInAs(makeUser({ profile_complete: true, membership: NONE })),
+      http.get(`${API}/me/membership`, () => HttpResponse.json(CURRENT_DETAIL)),
+      http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)),
+      http.post(`${API}/payments/stripe/confirm`, () =>
+        HttpResponse.json({ detail: 'Not confirmed' }, { status: 400 }),
+      ),
+      http.get(`${API}/payments/42`, () =>
+        HttpResponse.json({ status: 'failed', membership: NONE }),
+      ),
+    );
+
+    renderWizard(RETURN);
+
+    expect(await screen.findByText(/declined/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to payment' })).toHaveAttribute(
+      'href',
+      '/join/pay',
+    );
+  });
+
+  it('ignores a payment reference from someone with no session', async () => {
+    stubApi(null);
+    renderWizard(RETURN);
+
+    expect(await screen.findByRole('heading', { name: 'Create your account' })).toBeInTheDocument();
+    expect(path()).toBe('/join/account');
   });
 });
