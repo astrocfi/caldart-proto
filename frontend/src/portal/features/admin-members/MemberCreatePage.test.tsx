@@ -68,10 +68,11 @@ describe('MemberCreatePage', () => {
     expect(profile.pilot_certificate_type).toBe('private');
     expect(profile.ratings).toEqual(['instrument']);
     expect(profile.notes).toBe('Met at the airshow.');
-    // Blank date and number fields are sent as null, not as empty strings.
+    // Blank date and number fields are sent as null, not as empty strings, and
+    // the DART writes as `dart_id` exactly as it does from /me/profile.
     expect(profile.medical_expiration).toBeNull();
     expect(profile.total_hours).toBeNull();
-    expect(profile.dart).toBeNull();
+    expect(profile.dart_id).toBeNull();
   });
 
   it('omits the password when the box is left blank', async () => {

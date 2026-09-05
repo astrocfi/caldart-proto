@@ -17,124 +17,38 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import serializers
 
+from apps.accounts.api.serializers import MembershipStatusSerializer
 from apps.accounts.roles import MEMBER
 from apps.members.api.admin_filters import membership_payload
-from apps.members.models import (
-    RATING_VALUES,
-    Dart,
-    MemberProfile,
-    Membership,
-    MembershipPlan,
+from apps.members.api.profile_serializers import (
+    MembershipTermSerializer,
+    PaymentSummarySerializer,
+    ProfileSerializer,
 )
+from apps.members.models import MemberProfile, MembershipPlan
 
 User = get_user_model()
 
 
 # --------------------------------------------------------------------------
-# Small shared pieces
-# --------------------------------------------------------------------------
-class DartRelatedField(serializers.PrimaryKeyRelatedField):
-    """Accepts a DART id, renders ``{"id", "name"}`` (PLAN §6.3 ``profile``)."""
-
-    def __init__(self, **kwargs):
-        kwargs.setdefault("queryset", Dart.objects.all())
-        kwargs.setdefault("allow_null", True)
-        kwargs.setdefault("required", False)
-        super().__init__(**kwargs)
-
-    def use_pk_only_optimization(self) -> bool:
-        return False
-
-    def to_representation(self, value):
-        return {"id": value.pk, "name": value.name}
-
-
-class AircraftSummarySerializer(serializers.Serializer):
-    """The aircraft summary PLAN §6.5 defines, read-only here."""
-
-    id = serializers.IntegerField(read_only=True)
-    n_number = serializers.CharField(read_only=True)
-    make = serializers.CharField(read_only=True)
-    model = serializers.CharField(read_only=True)
-    insurance_is_current = serializers.BooleanField(read_only=True)
-    insurance_expiration = serializers.DateField(read_only=True, allow_null=True)
-    insurance_summary = serializers.CharField(read_only=True)
-
-
-class MembershipStatusSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=["current", "expired", "none"])
-    expires_on = serializers.DateField(allow_null=True)
-    plan = serializers.CharField(allow_null=True)
-    is_lifetime = serializers.BooleanField()
-
-
-class RatingsField(serializers.ListField):
-    """``ratings`` is a JSON list drawn from a fixed vocabulary (PLAN §4.2)."""
-
-    child = serializers.ChoiceField(choices=list(RATING_VALUES))
-
-    def __init__(self, **kwargs):
-        kwargs.setdefault("required", False)
-        kwargs.setdefault("allow_empty", True)
-        super().__init__(**kwargs)
-
-
-# --------------------------------------------------------------------------
 # Profile
 # --------------------------------------------------------------------------
-class AdminProfileSerializer(serializers.ModelSerializer):
-    """Every profile field, *including* the admin-only ``notes``/``how_heard``."""
+class AdminProfileSerializer(ProfileSerializer):
+    """The profile as an administrator sees it.
 
-    dart = DartRelatedField()
-    ratings = RatingsField()
-    aircraft = AircraftSummarySerializer(many=True, read_only=True)
-    medical_is_current = serializers.BooleanField(read_only=True)
+    Everything ``/me/profile`` offers — the same fields, the same validation —
+    plus the admin-only ``notes`` and ``how_heard``, and nothing mandatory: an
+    administrator records what they have been told, which on the day somebody
+    joins at an airshow may be no more than a name.
+    """
 
-    class Meta:
-        model = MemberProfile
-        fields = [
-            # contact
-            "phone",
-            "phone_alt",
-            "address_line1",
-            "address_line2",
-            "city",
-            "state",
-            "postal_code",
-            "county",
-            "emergency_contact_name",
-            "emergency_contact_phone",
-            # aviation
-            "home_airport_identifier",
-            "home_airport_city",
-            "dart",
-            "air_care_alliance_number",
-            "pilot_certificate_type",
-            "certificate_number",
-            "ifr_rated",
-            "ratings",
-            "medical_type",
-            "medical_expiration",
-            "medical_is_current",
-            "flight_review_date",
-            "total_hours",
-            "aircraft",
-            # volunteer interests
-            "vol_ground_team",
-            "vol_exercise_training",
-            "vol_member_support",
-            "vol_fundraising",
-            "vol_social_media",
-            "vol_newsletter",
-            # admin only
-            "notes",
-            "how_heard",
-        ]
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+
+    class Meta(ProfileSerializer.Meta):
+        fields = [*ProfileSerializer.Meta.fields, "notes", "how_heard"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # A member record can be created with only an email address, so nothing
-        # in the profile half is mandatory.
         for field in self.fields.values():
             field.required = False
 
@@ -142,23 +56,22 @@ class AdminProfileSerializer(serializers.ModelSerializer):
 # --------------------------------------------------------------------------
 # Membership terms and payments
 # --------------------------------------------------------------------------
-class AdminMembershipSerializer(serializers.ModelSerializer):
-    """One term in the history, and the target of ``PATCH /admin/memberships/{id}``."""
+class AdminMembershipSerializer(MembershipTermSerializer):
+    """A term in the history, and the target of ``PATCH /admin/memberships/{id}``.
 
-    plan = serializers.CharField(source="plan.name", read_only=True)
+    The member's own view of a term plus the fields only an administrator needs.
+    ``ends_on``, ``status`` and ``note`` are writable — the plan, the start date,
+    the source and the payment link are not, because rewriting those would
+    falsify the history rather than correct it.
+    """
+
     plan_slug = serializers.CharField(source="plan.slug", read_only=True)
     granted_by = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Membership
+    class Meta(MembershipTermSerializer.Meta):
         fields = [
-            "id",
-            "plan",
+            *MembershipTermSerializer.Meta.fields,
             "plan_slug",
-            "starts_on",
-            "ends_on",
-            "status",
-            "source",
             "note",
             "granted_by",
             "payment",
@@ -198,24 +111,26 @@ class MembershipGrantSerializer(serializers.Serializer):
     note = serializers.CharField(required=False, allow_blank=True, max_length=255, default="")
 
 
-class AdminPaymentSerializer(serializers.Serializer):
-    """The payment rows shown on a member record (PLAN §4.4)."""
+class AdminPaymentSerializer(PaymentSummarySerializer):
+    """The member's own payment row, plus the split and the provider reference
+    an administrator needs when reconciling (PLAN §4.4)."""
 
-    id = serializers.IntegerField(read_only=True)
-    plan = serializers.SerializerMethodField()
-    amount_cents = serializers.IntegerField(read_only=True)
-    plan_amount_cents = serializers.IntegerField(read_only=True)
-    contribution_cents = serializers.IntegerField(read_only=True)
-    currency = serializers.CharField(read_only=True)
-    provider = serializers.CharField(read_only=True)
-    wallet = serializers.CharField(read_only=True)
-    provider_ref = serializers.CharField(read_only=True)
-    status = serializers.CharField(read_only=True)
-    created_at = serializers.DateTimeField(read_only=True)
-    completed_at = serializers.DateTimeField(read_only=True, allow_null=True)
-
-    def get_plan(self, obj) -> str | None:
-        return obj.plan.name if obj.plan_id else None
+    class Meta(PaymentSummarySerializer.Meta):
+        fields = [
+            "id",
+            "plan",
+            "amount_cents",
+            "plan_amount_cents",
+            "contribution_cents",
+            "currency",
+            "provider",
+            "wallet",
+            "provider_ref",
+            "status",
+            "created_at",
+            "completed_at",
+        ]
+        read_only_fields = fields
 
 
 # --------------------------------------------------------------------------
@@ -405,6 +320,16 @@ class MemberUpdateSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
     is_active = serializers.BooleanField(required=False)
     profile = AdminProfileSerializer(required=False, partial=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The profile's cross-field rules ("a medical class needs an expiry
+        # date") read `self.instance` to see what a partial update would leave
+        # in place.  Bind the row so a PATCH is judged against the whole
+        # profile, not against the two fields it happens to send.
+        profile = getattr(self.instance, "profile", None) if self.instance is not None else None
+        if profile is not None:
+            self.fields["profile"].instance = profile
 
     def validate_email(self, value):
         value = value.strip()

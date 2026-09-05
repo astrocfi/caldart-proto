@@ -1,58 +1,27 @@
 /**
  * Shapes the members-admin screens use on top of `api/types.ts` (PLAN §6.4).
  *
- * `MemberRow` (the list row) is already declared in the shared types; the
- * detail record, its nested profile and the write payloads are specific to
- * this feature and live here.
+ * `MemberRow` (the list row), `Profile` and `ProfilePatch` are already declared
+ * in the shared types; an administrator's view of a profile is the member's
+ * with two extra fields, so it is declared as exactly that.  The detail record
+ * and the write payloads are specific to this feature and live here.
  */
 import type {
-  AircraftSummary,
   IsoDate,
   IsoDateTime,
-  MedicalType,
   MembershipSource,
   MembershipStatus,
   MembershipTermStatus,
   PaymentProvider,
   PaymentState,
   PaymentWallet,
-  PilotCertificateType,
-  Rating,
+  Profile,
+  ProfilePatch,
   RoleSlug,
 } from '../../api/types';
 
-/** The profile as an administrator sees it: every field, notes included. */
-export interface AdminProfile {
-  phone: string;
-  phone_alt: string;
-  address_line1: string;
-  address_line2: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  county: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
-  home_airport_identifier: string;
-  home_airport_city: string;
-  dart: { id: number; name: string } | null;
-  air_care_alliance_number: string;
-  pilot_certificate_type: PilotCertificateType;
-  certificate_number: string;
-  ifr_rated: 'na' | 'yes' | 'no';
-  ratings: Rating[];
-  medical_type: MedicalType;
-  medical_expiration: IsoDate | null;
-  medical_is_current: boolean;
-  flight_review_date: IsoDate | null;
-  total_hours: number | null;
-  aircraft: AircraftSummary[];
-  vol_ground_team: boolean;
-  vol_exercise_training: boolean;
-  vol_member_support: boolean;
-  vol_fundraising: boolean;
-  vol_social_media: boolean;
-  vol_newsletter: boolean;
+/** The profile as an administrator sees it: the member's own, plus the notes. */
+export interface AdminProfile extends Profile {
   notes: string;
   how_heard: string;
 }
@@ -105,39 +74,11 @@ export interface MemberDetail {
   payments: MemberPayment[];
 }
 
-/** Profile fields as the API accepts them (`dart` becomes an id). */
-export interface AdminProfilePayload {
-  phone?: string;
-  phone_alt?: string;
-  address_line1?: string;
-  address_line2?: string;
-  city?: string;
-  state?: string;
-  postal_code?: string;
-  county?: string;
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  home_airport_identifier?: string;
-  home_airport_city?: string;
-  dart?: number | null;
-  air_care_alliance_number?: string;
-  pilot_certificate_type?: PilotCertificateType;
-  certificate_number?: string;
-  ifr_rated?: 'na' | 'yes' | 'no';
-  ratings?: Rating[];
-  medical_type?: MedicalType;
-  medical_expiration?: IsoDate | null;
-  flight_review_date?: IsoDate | null;
-  total_hours?: number | null;
-  vol_ground_team?: boolean;
-  vol_exercise_training?: boolean;
-  vol_member_support?: boolean;
-  vol_fundraising?: boolean;
-  vol_social_media?: boolean;
-  vol_newsletter?: boolean;
+/** Profile fields as the API accepts them: the member's patch, plus the notes. */
+export type AdminProfilePayload = ProfilePatch & {
   notes?: string;
   how_heard?: string;
-}
+};
 
 export interface MemberCreatePayload {
   email: string;

@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 
 import { Button, Field } from '../../components';
 import type { Dart } from '../../api/types';
-import { CERTIFICATE_CHOICES, MEDICAL_CHOICES, ROLE_CHOICES, STATUS_CHOICES } from './choices';
+import { CERTIFICATE_TYPES, MEDICAL_TYPES, ROLE_CHOICES, STATUS_CHOICES } from './choices';
 import type { MemberFilters } from './types';
 import { EMPTY_FILTERS } from './types';
 
@@ -80,8 +80,8 @@ export function MembersFilterBar({ value, onChange, darts }: MembersFilterBarPro
       </Field>
 
       {select('status', 'Membership', 'Any status', STATUS_CHOICES)}
-      {select('certificate', 'Certificate', 'Any certificate', CERTIFICATE_CHOICES)}
-      {select('medical', 'Medical', 'Any medical', MEDICAL_CHOICES)}
+      {select('certificate', 'Certificate', 'Any certificate', CERTIFICATE_TYPES)}
+      {select('medical', 'Medical', 'Any medical', MEDICAL_TYPES)}
       {select(
         'dart',
         'DART',

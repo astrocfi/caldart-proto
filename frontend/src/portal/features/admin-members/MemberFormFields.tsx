@@ -2,20 +2,28 @@
  * The account and profile field groups, shared by "New member" and the
  * Profile tab of a member record so the two forms cannot drift apart.
  *
- * Everything is held as strings while it is being edited — that is what an
- * `<input>` gives you — and `profilePayload` converts back to the API's types
- * on submit.
+ * The profile half *is* the member's own form state: `ProfileFormValues`,
+ * `profileToForm` and `formToPatch` from `features/profile/form`, so an
+ * administrator and a member are editing one definition of a profile and
+ * converting it to the wire the same way.  Only the two admin-only fields are
+ * extra, and they live in their own small draft.
+ *
+ * The markup differs from `<ProfileForm/>` deliberately: an administrator gets
+ * a two-column layout, the account fields, the admin-only fieldset, and no
+ * client-side insistence that a half-known record be completed.  The server's
+ * rules still apply to both.
  */
 import { Field } from '../../components';
-import type { Dart, Rating } from '../../api/types';
+import type { Dart } from '../../api/types';
+import type { ProfileFormValues } from '../profile/form';
 import {
-  CERTIFICATE_CHOICES,
-  IFR_CHOICES,
-  MEDICAL_CHOICES,
-  RATING_CHOICES,
-  VOLUNTEER_FIELDS,
+  CA_COUNTIES,
+  CERTIFICATE_TYPES,
+  IFR_OPTIONS,
+  MEDICAL_TYPES,
+  RATINGS,
+  VOLUNTEER_INTERESTS,
 } from './choices';
-import type { VolunteerField } from './choices';
 import type { AdminProfile, AdminProfilePayload } from './types';
 
 export interface AccountDraft {
@@ -26,128 +34,29 @@ export interface AccountDraft {
   is_active: boolean;
 }
 
-export interface ProfileDraft {
-  phone: string;
-  phone_alt: string;
-  address_line1: string;
-  address_line2: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  county: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
-  home_airport_identifier: string;
-  home_airport_city: string;
-  dart: string;
-  air_care_alliance_number: string;
-  pilot_certificate_type: string;
-  certificate_number: string;
-  ifr_rated: string;
-  ratings: Rating[];
-  medical_type: string;
-  medical_expiration: string;
-  flight_review_date: string;
-  total_hours: string;
-  vol_ground_team: boolean;
-  vol_exercise_training: boolean;
-  vol_member_support: boolean;
-  vol_fundraising: boolean;
-  vol_social_media: boolean;
-  vol_newsletter: boolean;
+/** The two fields only an administrator sees (PLAN §4.2). */
+export interface AdminOnlyDraft {
   notes: string;
   how_heard: string;
 }
+
+export const EMPTY_ADMIN_ONLY: AdminOnlyDraft = { notes: '', how_heard: '' };
 
 export function emptyAccountDraft(): AccountDraft {
   return { email: '', first_name: '', last_name: '', password: '', is_active: true };
 }
 
-export function emptyProfileDraft(): ProfileDraft {
-  return {
-    phone: '',
-    phone_alt: '',
-    address_line1: '',
-    address_line2: '',
-    city: '',
-    state: 'CA',
-    postal_code: '',
-    county: '',
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
-    home_airport_identifier: '',
-    home_airport_city: '',
-    dart: '',
-    air_care_alliance_number: '',
-    pilot_certificate_type: 'none',
-    certificate_number: '',
-    ifr_rated: 'na',
-    ratings: [],
-    medical_type: 'none',
-    medical_expiration: '',
-    flight_review_date: '',
-    total_hours: '',
-    vol_ground_team: false,
-    vol_exercise_training: false,
-    vol_member_support: false,
-    vol_fundraising: false,
-    vol_social_media: false,
-    vol_newsletter: false,
-    notes: '',
-    how_heard: '',
-  };
+export function adminOnlyDraft(profile: AdminProfile | null): AdminOnlyDraft {
+  if (!profile) return { ...EMPTY_ADMIN_ONLY };
+  return { notes: profile.notes, how_heard: profile.how_heard };
 }
 
-/** Fill a draft from the record the API returned. */
-export function profileDraft(profile: AdminProfile | null): ProfileDraft {
-  const draft = emptyProfileDraft();
-  if (!profile) return draft;
-  return {
-    ...draft,
-    ...profile,
-    dart: profile.dart ? String(profile.dart.id) : '',
-    medical_expiration: profile.medical_expiration ?? '',
-    flight_review_date: profile.flight_review_date ?? '',
-    total_hours: profile.total_hours === null ? '' : String(profile.total_hours),
-    ratings: profile.ratings ?? [],
-  };
-}
-
-/** Convert a draft back into the JSON the API expects. */
-export function profilePayload(draft: ProfileDraft): AdminProfilePayload {
-  return {
-    phone: draft.phone,
-    phone_alt: draft.phone_alt,
-    address_line1: draft.address_line1,
-    address_line2: draft.address_line2,
-    city: draft.city,
-    state: draft.state,
-    postal_code: draft.postal_code,
-    county: draft.county,
-    emergency_contact_name: draft.emergency_contact_name,
-    emergency_contact_phone: draft.emergency_contact_phone,
-    home_airport_identifier: draft.home_airport_identifier,
-    home_airport_city: draft.home_airport_city,
-    dart: draft.dart ? Number(draft.dart) : null,
-    air_care_alliance_number: draft.air_care_alliance_number,
-    pilot_certificate_type:
-      draft.pilot_certificate_type as AdminProfilePayload['pilot_certificate_type'],
-    certificate_number: draft.certificate_number,
-    ifr_rated: draft.ifr_rated as AdminProfilePayload['ifr_rated'],
-    ratings: draft.ratings,
-    medical_type: draft.medical_type as AdminProfilePayload['medical_type'],
-    medical_expiration: draft.medical_expiration || null,
-    flight_review_date: draft.flight_review_date || null,
-    total_hours: draft.total_hours === '' ? null : Number(draft.total_hours),
-    vol_ground_team: draft.vol_ground_team,
-    vol_exercise_training: draft.vol_exercise_training,
-    vol_member_support: draft.vol_member_support,
-    vol_fundraising: draft.vol_fundraising,
-    vol_social_media: draft.vol_social_media,
-    vol_newsletter: draft.vol_newsletter,
-    notes: draft.notes,
-    how_heard: draft.how_heard,
-  };
+/** The profile half of the request body: the member's patch plus the extras. */
+export function adminProfilePayload(
+  patch: AdminProfilePayload,
+  extra: AdminOnlyDraft,
+): AdminProfilePayload {
+  return { ...patch, notes: extra.notes, how_heard: extra.how_heard };
 }
 
 export type FieldErrors = Record<string, string>;
@@ -248,23 +157,32 @@ export function AccountFields({
 }
 
 export interface ProfileFieldsProps {
-  value: ProfileDraft;
-  onChange: (next: ProfileDraft) => void;
+  value: ProfileFormValues;
+  onChange: (next: ProfileFormValues) => void;
+  adminOnly: AdminOnlyDraft;
+  onAdminOnlyChange: (next: AdminOnlyDraft) => void;
   errors?: FieldErrors;
   darts: Dart[];
 }
 
-export function ProfileFields({ value, onChange, errors = {}, darts }: ProfileFieldsProps) {
-  const set = <Key extends keyof ProfileDraft>(key: Key, next: ProfileDraft[Key]) =>
+export function ProfileFields({
+  value,
+  onChange,
+  adminOnly,
+  onAdminOnlyChange,
+  errors = {},
+  darts,
+}: ProfileFieldsProps) {
+  const set = <Key extends keyof ProfileFormValues>(key: Key, next: ProfileFormValues[Key]) =>
     onChange({ ...value, [key]: next });
 
-  const toggleRating = (rating: Rating, checked: boolean) =>
+  const toggleRating = (rating: ProfileFormValues['ratings'][number], checked: boolean) =>
     set(
       'ratings',
       checked ? [...value.ratings, rating] : value.ratings.filter((item) => item !== rating),
     );
 
-  const text = <Key extends keyof ProfileDraft>(
+  const text = <Key extends keyof ProfileFormValues>(
     key: Key,
     label: string,
     type = 'text',
@@ -277,8 +195,30 @@ export function ProfileFields({ value, onChange, errors = {}, darts }: ProfileFi
           type={type}
           autoComplete={autoComplete}
           value={String(value[key] ?? '')}
-          onChange={(event) => set(key, event.target.value as ProfileDraft[Key])}
+          onChange={(event) => set(key, event.target.value as ProfileFormValues[Key])}
         />
+      )}
+    </Field>
+  );
+
+  const choose = <Key extends keyof ProfileFormValues>(
+    key: Key,
+    label: string,
+    options: readonly { value: string; label: string }[],
+  ) => (
+    <Field label={label} error={errors[key]}>
+      {(props) => (
+        <select
+          {...props}
+          value={String(value[key] ?? '')}
+          onChange={(event) => set(key, event.target.value as ProfileFormValues[Key])}
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       )}
     </Field>
   );
@@ -299,7 +239,24 @@ export function ProfileFields({ value, onChange, errors = {}, darts }: ProfileFi
           <div className="col-half">{text('city', 'City', 'text', 'address-level2')}</div>
           <div className="col-half">{text('state', 'State', 'text', 'address-level1')}</div>
           <div className="col-half">{text('postal_code', 'ZIP code', 'text', 'postal-code')}</div>
-          <div className="col-half">{text('county', 'County')}</div>
+          <div className="col-half">
+            <Field label="County" error={errors.county}>
+              {(props) => (
+                <input
+                  {...props}
+                  type="text"
+                  list="admin-member-counties"
+                  value={value.county}
+                  onChange={(event) => set('county', event.target.value)}
+                />
+              )}
+            </Field>
+            <datalist id="admin-member-counties">
+              {CA_COUNTIES.map((county) => (
+                <option key={county} value={county} />
+              ))}
+            </datalist>
+          </div>
           <div className="col-half">{text('emergency_contact_name', 'Emergency contact')}</div>
           <div className="col-half">
             {text('emergency_contact_phone', 'Emergency contact phone', 'tel')}
@@ -315,12 +272,12 @@ export function ProfileFields({ value, onChange, errors = {}, darts }: ProfileFi
           </div>
           <div className="col-half">{text('home_airport_city', 'Home airport city')}</div>
           <div className="col-half">
-            <Field label="DART" error={errors.dart}>
+            <Field label="DART" error={errors.dart_id}>
               {(props) => (
                 <select
                   {...props}
-                  value={value.dart}
-                  onChange={(event) => set('dart', event.target.value)}
+                  value={value.dart_id}
+                  onChange={(event) => set('dart_id', event.target.value)}
                 >
                   <option value="">Unaffiliated</option>
                   {darts.map((dart) => (
@@ -336,57 +293,11 @@ export function ProfileFields({ value, onChange, errors = {}, darts }: ProfileFi
             {text('air_care_alliance_number', 'Air Care Alliance number')}
           </div>
           <div className="col-half">
-            <Field label="Pilot certificate" error={errors.pilot_certificate_type}>
-              {(props) => (
-                <select
-                  {...props}
-                  value={value.pilot_certificate_type}
-                  onChange={(event) => set('pilot_certificate_type', event.target.value)}
-                >
-                  {CERTIFICATE_CHOICES.map((choice) => (
-                    <option key={choice.value} value={choice.value}>
-                      {choice.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
+            {choose('pilot_certificate_type', 'Pilot certificate', CERTIFICATE_TYPES)}
           </div>
           <div className="col-half">{text('certificate_number', 'Certificate number')}</div>
-          <div className="col-half">
-            <Field label="Instrument rated" error={errors.ifr_rated}>
-              {(props) => (
-                <select
-                  {...props}
-                  value={value.ifr_rated}
-                  onChange={(event) => set('ifr_rated', event.target.value)}
-                >
-                  {IFR_CHOICES.map((choice) => (
-                    <option key={choice.value} value={choice.value}>
-                      {choice.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-          </div>
-          <div className="col-half">
-            <Field label="Medical" error={errors.medical_type}>
-              {(props) => (
-                <select
-                  {...props}
-                  value={value.medical_type}
-                  onChange={(event) => set('medical_type', event.target.value)}
-                >
-                  {MEDICAL_CHOICES.map((choice) => (
-                    <option key={choice.value} value={choice.value}>
-                      {choice.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-          </div>
+          <div className="col-half">{choose('ifr_rated', 'Instrument rated', IFR_OPTIONS)}</div>
+          <div className="col-half">{choose('medical_type', 'Medical', MEDICAL_TYPES)}</div>
           <div className="col-half">{text('medical_expiration', 'Medical expiration', 'date')}</div>
           <div className="col-half">{text('flight_review_date', 'Flight review', 'date')}</div>
           <div className="col-half">{text('total_hours', 'Total hours', 'number')}</div>
@@ -395,7 +306,7 @@ export function ProfileFields({ value, onChange, errors = {}, darts }: ProfileFi
         <fieldset>
           <legend>Ratings</legend>
           <div className="cluster">
-            {RATING_CHOICES.map((choice) => (
+            {RATINGS.map((choice) => (
               <label key={choice.value}>
                 <input
                   type="checkbox"
@@ -412,12 +323,12 @@ export function ProfileFields({ value, onChange, errors = {}, darts }: ProfileFi
       <fieldset>
         <legend>Volunteer interests</legend>
         <div className="cluster">
-          {VOLUNTEER_FIELDS.map((entry) => (
-            <label key={entry.name}>
+          {VOLUNTEER_INTERESTS.map((entry) => (
+            <label key={entry.field}>
               <input
                 type="checkbox"
-                checked={value[entry.name as VolunteerField]}
-                onChange={(event) => set(entry.name, event.target.checked)}
+                checked={value[entry.field]}
+                onChange={(event) => set(entry.field, event.target.checked)}
               />{' '}
               {entry.label}
             </label>
@@ -432,8 +343,10 @@ export function ProfileFields({ value, onChange, errors = {}, darts }: ProfileFi
             <input
               {...props}
               type="text"
-              value={value.how_heard}
-              onChange={(event) => set('how_heard', event.target.value)}
+              value={adminOnly.how_heard}
+              onChange={(event) =>
+                onAdminOnlyChange({ ...adminOnly, how_heard: event.target.value })
+              }
             />
           )}
         </Field>
@@ -445,8 +358,8 @@ export function ProfileFields({ value, onChange, errors = {}, darts }: ProfileFi
           {(props) => (
             <textarea
               {...props}
-              value={value.notes}
-              onChange={(event) => set('notes', event.target.value)}
+              value={adminOnly.notes}
+              onChange={(event) => onAdminOnlyChange({ ...adminOnly, notes: event.target.value })}
             />
           )}
         </Field>

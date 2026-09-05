@@ -5,7 +5,13 @@
 import { useState } from 'react';
 
 import { Button, Card, useToast } from '../../components';
-import { AccountFields, ProfileFields, profileDraft, profilePayload } from './MemberFormFields';
+import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '../profile/form';
+import {
+  AccountFields,
+  ProfileFields,
+  adminOnlyDraft,
+  adminProfilePayload,
+} from './MemberFormFields';
 import type { AccountDraft } from './MemberFormFields';
 import { useDarts, useUpdateMember } from './api';
 import { splitErrors } from './errors';
@@ -27,7 +33,10 @@ export function MemberProfileTab({ member }: { member: MemberDetail }) {
   const update = useUpdateMember(member.id);
 
   const [account, setAccount] = useState(() => accountDraftFrom(member));
-  const [profile, setProfile] = useState(() => profileDraft(member.profile));
+  const [profile, setProfile] = useState(() =>
+    member.profile ? profileToForm(member.profile) : EMPTY_PROFILE_FORM,
+  );
+  const [adminOnly, setAdminOnly] = useState(() => adminOnlyDraft(member.profile));
 
   const errors = splitErrors(update.error);
 
@@ -39,7 +48,7 @@ export function MemberProfileTab({ member }: { member: MemberDetail }) {
         first_name: account.first_name,
         last_name: account.last_name,
         is_active: account.is_active,
-        profile: profilePayload(profile),
+        profile: adminProfilePayload(formToPatch(profile), adminOnly),
       },
       { onSuccess: () => toast.show('Member saved.', 'success') },
     );
@@ -58,6 +67,8 @@ export function MemberProfileTab({ member }: { member: MemberDetail }) {
         <ProfileFields
           value={profile}
           onChange={setProfile}
+          adminOnly={adminOnly}
+          onAdminOnlyChange={setAdminOnly}
           errors={errors.profile}
           darts={darts.data ?? []}
         />
