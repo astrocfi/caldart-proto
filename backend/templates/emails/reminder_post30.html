@@ -1,0 +1,22 @@
+{% extends "emails/reminder_base.html" %}
+
+{% block preheader %}Your membership lapsed a month ago. Rejoining takes a minute and there is no penalty.{% endblock %}
+
+{% block heading %}We would like you back{% endblock %}
+
+{% block lede %}Your {{ plan_name }} membership lapsed on {{ expires_on|date:"F j, Y" }}, a month ago today.{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  <p style="margin:0 0 14px 0;">
+    Your profile, your aircraft and your DART are all still on file, exactly as
+    you left them. Rejoining restores your access straight away — there is no
+    penalty for the gap and no forms to fill in twice.
+  </p>
+  <p style="margin:0 0 14px 0;">
+    If you have moved on, that is fine too, and this is the last reminder you
+    will get about this membership.
+  </p>
+{% endblock %}
+
+{% block cta_label %}Rejoin{% endblock %}

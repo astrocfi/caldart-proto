@@ -1,0 +1,22 @@
+{% extends "emails/reminder_base.html" %}
+
+{% block preheader %}Your {{ plan_name }} membership expires in one week, on {{ expires_on|date:"F j, Y" }}.{% endblock %}
+
+{% block heading %}One week left{% endblock %}
+
+{% block lede %}Your {{ plan_name }} membership expires on {{ expires_on|date:"F j, Y" }}.{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  <p style="margin:0 0 14px 0;">
+    Seven days left. After {{ expires_on|date:"F j, Y" }} your membership shows as
+    expired to DART leaders, and you will not be counted as available when a
+    mission is being staffed.
+  </p>
+  <p style="margin:0 0 14px 0;">
+    Renewal takes a card, Apple Pay, Google Pay or PayPal, and takes effect the
+    moment the payment clears.
+  </p>
+{% endblock %}
+
+{% block cta_label %}Renew now{% endblock %}

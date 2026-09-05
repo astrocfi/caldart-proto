@@ -1,0 +1,19 @@
+{{ org_name }} — we would like you back
+
+Hello {{ first_name }},
+
+Your {{ plan_name }} membership lapsed on {{ expires_on|date:"F j, Y" }}, a month
+ago today. Your profile, your aircraft and your DART are all still on file,
+exactly as you left them.
+
+Rejoining restores your access straight away — there is no penalty for the gap
+and no forms to fill in twice:
+{{ renew_url }}
+
+If you have moved on, that is fine too, and this is the last reminder you will
+get about this membership.
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because you are a member of {{ org_name }}.
