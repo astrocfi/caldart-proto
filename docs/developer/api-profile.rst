@@ -11,10 +11,6 @@ Conventions are the ones in :doc:`api-reference`: session authentication,
 ``X-CSRFToken`` on unsafe methods, ISO-8601 dates, DRF error bodies.  An
 unauthenticated request to a protected endpoint returns **401**, not 403.
 
-.. contents:: Endpoints
-   :local:
-   :depth: 1
-
 
 Summary
 =======

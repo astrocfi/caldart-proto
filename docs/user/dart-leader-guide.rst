@@ -11,10 +11,6 @@ standing on the ramp.
 You need the ``dart_leader`` role.  Account administrators and system
 administrators can use the same screens.
 
-.. contents:: On this page
-   :local:
-   :depth: 1
-
 
 The check, in ten seconds
 =========================

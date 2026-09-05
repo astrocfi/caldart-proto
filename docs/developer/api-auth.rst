@@ -6,10 +6,6 @@ The endpoints in ``apps.accounts`` — everything under ``/api/v1/auth/``, plus
 ``/api/v1/admin/users`` and ``/api/v1/roles``.  This page is the reference for
 PLAN §6.1 and §6.2; :doc:`api-reference` covers the rest of the contract.
 
-.. contents::
-   :local:
-   :depth: 2
-
 
 Conventions
 ===========

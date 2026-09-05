@@ -10,10 +10,6 @@ is therefore one file, or one choice by a website administrator.
 
 This page documents PLAN §9.
 
-.. contents::
-   :local:
-   :depth: 2
-
 
 Where the files are
 ===================

@@ -7,10 +7,6 @@ StreamField blocks they are built from, the site settings that carry the
 organisation details and the theme, the members-only wall, and the templates
 under ``backend/templates/``.  It implements PLAN §4.6, §6.10, §7 and §9.
 
-.. contents::
-   :local:
-   :depth: 2
-
 
 Layout
 ======

@@ -9,10 +9,6 @@ area, and the organisation details that appear in the header and footer.
 You do not need to know anything about the member database, payments or
 reports.  Those live in the member portal and belong to other roles.
 
-.. contents::
-   :local:
-   :depth: 2
-
 
 Signing in
 ==========
