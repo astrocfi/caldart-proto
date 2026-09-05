@@ -131,10 +131,25 @@ class SiteSettings(BaseSiteSetting):
     @classmethod
     def get_theme(cls, request=None) -> str:
         """The active theme slug, falling back to the default when unset."""
-        try:
-            settings_obj = cls.load(request_or_site=request) if request else cls.objects.first()
-        except Exception:  # pragma: no cover - no site configured yet
-            return DEFAULT_THEME
+        settings_obj = get_site_settings(request)
         if settings_obj is None:
             return DEFAULT_THEME
         return settings_obj.theme or DEFAULT_THEME
+
+
+def get_site_settings(request=None) -> SiteSettings | None:
+    """The ``SiteSettings`` row for ``request``'s site, or ``None``.
+
+    Read-only on purpose: ``SiteSettings.for_request`` would create the row,
+    and a GET should not write.  Returns ``None`` before ``migrate`` has set up
+    the site, which is the only case the callers have to handle.
+    """
+    from wagtail.models import Site
+
+    if request is not None:
+        site = Site.find_for_request(request)
+    else:
+        site = Site.objects.filter(is_default_site=True).first()
+    if site is None:
+        return None
+    return SiteSettings.objects.filter(site=site).first()

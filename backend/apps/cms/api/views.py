@@ -7,19 +7,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.cms.context_processors import build_nav
-from apps.cms.models import DEFAULT_THEME, SiteSettings
+from apps.cms.models import DEFAULT_THEME, get_site_settings
 
 
 class SiteConfigView(APIView):
-    """``GET /site/config`` — chrome the SPA needs before it has a user."""
+    """``GET /site/config`` — the chrome the SPA needs before it has a user."""
 
     permission_classes = [AllowAny]
 
     def get(self, request):
-        try:
-            settings_obj = SiteSettings.load(request_or_site=request)
-        except Exception:  # pragma: no cover - before the first site exists
-            settings_obj = None
+        settings_obj = get_site_settings(request)
 
         user = request.user
         can_see_members = bool(
@@ -32,6 +29,7 @@ class SiteConfigView(APIView):
                 "theme": (settings_obj.theme if settings_obj else DEFAULT_THEME) or DEFAULT_THEME,
                 "contact_email": settings_obj.contact_email if settings_obj else "",
                 "nav": build_nav(request),
+                # `feat/cms-site` fills this from the members-only page tree.
                 "members_pages": [] if can_see_members else [],
             }
         )
