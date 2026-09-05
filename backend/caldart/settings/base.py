@@ -205,6 +205,14 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 
+# Rate limits for the anonymous auth endpoints, read by
+# ``apps.accounts.throttling``.  A scope mapped to ``None`` (or absent) is off.
+AUTH_THROTTLE_RATES = {
+    "auth_login": env("AUTH_THROTTLE_LOGIN", default="20/min"),
+    "auth_register": env("AUTH_THROTTLE_REGISTER", default="10/hour"),
+    "auth_password_reset": env("AUTH_THROTTLE_PASSWORD_RESET", default="10/hour"),
+}
+
 # --------------------------------------------------------------------------
 # Wagtail
 # --------------------------------------------------------------------------
