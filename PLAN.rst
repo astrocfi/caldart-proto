@@ -431,7 +431,7 @@ django-filter query params. Dates ISO-8601.
 ::
 
   GET    /admin/members?search=&status=current|expired|none&certificate=&medical=
-                        &dart=&role=&expiring_within=<days>&ordering=
+                        &dart=&role=&is_active=&expiring_within=<days>&ordering=
          → paginated [{user + profile summary + membership_status}]
   POST   /admin/members       {email, first_name, last_name, password?, profile:{...}}
   GET    /admin/members/{user_id}     → full user + profile + memberships + payments
