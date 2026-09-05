@@ -174,3 +174,52 @@ def test_reminder_email_takes_its_name_from_site_settings():
     assert org_name != "CalDART"  # the seeded site uses the full name
     assert org_name in message.subject
     assert org_name in message.body
+
+
+# ------------------------------------------------ editors can fix their 404s
+def test_website_admin_may_manage_redirects(website_admin):
+    """Renaming a page changes its URL; the editor has to be able to fix it."""
+    from apps.cms.permissions import grant_website_admin_permissions
+
+    grant_website_admin_permissions()
+    website_admin = type(website_admin).objects.get(pk=website_admin.pk)
+
+    for codename in ("add_redirect", "change_redirect", "delete_redirect"):
+        assert website_admin.has_perm(f"wagtailredirects.{codename}")
+
+
+def test_a_plain_member_may_not_manage_redirects(member):
+    assert not member.has_perm("wagtailredirects.add_redirect")
+
+
+# ---------------------------------------------- an export says what it hides
+def test_aircraft_export_subtitle_names_every_filter():
+    """`is_active` was applied to the rows but left out of the PDF subtitle."""
+    from rest_framework.request import Request
+    from rest_framework.test import APIRequestFactory
+
+    from apps.aircraft.api.views import AircraftExportPdfView
+
+    view = AircraftExportPdfView()
+    view.request = Request(APIRequestFactory().get("/", {"is_active": "true", "search": "N1"}))
+
+    filters = view.applied_filters()
+
+    assert filters["is_active"] == "true"
+    assert filters["search"] == "N1"
+    assert set(filters) == {
+        "search",
+        "make",
+        "owner_type",
+        "insurance",
+        "expiring_within",
+        "is_active",
+        "ordering",
+    }
+
+
+def test_payment_filters_have_no_dead_describe():
+    """It promised a PDF subtitle for an export PLAN §6.8 does not ask for."""
+    from apps.payments.reports import PaymentFilters
+
+    assert not hasattr(PaymentFilters, "describe")
