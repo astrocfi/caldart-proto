@@ -215,10 +215,32 @@ The log
 ``to_email``.  It exists to make the scanner idempotent, and it doubles as the
 answer to "was this member ever told?".
 
-Read it at ``GET /admin/reminders/log?kind=&from=&to=`` — open to
-``account_admin`` as well as ``system_admin``, since it is a membership
-question as much as an operations one — or in the reminders panel of
-``/portal/system``, which shows the twenty most recent with a kind filter.
+Read it at ``GET /admin/reminders/log`` — open to ``account_admin`` as well as
+``system_admin``, since it is a membership question as much as an operations
+one — or in the reminders panel of ``/portal/system``, which shows the twenty
+most recent with a kind filter.
+
+The endpoint is paginated and takes five parameters:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Parameter
+     - Matches
+   * - ``kind``
+     - one of ``t60``, ``t30``, ``t7``, ``expired``, ``post30``
+   * - ``from``, ``to``
+     - dates, compared against ``sent_at`` in local time
+   * - ``search``
+     - the recipient address, or the member's email, first name or last name
+   * - ``ordering``
+     - ``sent_at`` or ``kind``, ``-`` prefixed for descending; the default is
+       newest first
+
+(``from`` is a Python keyword, so the filter is attached to the filterset after
+the class is built rather than declared as an attribute — worth knowing if you
+go looking for it and cannot find it.)
 
 Deleting a log row makes that reminder eligible to be sent again.  That is the
 supported way to re-send one to a member who never received it.
