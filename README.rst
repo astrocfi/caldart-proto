@@ -99,9 +99,12 @@ Then, from the repository root:
    $ make e2e
 
 That creates and seeds its own ``caldart_e2e`` database, builds the frontend,
-starts Django on :8021, runs the specs and stops the server again — your
-development database is never touched. Add ``E2E_PORT=…`` or ``E2E_DB=…`` to
-move either. To watch a run, or to work on one spec:
+collects the static files, starts Django on :8021, runs the specs and stops the
+server again — your development database is never touched. Add ``E2E_PORT=…``
+or ``E2E_DB=…`` to move either. The target pins every setting the run needs
+(``DEBUG``, ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, the mock provider,
+the login throttle), so it behaves the same with your ``.env`` and without one
+— which is what CI has. To watch a run, or to work on one spec:
 
 .. code-block:: console
 
