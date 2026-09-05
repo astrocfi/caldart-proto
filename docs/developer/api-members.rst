@@ -16,7 +16,10 @@ The code lives in ``backend/apps/members/``:
 ``api/admin_views.py``
    The views.
 ``api/admin_serializers.py``
-   Request and response shapes, and the invitation email.
+   Request and response shapes, and the invitation email.  The profile, term
+   and payment serializers extend the member-facing ones in
+   ``api/profile_serializers.py``, so an administrator and a member see one
+   definition of a profile and one set of validation rules.
 ``api/admin_filters.py``
    The filter set, the ordering backend, and the SQL membership annotations.
 ``api/admin_urls.py``
@@ -173,11 +176,18 @@ Create a member
      "first_name": "Nova",
      "last_name": "Ito",
      "password": "optional",
-     "profile": {"phone": "408-555-0199", "dart": 3, "ratings": ["instrument"]}
+     "profile": {"phone": "408-555-0199", "dart_id": 3, "ratings": ["instrument"]}
    }
 
-Only ``email`` is required.  The response is the full member record (below)
-with **201**.
+Only ``email`` is required — an administrator records what they were told,
+which on the day somebody joins at an airshow may be no more than a name.  The
+response is the full member record (below) with **201**.
+
+``profile`` is ``AdminProfileSerializer``, which extends the ``/me/profile``
+serializer: the same fields (``dart`` reads nested and is written as
+``dart_id``), the same rules — a two-letter state, a well-formed ZIP code, an
+expiry date whenever a medical class is given, a number whenever a certificate
+is — plus ``notes`` and ``how_heard``, and nothing mandatory.
 
 The user is granted the ``member`` role and given an empty ``MemberProfile``
 populated from ``profile``.  With no ``password`` the account gets an unusable
@@ -202,6 +212,11 @@ roles, the computed membership, the profile *including* ``notes`` and
 ``last_name``, ``is_active`` and a partial ``profile`` object, and returns the
 updated record.  A profile is created if the account somehow has none.  ``PUT``
 is not offered (**405**).
+
+The nested profile serializer is bound to the stored row before validation, so
+a partial update is judged against the whole profile: sending only
+``medical_type`` does not trip the "a medical class needs an expiry date" rule
+when the record already has one.
 
 ``DELETE /admin/members/{user_id}`` hard-deletes: the cascade takes the
 profile, the membership terms and the payments.  It is refused with **403**

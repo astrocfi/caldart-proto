@@ -9,12 +9,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, ButtonLink, Card, Page, useToast } from '../../components';
+import { EMPTY_PROFILE_FORM, formToPatch } from '../profile/form';
 import {
   AccountFields,
+  EMPTY_ADMIN_ONLY,
   ProfileFields,
+  adminProfilePayload,
   emptyAccountDraft,
-  emptyProfileDraft,
-  profilePayload,
 } from './MemberFormFields';
 import { useCreateMember, useDarts } from './api';
 import { splitErrors } from './errors';
@@ -26,7 +27,8 @@ export function MemberCreatePage() {
   const create = useCreateMember();
 
   const [account, setAccount] = useState(emptyAccountDraft);
-  const [profile, setProfile] = useState(emptyProfileDraft);
+  const [profile, setProfile] = useState(EMPTY_PROFILE_FORM);
+  const [adminOnly, setAdminOnly] = useState(EMPTY_ADMIN_ONLY);
 
   const errors = splitErrors(create.error);
 
@@ -38,7 +40,7 @@ export function MemberCreatePage() {
         first_name: account.first_name,
         last_name: account.last_name,
         ...(account.password ? { password: account.password } : {}),
-        profile: profilePayload(profile),
+        profile: adminProfilePayload(formToPatch(profile), adminOnly),
       },
       {
         onSuccess: (member) => {
@@ -82,6 +84,8 @@ export function MemberCreatePage() {
           <ProfileFields
             value={profile}
             onChange={setProfile}
+            adminOnly={adminOnly}
+            onAdminOnlyChange={setAdminOnly}
             errors={errors.profile}
             darts={darts.data ?? []}
           />

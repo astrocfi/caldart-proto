@@ -8,7 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { API_BASE, api } from '../../api/client';
-import type { Dart, MemberRow, Paginated, Plan } from '../../api/types';
+import type { MemberRow, Paginated } from '../../api/types';
 import type {
   GrantTermPayload,
   MemberCreatePayload,
@@ -64,39 +64,9 @@ export function useMember(id: number | null) {
   });
 }
 
-/**
- * The DART list feeds the filter bar and the profile form.  It is delivered by
- * `feat/profile-join`; until that lands the endpoint 404s, so a failure here
- * degrades to "no DART choices" rather than breaking the page.
- */
-export function useDarts() {
-  return useQuery({
-    queryKey: ['darts'],
-    queryFn: async (): Promise<Dart[]> => {
-      try {
-        return await api.get<Dart[]>('/darts');
-      } catch {
-        return [];
-      }
-    },
-    staleTime: 5 * 60_000,
-  });
-}
-
-/** Membership plans, for the "grant a term" form.  Same fallback as DARTs. */
-export function usePlans() {
-  return useQuery({
-    queryKey: ['plans'],
-    queryFn: async (): Promise<Plan[]> => {
-      try {
-        return await api.get<Plan[]>('/plans');
-      } catch {
-        return [];
-      }
-    },
-    staleTime: 5 * 60_000,
-  });
-}
+// The DART and plan catalogues belong to the profile feature (PLAN §6.3);
+// re-exported so the admin screens use exactly one query key for each.
+export { useDarts, usePlans } from '../profile/api';
 
 function useInvalidateMembers() {
   const queryClient = useQueryClient();

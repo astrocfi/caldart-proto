@@ -432,8 +432,9 @@ def test_create_with_a_password(admin_client, dart):
         "profile": {
             "phone": "408-555-0199",
             "city": "San Jose",
-            "dart": dart.pk,
+            "dart_id": dart.pk,
             "pilot_certificate_type": PilotCertificateType.PRIVATE,
+            "certificate_number": "3141592",
             "ratings": ["instrument", "cfi"],
             "notes": "Joined at the Watsonville airshow.",
         },
@@ -486,6 +487,42 @@ def test_create_rejects_a_weak_password(admin_client):
     assert not User.objects.filter(email="weak@example.test").exists()
 
 
+def test_create_applies_the_same_profile_rules_as_the_member_form(admin_client):
+    """The admin serializer extends `/me/profile`'s, so its rules hold here too."""
+    response = admin_client.post(
+        LIST_URL,
+        {"email": "sloppy@example.test", "profile": {"state": "California", "postal_code": "9"}},
+        format="json",
+    )
+    assert response.status_code == 400
+    assert set(response.json()["profile"]) == {"state", "postal_code"}
+
+    response = admin_client.post(
+        LIST_URL,
+        {"email": "sloppy@example.test", "profile": {"medical_type": MedicalType.THIRD}},
+        format="json",
+    )
+    assert response.status_code == 400
+    assert "medical_expiration" in response.json()["profile"]
+
+
+def test_create_needs_nothing_but_an_email(admin_client):
+    """An administrator records what they were told, which may be very little."""
+    response = admin_client.post(LIST_URL, {"email": "sparse@example.test"}, format="json")
+    assert response.status_code == 201
+    assert response.json()["profile"]["phone"] == ""
+
+
+def test_a_partial_profile_patch_is_judged_against_the_stored_row(admin_client, population):
+    """Sending one field must not trip a rule the rest of the profile satisfies."""
+    member = population["current"]
+    response = admin_client.patch(
+        detail_url(member), {"profile": {"medical_type": MedicalType.FIRST}}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["profile"]["medical_type"] == MedicalType.FIRST
+
+
 def test_create_rejects_an_unknown_rating(admin_client):
     response = admin_client.post(
         LIST_URL,
@@ -524,8 +561,9 @@ def test_patch_updates_the_user_and_the_nested_profile(admin_client, population,
 
 
 def test_patch_can_clear_the_dart(admin_client, population):
+    """`dart` reads back nested and is written as `dart_id`, as on /me/profile."""
     member = population["current"]
-    response = admin_client.patch(detail_url(member), {"profile": {"dart": None}}, format="json")
+    response = admin_client.patch(detail_url(member), {"profile": {"dart_id": None}}, format="json")
     assert response.status_code == 200
     assert response.json()["profile"]["dart"] is None
 
