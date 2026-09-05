@@ -1,0 +1,100 @@
+/*
+ * Profile editor and "my aircraft" (PLAN §8).
+ * One column on a phone; a second column appears at 40rem.
+ */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 var(--space-5);
+}
+
+@media (min-width: 40rem) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+@media (min-width: 30rem) {
+  .checkbox-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 50rem) {
+  .checkbox-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.checkbox {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  /* A comfortable target on a phone without turning the list into buttons. */
+  padding-block: var(--space-1);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: auto;
+  accent-color: var(--color-primary);
+}
+
+/* A nested set of checkboxes inside a section keeps a quieter rule. */
+.checkbox-set {
+  border-top-style: dotted;
+  margin-bottom: 0;
+}
+
+.profile-form__note {
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-3);
+}
+
+.profile-form__actions {
+  padding-top: var(--space-4);
+  border-top: var(--hairline) solid var(--color-rule);
+}
+
+/* ------------------------------------------------------------- aircraft */
+.aircraft-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: var(--hairline) solid var(--color-rule);
+}
+
+.aircraft-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  padding-block: var(--space-4);
+  border-bottom: var(--hairline) solid var(--color-rule);
+  max-width: none;
+}
+
+.aircraft-list__ident {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+
+.aircraft-list__meta {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  margin: 0;
+  max-width: none;
+}
+
+.aircraft-list__actions {
+  margin-left: auto;
+}

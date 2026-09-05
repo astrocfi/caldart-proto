@@ -1,0 +1,59 @@
+/* Member home (PLAN §8): a status card, then the things a member does next. */
+
+.dashboard__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-4);
+}
+
+.dashboard__expiry {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  margin: 0;
+}
+
+.dashboard__expiry-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: var(--space-1);
+}
+
+/* The renewal card when the clock is running out: an accent edge, no shout. */
+.dashboard__card--urgent {
+  border-left: 3px solid var(--color-accent);
+}
+
+.dashboard__nudge {
+  border-left: 3px solid var(--color-secondary);
+}
+
+.dashboard__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard__links li + li {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: var(--hairline) solid var(--color-rule);
+}
+
+.dashboard__links a {
+  display: block;
+}
+
+.dashboard__link-group + .dashboard__link-group {
+  margin-top: var(--space-5);
+}
+
+.dashboard__payments {
+  width: 100%;
+}
