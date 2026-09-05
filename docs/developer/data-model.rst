@@ -304,6 +304,158 @@ that the message a person reads can be specific:
 ``volunteer_interests``
     The ``vol_`` booleans that are set, as a list of bare names.
 ``is_complete``
+    ``True`` when every field in ``MemberProfile.COMPLETE_FIELDS`` has a
+    value: ``phone``, ``address_line1``, ``city``, ``postal_code`` and
+    ``pilot_certificate_type`` — the five fields PLAN §6.1 names.  This is the
+    single definition of "complete": the accounts ``UserSerializer`` delegates
+    to it for the ``profile_complete`` flag that drives the dashboard nudge and
+    the join wizard's step gating, and the portal form's
+    ``REQUIRED_PROFILE_FIELDS`` (``frontend/src/portal/features/profile/form.ts``)
+    mirrors the same list, so a profile the form accepts is a profile the
+    server calls complete.
+``display_name``
+    Full name, falling back to the email address.
+
+Roles
+-----
+
+**Roles are Django ``Group`` rows whose ``name`` is the role slug.**  There is
+no ``Role`` model.  That makes adding a role a data change, and it lets Wagtail
+reuse the same groups for editor permissions.  The slugs and their
+descriptions live in ``apps/accounts/roles.py``:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Slug
+     - Grants
+   * - ``member``
+     - own profile, own payments and membership, join and renew, and
+       members-only content while the membership is current
+   * - ``dart_leader``
+     - \+ look up any member and see membership, medical, certificate and
+       aircraft insurance currency
+   * - ``user_admin``
+     - \+ list users, assign roles, activate or deactivate accounts, trigger
+       password resets
+   * - ``account_admin``
+     - \+ create, edit and delete members and profiles, grant or extend
+       memberships manually, manage aircraft, and run payment, membership and
+       aircraft reports
+   * - ``website_admin``
+     - \+ the Wagtail admin: create, edit, delete and publish pages, images,
+       documents and site settings
+   * - ``system_admin``
+     - everything above, plus backups, health, reminder runs and Django
+       superuser access
+
+Rules:
+
+- ``member`` is granted at registration, so "members" and "accounts" are the
+  same population.  The account administrator's member list is every ``User``
+  row, narrowed by ``?role=``.
+- Roles are additive; ``ROLE_SLUGS`` is ordered least to most privileged, and
+  that order is what ``GET /roles`` and ``User.roles`` return.
+- ``system_admin`` passes every permission check in the API, as does any
+  Django superuser.
+- ``STAFF_ROLE_SLUGS`` is every slug except ``member``, and is what
+  ``can_access_members_content`` tests.
+- ``manage.py seed_roles`` creates the groups and is idempotent.  It is also
+  called from the ``accounts.0002_seed_roles`` data migration, so a freshly
+  migrated database already has them.
+
+members
+=======
+
+``Dart``
+--------
+
+A local Disaster Airlift Response Team.
+
+``name`` (unique), ``airport_identifier`` (the FAA identifier, e.g. ``E16``),
+``city``, ``is_active``, ``sort_order``.  Ordered by ``sort_order`` then
+``name``; ``__str__`` is ``"Angwin (2O3)"`` when there is an identifier and
+just the name otherwise.
+
+Sixteen are seeded, fifteen airports plus ``Unaffiliated`` (which has no
+identifier and no city).  ``cms.DartPage`` points at this table with a
+``PROTECT`` foreign key, so a DART with a page cannot be deleted out from
+under it, and the airport and city are never retyped in the CMS.
+
+``MemberProfile``
+-----------------
+
+A ``OneToOneField`` to ``User`` with ``related_name="profile"``, holding
+everything the join form collects.  Deleting the user cascades.
+
+*Contact*
+    ``phone``, ``phone_alt``, ``address_line1``, ``address_line2``, ``city``,
+    ``state`` (2 characters, default ``CA``), ``postal_code``, ``county``,
+    ``emergency_contact_name``, ``emergency_contact_phone``.
+
+*Aviation*
+    ``home_airport_identifier``, ``home_airport_city``, ``dart``
+    (``SET_NULL``, nullable), ``air_care_alliance_number``,
+    ``pilot_certificate_type``, ``certificate_number``, ``ifr_rated``,
+    ``ratings``, ``medical_type``, ``medical_expiration``,
+    ``flight_review_date``, ``total_hours``, and ``aircraft`` — a
+    ``ManyToManyField`` to ``aircraft.Aircraft`` labelled "planes commonly
+    flown", with ``related_name="pilots"``.
+
+*Volunteer interests*
+    Six booleans: ``vol_ground_team``, ``vol_exercise_training``,
+    ``vol_member_support``, ``vol_fundraising``, ``vol_social_media``,
+    ``vol_newsletter``.
+
+*Admin only*
+    ``notes`` (text) and ``how_heard``.  Neither is in the member-facing
+    serializer; both appear on ``GET /admin/members/{id}``.
+
+**Choice sets.**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 72
+
+   * - Field
+     - Values
+   * - ``pilot_certificate_type``
+     - ``none``, ``student``, ``sport``, ``recreational``, ``private``,
+       ``commercial``, ``atp``
+   * - ``ifr_rated``
+     - ``na``, ``yes``, ``no``
+   * - ``medical_type``
+     - ``none``, ``basicmed``, ``first``, ``second``, ``third``
+   * - ``ratings``
+     - a JSON list drawn from ``instrument``, ``multi_engine``, ``cfi``,
+       ``cfii``, ``mei``, ``seaplane``, ``helicopter``, ``glider``
+
+``ratings`` is a ``JSONField(default=list)``.  The database does not police its
+contents; the serializer does, rejecting unknown values, removing duplicates
+and preserving the order given.
+
+**Invariants**, all enforced in the API serializers rather than the model, so
+that the message a person reads can be specific:
+
+- A ``medical_type`` other than ``none`` requires a ``medical_expiration``.
+- A ``pilot_certificate_type`` other than ``none`` requires a
+  ``certificate_number``.
+- ``state`` is two letters, stored upper-case; ``postal_code`` is ``#####`` or
+  ``#####-####``.
+- Cross-field rules are evaluated against the row **as it would be after the
+  write**, so a one-field ``PATCH`` is judged on the whole profile.
+
+**Derived properties.**
+
+``medical_is_current``
+    ``False`` when ``medical_type`` is ``none`` **or** ``medical_expiration``
+    is ``NULL``; otherwise ``medical_expiration >= today``.  BasicMed and class
+    medicals both use the same stored date — the model does not try to compute
+    a BasicMed expiry from the exam date.
+``volunteer_interests``
+    The ``vol_`` booleans that are set, as a list of bare names.
+``is_complete``
     ``phone`` **and** ``city`` **and** ``state`` **and** ``postal_code``.
 
     .. warning::

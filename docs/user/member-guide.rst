@@ -33,9 +33,14 @@ Four things are required, because without them nobody can reach you during
 an activation:
 
 * a phone number,
+* your street address (address line 1),
 * your city,
-* your state (two letters, e.g. ``CA``),
 * your ZIP code.
+
+The certificate box is required too, but it always holds a value — choose
+*Not a pilot* if that is what you are.  These are exactly the fields the
+server uses to decide that a profile is complete, so a form that saves is a
+profile that lets you move on.
 
 Everything else can wait until later.  The form is in three sections:
 
@@ -166,10 +171,10 @@ detaches it from you; the aircraft record and anyone else's link to it are
 untouched.
 
 An aircraft's insurance is what a DART leader checks before letting you fly a
-mission in it, so keep the carrier, limits and expiration date accurate.  You
-cannot edit an aircraft from this screen, even one you added — editing lives
-on the account administrator's register — so ask an account administrator to
-make the change.
+mission in it, so keep the carrier, limits and expiration date accurate.  An
+aircraft you added yourself has an **Edit** action on this screen; one that
+somebody else added can only be changed by that member or by an account
+administrator, so ask them to make the change.
 
 
 Members-only content
@@ -190,9 +195,9 @@ Signing in and passwords
 
 Sign in at ``/portal/login`` with your email address and password.  If you
 have forgotten it, use **Forgot your password?** and CalDART emails you a
-link to set a new one.  To change a password you still know, go to
-``/portal/change-password`` — there is no menu entry for it, so you have to
-type the address.
+link to set a new one.  To change a password you still know, choose
+**Change password** in the *Membership* section of the portal menu (it is
+also at ``/portal/change-password``).
 
 If your account has been deactivated, signing in tells you so; contact
 CalDART to have it reopened.
@@ -241,7 +246,8 @@ When something goes wrong
 **You cannot edit an aircraft.**
    *"Only the member who added this aircraft, or an administrator, can change
    it."*  One register is shared by everybody, so a record is not yours to
-   change simply because you fly the aeroplane.  Ask an account administrator
+   change simply because you fly the aeroplane — only the member who added it
+   sees **Edit** on *My aircraft*.  Ask that member or an account administrator
    to correct it.
 
 **A members-only page shows a wall instead of the page.**
