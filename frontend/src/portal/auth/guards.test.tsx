@@ -1,18 +1,24 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useSearchParams } from 'react-router-dom';
 
 import { makeUser, signedInAs } from '../../test/handlers';
 import { renderWithProviders } from '../../test/render';
 import { server } from '../../test/server';
-import { RequireAuth, RequireRole } from './guards';
+import { RequireAuth, RequireRole, loginRedirect } from './guards';
 
 function Secret() {
   return <p>secret content</p>;
 }
 
 function LoginStub() {
-  return <p>login page</p>;
+  const [params] = useSearchParams();
+  return (
+    <>
+      <p>login page</p>
+      <p>next={params.get('next')}</p>
+    </>
+  );
 }
 
 function tree(guard: React.ReactNode) {
@@ -103,5 +109,43 @@ describe('RequireRole', () => {
       { route: '/secret' },
     );
     expect(await screen.findByText('login page')).toBeInTheDocument();
+  });
+});
+
+describe('loginRedirect', () => {
+  it('carries the whole location, query string included', () => {
+    expect(loginRedirect({ pathname: '/admin/users', search: '?role=user_admin' })).toBe(
+      '/login?next=%2Fadmin%2Fusers%3Frole%3Duser_admin',
+    );
+  });
+});
+
+describe('the 403 page', () => {
+  it('names the role the page wanted and offers a way out', async () => {
+    server.use(signedInAs(makeUser({ roles: ['member'] })));
+    renderWithProviders(
+      tree(
+        <RequireRole roles={['user_admin']}>
+          <Secret />
+        </RequireRole>,
+      ),
+      { route: '/secret' },
+    );
+    expect(await screen.findByText(/open to the user admin role/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /go to the dashboard/i })).toBeInTheDocument();
+  });
+});
+
+describe('the next parameter', () => {
+  it('points back at the guarded page', async () => {
+    renderWithProviders(
+      tree(
+        <RequireAuth>
+          <Secret />
+        </RequireAuth>,
+      ),
+      { route: '/secret' },
+    );
+    expect(await screen.findByText('next=/secret')).toBeInTheDocument();
   });
 });

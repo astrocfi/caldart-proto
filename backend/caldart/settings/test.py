@@ -1,10 +1,14 @@
 """Test settings: fast hashing, in-memory email and storage, mock payments on."""
 
 from .base import *  # noqa: F403
-from .base import LOGGING, REPO_ROOT
+from .base import AUTH_THROTTLE_RATES, LOGGING, REPO_ROOT
 
 DEBUG = False
 ALLOWED_HOSTS = ["*", "testserver"]
+
+# Throttles are inert under test; the throttling test turns one back on with
+# ``override_settings`` rather than every other test racing a shared counter.
+AUTH_THROTTLE_RATES = dict.fromkeys(AUTH_THROTTLE_RATES, None)
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
