@@ -89,16 +89,6 @@ class PaymentFilters:
             search=(params.get("search") or "").strip(),
         )
 
-    def describe(self) -> dict[str, str]:
-        """Applied filters, for the CSV filename and the PDF subtitle line."""
-        return {
-            "from": self.date_from.isoformat() if self.date_from else "",
-            "to": self.date_to.isoformat() if self.date_to else "",
-            "provider": self.provider,
-            "status": self.status,
-            "search": self.search,
-        }
-
 
 def _date(value: str | None, field: str) -> dt.date | None:
     if not value:
