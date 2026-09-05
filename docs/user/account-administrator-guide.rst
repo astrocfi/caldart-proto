@@ -205,7 +205,8 @@ Common tasks
 
 **Who is about to lapse?**
    Membership *Current*, Expiring within ``30``.  Export the CSV for the
-   renewal mail-out.  Automatic reminders go out at 60, 30 and 7 days as well.
+   renewal mail-out.  Automatic reminders go out at 60, 30 and 7 days before
+   expiry, on the day itself, and 30 days after.
 
 **Who has lapsed and not come back?**
    Membership *Expired*, sort by Membership to see the longest-lapsed first.

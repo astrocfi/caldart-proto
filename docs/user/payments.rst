@@ -13,9 +13,10 @@ For members
 Joining
 -------
 
-Joining is one screen.  From **Join CalDART** on the public site, or
-``/portal/join`` directly, you create an account, fill in your profile, and
-arrive at the payment step.
+Joining is a four-step wizard — account, profile, pay, done.  From **Join** on
+the public site, or ``/portal/join`` directly, you create an account and fill
+in your profile, and the third step is where the money is.  This page is about
+that third step; the other three are in :doc:`member-guide`.
 
 **1. Choose a membership.**  |org| offers two:
 
@@ -162,6 +163,48 @@ Refunds
 -------
 
 Refunds are issued in the provider's own dashboard (Stripe or PayPal), not in
-CalDART.  Refunding does not shorten a membership term — if someone should
-lose their membership as well, edit the term under **Administration →
-Members**.
+CalDART, and **CalDART never finds out**.  Nothing in the system sets a payment
+to *Refunded*: the row goes on reading *succeeded*, the money is counted in
+every total, and the **Status → Refunded** filter will never match anything.
+
+So a refund is two jobs, not one:
+
+#. Refund in the provider's dashboard.
+#. Correct CalDART by hand — edit or cancel the membership term under
+   **Administration → Members**, and note in the term why, since the payment
+   row cannot tell the story itself.
+
+Keep your own record of refunds until CalDART can record them; see
+:doc:`../developer/roadmap`.
+
+
+When something goes wrong
+=========================
+
+**A member says they paid and you cannot find the payment.**
+   Widen the date filter first — it does not default to all time.  Then search
+   by their email address rather than their name, since a payment carries the
+   account's address.  If the money is on their card statement and there is no
+   row here at all, the provider took it without CalDART hearing back; the
+   provider's dashboard has the truth, and the member's membership needs
+   granting by hand.
+
+**A payment shows as succeeded but the member is not current.**
+   Open the member's record and look at the Memberships tab.  A payment
+   activates a term at the moment it succeeds, so a succeeded payment with no
+   term behind it is a fault worth reporting — grant the term manually in the
+   meantime.
+
+**The totals do not match the provider's dashboard.**
+   Three ordinary reasons before you suspect a fault: the period tiles count
+   only *succeeded* payments while the CSV export includes every status;
+   refunds are invisible here (above); and the tiles use the date the payment
+   completed, which can fall a day either side of the provider's own
+   settlement date.
+
+**A provider column is empty.**
+   Only providers that were configured when a payment was taken can appear
+   against it.  A demonstration database has everything under *Test*.
+
+**"No payments match these filters."**
+   Usually the date range.  **Clear** empties the whole bar.

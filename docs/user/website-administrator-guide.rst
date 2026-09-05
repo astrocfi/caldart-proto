@@ -19,9 +19,10 @@ The content management system is Wagtail, and it lives at ``/admin/``:
 * local development: ``http://localhost:8000/admin/``
 
 Sign in with the same email address and password you use for the member
-portal.  If Wagtail sends you back to the login form with "You do not have
-permission to access the admin", your account is missing the ``website_admin``
-role — ask a user administrator to add it.
+portal — it is the same account and the same session, so if you are already
+signed in to the portal, ``/admin/`` opens without asking again.  If Wagtail
+sends you back to the login form instead, your account is missing the
+``website_admin`` role — ask a user administrator to add it.
 
 The demo data ships with ``webadmin@example.org`` (password ``caldart-demo``)
 already in the role.
@@ -263,8 +264,9 @@ Things worth knowing
 ====================
 
 * **Changing a slug changes the URL.**  Old links, printed flyers and search
-  results will 404.  If you must, ask a developer to add a redirect —
-  Wagtail's **Redirects** tool is in the left-hand menu.
+  results will 404.  Wagtail has a **Redirects** tool that would fix that, but
+  the ``website_admin`` role is not currently granted permission to use it, so
+  ask a system administrator.
 * **The home page's news list is automatic.**  Publish a news post and it
   appears; there is nothing to update by hand.
 * **DART pages read the airport and city from the membership database.**  If
@@ -277,10 +279,11 @@ Things worth knowing
 When something goes wrong
 =========================
 
-**You cannot sign in to** ``/admin/``.
-   That is the Wagtail admin, and it is a different sign-in from the portal's.
-   You need the ``website_admin`` role; ask a user administrator.  Being able
-   to sign in to ``/portal/`` proves nothing about this.
+**You cannot get into** ``/admin/``.
+   It is the role, not the password.  Wagtail shares the portal's session, so
+   if you are already signed in to ``/portal/`` and ``/admin/`` still bounces
+   you to a login form, your account is missing ``website_admin`` — ask a user
+   administrator to add it.
 
 **The page type you want is not offered.**
    The tree constrains itself on purpose: a news post may only be added under
@@ -301,8 +304,10 @@ When something goes wrong
    the **Promote** tab, not on the content tab.
 
 **A page 404s that used to work.**
-   Its slug changed, which changes its URL.  Wagtail's **Redirects** tool, in
-   the left-hand menu, will point the old address at the new one.
+   Its slug changed, which changes its URL.  Setting the slug back is the
+   quickest fix.  A redirect from the old address is a system administrator's
+   job: the Redirects tool is not part of what ``website_admin`` grants, so it
+   will not appear in your menu.
 
 **A members-only page shows the wall to you as well.**
    Only while you are signed out of the *portal*.  Signed in, any role beyond

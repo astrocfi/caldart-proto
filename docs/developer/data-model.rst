@@ -207,8 +207,8 @@ Rules:
 - ``STAFF_ROLE_SLUGS`` is every slug except ``member``, and is what
   ``can_access_members_content`` tests.
 - ``manage.py seed_roles`` creates the groups and is idempotent.  It is also
-  called from the ``accounts`` initial data migration, so a freshly migrated
-  database already has them.
+  called from the ``accounts.0002_seed_roles`` data migration, so a freshly
+  migrated database already has them.
 
 members
 =======
@@ -301,10 +301,27 @@ that the message a person reads can be specific:
 ``volunteer_interests``
     The ``vol_`` booleans that are set, as a list of bare names.
 ``is_complete``
-    ``phone`` **and** ``city`` **and** ``state`` **and** ``postal_code``.  This
-    is what the API reports as ``profile_complete``, what the dashboard's
-    "finish your profile" nudge keys off, and what the join wizard uses to
-    decide whether step 2 is done.
+    ``phone`` **and** ``city`` **and** ``state`` **and** ``postal_code``.
+
+    .. warning::
+
+       This property is currently read by nothing, and it is **not** the rule
+       behind the ``profile_complete`` flag despite the name.  That flag is
+       ``UserSerializer.get_profile_complete``, which tests a different list —
+       ``PROFILE_COMPLETE_FIELDS`` in ``apps/accounts/api/serializers.py``:
+       ``phone``, ``address_line1``, ``city``, ``postal_code`` and
+       ``pilot_certificate_type``.  ``profile_complete`` is what the dashboard
+       nudge and the join wizard's step gating actually key off, so it is the
+       one that matters.
+
+       The portal's profile form, meanwhile, marks a third set as required:
+       ``phone``, ``city``, ``state`` and ``postal_code``
+       (``frontend/src/portal/features/profile/form.ts``).  Because that set
+       omits ``address_line1``, a member can satisfy every field the form
+       insists on and still be reported incomplete — and the join wizard will
+       hold them on step 2.  Three definitions of one idea is two too many:
+       treat ``PROFILE_COMPLETE_FIELDS`` as the contract and reconcile the
+       other two with it.
 ``display_name``
     Full name, falling back to the email address.
 
@@ -763,7 +780,7 @@ rebuilds a development database from nothing in a few seconds.
 
 Two migrations do more than create tables and are worth knowing about:
 
-- the ``accounts`` initial data migration runs ``seed_roles``, so the six role
+- ``accounts.0002_seed_roles`` runs the same ``seed_roles`` function, so the six
   groups exist in any migrated database;
 - ``cms.0004`` grants the ``website_admin`` group its Wagtail permissions, and
   ``seed_content`` calls the same function, so the grant is applied whichever

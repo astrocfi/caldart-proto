@@ -84,9 +84,9 @@ Step by step:
    checkout on the machine shares one pair of containers.  Data lives in the
    ``caldart_pgdata`` volume and survives ``make down``.
 
-3. **``make migrate``** applies the migrations.  The ``accounts`` initial data
-   migration creates the role groups, so a migrated database already knows
-   what a ``dart_leader`` is.
+3. **``make migrate``** applies the migrations.  One of them,
+   ``accounts.0002_seed_roles``, creates the six role groups, so a migrated
+   database already knows what a ``dart_leader`` is.
 
 4. **``make seed``** runs ``seed_roles``, then ``seed_demo`` (demo accounts,
    about forty generated members, twenty-five aircraft, two years of

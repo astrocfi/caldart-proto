@@ -27,9 +27,11 @@ person adding it happened to type the number.
 For members: adding an aeroplane you fly
 ========================================
 
-Open **My aircraft** in the portal menu and search the register.  Type the
-registration, or the make, model or owner if you do not have the number to
-hand.  Pick the aeroplane from the results and it is attached to your profile.
+#. Open **My aircraft** in the portal menu.
+#. Search the register in the panel underneath: type the registration, or the
+   make, model or owner if you do not have the number to hand.
+#. Pick the aeroplane from the results.  It is attached to your profile
+   straight away and appears in the list above with its insurance chip.
 
 Aeroplanes already on your list are filtered out of the results and named
 underneath, so you can tell the difference between "not in the register" and
@@ -51,10 +53,10 @@ Insurance expires      Optional, and the single most useful field on the form
 
 Saving adds the aeroplane to the register *and* attaches it to your profile.
 
-You may edit any aircraft you added yourself — carrier, expiry, owner details
-— from the same screens.  You may not edit an aeroplane somebody else added,
-and you may not delete one at all: another member may be flying it.  Ask an
-account administrator.
+Adding is as far as a member goes.  There is no member-facing screen for
+editing an aircraft — not even one you added — and none for deleting one, since
+another member may be flying it.  To correct a carrier, a limit or an expiry
+date, ask an account administrator.
 
 .. tip::
 
@@ -148,13 +150,18 @@ Action                     Member      Creator     DART        Account
 Search the register        yes         yes         yes         yes
 Add an aircraft            yes         yes         yes         yes
 Attach one to own profile  yes         yes         yes         yes
-Edit a record              no          yes         no          yes
+Edit a record              no          API only    no          yes
 Delete a record            no          no          no          yes
 Export CSV / PDF           no          no          no          yes
 =========================  ==========  ==========  ==========  ==========
 
 "Creator" means the member who added that particular aeroplane.
 ``system_admin`` may do everything in the table.
+
+**API only** is exactly what it says: the creator's right to edit their own
+record exists in the API (:doc:`../developer/api-aircraft`) but no portal
+screen offers it, because the register's edit form is on the account
+administrator's side.  In practice, a member asks an administrator.
 
 
 When something goes wrong
@@ -192,7 +199,8 @@ When something goes wrong
    expiry before a DART leader can rely on it.
 
 **"Enter an amount of $0 or more."**
-   One of the three money boxes has a negative value in it.  Enter dollars;
+   One of the three money boxes holds something that is not a positive amount
+   — a negative number, or text the form cannot read as one.  Enter dollars;
    commas and a leading ``$`` are accepted and stripped for you.
 
 **You removed an aeroplane and worry you deleted it.**

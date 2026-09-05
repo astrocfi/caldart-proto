@@ -37,7 +37,8 @@ Two rules are enforced by the server, not just hidden in the interface:
 Finding an account
 ==================
 
-The list shows every account, newest filters first, 25 to a page.
+The list shows every account, 25 to a page, sorted alphabetically by surname
+until you sort it otherwise.
 
 **Search**
    Matches first name, last name and email address.  Several words all have to
@@ -84,6 +85,10 @@ Things worth knowing:
 * ``system_admin`` implies every other role in permission checks, and also makes
   the account a Django superuser.  Grant it sparingly.
 * Removing ``system_admin`` takes the superuser flag away again.
+* ``website_admin`` is what opens the Wagtail admin at ``/admin/``.  Saving it
+  sets the account's Django "staff" flag, and removing it clears the flag
+  again — so granting the role is the whole job, and there is nothing else to
+  switch on.
 * A role change takes effect on the person's next request; if they are signed in
   they may need to reload the portal to see the new menu entries.
 
@@ -97,7 +102,8 @@ payments stay exactly as they were, and ticking the box again restores access.
 
 Deactivation is the right tool for someone who has left, or an account you
 suspect has been compromised.  Deleting members outright is an account
-administrator's job (PLAN §6.4), and it is a hard delete.
+administrator's job, and it is a hard delete — see
+:doc:`account-administrator-guide`.
 
 
 Helping someone back in

@@ -181,3 +181,60 @@ membership work ``account_admin`` is enough, and for the website
 If somebody leaves, deactivate the account rather than deleting it:
 deactivation keeps their payment and membership history intact, blocks sign-in
 immediately, and stops the reminder emails.
+
+
+When something goes wrong
+=========================
+
+**Create backup fails with "Neither pg_dump nor docker is available".**
+   The application is looking for a way to reach PostgreSQL and finding
+   neither.  Install ``postgresql-client`` on the server, or — in development
+   — start the compose stack with ``make up``, and try again.  Nothing is
+   written when it fails, so there is no half-finished dump to clean up.
+
+**Create backup fails with a message from ``pg_dump`` itself.**
+   The panel shows whatever ``pg_dump`` wrote to standard error, which is
+   usually a permission or authentication problem.  Fix it at the database and
+   retry; the same command run from a shell on the server (``manage.py
+   db_backup``) gives you the fuller output.
+
+**The backup list is empty even though backups exist.**
+   The panel reads one directory — the one named by ``BACKUP_DIR``.  A dump
+   somebody wrote elsewhere is not listed and is not downloadable.  See
+   :doc:`../developer/configuration`.
+
+**A backup download 404s.**
+   Only files in ``BACKUP_DIR`` whose names look like ``caldart-….sql.gz`` can
+   be downloaded, and the check is deliberately strict — a renamed dump, or one
+   reached through a symbolic link out of the directory, is refused rather than
+   served.  Rename it back, or copy it off the server directly.
+
+**Health says migrations are pending.**
+   Code has been deployed without ``manage.py migrate``.  Until it runs, the
+   database and the application disagree about the schema; do it now.  See
+   :doc:`../developer/deployment`.
+
+**Health says the last backup is old, or missing.**
+   Backups are on demand in this prototype — there is no timer for them, only
+   for the reminder scan.  Take one from the panel, and consider adding a
+   scheduled job.
+
+**A reminder run reports everything skipped.**
+   That is the normal answer most days: a reminder is sent only when a
+   membership expires in exactly 60, 30 or 7 days, expires today, or expired
+   exactly 30 days ago.  The summary breaks the skips down by reason —
+   ``already_sent``, ``lifetime``, ``renewed``, ``inactive_user``,
+   ``no_email``.  ``already_sent`` in particular means the scan has already run
+   today and did its job.
+
+**A reminder run sends nothing when you expected mail.**
+   Check that **Dry run** is unticked: it is ticked by default, and a dry run
+   writes nothing, sends nothing and flips no statuses.
+
+**Members say reminders never arrive.**
+   The scan is only as reliable as the timer that drives it.  Confirm
+   ``caldart-reminders.timer`` is enabled and running on the server, and then
+   that mail is leaving it at all — a password reset is the quickest test.
+
+The quickest diagnosis from a shell on the server is ``manage.py health``, or
+``manage.py health --json`` if you want to feed it to something else.
