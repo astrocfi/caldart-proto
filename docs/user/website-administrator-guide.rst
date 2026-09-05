@@ -1,6 +1,6 @@
-###########################
+===========================
 Website administrator guide
-###########################
+===========================
 
 This guide is for people who hold the ``website_admin`` role: you look after
 the public |org| website — the pages, their words and pictures, the members-only

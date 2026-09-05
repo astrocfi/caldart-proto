@@ -1,6 +1,6 @@
-======================
-Payments API reference
-======================
+=============
+API: payments
+=============
 
 Every endpoint under ``/api/v1/payments/`` and ``/api/v1/admin/payments``,
 implementing PLAN §6.7 and §6.8.  General API conventions — session

@@ -1,6 +1,6 @@
-#################
+=================
 The CMS (Wagtail)
-#################
+=================
 
 ``backend/apps/cms`` is the public website: the Wagtail page models, the
 StreamField blocks they are built from, the site settings that carry the

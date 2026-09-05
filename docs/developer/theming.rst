@@ -1,6 +1,6 @@
-#######
+=======
 Theming
-#######
+=======
 
 One design system dresses both halves of CalDART: the server-rendered Wagtail
 site and the React member portal.  Both read the same CSS custom properties,
