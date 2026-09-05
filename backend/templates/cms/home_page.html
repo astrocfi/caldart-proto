@@ -2,59 +2,90 @@
 {% load wagtailcore_tags wagtailimages_tags %}
 
 {% comment %}
-  A minimal, styled home page so `/` renders something real from day one.
-  `feat/cms-site` replaces this with the full hero, concept-of-operations
-  StreamField, tax-status block and featured news.
+  The editorial home page (PLAN §4.6, §9): an asymmetric hero, the mission as a
+  pull-quote, the concept of operations as a numbered list separated by
+  hairlines, three featured news posts, and the tax-status note.
 {% endcomment %}
 
-{% block content %}
-  <section class="section grid hero">
-    <div class="col-text stack">
-      <p class="eyebrow">{{ site_settings.org_name|default:"The California DART Network" }}</p>
-      <h1>{{ page.hero_heading|default:page.title }}</h1>
-      {% if page.hero_lede %}<p class="lede">{{ page.hero_lede }}</p>{% endif %}
-      <p class="cluster">
-        {% if page.primary_cta_label %}
-          <a class="button" href="{{ page.primary_cta_url|default:'/portal/join' }}">{{ page.primary_cta_label }}</a>
-        {% endif %}
-        {% if page.secondary_cta_label %}
-          <a class="button button--secondary" href="{{ page.secondary_cta_url|default:'/' }}">{{ page.secondary_cta_label }}</a>
-        {% endif %}
-      </p>
-    </div>
+{% block body_class %}home{% endblock %}
 
-    <aside class="col-side stack-tight">
-      {% if page.hero_image %}
-        {% image page.hero_image width-640 %}
-      {% endif %}
-      <p class="eyebrow">Already a member?</p>
-      <p><a href="/portal/">Sign in to the member portal</a> to update your profile, check your
-        membership, or renew.</p>
-    </aside>
+{% block content %}
+  <section class="section hero">
+    <div class="grid hero__grid">
+      <div class="col-text stack hero__lead">
+        <p class="eyebrow">{{ site_settings.org_name|default:"The California DART Network" }}</p>
+        <h1 class="hero__heading">{{ page.hero_heading|default:page.title }}</h1>
+        {% if page.hero_lede %}<p class="lede">{{ page.hero_lede }}</p>{% endif %}
+        <p class="cluster">
+          {% if page.primary_cta_label %}
+            <a class="button" href="{{ page.primary_cta_url|default:'/portal/join' }}">{{ page.primary_cta_label }}</a>
+          {% endif %}
+          {% if page.secondary_cta_label %}
+            <a class="button button--secondary" href="{{ page.secondary_cta_url|default:'/' }}">{{ page.secondary_cta_label }}</a>
+          {% endif %}
+        </p>
+      </div>
+
+      <aside class="col-side hero__aside stack-tight">
+        {% if page.hero_image %}
+          <figure class="figure">
+            {% image page.hero_image width-800 alt=page.hero_image_caption %}
+            {% if page.hero_image_caption %}
+              <figcaption class="figure__caption">{{ page.hero_image_caption }}</figcaption>
+            {% endif %}
+          </figure>
+        {% endif %}
+        <p class="eyebrow">Already a member?</p>
+        <p>
+          <a href="/portal/">Sign in to the member portal</a> to update your profile, check your
+          medical and insurance dates, or renew.
+        </p>
+      </aside>
+    </div>
   </section>
 
   {% if page.mission_statement %}
-    <section class="section grid">
-      <div class="col-text stack">
-        <p class="eyebrow">Our mission</p>
-        {{ page.mission_statement|richtext }}
-      </div>
+    <section class="section mission">
+      <p class="eyebrow">Our mission</p>
+      <div class="mission__quote richtext">{{ page.mission_statement|richtext }}</div>
     </section>
   {% endif %}
 
-  <section class="section grid">
-    <div class="col-text stack">
-      <p class="eyebrow">Concept of operations</p>
-      <h2>Pilots, aircraft and ground crews, organised before the emergency</h2>
-      <p>
-        CalDART DARTs are local teams built around a home airport. Members keep their
-        certificates, medicals and aircraft insurance current so that when a county activates,
-        the aircraft that show up are ready to fly.
-      </p>
-    </div>
-    <div class="col-side stack-tight">
-      <p class="eyebrow">501(c)(3)</p>
-      <p>{{ site_settings.footer_text|default:"CalDART is a 501(c)(3) non-profit. Contributions are tax deductible." }}</p>
-    </div>
-  </section>
+  {% if page.concept_of_operations %}
+    <section class="section grid">
+      <div class="col-text stack">
+        <p class="eyebrow">Concept of operations</p>
+        <h2>{% firstof page.concept_heading "How an activation works" %}</h2>
+        <ol class="steps">
+          {% for block in page.concept_of_operations %}{% include_block block %}{% endfor %}
+        </ol>
+      </div>
+
+      {% if page.tax_status %}
+        <aside class="col-side stack-tight tax-note">
+          <p class="eyebrow">501(c)(3)</p>
+          <div class="richtext">{{ page.tax_status|richtext }}</div>
+          {% if site_settings.ein %}<p class="mono">EIN {{ site_settings.ein }}</p>{% endif %}
+        </aside>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if featured_news %}
+    <section class="section">
+      <div class="section__head">
+        <p class="eyebrow">Latest news</p>
+        {% if news_index %}<a href="{{ news_index.url }}">All news</a>{% endif %}
+      </div>
+      <ol class="news-list" role="list">
+        {% for post in featured_news %}
+          <li class="news-list__item">
+            <p class="news-list__date mono">{{ post.date|date:"j F Y" }}</p>
+            <h3 class="news-list__title"><a href="{{ post.url }}">{{ post.title }}</a></h3>
+            {% if post.intro %}<p class="news-list__intro">{{ post.intro }}</p>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endif %}
 {% endblock %}

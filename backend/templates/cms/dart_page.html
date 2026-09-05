@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% comment %}One DART: the facts in a definition grid, then the body copy.{% endcomment %}
+
+{% block body_class %}dart{% endblock %}
+
+{% block content %}
+  {% include "cms/includes/page_header.html" %}
+
+  <div class="section grid">
+    <div class="col-text stack prose">
+      {% for block in page.body %}{% include_block block %}{% endfor %}
+    </div>
+
+    <aside class="col-side page-aside">
+      <div class="page-aside__sticky">
+        <dl class="facts">
+          {% if page.airport_identifier %}
+            <div class="facts__row">
+              <dt>Airport</dt>
+              <dd class="mono">{{ page.airport_identifier }}</dd>
+            </div>
+          {% endif %}
+          {% if page.city %}
+            <div class="facts__row">
+              <dt>City</dt>
+              <dd>{{ page.city }}</dd>
+            </div>
+          {% endif %}
+          {% if page.leader_name %}
+            <div class="facts__row">
+              <dt>Leader</dt>
+              <dd>
+                {{ page.leader_name }}
+                {% if page.leader_contact %}
+                  <br />
+                  {% if page.leader_href %}
+                    <a href="{{ page.leader_href }}">{{ page.leader_contact }}</a>
+                  {% else %}
+                    {{ page.leader_contact }}
+                  {% endif %}
+                {% endif %}
+              </dd>
+            </div>
+          {% endif %}
+        </dl>
+        <p class="page-aside__back"><a href="{{ page.get_parent.url }}">← All DARTs</a></p>
+      </div>
+    </aside>
+  </div>
+{% endblock %}

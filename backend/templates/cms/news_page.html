@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags wagtailimages_tags %}
+
+{% comment %}A single news post: date eyebrow, title, lede, optional image, body.{% endcomment %}
+
+{% block body_class %}news-post{% endblock %}
+
+{% block content %}
+  <header class="section page-header">
+    <p class="eyebrow page-header__parent">
+      <a href="{{ page.get_parent.url }}">{{ page.get_parent.title }}</a>
+      <time class="mono" datetime="{{ page.date|date:'Y-m-d' }}">{{ page.date|date:"j F Y" }}</time>
+    </p>
+    <h1>{{ page.title }}</h1>
+    {% if page.intro %}<p class="lede">{{ page.intro }}</p>{% endif %}
+  </header>
+
+  {% if page.image %}
+    <figure class="section figure figure--wide">
+      {% image page.image width-1400 alt=page.title %}
+    </figure>
+  {% endif %}
+
+  <div class="section grid">
+    <div class="col-text stack prose">
+      {% for block in page.body %}{% include_block block %}{% endfor %}
+      <p class="post-back"><a href="{{ page.get_parent.url }}">← All news</a></p>
+    </div>
+  </div>
+{% endblock %}

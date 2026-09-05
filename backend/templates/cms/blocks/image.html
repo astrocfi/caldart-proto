@@ -1,0 +1,10 @@
+{% load wagtailimages_tags %}
+<figure class="figure{% if value.full_width %} figure--wide{% endif %}">
+  {% image value.image width-1400 alt=value.alt_text %}
+  {% if value.caption or value.credit %}
+    <figcaption class="figure__caption">
+      {{ value.caption }}
+      {% if value.credit %}<span class="muted">{{ value.credit }}</span>{% endif %}
+    </figcaption>
+  {% endif %}
+</figure>

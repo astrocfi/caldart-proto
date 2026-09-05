@@ -2,17 +2,28 @@
 {% comment %}
   The public-site shell (PLAN §7, §9).
 
-  `nav` comes from `apps.cms.context_processors.site_chrome` as a list of
-  {title, url, active} dicts, so page templates never build the menu.
+  `nav`, `theme`, `site_settings` and `can_preview_theme` come from
+  `apps.cms.context_processors.site_chrome`, so page templates never build the
+  menu.  Nav entries carry a `kind`: content pages render as links, the two
+  portal entries render as actions on the right.
+
+  Rendered without a request (Django's 500 handler) this degrades to the
+  wordmark, an empty menu and the default theme — which is exactly what an
+  error page needs.
 {% endcomment %}
-<html lang="en" data-theme="{{ theme|default:'sierra' }}">
+<html lang="en" data-theme="{{ theme|default:'sierra' }}"{% if can_preview_theme %} data-theme-preview="allowed"{% endif %}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{% block title %}{{ page.seo_title|default:page.title|default:"CalDART" }}{% endblock %}{% block title_suffix %} · {{ site_settings.org_name|default:"CalDART" }}{% endblock %}</title>
+    {% comment %}
+      `firstof` rather than the `default` filter: an error page renders with no
+      `page` and, on a 500, no context processors at all, and a missing filter
+      *argument* raises where a missing variable would not.
+    {% endcomment %}
+    <title>{% block title %}{% firstof page.seo_title page.title "CalDART" %}{% endblock %}{% block title_suffix %} · {% firstof site_settings.org_name "CalDART" %}{% endblock %}</title>
     <meta
       name="description"
-      content="{% block meta_description %}{{ site_settings.tagline|default:'Volunteer disaster air transportation for California.' }}{% endblock %}"
+      content="{% block meta_description %}{% firstof page.search_description site_settings.tagline "Volunteer disaster air transportation for California." %}{% endblock %}"
     />
     {% vite_hmr_client %}
     {% vite_asset 'src/site/main.ts' %}
@@ -23,10 +34,13 @@
 
     <header class="site-header">
       <div class="shell site-header__inner">
-        <a class="wordmark" href="/">
-          Cal<span>DART</span>
-          <span class="wordmark__sub">{{ site_settings.tagline|default:"California DART Network" }}</span>
-        </a>
+        <div class="site-brand">
+          <a class="wordmark" href="/">
+            {% include "cms/includes/wordmark.html" %}
+            <span class="wordmark__text">Cal<span>DART</span></span>
+          </a>
+          <span class="wordmark__sub">{% firstof site_settings.tagline "California DART Network" %}</span>
+        </div>
 
         <button
           type="button"
@@ -39,12 +53,23 @@
         </button>
 
         <nav class="site-nav" id="site-nav" data-site-nav aria-label="Main">
-          <ul>
-            {% for item in nav %}
+          <ul class="site-nav__pages">
+            {% for item in nav %}{% if item.kind != "portal" %}
               <li>
                 <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
               </li>
-            {% endfor %}
+            {% endif %}{% endfor %}
+          </ul>
+          <ul class="site-nav__actions">
+            {% for item in nav %}{% if item.kind == "portal" %}
+              <li>
+                {# The last portal entry is always Log in / Members: an action, not the action. #}
+                <a
+                  class="button{% if forloop.last %} button--quiet{% endif %}"
+                  href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}
+                >{{ item.title }}</a>
+              </li>
+            {% endif %}{% endfor %}
           </ul>
         </nav>
       </div>
@@ -55,20 +80,39 @@
     </main>
 
     <footer class="site-footer">
-      <div class="shell grid">
-        <div class="col-text stack-tight">
-          <p class="eyebrow">{{ site_settings.org_name|default:"The California DART Network" }}</p>
-          <p>{{ site_settings.footer_text|default:"CalDART is a 501(c)(3) non-profit. Contributions are tax deductible." }}</p>
-          {% if site_settings.ein %}<p>EIN {{ site_settings.ein }}</p>{% endif %}
+      <div class="shell site-footer__inner">
+        <div class="stack-tight">
+          <p class="eyebrow">{% firstof site_settings.org_name "The California DART Network" %}</p>
+          <p>{% firstof site_settings.footer_text "CalDART is a 501(c)(3) non-profit. Contributions are tax deductible." %}</p>
+          {% if site_settings.ein %}<p class="mono">EIN {{ site_settings.ein }}</p>{% endif %}
         </div>
-        <div class="col-side stack-tight">
+
+        <div class="stack-tight">
+          <p class="eyebrow">Contact</p>
           {% if site_settings.contact_email %}
             <p><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></p>
           {% endif %}
-          {% if site_settings.contact_phone %}<p>{{ site_settings.contact_phone }}</p>{% endif %}
+          {% if site_settings.contact_phone %}<p class="mono">{{ site_settings.contact_phone }}</p>{% endif %}
           {% if site_settings.mailing_address %}<p>{{ site_settings.mailing_address|linebreaksbr }}</p>{% endif %}
-          <p><a href="/portal/">Member portal</a></p>
         </div>
+
+        <div class="stack-tight">
+          <p class="eyebrow">Elsewhere</p>
+          <ul class="site-footer__links">
+            <li><a href="/portal/">Member portal</a></li>
+            <li><a href="/portal/join">Join or renew</a></li>
+            {% if site_settings.donate_url %}<li><a href="{{ site_settings.donate_url }}">Donate</a></li>{% endif %}
+            {% if site_settings.facebook_url %}<li><a href="{{ site_settings.facebook_url }}" rel="me noopener">Facebook</a></li>{% endif %}
+            {% if site_settings.twitter_url %}<li><a href="{{ site_settings.twitter_url }}" rel="me noopener">X / Twitter</a></li>{% endif %}
+          </ul>
+        </div>
+      </div>
+
+      <div class="shell site-footer__fine">
+        <p>
+          Example content for a prototype. Volunteers fly at their own expense and at their own
+          discretion; CalDART does not self-deploy.
+        </p>
       </div>
     </footer>
 
