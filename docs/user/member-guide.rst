@@ -7,10 +7,6 @@ your profile and aircraft up to date, and finding the members-only parts of
 the site.  Everything here happens in the **member portal** at
 ``/portal/``, which works the same on a phone as on a laptop.
 
-.. contents:: On this page
-   :local:
-   :depth: 1
-
 
 Joining
 =======

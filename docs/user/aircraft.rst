@@ -7,10 +7,6 @@ commonly fly and attach them to their profile; account administrators keep the
 insurance details straight; DART leaders read the result before a mission.
 This page covers both halves.
 
-.. contents:: On this page
-   :local:
-   :depth: 1
-
 
 N-numbers
 =========

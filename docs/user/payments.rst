@@ -6,10 +6,6 @@ How money moves through CalDART: what a member sees when they join or renew,
 what happens to their membership the moment a payment clears, and what an
 account administrator can see afterwards.
 
-.. contents::
-   :local:
-   :depth: 2
-
 
 For members
 ===========

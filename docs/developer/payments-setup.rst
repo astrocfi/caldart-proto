@@ -11,10 +11,6 @@ no keys at all still runs the whole join flow against the mock provider.
 
 This page is the recipe for setting the real ones up.
 
-.. contents::
-   :local:
-   :depth: 2
-
 
 Environment variables
 =====================
