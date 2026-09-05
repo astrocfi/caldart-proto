@@ -140,8 +140,9 @@ export interface Profile {
   vol_newsletter: boolean;
 }
 
+/** The writable half of a profile: `dart` reads nested, but writes as `dart_id`. */
 export type ProfilePatch = Partial<
-  Omit<Profile, 'dart' | 'aircraft' | 'medical_is_current'> & { dart: number | null }
+  Omit<Profile, 'dart' | 'aircraft' | 'medical_is_current'> & { dart_id: number | null }
 >;
 
 /** A row in the `account_admin` member list (PLAN §6.4). */

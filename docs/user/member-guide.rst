@@ -2,8 +2,193 @@
 Member guide
 ============
 
-For members: reading your dashboard and membership status card, renewing
-before expiry, editing your contact, aviation and volunteer-interest details,
-attaching the aircraft you commonly fly, and reaching the members-only areas
-of the site.  This page will be written on ``feat/docs`` in Phase 3, drawing on
-the portal work delivered by ``feat/profile-join``.
+This is the guide for CalDART members: joining, paying, renewing, keeping
+your profile and aircraft up to date, and finding the members-only parts of
+the site.  Everything here happens in the **member portal** at
+``/portal/``, which works the same on a phone as on a laptop.
+
+.. contents:: On this page
+   :local:
+   :depth: 1
+
+
+Joining
+=======
+
+Start at **Join CalDART** in the site menu, or go straight to
+``/portal/join``.  Joining is a four-step wizard, and the progress rail at
+the top of the page always shows which step you are on.
+
+Step 1 — Account
+----------------
+
+Give your first name, last name, email address and a password.  The email
+address is how you will sign in from then on, so use one you read.  The
+password must be at least eight characters and must not be one of the
+obvious ones.
+
+If you already have an account, follow **Already a member? Sign in** and the
+wizard picks up from wherever you left off.
+
+Step 2 — Profile
+----------------
+
+Four things are required, because without them nobody can reach you during
+an activation:
+
+* a phone number,
+* your city,
+* your state (two letters, e.g. ``CA``),
+* your ZIP code.
+
+Everything else can wait until later.  The form is in three sections:
+
+**Contact**
+  Phone and alternate phone, postal address, county — California counties
+  are offered as suggestions as you type — and an emergency contact.
+
+**Aviation**
+  Your home airport, the DART you fly with, your Air Care Alliance number,
+  pilot certificate and number, instrument currency, ratings, medical and
+  its expiration date, last flight review and total hours.
+
+  Two rules are enforced: if you name a pilot certificate you must give its
+  number, and if you name a medical (BasicMed or any class) you must give
+  the date it expires.  If you are not a pilot, leave the certificate as
+  **Not a pilot** and the medical as **None**.
+
+**Volunteer interests**
+  CalDART runs on volunteers.  Tick anything you would be willing to help
+  with: ground team, exercises and training, member support, fundraising,
+  social media, newsletter.
+
+Step 3 — Pay
+------------
+
+Choose **Annual** ($45.00, one year) or **Life** ($650.00, once and never
+again), optionally add a contribution, and pay by card, Apple Pay, Google
+Pay or PayPal.  Your membership is activated the moment the payment clears
+— there is no waiting for anyone to approve it.
+
+Step 4 — Done
+-------------
+
+The last step confirms the date your membership runs to and links you to
+your dashboard and to the members-only pages you can now read.
+
+.. note::
+
+   The wizard is resumable.  If you close the tab half way through, come
+   back to ``/portal/join`` and you will land on the step you had reached.
+   You can always go back to an earlier step; you cannot skip ahead of one
+   you have not finished.
+
+
+Your dashboard
+==============
+
+Signing in lands you on the dashboard at ``/portal/``.  Reading down the
+page:
+
+Membership
+  A status chip — **Current**, **Expiring soon**, **Expired** or **No
+  membership** — with the date your membership runs to and a **Renew**
+  button.  Inside 30 days of expiry, and after it, the card takes an accent
+  edge and the button leads.  Life members are never asked to renew.
+
+Finish your profile
+  Shown only while your profile is missing one of the four required
+  details.  It disappears as soon as you save them.
+
+Member content
+  The members-only pages you are entitled to read, straight from the site's
+  own page tree.  If CalDART has not published any yet, the card says so.
+
+Recent payments
+  Your last five payments: date, plan, amount and status.
+
+Quick links
+  The rest of the portal, filtered to what your roles allow.  A plain
+  member sees their profile, aircraft and renewal; a DART leader also sees
+  the member and aircraft checks; administrators see their sections too.
+
+
+Renewing
+========
+
+Go to **Renew** in the menu, or use the button on your dashboard.  The page
+shows where you stand — current or expired, the date, and which plan — and
+then the same checkout you used to join.
+
+A renewal **starts the day after your current term ends**, so there is no
+penalty for renewing early: you never lose the days you have already paid
+for.  If your membership has already lapsed, the new term starts today.
+
+CalDART emails you a reminder 60, 30 and 7 days before expiry, on the day
+it expires, and once 30 days afterwards.  Every reminder links straight to
+the renewal page.
+
+
+Your profile
+============
+
+**My profile** in the menu opens the same form the join wizard used, filled
+in with what CalDART has on file.  Change anything, press **Save profile**,
+and a confirmation appears at the bottom of the screen.
+
+If something is wrong the field is highlighted with the reason underneath
+it, and nothing is saved until you fix it.
+
+Keep these current, because a DART leader checks them before a mission:
+
+* your **medical expiration** — the portal marks a medical current only up
+  to the date you entered, for BasicMed and class medicals alike;
+* your **pilot certificate** and number;
+* your **phone number**.
+
+.. note::
+
+   Saving the profile form replaces the whole profile, so a field you clear
+   really is cleared.  Your aircraft are the exception: they are managed on
+   their own page, below.
+
+
+Your aircraft
+=============
+
+**My aircraft** lists the planes you commonly fly.  Each one shows its
+N-number, make and model, an insurance chip (**Current**, **Expired** or
+**Not on file**) and the liability limits and expiry date on file.
+
+To add one, search for it by N-number in the panel underneath and select
+it.  If the aircraft is not in the CalDART register yet you can create the
+record, and you may edit any record you created.  To take one off your
+profile, press **Remove** — this only detaches it from you; the aircraft
+record and anyone else's link to it are untouched.
+
+An aircraft's insurance is what a DART leader checks before letting you fly
+a mission in it, so keep the carrier, limits and expiration date accurate.
+
+
+Members-only content
+====================
+
+Pages CalDART marks as members-only are readable while your membership is
+current.  They are listed on your dashboard and appear in the public site's
+menu once you are signed in.
+
+If your membership has lapsed, opening one shows a short page explaining
+why, with links to sign in, join or renew.  Renewing restores access
+immediately.
+
+
+Signing in and passwords
+========================
+
+Sign in at ``/portal/login`` with your email address and password.  If you
+have forgotten it, use **Forgot your password?** and CalDART emails you a
+link to set a new one.  To change a password you still know, use **Change
+password** in the portal.
+
+If your account has been deactivated, signing in tells you so; contact
+CalDART to have it reopened.

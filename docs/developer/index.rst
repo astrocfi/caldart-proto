@@ -18,6 +18,7 @@ every other page defers to.
    data-model
    api-reference
    api-auth
+   api-profile
    theming
    testing
    deployment
