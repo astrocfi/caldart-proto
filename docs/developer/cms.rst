@@ -5,7 +5,9 @@ The CMS (Wagtail)
 ``backend/apps/cms`` is the public website: the Wagtail page models, the
 StreamField blocks they are built from, the site settings that carry the
 organisation details and the theme, the members-only wall, and the templates
-under ``backend/templates/``.  It implements PLAN §4.6, §6.10, §7 and §9.
+under ``backend/templates/``.  :doc:`architecture` shows where the public site
+sits in the whole system, :doc:`data-model` lists the page models' fields, and
+:doc:`theming` covers the stylesheets.
 
 
 Layout
@@ -96,7 +98,7 @@ to action, chosen by ``members_wall_state``:
                  join.
 ===============  =========================================================
 
-Who gets through is ``User.can_access_members_content`` (PLAN §4.1): a current
+Who gets through is ``User.can_access_members_content`` (:doc:`data-model`): a current
 membership, *or* any role beyond plain ``member``.  A DART leader with no
 membership of their own can still read the handbooks.
 
@@ -117,11 +119,16 @@ its panel::
 Blocks
 ======
 
-``blocks.ContentStreamBlock`` is the body offered on every editable page, and
-matches the list in PLAN §4.6: ``heading``, ``paragraph``, ``image``,
-``quote``, ``cta``, ``document``, ``two_columns``, ``embed`` and ``raw_html``.
-``ColumnStreamBlock`` is the reduced set allowed inside a two-column block, so
-columns cannot nest.
+``blocks.ContentStreamBlock`` is the body offered on every editable page:
+``heading``, ``paragraph``, ``image``, ``quote``, ``cta``, ``document``,
+``two_columns``, ``embed`` and ``raw_html``.  ``ColumnStreamBlock`` is the
+reduced set allowed inside a two-column block, so columns cannot nest.
+
+``cta`` (``CTABlock``) is the call to action: a ``label``; a target that is
+either a ``page`` from the tree or a ``url`` (an external address, or a path
+such as ``/portal/join``); a ``style`` of ``primary`` (the default),
+``secondary`` or ``quiet``; and an optional ``note`` printed small under the
+button.  Saving one with neither a page nor a URL fails validation.
 
 Each block names its own template under ``cms/blocks/``, with one deliberate
 exception: ``raw_html`` is a plain ``RawHTMLBlock`` and emits its content
@@ -239,7 +246,7 @@ Editor permissions
 ==================
 
 ``permissions.grant_website_admin_permissions`` hangs the Wagtail rights off
-the ``website_admin`` group (which is just the role group from PLAN §4.1):
+the ``website_admin`` group (the same Django group that holds the role):
 
 * ``wagtailadmin.access_admin`` and ``cms.change_sitesettings`` on the group
   itself — not ``wagtailcore.change_site``, because editing hostnames belongs
@@ -263,7 +270,22 @@ exist.
 ``manage.py seed_content``
 ==========================
 
-Builds the example site from PLAN §4.6 and is safe to run repeatedly:
+Builds the example site, and is safe to run repeatedly::
+
+    Home
+      About Us
+        History
+        DARTs                (index + one page per DART)
+        Directors and Officers
+      News                   (index + three posts)
+      Join CalDART
+      Donate
+      Sponsors
+      Contact Us
+      Members                (members only)
+        Members Only
+        Documents and Links
+
 ``upsert_page`` looks each page up by slug under its parent, updates it in
 place and publishes a revision, and the DART section deletes any page whose
 team has gone.  ``make seed`` runs it after ``seed_demo``.
@@ -282,8 +304,8 @@ Testing
                                  theme, error pages.  Also holds the
                                  page-building helpers the other CMS
                                  test modules import.
-``test_cms_seed_content.py``     Tree shape, the copy the plan requires,
-                                 and running the command twice.
+``test_cms_seed_content.py``     Tree shape, the copy each page must
+                                 carry, and running the command twice.
 ``test_cms_permissions.py``      The grant, reaching ``/admin/``, editing
                                  and publishing as ``website_admin``, and
                                  the raw-HTML restriction.

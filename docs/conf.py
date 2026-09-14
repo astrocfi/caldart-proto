@@ -1,11 +1,11 @@
-"""Sphinx configuration for the CalDART documentation set (PLAN.rst §16).
+"""Sphinx configuration for the CalDART documentation set.
 
 Kept deliberately minimal: ``make docs`` needs nothing in the environment
 except Sphinx and the ``furo`` theme, both of which are in the ``dev``
 dependency group.  Graphviz is used when it is installed and skipped cleanly
 when it is not (see ``extensions`` below).  The whole set must build clean
 under ``sphinx-build -n -W`` (nitpicky; warnings are errors) -- ``make docs``
-runs it that way, and CI runs ``make docs`` on every PR (PLAN.rst §15).
+runs it that way, and CI runs ``make docs`` on every PR.
 """
 
 import shutil
@@ -88,9 +88,9 @@ exclude_patterns = [
     ".DS_Store",
 ]
 
-# ``default`` lets Pygments fall back silently when a literal block is not
-# Python; naming a concrete language here would make ``-W`` fail on the many
-# shell / JSON / pseudo-code blocks included from PLAN.rst.
+# ``default`` lets Pygments fall back silently when a ``::`` literal block is
+# not Python; naming a concrete language here would make ``-W`` fail on the
+# many directory trees, endpoint listings and shell snippets written that way.
 highlight_language = "default"
 
 # Prepended to every source file.  Keeps the organisation's full name spelled
@@ -102,10 +102,8 @@ rst_prolog = """
 language = "en"
 nitpicky = False
 
-# ``developer/architecture.rst`` includes ``PLAN.rst`` from the repository
-# root verbatim, so a reStructuredText defect in the spec fails this build.
-# That is deliberate: PLAN.rst is a deliverable, and ``-W`` keeps it valid.
-# No warnings are suppressed.
+# No warnings are suppressed: there is no ``nitpick_ignore`` and no
+# ``suppress_warnings``.
 
 # -- HTML output -------------------------------------------------------------
 

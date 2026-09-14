@@ -34,7 +34,7 @@ CSV_URL = "/api/v1/admin/members/export.csv"
 PDF_URL = "/api/v1/admin/members/export.pdf"
 
 #: The column order ``docs/developer/reports.rst`` documents, verbatim.
-PLAN_COLUMNS = (
+DOCUMENTED_COLUMNS = (
     "name",
     "email",
     "phone",
@@ -124,7 +124,7 @@ def row_for(table: list[list[str]], email: str) -> dict[str, str]:
 # CSV
 # --------------------------------------------------------------------------
 def test_csv_columns_are_the_ones_the_plan_lists():
-    assert MEMBER_REPORT_HEADER == PLAN_COLUMNS
+    assert MEMBER_REPORT_HEADER == DOCUMENTED_COLUMNS
 
 
 def test_csv_download_headers(admin_client, reportable, today):
@@ -139,7 +139,7 @@ def test_csv_download_headers(admin_client, reportable, today):
 
 def test_csv_row_content(admin_client, reportable, today, annual_plan):
     table = read_csv(admin_client.get(CSV_URL))
-    assert table[0] == list(PLAN_COLUMNS)
+    assert table[0] == list(DOCUMENTED_COLUMNS)
 
     row = row_for(table, "pilot@example.test")
     assert row["name"] == "Ada Marsh"
@@ -204,7 +204,7 @@ def test_csv_is_not_paginated(admin_client, reportable):
 
 def test_csv_with_no_matches_is_a_header_only(admin_client, reportable):
     table = read_csv(admin_client.get(CSV_URL, {"search": "nobody-by-that-name"}))
-    assert table == [list(PLAN_COLUMNS)]
+    assert table == [list(DOCUMENTED_COLUMNS)]
 
 
 # --------------------------------------------------------------------------

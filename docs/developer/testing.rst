@@ -296,7 +296,8 @@ The API client and its error mapping; the route guards; the shared
 progression, resume and clamp rules; profile form conversion and validation;
 the aircraft picker's search, exclude and create paths; the leader search and
 status card in each verdict state; every admin screen's filters, paging, export
-links and save paths; the checkout with the Stripe and PayPal SDKs mocked; and
+links and save paths; the payments summary's headline tiles and its table by
+month and by year; the checkout with the Stripe and PayPal SDKs mocked; and
 the four system panels.
 
 End-to-end tests
@@ -308,8 +309,8 @@ End-to-end tests
    $ cd frontend && npx playwright test --ui
 
 Playwright drives a real browser against a real server, and covers the five
-low-friction flows of ``PLAN.rst`` §1 — the same ones the
-:doc:`../demo-walkthrough` walks a person through:
+low-friction flows the system is built around (:doc:`architecture`) — the
+same ones the :doc:`../demo-walkthrough` walks a person through:
 
 1. a visitor signs up and pays and is immediately a current member;
 2. a member signs in, edits their profile and reads members-only content;
@@ -393,6 +394,4 @@ commands above run locally.
 
 **Docs**
     ``uv sync --frozen`` and ``make docs``. Warnings are errors and every
-    cross-reference must resolve, and because :doc:`architecture` includes
-    ``PLAN.rst`` verbatim, a reStructuredText defect in the specification
-    fails this job too.
+    cross-reference must resolve.

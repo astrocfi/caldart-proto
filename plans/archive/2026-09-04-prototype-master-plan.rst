@@ -2,7 +2,8 @@
 CalDART Website & Member Management System — Master Plan
 ========================================================
 
-:Status: authoritative spec for all implementation work
+:Status: archived on 2026-09-14 and frozen. The documentation in ``docs/``
+         describes the system as it is; nothing cites or updates this plan.
 :Audience: implementers (human or agent) and reviewers
 
 This document is the single source of truth for the prototype. Every

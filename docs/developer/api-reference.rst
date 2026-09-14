@@ -245,6 +245,16 @@ rules govern every gate in the matrix below:
   ``system_admin`` role needs the role itself and not merely
   ``is_superuser``.
 
+Views declare their gates with the permission classes in
+``apps/accounts/permissions.py``.  ``HasRole(slug)`` and ``HasAnyRole(*slugs)``
+are factories that return a DRF permission class; ``IsUserAdmin``,
+``IsAccountAdmin`` and ``IsSystemAdmin`` are ready-made ones, and
+``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check.  Every one
+of them runs its test through ``user_has_any_role``, so an anonymous caller
+always fails and the two rules above always hold.  Object-level rules, such
+as who may edit an aircraft record, are separate classes in the owning app
+(``apps/aircraft/api/permissions.py``).
+
 ``website_admin`` grants **no API endpoint at all**.  It exists to give its
 holder Wagtail admin permissions, which are enforced by Wagtail, not by DRF.
 
@@ -627,6 +637,8 @@ paths is 405.
 
 Endpoints without a page of their own
 =====================================
+
+.. _api-reminders-system:
 
 Reminders and system
 --------------------
