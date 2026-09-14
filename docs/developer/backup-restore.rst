@@ -50,12 +50,10 @@ Development::
 
   make backup
 
-Production::
+Production, through the ``caldart_manage`` function defined in
+:ref:`deploy-manage-commands`::
 
-  cd /srv/caldart/backend
-  sudo -u caldart env $(grep -v '^#' /etc/caldart/caldart.env | xargs) \
-      DJANGO_SETTINGS_MODULE=caldart.settings.prod \
-      /srv/caldart/.venv/bin/python manage.py db_backup
+  caldart_manage db_backup
 
 Or from a browser: ``/portal/system`` → **Backups** → **Create backup**.  Three
 endpoints back that panel, all ``system_admin`` only:
@@ -133,9 +131,8 @@ The argument may be a path or a bare file name inside ``BACKUP_DIR``.
 In production, stop the web unit first so nothing writes during the restore::
 
   sudo systemctl stop caldart-web
-  cd /srv/caldart/backend
-  sudo -u caldart ... manage.py db_restore /srv/caldart/backups/caldart-....sql.gz --yes
-  sudo -u caldart ... manage.py migrate
+  caldart_manage db_restore /srv/caldart/backups/caldart-....sql.gz --yes
+  caldart_manage migrate
   sudo systemctl start caldart-web
 
 The ``migrate`` afterwards is deliberate: a dump taken from an older release
