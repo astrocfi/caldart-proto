@@ -44,7 +44,7 @@ When reviewing PRs, verify:
 
 - [ ] No secrets or credentials in code, config, or comments.
 - [ ] Request inputs are validated at the serializer/form boundary with clear error messages.
-- [ ] Every new endpoint enforces the permission matrix in PLAN §5.
+- [ ] Every new endpoint enforces the permission matrix in `docs/developer/api-reference.rst`.
 - [ ] New dependencies are from reputable sources and have no known CVEs.
 - [ ] File operations guard against path traversal.
 - [ ] Error messages do not leak internal file paths or sensitive data.

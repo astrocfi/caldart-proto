@@ -55,7 +55,7 @@ The guide as a whole MUST cover:
   arrives, which file downloads).
 - **Reference for every operator command** — see Section 3.
 - **Examples** — realistic end-to-end examples for the common workflows. The demo walkthrough
-  (`docs/demo-walkthrough.rst`) drives the five flows in `PLAN.rst` §1 on seeded demo data;
+  (`docs/demo-walkthrough.rst`) drives the five core flows on seeded demo data;
   link to it rather than duplicating it.
 
 ## 3. Documenting Operator Commands
@@ -94,7 +94,7 @@ For EACH command documented:
 - State expected results: what the user should see, which email arrives (Mailpit catches
   every email in development), and what file downloads and what it contains.
 - Keep roles, permissions, and screen contents in exact agreement with the permission matrix
-  (`PLAN.rst` §5) and the portal navigation (`frontend/src/portal/nav.ts`). When the code
+  (`docs/developer/api-reference.rst`) and the portal navigation (`frontend/src/portal/nav.ts`). When the code
   changes, update the guide in the same change.
 - For step-by-step task walkthroughs that warrant their own article, follow the `doc-how-to`
   skill and link to it from the relevant chapter.

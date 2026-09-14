@@ -10,7 +10,7 @@ Use this when you need concrete examples for a dimension or wording guidance. Th
 
 **Best practices**
 - **Finding**: Several functions use `except Exception` and pass, hiding failures. **Evidence**: `backend/apps/<app>/services.py` lines 45, 89. **Suggestion**: Catch specific exceptions, log with `log.exception`, and re-raise or return a sentinel where appropriate.
-- **Finding**: A view computes the charge amount and activates the membership inline instead of calling the service. **Evidence**: `backend/apps/<app>/api/views.py` `confirm()`. **Suggestion**: Move the domain logic into `services.py` (as `PLAN.rst` §4 lays out) so the view only validates, calls, and responds.
+- **Finding**: A view computes the charge amount and activates the membership inline instead of calling the service. **Evidence**: `backend/apps/<app>/api/views.py` `confirm()`. **Suggestion**: Move the domain logic into `services.py` so the view only validates, calls, and responds.
 
 **Best practices – management commands and logging**
 - **Finding**: A management command uses `print()` for progress and `sys.exit(1)` on bad arguments. **Evidence**: `backend/apps/<app>/management/commands/example.py` lines 12, 40. **Suggestion**: Write output with `self.stdout.write(...)` and raise `CommandError("...")` so Django reports the failure and exits non-zero.
@@ -28,7 +28,7 @@ Use this when you need concrete examples for a dimension or wording guidance. Th
 
 **Testing**
 - **Finding**: Coverage is ~45% for `apps/<app>/`; the CSV export has no direct tests. **Evidence**: `uv run --with pytest-cov pytest --cov=backend --cov-report=term-missing`; no `backend/tests/test_<app>_exports.py`. **Suggestion**: Add tests for the export's content and filters; aim for ≥90%.
-- **Finding**: No test checks that a `member` is refused the admin list endpoint. **Evidence**: `backend/tests/test_<app>_api.py` covers only the allowed role. **Suggestion**: Parametrize allow/deny over every role in the `PLAN.rst` §5 matrix.
+- **Finding**: No test checks that a `member` is refused the admin list endpoint. **Evidence**: `backend/tests/test_<app>_api.py` covers only the allowed role. **Suggestion**: Parametrize allow/deny over every role in the permission matrix (`docs/developer/api-reference.rst`).
 
 **Performance**
 - **Finding**: The member list endpoint issues one query per row for the member's DART and current membership. **Evidence**: the serializer's method fields in `apps/<app>/api/serializers.py`; the queryset in the view has no `select_related`. **Suggestion**: Add `select_related` / `prefetch_related` to the queryset and pin the count with `django_assert_num_queries` in a test.
@@ -45,7 +45,7 @@ Use this when you need concrete examples for a dimension or wording guidance. Th
 - **Finding**: The README lists a make target the Makefile no longer defines. **Evidence**: `README.rst` "Everyday commands" vs `make help`. **Suggestion**: Keep the README's command list in step with the Makefile.
 
 **Security**
-- **Finding**: An endpoint declares no `permission_classes` and relies on the project default. **Evidence**: `backend/apps/<app>/api/views.py` `ExampleView`. **Suggestion**: Declare the permission classes the `PLAN.rst` §5 matrix requires, and add allow/deny tests.
+- **Finding**: An endpoint declares no `permission_classes` and relies on the project default. **Evidence**: `backend/apps/<app>/api/views.py` `ExampleView`. **Suggestion**: Declare the permission classes the permission matrix requires, and add allow/deny tests.
 - **Finding**: Subprocess is invoked with `shell=True` and a user-supplied file name. **Evidence**: `backend/apps/<app>/management/commands/example.py` line 67. **Suggestion**: Use list form of arguments and avoid `shell=True`; resolve and validate the path.
 
 **Dependencies**
