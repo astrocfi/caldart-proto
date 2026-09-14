@@ -2,14 +2,23 @@
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';
-import { UserDetailPage, UsersListPage } from '../features/admin-users';
 
 export const adminUsersRoutes: RouteObject[] = [
   {
     element: <RequireRole roles={['user_admin']} />,
     children: [
-      { path: 'admin/users', element: <UsersListPage /> },
-      { path: 'admin/users/:id', element: <UserDetailPage /> },
+      {
+        path: 'admin/users',
+        lazy: async () => ({
+          Component: (await import('../features/admin-users/UsersListPage')).UsersListPage,
+        }),
+      },
+      {
+        path: 'admin/users/:id',
+        lazy: async () => ({
+          Component: (await import('../features/admin-users/UserDetailPage')).UserDetailPage,
+        }),
+      },
     ],
   },
 ];
