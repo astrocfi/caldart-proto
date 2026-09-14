@@ -215,6 +215,53 @@ def test_a_user_admin_may_still_rename_a_system_admin(api_client, user_admin, sy
 
 
 # --------------------------------------------------------------------------
+# Roles: the flag that makes an account a system administrator
+# --------------------------------------------------------------------------
+def test_a_user_admin_cannot_write_the_roles_of_a_role_less_superuser(
+    api_client, user_admin, bare_superuser
+) -> None:
+    """Writing the role list clears ``is_superuser``, so it is a revocation.
+
+    The list here is the one the account already has, which makes the write look
+    like no change at all; it is refused because saving it would drop the flag
+    that counts as ``system_admin``.
+    """
+    api_client.force_login(user_admin)
+    response = api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER]})
+
+    assert response.status_code == 400
+    assert "roles" in response.json()
+    bare_superuser.refresh_from_db()
+    assert bare_superuser.is_superuser is True
+
+
+def test_the_roles_guard_keeps_a_role_less_superusers_email_out_of_reach(
+    api_client, user_admin, bare_superuser
+) -> None:
+    """The two-request takeover: clear the flag first, then move the address."""
+    api_client.force_login(user_admin)
+    api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER]})
+
+    response = api_client.patch(user_detail(bare_superuser), {"email": ATTACKER_EMAIL})
+
+    assert response.status_code == 400
+    bare_superuser.refresh_from_db()
+    assert bare_superuser.email == "root-no-role@example.test"
+
+
+def test_a_role_less_superuser_may_grant_the_system_admin_role(
+    api_client, bare_superuser, member
+) -> None:
+    """The superuser flag satisfies the roles guard for the actor as well."""
+    api_client.force_login(bare_superuser)
+    response = api_client.patch(user_detail(member), {"roles": [MEMBER, SYSTEM_ADMIN]})
+
+    assert response.status_code == 200
+    member.refresh_from_db()
+    assert member.is_superuser is True
+
+
+# --------------------------------------------------------------------------
 # Delete
 # --------------------------------------------------------------------------
 def test_an_account_admin_cannot_delete_a_role_less_superuser(

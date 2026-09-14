@@ -8,7 +8,12 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.accounts.roles import ROLE_SLUGS, SYSTEM_ADMIN
-from apps.accounts.services import AccountEditRefused, check_account_edit, user_from_uid
+from apps.accounts.services import (
+    AccountEditRefused,
+    check_account_edit,
+    effective_roles,
+    user_from_uid,
+)
 
 User = get_user_model()
 
@@ -183,7 +188,9 @@ class AdminUserSerializer(UserSerializer):
     ``roles`` is validated against ``accounts.roles``; the escalation rules — only a
     ``system_admin`` may grant or revoke ``system_admin``, and the email address and
     active flag of an account holding roles the caller lacks are untouchable — live
-    here because they need both the caller and the target.
+    here because they need both the caller and the target.  Both rules read effective
+    roles, so a Django superuser without the role group counts as a ``system_admin``
+    whether it is the caller or the account being edited.
     """
 
     roles = serializers.ListField(
@@ -218,8 +225,12 @@ class AdminUserSerializer(UserSerializer):
 
     def validate_roles(self, value: list[str]) -> list[str]:
         wanted = set(value)
-        held = set(self.instance.roles) if self.instance is not None else set()
-        if SYSTEM_ADMIN in wanted ^ held and not self._actor.has_role(SYSTEM_ADMIN):
+        # Effective roles on both sides.  Writing the list runs `sync_django_flags`,
+        # which sets `is_superuser` from the roles alone, so a write that leaves a
+        # role-less superuser's groups untouched still revokes its system_admin
+        # standing -- and a role-less superuser grants the role as one.
+        held = effective_roles(self.instance) if self.instance is not None else set()
+        if SYSTEM_ADMIN in wanted ^ held and SYSTEM_ADMIN not in effective_roles(self._actor):
             raise serializers.ValidationError(
                 "Only a system administrator can grant or revoke the system_admin role."
             )

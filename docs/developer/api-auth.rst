@@ -260,6 +260,11 @@ Wagtail's editor groups, say — are left alone.
 and the roles the account already holds, and you are not a system administrator,
 the request is 400.  A user administrator can therefore still edit a system
 administrator's *other* roles, as long as ``system_admin`` stays in the list.
+Both halves of that comparison are *effective* roles, so a Django superuser
+without the role group counts as a system administrator on either side.  Writing
+a role list rebuilds the flags from that list alone, so on such an account even a
+list identical to the groups it already has is a revocation of ``system_admin``,
+and is refused for the same reason.
 
 **The account-edit guard covers ``email`` and ``is_active``.**  It is shared
 with ``PATCH /admin/members/{user_id}`` and described in full under

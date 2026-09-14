@@ -102,7 +102,10 @@ Things worth knowing:
   screens.
 * ``system_admin`` implies every other role in permission checks, and also makes
   the account a Django superuser.  Grant it sparingly.
-* Removing ``system_admin`` takes the superuser flag away again.
+* Removing ``system_admin`` takes the superuser flag away again.  An account
+  that has the flag but never had the role — the one the site was installed
+  with, typically — counts as a system administrator all the same, so only a
+  system administrator can save its Roles section at all.
 * ``website_admin`` is what opens the Wagtail admin at ``/admin/``.  Saving it
   sets the account's Django "staff" flag, and removing it clears the flag
   again — so granting the role is the whole job, and there is nothing else to
@@ -172,9 +175,10 @@ When something goes wrong
 =========================
 
 **"Only a system administrator can grant or revoke the system_admin role."**
-   Exactly what it says, and holding the Django superuser flag is not a
-   substitute — the check asks for the role itself.  Ask a system
-   administrator.
+   Exactly what it says.  Ask a system administrator.  You will also see it when
+   you press **Save changes** on an account that carries Django superuser access
+   without the role: saving the Roles section rebuilds that access from the
+   ticked boxes, so saving it at all would take the access away.
 
 **"You cannot deactivate your own account."**
    Deliberate, so the last administrator cannot lock everybody out by

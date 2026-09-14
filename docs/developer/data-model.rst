@@ -416,10 +416,11 @@ Rules:
 - ``accounts.services.effective_roles`` is the role set the account guards
   compare: the account's own slugs, plus ``system_admin`` whenever
   ``is_superuser`` is set.  ``createsuperuser`` sets that flag without adding
-  the role group, so the two are one kind of account to the member delete guard
-  and to the account-edit guard (:ref:`account-edit-guard`), which lets an
-  administrator change another account's ``email`` or ``is_active`` only while
-  holding every role that account holds.
+  the role group, so the two are one kind of account to the member delete guard,
+  to the guard on moving the ``system_admin`` role, and to the account-edit
+  guard (:ref:`account-edit-guard`), which lets an administrator change another
+  account's ``email`` or ``is_active`` only while holding every role that account
+  holds.
 - ``STAFF_ROLE_SLUGS`` is every slug except ``member``, and is what
   ``can_access_members_content`` tests.
 - ``manage.py seed_roles`` creates the groups and is idempotent.  It is also
