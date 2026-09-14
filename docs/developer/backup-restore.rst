@@ -154,7 +154,7 @@ than skipping the night.  Install both, then enable the timer::
   sudo systemctl start caldart-backup.service    # take one right away
   journalctl -u caldart-backup -n 20
 
-Four details to keep in step with the rest of the deployment.  ``BACKUP_DIR``
+Five details to keep in step with the rest of the deployment.  ``BACKUP_DIR``
 has to be an absolute path in ``/etc/caldart/caldart.env`` — the production
 template sets ``/srv/caldart/backups`` — because the prune hands the value
 straight to ``find``, which resolves a relative path against
