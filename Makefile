@@ -53,8 +53,8 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend e2e lint lint-backend \
-        lint-frontend format backup restore reminders docs shell superuser \
-        collectstatic clean
+        lint-frontend format check check-backend check-frontend audit audit-backend \
+        audit-frontend backup restore reminders docs shell superuser collectstatic clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -188,6 +188,29 @@ format: ## Auto-format Python and TypeScript
 	$(UV) run ruff format .
 	$(UV) run ruff check --fix .
 	cd frontend && $(NPM) run format
+
+# ---------------------------------------------------------------- check
+# The gates that are neither lint nor tests: Django's system checks (a warning
+# fails too), a model change without its migration, and the production build.
+check: check-backend check-frontend ## Django system checks, missing migrations, production build
+
+check-backend:
+	$(MANAGE) check --settings caldart.settings.test --fail-level WARNING
+	$(MANAGE) makemigrations --check --dry-run --settings caldart.settings.test
+
+check-frontend:
+	cd frontend && $(NPM) run build
+
+# ---------------------------------------------------------------- audit
+audit: audit-backend audit-frontend ## Known vulnerabilities in Python and npm dependencies
+
+# `uv audit` checks the versions pinned in uv.lock against the OSV database.
+# It is a uv preview feature; the flag acknowledges that and silences the notice.
+audit-backend:
+	$(UV) audit --frozen --preview-features audit
+
+audit-frontend:
+	cd frontend && $(NPM) audit
 
 # ------------------------------------------------------------ scheduled
 reminders: ## Send renewal reminders (make reminders TODAY=2027-01-01 DRY_RUN=1)
