@@ -29,9 +29,11 @@ Authentication
 
 **Session authentication, same origin, and nothing else.**
 ``DEFAULT_AUTHENTICATION_CLASSES`` is exactly
-``rest_framework.authentication.SessionAuthentication``.  There is no token,
-no API key and no JWT anywhere in the project, and no plan to add one — the
-only client is a SPA served from the same origin as the API.
+``caldart.authentication.CsrfEnforcingSessionAuthentication``, DRF's
+``SessionAuthentication`` with the CSRF check widened as
+:ref:`below <api-csrf-bootstrap>`.  There is no token, no API key and no JWT
+anywhere in the project, and no plan to add one — the only client is a SPA
+served from the same origin as the API.
 
 Signing in with ``POST /auth/login`` sets the session cookie; the browser sends
 it automatically thereafter.  The portal's fetch wrapper
@@ -47,9 +49,18 @@ load-bearing — read the matrix, not the default.
 CSRF bootstrap
 --------------
 
-Session authentication means DRF enforces CSRF on every unsafe method.  A
-client that has not yet made a request has no ``csrftoken`` cookie, so the API
-offers one endpoint whose only job is to issue it:
+Every unsafe method needs a CSRF token, whether or not the caller is signed
+in.  DRF's own ``SessionAuthentication`` checks the token only once it has
+found a session, which would leave ``POST /auth/login``,
+``POST /auth/register`` and the other anonymous endpoints open to a cross-site
+form — enough to sign a visitor into an attacker's account, or to create
+accounts from a victim's browser.
+``caldart.authentication.CsrfEnforcingSessionAuthentication`` runs the same
+check when authentication finds no session, so every endpoint is covered, this
+one included.
+
+A client that has not yet made a request has no ``csrftoken`` cookie, so the
+API offers one endpoint whose only job is to issue it:
 
 .. code-block:: text
 
@@ -63,10 +74,16 @@ write as soon as the cookie is missing or rotated.  The cookie is deliberately
 **not** ``HttpOnly`` — JavaScript has to read it to echo it — while the session
 cookie is; see the reasoning in ``caldart/settings/prod.py``.
 
-A request from a signed-in caller that arrives without a usable token is
-refused before the view runs, with ``403`` and a ``detail`` that starts
-``CSRF Failed``.  That refusal is safe to repeat: fetch a token again and
-resend the request once.
+A request that arrives without a usable token is refused before the view runs,
+with ``403`` and a ``detail`` that starts ``CSRF Failed``.  Nothing happens
+behind that refusal: no session is issued, no account is created, no email is
+sent and no rate-limit budget is spent.  It is safe to repeat: fetch a token
+again and resend the request once.
+
+The two payment webhooks are the only exception.  They set
+``authentication_classes = []`` and carry ``csrf_exempt``, because their
+caller is Stripe or PayPal rather than a browser and the request signature is
+the credential; see :doc:`api-payments`.
 
 From ``curl``, that is two steps:
 
@@ -125,15 +142,19 @@ rewrites ``NotAuthenticated`` to 401.  The rule is therefore:
    * - **401**
      - Nobody is signed in.  Sign in and retry.
    * - **403**
-     - Somebody is signed in, and the request was refused.  Retrying will not
-       help, unless the ``detail`` starts ``CSRF Failed``.
+     - The request was refused, and retrying will not help unless the
+       ``detail`` starts ``CSRF Failed``.  A refusal on the caller's roles
+       means somebody is signed in; a CSRF refusal reaches an anonymous caller
+       just as readily.
 
 Four deliberate departures are worth knowing:
 
 - A **403** whose ``detail`` starts ``CSRF Failed`` is the one worth
-  repeating.  It comes from CSRF enforcement, before any permission class
-  runs, so the caller's roles are not what was refused: fetch a token again
-  and resend the request once (see :ref:`api-csrf-bootstrap`).
+  repeating.  It comes from CSRF enforcement, before authentication settles
+  and before any permission class runs, so neither the caller's roles nor the
+  absence of a session is what was refused — an anonymous unsafe method that
+  carries no token is answered this way rather than with 401.  Fetch a token
+  again and resend the request once (see :ref:`api-csrf-bootstrap`).
 - ``POST /auth/login`` answers **400** for wrong credentials (``{"detail":
   "Incorrect email address or password."}``) and **403** for a known but
   deactivated account.  It is an authentication endpoint; a 401 from it would
@@ -246,8 +267,10 @@ limited by client IP address, with the rates read from the environment:
      - ``auth_password_reset``
      - ``AUTH_THROTTLE_PASSWORD_RESET`` (``10/hour``)
 
-Setting a rate to empty turns that throttle off; the test settings do exactly
-that for all three.  The classes subclass ``AnonRateThrottle`` but override
+Setting a rate to empty turns that throttle off, and a value that is neither
+empty nor a readable rate stops start-up; see :doc:`configuration`.  The test
+settings switch all three off in Python rather than through the environment.
+The classes subclass ``AnonRateThrottle`` but override
 ``get_cache_key`` so they bucket by address even for an authenticated caller —
 registration signs the new account in, and every request after the first would
 otherwise go uncounted.  Exceeding a rate is **429**.
@@ -292,7 +315,10 @@ Who may call what.  ``·`` means no access, ✓ means access.  ``system_admin``
 is omitted from the columns because it passes every row except the three
 payment-confirmation rows, which are owner-only for everybody.
 
-*Anonymous* means no session at all; anything it cannot reach answers **401**.
+*Anonymous* means no session at all; anything it cannot reach answers **401**,
+provided the request carried a CSRF token.  An unsafe method without one never
+reaches the permission check: it is refused with **403** first, signed in or
+not (see :ref:`api-csrf-bootstrap`).
 
 .. list-table::
    :header-rows: 1

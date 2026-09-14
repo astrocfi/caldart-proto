@@ -109,6 +109,7 @@ Repository layout
         urls.py                 the root URLconf
         api_urls.py             /api/v1/: includes every app's api/urls.py
         views.py                portal_shell, the page the SPA runs in
+        authentication.py       session auth, with CSRF for anonymous callers
         pagination.py           page-number pagination for the API
         exceptions.py           DRF error handling (401 for anonymous)
         reports.py              CSV and PDF house style

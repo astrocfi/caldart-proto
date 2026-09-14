@@ -6,9 +6,10 @@ DRF ``AnonRateThrottle`` scope.
 
 Rates come from the ``AUTH_THROTTLE_RATES`` setting rather than DRF's
 ``DEFAULT_THROTTLE_RATES`` so they can be switched off (or turned up for one
-test) with a plain ``override_settings``: a scope mapped to ``None`` — or
-missing entirely, which is how ``settings/test.py`` leaves it — makes the
-throttle inert.
+test) with a plain ``override_settings``.  A scope makes its throttle inert
+when it is mapped to ``None``, mapped to an empty string, or absent from the
+mapping; ``settings/test.py`` maps all three scopes to ``None`` so no test
+races a shared counter.
 """
 
 from __future__ import annotations
@@ -28,7 +29,14 @@ class AuthScopedThrottle(AnonRateThrottle):
     scope = ""
 
     def get_rate(self) -> str | None:
-        return getattr(settings, "AUTH_THROTTLE_RATES", {}).get(self.scope)
+        """The configured rate, or ``None`` when this scope is switched off.
+
+        Off is spelled three ways -- ``None``, an empty string and a missing
+        key -- because an operator who blanks the environment variable and a
+        test that overrides the mapping mean the same thing, and DRF treats
+        only ``None`` as unlimited.
+        """
+        return settings.AUTH_THROTTLE_RATES.get(self.scope) or None
 
     def get_cache_key(self, request, view) -> str:
         """Always count by client address.

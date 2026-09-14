@@ -10,7 +10,9 @@ join wizard can render before the visitor has an account.
 
 Conventions are the ones in :doc:`api-reference`: session authentication,
 ``X-CSRFToken`` on unsafe methods, ISO-8601 dates, DRF error bodies.  An
-unauthenticated request to a protected endpoint returns **401**, not 403.
+unauthenticated request to a protected endpoint returns **401**, not 403 —
+unless it is an unsafe method carrying no CSRF token, which is refused with
+**403** before the permission check.
 
 
 Summary

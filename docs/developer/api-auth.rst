@@ -13,10 +13,12 @@ Conventions
 
 **Session authentication.**  The portal and the API are same-origin, so the
 browser's session cookie is the credential; there is no token to store.
-``rest_framework.authentication.SessionAuthentication`` is the only
+``caldart.authentication.CsrfEnforcingSessionAuthentication`` is the only
 authentication class configured.
 
-**CSRF.**  Every unsafe method needs an ``X-CSRFToken`` header.  Call
+**CSRF.**  Every unsafe method needs an ``X-CSRFToken`` header, including the
+anonymous ones on this page: register, login, logout and the two
+password-reset endpoints all refuse a POST that carries no token.  Call
 ``GET /api/v1/auth/csrf`` whenever you have no ``csrftoken`` cookie to echo;
 the SPA's ``api/client.ts`` does this automatically before every POST, PUT,
 PATCH or DELETE that finds the cookie missing.
@@ -25,9 +27,11 @@ PATCH or DELETE that finds the cookie missing.
 ``WWW-Authenticate`` challenge, so DRF would normally answer 403.
 ``caldart.exceptions.caldart_exception_handler`` rewrites that to 401, which is
 what the contract promises and what the SPA keys "sign in again" off.  A 403
-therefore always means *signed in*: the wrong role, or — when the ``detail``
-starts ``CSRF Failed`` — a missing or stale CSRF token, which succeeds on a
-resend once a fresh token has been fetched (see :ref:`api-csrf-bootstrap`).
+therefore means one of two things: the caller is signed in and holds the wrong
+role, or — when the ``detail`` starts ``CSRF Failed`` — the CSRF token is
+missing or stale, which succeeds on a resend once a fresh token has been
+fetched (see :ref:`api-csrf-bootstrap`).  The second reads the same whether or
+not the caller has a session.
 
 **Errors** are DRF-standard: ``{"detail": "..."}`` for view-level refusals, and
 ``{"<field>": ["..."]}`` for validation.  Password rules are reported against
