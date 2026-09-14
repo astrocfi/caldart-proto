@@ -173,7 +173,7 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
 
 # ----------------------------------------------------------------- lint
-lint: lint-backend lint-frontend ## ruff + eslint + tsc
+lint: lint-backend lint-frontend ## ruff + tsc + eslint + prettier
 
 lint-backend:
 	$(UV) run ruff check .
