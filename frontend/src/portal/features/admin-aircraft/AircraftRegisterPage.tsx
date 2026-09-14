@@ -15,13 +15,13 @@ import { DateText } from '../../components/DateText';
 import { Field } from '../../components/Field';
 import { Page } from '../../components/Page';
 import { useToast } from '../../components/Toast';
+import { useDebounced } from '../../components/useDebounced';
 import { InsuranceChip } from '../aircraft/InsuranceChip';
 import { ServiceChip } from '../aircraft/ServiceChip';
 import '../aircraft/aircraft.css';
 import type { AircraftFilters } from '../aircraft/api';
 import { aircraftExportUrl, useAircraftList, useCreateAircraft } from '../aircraft/api';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, emptyAircraftValues } from '../aircraft/form';
-import { useDebounced } from '../aircraft/useDebounced';
 import { AircraftForm } from '../aircraft/AircraftForm';
 
 const PAGE_SIZE = 25;
