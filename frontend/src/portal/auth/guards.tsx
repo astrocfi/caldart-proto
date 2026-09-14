@@ -15,6 +15,7 @@ import type { Location } from 'react-router-dom';
 import type { RoleSlug } from '../api/types';
 import { Button, ButtonLink } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
+import { Loading } from '../components/Loading';
 import { Page } from '../components/Page';
 import { hasAnyRole } from '../nav';
 import { useAuth } from './useAuth';
@@ -22,14 +23,6 @@ import { useAuth } from './useAuth';
 /** `/login?next=<where they were heading>`. */
 export function loginRedirect(location: Pick<Location, 'pathname' | 'search'>): string {
   return `/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
-}
-
-function Loading(): ReactNode {
-  return (
-    <div className="portal-loading" role="status" aria-live="polite">
-      <span className="visually-hidden">Loading</span>
-    </div>
-  );
 }
 
 interface AuthUnavailableProps {

@@ -286,6 +286,12 @@ Two helpers do the heavy lifting:
     started at ``route``.  Render through it rather than Testing Library's bare
     ``render``, or anything using a query or a toast will throw.
 
+    ``renderRoutes(routes, {route})`` mounts a whole route table instead of one
+    component: the same providers around a memory data router, so the layout,
+    the guards and each route's ``lazy`` loader all take part.  It returns the
+    router alongside the render result, which is how a test reads the location
+    a guard redirected to.
+
 ``src/test/server.ts`` and ``handlers.ts``
     An `msw <https://mswjs.io/>`_ server with default handlers for the common
     endpoints.  ``src/test/setup.ts`` starts it with
@@ -327,7 +333,10 @@ tree keeps it that way.
 What the frontend suite covers
 ------------------------------
 
-The API client and its error mapping; the route guards; the shared
+The API client and its error mapping; the route guards, and the real route
+table opened at every guarded path by an anonymous visitor and by a user
+holding each role, so a guard that loses a role fails a case, plus the order a
+guard and an on-demand page resolve in; the shared
 ``DataTable`` and ``StatusChip``; the auth pages; the join wizard's step
 progression, resume and clamp rules; profile form conversion and validation;
 the aircraft picker's search, exclude and create paths; the leader search and
