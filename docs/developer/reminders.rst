@@ -225,11 +225,13 @@ Running it by hand is safe at any time::
 
 ``OnCalendar=*-*-* 06:30:00`` moves it to 06:30; ``Mon *-*-* 07:00:00`` makes
 it weekly.  The scanner is date-driven and idempotent, so running it more often
-simply finds nothing new.  Running it less often than every three days steps
-over cohorts, because the catch-up window is three days wide
-(:ref:`reminders-window`); a weekly timer would miss most of them.  Within
-those three days, ``Persistent=true`` and the window between them cover a
-machine that was off at 07:00.
+simply finds nothing new.  Keep the cadence daily, though: ``expired`` matches
+its own day alone (:ref:`reminders-window`), so a timer that skips a day drops
+that day's ``expired`` cohort for good.  Only the four windowed kinds tolerate a
+slower timer, and only down to one run every three days, because the window is
+three days wide; a weekly timer misses most of their cohorts as well.  With a
+daily timer, ``Persistent=true`` and the overlap between runs cover a machine
+that was off at 07:00.
 
 **Changing which reminders exist** is a code change: add the kind to
 ``ReminderKind`` and ``REMINDER_OFFSETS``, add a subject to ``SUBJECTS`` in
