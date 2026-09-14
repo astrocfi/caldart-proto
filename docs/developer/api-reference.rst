@@ -96,6 +96,13 @@ JSON is the only representation: ``DEFAULT_RENDERER_CLASSES`` is
 ``JSONRenderer`` alone, so there is no browsable API and no ``?format=``.
 Dates are ISO-8601 (``2027-03-01``); datetimes are ISO-8601 with an offset.
 
+Every successful response is therefore either a JSON body or nothing at all:
+an endpoint with nothing to say answers **204** with no body and no
+``Content-Type``.  A client may treat any other 2xx body as a fault — an HTML
+maintenance or proxy page served with status 200, say — rather than as data.
+The CSV and PDF exports are the exception, and they are plain links rather
+than API calls.
+
 401 versus 403
 --------------
 

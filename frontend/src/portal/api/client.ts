@@ -5,7 +5,8 @@
  * - CSRF fetched from `GET /api/v1/auth/csrf` whenever the `csrftoken` cookie is
  *   missing, then sent as `X-CSRFToken` on every unsafe method; a request the
  *   server refuses with a `CSRF Failed` 403 is retried once with a fresh token;
- * - JSON in, JSON out, and DRF error bodies surfaced as a typed `ApiError`.
+ * - JSON in, JSON out: a non-2xx response becomes a typed `ApiError`, and a 2xx
+ *   body that is neither empty nor JSON becomes an `UnexpectedResponseError`.
  */
 
 export const API_BASE = '/api/v1';
@@ -70,6 +71,24 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * A 2xx response whose body is not the JSON the caller was typed to expect.
+ *
+ * It carries no server message, so a screen that special-cases `ApiError` falls back to
+ * its own copy, and the query client treats it like any other transport failure.
+ */
+export class UnexpectedResponseError extends Error {
+  readonly status: number;
+  readonly contentType: string | null;
+
+  constructor(status: number, contentType: string | null, options?: ErrorOptions) {
+    super('The server sent an unexpected response. Please try again.', options);
+    this.name = 'UnexpectedResponseError';
+    this.status = status;
+    this.contentType = contentType;
+  }
+}
+
 export function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match?.[1] ? decodeURIComponent(match[1]) : null;
@@ -107,7 +126,7 @@ async function fetchCsrfCookie(): Promise<void> {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
-    throw new ApiError(response.status, await parseBody(response));
+    throw new ApiError(response.status, await parseErrorBody(response));
   }
 }
 
@@ -136,7 +155,14 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
   return qs ? `${url}${url.includes('?') ? '&' : '?'}${qs}` : url;
 }
 
-async function parseBody(response: Response): Promise<unknown> {
+/**
+ * Read an error body as leniently as possible.
+ *
+ * Whatever a proxy or a crashed server puts in front of DRF still has to reach
+ * `ApiError`, so a body that will not parse degrades to `null` rather than raising and
+ * hiding the status the caller needs.
+ */
+async function parseErrorBody(response: Response): Promise<unknown> {
   if (response.status === 204) return null;
   const type = response.headers.get('content-type') ?? '';
   if (type.includes('application/json')) {
@@ -148,6 +174,30 @@ async function parseBody(response: Response): Promise<unknown> {
   }
   const text = await response.text();
   return text === '' ? null : text;
+}
+
+/**
+ * Read a successful body, which must be JSON or nothing at all.
+ *
+ * Every body-less 2xx the API answers is a 204 with no `Content-Type`, so an empty body
+ * is `null`. Anything else has to parse as JSON, because the caller's declared type says
+ * it is JSON: an HTML maintenance page served with status 200 is a fault, not a value.
+ *
+ * @throws UnexpectedResponseError when the body is neither empty nor parseable JSON.
+ */
+async function parseSuccessBody(response: Response): Promise<unknown> {
+  if (response.status === 204) return null;
+  const contentType = response.headers.get('content-type');
+  const text = await response.text();
+  if (text === '') return null;
+  if (contentType === null || !contentType.includes('application/json')) {
+    throw new UnexpectedResponseError(response.status, contentType);
+  }
+  try {
+    return JSON.parse(text);
+  } catch (cause) {
+    throw new UnexpectedResponseError(response.status, contentType, { cause });
+  }
 }
 
 function isCsrfFailure(status: number, body: unknown): boolean {
@@ -197,6 +247,7 @@ function send(path: string, method: string, options: RequestOptions): Promise<Re
  * the view ran, so repeating it changes nothing else.
  *
  * @throws ApiError for any non-2xx response, carrying the status and the parsed body.
+ * @throws UnexpectedResponseError for a 2xx body that is neither empty nor JSON.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = (options.method ?? 'GET').toUpperCase();
@@ -204,17 +255,17 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (isUnsafe) await ensureCsrfToken();
 
   const response = await send(path, method, options);
-  if (response.ok) return (await parseBody(response)) as T;
+  if (response.ok) return (await parseSuccessBody(response)) as T;
 
-  const body = await parseBody(response);
+  const body = await parseErrorBody(response);
   if (!isUnsafe || !isCsrfFailure(response.status, body)) {
     throw new ApiError(response.status, body);
   }
 
   await ensureCsrfToken({ force: true });
   const retried = await send(path, method, options);
-  if (retried.ok) return (await parseBody(retried)) as T;
-  throw new ApiError(retried.status, await parseBody(retried));
+  if (retried.ok) return (await parseSuccessBody(retried)) as T;
+  throw new ApiError(retried.status, await parseErrorBody(retried));
 }
 
 export const api = {

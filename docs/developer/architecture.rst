@@ -376,8 +376,17 @@ CSRF bootstrap, encodes JSON, and turns any non-2xx response into an
 ``ApiError`` with the status, the DRF error body, and ``fieldErrors`` keyed
 by field for forms.  A 403 whose ``detail`` starts ``CSRF Failed`` is the one
 response it retries: it fetches a token again and resends the request once,
-which recovers a cookie that has gone stale mid-session.  ``api/types.ts``
-types every API object by hand, in step with the serializers.
+which recovers a cookie that has gone stale mid-session.
+
+A successful response has to be JSON or nothing: a 204, or an empty body,
+becomes ``null``, and anything else that will not parse as JSON raises
+``UnexpectedResponseError`` carrying the status and the content type.  A
+truncated body or an HTML page from a proxy therefore reaches the screen as
+its error state, rather than as a ``null`` or a string the caller's declared
+type says is an object.  The error deliberately does **not** extend
+``ApiError``, because it carries no server message for a screen to show.
+``api/types.ts`` types every API object by hand, in step with the
+serializers.
 
 **Features.**  A directory under ``features/`` holds one feature's pages and
 components, an ``api.ts`` of query hooks, its stylesheet, its tests beside

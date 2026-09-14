@@ -3,7 +3,15 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { API } from '../../test/handlers';
 import { server } from '../../test/server';
-import { ApiError, api, ensureCsrfToken, readCookie, request, resetCsrfBootstrap } from './client';
+import {
+  ApiError,
+  UnexpectedResponseError,
+  api,
+  ensureCsrfToken,
+  readCookie,
+  request,
+  resetCsrfBootstrap,
+} from './client';
 
 /** A 204 that hands out `token`, exactly as `GET /auth/csrf` does. */
 function csrfCookie(token: string): HttpResponse<null> {
@@ -358,5 +366,78 @@ describe('CSRF bootstrap recovery', () => {
 
     await expect(api.get('/thing')).rejects.toBeInstanceOf(ApiError);
     expect(gets).toBe(1);
+  });
+});
+
+describe('response bodies', () => {
+  beforeEach(() => resetCsrfBootstrap());
+
+  it('rejects a 2xx that is not JSON at all', async () => {
+    server.use(
+      http.get(
+        `${API}/thing`,
+        () =>
+          new HttpResponse('<html><body>Down for maintenance</body></html>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/html' },
+          }),
+      ),
+    );
+    await expect(request('/thing')).rejects.toBeInstanceOf(UnexpectedResponseError);
+  });
+
+  it('reports the status and content type it could not use', async () => {
+    server.use(
+      http.get(
+        `${API}/thing`,
+        () =>
+          new HttpResponse('<html></html>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          }),
+      ),
+    );
+    await expect(request('/thing')).rejects.toMatchObject({
+      name: 'UnexpectedResponseError',
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+    });
+  });
+
+  it('rejects a 2xx whose JSON body does not parse', async () => {
+    server.use(
+      http.get(
+        `${API}/thing`,
+        () =>
+          new HttpResponse('{"results": [', {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    );
+    await expect(request('/thing')).rejects.toBeInstanceOf(UnexpectedResponseError);
+  });
+
+  it('returns null for a 200 with an empty body', async () => {
+    server.use(http.get(`${API}/thing`, () => new HttpResponse(null, { status: 200 })));
+    await expect(request('/thing')).resolves.toBeNull();
+  });
+
+  it('still raises ApiError for an error page from a proxy', async () => {
+    server.use(
+      http.get(
+        `${API}/thing`,
+        () =>
+          new HttpResponse('<html><body>502 Bad Gateway</body></html>', {
+            status: 502,
+            headers: { 'Content-Type': 'text/html' },
+          }),
+      ),
+    );
+    await expect(request('/thing')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 502,
+      message: 'Request failed (502).',
+    });
   });
 });
