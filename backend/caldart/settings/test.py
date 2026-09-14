@@ -24,6 +24,11 @@ DJANGO_VITE = {
     }
 }
 
+# `make check-backend` runs Django's system checks under these settings with
+# --fail-level WARNING, and the backend CI job does not build the frontend, so
+# frontend/dist is absent there.  These two checks only report that missing build.
+SILENCED_SYSTEM_CHECKS = ["django_vite.W001", "staticfiles.W004"]
+
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},

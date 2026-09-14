@@ -230,5 +230,7 @@ docs/_build/
 playwright-report/
 test-results/
 
-# Claude Code agent worktrees and local session state
-.claude/
+# Claude Code: agent worktrees are nested git checkouts, and settings.local.json
+# is per-user.  Everything else under .claude/ is committed.
+.claude/worktrees/
+.claude/settings.local.json

@@ -38,9 +38,14 @@ Running the backend suite
 
 Configuration lives in ``pyproject.toml`` under ``[tool.pytest.ini_options]``:
 ``DJANGO_SETTINGS_MODULE = "caldart.settings.test"``, ``pythonpath =
-["backend"]``, ``testpaths = ["backend/tests"]`` and ``addopts = "-ra
---strict-markers"``.  You never need to set ``DJANGO_SETTINGS_MODULE``
-yourself, and an undeclared marker is an error rather than a silent typo.
+["backend"]``, ``testpaths = ["backend/tests"]``, ``addopts = "-ra
+--strict-markers --strict-config"``, and a ``filterwarnings`` list that starts
+with ``"error"``. You never need to set ``DJANGO_SETTINGS_MODULE`` yourself, an
+undeclared marker or a mistyped setting is an error rather than a silent typo,
+and any warning is a test failure. Fix a warning that comes from our own code.
+Silence one from a third-party package only with a narrow ``ignore:`` entry
+after ``"error"`` and a comment saying why, as the entry for WhiteNoise's
+missing-``STATIC_ROOT`` warning does.
 
 **The tests need Postgres.**  ``make up`` must have run.  Django creates
 ``test_<the database in DATABASE_URL>``, so a worktree using
@@ -332,37 +337,62 @@ Linting and type-checking
 
    $ make lint            # everything below
    $ make lint-backend    # ruff check, ruff format --check
-   $ make lint-frontend   # tsc --noEmit, eslint, prettier --check
+   $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
    $ make format          # fix what can be fixed automatically
 
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
 ``py312``, rule sets ``E``, ``F``, ``I``, ``UP``, ``B``, ``DJ``, ``C4``, ``W``,
 with migrations excluded.  TypeScript runs in strict mode; ``tsc --noEmit`` is
 part of linting rather than of the build, so a type error fails ``make lint``.
+ESLint runs with ``--max-warnings 0``, so a warning, such as a missing hook
+dependency, fails ``make lint`` too.
+
+System checks and dependency audits
+===================================
+
+.. code-block:: console
+
+   $ make check           # both halves below
+   $ make check-backend   # manage.py check --fail-level WARNING, makemigrations --check --dry-run
+   $ make check-frontend  # npm run build
+   $ make audit           # both halves below
+   $ make audit-backend   # uv audit: the versions in uv.lock against the OSV database
+   $ make audit-frontend  # npm audit: the versions in package-lock.json
+
+``make check`` fails on a Django system-check warning, on a model change
+without its migration, and on a frontend that type-checks but does not build.
+The backend half uses ``caldart.settings.test``.
+
+``make audit`` fails on any known vulnerability in a locked dependency,
+development tooling included. Fix a finding by upgrading the affected package.
+Do not run ``npm audit fix --force`` blindly: it can resolve an advisory by
+downgrading a major version. ``uv audit`` is a uv preview feature.
 
 Continuous integration
 ======================
 
-``.github/workflows/ci.yml`` runs three jobs on every push to ``main`` and
-every pull request:
+``.github/workflows/ci.yml`` runs five jobs on every push to ``main`` and
+every pull request. Every check is a make target, so CI runs exactly what the
+commands above run locally.
 
 **Backend**
-    A PostgreSQL 16 service container, ``uv sync --frozen``, ``ruff check``,
-    ``ruff format --check``, ``manage.py check``, ``manage.py makemigrations
-    --check --dry-run`` — so a model change without its migration fails — and
-    ``pytest -q``.
+    A PostgreSQL 16 service container, ``uv sync --frozen``, then
+    ``make lint-backend``, ``make check-backend`` and ``make test-backend``.
 
 **Frontend**
-    Node 22, ``npm ci``, ``npm run typecheck``, ``npm run lint``, ``npm run
-    format:check``, ``npm run test`` and ``npm run build``.
+    Node 22, ``npm ci``, then ``make lint-frontend``, ``make test-frontend``
+    and ``make check-frontend``.
+
+**Audit**
+    ``make audit``.
+
+**End-to-end**
+    ``make e2e`` against a PostgreSQL 16 service container in Chromium. When a
+    flow fails, the job prints the Django log and uploads the Playwright
+    report.
 
 **Docs**
-    ``uv sync --frozen`` and ``sphinx-build -W -b html docs docs/_build/html``.
-    Warnings are errors, and because :doc:`architecture` includes ``PLAN.rst``
-    verbatim, a reStructuredText defect in the specification fails this job
-    too.
-
-End-to-end tests are not in CI: they need a browser, a build and a seeded
-database, which is more than a pull-request check should carry.  Run
-``make e2e`` locally before merging anything that touches one of the five
-flows.
+    ``uv sync --frozen`` and ``make docs``. Warnings are errors and every
+    cross-reference must resolve, and because :doc:`architecture` includes
+    ``PLAN.rst`` verbatim, a reStructuredText defect in the specification
+    fails this job too.

@@ -4,8 +4,8 @@ Kept deliberately minimal: ``make docs`` needs nothing in the environment
 except Sphinx and the ``furo`` theme, both of which are in the ``dev``
 dependency group.  Graphviz is used when it is installed and skipped cleanly
 when it is not (see ``extensions`` below).  The whole set must build clean
-under ``sphinx-build -W`` (warnings are errors) -- CI runs it that way on every
-PR (PLAN.rst §15).
+under ``sphinx-build -n -W`` (nitpicky; warnings are errors) -- ``make docs``
+runs it that way, and CI runs ``make docs`` on every PR (PLAN.rst §15).
 """
 
 import shutil

@@ -93,6 +93,9 @@ def test_backup_create_role_matrix(
 def test_backup_download_role_matrix(api_client, all_role_users, a_backup, role, allowed):
     api_client.force_login(all_role_users[role])
     response = api_client.get(download_url(a_backup.name))
+    # The test client closes a streamed response only once its content is read, and
+    # closing it is what closes the dump file FileResponse opened.
+    response.close()
     assert response.status_code == (200 if allowed else 403)
 
 

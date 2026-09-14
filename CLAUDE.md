@@ -60,9 +60,11 @@ deploy/                 gunicorn.conf.py, systemd/, apache/, nginx/
 | `make run` | Django on :8000 |
 | `make dev-frontend` | Vite dev server on :5173 (set `DJANGO_VITE_DEV_MODE=true`) |
 | `make build` | production frontend assets into `frontend/dist` |
-| `make test` | `pytest` + `vitest` |
-| `make lint` | `ruff check`, `ruff format --check`, `tsc`, `eslint`, `prettier` |
-| `make docs` | `sphinx-build -W` |
+| `make test` | `pytest` (warnings are errors) + `vitest` |
+| `make lint` | `ruff check`, `ruff format --check`, `tsc`, `eslint --max-warnings 0`, `prettier` |
+| `make check` | `manage.py check --fail-level WARNING`, `makemigrations --check`, production build |
+| `make docs` | `sphinx-build -n -W` |
+| `make audit` | `uv audit` + `npm audit` |
 
 ### Running tests
 
@@ -132,4 +134,12 @@ Claude-Session: <the session URL for the work>
 
 Branch from a fresh `origin/main`, keep commits small and focused, and open
 the PR with `gh pr create --base main` describing what, why and how tested.
-`make test`, `make lint` and `make docs` must all be green first.
+`make test`, `make lint`, `make check`, `make docs` and `make audit` must all be
+green first.
+
+### Standards
+
+Coding, testing, documentation, dependency and security standards live in
+`.claude/rules/` and load automatically. Task workflows (running the checks,
+commits, pull requests, bug reports, and the codebase, test-suite and
+documentation critiques) are skills in `.claude/skills/`.

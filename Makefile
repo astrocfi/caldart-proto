@@ -53,8 +53,8 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend e2e lint lint-backend \
-        lint-frontend format backup restore reminders docs shell superuser \
-        collectstatic clean
+        lint-frontend format check check-backend check-frontend audit audit-backend \
+        audit-frontend backup restore reminders docs shell superuser collectstatic clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -173,7 +173,7 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
 
 # ----------------------------------------------------------------- lint
-lint: lint-backend lint-frontend ## ruff + eslint + tsc
+lint: lint-backend lint-frontend ## ruff + tsc + eslint + prettier
 
 lint-backend:
 	$(UV) run ruff check .
@@ -189,6 +189,29 @@ format: ## Auto-format Python and TypeScript
 	$(UV) run ruff check --fix .
 	cd frontend && $(NPM) run format
 
+# ---------------------------------------------------------------- check
+# The gates that are neither lint nor tests: Django's system checks (a warning
+# fails too), a model change without its migration, and the production build.
+check: check-backend check-frontend ## Django system checks, missing migrations, production build
+
+check-backend:
+	$(MANAGE) check --settings caldart.settings.test --fail-level WARNING
+	$(MANAGE) makemigrations --check --dry-run --settings caldart.settings.test
+
+check-frontend:
+	cd frontend && $(NPM) run build
+
+# ---------------------------------------------------------------- audit
+audit: audit-backend audit-frontend ## Known vulnerabilities in Python and npm dependencies
+
+# `uv audit` checks the versions pinned in uv.lock against the OSV database.
+# It is a uv preview feature; the flag acknowledges that and silences the notice.
+audit-backend:
+	$(UV) audit --frozen --preview-features audit
+
+audit-frontend:
+	cd frontend && $(NPM) audit
+
 # ------------------------------------------------------------ scheduled
 reminders: ## Send renewal reminders (make reminders TODAY=2027-01-01 DRY_RUN=1)
 	$(MANAGE) send_renewal_reminders \
@@ -196,8 +219,8 @@ reminders: ## Send renewal reminders (make reminders TODAY=2027-01-01 DRY_RUN=1)
 	  $(if $(DRY_RUN),--dry-run,)
 
 # ----------------------------------------------------------------- docs
-docs: ## Build the Sphinx documentation (warnings are errors)
-	$(UV) run sphinx-build -W -b html docs docs/_build/html
+docs: ## Build the Sphinx documentation (nitpicky; warnings are errors)
+	$(UV) run sphinx-build -n -W -b html docs docs/_build/html
 	@echo "Docs at docs/_build/html/index.html"
 
 clean: ## Remove build artefacts
