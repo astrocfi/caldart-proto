@@ -3,8 +3,9 @@
 A protected change -- the email address or the active flag -- is refused unless the
 actor holds every role the target holds.  A Django superuser counts as a system
 administrator whether or not the role group was ever added.  These cases replay the
-takeover the guard closes, check the edits that stay allowed, and check that a
-refusal is logged without any personal data.
+takeover the guard closes, check the edits that stay allowed, mark how far a caller
+who may also write roles reaches over a second request, and check that a refusal is
+logged without any personal data.
 """
 
 from __future__ import annotations
@@ -325,6 +326,63 @@ def test_the_roles_guard_keeps_a_role_less_superusers_email_out_of_reach(
     assert response.status_code == 400
     bare_superuser.refresh_from_db()
     assert bare_superuser.email == "root-no-role@example.test"
+
+
+# --------------------------------------------------------------------------
+# Roles: how far a second request reaches
+# --------------------------------------------------------------------------
+def test_a_user_admin_lifts_the_refusal_by_granting_themselves_the_missing_role(
+    api_client, user_admin, dart_leader
+) -> None:
+    """The guard judges one write, and granting roles is the user administrator's job.
+
+    Taking ``dart_leader`` for themselves is an ordinary role write, and the address
+    it was protecting is then theirs to move.  The user guide says so; this pins the
+    boundary, which ``system_admin`` is the one role outside.
+    """
+    api_client.force_login(user_admin)
+    granted = api_client.patch(
+        user_detail(user_admin), {"roles": [MEMBER, USER_ADMIN, DART_LEADER]}
+    )
+    assert granted.status_code == 200
+
+    response = api_client.patch(user_detail(dart_leader), {"email": ATTACKER_EMAIL})
+
+    assert response.status_code == 200
+    dart_leader.refresh_from_db()
+    assert dart_leader.email == ATTACKER_EMAIL
+
+
+def test_a_user_admin_cannot_grant_themselves_the_system_admin_role(
+    api_client, user_admin, system_admin
+) -> None:
+    """The one role that cannot be self-granted, so the address stays out of reach."""
+    api_client.force_login(user_admin)
+    granted = api_client.patch(
+        user_detail(user_admin), {"roles": [MEMBER, USER_ADMIN, SYSTEM_ADMIN]}
+    )
+    assert granted.status_code == 400
+
+    response = api_client.patch(user_detail(system_admin), {"email": ATTACKER_EMAIL})
+
+    assert response.status_code == 400
+    system_admin.refresh_from_db()
+    assert system_admin.email == "sysadmin@example.test"
+
+
+def test_the_roles_guard_keeps_a_system_admins_email_out_of_reach(
+    api_client, user_admin, system_admin
+) -> None:
+    """The mirror route: strip the role from the target first, then move the address."""
+    api_client.force_login(user_admin)
+    stripped = api_client.patch(user_detail(system_admin), {"roles": [MEMBER]})
+    assert stripped.status_code == 400
+
+    response = api_client.patch(user_detail(system_admin), {"email": ATTACKER_EMAIL})
+
+    assert response.status_code == 400
+    system_admin.refresh_from_db()
+    assert system_admin.email == "sysadmin@example.test"
 
 
 def test_a_role_less_superuser_may_grant_the_system_admin_role(
