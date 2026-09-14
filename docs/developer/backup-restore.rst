@@ -124,6 +124,10 @@ directly, skips the prompt for scripted use::
 
   uv run backend/manage.py db_restore caldart-20260601-070000.sql.gz --yes
 
+``YES=0``, ``YES=no``, ``YES=false`` and an unset ``YES`` all keep the prompt,
+and any other value stops ``make`` without touching the database; the full rule
+is in :ref:`make-switches`.
+
 The argument may be a path or a bare file name inside ``BACKUP_DIR``.
 
 In production, stop the web unit first so nothing writes during the restore::
