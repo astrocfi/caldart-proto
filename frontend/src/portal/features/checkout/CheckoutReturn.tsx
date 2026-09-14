@@ -9,7 +9,7 @@
  *
  * `routes/join.tsx` renders this at `/join/done`.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -32,37 +32,45 @@ export interface CheckoutReturnProps {
   action?: ReactNode;
 }
 
-function sleep(ms: number): Promise<void> {
+/** Wait `ms`, or stop waiting the moment `signal` aborts. */
+function sleep(ms: number, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.resolve();
   return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
+    const finish = (): void => {
+      window.clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      resolve();
+    };
+    const timer = window.setTimeout(finish, ms);
+    signal.addEventListener('abort', finish);
   });
 }
 
 export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
   const [params] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
-  const started = useRef(false);
 
   const paymentId = Number.parseInt(params.get('payment_id') ?? '', 10);
   const paymentIntentId = params.get('payment_intent') ?? '';
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-
     if (!Number.isFinite(paymentId)) {
       setError('That link is missing a payment reference.');
       return;
     }
 
-    let canceled = false;
+    // Every run owns its requests and its wait, so a run that is torn down takes
+    // them with it and the run that replaces it starts from nothing.
+    const controller = new AbortController();
+    const { signal } = controller;
 
-    async function settle() {
+    async function settle(): Promise<void> {
       // The confirm call is what actually activates the membership; a failure
       // here is not fatal, because the webhook may have got there first.
       try {
-        const confirmed = await confirmStripePayment(paymentId, paymentIntentId);
-        if (!canceled && confirmed.status === 'succeeded') {
+        const confirmed = await confirmStripePayment(paymentId, paymentIntentId, signal);
+        if (signal.aborted) return;
+        if (confirmed.status === 'succeeded') {
           onSuccess({ paymentId, membership: confirmed.membership });
           return;
         }
@@ -71,10 +79,10 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
       }
 
       const deadline = Date.now() + POLL_TIMEOUT_MS;
-      while (!canceled && Date.now() < deadline) {
+      while (!signal.aborted && Date.now() < deadline) {
         try {
-          const result = await fetchPayment(paymentId);
-          if (canceled) return;
+          const result = await fetchPayment(paymentId, signal);
+          if (signal.aborted) return;
           if (result.status === 'succeeded') {
             onSuccess({ paymentId, membership: result.membership });
             return;
@@ -84,16 +92,16 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
             return;
           }
         } catch (caught) {
-          if (canceled) return;
+          if (signal.aborted) return;
           setError(
             caught instanceof ApiError ? caught.message : 'We could not check that payment.',
           );
           return;
         }
-        await sleep(POLL_INTERVAL_MS);
+        await sleep(POLL_INTERVAL_MS, signal);
       }
 
-      if (!canceled) {
+      if (!signal.aborted) {
         setError(
           'Your payment is still being processed. It is safe to close this page — we will email ' +
             'you when it clears, and your membership page will update on its own.',
@@ -103,7 +111,7 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
 
     void settle();
     return () => {
-      canceled = true;
+      controller.abort();
     };
   }, [paymentId, paymentIntentId, onSuccess]);
 

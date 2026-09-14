@@ -10,9 +10,14 @@ import { CheckoutReturn } from './CheckoutReturn';
 const RETURN_URL = '/join/done?payment_id=42&payment_intent=pi_42';
 
 function serveConfirm(status: number, body: Record<string, unknown>) {
+  const calls = { count: 0 };
   server.use(
-    http.post(`${API}/payments/stripe/confirm`, () => HttpResponse.json(body, { status })),
+    http.post(`${API}/payments/stripe/confirm`, () => {
+      calls.count += 1;
+      return HttpResponse.json(body, { status });
+    }),
   );
+  return calls;
 }
 
 /** Answer `GET /payments/42` with each entry in turn, repeating the last. */
@@ -81,6 +86,19 @@ describe('CheckoutReturn', () => {
     expect(await screen.findByText('Payment not confirmed')).toBeInTheDocument();
     expect(screen.getByText(/declined/)).toBeInTheDocument();
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('confirms once when StrictMode runs the effect twice', async () => {
+    const onSuccess = vi.fn();
+    const confirmations = serveConfirm(200, {
+      status: 'succeeded',
+      membership: CURRENT_MEMBERSHIP,
+    });
+
+    renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(confirmations.count).toBe(1);
   });
 
   it('complains about a link with no payment reference', async () => {
