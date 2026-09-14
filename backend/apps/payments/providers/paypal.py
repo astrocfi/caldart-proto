@@ -25,9 +25,11 @@ from django.utils import timezone
 
 from apps.payments.models import Payment, PaymentProvider, PaymentWallet
 from apps.payments.providers.base import (
+    PaymentError,
     PaymentVerificationError,
     Provider,
     ProviderNotConfigured,
+    ProviderUnavailable,
     register,
 )
 from apps.payments.services import mark_failed, mark_succeeded, record_provider_event
@@ -36,6 +38,11 @@ log = logging.getLogger(__name__)
 
 LIVE_BASE = "https://api-m.paypal.com"
 SANDBOX_BASE = "https://api-m.sandbox.paypal.com"
+
+#: What a member is told when PayPal times out or answers with something we
+#: cannot read.  It says nothing about the money: a capture can fail in transit
+#: after PayPal has already taken it.
+UNAVAILABLE_MESSAGE = "PayPal could not be reached. Please try again."
 
 #: Seconds shaved off the advertised token lifetime, so we never present one
 #: that expires mid-flight.
@@ -50,6 +57,16 @@ CAPTURE_FAILED = frozenset({"PAYMENT.CAPTURE.DENIED", "PAYMENT.CAPTURE.REVERSED"
 def api_base() -> str:
     """Sandbox or live, from ``PAYPAL_ENV``."""
     return LIVE_BASE if settings.PAYPAL_ENV == "live" else SANDBOX_BASE
+
+
+def unavailable(call_name: str, exc: Exception) -> ProviderUnavailable:
+    """Log a PayPal call that never completed, and build the error to raise.
+
+    ``call_name`` is the method and path attempted.  Only the exception's class
+    is recorded, because its message can quote request data.
+    """
+    log.warning("PayPal %s failed: %s", call_name, type(exc).__name__)
+    return ProviderUnavailable(UNAVAILABLE_MESSAGE)
 
 
 def credentials() -> tuple[str, str]:
@@ -96,18 +113,24 @@ def access_token() -> str:
     ):
         return _token_cache["token"]
 
-    response = httpx.post(
-        f"{api_base()}/v1/oauth2/token",
-        auth=(client_id, client_secret),
-        data={"grant_type": "client_credentials"},
-        headers={"Accept": "application/json"},
-        timeout=TIMEOUT_SECONDS,
-    )
+    try:
+        response = httpx.post(
+            f"{api_base()}/v1/oauth2/token",
+            auth=(client_id, client_secret),
+            data={"grant_type": "client_credentials"},
+            headers={"Accept": "application/json"},
+            timeout=TIMEOUT_SECONDS,
+        )
+    except httpx.HTTPError as exc:
+        raise unavailable("POST /v1/oauth2/token", exc) from exc
     if response.status_code != 200:
         raise PaymentVerificationError(
             f"PayPal refused our credentials (HTTP {response.status_code})."
         )
-    body = response.json()
+    try:
+        body = response.json()
+    except ValueError as exc:
+        raise unavailable("POST /v1/oauth2/token", exc) from exc
     token = body.get("access_token") or ""
     if not token:
         raise PaymentVerificationError("PayPal returned no access token.")
@@ -124,18 +147,27 @@ def access_token() -> str:
 
 
 def call(method: str, path: str, *, json_body: dict | None = None) -> dict:
-    """One authenticated Orders v2 call, returning the decoded body."""
-    response = httpx.request(
-        method,
-        f"{api_base()}{path}",
-        headers={
-            "Authorization": f"Bearer {access_token()}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-        json=json_body,
-        timeout=TIMEOUT_SECONDS,
-    )
+    """One authenticated Orders v2 call, returning the decoded body.
+
+    Raises :class:`~apps.payments.providers.base.ProviderUnavailable` when the
+    call never completes, and
+    :class:`~apps.payments.providers.base.PaymentVerificationError` when PayPal
+    answers with an error status.
+    """
+    try:
+        response = httpx.request(
+            method,
+            f"{api_base()}{path}",
+            headers={
+                "Authorization": f"Bearer {access_token()}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json=json_body,
+            timeout=TIMEOUT_SECONDS,
+        )
+    except httpx.HTTPError as exc:
+        raise unavailable(f"{method} {path}", exc) from exc
     try:
         body = response.json()
     except ValueError:
@@ -161,6 +193,22 @@ def completed_captures(order: dict) -> list[dict]:
 
 def captured_cents(order: dict) -> int:
     return sum(cents((c.get("amount") or {}).get("value", 0)) for c in completed_captures(order))
+
+
+def log_capture_mismatch(payment: Payment, order: dict, reason: str) -> None:
+    """Record at ERROR a capture that took money we cannot match to our row.
+
+    PayPal has the money by this point, so the refusal needs a human to
+    reconcile it.  ``reason`` names the field that disagreed.  The record
+    carries the payment id and both amounts, and no personal data.
+    """
+    log.error(
+        "PayPal capture mismatch (%s) for payment %s: captured %s cents, expected %s cents",
+        reason,
+        payment.pk,
+        captured_cents(order),
+        payment.amount_cents,
+    )
 
 
 @register
@@ -219,7 +267,16 @@ class PayPalProvider(Provider):
         if payment.provider_ref and order_id != payment.provider_ref:
             raise PaymentVerificationError("That PayPal order belongs to another payment.")
 
-        order = call("POST", f"/v2/checkout/orders/{order_id}/capture")
+        try:
+            order = call("POST", f"/v2/checkout/orders/{order_id}/capture")
+        except ProviderUnavailable:
+            # The capture may have been taken before the connection died, so
+            # this one needs reconciling rather than a silent retry.
+            log.error(
+                "PayPal capture for payment %s did not complete; the money may have moved",
+                payment.pk,
+            )
+            raise
 
         if order.get("status") != "COMPLETED":
             mark_failed(payment, order)
@@ -234,16 +291,19 @@ class PayPalProvider(Provider):
 
         total = captured_cents(order)
         if total != payment.amount_cents:
+            log_capture_mismatch(payment, order, "amount")
             raise PaymentVerificationError(
                 f"PayPal captured ${total / 100:,.2f}, not ${payment.amount_cents / 100:,.2f}."
             )
 
         currency = (captures[0].get("amount") or {}).get("currency_code", "")
         if currency.lower() != payment.currency.lower():
+            log_capture_mismatch(payment, order, "currency")
             raise PaymentVerificationError("PayPal captured a different currency.")
 
         custom_id = captures[0].get("custom_id")
         if custom_id and str(custom_id) != str(payment.pk):
+            log_capture_mismatch(payment, order, "custom_id")
             raise PaymentVerificationError("The PayPal capture belongs to another payment.")
 
         mark_succeeded(
@@ -319,7 +379,7 @@ class PayPalProvider(Provider):
                     "webhook_event": payload,
                 },
             )
-        except (PaymentVerificationError, ProviderNotConfigured, httpx.HTTPError) as exc:
+        except PaymentError as exc:
             log.warning("PayPal webhook verification call failed: %s", exc)
             return False
         return result.get("verification_status") == "SUCCESS"

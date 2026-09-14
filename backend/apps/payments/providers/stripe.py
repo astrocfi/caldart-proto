@@ -31,11 +31,16 @@ from apps.payments.providers.base import (
     PaymentVerificationError,
     Provider,
     ProviderNotConfigured,
+    ProviderUnavailable,
     register,
 )
 from apps.payments.services import mark_failed, mark_succeeded
 
 log = logging.getLogger(__name__)
+
+#: What a member is told when Stripe times out or answers with an error of its
+#: own.  It says nothing about the money: a call can fail after Stripe acted.
+UNAVAILABLE_MESSAGE = "Stripe could not be reached. Please try again."
 
 #: ``payment_method_details.card.wallet.type`` values mapped onto our choices.
 WALLET_TYPES: dict[str, str] = {
@@ -46,6 +51,16 @@ WALLET_TYPES: dict[str, str] = {
 
 #: Intent statuses that mean the customer will not be charged.
 FAILED_STATUSES = frozenset({"canceled", "requires_payment_method"})
+
+
+def unavailable(payment: Payment, call: str, exc: stripe.StripeError) -> ProviderUnavailable:
+    """Log a failed Stripe call and build the error the API answers 400 with.
+
+    Only the payment id and the exception's class are recorded: the message can
+    quote request data, and nothing about a member belongs in the log.
+    """
+    log.warning("Stripe %s failed for payment %s: %s", call, payment.pk, type(exc).__name__)
+    return ProviderUnavailable(UNAVAILABLE_MESSAGE)
 
 
 def secret_key() -> str:
@@ -113,19 +128,22 @@ class StripeProvider(Provider):
     # ----------------------------------------------------------------- start
     def start(self, payment: Payment) -> dict:
         """Create the PaymentIntent and hand the client its ``client_secret``."""
-        created = stripe.PaymentIntent.create(
-            api_key=secret_key(),
-            amount=payment.amount_cents,
-            currency=payment.currency,
-            automatic_payment_methods={"enabled": True},
-            description=f"CalDART · {payment.description}",
-            receipt_email=payment.user.email or None,
-            metadata={
-                "payment_id": str(payment.pk),
-                "user_id": str(payment.user_id),
-                "plan": payment.plan.slug if payment.plan_id else "",
-            },
-        )
+        try:
+            created = stripe.PaymentIntent.create(
+                api_key=secret_key(),
+                amount=payment.amount_cents,
+                currency=payment.currency,
+                automatic_payment_methods={"enabled": True},
+                description=f"CalDART · {payment.description}",
+                receipt_email=payment.user.email or None,
+                metadata={
+                    "payment_id": str(payment.pk),
+                    "user_id": str(payment.user_id),
+                    "plan": payment.plan.slug if payment.plan_id else "",
+                },
+            )
+        except stripe.StripeError as exc:
+            raise unavailable(payment, "PaymentIntent.create", exc) from exc
         intent = created.to_dict()
         payment.provider_ref = intent["id"]
         payment.raw = jsonable(intent)
@@ -141,9 +159,12 @@ class StripeProvider(Provider):
         if payment.provider_ref and intent_id != payment.provider_ref:
             raise PaymentVerificationError("That PaymentIntent belongs to another payment.")
 
-        retrieved = stripe.PaymentIntent.retrieve(
-            intent_id, api_key=secret_key(), expand=["latest_charge"]
-        )
+        try:
+            retrieved = stripe.PaymentIntent.retrieve(
+                intent_id, api_key=secret_key(), expand=["latest_charge"]
+            )
+        except stripe.StripeError as exc:
+            raise unavailable(payment, "PaymentIntent.retrieve", exc) from exc
         intent = retrieved.to_dict()
         self.verify(payment, intent)
 
