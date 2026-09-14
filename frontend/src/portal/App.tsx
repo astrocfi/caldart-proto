@@ -1,5 +1,5 @@
 /**
- * The portal application shell (PLAN §8): TanStack Query, the toast queue and
+ * The portal application shell: TanStack Query, the toast queue and
  * the router mounted under the `/portal` basename.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

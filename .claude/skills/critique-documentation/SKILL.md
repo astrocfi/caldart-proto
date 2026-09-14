@@ -11,12 +11,11 @@ developer) to fix the documentation later.
 
 ## Scope
 
-- **README** (`README.rst`) and `PLAN.rst`, the specification that
-  `docs/developer/architecture.rst` includes verbatim.
+- **README** (`README.rst`).
 - **Narrative docs** under `docs/` (reStructuredText): the user guide (`docs/user/`), the
   developer guide (`docs/developer/`), the demo walkthrough, and any how-to articles.
 - **API reference**: the hand-written `docs/developer/api-reference.rst` and `api-<area>.rst`
-  pages, checked against the endpoints in `backend/apps/*/api/urls.py` and `PLAN.rst` §6.
+  pages, checked against the endpoints in `backend/apps/*/api/urls.py` and their serializers.
 - **Code documentation**: docstrings in `backend/` and JSDoc on exported functions and
   components in `frontend/src/`. They are not rendered into the docs.
 - **Sphinx setup**: `docs/conf.py`, the documentation `toctree` structure, and the build
@@ -66,8 +65,9 @@ Apply these criteria to the documentation set. Map each finding to the rule file
   warnings, broken `toctree` entries, documents not in any `toctree`, and unresolved `:doc:` or
   `:ref:` targets. Note any `.. graphviz::` without an ASCII equivalent in
   `.. only:: not graphviz`.
-- **Prose conventions:** American spelling; one space after sentence-ending periods; terms
-  defined on first use; **no time-anchored or migration framing** ("new", "legacy", "now",
+- **Prose conventions:** American spelling; one space after sentence-ending periods; CalDART
+  terms (such as DART) defined on first use, but not standard aviation terms (N-number,
+  BasicMed, flight review), which the readers know; **no time-anchored or migration framing** ("new", "legacy", "now",
   "recently", "backwards compatible"). No unicode smart quotes/em-dashes/arrows inside `.py`
   files.
 
@@ -87,7 +87,7 @@ Apply these criteria to the documentation set. Map each finding to the rule file
 - **Links:** Pages link other pages with `:doc:` and labeled sections with `:ref:`; no page
   refers to another by bare title or file path in prose. Code symbols, endpoints, file paths,
   settings, and environment variables are in inline literals. Note any Python role (`:class:`,
-  `:func:`, ...) in `docs/` or `PLAN.rst`, which cannot resolve here.
+  `:func:`, ...) in `docs/`, which cannot resolve here.
 - **Resolution:** All references resolve under nitpicky mode. Note stale references to renamed
   or removed pages, labels, endpoints, settings, or files, and cross-directory `:doc:` targets
   that are not absolute (`doc-user-guide`).
@@ -114,7 +114,7 @@ Apply these criteria to the documentation set. Map each finding to the rule file
   (accounts, sign-in, passwords, roles); what administrators configure from the browser, with a
   pointer to server configuration; screens and workflows per role with expected results;
   examples (or links to the demo walkthrough).
-- **Role accuracy:** Each role chapter matches the permission matrix (`PLAN.rst` §5) and
+- **Role accuracy:** Each role chapter matches the permission matrix (`api-reference.rst`) and
   `frontend/src/portal/nav.ts`. Note screens a role can reach that the guide omits, and
   documented actions the role cannot perform.
 - **Operator commands:** For each management command and operator make target — name,
@@ -126,9 +126,8 @@ Apply these criteria to the documentation set. Map each finding to the rule file
 
 - **Layout:** `docs/developer/` with a landing page holding an audience statement and captioned
   `toctree` directives in reading order; API pages `api-<area>.rst` in the `toctree` of
-  `api-reference.rst`; `architecture.rst` includes `PLAN.rst` with the plan nested under the
-  page title.
-- **Required chapters:** introduction; the annotated repository layout (`PLAN.rst` §3) matching
+  `api-reference.rst`.
+- **Required chapters:** introduction; the annotated repository layout (`architecture.rst`) matching
   the tree; environment setup (setup sequence, per-worker `DATABASE_URL`, every environment
   variable, running locally, the test suites, the lint/check/audit/docs commands, CI, upgrading
   a server, the contribution workflow); architecture and data model; subsystem chapters;
@@ -142,8 +141,7 @@ Apply these criteria to the documentation set. Map each finding to the rule file
   Wagtail page type or block, API endpoint, portal screen, management command).
 - **API reference:** Every endpoint in `backend/apps/*/api/urls.py` is documented (method and
   path, who may call it, request, responses with status codes and example JSON), and every
-  documented endpoint exists. The permission matrix matches `PLAN.rst` §5 and the permission
-  classes.
+  documented endpoint exists. The permission matrix matches the permission classes.
 
 ### 7. How-to articles (`doc-how-to`)
 
@@ -166,10 +164,10 @@ Apply these criteria to the documentation set. Map each finding to the rule file
 - **Stale docs:** Documentation matches the current code — no docs for removed features, no
   references to renamed pages, endpoints, or settings, and commands that still run. Note
   versions, commands, settings, or role descriptions that disagree across `README.rst`, the
-  guides, `PLAN.rst`, the Makefile, and `docs/developer/configuration.rst` versus
+  guides, the Makefile, and `docs/developer/configuration.rst` versus
   `backend/caldart/settings/`.
-- **Plan agreement:** `PLAN.rst` is the specification. Note where the docs or the code
-  disagree with it.
+- **Standing alone:** The docs are the specification. Note any page, docstring or
+  comment that cites a plan from `plans/` instead of stating what the reader needs.
 - **Same-change updates:** New or changed endpoints have their API pages updated, new screens
   appear in the user guide, and renamed things have every reference updated.
 
@@ -183,7 +181,7 @@ so briefly under "Rules applied".
 # Documentation Critique Report
 
 **Generated:** [date]
-**Scope:** README.rst, PLAN.rst, docs/ (user guide, developer guide and API reference, how-tos), docstrings and JSDoc, Sphinx setup
+**Scope:** README.rst, docs/ (user guide, developer guide and API reference, how-tos), docstrings and JSDoc, Sphinx setup
 **Rules applied:** [list the doc rule files found; note any absent and therefore skipped]
 
 ## Executive summary
@@ -216,7 +214,7 @@ so briefly under "Rules applied".
 [Appropriate use, rendering with and without Graphviz, naming, alt text.]
 
 ## 9. Change discipline and consistency
-[Stale docs, cross-document disagreements, disagreements with PLAN.rst, missing same-change updates.]
+[Stale docs, cross-document disagreements, citations of plans, missing same-change updates.]
 
 ## Recommended priorities
 1. [Highest impact, feasible first step]
@@ -237,7 +235,7 @@ so briefly under "Rules applied".
 1. **Inventory rules:** List which of `.claude/rules/doc_python.md` and
    `.claude/skills/doc-*/SKILL.md` exist. Critique only against those; record which are absent
    so their checklist areas are skipped.
-2. **Gather docs:** List `README.rst`, `PLAN.rst`, and the `docs/` tree (note the `toctree`
+2. **Gather docs:** List `README.rst` and the `docs/` tree (note the `toctree`
    structure and which pages are user guide vs. developer guide vs. API reference vs. how-to).
    Read `docs/conf.py`.
 3. **Build:** Run `make docs` (warnings-as-errors and nitpicky) and capture warnings. If the

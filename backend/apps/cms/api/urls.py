@@ -1,4 +1,4 @@
-"""CMS API routes (PLAN §6.10).  Owned by ``feat/cms-site``."""
+"""CMS API routes."""
 
 from django.urls import path
 

@@ -1,4 +1,4 @@
-"""The renewal reminder scanner (PLAN §4.5, §12).
+"""The renewal reminder scanner.
 
 One entry point, :func:`send_renewal_reminders`, which the management command,
 ``POST /system/reminders/run`` and the systemd timer all call.  It is
@@ -56,7 +56,7 @@ class ReminderRun:
     """Structured summary of one scan.
 
     Printed by ``manage.py send_renewal_reminders`` and reduced to
-    ``{sent, skipped}`` by ``POST /system/reminders/run`` (PLAN §6.9).
+    ``{sent, skipped}`` by ``POST /system/reminders/run``.
     """
 
     today: date
@@ -76,7 +76,7 @@ class ReminderRun:
         self.skipped_by_reason[reason] = self.skipped_by_reason.get(reason, 0) + 1
 
     def as_dict(self) -> dict:
-        """The ``{sent, skipped}`` payload of PLAN §6.9."""
+        """The ``{sent, skipped}`` payload of ``POST /system/reminders/run``."""
         return {"sent": self.sent, "skipped": self.skipped}
 
     def as_lines(self) -> list[str]:
@@ -97,7 +97,7 @@ class ReminderRun:
 
 
 def renew_url() -> str:
-    """Absolute link to the portal's renew screen (PLAN §4.5)."""
+    """Absolute link to the portal's renew screen."""
     return f"{settings.SITE_URL.rstrip('/')}/portal/renew"
 
 

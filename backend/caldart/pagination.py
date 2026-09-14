@@ -1,4 +1,4 @@
-"""Shared DRF pagination (PLAN §6: ``?page=&page_size=``, default 25, max 200)."""
+"""Shared DRF pagination: ``?page=&page_size=``, default 25, max 200."""
 
 from rest_framework.pagination import PageNumberPagination
 

@@ -38,7 +38,7 @@ export interface DateTextProps {
   placeholder?: string;
 }
 
-/** Dates render in the mono face so columns line up (PLAN §9). */
+/** Dates render in the mono face so columns line up. */
 export function DateText({ value, withTime = false, placeholder = '—' }: DateTextProps) {
   if (!value) return <span className="mono muted">{placeholder}</span>;
   const parsed = parse(value);

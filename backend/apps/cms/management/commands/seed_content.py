@@ -1,6 +1,6 @@
-"""``manage.py seed_content`` — the example CalDART site (PLAN §4.6).
+"""``manage.py seed_content`` — the example CalDART site.
 
-Builds the page tree described in the plan::
+Builds this page tree::
 
     Home
       About Us

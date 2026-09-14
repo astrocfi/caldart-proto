@@ -7,7 +7,8 @@ mechanism is one management command, one log table and ten templates; there is
 no queue, no worker and no scheduler process.  A systemd timer runs the command
 once a day, and everything else falls out of the data.
 
-Specified in PLAN §4.5 (what is sent) and §12 (when).
+The code is in ``backend/apps/reminders/`` and the templates are in
+``backend/templates/emails/``.
 
 
 The five kinds
@@ -180,7 +181,7 @@ Every kind renders two bodies from ``backend/templates/emails/``:
    layout, the inline styles and the footer, and exposes the blocks
    ``preheader``, ``heading``, ``lede``, ``body`` and ``cta_label``.
 
-The HTML shell uses the ``sierra`` palette from PLAN §9 with Georgia standing
+The HTML shell uses the ``sierra`` palette (:doc:`theming`) with Georgia standing
 in for Fraunces, because webfonts do not load in most mail clients.  Both
 bodies link to ``SITE_URL + /portal/renew``.
 

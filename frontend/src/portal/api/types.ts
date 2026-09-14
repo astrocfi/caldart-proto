@@ -1,8 +1,9 @@
 /**
- * TypeScript shapes for every object in the API contract (PLAN §6).
+ * TypeScript shapes for every object in the API contract
+ * (`docs/developer/api-reference.rst`).
  *
- * Phase 2 branches import from here rather than redeclaring shapes, so keep
- * these in step with the DRF serializers.  Dates are ISO-8601 strings
+ * Features import from here rather than redeclaring shapes, so keep these in
+ * step with the DRF serializers.  Dates are ISO-8601 strings
  * (`YYYY-MM-DD` for dates, full timestamps for datetimes).
  */
 
@@ -145,7 +146,7 @@ export type ProfilePatch = Partial<
   Omit<Profile, 'dart' | 'aircraft' | 'medical_is_current'> & { dart_id: number | null }
 >;
 
-/** A row in the `account_admin` member list (PLAN §6.4). */
+/** A row in the `account_admin` member list. */
 export interface MemberRow {
   user_id: number;
   name: string;
@@ -223,7 +224,7 @@ export interface Payment {
   completed_at: IsoDateTime | null;
 }
 
-/** The trimmed row shown on `/me/payments` (PLAN §6.3). */
+/** The trimmed row shown on `/me/payments`. */
 export interface PaymentSummary {
   id: number;
   plan: string | null;
@@ -267,7 +268,7 @@ export interface PaymentResult {
   membership: MembershipStatus;
 }
 
-/** One row of `GET /admin/payments/summary` (PLAN §6.8). */
+/** One row of `GET /admin/payments/summary`. */
 export interface PaymentPeriodSummary {
   period: string;
   count: number;

@@ -1,4 +1,4 @@
-"""factory_boy factories for every CalDART model (PLAN §15)."""
+"""factory_boy factories for every CalDART model."""
 
 from __future__ import annotations
 

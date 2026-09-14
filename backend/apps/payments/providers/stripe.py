@@ -1,6 +1,6 @@
 """Stripe provider: Payment Element, card / Apple Pay / Google Pay / Link.
 
-The flow (PLAN §10):
+The flow:
 
 1. ``start`` creates a PaymentIntent for the amount the *server* computed, with
    ``automatic_payment_methods`` so the Payment Element offers every method the

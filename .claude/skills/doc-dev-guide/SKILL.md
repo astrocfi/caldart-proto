@@ -22,18 +22,18 @@ contracts over restating what the code already says.
   configuration, data model, testing). Name files in lowercase with hyphens; the API pages are
   `api-<area>.rst`, listed in the `toctree` of `api-reference.rst`.
 - The landing page is reachable from the documentation root `toctree`.
-- `architecture.rst` includes `PLAN.rst` verbatim; the plan is the specification every other
-  page defers to. Change `PLAN.rst` itself rather than restating it, and keep the Architecture
-  page's own title in a heading style `PLAN.rst` never uses, so the plan nests beneath it.
+- The guide stands alone and is the specification: `architecture.rst` describes the system as
+  it is, and no page cites a plan from `plans/`. When behavior changes, update the page that
+  describes it in the same change.
 
 ## 2. Required Chapters
 
 - **Introduction** — who the guide is for, how it differs from the user guide, and a system
-  overview (what it does, the runtime and key dependencies). `index.rst` and the plan's goals
-  and stack sections (`PLAN.rst` §1-2) carry this.
+  overview (what it does, the runtime and key dependencies). `index.rst` and the overview
+  and stack sections of `architecture.rst` carry this.
 - **Repository layout** — an annotated directory tree (a `::` literal block) with a one-line
-  comment on each significant directory and top-level file. `PLAN.rst` §3 holds it; keep it in
-  step with the tree.
+  comment on each significant directory and top-level file. `architecture.rst` holds it; keep
+  it in step with the tree.
 - **Environment setup** — how to get a working development checkout (`setup.rst`,
   `configuration.rst`, `testing.rst`):
     - Clone, `make setup` (`uv sync`, `npm ci`, `.env`), `make up`, `make migrate`,
@@ -110,7 +110,7 @@ code without reverse-engineering it. Include:
       abstract `BasePage`) and `backend/apps/cms/blocks.py`; `cms.rst` carries "Adding a page
       type" and "Adding a block".
     - **An API endpoint** — `backend/apps/<app>/api/urls.py` (already included by
-      `caldart/api_urls.py`), the permission classes the matrix in `PLAN.rst` §5 requires, the
+      `caldart/api_urls.py`), the permission classes the matrix in `api-reference.rst` requires, the
       matching type in `frontend/src/portal/api/types.ts`, and its `api-<area>.rst` page.
     - **A portal screen** — a `RouteObject[]` in `frontend/src/portal/routes/<feature>.tsx`
       added to `routes/index.tsx`, components in `frontend/src/portal/features/<feature>/`,
@@ -129,14 +129,14 @@ code without reverse-engineering it. Include:
   `api-reference.rst` holds the conventions every endpoint shares (authentication, CSRF, URL
   shape, 401 versus 403, pagination, filtering, error shape, throttling, roles), the
   permission matrix, and the `toctree` of per-area pages; each `api-<area>.rst` documents the
-  endpoints of one area of `PLAN.rst` §6.
+  endpoints of one area of the API.
 - For each endpoint give the method and path as its heading, who may call it, the request body
   and query parameters, and every response with its status code and an example body in a
   `.. code-block:: json` directive.
 - Cover the entire API: a new or changed endpoint updates its `api-<area>.rst` page in the
   same change, and the permission matrix when its roles change. An endpoint without a page of
   its own is listed in `api-reference.rst` with a link to the chapter that documents it.
-- Keep the reference in exact agreement with the serializers, views, and `PLAN.rst` §6. A
+- Keep the reference in exact agreement with the serializers and views. A
   hand-written reference drifts silently, so review it with every API change.
 
 ## 7. Build Discipline

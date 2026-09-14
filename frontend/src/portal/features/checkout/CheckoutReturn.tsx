@@ -1,5 +1,5 @@
 /**
- * The landing pad for redirect-based payment methods (PLAN §10).
+ * The landing pad for redirect-based payment methods.
  *
  * Some methods (3-D Secure, bank redirects) take the browser away from the
  * page and send it back to `return_url` with `payment_id` and

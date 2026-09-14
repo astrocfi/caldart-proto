@@ -3,8 +3,8 @@ Reports
 =======
 
 CalDART exports data as CSV, for a spreadsheet, and as PDF, for a board pack.
-PLAN §11 defines three reports — membership, aircraft and payments — and all
-three are built on one set of helpers in ``backend/caldart/reports.py``.
+There are three reports — membership, aircraft and payments — and all three
+are built on one set of helpers in ``backend/caldart/reports.py``.
 
 .. list-table::
    :header-rows: 1
@@ -12,7 +12,7 @@ three are built on one set of helpers in ``backend/caldart/reports.py``.
 
    * - Report
      - Formats
-     - Owned by
+     - Code
      - Endpoints
    * - Membership
      - CSV, PDF
@@ -27,7 +27,7 @@ three are built on one set of helpers in ``backend/caldart/reports.py``.
      - ``apps/payments/reports.py``
      - ``/admin/payments/export.csv``
 
-All six endpoints are ``account_admin`` (and therefore ``system_admin``); none
+All five endpoints are ``account_admin`` (and therefore ``system_admin``); none
 of them is paginated.
 
 One rule holds everywhere:
@@ -152,10 +152,10 @@ Then:
   Do not fetch it inside the value function: the export streams row by row, so
   a query there is a query per member.
 * Update the column table above.
-* Extend ``PLAN_COLUMNS`` in ``backend/tests/test_members_reports.py``.  It is
-  a deliberate copy of PLAN §11, and the test that compares it with
-  ``MEMBER_REPORT_HEADER`` is what stops the report and the specification
-  drifting apart — so update PLAN.rst in the same commit.
+* Extend ``DOCUMENTED_COLUMNS`` in ``backend/tests/test_members_reports.py``.  It is
+  a deliberate copy of the column table above, and the test that compares it
+  with ``MEMBER_REPORT_HEADER`` is what stops the report and this page drifting
+  apart.
 
 The PDF divides the page width evenly between columns, so each new column
 makes them all narrower.  Sixteen columns is comfortable on landscape letter
@@ -245,7 +245,7 @@ laziness, download headers, escaping, pagination and an empty result set.
 ``backend/tests/test_members_reports.py`` covers the membership report and is
 the pattern to copy.  Assertions worth keeping:
 
-* the header equals PLAN §11's column list, verbatim;
+* the header equals the column list documented above, verbatim;
 * a fully populated member's row, cell by cell;
 * the lifetime and "nothing on file" conventions above;
 * each filter narrows the export, and ``?ordering=`` reorders it;

@@ -1,4 +1,4 @@
-"""Seed the demo accounts (PLAN §14).
+"""Seed the demo accounts.
 
 Idempotent: re-running updates the existing rows rather than duplicating them.
 Every seeded account uses the password ``caldart-demo``.

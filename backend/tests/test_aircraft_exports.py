@@ -1,4 +1,4 @@
-"""Aircraft register exports (PLAN §6.5, §11): CSV content, PDF, filters, roles."""
+"""Aircraft register exports: CSV content, PDF, filters, roles."""
 
 from __future__ import annotations
 

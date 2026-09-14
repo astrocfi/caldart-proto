@@ -7,7 +7,7 @@ systemd, Apache in front terminating TLS.  Apache is the primary target because
 the machines this is aimed at already run it; an nginx configuration ships as
 the alternative and is called out where the two differ.
 
-Specified in PLAN §13.  Every path below assumes the deploy root
+Every path below assumes the deploy root
 ``/srv/caldart``.  If you use another, change it in all six files that name it:
 ``deploy/gunicorn.conf.py``, ``deploy/apache/caldart.conf``,
 ``deploy/nginx/caldart.conf`` and all three units under ``deploy/systemd/``.

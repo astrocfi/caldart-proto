@@ -1,4 +1,4 @@
-"""Payments (PLAN §4.4).  All money is integer cents in USD."""
+"""Payments.  All money is integer cents in USD."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class PaymentStatus(models.TextChoices):
     REFUNDED = "refunded", "Refunded"
 
 
-#: Contribution tiers offered at checkout (PLAN §4.4).  ``None`` means "other".
+#: Contribution tiers offered at checkout.  ``None`` means "other".
 CONTRIBUTION_TIERS: tuple[dict, ...] = (
     {"label": "No contribution", "cents": 0},
     {"label": "Participating", "cents": 2_000},

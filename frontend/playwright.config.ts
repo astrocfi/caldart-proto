@@ -1,5 +1,5 @@
 /**
- * End-to-end tests for the five low-friction flows in PLAN §1.
+ * End-to-end tests for the five low-friction flows in `docs/demo-walkthrough.rst`.
  *
  * The specs talk to a real Django server with a real seeded database; `make
  * e2e` builds the front end, resets the `caldart_e2e` database, starts the
@@ -33,8 +33,8 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
-      // PLAN §1: joining and the ramp-side member check have to work on a
-      // phone, so those two flows run again at iPhone size.  Chromium, not the
+      // Joining and the ramp-side member check have to work on a phone, so
+      // those two flows run again at iPhone size.  Chromium, not the
       // descriptor's WebKit: one engine to install, in CI as well as here.
       name: 'phone',
       use: { ...devices['iPhone 13'], browserName: 'chromium' },

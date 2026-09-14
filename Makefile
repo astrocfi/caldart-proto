@@ -1,4 +1,4 @@
-## CalDART developer tasks (PLAN.rst §14).
+## CalDART developer tasks.
 ##
 ## Every target runs from the repository root.  `make help` lists them.
 
@@ -10,7 +10,8 @@ NPM     ?= npm
 MANAGE  := $(UV) run backend/manage.py
 COMPOSE := docker compose
 
-# Per-worker database (PLAN §17).  Override on the command line or in .env:
+# Per-worker database, so parallel branches never collide.  Override on the
+# command line or in .env:
 #   make test DATABASE_URL=postgres://caldart:caldart@localhost:5432/caldart_payments
 DATABASE_URL ?= $(shell sed -n 's/^DATABASE_URL=//p' .env 2>/dev/null | tail -1)
 DATABASE_URL := $(if $(DATABASE_URL),$(DATABASE_URL),postgres://caldart:caldart@localhost:5432/caldart)
@@ -38,7 +39,7 @@ E2E_LOG ?= /tmp/caldart-e2e-server.log
 #   EMAIL_URL          the console backend: CI has no Mailpit, and a password
 #                      reset must not fail on a refused SMTP connection.
 #   AUTH_THROTTLE_LOGIN the specs sign in far more often in a minute than a
-#                      person ever would (PLAN §6.1).
+#                      person ever would.
 E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            DATABASE_URL="$(E2E_DATABASE_URL)" \
            SECRET_KEY=e2e-insecure-secret-key \

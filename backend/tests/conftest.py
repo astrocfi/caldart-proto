@@ -1,7 +1,7 @@
-"""Shared pytest fixtures (PLAN §15).
+"""Shared pytest fixtures.
 
-Every Phase 2 branch builds on these, so add fixtures here rather than
-duplicating them in app test packages.
+Every test module can use these, so add shared fixtures here rather than
+duplicating them.
 """
 
 from __future__ import annotations

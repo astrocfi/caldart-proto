@@ -1,4 +1,4 @@
-/** User and role administration (PLAN §6.2, `routes/admin-users.tsx`). */
+/** User and role administration (`routes/admin-users.tsx`). */
 
 export { UserDetailPage } from './UserDetailPage';
 export { UsersListPage } from './UsersListPage';

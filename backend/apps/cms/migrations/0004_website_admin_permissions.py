@@ -1,4 +1,4 @@
-"""Give the ``website_admin`` group its Wagtail editing rights (PLAN §4.6).
+"""Give the ``website_admin`` group its Wagtail editing rights.
 
 The grant itself lives in ``apps.cms.permissions`` so ``manage.py seed_content``
 can re-apply it after the page tree changes.

@@ -1,4 +1,4 @@
-/** `/profile` — the member's own details (PLAN §8). */
+/** `/profile` — the member's own details. */
 import { Link } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';

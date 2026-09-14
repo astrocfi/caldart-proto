@@ -1,5 +1,5 @@
 /**
- * Queries and mutations behind `/portal/system` (PLAN §6.9).
+ * Queries and mutations behind `/portal/system`.
  *
  * All four endpoints are `system_admin` only; the route guard keeps anyone
  * else from ever mounting these hooks.

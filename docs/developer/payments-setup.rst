@@ -224,6 +224,32 @@ never charges the card.
 If the button does not appear, it is nearly always one of: not Chrome, no
 saved card on the Google account, or the page is not on HTTPS.
 
+How the flow works
+------------------
+
+#. ``POST /api/v1/payments/checkout`` with ``provider: "stripe"`` creates the
+   pending payment, then ``providers/stripe.py`` creates a PaymentIntent for
+   the server-computed amount with ``automatic_payment_methods`` enabled.  Its
+   metadata carries ``payment_id``, ``user_id`` and the plan slug (empty for a
+   pure donation), and the response hands the browser the intent's
+   ``client_secret``.
+#. The checkout mounts the Payment Element, which offers card, Apple Pay,
+   Google Pay and Link as each becomes eligible, and calls
+   ``stripe.confirmPayment`` with ``redirect: "if_required"``, so the common
+   methods finish without leaving the page.
+#. The browser posts the PaymentIntent id to
+   ``POST /api/v1/payments/stripe/confirm``.  The server retrieves the intent,
+   checks it as described below, and activates the membership before it
+   answers: the member is current by the time the page moves on.
+#. A method that insists on a redirect returns to the ``return_url``,
+   ``/portal/join/done?payment_id=<id>``, renewals included.  The join
+   wizard's return step makes the same confirm call, then polls
+   ``GET /api/v1/payments/<id>`` for up to ten seconds while the payment
+   settles.
+#. The ``payment_intent.succeeded`` webhook covers a browser that never comes
+   back.  Success is idempotent, so the confirm call and the webhook cannot
+   activate two terms.
+
 What CalDART verifies
 ---------------------
 
@@ -282,8 +308,17 @@ the sandbox business account, and copy:
 How the flow works
 ------------------
 
-CalDART calls the Orders v2 REST API directly with ``httpx`` — no SDK.  Three
-calls, in ``backend/apps/payments/providers/paypal.py``:
+In the browser, ``PayPalScriptProvider`` loads PayPal's JavaScript SDK with
+the client id, ``currency: "USD"`` and ``intent: "capture"``, and renders the
+PayPal buttons.  Their ``createOrder`` callback calls
+``POST /api/v1/payments/checkout`` with ``provider: "paypal"``, so the order is
+created on the server for the server-computed amount and the browser only
+receives its ``order_id``.  ``onApprove`` calls
+``POST /api/v1/payments/paypal/capture``, and the capture is what activates
+the membership.
+
+On the server, CalDART calls the Orders v2 REST API directly with ``httpx`` —
+no SDK.  Three calls, in ``backend/apps/payments/providers/paypal.py``:
 
 1. ``POST /v1/oauth2/token`` with the client id and secret, for a bearer token
    that is cached in-process until shortly before it expires;
@@ -340,6 +375,46 @@ run with no payment keys at all.  ``seed_demo`` does not: its two years of
 history is dealt out between ``stripe`` and ``paypal`` in a 70 / 30 split with
 plausible wallets, so the payment reports have something realistic to group
 by.
+
+
+The provider interface
+======================
+
+Each provider is a class in ``backend/apps/payments/providers/`` that
+subclasses ``Provider`` from ``providers/base.py``:
+
+``slug``
+    The name stored in ``Payment.provider`` and sent by the checkout:
+    ``stripe``, ``paypal`` or ``mock``.
+``start(payment) -> dict``
+    Called by ``POST /payments/checkout`` once the pending payment exists.
+    Returns what the browser needs to show the payment UI:
+    ``{"client_secret": ...}`` for Stripe, ``{"order_id": ...}`` for PayPal,
+    ``{}`` for the mock.
+``confirm(payment, **kwargs) -> bool``
+    Verifies the payment with the provider, on the server, and marks it
+    succeeded or failed through ``payments.services``.  Returns whether it
+    succeeded.
+``handle_webhook(request) -> HttpResponse``
+    Processes an asynchronous notification.  It must be idempotent: a
+    provider may deliver the same event more than once, and it may arrive
+    after the browser's own confirmation.
+
+``@register`` files a class under its ``slug``, and ``providers/__init__.py``
+imports every provider module, so importing the package registers them all.
+``get_provider(slug)`` returns an instance (``ValueError`` for an unknown
+slug), and ``available_providers()`` lists the slugs whose settings are
+present, which is what ``GET /payments/config`` offers the checkout.  A
+provider signals trouble by raising ``PaymentError``, which the API answers
+with HTTP 400; ``ProviderNotConfigured`` (missing keys) and
+``PaymentVerificationError`` (the provider's record disagrees with ours) are
+its two subclasses.
+
+Adding a provider therefore means a registered subclass in a module of its
+own, an import in ``providers/__init__.py``, a branch in
+``available_providers()`` for its settings, a value in the ``Payment.provider``
+choices (and its migration), and a panel in
+``frontend/src/portal/features/checkout/``.
 
 
 Going live: checklist

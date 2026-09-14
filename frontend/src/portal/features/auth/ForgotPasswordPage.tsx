@@ -1,4 +1,4 @@
-/** `/forgot-password` — ask for a reset link (PLAN §6.1, §8). */
+/** `/forgot-password` — ask for a reset link. */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -14,7 +14,7 @@ export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
 
   // The API answers 204 whether or not the address is registered, so the page
-  // must say the same thing either way (PLAN §6.1).
+  // must say the same thing either way.
   if (request.isSuccess) {
     return (
       <Page title="Check your email" eyebrow="Password reset">

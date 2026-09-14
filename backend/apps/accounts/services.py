@@ -19,7 +19,7 @@ from apps.accounts.roles import MEMBER, SYSTEM_ADMIN, WEBSITE_ADMIN
 
 User = get_user_model()
 
-#: Where the SPA serves the reset form (PLAN §8, ``routes/auth.tsx``).
+#: Where the SPA serves the reset form (``routes/auth.tsx``).
 RESET_PATH = "/portal/reset-password"
 
 
@@ -50,7 +50,7 @@ def register_user(*, email: str, password: str, first_name: str = "", last_name:
 # Roles
 # --------------------------------------------------------------------------
 def sync_django_flags(user: User) -> None:
-    """Keep ``is_superuser``/``is_staff`` in step with the roles (PLAN §4.1).
+    """Keep ``is_superuser``/``is_staff`` in step with the roles.
 
     ``system_admin`` means "Django superuser"; ``website_admin`` keeps the
     staff flag so the Wagtail admin stays reachable after a role edit.  Call
@@ -79,7 +79,7 @@ def user_from_uid(uid: str) -> User | None:
 
 
 def build_reset_url(user: User) -> str:
-    """The absolute link mailed to ``user`` (PLAN §6.1)."""
+    """The absolute link mailed to ``user``."""
     uid, token = make_reset_token(user)
     return f"{settings.SITE_URL.rstrip('/')}{RESET_PATH}?uid={uid}&token={token}"
 

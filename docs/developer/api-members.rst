@@ -2,8 +2,8 @@
 API: members administration
 ===========================
 
-The ``account_admin`` half of the members app: PLAN §6.4 endpoint by endpoint,
-plus the membership-status rules the list filters on.  The exports these
+The ``account_admin`` half of the members app, endpoint by endpoint, plus the
+membership-status rules the list filters on.  The exports these
 endpoints serve are described in :doc:`reports`.
 
 Every route below requires the ``account_admin`` role.  ``system_admin``
@@ -212,7 +212,7 @@ The user is granted the ``member`` role and given an empty ``MemberProfile``
 populated from ``profile``.  With no ``password`` the account gets an unusable
 password and ``send_password_invitation`` emails a link to
 ``{SITE_URL}/portal/reset-password?uid=…&token=…``, which the portal posts back
-to ``/auth/password/reset/confirm`` (PLAN §6.1).  The mail is queued with
+to ``/auth/password/reset/confirm`` (:doc:`api-auth`).  The mail is queued with
 ``transaction.on_commit``, so a failed create never sends one — and a test has
 to use ``django_capture_on_commit_callbacks`` to see it.
 

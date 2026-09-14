@@ -1,4 +1,4 @@
-"""Seed DARTs, membership plans and member profiles (PLAN §14).
+"""Seed DARTs, membership plans and member profiles.
 
 Also decides each seeded user's *membership target* — the status their history
 should end up in — which ``apps.payments.seed`` turns into real payments and
@@ -19,7 +19,7 @@ from apps.members.models import (
     PilotCertificateType,
 )
 
-#: PLAN §4.2 seed list.
+#: The DARTs to seed.
 DARTS: tuple[tuple[str, str, str], ...] = (
     ("Angwin", "2O3", "Angwin"),
     ("Central Coast", "SBP", "San Luis Obispo"),
@@ -39,7 +39,7 @@ DARTS: tuple[tuple[str, str, str], ...] = (
     ("Unaffiliated", "", ""),
 )
 
-#: PLAN §4.2 seed list.
+#: The membership plans to seed.
 PLANS: tuple[dict, ...] = (
     {
         "name": "Annual",
@@ -88,7 +88,7 @@ HOW_HEARD: tuple[str, ...] = (
     "Flying club newsletter",
 )
 
-#: Membership targets and their weights (PLAN §14: mixed statuses).
+#: Membership targets and their weights, so the demo shows mixed statuses.
 MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
     ("current", 18),
     ("expiring", 7),

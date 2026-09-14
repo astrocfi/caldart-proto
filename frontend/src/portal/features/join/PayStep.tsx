@@ -1,10 +1,10 @@
 /**
- * Step 3 — pay (PLAN §8, §10).
+ * Step 3 — pay.
  *
- * The payment UI itself is `<Checkout/>` from `@/portal/features/checkout`,
- * owned by `feat/payments`: it offers the plans, the optional contribution and
- * the card / Apple Pay / Google Pay / PayPal buttons, then calls `onSuccess`
- * once the server has activated the membership.
+ * The payment UI itself is `<Checkout/>` from `@/portal/features/checkout`:
+ * it offers the plans, the optional contribution and the card / Apple Pay /
+ * Google Pay / PayPal buttons, then calls `onSuccess` once the server has
+ * activated the membership.
  */
 import { Checkout } from '@/portal/features/checkout';
 import type { CheckoutResult } from '@/portal/features/checkout';

@@ -1,4 +1,4 @@
-/** Profile routes (PLAN §8).  Owned by `feat/profile-join`. */
+/** Profile routes. */
 import type { RouteObject } from 'react-router-dom';
 
 import { MyAircraftPage } from '../features/profile/MyAircraftPage';

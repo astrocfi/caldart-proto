@@ -1,9 +1,10 @@
 /**
- * `/profile/aircraft` — the planes a member commonly flies (PLAN §6.5).
+ * `/profile/aircraft` — the planes a member commonly flies.
  *
- * The search half is `<AircraftPicker/>` from `@/features/aircraft`, owned by
- * `feat/aircraft-leader`; this page only attaches and detaches what it hands
- * back and shows the insurance currency a DART leader will check.
+ * The search half is `<AircraftPicker/>` from `@/portal/features/aircraft`;
+ * this page attaches and detaches what it hands back, opens `<AircraftEditor/>`
+ * on an attached aircraft, and shows the insurance currency a DART leader will
+ * check.
  */
 import { AircraftPicker } from '@/portal/features/aircraft';
 import { useState } from 'react';
@@ -28,7 +29,7 @@ export function MyAircraftPage() {
   const toast = useToast();
   const { user } = useAuth();
   // The record open for editing, if any.  A member may correct an aeroplane
-  // they added themselves (PLAN §6.5).
+  // they added themselves.
   const [editing, setEditing] = useState<number | null>(null);
 
   const aircraft: AircraftSummary[] = profile.data?.aircraft ?? [];

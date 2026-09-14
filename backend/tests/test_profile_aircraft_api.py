@@ -1,4 +1,4 @@
-"""Attaching and detaching "planes I commonly fly" (PLAN §6.5)."""
+"""Attaching and detaching "planes I commonly fly"."""
 
 from __future__ import annotations
 

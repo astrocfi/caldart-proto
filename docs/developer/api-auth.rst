@@ -4,7 +4,8 @@ API: authentication and users
 
 The endpoints in ``apps.accounts`` — everything under ``/api/v1/auth/``, plus
 ``/api/v1/admin/users`` and ``/api/v1/roles``.  This page is the reference for
-PLAN §6.1 and §6.2; :doc:`api-reference` covers the rest of the contract.
+authentication and user administration; :doc:`api-reference` covers the
+conventions every endpoint shares.
 
 
 Conventions
@@ -258,8 +259,8 @@ administrator's *other* roles, as long as ``system_admin`` stays in the list.
 a 400 on ``is_active``.  Sending ``is_active: true`` for yourself is a harmless
 no-op.
 
-Granting or revoking ``system_admin`` also syncs the Django flags, because
-PLAN §4.1 defines the role as implying Django superuser::
+Granting or revoking ``system_admin`` also syncs the Django flags, because a
+system administrator is a Django superuser::
 
     user.is_superuser = "system_admin" in roles
     user.is_staff     = user.is_superuser or "website_admin" in roles

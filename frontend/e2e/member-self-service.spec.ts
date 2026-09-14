@@ -1,7 +1,7 @@
 /**
- * Flow B (PLAN §1): a member logs in, edits their profile, and opens a
- * members-only page.  The wall's other two states are checked here too,
- * because they are what makes a membership mean anything (PLAN §4.6).
+ * Flow B in `docs/demo-walkthrough.rst`: a member logs in, edits their
+ * profile, and opens a members-only page.  The wall's other two states are
+ * checked here too, because they are what makes a membership mean anything.
  */
 import { expect, test } from '@playwright/test';
 

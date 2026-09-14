@@ -1,5 +1,5 @@
 /**
- * Route guards (PLAN §8).
+ * Route guards.
  *
  * `RequireAuth` sends anonymous visitors to `/login?next=`; `RequireRole`
  * renders a 403 page when the user is signed in but lacks the role.  Both wait

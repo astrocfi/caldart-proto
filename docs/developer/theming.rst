@@ -8,8 +8,6 @@ both take their palette from ``<html data-theme="...">``, and that attribute
 comes from a single dropdown in Wagtail Site Settings.  Changing the whole look
 is therefore one file, or one choice by a website administrator.
 
-This page documents PLAN §9.
-
 
 Where the files are
 ===================
@@ -95,7 +93,10 @@ Type
 
 Sizes run ``--text-xs`` … ``--text-4xl`` on a 1.25 scale anchored at 16px, with
 ``--leading-tight/snug/normal``, ``--weight-normal/medium/semibold/bold`` and
-``--tracking-eyebrow`` for the small-caps labels.
+``--tracking-eyebrow``.  Headings ``h1``–``h4`` are big and confident:
+display face, semibold, set at ``--leading-tight``.  The ``.eyebrow`` label
+that sits above a heading is extra-small semibold body type in uppercase,
+spaced out by ``--tracking-eyebrow`` and colored ``--color-muted``.
 
 Space, shape and layout
 -----------------------
@@ -146,7 +147,8 @@ The shipped themes
 
 ``sierra`` (default)
     Warm paper ``#F4F1EA``, ink ``#1B1F24``, deep conifer ``#1F4D3A``, signal
-    orange ``#E4572E``, poppy gold ``#F2A900``, rule ``#D9D3C7``.
+    orange ``#E4572E``, poppy gold ``#F2A900``, rule ``#D9D3C7``, muted
+    ``#6B6F76``.
 
 ``pacific``
     Cooler paper ``#F6F7F5``, ink ``#14212B``, deep pacific ``#0F3D5C``, the
@@ -254,6 +256,9 @@ Nothing else refers to a font by name.
 House rules
 ===========
 
+* **Clean, modern, editorial.**  Type, space and hairlines carry the design,
+  not decoration: no gradients, no glassmorphism or backdrop blur, no hero
+  blobs and no emoji bullets.
 * **Semantic tokens only** in components.  If you need a colour that no token
   names, add the token — do not inline a hex value.
 * **Hairlines, not boxes.**  Sections are separated by a ``1px``

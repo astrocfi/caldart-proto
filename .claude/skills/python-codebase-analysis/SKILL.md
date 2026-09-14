@@ -36,7 +36,7 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 - Function shape: ≤3 positional args, keyword-only for the rest. Return an object rather than a tuple of many results.
 - Constants: no magic numbers/strings; Django settings or env for tunables.
 - Error handling: narrow try/except; no bare except.
-- Layering: request validation in DRF serializers and forms (see `security`); thin views; domain logic in each app's `services.py`, as `PLAN.rst` §4 lays out for members and payments.
+- Layering: request validation in DRF serializers and forms (see `security`); thin views; domain logic in each app's `services.py`.
 - Management commands and application code: user-facing command output through `self.stdout` / `self.stderr`, failures through `CommandError`; no `print()` or `sys.exit()` anywhere else; diagnostics through a module-level `logging.getLogger(__name__)`.
 - Error message quality: exceptions include enough context to diagnose (`ValueError("x must be positive, got -3")` not `ValueError("bad value")`). Domain exceptions (e.g. the payment providers' `PaymentVerificationError`, `ProviderNotConfigured`) where callers need to tell failures apart. API error responses carry a clear message.
 - Encoding and I/O: explicit `encoding='utf-8'` on `open()` calls (platform default varies). Consistent use of `pathlib.Path` over `os.path` string manipulation. Context managers for all files and connections.
@@ -56,13 +56,13 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 - Structure: tests in `backend/tests/test_<feature>.py`, shared fixtures in `backend/tests/conftest.py` and factories in `backend/tests/factories.py` (see `python_testing`); naming (`test_*`).
 - Coverage: approximate line/branch coverage (`uv run --with pytest-cov pytest --cov=backend --cov-report=term-missing`, Postgres up); untested apps or critical paths.
 - Quality: one assertion per test; no tests that ignore results or swallow exceptions; use of parametrize/fixtures; independence.
-- Gaps: missing edge cases, error paths, permission allow/deny cases, or the coverage `PLAN.rst` §15 requires.
+- Gaps: missing edge cases, error paths, permission allow/deny cases, or the coverage `docs/developer/testing.rst` describes.
 
 **Evidence**: `pyproject.toml` pytest config, coverage output, example test file. For a deep dive, run the `critique-test-suite` skill.
 
 ### 5. Performance and resource use
 
-- Queries: N+1 patterns (related objects read per row in serializers, templates, and CSV/PDF exports) without `select_related` / `prefetch_related`; queries inside loops; missing indexes on filtered or ordered fields; unbounded querysets where the `PLAN.rst` §6 pagination (default 25, max 200) should apply.
+- Queries: N+1 patterns (related objects read per row in serializers, templates, and CSV/PDF exports) without `select_related` / `prefetch_related`; queries inside loops; missing indexes on filtered or ordered fields; unbounded querysets where the API pagination (default 25, max 200) should apply.
 - Hot paths: unnecessary work in loops, repeated allocations, O(n²) or worse algorithms where it matters.
 - I/O: missing timeouts on outbound HTTP (payment providers); large exports built in memory.
 - Caching: repeated computation or lookups that could be cached or memoized.
@@ -77,15 +77,15 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 - Cohesion: modules/classes with a single responsibility; clear boundaries.
 - Extensibility: adding features without editing many files (e.g. the payment provider registry in `apps/payments/providers/`); use of hooks, registries, or strategy-style patterns where appropriate.
 - Configuration access: settings read through `django.conf.settings`, with environment variables read only in `caldart/settings/`.
-- Documentation quality: README accuracy (make targets, demo accounts, URLs); docs build health (`make docs`, `sphinx-build -n -W`); the hand-written API reference (`docs/developer/api-*.rst`) matches each app's `api/urls.py` and serializers; `PLAN.rst` agrees with the code (`CLAUDE.md`).
+- Documentation quality: README accuracy (make targets, demo accounts, URLs); docs build health (`make docs`, `sphinx-build -n -W`); the hand-written API reference (`docs/developer/api-*.rst`) matches each app's `api/urls.py` and serializers; the docs agree with the code and cite no plan (`CLAUDE.md`).
 
 **Evidence**: Import structure, example functions or classes. Compare `docs/developer/api-*.rst` against the URLconfs and serializers. Check README commands against the Makefile.
 
 ### 7. Security and robustness
 
-- Permissions: every endpoint enforces the role matrix in `PLAN.rst` §5 through its DRF permission classes, plus the object-level rules noted in §6. Note views with no explicit permission classes or with `AllowAny`.
+- Permissions: every endpoint enforces the permission matrix in `docs/developer/api-reference.rst` through its DRF permission classes, plus the object-level rules on the API pages. Note views with no explicit permission classes or with `AllowAny`.
 - Input validation: external input (request data, uploads, webhooks, management-command arguments, env) validated at boundaries (DRF serializers, forms); amounts and roles computed on the server.
-- CSRF and sessions: session authentication with the CSRF token flow in `PLAN.rst` §6; note `csrf_exempt` outside payment webhooks.
+- CSRF and sessions: session authentication with the CSRF token flow in `docs/developer/api-reference.rst`; note `csrf_exempt` outside payment webhooks.
 - Webhooks: payment webhook signatures verified where configured; handlers idempotent.
 - Secrets: no credentials in code or logs; use of env or secret managers.
 - Dependency hygiene: known vulnerable deps (`make audit`); minimum versions with exact pins only in lock files.
@@ -115,7 +115,7 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 ### 10. Deployment and configuration
 
 - Settings split: `caldart/settings/base.py`, `dev.py`, `prod.py`, and `test.py`. Each setting is defined once in `base.py` and overridden only where an environment genuinely differs; production defaults are safe (e.g. `PAYMENTS_MOCK_ENABLED` is off unless the environment turns it on).
-- Environment variables: every variable read through django-environ appears in `.env.example` (and in the `PLAN.rst` §14 list); required ones fail fast with a clear error.
+- Environment variables: every variable read through django-environ appears in `.env.example` (and in `docs/developer/configuration.rst`); required ones fail fast with a clear error.
 - Production audit: `uv run backend/manage.py check --deploy` is clean under `caldart.settings.prod` with the real environment file (`docs/developer/configuration.rst`).
 - Static files: whitenoise serves the `collectstatic` output (`backend/staticfiles/`), including the Vite bundle from `frontend/dist`; django-vite dev mode is off in production.
 - `deploy/`: `gunicorn.conf.py`, the systemd units (`caldart-web.service`, `caldart-reminders.service` and `.timer`), and the Apache and nginx configs agree with the settings (ports, paths, environment file, static root) and with the management commands they run.

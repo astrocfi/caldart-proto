@@ -1,5 +1,5 @@
 /**
- * Stripe's Payment Element (PLAN §10).
+ * Stripe's Payment Element.
  *
  * Card, Apple Pay, Google Pay and Link all arrive through this one element:
  * the server enabled `automatic_payment_methods`, so Stripe shows whichever

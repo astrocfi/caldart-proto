@@ -1,5 +1,5 @@
 /**
- * `/leader` — one search box, then the status card (PLAN §1 flow C, §8).
+ * `/leader` — one search box, then the status card.
  *
  * The chosen member lives in the query string, so a leader can send a link,
  * use the back button, and reload without losing the card.

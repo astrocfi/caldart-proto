@@ -1,5 +1,5 @@
 /**
- * The pre-flight status card (PLAN §1 flow C, §6.6).
+ * The pre-flight status card.
  *
  * Designed to be read at arm's length on a phone, standing on a ramp: the
  * verdict is a full-width band in words as well as colour, and every row

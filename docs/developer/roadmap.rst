@@ -3,9 +3,9 @@ Roadmap
 =======
 
 What this prototype deliberately leaves out, and what building it would
-involve.  Nothing here is a defect: each item was scoped out in ``PLAN.rst``
-§1, or emerged as an obvious next step while the seven feature branches
-landed.  The notes are written for whoever picks the work up — where the seams
+involve.  Nothing here is a defect: each item is either out of scope by
+decision or an obvious next step from where the code stands.  The notes are
+written for whoever picks the work up — where the seams
 already are, and what would have to change.
 
 Deliberate non-goals
@@ -203,7 +203,6 @@ the office.
 Where to record the next thing
 ==============================
 
-This page, and ``PLAN.rst`` if the change alters the specification rather than
-extending it.  The rule from :doc:`architecture` holds: if the code and the
-plan disagree, one of them is wrong, and the pull request that finds the
-disagreement fixes it.
+This page, and whichever page documents the behavior the change alters: the
+documentation is the specification.  If the code and a page disagree, one of
+them is wrong, and the pull request that finds the disagreement fixes it.

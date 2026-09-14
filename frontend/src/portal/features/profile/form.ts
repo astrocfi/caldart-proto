@@ -173,8 +173,9 @@ const STATE_RE = /^[A-Za-z]{2}$/;
 const POSTAL_RE = /^\d{5}(-\d{4})?$/;
 
 /**
- * The fields that make a profile "complete" — PLAN §6.1's `profile_complete`
- * list, and the same one `MemberProfile.COMPLETE_FIELDS` uses on the server.
+ * The fields that make a profile "complete" — the list behind the user payload's
+ * `profile_complete` flag, and the same one `MemberProfile.COMPLETE_FIELDS` uses
+ * on the server.
  *
  * The wizard cannot ask for less than this (the visitor would be stuck on step
  * 2, because `profile_complete` would still be false) nor more (they would be

@@ -1,4 +1,4 @@
-"""Aircraft API routes (PLAN §6.5, §6.6).  Owned by ``feat/aircraft-leader``."""
+"""Aircraft API routes."""
 
 from django.urls import path
 
@@ -7,11 +7,11 @@ from apps.aircraft.api import views
 app_name = "aircraft"
 
 urlpatterns = [
-    # -- register (PLAN §6.5) ---------------------------------------------
+    # -- register ---------------------------------------------------------
     path("aircraft", views.AircraftListCreateView.as_view(), name="list"),
     path("aircraft/lookup", views.AircraftLookupView.as_view(), name="lookup"),
     path("aircraft/<int:pk>", views.AircraftDetailView.as_view(), name="detail"),
-    # -- exports (PLAN §11) -----------------------------------------------
+    # -- exports ----------------------------------------------------------
     path(
         "admin/aircraft/export.csv",
         views.AircraftExportCsvView.as_view(),
@@ -22,7 +22,7 @@ urlpatterns = [
         views.AircraftExportPdfView.as_view(),
         name="export-pdf",
     ),
-    # -- leader check (PLAN §6.6) -----------------------------------------
+    # -- leader check -----------------------------------------------------
     path("leader/search", views.LeaderSearchView.as_view(), name="leader-search"),
     path(
         "leader/members/<int:user_id>/status",

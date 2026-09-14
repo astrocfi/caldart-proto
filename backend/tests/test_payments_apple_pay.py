@@ -1,4 +1,4 @@
-"""The Apple Pay domain-association file (PLAN §10).
+"""The Apple Pay domain-association file.
 
 Stripe fetches ``/.well-known/apple-developer-merchantid-domain-association``
 over plain HTTP when the domain is registered; without it Apple Pay never

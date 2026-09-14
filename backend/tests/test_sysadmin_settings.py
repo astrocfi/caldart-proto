@@ -1,4 +1,4 @@
-"""Production settings and the shipped deploy configuration (PLAN §13).
+"""Production settings and the shipped deploy configuration.
 
 ``caldart.settings.prod`` is never exercised by the rest of the suite, so this
 module imports it against a minimal environment and checks the security

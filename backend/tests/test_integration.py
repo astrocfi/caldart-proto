@@ -1,9 +1,9 @@
-"""Cross-feature agreements that no single Phase 2 branch could assert.
+"""Cross-feature agreements that no single feature's tests could assert.
 
-Each test here pins down a rule that two branches had written down separately
-and that drifted apart as a result: what "a complete profile" means, which
-serializer describes an aeroplane, whether the reset really seeds the site, and
-where a reminder email gets the organisation's name from.
+Each test here pins down a rule that two features share and could otherwise
+let drift apart: what "a complete profile" means, which serializer describes
+an aeroplane, whether the reset really seeds the site, and where a reminder
+email gets the organisation's name from.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ pytestmark = pytest.mark.django_db
 
 # ------------------------------------------------------- one completeness rule
 def test_complete_fields_are_the_ones_the_plan_names():
-    """PLAN §6.1 lists exactly these five for ``profile_complete``."""
+    """Exactly these five decide ``profile_complete`` (``docs/developer/api-auth.rst``)."""
     assert MemberProfile.COMPLETE_FIELDS == (
         "phone",
         "address_line1",
@@ -49,7 +49,7 @@ def test_every_named_field_is_needed(field):
 
 
 def test_state_is_not_part_of_the_rule():
-    """The portal's form used to insist on it; PLAN §6.1 does not."""
+    """The portal's form used to insist on it; the rule does not."""
     profile = MemberProfileFactory(state="")
     assert profile.is_complete is True
 
@@ -219,7 +219,7 @@ def test_aircraft_export_subtitle_names_every_filter():
 
 
 def test_payment_filters_have_no_dead_describe():
-    """It promised a PDF subtitle for an export PLAN §6.8 does not ask for."""
+    """It promised a PDF subtitle, but payments export only as CSV."""
     from apps.payments.reports import PaymentFilters
 
     assert not hasattr(PaymentFilters, "describe")

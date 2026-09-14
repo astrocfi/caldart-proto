@@ -1,8 +1,7 @@
-"""Shared CSV and PDF report helpers (PLAN §11).
+"""Shared CSV and PDF report helpers.
 
-Two Phase 2 branches (``feat/members-admin`` and ``feat/aircraft-leader``)
-build reports on top of these, so the house style lives here rather than in
-either app.
+The members, aircraft and payments reports build on these, so the house style
+lives here rather than in any one app.
 
 Fraunces and IBM Plex are web fonts and are not embedded in the PDFs; the
 built-in Times/Helvetica families carry the same serif-display /
@@ -35,7 +34,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-# House palette, matching the ``sierra`` theme in PLAN §9.
+# House palette, matching the ``sierra`` theme.
 INK = colors.HexColor("#1B1F24")
 MUTED = colors.HexColor("#6B6F76")
 RULE = colors.HexColor("#D9D3C7")

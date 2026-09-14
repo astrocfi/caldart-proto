@@ -1,4 +1,4 @@
-"""The checkout API: config, checkout, mock completion, lookup (PLAN §6.7).
+"""The checkout API: config, checkout, mock completion, lookup.
 
 The role matrix lives here too: who may start a checkout, complete one, and
 read a payment back.
@@ -120,7 +120,7 @@ def test_checkout_creates_a_pending_payment(api_client, member, annual_plan):
 
 
 def test_checkout_ignores_an_amount_sent_by_the_client(api_client, member, annual_plan):
-    """PLAN §10: the server recomputes the total, always."""
+    """The server recomputes the total, always."""
     api_client.force_login(member)
     response = api_client.post(
         CHECKOUT,
@@ -276,7 +276,7 @@ def test_completing_twice_grants_one_term_only(api_client, member, annual_plan):
 
 
 # --------------------------------------------------------------------------
-# Renewal semantics (PLAN §10: the new term starts the day after the old one)
+# Renewal semantics: the new term starts the day after the old one
 # --------------------------------------------------------------------------
 def test_renewing_starts_the_day_after_the_current_expiry(api_client, member, annual_plan):
     api_client.force_login(member)

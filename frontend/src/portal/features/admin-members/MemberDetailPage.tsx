@@ -1,5 +1,5 @@
 /**
- * `/admin/members/:id` — one member record, in four tabs (PLAN §6.4).
+ * `/admin/members/:id` — one member record, in four tabs.
  *
  * The tab is held in the query string so a colleague can be sent straight to
  * the memberships table, and the tab strip follows the WAI-ARIA tabs pattern:

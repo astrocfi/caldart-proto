@@ -1,6 +1,6 @@
 /**
- * `/admin/aircraft` — the register an account administrator maintains
- * (PLAN §6.5, §8): filter, sort, export, and add a record.
+ * `/admin/aircraft` — the register an account administrator maintains:
+ * filter, sort, export, and add a record.
  */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';

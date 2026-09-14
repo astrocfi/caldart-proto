@@ -1,4 +1,4 @@
-"""Auth and users-admin endpoints (PLAN §6.1, §6.2)."""
+"""Auth and users-admin endpoints."""
 
 from __future__ import annotations
 
@@ -132,7 +132,7 @@ class PasswordChangeView(APIView):
 
 
 class PasswordResetView(APIView):
-    """``POST /auth/password/reset`` — 204 always (PLAN §6.1).
+    """``POST /auth/password/reset`` — 204 always.
 
     The answer never depends on whether the address is registered, so the
     endpoint cannot be used to enumerate members.
@@ -176,7 +176,7 @@ class RolesView(APIView):
 
 
 # --------------------------------------------------------------------------
-# Users admin (PLAN §6.2) — user_admin, and system_admin by implication
+# Users admin — user_admin, and system_admin by implication
 # --------------------------------------------------------------------------
 def admin_user_queryset():
     """Every user, with the rows the ``user`` payload needs already loaded."""

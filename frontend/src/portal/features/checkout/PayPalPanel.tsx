@@ -1,5 +1,5 @@
 /**
- * PayPal's buttons (PLAN §10).
+ * PayPal's buttons.
  *
  * `createOrder` asks our server for an order, because the amount must be the
  * one the server computed; `onApprove` asks our server to capture it, because

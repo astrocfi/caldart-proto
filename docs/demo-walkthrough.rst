@@ -4,7 +4,7 @@ Demo walkthrough
 
 This page drives the whole prototype in about twenty minutes, using the demo
 data ``make seed`` creates.  It follows the five flows the system exists for
-(``PLAN.rst`` §1) in order, and each one builds on the last: the profile you
+in order, and each one builds on the last: the profile you
 edit in flow B is the record the DART leader reads in flow C, and the payment
 you make in flow A is the one that shows up in the account administrator's
 month column in flow D.

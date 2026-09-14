@@ -1,4 +1,4 @@
-# Daily trigger for the CalDART renewal reminder scan (PLAN.rst §12).
+# Daily trigger for the CalDART renewal reminder scan.
 #
 # Deploy path: /srv/caldart. Enable with:
 #   sudo systemctl enable --now caldart-reminders.timer
