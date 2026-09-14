@@ -8,7 +8,9 @@ StreamField blocks in :mod:`apps.cms.blocks`.
 ``MembersOnlyMixin`` is the members-only wall: a page flagged ``members_only``
 is served to anyone whose ``can_access_members_content`` is true and answered
 with ``cms/members_only_wall.html`` and HTTP 403 for everybody else.  Wagtail's
-own page privacy still works on top of it.
+own page privacy still works on top of it.  The same wall guards downloads from
+the ``Members only`` document collection, through the hook in
+:mod:`apps.cms.wagtail_hooks`.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ from django.template.response import TemplateResponse
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.fields import RichTextField, StreamField
-from wagtail.models import Page
+from wagtail.models import Collection, Page
 from wagtail.search import index
 
 from apps.cms.blocks import (
@@ -50,6 +52,10 @@ NEWS_PAGE_SIZE = 8
 #: earns its place.
 ON_THIS_PAGE_MIN_HEADINGS = 3
 
+#: Documents in this collection, and in every collection beneath it, are served
+#: only to readers who pass ``user_can_access_members_content``.
+MEMBERS_ONLY_COLLECTION_NAME = "Members only"
+
 
 def user_can_access_members_content(user) -> bool:
     """``True`` when ``user`` may read members-only pages."""
@@ -64,6 +70,47 @@ def members_wall_state(user) -> str:
         return "anonymous"
     status = user.membership_status["status"]
     return "expired" if status == "expired" else "none"
+
+
+def members_wall_context(user) -> dict:
+    """The wall's own context for ``user``: ``wall_state`` and ``membership``.
+
+    ``membership`` is the signed-in account's membership status dictionary, and
+    ``None`` for an anonymous visitor.
+    """
+    is_authenticated = getattr(user, "is_authenticated", False)
+    return {
+        "wall_state": members_wall_state(user),
+        "membership": user.membership_status if is_authenticated else None,
+    }
+
+
+def ensure_members_only_collection() -> Collection:
+    """Return the ``Members only`` collection, creating it under the root if absent.
+
+    Safe to call repeatedly: a second call returns the collection the first one
+    created.
+    """
+    existing = Collection.objects.filter(name=MEMBERS_ONLY_COLLECTION_NAME).order_by("path")
+    first = existing.first()
+    if first is not None:
+        return first
+    return Collection.get_first_root_node().add_child(name=MEMBERS_ONLY_COLLECTION_NAME)
+
+
+def collection_is_members_only(collection) -> bool:
+    """``True`` for the ``Members only`` collection and every collection beneath it.
+
+    ``None`` -- a document with no collection -- is public.
+    """
+    if collection is None:
+        return False
+    # A descendant's materialized path starts with its ancestor's, so one prefix
+    # test covers the collection itself and the whole subtree under it.
+    paths = Collection.objects.filter(name=MEMBERS_ONLY_COLLECTION_NAME).values_list(
+        "path", flat=True
+    )
+    return any(collection.path.startswith(path) for path in paths)
 
 
 class BasePage(Page):
@@ -111,10 +158,7 @@ class MembersOnlyMixin(models.Model):
         """The wall itself: the page chrome, a reason, and one clear next step."""
         request.is_preview = getattr(request, "is_preview", False)
         context = self.get_context(request)
-        context["wall_state"] = members_wall_state(request.user)
-        context["membership"] = (
-            request.user.membership_status if request.user.is_authenticated else None
-        )
+        context.update(members_wall_context(request.user))
         return TemplateResponse(request, "cms/members_only_wall.html", context, status=403)
 
 
