@@ -25,7 +25,9 @@ PATCH or DELETE that finds the cookie missing.
 ``WWW-Authenticate`` challenge, so DRF would normally answer 403.
 ``caldart.exceptions.caldart_exception_handler`` rewrites that to 401, which is
 what the contract promises and what the SPA keys "sign in again" off.  A 403
-therefore always means *signed in, wrong role*.
+therefore always means *signed in*: the wrong role, or — when the ``detail``
+starts ``CSRF Failed`` — a missing or stale CSRF token, which succeeds on a
+resend once a fresh token has been fetched (see :ref:`api-csrf-bootstrap`).
 
 **Errors** are DRF-standard: ``{"detail": "..."}`` for view-level refusals, and
 ``{"<field>": ["..."]}`` for validation.  Password rules are reported against

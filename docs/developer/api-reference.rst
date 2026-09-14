@@ -42,6 +42,8 @@ every request for the same reason.
 project declares its own ``permission_classes``, so the default is never
 load-bearing — read the matrix, not the default.
 
+.. _api-csrf-bootstrap:
+
 CSRF bootstrap
 --------------
 
@@ -123,11 +125,15 @@ rewrites ``NotAuthenticated`` to 401.  The rule is therefore:
    * - **401**
      - Nobody is signed in.  Sign in and retry.
    * - **403**
-     - Somebody is signed in, and they may not do this.  Retrying will not
-       help.
+     - Somebody is signed in, and the request was refused.  Retrying will not
+       help, unless the ``detail`` starts ``CSRF Failed``.
 
-Three deliberate departures are worth knowing:
+Four deliberate departures are worth knowing:
 
+- A **403** whose ``detail`` starts ``CSRF Failed`` is the one worth
+  repeating.  It comes from CSRF enforcement, before any permission class
+  runs, so the caller's roles are not what was refused: fetch a token again
+  and resend the request once (see :ref:`api-csrf-bootstrap`).
 - ``POST /auth/login`` answers **400** for wrong credentials (``{"detail":
   "Incorrect email address or password."}``) and **403** for a known but
   deactivated account.  It is an authentication endpoint; a 401 from it would
