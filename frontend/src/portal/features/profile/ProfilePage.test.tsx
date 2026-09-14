@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API, makeUser, signedInAs } from '../../../test/handlers';
+import { API, TEST_CSRF_TOKEN, makeUser, signedInAs } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
 import { server } from '../../../test/server';
 import { ProfilePage } from './ProfilePage';
@@ -116,6 +116,24 @@ describe('<ProfilePage/>', () => {
 
     expect(await screen.findByText('Profile saved.')).toBeInTheDocument();
     expect(body).toMatchObject({ city: 'Napa', phone: '650-555-0101', dart_id: 1 });
+  });
+
+  it('carries the bootstrapped CSRF token on the save', async () => {
+    let sentToken: string | null = null;
+    server.use(
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
+      http.put(`${API}/me/profile`, ({ request }) => {
+        sentToken = request.headers.get('X-CSRFToken');
+        return HttpResponse.json(makeProfile());
+      }),
+    );
+
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+    await screen.findByLabelText(label('Phone'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    await screen.findByText('Profile saved.');
+    expect(sentToken).toBe(TEST_CSRF_TOKEN);
   });
 
   it('shows a field error the server sent back, and points the toast at it', async () => {

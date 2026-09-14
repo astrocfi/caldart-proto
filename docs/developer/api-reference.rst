@@ -42,6 +42,8 @@ every request for the same reason.
 project declares its own ``permission_classes``, so the default is never
 load-bearing — read the matrix, not the default.
 
+.. _api-csrf-bootstrap:
+
 CSRF bootstrap
 --------------
 
@@ -53,11 +55,18 @@ offers one endpoint whose only job is to issue it:
 
    GET /api/v1/auth/csrf   →  204 No Content, Set-Cookie: csrftoken=…
 
-Call it once at start-up, then send the cookie's value back in the
-``X-CSRFToken`` header on every ``POST``, ``PUT``, ``PATCH`` and ``DELETE``.
-The cookie is deliberately **not** ``HttpOnly`` — JavaScript has to read it to
-echo it — while the session cookie is; see the reasoning in
-``caldart/settings/prod.py``.
+Call it whenever you hold no ``csrftoken`` cookie, then send the cookie's value
+back in the ``X-CSRFToken`` header on every ``POST``, ``PUT``, ``PATCH`` and
+``DELETE``.  The cookie is the only thing worth caching: a client that treats
+one successful call as permission to stop asking locks itself out of every
+write as soon as the cookie is missing or rotated.  The cookie is deliberately
+**not** ``HttpOnly`` — JavaScript has to read it to echo it — while the session
+cookie is; see the reasoning in ``caldart/settings/prod.py``.
+
+A request from a signed-in caller that arrives without a usable token is
+refused before the view runs, with ``403`` and a ``detail`` that starts
+``CSRF Failed``.  That refusal is safe to repeat: fetch a token again and
+resend the request once.
 
 From ``curl``, that is two steps:
 
@@ -90,6 +99,14 @@ JSON is the only representation: ``DEFAULT_RENDERER_CLASSES`` is
 ``JSONRenderer`` alone, so there is no browsable API and no ``?format=``.
 Dates are ISO-8601 (``2027-03-01``); datetimes are ISO-8601 with an offset.
 
+Every successful response is therefore either a JSON body or nothing at all:
+an endpoint with nothing to say answers **204** with no body and no
+``Content-Type``.  A client may treat any other 2xx body as a fault — an HTML
+maintenance or proxy page served with status 200, say — rather than as data.
+The exceptions are the routes that stream a file — the CSV and PDF exports and
+``GET /system/backups/{name}/download`` — and those are followed as plain
+links, so their bodies never reach the API client.
+
 401 versus 403
 --------------
 
@@ -108,11 +125,15 @@ rewrites ``NotAuthenticated`` to 401.  The rule is therefore:
    * - **401**
      - Nobody is signed in.  Sign in and retry.
    * - **403**
-     - Somebody is signed in, and they may not do this.  Retrying will not
-       help.
+     - Somebody is signed in, and the request was refused.  Retrying will not
+       help, unless the ``detail`` starts ``CSRF Failed``.
 
-Three deliberate departures are worth knowing:
+Four deliberate departures are worth knowing:
 
+- A **403** whose ``detail`` starts ``CSRF Failed`` is the one worth
+  repeating.  It comes from CSRF enforcement, before any permission class
+  runs, so the caller's roles are not what was refused: fetch a token again
+  and resend the request once (see :ref:`api-csrf-bootstrap`).
 - ``POST /auth/login`` answers **400** for wrong credentials (``{"detail":
   "Incorrect email address or password."}``) and **403** for a known but
   deactivated account.  It is an authentication endpoint; a 401 from it would

@@ -2,14 +2,21 @@
  * The single fetch wrapper the portal talks to Django through.
  *
  * - same-origin session cookies, so there is no token to store;
- * - CSRF bootstrapped once from `GET /api/v1/auth/csrf`, then sent as
- *   `X-CSRFToken` on every unsafe method;
- * - JSON in, JSON out, and DRF error bodies surfaced as a typed `ApiError`.
+ * - CSRF fetched from `GET /api/v1/auth/csrf` whenever the `csrftoken` cookie is
+ *   missing, then sent as `X-CSRFToken` on every unsafe method; a request the
+ *   server refuses with a `CSRF Failed` 403 is retried once with a fresh token;
+ * - JSON in, JSON out: a non-2xx response becomes a typed `ApiError`, and a 2xx
+ *   body that is neither empty nor JSON becomes an `UnexpectedResponseError`.
  */
 
 export const API_BASE = '/api/v1';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
+
+const CSRF_COOKIE = 'csrftoken';
+
+/** How DRF starts the `detail` of a 403 it raised before the view ran. */
+const CSRF_FAILURE_PREFIX = 'CSRF Failed';
 
 /** A non-2xx response, with the DRF error body attached. */
 export class ApiError extends Error {
@@ -64,6 +71,24 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * A 2xx response whose body is not the JSON the caller was typed to expect.
+ *
+ * It carries no server message, so a screen that special-cases `ApiError` falls back to
+ * its own copy, and the query client treats it like any other transport failure.
+ */
+export class UnexpectedResponseError extends Error {
+  readonly status: number;
+  readonly contentType: string | null;
+
+  constructor(status: number, contentType: string | null, options?: ErrorOptions) {
+    super('The server sent an unexpected response. Please try again.', options);
+    this.name = 'UnexpectedResponseError';
+    this.status = status;
+    this.contentType = contentType;
+  }
+}
+
 export function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match?.[1] ? decodeURIComponent(match[1]) : null;
@@ -71,21 +96,41 @@ export function readCookie(name: string): string | null {
 
 let csrfBootstrap: Promise<void> | null = null;
 
-/** Fetch the CSRF cookie once per page load. */
-export async function ensureCsrfToken(): Promise<void> {
-  if (readCookie('csrftoken')) return;
-  csrfBootstrap ??= fetch(`${API_BASE}/auth/csrf`, {
-    method: 'GET',
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' },
-  }).then(
-    () => undefined,
-    () => undefined,
-  );
+export interface EnsureCsrfOptions {
+  /** Fetch a token even though a `csrftoken` cookie is already present. */
+  force?: boolean;
+}
+
+/**
+ * Make sure the browser holds a `csrftoken` cookie, fetching one if it does not.
+ *
+ * The cookie is the only cache: callers that arrive while a fetch is in flight share it,
+ * and the promise is dropped as soon as it settles, so a failure is retried by the next
+ * caller instead of locking the page out of every unsafe request.
+ *
+ * @throws ApiError when `GET /auth/csrf` answers a non-2xx status, and whatever `fetch`
+ * rejects with when the request never reaches the server.
+ */
+export async function ensureCsrfToken(options: EnsureCsrfOptions = {}): Promise<void> {
+  if (options.force !== true && readCookie(CSRF_COOKIE) !== null) return;
+  csrfBootstrap ??= fetchCsrfCookie().finally(() => {
+    csrfBootstrap = null;
+  });
   await csrfBootstrap;
 }
 
-/** Test seam: forget that CSRF was already bootstrapped. */
+async function fetchCsrfCookie(): Promise<void> {
+  const response = await fetch(`${API_BASE}/auth/csrf`, {
+    method: 'GET',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, await parseErrorBody(response));
+  }
+}
+
+/** Test seam: drop any bootstrap that is still in flight. */
 export function resetCsrfBootstrap(): void {
   csrfBootstrap = null;
 }
@@ -110,7 +155,14 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
   return qs ? `${url}${url.includes('?') ? '&' : '?'}${qs}` : url;
 }
 
-async function parseBody(response: Response): Promise<unknown> {
+/**
+ * Read an error body as leniently as possible.
+ *
+ * Whatever a proxy or a crashed server puts in front of DRF still has to reach
+ * `ApiError`, so a body that will not parse degrades to `null` rather than raising and
+ * hiding the status the caller needs.
+ */
+async function parseErrorBody(response: Response): Promise<unknown> {
   if (response.status === 204) return null;
   const type = response.headers.get('content-type') ?? '';
   if (type.includes('application/json')) {
@@ -121,21 +173,49 @@ async function parseBody(response: Response): Promise<unknown> {
     }
   }
   const text = await response.text();
-  return text || null;
+  return text === '' ? null : text;
 }
 
-/** Issue a request and return the parsed JSON body, or throw `ApiError`. */
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const method = (options.method ?? 'GET').toUpperCase();
+/**
+ * Read a successful body, which must be JSON or nothing at all.
+ *
+ * Every body-less 2xx the API answers is a 204 with no `Content-Type`, so an empty body
+ * is `null`. Anything else has to parse as JSON, because the caller's declared type says
+ * it is JSON: an HTML maintenance page served with status 200 is a fault, not a value.
+ *
+ * @throws UnexpectedResponseError when the body is neither empty nor parseable JSON.
+ */
+async function parseSuccessBody(response: Response): Promise<unknown> {
+  if (response.status === 204) return null;
+  const contentType = response.headers.get('content-type');
+  const text = await response.text();
+  if (text === '') return null;
+  if (contentType === null || !contentType.includes('application/json')) {
+    throw new UnexpectedResponseError(response.status, contentType);
+  }
+  try {
+    return JSON.parse(text);
+  } catch (cause) {
+    throw new UnexpectedResponseError(response.status, contentType, { cause });
+  }
+}
+
+function isCsrfFailure(status: number, body: unknown): boolean {
+  if (status !== 403) return false;
+  if (body === null || typeof body !== 'object') return false;
+  const detail = (body as Record<string, unknown>).detail;
+  return typeof detail === 'string' && detail.startsWith(CSRF_FAILURE_PREFIX);
+}
+
+function send(path: string, method: string, options: RequestOptions): Promise<Response> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...options.headers,
   };
 
   if (!SAFE_METHODS.has(method)) {
-    await ensureCsrfToken();
-    const token = readCookie('csrftoken');
-    if (token) headers['X-CSRFToken'] = token;
+    const token = readCookie(CSRF_COOKIE);
+    if (token !== null) headers['X-CSRFToken'] = token;
   }
 
   let payload: BodyInit | undefined;
@@ -156,13 +236,36 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (payload !== undefined) init.body = payload;
   if (options.signal) init.signal = options.signal;
 
-  const response = await fetch(buildUrl(path, options.query), init);
-  const body = await parseBody(response);
+  return fetch(buildUrl(path, options.query), init);
+}
 
-  if (!response.ok) {
+/**
+ * Issue a request and return its parsed JSON body, or `null` for a body-less 2xx.
+ *
+ * An unsafe method bootstraps the CSRF cookie first, and a `CSRF Failed` 403 is retried
+ * exactly once against a freshly fetched token: the server rejected the request before
+ * the view ran, so repeating it changes nothing else.
+ *
+ * @throws ApiError for any non-2xx response, carrying the status and the parsed body.
+ * @throws UnexpectedResponseError for a 2xx body that is neither empty nor JSON.
+ */
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const method = (options.method ?? 'GET').toUpperCase();
+  const isUnsafe = !SAFE_METHODS.has(method);
+  if (isUnsafe) await ensureCsrfToken();
+
+  const response = await send(path, method, options);
+  if (response.ok) return (await parseSuccessBody(response)) as T;
+
+  const body = await parseErrorBody(response);
+  if (!isUnsafe || !isCsrfFailure(response.status, body)) {
     throw new ApiError(response.status, body);
   }
-  return body as T;
+
+  await ensureCsrfToken({ force: true });
+  const retried = await send(path, method, options);
+  if (retried.ok) return (await parseSuccessBody(retried)) as T;
+  throw new ApiError(retried.status, await parseErrorBody(retried));
 }
 
 export const api = {
