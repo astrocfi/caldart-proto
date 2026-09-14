@@ -219,8 +219,8 @@ reminders: ## Send renewal reminders (make reminders TODAY=2027-01-01 DRY_RUN=1)
 	  $(if $(DRY_RUN),--dry-run,)
 
 # ----------------------------------------------------------------- docs
-docs: ## Build the Sphinx documentation (warnings are errors)
-	$(UV) run sphinx-build -W -b html docs docs/_build/html
+docs: ## Build the Sphinx documentation (nitpicky; warnings are errors)
+	$(UV) run sphinx-build -n -W -b html docs docs/_build/html
 	@echo "Docs at docs/_build/html/index.html"
 
 clean: ## Remove build artefacts
