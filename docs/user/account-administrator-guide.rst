@@ -132,7 +132,7 @@ it.
 
 **Edit** on a row lets you correct that term's end date, status or note — for
 a refund, a goodwill extension, or a term that was entered wrongly.  Setting a
-term to *Cancelled* takes it out of the membership calculation entirely; the
+term to *Canceled* takes it out of the membership calculation entirely; the
 row stays in the history.
 
 **Grant a term** below the table gives somebody a membership by hand.  Choose
@@ -222,7 +222,7 @@ Common tasks
 
 **A member says they renewed but the site says expired.**
    Open their record and read the Memberships tab.  The status is worked out
-   from the terms listed there, so a missing or cancelled term is the answer;
+   from the terms listed there, so a missing or canceled term is the answer;
    the Payments tab shows whether the money arrived.
 
 

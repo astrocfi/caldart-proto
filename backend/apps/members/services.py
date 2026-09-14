@@ -108,7 +108,7 @@ def membership_status(user, on_date: date | None = None) -> MembershipStatusDict
 
     past = (
         user.memberships.select_related("plan")
-        .exclude(status=MembershipStatusChoices.CANCELLED)
+        .exclude(status=MembershipStatusChoices.CANCELED)
         .filter(starts_on__lte=on_date)
         .order_by("-ends_on", "-starts_on")
         .first()

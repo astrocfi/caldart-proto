@@ -530,7 +530,7 @@ and the current one is worked out rather than flagged.
      - ``NULL`` means lifetime
    * - ``status``
      - choice
-     - ``active``, ``expired``, ``cancelled``
+     - ``active``, ``expired``, ``canceled``
    * - ``source``
      - choice
      - ``payment``, ``manual``, ``seed``
@@ -573,7 +573,7 @@ The service
 ``current``
     Some active term covers ``on_date``.
 ``expired``
-    No term covers ``on_date``, but at least one non-cancelled term has
+    No term covers ``on_date``, but at least one non-canceled term has
     started.  ``expires_on`` and ``plan`` come from the most recent such term.
 ``none``
     Nothing has started.  Everything else is ``None`` / ``False``.
@@ -658,12 +658,12 @@ The translation, term by term:
     ``coverage_end`` is ``NULL``.
 
 ``has_started_term`` / ``past_end`` / ``past_plan``
-    Non-cancelled terms with ``starts_on <= today``, ordered by ``ends_on``
+    Non-canceled terms with ``starts_on <= today``, ordered by ``ends_on``
     descending with ``NULL`` first and then ``starts_on`` descending.  The
     first row is what ``membership_status`` reports for an expired member.
 
 ``joined_on``
-    The earliest ``starts_on`` across all of the user's terms, cancelled ones
+    The earliest ``starts_on`` across all of the user's terms, canceled ones
     included.
 
 ``effective_expiry``

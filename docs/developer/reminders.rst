@@ -53,7 +53,7 @@ all call it.  In order:
    an ``ends_on`` in the past is flipped to ``expired``.  This runs first so
    that the ``post30`` cohort is honestly labelled.
 2. **Walk the five kinds in order.**  For each, select memberships with the
-   matching ``ends_on``, excluding cancelled ones.  Lifetime terms have no
+   matching ``ends_on``, excluding canceled ones.  Lifetime terms have no
    ``ends_on`` at all, so they never appear.
 3. **Decide whether to send.**  A candidate is skipped, with a reason recorded
    in the summary, when:

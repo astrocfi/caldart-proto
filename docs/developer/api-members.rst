@@ -141,7 +141,7 @@ states the same rules as correlated subqueries on the user queryset:
    ``EXISTS`` an active term with ``starts_on <= today`` and ``ends_on``
    either null or ``>= today``.  This is what ``?status=current`` filters on.
 ``has_started_term``
-   ``EXISTS`` a non-cancelled term with ``starts_on <= today``.  Paired with
+   ``EXISTS`` a non-canceled term with ``starts_on <= today``.  Paired with
    ``covers_today`` it separates the other two statuses: not covering but
    started is ``expired``, neither is ``none``.
 ``coverage_end`` / ``coverage_plan``
@@ -157,7 +157,7 @@ states the same rules as correlated subqueries on the user queryset:
    ``coverage_plan`` when ``coverage_end`` is ``NULL`` — because a lifetime
    member has no boundary row to take a name from.
 ``past_end`` / ``past_plan``
-   The most recent non-cancelled term that has started, reported when nothing
+   The most recent non-canceled term that has started, reported when nothing
    covers today.
 ``joined_on``
    The earliest term's ``starts_on``.
@@ -266,7 +266,7 @@ unknown or inactive plan.
 only — the plan, the start date, the source and the payment link are read-only,
 because rewriting them would falsify the history rather than correct it.
 **400** if ``ends_on`` would fall before ``starts_on``.  Setting ``status`` to
-``cancelled`` removes the term from the membership calculation while leaving
+``canceled`` removes the term from the membership calculation while leaving
 the row in place.
 
 

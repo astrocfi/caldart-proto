@@ -179,7 +179,7 @@ def _candidates(kind: str, today: date):
     return (
         Membership.objects.select_related("user", "plan")
         .filter(ends_on=target)
-        .exclude(status=MembershipStatusChoices.CANCELLED)
+        .exclude(status=MembershipStatusChoices.CANCELED)
         .order_by("user_id", "id")
     )
 
