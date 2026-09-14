@@ -203,6 +203,9 @@ What the backend suite covers
      - Subject
    * - ``test_roles_permissions.py``
      - role helpers and the DRF permission classes
+   * - ``test_server_controlled_fields.py``
+     - roles, the Django flags, ownership, membership provenance and payment
+       amounts are ignored when a request body sends them
    * - ``test_accounts_auth.py``, ``test_auth_api.py``
      - register, login, logout, password change and reset, throttling
    * - ``test_users_admin_api.py``
