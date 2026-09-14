@@ -253,18 +253,21 @@ Three rules are enforced in ``AdminUserSerializer``:
 **Role slugs are validated.**  Anything outside ``ROLE_SLUGS`` is a 400 on
 ``roles``.  The list you send replaces the account's role groups exactly, and it
 comes back sorted into privilege order.  Group memberships that are not roles —
-Wagtail's editor groups, say — are left alone.
+Wagtail's editor groups, say — are left alone.  A list matching the groups the
+account already holds is not a write: the groups and the Django flags are left
+exactly as they are, so the portal may post the whole form on every save.
 
-**Only a system administrator may move ``system_admin``.**  Formally: if
-``system_admin`` appears in the symmetric difference between the roles you sent
-and the roles the account already holds, and you are not a system administrator,
-the request is 400.  A user administrator can therefore still edit a system
-administrator's *other* roles, as long as ``system_admin`` stays in the list.
-Both halves of that comparison are *effective* roles, so a Django superuser
-without the role group counts as a system administrator on either side.  Writing
-a role list rebuilds the flags from that list alone, so on such an account even a
-list identical to the groups it already has is a revocation of ``system_admin``,
-and is refused for the same reason.
+**Only a system administrator may move ``system_admin``.**  A write of the role
+list moves it when the list ticks ``system_admin`` on an account whose groups
+lack it, or leaves it unticked on an account that counts as a system
+administrator.  From a caller who is not one, that is a 400 on ``roles``.  The
+second half of the test reads *effective* roles, so a Django superuser without
+the role group counts as a system administrator, and so does the caller who
+holds the flag rather than the group.  A user administrator can therefore still
+edit a system administrator's *other* roles, as long as ``system_admin`` stays
+in the list — but no role list of a ``createsuperuser`` account is open to them,
+because writing one rebuilds the flags from that list alone: leaving the role
+out would take the superuser flag away, and putting it in grants the group.
 
 **The account-edit guard covers ``email`` and ``is_active``.**  It is shared
 with ``PATCH /admin/members/{user_id}`` and described in full under

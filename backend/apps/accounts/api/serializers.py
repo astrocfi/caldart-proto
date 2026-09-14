@@ -182,15 +182,43 @@ class RoleSerializer(serializers.Serializer):
     description = serializers.CharField()
 
 
+def _writes_roles(target, wanted: set[str]) -> bool:
+    """True when writing ``wanted`` would alter ``target``'s role groups.
+
+    A list matching the groups the account already holds is not a write at all, so the
+    administration form may resend it with every save.  ``None`` as the target is an
+    account that does not exist yet, which any list writes.
+    """
+    return target is None or wanted != set(target.roles)
+
+
+def _moves_system_admin(target, wanted: set[str]) -> bool:
+    """True when writing ``wanted`` to ``target`` would move the ``system_admin`` role.
+
+    Writing a role list rebuilds the Django flags from that list alone, so the two
+    directions are measured against different sets.  A write grants the role when it
+    ticks ``system_admin`` on an account whose groups lack it, and revokes it when it
+    leaves the box unticked on an account that counts as a system administrator --
+    which a ``createsuperuser`` account does, on the superuser flag alone.
+    """
+    if target is None:
+        return SYSTEM_ADMIN in wanted
+    if SYSTEM_ADMIN in wanted:
+        return SYSTEM_ADMIN not in target.roles
+    return SYSTEM_ADMIN in effective_roles(target)
+
+
 class AdminUserSerializer(UserSerializer):
     """``/admin/users``: the ``user`` shape, partly writable.
 
     ``roles`` is validated against ``accounts.roles``; the escalation rules — only a
-    ``system_admin`` may grant or revoke ``system_admin``, and the email address and
-    active flag of an account holding roles the caller lacks are untouchable — live
-    here because they need both the caller and the target.  Both rules read effective
-    roles, so a Django superuser without the role group counts as a ``system_admin``
-    whether it is the caller or the account being edited.
+    ``system_admin`` may move ``system_admin``, and the email address and active flag
+    of an account holding roles the caller lacks are untouchable — live here because
+    they need both the caller and the target.  A Django superuser without the role
+    group counts as a ``system_admin`` on either side of both rules.  The portal posts
+    the whole form on every save, so a field carrying the value the account already
+    has is not a change and is judged as none: that holds for the role list as much as
+    for the email address, and such a list is not written at all.
     """
 
     roles = serializers.ListField(
@@ -225,12 +253,12 @@ class AdminUserSerializer(UserSerializer):
 
     def validate_roles(self, value: list[str]) -> list[str]:
         wanted = set(value)
-        # Effective roles on both sides.  Writing the list runs `sync_django_flags`,
-        # which sets `is_superuser` from the roles alone, so a write that leaves a
-        # role-less superuser's groups untouched still revokes its system_admin
-        # standing -- and a role-less superuser grants the role as one.
-        held = effective_roles(self.instance) if self.instance is not None else set()
-        if SYSTEM_ADMIN in wanted ^ held and SYSTEM_ADMIN not in effective_roles(self._actor):
+        is_refused = (
+            _writes_roles(self.instance, wanted)
+            and _moves_system_admin(self.instance, wanted)
+            and SYSTEM_ADMIN not in effective_roles(self._actor)
+        )
+        if is_refused:
             raise serializers.ValidationError(
                 "Only a system administrator can grant or revoke the system_admin role."
             )
@@ -247,7 +275,10 @@ class AdminUserSerializer(UserSerializer):
         roles = validated_data.pop("roles", None)
         for field, value in validated_data.items():
             setattr(instance, field, value)
-        if roles is not None:
+        # `sync_django_flags` rebuilds `is_superuser` from the list alone, so writing a
+        # list the account already holds would quietly strip a `createsuperuser` account
+        # of its access on a save that meant to correct a name.
+        if roles is not None and _writes_roles(instance, set(roles)):
             instance.set_roles(roles)
             sync_django_flags(instance)
         instance.save()

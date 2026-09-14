@@ -15,7 +15,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail
 
-from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN, USER_ADMIN
+from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, MEMBER, SYSTEM_ADMIN, USER_ADMIN
 from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -217,28 +217,81 @@ def test_a_user_admin_may_still_rename_a_system_admin(api_client, user_admin, sy
 # --------------------------------------------------------------------------
 # Roles: the flag that makes an account a system administrator
 # --------------------------------------------------------------------------
-def test_a_user_admin_cannot_write_the_roles_of_a_role_less_superuser(
+def test_a_user_admin_may_save_the_whole_form_of_a_role_less_superuser(
     api_client, user_admin, bare_superuser
 ) -> None:
-    """Writing the role list clears ``is_superuser``, so it is a revocation.
+    """The portal posts every field, so correcting a name resends the stored role list.
 
-    The list here is the one the account already has, which makes the write look
-    like no change at all; it is refused because saving it would drop the flag
-    that counts as ``system_admin``.
+    That list is not a write: the groups and the superuser flag stay as they were,
+    and the name is saved.
     """
     api_client.force_login(user_admin)
-    response = api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER]})
+    response = api_client.patch(
+        user_detail(bare_superuser),
+        {
+            "first_name": bare_superuser.first_name,
+            "last_name": "Lovelace",
+            "email": bare_superuser.email,
+            "is_active": True,
+            "roles": [MEMBER],
+        },
+    )
+
+    assert response.status_code == 200
+    bare_superuser.refresh_from_db()
+    assert bare_superuser.last_name == "Lovelace"
+    assert bare_superuser.is_superuser is True
+    assert bare_superuser.roles == [MEMBER]
+
+
+def test_a_user_admin_cannot_change_a_role_less_superusers_roles(
+    api_client, user_admin, bare_superuser
+) -> None:
+    """A different list rebuilds ``is_superuser`` from it, so it revokes ``system_admin``."""
+    api_client.force_login(user_admin)
+    response = api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER, DART_LEADER]})
 
     assert response.status_code == 400
     assert "roles" in response.json()
     bare_superuser.refresh_from_db()
+    assert bare_superuser.roles == [MEMBER]
+    assert bare_superuser.is_superuser is True
+
+
+def test_a_user_admin_cannot_grant_the_system_admin_role_to_a_role_less_superuser(
+    api_client, user_admin, bare_superuser
+) -> None:
+    """Ticking the box grants the role, even on an account that counts as one already."""
+    api_client.force_login(user_admin)
+    response = api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER, SYSTEM_ADMIN]})
+
+    assert response.status_code == 400
+    assert "roles" in response.json()
+    bare_superuser.refresh_from_db()
+    assert bare_superuser.roles == [MEMBER]
+
+
+def test_a_system_admin_may_record_the_role_on_a_role_less_superuser(
+    api_client, system_admin, bare_superuser
+) -> None:
+    """The group the account never had is a system administrator's to add."""
+    api_client.force_login(system_admin)
+    response = api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER, SYSTEM_ADMIN]})
+
+    assert response.status_code == 200
+    bare_superuser.refresh_from_db()
+    assert bare_superuser.roles == [MEMBER, SYSTEM_ADMIN]
     assert bare_superuser.is_superuser is True
 
 
 def test_the_roles_guard_keeps_a_role_less_superusers_email_out_of_reach(
     api_client, user_admin, bare_superuser
 ) -> None:
-    """The two-request takeover: clear the flag first, then move the address."""
+    """The two-request takeover: try to drop the flag first, then move the address.
+
+    Resending the stored role list changes nothing, so the account still counts as a
+    system administrator when the second request arrives.
+    """
     api_client.force_login(user_admin)
     api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER]})
 
