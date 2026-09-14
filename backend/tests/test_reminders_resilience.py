@@ -13,11 +13,13 @@ from datetime import date, timedelta
 from io import StringIO
 
 import pytest
+from django.core.mail import EmailMessage
 from django.core.mail.backends.locmem import EmailBackend as LocMemEmailBackend
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.utils import timezone
 
+from apps.reminders import services
 from apps.reminders.models import ReminderKind, ReminderLog
 from apps.reminders.services import WINDOW_DAYS, send_renewal_reminders
 from tests.test_reminders import TODAY, ends_on_for, make_member
@@ -41,7 +43,7 @@ RUN_URL = "/api/v1/system/reminders/run"
 class OneAddressFailsBackend(LocMemEmailBackend):
     """A locmem backend whose server refuses mail to :data:`FAILING_ADDRESS`."""
 
-    def send_messages(self, email_messages):
+    def send_messages(self, email_messages: list[EmailMessage]) -> int:
         for message in email_messages:
             if FAILING_ADDRESS in message.to:
                 raise smtplib.SMTPDataError(451, b"mailbox temporarily unavailable")
@@ -119,8 +121,6 @@ def test_a_failed_send_is_retried_the_next_day(annual_plan, failing_smtp, settin
 
 def test_a_racing_run_counts_as_already_sent(annual_plan, mailoutbox, monkeypatch):
     """A log row written between the skip check and the insert is not a failure."""
-    from apps.reminders import services
-
     user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
     ReminderLog.objects.create(
         user=user,
@@ -139,8 +139,6 @@ def test_a_racing_run_counts_as_already_sent(annual_plan, mailoutbox, monkeypatc
 
 
 def test_the_scan_carries_on_after_a_race(annual_plan, mailoutbox, monkeypatch):
-    from apps.reminders import services
-
     racing, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
     ReminderLog.objects.create(
         user=racing,
