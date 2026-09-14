@@ -119,6 +119,32 @@ def test_a_failed_send_is_retried_the_next_day(annual_plan, failing_smtp, settin
     assert [m.to[0] for m in failing_smtp] == [FAILING_ADDRESS]
 
 
+def test_a_failed_expired_send_is_not_retried_the_next_day(annual_plan, failing_smtp, settings):
+    """``expired`` has no window, so the next run has already stepped past it."""
+    make_member(annual_plan, ends_on_for(ReminderKind.EXPIRED), email=FAILING_ADDRESS)
+
+    send_renewal_reminders(today=TODAY)
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    run = send_renewal_reminders(today=TODAY + timedelta(days=1))
+
+    assert run.sent == 0
+    assert failing_smtp == []
+
+
+def test_a_failed_expired_send_is_retried_by_rescanning_its_date(
+    annual_plan, failing_smtp, settings
+):
+    """Re-running the scan with ``--today`` set to that date is the operator's retry."""
+    make_member(annual_plan, ends_on_for(ReminderKind.EXPIRED), email=FAILING_ADDRESS)
+
+    send_renewal_reminders(today=TODAY)
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.sent_by_kind == {ReminderKind.EXPIRED: 1}
+    assert [m.to[0] for m in failing_smtp] == [FAILING_ADDRESS]
+
+
 def test_a_racing_run_counts_as_already_sent(annual_plan, mailoutbox, monkeypatch):
     """A log row written between the skip check and the insert is not a failure."""
     user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))

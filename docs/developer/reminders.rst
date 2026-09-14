@@ -118,8 +118,12 @@ own, and two outcomes are handled rather than raised:
 
 **The mail server refuses the message** (an ``SMTPException``, or any other
 ``OSError`` from the connection).  The transaction rolls back, so no
-``ReminderLog`` row survives and the reminder is still due; the next run inside
-the window tries again.  The failure is counted in ``failed`` and
+``ReminderLog`` row survives and the reminder is still due.  For every kind but
+``expired`` the next run picks it up by itself, because the member is still
+inside the catch-up window (:ref:`reminders-window`).  ``expired`` has no
+window, so a failed one is not retried on its own: re-run the scan with
+``--today`` set to the date it was due once the mail server is working again,
+and that cohort is scanned afresh.  The failure is counted in ``failed`` and
 ``failed_by_kind``, and logged at ERROR with the kind, the user id, the
 membership id and the exception class.  Addresses are deliberately left out of
 that line.
@@ -326,7 +330,8 @@ renewals being skipped, and the rendered content of every template.
 one and two days late sending and three days late not, ``expired`` never going
 out late, the day count in a late email, and the failure paths: a locmem
 backend that refuses one address, the log line that names ids and no address,
-and a log row written under the scan to stand in for a racing run.
+a log row written under the scan to stand in for a racing run, and a failed
+``expired`` send waiting for its own date to be scanned again.
 ``backend/tests/test_reminders_api.py`` covers the endpoints and their role
 matrix.  Dates are pinned with ``freezegun`` where the code reads the clock,
 and passed explicitly everywhere else.
