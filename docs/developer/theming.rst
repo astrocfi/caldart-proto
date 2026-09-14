@@ -51,10 +51,11 @@ Components only ever reference **semantic** tokens.  Nothing outside
    ``frontend/src/portal/features/checkout/StripePanel.tsx``.  Stripe's Payment
    Element renders in an iframe, which cannot read the page's CSS custom
    properties, so ``appearanceFromTokens()`` resolves each token with
-   ``getComputedStyle`` and hands Stripe the computed value.  Every one of
-   those lookups carries the sierra hex as a fallback, for the case where the
-   property resolves to nothing.  Change a sierra color and change the matching
-   fallback with it.
+   ``getComputedStyle`` and hands Stripe the computed value.  Every color
+   lookup carries the sierra hex as a fallback, for the case where the property
+   resolves to nothing; the two lookups that are not colors, ``--font-body``
+   and ``--radius``, fall back to a plain literal.  Change a sierra color and
+   change the matching fallback with it.
 
 Color
 -----
