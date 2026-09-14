@@ -223,7 +223,7 @@ describe('the paths outside the session', () => {
 });
 
 describe('the routes that load on demand', () => {
-  it('shows the loading indicator until the page module has arrived', () => {
+  it('shows the loading indicator until the first page asked for has arrived', () => {
     renderRoutes(routes, { route: '/join' });
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading');

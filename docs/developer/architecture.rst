@@ -375,7 +375,11 @@ guard then refuses has already fetched that page's chunk.  That costs one
 request, not access -- the chunk is markup and JavaScript, and every piece of
 data in it comes from an API call the server refuses.  The root route's
 ``hydrateFallbackElement`` shows ``components/Loading``, the same indicator
-the guards use, while a page is on its way.
+the guards use, while the router resolves the first page a visitor asks for.
+That fallback covers that first load alone.  A move from one screen to
+another inside the portal shows nothing new: the router holds the screen the
+visitor is on until the next page's chunk arrives, and the portal adds no
+progress bar over it.
 
 **Guards.**  ``RequireAuth``, in ``auth/guards.tsx``, wraps every route that
 needs a session and sends an anonymous visitor to
