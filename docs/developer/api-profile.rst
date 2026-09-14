@@ -136,10 +136,10 @@ A rejection is a normal DRF 400:
 
    {"medical_expiration": ["Give the expiration date of your medical certificate."]}
 
-The portal's form applies the same rules before it sends anything, and marks
-``phone``, ``address_line1``, ``city`` and ``postal_code`` as required on top
-of them.  The server stays authoritative: only ``phone`` is required there, so
-an API client may store a partial profile.
+The portal's form applies the same rules before it sends anything, and on top
+of them marks as required the five fields that make a profile complete
+(:ref:`profile-completeness`).  The server stays authoritative: only ``phone``
+is required there, so an API client may store a partial profile.
 
 .. _profile-completeness:
 
