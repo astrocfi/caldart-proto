@@ -100,7 +100,9 @@ The simplest version is a oneshot service and a timer of your own, modeled on
    ExecStart=/srv/caldart/.venv/bin/python /srv/caldart/backend/manage.py db_backup
 
    # Nothing rotates dumps, so the same run drops the ones over 30 days old.
-   ExecStart=/usr/bin/find /srv/caldart/backups -name caldart-*.sql.gz -mtime +30 -delete
+   # systemd expands ${BACKUP_DIR} from the environment file, so the prune reads
+   # the directory the dump just wrote to.
+   ExecStart=/usr/bin/find ${BACKUP_DIR} -name caldart-*.sql.gz -mtime +30 -delete
 
    # pg_dump on a large database is not quick.
    TimeoutStartSec=3600
@@ -152,10 +154,17 @@ than skipping the night.  Install both, then enable the timer::
   sudo systemctl start caldart-backup.service    # take one right away
   journalctl -u caldart-backup -n 20
 
-Three details to keep in step with the rest of the deployment.
-``ProtectSystem=strict`` mounts the filesystem read-only, so ``ReadWritePaths``
-has to name whatever ``BACKUP_DIR`` points at or the dump fails with a
-permission error.  The prune matches only the generated
+Four details to keep in step with the rest of the deployment.  ``BACKUP_DIR``
+has to be an absolute path in ``/etc/caldart/caldart.env`` — the production
+template sets ``/srv/caldart/backups`` — because the prune hands the value
+straight to ``find``, which resolves a relative path against
+``WorkingDirectory`` while Django resolves it against the repository root.
+``ReadWritePaths`` expands no variables, so it is the one line that spells the
+directory out by hand: it has to name whatever ``BACKUP_DIR`` points at, or
+``ProtectSystem=strict`` fails the dump with a permission error.  A
+``Type=oneshot`` unit runs its ``ExecStart`` lines in order and fails if either
+exits non-zero, so a prune that cannot find its directory reports a failed
+backup even when the dump itself worked.  The prune matches only the generated
 ``caldart-<timestamp>.sql.gz`` names, so a dump you gave your own ``--name`` is
 left alone.  And the unit expects a local ``pg_dump`` with
 ``DB_BACKUP_VIA_DOCKER=false``; going through ``docker compose`` instead needs
