@@ -1,8 +1,10 @@
-"""``manage.py send_renewal_reminders`` — the daily renewal scan.
+"""``manage.py send_renewal_reminders`` -- the daily renewal scan.
 
 Run by ``deploy/systemd/caldart-reminders.timer`` at 07:00 in production and by
 ``make reminders`` in development.  Safe to repeat: ``ReminderLog`` dedupes on
-``(user, membership, kind)``.
+``(user, membership, kind)``.  The command exits non-zero when any reminder
+could not be sent, so the systemd unit goes to ``failed`` instead of reporting
+a clean run that reached nobody.
 """
 
 from __future__ import annotations
@@ -45,3 +47,10 @@ class Command(BaseCommand):
         style = self.style.WARNING if run.dry_run else self.style.SUCCESS
         verb = "would send" if run.dry_run else "sent"
         self.stdout.write(style(f"{verb} {run.sent}, skipped {run.skipped}"))
+
+        if run.failed > 0:
+            plural = "" if run.failed == 1 else "s"
+            raise CommandError(
+                f"{run.failed} reminder{plural} could not be sent; "
+                "the scan log names the member and membership ids"
+            )

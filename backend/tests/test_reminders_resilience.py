@@ -10,9 +10,12 @@ from __future__ import annotations
 import logging
 import smtplib
 from datetime import date, timedelta
+from io import StringIO
 
 import pytest
 from django.core.mail.backends.locmem import EmailBackend as LocMemEmailBackend
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.utils import timezone
 
 from apps.reminders.models import ReminderKind, ReminderLog
@@ -31,6 +34,8 @@ CATCH_UP_KINDS = [
     ReminderKind.T7,
     ReminderKind.POST30,
 ]
+
+RUN_URL = "/api/v1/system/reminders/run"
 
 
 class OneAddressFailsBackend(LocMemEmailBackend):
@@ -235,3 +240,38 @@ def test_an_on_time_subject_states_the_nominal_day_count(annual_plan, mailoutbox
     send_renewal_reminders(today=TODAY)
 
     assert mailoutbox[0].subject.endswith("your membership expires in 7 days")
+
+
+# --------------------------------------------------------------------- command
+def test_the_command_reports_failures_and_exits_non_zero(annual_plan, failing_smtp):
+    make_member(
+        annual_plan, ends_on_for(ReminderKind.T30, date(2026, 6, 15)), email=FAILING_ADDRESS
+    )
+    out = StringIO()
+
+    with pytest.raises(CommandError, match="1 reminder could not be sent"):
+        call_command("send_renewal_reminders", "--today=2026-06-15", stdout=out)
+
+    assert "failed           1" in out.getvalue()
+
+
+def test_the_command_still_succeeds_when_nothing_fails(annual_plan, mailoutbox):
+    make_member(annual_plan, ends_on_for(ReminderKind.T30, date(2026, 6, 15)))
+    out = StringIO()
+
+    call_command("send_renewal_reminders", "--today=2026-06-15", stdout=out)
+
+    assert "failed           0" in out.getvalue()
+
+
+# -------------------------------------------------------------------- endpoint
+def test_the_run_endpoint_still_returns_sent_and_skipped(
+    api_client, system_admin, annual_plan, failing_smtp
+):
+    today = timezone.localdate()
+    make_member(annual_plan, today + timedelta(days=30), email=FAILING_ADDRESS)
+    api_client.force_login(system_admin)
+
+    body = api_client.post(RUN_URL, {"dry_run": False}).json()
+
+    assert body == {"sent": 0, "skipped": 0}

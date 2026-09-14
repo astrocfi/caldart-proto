@@ -236,6 +236,9 @@ When something goes wrong
    The scan is only as reliable as the timer that drives it.  Confirm
    ``caldart-reminders.timer`` is enabled and running on the server, and then
    that mail is leaving it at all — a password reset is the quickest test.
+   ``systemctl status caldart-reminders`` reads ``failed`` when the last run
+   could not send something, and ``journalctl -u caldart-reminders`` names the
+   member and membership ids it could not reach.
 
 The quickest diagnosis from a shell on the server is ``manage.py health``, or
 ``manage.py health --json`` if you want to feed it to something else.

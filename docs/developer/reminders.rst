@@ -173,6 +173,10 @@ The command prints a structured summary::
 A dry run writes nothing at all: no email, no log row, and no membership status
 flips.  It is safe on production.
 
+The command exits 0 when ``failed`` is 0, and 1 with a ``CommandError`` on
+stderr when it is not.  Everything it managed to send is still sent, and the
+summary is still printed; the non-zero status is what the timer notices.
+
 System administrators can also run the scan from ``/portal/system``, with the
 same dry-run switch.  That endpoint is ``POST /system/reminders/run`` and
 returns ``{"sent": n, "skipped": n}``.
