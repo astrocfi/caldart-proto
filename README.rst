@@ -72,7 +72,7 @@ Everyday commands
 
    $ make test           # pytest + vitest
    $ make e2e            # Playwright, end to end (see below)
-   $ make lint           # ruff + tsc + eslint + prettier
+   $ make lint           # ruff + tsc + eslint + prettier + codespell
    $ make check          # Django system checks, missing migrations, production build
    $ make docs           # Sphinx, nitpicky, warnings are errors
    $ make audit          # known vulnerabilities in Python and npm dependencies

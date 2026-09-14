@@ -253,11 +253,13 @@ Make targets
    * - ``e2e``
      - ``npm run e2e`` (Playwright)
    * - ``lint``
-     - ``lint-backend`` then ``lint-frontend``
+     - ``lint-backend``, ``lint-frontend``, then ``lint-spelling``
    * - ``lint-backend``
      - ``ruff check`` and ``ruff format --check``
    * - ``lint-frontend``
      - ``tsc --noEmit``, ``eslint``, ``prettier --check``
+   * - ``lint-spelling``
+     - ``codespell`` — American spelling and common typos
    * - ``format``
      - ``ruff format``, ``ruff check --fix``, ``prettier --write``
    * - ``backup``
@@ -314,7 +316,7 @@ Five commands must be green, and CI runs all five on every pull request:
 .. code-block:: console
 
    $ make test     # pytest + vitest; a warning fails the run
-   $ make lint     # ruff, tsc, eslint (no warnings), prettier
+   $ make lint     # ruff, tsc, eslint (no warnings), prettier, codespell
    $ make check    # manage.py check, makemigrations --check, npm run build
    $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors
    $ make audit    # uv audit + npm audit: known vulnerabilities

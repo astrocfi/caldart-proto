@@ -29,12 +29,16 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   `README.rst`, `CLAUDE.md`, `docs/`, `backend/`, `frontend/src/`, `frontend/e2e/`,
   `.github/`, `deploy/` and `.claude/` with the `clear`, `rare` and `en-GB_to_en-US`
   dictionaries. `plans/` is not checked: the archived plans are frozen, and a live plan
-  may quote the very words a fix replaces. The configuration lives in `[tool.codespell]`
-  in `pyproject.toml`, and ignores exactly four words: `nnumber` (the `nNumber`
-  identifier), `unparseable` (a valid American spelling), `afterall` (Vitest's `afterAll`
-  hook) and `onother` (the `onOther` callback prop). To keep a British spelling on one
-  line, such as the example above, end the line with a `codespell:ignore <word>` comment
-  rather than adding the word to that list.
+  may quote the very words a fix replaces. Nor is `.claude/worktrees/`, which holds
+  nested checkouts with their own build output and their own copy of `plans/`. The
+  configuration lives in `[tool.codespell]` in `pyproject.toml`, and ignores exactly two
+  words repository-wide: `nnumber` (the `nNumber` identifier) and `unparseable` (a valid
+  American spelling the `rare` dictionary flags). To keep any other flagged word on one
+  line, such as the example above or an identifier a library imposes, end the line with a
+  `codespell:ignore <word>` comment, or precede it with a
+  `codespell:ignore-next-line <word>` comment where the formatter will not leave a
+  trailing one. Do not widen `ignore-words-list`: an entry there silences the word
+  everywhere.
 - Define each CalDART-specific term on first use, such as DART. Don't define
   standard aviation terms (N-number, BasicMed, medical classes, flight review):
   the readers are pilots and DART volunteers.

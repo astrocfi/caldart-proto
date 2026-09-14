@@ -339,6 +339,7 @@ Linting and type-checking
    $ make lint            # everything below
    $ make lint-backend    # ruff check, ruff format --check
    $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
+   $ make lint-spelling   # codespell over the prose, the code and the tests
    $ make format          # fix what can be fixed automatically
 
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
@@ -347,6 +348,18 @@ with migrations excluded.  TypeScript runs in strict mode; ``tsc --noEmit`` is
 part of linting rather than of the build, so a type error fails ``make lint``.
 ESLint runs with ``--max-warnings 0``, so a warning, such as a missing hook
 dependency, fails ``make lint`` too.
+
+``make lint-spelling`` runs ``codespell``, configured under ``[tool.codespell]``
+in ``pyproject.toml``, over ``README.rst``, ``CLAUDE.md``, ``docs``, ``backend``,
+``frontend/src``, ``frontend/e2e``, ``.github``, ``deploy`` and ``.claude``.  The
+``clear`` and ``rare`` dictionaries catch common typos and the ``en-GB_to_en-US``
+dictionary enforces American spelling, so a British spelling anywhere in the
+prose, the code or the tests fails ``make lint``.  ``plans`` stays out — the
+archived plans are frozen, and a live plan may quote the very words a fix
+replaces — and so does ``.claude/worktrees``, which holds nested checkouts of
+this repository.  Two words are ignored repository-wide, ``nnumber`` and
+``unparseable``; to keep any other word the dictionaries flag, end its line with
+a ``codespell:ignore`` comment naming the word rather than widening the list.
 
 System checks and dependency audits
 ===================================
@@ -378,7 +391,8 @@ commands above run locally.
 
 **Backend**
     A PostgreSQL 16 service container, ``uv sync --frozen``, then
-    ``make lint-backend``, ``make check-backend`` and ``make test-backend``.
+    ``make lint-backend``, ``make lint-spelling``, ``make check-backend`` and
+    ``make test-backend``.
 
 **Frontend**
     Node 22, ``npm ci``, then ``make lint-frontend``, ``make test-frontend``
