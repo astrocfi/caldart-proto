@@ -106,7 +106,33 @@ all call it.  In order:
 
 The function returns a ``ReminderRun``: the date scanned, whether it was a dry
 run, how many terms were expired, how many emails were sent broken down by
-kind, and how many were skipped broken down by reason.
+kind, how many were skipped broken down by reason, and how many failed broken
+down by kind.
+
+
+When a send fails
+=================
+
+The scan never stops at the first bad address.  Each send is attempted on its
+own, and two outcomes are handled rather than raised:
+
+**The mail server refuses the message** (an ``SMTPException``, or any other
+``OSError`` from the connection).  The transaction rolls back, so no
+``ReminderLog`` row survives and the reminder is still due; the next run inside
+the window tries again.  The failure is counted in ``failed`` and
+``failed_by_kind``, and logged at ERROR with the kind, the user id, the
+membership id and the exception class.  Addresses are deliberately left out of
+that line.
+
+**Another run logged the same reminder first**, so the insert hits the unique
+constraint.  That is not a failure: the other run is sending the email.  It is
+logged at WARNING and counted as ``already_sent``.
+
+Either way the scan carries on with the next member and returns its summary.
+``manage.py send_renewal_reminders`` prints the failure count and exits
+non-zero when it is not zero, which is what makes the systemd unit go to
+``failed`` and show up in ``systemctl list-timers`` and the journal.  The
+``POST /system/reminders/run`` payload is unchanged at ``{sent, skipped}``.
 
 
 Running it
@@ -141,6 +167,7 @@ The command prints a structured summary::
   skipped          2
     already_sent   1
     lifetime       1
+  failed           0
   would send 12, skipped 2
 
 A dry run writes nothing at all: no email, no log row, and no membership status
@@ -293,7 +320,9 @@ run writing nothing, lifetime and deactivated members being skipped, early
 renewals being skipped, and the rendered content of every template.
 ``backend/tests/test_reminders_resilience.py`` covers the edges of the window,
 one and two days late sending and three days late not, ``expired`` never going
-out late, and the day count in a late email.
+out late, the day count in a late email, and the failure paths: a locmem
+backend that refuses one address, the log line that names ids and no address,
+and a log row written under the scan to stand in for a racing run.
 ``backend/tests/test_reminders_api.py`` covers the endpoints and their role
 matrix.  Dates are pinned with ``freezegun`` where the code reads the clock,
 and passed explicitly everywhere else.

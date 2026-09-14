@@ -4,23 +4,29 @@ One entry point, :func:`send_renewal_reminders`, which the management command,
 ``POST /system/reminders/run`` and the systemd timer all call.  It is
 deliberately idempotent: every email it sends is recorded in a ``ReminderLog``
 row, and the unique constraint on ``(user, membership, kind)`` means a second
-run on the same day sends nothing.
+run sends nothing.  That constraint is also what makes the catch-up window
+safe, and what a losing run in a race hits; neither ends the scan, and neither
+does a mail server that refuses one address.
 """
 
 from __future__ import annotations
 
+import logging
+import smtplib
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 from apps.members.models import Membership, MembershipStatusChoices
 from apps.members.services import expire_lapsed_memberships, membership_status
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
+
+log = logging.getLogger(__name__)
 
 #: Subject lines, in the house voice: plain, specific, no exclamation marks.
 #: ``{org}`` is the organization name from Wagtail's site settings, and
@@ -76,9 +82,11 @@ class ReminderRun:
     dry_run: bool
     sent: int = 0
     skipped: int = 0
+    failed: int = 0
     expired_flipped: int = 0
     sent_by_kind: dict[str, int] = field(default_factory=dict)
     skipped_by_reason: dict[str, int] = field(default_factory=dict)
+    failed_by_kind: dict[str, int] = field(default_factory=dict)
 
     def record_sent(self, kind: str) -> None:
         self.sent += 1
@@ -88,8 +96,16 @@ class ReminderRun:
         self.skipped += 1
         self.skipped_by_reason[reason] = self.skipped_by_reason.get(reason, 0) + 1
 
+    def record_failed(self, kind: str) -> None:
+        self.failed += 1
+        self.failed_by_kind[kind] = self.failed_by_kind.get(kind, 0) + 1
+
     def as_dict(self) -> dict:
-        """The ``{sent, skipped}`` payload of ``POST /system/reminders/run``."""
+        """The ``{sent, skipped}`` payload of ``POST /system/reminders/run``.
+
+        Failures are deliberately not in it: the panel reports what went out,
+        and the operator reads the count and the log lines from the command.
+        """
         return {"sent": self.sent, "skipped": self.skipped}
 
     def as_lines(self) -> list[str]:
@@ -106,6 +122,11 @@ class ReminderRun:
             count = self.skipped_by_reason.get(reason, 0)
             if count:
                 lines.append(f"  {reason:<14} {count}")
+        lines.append(f"failed           {self.failed}")
+        for kind in KIND_ORDER:
+            count = self.failed_by_kind.get(kind, 0)
+            if count:
+                lines.append(f"  {kind:<14} {count}")
         return lines
 
 
@@ -216,6 +237,12 @@ def send_renewal_reminders(*, today: date | None = None, dry_run: bool = False) 
     Flips memberships whose ``ends_on`` has passed to ``expired`` first, so the
     ``post30`` cohort is honestly labeled, then walks the five kinds in order.
     A dry run writes nothing at all: no email, no log rows, no status flips.
+
+    One member's problem never stops the scan.  A send the mail server refuses
+    is logged at ERROR, counted in ``failed`` and ``failed_by_kind``, and leaves
+    no log row, so the next run inside the window tries again.  A log row
+    another run wrote first counts as ``already_sent``.  The run summary is
+    returned either way; nothing is raised.
     """
     today = today or timezone.localdate()
     run = ReminderRun(today=today, dry_run=dry_run)
@@ -234,9 +261,34 @@ def send_renewal_reminders(*, today: date | None = None, dry_run: bool = False) 
             if reason is not None:
                 run.record_skipped(reason)
                 continue
-            if not dry_run:
+            if dry_run:
+                run.record_sent(kind)
+                continue
+            try:
                 _send_one(user, membership, kind, today)
-            run.record_sent(kind)
+            except IntegrityError:
+                # A concurrent run logged this reminder between the check above
+                # and the insert; its email is the one that goes out.
+                log.warning(
+                    "reminder already logged by a concurrent run: kind=%s user=%s membership=%s",
+                    kind,
+                    user.pk,
+                    membership.pk,
+                )
+                run.record_skipped("already_sent")
+            except (smtplib.SMTPException, OSError) as exc:
+                # Ids and the exception class only: the scan log is not a place
+                # to accumulate members' email addresses.
+                log.error(
+                    "reminder send failed: kind=%s user=%s membership=%s error=%s",
+                    kind,
+                    user.pk,
+                    membership.pk,
+                    type(exc).__name__,
+                )
+                run.record_failed(kind)
+            else:
+                run.record_sent(kind)
 
     return run
 
@@ -245,8 +297,11 @@ def send_renewal_reminders(*, today: date | None = None, dry_run: bool = False) 
 def _send_one(user, membership: Membership, kind: str, today: date) -> None:
     """Log the reminder, then send it.
 
-    The log row goes in first and inside the transaction: if two runs race, the
-    unique constraint makes the loser roll back rather than send a duplicate.
+    The log row goes in first and inside the transaction, so a send that fails
+    rolls the row back and the reminder stays due.  If two runs race, the
+    unique constraint makes the loser raise ``IntegrityError`` rather than send
+    a duplicate; whatever the mail backend raises propagates in the same way,
+    for the caller to record.
     """
     ReminderLog.objects.create(
         user=user,

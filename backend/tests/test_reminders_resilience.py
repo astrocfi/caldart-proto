@@ -1,21 +1,28 @@
-"""The reminder scan when a run is late.
+"""The reminder scan when something goes wrong, or when a run is late.
 
-A run that is up to two days late still catches its cohorts, ``expired`` is
-never sent late, a caught-up reminder is still logged once, and a late email
+One failed address does not stop the scan, a run that is up to two days late
+still catches its cohorts, ``expired`` is never sent late, and a late email
 states the real number of days.
 """
 
 from __future__ import annotations
 
+import logging
+import smtplib
 from datetime import date, timedelta
 
 import pytest
+from django.core.mail.backends.locmem import EmailBackend as LocMemEmailBackend
+from django.utils import timezone
 
 from apps.reminders.models import ReminderKind, ReminderLog
 from apps.reminders.services import WINDOW_DAYS, send_renewal_reminders
 from tests.test_reminders import TODAY, ends_on_for, make_member
 
 pytestmark = pytest.mark.django_db
+
+#: Mail to this address fails when ``failing_smtp`` is in play.
+FAILING_ADDRESS = "unreachable@example.test"
 
 #: The kinds that catch up after a missed run; ``expired`` never does.
 CATCH_UP_KINDS = [
@@ -26,9 +33,124 @@ CATCH_UP_KINDS = [
 ]
 
 
+class OneAddressFailsBackend(LocMemEmailBackend):
+    """A locmem backend whose server refuses mail to :data:`FAILING_ADDRESS`."""
+
+    def send_messages(self, email_messages):
+        for message in email_messages:
+            if FAILING_ADDRESS in message.to:
+                raise smtplib.SMTPDataError(451, b"mailbox temporarily unavailable")
+        return super().send_messages(email_messages)
+
+
+@pytest.fixture
+def failing_smtp(settings, mailoutbox):
+    """Deliver to the test outbox, except to :data:`FAILING_ADDRESS`."""
+    settings.EMAIL_BACKEND = f"{__name__}.OneAddressFailsBackend"
+    return mailoutbox
+
+
 def late_by(kind: str, days: int) -> date:
     """The expiry date of a term whose ``kind`` reminder is ``days`` days overdue."""
     return ends_on_for(kind) - timedelta(days=days)
+
+
+# -------------------------------------------------------------------- failures
+def test_one_failing_recipient_does_not_stop_the_scan(annual_plan, failing_smtp):
+    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
+    make_member(annual_plan, ends_on_for(ReminderKind.T30), email="reachable@example.test")
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.failed == 1
+    assert run.sent == 1
+    assert [m.to[0] for m in failing_smtp] == ["reachable@example.test"]
+
+
+def test_a_failure_is_counted_against_its_kind(annual_plan, failing_smtp):
+    make_member(annual_plan, ends_on_for(ReminderKind.T7), email=FAILING_ADDRESS)
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.failed_by_kind == {ReminderKind.T7: 1}
+    assert run.sent == 0
+
+
+def test_a_failed_send_leaves_no_log_row(annual_plan, failing_smtp):
+    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
+
+    send_renewal_reminders(today=TODAY)
+
+    assert ReminderLog.objects.count() == 0
+
+
+def test_the_failure_log_names_the_ids_but_no_address(annual_plan, failing_smtp, caplog):
+    user, membership = make_member(
+        annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS
+    )
+
+    with caplog.at_level(logging.ERROR, logger="apps.reminders.services"):
+        send_renewal_reminders(today=TODAY)
+
+    errors = [record for record in caplog.records if record.levelno == logging.ERROR]
+    assert len(errors) == 1
+    message = errors[0].getMessage()
+    assert FAILING_ADDRESS not in message
+    assert f"user={user.pk}" in message
+    assert f"membership={membership.pk}" in message
+    assert "SMTPDataError" in message
+
+
+def test_a_failed_send_is_retried_the_next_day(annual_plan, failing_smtp, settings):
+    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
+
+    send_renewal_reminders(today=TODAY)
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    run = send_renewal_reminders(today=TODAY + timedelta(days=1))
+
+    assert run.sent == 1
+    assert [m.to[0] for m in failing_smtp] == [FAILING_ADDRESS]
+
+
+def test_a_racing_run_counts_as_already_sent(annual_plan, mailoutbox, monkeypatch):
+    """A log row written between the skip check and the insert is not a failure."""
+    from apps.reminders import services
+
+    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    ReminderLog.objects.create(
+        user=user,
+        membership=membership,
+        kind=ReminderKind.T30,
+        sent_at=timezone.now(),
+        to_email=user.email,
+    )
+    monkeypatch.setattr(services, "_skip_reason", lambda *args, **kwargs: None)
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.skipped_by_reason == {"already_sent": 1}
+    assert run.failed == 0
+    assert mailoutbox == []
+
+
+def test_the_scan_carries_on_after_a_race(annual_plan, mailoutbox, monkeypatch):
+    from apps.reminders import services
+
+    racing, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    ReminderLog.objects.create(
+        user=racing,
+        membership=membership,
+        kind=ReminderKind.T30,
+        sent_at=timezone.now(),
+        to_email=racing.email,
+    )
+    make_member(annual_plan, ends_on_for(ReminderKind.T7), email="week@example.test")
+    monkeypatch.setattr(services, "_skip_reason", lambda *args, **kwargs: None)
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.sent_by_kind == {ReminderKind.T7: 1}
+    assert [m.to[0] for m in mailoutbox] == ["week@example.test"]
 
 
 # ---------------------------------------------------------------------- window

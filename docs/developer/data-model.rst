@@ -897,9 +897,9 @@ The invariant is a single constraint::
     UniqueConstraint(fields=["user", "membership", "kind"],
                      name="reminders_once_per_kind")
 
-so a second run on the same day writes nothing, and the log row is written
-inside the same transaction as the send — a failure rolls both back rather than
-recording an email that never left.
+so a second run writes nothing, and the log row is written inside the same
+transaction as the send — a failure rolls both back rather than recording an
+email that never left, which leaves the reminder due for the next run.
 
 ``kind`` and its offset in days from the membership's ``ends_on``:
 
