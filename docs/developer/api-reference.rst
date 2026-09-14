@@ -61,9 +61,10 @@ write as soon as the cookie is missing or rotated.  The cookie is deliberately
 **not** ``HttpOnly`` — JavaScript has to read it to echo it — while the session
 cookie is; see the reasoning in ``caldart/settings/prod.py``.
 
-A request that arrives without a usable token is refused before the view runs,
-with ``403`` and a ``detail`` that starts ``CSRF Failed``.  That refusal is
-safe to repeat: fetch a token again and resend the request once.
+A request from a signed-in caller that arrives without a usable token is
+refused before the view runs, with ``403`` and a ``detail`` that starts
+``CSRF Failed``.  That refusal is safe to repeat: fetch a token again and
+resend the request once.
 
 From ``curl``, that is two steps:
 
@@ -100,8 +101,9 @@ Every successful response is therefore either a JSON body or nothing at all:
 an endpoint with nothing to say answers **204** with no body and no
 ``Content-Type``.  A client may treat any other 2xx body as a fault — an HTML
 maintenance or proxy page served with status 200, say — rather than as data.
-The CSV and PDF exports are the exception, and they are plain links rather
-than API calls.
+The exceptions are the routes that stream a file — the CSV and PDF exports and
+``GET /system/backups/{name}/download`` — and those are followed as plain
+links, so their bodies never reach the API client.
 
 401 versus 403
 --------------
