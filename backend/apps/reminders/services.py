@@ -23,13 +23,15 @@ from apps.members.services import expire_lapsed_memberships, membership_status
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 
 #: Subject lines, in the house voice: plain, specific, no exclamation marks.
-#: ``{org}`` is the organization name from Wagtail's site settings.
+#: ``{org}`` is the organization name from Wagtail's site settings, and
+#: ``{days}`` the real distance in days between the scan date and the expiry
+#: date, which is the kind's nominal offset only when the run is on time.
 SUBJECTS: dict[str, str] = {
-    ReminderKind.T60: "{org}: your membership expires in 60 days",
-    ReminderKind.T30: "{org}: your membership expires in 30 days",
-    ReminderKind.T7: "{org}: your membership expires in one week",
+    ReminderKind.T60: "{org}: your membership expires in {days} days",
+    ReminderKind.T30: "{org}: your membership expires in {days} days",
+    ReminderKind.T7: "{org}: your membership expires in {days} days",
     ReminderKind.EXPIRED: "{org}: your membership expires today",
-    ReminderKind.POST30: "{org}: your membership lapsed 30 days ago",
+    ReminderKind.POST30: "{org}: your membership lapsed {days} days ago",
 }
 
 #: The order kinds are scanned and reported in.
@@ -130,8 +132,14 @@ def _contact_email() -> str:
 
 
 def build_email(user, membership: Membership, kind: str, today: date) -> EmailMultiAlternatives:
-    """Render ``emails/reminder_<kind>.{txt,html}`` for one member."""
+    """Render ``emails/reminder_<kind>.{txt,html}`` for one member.
+
+    ``days`` is counted from the dates rather than taken from the kind's offset,
+    so a reminder the catch-up window picked up two days behind says 28 days
+    rather than claiming 30.
+    """
     org = _org_name()
+    days = abs((membership.ends_on - today).days)
     context = {
         "user": user,
         "first_name": user.first_name or user.display_name,
@@ -139,13 +147,13 @@ def build_email(user, membership: Membership, kind: str, today: date) -> EmailMu
         "contact_email": _contact_email(),
         "plan_name": membership.plan.name,
         "expires_on": membership.ends_on,
-        "days": abs(REMINDER_OFFSETS[kind]),
+        "days": days,
         "today": today,
         "renew_url": renew_url(),
         "site_url": settings.SITE_URL.rstrip("/"),
     }
     message = EmailMultiAlternatives(
-        subject=SUBJECTS[kind].format(org=org),
+        subject=SUBJECTS[kind].format(org=org, days=days),
         body=render_to_string(f"emails/reminder_{kind}.txt", context),
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[user.email],

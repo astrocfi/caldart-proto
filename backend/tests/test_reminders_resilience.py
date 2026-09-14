@@ -1,7 +1,8 @@
 """The reminder scan when a run is late.
 
 A run that is up to two days late still catches its cohorts, ``expired`` is
-never sent late, and a caught-up reminder is still logged once.
+never sent late, a caught-up reminder is still logged once, and a late email
+states the real number of days.
 """
 
 from __future__ import annotations
@@ -79,3 +80,36 @@ def test_a_caught_up_reminder_is_logged_once(annual_plan, mailoutbox):
 
     assert ReminderLog.objects.filter(kind=ReminderKind.T30).count() == 1
     assert again.skipped_by_reason == {"already_sent": 1}
+
+
+# ------------------------------------------------------------------- day count
+def test_a_late_subject_states_the_real_day_count(annual_plan, mailoutbox):
+    make_member(annual_plan, late_by(ReminderKind.T30, 2))
+
+    send_renewal_reminders(today=TODAY)
+
+    assert mailoutbox[0].subject.endswith("your membership expires in 28 days")
+
+
+def test_a_late_body_states_the_real_day_count(annual_plan, mailoutbox):
+    make_member(annual_plan, late_by(ReminderKind.T30, 2))
+
+    send_renewal_reminders(today=TODAY)
+
+    assert "28 days" in mailoutbox[0].body
+
+
+def test_a_late_post30_subject_states_the_real_day_count(annual_plan, mailoutbox):
+    make_member(annual_plan, late_by(ReminderKind.POST30, 1))
+
+    send_renewal_reminders(today=TODAY)
+
+    assert mailoutbox[0].subject.endswith("your membership lapsed 31 days ago")
+
+
+def test_an_on_time_subject_states_the_nominal_day_count(annual_plan, mailoutbox):
+    make_member(annual_plan, ends_on_for(ReminderKind.T7))
+
+    send_renewal_reminders(today=TODAY)
+
+    assert mailoutbox[0].subject.endswith("your membership expires in 7 days")

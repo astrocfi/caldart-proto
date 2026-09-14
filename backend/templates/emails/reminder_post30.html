@@ -1,10 +1,10 @@
 {% extends "emails/reminder_base.html" %}
 
-{% block preheader %}Your membership lapsed a month ago. Rejoining takes a minute and there is no penalty.{% endblock %}
+{% block preheader %}Your membership lapsed {{ days }} days ago. Rejoining takes a minute and there is no penalty.{% endblock %}
 
 {% block heading %}We would like you back{% endblock %}
 
-{% block lede %}Your {{ plan_name }} membership lapsed on {{ expires_on|date:"F j, Y" }}, a month ago today.{% endblock %}
+{% block lede %}Your {{ plan_name }} membership lapsed on {{ expires_on|date:"F j, Y" }}, {{ days }} days ago.{% endblock %}
 
 {% block body %}
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>

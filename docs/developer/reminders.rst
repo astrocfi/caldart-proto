@@ -230,14 +230,17 @@ Variable               Meaning
 ``contact_email``      ``SiteSettings.contact_email``, may be empty
 ``plan_name``          ``Annual`` or ``Life``
 ``expires_on``         the term's ``ends_on`` date
-``days``               the kind's offset in days, unsigned
+``days``               days between ``today`` and ``expires_on``, unsigned
 ``today``              the date being scanned
 ``renew_url``          ``SITE_URL/portal/renew``
 ``site_url``           ``SITE_URL`` without a trailing slash
 =====================  ====================================================
 
 Subject lines are *not* in the templates; they are in ``SUBJECTS`` in
-``services.py``, keyed by kind, with ``{org}`` substituted.
+``services.py``, keyed by kind, with ``{org}`` and ``{days}`` substituted.
+
+Every kind but ``expired`` states ``days`` in its subject and its body, so the
+wording follows the dates when a reminder goes out behind its nominal day.
 
 House voice: plain, specific, no exclamation marks, no emoji.  Say what expires
 and when, give one link, and stop.
