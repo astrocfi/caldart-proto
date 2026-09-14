@@ -10,6 +10,11 @@ The flow:
    unless Stripe agrees about the status, amount, currency and payment id.
 4. ``handle_webhook`` is the safety net for redirect-based methods, and is
    idempotent because :func:`~apps.payments.services.mark_succeeded` is.
+
+The SDK answers with ``stripe.PaymentIntent`` and ``stripe.Event`` objects,
+which are not dicts.  Each is converted with ``to_dict()`` the moment it
+arrives, so everything below the boundary works on plain nested dicts that
+store straight into ``Payment.raw``.
 """
 
 from __future__ import annotations
@@ -51,19 +56,16 @@ def secret_key() -> str:
     return key
 
 
-def jsonable(value) -> dict:
+def jsonable(value: dict) -> dict:
     """A plain, JSON-serializable dict for ``Payment.raw``.
 
-    Stripe's objects are dict subclasses, but they nest ``StripeObject``s and
-    carry non-serializable helpers, so round-trip through JSON.
+    Stripe's own types are converted to dicts at the SDK boundary, so all this
+    has left to do is drop anything JSON cannot carry, such as a date.
     """
-    to_dict = getattr(value, "to_dict_recursive", None)
-    if callable(to_dict):
-        value = to_dict()
     return json.loads(json.dumps(value, default=str))
 
 
-def wallet_from_intent(intent) -> str:
+def wallet_from_intent(intent: dict) -> str:
     """Map ``latest_charge.payment_method_details`` onto our wallet choices."""
     charge = intent.get("latest_charge")
     if not isinstance(charge, dict):
@@ -84,7 +86,7 @@ def wallet_from_intent(intent) -> str:
     return PaymentWallet.CARD
 
 
-def payment_for_intent(intent) -> Payment | None:
+def payment_for_intent(intent: dict) -> Payment | None:
     """Find our row from the intent's metadata, falling back to the intent id."""
     metadata = intent.get("metadata") or {}
     raw_id = metadata.get("payment_id")
@@ -111,7 +113,7 @@ class StripeProvider(Provider):
     # ----------------------------------------------------------------- start
     def start(self, payment: Payment) -> dict:
         """Create the PaymentIntent and hand the client its ``client_secret``."""
-        intent = stripe.PaymentIntent.create(
+        created = stripe.PaymentIntent.create(
             api_key=secret_key(),
             amount=payment.amount_cents,
             currency=payment.currency,
@@ -124,6 +126,7 @@ class StripeProvider(Provider):
                 "plan": payment.plan.slug if payment.plan_id else "",
             },
         )
+        intent = created.to_dict()
         payment.provider_ref = intent["id"]
         payment.raw = jsonable(intent)
         payment.save(update_fields=["provider_ref", "raw", "updated_at"])
@@ -138,9 +141,10 @@ class StripeProvider(Provider):
         if payment.provider_ref and intent_id != payment.provider_ref:
             raise PaymentVerificationError("That PaymentIntent belongs to another payment.")
 
-        intent = stripe.PaymentIntent.retrieve(
+        retrieved = stripe.PaymentIntent.retrieve(
             intent_id, api_key=secret_key(), expand=["latest_charge"]
         )
+        intent = retrieved.to_dict()
         self.verify(payment, intent)
 
         status = intent.get("status")
@@ -158,7 +162,7 @@ class StripeProvider(Provider):
         )
         return True
 
-    def verify(self, payment: Payment, intent) -> None:
+    def verify(self, payment: Payment, intent: dict) -> None:
         """Everything about the intent that must match our own row."""
         metadata = intent.get("metadata") or {}
         if str(metadata.get("payment_id") or "") != str(payment.pk):
@@ -176,13 +180,14 @@ class StripeProvider(Provider):
 
         signature = request.META.get("HTTP_STRIPE_SIGNATURE", "")
         try:
-            event = stripe.Webhook.construct_event(
+            verified = stripe.Webhook.construct_event(
                 request.body, signature, settings.STRIPE_WEBHOOK_SECRET
             )
         except Exception as exc:  # noqa: BLE001 - any failure here is a bad signature
             log.warning("Rejected Stripe webhook: %s", exc)
             return JsonResponse({"detail": "Invalid Stripe signature."}, status=400)
 
+        event = verified.to_dict()
         event_type = event.get("type", "")
         intent = (event.get("data") or {}).get("object") or {}
         payment = payment_for_intent(intent)
