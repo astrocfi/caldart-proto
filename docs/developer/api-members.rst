@@ -239,12 +239,23 @@ a partial update is judged against the whole profile: sending only
 ``medical_type`` does not trip the "a medical class needs an expiry date" rule
 when the record already has one.
 
+``email`` and ``is_active`` go through the same account-edit guard as
+``PATCH /admin/users/{id}`` — see :ref:`account-edit-guard`.  An account
+administrator may move a plain member's address, but not the address or the
+active flag of an account holding a role they do not hold themselves, and may
+not deactivate their own account.  A refusal is a **400** keyed on ``email`` or
+``is_active``, and nothing is written at all — the profile half of the same
+request included.
+
 ``DELETE /admin/members/{user_id}`` hard-deletes: the cascade takes the
 profile, the membership terms and the payments.  It is refused with **403**
 when the target is
 
 * the caller — you cannot delete your own account, whatever roles you hold; or
 * a ``system_admin``, unless the caller is a ``system_admin``.
+
+Both of those role tests read *effective* roles, so a Django superuser without
+the role group counts as a system administrator on either side.
 
 
 Membership terms

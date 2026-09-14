@@ -123,6 +123,16 @@ The same fields as the new-member form, plus:
 
 **Save changes** writes the account and the profile in one request.
 
+Two of those fields are guarded, because between them they are enough to take an
+account over: the email address is where a password reset link is sent, and the
+Active box locks somebody out.  You may change them only on an account whose
+roles you hold yourself — every ordinary member, and anybody else whose roles
+you already have.  A user administrator's record, or a system administrator's,
+is refused with a message against the field, and nothing on the record changes,
+profile fields included.  You cannot clear **Account is active** on your own
+record either.  Names, DART, phone numbers and every profile field stay editable
+on any record you can open.
+
 Memberships
 -----------
 
@@ -170,7 +180,8 @@ into the confirmation box.  Two deletions are refused outright:
 
 * your own account; and
 * a system administrator's account, unless you are a system administrator
-  yourself.
+  yourself.  An account carrying Django superuser access counts as a system
+  administrator's here even if the role itself was never granted.
 
 If somebody has simply left, clearing **Account is active** on the Profile tab
 is almost always the better answer: it stops them signing in and keeps the
@@ -240,6 +251,12 @@ When something goes wrong
    password, no email went out and you have to tell them what it is.  If you
    did leave it empty, ask a user administrator to send a password reset from
    ``/portal/admin/users``, which does the same job.
+
+**"You cannot change the email address of an account that holds roles you do not hold."**
+   You are editing another administrator's record.  Moving an address is enough
+   to take an account over, so it is reserved for somebody who already holds
+   every role that account holds.  Ask a system administrator.  The Active box
+   is refused the same way, and so is clearing it on your own record.
 
 **"You cannot delete your own account."**
    Exactly what it says.  Ask another administrator.

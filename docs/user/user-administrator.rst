@@ -25,13 +25,18 @@ Correct names and email addresses          Delete an account
 Send a password reset link                 Read or set anyone's password
 =========================================  ================================
 
-Two rules are enforced by the server, not just hidden in the interface:
+Three rules are enforced by the server, not just hidden in the interface:
 
 * **You cannot deactivate your own account.**  The switch is disabled on your
   own record, and the API refuses it even if you go around the interface.
 * **Only a system administrator may move the ``system_admin`` role.**  As a user
   administrator you can edit every other role on a system administrator's
   account, but you cannot grant that role to anyone or take it away.
+* **You cannot change the email address or the Active box of an account that
+  holds a role you do not hold.**  A user administrator may move a plain
+  member's address, or another user administrator's, but not an account
+  administrator's or a system administrator's.  Names are not covered: you can
+  correct anybody's spelling.
 
 
 Finding an account
@@ -69,6 +74,14 @@ Correct a misspelt name, or move an account to a new address, in the Account
 form.  The email address is also the login, so tell the person you have changed
 it.  Addresses are unique regardless of case: if another account already uses
 the address you type, the form says so and saves nothing.
+
+An address you may not move is refused for a different reason.  The email
+address is where a password reset link goes, so moving somebody's address is
+enough to take their account over, and the server allows it only when you
+already hold every role that account holds.  A colleague with a role you lack —
+an account administrator, or a system administrator — has to make the change, or
+grant you the role first.  The same applies to the Active box; names are free to
+edit either way.
 
 Roles
 -----
@@ -170,6 +183,13 @@ When something goes wrong
 **The email address will not save.**
    Another account already uses it, case ignored.  Search for that address:
    you have probably found the duplicate account you were looking for.
+
+**"You cannot change the email address of an account that holds roles you do not hold."**
+   The account belongs to an administrator senior to you — an account
+   administrator or a system administrator, say — and moving an address is
+   enough to take an account over, so the server reserves it for somebody who
+   already holds those roles.  Ask a colleague who does.  The wording is the
+   same for the Active box, and neither refusal changes anything on the record.
 
 **Send password reset is grayed out.**
    The account is deactivated.  Tick **Active**, save, then send the link.
