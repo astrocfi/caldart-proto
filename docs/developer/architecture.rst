@@ -412,7 +412,12 @@ Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``StatusChip``,
 ``DataTable``, ``Money``, ``DateText``, ``EmptyState`` and ``Toast``), and
 ``choices.ts`` holds the one set of labels for certificate, medical, IFR and
-rating codes.
+rating codes.  ``components/useDebounced.ts`` sits beside the primitives
+without joining their barrel, since it is a hook rather than something a
+page renders: it returns a value only once it has held still for a delay,
+which defaults to the ``SEARCH_DEBOUNCE_MS`` of 250 milliseconds that every
+search box uses.  The checkout panel passes 500 milliseconds instead, so
+changing the amount does not create a payment intent per keystroke.
 
 **Navigation.**  ``nav.ts`` declares every entry in ``NAV_ITEMS`` with the
 roles that may see it (an empty list means any signed-in user) and a group:
