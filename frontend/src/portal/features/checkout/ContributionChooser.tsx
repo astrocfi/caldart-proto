@@ -1,5 +1,5 @@
 /**
- * The optional donation added to a membership (PLAN §4.4).
+ * The optional donation added to a membership.
  *
  * The tiers come from the server; "Other amount" and "No thank you" are the
  * two escape hatches every fundraising form needs.

@@ -1,5 +1,5 @@
 /**
- * Data access for the members-admin screens (PLAN §6.4).
+ * Data access for the members-admin screens.
  *
  * Every list query is keyed on the filters, so changing a filter is a new
  * query rather than a refetch of the same one, and every mutation invalidates
@@ -64,7 +64,7 @@ export function useMember(id: number | null) {
   });
 }
 
-// The DART and plan catalogues belong to the profile feature (PLAN §6.3);
+// The DART and plan catalogues belong to the profile feature;
 // re-exported so the admin screens use exactly one query key for each.
 export { useDarts, usePlans } from '../profile/api';
 

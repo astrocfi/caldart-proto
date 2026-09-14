@@ -1,4 +1,4 @@
-/* Member home (PLAN §8): a status card, then the things a member does next. */
+/* Member home: a status card, then the things a member does next. */
 
 .dashboard__status {
   display: flex;

@@ -1,4 +1,4 @@
-/** Step 2 — the same profile form `/profile` uses (PLAN §6.3). */
+/** Step 2 — the same profile form `/profile` uses. */
 import { ApiError } from '../../api/client';
 import { Card } from '../../components/Card';
 import { EmptyState } from '../../components/EmptyState';

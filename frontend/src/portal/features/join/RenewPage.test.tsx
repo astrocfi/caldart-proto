@@ -14,7 +14,7 @@ import { RenewPage } from './RenewPage';
 
 const modes: string[] = [];
 
-/** `feat/payments` owns the real checkout; stand in for it to drive success. */
+/** The real checkout is tested on its own; this stand-in records `mode` and drives success. */
 vi.mock('@/portal/features/checkout', () => ({
   Checkout: (props: CheckoutProps) => {
     modes.push(props.mode);

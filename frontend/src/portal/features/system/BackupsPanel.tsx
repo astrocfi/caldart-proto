@@ -1,5 +1,5 @@
 /**
- * The backups panel of `/portal/system` (PLAN §6.9): what is on disk, a button
+ * The backups panel of `/portal/system`: what is on disk, a button
  * that takes a fresh dump, and a download link per file.
  */
 import type { Backup } from '../../api/types';

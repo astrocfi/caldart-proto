@@ -1,6 +1,5 @@
 /**
- * The portal's navigation, declared once with its role requirements (PLAN §8)
- * so feature branches never have to edit this file.
+ * The portal's navigation, declared once with its role requirements.
  *
  * `roles: []` means "any signed-in user".  A user sees an entry when they hold
  * at least one of its roles; `system_admin` sees everything.

@@ -1,4 +1,4 @@
-/** The three headline figures above the payments dashboard (PLAN §6.8). */
+/** The three headline figures above the payments dashboard. */
 import { formatCents } from '../../components/Money';
 import type { DashboardTotals } from './api';
 

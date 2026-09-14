@@ -1,9 +1,9 @@
 /**
  * Shared aircraft search-and-attach control.
  *
- * `feat/aircraft-leader` implements it against `GET /aircraft` and
- * `GET /aircraft/lookup`; `feat/profile-join` only imports it for the
- * "planes I commonly fly" section of the profile form.  Keep the props stable.
+ * It searches with `GET /aircraft/lookup`, then `GET /aircraft`, and can add a
+ * missing aircraft with `POST /aircraft`.  `/profile/aircraft` uses it for the
+ * planes a member commonly flies.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';

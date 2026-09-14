@@ -1,5 +1,5 @@
 /**
- * Data access for member self-service (PLAN §6.3, §6.5).
+ * Data access for member self-service.
  *
  * The join wizard, the dashboard and the profile editor all read the same
  * three resources, so the query keys live here and every mutation invalidates

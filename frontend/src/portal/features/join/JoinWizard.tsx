@@ -1,5 +1,5 @@
 /**
- * `/join` and `/join/:step` — the four-step join wizard (PLAN §8).
+ * `/join` and `/join/:step` — the four-step join wizard.
  *
  * The wizard is resumable: the step comes from the URL, but the *furthest*
  * step the visitor may be on is derived from the server's view of them
@@ -11,7 +11,7 @@
  * method: Stripe returns them to `/join/done?payment_id=…`, and at that
  * moment the server still says they owe us the fee.  Clamping would send them
  * to `/join/pay` and throw the payment reference away, so the wizard holds the
- * `done` step and lets `<ReturnStep/>` settle the payment first (PLAN §10).
+ * `done` step and lets `<ReturnStep/>` settle the payment first.
  */
 import { useCallback, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';

@@ -86,7 +86,7 @@ export function CurrencyChip({
   );
 }
 
-/** A payment's state, in the shared status palette (PLAN §4.4). */
+/** A payment's state, in the shared status palette. */
 export function paymentStatusTone(status: PaymentState): StatusTone {
   if (status === 'succeeded') return 'current';
   if (status === 'pending') return 'expiring';

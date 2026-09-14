@@ -1,5 +1,5 @@
 /**
- * The join wizard's four steps and the rules for resuming one (PLAN §8).
+ * The join wizard's four steps and the rules for resuming one.
  *
  * Pure functions so the resume logic can be tested on its own: given the
  * signed-in user (or nobody), which step should the visitor be on, and may

@@ -1,10 +1,10 @@
 /**
- * `POST /auth/register` (PLAN §6.1).
+ * `POST /auth/register`.
  *
- * The endpoint itself is delivered by `feat/auth-portal`; the contract is
- * fixed by the plan — the response body *is* the `user` payload and the call
- * also logs the visitor in — so the wizard codes against it directly and
- * seeds the `['auth','me']` cache with what comes back.
+ * The response body *is* the `user` payload and the call also logs the visitor
+ * in, so the wizard seeds the `['auth','me']` cache with what comes back.
+ * `auth/useAuth.ts` exports a second `useRegister` that clears the query cache
+ * before seeding it.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 

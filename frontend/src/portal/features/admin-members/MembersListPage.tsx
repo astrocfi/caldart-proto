@@ -1,5 +1,5 @@
 /**
- * `/admin/members` — the filtered, sortable, exportable member list (PLAN §6.4).
+ * `/admin/members` — the filtered, sortable, exportable member list.
  *
  * Filters live in the URL, so a filtered list is a link an administrator can
  * bookmark or send to a colleague, and the export buttons point at the same

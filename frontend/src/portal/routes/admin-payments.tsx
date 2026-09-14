@@ -1,4 +1,4 @@
-/** Payment reporting routes (PLAN §8).  Owned by `feat/payments`. */
+/** Payment reporting routes. */
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';

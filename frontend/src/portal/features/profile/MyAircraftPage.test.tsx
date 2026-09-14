@@ -13,9 +13,10 @@ import { MyAircraftPage } from './MyAircraftPage';
 import { TEST_AIRCRAFT, makeProfile } from './fixtures';
 
 /**
- * `<AircraftPicker/>` belongs to `feat/aircraft-leader` and is still a stub, so
- * stand in for it with something selectable.  The contract under test is this
- * page's: what it passes down, and what it does with a selection.
+ * `<AircraftPicker/>` has its own tests, and driving it means a debounced
+ * search against the aircraft endpoints, so stand in for it with one button
+ * that selects `PICKED`.  The contract under test is this page's: what it
+ * passes down, and what it does with a selection.
  */
 const PICKED: Aircraft = {
   id: 9,

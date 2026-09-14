@@ -1,5 +1,5 @@
 /**
- * The Danger zone tab: hard-delete a member record (PLAN §6.4).
+ * The Danger zone tab: hard-delete a member record.
  *
  * Deleting takes the profile, membership terms and payment history with it, so
  * the button stays disabled until the administrator has typed the member's

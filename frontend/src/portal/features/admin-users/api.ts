@@ -1,4 +1,4 @@
-/** Data access for the users-admin screens (PLAN §6.2). */
+/** Data access for the users-admin screens. */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '../../api/client';

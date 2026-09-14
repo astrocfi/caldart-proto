@@ -34,7 +34,7 @@ export interface AccountDraft {
   is_active: boolean;
 }
 
-/** The two fields only an administrator sees (PLAN §4.2). */
+/** The two fields only an administrator sees. */
 export interface AdminOnlyDraft {
   notes: string;
   how_heard: string;

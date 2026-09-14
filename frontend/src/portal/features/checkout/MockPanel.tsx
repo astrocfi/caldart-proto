@@ -2,7 +2,7 @@
  * The mock provider's panel: two buttons, no network beyond our own API.
  *
  * It is what e2e runs and anyone without payment keys uses, and the server
- * refuses it entirely unless `PAYMENTS_MOCK_ENABLED` is on (PLAN §10).
+ * refuses it entirely unless `PAYMENTS_MOCK_ENABLED` is on.
  */
 import { useState } from 'react';
 

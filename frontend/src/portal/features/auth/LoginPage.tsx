@@ -1,4 +1,4 @@
-/** `/login` — email + password, honouring `?next=` (PLAN §8). */
+/** `/login` — email + password, honouring `?next=`. */
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 

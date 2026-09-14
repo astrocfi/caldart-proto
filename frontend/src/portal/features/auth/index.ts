@@ -1,4 +1,4 @@
-/** The portal's auth screens (PLAN §8, `routes/auth.tsx`). */
+/** The portal's auth screens (`routes/auth.tsx`). */
 
 export { ChangePasswordPage } from './ChangePasswordPage';
 export { ForgotPasswordPage } from './ForgotPasswordPage';

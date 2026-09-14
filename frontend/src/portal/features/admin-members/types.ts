@@ -1,5 +1,5 @@
 /**
- * Shapes the members-admin screens use on top of `api/types.ts` (PLAN §6.4).
+ * Shapes the members-admin screens use on top of `api/types.ts`.
  *
  * `MemberRow` (the list row), `Profile` and `ProfilePatch` are already declared
  * in the shared types; an administrator's view of a profile is the member's
@@ -108,7 +108,7 @@ export interface TermUpdatePayload {
   note?: string;
 }
 
-/** The list's query parameters (PLAN §6.4), all as strings for the URL. */
+/** The list's query parameters, all as strings for the URL. */
 export interface MemberFilters {
   search: string;
   status: string;

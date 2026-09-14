@@ -1,5 +1,5 @@
 /**
- * The portal chrome (PLAN §8): a left rail on desktop, a hamburger drawer on
+ * The portal chrome: a left rail on desktop, a hamburger drawer on
  * mobile, filtered by the signed-in user's roles.
  */
 import { useEffect, useState } from 'react';

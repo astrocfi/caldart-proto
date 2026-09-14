@@ -1,4 +1,4 @@
-/** Member administration (PLAN §6.4).  Import the pages from here. */
+/** Member administration.  Import the pages from here. */
 
 export { MemberCreatePage } from './MemberCreatePage';
 export { MemberDetailPage } from './MemberDetailPage';

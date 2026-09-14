@@ -1,5 +1,5 @@
 /**
- * `/leader/aircraft` — check one tail number's insurance (PLAN §6.6).
+ * `/leader/aircraft` — check one tail number's insurance.
  *
  * The registration lives in the query string so the card survives a reload
  * and can be sent to another leader.

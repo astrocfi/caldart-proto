@@ -1,4 +1,4 @@
-/** User and role administration routes (PLAN §8).  Owned by `feat/auth-portal`. */
+/** User and role administration routes. */
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';

@@ -1,5 +1,5 @@
 /**
- * Public-site enhancements (PLAN §7).
+ * Public-site enhancements.
  *
  * The Wagtail templates render and work with JavaScript switched off; this
  * only adds the mobile nav toggle, keeps the skip link honest, marks the nav

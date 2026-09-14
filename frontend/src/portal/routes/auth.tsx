@@ -1,5 +1,5 @@
 /**
- * Auth routes (PLAN §8).  Owned by `feat/auth-portal`.
+ * Auth routes.
  *
  * These sit in `publicRoutes`, outside the shell's `RequireAuth`, so
  * `/change-password` carries its own guard.

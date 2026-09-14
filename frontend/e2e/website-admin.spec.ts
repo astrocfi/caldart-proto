@@ -1,7 +1,7 @@
 /**
- * Flow E (PLAN §1): a website administrator adds, edits and deletes a page in
- * the Wagtail admin — holding the `website_admin` role alone, not superuser
- * rights (PLAN §4.6).
+ * Flow E in `docs/demo-walkthrough.rst`: a website administrator adds, edits
+ * and deletes a page in the Wagtail admin — holding the `website_admin` role
+ * alone, not superuser rights.
  *
  * The page really is published, so the spec checks the public site between
  * each step rather than trusting the admin's own success messages.
