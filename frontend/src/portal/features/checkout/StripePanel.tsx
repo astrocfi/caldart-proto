@@ -127,8 +127,10 @@ export function StripePanel({
         setError(caught instanceof ApiError ? caught.message : 'Could not start a Stripe payment.');
       });
 
-    // Abandoning the request rather than only ignoring its answer is what keeps a
-    // re-run from leaving a stranded PaymentIntent behind it.
+    // Abandon the request rather than only ignore its answer. A StrictMode remount
+    // aborts before `fetch` dispatches, so it creates one PaymentIntent, not two. A
+    // debounced amount change re-runs the effect long after the first request went out:
+    // that intent exists, and is left unconfirmed rather than charged.
     return () => {
       controller.abort();
     };

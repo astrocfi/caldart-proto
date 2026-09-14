@@ -43,8 +43,10 @@ export function usePaymentsConfig() {
 /**
  * Start a payment, and with it the provider-side session the panel renders.
  *
- * Pass `signal` to abandon the attempt: an aborted request never reaches the server, so
- * a panel that aborts in its effect cleanup leaves no orphaned PaymentIntent behind.
+ * Pass `signal` to abandon the attempt. What the abort buys depends on when it lands: one
+ * that fires before `fetch` dispatches, as an effect cleanup run straight after setup
+ * does, stops the request outright and no PaymentIntent is created; one that fires
+ * mid-flight only discards the answer, and the intent the server made stays unconfirmed.
  */
 export function createCheckout(
   request: CheckoutRequest,
