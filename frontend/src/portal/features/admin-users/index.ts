@@ -12,4 +12,3 @@ export {
   useUpdateAdminUser,
 } from './api';
 export type { AdminUserFilters, AdminUserPatch } from './api';
-export { useDebounced } from './useDebounced';

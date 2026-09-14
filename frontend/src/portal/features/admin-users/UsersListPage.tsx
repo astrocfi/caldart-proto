@@ -10,8 +10,8 @@ import { DataTable } from '../../components/DataTable';
 import { Field } from '../../components/Field';
 import { MembershipChip, StatusChip } from '../../components/StatusChip';
 import { Page } from '../../components/Page';
+import { useDebounced } from '../../components/useDebounced';
 import { useAdminUsers } from './api';
-import { useDebounced } from './useDebounced';
 
 const PAGE_SIZE = 25;
 

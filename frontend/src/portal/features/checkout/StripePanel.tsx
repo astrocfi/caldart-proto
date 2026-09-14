@@ -18,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '../../api/client';
 import { Button } from '../../components/Button';
 import { formatCents } from '../../components/Money';
+import { useDebounced } from '../../components/useDebounced';
 import { confirmStripePayment, createCheckout } from './api';
 import type { ProviderPanelProps } from './types';
 
@@ -78,14 +79,7 @@ export function returnUrl(paymentId: number): string {
 }
 
 /** Wait for the member to stop changing the amount before re-creating an intent. */
-function useDebounced<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [value, delayMs]);
-  return debounced;
-}
+const AMOUNT_DEBOUNCE_MS = 500;
 
 interface Intent {
   paymentId: number;
@@ -105,7 +99,7 @@ export function StripePanel({
 }: StripePanelProps) {
   const [intent, setIntent] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const settled = useDebounced(`${plan ?? ''}:${contributionCents}`, 500);
+  const settled = useDebounced(`${plan ?? ''}:${contributionCents}`, AMOUNT_DEBOUNCE_MS);
 
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const appearance = useMemo(() => appearanceFromTokens(), []);

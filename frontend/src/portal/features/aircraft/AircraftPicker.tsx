@@ -14,6 +14,7 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { EmptyState } from '../../components/EmptyState';
 import { Field } from '../../components/Field';
+import { useDebounced } from '../../components/useDebounced';
 import './aircraft.css';
 import { InsuranceChip } from './InsuranceChip';
 import { ServiceChip } from './ServiceChip';
@@ -21,7 +22,6 @@ import { useAircraftSearch, useCreateAircraft } from './api';
 import type { AircraftFormValues } from './form';
 import { aircraftPayload, emptyAircraftValues, validateAircraft } from './form';
 import { normalizeNNumber } from './insurance';
-import { useDebounced } from './useDebounced';
 
 export interface AircraftPickerProps {
   onSelect: (aircraft: Aircraft) => void;
