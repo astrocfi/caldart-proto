@@ -941,5 +941,5 @@ Two migrations do more than create tables and are worth knowing about:
   ``seed_content`` calls the same function, so the grant is applied whichever
   route you take.
 
-CI runs ``manage.py makemigrations --check --dry-run``, so a model change
-without its migration fails the build.
+``make check`` runs ``manage.py makemigrations --check --dry-run``, and CI runs
+``make check``, so a model change without its migration fails the build.

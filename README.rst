@@ -73,7 +73,9 @@ Everyday commands
    $ make test           # pytest + vitest
    $ make e2e            # Playwright, end to end (see below)
    $ make lint           # ruff + tsc + eslint + prettier
-   $ make docs           # Sphinx, warnings are errors
+   $ make check          # Django system checks, missing migrations, production build
+   $ make docs           # Sphinx, nitpicky, warnings are errors
+   $ make audit          # known vulnerabilities in Python and npm dependencies
    $ make reset          # destroy and re-seed the dev database
    $ make backup         # gzipped pg_dump into backups/
    $ make help           # every target
