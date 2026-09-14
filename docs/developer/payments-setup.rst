@@ -20,7 +20,8 @@ In development everything lives in ``.env`` at the repository root (copy
 in ``/etc/caldart/caldart.env``, which the systemd units load as an
 ``EnvironmentFile`` — and nothing re-reads it while the process is up, so
 ``systemctl restart caldart-web`` after every edit.  Either way
-``backend/caldart/settings/base.py`` reads each one.
+``backend/caldart/settings/base.py`` reads each one, except the production-only
+mock switch, which ``backend/caldart/settings/prod.py`` reads.
 
 .. list-table::
    :header-rows: 1
@@ -46,7 +47,10 @@ in ``/etc/caldart/caldart.env``, which the systemd units load as an
      - Optional.  Set it and the PayPal webhook verifies its signature; leave
        it blank and the webhook only records payloads.
    * - ``PAYMENTS_MOCK_ENABLED``
-     - ``true`` in dev and tests, ``false`` in production.
+     - ``true`` in development and tests.  ``prod.py`` does not read it.
+   * - ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION``
+     - The only switch that turns the mock provider on under ``prod.py``.
+       Leave it unset unless you mean to demonstrate the checkout without keys.
 
 Both Stripe keys must be present for Stripe to appear in the provider list;
 both PayPal credentials must be present for PayPal.  Restart Django after
@@ -360,15 +364,19 @@ that money moved.
 The mock provider
 =================
 
-With ``PAYMENTS_MOCK_ENABLED=true`` (the default in dev and tests) the
+With ``PAYMENTS_MOCK_ENABLED=true`` (the default in development and tests) the
 checkout offers a **Test payment** tab with *Succeed* and *Fail* buttons.
 Succeeding runs exactly the same activation path as a real payment, so
 membership terms, renewal dates and the payment reports all behave normally —
 the only difference is that no provider is involved.
 
-Set ``PAYMENTS_MOCK_ENABLED=false`` in production.  The endpoint then answers
-404, not 403: a production deployment should not even advertise that a way to
-grant yourself a membership once existed.
+Production ignores that variable entirely: ``prod.py`` never reads it, so an
+environment file copied from a development machine cannot hand out free
+memberships on a live site.  The one switch that works there is
+``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION``, which appears in no template — set it
+only to demonstrate the checkout on a box with no payment keys.  With the
+provider off the endpoint answers 404, not 403: a production deployment should
+not even advertise that a way to grant yourself a membership exists.
 
 The end-to-end tests use this provider, which is why the five headline flows
 run with no payment keys at all.  ``seed_demo`` does not: its two years of
@@ -431,7 +439,7 @@ Going live: checklist
    [ ] PayPal live REST app created; PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET
        swapped; PAYPAL_ENV=live
    [ ] PAYPAL_WEBHOOK_ID set if the PayPal webhook is in use
-   [ ] PAYMENTS_MOCK_ENABLED=false
+   [ ] PAYMENTS_MOCK_ENABLED_IN_PRODUCTION unset, so the mock provider is off
    [ ] DEBUG=false, HTTPS enforced, SITE_URL and ALLOWED_HOSTS correct
    [ ] Secrets are in /etc/caldart/caldart.env, not in git
    [ ] systemctl restart caldart-web after the last edit to that file

@@ -7,8 +7,11 @@
 # Install:
 #   sudo useradd --system --home-dir /srv/caldart --shell /usr/sbin/nologin caldart
 #   sudo install -d -m 0750 -o root -g caldart /etc/caldart
-#   sudo install -m 0640 -o root -g caldart .env.example /etc/caldart/caldart.env
+#   sudo install -m 0640 -o root -g caldart \
+#        deploy/caldart.env.example /etc/caldart/caldart.env
 #   # edit /etc/caldart/caldart.env -- see docs/developer/configuration.rst for every variable
+#   # The repository's own .env.example is the DEVELOPMENT template: it ships a
+#   # published SECRET_KEY and turns the mock payment provider on.
 #   sudo install -d -o caldart -g caldart /srv/caldart/backend/media \
 #        /srv/caldart/backend/staticfiles /srv/caldart/backups
 #   sudo cp deploy/systemd/caldart-web.service /etc/systemd/system/
@@ -36,10 +39,11 @@ UMask=0027
 # manage.py, media/ and staticfiles/ resolve relative to the Django project.
 WorkingDirectory=/srv/caldart/backend
 
-# Secrets and per-host configuration. Root-owned, mode 0640, group caldart.
-# Holds DATABASE_URL, SECRET_KEY, DEBUG, ALLOWED_HOSTS, SITE_URL, EMAIL_URL,
-# DEFAULT_FROM_EMAIL, the STRIPE_* and PAYPAL_* keys, PAYMENTS_MOCK_ENABLED,
-# DJANGO_VITE_DEV_MODE, BACKUP_DIR and DB_BACKUP_VIA_DOCKER.
+# Secrets and per-host configuration, from deploy/caldart.env.example.
+# Root-owned, mode 0640, group caldart. Holds DATABASE_URL, SECRET_KEY, DEBUG,
+# ALLOWED_HOSTS, SITE_URL, CSRF_TRUSTED_ORIGINS, EMAIL_URL, DEFAULT_FROM_EMAIL,
+# the AUTH_THROTTLE_*, STRIPE_* and PAYPAL_* keys, DJANGO_VITE_DEV_MODE,
+# BACKUP_DIR and DB_BACKUP_VIA_DOCKER.
 EnvironmentFile=/etc/caldart/caldart.env
 
 Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
