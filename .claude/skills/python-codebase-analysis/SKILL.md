@@ -47,7 +47,7 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 
 - Type coverage: annotations on new and modified code (the `python` rule requires them); share of annotated functions; use of `Any`.
 - Linting: the Ruff rule set in `pyproject.toml` (see `python` Section 7); consistent formatting (`ruff format`); Django system checks (`manage.py check --fail-level WARNING` in `make check`).
-- Docstrings: presence, format (Google style with `Parameters:`), consistency with signatures and behavior.
+- Docstrings: presence; enough prose to describe the behavior, parameters, return value and exceptions a caller needs (no sections are required); consistency with signatures and behavior.
 
 **Evidence**: Config files, sample of annotated vs unannotated code.
 
