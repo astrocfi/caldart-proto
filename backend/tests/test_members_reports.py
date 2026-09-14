@@ -175,7 +175,7 @@ def test_csv_blanks_a_missing_certificate_and_medical(admin_client, reportable):
     assert row["aircraft"] == ""
 
 
-def test_csv_honours_the_list_filters(admin_client, reportable):
+def test_csv_honors_the_list_filters(admin_client, reportable):
     table = read_csv(admin_client.get(CSV_URL, {"status": "expired"}))
     assert len(table) == 2
     assert table[1][1] == "lapsed@example.test"
@@ -189,7 +189,7 @@ def test_csv_honours_the_list_filters(admin_client, reportable):
     assert table[1][1] == "pilot@example.test"
 
 
-def test_csv_honours_the_ordering(admin_client, reportable):
+def test_csv_honors_the_ordering(admin_client, reportable):
     table = read_csv(admin_client.get(CSV_URL, {"ordering": "-email"}))
     exported = [row[1] for row in table[1:]]
     assert exported == sorted(exported, reverse=True)
@@ -231,7 +231,7 @@ def test_pdf_survives_an_empty_result_set(admin_client, reportable):
     assert response.content.startswith(b"%PDF-")
 
 
-def test_pdf_subtitle_summarises_the_applied_filters(account_admin):
+def test_pdf_subtitle_summarizes_the_applied_filters(account_admin):
     request = APIRequestFactory().get(
         PDF_URL, {"status": "current", "dart": "Napa", "expiring_within": "30", "search": ""}
     )

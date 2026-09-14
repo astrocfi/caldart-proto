@@ -1,4 +1,4 @@
-"""``membership_status`` maths and ``activate_term`` rules."""
+"""``membership_status`` math and ``activate_term`` rules."""
 
 from __future__ import annotations
 

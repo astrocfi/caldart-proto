@@ -3,7 +3,7 @@ Account administrator guide
 ===========================
 
 Account administrators look after the people in |org|: who is a member, when
-their membership runs out, what is on their record, and what the organisation
+their membership runs out, what is on their record, and what the organization
 can prove about all of it in a spreadsheet or a PDF.
 
 You need the ``account_admin`` role to use any of the screens on this page.
@@ -29,7 +29,7 @@ people — one row each:
 **Membership**
    A status chip and the expiry date behind it.  The chip is green while the
    membership is current, amber in the last 30 days, red once it has run out
-   and grey for someone who has never been a member.  Lifetime members show
+   and gray for someone who has never been a member.  Lifetime members show
    "Lifetime member" and no date.
 
 **Joined**
@@ -156,7 +156,7 @@ Everything this member has paid: date, what it was for, the membership portion,
 any contribution on top, the total, the provider and the outcome.
 
 Terms you grant by hand have no payment attached, so they do not appear here.
-For the organisation-wide ledger and the month-by-month and year-by-year
+For the organization-wide ledger and the month-by-month and year-by-year
 totals, use **Payments** in the menu.
 
 Danger zone
@@ -232,7 +232,7 @@ When something goes wrong
 **"An account with that email address already exists."**
    Somebody already has an account on that address — very often the person in
    front of you, from a previous membership.  Search the list for it and edit
-   that record instead of creating a second one.  Capitalisation is ignored,
+   that record instead of creating a second one.  Capitalization is ignored,
    so ``Marta@`` and ``marta@`` collide.
 
 **The new member never got their "set your password" email.**

@@ -14,7 +14,7 @@ _N_NUMBER_STRIP = re.compile(r"[^A-Za-z0-9]")
 
 
 def normalize_n_number(value: str | None) -> str:
-    """Normalise a US registration to canonical ``N#####`` form.
+    """Normalize a US registration to canonical ``N#####`` form.
 
     Upper-cased, punctuation and whitespace removed, and a leading ``N`` added
     when the caller left it off (``12345`` -> ``N12345``).  Non-US marks that

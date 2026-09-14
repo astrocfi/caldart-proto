@@ -9,7 +9,7 @@ authentication, ``X-CSRFToken`` on unsafe methods, DRF error bodies, and
 ``401`` (never ``403``) for an unauthenticated request.
 
 
-N-number normalisation
+N-number normalization
 ======================
 
 ``apps.aircraft.models.normalize_n_number`` is the single rule: strip
@@ -54,7 +54,7 @@ Any authenticated user.  Paginated (``page``, ``page_size``; 25 by default,
 Parameter            Meaning
 ===================  ============================================================
 ``search``           ``icontains`` over ``n_number``, ``make``, ``model`` and
-                     ``owner_name``, plus the normalised form of the term
+                     ``owner_name``, plus the normalized form of the term
                      against ``n_number``
 ``make``             ``icontains`` on ``make``
 ``owner_type``       ``individual`` | ``fbo`` | ``club``
@@ -103,7 +103,7 @@ A result row::
 Any authenticated user.  ``created_by`` is taken from the session and cannot
 be set by the client.  Validation:
 
-- ``n_number`` required, normalised, unique after normalisation;
+- ``n_number`` required, normalized, unique after normalization;
 - ``make`` and ``model`` required and non-blank;
 - the three money fields are integer cents and must be ``>= 0``;
 - everything else optional.
@@ -145,9 +145,9 @@ change it.
 ``GET /aircraft/lookup?n_number=``
 ----------------------------------
 
-Any authenticated user.  Exact match *after* normalisation — not a prefix
+Any authenticated user.  Exact match *after* normalization — not a prefix
 search — returning the detail shape, ``404`` when the register has never seen
-the registration, or ``400`` when the parameter normalises to nothing.  This
+the registration, or ``400`` when the parameter normalizes to nothing.  This
 is what makes the picker's search-as-you-type land on one record.
 
 
@@ -185,12 +185,12 @@ Up to 20 members, matched on:
 - first name, last name or email (``icontains``);
 - a two-part term as a full name, in either order — ``Marta Reyes`` and
   ``Reyes, Marta`` find the same person;
-- an N-number, exact after normalisation *or* contained in the registration,
+- an N-number, exact after normalization *or* contained in the registration,
   through ``MemberProfile.aircraft``.
 
 The N-number branch only runs when the term contains a digit
 (``looks_like_registration``).  Without that guard, searching for "Nate"
-normalises to ``NATE`` and matches every US registration on file.
+normalizes to ``NATE`` and matches every US registration on file.
 
 Rows are ``{user_id, name, email, dart, membership_status}`` where
 ``membership_status`` is the ``current`` / ``expired`` / ``none`` string from
@@ -226,7 +226,7 @@ aircraft, and both ``go_no_go`` flags false.  An unknown ``user_id`` is a
 ``GET /leader/aircraft?n_number=``
 ----------------------------------
 
-The same detail shape as ``GET /aircraft/{id}``, keyed by normalised
+The same detail shape as ``GET /aircraft/{id}``, keyed by normalized
 registration: ``404`` when unknown, ``400`` when the parameter is empty.
 ``pilots`` is always present here, because the endpoint is role-gated already.
 
@@ -249,7 +249,7 @@ File                                   Contents
 =====================================  ======================================
 
 Tests: ``backend/tests/test_aircraft_api.py`` (CRUD, permissions,
-normalisation, every filter), ``test_aircraft_exports.py`` (CSV content, PDF
+normalization, every filter), ``test_aircraft_exports.py`` (CSV content, PDF
 validity, role matrix), ``test_leader_api.py`` (search, the membership ×
 medical × insurance truth table), and ``test_aircraft_models.py`` from the
 foundation.

@@ -67,7 +67,7 @@ def members_wall_state(user) -> str:
 
 
 class BasePage(Page):
-    """Shared behaviour: the restricted-block form and a body-headings helper."""
+    """Shared behavior: the restricted-block form and a body-headings helper."""
 
     base_form_class = RestrictedBlocksPageForm
 
@@ -445,7 +445,7 @@ ContactPage.subpage_types = []
 
 @register_setting
 class SiteSettings(BaseSiteSetting):
-    """Organisation details and the active theme."""
+    """Organization details and the active theme."""
 
     org_name = models.CharField(max_length=120, default="The California DART Network")
     tagline = models.CharField(
@@ -471,7 +471,7 @@ class SiteSettings(BaseSiteSetting):
                 FieldPanel("tagline"),
                 FieldPanel("ein"),
             ],
-            heading="Organisation",
+            heading="Organization",
         ),
         MultiFieldPanel(
             [

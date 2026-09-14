@@ -208,7 +208,7 @@ When something goes wrong
 
 **"An account already uses that email address."**
    You have registered before.  Do not make a second account — use **Forgot
-   your password?** on the sign-in screen instead.  Capitalisation does not
+   your password?** on the sign-in screen instead.  Capitalization does not
    matter, so ``Marta@example.org`` and ``marta@example.org`` are the same
    account.
 

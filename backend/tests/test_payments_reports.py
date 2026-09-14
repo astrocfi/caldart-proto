@@ -193,13 +193,13 @@ def test_summary_defaults_to_month(api_client, account_admin, history):
     assert api_client.get(SUMMARY).data[0]["period"] == "2025-11"
 
 
-def test_summary_honours_the_date_filter(api_client, account_admin, history):
+def test_summary_honors_the_date_filter(api_client, account_admin, history):
     api_client.force_login(account_admin)
     rows = api_client.get(SUMMARY, {"from": "2026-01-01"}).data
     assert [row["period"] for row in rows] == ["2026-01", "2026-02"]
 
 
-def test_summary_honours_the_provider_filter(api_client, account_admin, history):
+def test_summary_honors_the_provider_filter(api_client, account_admin, history):
     api_client.force_login(account_admin)
     rows = api_client.get(SUMMARY, {"provider": "paypal"}).data
     assert [row["period"] for row in rows] == ["2025-11", "2026-01"]
@@ -238,7 +238,7 @@ def test_export_returns_a_csv_download(api_client, account_admin, history):
     assert len(rows) == 8  # header + 7 payments
 
 
-def test_export_honours_the_filters(api_client, account_admin, history):
+def test_export_honors_the_filters(api_client, account_admin, history):
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(EXPORT, {"provider": "paypal", "status": "succeeded"}))
 

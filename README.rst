@@ -140,7 +140,7 @@ Layout
    CLAUDE.md    conventions for working in this repository
 
 
-Licence
+License
 =======
 
 Prototype code for CalDART. Not yet licensed for redistribution.

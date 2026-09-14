@@ -23,7 +23,7 @@ from apps.members.services import expire_lapsed_memberships, membership_status
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 
 #: Subject lines, in the house voice: plain, specific, no exclamation marks.
-#: ``{org}`` is the organisation name from Wagtail's site settings.
+#: ``{org}`` is the organization name from Wagtail's site settings.
 SUBJECTS: dict[str, str] = {
     ReminderKind.T60: "{org}: your membership expires in 60 days",
     ReminderKind.T30: "{org}: your membership expires in 30 days",
@@ -108,7 +108,7 @@ def _site_settings():
 
 
 def _org_name() -> str:
-    """The organisation name from Wagtail site settings, or the default."""
+    """The organization name from Wagtail site settings, or the default."""
     site_settings = _site_settings()
     return (getattr(site_settings, "org_name", "") if site_settings else "") or "CalDART"
 
@@ -188,7 +188,7 @@ def send_renewal_reminders(*, today: date | None = None, dry_run: bool = False) 
     """Scan for due reminders and send them.
 
     Flips memberships whose ``ends_on`` has passed to ``expired`` first, so the
-    ``post30`` cohort is honestly labelled, then walks the five kinds in order.
+    ``post30`` cohort is honestly labeled, then walks the five kinds in order.
     A dry run writes nothing at all: no email, no log rows, no status flips.
     """
     today = today or timezone.localdate()

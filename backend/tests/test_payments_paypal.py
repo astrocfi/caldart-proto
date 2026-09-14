@@ -1,7 +1,7 @@
 """PayPal Orders v2 over ``httpx``, with the HTTP layer mocked by respx.
 
 Covers the token cache, order creation, capture (happy path and every way it
-can go wrong) and the webhook's deliberately cautious behaviour.
+can go wrong) and the webhook's deliberately cautious behavior.
 """
 
 from __future__ import annotations

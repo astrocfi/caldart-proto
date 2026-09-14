@@ -253,7 +253,7 @@ Module                                                      Holds
 ``backend/apps/members/api/profile_views.py``               the views
 ``backend/apps/members/api/profile_urls.py``                the routes
 ``backend/tests/test_profile_api.py``                       profile, membership,
-                                                            payments, catalogues
+                                                            payments, catalogs
 ``backend/tests/test_profile_aircraft_api.py``              attach and detach
 ``frontend/src/portal/features/profile/api.ts``             the TanStack Query hooks
 ==========================================================  ==========================

@@ -13,7 +13,7 @@ NEGATIVE_MONEY_MESSAGE = "Enter an amount of $0 or more."
 class NNumberField(serializers.CharField):
     """A registration field that always stores the canonical ``N12345`` form.
 
-    Normalising in ``to_internal_value`` (rather than in ``validate_n_number``)
+    Normalizing in ``to_internal_value`` (rather than in ``validate_n_number``)
     matters: DRF runs a field's validators on the value this returns, so the
     uniqueness check sees ``N12345`` even when the member typed ``n-12345``.
     """

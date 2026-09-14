@@ -3,7 +3,7 @@ CalDART
 =======
 
 CalDART is the website and member management system for |org|, a 501(c)(3)
-that organises California pilots and ground personnel to provide volunteer
+that organizes California pilots and ground personnel to provide volunteer
 disaster air transportation.
 
 It is two things behind one address.  The **public website** — the home page,

@@ -83,7 +83,7 @@ def _coverage(user, on_date: date) -> Membership | None:
 
 
 def membership_status(user, on_date: date | None = None) -> MembershipStatusDict:
-    """Summarise a user's membership.
+    """Summarize a user's membership.
 
     Returns ``{"status", "expires_on", "plan", "is_lifetime"}`` where status is
     ``current`` (a term covers ``on_date``), ``expired`` (a term has started and

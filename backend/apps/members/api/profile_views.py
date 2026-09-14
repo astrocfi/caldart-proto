@@ -2,7 +2,7 @@
 
 Every ``/me/...`` view works on ``request.user`` alone — there is no object id
 to tamper with, so the only permission check needed is "is anybody signed in".
-``/darts`` and ``/plans`` are the two public catalogues the join wizard reads
+``/darts`` and ``/plans`` are the two public catalogs the join wizard reads
 before the visitor has an account.
 """
 

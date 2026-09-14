@@ -28,14 +28,14 @@ export function currentNavIndex(hrefs: readonly string[], path: string): number 
 
   hrefs.forEach((href, index) => {
     if (!href || href.startsWith('#')) return;
-    const normalised = href.length > 1 && href.endsWith('/') ? href.slice(0, -1) : href;
+    const normalized = href.length > 1 && href.endsWith('/') ? href.slice(0, -1) : href;
     const matches =
-      normalised === '/'
+      normalized === '/'
         ? target === '/'
-        : target === normalised || target.startsWith(`${normalised}/`);
-    if (matches && normalised.length > bestLength) {
+        : target === normalized || target.startsWith(`${normalized}/`);
+    if (matches && normalized.length > bestLength) {
       best = index;
-      bestLength = normalised.length;
+      bestLength = normalized.length;
     }
   });
 

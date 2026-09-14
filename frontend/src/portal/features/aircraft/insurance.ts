@@ -1,7 +1,7 @@
 /**
  * Aircraft helpers shared by the picker, the admin register and the leader
- * check: N-number normalisation (the same rule as the server) and the
- * insurance state every screen colours its chips by.
+ * check: N-number normalization (the same rule as the server) and the
+ * insurance state every screen colors its chips by.
  */
 import type { AircraftSummary } from '../../api/types';
 import { EXPIRING_WINDOW_DAYS, daysUntil } from '../../components/StatusChip';

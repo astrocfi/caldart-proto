@@ -272,7 +272,7 @@ Make targets
      - remove ``docs/_build``, ``frontend/dist``, ``backend/staticfiles`` and
        ``__pycache__``
 
-Every target runs from the repository root, and every one of them honours
+Every target runs from the repository root, and every one of them honors
 ``DATABASE_URL``.
 
 Management commands
@@ -321,7 +321,7 @@ Five commands must be green, and CI runs all five on every pull request:
 
 ``make check`` catches a model change without its migration and a frontend
 that type-checks but does not build. See
-:doc:`testing` for how the suites are organised.
+:doc:`testing` for how the suites are organized.
 
 Troubleshooting
 ===============

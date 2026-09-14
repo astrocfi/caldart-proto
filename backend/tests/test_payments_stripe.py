@@ -224,7 +224,7 @@ def test_confirm_rejects_metadata_for_another_payment(
     assert Membership.objects.count() == 0
 
 
-def test_confirm_marks_a_cancelled_intent_failed(api_client, member, annual_plan, fake_intents):
+def test_confirm_marks_a_canceled_intent_failed(api_client, member, annual_plan, fake_intents):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     fake_intents.payload = intent_payload(payment, id="pi_dead", status="canceled")
 

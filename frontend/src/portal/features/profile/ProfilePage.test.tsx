@@ -35,7 +35,7 @@ describe('<ProfilePage/>', () => {
     await waitFor(() => expect(screen.getByLabelText(label('DART'))).toHaveValue('1'));
   });
 
-  it('offers the DARTs the catalogue returned', async () => {
+  it('offers the DARTs the catalog returned', async () => {
     server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
 
     renderWithProviders(<ProfilePage />, { route: '/profile' });

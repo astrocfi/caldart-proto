@@ -76,7 +76,7 @@ Scheduling
 ----------
 
 There is no backup timer in ``deploy/`` — retention policy is a site decision.
-The simplest version is a systemd timer modelled on
+The simplest version is a systemd timer modeled on
 ``caldart-reminders.timer``, or a root crontab entry::
 
   # /etc/cron.d/caldart-backup

@@ -201,7 +201,7 @@ What the backend suite covers
    * - ``test_users_admin_api.py``
      - the ``user_admin`` endpoints, role edits and their guards
    * - ``test_membership_services.py``
-     - status maths: edge dates, lifetime, the renewal start-day rule
+     - status math: edge dates, lifetime, the renewal start-day rule
    * - ``test_profile_api.py``, ``test_profile_aircraft_api.py``
      - ``/me/profile``, ``PUT`` versus ``PATCH``, attach and detach
    * - ``test_members_admin.py``, ``test_members_admin_status.py``
@@ -210,7 +210,7 @@ What the backend suite covers
        ``test_payments_reports.py``, ``test_reports.py``
      - CSV content cell by cell, PDF validity, and filter propagation
    * - ``test_aircraft_api.py``, ``test_aircraft_models.py``
-     - N-number normalisation, filters, orderings, object permissions
+     - N-number normalization, filters, orderings, object permissions
    * - ``test_leader_api.py``
      - search, the status card, and the membership × medical × insurance
        truth table

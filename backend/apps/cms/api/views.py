@@ -1,7 +1,7 @@
 """Site configuration endpoint.
 
 ``GET /api/v1/site/config`` is the one API call the portal makes before it has
-a user: it carries the organisation name, the active theme, the contact
+a user: it carries the organization name, the active theme, the contact
 address and the same navigation the server-rendered site shows.  Members-only
 pages are listed only for callers who may actually open them.
 """

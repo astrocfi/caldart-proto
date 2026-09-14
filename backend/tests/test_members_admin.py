@@ -665,7 +665,7 @@ def test_grant_of_a_lifetime_plan_has_no_end_date(admin_client, population, life
     }
 
 
-def test_grant_honours_an_explicit_start_date(admin_client, population, annual_plan, today):
+def test_grant_honors_an_explicit_start_date(admin_client, population, annual_plan, today):
     member = population["never"]
     start = today - timedelta(days=10)
     response = admin_client.post(

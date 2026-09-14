@@ -4,7 +4,7 @@ Website administrator guide
 
 This guide is for people who hold the ``website_admin`` role: you look after
 the public |org| website — the pages, their words and pictures, the members-only
-area, and the organisation details that appear in the header and footer.
+area, and the organization details that appear in the header and footer.
 
 You do not need to know anything about the member database, payments or
 reports.  Those live in the member portal and belong to other roles.
@@ -222,7 +222,7 @@ Site settings
 =====================  ======================================================
 Field                  Where it shows
 =====================  ======================================================
-Organisation name      Page titles, footer, the member portal
+Organization name      Page titles, footer, the member portal
 Tagline                Under the wordmark, and as the default page
                        description for search engines
 EIN                    Footer and the contact page
@@ -231,7 +231,7 @@ Contact phone          Footer and contact page
 Mailing address        Footer and contact page
 Donate URL             Footer link
 Facebook / X URL       Footer links
-Theme                  The whole colour palette — see below
+Theme                  The whole color palette — see below
 Footer text            The small print in the first footer column
 =====================  ======================================================
 

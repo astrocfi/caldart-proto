@@ -55,14 +55,14 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
       return;
     }
 
-    let cancelled = false;
+    let canceled = false;
 
     async function settle() {
       // The confirm call is what actually activates the membership; a failure
       // here is not fatal, because the webhook may have got there first.
       try {
         const confirmed = await confirmStripePayment(paymentId, paymentIntentId);
-        if (!cancelled && confirmed.status === 'succeeded') {
+        if (!canceled && confirmed.status === 'succeeded') {
           onSuccess({ paymentId, membership: confirmed.membership });
           return;
         }
@@ -71,10 +71,10 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
       }
 
       const deadline = Date.now() + POLL_TIMEOUT_MS;
-      while (!cancelled && Date.now() < deadline) {
+      while (!canceled && Date.now() < deadline) {
         try {
           const result = await fetchPayment(paymentId);
-          if (cancelled) return;
+          if (canceled) return;
           if (result.status === 'succeeded') {
             onSuccess({ paymentId, membership: result.membership });
             return;
@@ -84,7 +84,7 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
             return;
           }
         } catch (caught) {
-          if (cancelled) return;
+          if (canceled) return;
           setError(
             caught instanceof ApiError ? caught.message : 'We could not check that payment.',
           );
@@ -93,7 +93,7 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
         await sleep(POLL_INTERVAL_MS);
       }
 
-      if (!cancelled) {
+      if (!canceled) {
         setError(
           'Your payment is still being processed. It is safe to close this page — we will email ' +
             'you when it clears, and your membership page will update on its own.',
@@ -103,7 +103,7 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
 
     void settle();
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [paymentId, paymentIntentId, onSuccess]);
 

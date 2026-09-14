@@ -35,7 +35,7 @@ One rule holds everywhere:
 **An export is the list you are looking at.**  The export endpoints take the
 same filters as the list they belong to, so a download always matches the
 screen it came from.  ``?ordering=`` is the one exception: the members and
-aircraft exports honour it, and the payments export ignores it and always
+aircraft exports honor it, and the payments export ignores it and always
 sorts by payment date, newest first.
 
 
@@ -218,7 +218,7 @@ Three things set it apart from the other two:
   a spreadsheet built from this file.
 * **The filename has no date in it** — it is always ``caldart-payments.csv``.
 * **It ignores ``?ordering=``** and always sorts by payment date, newest
-  first, even though the list endpoint beside it honours ten ordering fields.
+  first, even though the list endpoint beside it honors ten ordering fields.
 
 Columns, from ``CSV_HEADER`` in ``backend/apps/payments/reports.py``:
 ``paid_on``, ``name``, ``email``, ``plan``, ``plan_amount``, ``contribution``,

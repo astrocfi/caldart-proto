@@ -171,7 +171,7 @@ When something goes wrong
    Another account already uses it, case ignored.  Search for that address:
    you have probably found the duplicate account you were looking for.
 
-**Send password reset is greyed out.**
+**Send password reset is grayed out.**
    The account is deactivated.  Tick **Active**, save, then send the link.
 
 **Send password reset says no email was sent.**

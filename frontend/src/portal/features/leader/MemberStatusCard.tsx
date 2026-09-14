@@ -2,7 +2,7 @@
  * The pre-flight status card.
  *
  * Designed to be read at arm's length on a phone, standing on a ramp: the
- * verdict is a full-width band in words as well as colour, and every row
+ * verdict is a full-width band in words as well as color, and every row
  * answers one question — membership, medical, certificate, insurance.
  */
 import type { LeaderStatus, MembershipState } from '../../api/types';

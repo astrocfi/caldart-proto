@@ -51,7 +51,7 @@ all call it.  In order:
 
 1. **Expire lapsed terms.**  Every ``Membership`` that is still ``active`` with
    an ``ends_on`` in the past is flipped to ``expired``.  This runs first so
-   that the ``post30`` cohort is honestly labelled.
+   that the ``post30`` cohort is honestly labeled.
 2. **Walk the five kinds in order.**  For each, select memberships with the
    matching ``ends_on``, excluding canceled ones.  Lifetime terms have no
    ``ends_on`` at all, so they never appear.
@@ -134,7 +134,7 @@ with logs, status and a catch-up policy:
 ``deploy/systemd/caldart-reminders.timer``
    ``OnCalendar=*-*-* 07:00:00`` in the system timezone, ``Persistent=true`` so
    a machine that was off at 07:00 catches up when it comes back, and a five
-   minute randomised delay so the scan does not collide with every other 07:00
+   minute randomized delay so the scan does not collide with every other 07:00
    job on the host.
 
 Install and inspect::

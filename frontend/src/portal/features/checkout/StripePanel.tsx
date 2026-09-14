@@ -111,13 +111,13 @@ export function StripePanel({
   const appearance = useMemo(() => appearanceFromTokens(), []);
 
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
     setIntent(null);
     setError(null);
 
     createCheckout({ plan, contribution_cents: contributionCents, provider: 'stripe' })
       .then((checkout) => {
-        if (cancelled) return;
+        if (canceled) return;
         const clientSecret = checkout.client.client_secret;
         if (!clientSecret) {
           setError('Stripe did not return a payment session. Please try again.');
@@ -126,12 +126,12 @@ export function StripePanel({
         setIntent({ paymentId: checkout.payment_id, clientSecret });
       })
       .catch((caught: unknown) => {
-        if (cancelled) return;
+        if (canceled) return;
         setError(caught instanceof ApiError ? caught.message : 'Could not start a Stripe payment.');
       });
 
     return () => {
-      cancelled = true;
+      canceled = true;
     };
     // `settled` carries the debounced plan + contribution; the raw values are
     // read inside so the request always uses the current selection.
