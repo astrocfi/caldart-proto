@@ -143,14 +143,19 @@ def test_test_settings_read_the_dotenv_file(fresh_settings, read_env_calls) -> N
     assert read_env_calls == [DOTENV_PATH]
 
 
-def test_a_missing_secret_key_is_a_start_up_error_even_beside_a_dotenv_file(
-    prod_env, monkeypatch
-) -> None:
+def test_the_dotenv_module_reads_the_repository_env_file(fresh_settings) -> None:
+    """The one file involved, and the reason production must not import it."""
+    dotenv = importlib.import_module(f"{SETTINGS_PACKAGE}._dotenv")
+
+    assert dotenv.DOTENV_PATH == DOTENV_PATH
+
+
+def test_a_missing_secret_key_is_a_start_up_error(prod_env, monkeypatch) -> None:
+    """No file is consulted, so nothing can fill the gap in."""
     monkeypatch.delenv("SECRET_KEY", raising=False)
-    assert DOTENV_PATH.is_file(), "the worktree's own .env is what could leak in"
 
     with pytest.raises(ImproperlyConfigured, match="SECRET_KEY"):
-        import_prod()
+        import_prod_over_a_fresh_base()
 
 
 def test_production_refuses_the_published_development_secret_key(prod_env, monkeypatch) -> None:
