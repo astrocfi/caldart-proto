@@ -151,7 +151,9 @@ How a request is served
 =======================
 
 In production Apache (or nginx) terminates TLS, serves uploads under
-``/media/`` from disk, and proxies everything else to gunicorn on
+``/media/`` from disk — except ``/media/documents/``, which it refuses so that
+Wagtail's document view can apply the members-only guard (:doc:`cms`) — and
+proxies everything else to gunicorn on
 ``127.0.0.1:8001`` (:doc:`deployment`); in development ``make run`` serves
 the same URLs on port 8000.  Inside Django, WhiteNoise answers ``/static/``
 from the middleware stack, and everything else goes through

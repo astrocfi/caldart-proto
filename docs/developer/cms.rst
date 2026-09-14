@@ -20,6 +20,7 @@ Layout
     blocks.py            StreamField blocks and the body stream
     forms.py             the page form that hides restricted blocks
     permissions.py       the website_admin Wagtail grant
+    wagtail_hooks.py     the members-only guard on document downloads
     context_processors.py   site_settings / theme / nav for every template
     seed.py              site root + settings row (called by seed_demo)
     api/views.py         GET /api/v1/site/config
@@ -115,6 +116,50 @@ its panel::
             FieldPanel("body"),
             MultiFieldPanel(MembersOnlyMixin.members_only_panels, heading="Access"),
         ]
+
+
+Members-only documents
+----------------------
+
+The switch closes a page; the files it links to are closed by their collection.
+``wagtail_hooks.guard_members_only_documents`` is a ``before_serve_document``
+hook, which Wagtail runs before it hands a document over:
+
+.. code-block:: python
+
+   @hooks.register("before_serve_document")
+   def guard_members_only_documents(document, request):
+       if not collection_is_members_only(document.collection):
+           return None
+       if user_can_access_members_content(request.user):
+           return None
+       context = {"page": {"title": document.title}, **members_wall_context(request.user)}
+       return TemplateResponse(request, "cms/members_only_wall.html", context, status=403)
+
+``collection_is_members_only`` is true for the collection named
+``MEMBERS_ONLY_COLLECTION_NAME`` (``Members only``) and for every collection
+beneath it: a descendant's materialized path starts with its ancestor's, so one
+prefix test covers the whole subtree.  A document in any other collection, and
+a document with no collection at all, is public.
+
+The refusal is the page wall rendered from the same template and the same
+``members_wall_context``, with the document's title in place of a page's, so a
+member who follows a link to a file they may not download is offered the same
+next step.  The file's bytes are never sent.
+
+Three things keep the guard on the only path to the file:
+
+* ``WAGTAILDOCS_SERVE_METHOD = "serve_view"`` in ``settings/base.py``, so
+  ``document.url`` is always Wagtail's ``/documents/<id>/<filename>`` view and
+  never a direct ``/media/`` URL, whatever the storage backend;
+* ``deploy/nginx/caldart.conf`` returns 404 for ``/media/documents/`` and
+  ``deploy/apache/caldart.conf`` denies that directory, so the uploads on disk
+  are unreachable without the view (:doc:`deployment`);
+* ``seed_content`` creates the collection, so the copy that tells editors to
+  upload into it is true of a fresh site.
+
+Wagtail's own collection privacy still applies on top of this, and is the way
+to close a collection to everyone but a Wagtail group or a password.
 
 
 Blocks
@@ -299,6 +344,11 @@ Builds the example site, and is safe to run repeatedly::
 ``upsert_page`` looks each page up by slug under its parent, updates it in
 place and publishes a revision, and the DART section deletes any page whose
 team has gone.  ``make seed`` runs it after ``seed_demo``.
+
+It also calls ``ensure_members_only_collection``, so the ``Members only``
+document collection exists on a fresh site and the members-area copy can tell
+editors to upload handbooks and forms into it.  The website-administrator grant
+is on the root collection and cascades to it.
 
 The copy is example content — paraphrased, not lifted — and site settings are
 only filled in where they are still blank, so a theme or phone number an
