@@ -9,9 +9,6 @@ This document is the single source of truth for the prototype. Every
 feature branch implements a slice of it. If code and this document
 disagree, fix one of them in the same PR.
 
-.. contents::
-   :depth: 2
-
 
 1. Goals
 ========
