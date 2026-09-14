@@ -41,7 +41,21 @@ Tokens
 ======
 
 Components only ever reference **semantic** tokens.  Nothing outside
-``tokens.css`` and the theme files may contain a raw color.
+``tokens.css`` and the theme files may contain a raw color, with one exception.
+
+.. _theming-stripe-colors:
+
+.. note::
+
+   That exception is
+   ``frontend/src/portal/features/checkout/StripePanel.tsx``.  Stripe's Payment
+   Element renders in an iframe, which cannot read the page's CSS custom
+   properties, so ``appearanceFromTokens()`` resolves each token with
+   ``getComputedStyle`` and hands Stripe the computed value.  Every color
+   lookup carries the sierra hex as a fallback, for the case where the property
+   resolves to nothing; the two lookups that are not colors, ``--font-body``
+   and ``--radius``, fall back to a plain literal.  Change a sierra color and
+   change the matching fallback with it.
 
 Color
 -----
@@ -62,7 +76,6 @@ Token                      Meaning
 ``--color-rule``           Hairline separators
 ``--color-rule-strong``    Input borders, the strongest hairline
 ``--color-muted``          Secondary text
-``--color-focus``          Focus ring
 ``--color-selection``      ``::selection`` background, at low alpha
 ``--color-ok``             Status foreground: current, paid, in date
 ``--color-warn``           Status foreground: expiring soon
@@ -71,6 +84,7 @@ Token                      Meaning
 ``--color-warn-bg``,
 ``--color-bad-bg``
 ``--color-neutral-bg``     Fill for a chip with no status at all
+``--color-focus``          Focus ring
 =========================  ==================================================
 
 That is the whole set a theme redefines — twenty-one tokens, listed above in
@@ -260,7 +274,9 @@ House rules
   not decoration: no gradients, no glassmorphism or backdrop blur, no hero
   blobs and no emoji bullets.
 * **Semantic tokens only** in components.  If you need a color that no token
-  names, add the token — do not inline a hex value.
+  names, add the token — do not inline a hex value.  The one exception is
+  :ref:`the Stripe panel <theming-stripe-colors>`, which has to hand computed
+  values across an iframe boundary.
 * **Hairlines, not boxes.**  Sections are separated by a ``1px``
   ``--color-rule`` and generous space.  No drop shadows, no background-color
   bands, no floating rounded cards.
