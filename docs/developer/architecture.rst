@@ -359,6 +359,20 @@ File                    Routes, and who may open them
 ``not-found.tsx``       any other path
 ======================  ======================================================
 
+**Code splitting.**  A route names its page with React Router's ``lazy``
+property rather than an ``element``, so the page's code is a chunk of its own
+that the browser fetches the first time somebody opens that path.  The route
+file imports the page's own module, not its feature's ``index.ts``, or the
+barrel would drag the whole feature into the chunk.  Three files stay eager,
+because they are where a visitor lands and a second request there would only
+delay them: ``auth.tsx``, ``dashboard.tsx`` and ``not-found.tsx``.  Every
+other route file loads on demand, which keeps the admin, system and checkout
+screens -- and the Stripe and PayPal React wrappers the checkout pulls in --
+out of the bundle a member downloads to reach their dashboard.  The guards
+themselves are eager, so a role gate is decided without fetching anything,
+and the root route's ``hydrateFallbackElement`` shows ``components/Loading``,
+the same indicator the guards use, while a page is on its way.
+
 **Guards.**  ``RequireAuth``, in ``auth/guards.tsx``, wraps every route that
 needs a session and sends an anonymous visitor to
 ``/login?next=<the path they asked for>``; the sign-in page returns them
@@ -420,7 +434,9 @@ Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``StatusChip``,
 ``DataTable``, ``Money``, ``DateText``, ``EmptyState`` and ``Toast``), and
 ``choices.ts`` holds the one set of labels for certificate, medical, IFR and
-rating codes.  ``components/useDebounced.ts`` sits beside the primitives
+rating codes.  ``components/Loading.tsx`` sits beside them without joining
+the barrel: the guards and the route table are its only callers, and both
+import it by name.  ``components/useDebounced.ts`` sits beside the primitives
 without joining their barrel, since it is a hook rather than something a
 page renders: it returns a value only once it has held still for a delay,
 which defaults to the ``SEARCH_DEBOUNCE_MS`` of 250 milliseconds that every

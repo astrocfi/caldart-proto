@@ -45,10 +45,14 @@ vi.mock('../features/leader/LeaderSearchPage', () => ({
 vi.mock('../features/leader/LeaderAircraftPage', () => ({
   LeaderAircraftPage: pageStub('Aircraft check'),
 }));
-vi.mock('../features/admin-members', () => ({
-  MemberCreatePage: pageStub('Add a member'),
-  MemberDetailPage: pageStub('Member record'),
+vi.mock('../features/admin-members/MembersListPage', () => ({
   MembersListPage: pageStub('Members'),
+}));
+vi.mock('../features/admin-members/MemberCreatePage', () => ({
+  MemberCreatePage: pageStub('Add a member'),
+}));
+vi.mock('../features/admin-members/MemberDetailPage', () => ({
+  MemberDetailPage: pageStub('Member record'),
 }));
 vi.mock('../features/admin-aircraft/AircraftRegisterPage', () => ({
   AircraftRegisterPage: pageStub('Aircraft register'),
@@ -56,12 +60,16 @@ vi.mock('../features/admin-aircraft/AircraftRegisterPage', () => ({
 vi.mock('../features/admin-aircraft/AircraftRecordPage', () => ({
   AircraftRecordPage: pageStub('Aircraft record'),
 }));
-vi.mock('../features/admin-payments', () => ({ AdminPaymentsPage: pageStub('Payments') }));
-vi.mock('../features/admin-users', () => ({
-  UserDetailPage: pageStub('User record'),
+vi.mock('../features/admin-payments/AdminPaymentsPage', () => ({
+  AdminPaymentsPage: pageStub('Payments'),
+}));
+vi.mock('../features/admin-users/UsersListPage', () => ({
   UsersListPage: pageStub('Users and roles'),
 }));
-vi.mock('../features/system', () => ({ SystemPage: pageStub('System') }));
+vi.mock('../features/admin-users/UserDetailPage', () => ({
+  UserDetailPage: pageStub('User record'),
+}));
+vi.mock('../features/system/SystemPage', () => ({ SystemPage: pageStub('System') }));
 
 /** The 403 page's headline, from `auth/guards.tsx`. */
 const FORBIDDEN = 'You do not have access to this page';
@@ -211,5 +219,19 @@ describe('the paths outside the session', () => {
     renderRoutes(routes, { route: '/no-such-screen' });
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+  });
+});
+
+describe('the routes that load on demand', () => {
+  it('shows the loading indicator until the page module has arrived', () => {
+    renderRoutes(routes, { route: '/join' });
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading');
+  });
+
+  it('leaves the eager landing screens ready on the first render', () => {
+    renderRoutes(routes, { route: '/login' });
+
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 });

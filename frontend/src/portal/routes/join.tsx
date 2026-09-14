@@ -1,14 +1,20 @@
 /** Join and renew routes. */
 import type { RouteObject } from 'react-router-dom';
 
-import { JoinWizard } from '../features/join/JoinWizard';
-import { RenewPage } from '../features/join/RenewPage';
+async function joinWizard() {
+  return { Component: (await import('../features/join/JoinWizard')).JoinWizard };
+}
 
 /** Joining is open to visitors who do not have an account yet. */
 export const joinRoutes: RouteObject[] = [
-  { path: 'join', element: <JoinWizard /> },
-  { path: 'join/:step', element: <JoinWizard /> },
+  { path: 'join', lazy: joinWizard },
+  { path: 'join/:step', lazy: joinWizard },
 ];
 
 /** Renewing needs a session, so it is mounted behind `RequireAuth`. */
-export const renewRoutes: RouteObject[] = [{ path: 'renew', element: <RenewPage /> }];
+export const renewRoutes: RouteObject[] = [
+  {
+    path: 'renew',
+    lazy: async () => ({ Component: (await import('../features/join/RenewPage')).RenewPage }),
+  },
+];

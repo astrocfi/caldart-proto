@@ -1,10 +1,17 @@
 /** Profile routes. */
 import type { RouteObject } from 'react-router-dom';
 
-import { MyAircraftPage } from '../features/profile/MyAircraftPage';
-import { ProfilePage } from '../features/profile/ProfilePage';
-
 export const profileRoutes: RouteObject[] = [
-  { path: 'profile', element: <ProfilePage /> },
-  { path: 'profile/aircraft', element: <MyAircraftPage /> },
+  {
+    path: 'profile',
+    lazy: async () => ({
+      Component: (await import('../features/profile/ProfilePage')).ProfilePage,
+    }),
+  },
+  {
+    path: 'profile/aircraft',
+    lazy: async () => ({
+      Component: (await import('../features/profile/MyAircraftPage')).MyAircraftPage,
+    }),
+  },
 ];
