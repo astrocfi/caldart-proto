@@ -137,7 +137,8 @@ Either way the scan carries on with the next member and returns its summary.
 ``manage.py send_renewal_reminders`` prints the failure count and exits
 non-zero when it is not zero, which is what makes the systemd unit go to
 ``failed`` and show up in ``systemctl list-timers`` and the journal.  The
-``POST /system/reminders/run`` payload is unchanged at ``{sent, skipped}``.
+``POST /system/reminders/run`` payload carries ``{sent, skipped}`` alone, so a
+failure reaches the operator through the log rather than through the response.
 
 
 Running it
