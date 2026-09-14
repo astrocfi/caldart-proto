@@ -4,6 +4,9 @@ import type { MembershipStatus, RoleSlug, User } from '../portal/api/types';
 
 export const API = '/api/v1';
 
+/** The value the default `GET /auth/csrf` handler hands out. */
+export const TEST_CSRF_TOKEN = 'test-csrf-token';
+
 export const NO_MEMBERSHIP: MembershipStatus = {
   status: 'none',
   expires_on: null,
@@ -35,7 +38,14 @@ export function makeUser(overrides: Partial<User> = {}): User {
 
 /** Default handlers: CSRF works, nobody is signed in. */
 export const handlers = [
-  http.get(`${API}/auth/csrf`, () => new HttpResponse(null, { status: 204 })),
+  http.get(
+    `${API}/auth/csrf`,
+    () =>
+      new HttpResponse(null, {
+        status: 204,
+        headers: { 'Set-Cookie': `csrftoken=${TEST_CSRF_TOKEN}; path=/` },
+      }),
+  ),
   http.get(`${API}/auth/me`, () =>
     HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 }),
   ),

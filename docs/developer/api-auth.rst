@@ -17,9 +17,9 @@ browser's session cookie is the credential; there is no token to store.
 authentication class configured.
 
 **CSRF.**  Every unsafe method needs an ``X-CSRFToken`` header.  Call
-``GET /api/v1/auth/csrf`` once per page load to get the cookie; the SPA's
-``api/client.ts`` does this automatically before the first POST, PUT, PATCH or
-DELETE.
+``GET /api/v1/auth/csrf`` whenever you have no ``csrftoken`` cookie to echo;
+the SPA's ``api/client.ts`` does this automatically before every POST, PUT,
+PATCH or DELETE that finds the cookie missing.
 
 **401, not 403, for anonymous callers.**  Session authentication has no
 ``WWW-Authenticate`` challenge, so DRF would normally answer 403.

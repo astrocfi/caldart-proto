@@ -53,11 +53,17 @@ offers one endpoint whose only job is to issue it:
 
    GET /api/v1/auth/csrf   →  204 No Content, Set-Cookie: csrftoken=…
 
-Call it once at start-up, then send the cookie's value back in the
-``X-CSRFToken`` header on every ``POST``, ``PUT``, ``PATCH`` and ``DELETE``.
-The cookie is deliberately **not** ``HttpOnly`` — JavaScript has to read it to
-echo it — while the session cookie is; see the reasoning in
-``caldart/settings/prod.py``.
+Call it whenever you hold no ``csrftoken`` cookie, then send the cookie's value
+back in the ``X-CSRFToken`` header on every ``POST``, ``PUT``, ``PATCH`` and
+``DELETE``.  The cookie is the only thing worth caching: a client that treats
+one successful call as permission to stop asking locks itself out of every
+write as soon as the cookie is missing or rotated.  The cookie is deliberately
+**not** ``HttpOnly`` — JavaScript has to read it to echo it — while the session
+cookie is; see the reasoning in ``caldart/settings/prod.py``.
+
+A request that arrives without a usable token is refused before the view runs,
+with ``403`` and a ``detail`` that starts ``CSRF Failed``.  That refusal is
+safe to repeat: fetch a token again and resend the request once.
 
 From ``curl``, that is two steps:
 
