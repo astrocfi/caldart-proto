@@ -686,7 +686,7 @@ def seed_contact(home: HomePage) -> ContactPage:
         show_in_menus=True,
         intro=CONTACT_INTRO,
         body=[
-            heading("Media enquiries"),
+            heading("Media inquiries"),
             rich(
                 "<p>Please email rather than calling. A board member will respond, and we "
                 "will happily put you in touch with a DART leader in your area.</p>"
