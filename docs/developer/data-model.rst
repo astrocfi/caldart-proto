@@ -899,7 +899,9 @@ The invariant is a single constraint::
 
 so a second run writes nothing, and the log row is written inside the same
 transaction as the send — a failure rolls both back rather than recording an
-email that never left, which leaves the reminder due for the next run.
+email that never left.  The reminder is then still due, and a later run retries
+it for every kind that has a catch-up window; ``expired`` matches its own day
+alone, so a failed one is not retried.
 
 ``kind`` and its offset in days from the membership's ``ends_on``:
 
