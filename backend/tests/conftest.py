@@ -142,7 +142,7 @@ def csrf_headers():
 
     Calling it issues ``GET /api/v1/auth/csrf``, which leaves the ``csrftoken``
     cookie on the client, and returns ``{"HTTP_X_CSRFTOKEN": <cookie value>}``
-    to splat into the next request — the bootstrap the portal's fetch wrapper
+    to splat into the next request -- the bootstrap the portal's fetch wrapper
     performs in the browser.
     """
 
