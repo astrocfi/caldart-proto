@@ -74,18 +74,92 @@ Scheduling
 ----------
 
 There is no backup timer in ``deploy/`` — retention policy is a site decision.
-The simplest version is a systemd timer modeled on
-``caldart-reminders.timer``, or a root crontab entry::
+The simplest version is a oneshot service and a timer of your own, modeled on
+``caldart-reminders.service`` and ``caldart-reminders.timer``.
 
-  # /etc/cron.d/caldart-backup
-  30 3 * * *  caldart  cd /srv/caldart/backend && \
-      DJANGO_SETTINGS_MODULE=caldart.settings.prod \
-      /srv/caldart/.venv/bin/python manage.py db_backup >/dev/null
+``/etc/systemd/system/caldart-backup.service``:
 
-Pair it with a prune, since nothing rotates dumps automatically::
+.. code-block:: ini
 
-  # keep 30 days
-  find /srv/caldart/backups -name 'caldart-*.sql.gz' -mtime +30 -delete
+   [Unit]
+   Description=CalDART database backup
+   Documentation=file:///srv/caldart/docs/developer/backup-restore.rst
+   After=network.target docker.service
+
+   [Service]
+   Type=oneshot
+
+   User=caldart
+   Group=caldart
+   UMask=0027
+
+   WorkingDirectory=/srv/caldart/backend
+   EnvironmentFile=/etc/caldart/caldart.env
+   Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
+
+   ExecStart=/srv/caldart/.venv/bin/python /srv/caldart/backend/manage.py db_backup
+
+   # Nothing rotates dumps, so the same run drops the ones over 30 days old.
+   ExecStart=/usr/bin/find /srv/caldart/backups -name caldart-*.sql.gz -mtime +30 -delete
+
+   # pg_dump on a large database is not quick.
+   TimeoutStartSec=3600
+
+   NoNewPrivileges=true
+   PrivateTmp=true
+   ProtectHome=true
+   ProtectSystem=strict
+   ProtectKernelTunables=true
+   ProtectKernelModules=true
+   ProtectControlGroups=true
+   RestrictSUIDSGID=true
+   RestrictRealtime=true
+   LockPersonality=true
+   SystemCallArchitectures=native
+   SystemCallFilter=@system-service
+   RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+   CapabilityBoundingSet=
+
+   ReadWritePaths=/srv/caldart/backups
+
+It has no ``[Install]`` section: the timer is what pulls it in, and
+``systemctl start caldart-backup.service`` is what runs one by hand.
+
+``/etc/systemd/system/caldart-backup.timer``:
+
+.. code-block:: ini
+
+   [Unit]
+   Description=Take a CalDART database backup daily at 03:30
+   Documentation=file:///srv/caldart/docs/developer/backup-restore.rst
+
+   [Timer]
+   Unit=caldart-backup.service
+   OnCalendar=*-*-* 03:30:00
+   Persistent=true
+   AccuracySec=1min
+   RandomizedDelaySec=5min
+
+   [Install]
+   WantedBy=timers.target
+
+``Persistent=true`` takes the missed backup when the machine comes back rather
+than skipping the night.  Install both, then enable the timer::
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now caldart-backup.timer
+  systemctl list-timers caldart-backup.timer
+  sudo systemctl start caldart-backup.service    # take one right away
+  journalctl -u caldart-backup -n 20
+
+Three details to keep in step with the rest of the deployment.
+``ProtectSystem=strict`` mounts the filesystem read-only, so ``ReadWritePaths``
+has to name whatever ``BACKUP_DIR`` points at or the dump fails with a
+permission error.  The prune matches only the generated
+``caldart-<timestamp>.sql.gz`` names, so a dump you gave your own ``--name`` is
+left alone.  And the unit expects a local ``pg_dump`` with
+``DB_BACKUP_VIA_DOCKER=false``; going through ``docker compose`` instead needs
+the ``caldart`` user in the ``docker`` group.
 
 A dump on the same disk as the database is not a backup.  Copy them somewhere
 else — another host, object storage, an external disk — as a second step.  The
