@@ -24,79 +24,283 @@ House rules that apply throughout:
 Entity relationships
 ====================
 
+Two diagrams: the domain schema, and the Wagtail page models layered on top of
+it.  The only edge between them is ``cms.DartPage.dart``, which appears in
+both.
+
+Domain schema
+-------------
+
 .. only:: graphviz
 
    .. graphviz::
-      :caption: The CalDART schema.  Solid lines are foreign keys, the double
-                line is the aircraft many-to-many, and ``1--1`` marks the two
-                one-to-one relations.
-      :alt: Entity-relationship diagram of the CalDART database
+      :caption: The domain schema.  A **solid arrow** is a foreign key, drawn
+                from the table that holds the column to the table it
+                references and labeled with the field name and its delete
+                rule.  A **double line** is a many-to-many.  A line labeled
+                ``1--1`` is a one-to-one.  A **dotted arrow** is the provider
+                lookup, a slug in a column rather than a foreign key.  A
+                **dashed box** is an abstract model with no table of its own,
+                and an **empty arrowhead** points from a subclass to the
+                abstract model it inherits.  ``TimestampedModel`` is drawn
+                once rather than seven times: ``Dart``, ``MemberProfile``,
+                ``MembershipPlan``, ``Membership``, ``Aircraft``, ``Payment``
+                and ``ReminderLog`` all inherit it.
+      :alt: Entity-relationship diagram of the CalDART domain models
 
-      digraph caldart {
+      digraph caldart_domain {
           rankdir=LR;
           bgcolor="transparent";
           node [shape=box, style="rounded", fontname="Helvetica", fontsize=10];
           edge [fontname="Helvetica", fontsize=9];
 
-          User [label="accounts.User\l  email (unique, ci)\l  first_name, last_name\l  is_active, is_superuser\l"];
-          Group [label="auth.Group\l  name = role slug\l"];
-          Profile [label="members.MemberProfile\l  contact, aviation,\l  volunteer, admin notes\l"];
-          Dart [label="members.Dart\l  name, airport_identifier\l"];
-          Plan [label="members.MembershipPlan\l  slug, price_cents,\l  duration_days\l"];
-          Membership [label="members.Membership\l  starts_on, ends_on,\l  status, source\l"];
-          Payment [label="payments.Payment\l  amount_cents, provider,\l  wallet, status\l"];
-          Aircraft [label="aircraft.Aircraft\l  n_number (unique),\l  insurance_*\l"];
-          Reminder [label="reminders.ReminderLog\l  kind, sent_at, to_email\l"];
-          DartPage [label="cms.DartPage\l  leader_name, body\l"];
+          Timestamped [label="members.TimestampedModel (abstract)\l  created_at, updated_at\l", style="rounded,dashed"];
+          Provider [label="payments.Provider (abstract)\l  start(payment)\l  confirm(payment, **kwargs)\l  handle_webhook(request)\l", style="rounded,dashed"];
+          Stripe [label="StripeProvider\l  slug = stripe\l"];
+          PayPal [label="PayPalProvider\l  slug = paypal\l"];
+          Mock [label="MockProvider\l  slug = mock\l"];
 
-          User -> Group [label="roles (m2m)", dir=both, arrowtail=none, arrowhead=none, style=dashed];
-          Profile -> User [label="1--1", arrowhead=none];
-          Profile -> Dart [label="dart (null)"];
-          Profile -> Aircraft [label="aircraft (m2m)\lrelated: pilots", color="black:black", arrowhead=none];
-          Membership -> User [label="user"];
+          User [label="accounts.User\l  email (unique, ci)\l  first_name, last_name\l  is_active, is_superuser\l  roles: derived from groups\l"];
+          Group [label="auth.Group\l  name = role slug\l"];
+          Profile [label="members.MemberProfile\l  phone, address_line1, city,\l  state, postal_code\l  aviation, volunteer, admin notes\l"];
+          Dart [label="members.Dart\l  name (unique), airport_identifier\l  city, is_active, sort_order\l"];
+          Plan [label="members.MembershipPlan\l  name (unique), slug (unique)\l  price_cents, duration_days\l"];
+          Membership [label="members.Membership\l  starts_on, ends_on\l  status, source\l"];
+          Payment [label="payments.Payment\l  amount_cents, provider\l  wallet, status, provider_ref\l"];
+          Aircraft [label="aircraft.Aircraft\l  n_number (unique)\l  make, model, insurance_*\l"];
+          Reminder [label="reminders.ReminderLog\l  kind, sent_at, to_email\l  (user, membership, kind) unique\l"];
+          DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
+
+          User -> Group [label="groups (m2m)", dir=none, color="black:black"];
+          Profile -> User [label="user  1--1, CASCADE", arrowhead=none];
+          Profile -> Dart [label="dart (null, SET_NULL)"];
+          Profile -> Aircraft [label="aircraft (m2m)\lrelated: pilots", dir=none, color="black:black"];
+          Membership -> User [label="user (CASCADE)"];
+          Membership -> User [label="granted_by (null, SET_NULL)"];
           Membership -> Plan [label="plan (PROTECT)"];
-          Membership -> Payment [label="payment 1--1 (null)", arrowhead=none];
-          Membership -> User [label="granted_by (null)", style=dotted];
-          Payment -> User [label="user"];
+          Membership -> Payment [label="payment  1--1 (null, SET_NULL)", arrowhead=none];
+          Payment -> User [label="user (CASCADE)"];
           Payment -> Plan [label="plan (null, PROTECT)"];
-          Aircraft -> User [label="created_by (null)", style=dotted];
-          Reminder -> User [label="user"];
-          Reminder -> Membership [label="membership"];
-          DartPage -> Dart [label="dart (PROTECT)"];
+          Aircraft -> User [label="created_by (null, SET_NULL)"];
+          Reminder -> User [label="user (CASCADE)"];
+          Reminder -> Membership [label="membership (CASCADE)"];
+          DartPage -> Dart [label="dart (null, SET_NULL)"];
+
+          Payment -> Provider [label="provider slug, via get_provider()", style=dotted];
+          Stripe -> Provider [arrowhead=empty];
+          PayPal -> Provider [arrowhead=empty];
+          Mock -> Provider [arrowhead=empty];
       }
 
 .. only:: not graphviz
 
-   Install Graphviz and rebuild for a drawn version of this diagram; the ASCII
-   below says the same thing.
+   Install Graphviz and rebuild for a drawn version of this diagram.  The
+   drawing, the node list and the edge list below carry the same models,
+   fields and relations.
 
    .. code-block:: text
 
-                        auth.Group  (name = role slug)
+      Abstract models (dashed boxes in the drawn version; no table of their own)
+      -------------------------------------------------------------------------
+      members.TimestampedModel   created_at, updated_at
+                                 inherited by Dart, MemberProfile,
+                                 MembershipPlan, Membership, Aircraft,
+                                 Payment and ReminderLog
+      payments.Provider          start(payment), confirm(payment, **kwargs),
+                                 handle_webhook(request)
+                                 implemented by StripeProvider (slug stripe),
+                                 PayPalProvider (slug paypal) and
+                                 MockProvider (slug mock)
+
+      The tables
+      ----------
+                           auth.Group  (name = role slug)
+                                |
+                                | groups (m2m); User.roles is derived from it
+                                |
+                          accounts.User
+             1--1  .------------+------------.  created_by
+                   |            |            |
+          members.MemberProfile |      aircraft.Aircraft
+             |         |        |            ^
+             | dart    |        |            | aircraft (m2m,
+             |         '--------|------------'   "planes commonly flown",
+             v                  |                related name: pilots)
+          members.Dart          +-------------------.
+             ^                  |                   |
+             | dart             |                   |
+          cms.DartPage    members.Membership   payments.Payment ....> Provider
+                             |  |  |     '--- 1--1 ---'  |
+                             |  |  '-> members.MembershipPlan <-'
+                             |  |
+                             |  '--- granted_by --> accounts.User
                              |
-                             | m2m  (User.roles)
-                             |
-                       accounts.User
-          1--1  .------------+------------.  created_by
-                |            |            |
-       members.MemberProfile |      aircraft.Aircraft
-          |         |        |            ^
-          | dart    |        |            | m2m "planes commonly flown"
-          |         '--------|------------'    (related name: pilots)
-          v                  |
-       members.Dart          +-------------------.
-          ^                  |                   |
-          | dart (PROTECT)   |                   |
-       cms.DartPage          |                   |
-                             |                   |
-                 members.Membership       payments.Payment
-                    |     |      '--- 1--1 ---'  |
-                    |     |    (Membership.payment, nullable)
-                    |     |                      |
-                    |     '-> members.MembershipPlan <-'  (PROTECT)
-                    |
-                    '------- reminders.ReminderLog
-                             (user, membership, kind — unique together)
+                             '--- reminders.ReminderLog --> accounts.User
+
+      Nodes and their key fields
+      --------------------------
+      accounts.User           email (unique, case-insensitive), first_name,
+                              last_name, is_active, is_superuser;
+                              roles is derived from groups
+      auth.Group              name = role slug
+      members.MemberProfile   phone, address_line1, city, state, postal_code,
+                              the aviation and volunteer fields, admin notes
+      members.Dart            name (unique), airport_identifier, city,
+                              is_active, sort_order
+      members.MembershipPlan  name (unique), slug (unique), price_cents,
+                              duration_days
+      members.Membership      starts_on, ends_on, status, source
+      payments.Payment        amount_cents, provider, wallet, status,
+                              provider_ref
+      aircraft.Aircraft       n_number (unique), make, model, insurance_*
+      reminders.ReminderLog   kind, sent_at, to_email;
+                              (user, membership, kind) unique together
+      cms.DartPage            leader_name, leader_contact, body
+
+      Edges
+      -----
+      members.MemberProfile.user     -> accounts.User            1--1, CASCADE
+      members.MemberProfile.dart     -> members.Dart             FK, SET_NULL, nullable
+      members.MemberProfile.aircraft -> aircraft.Aircraft        m2m, related name pilots
+      accounts.User.groups           -> auth.Group               m2m
+      members.Membership.user        -> accounts.User            FK, CASCADE
+      members.Membership.granted_by  -> accounts.User            FK, SET_NULL, nullable
+      members.Membership.plan        -> members.MembershipPlan   FK, PROTECT
+      members.Membership.payment     -> payments.Payment         1--1, SET_NULL, nullable
+      payments.Payment.user          -> accounts.User            FK, CASCADE
+      payments.Payment.plan          -> members.MembershipPlan   FK, PROTECT, nullable
+      payments.Payment.provider      -> payments.Provider        slug, via get_provider()
+      aircraft.Aircraft.created_by   -> accounts.User            FK, SET_NULL, nullable
+      reminders.ReminderLog.user     -> accounts.User            FK, CASCADE
+      reminders.ReminderLog.membership -> members.Membership     FK, CASCADE
+      cms.DartPage.dart              -> members.Dart             FK, SET_NULL, nullable
+
+CMS page models
+---------------
+
+.. only:: graphviz
+
+   .. graphviz::
+      :caption: The Wagtail page models.  A **dashed box** is an abstract model
+                with no table of its own, and an **empty arrowhead** points
+                from a subclass to the class it inherits.  A **solid arrow** is
+                a foreign key labeled with its field name and delete rule, and
+                a line labeled ``1--1`` is a one-to-one.  Which page may live
+                under which is in :doc:`cms`, not in this diagram.
+      :alt: Inheritance and foreign keys of the CalDART Wagtail page models
+
+      digraph caldart_cms {
+          rankdir=LR;
+          bgcolor="transparent";
+          node [shape=box, style="rounded", fontname="Helvetica", fontsize=10];
+          edge [fontname="Helvetica", fontsize=9];
+
+          Page [label="wagtailcore.Page\l  title, slug, live, path\l"];
+          BasePage [label="cms.BasePage (abstract)\l  base_form_class =\l    RestrictedBlocksPageForm\l  body_headings\l  show_on_this_page\l", style="rounded,dashed"];
+          MembersOnly [label="cms.MembersOnlyMixin (abstract)\l  members_only\l  serve(): members-only wall, 403\l", style="rounded,dashed"];
+
+          Home [label="cms.HomePage\l  hero_heading, hero_lede,\l  hero_image_caption, CTAs,\l  mission, concept_of_operations,\l  tax status\l"];
+          Standard [label="cms.StandardPage\l  intro, body\l"];
+          NewsIndex [label="cms.NewsIndexPage\l  intro\l"];
+          News [label="cms.NewsPage\l  date, intro, body\l"];
+          DartIndex [label="cms.DartIndexPage\l  intro, body\l"];
+          DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
+          Contact [label="cms.ContactPage\l  intro, body\l"];
+          Settings [label="cms.SiteSettings\l  (wagtail BaseSiteSetting)\l  org_name, tagline, contact_*,\l  ein, donate_url, theme,\l  footer_text\l"];
+
+          Image [label="wagtailimages.Image"];
+          Site [label="wagtailcore.Site"];
+          Dart [label="members.Dart"];
+
+          BasePage -> Page [arrowhead=empty];
+          Home -> BasePage [arrowhead=empty];
+          Standard -> BasePage [arrowhead=empty];
+          Standard -> MembersOnly [arrowhead=empty];
+          NewsIndex -> BasePage [arrowhead=empty];
+          News -> BasePage [arrowhead=empty];
+          News -> MembersOnly [arrowhead=empty];
+          DartIndex -> BasePage [arrowhead=empty];
+          DartPage -> BasePage [arrowhead=empty];
+          Contact -> BasePage [arrowhead=empty];
+
+          Home -> Image [label="hero_image (null, SET_NULL)"];
+          News -> Image [label="image (null, SET_NULL)"];
+          DartPage -> Dart [label="dart (null, SET_NULL)"];
+          Settings -> Site [label="site  1--1, CASCADE", arrowhead=none];
+      }
+
+.. only:: not graphviz
+
+   Install Graphviz and rebuild for a drawn version of this diagram.  The
+   drawing, the node list and the edge list below carry the same models,
+   fields and relations.
+
+   .. code-block:: text
+
+      Abstract models (dashed boxes in the drawn version; no table of their own)
+      -------------------------------------------------------------------------
+      cms.BasePage           base_form_class = RestrictedBlocksPageForm,
+                             body_headings, show_on_this_page
+                             inherits wagtailcore.Page; inherited by HomePage,
+                             StandardPage, NewsIndexPage, NewsPage,
+                             DartIndexPage, DartPage and ContactPage
+      cms.MembersOnlyMixin   members_only; serve() renders the members-only
+                             wall with HTTP 403
+                             mixed into StandardPage and NewsPage
+
+      The page types
+      --------------
+                        wagtailcore.Page
+                               ^
+                               | inherits
+                        cms.BasePage (abstract)     cms.MembersOnlyMixin
+                               ^                       (abstract)
+          .--------.-----------+-----------.--------.       ^
+          |        |           |           |        |       |
+       HomePage  NewsIndexPage |      DartIndexPage |       |
+          |        |           |           |        |       |
+          |     NewsPage ------|-----------|--------|-------'
+          |        |           |           |        |
+          |        |      StandardPage ----|--------'
+          |        |                       |
+          |        |                    DartPage --> members.Dart
+          |        |                                 (dart, SET_NULL)
+          |        '--> wagtailimages.Image  (image, SET_NULL)
+          '-----------> wagtailimages.Image  (hero_image, SET_NULL)
+
+                     ContactPage  (intro, body; details from site settings)
+
+                     cms.SiteSettings --- 1--1 ---> wagtailcore.Site
+
+      Nodes and their key fields
+      --------------------------
+      wagtailcore.Page     title, slug, live, path
+      cms.HomePage         hero_heading, hero_lede, hero_image_caption, the
+                           two CTAs, mission, concept_of_operations, tax status
+      cms.StandardPage     intro, body
+      cms.NewsIndexPage    intro
+      cms.NewsPage         date, intro, body
+      cms.DartIndexPage    intro, body
+      cms.DartPage         leader_name, leader_contact, body
+      cms.ContactPage      intro, body
+      cms.SiteSettings     org_name, tagline, contact_email, contact_phone,
+                           mailing_address, ein, donate_url, facebook_url,
+                           twitter_url, theme, footer_text
+
+      Edges
+      -----
+      cms.BasePage             inherits wagtailcore.Page
+      cms.HomePage             inherits cms.BasePage
+      cms.StandardPage         inherits cms.BasePage, cms.MembersOnlyMixin
+      cms.NewsIndexPage        inherits cms.BasePage
+      cms.NewsPage             inherits cms.BasePage, cms.MembersOnlyMixin
+      cms.DartIndexPage        inherits cms.BasePage
+      cms.DartPage             inherits cms.BasePage
+      cms.ContactPage          inherits cms.BasePage
+      cms.HomePage.hero_image  -> wagtailimages.Image   FK, SET_NULL, nullable
+      cms.NewsPage.image       -> wagtailimages.Image   FK, SET_NULL, nullable
+      cms.DartPage.dart        -> members.Dart          FK, SET_NULL, nullable
+      cms.SiteSettings.site    -> wagtailcore.Site      1--1, CASCADE
 
 accounts
 ========
@@ -233,9 +437,9 @@ Moon Bay ``HAF``, Hayward ``HWD``, Livermore ``LVK``, Monterey ``MRY``, Napa
 ``APC``, Palo Alto ``PAO``, Reid-Hillview ``RHV``, San Carlos ``SQL``, San
 Martin (South County) ``E16``, Santa Monica ``SMO``, Santa Rosa ``STS`` and
 Watsonville ``WVI`` — plus ``Unaffiliated``, which has no identifier and no
-city.  ``cms.DartPage`` points at this table with a
-``PROTECT`` foreign key, so a DART with a page cannot be deleted out from
-under it, and the airport and city are never retyped in the CMS.
+city.  ``cms.DartPage`` points at this table with a nullable ``SET_NULL``
+foreign key, so deleting a DART leaves its page in place with no DART
+attached, and the airport and city are never retyped in the CMS.
 
 ``MemberProfile``
 -----------------
@@ -745,8 +949,8 @@ not use it, and the ``body_headings`` used to build the "on this page" rail):
      - ``NewsPage`` adds ``date``, ``intro``, ``image``, ``body``, and may only
        live under a ``NewsIndexPage``.  Members-only capable.
    * - ``DartIndexPage`` / ``DartPage``
-     - ``DartPage`` has a ``PROTECT`` FK to ``members.Dart`` — airport
-       identifier and city are read from it — plus ``leader_name``,
+     - ``DartPage`` has a nullable ``SET_NULL`` FK to ``members.Dart`` —
+       airport identifier and city are read from it — plus ``leader_name``,
        ``leader_contact`` and a body.
    * - ``ContactPage``
      - ``intro`` and ``body``; the contact details come from site settings.

@@ -59,10 +59,11 @@ Model                Notes
                      ``MembersOnlyMixin``.  Only allowed under a news index.
 ``DartIndexPage``    ``intro`` + ``body`` above its children, which it renders
                      as a table.
-``DartPage``         ``dart`` (FK to ``members.Dart``), ``leader_name``,
-                     ``leader_contact``, ``body``.  ``airport_identifier``
-                     and ``city`` are read through the FK, so the page never
-                     duplicates the membership database.
+``DartPage``         ``dart`` (nullable ``SET_NULL`` FK to ``members.Dart``),
+                     ``leader_name``, ``leader_contact``, ``body``.
+                     ``airport_identifier`` and ``city`` are read through the
+                     FK, so the page never duplicates the membership database.
+                     Deleting the DART leaves the page with no DART attached.
 ``ContactPage``      ``intro`` + ``body``; the address block comes from
                      ``SiteSettings``.
 ===================  ========================================================
