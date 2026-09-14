@@ -1,9 +1,8 @@
 /**
- * The shared checkout widget used by both `/join` and `/renew` (PLAN §6.7).
+ * The shared checkout widget used by both `/join` and `/renew`.
  *
  * Choose a plan, optionally add a contribution, then pay with whichever
- * providers this deployment has keys for.  The props are the interface
- * `feat/profile-join` codes against, so they do not change.
+ * providers this deployment has keys for.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -22,7 +21,7 @@ import { StripePanel } from './StripePanel';
 import type { CheckoutProps, CheckoutResult } from './types';
 import './checkout.css';
 
-/** Renewals default to the annual plan (PLAN §10). */
+/** Renewals default to the annual plan. */
 const DEFAULT_PLAN = 'annual';
 
 export type { CheckoutProps, CheckoutResult } from './types';

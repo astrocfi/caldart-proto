@@ -1,4 +1,4 @@
-/** DART leader routes (PLAN §8).  Owned by `feat/aircraft-leader`. */
+/** DART leader routes. */
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';

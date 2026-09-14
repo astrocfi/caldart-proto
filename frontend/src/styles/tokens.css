@@ -1,5 +1,5 @@
 /*
- * CalDART design tokens (PLAN §9).
+ * CalDART design tokens.
  *
  * Components only ever reference the SEMANTIC tokens below.  A theme file in
  * `styles/themes/` overrides them under `:root[data-theme="<name>"]`, so

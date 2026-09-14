@@ -1,5 +1,5 @@
 /**
- * `/admin/payments` — the account administrator's money screen (PLAN §6.8).
+ * `/admin/payments` — the account administrator's money screen.
  *
  * Three headline tiles, a month/year table broken down by provider, then the
  * filtered payment list with a CSV export that carries the same filters.
@@ -34,7 +34,7 @@ import './admin-payments.css';
 
 const PAGE_SIZE = 25;
 
-/** Column keys are the `ordering` values the API accepts (PLAN §6.8). */
+/** Column keys are the `ordering` values the API accepts. */
 const COLUMNS: Column<Payment>[] = [
   {
     key: 'paid_at',

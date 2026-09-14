@@ -1,8 +1,8 @@
 /*
  * The single CSS entry point shared by the public site and the portal.
  *
- * Fonts are self-hosted through @fontsource so the site works offline
- * (PLAN §9).  Only the weights actually used are imported.
+ * Fonts are self-hosted through @fontsource so the site works offline.
+ * Only the weights actually used are imported.
  */
 
 /* Display: Fraunces variable.  `full.css` ships every axis (wght, opsz, SOFT,

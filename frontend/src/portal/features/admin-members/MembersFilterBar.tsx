@@ -1,5 +1,5 @@
 /**
- * The member list's filter bar (PLAN §6.4).
+ * The member list's filter bar.
  *
  * Dropdowns apply as soon as they change; the two typed boxes apply when the
  * form is submitted, so a half-typed name never triggers a query.  The whole

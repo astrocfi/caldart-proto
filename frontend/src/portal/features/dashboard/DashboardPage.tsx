@@ -1,5 +1,5 @@
 /**
- * `/` — the member's home (PLAN §8).
+ * `/` — the member's home.
  *
  * Reading order is the order things matter: is my membership current, is my
  * profile usable, what can I read, what have I paid.  The renewal call to

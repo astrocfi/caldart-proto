@@ -1,5 +1,5 @@
 /**
- * The member profile form (PLAN §4.2, §6.3).
+ * The member profile form.
  *
  * One component serves both `/profile` and step 2 of the join wizard, so the
  * two can never drift.  Three fieldsets — Contact, Aviation, Volunteer

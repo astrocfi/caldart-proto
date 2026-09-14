@@ -1,4 +1,4 @@
-/** Join and renew routes (PLAN §8).  Owned by `feat/profile-join`. */
+/** Join and renew routes. */
 import type { RouteObject } from 'react-router-dom';
 
 import { JoinWizard } from '../features/join/JoinWizard';

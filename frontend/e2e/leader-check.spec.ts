@@ -1,6 +1,7 @@
 /**
- * Flow C (PLAN §1): a DART leader looks a member up and sees the GO / NO-GO
- * verdict with the medical and the insurance on the planes they fly.
+ * Flow C in `docs/demo-walkthrough.rst`: a DART leader looks a member up and
+ * sees the GO / NO-GO verdict with the medical and the insurance on the planes
+ * they fly.
  *
  * Runs at desktop and at iPhone size — this is the flow that happens standing
  * on a ramp with a phone.

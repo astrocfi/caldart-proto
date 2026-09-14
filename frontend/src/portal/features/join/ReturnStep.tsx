@@ -1,5 +1,5 @@
 /**
- * The landing pad for a payment method that took the browser away (PLAN §10).
+ * The landing pad for a payment method that took the browser away.
  *
  * Stripe's `return_url` is `/portal/join/done?payment_id=…&payment_intent=…`,
  * so a 3-D Secure card or a redirecting wallet comes back *here* rather than

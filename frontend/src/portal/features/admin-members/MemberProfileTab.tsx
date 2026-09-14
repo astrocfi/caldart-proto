@@ -1,6 +1,6 @@
 /**
  * The Profile tab of a member record: the same fields as "New member", plus
- * the account's active switch and the administrator-only notes (PLAN §6.4).
+ * the account's active switch and the administrator-only notes.
  */
 import { useState } from 'react';
 

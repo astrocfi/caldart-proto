@@ -1,4 +1,4 @@
-/** The plan radio cards at the top of the checkout (PLAN §6.7). */
+/** The plan radio cards at the top of the checkout. */
 import type { Plan } from '../../api/types';
 import { formatCents } from '../../components/Money';
 

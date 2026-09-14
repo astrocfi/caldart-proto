@@ -1,6 +1,5 @@
 /**
- * `/admin/aircraft/:id` — one record: edit it, see who flies it, delete it
- * (PLAN §6.5, §8).
+ * `/admin/aircraft/:id` — one record: edit it, see who flies it, delete it.
  */
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -67,7 +66,7 @@ export function AircraftRecordPage() {
   }
 
   const aircraft = record.data;
-  // Absent for a caller without a leader or administrator role (PLAN §6.6).
+  // Absent for a caller without a leader or administrator role.
   const pilots = aircraft.pilots ?? [];
 
   const save = (payload: AircraftPatch): void => {

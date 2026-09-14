@@ -1,5 +1,5 @@
 /**
- * `/renew` — renew an existing membership (PLAN §8, §10).
+ * `/renew` — renew an existing membership.
  *
  * The new term starts the day after the current one ends, so renewing early
  * costs nothing; the status card above the checkout says exactly what the

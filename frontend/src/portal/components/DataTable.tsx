@@ -1,5 +1,5 @@
 /**
- * The sortable table every admin screen uses (PLAN §8), with an optional
+ * The sortable table every admin screen uses, with an optional
  * filter bar and CSV/PDF export buttons.
  */
 import { useMemo, useState } from 'react';

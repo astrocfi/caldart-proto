@@ -1,5 +1,5 @@
 /**
- * Queries and mutations for the aircraft register (PLAN §6.5).
+ * Queries and mutations for the aircraft register.
  *
  * Shared by the picker on the profile, the admin register and the leader
  * check, so every screen agrees on the query keys and the filter names the
@@ -38,7 +38,7 @@ export interface AircraftDetail extends Aircraft {
   pilots?: AircraftPilot[];
 }
 
-/** Every filter the list endpoint and both exports understand (PLAN §6.5). */
+/** Every filter the list endpoint and both exports understand. */
 export interface AircraftFilters {
   search?: string;
   make?: string;
@@ -107,7 +107,7 @@ export interface AircraftSearchResult {
 
 /**
  * The picker's search: try the registration first, then fall back to a
- * fuzzy search over N-number, make, model and owner (PLAN §6.5).
+ * fuzzy search over N-number, make, model and owner.
  */
 export async function findAircraft(term: string, limit = 8): Promise<AircraftSearchResult> {
   // An exact registration is shown even when it is out of service, so a

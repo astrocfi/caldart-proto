@@ -1,4 +1,4 @@
-/** The payment report's filter bar (PLAN §6.8). */
+/** The payment report's filter bar. */
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import type { PaymentProvider, PaymentState } from '../../api/types';

@@ -1,5 +1,5 @@
 /**
- * Pure helpers for the public site's progressive enhancement (PLAN §7).
+ * Pure helpers for the public site's progressive enhancement.
  *
  * Kept apart from `main.ts` so they can be unit tested without the module's
  * DOM side effects running on import.

@@ -1,4 +1,4 @@
-/** System administration screen (PLAN §8).  Owned by `feat/ops`. */
+/** System administration screen. */
 
 export { BackupsPanel, formatBytes } from './BackupsPanel';
 export { HealthPanel, healthChecks } from './HealthPanel';

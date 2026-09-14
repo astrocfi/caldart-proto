@@ -1,4 +1,4 @@
-/** Join wizard and renewal (PLAN §8). */
+/** Join wizard and renewal. */
 
 export { JoinWizard } from './JoinWizard';
 export { RenewPage } from './RenewPage';

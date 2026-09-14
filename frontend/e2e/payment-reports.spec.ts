@@ -1,6 +1,6 @@
 /**
- * Flow D (PLAN §1): an account administrator sees payments per month and per
- * year, and downloads the CSV (PLAN §6.8, §11).
+ * Flow D in `docs/demo-walkthrough.rst`: an account administrator sees
+ * payments per month and per year, and downloads the CSV.
  */
 import { expect, test } from '@playwright/test';
 

@@ -1,4 +1,4 @@
-/** Aircraft administration routes (PLAN §8).  Owned by `feat/aircraft-leader`. */
+/** Aircraft administration routes. */
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';

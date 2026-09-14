@@ -1,6 +1,6 @@
 /**
  * The full aircraft record, in four sections: the airframe, its owner, its
- * insurance and the administrator's own notes (PLAN §4.3, §6.5).
+ * insurance and the administrator's own notes.
  */
 import { useState } from 'react';
 

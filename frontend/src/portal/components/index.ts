@@ -1,4 +1,4 @@
-/** Shared UI primitives (PLAN §8).  Import from here, not from the files. */
+/** Shared UI primitives.  Import from here, not from the files. */
 
 export { Button, ButtonLink } from './Button';
 export type { ButtonLinkProps, ButtonProps, ButtonVariant } from './Button';

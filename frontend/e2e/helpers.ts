@@ -2,7 +2,7 @@
 import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-/** Every demo account seeded by `seed_demo` shares this password (PLAN §14). */
+/** Every demo account seeded by `seed_demo` shares this password. */
 export const DEMO_PASSWORD = 'caldart-demo';
 
 export const DEMO = {

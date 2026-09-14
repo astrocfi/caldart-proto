@@ -1,5 +1,5 @@
 /**
- * The single fetch wrapper the portal talks to Django through (PLAN §8).
+ * The single fetch wrapper the portal talks to Django through.
  *
  * - same-origin session cookies, so there is no token to store;
  * - CSRF bootstrapped once from `GET /api/v1/auth/csrf`, then sent as
