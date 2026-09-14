@@ -368,10 +368,14 @@ because they are where a visitor lands and a second request there would only
 delay them: ``auth.tsx``, ``dashboard.tsx`` and ``not-found.tsx``.  Every
 other route file loads on demand, which keeps the admin, system and checkout
 screens -- and the Stripe and PayPal React wrappers the checkout pulls in --
-out of the bundle a member downloads to reach their dashboard.  The guards
-themselves are eager, so a role gate is decided without fetching anything,
-and the root route's ``hydrateFallbackElement`` shows ``components/Loading``,
-the same indicator the guards use, while a page is on its way.
+out of the bundle a member downloads to reach their dashboard.  A guard does
+not hold its pages back: the router resolves a matched route's ``lazy``
+module while it navigates, before the guard above it renders, so somebody the
+guard then refuses has already fetched that page's chunk.  That costs one
+request, not access -- the chunk is markup and JavaScript, and every piece of
+data in it comes from an API call the server refuses.  The root route's
+``hydrateFallbackElement`` shows ``components/Loading``, the same indicator
+the guards use, while a page is on its way.
 
 **Guards.**  ``RequireAuth``, in ``auth/guards.tsx``, wraps every route that
 needs a session and sends an anonymous visitor to
