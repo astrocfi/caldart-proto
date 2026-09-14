@@ -10,6 +10,12 @@ NPM     ?= npm
 MANAGE  := $(UV) run backend/manage.py
 COMPOSE := docker compose
 
+# $(call flag,NAME,--option): --option when $(NAME) is 1, yes or true; nothing
+# when it is 0, no, false, empty or unset; and an error naming the variable for
+# any other value, so a mistyped switch stops make before the recipe runs
+# instead of silently meaning its opposite.  The values are lower case only.
+flag = $(if $(filter 1 yes true,$($(1))),$(2),$(if $(filter-out 0 no false,$($(1))),$(error $(1)=$($(1)) is not one of 1 yes true 0 no false)))
+
 # Per-worker database, so parallel branches never collide.  Override on the
 # command line or in .env:
 #   make test DATABASE_URL=postgres://caldart:caldart@localhost:5432/caldart_payments
@@ -110,7 +116,7 @@ backup: ## Write a gzipped pg_dump to backups/
 restore: ## Restore a dump: make restore FILE=backups/caldart-....sql.gz [YES=1]
 	@test -n "$(FILE)" || (echo "Usage: make restore FILE=backups/caldart-....sql.gz" >&2; exit 1)
 	@echo "Restoring into $(DB_NAME) — every existing table is dropped first."
-	$(MANAGE) db_restore $(FILE) $(if $(YES),--yes,)
+	$(MANAGE) db_restore $(FILE) $(call flag,YES,--yes)
 
 # ---------------------------------------------------------------- serve
 run: ## Run Django on :8000
@@ -225,7 +231,7 @@ audit-frontend:
 reminders: ## Send renewal reminders (make reminders TODAY=2027-01-01 DRY_RUN=1)
 	$(MANAGE) send_renewal_reminders \
 	  $(if $(TODAY),--today=$(TODAY),) \
-	  $(if $(DRY_RUN),--dry-run,)
+	  $(call flag,DRY_RUN,--dry-run)
 
 # ----------------------------------------------------------------- docs
 docs: ## Build the Sphinx documentation (nitpicky; warnings are errors)

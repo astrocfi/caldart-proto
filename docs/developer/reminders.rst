@@ -91,6 +91,10 @@ Development::
   make reminders TODAY=2027-01-01         # scan as of another date
   make reminders TODAY=2027-01-01 DRY_RUN=1
 
+``DRY_RUN=0``, ``DRY_RUN=no``, ``DRY_RUN=false`` and an unset ``DRY_RUN`` all
+send for real, and any other value stops ``make`` before the scan; the full
+rule is in :ref:`make-switches`.
+
 Or directly::
 
   uv run backend/manage.py send_renewal_reminders --dry-run --today=2027-01-01
