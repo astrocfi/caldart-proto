@@ -2,6 +2,11 @@
 {% comment %}
   The SPA mount point.  The theme comes from Wagtail Site Settings
   so the portal and the public site always look like one product.
+
+  `vite_react_refresh` installs the React Fast Refresh preamble, which every
+  component module the Vite dev server compiles checks for before it runs.
+  It has to come before the HMR client and the entry module, and it renders
+  nothing unless `dev_mode` is on, so the built assets are unaffected.
 {% endcomment %}
 <html lang="en" data-theme="{{ theme|default:'sierra' }}">
   <head>
@@ -9,6 +14,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <title>Member portal · {{ site_settings.org_name|default:"CalDART" }}</title>
+    {% vite_react_refresh %}
     {% vite_hmr_client %}
     {% vite_asset 'src/portal/main.tsx' %}
   </head>
