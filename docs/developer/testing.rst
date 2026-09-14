@@ -39,12 +39,13 @@ Running the backend suite
 Configuration lives in ``pyproject.toml`` under ``[tool.pytest.ini_options]``:
 ``DJANGO_SETTINGS_MODULE = "caldart.settings.test"``, ``pythonpath =
 ["backend"]``, ``testpaths = ["backend/tests"]``, ``addopts = "-ra
---strict-markers --strict-config"`` and ``filterwarnings = ["error"]``. You
-never need to set ``DJANGO_SETTINGS_MODULE`` yourself, an undeclared marker or
-a mistyped setting is an error rather than a silent typo, and any warning is a
-test failure. Fix a warning that comes from our own code. Silence one from a
-third-party package only with a narrow ``ignore::`` entry after ``"error"`` and
-a comment saying why.
+--strict-markers --strict-config"``, and a ``filterwarnings`` list that starts
+with ``"error"``. You never need to set ``DJANGO_SETTINGS_MODULE`` yourself, an
+undeclared marker or a mistyped setting is an error rather than a silent typo,
+and any warning is a test failure. Fix a warning that comes from our own code.
+Silence one from a third-party package only with a narrow ``ignore:`` entry
+after ``"error"`` and a comment saying why, as the entry for WhiteNoise's
+missing-``STATIC_ROOT`` warning does.
 
 **The tests need Postgres.**  ``make up`` must have run.  Django creates
 ``test_<the database in DATABASE_URL>``, so a worktree using

@@ -41,7 +41,14 @@ python_files = ["test_*.py", "*_test.py"]
 pythonpath = ["backend"]
 testpaths = ["backend/tests"]
 addopts = "-ra --strict-markers --strict-config"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # WhiteNoise warns when STATIC_ROOT (backend/staticfiles/) has not been collected.
+    # The suite never runs collectstatic, so the warning describes the checkout, not
+    # the code.  WhiteNoise attributes it to its caller (stacklevel=3), so the filter
+    # matches the message rather than a module.
+    "ignore:No directory at:UserWarning",
+]
 
 [tool.ruff]
 line-length = 100
