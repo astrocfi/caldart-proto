@@ -5,7 +5,7 @@
  * providers this deployment has keys for.
  */
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { PaymentProvider } from '../../api/types';
@@ -34,20 +34,11 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
   const [contributionCents, setContributionCents] = useState(0);
   const [isOther, setIsOther] = useState(false);
   const [provider, setProvider] = useState<PaymentProvider | null>(null);
-  const chosenPlan = useRef(false);
 
   const providers = useMemo(
     () => PROVIDER_ORDER.filter((slug) => config?.providers.includes(slug)),
     [config],
   );
-
-  // Fall back to the first plan the server offers if there is no "annual".
-  useEffect(() => {
-    if (!config || chosenPlan.current) return;
-    const slugs = config.plans.map((entry) => entry.slug);
-    if (!slugs.includes(plan) && slugs[0]) setPlan(slugs[0]);
-    chosenPlan.current = true;
-  }, [config, plan]);
 
   useEffect(() => {
     if (provider === null && providers[0]) setProvider(providers[0]);
@@ -74,7 +65,12 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
     );
   }
 
-  const selectedPlan = config.plans.find((entry) => entry.slug === plan) ?? null;
+  // "Annual" is only the default where the server offers it; anywhere else the
+  // first plan on the list stands in, so the chooser always has a selection.
+  const offered = config.plans.map((entry) => entry.slug);
+  const effectivePlan = offered.includes(plan) ? plan : (offered[0] ?? plan);
+
+  const selectedPlan = config.plans.find((entry) => entry.slug === effectivePlan) ?? null;
   const planCents = selectedPlan?.price_cents ?? 0;
   const totalCents = planCents + contributionCents;
 
@@ -85,7 +81,7 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
   }
 
   const panelProps = {
-    plan,
+    plan: effectivePlan,
     contributionCents,
     amountCents: totalCents,
     onSuccess: handleSuccess,
@@ -97,7 +93,7 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
       title={mode === 'renew' ? 'Renew your membership' : 'Join CalDART'}
       className="checkout"
     >
-      <PlanChooser plans={config.plans} value={plan} onChange={setPlan} />
+      <PlanChooser plans={config.plans} value={effectivePlan} onChange={setPlan} />
 
       <ContributionChooser
         tiers={config.contribution_tiers}

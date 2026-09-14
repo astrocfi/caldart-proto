@@ -116,6 +116,24 @@ describe('Checkout', () => {
     expect(screen.getByTestId('checkout-total')).toHaveTextContent('$45.00');
   });
 
+  it('selects the first plan offered when there is no annual plan', async () => {
+    serveConfig(config({ plans: [PLANS[1]!] }));
+    renderWithProviders(<Checkout mode="join" onSuccess={vi.fn()} />);
+
+    expect(await screen.findByRole('radio', { name: /Life/ })).toBeChecked();
+  });
+
+  it('pays for the first plan offered when there is no annual plan', async () => {
+    const user = userEvent.setup();
+    serveConfig(config({ plans: [PLANS[1]!] }));
+    const requests = serveCheckout();
+
+    renderWithProviders(<Checkout mode="join" onSuccess={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() => expect(requests).toEqual([expect.objectContaining({ plan: 'life' })]));
+  });
+
   it('renewals are labeled as renewals', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="renew" onSuccess={vi.fn()} />);
