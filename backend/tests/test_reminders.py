@@ -1,4 +1,4 @@
-"""The renewal reminder scanner (PLAN §4.5, §12).
+"""The renewal reminder scanner.
 
 Every kind fires on exactly its offset and nowhere near it, a second run sends
 nothing, a dry run writes nothing, and members who have already renewed —

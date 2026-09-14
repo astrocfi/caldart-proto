@@ -1,4 +1,4 @@
-"""Wagtail editing rights for the ``website_admin`` role (PLAN §4.6).
+"""Wagtail editing rights for the ``website_admin`` role.
 
 The grant is applied by the ``cms.0004_website_admin_permissions`` data
 migration, so it is already in place for every test — these check that it

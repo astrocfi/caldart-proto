@@ -1,4 +1,4 @@
-"""Payments API (PLAN §6.7) and payment reports (PLAN §6.8).
+"""Payments API and payment reports.
 
 Two rules run through every view here:
 
@@ -65,7 +65,7 @@ def load_payment(payment_id: int, user, *, provider: str | None = None) -> Payme
 
 
 class IsPaymentOwnerOrAccountAdmin(BasePermission):
-    """Object permission for ``GET /payments/{id}`` (PLAN §6.7)."""
+    """Object permission for ``GET /payments/{id}``."""
 
     def has_object_permission(self, request, view, obj) -> bool:
         if obj.user_id == request.user.id:
@@ -232,7 +232,7 @@ class PayPalWebhookView(APIView):
 
 
 # --------------------------------------------------------------------------
-# Reports (PLAN §6.8) — account_admin
+# Reports — account_admin
 # --------------------------------------------------------------------------
 class AdminPaymentListView(ListAPIView):
     """``GET /admin/payments`` — filtered, searchable, ordered, paginated."""

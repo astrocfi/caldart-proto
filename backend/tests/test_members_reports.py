@@ -1,4 +1,4 @@
-"""The membership report exports (PLAN §6.4, §11).
+"""The membership report exports.
 
 CSV and PDF share one column list and one filtered queryset, so most of these
 assertions are about the CSV — it is the readable one — with the PDF checked
@@ -33,7 +33,7 @@ pytestmark = pytest.mark.django_db
 CSV_URL = "/api/v1/admin/members/export.csv"
 PDF_URL = "/api/v1/admin/members/export.pdf"
 
-#: PLAN §11, verbatim.
+#: The column order ``docs/developer/reports.rst`` documents, verbatim.
 PLAN_COLUMNS = (
     "name",
     "email",
@@ -220,7 +220,7 @@ def test_pdf_is_a_valid_landscape_letter_document(admin_client, reportable, toda
     body = response.content
     assert body.startswith(b"%PDF-")
     assert body.rstrip().endswith(b"%%EOF")
-    # Landscape US letter is 792 x 612 points (PLAN §6.4).
+    # Landscape US letter is 792 x 612 points.
     assert re.search(rb"/MediaBox\s*\[\s*0\s+0\s+792\s+612\s*\]", body)
     assert b"/Title (CalDART membership report)" in body
 

@@ -1,8 +1,8 @@
-"""The aircraft register as CSV and PDF (PLAN §11).
+"""The aircraft register as CSV and PDF.
 
-Columns are the ones the plan names: n_number, make, model, owner, owner_type,
-insurance carrier, liability limits, hull, expiration, current?, pilots.  Both
-formats render from the same rows so the two downloads can never disagree.
+The columns: n_number, make, model, owner, owner_type, insurance carrier,
+liability limits, hull, expiration, current?, pilots.  Both formats render from
+the same rows so the two downloads can never disagree.
 """
 
 from __future__ import annotations

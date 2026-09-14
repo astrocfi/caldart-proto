@@ -1,9 +1,9 @@
 """Production settings: Apache/nginx -> gunicorn, whitenoise, SMTP email.
 
 Everything host-specific comes from the environment — in practice from
-``/etc/caldart/caldart.env``, loaded by ``deploy/systemd/caldart-web.service``
-(PLAN §13).  Four variables have no default on purpose, so a half-configured
-box fails at start-up rather than serving with a development secret:
+``/etc/caldart/caldart.env``, loaded by ``deploy/systemd/caldart-web.service``.
+Four variables have no default on purpose, so a half-configured box fails at
+start-up rather than serving with a development secret:
 ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` and ``EMAIL_URL``.
 ``docs/developer/configuration.rst`` lists every variable and its production
 value.

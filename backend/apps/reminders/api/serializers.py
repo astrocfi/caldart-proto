@@ -1,4 +1,4 @@
-"""Serializers for the reminder endpoints (PLAN §6.9)."""
+"""Serializers for the reminder endpoints."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ class ReminderRunRequestSerializer(serializers.Serializer):
 
 
 class ReminderRunResultSerializer(serializers.Serializer):
-    """``{sent, skipped}`` (PLAN §6.9)."""
+    """``{sent, skipped}``."""
 
     sent = serializers.IntegerField()
     skipped = serializers.IntegerField()

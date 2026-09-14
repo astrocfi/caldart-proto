@@ -1,4 +1,4 @@
-"""Wagtail page types, blocks, navigation and the members-only wall (PLAN §4.6, §7).
+"""Wagtail page types, blocks, navigation and the members-only wall.
 
 The helpers at the top build small page trees; the other ``test_cms_*`` modules
 import them rather than repeating the boilerplate.

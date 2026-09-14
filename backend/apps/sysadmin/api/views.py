@@ -1,4 +1,4 @@
-"""Health and backup endpoints (PLAN §6.9) — ``system_admin`` only.
+"""Health and backup endpoints — ``system_admin`` only.
 
 These are the screens behind ``/portal/system``: is the box healthy, take a
 dump, download one.  Everything destructive (restore, reset) stays on the

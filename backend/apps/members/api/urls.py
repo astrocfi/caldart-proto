@@ -1,9 +1,9 @@
-"""Members API routes (PLAN §6.3, §6.4).
+"""Members API routes.
 
-Owned by ``feat/profile-join`` (``/me/profile``, ``/me/membership``,
-``/darts``, ``/plans``) and ``feat/members-admin`` (``/admin/members...``).
-Each branch adds exactly one ``include()`` below and keeps its own routes in
-its own module, so the two never collide here.
+Member self-service (``/me/...``, ``/darts``, ``/plans``) lives in
+``profile_urls.py`` and account-administrator management
+(``/admin/members...``) in ``admin_urls.py``.  Each keeps its routes in its own
+module and is included once below, so the two never collide here.
 """
 
 from django.urls import include, path
@@ -11,8 +11,8 @@ from django.urls import include, path
 app_name = "members"
 
 urlpatterns: list = [
-    # -- profile (feat/profile-join) ---------------------------------------
+    # -- profile -----------------------------------------------------------
     path("", include("apps.members.api.profile_urls")),
-    # -- admin (feat/members-admin) ----------------------------------------
+    # -- admin -------------------------------------------------------------
     path("", include("apps.members.api.admin_urls")),
 ]

@@ -1,4 +1,4 @@
-"""Member self-service API: profile, membership, payments, catalogues (§6.3)."""
+"""Member self-service API: profile, membership, payments, catalogues."""
 
 from __future__ import annotations
 

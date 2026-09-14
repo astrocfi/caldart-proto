@@ -1,4 +1,4 @@
-"""django-filter filter sets for the users-admin list (PLAN §6.2)."""
+"""django-filter filter sets for the users-admin list."""
 
 from __future__ import annotations
 

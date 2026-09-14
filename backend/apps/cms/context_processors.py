@@ -1,4 +1,4 @@
-"""Template context shared by every server-rendered page (PLAN §7).
+"""Template context shared by every server-rendered page.
 
 ``nav`` is a plain list of dicts so ``templates/base.html`` never has to know
 how the menu is assembled: the live top-level pages flagged *show in menus*,
@@ -46,7 +46,7 @@ def menu_pages(request: HttpRequest):
 
 
 def build_nav(request: HttpRequest) -> list[dict]:
-    """Top navigation entries (PLAN §7).
+    """Top navigation entries.
 
     Wagtail pages come first as ``kind="page"``; the portal links follow as
     ``kind="portal"`` so the template can set them apart as actions.

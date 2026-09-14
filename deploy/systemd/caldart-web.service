@@ -1,4 +1,4 @@
-# CalDART application server -- gunicorn behind Apache or nginx (PLAN.rst §13).
+# CalDART application server -- gunicorn behind Apache or nginx.
 #
 # Deploy path: /srv/caldart  -- a checkout of this repository, owned by root
 # and readable by the "caldart" service user, with the uv-managed virtualenv at
@@ -8,7 +8,7 @@
 #   sudo useradd --system --home-dir /srv/caldart --shell /usr/sbin/nologin caldart
 #   sudo install -d -m 0750 -o root -g caldart /etc/caldart
 #   sudo install -m 0640 -o root -g caldart .env.example /etc/caldart/caldart.env
-#   # edit /etc/caldart/caldart.env -- see PLAN.rst §14 for every variable
+#   # edit /etc/caldart/caldart.env -- see docs/developer/configuration.rst for every variable
 #   sudo install -d -o caldart -g caldart /srv/caldart/backend/media \
 #        /srv/caldart/backend/staticfiles /srv/caldart/backups
 #   sudo cp deploy/systemd/caldart-web.service /etc/systemd/system/
@@ -39,7 +39,7 @@ WorkingDirectory=/srv/caldart/backend
 # Secrets and per-host configuration. Root-owned, mode 0640, group caldart.
 # Holds DATABASE_URL, SECRET_KEY, DEBUG, ALLOWED_HOSTS, SITE_URL, EMAIL_URL,
 # DEFAULT_FROM_EMAIL, the STRIPE_* and PAYPAL_* keys, PAYMENTS_MOCK_ENABLED,
-# DJANGO_VITE_DEV_MODE, BACKUP_DIR and DB_BACKUP_VIA_DOCKER (PLAN.rst §14).
+# DJANGO_VITE_DEV_MODE, BACKUP_DIR and DB_BACKUP_VIA_DOCKER.
 EnvironmentFile=/etc/caldart/caldart.env
 
 Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod

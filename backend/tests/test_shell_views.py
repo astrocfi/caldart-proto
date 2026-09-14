@@ -1,4 +1,4 @@
-"""The server-rendered shells: home page and the portal SPA mount (PLAN §7, §8).
+"""The server-rendered shells: home page and the portal SPA mount.
 
 These run whether or not the frontend has been built — ``conftest.py`` stubs
 the Vite manifest when there is no real build, and the two tests that assert on

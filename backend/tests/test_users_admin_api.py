@@ -1,4 +1,4 @@
-"""The users-admin API (PLAN §6.2): list, retrieve, PATCH, password reset.
+"""The users-admin API: list, retrieve, PATCH, password reset.
 
 Every endpoint is checked against the full role matrix, then against the
 business rules: role slugs are validated, only a ``system_admin`` may move the
@@ -407,7 +407,7 @@ def test_put_is_not_allowed(api_client, user_admin, member):
 
 
 def test_delete_is_not_allowed(api_client, user_admin, member):
-    """Deleting members belongs to the account_admin API (PLAN §6.4)."""
+    """Deleting members belongs to the account_admin API."""
     api_client.force_login(user_admin)
     assert api_client.delete(detail(member)).status_code == 405
 

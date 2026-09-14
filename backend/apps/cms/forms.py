@@ -1,4 +1,4 @@
-"""Wagtail page forms that hide the restricted blocks (PLAN §4.6).
+"""Wagtail page forms that hide the restricted blocks.
 
 ``raw_html`` is "website_admin only".  Wagtail has no per-block permission, so
 the page's ``base_form_class`` rebuilds the StreamField's block without the

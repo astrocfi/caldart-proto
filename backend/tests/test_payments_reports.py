@@ -1,4 +1,4 @@
-"""Payment reports for account administrators (PLAN §6.8).
+"""Payment reports for account administrators.
 
 The list, the month/year summary and the CSV export, including the role matrix
 and the arithmetic over a fixture spanning three months and two years.

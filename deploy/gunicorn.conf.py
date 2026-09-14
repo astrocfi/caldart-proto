@@ -1,4 +1,4 @@
-"""Gunicorn configuration for the CalDART application server (PLAN.rst §13).
+"""Gunicorn configuration for the CalDART application server.
 
 The deploy path is ``/srv/caldart`` -- a checkout of this repository with its
 ``uv``-managed virtualenv at ``/srv/caldart/.venv``.  Loaded by the systemd
@@ -90,7 +90,7 @@ keepalive = 5
 # --- Proxy awareness --------------------------------------------------------
 
 # Trust X-Forwarded-* only from the local reverse proxy.  This is what lets
-# Django see the original scheme via SECURE_PROXY_SSL_HEADER (PLAN §13) and
+# Django see the original scheme via SECURE_PROXY_SSL_HEADER and
 # stops a client from spoofing "already HTTPS" through a forged header.
 forwarded_allow_ips = "127.0.0.1"
 proxy_allow_ips = "127.0.0.1"

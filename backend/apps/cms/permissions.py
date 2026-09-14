@@ -1,6 +1,6 @@
-"""Wagtail editor permissions for the ``website_admin`` role (PLAN §4.6).
+"""Wagtail editor permissions for the ``website_admin`` role.
 
-The role is a plain Django ``Group`` (PLAN §4.1), so granting website
+The role is a plain Django ``Group``, so granting website
 administrators their editing rights is just a matter of hanging the right
 permission rows off that group:
 

@@ -1,4 +1,4 @@
-"""N-number normalisation and insurance properties (PLAN §4.3)."""
+"""N-number normalisation and insurance properties."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Roles, ``User`` helpers and the DRF permission classes (PLAN §4.1, §5)."""
+"""Roles, ``User`` helpers and the DRF permission classes."""
 
 from __future__ import annotations
 

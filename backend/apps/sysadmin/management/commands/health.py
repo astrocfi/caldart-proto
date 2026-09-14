@@ -8,7 +8,7 @@ from apps.sysadmin.services import health
 
 
 class Command(BaseCommand):
-    help = "Print a system health summary (PLAN §4.7)."
+    help = "Print a system health summary."
 
     def add_arguments(self, parser):
         parser.add_argument("--json", action="store_true", help="Emit JSON instead of a table.")

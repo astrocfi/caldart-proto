@@ -1,4 +1,4 @@
-"""``manage.py send_renewal_reminders`` — the daily renewal scan (PLAN §4.5).
+"""``manage.py send_renewal_reminders`` — the daily renewal scan.
 
 Run by ``deploy/systemd/caldart-reminders.timer`` at 07:00 in production and by
 ``make reminders`` in development.  Safe to repeat: ``ReminderLog`` dedupes on

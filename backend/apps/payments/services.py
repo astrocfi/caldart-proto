@@ -1,4 +1,4 @@
-"""Payment services (PLAN §4.4).
+"""Payment services.
 
 The server never trusts a client-supplied amount: totals are recomputed from
 the plan price plus the contribution.

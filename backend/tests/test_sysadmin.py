@@ -1,4 +1,4 @@
-"""Backup listing and the health report (PLAN §4.7)."""
+"""Backup listing and the health report."""
 
 from __future__ import annotations
 

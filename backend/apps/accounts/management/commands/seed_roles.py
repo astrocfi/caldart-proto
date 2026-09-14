@@ -1,4 +1,4 @@
-"""Create the role groups (PLAN §4.1).  Idempotent."""
+"""Create the role groups.  Idempotent."""
 
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand

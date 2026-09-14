@@ -1,4 +1,4 @@
-"""Serializers for the auth and users-admin endpoints (PLAN §6.1, §6.2)."""
+"""Serializers for the auth and users-admin endpoints."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class MembershipStatusSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """``user :=`` in PLAN §6.1."""
+    """The ``user`` payload every account endpoint returns."""
 
     roles = serializers.SerializerMethodField()
     membership = serializers.SerializerMethodField()
@@ -50,7 +50,7 @@ class UserSerializer(serializers.ModelSerializer):
         return MembershipStatusSerializer(obj.membership_status).data
 
     def get_profile_complete(self, obj) -> bool:
-        """``MemberProfile.is_complete`` is the one definition (PLAN §6.1)."""
+        """``MemberProfile.is_complete`` is the one definition."""
         profile = getattr(obj, "profile", None)
         return bool(profile and profile.is_complete)
 
@@ -86,7 +86,7 @@ class LoginSerializer(serializers.Serializer):
 
 
 class RegisterSerializer(serializers.Serializer):
-    """``POST /auth/register`` (PLAN §6.1)."""
+    """``POST /auth/register``."""
 
     email = serializers.EmailField()
     password = PasswordField()
@@ -114,7 +114,7 @@ class RegisterSerializer(serializers.Serializer):
 
 
 class PasswordChangeSerializer(serializers.Serializer):
-    """``POST /auth/password/change`` (PLAN §6.1)."""
+    """``POST /auth/password/change``."""
 
     current_password = PasswordField()
     new_password = PasswordField()
@@ -165,7 +165,7 @@ class RoleSerializer(serializers.Serializer):
 
 
 class AdminUserSerializer(UserSerializer):
-    """``/admin/users`` (PLAN §6.2): the ``user`` shape, partly writable.
+    """``/admin/users``: the ``user`` shape, partly writable.
 
     ``roles`` is validated against ``accounts.roles``; the escalation rule —
     only a ``system_admin`` may grant or revoke ``system_admin`` — lives here
