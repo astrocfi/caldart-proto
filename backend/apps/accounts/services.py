@@ -110,6 +110,20 @@ class AccountEditRefused(Exception):
         self.message = message
 
 
+def may_edit_protected_fields(actor: User, target: User) -> bool:
+    """True when ``actor`` may write ``target``'s protected fields at all.
+
+    The actor must hold every role the target holds; a system administrator, including
+    a Django superuser without the role group, holds them all.  This judges the pair of
+    accounts, not a particular edit: self-deactivation is refused separately, and a
+    caller who may not write these fields may still change names and profile fields.
+    """
+    actor_roles = effective_roles(actor)
+    if SYSTEM_ADMIN in actor_roles:
+        return True
+    return len(effective_roles(target) - actor_roles) == 0
+
+
 def check_account_edit(actor: User, target: User, changes: dict) -> None:
     """Refuse an edit of ``target``'s protected fields that ``actor`` may not make.
 
@@ -135,10 +149,7 @@ def check_account_edit(actor: User, target: User, changes: dict) -> None:
         # their own flag is to clear it.
         _refuse(actor, target, changed, "is_active", SELF_DEACTIVATION_REFUSED)
 
-    actor_roles = effective_roles(actor)
-    if SYSTEM_ADMIN in actor_roles:
-        return
-    if len(effective_roles(target) - actor_roles) == 0:
+    if may_edit_protected_fields(actor, target):
         return
 
     field = changed[0]

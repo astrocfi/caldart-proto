@@ -9,9 +9,11 @@ from rest_framework import serializers
 
 from apps.accounts.roles import ROLE_SLUGS, SYSTEM_ADMIN
 from apps.accounts.services import (
+    PROTECTED_ACCOUNT_FIELDS,
     AccountEditRefused,
     check_account_edit,
     effective_roles,
+    may_edit_protected_fields,
     user_from_uid,
 )
 
@@ -91,11 +93,20 @@ def guard_account_edit(actor, target, changes: dict) -> None:
     Call it from ``validate()`` on any serializer that writes an account's email
     address or active flag.  A refusal becomes a field-keyed 400, so the complaint
     lands on the input it came from, exactly as the ``system_admin`` role guard does.
+
+    A value that does not really alter the account is not a refusal, but on a record
+    whose protected fields the actor may not write it is dropped from ``changes``
+    rather than saved: an address resent in another case would otherwise rewrite the
+    stored one.  A caller who may write these fields saves exactly what they sent.
     """
     try:
         check_account_edit(actor, target, changes)
     except AccountEditRefused as error:
         raise serializers.ValidationError({error.field: [error.message]}) from error
+
+    if not may_edit_protected_fields(actor, target):
+        for field in PROTECTED_ACCOUNT_FIELDS:
+            changes.pop(field, None)
 
 
 class LoginSerializer(serializers.Serializer):
