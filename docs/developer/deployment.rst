@@ -191,14 +191,15 @@ names.  Without it every page raises at render time.
 Running management commands
 ---------------------------
 
-A management command needs the same four things ``caldart-web.service`` gives
+A management command needs the same five things ``caldart-web.service`` gives
 gunicorn: the ``caldart`` user, ``/srv/caldart/backend`` as the working
-directory, ``/etc/caldart/caldart.env``, and
-``DJANGO_SETTINGS_MODULE=caldart.settings.prod``.  Let systemd assemble them
-again, as a transient unit, instead of loading the environment file from a
-shell.  systemd keeps interior whitespace in an unquoted value, so
-``DEFAULT_FROM_EMAIL=CalDART <noreply@caldart.example.org>`` reaches the
-command intact; a shell splits it at the spaces and the command never starts.
+directory, ``/etc/caldart/caldart.env``,
+``DJANGO_SETTINGS_MODULE=caldart.settings.prod``, and ``UMask=0027``.  Let
+systemd assemble them again, as a transient unit, instead of loading the
+environment file from a shell.  systemd keeps interior whitespace in an
+unquoted value, so ``DEFAULT_FROM_EMAIL=CalDART <noreply@caldart.example.org>``
+reaches the command intact; a shell splits it at the spaces and the command
+never starts.
 
 Define this function once in the shell you are deploying from.  Every
 production command in this document and in :doc:`backup-restore` is written as
@@ -209,6 +210,7 @@ a call to it::
           --uid=caldart --gid=caldart \
           --working-directory=/srv/caldart/backend \
           --property=EnvironmentFile=/etc/caldart/caldart.env \
+          --property=UMask=0027 \
           --setenv=DJANGO_SETTINGS_MODULE=caldart.settings.prod \
           /srv/caldart/.venv/bin/python manage.py "$@"
   }
@@ -219,6 +221,15 @@ transient unit afterwards, including when it failed.  Given both ``--pty`` and
 ``--pipe``, systemd allocates a terminal when one is attached — which
 ``createsuperuser`` and the ``db_restore`` prompt need — and passes plain pipes
 through when the output is redirected.
+
+``UMask=0027`` is the one property with nothing to do with finding the code or
+the settings, and it is not optional: a transient unit otherwise takes
+systemd's system default of ``0022``, and ``caldart_manage db_backup`` would
+write a full dump of the database — member records, password hashes, payment
+history — world-readable at mode 0644.  ``caldart-web.service``,
+``caldart-reminders.service`` and the ``caldart-backup.service`` in
+:doc:`backup-restore` set the same mask, so every path that writes a dump
+writes it readable by the ``caldart`` group and no wider.
 
 Confirm the environment file is being read before relying on it::
 
