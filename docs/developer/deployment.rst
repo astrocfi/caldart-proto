@@ -101,16 +101,15 @@ and container upgrades::
   sudo docker compose up -d db
   sudo docker compose ps
 
+``docker-compose.yml`` publishes the database as ``"127.0.0.1:5432:5432"``, so
+it listens on loopback only and nothing off the box can reach port 5432.
+
 .. warning::
 
-   ``docker-compose.yml`` publishes the database as ``"5432:5432"``, which
-   binds **every** interface, not just loopback.  That is right for a
-   development machine and wrong for a server.  Before this box is reachable
-   from anywhere, either change the mapping to ``"127.0.0.1:5432:5432"`` or
-   block 5432 at the firewall — and change the password either way.
+   The password is still the development default.  Change it before anything
+   real goes in.
 
-Change the password from the development default before anything real goes
-in::
+Change it with::
 
   sudo docker compose exec -T db psql -U caldart -d postgres \
       -c "ALTER USER caldart WITH PASSWORD 'a-long-random-password';"
