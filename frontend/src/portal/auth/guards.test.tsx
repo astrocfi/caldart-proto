@@ -1,11 +1,21 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { Route, Routes, useSearchParams } from 'react-router-dom';
 
-import { makeUser, signedInAs } from '../../test/handlers';
+import { API, makeUser, signedInAs } from '../../test/handlers';
 import { renderWithProviders } from '../../test/render';
 import { server } from '../../test/server';
 import { RequireAuth, RequireRole, loginRedirect } from './guards';
+import { AUTH_ME_KEY } from './useAuth';
+
+/** `/auth/me` answers 500, as it does while the backend is restarting. */
+function meIsDown() {
+  return http.get(`${API}/auth/me`, () =>
+    HttpResponse.json({ detail: 'Server error' }, { status: 500 }),
+  );
+}
 
 function Secret() {
   return <p>secret content</p>;
@@ -109,6 +119,92 @@ describe('RequireRole', () => {
       { route: '/secret' },
     );
     expect(await screen.findByText('login page')).toBeInTheDocument();
+  });
+});
+
+describe('a failed sign-in check', () => {
+  it('shows an alert instead of the login page when /auth/me answers 500', async () => {
+    server.use(meIsDown());
+    renderWithProviders(
+      tree(
+        <RequireAuth>
+          <Secret />
+        </RequireAuth>,
+      ),
+      { route: '/secret' },
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not check your sign-in/i);
+  });
+
+  it('does not send the visitor to login when /auth/me answers 500', async () => {
+    server.use(meIsDown());
+    renderWithProviders(
+      tree(
+        <RequireAuth>
+          <Secret />
+        </RequireAuth>,
+      ),
+      { route: '/secret' },
+    );
+    await screen.findByRole('alert');
+    expect(screen.queryByText('login page')).not.toBeInTheDocument();
+  });
+
+  it('shows the alert under RequireRole when /auth/me fails at the network level', async () => {
+    server.use(http.get(`${API}/auth/me`, () => HttpResponse.error()));
+    renderWithProviders(
+      tree(
+        <RequireRole roles={['account_admin']}>
+          <Secret />
+        </RequireRole>,
+      ),
+      { route: '/secret' },
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not check your sign-in/i);
+  });
+
+  it('renders the guarded page once Try again succeeds', async () => {
+    let attempts = 0;
+    server.use(
+      http.get(`${API}/auth/me`, () => {
+        attempts += 1;
+        if (attempts === 1) return HttpResponse.json({ detail: 'Server error' }, { status: 500 });
+        return HttpResponse.json(makeUser());
+      }),
+    );
+    renderWithProviders(
+      tree(
+        <RequireAuth>
+          <Secret />
+        </RequireAuth>,
+      ),
+      { route: '/secret' },
+    );
+    await screen.findByRole('alert');
+
+    await userEvent.click(screen.getByRole('button', { name: /try again/i }));
+
+    expect(await screen.findByText('secret content')).toBeInTheDocument();
+  });
+
+  it('keeps the page for a signed-in user whose background refetch fails', async () => {
+    server.use(signedInAs(makeUser()));
+    const { client } = renderWithProviders(
+      tree(
+        <RequireAuth>
+          <Secret />
+        </RequireAuth>,
+      ),
+      { route: '/secret' },
+    );
+    await screen.findByText('secret content');
+
+    server.use(meIsDown());
+    await act(async () => {
+      await client.refetchQueries({ queryKey: AUTH_ME_KEY });
+    });
+
+    expect(screen.getByText('secret content')).toBeInTheDocument();
   });
 });
 

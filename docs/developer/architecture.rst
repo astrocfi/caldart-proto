@@ -362,7 +362,11 @@ needs a session and sends an anonymous visitor to
 there.  ``RequireRole`` wraps each role-gated route file and shows a 403 page
 naming the role.  Both wait for ``GET /auth/me`` to settle, so a slow answer
 never flashes the sign-in page, and ``system_admin`` satisfies every role.
-The guards are a courtesy: the API enforces every permission itself.
+When the check fails outright -- a 5xx or a dropped connection, after the
+retries -- they show "We could not check your sign-in" with a **Try again**
+button instead of redirecting, so an outage never reads as a lost session;
+:doc:`api-auth` describes the three outcomes in full.  The guards are a
+courtesy: the API enforces every permission itself.
 
 **Server state.**  Everything from the API goes through TanStack Query.
 ``auth/useAuth.ts`` wraps ``GET /auth/me`` under the key ``['auth', 'me']``,

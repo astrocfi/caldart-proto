@@ -326,6 +326,18 @@ show the previous user's data.
 The guards wait for ``GET /auth/me`` to settle first, so a slow answer never
 flashes the sign-in page at somebody who is in fact signed in.
 
+A check that fails outright is a third outcome, separate from both.  ``useMe``
+takes the portal's retry policy, so a 5xx or a dropped connection is retried
+twice before anything reacts to it; a 401 resolves to "nobody is signed in"
+rather than an error, so signing out stays instant.  When the retries are
+exhausted and nothing is cached, the guards render "We could not check your
+sign-in" with a **Try again** button that asks ``GET /auth/me`` again, rather
+than redirecting to the sign-in page.  A signed-in member whose background
+refetch fails keeps the page they are on, because the cached answer is still
+there.  The public screens -- the portal chrome, sign-in, and the join wizard
+-- keep treating a failed check as anonymous, since each already renders
+something usable for a visitor who is not signed in.
+
 The users-admin screens live in ``src/portal/features/admin-users/``, with their
 query hooks in ``api.ts``.
 

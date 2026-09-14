@@ -35,13 +35,18 @@ export async function fetchMe(): Promise<User | null> {
   }
 }
 
-/** The raw `GET /auth/me` query, for callers that want its status flags. */
+/**
+ * The raw `GET /auth/me` query, for callers that want its status flags.
+ *
+ * It takes the app-wide retry policy, so a 5xx or a dropped connection is
+ * retried before anything reacts to it.  A 401 resolves to `null` rather than
+ * throwing, so signing out is still instant.
+ */
 export function useMe(): UseQueryResult<User | null> {
   return useQuery({
     queryKey: AUTH_ME_KEY,
     queryFn: fetchMe,
     staleTime: 30_000,
-    retry: false,
   });
 }
 
@@ -50,7 +55,12 @@ export interface AuthState {
   roles: RoleSlug[];
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** A refetch is in flight over a result that is already cached. */
+  isRefetching: boolean;
+  /** Set when the check failed outright; a 401 is not an error. */
   error: unknown;
+  /** Ask `GET /auth/me` again, for a "Try again" control. */
+  refetch: () => void;
 }
 
 /** The flattened view most screens want. */
@@ -62,7 +72,11 @@ export function useAuth(): AuthState {
     roles: user?.roles ?? [],
     isLoading: query.isPending,
     isAuthenticated: user !== null,
+    isRefetching: query.isRefetching,
     error: query.error,
+    refetch: () => {
+      void query.refetch();
+    },
   };
 }
 
