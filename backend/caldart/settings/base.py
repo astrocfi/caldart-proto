@@ -191,7 +191,7 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # --------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        "caldart.authentication.CsrfEnforcingSessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",

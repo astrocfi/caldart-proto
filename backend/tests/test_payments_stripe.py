@@ -570,10 +570,10 @@ def test_webhook_finds_the_payment_by_provider_ref(api_client, member, annual_pl
     assert payment.status == PaymentStatus.PENDING
 
 
-def test_webhook_needs_no_session_or_csrf(api_client, member, annual_plan):
+def test_webhook_needs_no_session_or_csrf(csrf_client, member, annual_plan):
+    """``csrf_client`` enforces CSRF, so a 403 here would mean the exemption broke."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    api_client.logout()
-    assert post_webhook(api_client, succeeded_event(payment, "pi_anon")).status_code == 200
+    assert post_webhook(csrf_client, succeeded_event(payment, "pi_anon")).status_code == 200
 
 
 def test_stripe_provider_is_registered():

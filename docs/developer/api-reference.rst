@@ -29,9 +29,11 @@ Authentication
 
 **Session authentication, same origin, and nothing else.**
 ``DEFAULT_AUTHENTICATION_CLASSES`` is exactly
-``rest_framework.authentication.SessionAuthentication``.  There is no token,
-no API key and no JWT anywhere in the project, and no plan to add one — the
-only client is a SPA served from the same origin as the API.
+``caldart.authentication.CsrfEnforcingSessionAuthentication``, DRF's
+``SessionAuthentication`` with the CSRF check widened as
+:ref:`below <api-csrf-bootstrap>`.  There is no token, no API key and no JWT
+anywhere in the project, and no plan to add one — the only client is a SPA
+served from the same origin as the API.
 
 Signing in with ``POST /auth/login`` sets the session cookie; the browser sends
 it automatically thereafter.  The portal's fetch wrapper
@@ -47,9 +49,18 @@ load-bearing — read the matrix, not the default.
 CSRF bootstrap
 --------------
 
-Session authentication means DRF enforces CSRF on every unsafe method.  A
-client that has not yet made a request has no ``csrftoken`` cookie, so the API
-offers one endpoint whose only job is to issue it:
+Every unsafe method needs a CSRF token, whether or not the caller is signed
+in.  DRF's own ``SessionAuthentication`` checks the token only once it has
+found a session, which would leave ``POST /auth/login``,
+``POST /auth/register`` and the other anonymous endpoints open to a cross-site
+form — enough to sign a visitor into an attacker's account, or to create
+accounts from a victim's browser.
+``caldart.authentication.CsrfEnforcingSessionAuthentication`` runs the same
+check when authentication finds no session, so every endpoint is covered, this
+one included.
+
+A client that has not yet made a request has no ``csrftoken`` cookie, so the
+API offers one endpoint whose only job is to issue it:
 
 .. code-block:: text
 
@@ -63,10 +74,16 @@ write as soon as the cookie is missing or rotated.  The cookie is deliberately
 **not** ``HttpOnly`` — JavaScript has to read it to echo it — while the session
 cookie is; see the reasoning in ``caldart/settings/prod.py``.
 
-A request from a signed-in caller that arrives without a usable token is
-refused before the view runs, with ``403`` and a ``detail`` that starts
-``CSRF Failed``.  That refusal is safe to repeat: fetch a token again and
-resend the request once.
+A request that arrives without a usable token is refused before the view runs,
+with ``403`` and a ``detail`` that starts ``CSRF Failed``.  Nothing happens
+behind that refusal: no session is issued, no account is created, no email is
+sent and no rate-limit budget is spent.  It is safe to repeat: fetch a token
+again and resend the request once.
+
+The two payment webhooks are the only exception.  They set
+``authentication_classes = []`` and carry ``csrf_exempt``, because their
+caller is Stripe or PayPal rather than a browser and the request signature is
+the credential; see :doc:`api-payments`.
 
 From ``curl``, that is two steps:
 
