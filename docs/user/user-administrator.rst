@@ -33,10 +33,11 @@ Three rules are enforced by the server, not just hidden in the interface:
   administrator you can edit every other role on a system administrator's
   account, but you cannot grant that role to anyone or take it away.
 * **You cannot change the email address or the Active box of an account that
-  holds a role you do not hold.**  A user administrator may move a plain
-  member's address, or another user administrator's, but not an account
-  administrator's or a system administrator's.  Names are not covered: you can
-  correct anybody's spelling.
+  holds a role you do not hold.**  Any role counts, not just the administrative
+  ones: a user administrator may move a plain member's address, or another user
+  administrator's, but not a DART leader's, a website administrator's, an
+  account administrator's or a system administrator's.  Names are not covered:
+  you can correct anybody's spelling.
 
 
 Finding an account
@@ -78,10 +79,11 @@ the address you type, the form says so and saves nothing.
 An address you may not move is refused for a different reason.  The email
 address is where a password reset link goes, so moving somebody's address is
 enough to take their account over, and the server allows it only when you
-already hold every role that account holds.  A colleague with a role you lack —
-an account administrator, or a system administrator — has to make the change, or
-grant you the role first.  The same applies to the Active box; names are free to
-edit either way.
+already hold every role that account holds — every role, ``dart_leader`` and
+``website_admin`` as much as the administrative ones.  A system administrator,
+or a colleague who holds every role that account holds, has to make the change,
+or grant you the missing role first.  The same applies to the Active box; names
+are free to edit either way.
 
 Roles
 -----
@@ -194,11 +196,14 @@ When something goes wrong
    you have probably found the duplicate account you were looking for.
 
 **"You cannot change the email address of an account that holds roles you do not hold."**
-   The account belongs to an administrator senior to you — an account
-   administrator or a system administrator, say — and moving an address is
-   enough to take an account over, so the server reserves it for somebody who
-   already holds those roles.  Ask a colleague who does.  The wording is the
-   same for the Active box, and neither refusal changes anything on the record.
+   The account carries a role you do not have — ``dart_leader``,
+   ``website_admin``, ``account_admin`` or ``system_admin`` — and moving an
+   address is enough to take an account over, so the server reserves it for
+   somebody who already holds every role that account holds.  Ask a system
+   administrator, or a colleague who holds them all.  The Active box answers
+   "You cannot activate or deactivate an account that holds roles you do not
+   hold." for the same reason, and neither refusal changes anything on the
+   record.
 
 **Send password reset is grayed out.**
    The account is deactivated.  Tick **Active**, save, then send the link.

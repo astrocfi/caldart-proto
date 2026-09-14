@@ -325,10 +325,16 @@ which sets the flag without adding the role group, is therefore protected — an
 protects — like any other system administrator.
 
 Worked through the roles: a user administrator may change a plain member's
-address but not an account administrator's, an account administrator may not
-change a user administrator's, and a system administrator may change anybody's.
-Names are outside the guard entirely, so a user administrator can still correct
-the spelling of a system administrator's surname.
+address but not a DART leader's or an account administrator's, an account
+administrator may not change a user administrator's, and a system administrator
+may change anybody's.  Every role counts, administrative or not.  Names are
+outside the guard entirely, so a user administrator can still correct the
+spelling of a system administrator's surname.
+
+On a record whose protected fields the caller may not write, a value that is not
+a real change is dropped rather than saved, so an address resent in another case
+leaves the stored one exactly as it was.  A caller who may write those fields
+saves what they sent, case included.
 
 A refusal is a 400 keyed on the field it belongs to, the same shape as the
 ``roles`` guard, so a client can show it against the input it came from::

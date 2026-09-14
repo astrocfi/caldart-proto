@@ -127,11 +127,14 @@ Two of those fields are guarded, because between them they are enough to take an
 account over: the email address is where a password reset link is sent, and the
 Active box locks somebody out.  You may change them only on an account whose
 roles you hold yourself — every ordinary member, and anybody else whose roles
-you already have.  On a user administrator's record, or a system
-administrator's, the save is refused and nothing on the record changes, profile
-fields included.  You cannot clear **Account is active** on your own record
-either.  Names, DART, phone numbers and every profile field stay editable on any
-record you can open.
+you already have.  Any role you lack is enough to put a record out of reach, not
+just the administrative ones: as an account administrator you can edit an
+ordinary member's address and Active box, and another account administrator's,
+but not a DART leader's, a website administrator's, a user administrator's or a
+system administrator's.  On one of those the save is refused and nothing on the
+record changes, profile fields included.  You cannot clear **Account is active**
+on your own record either.  Names, DART, phone numbers and every profile field
+stay editable on any record you can open.
 
 A refused email address says so under the field.  A refused Active box does not:
 this screen has no message under the checkbox, so **Save changes** simply leaves
@@ -190,7 +193,10 @@ into the confirmation box.  Two deletions are refused outright:
 
 If somebody has simply left, clearing **Account is active** on the Profile tab
 is almost always the better answer: it stops them signing in and keeps the
-record for the accounts.
+record for the accounts.  That box is guarded like the email address, so on a
+record carrying a role you do not hold — a DART leader's, say — the save is
+refused; ask a system administrator, or a colleague who holds every role that
+account holds.
 
 
 Reports
@@ -258,17 +264,19 @@ When something goes wrong
    ``/portal/admin/users``, which does the same job.
 
 **"You cannot change the email address of an account that holds roles you do not hold."**
-   You are editing another administrator's record.  Moving an address is enough
-   to take an account over, so it is reserved for somebody who already holds
-   every role that account holds.  Ask a system administrator.
+   The record carries a role you do not have — ``dart_leader``,
+   ``website_admin``, ``user_admin`` or ``system_admin``.  Moving an address is
+   enough to take an account over, so it is reserved for somebody who already
+   holds every role that account holds.  Ask a system administrator, or a
+   colleague who holds them all.
 
 **Save changes did nothing, and said nothing.**
-   The Active box is guarded the same way the email address is — on another
-   administrator's record, and on your own, where nobody may clear it — but the
-   Profile tab has no message under the checkbox, so a refusal there is silent
-   and the whole save is discarded.  Put the box back the way you found it and
-   save again; ask a system administrator if the account really has to be
-   deactivated.
+   The Active box is guarded the same way the email address is — on a record
+   carrying any role you lack, and on your own, where nobody may clear it — but
+   the Profile tab has no message under the checkbox, so a refusal there is
+   silent and the whole save is discarded.  Put the box back the way you found
+   it and save again; ask a system administrator, or a colleague who holds every
+   role that account holds, if it really has to be deactivated.
 
 **"You cannot delete your own account."**
    Exactly what it says.  Ask another administrator.
