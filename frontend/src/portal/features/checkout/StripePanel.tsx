@@ -19,7 +19,7 @@ import { ApiError } from '../../api/client';
 import { Button } from '../../components/Button';
 import { formatCents } from '../../components/Money';
 import { useDebounced } from '../../components/useDebounced';
-import { confirmStripePayment, createCheckout } from './api';
+import { confirmStripePayment, createCheckout, isAbortError } from './api';
 import type { ProviderPanelProps } from './types';
 
 /** Stripe.js is a singleton per publishable key. */
@@ -105,13 +105,16 @@ export function StripePanel({
   const appearance = useMemo(() => appearanceFromTokens(), []);
 
   useEffect(() => {
-    let canceled = false;
+    const controller = new AbortController();
     setIntent(null);
     setError(null);
 
-    createCheckout({ plan, contribution_cents: contributionCents, provider: 'stripe' })
+    createCheckout(
+      { plan, contribution_cents: contributionCents, provider: 'stripe' },
+      controller.signal,
+    )
       .then((checkout) => {
-        if (canceled) return;
+        if (controller.signal.aborted) return;
         const clientSecret = checkout.client.client_secret;
         if (!clientSecret) {
           setError('Stripe did not return a payment session. Please try again.');
@@ -120,12 +123,14 @@ export function StripePanel({
         setIntent({ paymentId: checkout.payment_id, clientSecret });
       })
       .catch((caught: unknown) => {
-        if (canceled) return;
+        if (isAbortError(caught) || controller.signal.aborted) return;
         setError(caught instanceof ApiError ? caught.message : 'Could not start a Stripe payment.');
       });
 
+    // Abandoning the request rather than only ignoring its answer is what keeps a
+    // re-run from leaving a stranded PaymentIntent behind it.
     return () => {
-      canceled = true;
+      controller.abort();
     };
     // `settled` carries the debounced plan + contribution; the raw values are
     // read inside so the request always uses the current selection.
