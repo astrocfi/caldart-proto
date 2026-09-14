@@ -277,6 +277,21 @@ Make targets
 Every target runs from the repository root, and every one of them honors
 ``DATABASE_URL``.
 
+.. _make-switches:
+
+Switch variables
+================
+
+``YES`` on ``make restore`` and ``DRY_RUN`` on ``make reminders`` are switches:
+``1``, ``yes`` or ``true`` turns the option on; ``0``, ``no``, ``false``, an
+empty value or leaving the variable unset leaves it off; any other value stops
+``make`` with an error naming the variable, before a single line of the recipe
+runs.  The comparison is case-sensitive, so ``YES=True`` is an error rather
+than a switch that is on.
+
+``FILE`` on ``make restore`` and ``TODAY`` on ``make reminders`` are not
+switches: they carry a value straight through to the command.
+
 Management commands
 ===================
 
