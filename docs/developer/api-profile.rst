@@ -146,8 +146,7 @@ is what the dashboard nudge and the join wizard's step gating read.  That flag
 tests ``PROFILE_COMPLETE_FIELDS`` in ``apps/accounts/api/serializers.py`` —
 ``phone``, ``address_line1``, ``city``, ``postal_code`` and
 ``pilot_certificate_type`` — a different list again, and one that includes a
-field the form does not require.  See the warning under ``is_complete`` in
-:doc:`data-model`.
+field the form does not require.
 
 
 ``POST /me/profile/aircraft``
