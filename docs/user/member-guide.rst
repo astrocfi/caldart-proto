@@ -229,12 +229,14 @@ When something goes wrong
    like 95035 or 95035-1234."*  The state field takes two letters, and the
    postal code five digits or five plus four.
 
-**Your profile saves but the dashboard still nags you to finish it.**
-   Fill in the whole Contact block — phone, address line 1, city, state and
-   ZIP.  The nudge counts a street address as part of a complete profile even
-   though the form does not insist on one, so a profile that saved cleanly can
-   still be counted as unfinished until you add it.  The same rule decides
-   whether the join wizard will let you move on to the payment step.
+**The dashboard still nags you to finish your profile.**
+   The nudge checks exactly the fields the profile form requires — phone,
+   address line 1, city, ZIP code, and the certificate box, which always holds
+   a value.  Saving the form therefore clears the nudge.  If an account
+   administrator set your account up for you, some of those were never asked
+   for: open **Profile** and the form marks each one that is still missing.
+   The same rule decides whether the join wizard will let you move on to the
+   payment step.
 
 **You paid but you are still shown as expired.**
    Reload first — the dashboard may be showing a cached answer.  If it

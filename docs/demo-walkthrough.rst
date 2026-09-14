@@ -102,11 +102,12 @@ clears.*
 
    You are now signed in.  The wizard advances to step 2, **Profile**.
 
-4. Fill in the profile.  Phone, city, state and postal code are what the form
-   insists on; everything else — DART, home airport, certificate, medical,
-   ratings, hours, volunteer interests — is optional but is what makes the
-   rest of the system useful.  Pick a DART from the list; it is populated from
-   ``GET /api/v1/darts``.
+4. Fill in the profile.  Phone, street address, city and ZIP code are what the
+   form insists on, along with the certificate box, which always holds a value
+   — *Not a pilot* counts.  Everything else — DART, home airport, certificate
+   number, medical, ratings, hours, volunteer interests — is optional but is
+   what makes the rest of the system useful.  Pick a DART from the list; it is
+   populated from ``GET /api/v1/darts``.
 
    If you enter a medical class you must also enter its expiry date, and if
    you enter a certificate type you must also give the certificate number.
@@ -202,13 +203,14 @@ naming the date the membership ran out.
 
 **What can go wrong.**
 
-- *"Phone is required."*  The portal's form asks for phone, street address,
-  city and ZIP code — the same list the server uses for ``profile_complete``.
-  The API itself only insists on phone, so a client that is not the portal may
-  store a partial profile.
+- *"A phone number is required."*  The portal's form asks for phone, street
+  address, city and ZIP code, plus the certificate box, which always holds a
+  value — the same list the server uses for ``profile_complete``.  The API
+  itself only insists on phone, so a client that is not the portal may store a
+  partial profile.
 - *The "finish your profile" nudge will not go away.*  It reads
-  ``profile_complete``; open **Profile** and fill in whichever of those four
-  fields is still blank.
+  ``profile_complete``; open **Profile** and fill in whichever of those fields
+  is still blank.
 - *An aircraft will not attach.*  Attaching is idempotent, so a second attempt
   at the same aeroplane is silently fine; a genuinely unknown id is a 404.
 - *You cannot see a members-only page you expect to see.*  Membership status

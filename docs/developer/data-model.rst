@@ -318,7 +318,8 @@ that the message a person reads can be specific:
     the join wizard's step gating, and the portal form's
     ``REQUIRED_PROFILE_FIELDS`` (``frontend/src/portal/features/profile/form.ts``)
     mirrors the same list, so a profile the form accepts is a profile the
-    server calls complete.
+    server calls complete.  ``state`` is not part of the rule; see
+    :ref:`profile-completeness`.
 ``display_name``
     Full name, falling back to the email address.
 
