@@ -59,14 +59,23 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
 
 # HSTS: set SECURE_HSTS_SECONDS=0 for the first deploy of a new hostname, then
-# raise it once HTTPS is known good — browsers remember the header for its full
-# duration and there is no way to take it back early.
+# raise it once HTTPS is known good -- browsers remember the header for its full
+# duration and there is no way to take it back early.  Neither shipped vhost
+# sets the header, so this setting is what a browser actually receives.
 SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
-SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=True)
+# Off by default: `preload` tells the world the site consents to the browser
+# preload list, which no deployment should join by inheriting a default.
+SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
 
+# Django owns these on proxied responses too; the vhosts set neither.
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
+# `manage.py check --deploy` reports security.W021 whenever preload is off.
+# Leaving it off is the deliberate choice above, so the deployment audit stays
+# clean and a real finding is not lost in a known one.
+SILENCED_SYSTEM_CHECKS = ["security.W021"]
 
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True

@@ -308,10 +308,21 @@ Django at all.
    ``Strict-Transport-Security`` max-age.  Default ``31536000`` (one year).
    Set it to ``0`` for the first deploy of a new hostname: browsers honor the
    header for its whole duration and there is no way to retract it early.
+   Django is the only thing that sends this header — neither shipped vhost sets
+   it — so this setting is exactly what a browser receives.
 
-``SECURE_HSTS_INCLUDE_SUBDOMAINS``, ``SECURE_HSTS_PRELOAD``
-   Both default ``true``.  Turn the first off if other services run on
-   subdomains without TLS.
+``SECURE_HSTS_INCLUDE_SUBDOMAINS``
+   Default ``true``.  Turn it off if other services run on subdomains without
+   TLS, or browsers will refuse to reach them for the whole ``max-age``.
+
+``SECURE_HSTS_PRELOAD``
+   Default ``false``.  Setting it true adds ``preload`` to the header, which
+   tells the world the site consents to the browser preload list: anyone may
+   then submit the domain, and browsers ship the entry hard-coded.  Removal
+   takes months and reaches users only as they upgrade, so turn it on only once
+   every current and future subdomain will serve HTTPS indefinitely.  While it
+   is off, ``manage.py check --deploy`` would report ``security.W021``;
+   ``prod.py`` silences that one check deliberately.
 
 ``LOG_LEVEL``
    Root logger level; everything goes to stdout and so to the journal.

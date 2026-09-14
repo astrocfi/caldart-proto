@@ -268,8 +268,12 @@ The vhost:
   cannot forge it;
 * serves ``/media/`` from ``/srv/caldart/backend/media/`` with a one-week cache
   and ``X-Content-Type-Options: nosniff``, and excludes it from the proxy;
-* sets HSTS, ``nosniff`` and a referrer policy, and leaves ``X-Frame-Options``
-  to Django so Wagtail's page previews keep working;
+* sets **no** security headers of its own on proxied responses.  HSTS,
+  ``X-Content-Type-Options``, ``Referrer-Policy`` and ``X-Frame-Options`` all
+  come from ``prod.py``, where they are configurable per deployment.  A second
+  copy from the vhost would both duplicate the header and override the
+  settings.  ``/media/`` is the one exception, because Apache serves it without
+  asking Django;
 * caps request bodies at 25 MB, matching ``DATA_UPLOAD_MAX_MEMORY_SIZE``.
 
 TLS with certbot::
@@ -284,10 +288,14 @@ Renewal is handled by certbot's own timer; the port-80 vhost keeps the ACME
 path reachable, so nothing else is needed.  Check it with
 ``sudo certbot renew --dry-run``.
 
-Turn HSTS off for the first deploy of a new hostname — set
-``SECURE_HSTS_SECONDS=0`` and comment out the ``Strict-Transport-Security``
-header — until HTTPS is known good.  Browsers honor the header for its full
-duration and there is no way to take it back early.
+Turn HSTS off for the first deploy of a new hostname: set
+``SECURE_HSTS_SECONDS=0`` in ``/etc/caldart/caldart.env`` and restart
+``caldart-web``, until HTTPS is known good.  That one setting is the whole
+switch — the vhost sets no ``Strict-Transport-Security`` header of its own.
+Browsers honor the header for its full duration and there is no way to take it
+back early.  ``SECURE_HSTS_PRELOAD`` stays off unless you mean to join the
+browser preload list; :doc:`configuration` explains what that commits the site
+to.
 
 nginx instead
 -------------
@@ -300,7 +308,9 @@ Use one or the other, never both on the same host::
 
 It is the same shape: ACME on port 80, TLS and proxying on 443,
 ``proxy_set_header X-Forwarded-Proto $scheme``, ``/media/`` from disk,
-``client_max_body_size 25m``.
+``client_max_body_size 25m``, and the security headers left to Django.  nginx's
+``add_header`` does not replace what the upstream sent, so a copy here would
+reach the browser alongside Django's.
 
 
 10. Renewal reminders

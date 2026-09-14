@@ -151,6 +151,22 @@ def test_hsts_can_be_disabled_for_a_first_deploy(prod_env, monkeypatch):
     assert import_prod().SECURE_HSTS_SECONDS == 0
 
 
+def test_hsts_preload_is_off_unless_it_is_asked_for(prod) -> None:
+    """Preloading is a commitment browsers will not let the site take back."""
+    assert prod.SECURE_HSTS_PRELOAD is False
+
+
+def test_hsts_preload_can_be_turned_on(prod_env, monkeypatch) -> None:
+    monkeypatch.setenv("SECURE_HSTS_PRELOAD", "true")
+
+    assert import_prod().SECURE_HSTS_PRELOAD is True
+
+
+def test_the_preload_deployment_warning_is_silenced_deliberately(prod) -> None:
+    """``check --deploy`` reports W021 whenever preload is off; that is the choice."""
+    assert prod.SILENCED_SYSTEM_CHECKS == ["security.W021"]
+
+
 def test_mock_payments_are_off_by_default(prod):
     assert prod.PAYMENTS_MOCK_ENABLED is False
 
