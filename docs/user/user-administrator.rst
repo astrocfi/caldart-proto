@@ -211,11 +211,14 @@ When something goes wrong
    The account carries a role you do not have — ``dart_leader``,
    ``website_admin``, ``account_admin`` or ``system_admin`` — and moving an
    address is enough to take an account over, so the server reserves it for
-   somebody who already holds every role that account holds.  Ask a system
-   administrator, or a colleague who holds them all.  The Active box answers
-   "You cannot activate or deactivate an account that holds roles you do not
-   hold." for the same reason, and neither refusal changes anything on the
-   record.
+   somebody who already holds every role that account holds.  On the first
+   three, grant yourself what is missing: tick the role in the Roles section of
+   your own record, save, and make the change.  Only ``system_admin`` is beyond
+   you, so an account holding it — including one carrying Django superuser
+   access without the role — needs a system administrator to make the change.
+   The Active box answers "You cannot activate or deactivate an account that
+   holds roles you do not hold." for the same reason and lifts the same way,
+   and neither refusal changes anything on the record.
 
 **Send password reset is grayed out.**
    The account is deactivated.  Tick **Active**, save, then send the link.
