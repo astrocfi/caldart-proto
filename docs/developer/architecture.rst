@@ -404,7 +404,8 @@ the files they test, and an ``index.ts`` of what the route files use:
                         contribution, then one panel per payment provider
 ``dashboard``           the member's home: status, payments, and the
                         members-only pages from ``GET /api/v1/site/config``
-``profile``             the profile form and *My aircraft*
+``profile``             the profile form, the fieldsets the admin member
+                        screens share with it, and *My aircraft*
 ``aircraft``            the aircraft picker, form, and insurance and service
                         chips that the profile, leader and admin screens reuse
 ``leader``              the DART leader's member check and aircraft check

@@ -50,8 +50,8 @@ Everything else can wait until later.  The form is in three sections:
 
 **Aviation**
   Your home airport, the DART you fly with, your Air Care Alliance number,
-  pilot certificate and number, instrument currency, ratings, medical and
-  its expiration date, last flight review and total hours.
+  pilot certificate and number, whether you are IFR rated, ratings,
+  medical and its expiration date, last flight review and total hours.
 
   Two rules are enforced: if you name a pilot certificate you must give its
   number, and if you name a medical (BasicMed or any class) you must give
