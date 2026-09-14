@@ -360,7 +360,7 @@ Flow E — a website administrator adds, edits and deletes a page
    are allowed to.
 
 **What to check.**  You are deliberately *not* a Django superuser.  You can
-edit pages, images, documents and site settings; you cannot reach
+edit pages, images, documents, redirects and site settings; you cannot reach
 ``/django-admin/`` or the system screens.
 
 **What can go wrong.**

@@ -398,7 +398,7 @@ descriptions live in ``apps/accounts/roles.py``:
        aircraft reports
    * - ``website_admin``
      - \+ the Wagtail admin: create, edit, delete and publish pages, images,
-       documents and site settings
+       documents, redirects and site settings
    * - ``system_admin``
      - everything above, plus backups, health, reminder runs and Django
        superuser access

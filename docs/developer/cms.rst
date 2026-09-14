@@ -252,9 +252,18 @@ the ``website_admin`` group (the same Django group that holds the role):
 * ``wagtailadmin.access_admin`` and ``cms.change_sitesettings`` on the group
   itself — not ``wagtailcore.change_site``, because editing hostnames belongs
   to a system administrator;
+* add / change / delete on ``wagtailredirects.Redirect``, so an editor who
+  renames a page can point the old address at the new one;
 * add / change / publish / bulk-delete / lock on the **tree root** page, so
   the grant cascades to every current and future page;
 * add / change / choose on the **root collection** for images and documents.
+
+Wagtail's redirect signal handlers do most of that work unprompted:
+``WAGTAILREDIRECTS_AUTO_CREATE`` keeps its default of true, so publishing a
+slug change or moving a page writes a permanent redirect from the old URL of
+that page and of every page below it.  The three permissions are what puts
+**Settings → Redirects** in the menu, so an editor can see those rows and fix
+the ones automation cannot.
 
 It runs twice: from the ``cms.0004_website_admin_permissions`` data migration,
 so a fresh database is correct after ``migrate`` alone, and again from

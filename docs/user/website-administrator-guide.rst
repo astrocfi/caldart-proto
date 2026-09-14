@@ -93,7 +93,9 @@ Add a page
 #. **Pages** → navigate to the page that should be the parent.
 #. Choose **Add child page** and pick the page type.
 #. Fill in the title.  Wagtail proposes a URL slug from it; you can change the
-   slug under the **Promote** tab, but changing it later breaks existing links.
+   slug under the **Promote** tab.  Changing it later changes the page's URL,
+   and Wagtail redirects the old one for you once you publish the change (see
+   :ref:`redirects`).
 #. Write the intro and build the body (see :ref:`blocks`).
 #. **Save draft** while you work, then **Preview** to see it as a visitor
    would.
@@ -260,13 +262,49 @@ changes nothing on the server and nobody else sees it.
 Adding a fourth theme is a developer task; see :doc:`../developer/theming`.
 
 
+.. _redirects:
+
+Redirects
+=========
+
+**Settings → Redirects** lists every address the site forwards somewhere else.
+The table has four columns: **From** (the old path), **Site**, **To** (the
+page or URL it lands on) and **Type**, which is *Permanent* or *Temporary*.
+
+Most rows arrive on their own.  When you publish a slug change, or move a page
+to a different parent, Wagtail writes a redirect from the page's old URL —
+and from the old URL of every page beneath it — to the address each one has
+now.  That is why renaming a page is safe: the printed flyer with the old
+address still works.
+
+To add one by hand, press **Add redirect** and fill in:
+
+**Redirect from**
+   The old path, such as ``/old-news``.
+
+**From site**
+   Leave it as it is unless the site serves more than one hostname.
+
+**Permanent**
+   Ticked by default, which answers a 301.  Untick it for a redirect you
+   intend to remove, which answers a 302.
+
+**Redirect to a page** or **Redirect to any URL**
+   Choose a page from the tree, or type an address.  Use one or the other, not
+   both.
+
+You may add, change and delete redirects; the role grants all three.  Deleting
+one that Wagtail created restores the 404, so remove a redirect only when you
+want the old address to stop working.
+
+
 Things worth knowing
 ====================
 
-* **Changing a slug changes the URL.**  Old links, printed flyers and search
-  results will 404.  Wagtail has a **Redirects** tool that would fix that, but
-  the ``website_admin`` role is not currently granted permission to use it, so
-  ask a system administrator.
+* **Changing a slug changes the URL.**  When you publish the change, Wagtail
+  adds a redirect from the old address automatically, so existing links keep
+  working.  **Settings → Redirects** lists those redirects, and you can add,
+  change or delete your own there (see :ref:`redirects`).
 * **The home page's news list is automatic.**  Publish a news post and it
   appears; there is nothing to update by hand.
 * **DART pages read the airport and city from the membership database.**  If
@@ -304,10 +342,10 @@ When something goes wrong
    the **Promote** tab, not on the content tab.
 
 **A page 404s that used to work.**
-   Its slug changed, which changes its URL.  Setting the slug back is the
-   quickest fix.  A redirect from the old address is a system administrator's
-   job: the Redirects tool is not part of what ``website_admin`` grants, so it
-   will not appear in your menu.
+   Its slug changed, which changes its URL.  Open **Settings → Redirects** and
+   use **Add redirect** to point the old path at the page.  Setting the slug
+   back works too.  A slug change you published should have created the
+   redirect for you, so check the list before you add one by hand.
 
 **A members-only page shows the wall to you as well.**
    Only while you are signed out of the *portal*.  Signed in, any role beyond
