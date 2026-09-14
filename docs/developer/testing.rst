@@ -96,6 +96,12 @@ for constantly:
    * - ``api_client``
      - an unauthenticated DRF ``APIClient``; sign in with
        ``api_client.force_login(user)``
+   * - ``csrf_client``
+     - the same client with ``enforce_csrf_checks=True``, for tests that must
+       see a missing CSRF token
+   * - ``csrf_headers``
+     - ``csrf_headers(client)`` fetches ``GET /auth/csrf`` and returns the
+       ``{"HTTP_X_CSRFTOKEN": …}`` kwargs an unsafe method needs
    * - ``member``, ``dart_leader``, ``user_admin``, ``account_admin``,
        ``website_admin``, ``system_admin``
      - one ``User`` per role, each also holding ``member``
@@ -172,6 +178,11 @@ Conventions
 - **Every endpoint gets an allow *and* a deny test** for each role that matters
   — see the matrix in :doc:`api-reference`.  ``all_role_users`` plus
   ``pytest.mark.parametrize`` keeps that to a few lines.
+- **CSRF is enforced in one place and pinned in one place.**  ``api_client``
+  skips the check so most tests stay short.  ``backend/tests/test_csrf.py``
+  uses ``csrf_client`` to hold the real contract: every unsafe method is
+  refused without a token, anonymous ones included, and the payment webhooks
+  still need none.
 - **Mock at the boundary, never inside.**  Stripe is faked at the SDK
   boundary: the ``fake_intents`` fixture replaces the provider's
   ``stripe_client`` factory, and the stand-in client's

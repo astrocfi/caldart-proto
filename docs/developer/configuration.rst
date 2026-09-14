@@ -134,9 +134,14 @@ Authentication rate limits
 Three anonymous endpoints are throttled per client address, counted as
 described below.  Each takes a DRF rate as ``<count>/<period>``, where the
 period is ``second``, ``minute``, ``hour`` or ``day`` (or their initials).
-Setting one to an empty value turns that throttle **off**, which is what
-``caldart.settings.test`` does to all three so tests never race a shared
-counter.  Exceeding a rate is a **429**.
+Setting one to an empty value turns that throttle **off**.  A value that is
+neither empty nor a readable rate — ``AUTH_THROTTLE_LOGIN=lots``, say —
+raises ``ImproperlyConfigured`` naming the variable, so a typo stops start-up
+rather than turning the endpoint into a 500 on every request.  Exceeding a
+rate is a **429**.
+
+``caldart.settings.test`` ignores the environment and maps all three scopes to
+``None`` in Python, so no test races a shared counter.
 
 ``AUTH_THROTTLE_LOGIN``
    ``POST /auth/login``.
@@ -159,8 +164,11 @@ counter.  Exceeding a rate is a **429**.
    :Development: ``10/hour``
    :Production: ``10/hour``
 
-The rates land in the ``AUTH_THROTTLE_RATES`` setting and are read by
-``apps.accounts.throttling``.  There is no project-wide throttle; every other
+The rates land in the ``AUTH_THROTTLE_RATES`` setting, one key per scope, and
+are read by ``apps.accounts.throttling``.  A scope mapped to ``None``, mapped
+to an empty string, or missing from that dict is off, so an
+``override_settings`` in a test can switch one on or off without knowing how
+the environment was set.  There is no project-wide throttle; every other
 endpoint is unlimited.  See :doc:`api-reference`.
 
 Which address is counted

@@ -1,0 +1,119 @@
+"""How ``AUTH_THROTTLE_*`` environment values become throttle rates.
+
+``caldart/settings/base.py`` is executed here as a throwaway module, so each
+case sees a genuine settings import rather than a helper called in isolation,
+and the live ``django.conf.settings`` is left alone.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+from types import ModuleType
+
+import pytest
+from django.core.exceptions import ImproperlyConfigured
+from django.test import override_settings
+
+from apps.accounts.throttling import LOGIN_SCOPE, LoginThrottle
+
+pytestmark = pytest.mark.django_db
+
+LOGIN = "/api/v1/auth/login"
+
+BASE_SETTINGS = Path(__file__).resolve().parents[1] / "caldart" / "settings" / "base.py"
+
+#: ``(environment variable, throttle scope, shipped default)`` for each rate.
+RATE_VARIABLES = [
+    ("AUTH_THROTTLE_LOGIN", "auth_login", "20/min"),
+    ("AUTH_THROTTLE_REGISTER", "auth_register", "10/hour"),
+    ("AUTH_THROTTLE_PASSWORD_RESET", "auth_password_reset", "10/hour"),
+]
+
+
+def import_base_settings() -> ModuleType:
+    """Execute ``settings/base.py`` as a fresh module and return it.
+
+    It is loaded outside ``sys.modules`` under its own name, so importing it
+    repeatedly costs nothing beyond the execution and cannot disturb the
+    settings the rest of the suite runs under.
+    """
+    spec = importlib.util.spec_from_file_location("caldart_base_settings_probe", BASE_SETTINGS)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize(("variable", "scope", "default"), RATE_VARIABLES)
+def test_an_unset_variable_uses_the_shipped_default(
+    monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
+) -> None:
+    monkeypatch.delenv(variable, raising=False)
+
+    assert import_base_settings().AUTH_THROTTLE_RATES[scope] == default
+
+
+@pytest.mark.parametrize(("variable", "scope", "default"), RATE_VARIABLES)
+def test_an_empty_variable_turns_the_throttle_off(
+    monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
+) -> None:
+    monkeypatch.setenv(variable, "")
+
+    assert import_base_settings().AUTH_THROTTLE_RATES[scope] is None
+
+
+@pytest.mark.parametrize(("variable", "scope", "default"), RATE_VARIABLES)
+def test_a_blank_variable_turns_the_throttle_off(
+    monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
+) -> None:
+    monkeypatch.setenv(variable, "   ")
+
+    assert import_base_settings().AUTH_THROTTLE_RATES[scope] is None
+
+
+@pytest.mark.parametrize(("variable", "scope", "default"), RATE_VARIABLES)
+def test_a_configured_rate_is_kept(
+    monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
+) -> None:
+    monkeypatch.setenv(variable, "5/second")
+
+    assert import_base_settings().AUTH_THROTTLE_RATES[scope] == "5/second"
+
+
+def test_surrounding_whitespace_is_stripped_from_a_rate(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUTH_THROTTLE_LOGIN", "  30/min  ")
+
+    assert import_base_settings().AUTH_THROTTLE_RATES["auth_login"] == "30/min"
+
+
+@pytest.mark.parametrize(
+    "rate",
+    ["lots", "20", "20min", "/min", "20/", "20/x", "twenty/min", "-5/min", "20/min/hour"],
+)
+@pytest.mark.parametrize(("variable", "scope", "default"), RATE_VARIABLES)
+def test_a_malformed_rate_stops_start_up(
+    monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str, rate: str
+) -> None:
+    monkeypatch.setenv(variable, rate)
+
+    with pytest.raises(ImproperlyConfigured) as excinfo:
+        import_base_settings()
+
+    assert variable in str(excinfo.value)
+    assert repr(rate) in str(excinfo.value)
+
+
+@override_settings(AUTH_THROTTLE_RATES={LOGIN_SCOPE: ""})
+def test_an_empty_rate_makes_the_throttle_inert() -> None:
+    assert LoginThrottle().get_rate() is None
+
+
+@override_settings(AUTH_THROTTLE_RATES={LOGIN_SCOPE: ""})
+def test_an_empty_rate_leaves_login_unlimited(api_client, member) -> None:
+    """An empty override is off, not a 500 from an unparseable rate."""
+    statuses = {
+        api_client.post(LOGIN, {"email": member.email, "password": "wrong"}).status_code
+        for _ in range(25)
+    }
+
+    assert statuses == {400}

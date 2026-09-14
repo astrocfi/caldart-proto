@@ -39,6 +39,9 @@ from tests.factories import (
 
 User = get_user_model()
 
+#: The endpoint that issues the ``csrftoken`` cookie, used by ``csrf_headers``.
+CSRF_URL = "/api/v1/auth/csrf"
+
 
 # --------------------------------------------------------------------------
 # Vite manifest
@@ -120,6 +123,34 @@ def _roles(db):
 def api_client() -> APIClient:
     """An unauthenticated DRF client.  Use ``api_client.force_login(user)``."""
     return APIClient()
+
+
+@pytest.fixture
+def csrf_client() -> APIClient:
+    """An unauthenticated DRF client that enforces CSRF, as a browser does.
+
+    ``api_client`` skips the check, which is what most tests want.  Reach for
+    this one to show that an unsafe method really is refused without a token,
+    and pair it with ``csrf_headers`` to send a good one.
+    """
+    return APIClient(enforce_csrf_checks=True)
+
+
+@pytest.fixture
+def csrf_headers():
+    """``csrf_headers(client)`` -> the header kwargs an unsafe method needs.
+
+    Calling it issues ``GET /api/v1/auth/csrf``, which leaves the ``csrftoken``
+    cookie on the client, and returns ``{"HTTP_X_CSRFTOKEN": <cookie value>}``
+    to splat into the next request -- the bootstrap the portal's fetch wrapper
+    performs in the browser.
+    """
+
+    def bootstrap(client: APIClient) -> dict[str, str]:
+        client.get(CSRF_URL)
+        return {"HTTP_X_CSRFTOKEN": client.cookies["csrftoken"].value}
+
+    return bootstrap
 
 
 @pytest.fixture
