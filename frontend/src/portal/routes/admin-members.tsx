@@ -1,4 +1,4 @@
-/** Member administration routes (PLAN §8).  Owned by `feat/members-admin`. */
+/** Member administration routes. */
 import type { RouteObject } from 'react-router-dom';
 
 import { RequireRole } from '../auth/guards';

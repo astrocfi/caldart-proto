@@ -14,7 +14,7 @@ follow `javascript_typescript_best_practices`.
 
 - Use **test-driven development**: write the test first, then implement.
   Red -> green -> refactor.
-- Derive tests from stated requirements (`PLAN.rst` is the specification) BEFORE
+- Derive tests from stated requirements (the docs are the specification) BEFORE
   implementation. If the requirements are unclear, ask rather than guessing.
 - Run the new tests to confirm they FAIL for the right reason, then implement,
   re-run, and fix until green.

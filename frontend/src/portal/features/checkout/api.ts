@@ -1,5 +1,5 @@
 /**
- * Everything the checkout says to `/api/v1/payments/...` (PLAN §6.7).
+ * Everything the checkout says to `/api/v1/payments/...`.
  *
  * Amounts are never sent: the server recomputes the total from the plan and
  * the contribution, so a request only names what the member chose.
@@ -65,7 +65,7 @@ export function fetchPayment(paymentId: number): Promise<PaymentResult> {
   return api.get<PaymentResult>(`/payments/${paymentId}`);
 }
 
-/** Human label for each provider tab (PLAN §10). */
+/** Human label for each provider tab. */
 export const PROVIDER_LABELS: Record<PaymentProvider, string> = {
   stripe: 'Card · Apple Pay · Google Pay',
   paypal: 'PayPal',

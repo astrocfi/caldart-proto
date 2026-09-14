@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 /**
- * Two entries (PLAN §3): the public site's progressive enhancement and the
+ * Two entries: the public site's progressive enhancement and the
  * portal SPA.  Django reads `dist/.vite/manifest.json` through django-vite,
  * and `frontend/dist` is on STATICFILES_DIRS so `collectstatic` picks the
  * built assets up unchanged.

@@ -180,7 +180,7 @@ convention is one database per branch, named after the branch slug:
 
    DATABASE_URL=postgres://caldart:caldart@localhost:5432/caldart_<branch-slug>
 
-So ``feat/payments`` uses ``caldart_payments`` and ``feat/docs`` uses
+So ``feature/payments`` uses ``caldart_payments`` and ``feature/docs`` uses
 ``caldart_docs``.  Set it in that worktree's ``.env``; ``make up`` creates the
 database if it is missing, and every other target picks it up because the
 Makefile exports ``DATABASE_URL`` after reading it from ``.env``.

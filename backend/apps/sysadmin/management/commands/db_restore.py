@@ -1,4 +1,4 @@
-"""``manage.py db_restore <file>`` — restore a gzipped dump (PLAN §4.7).
+"""``manage.py db_restore <file>`` — restore a gzipped dump.
 
 Destructive: the ``public`` schema is dropped and recreated before the dump is
 replayed, because ``pg_dump`` writes ``CREATE TABLE`` without ``DROP``.

@@ -6,7 +6,7 @@ A prototype for **The California DART Network**: a Wagtail-managed public
 website plus a React member portal with roles, profiles, an aircraft
 register, online join/renew, renewal reminders and admin reporting.
 
-``PLAN.rst`` is the authoritative specification. If the code and the plan
+The documentation in ``docs/`` is the specification. If the code and the docs
 disagree, one of them is wrong — fix it in the same pull request.
 
 
@@ -86,8 +86,9 @@ Run ``make help`` for the full list.
 End-to-end tests
 ================
 
-``frontend/e2e`` holds Playwright specs for the five flows in ``PLAN.rst``
-§1, driven through a real browser against a real server, paying with the mock
+``frontend/e2e`` holds Playwright specs for the five flows of the demo
+walkthrough (``docs/demo-walkthrough.rst``), driven through a real browser
+against a real server, paying with the mock
 provider. Install the browser once:
 
 .. code-block:: console
@@ -134,7 +135,8 @@ Layout
    frontend/    Vite + React + TypeScript (public-site JS and the portal SPA)
    docs/        Sphinx documentation (user/ and developer/)
    deploy/      gunicorn, systemd, Apache and nginx configuration
-   PLAN.rst     the specification
+   plans/       implementation plans; archive/ holds finished ones
+   critiques/   dated review reports
    CLAUDE.md    conventions for working in this repository
 
 

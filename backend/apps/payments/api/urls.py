@@ -1,4 +1,4 @@
-"""Payments API routes (PLAN §6.7, §6.8).  Owned by ``feat/payments``."""
+"""Payments API routes."""
 
 from django.urls import path
 
@@ -7,7 +7,7 @@ from apps.payments.api import views
 app_name = "payments"
 
 urlpatterns = [
-    # -- checkout (PLAN §6.7) ---------------------------------------------
+    # -- checkout ---------------------------------------------------------
     path("payments/config", views.PaymentsConfigView.as_view(), name="config"),
     path("payments/checkout", views.CheckoutView.as_view(), name="checkout"),
     path("payments/stripe/confirm", views.StripeConfirmView.as_view(), name="stripe-confirm"),
@@ -16,7 +16,7 @@ urlpatterns = [
     path("payments/paypal/webhook", views.PayPalWebhookView.as_view(), name="paypal-webhook"),
     path("payments/mock/complete", views.MockCompleteView.as_view(), name="mock-complete"),
     path("payments/<int:pk>", views.PaymentDetailView.as_view(), name="detail"),
-    # -- reports (PLAN §6.8) ----------------------------------------------
+    # -- reports ----------------------------------------------------------
     path("admin/payments", views.AdminPaymentListView.as_view(), name="admin-list"),
     path(
         "admin/payments/summary",

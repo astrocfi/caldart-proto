@@ -1,4 +1,4 @@
-"""``db_backup``, ``db_restore`` and ``db_reset`` (PLAN §4.7).
+"""``db_backup``, ``db_restore`` and ``db_reset``.
 
 ``pg_dump``/``psql`` are mocked out and ``BACKUP_DIR`` points at ``tmp_path``,
 so nothing here touches a real database or the repository's ``backups/``.

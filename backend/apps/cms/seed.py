@@ -1,7 +1,7 @@
 """Ensure a Wagtail site root and a ``SiteSettings`` row exist.
 
-``feat/cms-site`` adds the full example site in ``manage.py seed_content``;
-this only guarantees the chrome the rest of the system reads.
+The full example site comes from ``manage.py seed_content``; this only
+guarantees the chrome the rest of the system reads.
 """
 
 from __future__ import annotations

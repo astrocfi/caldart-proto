@@ -1,4 +1,4 @@
-/** Member profile feature (PLAN §6.3, §8).  The join wizard reuses the form. */
+/** Member profile feature.  The join wizard reuses the form. */
 
 export { MyAircraftPage } from './MyAircraftPage';
 export { ProfileForm } from './ProfileForm';

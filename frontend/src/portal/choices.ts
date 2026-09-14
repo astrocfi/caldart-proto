@@ -1,5 +1,5 @@
 /**
- * The portal's one vocabulary for the coded profile fields (PLAN §4.2).
+ * The portal's one vocabulary for the coded profile fields.
  *
  * Every screen that shows a certificate, medical, IFR or rating code reads its
  * wording from here: the profile form's `<select>` options, the admin filter
@@ -103,7 +103,7 @@ export function ratingLabels(ratings: readonly Rating[]): string {
 /* ------------------------------------------------------------- payments */
 
 /**
- * Short names for the payment enums (PLAN §4.4).
+ * Short names for the payment enums.
  *
  * The checkout's own `PROVIDER_LABELS` is a different thing — it describes
  * what a provider *offers* ("Card · Apple Pay · Google Pay") to label a tab.

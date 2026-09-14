@@ -1,5 +1,5 @@
 /**
- * The aircraft half of the leader check (PLAN §6.6): is the insurance on this
+ * The aircraft half of the leader check: is the insurance on this
  * tail number current, and who flies it?
  */
 import { DateText } from '../../components/DateText';
@@ -27,7 +27,7 @@ export interface AircraftStatusCardProps {
 export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps) {
   const tone = insuranceTone(aircraft, today);
   const verdict = VERDICT[tone] ?? VERDICT.none!;
-  // Only a leader or administrator is sent the pilot list (PLAN §6.6).
+  // Only a leader or administrator is sent the pilot list.
   const pilots = aircraft.pilots ?? [];
 
   return (

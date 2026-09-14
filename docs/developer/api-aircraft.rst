@@ -2,9 +2,9 @@
 API: aircraft and leader check
 ==============================
 
-The ``apps.aircraft`` half of the ``/api/v1/`` contract: the aircraft register
-(PLAN §6.5), its CSV and PDF exports (PLAN §11), and the DART leader check
-(PLAN §6.6).  Conventions from :doc:`api-reference` apply throughout — session
+The ``apps.aircraft`` part of the ``/api/v1/`` contract: the aircraft
+register, its CSV and PDF exports (see also :doc:`reports`), and the DART
+leader check.  Conventions from :doc:`api-reference` apply throughout — session
 authentication, ``X-CSRFToken`` on unsafe methods, DRF error bodies, and
 ``401`` (never ``403``) for an unauthenticated request.
 
@@ -117,8 +117,9 @@ the aeroplane on their profile, each as
 ``{user_id, name, email, membership_status, medical_is_current}``.
 
 The key is **absent** for anyone else.  ``pilots`` is other members' email
-addresses, membership state and medical currency — exactly what PLAN §6.6
-gates behind ``dart_leader`` — so serving it from the register to every
+addresses, membership state and medical currency — exactly what the leader
+check below keeps to DART leaders and account administrators — so serving it
+from the register to every
 signed-in member would walk around that gate.  ``aircraft_serializer_for()``
 in ``views.py`` picks the serializer per request, and the same rule applies to
 ``/aircraft/lookup``.
@@ -155,7 +156,8 @@ Exports
 
 ``GET /admin/aircraft/export.csv`` and ``GET /admin/aircraft/export.pdf``,
 both ``account_admin`` only, both accepting exactly the filter and ordering
-parameters of the list endpoint, and neither paginated.  Columns (PLAN §11)::
+parameters of the list endpoint, and neither paginated.  Columns, which
+:doc:`reports` describes in full::
 
   n_number, make, model, owner, owner_type, insurance_carrier,
   liability_per_occurrence, liability_per_person, hull,

@@ -1,6 +1,5 @@
 /**
- * `/admin/members/new` — create an account and its profile in one request
- * (PLAN §6.4).
+ * `/admin/members/new` — create an account and its profile in one request.
  *
  * Leaving the password blank is the normal path: the server stores an unusable
  * password and emails the new member a link to choose their own.

@@ -1,5 +1,5 @@
 /**
- * Editing an aircraft from the member's own screen (PLAN §6.5).
+ * Editing an aircraft from the member's own screen.
  *
  * The register lets the member who added an aeroplane keep it up to date —
  * `AircraftPermission` has always said so — but the only edit form used to be

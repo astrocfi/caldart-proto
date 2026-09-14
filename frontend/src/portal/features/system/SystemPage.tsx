@@ -1,4 +1,4 @@
-/** `/portal/system` — health, backups and reminders (PLAN §8). */
+/** `/portal/system` — health, backups and reminders. */
 import { Page } from '../../components/Page';
 import { BackupsPanel } from './BackupsPanel';
 import { HealthPanel } from './HealthPanel';

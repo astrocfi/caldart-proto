@@ -1,4 +1,4 @@
-"""Role slugs (PLAN §4.1).
+"""Role slugs.
 
 Roles are Django ``Group`` rows whose ``name`` is the slug below.  That makes
 "add a role later" a data change, and lets Wagtail reuse the same groups for

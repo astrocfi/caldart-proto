@@ -152,7 +152,7 @@ def test_unknown_provider_slug():
 
 @pytest.mark.parametrize("slug", ["stripe", "paypal"])
 def test_real_providers_refuse_to_start_without_keys(slug, member, annual_plan, settings):
-    """Missing keys are a configuration error, not a 500 (PLAN §10)."""
+    """Missing keys are a configuration error, not a 500."""
     settings.STRIPE_SECRET_KEY = ""
     settings.PAYPAL_CLIENT_ID = ""
     settings.PAYPAL_CLIENT_SECRET = ""

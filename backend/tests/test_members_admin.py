@@ -1,4 +1,4 @@
-"""Account-administrator member management (PLAN §6.4).
+"""Account-administrator member management.
 
 Covers the role matrix on every endpoint, each list filter against a
 deliberately mixed data set, ordering, member creation with and without a
@@ -47,7 +47,7 @@ LIST_URL = "/api/v1/admin/members"
 CSV_URL = "/api/v1/admin/members/export.csv"
 PDF_URL = "/api/v1/admin/members/export.pdf"
 
-#: Roles that may use the members-admin API at all (PLAN §4.1).
+#: Roles that may use the members-admin API at all.
 ALLOWED_ROLES = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
 DENIED_ROLES = [MEMBER, DART_LEADER, USER_ADMIN, WEBSITE_ADMIN]
 
@@ -158,7 +158,7 @@ def emails(response) -> set[str]:
 
 
 # --------------------------------------------------------------------------
-# Role matrix (PLAN §5)
+# Role matrix
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize(
     ("method", "path_for", "payload"),

@@ -1,10 +1,10 @@
 /**
- * Flow A (PLAN §1): a visitor signs up and pays, and is a current member
- * immediately.
+ * Flow A in `docs/demo-walkthrough.rst`: a visitor signs up and pays, and is a
+ * current member immediately.
  *
  * Runs at desktop and at iPhone size, because this is the flow most likely to
  * happen on a phone at an airfield.  Payment goes through the mock provider,
- * which is what `PAYMENTS_MOCK_ENABLED` is for (PLAN §10).
+ * which is what `PAYMENTS_MOCK_ENABLED` is for.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -22,7 +22,7 @@ async function joinFromPublicSite(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/portal\/join/);
 }
 
-/** Steps 1 and 2: an account, then the profile fields PLAN §6.1 requires. */
+/** Steps 1 and 2: an account, then the fields that make the profile complete. */
 async function register(page: Page, first: string, email: string): Promise<void> {
   await page.getByRole('textbox', { name: 'First name' }).fill(first);
   await page.getByRole('textbox', { name: 'Last name' }).fill('Okonkwo');

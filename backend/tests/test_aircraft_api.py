@@ -1,7 +1,7 @@
 """The aircraft register API: CRUD, permissions, normalisation and filters.
 
-PLAN §6.5.  Exports live in ``test_aircraft_exports.py`` and the leader check
-in ``test_leader_api.py``.
+Exports live in ``test_aircraft_exports.py`` and the leader check in
+``test_leader_api.py``.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ def valid_payload(**overrides) -> dict:
 # Authentication
 # --------------------------------------------------------------------------
 def test_list_requires_authentication(api_client):
-    # PLAN: unauthenticated API requests are 401, never 403.
+    # Unauthenticated API requests are 401, never 403.
     assert api_client.get(LIST_URL).status_code == 401
 
 
@@ -94,7 +94,7 @@ def test_detail_shows_the_attached_pilots_to_an_account_admin(
 def test_a_plain_member_never_learns_who_else_flies_an_aircraft(
     api_client, member, aircraft, profile, url_for
 ):
-    """``pilots`` carries email, membership and medical: that is §6.6 data."""
+    """``pilots`` carries email, membership and medical: that is leader-check data."""
     profile.aircraft.add(aircraft)
     other = UserFactory(email="other@example.test", roles=[MEMBER])
     api_client.force_login(other)
@@ -327,7 +327,7 @@ def test_lookup_is_exact_not_a_prefix_match(api_client, member):
 
 
 # --------------------------------------------------------------------------
-# Filters (PLAN §6.5)
+# Filters
 # --------------------------------------------------------------------------
 @pytest.fixture
 def register(db):
@@ -504,7 +504,7 @@ def test_aircraft_without_insurance_sort_last_either_way(api_client, member, reg
 
 
 def test_search_matches_a_pilots_aircraft_only_through_the_register(api_client, member, register):
-    """The register search is about aircraft; member search is §6.6's job."""
+    """The register search is about aircraft; member search is the leader check's job."""
     MemberProfileFactory(user=member).aircraft.add(register["current"])
     api_client.force_login(member)
     assert numbers(api_client.get(LIST_URL, {"search": "Reyes"})) == ["N9021K"]

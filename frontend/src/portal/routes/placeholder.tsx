@@ -1,8 +1,6 @@
 /**
- * Placeholder pages so every route in PLAN §8 resolves from day one.
- *
- * Phase 2 branches replace the `element` in their own `routes/*.tsx` file with
- * the real feature component; nothing else has to change.
+ * A "coming soon" page for a portal route whose screen is not built yet.  No
+ * route uses it at present.
  */
 import { Card } from '../components/Card';
 import { Page } from '../components/Page';
@@ -25,7 +23,7 @@ export function ComingSoon({ feature, branch }: ComingSoonProps) {
   );
 }
 
-/** Shorthand used by every stub route. */
+/** Shorthand for a route's `element`. */
 export function comingSoon(feature: string, branch: string) {
   return <ComingSoon feature={feature} branch={branch} />;
 }

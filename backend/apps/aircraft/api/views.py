@@ -1,4 +1,4 @@
-"""Aircraft register, exports and the DART leader check (PLAN §6.5, §6.6)."""
+"""Aircraft register, exports and the DART leader check."""
 
 from __future__ import annotations
 
@@ -29,10 +29,10 @@ from caldart.reports import csv_response, filter_summary, pdf_table_response
 User = get_user_model()
 
 #: The leader check is for leaders, and for the administrators who support
-#: them; ``system_admin`` passes through ``user_has_any_role`` (PLAN §5).
+#: them; ``system_admin`` passes through ``user_has_any_role``.
 IsLeader = HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)
 
-#: PLAN §6.5 names the first three; ``model`` and ``owner_name`` are here so
+#: The first three are the core sorts; ``model`` and ``owner_name`` are here so
 #: every column of the admin table is genuinely sortable.
 ORDERING_FIELDS = ["n_number", "make", "insurance_expiration", "model", "owner_name"]
 
@@ -44,7 +44,7 @@ def aircraft_serializer_for(request):
     """The register record, with ``pilots`` only for callers entitled to it.
 
     ``pilots`` carries other members' email addresses, membership state and
-    medical currency — exactly what PLAN §6.6 gates behind ``dart_leader``.
+    medical currency — exactly what the leader check gates behind ``dart_leader``.
     Returning it from the register to every signed-in member would walk
     straight around that gate, so plain members get the aircraft alone.
     """
@@ -54,7 +54,7 @@ def aircraft_serializer_for(request):
 
 
 class AircraftQuerysetMixin:
-    """The register, filtered and ordered identically everywhere (PLAN §6.5)."""
+    """The register, filtered and ordered identically everywhere."""
 
     queryset = Aircraft.objects.all()
     filter_backends = [DjangoFilterBackend, NullsLastOrderingFilter]
@@ -74,7 +74,7 @@ class AircraftListCreateView(AircraftQuerysetMixin, generics.ListCreateAPIView):
 
 
 class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """``GET/PATCH/DELETE /aircraft/{id}`` with the object rules of §6.5."""
+    """``GET/PATCH/DELETE /aircraft/{id}`` with the register's object rules."""
 
     queryset = Aircraft.objects.all()
     permission_classes = [AircraftPermission]
@@ -98,7 +98,7 @@ class AircraftLookupView(APIView):
 
 
 # --------------------------------------------------------------------------
-# Exports (PLAN §11) — account_admin
+# Exports — account_admin
 # --------------------------------------------------------------------------
 class AircraftExportMixin(AircraftQuerysetMixin):
     """Shared plumbing: same filters as the list, account_admin only."""
@@ -151,7 +151,7 @@ class AircraftExportPdfView(AircraftExportMixin, generics.GenericAPIView):
 
 
 # --------------------------------------------------------------------------
-# Leader check (PLAN §6.6) — dart_leader
+# Leader check — dart_leader
 # --------------------------------------------------------------------------
 class LeaderSearchView(APIView):
     """``GET /leader/search?q=<name|email|n-number>`` — at most 20 people."""

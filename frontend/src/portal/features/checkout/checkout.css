@@ -2,7 +2,7 @@
  * Checkout: plan cards, contribution tiers, provider tabs.
  *
  * Mobile first — one column until 34rem, then two.  Only semantic tokens are
- * used, so the three themes need no extra rules (PLAN §9).
+ * used, so the three themes need no extra rules.
  */
 
 .checkout__section {

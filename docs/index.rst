@@ -43,9 +43,9 @@ around, then read the guide for what you do:
 
 **If you build CalDART**, read the :doc:`developer/index`.
 :doc:`developer/setup` takes a clean machine to a running application;
-:doc:`developer/architecture` reproduces ``PLAN.rst``, the specification the
-whole prototype answers to; :doc:`developer/data-model` and
-:doc:`developer/api-reference` are the two references you will keep open.
+:doc:`developer/architecture` shows how the pieces fit together;
+:doc:`developer/data-model` and :doc:`developer/api-reference` are the two
+references you will keep open.
 
 **If you want to see it working**, the :doc:`demo-walkthrough` drives the five
 flows the system exists for, end to end, on seeded demo data.

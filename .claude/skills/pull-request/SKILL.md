@@ -39,11 +39,11 @@ The PR template is in `.github/pull_request_template.md`. GitHub applies it auto
 ## Guidance
 
 - **Application-specific** — Call out in Potential Impacts:
-    - API contract changes against `PLAN.rst` §6, with the matching updates to `src/portal/api/types.ts` and the `docs/developer/api-*.rst` pages.
+    - API contract changes, with the matching updates to `src/portal/api/types.ts` and the `docs/developer/api-*.rst` pages.
     - New or regenerated migrations (per `CLAUDE.md`, regenerate rather than stack fix-ups).
     - New or changed settings and environment variables, added to `.env.example`.
-    - Permission changes against the role matrix in `PLAN.rst` §5.
+    - Permission changes against the permission matrix in `docs/developer/api-reference.rst`.
     - Any change to a shared file (`CLAUDE.md`, "File ownership on parallel branches"), kept additive.
-- **Spec** — If the change departs from `PLAN.rst`, update `PLAN.rst` in the same PR (`CLAUDE.md`).
+- **Spec** — The docs are the specification: if the change alters documented behavior, update the docs in the same PR (`CLAUDE.md`).
 - **Required reviewers** — Tag maintainers for changes to the shared surfaces listed in `CLAUDE.md`.
 - **Brevity vs. completeness** — Short enough that authors fill everything out; detailed enough for a reviewer with no other context. If understanding the context for the change requires substantial knowledge, include a discussion of the motivation for the change and its details that is suitable for a reviewer with limited knowledge of the codebase and the concepts being discussed.

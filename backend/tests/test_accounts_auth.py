@@ -1,7 +1,7 @@
-"""Registration, password change and the password-reset flow (PLAN §6.1).
+"""Registration, password change and the password-reset flow.
 
-The endpoints the portal shell already relied on are covered by
-``test_auth_api.py``; this module covers everything ``feat/auth-portal`` adds.
+CSRF, login, logout and ``/auth/me``, which the portal shell relies on, are
+covered by ``test_auth_api.py``.
 """
 
 from __future__ import annotations
@@ -317,7 +317,7 @@ def test_password_reset_confirm_rejects_a_deactivated_account(api_client, member
 
 
 # --------------------------------------------------------------------------
-# profile_complete (PLAN §6.1)
+# profile_complete
 # --------------------------------------------------------------------------
 def test_profile_complete_needs_every_field(api_client, member, profile):
     api_client.force_login(member)
@@ -342,7 +342,7 @@ def test_profile_complete_is_false_without_a_profile(api_client):
 
 
 # --------------------------------------------------------------------------
-# Throttling (PLAN §6.1)
+# Throttling
 # --------------------------------------------------------------------------
 @pytest.fixture
 def clear_throttle_cache():

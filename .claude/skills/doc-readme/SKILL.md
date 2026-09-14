@@ -24,8 +24,8 @@ jargon.
 
 1. **Title** — the project name.
 2. **Introduction** — 1-3 short paragraphs in plain prose: what the system does, the problem
-   it solves, and who it is for. No code-object jargon. Say that `PLAN.rst` is the
-   authoritative specification.
+   it solves, and who it is for. No code-object jargon. Say that the documentation in
+   `docs/` is the specification.
 3. **Features** — a bulleted list with bold lead-ins summarizing the main capabilities at a
    glance, matching "What it does" in `docs/index.rst`.
 4. **Requirements and setup** — the supported Python version, Node and npm, Docker with

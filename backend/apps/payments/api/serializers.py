@@ -1,4 +1,4 @@
-"""Serializers for the payments API (PLAN §6.7, §6.8)."""
+"""Serializers for the payments API."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ class MembershipStatusSerializer(serializers.Serializer):
 
 
 class PlanSerializer(serializers.ModelSerializer):
-    """A purchasable plan, as offered by the checkout (PLAN §6.3)."""
+    """A purchasable plan, as offered by the checkout."""
 
     class Meta:
         model = MembershipPlan
@@ -45,7 +45,7 @@ class CheckoutSerializer(serializers.Serializer):
     """``POST /payments/checkout``.
 
     There is deliberately no amount field: the server recomputes the total from
-    the plan price plus the contribution (PLAN §10).
+    the plan price plus the contribution.
     """
 
     plan = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
@@ -82,7 +82,7 @@ class PaymentResultSerializer(serializers.Serializer):
 
 
 class PaymentSerializer(serializers.ModelSerializer):
-    """A row of the ``account_admin`` payment report (PLAN §6.8)."""
+    """A row of the ``account_admin`` payment report."""
 
     user_id = serializers.IntegerField(read_only=True)
     user_name = serializers.SerializerMethodField()

@@ -1,7 +1,7 @@
-"""Backup, restore and health helpers (PLAN §4.7).
+"""Backup, restore and health helpers.
 
-``feat/ops`` owns this app and wraps these in the ``/system/...`` API; the
-Makefile needs them from day one, so the commands live here already.
+The ``/system/...`` API wraps these, and so do the ``db_backup``,
+``db_restore``, ``db_reset`` and ``health`` management commands.
 """
 
 from __future__ import annotations
@@ -167,8 +167,8 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     """Restore a gzipped dump over the current database.
 
     ``pg_dump`` writes ``CREATE TABLE`` without ``DROP``, so the schema has to
-    go first or every statement collides with what is already there
-    (PLAN §4.7).  ``drop_first=False`` is for restoring into an empty database.
+    go first or every statement collides with what is already there.
+    ``drop_first=False`` is for restoring into an empty database.
     """
     if not path.is_file():
         raise BackupError(f"No such backup: {path}")
@@ -190,7 +190,7 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
 
 
 def drop_schema() -> None:
-    """``DROP SCHEMA public CASCADE; CREATE SCHEMA public;`` (PLAN §4.7)."""
+    """``DROP SCHEMA public CASCADE; CREATE SCHEMA public;``."""
     with connection.cursor() as cursor:
         cursor.execute("DROP SCHEMA public CASCADE;")
         cursor.execute("CREATE SCHEMA public;")
@@ -222,7 +222,7 @@ def app_version() -> str:
 
 
 def health() -> dict:
-    """The payload behind ``GET /system/health`` (PLAN §6.9).
+    """The payload behind ``GET /system/health``.
 
     Disk space is measured on ``BACKUP_DIR``: that is the filesystem that fills
     up first, and the one that has to have room for the next ``pg_dump``.

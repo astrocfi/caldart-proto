@@ -2,8 +2,9 @@
 API: member self-service
 ========================
 
-The member self-service half of the API (``PLAN.rst`` §6.3, plus the
-attach/detach pair from §6.5).  Every ``/me/...`` endpoint acts on the
+The member self-service half of the API, plus the pair of endpoints that
+attach an aircraft to the member's profile and detach it (the rest of the
+aircraft API is in :doc:`api-aircraft`).  Every ``/me/...`` endpoint acts on the
 signed-in user and no one else; ``/darts`` and ``/plans`` are public so the
 join wizard can render before the visitor has an account.
 

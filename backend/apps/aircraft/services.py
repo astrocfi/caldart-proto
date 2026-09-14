@@ -1,4 +1,4 @@
-"""Aircraft and leader-check services (PLAN §6.6).
+"""Aircraft and leader-check services.
 
 The leader check is the one flow that has to work on a phone, in a hangar, in
 a hurry, so all of its reasoning lives here and both the API and the exports
@@ -19,7 +19,7 @@ from apps.members.services import membership_status
 
 User = get_user_model()
 
-#: The leader search never returns more than this many people (PLAN §6.6).
+#: The leader search never returns more than this many people.
 SEARCH_LIMIT = 20
 
 _PUNCTUATION = re.compile(r"[^A-Za-z0-9]")
@@ -81,7 +81,7 @@ def search_result(user) -> dict:
 
 
 def leader_status(user) -> dict:
-    """The status card for one member (PLAN §6.6).
+    """The status card for one member.
 
     ``go_no_go`` is deliberately two plain booleans: a leader is entitled to
     see *why* a member is a no-go, not just that they are.
@@ -136,7 +136,7 @@ def aircraft_pilots(aircraft: Aircraft) -> list[dict]:
 
 
 def pilot_names(aircraft: Aircraft) -> list[str]:
-    """Display names of the attached members, for the exports (PLAN §11)."""
+    """Display names of the attached members, for the exports."""
     return [profile.display_name for profile in aircraft.pilots.all()]
 
 

@@ -2,8 +2,9 @@
 API: payments
 =============
 
-Every endpoint under ``/api/v1/payments/`` and ``/api/v1/admin/payments``,
-implementing PLAN §6.7 and §6.8.  General API conventions — session
+Every endpoint under ``/api/v1/payments/`` and ``/api/v1/admin/payments``:
+checkout and its confirmation for each provider, the webhooks, and the
+payment reports.  General API conventions — session
 authentication, the CSRF header, pagination, error shapes — are in
 :doc:`api-reference`; the two worth repeating here are that an
 unauthenticated request gets **401** (not 403), and that money is always

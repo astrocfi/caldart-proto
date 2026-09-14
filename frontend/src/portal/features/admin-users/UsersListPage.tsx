@@ -1,4 +1,4 @@
-/** `/admin/users` — find an account and see what it may do (PLAN §6.2, §8). */
+/** `/admin/users` — find an account and see what it may do. */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 

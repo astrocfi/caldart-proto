@@ -1,7 +1,8 @@
 """Base Django settings for CalDART.
 
-Every environment variable listed in PLAN.rst §14 is read here, with a
+Every environment variable in ``.env.example`` is read here, with a
 development-friendly default so a bare checkout runs without a ``.env``.
+``docs/developer/configuration.rst`` documents each one.
 """
 
 from pathlib import Path
@@ -161,7 +162,7 @@ STORAGES = {
 # --------------------------------------------------------------------------
 # django-vite
 # --------------------------------------------------------------------------
-# Read from the ``DJANGO_VITE_DEV_MODE`` env var (PLAN §14).  The value is not
+# Read from the ``DJANGO_VITE_DEV_MODE`` env var.  The value is not
 # exported under that name: django-vite treats a top-level
 # ``DJANGO_VITE_DEV_MODE`` setting as the deprecated configuration style.
 VITE_DEV_MODE = env.bool("DJANGO_VITE_DEV_MODE", default=False)
@@ -224,7 +225,7 @@ WAGTAIL_APPEND_SLASH = True
 SITE_ID = 1
 
 # --------------------------------------------------------------------------
-# Payments (PLAN §10)
+# Payments
 # --------------------------------------------------------------------------
 STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", default="")
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
@@ -233,7 +234,7 @@ STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION = env("STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION",
 PAYPAL_CLIENT_ID = env("PAYPAL_CLIENT_ID", default="")
 PAYPAL_CLIENT_SECRET = env("PAYPAL_CLIENT_SECRET", default="")
 PAYPAL_ENV = env("PAYPAL_ENV", default="sandbox")
-# Optional: set it to have the PayPal webhook verify its signature (PLAN §10).
+# Optional: set it to have the PayPal webhook verify its signature.
 PAYPAL_WEBHOOK_ID = env("PAYPAL_WEBHOOK_ID", default="")
 PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED", default=True)
 

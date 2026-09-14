@@ -16,8 +16,6 @@ way.
    Nothing re-reads the environment while the application is running.  After
    editing ``/etc/caldart/caldart.env``, ``systemctl restart caldart-web``.
 
-Specified in PLAN §14.
-
 
 Where settings are read
 =======================

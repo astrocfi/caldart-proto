@@ -1,4 +1,4 @@
-"""Wagtail content models for the public site (PLAN §4.6).
+"""Wagtail content models for the public site.
 
 The page tree is deliberately small: a home page, a general-purpose standard
 page, a news index plus posts, a DART index plus one page per team, and a
@@ -29,7 +29,7 @@ from apps.cms.blocks import (
 )
 from apps.cms.forms import RestrictedBlocksPageForm
 
-#: Themes shipped in ``frontend/src/styles/themes/`` (PLAN §9).
+#: Themes shipped in ``frontend/src/styles/themes/``.
 THEME_CHOICES: tuple[tuple[str, str], ...] = (
     ("sierra", "Sierra (default, warm paper)"),
     ("pacific", "Pacific (cool paper)"),
@@ -40,7 +40,7 @@ DEFAULT_THEME = "sierra"
 #: Theme slugs, for validating ``?theme=`` previews and the settings choice.
 THEME_SLUGS: tuple[str, ...] = tuple(slug for slug, _ in THEME_CHOICES)
 
-#: How many news posts the home page features (PLAN §4.6).
+#: How many news posts the home page features.
 FEATURED_NEWS_COUNT = 3
 
 #: How many posts a news index page shows before paginating.
@@ -52,7 +52,7 @@ ON_THIS_PAGE_MIN_HEADINGS = 3
 
 
 def user_can_access_members_content(user) -> bool:
-    """``True`` when ``user`` may read members-only pages (PLAN §4.1)."""
+    """``True`` when ``user`` may read members-only pages."""
     if user is None or not getattr(user, "is_authenticated", False):
         return False
     return bool(getattr(user, "can_access_members_content", False))
@@ -85,7 +85,7 @@ class BasePage(Page):
 
 
 class MembersOnlyMixin(models.Model):
-    """Adds ``members_only`` and the wall that enforces it (PLAN §4.6)."""
+    """Adds ``members_only`` and the wall that enforces it."""
 
     members_only = models.BooleanField(
         default=False,
@@ -196,7 +196,7 @@ class HomePage(BasePage):
 
     @property
     def featured_news(self):
-        """The three most recent live news posts (PLAN §4.6)."""
+        """The three most recent live news posts."""
         return list(
             NewsPage.objects.live()
             .public()

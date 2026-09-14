@@ -1,6 +1,6 @@
 /**
  * The Memberships tab: the term history, an inline end-date/status correction,
- * and the "grant a term" form (PLAN §6.4).
+ * and the "grant a term" form.
  *
  * Granting goes through the server's `activate_term`, so leaving the start date
  * blank does the right thing: a current member's new term begins the day after

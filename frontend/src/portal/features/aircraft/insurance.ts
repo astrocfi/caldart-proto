@@ -10,7 +10,7 @@ import type { StatusTone } from '../../components/StatusChip';
 const PUNCTUATION = /[^A-Za-z0-9]/g;
 
 /**
- * `12345`, `n12345` and `N-12345` are all `N12345` (PLAN §4.3).
+ * `12345`, `n12345` and `N-12345` are all `N12345`.
  *
  * Mirrors `apps.aircraft.models.normalize_n_number` so the UI can show the
  * canonical form before the round trip.

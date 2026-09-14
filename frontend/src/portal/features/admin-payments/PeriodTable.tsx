@@ -1,5 +1,5 @@
 /**
- * Money per month or per year, with one column per provider (PLAN §6.8).
+ * Money per month or per year, with one column per provider.
  *
  * Newest first: an administrator looking at this page almost always wants the
  * period they are in.

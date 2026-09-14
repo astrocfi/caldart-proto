@@ -32,9 +32,9 @@ Closes #<!-- issue number -->
 
 ## Potential Impacts
 
-<!-- Effects on the API contract (PLAN.rst §6) and the frontend that consumes it, database
+<!-- Effects on the API contract (docs/developer/api-*.rst) and the frontend that consumes it, database
      migrations, new or changed settings and environment variables (.env.example), role
-     permissions (PLAN.rst §5), payment providers, performance, or deployment (deploy/).
+     permissions (the permission matrix), payment providers, performance, or deployment (deploy/).
      Write "None" if straightforward. -->
 
 ## Checklist
@@ -44,7 +44,6 @@ Closes #<!-- issue number -->
 - [ ] No secrets or credentials committed
 - [ ] No warnings or errors introduced (CI, linters, type checking, builds) or justified in Notes
 - [ ] Docstrings, docs pages (`docs/`), and the README updated (if applicable)
-- [ ] `PLAN.rst` updated in this PR if the change departs from it
 - [ ] No temporary or debug code left in
 - [ ] Performance impact assessed (see Potential Impacts above)
 - [ ] Breaking changes flagged in Type of Change above

@@ -1,8 +1,8 @@
 /**
- * The portal's route table (PLAN §8).
+ * The portal's route table.
  *
  * Every feature owns one file in this directory exporting a `RouteObject[]`;
- * this module only concatenates them, so Phase 2 branches never collide here.
+ * this module only concatenates them.
  *
  * `/login` and friends sit outside `RequireAuth`; everything else is behind it,
  * inside the portal layout.

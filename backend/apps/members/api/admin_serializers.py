@@ -1,4 +1,4 @@
-"""Serializers for the account-administrator member API (PLAN §6.4).
+"""Serializers for the account-administrator member API.
 
 The member record an administrator works with is a *user plus its profile*, so
 these serializers write both halves in one request and read back the full
@@ -113,7 +113,7 @@ class MembershipGrantSerializer(serializers.Serializer):
 
 class AdminPaymentSerializer(PaymentSummarySerializer):
     """The member's own payment row, plus the split and the provider reference
-    an administrator needs when reconciling (PLAN §4.4)."""
+    an administrator needs when reconciling."""
 
     class Meta(PaymentSummarySerializer.Meta):
         fields = [
@@ -245,7 +245,7 @@ def send_password_invitation(user) -> None:
     """Email a "set your password" link to an account created without one.
 
     The link points at the portal's reset-password screen, which posts back to
-    ``/auth/password/reset/confirm`` (PLAN §6.1).
+    ``/auth/password/reset/confirm``.
     """
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)

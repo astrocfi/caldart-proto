@@ -1,7 +1,7 @@
 """DRF exception handling.
 
 Session authentication has no ``WWW-Authenticate`` challenge, so DRF turns an
-unauthenticated request into 403.  The API contract (PLAN §6.1) promises 401,
+unauthenticated request into 403.  The API contract promises 401,
 which is also what the SPA's ``client.ts`` keys "log in again" off.
 """
 

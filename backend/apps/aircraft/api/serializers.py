@@ -1,4 +1,4 @@
-"""Serializers for the aircraft register and the leader check (PLAN §6.5, §6.6)."""
+"""Serializers for the aircraft register and the leader check."""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ class AircraftSummarySerializer(serializers.ModelSerializer):
 
 
 class AircraftSerializer(serializers.ModelSerializer):
-    """The full record (PLAN §6.5).  ``created_by`` is set by the view."""
+    """The full record.  ``created_by`` is set by the view."""
 
     n_number = NNumberField(
         max_length=12,
@@ -127,7 +127,7 @@ class AircraftDetailSerializer(AircraftSerializer):
 
 
 # --------------------------------------------------------------------------
-# Leader check (PLAN §6.6)
+# Leader check
 # --------------------------------------------------------------------------
 class LeaderSearchResultSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
@@ -162,7 +162,7 @@ class LeaderGoNoGoSerializer(serializers.Serializer):
 
 
 class LeaderStatusSerializer(serializers.Serializer):
-    """The status card a DART leader reads before a flight (PLAN §6.6)."""
+    """The status card a DART leader reads before a flight."""
 
     name = serializers.CharField()
     email = serializers.EmailField()

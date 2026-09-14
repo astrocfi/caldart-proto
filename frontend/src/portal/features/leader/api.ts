@@ -1,4 +1,4 @@
-/** Queries behind the DART leader check (PLAN §6.6). */
+/** Queries behind the DART leader check. */
 import { useQuery } from '@tanstack/react-query';
 
 import { api } from '../../api/client';

@@ -1,4 +1,4 @@
-"""Aircraft register with insurance data (PLAN §4.3)."""
+"""Aircraft register with insurance data."""
 
 from __future__ import annotations
 

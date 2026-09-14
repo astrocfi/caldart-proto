@@ -1,4 +1,4 @@
-"""Serializers for member self-service (PLAN §6.3, §6.5).
+"""Serializers for member self-service.
 
 Everything here is scoped to ``request.user``: the profile they may edit, the
 membership terms and payments they may read, and the two public catalogues
@@ -69,7 +69,7 @@ class MembershipTermSerializer(serializers.ModelSerializer):
 
 
 class PaymentSummarySerializer(serializers.ModelSerializer):
-    """The trimmed payment row a member sees for themselves (§6.3)."""
+    """The trimmed payment row a member sees for themselves."""
 
     plan = serializers.SerializerMethodField()
 
@@ -209,7 +209,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
         DRF's own behaviour is to ignore absent optional fields even on a full
         update, which would make ``PUT`` and ``PATCH`` indistinguishable.  The
-        contract in PLAN §6.3 says one is a full update and the other partial,
+        API contract says one is a full update and the other partial,
         so unticked checkboxes and cleared text really do get cleared.
         """
         if not self.partial:

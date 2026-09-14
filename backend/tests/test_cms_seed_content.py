@@ -1,4 +1,4 @@
-"""``manage.py seed_content`` builds the example site and is safe to repeat (PLAN §4.6)."""
+"""``manage.py seed_content`` builds the example site and is safe to repeat."""
 
 from __future__ import annotations
 

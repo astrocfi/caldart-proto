@@ -1,4 +1,4 @@
-/** Step 1 — create the account (PLAN §6.1 `POST /auth/register`). */
+/** Step 1 — create the account (`POST /auth/register`). */
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';

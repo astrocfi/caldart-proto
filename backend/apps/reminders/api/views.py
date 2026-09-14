@@ -1,4 +1,4 @@
-"""Reminder log and manual run endpoints (PLAN §6.9).
+"""Reminder log and manual run endpoints.
 
 ``GET /admin/reminders/log`` is readable by ``account_admin`` (they answer the
 "did the member ever get told?" question) as well as ``system_admin``; kicking
@@ -25,7 +25,7 @@ from apps.reminders.services import send_renewal_reminders
 
 
 class ReminderLogFilterSet(django_filters.FilterSet):
-    """``?kind=&from=&to=`` (PLAN §6.9), where the dates bound ``sent_at``."""
+    """``?kind=&from=&to=``, where the dates bound ``sent_at``."""
 
     kind = django_filters.ChoiceFilter(choices=ReminderKind.choices)
     to = django_filters.DateFilter(field_name="sent_at", lookup_expr="date__lte")
@@ -55,7 +55,7 @@ class ReminderLogListView(ListAPIView):
 
 
 class ReminderRunView(APIView):
-    """``POST /system/reminders/run`` — run the scan now (PLAN §12)."""
+    """``POST /system/reminders/run`` — run the scan now."""
 
     permission_classes = [IsSystemAdmin]
 

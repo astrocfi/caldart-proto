@@ -1,7 +1,7 @@
 """``/api/v1/`` router.
 
-Each app owns ``apps/<app>/api/urls.py``.  Phase 2 workers add their endpoints
-there and never need to edit this file.
+Each app keeps its routes in ``apps/<app>/api/urls.py``, so adding an endpoint
+never needs an edit here.
 """
 
 from django.urls import include, path

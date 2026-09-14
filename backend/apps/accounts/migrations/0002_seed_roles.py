@@ -1,4 +1,4 @@
-"""Create the role groups as part of ``migrate`` (PLAN §4.1)."""
+"""Create the role groups as part of ``migrate``."""
 
 from django.db import migrations
 

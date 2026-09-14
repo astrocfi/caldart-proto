@@ -1,5 +1,5 @@
 /**
- * The reminders panel of `/portal/system` (PLAN §6.9, §12): run the scan by
+ * The reminders panel of `/portal/system`: run the scan by
  * hand — optionally as a rehearsal — and read the log of what went out.
  */
 import { useState } from 'react';
@@ -12,7 +12,7 @@ import type { Column } from '../../components/DataTable';
 import { DateText } from '../../components/DateText';
 import { useReminderLog, useRunReminders } from './api';
 
-/** Kind slug -> what the email actually says (PLAN §4.5). */
+/** Kind slug -> what the email actually says. */
 export const KIND_LABELS: Record<ReminderKind, string> = {
   t60: '60 days before',
   t30: '30 days before',

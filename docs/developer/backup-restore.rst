@@ -5,7 +5,8 @@ Backup and restore
 Four commands look after the data: ``db_backup`` writes a dump, ``db_restore``
 puts one back, ``db_reset`` rebuilds a development database from nothing, and
 ``health`` says whether any of that has been happening.  They live in
-``backend/apps/sysadmin/`` and are specified in PLAN §4.7 and §6.9.
+``backend/apps/sysadmin/``; the portal's System page reaches the same code
+through the endpoints listed under :ref:`api-reminders-system`.
 
 
 How a dump is taken
@@ -176,7 +177,7 @@ Checking on all of this
 Field                     Meaning
 ========================  ==================================================
 ``db``                    ``ok``, or the connection error
-``pending_migrations``    migrations on disk that are not applied
+``pending_migrations``    how many migrations on disk are not applied
 ``disk_free_mb``          free space on the filesystem holding ``BACKUP_DIR``
 ``last_backup``           timestamp of the newest dump, or ``null``
 ``version``               ``[project] version`` from ``pyproject.toml``

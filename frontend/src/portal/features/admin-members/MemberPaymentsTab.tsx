@@ -1,9 +1,9 @@
 /**
- * The Payments tab: what this member has paid, newest first (PLAN §6.4).
+ * The Payments tab: what this member has paid, newest first.
  *
  * The full payment ledger and its month/year summary live on
- * `/admin/payments`, delivered by `feat/payments`; this table is the per-member
- * slice an administrator needs while looking at one record.
+ * `/admin/payments`; this table is the per-member slice an administrator needs
+ * while looking at one record.
  */
 import { Card, DataTable, DateText, Money, PaymentChip } from '../../components';
 import type { Column } from '../../components';

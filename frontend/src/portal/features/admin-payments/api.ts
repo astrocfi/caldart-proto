@@ -1,5 +1,5 @@
 /**
- * Queries and pure summary arithmetic for the payments dashboard (PLAN §6.8).
+ * Queries and pure summary arithmetic for the payments dashboard.
  *
  * The tiles deliberately ignore the filter bar: "this month" means this month
  * whatever the table below is showing.

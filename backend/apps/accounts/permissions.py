@@ -1,4 +1,4 @@
-"""DRF permission classes for role checks (PLAN §5).
+"""DRF permission classes for role checks.
 
 ``system_admin`` always passes.  Use them either as classes built by the
 factory helpers or by subclassing::
