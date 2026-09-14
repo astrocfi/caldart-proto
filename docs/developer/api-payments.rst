@@ -84,9 +84,11 @@ Provider      ``client``
 ============  ==============================================
 
 **400** for an unknown or inactive plan, a negative contribution, a total of
-zero, an unknown provider, a provider that is not configured, or a provider
-that refuses the request.  Nothing is left behind in the database when the
-provider rejects it.
+zero, an unknown provider, a provider that is not configured, a provider that
+refuses the request, or a provider that cannot be reached — a timeout, a
+refused connection or an error on the provider's own side, all of which answer
+``{"detail": "<provider> could not be reached. Please try again."}``.  Nothing
+is left behind in the database when the provider rejects it or fails.
 
 ``POST /payments/stripe/confirm``
 ---------------------------------
@@ -120,8 +122,10 @@ recorded from ``latest_charge.payment_method_details`` — ``apple_pay``,
 
 A ``canceled`` or ``requires_payment_method`` intent marks the payment
 ``failed`` and answers 200 with ``"status": "failed"``.  A mismatch, or an
-intent still ``processing``, is a **400** with the reason in ``detail``.
-**404** if the payment is not the caller's.
+intent still ``processing``, is a **400** with the reason in ``detail``.  A
+provider that cannot be reached is a **400** too, and the payment stays
+``pending`` so the member can try again.  **404** if the payment is not the
+caller's.
 
 ``POST /payments/paypal/capture``
 ---------------------------------
@@ -137,6 +141,14 @@ at least one completed capture, a captured total equal to ``amount_cents``,
 the same currency, and a ``custom_id`` naming this payment.  Response shape is
 the same as the Stripe confirm.  Capturing an already-succeeded payment is a
 no-op that answers 200 without calling PayPal again.
+
+A capture that completes for the wrong amount, currency or ``custom_id`` is
+refused with a **400**, and a call that fails in transit answers the same
+**400** with the payment left ``pending``.  PayPal may already hold the money
+in both cases, so each one writes an ``ERROR`` log record for an administrator
+to reconcile in the PayPal dashboard: the mismatch names the payment and both
+amounts, and the call that never completed names the payment and the amount at
+stake.
 
 ``POST /payments/mock/complete``
 --------------------------------

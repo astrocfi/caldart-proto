@@ -10,12 +10,22 @@ The flow:
    unless Stripe agrees about the status, amount, currency and payment id.
 4. ``handle_webhook`` is the safety net for redirect-based methods, and is
    idempotent because :func:`~apps.payments.services.mark_succeeded` is.
+
+Every call goes through :func:`stripe_client`, whose timeout and retry budget
+are shorter than the timeouts of the proxies in front of Django, so a slow
+Stripe never becomes a gateway error over a request that is still running.
+
+The SDK answers with ``stripe.PaymentIntent`` and ``stripe.Event`` objects,
+which are not dicts.  Each is converted with ``to_dict()`` the moment it
+arrives, so everything below the boundary works on plain nested dicts that
+store straight into ``Payment.raw``.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+from functools import lru_cache
 
 import stripe
 from django.conf import settings
@@ -26,11 +36,16 @@ from apps.payments.providers.base import (
     PaymentVerificationError,
     Provider,
     ProviderNotConfigured,
+    ProviderUnavailable,
     register,
 )
 from apps.payments.services import mark_failed, mark_succeeded
 
 log = logging.getLogger(__name__)
+
+#: What a member is told when Stripe times out or answers with an error of its
+#: own.  It says nothing about the money: a call can fail after Stripe acted.
+UNAVAILABLE_MESSAGE = "Stripe could not be reached. Please try again."
 
 #: ``payment_method_details.card.wallet.type`` values mapped onto our choices.
 WALLET_TYPES: dict[str, str] = {
@@ -42,6 +57,55 @@ WALLET_TYPES: dict[str, str] = {
 #: Intent statuses that mean the customer will not be charged.
 FAILED_STATUSES = frozenset({"canceled", "requires_payment_method"})
 
+#: How long one Stripe HTTP attempt may take, and how many times the library
+#: may retry it.  The worst case is the product plus one attempt -- 40 seconds
+#: -- which has to stay below gunicorn's ``timeout``, nginx's
+#: ``proxy_read_timeout`` and Apache's ``ProxyTimeout``, all 60 seconds in
+#: ``deploy/``.  The library's own defaults are 80 seconds and two retries,
+#: which would let a call outlive the request it belongs to.
+STRIPE_TIMEOUT_SECONDS = 20.0
+STRIPE_MAX_NETWORK_RETRIES = 1
+
+
+@lru_cache(maxsize=1)
+def http_client() -> stripe.HTTPClient:
+    """The one HTTP client every Stripe call shares, so it pools connections."""
+    return stripe.new_default_http_client(timeout=STRIPE_TIMEOUT_SECONDS)
+
+
+def stripe_client() -> stripe.StripeClient:
+    """A Stripe client bound by our timeout and retry budget.
+
+    Raises :class:`~apps.payments.providers.base.ProviderNotConfigured` when no
+    secret key is configured, so the API answers 400 rather than 500.  Calls go
+    through the client's ``v1`` namespace; the shorthand on the client itself
+    is deprecated.
+    """
+    return stripe.StripeClient(
+        secret_key(),
+        max_network_retries=STRIPE_MAX_NETWORK_RETRIES,
+        http_client=http_client(),
+    )
+
+
+def idempotency_key(payment: Payment) -> str:
+    """The key that ties one PaymentIntent to one payment row.
+
+    Starting the same payment twice then returns the intent already created
+    instead of a second one.
+    """
+    return f"caldart-payment-{payment.pk}-start"
+
+
+def unavailable(payment: Payment, call: str, exc: stripe.StripeError) -> ProviderUnavailable:
+    """Log a failed Stripe call and build the error the API answers 400 with.
+
+    Only the payment id and the exception's class are recorded: the message can
+    quote request data, and nothing about a member belongs in the log.
+    """
+    log.warning("Stripe %s failed for payment %s: %s", call, payment.pk, type(exc).__name__)
+    return ProviderUnavailable(UNAVAILABLE_MESSAGE)
+
 
 def secret_key() -> str:
     """The configured secret key, or raise so the API answers 400 rather than 500."""
@@ -51,19 +115,16 @@ def secret_key() -> str:
     return key
 
 
-def jsonable(value) -> dict:
+def jsonable(value: dict) -> dict:
     """A plain, JSON-serializable dict for ``Payment.raw``.
 
-    Stripe's objects are dict subclasses, but they nest ``StripeObject``s and
-    carry non-serializable helpers, so round-trip through JSON.
+    Stripe's own types are converted to dicts at the SDK boundary, so all this
+    has left to do is drop anything JSON cannot carry, such as a date.
     """
-    to_dict = getattr(value, "to_dict_recursive", None)
-    if callable(to_dict):
-        value = to_dict()
     return json.loads(json.dumps(value, default=str))
 
 
-def wallet_from_intent(intent) -> str:
+def wallet_from_intent(intent: dict) -> str:
     """Map ``latest_charge.payment_method_details`` onto our wallet choices."""
     charge = intent.get("latest_charge")
     if not isinstance(charge, dict):
@@ -84,7 +145,7 @@ def wallet_from_intent(intent) -> str:
     return PaymentWallet.CARD
 
 
-def payment_for_intent(intent) -> Payment | None:
+def payment_for_intent(intent: dict) -> Payment | None:
     """Find our row from the intent's metadata, falling back to the intent id."""
     metadata = intent.get("metadata") or {}
     raw_id = metadata.get("payment_id")
@@ -111,19 +172,26 @@ class StripeProvider(Provider):
     # ----------------------------------------------------------------- start
     def start(self, payment: Payment) -> dict:
         """Create the PaymentIntent and hand the client its ``client_secret``."""
-        intent = stripe.PaymentIntent.create(
-            api_key=secret_key(),
-            amount=payment.amount_cents,
-            currency=payment.currency,
-            automatic_payment_methods={"enabled": True},
-            description=f"CalDART · {payment.description}",
-            receipt_email=payment.user.email or None,
-            metadata={
-                "payment_id": str(payment.pk),
-                "user_id": str(payment.user_id),
-                "plan": payment.plan.slug if payment.plan_id else "",
-            },
-        )
+        client = stripe_client()
+        try:
+            created = client.v1.payment_intents.create(
+                {
+                    "amount": payment.amount_cents,
+                    "currency": payment.currency,
+                    "automatic_payment_methods": {"enabled": True},
+                    "description": f"CalDART · {payment.description}",
+                    "receipt_email": payment.user.email or None,
+                    "metadata": {
+                        "payment_id": str(payment.pk),
+                        "user_id": str(payment.user_id),
+                        "plan": payment.plan.slug if payment.plan_id else "",
+                    },
+                },
+                {"idempotency_key": idempotency_key(payment)},
+            )
+        except stripe.StripeError as exc:
+            raise unavailable(payment, "payment_intents.create", exc) from exc
+        intent = created.to_dict()
         payment.provider_ref = intent["id"]
         payment.raw = jsonable(intent)
         payment.save(update_fields=["provider_ref", "raw", "updated_at"])
@@ -138,9 +206,12 @@ class StripeProvider(Provider):
         if payment.provider_ref and intent_id != payment.provider_ref:
             raise PaymentVerificationError("That PaymentIntent belongs to another payment.")
 
-        intent = stripe.PaymentIntent.retrieve(
-            intent_id, api_key=secret_key(), expand=["latest_charge"]
-        )
+        client = stripe_client()
+        try:
+            retrieved = client.v1.payment_intents.retrieve(intent_id, {"expand": ["latest_charge"]})
+        except stripe.StripeError as exc:
+            raise unavailable(payment, "payment_intents.retrieve", exc) from exc
+        intent = retrieved.to_dict()
         self.verify(payment, intent)
 
         status = intent.get("status")
@@ -158,7 +229,7 @@ class StripeProvider(Provider):
         )
         return True
 
-    def verify(self, payment: Payment, intent) -> None:
+    def verify(self, payment: Payment, intent: dict) -> None:
         """Everything about the intent that must match our own row."""
         metadata = intent.get("metadata") or {}
         if str(metadata.get("payment_id") or "") != str(payment.pk):
@@ -176,13 +247,14 @@ class StripeProvider(Provider):
 
         signature = request.META.get("HTTP_STRIPE_SIGNATURE", "")
         try:
-            event = stripe.Webhook.construct_event(
+            verified = stripe.Webhook.construct_event(
                 request.body, signature, settings.STRIPE_WEBHOOK_SECRET
             )
         except Exception as exc:  # noqa: BLE001 - any failure here is a bad signature
             log.warning("Rejected Stripe webhook: %s", exc)
             return JsonResponse({"detail": "Invalid Stripe signature."}, status=400)
 
+        event = verified.to_dict()
         event_type = event.get("type", "")
         intent = (event.get("data") or {}).get("object") or {}
         payment = payment_for_intent(intent)

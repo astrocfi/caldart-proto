@@ -15,6 +15,17 @@ class ProviderNotConfigured(PaymentError):
     """The provider is missing its API keys."""
 
 
+class ProviderUnavailable(PaymentError):
+    """The provider could not be reached, or failed on its own side.
+
+    Raised for transport failures (timeouts, refused connections, unreadable
+    responses) and for errors the provider reports about itself, so that an
+    outage answers 400 with "try again" instead of 500.  Checkout then deletes
+    the pending :class:`~apps.payments.models.Payment` it had just created, and
+    a confirmation leaves the payment pending for another attempt.
+    """
+
+
 class PaymentVerificationError(PaymentError):
     """The provider's own record of the payment does not match ours.
 

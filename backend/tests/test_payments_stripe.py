@@ -1,13 +1,20 @@
 """Stripe: PaymentIntent creation, server-side confirmation and webhooks.
 
-Stripe itself is never called: ``stripe.PaymentIntent.create/retrieve`` and
-``stripe.Webhook.construct_event`` are patched, which is exactly the seam the
-real integration uses.
+Stripe itself is never called.  ``stripe_client`` is replaced by a fake whose
+``v1.payment_intents`` service answers with real ``stripe.PaymentIntent``
+objects, so the provider is exercised against the types the SDK actually
+returns.  Webhook payloads are signed with the configured secret exactly as
+Stripe signs them, so the library's own ``construct_event`` verifies every
+delivery.
 """
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
+import time
+from types import SimpleNamespace
 
 import pytest
 import stripe
@@ -15,6 +22,7 @@ import stripe
 from apps.members.models import Membership
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.providers import get_provider
+from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.stripe import wallet_from_intent
 from apps.payments.services import create_checkout
 
@@ -24,12 +32,18 @@ CHECKOUT = "/api/v1/payments/checkout"
 CONFIRM = "/api/v1/payments/stripe/confirm"
 WEBHOOK = "/api/v1/payments/stripe/webhook"
 
+SECRET_KEY = "sk_test_123"  # noqa: S105 - test fixture
+WEBHOOK_SECRET = "whsec_test"  # noqa: S105 - test fixture
+
+#: Stripe's own default signature tolerance, in seconds.
+SIGNATURE_TOLERANCE_SECONDS = 300
+
 
 @pytest.fixture(autouse=True)
 def _stripe_configured(settings):
-    settings.STRIPE_SECRET_KEY = "sk_test_123"
+    settings.STRIPE_SECRET_KEY = SECRET_KEY
     settings.STRIPE_PUBLISHABLE_KEY = "pk_test_123"
-    settings.STRIPE_WEBHOOK_SECRET = "whsec_test"  # noqa: S105 - test fixture
+    settings.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET
     settings.PAYMENTS_MOCK_ENABLED = True
 
 
@@ -48,6 +62,7 @@ def intent_payload(payment: Payment, **overrides) -> dict:
         },
         "latest_charge": {
             "id": "ch_test_1",
+            "object": "charge",
             "payment_method_details": {"type": "card", "card": {"brand": "visa", "wallet": None}},
         },
     }
@@ -55,35 +70,56 @@ def intent_payload(payment: Payment, **overrides) -> dict:
     return payload
 
 
+def intent_object(payload: dict) -> stripe.PaymentIntent:
+    """The same payload as the SDK object a real call would return."""
+    return stripe.PaymentIntent.construct_from(payload, SECRET_KEY)
+
+
+def fake_stripe_client(payment_intents) -> SimpleNamespace:
+    """A stand-in for ``stripe.StripeClient`` exposing one service."""
+    return SimpleNamespace(v1=SimpleNamespace(payment_intents=payment_intents))
+
+
 class FakeIntents:
-    """Stand-in for ``stripe.PaymentIntent`` that records what it was asked."""
+    """Stand-in for ``v1.payment_intents`` that records what it was asked."""
 
     def __init__(self, payload: dict | None = None):
         self.payload = payload or {}
+        self.api_key = ""
         self.created: dict = {}
+        self.create_options: dict = {}
         self.retrieved: dict = {}
 
-    def create(self, **kwargs):
-        self.created = kwargs
-        return {
-            "id": "pi_test_created",
-            "client_secret": "pi_test_created_secret_abc",
-            "status": "requires_payment_method",
-            "amount": kwargs["amount"],
-            "currency": kwargs["currency"],
-            "metadata": kwargs["metadata"],
-        }
+    def create(self, params, options=None):
+        self.created = params
+        self.create_options = options or {}
+        return intent_object(
+            {
+                "id": "pi_test_created",
+                "object": "payment_intent",
+                "client_secret": "pi_test_created_secret_abc",
+                "status": "requires_payment_method",
+                "amount": params["amount"],
+                "currency": params["currency"],
+                "metadata": params["metadata"],
+            }
+        )
 
-    def retrieve(self, intent_id, **kwargs):
-        self.retrieved = {"id": intent_id, **kwargs}
-        return self.payload
+    def retrieve(self, intent_id, params=None, options=None):
+        self.retrieved = {"id": intent_id, **(params or {})}
+        return intent_object(self.payload)
 
 
 @pytest.fixture
 def fake_intents(monkeypatch):
     fake = FakeIntents()
-    monkeypatch.setattr(stripe.PaymentIntent, "create", fake.create)
-    monkeypatch.setattr(stripe.PaymentIntent, "retrieve", fake.retrieve)
+
+    def client():
+        # Through the real key lookup, so a missing key still refuses.
+        fake.api_key = stripe_provider.secret_key()
+        return fake_stripe_client(fake)
+
+    monkeypatch.setattr(stripe_provider, "stripe_client", client)
     return fake
 
 
@@ -110,8 +146,19 @@ def test_checkout_creates_a_payment_intent(api_client, member, annual_plan, fake
         "user_id": str(member.pk),
         "plan": "annual",
     }
-    assert created["api_key"] == "sk_test_123"
+    assert fake_intents.api_key == SECRET_KEY
     assert payment.provider_ref == "pi_test_created"
+
+
+def test_start_stores_the_intent_as_a_dict(api_client, member, annual_plan, fake_intents):
+    api_client.force_login(member)
+    response = api_client.post(
+        CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"}
+    )
+
+    payment = Payment.objects.get(pk=response.data["payment_id"])
+    assert isinstance(payment.raw, dict)
+    assert payment.raw["id"] == "pi_test_created"
 
 
 def test_start_without_a_secret_key_is_a_400(api_client, member, annual_plan, settings):
@@ -150,6 +197,18 @@ def test_confirm_activates_the_membership(api_client, member, annual_plan, fake_
     assert Membership.objects.filter(payment=payment).count() == 1
 
 
+def test_confirm_stores_the_intent_as_a_dict(api_client, member, annual_plan, fake_intents):
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    fake_intents.payload = intent_payload(payment, id="pi_raw")
+
+    api_client.force_login(member)
+    api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_raw"})
+
+    payment.refresh_from_db()
+    assert isinstance(payment.raw, dict)
+    assert payment.raw["latest_charge"]["id"] == "ch_test_1"
+
+
 @pytest.mark.parametrize(
     ("wallet_type", "expected"),
     [
@@ -178,6 +237,9 @@ def test_wallet_is_read_from_the_charge(
 
 def test_wallet_is_unknown_without_a_charge():
     assert wallet_from_intent({"id": "pi", "latest_charge": None}) == PaymentWallet.UNKNOWN
+
+
+def test_wallet_is_unknown_for_an_unexpanded_charge():
     assert wallet_from_intent({"id": "pi", "latest_charge": "ch_1"}) == PaymentWallet.UNKNOWN
 
 
@@ -301,43 +363,119 @@ def test_confirm_is_idempotent(api_client, member, annual_plan, fake_intents):
 # --------------------------------------------------------------------------
 # webhook
 # --------------------------------------------------------------------------
-def stub_construct_event(monkeypatch, event: dict | None, *, valid: bool = True):
-    def construct_event(payload, signature, secret):
-        if not valid:
-            raise stripe.SignatureVerificationError("bad signature", signature)
-        assert secret == "whsec_test"
-        return event
+def sign_stripe_payload(
+    payload: str, *, secret: str = WEBHOOK_SECRET, timestamp: int | None = None
+) -> str:
+    """The ``Stripe-Signature`` header Stripe would send for ``payload``.
 
-    monkeypatch.setattr(stripe.Webhook, "construct_event", construct_event)
+    The scheme is ``t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<payload>">``,
+    keyed on the endpoint's signing secret.
+    """
+    issued_at = int(time.time()) if timestamp is None else timestamp
+    digest = hmac.new(
+        secret.encode(), f"{issued_at}.{payload}".encode(), hashlib.sha256
+    ).hexdigest()
+    return f"t={issued_at},v1={digest}"
 
 
-def post_webhook(client, body: dict | None = None):
+def stripe_event(event_type: str, obj: dict) -> dict:
+    """A Stripe event envelope carrying ``obj`` as ``data.object``."""
+    return {
+        "id": "evt_test_1",
+        "object": "event",
+        "type": event_type,
+        "data": {"object": obj},
+    }
+
+
+def post_webhook(client, event: dict | None = None, **signature_kwargs):
+    """Post ``event`` with a genuine signature over the exact body sent."""
+    payload = json.dumps(event or {})
     return client.post(
         WEBHOOK,
-        data=json.dumps(body or {}),
+        data=payload,
         content_type="application/json",
-        HTTP_STRIPE_SIGNATURE="t=1,v1=deadbeef",
+        HTTP_STRIPE_SIGNATURE=sign_stripe_payload(payload, **signature_kwargs),
     )
 
 
-def test_webhook_rejects_a_bad_signature(api_client, member, annual_plan, monkeypatch):
-    stub_construct_event(monkeypatch, None, valid=False)
-    response = post_webhook(api_client)
-    assert response.status_code == 400
-    assert "signature" in json.loads(response.content)["detail"].lower()
+def succeeded_event(payment: Payment, intent_id: str, **overrides) -> dict:
+    return stripe_event(
+        "payment_intent.succeeded", intent_payload(payment, id=intent_id, **overrides)
+    )
 
 
-def test_webhook_activates_on_payment_intent_succeeded(
-    api_client, member, annual_plan, monkeypatch
-):
+# --- signature verification -----------------------------------------------
+def test_webhook_accepts_a_valid_signature(api_client, member, annual_plan):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    event = {
-        "type": "payment_intent.succeeded",
-        "data": {"object": intent_payload(payment, id="pi_hook")},
-    }
-    stub_construct_event(monkeypatch, event)
+    response = post_webhook(api_client, succeeded_event(payment, "pi_signed"))
 
-    response = post_webhook(api_client)
+    assert response.status_code == 200
+    assert json.loads(response.content)["handled"] is True
+
+
+def test_webhook_rejects_a_signature_made_with_another_secret(api_client, member, annual_plan):
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    response = post_webhook(
+        api_client,
+        succeeded_event(payment, "pi_wrong_secret"),
+        secret="whsec_not_ours",  # noqa: S106 - test fixture
+    )
+
+    assert response.status_code == 400
+    assert json.loads(response.content) == {"detail": "Invalid Stripe signature."}
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
+def test_webhook_rejects_a_stale_timestamp(api_client, member, annual_plan):
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    stale = int(time.time()) - SIGNATURE_TOLERANCE_SECONDS - 1
+    response = post_webhook(api_client, succeeded_event(payment, "pi_stale"), timestamp=stale)
+
+    assert response.status_code == 400
+    assert json.loads(response.content) == {"detail": "Invalid Stripe signature."}
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
+def test_webhook_rejects_a_missing_signature_header(api_client, member, annual_plan):
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    response = api_client.post(
+        WEBHOOK,
+        data=json.dumps(succeeded_event(payment, "pi_unsigned")),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert json.loads(response.content) == {"detail": "Invalid Stripe signature."}
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
+def test_webhook_rejects_a_tampered_body(api_client, member, annual_plan):
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    signed = json.dumps(succeeded_event(payment, "pi_signed_body"))
+    tampered = json.dumps(succeeded_event(payment, "pi_swapped_body"))
+
+    response = api_client.post(
+        WEBHOOK,
+        data=tampered,
+        content_type="application/json",
+        HTTP_STRIPE_SIGNATURE=sign_stripe_payload(signed),
+    )
+
+    assert response.status_code == 400
+    assert json.loads(response.content) == {"detail": "Invalid Stripe signature."}
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+
+
+# --- event handling --------------------------------------------------------
+def test_webhook_activates_on_payment_intent_succeeded(api_client, member, annual_plan):
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    response = post_webhook(api_client, succeeded_event(payment, "pi_hook"))
+
     assert response.status_code == 200
     assert json.loads(response.content)["handled"] is True
 
@@ -347,9 +485,16 @@ def test_webhook_activates_on_payment_intent_succeeded(
     assert Membership.objects.filter(payment=payment).count() == 1
 
 
-def test_webhook_after_confirm_is_a_no_op(
-    api_client, member, annual_plan, monkeypatch, fake_intents
-):
+def test_webhook_stores_the_intent_as_a_dict(api_client, member, annual_plan):
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    post_webhook(api_client, succeeded_event(payment, "pi_hook_raw"))
+
+    payment.refresh_from_db()
+    assert isinstance(payment.raw, dict)
+    assert payment.raw["id"] == "pi_hook_raw"
+
+
+def test_webhook_after_confirm_is_a_no_op(api_client, member, annual_plan, fake_intents):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     fake_intents.payload = intent_payload(payment, id="pi_both")
 
@@ -359,94 +504,65 @@ def test_webhook_after_confirm_is_a_no_op(
     completed_at = payment.completed_at
 
     api_client.logout()
-    stub_construct_event(
-        monkeypatch,
-        {
-            "type": "payment_intent.succeeded",
-            "data": {"object": intent_payload(payment, id="pi_both")},
-        },
-    )
-    assert post_webhook(api_client).status_code == 200
+    assert post_webhook(api_client, succeeded_event(payment, "pi_both")).status_code == 200
 
     payment.refresh_from_db()
     assert payment.completed_at == completed_at
     assert Membership.objects.filter(user=member).count() == 1
 
 
-def test_webhook_marks_a_failure(api_client, member, annual_plan, monkeypatch):
+def test_webhook_marks_a_failure(api_client, member, annual_plan):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    stub_construct_event(
-        monkeypatch,
-        {
-            "type": "payment_intent.payment_failed",
-            "data": {
-                "object": intent_payload(payment, id="pi_fail", status="requires_payment_method")
-            },
-        },
+    event = stripe_event(
+        "payment_intent.payment_failed",
+        intent_payload(payment, id="pi_fail", status="requires_payment_method"),
     )
 
-    assert post_webhook(api_client).status_code == 200
+    assert post_webhook(api_client, event).status_code == 200
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.FAILED
     assert Membership.objects.count() == 0
 
 
-def test_webhook_refuses_an_amount_that_does_not_match(
-    api_client, member, annual_plan, monkeypatch
-):
+def test_webhook_refuses_an_amount_that_does_not_match(api_client, member, annual_plan):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    stub_construct_event(
-        monkeypatch,
-        {
-            "type": "payment_intent.succeeded",
-            "data": {"object": intent_payload(payment, id="pi_cheap", amount=1)},
-        },
-    )
+    response = post_webhook(api_client, succeeded_event(payment, "pi_cheap", amount=1))
 
-    response = post_webhook(api_client)
     assert response.status_code == 200
     assert json.loads(response.content)["handled"] is False
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.PENDING
 
 
-def test_webhook_ignores_an_unknown_payment(api_client, member, annual_plan, monkeypatch):
-    stub_construct_event(
-        monkeypatch,
-        {
-            "type": "payment_intent.succeeded",
-            "data": {"object": {"id": "pi_nobody", "metadata": {"payment_id": "424242"}}},
-        },
+def test_webhook_ignores_an_unknown_payment(api_client, member, annual_plan):
+    event = stripe_event(
+        "payment_intent.succeeded",
+        {"id": "pi_nobody", "object": "payment_intent", "metadata": {"payment_id": "424242"}},
     )
-    response = post_webhook(api_client)
+    response = post_webhook(api_client, event)
     assert response.status_code == 200
     assert json.loads(response.content)["handled"] is False
 
 
-def test_webhook_ignores_uninteresting_events(api_client, member, annual_plan, monkeypatch):
+def test_webhook_ignores_uninteresting_events(api_client, member, annual_plan):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    stub_construct_event(
-        monkeypatch,
-        {"type": "charge.refunded", "data": {"object": intent_payload(payment, id="pi_ref")}},
-    )
-    response = post_webhook(api_client)
+    event = stripe_event("charge.refunded", intent_payload(payment, id="pi_ref"))
+
+    response = post_webhook(api_client, event)
     assert json.loads(response.content)["handled"] is False
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.PENDING
 
 
-def test_webhook_finds_the_payment_by_provider_ref(api_client, member, annual_plan, monkeypatch):
+def test_webhook_finds_the_payment_by_provider_ref(api_client, member, annual_plan):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     payment.provider_ref = "pi_by_ref"
     payment.save(update_fields=["provider_ref"])
 
     intent = intent_payload(payment, id="pi_by_ref")
     intent["metadata"] = {}
-    stub_construct_event(
-        monkeypatch, {"type": "payment_intent.succeeded", "data": {"object": intent}}
-    )
+    response = post_webhook(api_client, stripe_event("payment_intent.succeeded", intent))
 
-    response = post_webhook(api_client)
     # Metadata is missing, so verification refuses to activate: the row is
     # found, but nothing is granted on an unverifiable event.
     assert json.loads(response.content)["handled"] is False
@@ -454,17 +570,10 @@ def test_webhook_finds_the_payment_by_provider_ref(api_client, member, annual_pl
     assert payment.status == PaymentStatus.PENDING
 
 
-def test_webhook_needs_no_session_or_csrf(api_client, member, annual_plan, monkeypatch):
+def test_webhook_needs_no_session_or_csrf(api_client, member, annual_plan):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    stub_construct_event(
-        monkeypatch,
-        {
-            "type": "payment_intent.succeeded",
-            "data": {"object": intent_payload(payment, id="pi_anon")},
-        },
-    )
     api_client.logout()
-    assert post_webhook(api_client).status_code == 200
+    assert post_webhook(api_client, succeeded_event(payment, "pi_anon")).status_code == 200
 
 
 def test_stripe_provider_is_registered():
