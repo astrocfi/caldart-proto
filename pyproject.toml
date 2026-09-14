@@ -40,10 +40,8 @@ DJANGO_SETTINGS_MODULE = "caldart.settings.test"
 python_files = ["test_*.py", "*_test.py"]
 pythonpath = ["backend"]
 testpaths = ["backend/tests"]
-addopts = "-ra --strict-markers"
-filterwarnings = [
-    "ignore::DeprecationWarning:wagtail.*",
-]
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = ["error"]
 
 [tool.ruff]
 line-length = 100
