@@ -7,10 +7,16 @@ the actual bundle skip unless ``frontend_is_built``.
 
 from __future__ import annotations
 
+import copy
 import json
+from collections.abc import Iterator
 
 import pytest
+from django.test import Client
+from django_vite.core.asset_loader import DjangoViteAssetLoader
+from pytest_django.fixtures import Settings
 
+from apps.cms.models import SiteSettings
 from tests.conftest import VITE_MANIFEST
 
 pytestmark = pytest.mark.django_db
@@ -18,6 +24,22 @@ pytestmark = pytest.mark.django_db
 
 def manifest_entry(source: str) -> dict:
     return json.loads(VITE_MANIFEST.read_text())[source]
+
+
+@pytest.fixture
+def vite_dev_mode(settings: Settings) -> Iterator[None]:
+    """Render the shells the way they render against the Vite dev server.
+
+    django-vite builds its asset loader once, from ``DJANGO_VITE``, and caches it on the
+    class, so the cached loader is discarded on the way in for the override to take
+    effect and on the way out so it cannot leak into later tests.
+    """
+    config = copy.deepcopy(settings.DJANGO_VITE)
+    config["default"]["dev_mode"] = True
+    settings.DJANGO_VITE = config
+    DjangoViteAssetLoader._instance = None
+    yield
+    DjangoViteAssetLoader._instance = None
 
 
 def test_portal_shell_renders(client, site_settings):
@@ -51,6 +73,23 @@ def test_portal_shell_includes_the_portal_bundle(client, site_settings, frontend
     assert '<script type="module"' in body
     for css in entry.get("css", []):
         assert css in body
+
+
+def test_portal_shell_installs_the_react_refresh_preamble(
+    client: Client, site_settings: SiteSettings, vite_dev_mode: None
+) -> None:
+    """Against the dev server the preamble must run before any module that uses it."""
+    body = client.get("/portal/").content.decode()
+    assert "window.$RefreshReg$" in body
+    assert body.index("RefreshRuntime") < body.index("@vite/client")
+    assert body.index("@vite/client") < body.index("src/portal/main.tsx")
+
+
+def test_portal_shell_has_no_react_refresh_preamble_in_production(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The built bundle needs no refresh runtime, so the tag renders nothing."""
+    assert "RefreshRuntime" not in client.get("/portal/").content.decode()
 
 
 def test_home_page_renders(client, home_page, site_settings):
