@@ -50,6 +50,17 @@ SKIP_REASONS: tuple[str, ...] = (
     "renewed",
 )
 
+#: How many days of expiry dates one scan covers, counting back from a kind's
+#: own date, so that a run the timer missed still catches its cohorts.  It is
+#: shorter than the seven days between ``t7`` and ``expired``, so no two kinds
+#: ever claim the same membership on the same day.
+WINDOW_DAYS: int = 3
+
+#: Kinds that only ever go out on their own date.  "Your membership expires
+#: today" is untrue the morning after, so a missed ``expired`` is dropped
+#: rather than sent late.
+EXACT_DAY_KINDS: frozenset[str] = frozenset({ReminderKind.EXPIRED})
+
 
 @dataclass
 class ReminderRun:
@@ -169,16 +180,23 @@ def _skip_reason(user, membership: Membership, kind: str, today: date) -> str | 
 
 
 def _candidates(kind: str, today: date):
-    """Memberships whose ``ends_on`` sits at this kind's offset from ``today``.
+    """Memberships due this kind of reminder on ``today``, or overdue one.
 
     ``REMINDER_OFFSETS`` counts days from expiry, negative before it, so the
-    ``t60`` cohort is the one ending 60 days from now.  Lifetime terms have no
-    ``ends_on`` and so never appear here.
+    ``t60`` cohort is the one ending 60 days from now.  A kind in
+    ``EXACT_DAY_KINDS`` matches that date alone; every other kind also matches
+    the ``WINDOW_DAYS - 1`` days before it, which is how a run that the daily
+    timer missed still reaches the members it stepped over.  The ``ReminderLog``
+    constraint keeps the overlap between consecutive runs from sending twice.
+    Lifetime terms have no ``ends_on`` and so never appear here.
     """
     target = today - timedelta(days=REMINDER_OFFSETS[kind])
+    earliest = target
+    if kind not in EXACT_DAY_KINDS:
+        earliest = target - timedelta(days=WINDOW_DAYS - 1)
     return (
         Membership.objects.select_related("user", "plan")
-        .filter(ends_on=target)
+        .filter(ends_on__gte=earliest, ends_on__lte=target)
         .exclude(status=MembershipStatusChoices.CANCELED)
         .order_by("user_id", "id")
     )

@@ -38,8 +38,35 @@ date.  Negative offsets are before expiry.
 
 The offsets live in one place, ``REMINDER_OFFSETS`` in
 ``backend/apps/reminders/models.py``, and the scanner derives its query from
-them: for kind *k*, the cohort is every membership whose ``ends_on`` equals
-``today - offset(k)``.
+them: for kind *k*, the cohort is every membership whose ``ends_on`` falls in
+the window ending at ``today - offset(k)``.
+
+
+.. _reminders-window:
+
+The catch-up window
+===================
+
+One scan covers three days of expiry dates for each kind, ``WINDOW_DAYS`` in
+``apps/reminders/services.py``, counting back from that kind's own date.  A
+member whose term ends 60 days from today is in the ``t60`` cohort today, and
+is still in it on the next two runs.  A morning the timer never fired, or a run
+that stopped early, is therefore made good the next day rather than stepping
+over a cohort for good.
+
+The window cannot send twice.  ``ReminderLog`` still allows one row per
+``(user, membership, kind)``, so the overlap between consecutive runs is
+skipped as ``already_sent``.  It cannot blur two kinds together either: three
+days is shorter than the seven between ``t7`` and ``expired``, so no membership
+is ever in two cohorts at once.
+
+``expired`` is the exception, listed in ``EXACT_DAY_KINDS``.  "Your membership
+expires today" is untrue the morning after, so a missed ``expired`` is dropped
+rather than sent late; the member gets the ``post30`` note in due course.
+
+Because a reminder can go out behind its nominal date, the day count in the
+subject and body is computed from the dates themselves.  A ``t30`` reminder
+sent two days late says "expires in 28 days", not 30.
 
 
 What the scanner does
@@ -52,9 +79,10 @@ all call it.  In order:
 1. **Expire lapsed terms.**  Every ``Membership`` that is still ``active`` with
    an ``ends_on`` in the past is flipped to ``expired``.  This runs first so
    that the ``post30`` cohort is honestly labeled.
-2. **Walk the five kinds in order.**  For each, select memberships with the
-   matching ``ends_on``, excluding canceled ones.  Lifetime terms have no
-   ``ends_on`` at all, so they never appear.
+2. **Walk the five kinds in order.**  For each, select the memberships whose
+   ``ends_on`` falls in that kind's window (:ref:`reminders-window`), excluding
+   canceled ones.  Lifetime terms have no ``ends_on`` at all, so they never
+   appear.
 3. **Decide whether to send.**  A candidate is skipped, with a reason recorded
    in the summary, when:
 
@@ -161,10 +189,12 @@ Running it by hand is safe at any time::
   sudo systemctl restart caldart-reminders.timer
 
 ``OnCalendar=*-*-* 06:30:00`` moves it to 06:30; ``Mon *-*-* 07:00:00`` makes
-it weekly.  Nothing else has to change — the scanner is date-driven and
-idempotent, so running it more often simply finds nothing new, and running it
-less often risks stepping over a cohort entirely, since a member is only in the
-``t30`` cohort on exactly one day.  That is the reason for ``Persistent=true``.
+it weekly.  The scanner is date-driven and idempotent, so running it more often
+simply finds nothing new.  Running it less often than every three days steps
+over cohorts, because the catch-up window is three days wide
+(:ref:`reminders-window`); a weekly timer would miss most of them.  Within
+those three days, ``Persistent=true`` and the window between them cover a
+machine that was off at 07:00.
 
 **Changing which reminders exist** is a code change: add the kind to
 ``ReminderKind`` and ``REMINDER_OFFSETS``, add a subject to ``SUBJECTS`` in
@@ -254,10 +284,13 @@ supported way to re-send one to a member who never received it.
 Testing
 =======
 
-``backend/tests/test_reminders.py`` covers the scanner: each kind on its exact
-offset and silence a day either side, dedupe across runs, the expiry flip, the
-dry run writing nothing, lifetime and deactivated members being skipped, early
+``backend/tests/test_reminders.py`` covers the scanner: each kind on its own
+offset and silence a day early, dedupe across runs, the expiry flip, the dry
+run writing nothing, lifetime and deactivated members being skipped, early
 renewals being skipped, and the rendered content of every template.
+``backend/tests/test_reminders_resilience.py`` covers the edges of the window,
+one and two days late sending and three days late not, ``expired`` never going
+out late, and the day count in a late email.
 ``backend/tests/test_reminders_api.py`` covers the endpoints and their role
 matrix.  Dates are pinned with ``freezegun`` where the code reads the clock,
 and passed explicitly everywhere else.

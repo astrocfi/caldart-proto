@@ -222,8 +222,8 @@ When something goes wrong
 
 **A reminder run reports everything skipped.**
    That is the normal answer most days: a reminder is sent only when a
-   membership expires in exactly 60, 30 or 7 days, expires today, or expired
-   exactly 30 days ago.  The summary breaks the skips down by reason —
+   membership is within three days of expiring in 60, 30 or 7 days, expires
+   today, or lapsed 30 days ago.  The summary breaks the skips down by reason —
    ``already_sent``, ``lifetime``, ``renewed``, ``inactive_user``,
    ``no_email``.  ``already_sent`` in particular means the scan has already run
    today and did its job.

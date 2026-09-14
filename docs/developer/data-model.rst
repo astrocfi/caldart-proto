@@ -912,22 +912,24 @@ recording an email that never left.
      - Sent when
    * - ``t60``
      - -60
-     - the term ends in exactly 60 days
+     - the term ends in 58 to 60 days
    * - ``t30``
      - -30
-     - the term ends in exactly 30 days
+     - the term ends in 28 to 30 days
    * - ``t7``
      - -7
-     - the term ends in exactly 7 days
+     - the term ends in 5 to 7 days
    * - ``expired``
      - 0
      - the term ends today
    * - ``post30``
      - +30
-     - the term ended 30 days ago
+     - the term ended 30 to 32 days ago
 
-The offsets are exact, not windows: a scan that does not run for three days
-does not catch up.  Lifetime members are skipped, as are deactivated accounts,
+Every kind but ``expired`` matches a three-day window ending at its own date,
+so a run the daily timer missed still catches the cohort it stepped over; the
+unique constraint keeps the overlap from sending twice.  Lifetime members are
+skipped, as are deactivated accounts,
 accounts with no email address, and members whose unbroken coverage now runs
 past the term in question — which is what stops an early renewal being nagged
 about the term it replaced.  See :doc:`reminders`.
