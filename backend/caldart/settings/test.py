@@ -1,5 +1,10 @@
-"""Test settings: fast hashing, in-memory email and storage, mock payments on."""
+"""Test settings: fast hashing, in-memory email and storage, mock payments on.
 
+Importing ``_dotenv`` first is what loads the repository's ``.env``, so a
+worktree's own ``DATABASE_URL`` reaches the test database name.
+"""
+
+from . import _dotenv  # noqa: F401  (imported for its side effect: it reads .env)
 from .base import *  # noqa: F403
 from .base import AUTH_THROTTLE_RATES, LOGGING, REPO_ROOT
 

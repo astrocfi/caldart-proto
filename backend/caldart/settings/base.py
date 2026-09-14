@@ -3,6 +3,10 @@
 Every environment variable in ``.env.example`` is read here, with a
 development-friendly default so a bare checkout runs without a ``.env``.
 ``docs/developer/configuration.rst`` documents each one.
+
+Nothing here reads ``.env``: ``dev.py`` and ``test.py`` import ``_dotenv``
+before this module, and ``prod.py`` deliberately does not, so a production box
+takes its values from the environment alone.
 """
 
 from pathlib import Path
@@ -14,7 +18,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 REPO_ROOT = BASE_DIR.parent
 
 env = environ.Env()
-environ.Env.read_env(REPO_ROOT / ".env")
 
 # --------------------------------------------------------------------------
 # Core

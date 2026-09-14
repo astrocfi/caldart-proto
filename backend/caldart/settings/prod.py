@@ -1,15 +1,19 @@
 """Production settings: Apache/nginx -> gunicorn, whitenoise, SMTP email.
 
-Everything host-specific comes from the environment — in practice from
+Everything host-specific comes from the environment -- in practice from
 ``/etc/caldart/caldart.env``, loaded by ``deploy/systemd/caldart-web.service``.
-Four variables have no default on purpose, so a half-configured box fails at
-start-up rather than serving with a development secret:
-``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` and ``EMAIL_URL``.
+Nothing in this chain reads a ``.env`` file: a variable the environment lacks
+is a start-up error, not an invitation to take a development value from a file
+beside the code.  Four variables have no default on purpose, so a
+half-configured box fails at start-up rather than serving with a development
+secret: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` and ``EMAIL_URL``.
 ``docs/developer/configuration.rst`` lists every variable and its production
 value.
 """
 
 from copy import deepcopy
+
+from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
 from .base import LOGGING, REPO_ROOT, env
@@ -25,9 +29,19 @@ LOGGING = deepcopy(LOGGING)
 # --------------------------------------------------------------------------
 DEBUG = False
 
+# The key ``base.py`` defaults to and ``.env.example`` ships.  It is published
+# in the repository, so a box still running it can have its sessions and
+# password-reset links forged by anyone who has read the source.
+DEVELOPMENT_SECRET_KEY = "dev-insecure-secret-key-change-me"
+
 # No default: a production box must set its own key, and a missing one is a
 # start-up error rather than a quietly shared development secret.
 SECRET_KEY = env("SECRET_KEY")
+if SECRET_KEY == DEVELOPMENT_SECRET_KEY:
+    raise ImproperlyConfigured(
+        "SECRET_KEY is still the published development key. Generate one with: "
+        'python3 -c "import secrets; print(secrets.token_urlsafe(64))"'
+    )
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 SITE_URL = env("SITE_URL")
@@ -123,9 +137,12 @@ DJANGO_VITE = {
 # --------------------------------------------------------------------------
 # Payments
 # --------------------------------------------------------------------------
-# The mock provider renders "Succeed"/"Fail" buttons; never in production
-# unless someone deliberately turns it on to demo the flow without keys.
-PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED", default=False)
+# The mock provider renders "Succeed"/"Fail" buttons, so anyone who can sign in
+# can grant themselves a membership.  The development flag, PAYMENTS_MOCK_ENABLED,
+# is ignored here: it is on in `.env.example`, and a copied environment file must
+# not be what turns it on.  Demonstrating the flow without payment keys takes this
+# variable, which exists nowhere else.
+PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED_IN_PRODUCTION", default=False)
 
 # --------------------------------------------------------------------------
 # Logging

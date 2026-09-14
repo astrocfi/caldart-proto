@@ -126,35 +126,44 @@ Create the production database if it is not the default ``caldart``::
 ================
 
 ``/etc/caldart/caldart.env`` holds every runtime setting.  Start from the
-checked-in example and edit it::
+**production** template and edit it::
 
-  sudo install -m 0640 -o root -g caldart .env.example /etc/caldart/caldart.env
+  sudo install -m 0640 -o root -g caldart \
+       deploy/caldart.env.example /etc/caldart/caldart.env
   sudoedit /etc/caldart/caldart.env
 
-At minimum, production needs these, and four of them have no default at all —
-``prod.py`` refuses to start without ``SECRET_KEY``, ``ALLOWED_HOSTS``,
-``SITE_URL`` and ``EMAIL_URL``::
+.. warning::
 
-  DATABASE_URL=postgres://caldart:a-long-random-password@localhost:5432/caldart
+   Do not install the repository's ``.env.example``.  That one is the
+   development template: it ships the published ``SECRET_KEY`` and sets
+   ``PAYMENTS_MOCK_ENABLED=true``, which renders "Succeed" and "Fail" buttons
+   at checkout and would hand out memberships for free.
+
+The five variables at the top of the template are commented out, so an
+unedited copy refuses to start rather than serving with a guessed value.
+Uncomment and set every one::
+
   SECRET_KEY=<50+ random characters>
-  DEBUG=false
   ALLOWED_HOSTS=caldart.example.org,www.caldart.example.org
   SITE_URL=https://caldart.example.org
-  CSRF_TRUSTED_ORIGINS=https://caldart.example.org,https://www.caldart.example.org
   EMAIL_URL=smtp+tls://user:password@smtp.example.org:587
-  DEFAULT_FROM_EMAIL=CalDART <noreply@caldart.example.org>
-  PAYMENTS_MOCK_ENABLED=false
-  DJANGO_VITE_DEV_MODE=false
-  BACKUP_DIR=/srv/caldart/backups
-  DB_BACKUP_VIA_DOCKER=false
+  DATABASE_URL=postgres://caldart:a-long-random-password@localhost:5432/caldart
+
+Four of them have no default at all — ``prod.py`` refuses to start without
+``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` or ``EMAIL_URL``, and refuses
+the published development ``SECRET_KEY`` as well.  Nothing in the production
+settings reads a ``.env`` file, so a stray one in the checkout cannot fill in a
+variable you missed.
 
 Generate a secret key with::
 
   python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 
-:doc:`configuration` documents every variable, what reads it, and its
-development and production values.  The Stripe and PayPal keys are covered in
-:doc:`payments-setup`.
+Then work down the rest of the template: ``CSRF_TRUSTED_ORIGINS``,
+``DEFAULT_FROM_EMAIL``, the Stripe and PayPal keys, ``BACKUP_DIR`` and
+``DB_BACKUP_VIA_DOCKER``.  :doc:`configuration` documents every variable, what
+reads it, and its development and production values.  The Stripe and PayPal
+keys are covered in :doc:`payments-setup`.
 
 The file is root-owned, mode 0640, group ``caldart``.  It contains the database
 password, the Django secret key and the payment provider secrets; it should

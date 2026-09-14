@@ -8,6 +8,7 @@ fail loudly when they are missing.
 
 from __future__ import annotations
 
+import ast
 import importlib
 import sys
 from pathlib import Path
@@ -15,7 +16,9 @@ from pathlib import Path
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
-DEPLOY = Path(__file__).resolve().parents[2] / "deploy"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEPLOY = REPO_ROOT / "deploy"
+PROD_SETTINGS = REPO_ROOT / "backend" / "caldart" / "settings" / "prod.py"
 
 #: The smallest environment a production box can boot with.
 MINIMAL_ENV = {
@@ -26,32 +29,67 @@ MINIMAL_ENV = {
     "DATABASE_URL": "postgres://caldart:caldart@db.example.org:5432/caldart",
 }
 
-#: Everything ``.env`` sets that would otherwise leak into the assertions.
+#: Every other variable ``prod.py`` reads.  A developer's shell, and the ``.env``
+#: the development and test settings load, would otherwise decide the outcome of
+#: the assertions below, and a local run would disagree with CI.
+#: ``test_unset_names_every_variable_production_reads`` keeps this list exact.
 UNSET = [
     "CSRF_TRUSTED_ORIGINS",
     "SECURE_SSL_REDIRECT",
     "SECURE_HSTS_SECONDS",
-    "PAYMENTS_MOCK_ENABLED",
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS",
+    "SECURE_HSTS_PRELOAD",
+    "DB_CONN_MAX_AGE",
+    "EMAIL_TIMEOUT",
     "DJANGO_VITE_MANIFEST_PATH",
+    "PAYMENTS_MOCK_ENABLED_IN_PRODUCTION",
     "LOG_LEVEL",
     "ADMIN_EMAILS",
-    "DB_CONN_MAX_AGE",
 ]
 
 
-def _import_prod():
+def variables_read_by(module_path: Path) -> set[str]:
+    """Every environment variable a settings module reads through ``env``.
+
+    Finds the first string argument of every ``env(...)``, ``env.bool(...)``,
+    ``env.int(...)``, ``env.list(...)`` and ``env.email_url(...)`` call in the
+    module's source, so a variable added to the module cannot be forgotten here.
+    """
+    names: set[str] = set()
+    for node in ast.walk(ast.parse(module_path.read_text())):
+        if not isinstance(node, ast.Call) or len(node.args) == 0:
+            continue
+        func = node.func
+        if isinstance(func, ast.Name):
+            reader = func.id
+        elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            reader = func.value.id
+        else:
+            continue
+        first = node.args[0]
+        if reader == "env" and isinstance(first, ast.Constant) and isinstance(first.value, str):
+            names.add(first.value)
+    return names
+
+
+def import_prod():
     """Import ``caldart.settings.prod`` fresh, however it was left."""
     sys.modules.pop("caldart.settings.prod", None)
     return importlib.import_module("caldart.settings.prod")
 
 
-@pytest.fixture
-def prod_env(monkeypatch):
-    """A minimal production environment; the module is not imported yet."""
+def apply_production_environment(monkeypatch) -> None:
+    """Pin ``MINIMAL_ENV`` and clear every other variable ``prod.py`` reads."""
     for key, value in MINIMAL_ENV.items():
         monkeypatch.setenv(key, value)
     for key in UNSET:
         monkeypatch.delenv(key, raising=False)
+
+
+@pytest.fixture
+def prod_env(monkeypatch):
+    """A minimal production environment; the module is not imported yet."""
+    apply_production_environment(monkeypatch)
     yield
     sys.modules.pop("caldart.settings.prod", None)
 
@@ -59,7 +97,7 @@ def prod_env(monkeypatch):
 @pytest.fixture
 def prod(prod_env):
     """The imported production settings module."""
-    return _import_prod()
+    return import_prod()
 
 
 # ------------------------------------------------------------------- import
@@ -76,8 +114,13 @@ def test_prod_settings_import_cleanly(prod):
 def test_the_required_variables_have_no_default(prod_env, monkeypatch, variable):
     monkeypatch.delenv(variable, raising=False)
 
-    with pytest.raises(ImproperlyConfigured):
-        _import_prod()
+    with pytest.raises(ImproperlyConfigured, match=variable):
+        import_prod()
+
+
+def test_unset_names_every_variable_production_reads() -> None:
+    """Anything left set would let the ambient environment decide a result."""
+    assert variables_read_by(PROD_SETTINGS) - set(MINIMAL_ENV) == set(UNSET)
 
 
 # ----------------------------------------------------------------- security
@@ -105,7 +148,7 @@ def test_framing_is_same_origin_so_wagtail_previews_work(prod):
 def test_hsts_can_be_disabled_for_a_first_deploy(prod_env, monkeypatch):
     monkeypatch.setenv("SECURE_HSTS_SECONDS", "0")
 
-    assert _import_prod().SECURE_HSTS_SECONDS == 0
+    assert import_prod().SECURE_HSTS_SECONDS == 0
 
 
 def test_mock_payments_are_off_by_default(prod):

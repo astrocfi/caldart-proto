@@ -2,14 +2,23 @@
 Configuration
 =============
 
-Every runtime setting comes from the environment.  ``.env.example`` at the
-repository root is the reference copy with working development defaults;
-``make setup`` copies it to ``.env`` if you do not have one.  A production box
-keeps its values in ``/etc/caldart/caldart.env`` instead, read by the systemd
-units — and needs more than ``.env.example`` lists, because the hardening and
-logging variables ``prod.py`` reads have sensible defaults and are therefore
-not in the development template at all.  This page is the complete list either
-way.
+Every runtime setting comes from the environment.  There are two templates:
+
+``.env.example``
+   The development reference, at the repository root, with working defaults for
+   every variable.  ``make setup`` copies it to ``.env`` if you do not have one.
+
+``deploy/caldart.env.example``
+   The production template, installed as ``/etc/caldart/caldart.env`` and read
+   by the systemd units.  The five variables a deployment must decide for
+   itself — ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, ``EMAIL_URL`` and
+   ``DATABASE_URL`` — are commented out, so an unedited copy refuses to start
+   instead of serving with a guessed value.  It also lists the hardening and
+   logging variables that only ``prod.py`` reads.
+
+Never install ``.env.example`` on a server: it carries the published
+development ``SECRET_KEY`` and turns the mock payment provider on.  This page
+is the complete list of variables either way.
 
 .. note::
 
@@ -20,32 +29,42 @@ way.
 Where settings are read
 =======================
 
-``backend/caldart/settings/`` has four modules:
+``backend/caldart/settings/`` has five modules:
+
+``_dotenv.py``
+   Reads ``.env`` from the repository root into the process environment, so a
+   bare checkout runs with no exported variables at all.  Real environment
+   variables win over the file.  Only ``dev.py`` and ``test.py`` import it, and
+   they import it before ``base``.
 
 ``base.py``
-   Reads every variable listed below with ``django-environ``, and calls
-   ``environ.Env.read_env(REPO_ROOT / ".env")`` so a bare checkout runs with no
-   exported variables at all.  Everything else imports from here.
+   Reads every variable listed below with ``django-environ``, each with a
+   development default.  Everything else imports from here.  It never reads
+   ``.env`` itself.
 
 ``dev.py``
    ``DEBUG`` on, unhashed static storage, and ``ALLOWED_HOSTS`` defaulting to
    ``["*"]`` — but only when the variable is *absent*, and ``.env.example``
    sets it, so a standard checkout gets the list from ``.env``.  The default
-   settings module: ``manage.py``, ``wsgi.py`` and ``asgi.py`` all
-   ``setdefault`` ``DJANGO_SETTINGS_MODULE=caldart.settings.dev``.
+   ``manage.py`` reaches for when nothing sets ``DJANGO_SETTINGS_MODULE``.
 
 ``prod.py``
    ``DEBUG`` off, TLS and cookie hardening, hashed static manifest, logging to
-   stdout, persistent database connections.  Four variables have **no default**
-   here and a missing one is a start-up error: ``SECRET_KEY``,
-   ``ALLOWED_HOSTS``, ``SITE_URL`` and ``EMAIL_URL``.  Selected by
+   stdout, persistent database connections, a database-backed cache.  It reads
+   the environment alone — no ``.env`` anywhere in its import chain — so a
+   missing variable cannot be filled in from a file that happens to sit beside
+   the code.  Four variables have **no default** and a missing one is a
+   start-up error: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` and
+   ``EMAIL_URL``.  A ``SECRET_KEY`` equal to the published development key is a
+   start-up error too.  Selected by
    ``Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod`` in both systemd
    units.
 
 ``test.py``
    ``DEBUG`` off, MD5 password hashing, in-memory email and file storage, mock
-   payments on.  Selected by ``pytest.ini_options`` in ``pyproject.toml``; you
-   never set it by hand.
+   payments on.  It reads ``.env`` so a worktree's own ``DATABASE_URL`` reaches
+   the test database name.  Selected by ``pytest.ini_options`` in
+   ``pyproject.toml``; you never set it by hand.
 
 Values are read once, at import.  Changing the environment file means
 restarting the service.
@@ -72,6 +91,8 @@ Core
    :Development: the checked-in ``dev-insecure-secret-key-change-me``.
    :Production: **required**, 50+ random characters, unique per deployment.
       ``python3 -c "import secrets; print(secrets.token_urlsafe(64))"``.
+      ``prod.py`` refuses to start with the development key: it is published in
+      the repository, so anyone could forge sessions and password-reset links.
 
 ``DEBUG``
    Django's debug mode: tracebacks in the browser, no template caching.
@@ -216,11 +237,19 @@ Covered in full, with test cards and account setup, in :doc:`payments-setup`.
 ``PAYMENTS_MOCK_ENABLED``
    Enables the mock provider, which renders "Succeed" and "Fail" buttons
    instead of taking money.  The e2e tests use it, and so does anyone without
-   payment keys.
+   payment keys.  ``prod.py`` does not read it at all, so an environment file
+   copied from a development machine cannot switch payments off on a live site.
 
    :Development: ``true``
-   :Production: ``false``.  ``prod.py`` defaults it to false; setting it true
-      on a public site would let anyone grant themselves a membership.
+   :Production: ignored.
+
+``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION`` *(prod only)*
+   The only way to enable the mock provider under ``prod.py``.  It appears in
+   no template, so turning it on is a deliberate act: on a public site it lets
+   anyone who can sign in grant themselves a membership.  Set it only to
+   demonstrate the checkout flow on a box with no payment keys.
+
+   :Production: ``false``
 
 
 Frontend assets
@@ -304,9 +333,13 @@ Settings that are not environment variables
 
 ``DJANGO_SETTINGS_MODULE``
    Which settings module to load.  Not read from ``.env`` — it has to be set
-   before Django starts.  ``caldart.settings.dev`` by default,
-   ``caldart.settings.prod`` in both systemd units, ``caldart.settings.test``
-   from ``pyproject.toml``.
+   before Django starts.  ``manage.py`` falls back to ``caldart.settings.dev``
+   so a local command needs no ceremony.  The application servers do not:
+   ``wsgi.py`` and ``asgi.py`` raise ``ImproperlyConfigured`` naming this
+   variable when it is unset, because a web server that has not been told which
+   settings to load has been misconfigured.  Both systemd units set
+   ``caldart.settings.prod``, and ``pyproject.toml`` sets
+   ``caldart.settings.test`` for ``pytest``.
 
 ``CALDART_VERSION``
    A constant in ``base.py``, used only as the fallback when
