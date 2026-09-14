@@ -246,8 +246,10 @@ limited by client IP address, with the rates read from the environment:
      - ``auth_password_reset``
      - ``AUTH_THROTTLE_PASSWORD_RESET`` (``10/hour``)
 
-Setting a rate to empty turns that throttle off; the test settings do exactly
-that for all three.  The classes subclass ``AnonRateThrottle`` but override
+Setting a rate to empty turns that throttle off, and a value that is neither
+empty nor a readable rate stops start-up; see :doc:`configuration`.  The test
+settings switch all three off in Python rather than through the environment.
+The classes subclass ``AnonRateThrottle`` but override
 ``get_cache_key`` so they bucket by address even for an authenticated caller —
 registration signs the new account in, and every request after the first would
 otherwise go uncounted.  Exceeding a rate is **429**.

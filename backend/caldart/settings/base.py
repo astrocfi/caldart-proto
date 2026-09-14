@@ -12,6 +12,7 @@ takes its values from the environment alone.
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # backend/caldart/settings/base.py -> repo root
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -210,11 +211,46 @@ REST_FRAMEWORK = {
 }
 
 # Rate limits for the anonymous auth endpoints, read by
-# ``apps.accounts.throttling``.  A scope mapped to ``None`` (or absent) is off.
+# ``apps.accounts.throttling``.  A scope mapped to ``None`` is off.
+#: The period initials DRF accepts after the slash: second, minute, hour, day.
+THROTTLE_PERIOD_INITIALS = ("s", "m", "h", "d")
+
+
+def _throttle_rate(variable: str, default: str) -> str | None:
+    """Read one DRF throttle rate from the environment.
+
+    An unset variable yields ``default``.  A value that is empty or only
+    whitespace yields ``None``, which turns that throttle off.  Any other
+    value must read ``<count>/<period>`` -- a non-negative whole number, a
+    slash, then a period naming or beginning with second, minute, hour or day
+    -- and is returned stripped of surrounding whitespace.  A value that DRF
+    could not parse raises ``ImproperlyConfigured`` naming the variable, so a
+    typo stops start-up instead of turning every request to the throttled
+    endpoint into a 500.
+    """
+    rate = env(variable, default=default).strip()
+    if len(rate) == 0:
+        return None
+    parts = rate.split("/")
+    is_valid = (
+        len(parts) == 2
+        and parts[0].isascii()
+        and parts[0].isdigit()
+        and parts[1][:1] in THROTTLE_PERIOD_INITIALS
+    )
+    if not is_valid:
+        raise ImproperlyConfigured(
+            f"{variable} must be a rate such as '20/min' -- a count, a slash, then "
+            f"second, minute, hour or day -- or be empty to turn the throttle off. "
+            f"Got {rate!r}."
+        )
+    return rate
+
+
 AUTH_THROTTLE_RATES = {
-    "auth_login": env("AUTH_THROTTLE_LOGIN", default="20/min"),
-    "auth_register": env("AUTH_THROTTLE_REGISTER", default="10/hour"),
-    "auth_password_reset": env("AUTH_THROTTLE_PASSWORD_RESET", default="10/hour"),
+    "auth_login": _throttle_rate("AUTH_THROTTLE_LOGIN", "20/min"),
+    "auth_register": _throttle_rate("AUTH_THROTTLE_REGISTER", "10/hour"),
+    "auth_password_reset": _throttle_rate("AUTH_THROTTLE_PASSWORD_RESET", "10/hour"),
 }
 
 # --------------------------------------------------------------------------
