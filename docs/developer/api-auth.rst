@@ -328,7 +328,7 @@ Names are outside the guard entirely, so a user administrator can still correct
 the spelling of a system administrator's surname.
 
 A refusal is a 400 keyed on the field it belongs to, the same shape as the
-``roles`` guard, so the portal's field errors show it against the input::
+``roles`` guard, so a client can show it against the input it came from::
 
     400 {"email": ["<message>"]}
 

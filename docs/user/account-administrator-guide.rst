@@ -127,11 +127,16 @@ Two of those fields are guarded, because between them they are enough to take an
 account over: the email address is where a password reset link is sent, and the
 Active box locks somebody out.  You may change them only on an account whose
 roles you hold yourself — every ordinary member, and anybody else whose roles
-you already have.  A user administrator's record, or a system administrator's,
-is refused with a message against the field, and nothing on the record changes,
-profile fields included.  You cannot clear **Account is active** on your own
-record either.  Names, DART, phone numbers and every profile field stay editable
-on any record you can open.
+you already have.  On a user administrator's record, or a system
+administrator's, the save is refused and nothing on the record changes, profile
+fields included.  You cannot clear **Account is active** on your own record
+either.  Names, DART, phone numbers and every profile field stay editable on any
+record you can open.
+
+A refused email address says so under the field.  A refused Active box does not:
+this screen has no message under the checkbox, so **Save changes** simply leaves
+the record as it was.  If a save appears to do nothing, check whether you moved
+the Active box on a record you may not deactivate, put it back, and save again.
 
 Memberships
 -----------
@@ -255,8 +260,15 @@ When something goes wrong
 **"You cannot change the email address of an account that holds roles you do not hold."**
    You are editing another administrator's record.  Moving an address is enough
    to take an account over, so it is reserved for somebody who already holds
-   every role that account holds.  Ask a system administrator.  The Active box
-   is refused the same way, and so is clearing it on your own record.
+   every role that account holds.  Ask a system administrator.
+
+**Save changes did nothing, and said nothing.**
+   The Active box is guarded the same way the email address is — on another
+   administrator's record, and on your own, where nobody may clear it — but the
+   Profile tab has no message under the checkbox, so a refusal there is silent
+   and the whole save is discarded.  Put the box back the way you found it and
+   save again; ask a system administrator if the account really has to be
+   deactivated.
 
 **"You cannot delete your own account."**
    Exactly what it says.  Ask another administrator.
