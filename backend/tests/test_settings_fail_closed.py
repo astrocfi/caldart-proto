@@ -1,12 +1,11 @@
 """Production configuration fails closed rather than borrowing development values.
 
-Three defaults used to fail open: ``base.py`` read the repository ``.env`` for
-every settings module, the WSGI and ASGI entry points fell back to the
-development settings, and the deployment guide seeded the production
-environment file from the development template, which turns the mock payment
-provider on.  These tests pin the closed behavior: ``prod.py`` reads the
-environment alone, the entry points insist on being told which settings to
-load, and the production template refuses to start until it is edited.
+Three defaults carry the weight.  ``prod.py`` reads the process environment
+alone, so a repository ``.env`` cannot fill in a missing variable or switch the
+mock payment provider on.  The WSGI and ASGI entry points insist on being told
+which settings module to load rather than guessing at one.  And the production
+environment template ships its required values commented out, so an unedited
+copy refuses to start instead of serving with a guessed value.
 """
 
 from __future__ import annotations

@@ -55,7 +55,7 @@ def attempt_login(api_client, member, **extra):
 # ---------------------------------------------------------------- login scope
 @LOGIN_TWICE
 def test_a_rotating_forwarded_prefix_shares_one_budget(api_client, member) -> None:
-    """Spoofing the header is what used to buy unlimited password guesses."""
+    """A different spoofed prefix on every guess buys no extra attempts."""
     for spoofed in SPOOFED[:2]:
         assert attempt_login(api_client, member, **forwarded_for(spoofed, CLIENT)) == 400
 
