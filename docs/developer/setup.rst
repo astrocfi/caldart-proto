@@ -309,16 +309,18 @@ Run any of them with ``uv run backend/manage.py <command>``.  See
 Before you open a pull request
 ==============================
 
-Three commands must be green, and CI runs all three on every pull request:
+Five commands must be green, and CI runs all five on every pull request:
 
 .. code-block:: console
 
-   $ make test    # pytest + vitest
-   $ make lint    # ruff, tsc, eslint, prettier
-   $ make docs    # sphinx-build -W: warnings are errors
+   $ make test     # pytest + vitest; a warning fails the run
+   $ make lint     # ruff, tsc, eslint (no warnings), prettier
+   $ make check    # manage.py check, makemigrations --check, npm run build
+   $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors
+   $ make audit    # uv audit + npm audit: known vulnerabilities
 
-CI additionally runs ``manage.py check``, ``makemigrations --check --dry-run``
-(so a model change without its migration fails) and ``npm run build``.  See
+``make check`` catches a model change without its migration and a frontend
+that type-checks but does not build. See
 :doc:`testing` for how the suites are organised.
 
 Troubleshooting

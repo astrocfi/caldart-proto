@@ -709,11 +709,13 @@ trigger from ``/portal/system``.
   make run        Django on :8000 (+ prints how to run `make dev-frontend`)
   make dev-frontend   vite dev server on :5173 (HMR)
   make build      npm run build (production assets)
-  make test       backend + frontend unit tests
+  make test       backend + frontend unit tests (pytest warnings are errors)
   make test-backend / test-frontend / e2e
-  make lint       ruff + eslint + tsc
+  make lint       ruff + tsc + eslint (no warnings) + prettier
+  make check      manage.py check (warnings fail) + makemigrations --check + build
+  make audit      uv audit + npm audit (known vulnerabilities)
   make backup / restore FILE=... / reminders [TODAY=...]
-  make docs       sphinx-build -W docs docs/_build/html
+  make docs       sphinx-build -n -W docs docs/_build/html
 
 Demo accounts created by ``seed_demo`` (password ``caldart-demo``):
 ``member@example.org``, ``expired@example.org``, ``leader@example.org``,
@@ -749,7 +751,10 @@ Env vars (``.env.example`` is the reference): ``DATABASE_URL``,
   steps, profile form validation, leader search/status card, data table
   filters + export links, admin payments summary rendering, route guards.
 - E2E (Playwright, ``make e2e``, mock provider): the five flows in §1.
-- CI runs backend + frontend + docs (``-W``) on every PR.
+- CI runs the same make targets on every push and PR: ``lint``, ``test``,
+  ``check``, ``docs`` (``-n -W``), ``audit`` and ``e2e``. Warnings are errors
+  throughout: pytest ``filterwarnings``, ``manage.py check --fail-level
+  WARNING``, ``eslint --max-warnings 0`` and Sphinx ``-W``.
 
 
 16. Documentation (Sphinx, RST)
