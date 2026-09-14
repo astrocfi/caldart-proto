@@ -410,8 +410,9 @@ Rules:
   row, narrowed by ``?role=``.
 - Roles are additive; ``ROLE_SLUGS`` is ordered least to most privileged, and
   that order is what ``GET /roles`` and ``User.roles`` return.
-- ``system_admin`` passes every permission check in the API, as does any
-  Django superuser.
+- ``system_admin`` passes every role check in the API, as does any Django
+  superuser; the three payment-confirmation endpoints are owner-only for
+  everybody (see :ref:`api-permission-matrix`).
 - ``STAFF_ROLE_SLUGS`` is every slug except ``member``, and is what
   ``can_access_members_content`` tests.
 - ``manage.py seed_roles`` creates the groups and is idempotent.  It is also

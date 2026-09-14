@@ -16,8 +16,9 @@ go there.
 What the role grants
 ====================
 
-``system_admin`` passes every permission check in the system.  In practice you
-can:
+``system_admin`` passes every role check in the system.  The one thing it
+cannot do is complete another member's checkout: only the member who started a
+payment can confirm it.  In practice you can:
 
 * do everything a member, DART leader, user administrator, account
   administrator and website administrator can do;
