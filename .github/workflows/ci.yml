@@ -12,9 +12,11 @@ concurrency:
 env:
   UV_FROZEN: "1"
 
+# Every check is a make target, so CI runs exactly what `make` runs locally
+# (.claude/rules/environment.md).  The jobs only install what their targets need.
 jobs:
   backend:
-    name: Backend (ruff + pytest)
+    name: Backend (lint + check + pytest)
     runs-on: ubuntu-latest
 
     services:
@@ -51,27 +53,18 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: ruff check
-        run: uv run ruff check .
+      - name: Lint
+        run: make lint-backend
 
-      - name: ruff format --check
-        run: uv run ruff format --check .
+      - name: Django system checks and missing migrations
+        run: make check-backend
 
-      - name: Django system checks
-        run: uv run backend/manage.py check --settings caldart.settings.test
-
-      - name: Missing migrations
-        run: uv run backend/manage.py makemigrations --check --dry-run --settings caldart.settings.test
-
-      - name: pytest
-        run: uv run pytest -q
+      - name: Tests
+        run: make test-backend
 
   frontend:
-    name: Frontend (tsc + eslint + vitest + build)
+    name: Frontend (lint + vitest + build)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - uses: actions/checkout@v4
@@ -84,21 +77,36 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck
+        working-directory: frontend
 
       - name: Lint
-        run: npm run lint
+        run: make lint-frontend
 
-      - name: Format check
-        run: npm run format:check
+      - name: Tests
+        run: make test-frontend
 
-      - name: Unit tests
-        run: npm run test
+      - name: Production build
+        run: make check-frontend
 
-      - name: Build
-        run: npm run build
+  audit:
+    name: Audit (uv + npm)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Known vulnerabilities
+        run: make audit
 
   e2e:
     name: End-to-end (Playwright, Chromium)
@@ -181,7 +189,7 @@ jobs:
           retention-days: 7
 
   docs:
-    name: Docs (sphinx -W)
+    name: Docs (sphinx -n -W)
     runs-on: ubuntu-latest
 
     steps:
@@ -199,4 +207,4 @@ jobs:
         run: uv sync --frozen
 
       - name: Build documentation
-        run: uv run sphinx-build -W -b html docs docs/_build/html
+        run: make docs
