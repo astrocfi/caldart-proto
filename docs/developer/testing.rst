@@ -239,8 +239,10 @@ What the backend suite covers
        ``…_mock_provider.py``, ``…_apple_pay.py``
      - checkout → confirm → activation for each provider, webhook signatures,
        amount and currency mismatches, idempotency
-   * - ``test_reminders.py``, ``test_reminders_api.py``
-     - each kind on its exact offset, dedupe, dry runs, skip reasons
+   * - ``test_reminders.py``, ``test_reminders_resilience.py``,
+       ``test_reminders_api.py``
+     - each kind on its own offset, the three-day catch-up window, dedupe, dry
+       runs, skip reasons, and a send the mail server refuses
    * - ``test_cms_pages.py``, ``…_permissions.py``, ``…_seed_content.py``,
        ``test_cms_documents.py``, ``test_site_config.py``
      - page types, blocks, the members-only wall in every visitor state,

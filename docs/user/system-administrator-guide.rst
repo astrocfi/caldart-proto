@@ -222,11 +222,13 @@ When something goes wrong
 
 **A reminder run reports everything skipped.**
    That is the normal answer most days: a reminder is sent only when a
-   membership is within three days of expiring in 60, 30 or 7 days, expires
-   today, or lapsed 30 days ago.  The summary breaks the skips down by reason —
+   membership expires in 58 to 60, 28 to 30 or 5 to 7 days, expires today, or
+   lapsed 30 to 32 days ago.  Every kind but "expires today" covers its own day
+   and the two days after it, so a run the timer missed still catches the
+   members it stepped over.  The summary breaks the skips down by reason —
    ``already_sent``, ``lifetime``, ``renewed``, ``inactive_user``,
-   ``no_email``.  ``already_sent`` in particular means the scan has already run
-   today and did its job.
+   ``no_email``.  ``already_sent`` in particular means an earlier run in that
+   three-day window already sent it.
 
 **A reminder run sends nothing when you expected mail.**
    Check that **Dry run** is unticked: it is ticked by default, and a dry run
