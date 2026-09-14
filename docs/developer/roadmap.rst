@@ -171,10 +171,11 @@ not a browser-tab action.  If it is ever added it needs a confirmation flow
 worth the name, and probably a maintenance mode.
 
 **Scheduled backups.**  ``deploy/systemd/`` ships a timer for the reminder
-scan.  Backups are on demand — ``make backup``, the portal button, or your own
-cron entry.  A ``caldart-backup.timer`` alongside the reminder one, plus
-retention (keep N daily, M weekly) and off-host copies, is a small piece of
-work with a large payoff.
+scan.  Backups are on demand — ``make backup``, the portal button, or the
+service and timer that :doc:`backup-restore` spells out for an operator to
+install by hand.  Shipping that pair in ``deploy/`` alongside the reminder one,
+plus retention worth the name (keep N daily, M weekly) and off-host copies, is
+a small piece of work with a large payoff.
 
 **Observability.**  Logging goes to stdout for systemd to capture, and
 ``GET /system/health`` answers the basic questions.  There are no metrics, no

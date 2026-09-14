@@ -186,17 +186,69 @@ names.  Without it every page raises at render time.
 7. Database and static files
 ============================
 
-Run these as the service user with the production settings::
+.. _deploy-manage-commands:
 
-  cd /srv/caldart/backend
-  sudo -u caldart env $(grep -v '^#' /etc/caldart/caldart.env | xargs) \
-      DJANGO_SETTINGS_MODULE=caldart.settings.prod \
-      /srv/caldart/.venv/bin/python manage.py migrate
+Running management commands
+---------------------------
 
-  sudo -u caldart ... manage.py createcachetable
-  sudo -u caldart ... manage.py seed_roles
-  sudo -u caldart ... manage.py seed_content     # example pages; optional
-  sudo -u caldart ... manage.py collectstatic --noinput
+A management command needs the same five things ``caldart-web.service`` gives
+gunicorn: the ``caldart`` user, ``/srv/caldart/backend`` as the working
+directory, ``/etc/caldart/caldart.env``,
+``DJANGO_SETTINGS_MODULE=caldart.settings.prod``, and ``UMask=0027``.  Let
+systemd assemble them again, as a transient unit, instead of loading the
+environment file from a shell.  systemd keeps interior whitespace in an
+unquoted value, so ``DEFAULT_FROM_EMAIL=CalDART <noreply@caldart.example.org>``
+reaches the command intact; a shell splits it at the spaces and the command
+never starts.
+
+Define this function once in the shell you are deploying from.  Every
+production command in this document and in :doc:`backup-restore` is written as
+a call to it::
+
+  caldart_manage() {
+      sudo systemd-run --quiet --wait --collect --pty --pipe \
+          --uid=caldart --gid=caldart \
+          --working-directory=/srv/caldart/backend \
+          --property=EnvironmentFile=/etc/caldart/caldart.env \
+          --property=UMask=0027 \
+          --setenv=DJANGO_SETTINGS_MODULE=caldart.settings.prod \
+          /srv/caldart/.venv/bin/python manage.py "$@"
+  }
+
+``--wait`` blocks until the command finishes and hands its exit status back, so
+``caldart_manage`` can be tested in a script.  ``--collect`` unloads the
+transient unit afterwards, including when it failed.  Given both ``--pty`` and
+``--pipe``, systemd allocates a terminal when one is attached — which
+``createsuperuser`` and the ``db_restore`` prompt need — and passes plain pipes
+through when the output is redirected.
+
+``UMask=0027`` is the one property with nothing to do with finding the code or
+the settings, and it is not optional: a transient unit otherwise takes
+systemd's system default of ``0022``, and ``caldart_manage db_backup`` would
+write a full dump of the database — member records, password hashes, payment
+history — world-readable at mode 0644.  ``caldart-web.service``,
+``caldart-reminders.service`` and the ``caldart-backup.service`` in
+:doc:`backup-restore` set the same mask, so every path that writes a dump
+writes it readable by the ``caldart`` group and no wider.
+
+Confirm the environment file is being read before relying on it::
+
+  sudo systemd-run --quiet --wait --pipe \
+      --property=EnvironmentFile=/etc/caldart/caldart.env \
+      /usr/bin/printenv DEFAULT_FROM_EMAIL
+
+That prints the value exactly as the file spells it, spaces included.
+
+Preparing the database
+----------------------
+
+::
+
+  caldart_manage migrate
+  caldart_manage createcachetable
+  caldart_manage seed_roles
+  caldart_manage seed_content     # example pages; optional
+  caldart_manage collectstatic --noinput
 
 ``createcachetable`` builds ``caldart_cache``, the table the default cache
 uses.  The anonymous auth throttles count in that cache, and every gunicorn
@@ -208,11 +260,11 @@ a published password.
 
 Create the first real administrator::
 
-  sudo -u caldart ... manage.py createsuperuser
+  caldart_manage createsuperuser
 
 then sign in at ``/admin/`` and give the account its roles, or from a shell::
 
-  sudo -u caldart ... manage.py shell -c "
+  caldart_manage shell -c "
   from django.contrib.auth import get_user_model
   u = get_user_model().objects.get(email='you@example.org')
   for role in ['member','system_admin','website_admin']:
@@ -338,8 +390,7 @@ the kinds, the templates and how to change the cadence.
 
 Take one now and schedule them::
 
-  cd /srv/caldart/backend
-  sudo -u caldart ... manage.py db_backup
+  caldart_manage db_backup
 
 :doc:`backup-restore` covers the commands, the timer, retention and restoring.
 
@@ -352,7 +403,7 @@ Checking it worked
   systemctl status caldart-web caldart-reminders.timer
   sudo docker compose ps
   curl -sI https://caldart.example.org/ | head -1
-  cd /srv/caldart/backend && sudo -u caldart ... manage.py health --json
+  caldart_manage health --json
 
 The ``health`` command prints the same report as ``GET /system/health`` and the
 health panel of ``/portal/system``: database connectivity, pending migrations,
@@ -389,20 +440,19 @@ default and ``WARNING`` is reasonable once things are quiet.
 Upgrading
 =========
 
-Take a backup first, always::
+Take a backup first, always.  ``caldart_manage`` is the function from
+:ref:`deploy-manage-commands`::
 
-  cd /srv/caldart/backend
-  sudo -u caldart ... manage.py db_backup
+  caldart_manage db_backup
 
   cd /srv/caldart
   sudo git pull
   sudo uv sync --frozen --no-dev
   cd frontend && sudo npm ci && sudo npm run build && cd ..
 
-  cd backend
-  sudo -u caldart ... manage.py migrate
-  sudo -u caldart ... manage.py createcachetable
-  sudo -u caldart ... manage.py collectstatic --noinput
+  caldart_manage migrate
+  caldart_manage createcachetable
+  caldart_manage collectstatic --noinput
 
   sudo systemctl restart caldart-web
   journalctl -u caldart-web -n 30
@@ -443,7 +493,7 @@ before the frontend build.  Run them in that order and restart.
 ``X-Forwarded-Proto: https``, so Django redirects a request it thinks is plain
 HTTP, forever.  Fix the header rather than turning the redirect off.
 
-**No email.**  Check ``EMAIL_URL`` and try
-``manage.py send_renewal_reminders --dry-run``; then send one for real and read
+**No email.**  Check ``EMAIL_URL`` and try ``caldart_manage
+send_renewal_reminders --dry-run``; then send one for real and read
 ``journalctl -u caldart-web``.  Many providers need
 ``smtp+tls://`` on port 587 with an app password rather than the account one.
