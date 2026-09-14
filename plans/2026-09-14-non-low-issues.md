@@ -4,7 +4,7 @@
 
 **Scope:** the 44 issues labeled `priority-critical`, `priority-high` or `priority-medium`. 42 were filed from the 2026-09-13 critiques in `critiques/`. The other two are #62 (codespell and American spelling) and #64 (mypy). The six `priority-low` checklist issues are out of scope.
 
-**Status:** ready to run once #13 is merged, this plan is committed, and the decisions in §5 have been reviewed.
+**Status:** ready to run once this plan is committed to `main` and the decisions in §5 have been reviewed.
 
 ## 1. How to run this plan
 
@@ -37,8 +37,8 @@ Every worker follows `CLAUDE.md` and the rules in `.claude/rules/`. On top of th
 - **Database.** Set `DATABASE_URL=postgres://caldart:caldart@localhost:5432/<database>`, with `<database>` from the manifest, and run `make createdb`.
 - **End-to-end runs.** A package with an `e2e_port` in the manifest runs `make e2e E2E_PORT=<e2e_port> E2E_DB=<database>_e2e`. Parallel packages then never share a server or a database.
 - **Test first.** For every behavior change, write the failing test first, and watch it fail for the right reason before fixing the code (`python_testing` §1). Backend tests go in `backend/tests/test_<feature>.py`; frontend tests sit beside the code.
-- **Scope.** Edit only the files the package owns (§7 and the manifest), plus new test files and the docs pages it lists. Docs pages and `PLAN.rst` are shared: any package may edit the sections its change affects. If a fix genuinely needs another code file, keep that change additive and say so in the PR.
-- **Docs in the same PR.** Update every page the change affects (`doc_python` §6). When behavior departs from `PLAN.rst`, update `PLAN.rst` in the same PR.
+- **Scope.** Edit only the files the package owns (§7 and the manifest), plus new test files and the docs pages it lists. Docs pages are shared: any package may edit the sections its change affects. If a fix genuinely needs another code file, keep that change additive and say so in the PR.
+- **Docs in the same PR.** Update every page the change affects (`doc_python` §6). The docs are the specification and stand alone: never cite a plan from the docs, docstrings or comments. The old master plan is archived and frozen at `plans/archive/2026-09-04-prototype-master-plan.rst`; never edit it. The issues cite its sections as `PLAN §N` or `PLAN.rst §N`. Read those sections there for background, and put anything the docs still need into the docs page that covers the topic.
 - **Frontend dependencies.** npm 10.9.2 crashes (`reading 'edgesOut'`) when it installs into this tree. To add or upgrade a package, run `npx -y npm@11 install …`, then check with a clean `npm ci`.
 - **Commits.** Use Conventional Commits, with one logical change per commit (the `git-workflow` skill). Every commit message ends with these two lines:
 
@@ -117,10 +117,10 @@ These are the defaults the workers apply. Each comes from the issue's suggested 
 - **#19, Stripe objects and signatures:**
   - Delete the `construct_event` stub, and sign every webhook test's payload for real.
   - Convert SDK objects with `.to_dict()` at the boundary in `start`, `confirm` and `handle_webhook`, as part of the same fix.
-  - Amend PLAN §15 to describe the SDK-boundary fakes. Don't route Stripe through `httpx` just so `respx` can mock it.
+  - Describe the SDK-boundary fakes in `docs/developer/testing.rst`. Don't route Stripe through `httpx` just so `respx` can mock it.
   - The signing helper lives in `test_payments_stripe.py`.
   - Filed as `priority-high` rather than medium: the defect it uncovered breaks every real Stripe confirmation and webhook.
-- **#48, profile completeness:** the canonical five-field rule goes in PLAN §6.1. The member guide keeps its nudge entry, reworded.
+- **#48, profile completeness:** the canonical five-field rule goes in the API page that documents `profile_complete`. The member guide keeps its nudge entry, reworded.
 - **#49, stale duplicate:** delete it in its own first commit, before any other `data-model.rst` edit.
 - **#50, diagrams:**
   - Two diagrams, domain and CMS.
@@ -261,6 +261,7 @@ These are the defaults the workers apply. Each comes from the issue's suggested 
   - every PR merged, with the issues it closed;
   - every issue still open, and why;
   - every decision it took that §5 did not cover.
+- **Archive this plan.** If every package merged, the orchestrator opens one last PR that moves this plan to `plans/archive/`, and merges it as §4 describes.
 
 ## 7. Work packages
 
@@ -290,15 +291,15 @@ Packages are described by area below. The manifest (§8) gives their order, and 
   - the `cancelled` sites, with their tests:
     - `backend/apps/members/models.py`, `backend/apps/members/migrations/0001_initial.py`, `backend/apps/members/services.py`, `backend/apps/members/api/admin_filters.py`, `backend/apps/reminders/services.py`
     - `frontend/src/portal/api/types.ts`, `frontend/src/portal/features/admin-members/choices.ts`
-  - spelling-only edits in any other file
+  - spelling-only edits in any other file outside `plans/`
 - **Docs:**
   - `.claude/rules/doc_python.md` §2
-  - the term statuses in `docs/developer/data-model.rst`, `docs/developer/api-members.rst` and `PLAN.rst` §4.2 and §6.4
+  - the term statuses in `docs/developer/data-model.rst` and `docs/developer/api-members.rst`
   - the prose in `docs/developer/reminders.rst` and the account-administrator guide
 - **Steps:**
   1. **Tooling.**
      - Run `uv add --dev codespell`, and add the issue's `[tool.codespell]` table: `builtin = "clear,rare,en-GB_to_en-US"`, the skip list, and `ignore-words-list = "nnumber,unparseable"`, with a comment for each word.
-     - Add `lint-spelling`, which runs codespell over `README.rst PLAN.rst CLAUDE.md docs backend frontend/src frontend/e2e .github deploy .claude`. Make `lint` depend on it, and add the CI step.
+     - Add `lint-spelling`, which runs codespell over `README.rst CLAUDE.md docs backend frontend/src frontend/e2e .github deploy .claude`. `plans/` stays out: the archive is frozen, and this plan quotes the words it replaces. Make `lint` depend on it, and add the CI step.
   2. **Rename `cancelled` to `canceled`.**
      - Make the choice `MembershipStatusChoices.CANCELED = "canceled", "Canceled"`, and edit `0001_initial.py` in place.
      - Update the three queries, `MembershipTermStatus` and `TERM_STATUS_CHOICES`, the backend and frontend tests, and the docs.
@@ -310,7 +311,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
   4. **Rule.** Update `doc_python.md` §2 to name codespell as the enforcement and to list the ignore-words.
 - **Verify:**
   - `make lint` reports no codespell hits, and adding "colour" to any checked file makes it fail.
-  - `grep -rniw "cancelled" backend frontend/src frontend/e2e docs PLAN.rst` finds nothing outside build output.
+  - `grep -rniw "cancelled" backend frontend/src frontend/e2e docs` finds nothing outside build output.
   - The PR says that existing development databases need `make reset`.
 
 ### account-edit-guard: close the admin account-takeover path
@@ -318,7 +319,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 - **Issues:** #14
 - **Branch:** `bugfix/account-edit-guard`; database `caldart_account_edit_guard`
 - **Owns:** `backend/apps/accounts/services.py`, `backend/apps/accounts/api/serializers.py`, `backend/apps/members/api/admin_serializers.py`, `backend/apps/members/api/admin_views.py`, `backend/tests/test_account_edit_guard.py` (new)
-- **Docs:** `docs/developer/api-auth.rst`, `docs/developer/api-members.rst`, `docs/user/user-administrator.rst`, `docs/user/account-administrator-guide.rst`, `PLAN.rst` §4.1, §6.2 and §6.4
+- **Docs:** `docs/developer/api-auth.rst`, `docs/developer/api-members.rst`, `docs/user/user-administrator.rst`, `docs/user/account-administrator-guide.rst`, `docs/developer/data-model.rst`
 - **Steps:**
   1. **Service.** In `accounts/services.py`, add:
      - a module logger;
@@ -352,7 +353,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
   - `backend/caldart/wsgi.py`, `backend/caldart/asgi.py`
   - `deploy/caldart.env.example` (new), `deploy/systemd/caldart-web.service`, `deploy/apache/caldart.conf`, `deploy/nginx/caldart.conf`
   - `backend/tests/test_sysadmin_settings.py`, and the new `backend/tests/test_settings_fail_closed.py`, `test_hsts.py` and `test_auth_throttle_ident.py`
-- **Docs:** `docs/developer/configuration.rst`, `docs/developer/deployment.rst`, `PLAN.rst` §14
+- **Docs:** `docs/developer/configuration.rst`, `docs/developer/deployment.rst`
 - **Steps:**
   1. **#27: stop production reading `.env`.**
      - Move the `.env` read out of `base.py` into `settings/_dotenv.py`, which `dev.py` and `test.py` import before `base`.
@@ -387,7 +388,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 - **Issues, in commit order:** #19, #23, #24
 - **Branch:** `bugfix/payment-provider-errors`; database `caldart_payment_provider_errors`; e2e on port 8103
 - **Owns:** `backend/apps/payments/providers/base.py`, `stripe.py`, `paypal.py`, `backend/tests/test_payments_stripe.py`, and the new `backend/tests/test_payments_provider_errors.py` and `test_payments_stripe_client.py`
-- **Docs:** `PLAN.rst` §15, `docs/developer/testing.rst` (the Stripe test seam)
+- **Docs:** `docs/developer/testing.rst` (the Stripe test seam)
 - **Steps:**
   0. **#19: treat Stripe SDK results as objects, and test real signatures.** This goes first, because #23 and #24 rewrite the same functions.
      - The locked stripe 15.6.1 returns `stripe.Event` and `stripe.PaymentIntent` objects, which have no `.get`. Every real webhook and confirmation therefore fails today with `AttributeError`, as a 500.
@@ -400,7 +401,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
        - a valid signature is accepted;
        - a wrong secret, a timestamp over 300 seconds old, a missing header and a tampered body each get a 400 `{"detail": "Invalid Stripe signature."}` and leave the payment unchanged.
      - Assert that `Payment.raw` is a dict after start, after confirm and after a webhook.
-     - Amend PLAN §15 and `testing.rst`: Stripe is faked at the SDK boundary with real objects and real signatures, and PayPal HTTP is mocked with `respx`.
+     - Amend `testing.rst`: Stripe is faked at the SDK boundary with real objects and real signatures, and PayPal HTTP is mocked with `respx`.
   1. **#23: wrap provider errors.**
      - Add `ProviderUnavailable(PaymentError)` to `providers/base.py`.
      - Wrap only the Stripe SDK calls (`PaymentIntent.create` and `retrieve`, catching `stripe.StripeError`), and the PayPal HTTP calls (catching `httpx.HTTPError`, and `ValueError` on a JSON decode).
@@ -432,7 +433,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 - **Issues:** #25
 - **Branch:** `bugfix/reminder-scan-resilience`; database `caldart_reminder_scan_resilience`
 - **Owns:** `backend/apps/reminders/services.py`, `backend/apps/reminders/management/commands/send_renewal_reminders.py`, `backend/templates/emails/reminder_*.{txt,html}`, `backend/tests/test_reminders.py`, `backend/tests/test_reminders_resilience.py` (new)
-- **Docs:** `docs/developer/reminders.rst`, `PLAN.rst` §4.5
+- **Docs:** `docs/developer/reminders.rst`, `docs/developer/data-model.rst` (reminders)
 - **Steps:**
   1. **Window.** Set `WINDOW_DAYS = 3`. t60, t30, t7 and post30 match `ends_on` within the last three days of their date; `expired` stays exact-day.
   2. **Real day count.** Subjects and bodies use the actual number of days (`abs(ends_on - today)`), not the kind's nominal offset.
@@ -460,11 +461,11 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 - **Issues, in commit order:** #49, #48, #50, #53, #51, #52
 - **Branch:** `bugfix/docs-accuracy`; database `caldart_docs_accuracy`
 - **Owns:** `docs/developer/data-model.rst`, `api-profile.rst`, `api-reference.rst` (the permission bullets and matrix note), `api-payments.rst`, `cms.rst`; `docs/user/member-guide.rst`, `aircraft.rst`, `website-administrator-guide.rst`, `system-administrator-guide.rst`; `docs/demo-walkthrough.rst`
-- **Docs:** `PLAN.rst` §4.6, §5 and §6.1
+- **Docs:** `docs/developer/cms.rst`, the permission matrix in `docs/developer/api-reference.rst`, and the API page that documents `profile_complete`
 - **Steps:**
   1. **#49: delete the stale duplicate.** Delete `data-model.rst` from the second "Roles" heading up to the "``MembershipPlan``" heading, and remove `api-profile.rst`'s pointer to the deleted warning. First check with `diff` that the copies differ only in `is_complete`.
   2. **#48: one profile-completeness rule.**
-     - Add the five-field rule to PLAN §6.1: `phone`, `address_line1`, `city`, `postal_code`, `pilot_certificate_type`, which is `MemberProfile.COMPLETE_FIELDS`.
+     - Add the five-field rule to the API page that documents `profile_complete`: `phone`, `address_line1`, `city`, `postal_code`, `pilot_certificate_type`, which is `MemberProfile.COMPLETE_FIELDS`.
      - Rewrite the member-guide nudge entry, the two demo-walkthrough passages (quoting "A phone number is required."), and the `api-profile.rst` paragraph. Drop `PROFILE_COMPLETE_FIELDS`.
   3. **#50: fix the diagrams.** Split the diagram in two: the domain schema, and the CMS page models.
      - Correct `DartPage.dart` to `SET_NULL` and add the roles edge.
@@ -474,13 +475,12 @@ Packages are described by area below. The manifest (§8) gives their order, and 
      - the `api-reference.rst` bullets, matrix note and row notes;
      - `data-model.rst`;
      - `api-payments.rst`;
-     - `system-administrator-guide.rst:19`;
-     - PLAN §5.
-  5. **#51: Redirects.** `website_admin` has add, change and delete on redirects, and Wagtail creates redirects automatically on slug changes and page moves. First confirm on a dev server: as `webadmin@example.org`, rename a page's slug, then check that the old URL redirects. Then fix the guide (adding a short Redirects section), `cms.rst` and PLAN §4.6.
+     - `system-administrator-guide.rst:19`.
+  5. **#51: Redirects.** `website_admin` has add, change and delete on redirects, and Wagtail creates redirects automatically on slug changes and page moves. First confirm on a dev server: as `webadmin@example.org`, rename a page's slug, then check that the old URL redirects. Then fix the guide (adding a short Redirects section) and `cms.rst`.
   6. **#52: aircraft editing.** Members edit aircraft they added from **My aircraft**, and see the "Someone else added this aircraft" card on others. Correct `aircraft.rst` and `member-guide.rst`, and add the one-sentence note about the account administrator's view.
 - **Verify:**
   - `grep -c '^Roles$' docs/developer/data-model.rst` prints `1`.
-  - `grep -rn "PROFILE_COMPLETE_FIELDS\|read by nothing\|not currently granted" docs PLAN.rst` finds nothing.
+  - `grep -rn "PROFILE_COMPLETE_FIELDS\|read by nothing\|not currently granted" docs` finds nothing.
   - The no-Graphviz build passes: `env PATH=/nonexistent .venv/bin/sphinx-build -n -W -E -a -b html docs "$(mktemp -d)"`.
 
 ### make-switches: `YES=0` and `DRY_RUN=0` mean off
@@ -488,7 +488,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 - **Issues:** #55
 - **Branch:** `bugfix/make-switches`; database `caldart_make_switches`
 - **Owns:** `Makefile` (the `flag` helper plus the `restore` and `reminders` recipes), `backend/tests/test_makefile_switches.py` (new)
-- **Docs:** `docs/developer/setup.rst` (a `make-switches` label after the target table), `docs/developer/backup-restore.rst`, `docs/developer/reminders.rst`, `PLAN.rst` §14
+- **Docs:** `docs/developer/setup.rst` (a `make-switches` label after the target table), `docs/developer/backup-restore.rst`, `docs/developer/reminders.rst`
 - **Steps:**
   1. Add the commented `flag` helper from the issue: `1`, `yes` and `true` mean on; `0`, `no`, `false`, empty or unset mean off; anything else stops `make`.
   2. Use `$(call flag,YES,--yes)` in `restore` and `$(call flag,DRY_RUN,--dry-run)` in `reminders`.
@@ -503,7 +503,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 - **Issues:** #26
 - **Branch:** `bugfix/member-delete-keeps-payments`; database `caldart_member_delete_keeps_payments`; after `account-edit-guard`
 - **Owns:** `backend/apps/payments/models.py`, `backend/apps/payments/migrations/0001_initial.py`, `backend/apps/members/api/admin_views.py` (`perform_destroy`), `backend/tests/test_members_admin.py` (the delete test), `backend/tests/test_members_delete_payments.py` (new), `frontend/src/portal/features/admin-members/MemberDangerZone.tsx`, and its new `.test.tsx`
-- **Docs:** `docs/developer/api-members.rst`, `docs/user/account-administrator-guide.rst`, `docs/developer/data-model.rst`, `PLAN.rst` §4.4 and §6.4
+- **Docs:** `docs/developer/api-members.rst`, `docs/user/account-administrator-guide.rst`, `docs/developer/data-model.rst`
 - **Steps:**
   1. **Model.** Set `Payment.user` to `on_delete=PROTECT` in the model and in `0001_initial.py`. Don't stack a new migration; `make check` must report no changes.
   2. **Delete guard.** `perform_destroy` refuses with 403 ("… has N payment record(s) … Deactivate the account instead.") when the member has any payment. Also catch `ProtectedError` as the same 403.
@@ -564,7 +564,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
   - `backend/apps/cms/management/commands/seed_content.py`, `backend/caldart/settings/base.py` (`WAGTAILDOCS_SERVE_METHOD`)
   - `deploy/nginx/caldart.conf` and `deploy/apache/caldart.conf` (the `/media/documents/` refusal)
   - `backend/tests/test_cms_documents.py` (new)
-- **Docs:** `docs/user/website-administrator-guide.rst`, `docs/developer/cms.rst`, `docs/developer/deployment.rst`, `PLAN.rst` §4.6
+- **Docs:** `docs/user/website-administrator-guide.rst`, `docs/developer/cms.rst`, `docs/developer/deployment.rst`
 - **Steps:**
   1. **Hook.** Add a `before_serve_document` hook. A document in the "Members only" collection, or any collection beneath it, gets a 403 with the members-only wall for anyone without members-only access. Everything else stays public.
   2. **Serving path.** Set `WAGTAILDOCS_SERVE_METHOD = "serve_view"` so every document link goes through Django.
@@ -708,7 +708,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
   - `backend/apps/payments/services.py`, `backend/apps/payments/reports.py`, `backend/apps/payments/api/serializers.py`, `backend/apps/payments/api/views.py`
   - `backend/tests/test_payments_mock_provider.py`, `backend/tests/test_accounts_auth.py` (one docstring)
   - new tests: `test_account_services.py`, `test_member_services.py`, `test_domain_errors.py`, `test_payment_report_query.py`
-- **Docs:** `docs/developer/api-reference.rst` (Error shape), `PLAN.rst` §6 introduction
+- **Docs:** `docs/developer/api-reference.rst` (Error shape)
 - **Steps:**
   1. **Domain errors.** Add `DomainError`, `DomainValidationError(field, message)` and `DomainPermissionError(message)` to `caldart/exceptions.py`. The handler renders them as a field-keyed 400 and a `detail` 403. Write `test_domain_errors.py` first.
   2. **`accounts.services`.**
@@ -752,7 +752,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
   - the `TimestampedModel` import in `backend/apps/{members,aircraft,payments,reminders}/models.py`
   - the sanctioned-import comments in `backend/apps/accounts/models.py`, `backend/apps/accounts/services.py` and `backend/apps/reminders/services.py`
   - `backend/tests/test_app_layering.py` (new)
-- **Docs:** `PLAN.rst` §3 (the layout, plus a "Dependencies between apps" paragraph), the `CLAUDE.md` Layout entry for `caldart/`, `docs/developer/data-model.rst` (where `TimestampedModel` lives)
+- **Docs:** `docs/developer/architecture.rst` (the layout, plus a "Dependencies between apps" paragraph), the `CLAUDE.md` Layout entry for `caldart/`, `docs/developer/data-model.rst` (where `TimestampedModel` lives)
 - **Steps:**
   1. **Move the base model.** Move `TimestampedModel` verbatim into `caldart/models.py` and update its four imports. `makemigrations --check` must report no changes.
   2. **Write `test_app_layering.py`.** It is `ast`-based, with no new dependency, and checks that:
@@ -890,7 +890,7 @@ When a rebase conflicts in the mypy overrides, keep every deletion from both sid
   - `frontend/src/portal/api/client.ts`, `frontend/src/portal/api/client.test.ts`
   - `frontend/src/test/setup.ts` (the CSRF reset), `frontend/src/test/handlers.ts`
   - `frontend/src/portal/features/profile/ProfilePage.test.tsx`
-- **Docs:** `docs/developer/testing.rst`, `docs/developer/api-auth.rst`, `PLAN.rst` §6 front matter and §8
+- **Docs:** `docs/developer/testing.rst`, `docs/developer/api-auth.rst`, `docs/developer/api-reference.rst` (conventions) and `docs/developer/architecture.rst` (the portal)
 - **Steps:**
   1. **#36: the CSRF bootstrap recovers.**
      - `ensureCsrfToken({ force })` rejects on a failed bootstrap and clears the cached promise in `finally`, so the next call retries.
@@ -916,7 +916,7 @@ When a rebase conflicts in the mypy overrides, keep every deletion from both sid
 - **Issues:** #37
 - **Branch:** `bugfix/auth-check-errors`; database `caldart_auth_check_errors`; e2e on port 8105
 - **Owns:** `frontend/src/portal/auth/useAuth.ts`, `frontend/src/portal/auth/guards.tsx`, `frontend/src/portal/auth/guards.test.tsx`
-- **Docs:** `docs/developer/api-auth.rst` ("How the portal uses this"), `PLAN.rst` §8
+- **Docs:** `docs/developer/api-auth.rst` ("How the portal uses this"), `docs/developer/architecture.rst` (the portal)
 - **Steps:**
   1. **`useAuth` state.** Add `refetch` and `isRefetching` to `AuthState`. Drop `retry: false` from `useMe`, so the app-wide policy retries 5xx and network errors twice.
   2. **Guards.** In `RequireAuth` and `RequireRole`, after the loading check, show `AuthUnavailable` when `user === null && error != null`. It is a `role="alert"` empty state titled "We could not check your sign-in", with a "Try again" button.
@@ -1004,7 +1004,7 @@ When a rebase conflicts in the mypy overrides, keep every deletion from both sid
   - `frontend/src/portal/routes/*.tsx` (including `index.tsx`) and `frontend/src/portal/routes/index.test.tsx` (new)
   - `frontend/src/portal/components/Loading.tsx` (new), `frontend/src/portal/auth/guards.tsx` (the `Loading` move)
   - `frontend/src/test/render.tsx` (`renderRoutes`)
-- **Docs:** `docs/developer/testing.rst`, `PLAN.rst` §8
+- **Docs:** `docs/developer/testing.rst`, `docs/developer/architecture.rst` (the portal)
 - **Steps:**
   1. **#46: test the real route table.**
      - Add `renderRoutes(routes, { route, client })` to `render.tsx`.
