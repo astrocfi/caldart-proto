@@ -104,7 +104,8 @@ Repository layout
       skills/                   repeatable workflows (docs, critiques, PRs)
     backend/
       caldart/                  the Django project
-        settings/               base.py, dev.py (the default), prod.py, test.py
+        settings/               _dotenv.py (the .env read), base.py,
+                                dev.py (the default), prod.py, test.py
         urls.py                 the root URLconf
         api_urls.py             /api/v1/: includes every app's api/urls.py
         views.py                portal_shell, the page the SPA runs in
@@ -132,6 +133,7 @@ Repository layout
       e2e/                      Playwright specs, one per flow
       dist/                     Vite build output (gitignored)
     deploy/
+      caldart.env.example       the production environment template
       gunicorn.conf.py
       systemd/                  caldart-web.service, caldart-reminders.*
       apache/caldart.conf       the reverse proxy
