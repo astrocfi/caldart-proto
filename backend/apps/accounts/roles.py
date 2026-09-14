@@ -33,7 +33,7 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
     ),
     WEBSITE_ADMIN: (
         "Wagtail admin: create, edit, delete and publish pages, images, "
-        "documents and site settings."
+        "documents, redirects and site settings."
     ),
     SYSTEM_ADMIN: (
         "Everything above plus backups, health, reminder runs and Django superuser access."

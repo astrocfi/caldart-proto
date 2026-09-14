@@ -171,10 +171,10 @@ detaches it from you; the aircraft record and anyone else's link to it are
 untouched.
 
 An aircraft's insurance is what a DART leader checks before letting you fly a
-mission in it, so keep the carrier, limits and expiration date accurate.  An
-aircraft you added yourself has an **Edit** action on this screen; one that
-somebody else added can only be changed by that member or by an account
-administrator, so ask them to make the change.
+mission in it, so keep the carrier, limits and expiration date accurate.
+Every aircraft here has an **Edit** action.  On one you added, it opens the
+aircraft's details for editing; on one somebody else added, it tells you to
+ask an account administrator.
 
 
 Members-only content
@@ -229,12 +229,14 @@ When something goes wrong
    like 95035 or 95035-1234."*  The state field takes two letters, and the
    postal code five digits or five plus four.
 
-**Your profile saves but the dashboard still nags you to finish it.**
-   Fill in the whole Contact block — phone, address line 1, city, state and
-   ZIP.  The nudge counts a street address as part of a complete profile even
-   though the form does not insist on one, so a profile that saved cleanly can
-   still be counted as unfinished until you add it.  The same rule decides
-   whether the join wizard will let you move on to the payment step.
+**The dashboard still nags you to finish your profile.**
+   The nudge checks exactly the fields the profile form requires — phone,
+   address line 1, city, ZIP code, and the certificate box, which always holds
+   a value.  Saving the form therefore clears the nudge.  If an account
+   administrator set your account up for you, some of those were never asked
+   for: open **Profile** and the form marks each one that is still missing.
+   The same rule decides whether the join wizard will let you move on to the
+   payment step.
 
 **You paid but you are still shown as expired.**
    Reload first — the dashboard may be showing a cached answer.  If it
@@ -243,12 +245,11 @@ When something goes wrong
    payment marked *succeeded* with no membership behind it is a fault; tell
    the office the date and the amount.
 
-**You cannot edit an aircraft.**
-   *"Only the member who added this aircraft, or an administrator, can change
-   it."*  One register is shared by everybody, so a record is not yours to
-   change simply because you fly the aeroplane — only the member who added it
-   sees **Edit** on *My aircraft*.  Ask that member or an account administrator
-   to correct it.
+**Edit shows "Someone else added this aircraft".**
+   One register is shared by everybody, so a record is not yours to change
+   simply because you fly the aeroplane.  **Edit** opens the form only for the
+   aircraft you added yourself.  Ask the member who added it, or an account
+   administrator, to correct it.
 
 **A members-only page shows a wall instead of the page.**
    Your membership has lapsed, or you are signed out.  The wall says which,

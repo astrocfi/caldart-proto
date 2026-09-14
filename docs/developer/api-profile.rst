@@ -136,18 +136,33 @@ A rejection is a normal DRF 400:
 
    {"medical_expiration": ["Give the expiration date of your medical certificate."]}
 
-The portal's form applies the same rules before it sends anything, and marks
-``phone``, ``city``, ``state`` and ``postal_code`` as required on top of them.
-The server stays authoritative: only ``phone`` is required there, so an API
-client may store a partial profile.
+The portal's form applies the same rules before it sends anything, and on top
+of them marks as required the five fields that make a profile complete
+(:ref:`profile-completeness`).  The server stays authoritative: only ``phone``
+is required there, so an API client may store a partial profile.
 
-Do not confuse either set with ``profile_complete`` on the user payload, which
-is what the dashboard nudge and the join wizard's step gating read.  That flag
-tests ``PROFILE_COMPLETE_FIELDS`` in ``apps/accounts/api/serializers.py`` —
-``phone``, ``address_line1``, ``city``, ``postal_code`` and
-``pilot_certificate_type`` — a different list again, and one that includes a
-field the form does not require.  See the warning under ``is_complete`` in
-:doc:`data-model`.
+.. _profile-completeness:
+
+Profile completeness
+--------------------
+
+A profile is complete when ``phone``, ``address_line1``, ``city``,
+``postal_code`` and ``pilot_certificate_type`` all have a value.  That list is
+``MemberProfile.COMPLETE_FIELDS``.  The certificate box always holds a value,
+and *Not a pilot* counts.  ``state`` is not part of the rule.
+
+One list serves every reader of it:
+
+- ``profile_complete`` on the user payload (:doc:`api-auth`) is
+  ``MemberProfile.is_complete`` over those five fields.  It is what the
+  dashboard nudge and the join wizard's step gating key off.
+- The portal's profile form requires exactly the same five
+  (``REQUIRED_PROFILE_FIELDS`` in
+  ``frontend/src/portal/features/profile/form.ts``), so a profile the form
+  saves is a profile the server calls complete.
+- This endpoint requires only ``phone``, so an API client — or an account
+  administrator creating a member through
+  :doc:`api-members` — can store a profile that is not yet complete.
 
 
 ``POST /me/profile/aircraft``

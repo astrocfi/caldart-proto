@@ -331,4 +331,6 @@ Endpoint                               Who
 ``GET /admin/payments*``               ``account_admin``
 =====================================  ==========================================
 
-``system_admin`` passes every role check, as everywhere else in the API.
+``system_admin`` passes every role check, as everywhere else in the API.  The
+three confirm endpoints are ownership checks, not role checks, so no role, not
+even ``system_admin``, confirms somebody else's payment.

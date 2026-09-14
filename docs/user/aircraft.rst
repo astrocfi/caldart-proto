@@ -53,10 +53,10 @@ Insurance expires      Optional, and the single most useful field on the form
 
 Saving adds the aeroplane to the register *and* attaches it to your profile.
 
-Adding is as far as a member goes.  There is no member-facing screen for
-editing an aircraft — not even one you added — and none for deleting one, since
-another member may be flying it.  To correct a carrier, a limit or an expiry
-date, ask an account administrator.
+You can correct an aircraft you added: on **My aircraft**, press **Edit**
+beside it.  Only an account administrator can delete an aircraft, since
+another member may be flying it.  To correct one somebody else added, ask that
+member or an account administrator.
 
 .. tip::
 
@@ -158,11 +158,16 @@ Export CSV / PDF           no          no          no          yes
 "Creator" means the member who added that particular aeroplane.
 ``system_admin`` may do everything in the table.
 
-A creator edits from **My aircraft** (``/portal/profile/aircraft``): each
-aircraft they added carries an **Edit** action that opens the same form the
-register uses, minus the administrator-only controls.  The API enforces the
+Every aircraft on **My aircraft** (``/portal/profile/aircraft``) has an
+**Edit** action.  For an aircraft the member added, it opens the same form the
+register uses, without the administrator-only controls.  For anyone else's, it
+shows a card headed *Someone else added this aircraft*.  The API enforces the
 same rule (:doc:`../developer/api-aircraft`), so a member who did not add the
 record gets a 403 however they reach it.
+
+That card is keyed on who added the record, not on roles, so an account
+administrator sees it too on their own **My aircraft**.  They edit those
+records from **Aircraft** under Administration instead.
 
 
 When something goes wrong

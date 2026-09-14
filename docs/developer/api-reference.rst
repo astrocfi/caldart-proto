@@ -258,13 +258,17 @@ Roles
 Roles are Django groups whose name is the slug (see :doc:`data-model`).  Two
 rules govern every gate in the matrix below:
 
-- **``system_admin`` passes everything.**  ``user_has_any_role`` returns true
-  for it before looking at the required list.
-- **A Django superuser passes everything too**, by the same short-circuit.  The
-  one exception is ``AdminUserSerializer.validate_roles``, which asks
-  ``has_role("system_admin")`` directly, so granting or revoking the
-  ``system_admin`` role needs the role itself and not merely
-  ``is_superuser``.
+- **``system_admin`` passes every role check.**  ``user_has_any_role`` returns
+  true for it before looking at the required list.
+- **A Django superuser passes every role check too**, by the same
+  short-circuit.  The one exception is ``AdminUserSerializer.validate_roles``,
+  which asks ``has_role("system_admin")`` directly, so granting or revoking the
+  ``system_admin`` role needs the role itself and not merely ``is_superuser``.
+- **Neither passes an ownership check.**  ``POST /payments/stripe/confirm``,
+  ``POST /payments/paypal/capture`` and ``POST /payments/mock/complete`` look
+  the payment up filtered by ``user=request.user``, so they confirm only the
+  caller's own payment, whatever roles the caller holds; anyone else's is a
+  **404**.
 
 Views declare their gates with the permission classes in
 ``apps/accounts/permissions.py``.  ``HasRole(slug)`` and ``HasAnyRole(*slugs)``
@@ -285,7 +289,8 @@ Permission matrix
 =================
 
 Who may call what.  ``·`` means no access, ✓ means access.  ``system_admin``
-is omitted from the columns because it passes every row.
+is omitted from the columns because it passes every row except the three
+payment-confirmation rows, which are owner-only for everybody.
 
 *Anonymous* means no session at all; anything it cannot reach answers **401**.
 
@@ -544,21 +549,21 @@ is omitted from the columns because it passes every row.
      - owner
      - owner
      - owner
-     - 404 for anyone else's
+     - owner only, whatever the role; 404 for anyone else's
    * - ``POST /payments/paypal/capture``
      - ·
      - owner
      - owner
      - owner
      - owner
-     - 404 for anyone else's
+     - owner only, whatever the role; 404 for anyone else's
    * - ``POST /payments/mock/complete``
      - ·
      - owner
      - owner
      - owner
      - owner
-     - 404 unless ``PAYMENTS_MOCK_ENABLED``
+     - owner only, whatever the role; 404 unless ``PAYMENTS_MOCK_ENABLED``
    * - ``GET /payments/{id}``
      - ·
      - owner
