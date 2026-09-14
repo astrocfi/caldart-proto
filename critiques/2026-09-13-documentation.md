@@ -513,7 +513,7 @@ developer pages (the table at lines 156-164), but:
   - `DartPage` is the only CMS model drawn.
 - **ASCII diagram not equivalent.** `:69-70` says it "says the same thing", but it omits the
   `Membership.granted_by -> User` and `ReminderLog.user -> User` edges and every key field.
-- **Mislabelled edge.** The User-Group edge is labelled "roles (m2m)" (`:51`), but the
+- **Mislabeled edge.** The User-Group edge is labeled "roles (m2m)" (`:51`), but the
   many-to-many field is Django's `groups`; `roles` is a derived property
   (`backend/apps/accounts/models.py:93-97`).
 - **Caption.** It explains solid, double and `1--1` lines, but not the dashed and dotted ones
