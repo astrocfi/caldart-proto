@@ -16,6 +16,9 @@ Builds this page tree::
         Members Only
         Documents and Links
 
+It also creates the ``Members only`` document collection, which the members-area
+copy tells editors to upload handbooks and forms into.
+
 Idempotent: every page is looked up by slug under its parent and updated in
 place, so running the command twice leaves exactly the same tree.  All copy is
 *example content* — paraphrased from the public CalDART site, not lifted from
@@ -32,6 +35,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.cms.models import (
+    MEMBERS_ONLY_COLLECTION_NAME,
     ContactPage,
     DartIndexPage,
     DartPage,
@@ -39,6 +43,7 @@ from apps.cms.models import (
     NewsIndexPage,
     NewsPage,
     StandardPage,
+    ensure_members_only_collection,
 )
 from apps.cms.permissions import grant_website_admin_permissions
 from apps.cms.seed import ensure_site_root
@@ -702,6 +707,10 @@ def seed_contact(home: HomePage) -> ContactPage:
 
 
 def seed_members_area(home: HomePage) -> StandardPage:
+    # The pages tell editors to upload handbooks and forms into this collection,
+    # so the collection has to exist before anyone reads that instruction.
+    ensure_members_only_collection()
+
     members = upsert_page(
         home,
         StandardPage,
@@ -765,8 +774,11 @@ def seed_members_area(home: HomePage) -> StandardPage:
                 "<li>Safety policy and volunteer agreement</li>"
                 "<li>Bylaws and most recent annual report</li>"
                 "</ul>"
-                "<p>A website administrator attaches the files to this page as documents; "
-                "until then, ask the secretary.</p>"
+                "<p>A website administrator uploads each file into the "
+                f"<strong>{MEMBERS_ONLY_COLLECTION_NAME}</strong> document collection and "
+                "links it from this page; a document in that collection is served only to "
+                "the people who can read this page. Until the files are up, ask the "
+                "secretary.</p>"
             ),
             heading("Outside references"),
             rich(
