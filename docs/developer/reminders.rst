@@ -120,13 +120,14 @@ own, and two outcomes are handled rather than raised:
 ``OSError`` from the connection).  The transaction rolls back, so no
 ``ReminderLog`` row survives and the reminder is still due.  For every kind but
 ``expired`` the next run picks it up by itself, because the member is still
-inside the catch-up window (:ref:`reminders-window`).  ``expired`` has no
-window, so a failed one is not retried on its own: re-run the scan with
-``--today`` set to the date it was due once the mail server is working again,
-and that cohort is scanned afresh.  The failure is counted in ``failed`` and
-``failed_by_kind``, and logged at ERROR with the kind, the user id, the
-membership id and the exception class.  Addresses are deliberately left out of
-that line.
+inside the catch-up window (:ref:`reminders-window`).  ``expired`` matches its
+own day alone, so once that day is over the cohort is gone and the message is
+not recovered — sending it late would tell the member their membership expires
+today when it expired yesterday.  Their term already reads as expired in the
+portal, and the next thing CalDART sends them is the ``post30`` note.  The
+failure is counted in ``failed`` and ``failed_by_kind``, and logged at ERROR
+with the kind, the user id, the membership id and the exception class.
+Addresses are deliberately left out of that line.
 
 **Another run logged the same reminder first**, so the insert hits the unique
 constraint.  That is not a failure: the other run is sending the email.  It is
@@ -333,7 +334,7 @@ one and two days late sending and three days late not, ``expired`` never going
 out late, the day count in a late email, and the failure paths: a locmem
 backend that refuses one address, the log line that names ids and no address,
 a log row written under the scan to stand in for a racing run, and a failed
-``expired`` send waiting for its own date to be scanned again.
+``expired`` send that the next day's run leaves alone.
 ``backend/tests/test_reminders_api.py`` covers the endpoints and their role
 matrix.  Dates are pinned with ``freezegun`` where the code reads the clock,
 and passed explicitly everywhere else.
