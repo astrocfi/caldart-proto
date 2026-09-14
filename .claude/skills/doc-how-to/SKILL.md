@@ -18,8 +18,9 @@ link between them rather than duplicating detail.
 - Write for the person who does the task: a member or administrator working in the portal or
   the Wagtail admin, an operator with a shell on the server, or a contributor with a
   development checkout. Assume they are unfamiliar with the system's internals.
-- Use clear, direct, action-oriented language; define domain-specific terms on first use (e.g.
-  DART, N-number, flight review).
+- Use clear, direct, action-oriented language. Define CalDART terms on first use (e.g. DART),
+  but not standard aviation terms such as N-number, BasicMed or flight review: the readers
+  are pilots.
 - Focus on what the reader must do and what they should observe.
 
 ## 2. Placement

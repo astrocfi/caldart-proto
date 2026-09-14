@@ -118,7 +118,8 @@ both the documentation and the code or configuration it describes.
     expand it, although they use it from the first paragraph.
   - "N-number", "BasicMed" and "flight review" appear throughout the user guide without
     definition. `docs/user/aircraft.rst:11-24` explains an N-number's canonical form but not
-    what one is.
+    what one is. *Declined on 2026-09-14: the readers are pilots, so aviation terms stay
+    undefined.*
 - **Unicode inside `.py` files.** 158 lines in 47 `.py` files (migrations excluded) contain
   em/en dashes, smart quotes or arrows. Examples:
   - `backend/apps/cms/blocks.py:49` (smart quotes in a `help_text`);

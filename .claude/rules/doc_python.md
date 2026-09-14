@@ -25,7 +25,9 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
 
 - One space between a sentence-ending period and the next sentence.
 - American spelling, not British (e.g. `color`, not `colour`).
-- Define each domain-specific term on first use.
+- Define each CalDART-specific term on first use, such as DART. Don't define
+  standard aviation terms (N-number, BasicMed, medical classes, flight review):
+  the readers are pilots and DART volunteers.
 - Describe the **current** state of the software only. Never anchor prose to a
   moment in time or to migration history: avoid "new", "legacy", "old",
   "now", "recently", "as before", "backwards compatible", and similar framing.
