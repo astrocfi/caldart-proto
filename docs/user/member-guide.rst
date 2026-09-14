@@ -172,9 +172,9 @@ untouched.
 
 An aircraft's insurance is what a DART leader checks before letting you fly a
 mission in it, so keep the carrier, limits and expiration date accurate.  An
-aircraft you added yourself has an **Edit** action on this screen; one that
-somebody else added can only be changed by that member or by an account
-administrator, so ask them to make the change.
+Every aircraft here has an **Edit** action.  On one you added, it opens the
+aircraft's details for editing; on one somebody else added, it tells you to
+ask an account administrator.
 
 
 Members-only content
@@ -245,12 +245,11 @@ When something goes wrong
    payment marked *succeeded* with no membership behind it is a fault; tell
    the office the date and the amount.
 
-**You cannot edit an aircraft.**
-   *"Only the member who added this aircraft, or an administrator, can change
-   it."*  One register is shared by everybody, so a record is not yours to
-   change simply because you fly the aeroplane — only the member who added it
-   sees **Edit** on *My aircraft*.  Ask that member or an account administrator
-   to correct it.
+**Edit shows "Someone else added this aircraft".**
+   One register is shared by everybody, so a record is not yours to change
+   simply because you fly the aeroplane.  **Edit** opens the form only for the
+   aircraft you added yourself.  Ask the member who added it, or an account
+   administrator, to correct it.
 
 **A members-only page shows a wall instead of the page.**
    Your membership has lapsed, or you are signed out.  The wall says which,
