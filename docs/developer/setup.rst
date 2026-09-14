@@ -162,6 +162,15 @@ edits to ``frontend/src`` appear without a rebuild.  Set the variable back to
 ``false`` (and re-run ``make build``) when you are finished, or every page will
 fail as soon as the Vite server stops.
 
+React Fast Refresh needs a preamble installed on the page before any component
+module runs.  Vite injects it into its own ``index.html``, which Django never
+serves, so ``backend/templates/portal.html`` emits it with django-vite's
+``{% vite_react_refresh %}`` tag, ahead of ``{% vite_hmr_client %}`` and the
+entry module.  The tag renders nothing unless ``DJANGO_VITE_DEV_MODE`` is
+``true``, so the built assets carry no refresh runtime.
+``backend/templates/base.html`` needs no such tag: ``src/site/main.ts`` is plain
+TypeScript with no React in it.
+
 .. note::
 
    Both halves of the front end go through Vite: ``src/site/main.ts`` for the
@@ -348,6 +357,12 @@ You have not run ``make build``, or you built after starting Django — the
 manifest is read once at start-up.  Build, then restart the server.  If you are
 using the dev server, check that ``DJANGO_VITE_DEV_MODE=true`` and that
 ``make dev-frontend`` is actually running.
+
+**The portal is blank and the console says "@vitejs/plugin-react can't detect
+preamble".**  A React module loaded before Fast Refresh was installed.  Check
+that ``{% vite_react_refresh %}`` is still the first of the three Vite tags in
+``backend/templates/portal.html``, and that the page you are on is served from
+that template rather than a copy.
 
 **``make up`` says Postgres did not become ready.**  The container is up but
 not answering.  ``docker compose logs db`` will say why; a port 5432 already
