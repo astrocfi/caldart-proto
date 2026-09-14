@@ -17,7 +17,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import serializers
 
-from apps.accounts.api.serializers import MembershipStatusSerializer
+from apps.accounts.api.serializers import MembershipStatusSerializer, guard_account_edit
 from apps.accounts.roles import MEMBER
 from apps.members.api.admin_filters import membership_payload
 from apps.members.api.profile_serializers import (
@@ -313,7 +313,13 @@ class MemberCreateSerializer(serializers.Serializer):
 
 
 class MemberUpdateSerializer(serializers.Serializer):
-    """``PATCH /admin/members/{id}`` — account fields and nested profile."""
+    """``PATCH /admin/members/{id}`` — account fields and nested profile.
+
+    The account half obeys the same edit guard as ``/admin/users/{id}``: changing the
+    email address or the active flag of an account that holds roles the caller does
+    not hold is a field-keyed 400, and so is deactivating yourself.  It therefore
+    needs the request in its context.
+    """
 
     email = serializers.EmailField(required=False)
     first_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
@@ -339,6 +345,10 @@ class MemberUpdateSerializer(serializers.Serializer):
         if clash.exists():
             raise serializers.ValidationError("An account with that email address already exists.")
         return value
+
+    def validate(self, attrs):
+        guard_account_edit(self.context["request"].user, self.instance, attrs)
+        return attrs
 
     @transaction.atomic
     def update(self, instance, validated_data):

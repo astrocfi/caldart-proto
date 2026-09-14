@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.accounts.roles import ROLE_SLUGS, SYSTEM_ADMIN
-from apps.accounts.services import user_from_uid
+from apps.accounts.services import AccountEditRefused, check_account_edit, user_from_uid
 
 User = get_user_model()
 
@@ -78,6 +78,19 @@ def run_password_validators(password: str, user=None, *, field: str | None = Non
         messages = list(error.messages)
         raise serializers.ValidationError({field: messages} if field else messages) from error
     return password
+
+
+def guard_account_edit(actor, target, changes: dict) -> None:
+    """The account-edit guard as a serializer rule.
+
+    Call it from ``validate()`` on any serializer that writes an account's email
+    address or active flag.  A refusal becomes a field-keyed 400, so the complaint
+    lands on the input it came from, exactly as the ``system_admin`` role guard does.
+    """
+    try:
+        check_account_edit(actor, target, changes)
+    except AccountEditRefused as error:
+        raise serializers.ValidationError({error.field: [error.message]}) from error
 
 
 class LoginSerializer(serializers.Serializer):
@@ -167,9 +180,10 @@ class RoleSerializer(serializers.Serializer):
 class AdminUserSerializer(UserSerializer):
     """``/admin/users``: the ``user`` shape, partly writable.
 
-    ``roles`` is validated against ``accounts.roles``; the escalation rule —
-    only a ``system_admin`` may grant or revoke ``system_admin`` — lives here
-    because it needs both the caller and the target.
+    ``roles`` is validated against ``accounts.roles``; the escalation rules — only a
+    ``system_admin`` may grant or revoke ``system_admin``, and the email address and
+    active flag of an account holding roles the caller lacks are untouchable — live
+    here because they need both the caller and the target.
     """
 
     roles = serializers.ListField(
@@ -202,11 +216,6 @@ class AdminUserSerializer(UserSerializer):
             raise serializers.ValidationError("Another account already uses that email address.")
         return value
 
-    def validate_is_active(self, value: bool) -> bool:
-        if not value and self.instance is not None and self.instance == self._actor:
-            raise serializers.ValidationError("You cannot deactivate your own account.")
-        return value
-
     def validate_roles(self, value: list[str]) -> list[str]:
         wanted = set(value)
         held = set(self.instance.roles) if self.instance is not None else set()
@@ -216,6 +225,10 @@ class AdminUserSerializer(UserSerializer):
             )
         # Keep the canonical privilege order rather than whatever came in.
         return [slug for slug in ROLE_SLUGS if slug in wanted]
+
+    def validate(self, attrs: dict) -> dict:
+        guard_account_edit(self._actor, self.instance, attrs)
+        return attrs
 
     def update(self, instance, validated_data: dict):
         from apps.accounts.services import sync_django_flags

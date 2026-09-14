@@ -1,0 +1,279 @@
+"""The account-edit guard on both administrator edit endpoints.
+
+A protected change -- the email address or the active flag -- is refused unless the
+actor holds every role the target holds.  A Django superuser counts as a system
+administrator whether or not the role group was ever added.  These cases replay the
+takeover the guard closes, check the edits that stay allowed, and check that a
+refusal is logged without any personal data.
+"""
+
+from __future__ import annotations
+
+import logging
+
+import pytest
+from django.contrib.auth import get_user_model
+from django.core import mail
+
+from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN, USER_ADMIN
+from tests.factories import UserFactory
+
+pytestmark = pytest.mark.django_db
+
+User = get_user_model()
+
+USERS = "/api/v1/admin/users"
+MEMBERS = "/api/v1/admin/members"
+RESET = "/api/v1/auth/password/reset"
+
+#: The address an attacker would move a privileged account to.
+ATTACKER_EMAIL = "attacker@example.test"
+
+GUARD_LOGGER = "apps.accounts.services"
+
+
+def user_detail(user) -> str:
+    """``/admin/users/{id}`` for ``user``."""
+    return f"{USERS}/{user.pk}"
+
+
+def member_detail(user) -> str:
+    """``/admin/members/{user_id}`` for ``user``."""
+    return f"{MEMBERS}/{user.pk}"
+
+
+#: Both edit endpoints, each with the role that opens it.  The slugs double as
+#: the names of the role fixtures in ``conftest.py``.
+BOTH_ENDPOINTS = [
+    pytest.param(USER_ADMIN, user_detail, id="users-endpoint"),
+    pytest.param(ACCOUNT_ADMIN, member_detail, id="members-endpoint"),
+]
+
+
+@pytest.fixture
+def bare_superuser(db):
+    """A Django superuser without the ``system_admin`` role, as ``createsuperuser`` makes one."""
+    return UserFactory(
+        email="root-no-role@example.test", roles=[MEMBER], is_superuser=True, is_staff=True
+    )
+
+
+# --------------------------------------------------------------------------
+# Refused: a target holding roles the actor does not hold
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
+def test_a_lower_admin_cannot_change_a_system_admins_email(
+    request, api_client, system_admin, actor_role, detail
+) -> None:
+    actor = request.getfixturevalue(actor_role)
+    api_client.force_login(actor)
+    response = api_client.patch(detail(system_admin), {"email": ATTACKER_EMAIL})
+
+    assert response.status_code == 400
+    assert "email" in response.json()
+    system_admin.refresh_from_db()
+    assert system_admin.email == "sysadmin@example.test"
+
+
+@pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
+def test_a_lower_admin_cannot_deactivate_a_system_admin(
+    request, api_client, system_admin, actor_role, detail
+) -> None:
+    actor = request.getfixturevalue(actor_role)
+    api_client.force_login(actor)
+    response = api_client.patch(detail(system_admin), {"is_active": False})
+
+    assert response.status_code == 400
+    assert "is_active" in response.json()
+    system_admin.refresh_from_db()
+    assert system_admin.is_active is True
+
+
+@pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
+def test_a_lower_admin_cannot_change_a_role_less_superusers_email(
+    request, api_client, bare_superuser, actor_role, detail
+) -> None:
+    """``is_superuser`` alone protects an account, because it means system administrator."""
+    actor = request.getfixturevalue(actor_role)
+    api_client.force_login(actor)
+    response = api_client.patch(detail(bare_superuser), {"email": ATTACKER_EMAIL})
+
+    assert response.status_code == 400
+    assert "email" in response.json()
+    bare_superuser.refresh_from_db()
+    assert bare_superuser.email == "root-no-role@example.test"
+
+
+def test_an_account_admin_cannot_change_a_user_admins_email(
+    api_client, account_admin, user_admin
+) -> None:
+    """The rule is general: a role the target holds and the actor lacks is enough."""
+    api_client.force_login(account_admin)
+    response = api_client.patch(member_detail(user_admin), {"email": ATTACKER_EMAIL})
+
+    assert response.status_code == 400
+    assert "email" in response.json()
+    user_admin.refresh_from_db()
+    assert user_admin.email == "useradmin@example.test"
+
+
+def test_a_user_admin_cannot_change_an_account_admins_email(
+    api_client, user_admin, account_admin
+) -> None:
+    api_client.force_login(user_admin)
+    response = api_client.patch(user_detail(account_admin), {"email": ATTACKER_EMAIL})
+
+    assert response.status_code == 400
+    assert "email" in response.json()
+    account_admin.refresh_from_db()
+    assert account_admin.email == "accountadmin@example.test"
+
+
+def test_an_account_admin_cannot_deactivate_themselves(api_client, account_admin) -> None:
+    api_client.force_login(account_admin)
+    response = api_client.patch(member_detail(account_admin), {"is_active": False})
+
+    assert response.status_code == 400
+    assert "is_active" in response.json()
+    account_admin.refresh_from_db()
+    assert account_admin.is_active is True
+
+
+# --------------------------------------------------------------------------
+# Allowed
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
+def test_an_admin_may_still_change_a_plain_members_email(
+    request, api_client, member, actor_role, detail
+) -> None:
+    actor = request.getfixturevalue(actor_role)
+    api_client.force_login(actor)
+    response = api_client.patch(detail(member), {"email": "marta@example.test"})
+
+    assert response.status_code == 200
+    member.refresh_from_db()
+    assert member.email == "marta@example.test"
+
+
+def test_a_system_admin_may_change_another_system_admins_email(
+    api_client, system_admin, user_factory
+) -> None:
+    target = user_factory(email="other-sysadmin@example.test", roles=[MEMBER, SYSTEM_ADMIN])
+    api_client.force_login(system_admin)
+    response = api_client.patch(user_detail(target), {"email": "moved@example.test"})
+
+    assert response.status_code == 200
+    target.refresh_from_db()
+    assert target.email == "moved@example.test"
+
+
+def test_a_role_less_superuser_may_change_a_system_admins_email(
+    api_client, bare_superuser, system_admin
+) -> None:
+    """The superuser flag satisfies the rule for the actor as well as the target."""
+    api_client.force_login(bare_superuser)
+    response = api_client.patch(user_detail(system_admin), {"email": "moved@example.test"})
+
+    assert response.status_code == 200
+    system_admin.refresh_from_db()
+    assert system_admin.email == "moved@example.test"
+
+
+@pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
+def test_resending_the_stored_values_with_a_name_change_succeeds(
+    request, api_client, system_admin, actor_role, detail
+) -> None:
+    """The portal sends the whole form, so an unchanged protected field is not a change."""
+    actor = request.getfixturevalue(actor_role)
+    api_client.force_login(actor)
+    response = api_client.patch(
+        detail(system_admin),
+        {"email": system_admin.email, "is_active": True, "first_name": "Renamed"},
+    )
+
+    assert response.status_code == 200
+    system_admin.refresh_from_db()
+    assert system_admin.first_name == "Renamed"
+
+
+def test_an_email_that_differs_only_in_case_is_not_a_change(
+    api_client, user_admin, system_admin
+) -> None:
+    api_client.force_login(user_admin)
+    response = api_client.patch(user_detail(system_admin), {"email": system_admin.email.upper()})
+
+    assert response.status_code == 200
+
+
+def test_a_user_admin_may_still_rename_a_system_admin(api_client, user_admin, system_admin) -> None:
+    api_client.force_login(user_admin)
+    response = api_client.patch(user_detail(system_admin), {"last_name": "Okonkwo"})
+
+    assert response.status_code == 200
+    system_admin.refresh_from_db()
+    assert system_admin.last_name == "Okonkwo"
+
+
+# --------------------------------------------------------------------------
+# Delete
+# --------------------------------------------------------------------------
+def test_an_account_admin_cannot_delete_a_role_less_superuser(
+    api_client, account_admin, bare_superuser
+) -> None:
+    api_client.force_login(account_admin)
+    response = api_client.delete(member_detail(bare_superuser))
+
+    assert response.status_code == 403
+    assert User.objects.filter(pk=bare_superuser.pk).exists() is True
+
+
+def test_a_role_less_superuser_may_delete_a_system_admin(
+    api_client, bare_superuser, system_admin
+) -> None:
+    api_client.force_login(bare_superuser)
+    response = api_client.delete(member_detail(system_admin))
+
+    assert response.status_code == 204
+    assert User.objects.filter(pk=system_admin.pk).exists() is False
+
+
+# --------------------------------------------------------------------------
+# The takeover, end to end
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
+def test_a_refused_email_edit_leaves_the_attacker_no_reset_email(
+    request, api_client, system_admin, actor_role, detail
+) -> None:
+    """The takeover chain: move the address, then ask for a reset link at it."""
+    actor = request.getfixturevalue(actor_role)
+    api_client.force_login(actor)
+    api_client.patch(detail(system_admin), {"email": ATTACKER_EMAIL})
+    mail.outbox.clear()
+
+    response = api_client.post(RESET, {"email": ATTACKER_EMAIL})
+
+    assert response.status_code == 204
+    assert len(mail.outbox) == 0
+
+
+# --------------------------------------------------------------------------
+# Logging
+# --------------------------------------------------------------------------
+def test_a_refusal_logs_one_warning_with_ids(api_client, user_admin, system_admin, caplog) -> None:
+    api_client.force_login(user_admin)
+    with caplog.at_level(logging.WARNING, logger=GUARD_LOGGER):
+        api_client.patch(user_detail(system_admin), {"email": ATTACKER_EMAIL})
+
+    records = [record for record in caplog.records if record.name == GUARD_LOGGER]
+    assert len(records) == 1
+    assert records[0].levelno == logging.WARNING
+    assert str(system_admin.pk) in records[0].getMessage()
+
+
+def test_a_refusal_logs_no_email_address(api_client, user_admin, system_admin, caplog) -> None:
+    api_client.force_login(user_admin)
+    with caplog.at_level(logging.WARNING, logger=GUARD_LOGGER):
+        api_client.patch(user_detail(system_admin), {"email": ATTACKER_EMAIL})
+
+    records = [record for record in caplog.records if record.name == GUARD_LOGGER]
+    assert "@" not in records[0].getMessage()
