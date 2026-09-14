@@ -1,4 +1,4 @@
-"""Serializers for the system endpoints (PLAN §6.9)."""
+"""Serializers for the system endpoints."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Renewal reminder bookkeeping (PLAN §4.5)."""
+"""Renewal reminder bookkeeping."""
 
 from __future__ import annotations
 

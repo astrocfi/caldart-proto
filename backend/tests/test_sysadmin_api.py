@@ -1,4 +1,4 @@
-"""The system health and backup endpoints (PLAN §6.9) — ``system_admin`` only.
+"""The system health and backup endpoints — ``system_admin`` only.
 
 The download route gets the most attention here: it takes a file name straight
 off the URL, so every way of pointing it outside ``BACKUP_DIR`` has a test.

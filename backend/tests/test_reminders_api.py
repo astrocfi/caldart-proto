@@ -1,4 +1,4 @@
-"""The reminder log and manual-run endpoints (PLAN §6.9).
+"""The reminder log and manual-run endpoints.
 
 Role matrix first — the log is for ``account_admin`` and ``system_admin``, the
 run button for ``system_admin`` alone — then filters and payloads.

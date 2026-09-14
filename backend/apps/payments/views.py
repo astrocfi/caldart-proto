@@ -1,7 +1,7 @@
 """Non-API payment views.
 
 Only one so far: the file Apple Pay's domain verification fetches over plain
-HTTP before the Payment Element will offer the Apple Pay button (PLAN §10).
+HTTP before the Payment Element will offer the Apple Pay button.
 Stripe issues the file when you register the domain; ``docs/developer/
 payments-setup.rst`` walks through it.
 """

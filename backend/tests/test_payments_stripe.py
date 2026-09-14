@@ -2,7 +2,7 @@
 
 Stripe itself is never called: ``stripe.PaymentIntent.create/retrieve`` and
 ``stripe.Webhook.construct_event`` are patched, which is exactly the seam the
-real integration uses (PLAN §15).
+real integration uses.
 """
 
 from __future__ import annotations

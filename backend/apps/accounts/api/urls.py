@@ -1,4 +1,4 @@
-"""Accounts API routes (PLAN §6.1, §6.2).  Owned by ``feat/auth-portal``."""
+"""Accounts API routes."""
 
 from django.urls import path
 
@@ -7,7 +7,7 @@ from apps.accounts.api import views
 app_name = "accounts"
 
 urlpatterns = [
-    # -- auth (PLAN §6.1) --------------------------------------------------
+    # -- auth --------------------------------------------------------------
     path("auth/csrf", views.CsrfView.as_view(), name="csrf"),
     path("auth/register", views.RegisterView.as_view(), name="register"),
     path("auth/login", views.LoginView.as_view(), name="login"),
@@ -20,7 +20,7 @@ urlpatterns = [
         views.PasswordResetConfirmView.as_view(),
         name="password-reset-confirm",
     ),
-    # -- users admin (PLAN §6.2) ------------------------------------------
+    # -- users admin ------------------------------------------------------
     path("admin/users", views.AdminUserListView.as_view(), name="admin-user-list"),
     path("admin/users/<int:pk>", views.AdminUserDetailView.as_view(), name="admin-user-detail"),
     path(

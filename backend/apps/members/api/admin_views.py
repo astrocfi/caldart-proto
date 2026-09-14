@@ -1,4 +1,4 @@
-"""Account-administrator member management (PLAN §6.4) and reports (PLAN §11).
+"""Account-administrator member management and reports.
 
 Every view here is gated on ``account_admin``; ``system_admin`` passes through
 :func:`apps.accounts.permissions.user_has_any_role`.  Anonymous callers get 401
@@ -88,7 +88,7 @@ class MemberAdminDetailView(MemberAdminBaseView, generics.RetrieveUpdateDestroyA
         return Response(MemberDetailSerializer(self.get_queryset().get(pk=instance.pk)).data)
 
     def perform_destroy(self, instance):
-        """Hard delete, with the two guard rails PLAN §6.4 asks for."""
+        """Hard delete.  Nobody may delete themselves; only a system admin may delete one."""
         caller = self.request.user
         if instance.pk == caller.pk:
             raise PermissionDenied("You cannot delete your own account.")
@@ -129,7 +129,7 @@ class MembershipAdminDetailView(generics.UpdateAPIView):
 
 
 # --------------------------------------------------------------------------
-# Exports (PLAN §11)
+# Exports
 # --------------------------------------------------------------------------
 class MemberExportBaseView(MemberAdminBaseView):
     """The filtered member list, rendered as a downloadable report."""
@@ -153,7 +153,7 @@ class MemberExportCsvView(MemberExportBaseView):
 
 
 class MemberExportPdfView(MemberExportBaseView):
-    """``GET /admin/members/export.pdf`` — landscape letter (PLAN §6.4)."""
+    """``GET /admin/members/export.pdf`` — landscape letter."""
 
     def get(self, request, *args, **kwargs):
         return pdf_table_response(

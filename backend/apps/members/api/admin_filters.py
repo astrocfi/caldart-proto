@@ -1,7 +1,7 @@
 """Filtering, ordering and membership annotations for the members admin API.
 
-PLAN §6.4 lists the member list's filters.  ``status``, ``expiring_within`` and
-``ordering=expires_on`` all need the *computed* membership status, which
+The ``status`` and ``expiring_within`` filters and ``ordering=expires_on`` all
+need the *computed* membership status, which
 ``members.services.membership_status`` works out in Python.  Recomputing that
 per row would be a query per member and could not be filtered or ordered in the
 database at all, so :func:`membership_annotations` expresses exactly the same
@@ -61,7 +61,7 @@ from apps.members.models import (
 
 User = get_user_model()
 
-#: The three values ``?status=`` accepts (PLAN §6.4).
+#: The three values ``?status=`` accepts.
 STATUS_CHOICES: tuple[tuple[str, str], ...] = (
     ("current", "Current"),
     ("expired", "Expired"),
@@ -131,7 +131,7 @@ def derived_annotations() -> dict:
 
 
 def member_admin_queryset(today: date | None = None) -> QuerySet:
-    """Every account, annotated with its membership status (PLAN §6.4).
+    """Every account, annotated with its membership status.
 
     Everyone in the table is listed: ``member`` is granted at registration, so
     "members" and "accounts" are the same population, and ``?role=`` narrows it.
@@ -165,7 +165,7 @@ def membership_payload(user) -> dict:
 
 
 class MemberAdminFilterSet(django_filters.FilterSet):
-    """``GET /admin/members`` query parameters (PLAN §6.4)."""
+    """``GET /admin/members`` query parameters."""
 
     search = django_filters.CharFilter(
         method="filter_search", label="Name, email, phone or certificate number"
@@ -241,7 +241,7 @@ class MemberAdminFilterSet(django_filters.FilterSet):
 
 
 class MemberOrderingFilter(drf_filters.OrderingFilter):
-    """``?ordering=`` over the four sorts PLAN §6.4 names.
+    """``?ordering=`` over four sorts: ``name``, ``email``, ``expires_on`` and ``joined``.
 
     Each alias expands to real columns, so ``name`` sorts by surname then
     forename, and the two computed dates keep empty values at the end whichever
@@ -275,7 +275,7 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
         return queryset.order_by(*terms) if terms else queryset
 
 
-#: Query parameters echoed into the PDF subtitle (PLAN §11).
+#: Query parameters echoed into the PDF subtitle.
 EXPORT_FILTER_PARAMS: tuple[str, ...] = (
     "search",
     "status",

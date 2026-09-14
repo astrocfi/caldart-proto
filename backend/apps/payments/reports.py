@@ -1,4 +1,4 @@
-"""Payment reporting: filters, the period summary and the CSV export (PLAN §6.8).
+"""Payment reporting: filters, the period summary and the CSV export.
 
 Everything here works off one annotation, ``paid_at`` — the moment the money
 arrived, which is ``completed_at`` for a settled payment and ``created_at`` for

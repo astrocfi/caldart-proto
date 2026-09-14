@@ -1,4 +1,4 @@
-"""System API routes (PLAN §6.9).  Owned by ``feat/ops``."""
+"""System API routes."""
 
 from django.urls import path
 

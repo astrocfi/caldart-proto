@@ -1,4 +1,4 @@
-"""The membership report (PLAN §11).
+"""The membership report.
 
 One row per member, one column list shared by the CSV and the PDF so the two
 exports can never drift apart.  The house style — streaming CSV, landscape
@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from apps.members.api.admin_filters import membership_payload
 
-#: Header text and the value function for every column, in PLAN §11 order.
+#: Header text and the value function for every column, in export order.
 #: A lifetime membership has no expiry date, so ``expires_on`` is blank for one;
 #: the ``plan`` column ("Life") and ``status`` ("current") say what it is.
 MEMBER_REPORT_COLUMNS: tuple[tuple[str, Callable[[Any], Any]], ...] = (

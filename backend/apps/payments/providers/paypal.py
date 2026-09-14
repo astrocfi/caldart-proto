@@ -1,4 +1,4 @@
-"""PayPal provider: Orders v2 REST, called directly with ``httpx`` (PLAN §2).
+"""PayPal provider: Orders v2 REST, called directly with ``httpx``.
 
 No SDK — the three calls we need (OAuth token, create order, capture order) are
 plain JSON over HTTPS, and the SDK would add a dependency for nothing.
@@ -73,7 +73,7 @@ def cents(value: str | float | int) -> int:
 
 
 # --------------------------------------------------------------------------
-# OAuth token cache (in-process, PLAN §10)
+# OAuth token cache (in-process)
 # --------------------------------------------------------------------------
 _token_cache: dict = {"key": None, "token": "", "expires_at": None}
 

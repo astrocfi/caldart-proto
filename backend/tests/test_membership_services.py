@@ -1,4 +1,4 @@
-"""``membership_status`` maths and ``activate_term`` rules (PLAN §4.2)."""
+"""``membership_status`` maths and ``activate_term`` rules."""
 
 from __future__ import annotations
 

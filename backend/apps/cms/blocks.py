@@ -1,4 +1,4 @@
-"""StreamField blocks for the public site (PLAN §4.6).
+"""StreamField blocks for the public site.
 
 Every block renders through its own template under ``templates/cms/blocks/`` so
 the design system owns the markup, not the editor.  ``raw_html`` is the one
@@ -30,7 +30,7 @@ RICH_TEXT_FEATURES: list[str] = [
     "blockquote",
 ]
 
-#: Block types only a website administrator may add (PLAN §4.6).
+#: Block types only a website administrator may add.
 RESTRICTED_BLOCK_TYPES: tuple[str, ...] = ("raw_html",)
 
 
@@ -187,7 +187,7 @@ class TwoColumnsBlock(blocks.StructBlock):
 
 
 class ContentStreamBlock(blocks.StreamBlock):
-    """The body StreamField offered on every editable page (PLAN §4.6)."""
+    """The body StreamField offered on every editable page."""
 
     heading = HeadingBlock()
     paragraph = ParagraphBlock()

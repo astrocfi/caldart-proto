@@ -1,8 +1,8 @@
-"""The DART leader check (PLAN §6.6): search, status card, aircraft card.
+"""The DART leader check: search, status card, aircraft card.
 
-The status card is flow C in PLAN §1 — "membership current? medical current?
-insurance current on the plane they are flying?" — so the truth table below is
-the most important test in this app.
+The status card answers the question a leader asks before a flight —
+"membership current? medical current? insurance current on the plane they are
+flying?" — so the truth table below is the most important test in this app.
 """
 
 from __future__ import annotations
@@ -263,7 +263,7 @@ def test_status_truth_table(
     assert data["go_no_go"]["medical"] is medical_current
     assert data["medical"]["is_current"] is medical_current
     assert data["aircraft"][0]["insurance_is_current"] is insurance_current
-    # The overall verdict the leader reads: membership AND medical (PLAN §6.6).
+    # The overall verdict the leader reads: membership AND medical.
     go = data["go_no_go"]["membership"] and data["go_no_go"]["medical"]
     assert go is (membership_current and medical_current)
 

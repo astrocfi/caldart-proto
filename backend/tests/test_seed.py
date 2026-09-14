@@ -1,4 +1,4 @@
-"""The seed commands must be safe to run repeatedly (PLAN §15)."""
+"""The seed commands must be safe to run repeatedly."""
 
 from __future__ import annotations
 

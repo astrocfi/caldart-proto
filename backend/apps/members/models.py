@@ -1,4 +1,4 @@
-"""Members domain: Dart, MemberProfile, MembershipPlan, Membership (PLAN §4.2)."""
+"""Members domain: Dart, MemberProfile, MembershipPlan, Membership."""
 
 from __future__ import annotations
 
@@ -168,7 +168,7 @@ class MemberProfile(TimestampedModel):
         ]
         return [f.removeprefix("vol_") for f in fields if getattr(self, f)]
 
-    #: The fields PLAN §6.1 names for ``profile_complete``.  One list, used by
+    #: The fields ``profile_complete`` requires.  One list, used by
     #: :py:meth:`is_complete`, by the ``user`` payload the API returns, and —
     #: mirrored — by the portal's profile form, so the join wizard can never
     #: accept a profile the server then calls incomplete.
@@ -182,7 +182,7 @@ class MemberProfile(TimestampedModel):
 
     @property
     def is_complete(self) -> bool:
-        """Enough detail entered for the portal to stop nagging (PLAN §6.1).
+        """Enough detail entered for the portal to stop nagging.
 
         ``pilot_certificate_type`` is tested for *a value*, not for "not
         ``none``": a ground-team volunteer who has genuinely answered "Not a

@@ -1,4 +1,4 @@
-# CalDART renewal reminder scan (PLAN.rst §12).
+# CalDART renewal reminder scan.
 #
 # Deploy path: /srv/caldart. Triggered by caldart-reminders.timer, which runs
 # it daily at 07:00; it is a oneshot, so it is not enabled directly -- enable

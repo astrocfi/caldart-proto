@@ -1,4 +1,4 @@
-"""Payment provider interface (PLAN §4.4)."""
+"""Payment provider interface."""
 
 from __future__ import annotations
 

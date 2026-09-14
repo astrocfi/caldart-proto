@@ -1,4 +1,4 @@
-"""Members-admin routes (PLAN §6.4, §11).  Included from ``members/api/urls.py``.
+"""Members-admin routes.  Included from ``members/api/urls.py``.
 
 No ``app_name`` here on purpose: these names live in the ``members`` namespace
 the parent module declares.

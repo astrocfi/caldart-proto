@@ -1,4 +1,4 @@
-"""Shared CSV/PDF report helpers (PLAN §11)."""
+"""Shared CSV/PDF report helpers."""
 
 from __future__ import annotations
 

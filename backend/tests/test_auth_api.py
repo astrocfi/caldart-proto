@@ -1,4 +1,4 @@
-"""The minimal auth surface the portal shell needs (PLAN §6.1)."""
+"""The minimal auth surface the portal shell needs."""
 
 from __future__ import annotations
 

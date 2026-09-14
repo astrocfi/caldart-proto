@@ -1,4 +1,4 @@
-"""Member self-service endpoints (PLAN §6.3, plus the attach/detach of §6.5).
+"""Member self-service endpoints, including attaching and detaching aircraft.
 
 Every ``/me/...`` view works on ``request.user`` alone — there is no object id
 to tamper with, so the only permission check needed is "is anybody signed in".
@@ -32,7 +32,7 @@ from apps.members.services import membership_status
 def get_or_create_profile(user) -> MemberProfile:
     """The caller's profile, created empty the first time they ask for it.
 
-    Registration creates one (PLAN §6.1), but a member imported or seeded
+    Registration creates one, but a member imported or seeded
     without one must still be able to fill it in.
     """
     MemberProfile.objects.get_or_create(user=user)

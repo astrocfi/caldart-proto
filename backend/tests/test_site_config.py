@@ -1,4 +1,4 @@
-"""``GET /api/v1/site/config`` (PLAN §6.10).
+"""``GET /api/v1/site/config``.
 
 The one endpoint the portal calls before it has a user, so it must answer
 anonymously — and it must not leak the members-only page list to callers who

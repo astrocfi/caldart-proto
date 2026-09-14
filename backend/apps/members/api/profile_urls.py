@@ -1,4 +1,4 @@
-"""Member self-service routes (PLAN §6.3, §6.5).  Owned by ``feat/profile-join``.
+"""Member self-service routes.
 
 Included from ``apps/members/api/urls.py`` without an ``app_name`` of its own,
 so these names live in the ``members`` namespace alongside the admin routes.

@@ -1,4 +1,4 @@
-"""Membership services (PLAN §4.2).
+"""Membership services.
 
 ``membership_status`` is the single source of truth for "is this person a
 current member"; ``activate_term`` is the single way a term is created.

@@ -1,4 +1,4 @@
-"""django-filter definitions for the aircraft register (PLAN §6.5).
+"""django-filter definitions for the aircraft register.
 
 The list endpoint and both exports share this filter set, so a CSV or PDF a
 member downloads always contains exactly the rows they were looking at.
