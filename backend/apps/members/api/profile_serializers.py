@@ -1,7 +1,7 @@
 """Serializers for member self-service.
 
 Everything here is scoped to ``request.user``: the profile they may edit, the
-membership terms and payments they may read, and the two public catalogues
+membership terms and payments they may read, and the two public catalogs
 (DARTs and plans) the join wizard needs before anyone has signed in.
 """
 
@@ -31,7 +31,7 @@ POSTAL_RE = re.compile(r"^\d{5}(-\d{4})?$")
 
 
 class DartSerializer(serializers.ModelSerializer):
-    """``GET /darts`` — the public DART catalogue."""
+    """``GET /darts`` — the public DART catalog."""
 
     class Meta:
         model = Dart
@@ -49,7 +49,7 @@ class DartRefSerializer(serializers.ModelSerializer):
 
 
 class PlanSerializer(serializers.ModelSerializer):
-    """``GET /plans`` — the public plan catalogue."""
+    """``GET /plans`` — the public plan catalog."""
 
     class Meta:
         model = MembershipPlan
@@ -207,7 +207,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """``PUT`` really replaces: anything left out goes back to its default.
 
-        DRF's own behaviour is to ignore absent optional fields even on a full
+        DRF's own behavior is to ignore absent optional fields even on a full
         update, which would make ``PUT`` and ``PATCH`` indistinguishable.  The
         API contract says one is a full update and the other partial,
         so unticked checkboxes and cleared text really do get cleared.

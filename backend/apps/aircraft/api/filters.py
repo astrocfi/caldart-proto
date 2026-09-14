@@ -41,7 +41,7 @@ class AircraftFilter(django_filters.FilterSet):
     def filter_search(self, queryset, name, value):
         """N-number, make, model or owner name.
 
-        The N-number half searches the normalised form too, so ``n-172sp``,
+        The N-number half searches the normalized form too, so ``n-172sp``,
         ``172sp`` and ``N172SP`` are all the same query.
         """
         term = (value or "").strip()

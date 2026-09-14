@@ -220,7 +220,7 @@ class MembershipPlan(TimestampedModel):
 class MembershipStatusChoices(models.TextChoices):
     ACTIVE = "active", "Active"
     EXPIRED = "expired", "Expired"
-    CANCELLED = "cancelled", "Cancelled"
+    CANCELED = "canceled", "Canceled"
 
 
 class MembershipSource(models.TextChoices):

@@ -166,7 +166,7 @@ class PasswordResetConfirmView(APIView):
 
 
 class RolesView(APIView):
-    """``GET /roles`` — the role catalogue, for any authenticated caller."""
+    """``GET /roles`` — the role catalog, for any authenticated caller."""
 
     permission_classes = [IsAuthenticated]
 

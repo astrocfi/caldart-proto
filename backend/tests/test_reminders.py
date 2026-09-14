@@ -216,9 +216,9 @@ def test_post30_is_skipped_once_the_member_has_rejoined(annual_plan, mailoutbox)
     assert mailoutbox == []
 
 
-def test_cancelled_terms_are_ignored_entirely(annual_plan, mailoutbox):
+def test_canceled_terms_are_ignored_entirely(annual_plan, mailoutbox):
     _user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
-    membership.status = MembershipStatusChoices.CANCELLED
+    membership.status = MembershipStatusChoices.CANCELED
     membership.save(update_fields=["status"])
 
     run = send_renewal_reminders(today=TODAY)

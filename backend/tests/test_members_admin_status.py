@@ -81,15 +81,15 @@ def build_histories(annual, life, today):
     term(upgraded, life, today + 21 * day, None)
     histories["annual-then-life"] = upgraded
 
-    cancelled = user("cancelled")
+    canceled = user("canceled")
     term(
-        cancelled,
+        canceled,
         annual,
         today - 100 * day,
         today + 100 * day,
-        MembershipStatusChoices.CANCELLED,
+        MembershipStatusChoices.CANCELED,
     )
-    histories["cancelled-only"] = cancelled
+    histories["canceled-only"] = canceled
 
     future = user("future")
     term(future, annual, today + 5 * day, today + 369 * day)
@@ -143,7 +143,7 @@ def test_annotations_match_the_membership_status_service(histories):
         ("future-term-after-a-gap", "current", False),
         ("lifetime", "current", True),
         ("annual-then-life", "current", True),
-        ("cancelled-only", "none", False),
+        ("canceled-only", "none", False),
         ("starts-in-the-future", "none", False),
         ("overlapping", "current", False),
         ("expired-with-a-future-term", "expired", False),

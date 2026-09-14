@@ -254,7 +254,7 @@ everything the join form collects.  Deleting the user cascades.
     ``pilot_certificate_type``, ``certificate_number``, ``ifr_rated``,
     ``ratings``, ``medical_type``, ``medical_expiration``,
     ``flight_review_date``, ``total_hours``, and ``aircraft`` — a
-    ``ManyToManyField`` to ``aircraft.Aircraft`` labelled "planes commonly
+    ``ManyToManyField`` to ``aircraft.Aircraft`` labeled "planes commonly
     flown", with ``related_name="pilots"``.
 
 *Volunteer interests*
@@ -411,7 +411,7 @@ everything the join form collects.  Deleting the user cascades.
     ``pilot_certificate_type``, ``certificate_number``, ``ifr_rated``,
     ``ratings``, ``medical_type``, ``medical_expiration``,
     ``flight_review_date``, ``total_hours``, and ``aircraft`` — a
-    ``ManyToManyField`` to ``aircraft.Aircraft`` labelled "planes commonly
+    ``ManyToManyField`` to ``aircraft.Aircraft`` labeled "planes commonly
     flown", with ``related_name="pilots"``.
 
 *Volunteer interests*
@@ -530,7 +530,7 @@ and the current one is worked out rather than flagged.
      - ``NULL`` means lifetime
    * - ``status``
      - choice
-     - ``active``, ``expired``, ``cancelled``
+     - ``active``, ``expired``, ``canceled``
    * - ``source``
      - choice
      - ``payment``, ``manual``, ``seed``
@@ -573,7 +573,7 @@ The service
 ``current``
     Some active term covers ``on_date``.
 ``expired``
-    No term covers ``on_date``, but at least one non-cancelled term has
+    No term covers ``on_date``, but at least one non-canceled term has
     started.  ``expires_on`` and ``plan`` come from the most recent such term.
 ``none``
     Nothing has started.  Everything else is ``None`` / ``False``.
@@ -658,12 +658,12 @@ The translation, term by term:
     ``coverage_end`` is ``NULL``.
 
 ``has_started_term`` / ``past_end`` / ``past_plan``
-    Non-cancelled terms with ``starts_on <= today``, ordered by ``ends_on``
+    Non-canceled terms with ``starts_on <= today``, ordered by ``ends_on``
     descending with ``NULL`` first and then ``starts_on`` descending.  The
     first row is what ``membership_status`` reports for an expired member.
 
 ``joined_on``
-    The earliest ``starts_on`` across all of the user's terms, cancelled ones
+    The earliest ``starts_on`` across all of the user's terms, canceled ones
     included.
 
 ``effective_expiry``
@@ -701,7 +701,7 @@ than copying it, so an insurance renewal entered once is right for everybody.
    * - Field
      - Notes
    * - ``n_number``
-     - ``CharField(12)``, **unique**, normalised on save
+     - ``CharField(12)``, **unique**, normalized on save
    * - ``make``, ``model``, ``year``
      - ``year`` nullable
    * - ``owner_type``
@@ -727,7 +727,7 @@ than copying it, so an insurance renewal entered once is right for everybody.
    * - ``is_active``
      - "in service"
 
-**N-number normalisation** is the invariant that makes the register usable.
+**N-number normalization** is the invariant that makes the register usable.
 ``normalize_n_number()`` strips everything that is not a letter or a digit,
 upper-cases what is left, and prefixes ``N`` when the result starts with a
 digit.  ``save()`` applies it, so ``12345``, ``n12345``, ``N-12345`` and
@@ -735,10 +735,10 @@ digit.  ``save()`` applies it, so ``12345``, ``n12345``, ``N-12345`` and
 as they should.  A mark that already begins with a letter keeps it, so
 ``c-gabc`` becomes ``CGABC``.
 
-The API normalises in ``NNumberField.to_internal_value`` — *before* the
+The API normalizes in ``NNumberField.to_internal_value`` — *before* the
 uniqueness validator runs, which is what makes a duplicate typed in a different
 shape a clean 400 rather than a database error.  ``GET /aircraft/lookup``
-normalises the query term the same way.
+normalizes the query term the same way.
 
 **Derived properties.**
 

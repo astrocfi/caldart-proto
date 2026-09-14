@@ -70,7 +70,7 @@ Paying
 Which payment methods are accepted?
 -----------------------------------
 
-That depends on what the organisation has configured, and the checkout only
+That depends on what the organization has configured, and the checkout only
 shows what is actually available.  In full it offers:
 
 - **Card**, through Stripe.
@@ -100,7 +100,7 @@ Can I add a donation?
 Yes.  The checkout offers contribution tiers — Participating $20, Bronze $100,
 Silver $300, Gold $1,000, Diamond $3,000, Platinum $10,000 — plus an *Other
 amount* box and a *No thank you*.  The contribution is added to the membership
-fee in one payment and is recorded separately, so the organisation can tell
+fee in one payment and is recorded separately, so the organization can tell
 dues from donations.
 
 Do I get a receipt?
@@ -158,7 +158,7 @@ Somebody else already added the aeroplane I fly. Should I add another?
 No.  There is one register, shared by everybody, and one record per airframe.
 Attach the existing record to your profile — that is what "planes commonly
 flown" means — and an insurance renewal entered once is then right for all of
-you.  The register normalises registrations, so ``N12345``, ``n-12345`` and
+you.  The register normalizes registrations, so ``N12345``, ``n-12345`` and
 ``12345`` all find the same aeroplane and a duplicate cannot be created by
 typing it differently.
 
@@ -199,7 +199,7 @@ Can I change my email address?
 
 Not from your own profile — the address is your sign-in, so changing it is an
 administrator action.  Ask a user administrator or an account administrator.
-Capitalisation never matters: ``Marta@example.org`` and ``marta@example.org``
+Capitalization never matters: ``Marta@example.org`` and ``marta@example.org``
 are the same account.
 
 Who do I contact about a data correction?

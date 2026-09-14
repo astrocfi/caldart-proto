@@ -151,7 +151,7 @@ In production, create the endpoint in the dashboard instead
 The dashboard shows the endpoint's signing secret once it exists.
 
 Without a correct secret every delivery is rejected with **400 Invalid Stripe
-signature** — which is the intended behaviour, since an unverified webhook
+signature** — which is the intended behavior, since an unverified webhook
 must never grant a membership.
 
 Test cards

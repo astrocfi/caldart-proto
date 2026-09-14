@@ -110,7 +110,7 @@ describe('request', () => {
     expect(csrfCalls).toBe(0);
   });
 
-  it('serialises a JSON body and sets the content type', async () => {
+  it('serializes a JSON body and sets the content type', async () => {
     let received: unknown;
     let contentType: string | null = null;
     server.use(

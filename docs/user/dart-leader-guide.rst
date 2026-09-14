@@ -22,7 +22,7 @@ The check, in ten seconds
 #. Tap the person in the results.
 #. Read the band at the top of the card.
 
-The band says **GO** or **NO-GO** in words, not only in colour, so it is
+The band says **GO** or **NO-GO** in words, not only in color, so it is
 readable in bright sun and to anyone who does not see red and green apart.
 
 
@@ -41,7 +41,7 @@ You type                      What you get
 ``n-172-sp``, ``172sp``       profile
 ============================  ==================================================
 
-Registrations are normalised for you: the leading ``N`` is optional and
+Registrations are normalized for you: the leading ``N`` is optional and
 punctuation, spaces and case are ignored.  A search term with no digits in it
 is never treated as a registration, so looking for "Nate" finds Nate rather
 than every N-numbered aeroplane on file.

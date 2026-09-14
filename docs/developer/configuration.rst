@@ -277,7 +277,7 @@ Django at all.
 
 ``SECURE_HSTS_SECONDS``
    ``Strict-Transport-Security`` max-age.  Default ``31536000`` (one year).
-   Set it to ``0`` for the first deploy of a new hostname: browsers honour the
+   Set it to ``0`` for the first deploy of a new hostname: browsers honor the
    header for its whole duration and there is no way to retract it early.
 
 ``SECURE_HSTS_INCLUDE_SUBDOMAINS``, ``SECURE_HSTS_PRELOAD``

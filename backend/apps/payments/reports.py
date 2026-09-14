@@ -120,7 +120,7 @@ def apply_filters(queryset: QuerySet[Payment], filters: PaymentFilters) -> Query
     return queryset
 
 
-def summarise(queryset: QuerySet[Payment], group: str = "month") -> list[dict]:
+def summarize(queryset: QuerySet[Payment], group: str = "month") -> list[dict]:
     """Money received per period, oldest first.
 
     Only succeeded payments count: a pending or failed attempt never became

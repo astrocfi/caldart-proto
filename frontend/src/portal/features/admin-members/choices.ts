@@ -38,10 +38,10 @@ export const STATUS_CHOICES: Choice<'current' | 'expired' | 'none'>[] = [
   { value: 'none', label: 'Never a member' },
 ];
 
-export const TERM_STATUS_CHOICES: Choice<'active' | 'expired' | 'cancelled'>[] = [
+export const TERM_STATUS_CHOICES: Choice<'active' | 'expired' | 'canceled'>[] = [
   { value: 'active', label: 'Active' },
   { value: 'expired', label: 'Expired' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'canceled', label: 'Canceled' },
 ];
 
 export const roleLabel = (value: string) => labelFor(ROLE_CHOICES, value);

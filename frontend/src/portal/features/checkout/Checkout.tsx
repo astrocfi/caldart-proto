@@ -104,6 +104,7 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
         value={contributionCents}
         onChange={setContributionCents}
         isOther={isOther}
+        // codespell:ignore-next-line onother
         onOther={(next) => {
           setIsOther(next);
           if (next) setContributionCents(0);

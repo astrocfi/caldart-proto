@@ -6,7 +6,7 @@
  * the server-rendered Wagtail templates need on top: the editorial home page,
  * the StreamField blocks, the "on this page" rail and the members-only wall.
  *
- * Semantic tokens only.  No new colours, no new fonts, no shadows: sections
+ * Semantic tokens only.  No new colors, no new fonts, no shadows: sections
  * are separated by hairlines and space, exactly as the design brief asks.
  *
  * The shared stylesheet is pulled in here rather than beside this file in

@@ -11,7 +11,7 @@
  */
 
 :root {
-  /* -- colour ---------------------------------------------------------- */
+  /* -- color ----------------------------------------------------------- */
   --color-bg: #f4f1ea; /* paper */
   --color-bg-raised: #fbfaf6; /* cards, table stripes */
   --color-bg-sunken: #ebe7dd; /* code, wells */

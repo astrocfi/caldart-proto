@@ -1,4 +1,4 @@
-"""The aircraft register API: CRUD, permissions, normalisation and filters.
+"""The aircraft register API: CRUD, permissions, normalization and filters.
 
 Exports live in ``test_aircraft_exports.py`` and the leader check in
 ``test_leader_api.py``.
@@ -142,7 +142,7 @@ def test_member_can_add_an_aircraft_and_becomes_its_creator(api_client, member):
         ("737wt", "N737WT"),
     ],
 )
-def test_n_number_is_normalised_on_write(api_client, member, typed, stored):
+def test_n_number_is_normalized_on_write(api_client, member, typed, stored):
     api_client.force_login(member)
     response = api_client.post(LIST_URL, valid_payload(n_number=typed))
     assert response.status_code == 201, response.data
@@ -150,7 +150,7 @@ def test_n_number_is_normalised_on_write(api_client, member, typed, stored):
     assert Aircraft.objects.filter(n_number=stored).exists()
 
 
-def test_duplicate_n_number_is_rejected_after_normalisation(api_client, member):
+def test_duplicate_n_number_is_rejected_after_normalization(api_client, member):
     AircraftFactory(n_number="N12345")
     api_client.force_login(member)
     response = api_client.post(LIST_URL, valid_payload(n_number="n-12345"))
@@ -244,7 +244,7 @@ def test_system_admin_may_update_any_aircraft(api_client, system_admin, member):
     assert api_client.patch(detail_url(aircraft), {"owner_name": "Club"}).status_code == 200
 
 
-def test_update_normalises_a_retyped_n_number(api_client, account_admin):
+def test_update_normalizes_a_retyped_n_number(api_client, account_admin):
     aircraft = AircraftFactory(n_number="N60CR")
     api_client.force_login(account_admin)
     response = api_client.patch(detail_url(aircraft), {"n_number": "n-61cr"})

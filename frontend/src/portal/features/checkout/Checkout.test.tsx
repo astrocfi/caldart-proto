@@ -116,7 +116,7 @@ describe('Checkout', () => {
     expect(screen.getByTestId('checkout-total')).toHaveTextContent('$45.00');
   });
 
-  it('renewals are labelled as renewals', async () => {
+  it('renewals are labeled as renewals', async () => {
     serveConfig(config());
     renderWithProviders(<Checkout mode="renew" onSuccess={vi.fn()} />);
     expect(await screen.findByText('Renew your membership')).toBeInTheDocument();

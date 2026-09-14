@@ -346,7 +346,7 @@ def test_status_card_for_a_user_without_a_profile(api_client, dart_leader):
 # Aircraft card
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("typed", ["N172SP", "n172sp", "n-172sp", "172sp"])
-def test_aircraft_card_normalises_the_n_number(api_client, dart_leader, pilot, typed):
+def test_aircraft_card_normalizes_the_n_number(api_client, dart_leader, pilot, typed):
     api_client.force_login(dart_leader)
     response = api_client.get(AIRCRAFT_URL, {"n_number": typed})
     assert response.status_code == 200

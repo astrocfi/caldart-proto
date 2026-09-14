@@ -277,7 +277,7 @@ path reachable, so nothing else is needed.  Check it with
 
 Turn HSTS off for the first deploy of a new hostname — set
 ``SECURE_HSTS_SECONDS=0`` and comment out the ``Strict-Transport-Security``
-header — until HTTPS is known good.  Browsers honour the header for its full
+header — until HTTPS is known good.  Browsers honor the header for its full
 duration and there is no way to take it back early.
 
 nginx instead

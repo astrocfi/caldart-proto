@@ -77,7 +77,7 @@ Filtering
 Filter               Matches
 ===================  ============================================================
 Search               N-number, make, model or owner name.  A registration is
-                     normalised first, so ``172sp`` finds ``N172SP``
+                     normalized first, so ``172sp`` finds ``N172SP``
 Make                 Any part of the make, case-insensitively
 Owner type           Individual, FBO or flying club
 Insurance            ``Insured`` (a policy on file, not yet expired),
@@ -124,10 +124,10 @@ Click a registration to open the record.  It is in four sections:
   person, hull value, and the expiry date.  Amounts are entered in dollars and
   stored as integer cents; nothing may be negative.
 - **Administration** — free-text notes and an "in service" flag.  Clearing
-  it marks the airframe **Out of service**: it is labelled that way in the
+  it marks the airframe **Out of service**: it is labeled that way in the
   register, on the record, and on a DART leader's aircraft check, and it stops
   being offered to members searching for a plane to add to their profile.  A
-  member who types its exact registration still sees it, labelled, so they do
+  member who types its exact registration still sees it, labeled, so they do
   not try to add a second record for the same aeroplane.
 
 Underneath, **Pilots who fly this aircraft** lists every member who has
@@ -172,7 +172,7 @@ When something goes wrong
    The register already has it, under whatever spelling somebody first used.
    Search for it and attach the existing record instead of adding a second —
    that is the whole point of one shared register.  Registrations are
-   normalised, so ``N12345``, ``n-12345`` and ``12345`` cannot be entered as
+   normalized, so ``N12345``, ``n-12345`` and ``12345`` cannot be entered as
    three separate aeroplanes.
 
 **"Enter a registration, for example N12345."**
@@ -181,7 +181,7 @@ When something goes wrong
 
 **The picker finds nothing, but you know the aeroplane is on file.**
    The fuzzy search leaves out aeroplanes marked *out of service*.  Type the
-   exact registration and it will still be found, labelled as out of service,
+   exact registration and it will still be found, labeled as out of service,
    so you do not add a duplicate.
 
 **You are told only the member who added it, or an administrator, may change it.**

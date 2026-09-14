@@ -20,12 +20,12 @@ The translation, term by term:
     so "earliest boundary" and "end of the walk" are the same date.  NULL means
     the chain reaches a lifetime term (or that nothing covers today).
 ``past_end`` / ``past_plan``
-    The most recent non-cancelled term that has started, which
+    The most recent non-canceled term that has started, which
     ``membership_status`` reports for an expired member.
 
 ``tests/test_members_admin_status.py`` checks the two implementations agree
 over a deliberately awkward set of histories, including early renewals, gaps
-and cancelled terms.
+and canceled terms.
 """
 
 from __future__ import annotations
@@ -89,7 +89,7 @@ def membership_annotations(today: date | None = None) -> dict:
 
     lifetime = active.filter(user=OuterRef("pk"), ends_on__isnull=True).order_by("starts_on")
 
-    started = Membership.objects.exclude(status=MembershipStatusChoices.CANCELLED).filter(
+    started = Membership.objects.exclude(status=MembershipStatusChoices.CANCELED).filter(
         user=OuterRef("pk"), starts_on__lte=today
     )
     past = started.order_by(F("ends_on").desc(nulls_first=True), "-starts_on")

@@ -61,7 +61,7 @@ export function useDarts(): UseQueryResult<Dart[]> {
   });
 }
 
-/** Public: the plan catalogue shown on the pay step. */
+/** Public: the plan catalog shown on the pay step. */
 export function usePlans(): UseQueryResult<Plan[]> {
   return useQuery({
     queryKey: PLANS_KEY,

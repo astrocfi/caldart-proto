@@ -30,7 +30,7 @@ have `-backend` and `-frontend` halves for iterating on one side.
 
 | Scope | Target | Runs |
 |-------|--------|------|
-| Code | `make lint` | `ruff check`, `ruff format --check`, `tsc --noEmit`, ESLint (`--max-warnings 0`), `prettier --check` |
+| Code | `make lint` | `ruff check`, `ruff format --check`, `tsc --noEmit`, ESLint (`--max-warnings 0`), `prettier --check`, `codespell` |
 | Tests | `make test` | pytest (needs `make up`; warnings are errors) and vitest |
 | System | `make check` | Django system checks (`--fail-level WARNING`), missing-migration check, production frontend build |
 | Docs | `make docs` | `sphinx-build -n -W` |

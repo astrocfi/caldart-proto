@@ -1,4 +1,4 @@
-/* Night: the dark theme.  Status colours are lifted for contrast. */
+/* Night: the dark theme.  Status colors are lifted for contrast. */
 
 :root[data-theme='night'] {
   --color-bg: #151719;

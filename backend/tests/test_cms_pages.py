@@ -87,7 +87,7 @@ def expire_membership(user, plan, *, days_ago=30):
 ALL_BLOCKS = [
     ("heading", {"text": "First section", "level": "h2"}),
     ("paragraph", "<p>Body copy that a reader can actually read.</p>"),
-    ("quote", {"quote": "Organise before the disaster.", "attribution": "A volunteer"}),
+    ("quote", {"quote": "Organize before the disaster.", "attribution": "A volunteer"}),
     ("cta", {"label": "Join now", "url": "/portal/join", "style": "primary", "note": "$45 a year"}),
     ("heading", {"text": "Second section", "level": "h2"}),
     (

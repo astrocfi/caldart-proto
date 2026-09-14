@@ -1,4 +1,4 @@
-"""N-number normalisation and insurance properties."""
+"""N-number normalization and insurance properties."""
 
 from __future__ import annotations
 
@@ -33,13 +33,13 @@ def test_normalize_n_number(raw, expected):
     assert normalize_n_number(raw) == expected
 
 
-def test_save_normalises_the_n_number():
+def test_save_normalizes_the_n_number():
     aircraft = AircraftFactory(n_number="  n4 21 cd ")
     aircraft.refresh_from_db()
     assert aircraft.n_number == "N421CD"
 
 
-def test_n_number_is_unique_after_normalisation():
+def test_n_number_is_unique_after_normalization():
     AircraftFactory(n_number="N999ZZ")
     with pytest.raises(IntegrityError):
         Aircraft.objects.create(n_number="999zz")

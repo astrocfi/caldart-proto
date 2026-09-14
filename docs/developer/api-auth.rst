@@ -191,7 +191,7 @@ Roles
 ``GET /roles``
 --------------
 
-Any authenticated caller.  Returns the catalogue, in privilege order::
+Any authenticated caller.  Returns the catalog, in privilege order::
 
     [{"slug": "member", "description": "Own profile, own payments and ..."}, ...]
 
@@ -221,7 +221,7 @@ Parameter          Effect
 ``is_active``      ``true`` / ``false``.
 ``ordering``       One of ``last_name``, ``first_name``, ``email``,
                    ``is_active``, ``created_at``; prefix with ``-`` to reverse.
-                   Unlike ``role``, an unrecognised field is *ignored* rather
+                   Unlike ``role``, an unrecognized field is *ignored* rather
                    than rejected, so a typo silently gives you the default
                    order.
 ``page``,          Standard pagination.
@@ -313,7 +313,7 @@ How the portal uses this
 ========================
 
 ``src/portal/auth/useAuth.ts`` wraps the whole surface in TanStack Query hooks:
-``useMe`` and ``useAuth`` for identity, ``useRoles`` for the catalogue, and
+``useMe`` and ``useAuth`` for identity, ``useRoles`` for the catalog, and
 ``useLogin``, ``useRegister``, ``useLogout``, ``usePasswordChange``,
 ``usePasswordResetRequest`` and ``usePasswordResetConfirm`` for the mutations.
 Login, registration and logout all call ``queryClient.clear()`` so no screen can
