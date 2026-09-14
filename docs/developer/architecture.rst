@@ -1,13 +1,451 @@
-.. The title uses a heading style PLAN.rst never does, so the included plan
-   nests beneath it.  With PLAN.rst's own ``===`` style the plan would become a
-   sibling section, and Furo would hide this page's sidebar table of contents.
-
-############
+============
 Architecture
-############
+============
 
-The master plan below is included verbatim from ``PLAN.rst`` at the repository
-root; it is the single source of truth for the prototype, and if code and this
-page disagree, one of them is fixed in the same pull request.
+How CalDART fits together: the two things it serves, the stack underneath,
+where each responsibility lives, and the path a request takes from the
+browser to the code that answers it.  The detail is in the pages this one
+links to.
 
-.. include:: ../../PLAN.rst
+
+Overview
+========
+
+CalDART is the website and member management system for |org|, a 501(c)(3)
+that organizes California pilots and ground personnel to provide volunteer
+disaster air transportation.  Members belong to DARTs (Disaster Airlift
+Response Teams): local teams, each based at an airport.
+
+One Django project serves two deliverables from one origin:
+
+**The public website**
+    Server-rendered Wagtail pages: home, history and officers, the DART
+    directory, news, joining and donating, sponsors, contact, and a
+    members-only area.  Website administrators edit it in the Wagtail admin
+    at ``/admin/``.
+
+**The member portal**
+    A React single-page application (SPA) under ``/portal/``, backed by a
+    JSON API under ``/api/v1/``.  Members join, pay, renew, and keep their
+    profiles and aircraft up to date; DART leaders check whether a member may
+    fly a mission; administrators look after accounts, members, aircraft,
+    payments and the server.
+
+Editors get Wagtail's page tree, previews and revision history, and the
+public pages work without JavaScript; the member flows get a real
+application.  Both halves share one design system and one theme setting
+(:doc:`theming`).
+
+Five flows shape the system, and each has to be quick on a phone.  The
+:doc:`../demo-walkthrough` drives them by hand on the demo data, and the
+Playwright suite drives them in a browser (:doc:`testing`):
+
+- :ref:`walkthrough-flow-a`
+- :ref:`walkthrough-flow-b`
+- :ref:`walkthrough-flow-c`
+- :ref:`walkthrough-flow-d`
+- :ref:`walkthrough-flow-e`
+
+What the prototype leaves out on purpose is in :doc:`roadmap`.
+
+
+Stack
+=====
+
+Major versions only; ``uv.lock`` and ``frontend/package-lock.json`` pin the
+exact ones.
+
+==============  ==============================================================
+Layer           What CalDART uses
+==============  ==============================================================
+Backend         Python 3.12, Django 5.2, and Django REST Framework 3 with
+                django-filter; django-environ reads settings from the
+                environment or ``.env``
+CMS             Wagtail 8: page tree, StreamField, images, documents, site
+                settings
+Database        PostgreSQL 16 in Docker Compose, through psycopg 3
+Portal          TypeScript 5 in strict mode, React 19, React Router 7 and
+                TanStack Query 5
+Assets          Vite 6 builds them; django-vite writes the bundles, or the
+                Vite dev server, into templates; WhiteNoise serves
+                ``/static/``
+Payments        Stripe: the ``stripe`` library on the server, Stripe.js and
+                the Payment Element in the browser (card, Apple Pay, Google
+                Pay, Link).  PayPal: the Orders v2 REST API through httpx,
+                with no SDK, and ``@paypal/react-paypal-js`` in the browser.
+                A mock provider for development and tests
+Reports, email  reportlab for PDF and the standard library's ``csv`` for CSV;
+                Django's email framework, with Mailpit in development (SMTP
+                on port 1025, web interface on 8025)
+Operations      gunicorn behind Apache 2.4 or nginx; a management command
+                run daily by a systemd timer
+Tooling         uv and npm; ruff; tsc, ESLint 9 and Prettier; pytest,
+                pytest-django, factory_boy, freezegun and respx; Vitest,
+                Testing Library and msw; Playwright; Sphinx with furo; GitHub
+                Actions, where every step is a make target
+==============  ==============================================================
+
+
+Repository layout
+=================
+
+::
+
+  caldart-proto/
+    README.rst                  quick start
+    CLAUDE.md                   working conventions for coding agents
+    Makefile                    every developer task; `make help` lists them
+    docker-compose.yml          Postgres and Mailpit, project name "caldart"
+    .env.example                every environment variable, with dev defaults
+    pyproject.toml, uv.lock     backend dependencies; ruff and pytest settings
+    .github/workflows/ci.yml    the CI pipeline
+    .claude/
+      rules/                    coding, testing and documentation standards
+      skills/                   repeatable workflows (docs, critiques, PRs)
+    backend/
+      caldart/                  the Django project
+        settings/               base.py, dev.py (the default), prod.py, test.py
+        urls.py                 the root URLconf
+        api_urls.py             /api/v1/: includes every app's api/urls.py
+        views.py                portal_shell, the page the SPA runs in
+        pagination.py           page-number pagination for the API
+        exceptions.py           DRF error handling (401 for anonymous)
+        reports.py              CSV and PDF house style
+      apps/                     one Django app per domain area
+        accounts/  members/  aircraft/  payments/
+        reminders/  cms/  sysadmin/
+      templates/
+        base.html               the public-site shell
+        portal.html             the SPA mount point
+        cms/                    page, block and include templates
+        emails/                 password-reset and renewal-reminder mail
+      tests/                    every backend test, one test_<feature>.py each
+      media/                    Wagtail uploads (gitignored)
+      staticfiles/              collectstatic output (gitignored)
+    frontend/
+      vite.config.ts            two entry points: site and portal
+      src/
+        styles/                 tokens, base and site styles, themes/
+        site/                   public-site enhancements
+        portal/                 the member portal SPA
+        test/                   msw server, default handlers, render helpers
+      e2e/                      Playwright specs, one per flow
+      dist/                     Vite build output (gitignored)
+    deploy/
+      gunicorn.conf.py
+      systemd/                  caldart-web.service, caldart-reminders.*
+      apache/caldart.conf       the reverse proxy
+      nginx/caldart.conf        the nginx alternative
+    docs/                       this documentation: user/ and developer/
+    plans/                      implementation plans for work in progress
+      archive/                  finished plans, kept as a record
+    critiques/                  dated review reports on the code and docs
+    backups/                    database dumps (gitignored)
+
+Frontend tests sit beside the file they test (:doc:`testing`).
+
+
+How a request is served
+=======================
+
+In production Apache (or nginx) terminates TLS, serves uploads under
+``/media/`` from disk, and proxies everything else to gunicorn on
+``127.0.0.1:8001`` (:doc:`deployment`); in development ``make run`` serves
+the same URLs on port 8000.  Inside Django, WhiteNoise answers ``/static/``
+from the middleware stack, and everything else goes through
+``caldart/urls.py``, in this order:
+
+====================  ========================================================
+Path                  Served by
+====================  ========================================================
+``/admin/``           the Wagtail admin
+``/django-admin/``    Django's model admin, for the accounts, members,
+                      aircraft, payments and reminders models
+``/documents/``       Wagtail's document downloads
+``/api/v1/``          the JSON API
+``/.well-known/``     only ``apple-developer-merchantid-domain-association``,
+                      the Apple Pay domain-verification file
+``/portal/<path>``    ``caldart.views.portal_shell``, the page the SPA runs in
+``/media/``           uploaded files, while ``DEBUG`` is on
+anything else         Wagtail's page serving: a catch-all, so it stays last
+====================  ========================================================
+
+**Public pages.**  Wagtail matches the path against its page tree and
+renders the page's template, which extends ``templates/base.html``; the
+``site_chrome`` context processor supplies the site settings, theme and
+navigation.  A page flagged ``members_only`` renders the members-only wall
+with HTTP 403 instead, unless the visitor's ``can_access_members_content``
+is true (:doc:`cms`).
+
+**The portal shell.**  Every URL under ``/portal/`` returns the same HTML:
+``portal_shell`` renders ``portal.html``, which sets ``<html data-theme>``
+from the site's theme and loads the portal bundle.  The server knows nothing
+of the SPA's routes and makes no access decision here; React Router picks
+the screen in the browser, so a reload or a shared link lands in the right
+place.  Django's ``LOGIN_URL`` is ``/portal/login``.
+
+**The API.**  ``caldart/api_urls.py`` includes every app's ``api/urls.py``
+under ``/api/v1/``, and each app spells out its own paths, so adding an
+endpoint touches no shared file.  The DRF defaults in ``settings/base.py``
+hold unless a view says otherwise: session authentication only;
+``IsAuthenticated``, so a public endpoint opts out explicitly; JSON only;
+``?page=`` and ``?page_size=`` pagination; django-filter, ``?search=`` and
+``?ordering=``; and an exception handler that answers an anonymous request
+with 401 rather than 403.  Role checks use the classes in
+``apps/accounts/permissions.py``, which ``system_admin`` always passes, and
+sign-in, registration and password reset are rate-limited
+(:doc:`api-reference`).
+
+**Sessions and CSRF.**  The portal shares the API's origin, so it signs in
+with Django's session cookie and stores no token: ``POST /api/v1/auth/login``
+starts a session, and ``GET /api/v1/auth/me`` says who is signed in (401 for
+nobody).  Before the first unsafe request on a page load, the API client
+calls ``GET /api/v1/auth/csrf`` if it has no ``csrftoken`` cookie yet, then
+echoes that cookie in ``X-CSRFToken`` on every ``POST``, ``PUT``, ``PATCH``
+and ``DELETE``.  That is why production keeps the CSRF cookie readable from
+JavaScript while the session cookie is HttpOnly (:doc:`configuration`).
+
+**Static files.**  Vite builds two entry points, ``src/site/main.ts`` and
+``src/portal/main.tsx``, into ``frontend/dist/`` with hashed names under
+``/static/`` and a manifest at ``frontend/dist/.vite/manifest.json``, from
+which ``{% vite_asset %}`` writes a template's tags.  ``frontend/dist/`` is
+on ``STATICFILES_DIRS``, so after ``make build`` the development server
+serves it.  With ``DJANGO_VITE_DEV_MODE=true`` and ``make dev-frontend``
+running, the tags point at the Vite dev server on ``localhost:5173``
+instead, with hot module replacement.  In production ``collectstatic``
+copies the build into ``backend/staticfiles/`` for WhiteNoise, and Apache
+and nginx proxy ``/static/`` through rather than aliasing it, so the
+manifest stays authoritative.
+
+
+The backend apps
+================
+
+Seven apps under ``backend/apps/``, one per domain area.  The usual files
+are ``models.py``, ``services.py``, an ``api/`` package (``urls.py``,
+``views.py``, ``serializers.py``, ``filters.py``), ``admin.py``,
+``reports.py``, ``seed.py``, ``management/commands/`` and ``migrations/``;
+not every app needs every one.
+
+``accounts``
+    The custom ``User``, whose login is the email address; the six roles,
+    stored as Django ``Group`` rows (``roles.py``); the permission classes
+    (``permissions.py``); and the auth rate limits (``throttling.py``).
+    Endpoints ``/auth/...``, ``/admin/users`` and ``/roles``; commands
+    ``seed_roles`` and ``seed_demo``.
+``members``
+    ``Dart``, ``MemberProfile``, ``MembershipPlan`` and ``Membership``, and
+    the rules for whether a membership is current.  Endpoints: the member's
+    own ``/me/...``, the public ``/darts`` and ``/plans``, and the account
+    administrator's ``/admin/members`` and ``/admin/memberships``, with the
+    membership report.
+``aircraft``
+    ``Aircraft``, the shared register with insurance data.  Endpoints
+    ``/aircraft...``, the exports under ``/admin/aircraft/``, and the DART
+    leader check under ``/leader/``.
+``payments``
+    ``Payment``; the provider plugins in ``providers/`` (``stripe``,
+    ``paypal`` and ``mock``); checkout, confirmation, webhooks and payment
+    reporting.  Endpoints ``/payments/...`` and ``/admin/payments``;
+    ``views.py`` also serves the Apple Pay domain-verification file.
+``reminders``
+    ``ReminderLog`` and the renewal-reminder scanner, with its
+    ``send_renewal_reminders`` command.  Endpoints ``/admin/reminders/log``
+    and ``/system/reminders/run``.
+``cms``
+    The Wagtail page types, the StreamField blocks, ``SiteSettings``, the
+    members-only wall, the ``site_chrome`` context processor and the
+    ``website_admin`` editor permissions.  Endpoint ``/site/config``; command
+    ``seed_content``.
+``sysadmin``
+    No models: backup, restore, reset and health, as the commands
+    ``db_backup``, ``db_restore``, ``db_reset`` and ``health`` and the
+    endpoints ``/system/health`` and ``/system/backups``.
+
+Code that several apps share lives in the project package:
+``caldart/reports.py`` (the CSV and PDF house style), ``caldart/pagination.py``
+and ``caldart/exceptions.py``.  ``make seed`` runs ``seed_roles``, then
+``seed_demo`` (every app's ``seed.py``, with a fixed random seed so every
+machine gets the same data), then ``seed_content``; all three are
+idempotent.
+
+The services layer
+------------------
+
+Views and serializers validate input and shape output; they hold no domain
+rules.  Anything that changes state or answers a domain question lives in
+the app's ``services.py`` as plain functions, so the API, the management
+commands, the seeders and the tests all run the same code:
+
+- ``members.services.membership_status()`` is the one answer to "is this
+  person a current member", and ``activate_term()`` is the only code that
+  creates a membership term: a successful payment, an administrator's manual
+  grant and the demo seeder all call it.
+- ``payments.services.create_checkout()`` computes every total on the server,
+  and ``mark_succeeded()`` is idempotent, so the browser's confirmation and a
+  webhook for the same payment activate exactly one term.
+- ``reminders.services.send_renewal_reminders()`` backs the command, the
+  systemd timer and the portal's run button alike.
+- ``aircraft.services.leader_status()`` builds the DART leader's status card;
+  ``accounts.services`` registers users and sends password-reset mail; and
+  ``sysadmin.services`` takes and restores backups and reports health.
+
+When one app changes another's state, it calls that app's service: a payment
+reaches the membership tables only through ``activate_term()``.
+:doc:`data-model` documents each service beside its models.
+
+
+The public site frontend
+========================
+
+The templates are in ``backend/templates/``.  ``base.html`` is the shell
+every page extends (skip link, header and navigation, a footer with the
+contact details), and its ``<html data-theme>`` carries the theme chosen in
+Site Settings.  ``cms/<page_type>.html`` renders one page model,
+``cms/blocks/*.html`` one StreamField block each, and
+``cms/members_only_wall.html`` is what a visitor gets in place of a page they
+may not read.  The navigation comes from ``site_chrome``: the live top-level
+pages flagged *show in menus*, in tree order, then *Join* and either *Log in*
+or *Members*, depending on whether the visitor is signed in.
+
+``base.html`` loads one bundle, ``frontend/src/site/main.ts``.  It imports
+``styles/site.css``, the shared stylesheet plus the public site's editorial
+rules, and adds progressive enhancement only: the mobile navigation toggle,
+marking the current entry against the address bar, focusing the main content
+from the skip link, and ``?theme=<slug>`` to preview a theme, which works
+only where the template has set ``data-theme-preview="allowed"`` for a
+website or system administrator.  Its pure helpers are in ``site/nav.ts``
+so they can be unit tested.  :doc:`cms` and :doc:`theming` have the rest.
+
+
+The portal SPA
+==============
+
+The portal lives in ``frontend/src/portal/``.  ``main.tsx`` mounts ``<App>``
+on ``#portal-root``, and ``App.tsx`` wraps a browser router with the
+basename ``/portal`` in the query client and the toast provider.
+
+**Routing.**  Each feature exports a ``RouteObject[]`` from its own file in
+``routes/``, and ``routes/index.tsx`` only concatenates them under one
+``PortalLayout`` route, so adding a screen touches only its feature's route
+file.  Paths are written without the ``/portal`` prefix:
+
+======================  ======================================================
+File                    Routes, and who may open them
+======================  ======================================================
+``auth.tsx``            ``/login``, ``/logout``, ``/forgot-password``,
+                        ``/reset-password``: anyone; ``/change-password``:
+                        signed in
+``join.tsx``            ``/join``, ``/join/:step``: anyone; ``/renew``: signed
+                        in
+``dashboard.tsx``       ``/``: signed in
+``profile.tsx``         ``/profile``, ``/profile/aircraft``: signed in
+``leader.tsx``          ``/leader``, ``/leader/aircraft``: ``dart_leader`` or
+                        ``account_admin``
+``admin-members.tsx``   ``/admin/members``, ``/admin/members/new``,
+                        ``/admin/members/:id``: ``account_admin``
+``admin-aircraft.tsx``  ``/admin/aircraft``, ``/admin/aircraft/:id``:
+                        ``account_admin``
+``admin-payments.tsx``  ``/admin/payments``: ``account_admin``
+``admin-users.tsx``     ``/admin/users``, ``/admin/users/:id``: ``user_admin``
+``system.tsx``          ``/system``: ``system_admin``
+``not-found.tsx``       any other path
+======================  ======================================================
+
+**Guards.**  ``RequireAuth``, in ``auth/guards.tsx``, wraps every route that
+needs a session and sends an anonymous visitor to
+``/login?next=<the path they asked for>``; the sign-in page returns them
+there.  ``RequireRole`` wraps each role-gated route file and shows a 403 page
+naming the role.  Both wait for ``GET /auth/me`` to settle, so a slow answer
+never flashes the sign-in page, and ``system_admin`` satisfies every role.
+The guards are a courtesy: the API enforces every permission itself.
+
+**Server state.**  Everything from the API goes through TanStack Query.
+``auth/useAuth.ts`` wraps ``GET /auth/me`` under the key ``['auth', 'me']``,
+the portal's single notion of who is signed in.  Signing in, registering and
+signing out clear the whole cache and write the result into that key, so
+nothing cached for one person is shown to the next.
+
+**The API client.**  ``api/client.ts`` is the only code that calls
+``fetch``.  It prefixes ``/api/v1``, sends the session cookie, performs the
+CSRF bootstrap, encodes JSON, and turns any non-2xx response into an
+``ApiError`` with the status, the DRF error body, and ``fieldErrors`` keyed
+by field for forms.  ``api/types.ts`` types every API object by hand, in
+step with the serializers.
+
+**Features.**  A directory under ``features/`` holds one feature's pages and
+components, an ``api.ts`` of query hooks, its stylesheet, its tests beside
+the files they test, and an ``index.ts`` of what the route files use:
+
+======================  ======================================================
+``auth``                sign-in, sign-out, password reset and change
+``join``                the join wizard (account, profile, pay, done) and the
+                        renew page
+``checkout``            the ``<Checkout>`` that join and renew share: plan and
+                        contribution, then one panel per payment provider
+``dashboard``           the member's home: status, payments, and the
+                        members-only pages from ``GET /api/v1/site/config``
+``profile``             the profile form and *My aircraft*
+``aircraft``            the aircraft picker, form, and insurance and service
+                        chips that the profile, leader and admin screens reuse
+``leader``              the DART leader's member check and aircraft check
+``admin-*``             the members, aircraft, payments and users screens
+``system``              the System page: health, backups and reminders
+======================  ======================================================
+
+Shared code sits outside ``features/``: ``components/`` holds the primitives
+every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``StatusChip``,
+``DataTable``, ``Money``, ``DateText``, ``EmptyState`` and ``Toast``), and
+``choices.ts`` holds the one set of labels for certificate, medical, IFR and
+rating codes.
+
+**Navigation.**  ``nav.ts`` declares every entry in ``NAV_ITEMS`` with the
+roles that may see it (an empty list means any signed-in user) and a group:
+*Membership*, *Operations*, *Administration* or *System*.
+``layout/PortalLayout.tsx`` shows what the user's roles allow, as a rail on
+a wide screen and a drawer on a phone.  Keep an entry's roles the same as
+the ``RequireRole`` on its route.
+
+
+Background work
+===============
+
+There is no task queue, worker process or scheduler daemon.  Work runs
+inside a request or a management command, and mail is sent synchronously by
+whichever one causes it.
+
+**Renewal reminders.**  ``send_renewal_reminders`` emails members 60, 30 and
+7 days before their membership expires, on the day, and 30 days after.  It
+records every message in ``ReminderLog``, one row per user, term and kind,
+so a second run sends nothing twice, and it marks lapsed terms expired;
+lifetime members are skipped.  ``deploy/systemd/caldart-reminders.timer``
+runs it daily at 07:00 in production, ``make reminders`` in development
+(``TODAY=YYYY-MM-DD`` scans as of another date, ``DRY_RUN=1`` rehearses),
+and a system administrator can run it from the portal's System page
+(:doc:`reminders`).
+
+**Backups.**  ``db_backup`` writes a gzipped ``pg_dump`` into ``BACKUP_DIR``
+(``backups/`` by default), inside the Compose database container while
+``DB_BACKUP_VIA_DOCKER`` is on, the default, and with a local ``pg_dump``
+otherwise.  ``make backup`` runs it, and so does the System page, which also
+lists and downloads dumps.  No backup timer ships in ``deploy/``
+(:doc:`backup-restore` shows how to add one), and restore and reset are
+command-line only, so nothing destructive is one click away.  ``health``
+reports database connectivity, pending migrations, free disk space and the
+last backup.
+
+
+Where to read next
+==================
+
+- :doc:`setup` for a working checkout, the make targets and the commands;
+  :doc:`configuration` for every environment variable.
+- :doc:`data-model` and :doc:`api-reference`, the two references to keep
+  open.
+- :doc:`payments-setup`, :doc:`cms`, :doc:`theming`, :doc:`reports` and
+  :doc:`reminders`, one page per subsystem.
+- :doc:`testing`, :doc:`deployment` and :doc:`backup-restore` for testing,
+  running and looking after it; :doc:`roadmap` for what is left out.
+
+Coding conventions live in ``CLAUDE.md`` and ``.claude/rules/`` at the
+repository root.

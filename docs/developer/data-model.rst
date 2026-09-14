@@ -4,8 +4,9 @@ Data model
 
 Every model in the project, its fields, the rules that hold it together, and
 the two implementations of the one piece of arithmetic everything else depends
-on: whether a person's membership is current.  This page expands ``PLAN.rst``
-§4; the endpoints that expose these models are in :doc:`api-reference`.
+on: whether a person's membership is current.  The endpoints that expose these
+models are in :doc:`api-reference`, and :doc:`architecture` shows which app
+owns each one.
 
 House rules that apply throughout:
 
@@ -221,13 +222,18 @@ members
 
 A local Disaster Airlift Response Team.
 
-``name`` (unique), ``airport_identifier`` (the FAA identifier, e.g. ``E16``),
+``name`` (unique), ``airport_identifier`` (e.g. ``E16``),
 ``city``, ``is_active``, ``sort_order``.  Ordered by ``sort_order`` then
 ``name``; ``__str__`` is ``"Angwin (2O3)"`` when there is an identifier and
 just the name otherwise.
 
-Sixteen are seeded, fifteen airports plus ``Unaffiliated`` (which has no
-identifier and no city).  ``cms.DartPage`` points at this table with a
+Sixteen are seeded from ``DARTS`` in ``apps/members/seed.py``: fifteen
+airports — Angwin ``2O3``, Central Coast ``SBP``, Contra Costa ``CCR``, Half
+Moon Bay ``HAF``, Hayward ``HWD``, Livermore ``LVK``, Monterey ``MRY``, Napa
+``APC``, Palo Alto ``PAO``, Reid-Hillview ``RHV``, San Carlos ``SQL``, San
+Martin (South County) ``E16``, Santa Monica ``SMO``, Santa Rosa ``STS`` and
+Watsonville ``WVI`` — plus ``Unaffiliated``, which has no identifier and no
+city.  ``cms.DartPage`` points at this table with a
 ``PROTECT`` foreign key, so a DART with a page cannot be deleted out from
 under it, and the airport and city are never retyped in the CMS.
 
@@ -306,8 +312,8 @@ that the message a person reads can be specific:
 ``is_complete``
     ``True`` when every field in ``MemberProfile.COMPLETE_FIELDS`` has a
     value: ``phone``, ``address_line1``, ``city``, ``postal_code`` and
-    ``pilot_certificate_type`` — the five fields PLAN §6.1 names.  This is the
-    single definition of "complete": the accounts ``UserSerializer`` delegates
+    ``pilot_certificate_type``.  This is the single definition of
+    "complete": the accounts ``UserSerializer`` delegates
     to it for the ``profile_complete`` flag that drives the dashboard nudge and
     the join wizard's step gating, and the portal form's
     ``REQUIRED_PROFILE_FIELDS`` (``frontend/src/portal/features/profile/form.ts``)
@@ -373,13 +379,18 @@ members
 
 A local Disaster Airlift Response Team.
 
-``name`` (unique), ``airport_identifier`` (the FAA identifier, e.g. ``E16``),
+``name`` (unique), ``airport_identifier`` (e.g. ``E16``),
 ``city``, ``is_active``, ``sort_order``.  Ordered by ``sort_order`` then
 ``name``; ``__str__`` is ``"Angwin (2O3)"`` when there is an identifier and
 just the name otherwise.
 
-Sixteen are seeded, fifteen airports plus ``Unaffiliated`` (which has no
-identifier and no city).  ``cms.DartPage`` points at this table with a
+Sixteen are seeded from ``DARTS`` in ``apps/members/seed.py``: fifteen
+airports — Angwin ``2O3``, Central Coast ``SBP``, Contra Costa ``CCR``, Half
+Moon Bay ``HAF``, Hayward ``HWD``, Livermore ``LVK``, Monterey ``MRY``, Napa
+``APC``, Palo Alto ``PAO``, Reid-Hillview ``RHV``, San Carlos ``SQL``, San
+Martin (South County) ``E16``, Santa Monica ``SMO``, Santa Rosa ``STS`` and
+Watsonville ``WVI`` — plus ``Unaffiliated``, which has no identifier and no
+city.  ``cms.DartPage`` points at this table with a
 ``PROTECT`` foreign key, so a DART with a page cannot be deleted out from
 under it, and the airport and city are never retyped in the CMS.
 
@@ -777,8 +788,10 @@ One attempt to pay for a membership term, make a contribution, or both.
    * - ``provider``
      - ``stripe``, ``paypal``, ``mock``
    * - ``wallet``
-     - ``card``, ``apple_pay``, ``google_pay``, ``link``, ``paypal``,
-       ``mock``, ``unknown``
+     - how the member paid: ``card``, ``apple_pay``, ``google_pay`` or
+       ``link`` from the Stripe charge (:doc:`payments-setup`), ``paypal``
+       for PayPal, ``mock`` for the mock provider, and ``unknown`` (the
+       default) when the provider does not say
    * - ``provider_ref``
      - PaymentIntent id or PayPal order id
    * - ``status``
