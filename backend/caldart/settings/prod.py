@@ -1,33 +1,48 @@
 """Production settings: Apache/nginx -> gunicorn, whitenoise, SMTP email.
 
-Everything host-specific comes from the environment — in practice from
+Everything host-specific comes from the environment -- in practice from
 ``/etc/caldart/caldart.env``, loaded by ``deploy/systemd/caldart-web.service``.
-Four variables have no default on purpose, so a half-configured box fails at
-start-up rather than serving with a development secret:
-``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` and ``EMAIL_URL``.
+Nothing in this chain reads a ``.env`` file: a variable the environment lacks
+is a start-up error, not an invitation to take a development value from a file
+beside the code.  Four variables have no default on purpose, so a
+half-configured box fails at start-up rather than serving with a development
+secret: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` and ``EMAIL_URL``.
 ``docs/developer/configuration.rst`` lists every variable and its production
 value.
 """
 
 from copy import deepcopy
 
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *  # noqa: F403
-from .base import LOGGING, REPO_ROOT, env
+from .base import LOGGING, REPO_ROOT, REST_FRAMEWORK, env
 
 # ``from .base import *`` binds the *same* dict objects as the base module, so
 # editing them in place would reach back into whatever settings module is
-# already loaded.  Copy the two we change.
+# already loaded.  Copy the three we change.
 DATABASES = deepcopy(DATABASES)  # noqa: F405
 LOGGING = deepcopy(LOGGING)
+REST_FRAMEWORK = deepcopy(REST_FRAMEWORK)
 
 # --------------------------------------------------------------------------
 # Core
 # --------------------------------------------------------------------------
 DEBUG = False
 
+# The key ``base.py`` defaults to and ``.env.example`` ships.  It is published
+# in the repository, so a box still running it can have its sessions and
+# password-reset links forged by anyone who has read the source.
+DEVELOPMENT_SECRET_KEY = "dev-insecure-secret-key-change-me"
+
 # No default: a production box must set its own key, and a missing one is a
 # start-up error rather than a quietly shared development secret.
 SECRET_KEY = env("SECRET_KEY")
+if SECRET_KEY == DEVELOPMENT_SECRET_KEY:
+    raise ImproperlyConfigured(
+        "SECRET_KEY is still the published development key. Generate one with: "
+        'python3 -c "import secrets; print(secrets.token_urlsafe(64))"'
+    )
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 SITE_URL = env("SITE_URL")
@@ -45,14 +60,23 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
 
 # HSTS: set SECURE_HSTS_SECONDS=0 for the first deploy of a new hostname, then
-# raise it once HTTPS is known good — browsers remember the header for its full
-# duration and there is no way to take it back early.
+# raise it once HTTPS is known good -- browsers remember the header for its full
+# duration and there is no way to take it back early.  Neither shipped vhost
+# sets the header, so this setting is what a browser actually receives.
 SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
-SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=True)
+# Off by default: `preload` tells the world the site consents to the browser
+# preload list, which no deployment should join by inheriting a default.
+SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
 
+# Django owns these on proxied responses too; the vhosts set neither.
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
+# `manage.py check --deploy` reports security.W021 whenever preload is off.
+# Leaving it off is the deliberate choice above, so the deployment audit stays
+# clean and a real finding is not lost in a known one.
+SILENCED_SYSTEM_CHECKS = ["security.W021"]
 
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
@@ -82,6 +106,35 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 # --------------------------------------------------------------------------
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=60)  # noqa: F405
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = True  # noqa: F405
+
+# --------------------------------------------------------------------------
+# Cache
+#
+# The auth throttles count in the default cache.  Django's fallback cache is
+# per-process, so each of gunicorn's workers would keep a budget of its own and
+# reset it whenever the worker recycled.  The database cache is shared by every
+# worker and needs no service beyond Postgres -- only `manage.py
+# createcachetable`, which the deployment guide runs on install and upgrade.
+# --------------------------------------------------------------------------
+CACHE_TABLE = "caldart_cache"
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": CACHE_TABLE,
+    }
+}
+
+# --------------------------------------------------------------------------
+# Django REST Framework
+#
+# Both shipped vhosts pass a client's own X-Forwarded-For through and append the
+# address they saw, so only the last entry is trustworthy.  Telling DRF that
+# exactly one proxy sits in front makes it read that entry; without it the
+# throttles key on the whole header, and a client that varies its prefix is
+# never throttled.  gunicorn accepts X-Forwarded-* only from loopback, so the
+# proxy is the only thing that can write it.
+# --------------------------------------------------------------------------
+REST_FRAMEWORK["NUM_PROXIES"] = 1
 
 # --------------------------------------------------------------------------
 # Email
@@ -123,9 +176,12 @@ DJANGO_VITE = {
 # --------------------------------------------------------------------------
 # Payments
 # --------------------------------------------------------------------------
-# The mock provider renders "Succeed"/"Fail" buttons; never in production
-# unless someone deliberately turns it on to demo the flow without keys.
-PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED", default=False)
+# The mock provider renders "Succeed"/"Fail" buttons, so anyone who can sign in
+# can grant themselves a membership.  The development flag, PAYMENTS_MOCK_ENABLED,
+# is ignored here: it is on in `.env.example`, and a copied environment file must
+# not be what turns it on.  Demonstrating the flow without payment keys takes this
+# variable, which exists nowhere else.
+PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED_IN_PRODUCTION", default=False)
 
 # --------------------------------------------------------------------------
 # Logging
