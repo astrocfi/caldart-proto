@@ -3,7 +3,7 @@ Testing
 =======
 
 Three suites, all of which must be green before a pull request is opened, and
-all of which CI runs on every push:
+all of which CI runs on every push to ``main`` and every pull request:
 
 .. list-table::
    :header-rows: 1

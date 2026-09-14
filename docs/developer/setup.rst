@@ -217,7 +217,8 @@ match, so password-reset and reminder emails link back to the right one.
 Make targets
 ============
 
-``make help`` lists them all with one-line descriptions.  In full:
+``make help`` lists the targets you run day to day, with one-line
+descriptions.  In full, halves and helpers included:
 
 .. list-table::
    :header-rows: 1
@@ -225,6 +226,8 @@ Make targets
 
    * - Target
      - What it does
+   * - ``help``
+     - the everyday targets, one line each
    * - ``setup``
      - ``uv sync``, ``npm ci``, create ``.env`` from ``.env.example`` if absent
    * - ``up``
@@ -232,6 +235,10 @@ Make targets
        the database in ``DATABASE_URL``
    * - ``down``
      - stop the containers (the ``caldart_pgdata`` volume survives)
+   * - ``wait-db``
+     - block until Postgres accepts connections; a step of ``up``
+   * - ``createdb``
+     - create the database named in ``DATABASE_URL`` if it does not exist
    * - ``migrate``
      - ``manage.py migrate``
    * - ``makemigrations``
@@ -271,6 +278,20 @@ Make targets
      - ``codespell`` — American spelling and common typos
    * - ``format``
      - ``ruff format``, ``ruff check --fix``, ``prettier --write``
+   * - ``check``
+     - ``check-backend`` then ``check-frontend``
+   * - ``check-backend``
+     - ``manage.py check --fail-level WARNING`` and
+       ``manage.py makemigrations --check --dry-run``, both under
+       ``caldart.settings.test``
+   * - ``check-frontend``
+     - ``npm run build`` — the production frontend build
+   * - ``audit``
+     - ``audit-backend`` then ``audit-frontend``
+   * - ``audit-backend``
+     - ``uv audit`` — the versions in ``uv.lock`` against the OSV database
+   * - ``audit-frontend``
+     - ``npm audit`` — the versions in ``package-lock.json``
    * - ``backup``
      - ``db_backup`` — a gzipped ``pg_dump`` into ``backups/``
    * - ``restore``
@@ -278,7 +299,7 @@ Make targets
    * - ``reminders``
      - ``send_renewal_reminders`` — ``make reminders [TODAY=2027-01-01] [DRY_RUN=1]``
    * - ``docs``
-     - ``sphinx-build -W`` into ``docs/_build/html``
+     - ``sphinx-build -n -W`` into ``docs/_build/html``
    * - ``clean``
      - remove ``docs/_build``, ``frontend/dist``, ``backend/staticfiles`` and
        ``__pycache__``

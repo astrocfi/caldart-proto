@@ -94,7 +94,7 @@ Repository layout
   caldart-proto/
     README.rst                  quick start
     CLAUDE.md                   working conventions for coding agents
-    Makefile                    every developer task; `make help` lists them
+    Makefile                    every task; `make help` lists the everyday ones
     docker-compose.yml          Postgres and Mailpit, project name "caldart"
     .env.example                every environment variable, with dev defaults
     pyproject.toml, uv.lock     backend dependencies; ruff and pytest settings

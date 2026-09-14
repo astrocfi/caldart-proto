@@ -78,9 +78,11 @@ Everyday commands
    $ make audit          # known vulnerabilities in Python and npm dependencies
    $ make reset          # destroy and re-seed the dev database
    $ make backup         # gzipped pg_dump into backups/
-   $ make help           # every target
+   $ make help           # the everyday targets
 
-Run ``make help`` for the full list.
+``make help`` covers the everyday targets. The Make targets table in
+``docs/developer/setup.rst`` lists every target the Makefile defines, halves
+and helpers included.
 
 
 End-to-end tests
