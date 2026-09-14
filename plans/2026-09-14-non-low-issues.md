@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-14
 
-**Scope:** the 42 issues labelled `priority-critical`, `priority-high` or `priority-medium`. They were filed from the 2026-09-13 critiques in `critiques/`. The six `priority-low` checklist issues are out of scope.
+**Scope:** the 44 issues labeled `priority-critical`, `priority-high` or `priority-medium`. 42 were filed from the 2026-09-13 critiques in `critiques/`. The other two are #62 (codespell and American spelling) and #64 (mypy). The six `priority-low` checklist issues are out of scope.
 
 **Status:** ready to run once #13 is merged, this plan is committed, and the decisions in §5 have been reviewed.
 
@@ -113,7 +113,7 @@ These are the defaults the workers apply. Each comes from the issue's suggested 
   - `SECURE_HSTS_SECONDS` keeps its one-year default, and `SECURE_HSTS_PRELOAD` defaults to false.
 - **#30, throttle rates:**
   - An empty value turns the throttle off, and a malformed one stops start-up.
-  - Normalise in settings, and also treat a falsy rate as off in `get_rate`.
+  - Normalize in settings, and also treat a falsy rate as off in `get_rate`.
 - **#19, Stripe objects and signatures:**
   - Delete the `construct_event` stub, and sign every webhook test's payload for real.
   - Convert SDK objects with `.to_dict()` at the boundary in `start`, `confirm` and `handle_webhook`, as part of the same fix.
@@ -239,6 +239,18 @@ These are the defaults the workers apply. Each comes from the issue's suggested 
   - Fix the clock at `2026-06-15T12:00:00Z`.
   - Restore real timers globally in `setup.ts`.
 
+- **#62, American spelling:**
+  - The package runs before every other package, so later work is spell-checked as it's written.
+  - codespell uses `clear,rare,en-GB_to_en-US`, and ignores only `nnumber` and `unparseable`.
+  - The stored term status `cancelled` becomes `canceled` in the same PR. This was the owner's decision. `0001_initial.py` is edited in place.
+  - The check is its own `lint-spelling` target inside `make lint`, called from CI's backend job.
+- **#64, mypy:**
+  - mypy with the django-stubs and djangorestframework-stubs plugins, not pyright; this was the owner's choice.
+  - `strict = true`, relaxing only `disallow_subclassing_any`, because Wagtail's base classes are untyped.
+  - The plugin loads `caldart.settings.test`.
+  - Tests are type-checked too.
+  - It is adopted unit by unit, in the same PRs as the annotations and docstrings, through a temporary `ignore_errors` override per unit. None may remain at the end.
+
 ## 6. Failure handling and the final report
 
 - **A failing gate.** The worker gets up to three fix attempts within the package's scope. If the gate still fails, it leaves the PR open as a draft, comments on each issue with the failure and what it tried, and stops. The orchestrator carries on with every package that does not depend on the stopped one.
@@ -252,19 +264,54 @@ These are the defaults the workers apply. Each comes from the issue's suggested 
 
 ## 7. Work packages
 
-Packages are described by area below. The manifest (§8) gives their order, and this table summarises it. Tracking packages that only reference their issues are listed with those issues.
+Packages are described by area below. The manifest (§8) gives their order, and this table summarizes it. Tracking packages that only reference their issues are listed with those issues.
 
 | Wave | Packages (issues) |
 |---|---|
+| 0 | `american-spelling` (#62) |
 | 1 | `account-edit-guard` (#14); `production-settings` (#27, #28, #15); `payment-provider-errors` (#19, #23, #24); `reminder-scan-resilience` (#25); `docs-accuracy` (#49, #48, #50, #53, #51, #52); `make-switches` (#55); `server-controlled-field-tests` (#35); `vite-react-refresh` (#20); `api-client-errors` (#36, #39); `auth-check-errors` (#37); `shared-debounce` (#42); `profile-fieldsets` (#41) |
 | 2 | `member-delete-keeps-payments` (#26); `auth-csrf-and-throttle-rates` (#30, #21); `members-only-documents` (#22); `production-commands-docs` (#54); `membership-annotations` (#29); `checkout-strict-mode` (#38); `route-table` (#46, #40) |
 | 3 | `shared-membership-types` (#33); `permission-matrix-tests` (#34); `api-types` (#43); `fake-timers` (#47) |
 | 4 | `account-and-member-services` (#16); `frontend-types-docs-shared` (#44, #45) |
 | 5 | `app-layering` (#32); `frontend-types-docs-admin` (#44, #45) |
 | 6 | `audit-logging` (#31); `frontend-types-docs-flows` (#44, #45) |
-| 7 | `backend-types-ratchet` (#17, #18); `frontend-types-docs-finish` (#44, #45) |
-| 8 | `backend-types-core` (#17, #18); `backend-types-reminders` (#17, #18); `backend-types-sysadmin` (#17, #18); `backend-types-aircraft` (#17, #18); `backend-types-payments` (#17, #18); `backend-types-accounts` (#17, #18); `backend-types-cms` (#17, #18); `backend-types-members` (#17, #18); `backend-types-tests-accounts` (#17, #18); `backend-types-tests-members` (#17, #18); `backend-types-tests-aircraft` (#17, #18); `backend-types-tests-payments` (#17, #18); `backend-types-tests-reminders` (#17, #18); `backend-types-tests-cms` (#17, #18); `backend-types-tests-sysadmin` (#17, #18); `backend-types-tests-shared` (#17, #18) |
-| 9 | `backend-types-finish` (#17, #18) |
+| 7 | `backend-types-ratchet` (#17, #18, #64); `frontend-types-docs-finish` (#44, #45) |
+| 8 | `backend-types-core` (#17, #18, #64); `backend-types-reminders` (#17, #18, #64); `backend-types-sysadmin` (#17, #18, #64); `backend-types-aircraft` (#17, #18, #64); `backend-types-payments` (#17, #18, #64); `backend-types-accounts` (#17, #18, #64); `backend-types-cms` (#17, #18, #64); `backend-types-members` (#17, #18, #64); `backend-types-tests-accounts` (#17, #18, #64); `backend-types-tests-members` (#17, #18, #64); `backend-types-tests-aircraft` (#17, #18, #64); `backend-types-tests-payments` (#17, #18, #64); `backend-types-tests-reminders` (#17, #18, #64); `backend-types-tests-cms` (#17, #18, #64); `backend-types-tests-sysadmin` (#17, #18, #64); `backend-types-tests-shared` (#17, #18, #64) |
+| 9 | `backend-types-finish` (#17, #18, #64) |
+
+### american-spelling: codespell in `make lint`; `cancelled` becomes `canceled`
+
+- **Issues:** #62
+- **Branch:** `feature/american-spelling`; database `caldart_american_spelling`; e2e on port 8101
+- **Runs first.** Every wave-1 package waits for it. All later work is then spell-checked as it's written, and the rename lands before any other package touches those files.
+- **Owns:**
+  - `pyproject.toml` (the `[tool.codespell]` table and the dev dependency), `uv.lock`
+  - `Makefile` (`lint-spelling`, which `lint` depends on), and `.github/workflows/ci.yml` (a `make lint-spelling` step in the backend job)
+  - the `cancelled` sites, with their tests:
+    - `backend/apps/members/models.py`, `backend/apps/members/migrations/0001_initial.py`, `backend/apps/members/services.py`, `backend/apps/members/api/admin_filters.py`, `backend/apps/reminders/services.py`
+    - `frontend/src/portal/api/types.ts`, `frontend/src/portal/features/admin-members/choices.ts`
+  - spelling-only edits in any other file
+- **Docs:**
+  - `.claude/rules/doc_python.md` §2
+  - the term statuses in `docs/developer/data-model.rst`, `docs/developer/api-members.rst` and `PLAN.rst` §4.2 and §6.4
+  - the prose in `docs/developer/reminders.rst` and the account-administrator guide
+- **Steps:**
+  1. **Tooling.**
+     - Run `uv add --dev codespell`, and add the issue's `[tool.codespell]` table: `builtin = "clear,rare,en-GB_to_en-US"`, the skip list, and `ignore-words-list = "nnumber,unparseable"`, with a comment for each word.
+     - Add `lint-spelling`, which runs codespell over `README.rst PLAN.rst CLAUDE.md docs backend frontend/src frontend/e2e .github deploy .claude`. Make `lint` depend on it, and add the CI step.
+  2. **Rename `cancelled` to `canceled`.**
+     - Make the choice `MembershipStatusChoices.CANCELED = "canceled", "Canceled"`, and edit `0001_initial.py` in place.
+     - Update the three queries, `MembershipTermStatus` and `TERM_STATUS_CHOICES`, the backend and frontend tests, and the docs.
+     - `make check` must still report no missing migration.
+  3. **Fix the rest.**
+     - Run `uv run codespell --write-changes`.
+     - Then rename by hand: `summarise` (with its caller in `payments/api/views.py`), the British-spelled test names, and `normalised` in `frontend/src/site/nav.ts`.
+     - Review the diff for words that must stay as they are.
+  4. **Rule.** Update `doc_python.md` §2 to name codespell as the enforcement and to list the ignore-words.
+- **Verify:**
+  - `make lint` reports no codespell hits, and adding "colour" to any checked file makes it fail.
+  - `grep -rniw "cancelled" backend frontend/src frontend/e2e docs PLAN.rst` finds nothing outside build output.
+  - The PR says that existing development databases need `make reset`.
 
 ### account-edit-guard: close the admin account-takeover path
 
@@ -299,7 +346,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 ### production-settings: fail closed in production, one HSTS owner, real client IPs
 
 - **Issues, in commit order:** #27, #28, #15
-- **Branch:** `bugfix/production-settings`; database `caldart_production_settings`; e2e on port 8101
+- **Branch:** `bugfix/production-settings`; database `caldart_production_settings`; e2e on port 8102
 - **Owns:**
   - `backend/caldart/settings/_dotenv.py` (new), `base.py` (only the `.env` read at the top), `dev.py`, `test.py`, `prod.py`
   - `backend/caldart/wsgi.py`, `backend/caldart/asgi.py`
@@ -338,7 +385,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 ### payment-provider-errors: handle Stripe objects, turn outages into 400s, bound Stripe's time
 
 - **Issues, in commit order:** #19, #23, #24
-- **Branch:** `bugfix/payment-provider-errors`; database `caldart_payment_provider_errors`; e2e on port 8102
+- **Branch:** `bugfix/payment-provider-errors`; database `caldart_payment_provider_errors`; e2e on port 8103
 - **Owns:** `backend/apps/payments/providers/base.py`, `stripe.py`, `paypal.py`, `backend/tests/test_payments_stripe.py`, and the new `backend/tests/test_payments_provider_errors.py` and `test_payments_stripe_client.py`
 - **Docs:** `PLAN.rst` §15, `docs/developer/testing.rst` (the Stripe test seam)
 - **Steps:**
@@ -477,7 +524,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 ### auth-csrf-and-throttle-rates: CSRF for anonymous callers; empty rate means off
 
 - **Issues, in commit order:** #30, #21
-- **Branch:** `bugfix/auth-csrf-and-throttle-rates`; database `caldart_auth_csrf_and_throttle_rates`; e2e on port 8106; after `production-settings`, `payment-provider-errors` and `api-client-errors`
+- **Branch:** `bugfix/auth-csrf-and-throttle-rates`; database `caldart_auth_csrf_and_throttle_rates`; e2e on port 8107; after `production-settings`, `payment-provider-errors` and `api-client-errors`
 - **Owns:**
   - `backend/caldart/settings/base.py` (the `REST_FRAMEWORK` authentication classes and the `AUTH_THROTTLE_RATES` block), `backend/caldart/authentication.py` (new), `backend/apps/accounts/throttling.py`, `.env.example` (the throttle comment)
   - `backend/tests/conftest.py` (the `csrf_client` fixture and `csrf_headers` helper), `backend/tests/test_payments_stripe.py` (the webhook CSRF test)
@@ -570,7 +617,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 ### membership-annotations: one SQL membership rule for every list
 
 - **Issues:** #29
-- **Branch:** `feature/membership-annotations`; database `caldart_membership_annotations`; e2e on port 8107; after `account-edit-guard`
+- **Branch:** `feature/membership-annotations`; database `caldart_membership_annotations`; e2e on port 8108; after `account-edit-guard`
 - **Owns:**
   - `backend/apps/members/services.py`, `backend/apps/members/api/admin_filters.py`, `backend/apps/members/reports.py`, `backend/apps/members/api/admin_serializers.py` (`get_membership` and imports)
   - `backend/apps/accounts/api/views.py` (the admin-user queryset), `backend/apps/accounts/api/serializers.py` (`UserSerializer.get_membership`)
@@ -652,7 +699,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
 ### account-and-member-services: domain logic in services that raise domain errors
 
 - **Issues:** #16
-- **Branch:** `feature/account-and-member-services`; database `caldart_account_and_member_services`; e2e on port 8110
+- **Branch:** `feature/account-and-member-services`; database `caldart_account_and_member_services`; e2e on port 8111
 - **After:** `shared-membership-types`, `member-delete-keeps-payments`, `server-controlled-field-tests`, `auth-csrf-and-throttle-rates` and `payment-provider-errors`
 - **Owns:**
   - `backend/caldart/exceptions.py`
@@ -684,7 +731,7 @@ Packages are described by area below. The manifest (§8) gives their order, and 
      - `create_checkout` raises `DomainValidationError`, keeping the messages.
      - Add a `PaymentReportQuerySerializer` for the three report views: `from`, `to`, `provider`, `status`, `search` and `group`, with today's exact messages.
      - An impossible date then answers 400, not 500.
-     - `summarise` takes a group that has already been validated.
+     - `summarize` takes a group that has already been validated.
   6. **Keep the contract.** Status codes and bodies don't change, and every existing API test passes unmodified.
 - **Tests:**
   - `test_domain_errors.py`: the two error shapes; `NotAuthenticated` stays 401.
@@ -747,9 +794,9 @@ Packages are described by area below. The manifest (§8) gives their order, and 
   - the audit record is still captured with the root logger at WARNING.
 - **Verify:** `uv run pytest backend/tests/test_audit_logging.py -x`
 
-### Tracking: annotate and document every backend function (#17, #18)
+### Tracking: annotate, type-check and document every backend function (#17, #18, #64)
 
-These two tracking issues ship as one ratchet PR, then one PR per unit, then a closing PR. Each unit PR carries both its annotations and its docstrings. Every PR says `Refs #17.` and `Refs #18.`, except the closing PR, which says `Closes`.
+These three tracking issues ship as one ratchet PR, then one PR per unit, then a closing PR. Each unit PR carries its annotations, its mypy fixes and its docstrings together. Every PR says `Refs #17.`, `Refs #18.` and `Refs #64.`, except the closing PR, which says `Closes`. The mypy part of each step is in "Type checking with mypy", at the end of this section.
 
 1. **`backend-types-ratchet`.**
    - In `pyproject.toml`, add `"ANN"` and `"D"` to `select`, and add these settings:
@@ -793,6 +840,32 @@ These two tracking issues ship as one ratchet PR, then one PR per unit, then a c
 
 When a unit's rebase conflicts in `per-file-ignores`, keep every deletion from both sides.
 
+#### Type checking with mypy (#64)
+
+The backend tracking packages above also bring in mypy. Each of their steps gains the following.
+
+1. **`backend-types-ratchet`:**
+   - **Dependencies.** Run `uv add --dev mypy "django-stubs[compatible-mypy]" "djangorestframework-stubs[compatible-mypy]" types-reportlab`. Django and DRF ship no types, and the plugins supply them.
+   - **`[tool.mypy]`:**
+     - `python_version = "3.12"`, `mypy_path = "backend"`, `plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]`;
+     - `strict = true`, with `disallow_subclassing_any = false` only, because Wagtail's page and block classes are untyped;
+     - `exclude` covering migrations only.
+   - **`[tool.django-stubs]`:** `django_settings_module = "caldart.settings.test"`.
+   - **Untyped dependencies.** Add a `[[tool.mypy.overrides]]` with `ignore_missing_imports = true` for the dependencies that ship no type information: `wagtail.*`, `environ.*`, `django_filters.*`, `django_vite.*` and `whitenoise.*`. factory_boy, stripe, httpx, psycopg, faker, freezegun and respx ship their own types.
+   - **The ratchet.** Add one `[[tool.mypy.overrides]]` per unit, with `ignore_errors = true`, under a comment naming the unit. These use the same units as `per-file-ignores`. The ratchet is temporary: `python.md` forbids `ignore_errors`, and the closing PR must leave none.
+   - **Gate.** `make lint-backend` runs `uv run mypy backend`. CI already calls `make lint-backend`.
+   - **Rule.** Restore a Mypy subsection in `.claude/rules/python.md` §4:
+     - run mypy on the whole backend, tests included;
+     - no global exclusions;
+     - a line-level `# type: ignore[<code>]  # <reason>` only where no fix is possible.
+2. **Each unit package** also deletes its `ignore_errors` override and makes `uv run mypy backend` pass for its code. It fixes types rather than silencing them.
+3. **`backend-types-finish`:**
+   - confirms that no `ignore_errors` override and no bare `# type: ignore` remain;
+   - adds mypy to the `make lint` row in `.claude/rules/environment.md` and to `docs/developer/testing.rst`;
+   - closes #64 along with #17 and #18.
+
+When a rebase conflicts in the mypy overrides, keep every deletion from both sides.
+
 ### vite-react-refresh: the portal boots under the Vite dev server
 
 - **Issues:** #20
@@ -812,7 +885,7 @@ When a unit's rebase conflicts in `per-file-ignores`, keep every deletion from b
 ### api-client-errors: CSRF bootstrap recovers; a non-JSON 2xx is an error
 
 - **Issues, in commit order:** #36, #39
-- **Branch:** `bugfix/api-client-errors`; database `caldart_api_client_errors`; e2e on port 8103
+- **Branch:** `bugfix/api-client-errors`; database `caldart_api_client_errors`; e2e on port 8104
 - **Owns:**
   - `frontend/src/portal/api/client.ts`, `frontend/src/portal/api/client.test.ts`
   - `frontend/src/test/setup.ts` (the CSRF reset), `frontend/src/test/handlers.ts`
@@ -841,7 +914,7 @@ When a unit's rebase conflicts in `per-file-ignores`, keep every deletion from b
 ### auth-check-errors: a failed sign-in check shows an error, not the login page
 
 - **Issues:** #37
-- **Branch:** `bugfix/auth-check-errors`; database `caldart_auth_check_errors`; e2e on port 8104
+- **Branch:** `bugfix/auth-check-errors`; database `caldart_auth_check_errors`; e2e on port 8105
 - **Owns:** `frontend/src/portal/auth/useAuth.ts`, `frontend/src/portal/auth/guards.tsx`, `frontend/src/portal/auth/guards.test.tsx`
 - **Docs:** `docs/developer/api-auth.rst` ("How the portal uses this"), `PLAN.rst` §8
 - **Steps:**
@@ -879,7 +952,7 @@ When a unit's rebase conflicts in `per-file-ignores`, keep every deletion from b
 ### profile-fieldsets: one profile fieldset for members and admins
 
 - **Issues:** #41
-- **Branch:** `feature/profile-fieldsets`; database `caldart_profile_fieldsets`; e2e on port 8105
+- **Branch:** `feature/profile-fieldsets`; database `caldart_profile_fieldsets`; e2e on port 8106
 - **Owns:**
   - `frontend/src/portal/features/profile/ProfileFieldsets.tsx` and `.test.tsx` (both new), `ProfileForm.tsx`
   - `frontend/src/portal/features/admin-members/MemberFormFields.tsx`, `MemberCreatePage.tsx`, `MemberProfileTab.tsx`, `choices.ts`
@@ -903,7 +976,7 @@ When a unit's rebase conflicts in `per-file-ignores`, keep every deletion from b
 ### checkout-strict-mode: checkout effects are safe to run twice
 
 - **Issues:** #38
-- **Branch:** `bugfix/checkout-strict-mode`; database `caldart_checkout_strict_mode`; e2e on port 8108; after `api-client-errors` and `shared-debounce`
+- **Branch:** `bugfix/checkout-strict-mode`; database `caldart_checkout_strict_mode`; e2e on port 8109; after `api-client-errors` and `shared-debounce`
 - **Owns:**
   - `frontend/src/portal/features/checkout/CheckoutReturn.tsx`, `api.ts`, `Checkout.tsx`, `StripePanel.tsx`
   - `frontend/src/test/setup.ts` (the StrictMode switch)
@@ -914,7 +987,7 @@ When a unit's rebase conflicts in `per-file-ignores`, keep every deletion from b
   2. **API signals.** `confirmStripePayment` and `fetchPayment` take an optional `signal`.
   3. **`CheckoutReturn`.**
      - Drop the `started` ref.
-     - Create one `AbortController` per effect run, use an abortable wait, and check `signal.aborted` where the code checked `cancelled`.
+     - Create one `AbortController` per effect run, use an abortable wait, and check `signal.aborted` where the code checked `canceled`.
      - Abort in cleanup.
   4. **`Checkout.tsx`.** Derive `effectivePlan` from the offered plans, instead of a ref-guarded effect.
   5. **Tests.** Call `configure({ reactStrictMode: true })` in `setup.ts`. The seven StrictMode failures must go away. Fix them in the components, never in the tests.
@@ -926,7 +999,7 @@ When a unit's rebase conflicts in `per-file-ignores`, keep every deletion from b
 ### route-table: test the real route table; load feature pages lazily
 
 - **Issues, in commit order:** #46, #40
-- **Branch:** `feature/route-table`; database `caldart_route_table`; e2e on port 8109; after `auth-check-errors`
+- **Branch:** `feature/route-table`; database `caldart_route_table`; e2e on port 8110; after `auth-check-errors`
 - **Owns:**
   - `frontend/src/portal/routes/*.tsx` (including `index.tsx`) and `frontend/src/portal/routes/index.test.tsx` (new)
   - `frontend/src/portal/components/Loading.tsx` (new), `frontend/src/portal/auth/guards.tsx` (the `Loading` move)
@@ -1030,53 +1103,54 @@ The orchestrator reads this block. It holds one JSON object per package. The fie
 
 ```json
 [
-  {"wave": 1, "package": "account-edit-guard", "branch": "bugfix/account-edit-guard", "database": "caldart_account_edit_guard", "e2e_port": null, "closes": [14], "refs": [], "owns": ["backend/apps/accounts/services.py", "backend/apps/accounts/api/serializers.py", "backend/apps/members/api/admin_serializers.py", "backend/apps/members/api/admin_views.py", "backend/tests/test_account_edit_guard.py"], "after": []},
-  {"wave": 1, "package": "production-settings", "branch": "bugfix/production-settings", "database": "caldart_production_settings", "e2e_port": 8101, "closes": [27, 28, 15], "refs": [], "owns": ["backend/caldart/settings/_dotenv.py", "backend/caldart/settings/base.py#dotenv", "backend/caldart/settings/dev.py", "backend/caldart/settings/test.py", "backend/caldart/settings/prod.py", "backend/caldart/wsgi.py", "backend/caldart/asgi.py", "deploy/caldart.env.example", "deploy/systemd/caldart-web.service", "deploy/apache/caldart.conf#headers", "deploy/nginx/caldart.conf#headers", "backend/tests/test_sysadmin_settings.py", "backend/tests/test_settings_fail_closed.py", "backend/tests/test_hsts.py", "backend/tests/test_auth_throttle_ident.py"], "after": []},
-  {"wave": 1, "package": "payment-provider-errors", "branch": "bugfix/payment-provider-errors", "database": "caldart_payment_provider_errors", "e2e_port": 8102, "closes": [19, 23, 24], "refs": [], "owns": ["backend/apps/payments/providers/base.py", "backend/apps/payments/providers/stripe.py", "backend/apps/payments/providers/paypal.py", "backend/tests/test_payments_stripe.py", "backend/tests/test_payments_provider_errors.py", "backend/tests/test_payments_stripe_client.py"], "after": []},
-  {"wave": 1, "package": "reminder-scan-resilience", "branch": "bugfix/reminder-scan-resilience", "database": "caldart_reminder_scan_resilience", "e2e_port": null, "closes": [25], "refs": [], "owns": ["backend/apps/reminders/services.py", "backend/apps/reminders/management/commands/send_renewal_reminders.py", "backend/templates/emails/reminder_*", "backend/tests/test_reminders.py", "backend/tests/test_reminders_resilience.py"], "after": []},
-  {"wave": 1, "package": "docs-accuracy", "branch": "bugfix/docs-accuracy", "database": "caldart_docs_accuracy", "e2e_port": null, "closes": [49, 48, 50, 53, 51, 52], "refs": [], "owns": ["docs/developer/data-model.rst", "docs/developer/api-profile.rst", "docs/developer/api-reference.rst#permissions", "docs/developer/api-payments.rst", "docs/developer/cms.rst", "docs/user/member-guide.rst", "docs/user/aircraft.rst", "docs/user/website-administrator-guide.rst", "docs/user/system-administrator-guide.rst", "docs/demo-walkthrough.rst"], "after": []},
-  {"wave": 1, "package": "make-switches", "branch": "bugfix/make-switches", "database": "caldart_make_switches", "e2e_port": null, "closes": [55], "refs": [], "owns": ["Makefile#switches", "backend/tests/test_makefile_switches.py"], "after": []},
-  {"wave": 1, "package": "server-controlled-field-tests", "branch": "feature/server-controlled-field-tests", "database": "caldart_server_controlled_field_tests", "e2e_port": null, "closes": [35], "refs": [], "owns": ["backend/tests/test_server_controlled_fields.py"], "after": []},
-  {"wave": 1, "package": "vite-react-refresh", "branch": "bugfix/vite-react-refresh", "database": "caldart_vite_react_refresh", "e2e_port": null, "closes": [20], "refs": [], "owns": ["backend/templates/portal.html", "backend/tests/test_shell_views.py"], "after": []},
-  {"wave": 1, "package": "api-client-errors", "branch": "bugfix/api-client-errors", "database": "caldart_api_client_errors", "e2e_port": 8103, "closes": [36, 39], "refs": [], "owns": ["frontend/src/portal/api/client.ts", "frontend/src/portal/api/client.test.ts", "frontend/src/test/setup.ts#csrf", "frontend/src/test/handlers.ts", "frontend/src/portal/features/profile/ProfilePage.test.tsx"], "after": []},
-  {"wave": 1, "package": "auth-check-errors", "branch": "bugfix/auth-check-errors", "database": "caldart_auth_check_errors", "e2e_port": 8104, "closes": [37], "refs": [], "owns": ["frontend/src/portal/auth/useAuth.ts", "frontend/src/portal/auth/guards.tsx", "frontend/src/portal/auth/guards.test.tsx"], "after": []},
-  {"wave": 1, "package": "shared-debounce", "branch": "feature/shared-debounce", "database": "caldart_shared_debounce", "e2e_port": null, "closes": [42], "refs": [], "owns": ["frontend/src/portal/components/useDebounced.ts", "frontend/src/portal/components/useDebounced.test.ts", "frontend/src/portal/features/admin-users/useDebounced.ts", "frontend/src/portal/features/aircraft/useDebounced.ts", "frontend/src/portal/features/admin-users/index.ts", "frontend/src/portal/features/admin-users/UsersListPage.tsx", "frontend/src/portal/features/aircraft/AircraftPicker.tsx", "frontend/src/portal/features/admin-aircraft/AircraftRegisterPage.tsx", "frontend/src/portal/features/leader/LeaderSearchPage.tsx", "frontend/src/portal/features/checkout/StripePanel.tsx"], "after": []},
-  {"wave": 1, "package": "profile-fieldsets", "branch": "feature/profile-fieldsets", "database": "caldart_profile_fieldsets", "e2e_port": 8105, "closes": [41], "refs": [], "owns": ["frontend/src/portal/features/profile/ProfileFieldsets.tsx", "frontend/src/portal/features/profile/ProfileFieldsets.test.tsx", "frontend/src/portal/features/profile/ProfileForm.tsx", "frontend/src/portal/features/admin-members/MemberFormFields.tsx", "frontend/src/portal/features/admin-members/MemberCreatePage.tsx", "frontend/src/portal/features/admin-members/MemberProfileTab.tsx", "frontend/src/portal/features/admin-members/choices.ts", "frontend/src/portal/features/admin-members/MemberCreatePage.test.tsx", "frontend/src/portal/features/admin-members/MemberDetailPage.test.tsx"], "after": []},
+  {"wave": 0, "package": "american-spelling", "branch": "feature/american-spelling", "database": "caldart_american_spelling", "e2e_port": 8101, "closes": [62], "refs": [], "owns": ["**#spelling", "pyproject.toml#codespell", "uv.lock", "Makefile#spelling", ".github/workflows/ci.yml#spelling", "backend/apps/members/models.py#cancelled", "backend/apps/members/migrations/0001_initial.py", "backend/apps/members/services.py#cancelled", "backend/apps/members/api/admin_filters.py#cancelled", "backend/apps/reminders/services.py#cancelled", "frontend/src/portal/api/types.ts#cancelled", "frontend/src/portal/features/admin-members/choices.ts#cancelled"], "after": []},
+  {"wave": 1, "package": "account-edit-guard", "branch": "bugfix/account-edit-guard", "database": "caldart_account_edit_guard", "e2e_port": null, "closes": [14], "refs": [], "owns": ["backend/apps/accounts/services.py", "backend/apps/accounts/api/serializers.py", "backend/apps/members/api/admin_serializers.py", "backend/apps/members/api/admin_views.py", "backend/tests/test_account_edit_guard.py"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "production-settings", "branch": "bugfix/production-settings", "database": "caldart_production_settings", "e2e_port": 8102, "closes": [27, 28, 15], "refs": [], "owns": ["backend/caldart/settings/_dotenv.py", "backend/caldart/settings/base.py#dotenv", "backend/caldart/settings/dev.py", "backend/caldart/settings/test.py", "backend/caldart/settings/prod.py", "backend/caldart/wsgi.py", "backend/caldart/asgi.py", "deploy/caldart.env.example", "deploy/systemd/caldart-web.service", "deploy/apache/caldart.conf#headers", "deploy/nginx/caldart.conf#headers", "backend/tests/test_sysadmin_settings.py", "backend/tests/test_settings_fail_closed.py", "backend/tests/test_hsts.py", "backend/tests/test_auth_throttle_ident.py"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "payment-provider-errors", "branch": "bugfix/payment-provider-errors", "database": "caldart_payment_provider_errors", "e2e_port": 8103, "closes": [19, 23, 24], "refs": [], "owns": ["backend/apps/payments/providers/base.py", "backend/apps/payments/providers/stripe.py", "backend/apps/payments/providers/paypal.py", "backend/tests/test_payments_stripe.py", "backend/tests/test_payments_provider_errors.py", "backend/tests/test_payments_stripe_client.py"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "reminder-scan-resilience", "branch": "bugfix/reminder-scan-resilience", "database": "caldart_reminder_scan_resilience", "e2e_port": null, "closes": [25], "refs": [], "owns": ["backend/apps/reminders/services.py", "backend/apps/reminders/management/commands/send_renewal_reminders.py", "backend/templates/emails/reminder_*", "backend/tests/test_reminders.py", "backend/tests/test_reminders_resilience.py"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "docs-accuracy", "branch": "bugfix/docs-accuracy", "database": "caldart_docs_accuracy", "e2e_port": null, "closes": [49, 48, 50, 53, 51, 52], "refs": [], "owns": ["docs/developer/data-model.rst", "docs/developer/api-profile.rst", "docs/developer/api-reference.rst#permissions", "docs/developer/api-payments.rst", "docs/developer/cms.rst", "docs/user/member-guide.rst", "docs/user/aircraft.rst", "docs/user/website-administrator-guide.rst", "docs/user/system-administrator-guide.rst", "docs/demo-walkthrough.rst"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "make-switches", "branch": "bugfix/make-switches", "database": "caldart_make_switches", "e2e_port": null, "closes": [55], "refs": [], "owns": ["Makefile#switches", "backend/tests/test_makefile_switches.py"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "server-controlled-field-tests", "branch": "feature/server-controlled-field-tests", "database": "caldart_server_controlled_field_tests", "e2e_port": null, "closes": [35], "refs": [], "owns": ["backend/tests/test_server_controlled_fields.py"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "vite-react-refresh", "branch": "bugfix/vite-react-refresh", "database": "caldart_vite_react_refresh", "e2e_port": null, "closes": [20], "refs": [], "owns": ["backend/templates/portal.html", "backend/tests/test_shell_views.py"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "api-client-errors", "branch": "bugfix/api-client-errors", "database": "caldart_api_client_errors", "e2e_port": 8104, "closes": [36, 39], "refs": [], "owns": ["frontend/src/portal/api/client.ts", "frontend/src/portal/api/client.test.ts", "frontend/src/test/setup.ts#csrf", "frontend/src/test/handlers.ts", "frontend/src/portal/features/profile/ProfilePage.test.tsx"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "auth-check-errors", "branch": "bugfix/auth-check-errors", "database": "caldart_auth_check_errors", "e2e_port": 8105, "closes": [37], "refs": [], "owns": ["frontend/src/portal/auth/useAuth.ts", "frontend/src/portal/auth/guards.tsx", "frontend/src/portal/auth/guards.test.tsx"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "shared-debounce", "branch": "feature/shared-debounce", "database": "caldart_shared_debounce", "e2e_port": null, "closes": [42], "refs": [], "owns": ["frontend/src/portal/components/useDebounced.ts", "frontend/src/portal/components/useDebounced.test.ts", "frontend/src/portal/features/admin-users/useDebounced.ts", "frontend/src/portal/features/aircraft/useDebounced.ts", "frontend/src/portal/features/admin-users/index.ts", "frontend/src/portal/features/admin-users/UsersListPage.tsx", "frontend/src/portal/features/aircraft/AircraftPicker.tsx", "frontend/src/portal/features/admin-aircraft/AircraftRegisterPage.tsx", "frontend/src/portal/features/leader/LeaderSearchPage.tsx", "frontend/src/portal/features/checkout/StripePanel.tsx"], "after": ["american-spelling"]},
+  {"wave": 1, "package": "profile-fieldsets", "branch": "feature/profile-fieldsets", "database": "caldart_profile_fieldsets", "e2e_port": 8106, "closes": [41], "refs": [], "owns": ["frontend/src/portal/features/profile/ProfileFieldsets.tsx", "frontend/src/portal/features/profile/ProfileFieldsets.test.tsx", "frontend/src/portal/features/profile/ProfileForm.tsx", "frontend/src/portal/features/admin-members/MemberFormFields.tsx", "frontend/src/portal/features/admin-members/MemberCreatePage.tsx", "frontend/src/portal/features/admin-members/MemberProfileTab.tsx", "frontend/src/portal/features/admin-members/choices.ts", "frontend/src/portal/features/admin-members/MemberCreatePage.test.tsx", "frontend/src/portal/features/admin-members/MemberDetailPage.test.tsx"], "after": ["american-spelling"]},
   {"wave": 2, "package": "member-delete-keeps-payments", "branch": "bugfix/member-delete-keeps-payments", "database": "caldart_member_delete_keeps_payments", "e2e_port": null, "closes": [26], "refs": [], "owns": ["backend/apps/payments/models.py", "backend/apps/payments/migrations/0001_initial.py", "backend/apps/members/api/admin_views.py", "backend/tests/test_members_admin.py", "backend/tests/test_members_delete_payments.py", "frontend/src/portal/features/admin-members/MemberDangerZone.tsx", "frontend/src/portal/features/admin-members/MemberDangerZone.test.tsx"], "after": ["account-edit-guard"]},
-  {"wave": 2, "package": "auth-csrf-and-throttle-rates", "branch": "bugfix/auth-csrf-and-throttle-rates", "database": "caldart_auth_csrf_and_throttle_rates", "e2e_port": 8106, "closes": [30, 21], "refs": [], "owns": ["backend/caldart/settings/base.py#rest-framework", "backend/caldart/authentication.py", "backend/apps/accounts/throttling.py", ".env.example#throttles", "backend/tests/conftest.py", "backend/tests/test_payments_stripe.py", "backend/tests/test_auth_throttle_rates.py", "backend/tests/test_csrf.py"], "after": ["production-settings", "payment-provider-errors", "api-client-errors"]},
+  {"wave": 2, "package": "auth-csrf-and-throttle-rates", "branch": "bugfix/auth-csrf-and-throttle-rates", "database": "caldart_auth_csrf_and_throttle_rates", "e2e_port": 8107, "closes": [30, 21], "refs": [], "owns": ["backend/caldart/settings/base.py#rest-framework", "backend/caldart/authentication.py", "backend/apps/accounts/throttling.py", ".env.example#throttles", "backend/tests/conftest.py", "backend/tests/test_payments_stripe.py", "backend/tests/test_auth_throttle_rates.py", "backend/tests/test_csrf.py"], "after": ["production-settings", "payment-provider-errors", "api-client-errors"]},
   {"wave": 2, "package": "members-only-documents", "branch": "bugfix/members-only-documents", "database": "caldart_members_only_documents", "e2e_port": null, "closes": [22], "refs": [], "owns": ["backend/apps/cms/wagtail_hooks.py", "backend/apps/cms/models.py", "backend/apps/cms/management/commands/seed_content.py", "backend/caldart/settings/base.py#wagtaildocs", "deploy/nginx/caldart.conf#media", "deploy/apache/caldart.conf#media", "backend/tests/test_cms_documents.py"], "after": ["production-settings"]},
   {"wave": 2, "package": "production-commands-docs", "branch": "bugfix/production-commands-docs", "database": "caldart_production_commands_docs", "e2e_port": null, "closes": [54], "refs": [], "owns": ["docs/developer/deployment.rst#commands", "docs/developer/backup-restore.rst#production"], "after": ["production-settings", "make-switches"]},
-  {"wave": 2, "package": "membership-annotations", "branch": "feature/membership-annotations", "database": "caldart_membership_annotations", "e2e_port": 8107, "closes": [29], "refs": [], "owns": ["backend/apps/members/services.py", "backend/apps/members/api/admin_filters.py", "backend/apps/members/reports.py", "backend/apps/members/api/admin_serializers.py", "backend/apps/accounts/api/views.py", "backend/apps/accounts/api/serializers.py", "backend/apps/aircraft/services.py", "backend/tests/test_members_admin_status.py", "backend/tests/test_membership_query_counts.py"], "after": ["account-edit-guard"]},
-  {"wave": 2, "package": "checkout-strict-mode", "branch": "bugfix/checkout-strict-mode", "database": "caldart_checkout_strict_mode", "e2e_port": 8108, "closes": [38], "refs": [], "owns": ["frontend/src/portal/features/checkout/CheckoutReturn.tsx", "frontend/src/portal/features/checkout/api.ts", "frontend/src/portal/features/checkout/Checkout.tsx", "frontend/src/portal/features/checkout/StripePanel.tsx", "frontend/src/test/setup.ts#strict-mode", "frontend/src/portal/features/checkout/CheckoutReturn.test.tsx", "frontend/src/portal/features/checkout/Checkout.test.tsx"], "after": ["api-client-errors", "shared-debounce"]},
-  {"wave": 2, "package": "route-table", "branch": "feature/route-table", "database": "caldart_route_table", "e2e_port": 8109, "closes": [46, 40], "refs": [], "owns": ["frontend/src/portal/routes/*", "frontend/src/portal/components/Loading.tsx", "frontend/src/portal/auth/guards.tsx", "frontend/src/test/render.tsx"], "after": ["auth-check-errors"]},
+  {"wave": 2, "package": "membership-annotations", "branch": "feature/membership-annotations", "database": "caldart_membership_annotations", "e2e_port": 8108, "closes": [29], "refs": [], "owns": ["backend/apps/members/services.py", "backend/apps/members/api/admin_filters.py", "backend/apps/members/reports.py", "backend/apps/members/api/admin_serializers.py", "backend/apps/accounts/api/views.py", "backend/apps/accounts/api/serializers.py", "backend/apps/aircraft/services.py", "backend/tests/test_members_admin_status.py", "backend/tests/test_membership_query_counts.py"], "after": ["account-edit-guard"]},
+  {"wave": 2, "package": "checkout-strict-mode", "branch": "bugfix/checkout-strict-mode", "database": "caldart_checkout_strict_mode", "e2e_port": 8109, "closes": [38], "refs": [], "owns": ["frontend/src/portal/features/checkout/CheckoutReturn.tsx", "frontend/src/portal/features/checkout/api.ts", "frontend/src/portal/features/checkout/Checkout.tsx", "frontend/src/portal/features/checkout/StripePanel.tsx", "frontend/src/test/setup.ts#strict-mode", "frontend/src/portal/features/checkout/CheckoutReturn.test.tsx", "frontend/src/portal/features/checkout/Checkout.test.tsx"], "after": ["api-client-errors", "shared-debounce"]},
+  {"wave": 2, "package": "route-table", "branch": "feature/route-table", "database": "caldart_route_table", "e2e_port": 8110, "closes": [46, 40], "refs": [], "owns": ["frontend/src/portal/routes/*", "frontend/src/portal/components/Loading.tsx", "frontend/src/portal/auth/guards.tsx", "frontend/src/test/render.tsx"], "after": ["auth-check-errors"]},
   {"wave": 3, "package": "shared-membership-types", "branch": "feature/shared-membership-types", "database": "caldart_shared_membership_types", "e2e_port": null, "closes": [33], "refs": [], "owns": ["backend/apps/members/models.py", "backend/apps/members/api/serializers.py", "backend/apps/members/api/profile_serializers.py", "backend/apps/members/api/profile_views.py", "backend/apps/members/api/admin_serializers.py", "backend/apps/members/api/admin_filters.py", "backend/apps/members/services.py", "backend/apps/accounts/api/serializers.py", "backend/apps/accounts/services.py", "backend/apps/accounts/models.py", "backend/apps/payments/api/serializers.py", "backend/apps/aircraft/api/serializers.py", "backend/apps/aircraft/services.py", "backend/apps/reminders/services.py", "backend/templates/emails/member_invitation.*", "backend/tests/test_member_invitation.py"], "after": ["membership-annotations", "reminder-scan-resilience"]},
   {"wave": 3, "package": "permission-matrix-tests", "branch": "feature/permission-matrix-tests", "database": "caldart_permission_matrix_tests", "e2e_port": null, "closes": [34], "refs": [], "owns": ["backend/tests/test_permission_matrix.py", "backend/tests/conftest.py"], "after": ["auth-csrf-and-throttle-rates"]},
   {"wave": 3, "package": "api-types", "branch": "feature/api-types", "database": "caldart_api_types", "e2e_port": null, "closes": [43], "refs": [], "owns": ["frontend/src/portal/api/types.ts", "frontend/src/portal/features/admin-members/types.ts", "frontend/src/portal/features/admin-members/index.ts", "frontend/src/portal/features/admin-members/api.ts", "frontend/src/portal/features/admin-members/fixtures.ts", "frontend/src/portal/features/admin-members/MemberDetailPage.tsx", "frontend/src/portal/features/admin-members/MemberProfileTab.tsx", "frontend/src/portal/features/admin-members/MemberMembershipsTab.tsx", "frontend/src/portal/features/admin-members/MemberPaymentsTab.tsx", "frontend/src/portal/features/admin-members/MemberDangerZone.tsx", "frontend/src/portal/features/admin-members/MemberFormFields.tsx", "frontend/src/portal/features/aircraft/api.ts", "frontend/src/portal/features/aircraft/index.ts", "frontend/src/portal/features/leader/api.ts", "frontend/src/portal/features/leader/AircraftStatusCard.tsx", "frontend/src/portal/features/leader/LeaderAircraftPage.test.tsx", "frontend/src/portal/features/admin-aircraft/AircraftRecordPage.test.tsx", "frontend/src/portal/features/admin-users/api.ts", "frontend/src/portal/features/admin-users/index.ts", "frontend/src/portal/auth/useAuth.ts", "frontend/src/portal/features/profile/api.ts"], "after": ["profile-fieldsets", "auth-check-errors", "shared-debounce", "member-delete-keeps-payments"]},
   {"wave": 3, "package": "fake-timers", "branch": "feature/fake-timers", "database": "caldart_fake_timers", "e2e_port": null, "closes": [47], "refs": [], "owns": ["frontend/src/test/setup.ts#timers", "frontend/src/portal/features/checkout/CheckoutReturn.test.tsx", "frontend/src/portal/features/aircraft/AircraftPicker.test.tsx", "frontend/src/portal/features/leader/LeaderSearchPage.test.tsx", "frontend/src/portal/features/admin-users/UsersListPage.test.tsx", "frontend/src/portal/features/admin-aircraft/AircraftRegisterPage.test.tsx", "frontend/src/portal/features/system/HealthPanel.test.tsx", "frontend/src/portal/features/system/SystemPage.test.tsx", "frontend/src/portal/features/system/BackupsPanel.test.tsx", "frontend/src/portal/features/dashboard/DashboardPage.test.tsx"], "after": ["checkout-strict-mode"]},
-  {"wave": 4, "package": "account-and-member-services", "branch": "feature/account-and-member-services", "database": "caldart_account_and_member_services", "e2e_port": 8110, "closes": [16], "refs": [], "owns": ["backend/caldart/exceptions.py", "backend/apps/accounts/services.py", "backend/apps/accounts/api/serializers.py", "backend/apps/accounts/api/views.py", "backend/apps/members/services.py", "backend/apps/members/api/admin_serializers.py", "backend/apps/members/api/admin_views.py", "backend/apps/payments/services.py", "backend/apps/payments/reports.py", "backend/apps/payments/api/serializers.py", "backend/apps/payments/api/views.py", "backend/tests/test_payments_mock_provider.py", "backend/tests/test_accounts_auth.py", "backend/tests/test_account_services.py", "backend/tests/test_member_services.py", "backend/tests/test_domain_errors.py", "backend/tests/test_payment_report_query.py"], "after": ["shared-membership-types", "member-delete-keeps-payments", "server-controlled-field-tests", "auth-csrf-and-throttle-rates", "payment-provider-errors"]},
+  {"wave": 4, "package": "account-and-member-services", "branch": "feature/account-and-member-services", "database": "caldart_account_and_member_services", "e2e_port": 8111, "closes": [16], "refs": [], "owns": ["backend/caldart/exceptions.py", "backend/apps/accounts/services.py", "backend/apps/accounts/api/serializers.py", "backend/apps/accounts/api/views.py", "backend/apps/members/services.py", "backend/apps/members/api/admin_serializers.py", "backend/apps/members/api/admin_views.py", "backend/apps/payments/services.py", "backend/apps/payments/reports.py", "backend/apps/payments/api/serializers.py", "backend/apps/payments/api/views.py", "backend/tests/test_payments_mock_provider.py", "backend/tests/test_accounts_auth.py", "backend/tests/test_account_services.py", "backend/tests/test_member_services.py", "backend/tests/test_domain_errors.py", "backend/tests/test_payment_report_query.py"], "after": ["shared-membership-types", "member-delete-keeps-payments", "server-controlled-field-tests", "auth-csrf-and-throttle-rates", "payment-provider-errors"]},
   {"wave": 4, "package": "frontend-types-docs-shared", "branch": "feature/frontend-types-docs-shared", "database": "caldart_frontend_types_docs_shared", "e2e_port": null, "closes": [], "refs": [44, 45], "owns": ["frontend/eslint.config.js", "frontend/package.json", "frontend/package-lock.json", "frontend/src/portal/components/*", "frontend/src/portal/api/*", "frontend/src/portal/auth/*", "frontend/src/portal/routes/*", "frontend/src/portal/layout/*", "frontend/src/portal/App.tsx", "frontend/src/portal/choices.ts", "frontend/src/portal/nav.ts", "frontend/src/site/*", "frontend/src/test/*"], "after": ["api-types", "fake-timers", "route-table", "vite-react-refresh"]},
   {"wave": 5, "package": "app-layering", "branch": "feature/app-layering", "database": "caldart_app_layering", "e2e_port": null, "closes": [32], "refs": [], "owns": ["backend/caldart/models.py", "backend/apps/members/models.py", "backend/apps/aircraft/models.py", "backend/apps/payments/models.py", "backend/apps/reminders/models.py", "backend/apps/accounts/models.py", "backend/apps/accounts/services.py", "backend/apps/reminders/services.py", "backend/tests/test_app_layering.py"], "after": ["account-and-member-services", "membership-annotations"]},
   {"wave": 5, "package": "frontend-types-docs-admin", "branch": "feature/frontend-types-docs-admin", "database": "caldart_frontend_types_docs_admin", "e2e_port": null, "closes": [], "refs": [44, 45], "owns": ["frontend/eslint.config.js", "frontend/src/portal/features/admin-*"], "after": ["frontend-types-docs-shared"]},
   {"wave": 6, "package": "audit-logging", "branch": "feature/audit-logging", "database": "caldart_audit_logging", "e2e_port": null, "closes": [31], "refs": [], "owns": ["backend/caldart/audit.py", "backend/caldart/settings/base.py#logging", "backend/apps/accounts/services.py", "backend/apps/accounts/api/views.py", "backend/apps/members/services.py", "backend/apps/members/api/admin_views.py", "backend/apps/sysadmin/services.py", "backend/apps/sysadmin/api/views.py", "backend/apps/sysadmin/management/commands/db_reset.py", "backend/apps/reminders/services.py", "backend/apps/reminders/api/views.py", "backend/tests/test_audit_logging.py"], "after": ["app-layering", "reminder-scan-resilience"]},
   {"wave": 6, "package": "frontend-types-docs-flows", "branch": "feature/frontend-types-docs-flows", "database": "caldart_frontend_types_docs_flows", "e2e_port": null, "closes": [], "refs": [44, 45], "owns": ["frontend/eslint.config.js", "frontend/src/portal/features/aircraft/*", "frontend/src/portal/features/auth/*", "frontend/src/portal/features/checkout/*", "frontend/src/portal/features/dashboard/*"], "after": ["frontend-types-docs-admin"]},
-  {"wave": 7, "package": "backend-types-ratchet", "branch": "feature/backend-types-ratchet", "database": "caldart_backend_types_ratchet", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["pyproject.toml#ruff", "backend/apps/cms/models.py#w505", "backend/tests/test_cms_seed_content.py#w505"], "after": ["audit-logging", "members-only-documents", "permission-matrix-tests", "make-switches", "vite-react-refresh"]},
+  {"wave": 7, "package": "backend-types-ratchet", "branch": "feature/backend-types-ratchet", "database": "caldart_backend_types_ratchet", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["pyproject.toml#ruff", "pyproject.toml#mypy", "uv.lock", "Makefile#lint-backend", ".claude/rules/python.md#mypy", "backend/apps/cms/models.py#w505", "backend/tests/test_cms_seed_content.py#w505"], "after": ["audit-logging", "members-only-documents", "permission-matrix-tests", "make-switches", "vite-react-refresh"]},
   {"wave": 7, "package": "frontend-types-docs-finish", "branch": "feature/frontend-types-docs-finish", "database": "caldart_frontend_types_docs_finish", "e2e_port": null, "closes": [44, 45], "refs": [], "owns": ["frontend/eslint.config.js", "frontend/src/portal/features/join/*", "frontend/src/portal/features/leader/*", "frontend/src/portal/features/profile/*", "frontend/src/portal/features/system/*"], "after": ["frontend-types-docs-flows"]},
-  {"wave": 8, "package": "backend-types-core", "branch": "feature/backend-types-core", "database": "caldart_backend_types_core", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/caldart/*", "backend/manage.py", "docs/conf.py", "pyproject.toml#per-file-ignores-core"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-reminders", "branch": "feature/backend-types-reminders", "database": "caldart_backend_types_reminders", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/apps/reminders/*", "pyproject.toml#per-file-ignores-reminders"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-sysadmin", "branch": "feature/backend-types-sysadmin", "database": "caldart_backend_types_sysadmin", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/apps/sysadmin/*", "pyproject.toml#per-file-ignores-sysadmin"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-aircraft", "branch": "feature/backend-types-aircraft", "database": "caldart_backend_types_aircraft", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/apps/aircraft/*", "pyproject.toml#per-file-ignores-aircraft"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-payments", "branch": "feature/backend-types-payments", "database": "caldart_backend_types_payments", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/apps/payments/*", "pyproject.toml#per-file-ignores-payments"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-accounts", "branch": "feature/backend-types-accounts", "database": "caldart_backend_types_accounts", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/apps/accounts/*", "pyproject.toml#per-file-ignores-accounts"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-cms", "branch": "feature/backend-types-cms", "database": "caldart_backend_types_cms", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/apps/cms/*", "pyproject.toml#per-file-ignores-cms"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-members", "branch": "feature/backend-types-members", "database": "caldart_backend_types_members", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/apps/members/*", "pyproject.toml#per-file-ignores-members"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-tests-accounts", "branch": "feature/backend-types-tests-accounts", "database": "caldart_backend_types_tests_accounts", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/tests/@accounts", "pyproject.toml#per-file-ignores-tests-accounts"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-tests-members", "branch": "feature/backend-types-tests-members", "database": "caldart_backend_types_tests_members", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/tests/@members", "pyproject.toml#per-file-ignores-tests-members"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-tests-aircraft", "branch": "feature/backend-types-tests-aircraft", "database": "caldart_backend_types_tests_aircraft", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/tests/@aircraft", "pyproject.toml#per-file-ignores-tests-aircraft"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-tests-payments", "branch": "feature/backend-types-tests-payments", "database": "caldart_backend_types_tests_payments", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/tests/@payments", "pyproject.toml#per-file-ignores-tests-payments"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-tests-reminders", "branch": "feature/backend-types-tests-reminders", "database": "caldart_backend_types_tests_reminders", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/tests/@reminders", "pyproject.toml#per-file-ignores-tests-reminders"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-tests-cms", "branch": "feature/backend-types-tests-cms", "database": "caldart_backend_types_tests_cms", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/tests/@cms", "pyproject.toml#per-file-ignores-tests-cms"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-tests-sysadmin", "branch": "feature/backend-types-tests-sysadmin", "database": "caldart_backend_types_tests_sysadmin", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/tests/@sysadmin", "pyproject.toml#per-file-ignores-tests-sysadmin"], "after": ["backend-types-ratchet"]},
-  {"wave": 8, "package": "backend-types-tests-shared", "branch": "feature/backend-types-tests-shared", "database": "caldart_backend_types_tests_shared", "e2e_port": null, "closes": [], "refs": [17, 18], "owns": ["backend/tests/@shared", "pyproject.toml#per-file-ignores-tests-shared"], "after": ["backend-types-ratchet"]},
-  {"wave": 9, "package": "backend-types-finish", "branch": "feature/backend-types-finish", "database": "caldart_backend_types_finish", "e2e_port": null, "closes": [17, 18], "refs": [], "owns": [".claude/rules/python.md#annotations"], "after": ["backend-types-core", "backend-types-reminders", "backend-types-sysadmin", "backend-types-aircraft", "backend-types-payments", "backend-types-accounts", "backend-types-cms", "backend-types-members", "backend-types-tests-accounts", "backend-types-tests-members", "backend-types-tests-aircraft", "backend-types-tests-payments", "backend-types-tests-reminders", "backend-types-tests-cms", "backend-types-tests-sysadmin", "backend-types-tests-shared"]}
+  {"wave": 8, "package": "backend-types-core", "branch": "feature/backend-types-core", "database": "caldart_backend_types_core", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/caldart/*", "backend/manage.py", "docs/conf.py", "pyproject.toml#per-file-ignores-core", "pyproject.toml#mypy-ignore-core"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-reminders", "branch": "feature/backend-types-reminders", "database": "caldart_backend_types_reminders", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/apps/reminders/*", "pyproject.toml#per-file-ignores-reminders", "pyproject.toml#mypy-ignore-reminders"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-sysadmin", "branch": "feature/backend-types-sysadmin", "database": "caldart_backend_types_sysadmin", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/apps/sysadmin/*", "pyproject.toml#per-file-ignores-sysadmin", "pyproject.toml#mypy-ignore-sysadmin"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-aircraft", "branch": "feature/backend-types-aircraft", "database": "caldart_backend_types_aircraft", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/apps/aircraft/*", "pyproject.toml#per-file-ignores-aircraft", "pyproject.toml#mypy-ignore-aircraft"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-payments", "branch": "feature/backend-types-payments", "database": "caldart_backend_types_payments", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/apps/payments/*", "pyproject.toml#per-file-ignores-payments", "pyproject.toml#mypy-ignore-payments"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-accounts", "branch": "feature/backend-types-accounts", "database": "caldart_backend_types_accounts", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/apps/accounts/*", "pyproject.toml#per-file-ignores-accounts", "pyproject.toml#mypy-ignore-accounts"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-cms", "branch": "feature/backend-types-cms", "database": "caldart_backend_types_cms", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/apps/cms/*", "pyproject.toml#per-file-ignores-cms", "pyproject.toml#mypy-ignore-cms"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-members", "branch": "feature/backend-types-members", "database": "caldart_backend_types_members", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/apps/members/*", "pyproject.toml#per-file-ignores-members", "pyproject.toml#mypy-ignore-members"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-tests-accounts", "branch": "feature/backend-types-tests-accounts", "database": "caldart_backend_types_tests_accounts", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/tests/@accounts", "pyproject.toml#per-file-ignores-tests-accounts", "pyproject.toml#mypy-ignore-tests-accounts"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-tests-members", "branch": "feature/backend-types-tests-members", "database": "caldart_backend_types_tests_members", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/tests/@members", "pyproject.toml#per-file-ignores-tests-members", "pyproject.toml#mypy-ignore-tests-members"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-tests-aircraft", "branch": "feature/backend-types-tests-aircraft", "database": "caldart_backend_types_tests_aircraft", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/tests/@aircraft", "pyproject.toml#per-file-ignores-tests-aircraft", "pyproject.toml#mypy-ignore-tests-aircraft"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-tests-payments", "branch": "feature/backend-types-tests-payments", "database": "caldart_backend_types_tests_payments", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/tests/@payments", "pyproject.toml#per-file-ignores-tests-payments", "pyproject.toml#mypy-ignore-tests-payments"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-tests-reminders", "branch": "feature/backend-types-tests-reminders", "database": "caldart_backend_types_tests_reminders", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/tests/@reminders", "pyproject.toml#per-file-ignores-tests-reminders", "pyproject.toml#mypy-ignore-tests-reminders"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-tests-cms", "branch": "feature/backend-types-tests-cms", "database": "caldart_backend_types_tests_cms", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/tests/@cms", "pyproject.toml#per-file-ignores-tests-cms", "pyproject.toml#mypy-ignore-tests-cms"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-tests-sysadmin", "branch": "feature/backend-types-tests-sysadmin", "database": "caldart_backend_types_tests_sysadmin", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/tests/@sysadmin", "pyproject.toml#per-file-ignores-tests-sysadmin", "pyproject.toml#mypy-ignore-tests-sysadmin"], "after": ["backend-types-ratchet"]},
+  {"wave": 8, "package": "backend-types-tests-shared", "branch": "feature/backend-types-tests-shared", "database": "caldart_backend_types_tests_shared", "e2e_port": null, "closes": [], "refs": [17, 18, 64], "owns": ["backend/tests/@shared", "pyproject.toml#per-file-ignores-tests-shared", "pyproject.toml#mypy-ignore-tests-shared"], "after": ["backend-types-ratchet"]},
+  {"wave": 9, "package": "backend-types-finish", "branch": "feature/backend-types-finish", "database": "caldart_backend_types_finish", "e2e_port": null, "closes": [17, 18, 64], "refs": [], "owns": [".claude/rules/python.md#annotations"], "after": ["backend-types-core", "backend-types-reminders", "backend-types-sysadmin", "backend-types-aircraft", "backend-types-payments", "backend-types-accounts", "backend-types-cms", "backend-types-members", "backend-types-tests-accounts", "backend-types-tests-members", "backend-types-tests-aircraft", "backend-types-tests-payments", "backend-types-tests-reminders", "backend-types-tests-cms", "backend-types-tests-sysadmin", "backend-types-tests-shared"]}
 ]
 ```
