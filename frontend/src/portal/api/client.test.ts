@@ -3,7 +3,23 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { API } from '../../test/handlers';
 import { server } from '../../test/server';
-import { ApiError, api, ensureCsrfToken, readCookie, request, resetCsrfBootstrap } from './client';
+import {
+  ApiError,
+  UnexpectedResponseError,
+  api,
+  ensureCsrfToken,
+  readCookie,
+  request,
+  resetCsrfBootstrap,
+} from './client';
+
+/** A 204 that hands out `token`, exactly as `GET /auth/csrf` does. */
+function csrfCookie(token: string): HttpResponse<null> {
+  return new HttpResponse(null, {
+    status: 204,
+    headers: { 'Set-Cookie': `csrftoken=${token}; path=/` },
+  });
+}
 
 describe('ApiError', () => {
   it('reads DRF `detail` for its message', () => {
@@ -194,5 +210,234 @@ describe('readCookie / ensureCsrfToken', () => {
     );
     await ensureCsrfToken();
     expect(calls).toBe(0);
+  });
+
+  it('fetches again when forced, even though a cookie exists', async () => {
+    document.cookie = 'csrftoken=stale; path=/';
+    server.use(http.get(`${API}/auth/csrf`, () => csrfCookie('fresh')));
+    await ensureCsrfToken({ force: true });
+    expect(readCookie('csrftoken')).toBe('fresh');
+  });
+});
+
+describe('CSRF bootstrap recovery', () => {
+  beforeEach(() => resetCsrfBootstrap());
+
+  it('rejects the request with the bootstrap failure rather than swallowing it', async () => {
+    server.use(
+      http.get(`${API}/auth/csrf`, () => HttpResponse.json({ detail: 'Down.' }, { status: 500 })),
+      http.post(`${API}/thing`, () => HttpResponse.json({ ok: true })),
+    );
+    await expect(api.post('/thing')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 500,
+      message: 'Down.',
+    });
+  });
+
+  it('fetches the cookie again after the bootstrap fails with a 500', async () => {
+    let csrfCalls = 0;
+    server.use(
+      http.get(`${API}/auth/csrf`, () => {
+        csrfCalls += 1;
+        return csrfCalls === 1
+          ? HttpResponse.json({ detail: 'Down.' }, { status: 500 })
+          : csrfCookie('after-500');
+      }),
+      http.post(`${API}/thing`, () => HttpResponse.json({ ok: true })),
+    );
+
+    await expect(api.post('/thing')).rejects.toBeInstanceOf(ApiError);
+    await expect(api.post('/thing')).resolves.toEqual({ ok: true });
+    expect(csrfCalls).toBe(2);
+  });
+
+  it('sends the header on the request that follows a failed bootstrap', async () => {
+    let csrfCalls = 0;
+    let sentToken: string | null = null;
+    server.use(
+      http.get(`${API}/auth/csrf`, () => {
+        csrfCalls += 1;
+        return csrfCalls === 1 ? HttpResponse.error() : csrfCookie('recovered');
+      }),
+      http.post(`${API}/thing`, ({ request: req }) => {
+        sentToken = req.headers.get('X-CSRFToken');
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+
+    await expect(api.post('/thing')).rejects.toThrow();
+    await api.post('/thing');
+    expect(sentToken).toBe('recovered');
+  });
+
+  it('fetches the cookie again when the bootstrap set no cookie', async () => {
+    let csrfCalls = 0;
+    server.use(
+      http.get(`${API}/auth/csrf`, () => {
+        csrfCalls += 1;
+        return new HttpResponse(null, { status: 204 });
+      }),
+      http.post(`${API}/thing`, () => HttpResponse.json({ ok: true })),
+    );
+
+    await api.post('/thing');
+    await api.post('/thing');
+    expect(csrfCalls).toBe(2);
+  });
+
+  it('shares one bootstrap between concurrent requests', async () => {
+    let csrfCalls = 0;
+    server.use(
+      http.get(`${API}/auth/csrf`, () => {
+        csrfCalls += 1;
+        return csrfCookie('shared');
+      }),
+      http.post(`${API}/thing`, () => HttpResponse.json({ ok: true })),
+    );
+
+    await Promise.all([api.post('/thing'), api.post('/thing')]);
+    expect(csrfCalls).toBe(1);
+  });
+
+  it('retries once with a fresh token after a CSRF failure', async () => {
+    let csrfCalls = 0;
+    const tokensSent: (string | null)[] = [];
+    server.use(
+      http.get(`${API}/auth/csrf`, () => {
+        csrfCalls += 1;
+        return csrfCookie(`token-${csrfCalls}`);
+      }),
+      http.post(`${API}/thing`, ({ request: req }) => {
+        tokensSent.push(req.headers.get('X-CSRFToken'));
+        return tokensSent.length === 1
+          ? HttpResponse.json({ detail: 'CSRF Failed: CSRF token missing.' }, { status: 403 })
+          : HttpResponse.json({ ok: true });
+      }),
+    );
+
+    await expect(api.post('/thing')).resolves.toEqual({ ok: true });
+    expect(tokensSent).toEqual(['token-1', 'token-2']);
+  });
+
+  it('gives up after one retry when the fresh token is refused too', async () => {
+    let posts = 0;
+    server.use(
+      http.get(`${API}/auth/csrf`, () => csrfCookie('never-good')),
+      http.post(`${API}/thing`, () => {
+        posts += 1;
+        return HttpResponse.json({ detail: 'CSRF Failed: CSRF token incorrect.' }, { status: 403 });
+      }),
+    );
+
+    await expect(api.post('/thing')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 403,
+      message: 'CSRF Failed: CSRF token incorrect.',
+    });
+    expect(posts).toBe(2);
+  });
+
+  it('does not retry a 403 that is not a CSRF failure', async () => {
+    let posts = 0;
+    server.use(
+      http.get(`${API}/auth/csrf`, () => csrfCookie('good')),
+      http.post(`${API}/thing`, () => {
+        posts += 1;
+        return HttpResponse.json({ detail: 'You do not have permission.' }, { status: 403 });
+      }),
+    );
+
+    await expect(api.post('/thing')).rejects.toBeInstanceOf(ApiError);
+    expect(posts).toBe(1);
+  });
+
+  it('does not retry a CSRF failure on a safe method', async () => {
+    let gets = 0;
+    server.use(
+      http.get(`${API}/thing`, () => {
+        gets += 1;
+        return HttpResponse.json(
+          { detail: 'CSRF Failed: origin checking failed.' },
+          { status: 403 },
+        );
+      }),
+    );
+
+    await expect(api.get('/thing')).rejects.toBeInstanceOf(ApiError);
+    expect(gets).toBe(1);
+  });
+});
+
+describe('response bodies', () => {
+  beforeEach(() => resetCsrfBootstrap());
+
+  it('rejects a 2xx that is not JSON at all', async () => {
+    server.use(
+      http.get(
+        `${API}/thing`,
+        () =>
+          new HttpResponse('<html><body>Down for maintenance</body></html>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/html' },
+          }),
+      ),
+    );
+    await expect(request('/thing')).rejects.toBeInstanceOf(UnexpectedResponseError);
+  });
+
+  it('reports the status and content type it could not use', async () => {
+    server.use(
+      http.get(
+        `${API}/thing`,
+        () =>
+          new HttpResponse('<html></html>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          }),
+      ),
+    );
+    await expect(request('/thing')).rejects.toMatchObject({
+      name: 'UnexpectedResponseError',
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+    });
+  });
+
+  it('rejects a 2xx whose JSON body does not parse', async () => {
+    server.use(
+      http.get(
+        `${API}/thing`,
+        () =>
+          new HttpResponse('{"results": [', {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    );
+    await expect(request('/thing')).rejects.toBeInstanceOf(UnexpectedResponseError);
+  });
+
+  it('returns null for a 200 with an empty body', async () => {
+    server.use(http.get(`${API}/thing`, () => new HttpResponse(null, { status: 200 })));
+    await expect(request('/thing')).resolves.toBeNull();
+  });
+
+  it('still raises ApiError for an error page from a proxy', async () => {
+    server.use(
+      http.get(
+        `${API}/thing`,
+        () =>
+          new HttpResponse('<html><body>502 Bad Gateway</body></html>', {
+            status: 502,
+            headers: { 'Content-Type': 'text/html' },
+          }),
+      ),
+    );
+    await expect(request('/thing')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 502,
+      message: 'Request failed (502).',
+    });
   });
 });

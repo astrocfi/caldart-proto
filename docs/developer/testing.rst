@@ -268,8 +268,12 @@ Two helpers do the heavy lifting:
     failure, not a silent 404** — which is exactly what you want when a
     component quietly starts calling a new endpoint.
 
-    Override per test with ``server.use(...)``; handlers reset after each one,
-    as do cookies, so the CSRF bootstrap is exercised properly every time.
+    Override per test with ``server.use(...)``.  After each test the handlers,
+    the cookies and the client's CSRF bootstrap all reset, so no test inherits
+    another's token.  The default ``GET /auth/csrf`` handler sets
+    ``csrftoken=test-csrf-token`` exactly as the real endpoint sets a cookie,
+    which means a mutation genuinely carries ``X-CSRFToken`` and a test can
+    assert on it.
 
 .. code-block:: tsx
 

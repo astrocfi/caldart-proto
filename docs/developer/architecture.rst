@@ -201,11 +201,13 @@ sign-in, registration and password reset are rate-limited
 **Sessions and CSRF.**  The portal shares the API's origin, so it signs in
 with Django's session cookie and stores no token: ``POST /api/v1/auth/login``
 starts a session, and ``GET /api/v1/auth/me`` says who is signed in (401 for
-nobody).  Before the first unsafe request on a page load, the API client
-calls ``GET /api/v1/auth/csrf`` if it has no ``csrftoken`` cookie yet, then
-echoes that cookie in ``X-CSRFToken`` on every ``POST``, ``PUT``, ``PATCH``
-and ``DELETE``.  That is why production keeps the CSRF cookie readable from
-JavaScript while the session cookie is HttpOnly (:doc:`configuration`).
+nobody).  Before any unsafe request, the API client calls
+``GET /api/v1/auth/csrf`` if it has no ``csrftoken`` cookie, then echoes that
+cookie in ``X-CSRFToken`` on every ``POST``, ``PUT``, ``PATCH`` and
+``DELETE``.  The cookie is the cache, so a bootstrap that fails is simply
+tried again by the next write rather than leaving the page unable to save.
+That is why production keeps the CSRF cookie readable from JavaScript while
+the session cookie is HttpOnly (:doc:`configuration`).
 
 **Static files.**  Vite builds two entry points, ``src/site/main.ts`` and
 ``src/portal/main.tsx``, into ``frontend/dist/`` with hashed names under
@@ -372,8 +374,19 @@ nothing cached for one person is shown to the next.
 ``fetch``.  It prefixes ``/api/v1``, sends the session cookie, performs the
 CSRF bootstrap, encodes JSON, and turns any non-2xx response into an
 ``ApiError`` with the status, the DRF error body, and ``fieldErrors`` keyed
-by field for forms.  ``api/types.ts`` types every API object by hand, in
-step with the serializers.
+by field for forms.  A 403 whose ``detail`` starts ``CSRF Failed`` is the one
+response it retries: it fetches a token again and resends the request once,
+which recovers a cookie that has gone stale mid-session.
+
+A successful response has to be JSON or nothing: a 204, or an empty body,
+becomes ``null``, and anything else that will not parse as JSON raises
+``UnexpectedResponseError`` carrying the status and the content type.  A
+truncated body or an HTML page from a proxy therefore reaches the screen as
+its error state, rather than as a ``null`` or a string the caller's declared
+type says is an object.  The error deliberately does **not** extend
+``ApiError``, because it carries no server message for a screen to show.
+``api/types.ts`` types every API object by hand, in step with the
+serializers.
 
 **Features.**  A directory under ``features/`` holds one feature's pages and
 components, an ``api.ts`` of query hooks, its stylesheet, its tests beside
