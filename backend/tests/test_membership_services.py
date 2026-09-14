@@ -1,4 +1,4 @@
-"""``membership_status`` maths and ``activate_term`` rules."""
+"""``membership_status`` math and ``activate_term`` rules."""
 
 from __future__ import annotations
 
@@ -109,13 +109,13 @@ def test_lifetime_wins_over_a_shorter_current_term(member, annual_plan, life_pla
     assert membership_status(member)["is_lifetime"] is True
 
 
-def test_cancelled_term_does_not_count(member, annual_plan, frozen):
+def test_canceled_term_does_not_count(member, annual_plan, frozen):
     MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=TODAY,
         ends_on=TODAY + timedelta(days=364),
-        status=MembershipStatusChoices.CANCELLED,
+        status=MembershipStatusChoices.CANCELED,
     )
     assert membership_status(member)["status"] == "none"
 

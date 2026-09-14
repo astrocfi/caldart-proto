@@ -41,10 +41,10 @@ Tokens
 ======
 
 Components only ever reference **semantic** tokens.  Nothing outside
-``tokens.css`` and the theme files may contain a raw colour.
+``tokens.css`` and the theme files may contain a raw color.
 
-Colour
-------
+Color
+-----
 
 =========================  ==================================================
 Token                      Meaning
@@ -56,7 +56,7 @@ Token                      Meaning
 ``--color-primary``        Primary action, links, wordmark mark
 ``--color-primary-fg``     Text on a primary fill
 ``--color-primary-hover``  Primary hover fill
-``--color-accent``         The one loud colour: hover, rules that matter,
+``--color-accent``         The one loud color: hover, rules that matter,
                            the step numbers, the pull-quote rule
 ``--color-secondary``      A supporting hue, used sparingly
 ``--color-rule``           Hairline separators
@@ -158,7 +158,7 @@ The shipped themes
     Dark: paper ``#151719``, ink ``#ECE9E1``, primary ``#7FB69B``, accent
     ``#FF7A52``, secondary ``#F2C14E``.
 
-Status colours are shared: ok ``#2E7D4F``, warn ``#C98A00``, bad ``#B23A2B``,
+Status colors are shared: ok ``#2E7D4F``, warn ``#C98A00``, bad ``#B23A2B``,
 adjusted per theme where contrast demands it.
 
 
@@ -196,7 +196,7 @@ Adding a theme
        }
 
    That is the complete set: every shipped theme redefines exactly these
-   twenty-one tokens, status colours and their translucent fills included.  A
+   twenty-one tokens, status colors and their translucent fills included.  A
    token you leave out falls back to the ``sierra`` value in ``tokens.css``,
    which is rarely what you want — and on a dark theme is usually unreadable.
    A dark theme must also set ``color-scheme: dark`` so form controls and
@@ -259,10 +259,10 @@ House rules
 * **Clean, modern, editorial.**  Type, space and hairlines carry the design,
   not decoration: no gradients, no glassmorphism or backdrop blur, no hero
   blobs and no emoji bullets.
-* **Semantic tokens only** in components.  If you need a colour that no token
+* **Semantic tokens only** in components.  If you need a color that no token
   names, add the token — do not inline a hex value.
 * **Hairlines, not boxes.**  Sections are separated by a ``1px``
-  ``--color-rule`` and generous space.  No drop shadows, no background-colour
+  ``--color-rule`` and generous space.  No drop shadows, no background-color
   bands, no floating rounded cards.
 * **Near-square corners.**  ``--radius`` is 2px and stays that way.
 * **Asymmetry is deliberate.**  From ``min-width: 60rem`` the 12-column grid
@@ -276,5 +276,5 @@ House rules
   rail below ``59.99rem`` — but reach for ``min-width`` unless you are
   genuinely undoing something wide.
 * **Focus rings are never removed**, and ``prefers-reduced-motion`` is
-  honoured globally in ``base.css``.
+  honored globally in ``base.css``.
 * **Contrast ≥ 4.5:1** for text in every theme.

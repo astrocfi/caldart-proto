@@ -105,7 +105,7 @@ def csv_response(
     """Stream a CSV download.
 
     The rows are consumed lazily, so a report over the whole member table never
-    materialises in memory.
+    materializes in memory.
     """
     response = StreamingHttpResponse(
         csv_rows(header, rows),

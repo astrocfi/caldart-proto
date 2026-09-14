@@ -253,11 +253,13 @@ Make targets
    * - ``e2e``
      - ``npm run e2e`` (Playwright)
    * - ``lint``
-     - ``lint-backend`` then ``lint-frontend``
+     - ``lint-backend``, ``lint-frontend``, then ``lint-spelling``
    * - ``lint-backend``
      - ``ruff check`` and ``ruff format --check``
    * - ``lint-frontend``
      - ``tsc --noEmit``, ``eslint``, ``prettier --check``
+   * - ``lint-spelling``
+     - ``codespell`` — American spelling and common typos
    * - ``format``
      - ``ruff format``, ``ruff check --fix``, ``prettier --write``
    * - ``backup``
@@ -272,7 +274,7 @@ Make targets
      - remove ``docs/_build``, ``frontend/dist``, ``backend/staticfiles`` and
        ``__pycache__``
 
-Every target runs from the repository root, and every one of them honours
+Every target runs from the repository root, and every one of them honors
 ``DATABASE_URL``.
 
 Management commands
@@ -314,14 +316,14 @@ Five commands must be green, and CI runs all five on every pull request:
 .. code-block:: console
 
    $ make test     # pytest + vitest; a warning fails the run
-   $ make lint     # ruff, tsc, eslint (no warnings), prettier
+   $ make lint     # ruff, tsc, eslint (no warnings), prettier, codespell
    $ make check    # manage.py check, makemigrations --check, npm run build
    $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors
    $ make audit    # uv audit + npm audit: known vulnerabilities
 
 ``make check`` catches a model change without its migration and a frontend
 that type-checks but does not build. See
-:doc:`testing` for how the suites are organised.
+:doc:`testing` for how the suites are organized.
 
 Troubleshooting
 ===============

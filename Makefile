@@ -54,7 +54,7 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend e2e lint lint-backend \
-        lint-frontend format check check-backend check-frontend audit audit-backend \
+        lint-frontend lint-spelling format check check-backend check-frontend audit audit-backend \
         audit-frontend backup restore reminders docs shell superuser collectstatic clean
 
 help: ## Show this help
@@ -174,11 +174,19 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
 
 # ----------------------------------------------------------------- lint
-lint: lint-backend lint-frontend ## ruff + tsc + eslint + prettier
+lint: lint-backend lint-frontend lint-spelling ## ruff + tsc + eslint + prettier + codespell
 
 lint-backend:
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
+
+# American spelling and common typos, everywhere prose and code are written.
+# `plans/` stays out: the archived plans are frozen, and a live plan may quote
+# the very words a fix replaces.  `--check-hidden` is what reaches .github and
+# .claude, which codespell would otherwise skip for their leading dot.
+lint-spelling:
+	$(UV) run codespell --check-hidden README.rst CLAUDE.md docs backend frontend/src \
+	  frontend/e2e .github deploy .claude
 
 lint-frontend:
 	cd frontend && $(NPM) run typecheck
@@ -224,6 +232,6 @@ docs: ## Build the Sphinx documentation (nitpicky; warnings are errors)
 	$(UV) run sphinx-build -n -W -b html docs docs/_build/html
 	@echo "Docs at docs/_build/html/index.html"
 
-clean: ## Remove build artefacts
+clean: ## Remove build artifacts
 	rm -rf docs/_build frontend/dist backend/staticfiles
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +

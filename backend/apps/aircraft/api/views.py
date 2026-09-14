@@ -84,7 +84,7 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class AircraftLookupView(APIView):
-    """``GET /aircraft/lookup?n_number=`` — exact match after normalisation."""
+    """``GET /aircraft/lookup?n_number=`` — exact match after normalization."""
 
     permission_classes = [IsAuthenticated]
 

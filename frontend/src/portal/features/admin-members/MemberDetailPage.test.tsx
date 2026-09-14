@@ -171,11 +171,11 @@ describe('MemberDetailPage', () => {
     const endDate = screen.getByLabelText('End date');
     await user.clear(endDate);
     await user.type(endDate, '2027-12-31');
-    await user.selectOptions(screen.getByLabelText('Term status'), 'cancelled');
+    await user.selectOptions(screen.getByLabelText('Term status'), 'canceled');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(captured.patchedTerm).not.toBeNull());
-    expect(captured.patchedTerm).toMatchObject({ ends_on: '2027-12-31', status: 'cancelled' });
+    expect(captured.patchedTerm).toMatchObject({ ends_on: '2027-12-31', status: 'canceled' });
   });
 
   it('requires the email address to be typed before deleting', async () => {

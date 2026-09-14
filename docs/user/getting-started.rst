@@ -19,7 +19,7 @@ One account, one email address
 ------------------------------
 
 Your **email address is your username**.  There is no separate login name, and
-capitalisation does not matter: ``Marta.Reyes@example.org`` and
+capitalization does not matter: ``Marta.Reyes@example.org`` and
 ``marta.reyes@example.org`` are the same account.  Only one account may use an
 address, so if the site tells you the address is already taken, you already have
 an account — reset the password rather than making a second one.
@@ -116,7 +116,7 @@ Forgotten passwords
 #. Sign in with the new password.
 
 The site always answers the same way — *if an account uses that address, a reset
-link is on its way* — whether or not it recognises the address.  That is on
+link is on its way* — whether or not it recognizes the address.  That is on
 purpose, for the same reason the sign-in error is vague: the form must not be
 usable as a way of discovering who is a member.
 

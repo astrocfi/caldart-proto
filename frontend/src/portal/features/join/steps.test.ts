@@ -63,7 +63,7 @@ describe('clampJoinStep', () => {
 });
 
 describe('step helpers', () => {
-  it('recognises only the four real steps', () => {
+  it('recognizes only the four real steps', () => {
     expect(isJoinStep('account')).toBe(true);
     expect(isJoinStep('done')).toBe(true);
     expect(isJoinStep('elsewhere')).toBe(false);

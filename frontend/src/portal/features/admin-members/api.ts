@@ -64,7 +64,7 @@ export function useMember(id: number | null) {
   });
 }
 
-// The DART and plan catalogues belong to the profile feature;
+// The DART and plan catalogs belong to the profile feature;
 // re-exported so the admin screens use exactly one query key for each.
 export { useDarts, usePlans } from '../profile/api';
 

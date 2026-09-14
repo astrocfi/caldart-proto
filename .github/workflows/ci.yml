@@ -56,6 +56,9 @@ jobs:
       - name: Lint
         run: make lint-backend
 
+      - name: Spelling
+        run: make lint-spelling
+
       - name: Django system checks and missing migrations
         run: make check-backend
 

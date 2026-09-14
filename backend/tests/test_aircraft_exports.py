@@ -153,7 +153,7 @@ def test_csv_pilots_column_lists_attached_members(api_client, account_admin, reg
     assert pilots["N33MM"] == ""
 
 
-def test_csv_honours_the_same_filters_as_the_list(api_client, account_admin, register):
+def test_csv_honors_the_same_filters_as_the_list(api_client, account_admin, register):
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL, {"insurance": "expired"}))
     assert [row[0] for row in rows[1:]] == ["N33MM"]
@@ -165,7 +165,7 @@ def test_csv_honours_the_same_filters_as_the_list(api_client, account_admin, reg
     assert [row[0] for row in rows[1:]] == ["N44BE"]
 
 
-def test_csv_honours_ordering(api_client, account_admin, register):
+def test_csv_honors_ordering(api_client, account_admin, register):
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL, {"ordering": "-n_number"}))
     assert [row[0] for row in rows[1:]] == ["N44BE", "N33MM", "N172SP"]

@@ -18,7 +18,7 @@ export interface ContributionChooserProps {
   onChange: (cents: number) => void;
   /** True while the member is typing their own amount. */
   isOther: boolean;
-  onOther: (isOther: boolean) => void;
+  onOther: (isOther: boolean) => void; // codespell:ignore onother
   disabled?: boolean;
 }
 
@@ -32,7 +32,7 @@ export function ContributionChooser({
   value,
   onChange,
   isOther,
-  onOther,
+  onOther, // codespell:ignore onother
   disabled = false,
 }: ContributionChooserProps) {
   const otherId = useId();
@@ -58,7 +58,7 @@ export function ContributionChooser({
               checked={!isOther && tier.cents === value}
               disabled={disabled}
               onChange={() => {
-                onOther(false);
+                onOther(false); // codespell:ignore onother
                 onChange(tier.cents);
               }}
             />
@@ -72,7 +72,7 @@ export function ContributionChooser({
             value={OTHER}
             checked={isOther}
             disabled={disabled}
-            onChange={() => onOther(true)}
+            onChange={() => onOther(true) /* codespell:ignore onother */}
           />
           <span>Other amount</span>
         </label>

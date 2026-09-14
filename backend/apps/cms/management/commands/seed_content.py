@@ -51,14 +51,14 @@ from apps.members.seed import seed_darts
 
 HERO_HEADING = "Volunteer air transportation when California needs it"
 HERO_LEDE = (
-    "CalDART organises pilots, aircraft owners and ground crews into local teams so that "
+    "CalDART organizes pilots, aircraft owners and ground crews into local teams so that "
     "when an earthquake, wildfire or flood cuts a community off, relief supplies, people "
     "and information keep moving."
 )
 
 MISSION = (
     "<p>CalDART exists to give California's emergency managers a trained, insured and "
-    "practised volunteer air transportation capability — organised before the disaster, "
+    "practiced volunteer air transportation capability — organized before the disaster, "
     "not improvised during it.</p>"
 )
 
@@ -67,7 +67,7 @@ CONCEPT_STEPS: tuple[tuple[str, str], ...] = (
         "Local teams form around an airport",
         "A DART — Disaster Airlift Response Team — is a group of pilots, aircraft owners "
         "and ground volunteers based at one general aviation airport. The airport is the "
-        "unit of organisation because that is where the aircraft, fuel and ramp space are.",
+        "unit of organization because that is where the aircraft, fuel and ramp space are.",
     ),
     (
         "Members stay current, all year",
@@ -78,12 +78,12 @@ CONCEPT_STEPS: tuple[tuple[str, str], ...] = (
     (
         "We train with the agencies we will fly for",
         "Teams run exercises with county offices of emergency services, CERT groups and "
-        "other volunteer organisations, so the paperwork, radios and load plans are "
+        "other volunteer organizations, so the paperwork, radios and load plans are "
         "familiar before they matter.",
     ),
     (
         "A county activates its DART",
-        "Requests come through the county emergency operations centre. The DART leader "
+        "Requests come through the county emergency operations center. The DART leader "
         "calls out the members whose aircraft, currency and availability fit the mission.",
     ),
     (
@@ -102,7 +102,7 @@ TAX_STATUS = (
 
 ABOUT_INTRO = (
     "CalDART is a statewide network of local Disaster Airlift Response Teams. We recruit, "
-    "organise and train general aviation volunteers so California counties have an air "
+    "organize and train general aviation volunteers so California counties have an air "
     "transportation option that does not have to be invented on the day of the disaster."
 )
 
@@ -120,7 +120,7 @@ HISTORY_MILESTONES: tuple[tuple[str, str], ...] = (
     (
         "2013",
         "A second and third airport stand up teams of their own. The founding volunteers "
-        "publish the first DART organising handbook so a new airport does not have to "
+        "publish the first DART organizing handbook so a new airport does not have to "
         "start from a blank page.",
     ),
     (
@@ -130,7 +130,7 @@ HISTORY_MILESTONES: tuple[tuple[str, str], ...] = (
     ),
     (
         "2016",
-        "The IRS recognises CalDART as a 501(c)(3) public charity. Dues and contributions "
+        "The IRS recognizes CalDART as a 501(c)(3) public charity. Dues and contributions "
         "become tax deductible.",
     ),
     (
@@ -156,7 +156,7 @@ HISTORY_MILESTONES: tuple[tuple[str, str], ...] = (
     ),
     (
         "2022",
-        "Sixteen DARTs are organised across the state, and the member roster, aircraft "
+        "Sixteen DARTs are organized across the state, and the member roster, aircraft "
         "insurance records and training history move into one shared system.",
     ),
 )
@@ -212,9 +212,9 @@ NEWS_POSTS: tuple[dict, ...] = (
             "year's multi-county exercise."
         ),
         "body": (
-            "<p>Nine DARTs flew a coordinated exercise on Saturday, moving palletised "
+            "<p>Nine DARTs flew a coordinated exercise on Saturday, moving palletized "
             "“relief supplies” — in practice, sandbags and marked cartons — between airports "
-            "on a schedule set by a simulated county emergency operations centre.</p>"
+            "on a schedule set by a simulated county emergency operations center.</p>"
             "<p>The scenario assumed a magnitude 6.8 earthquake had closed two state "
             "highways. Ground teams handled manifests, weight and balance checks and "
             "hand-offs to CERT volunteers at the receiving fields, while amateur radio "
@@ -232,7 +232,7 @@ NEWS_POSTS: tuple[dict, ...] = (
         "title": "Two new teams stand up in the Central Valley",
         "days_ago": 41,
         "intro": (
-            "Pilots at two inland airports have completed the organising checklist and are "
+            "Pilots at two inland airports have completed the organizing checklist and are "
             "recruiting members."
         ),
         "body": (
@@ -241,7 +241,7 @@ NEWS_POSTS: tuple[dict, ...] = (
             "ground volunteers.</p>"
             "<p>Standing up a DART takes a core of four or five committed volunteers, a "
             "conversation with the airport manager and a county contact willing to take the "
-            "call. If that sounds like your field, the organising handbook is in the "
+            "call. If that sounds like your field, the organizing handbook is in the "
             "members' area and a board member will walk you through it.</p>"
         ),
     },
@@ -277,7 +277,7 @@ DONATE_INTRO = (
 CONTRIBUTION_TIERS: tuple[tuple[str, str], ...] = (
     ("$20 — Participating", "Covers a member's share of exercise materials for a year."),
     ("$100 — Bronze", "Buys handheld radio batteries and cargo restraint for one team."),
-    ("$300 — Silver", "Funds a tabletop exercise with a county emergency operations centre."),
+    ("$300 — Silver", "Funds a tabletop exercise with a county emergency operations center."),
     ("$1,000 — Gold", "Underwrites a full multi-airport airlift exercise."),
     ("$3,000 — Diamond", "Equips a new DART with its ground team kit from scratch."),
     ("$10,000 — Platinum", "Sponsors a season of statewide training and outreach."),
@@ -371,7 +371,7 @@ def seed_home(home: HomePage, about_url: str = "/about/") -> HomePage:
     home.secondary_cta_label = "How we operate"
     home.secondary_cta_url = about_url
     home.mission_statement = MISSION
-    home.concept_heading = "Organised before the emergency, not during it"
+    home.concept_heading = "Organized before the emergency, not during it"
     home.concept_of_operations = [
         ("step", {"title": title, "text": text}) for title, text in CONCEPT_STEPS
     ]
@@ -393,7 +393,7 @@ def seed_about(home: HomePage) -> StandardPage:
             heading("What a DART is"),
             rich(
                 "<p>A Disaster Airlift Response Team is a group of general aviation "
-                "volunteers organised around one airport. Pilots fly. Aircraft owners "
+                "volunteers organized around one airport. Pilots fly. Aircraft owners "
                 "provide the aircraft and keep the insurance current. Ground volunteers "
                 "handle manifests, loading, radios and the hand-off at each end. Nobody is "
                 "paid, and no member is ever obliged to fly a mission they judge unsafe.</p>"
@@ -411,7 +411,7 @@ def seed_about(home: HomePage) -> StandardPage:
                 "glamorous. On day two of a closed highway it is the whole logistics chain.",
                 "CalDART founding volunteer",
             ),
-            heading("How the network is organised"),
+            heading("How the network is organized"),
             rich(
                 "<p>Each DART runs its own recruiting, training and call-out list. CalDART "
                 "holds the network together: shared handbooks and checklists, statewide "
@@ -434,11 +434,11 @@ def seed_history(about: StandardPage) -> StandardPage:
         body=[
             heading("How CalDART began"),
             rich(
-                "<p>The idea is older than the organisation. Pilots have flown relief loads "
+                "<p>The idea is older than the organization. Pilots have flown relief loads "
                 "after California disasters for decades — ad hoc, uninsured and usually "
                 "unwelcome, because no county emergency manager wants unvetted aircraft "
                 "arriving at a damaged airport. The DART model answered that objection: "
-                "organise first, train with the agency, and show up with the paperwork "
+                "organize first, train with the agency, and show up with the paperwork "
                 "already done.</p>"
             ),
             heading("Milestones"),
@@ -446,8 +446,8 @@ def seed_history(about: StandardPage) -> StandardPage:
             heading("Where we are now"),
             rich(
                 "<p>Sixteen teams, several hundred members, and a standing invitation to any "
-                "California airport that wants to organise one. The bottleneck has never "
-                "been aircraft; it is volunteers willing to do the unglamorous organising "
+                "California airport that wants to organize one. The bottleneck has never "
+                "been aircraft; it is volunteers willing to do the unglamorous organizing "
                 "work between disasters.</p>"
             ),
             cta("Join CalDART", "/portal/join", "primary", "Annual membership is $45."),
@@ -466,7 +466,7 @@ def seed_darts_section(about: StandardPage) -> DartIndexPage:
             heading("Starting a new team"),
             rich(
                 "<p>If your airport has no DART, it takes four or five committed volunteers "
-                "to start one. Get in touch and a board member will send you the organising "
+                "to start one. Get in touch and a board member will send you the organizing "
                 "handbook and introduce you to a nearby leader who has done it.</p>"
             ),
             cta("Contact us", "/contact/", "secondary"),
@@ -491,7 +491,7 @@ def seed_darts_section(about: StandardPage) -> DartIndexPage:
             )
         else:
             summary = (
-                "<p>Not every member lives within reach of an organised team. Unaffiliated "
+                "<p>Not every member lives within reach of an organized team. Unaffiliated "
                 "members carry a full CalDART membership, receive the same training material "
                 "and are called on by the nearest DART when a mission fits.</p>"
             )
@@ -686,7 +686,7 @@ def seed_contact(home: HomePage) -> ContactPage:
         show_in_menus=True,
         intro=CONTACT_INTRO,
         body=[
-            heading("Media enquiries"),
+            heading("Media inquiries"),
             rich(
                 "<p>Please email rather than calling. A board member will respond, and we "
                 "will happily put you in touch with a DART leader in your area.</p>"
@@ -714,7 +714,7 @@ def seed_members_area(home: HomePage) -> StandardPage:
             heading("What is in here"),
             rich(
                 "<ul>"
-                "<li>The DART organising handbook and exercise playbooks</li>"
+                "<li>The DART organizing handbook and exercise playbooks</li>"
                 "<li>Load planning worksheets and manifest forms</li>"
                 "<li>Board minutes and the annual report</li>"
                 "<li>The current roster and DART leader contact list</li>"
@@ -759,7 +759,7 @@ def seed_members_area(home: HomePage) -> StandardPage:
             heading("CalDART documents"),
             rich(
                 "<ul>"
-                "<li>DART organising handbook</li>"
+                "<li>DART organizing handbook</li>"
                 "<li>Exercise planning checklist</li>"
                 "<li>Load manifest and weight-and-balance worksheet</li>"
                 "<li>Safety policy and volunteer agreement</li>"
@@ -772,7 +772,7 @@ def seed_members_area(home: HomePage) -> StandardPage:
             rich(
                 "<ul>"
                 "<li>California Governor's Office of Emergency Services</li>"
-                "<li>Air Care Alliance — volunteer pilot organisations</li>"
+                "<li>Air Care Alliance — volunteer pilot organizations</li>"
                 "<li>FAA emergency operations and TFR information</li>"
                 "<li>Your county's office of emergency services</li>"
                 "</ul>"

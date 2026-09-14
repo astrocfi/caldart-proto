@@ -61,7 +61,7 @@ def test_db_backup_writes_a_gzipped_dump(backup_dir, pg_calls):
     assert "Wrote" in out.getvalue()
 
 
-def test_db_backup_honours_an_explicit_name(backup_dir, pg_calls):
+def test_db_backup_honors_an_explicit_name(backup_dir, pg_calls):
     call_command("db_backup", "--name", "before-upgrade.sql.gz", stdout=StringIO())
 
     assert (backup_dir / "before-upgrade.sql.gz").is_file()

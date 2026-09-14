@@ -52,10 +52,10 @@ def secret_key() -> str:
 
 
 def jsonable(value) -> dict:
-    """A plain, JSON-serialisable dict for ``Payment.raw``.
+    """A plain, JSON-serializable dict for ``Payment.raw``.
 
     Stripe's objects are dict subclasses, but they nest ``StripeObject``s and
-    carry non-serialisable helpers, so round-trip through JSON.
+    carry non-serializable helpers, so round-trip through JSON.
     """
     to_dict = getattr(value, "to_dict_recursive", None)
     if callable(to_dict):

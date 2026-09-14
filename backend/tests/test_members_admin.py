@@ -665,7 +665,7 @@ def test_grant_of_a_lifetime_plan_has_no_end_date(admin_client, population, life
     }
 
 
-def test_grant_honours_an_explicit_start_date(admin_client, population, annual_plan, today):
+def test_grant_honors_an_explicit_start_date(admin_client, population, annual_plan, today):
     member = population["never"]
     start = today - timedelta(days=10)
     response = admin_client.post(
@@ -707,12 +707,12 @@ def test_patch_a_term_changes_its_end_date_status_and_note(admin_client, populat
     assert listed["membership"]["expires_on"] == new_end.isoformat()
 
 
-def test_patch_a_term_to_cancelled_drops_the_membership(admin_client, population):
+def test_patch_a_term_to_canceled_drops_the_membership(admin_client, population):
     term = population["current"].memberships.first()
-    response = admin_client.patch(
-        membership_url(term), {"status": MembershipStatusChoices.CANCELLED}, format="json"
-    )
+    response = admin_client.patch(membership_url(term), {"status": "canceled"}, format="json")
     assert response.status_code == 200
+    term.refresh_from_db()
+    assert term.status == MembershipStatusChoices.CANCELED
     listed = admin_client.get(LIST_URL, {"search": "current@example.test"}).json()["results"][0]
     assert listed["membership"]["status"] == "none"
 

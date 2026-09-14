@@ -80,6 +80,6 @@ def aircraft_row(aircraft: Aircraft, *, currency: bool = False) -> list[Any]:
 
 
 def aircraft_rows(queryset: Iterable[Aircraft], *, currency: bool = False) -> Iterator[list[Any]]:
-    """Stream the report rows, so a CSV never materialises the whole register."""
+    """Stream the report rows, so a CSV never materializes the whole register."""
     for aircraft in queryset:
         yield aircraft_row(aircraft, currency=currency)

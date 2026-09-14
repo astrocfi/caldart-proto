@@ -93,7 +93,7 @@ exclude_patterns = [
 # many directory trees, endpoint listings and shell snippets written that way.
 highlight_language = "default"
 
-# Prepended to every source file.  Keeps the organisation's full name spelled
+# Prepended to every source file.  Keeps the organization's full name spelled
 # identically everywhere without retyping it.
 rst_prolog = """
 .. |org| replace:: The California DART Network

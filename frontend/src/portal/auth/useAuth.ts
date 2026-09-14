@@ -66,7 +66,7 @@ export function useAuth(): AuthState {
   };
 }
 
-/** The role catalogue from `GET /roles`, for the users-admin screens. */
+/** The role catalog from `GET /roles`, for the users-admin screens. */
 export function useRoles() {
   return useQuery({
     queryKey: ROLES_KEY,

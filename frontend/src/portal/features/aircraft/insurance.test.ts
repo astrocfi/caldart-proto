@@ -110,7 +110,7 @@ describe('validateAircraft', () => {
 });
 
 describe('aircraftPayload', () => {
-  it('normalises the registration and converts dollars to cents', () => {
+  it('normalizes the registration and converts dollars to cents', () => {
     const payload = aircraftPayload({
       ...emptyAircraftValues('n-172sp'),
       make: ' Cessna ',

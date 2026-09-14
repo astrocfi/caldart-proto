@@ -60,7 +60,7 @@ describe('LeaderAircraftPage', () => {
     await user.click(screen.getByRole('button', { name: /Check aircraft/ }));
 
     expect(await screen.findByText('INSURED')).toBeInTheDocument();
-    // Normalised before it ever reaches the server.
+    // Normalized before it ever reaches the server.
     expect(asked).toEqual(['N172SP']);
   });
 

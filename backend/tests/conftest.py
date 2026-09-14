@@ -252,5 +252,5 @@ def today() -> date:
 
 @pytest.fixture
 def days():
-    """``days(7)`` -> ``timedelta(days=7)``, to keep date maths readable."""
+    """``days(7)`` -> ``timedelta(days=7)``, to keep date math readable."""
     return lambda n: timedelta(days=n)

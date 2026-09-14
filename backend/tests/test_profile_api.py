@@ -1,4 +1,4 @@
-"""Member self-service API: profile, membership, payments, catalogues."""
+"""Member self-service API: profile, membership, payments, catalogs."""
 
 from __future__ import annotations
 
@@ -57,13 +57,13 @@ def test_every_role_reads_its_own_profile(api_client, all_role_users):
         api_client.logout()
 
 
-def test_catalogues_are_public(api_client, dart, annual_plan):
+def test_catalogs_are_public(api_client, dart, annual_plan):
     assert api_client.get(DARTS_URL).status_code == 200
     assert api_client.get(PLANS_URL).status_code == 200
 
 
 # --------------------------------------------------------------------------
-# Catalogues
+# Catalogs
 # --------------------------------------------------------------------------
 def test_darts_lists_active_darts_in_order(api_client, db):
     DartFactory(name="Zulu", sort_order=2, is_active=True)
@@ -88,7 +88,7 @@ def test_plans_lists_active_plans_in_order(api_client, db):
     assert rows[1]["duration_days"] is None
 
 
-def test_catalogues_are_not_paginated(api_client, dart, annual_plan):
+def test_catalogs_are_not_paginated(api_client, dart, annual_plan):
     assert isinstance(api_client.get(DARTS_URL).json(), list)
     assert isinstance(api_client.get(PLANS_URL).json(), list)
 
@@ -183,7 +183,7 @@ def test_put_updates_every_writable_section(api_client, member, dart, profile):
 
     assert response.status_code == 200, response.json()
     data = response.json()
-    assert data["state"] == "CA"  # normalised
+    assert data["state"] == "CA"  # normalized
     assert data["dart"] == {"id": dart.id, "name": dart.name}
     assert data["ratings"] == ["instrument", "multi_engine"]
     assert data["vol_ground_team"] is True

@@ -693,5 +693,5 @@ Every endpoint has role-matrix coverage — allow *and* deny — in
 user fixture per role (``member``, ``dart_leader``, ``user_admin``,
 ``account_admin``, ``website_admin``, ``system_admin``) and an
 ``all_role_users`` dict keyed by slug, so a new endpoint's permission test is a
-short parametrised loop over the roles that should pass and the roles that
+short parametrized loop over the roles that should pass and the roles that
 should not.  See :doc:`testing`.

@@ -181,7 +181,7 @@ describe('AircraftPicker', () => {
     expect(await screen.findByText(/No aircraft matches that/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Add a new aircraft/i }));
 
-    // The registration the member typed is carried into the form, normalised.
+    // The registration the member typed is carried into the form, normalized.
     expect(screen.getByLabelText(/^N-number/)).toHaveValue('N4321Q');
   });
 

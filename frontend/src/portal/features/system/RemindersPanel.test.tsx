@@ -34,7 +34,7 @@ function page(rows: ReminderLogEntry[]): Paginated<ReminderLogEntry> {
   return { count: rows.length, next: null, previous: null, results: rows };
 }
 
-/** Log handler that honours the `kind` filter, like the API does. */
+/** Log handler that honors the `kind` filter, like the API does. */
 function logHandler(rows: ReminderLogEntry[], seen?: (kind: string | null) => void) {
   return http.get(`${API}/admin/reminders/log`, ({ request }) => {
     const kind = new URL(request.url).searchParams.get('kind');

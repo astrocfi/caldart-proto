@@ -233,7 +233,7 @@ aeroplane for us today?" in one screen.*
 4. Choose Marta Reyes from the results.  The status card opens.
 
    Across the top is a full-width verdict band that says **GO** or **NO-GO**
-   in words as well as colour.  Because you gave Marta a current medical in
+   in words as well as color.  Because you gave Marta a current medical in
    flow B, and her membership is current, the verdict is **GO** — *"Membership
    and medical are current"*.
 
@@ -269,9 +269,9 @@ can be reloaded, backed out of, or sent to another leader as a link.
   the account administrator's search fields.
 - *A member with no profile at all.*  You get a well-formed NO-GO card rather
   than an error.
-- *An aeroplane marked out of service* is labelled as such on the card, and is
+- *An aeroplane marked out of service* is labeled as such on the card, and is
   dropped from the picker's fuzzy search — though an exact registration still
-  finds it, labelled, so nobody adds a duplicate.
+  finds it, labeled, so nobody adds a duplicate.
 
 .. _walkthrough-flow-d:
 
@@ -348,7 +348,7 @@ Flow E — a website administrator adds, edits and deletes a page
 6. **Reorder, unpublish, delete.**  Drag pages in the explorer to reorder
    them; *Unpublish* takes a page off the site while keeping its content;
    *Delete* removes it for good.  Delete the page you made.
-7. **Site settings.**  Open **Settings → Site settings**: organisation name,
+7. **Site settings.**  Open **Settings → Site settings**: organization name,
    tagline, contact email and phone, mailing address, EIN, donate URL, social
    links, footer text — and **theme**.  Switch the theme to ``pacific`` or
    ``night``, save, and reload the public site.

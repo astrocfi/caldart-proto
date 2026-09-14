@@ -4,7 +4,7 @@ The CMS (Wagtail)
 
 ``backend/apps/cms`` is the public website: the Wagtail page models, the
 StreamField blocks they are built from, the site settings that carry the
-organisation details and the theme, the members-only wall, and the templates
+organization details and the theme, the members-only wall, and the templates
 under ``backend/templates/``.  :doc:`architecture` shows where the public site
 sits in the whole system, :doc:`data-model` lists the page models' fields, and
 :doc:`theming` covers the stylesheets.
@@ -144,7 +144,7 @@ Adding a block
 #. Add it to ``ContentStreamBlock`` (and to ``ColumnStreamBlock`` if it makes
    sense inside a column).
 #. Write ``backend/templates/cms/blocks/<name>.html``.  Use the semantic
-   tokens; do not introduce colours (see :doc:`theming`).
+   tokens; do not introduce colors (see :doc:`theming`).
 #. Style it in ``frontend/src/styles/site.css``.
 #. ``manage.py makemigrations cms`` — a StreamField change is a migration even
    though the column type does not change.
@@ -209,7 +209,7 @@ supplies four names:
 ``can_preview_theme``
     True for website and system administrators.  ``base.html`` turns it into
     ``data-theme-preview="allowed"``, which is what lets ``site/main.ts``
-    honour ``?theme=<slug>``.
+    honor ``?theme=<slug>``.
 
 .. warning::
 

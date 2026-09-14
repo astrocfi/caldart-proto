@@ -23,8 +23,8 @@ mapping from the existing member records onto :doc:`data-model`'s
 ``MemberProfile`` and ``Membership``, and a decision about how much history to
 bring across.
 
-**Internationalisation.**  ``USE_I18N`` is on and ``LANGUAGE_CODE`` is
-``en-us``, but no string is wrapped in ``gettext`` and no catalogue exists.
+**Internationalization.**  ``USE_I18N`` is on and ``LANGUAGE_CODE`` is
+``en-us``, but no string is wrapped in ``gettext`` and no catalog exists.
 See :ref:`roadmap-i18n`.
 
 **Auto-renewing subscriptions.**  See below — it is the largest single item on
@@ -92,7 +92,7 @@ privileges.  The prototype ships two plans, Annual and Life, and no notion of a
 tier that grants less.
 
 The schema is most of the way there.  ``MembershipPlan`` is a table, so a
-Friend plan is a row.  What is missing is the distinction in behaviour: today
+Friend plan is a row.  What is missing is the distinction in behavior: today
 membership currency is a single boolean question, and every current member gets
 the same members-only content and appears the same way in a DART leader's
 search.  A Friend tier needs a flag on the plan — call it ``grants_operational
@@ -107,7 +107,7 @@ Sign-in is email and password, with rate limiting on login, registration and
 password reset.  Account, user and system administrators can see and change
 every member's details, and MFA on those roles is the obvious hardening step.
 
-``django-otp`` with TOTP is the conventional route; it needs an enrolment
+``django-otp`` with TOTP is the conventional route; it needs an enrollment
 screen in the portal, a second step in the login flow, recovery codes, and a
 policy decision about whether MFA is required for the administrative roles or
 merely offered to everybody.  Wagtail's admin sign-in is a separate surface and
@@ -151,12 +151,12 @@ about a callout — which is a different feature with the same plumbing.
 
 .. _roadmap-i18n:
 
-Internationalisation
+Internationalization
 --------------------
 
 Spanish is the obvious second language for a California volunteer
-organisation.  Doing it properly means all of: ``gettext`` on every server-side
-string and template; a frontend message catalogue and a runtime library;
+organization.  Doing it properly means all of: ``gettext`` on every server-side
+string and template; a frontend message catalog and a runtime library;
 Wagtail's ``wagtail.locales`` and translatable page trees for the CMS content,
 which is the largest part; locale-aware dates and money; and a language
 switcher that remembers its choice.  Nothing in the architecture prevents it,

@@ -47,7 +47,7 @@ export function queryString(params: Record<string, string>): string {
   return search ? `?${search}` : '';
 }
 
-/** The href the "Export CSV" button points at, honouring the filter bar. */
+/** The href the "Export CSV" button points at, honoring the filter bar. */
 export function exportCsvUrl(filters: PaymentFilterState): string {
   return `${API_BASE}/admin/payments/export.csv${queryString(filterParams(filters))}`;
 }
@@ -89,7 +89,7 @@ export function useMonthlyTotals() {
   });
 }
 
-// --------------------------------------------------------------- tile maths
+// --------------------------------------------------------------- tile math
 export interface Totals {
   cents: number;
   count: number;

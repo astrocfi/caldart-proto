@@ -83,7 +83,7 @@ describe('DataTable', () => {
     expect(header).toHaveAttribute('aria-sort', 'ascending');
   });
 
-  it('honours an initial sort', () => {
+  it('honors an initial sort', () => {
     render(
       <DataTable
         columns={COLUMNS}

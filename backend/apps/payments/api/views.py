@@ -265,7 +265,7 @@ class AdminPaymentSummaryView(APIView):
         group = (request.query_params.get("group") or "month").strip()
         filters = reports.PaymentFilters.from_query(request.query_params)
         queryset = reports.apply_filters(reports.base_queryset(), filters)
-        rows = reports.summarise(queryset, group)
+        rows = reports.summarize(queryset, group)
         return Response(PaymentPeriodSummarySerializer(rows, many=True).data)
 
 
