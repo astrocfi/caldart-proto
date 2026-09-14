@@ -19,9 +19,15 @@ account; that is expected and does not affect this repo.
 
 ## Working in this repo
 
-`PLAN.rst` at the repository root is the **authoritative specification**. Read
-the section that covers what you are building before you write code. If the
-code and the plan disagree, fix one of them in the same PR.
+The documentation in `docs/` is the **specification**: the developer guide for
+how the system works and the API contract, the user guide for what each role
+can do. Read the pages that cover what you are building before you write code.
+If the code and the docs disagree, fix one of them in the same PR.
+
+The docs stand alone. `plans/` holds implementation plans, named
+`YYYY-MM-DD-<topic>.md`; finished plans move to `plans/archive/` and are frozen.
+Never edit an archived plan, and never cite a plan from the docs, docstrings or
+comments: state what the reader needs, or link the docs page that covers it.
 
 ### Layout
 
@@ -45,6 +51,8 @@ frontend/               Vite + React 19 + TypeScript (strict)
   src/test/             msw server, handlers, render helpers
 docs/                   Sphinx (user/ and developer/), built with -W
 deploy/                 gunicorn.conf.py, systemd/, apache/, nginx/
+plans/                  implementation plans; archive/ holds finished ones
+critiques/              dated review reports
 ```
 
 ### Make targets
@@ -92,26 +100,27 @@ Parallel branches must not share a database:
 DATABASE_URL=postgres://caldart:caldart@localhost:5432/caldart_<branch-slug>
 ```
 
-e.g. `caldart_payments` for `feat/payments`. `make up` creates the database
+e.g. `caldart_payments` for `feature/payments`. `make up` creates the database
 named in `DATABASE_URL` if it does not exist. Django names the test database
 `test_caldart_<slug>`, so `pytest` runs stay isolated too. All worktrees share
 one set of containers because `docker-compose.yml` pins `name: caldart`.
 
 ### File ownership on parallel branches
 
-PLAN §17 assigns each Phase 2 branch a set of files. **Edit only your own.**
-The shared surfaces were built in Phase 1 precisely so nobody has to:
+When a plan runs branches in parallel, its manifest assigns each branch a set
+of files. **Edit only your own.** The shared surfaces exist precisely so nobody
+has to:
 
 - `caldart/api_urls.py` already includes every app's `api/urls.py` — add your
   endpoints in `apps/<yours>/api/urls.py`.
 - `src/portal/routes/index.tsx` already concatenates every feature's route
   file — edit only `src/portal/routes/<yours>.tsx`.
 - `src/portal/nav.ts` already declares every nav entry with its roles.
-- `src/portal/api/types.ts` already types every object in PLAN §6.
+- `src/portal/api/types.ts` already types every object the API returns.
 - `src/portal/components/` holds the shared primitives; add to them rather
   than forking them.
 - `caldart/reports.py` holds `csv_response` and `pdf_table_response`.
-- `pyproject.toml` already lists every dependency Phase 2 needs.
+- `pyproject.toml` already lists every dependency the apps use.
 
 If you genuinely must change a shared file, keep the change additive and say
 so in the PR description.

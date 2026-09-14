@@ -12,7 +12,7 @@ Analyze all backend tests and produce a **report only**—do not modify any test
 - **Tests:** All files under `backend/tests/` (pytest + pytest-django, running against Postgres).
 - **Fixtures:** Include `backend/tests/conftest.py` (shared fixtures such as `api_client`, `user_factory`, the per-role fixtures, and the plan/dart/aircraft fixtures) and `backend/tests/factories.py` (factory_boy factories) in the analysis.
 - **Code under test:** The Django apps in `backend/apps/<app>/` and the project package `backend/caldart/`.
-- **Specification:** `PLAN.rst` is the authoritative spec; §15 lists what the backend suite must cover.
+- **Specification:** The docs in `docs/` are the specification; `docs/developer/testing.rst` describes what the backend suite covers.
 - **Out of scope unless the user asks:** the frontend vitest tests (`frontend/src/**/*.test.tsx`) and the Playwright specs (`frontend/e2e/`). When asked, critique them against `javascript_typescript_best_practices` instead.
 
 ## Project rules
@@ -34,13 +34,13 @@ Apply these criteria when reviewing each test file and each test case.
 - **Explicit values:** Assert exact expected values where known (e.g. `assert result == expected`, not just `assert result` or `assert result is not None`).
 - **Dynamic values:** When the value is dynamic (IDs, timestamps), assert **type** and **format** (e.g. regex, enum membership) rather than only existence.
 - **Collections:** Prefer asserting **exact length** (e.g. `assert len(items) == 2`) when the expected count is known; avoid only `assert len(items) >= 1` unless the count truly varies.
-- **Shape:** For dicts, API responses, or structured return values, assert expected keys or shape where the contract is defined (PLAN §6 defines the API contract, including the `{count, next, previous, results}` pagination envelope).
+- **Shape:** For dicts, API responses, or structured return values, assert expected keys or shape where the contract is defined (the `docs/developer/api-*.rst` pages define the API contract, including the `{count, next, previous, results}` pagination envelope).
 
 ### 2. Success and failure conditions
 
 - **Success paths:** Every behavior under test should have at least one test that asserts the happy-path result (return value, response, or side effect).
 - **Failure paths:** For each operation, consider: invalid input (400 from serializer validation), unauthenticated (401/403), wrong role (403), missing objects (404), domain-specific errors. Note missing failure cases in the report.
-- **Permission matrix:** PLAN §15 requires every endpoint × role combination to be covered at least for allow/deny against the matrix in PLAN §5. Note endpoints or roles without allow/deny tests.
+- **Permission matrix:** Every endpoint × role combination should be covered at least for allow/deny against the permission matrix in `docs/developer/api-reference.rst`. Note endpoints or roles without allow/deny tests.
 - **Edge cases:** Empty collections, None/optional values, boundary values (min/max length, zero, negative where invalid, edge dates for membership status).
 
 ### 3. Consistency
@@ -54,7 +54,7 @@ Apply these criteria when reviewing each test file and each test case.
 
 - **Coverage map:** For each app or API area, list which behaviors are tested and which are missing.
 - **Parameters:** Arguments, query parameters, and filters that affect behavior should have at least one test (valid and, where relevant, invalid).
-- **Specification:** Note gaps between `PLAN.rst` (especially §6 and §15) or docstrings and the tests.
+- **Specification:** Note gaps between the docs (especially the API pages and `testing.rst`) or docstrings and the tests.
 
 ### 5. Redundancy
 
@@ -70,7 +70,7 @@ Apply these criteria when reviewing each test file and each test case.
 
 ### 7. Mocking and dependency isolation
 
-- **External services:** Stripe, PayPal, and any other HTTP calls should be mocked in unit tests (`respx` for `httpx`; PLAN §15); note tests that make real external calls.
+- **External services:** Stripe, PayPal, and any other HTTP calls should be mocked in unit tests (`respx` for `httpx`); note tests that make real external calls.
 - **Time-sensitive logic:** Tests involving `timezone.now()`, `date.today()`, or expiration (membership status, reminders) should freeze time (`freezegun`) for determinism.
 - **Pure logic:** Unit tests for pure business logic should not require a database or network; note functions that could be unit-tested but only have integration tests.
 - **Environment variables:** Tests should not depend on real `.env` or env values; note tests that would fail with different env configs. Use the `settings` fixture to override Django settings.
@@ -83,7 +83,7 @@ Apply these criteria when reviewing each test file and each test case.
 
 - **Input validation:** Endpoints and forms that accept user or external input should have tests for invalid input (wrong type, out-of-range, malicious patterns). Note missing validation tests.
 - **Server-computed values:** Amounts, prices, and roles must come from the server; note missing tests that a client-supplied amount or role is ignored or rejected.
-- **Webhooks:** Payment webhooks should have tests for signature verification and replay/idempotency (PLAN §15).
+- **Webhooks:** Payment webhooks should have tests for signature verification and replay/idempotency.
 - **Sensitive data:** Verify that tests do not log or assert on real secrets; test data should not contain real credentials. Note any exposure risk.
 - **Path traversal / injection:** If the code handles paths (backup, restore, exports) or structured input, note missing tests for path traversal or injection where relevant.
 
@@ -114,7 +114,7 @@ Apply these criteria when reviewing each test file and each test case.
 ### 13. State and workflow
 
 - **State transitions:** For code with status or lifecycle (membership status, payment status, checkout → confirm → activation), test valid and invalid transitions; note missing transition tests.
-- **Idempotency:** Operations that should be idempotent should be tested for repeated calls (PLAN §15 names payment success and the seed commands); note missing idempotency tests.
+- **Idempotency:** Operations that should be idempotent should be tested for repeated calls (payment success and the seed commands, for example); note missing idempotency tests.
 - **Side effects:** Actions that trigger side effects (emails, reminder logs, file writes) should verify those occur; note untested side effects.
 
 ### 14. Test data and fixtures
@@ -136,7 +136,7 @@ Apply these criteria when reviewing each test file and each test case.
 ### 16. Regression and documentation
 
 - **Bug reference:** Tests written to reproduce bugs should reference the issue in a comment; note regression tests that lack context.
-- **Spec alignment:** Tests should map to documented behavior (`PLAN.rst`, docstrings); note tests for undocumented behavior or missing tests for documented behavior.
+- **Spec alignment:** Tests should map to documented behavior (the docs, docstrings); note tests for undocumented behavior or missing tests for documented behavior.
 - **Deprecation warnings:** If deprecated APIs exist, tests should verify warnings are emitted using `pytest.warns(DeprecationWarning)` (or `FutureWarning`). Note deprecated APIs that lack warning-emission tests.
 - **`filterwarnings` configuration:** `pyproject.toml` sets `filterwarnings` with `"error"` first. Check that every later `ignore::` entry is narrowly scoped to third-party code and carries a comment explaining why.
 - **Warning noise:** Note warnings suppressed inside tests (`warnings.catch_warnings`, `pytest.mark.filterwarnings`) without a reason.
@@ -204,7 +204,7 @@ Produce a single markdown report with the following structure. Do **not** edit a
 ## Executive summary
 - Overall assessment (strengths, main gaps).
 - **Coverage:** At least 90% and almost all non-exception lines; measured by running the **entire test suite** with `uv run --with pytest-cov pytest --cov=backend --cov-report=term-missing`. Note if met.
-- **Permission matrix:** Whether every endpoint × role is covered for allow/deny (PLAN §5, §15).
+- **Permission matrix:** Whether every endpoint × role is covered for allow/deny (the permission matrix in `docs/developer/api-reference.rst`).
 - **Exception messages:** When testing exceptions with defined messages, tests must assert on message contents (e.g. `pytest.raises(...) as exc_info`, `str(exc_info.value)`), not only that the exception was raised.
 - High-priority fixes vs. nice-to-have.
 
@@ -218,7 +218,7 @@ Produce a single markdown report with the following structure. Do **not** edit a
 [Naming, structure, fixture usage, assertion style.]
 
 ## 4. Completeness
-[Coverage map; PLAN.rst/docstring gaps.]
+[Coverage map; gaps against the docs and docstrings.]
 
 ## 5. Redundancy
 [Duplicate or overlapping tests with file:test references.]

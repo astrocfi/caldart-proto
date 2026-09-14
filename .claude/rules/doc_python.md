@@ -13,8 +13,11 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
 - Use **Sphinx** for all project documentation. Keep all documentation source under the single
   `docs/` directory with one `conf.py`: end-user guides in `docs/user/`, contributor and
   operator guides in `docs/developer/`. Build outputs (`docs/_build/`) are never committed.
-- Author pages in **reStructuredText** (`.rst`). `README.rst` and `PLAN.rst` are
-  reStructuredText too.
+- Author pages in **reStructuredText** (`.rst`). `README.rst` is reStructuredText
+  too.
+- The docs stand alone and are the specification. Never cite a plan from `plans/`
+  in the docs, docstrings or comments; state what the reader needs, or link the
+  docs page that covers it.
 - After ANY code or documentation change, rebuild the full tree and fix every warning and error
   before delivering (see Section 5).
 
