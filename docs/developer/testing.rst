@@ -172,9 +172,16 @@ Conventions
 - **Every endpoint gets an allow *and* a deny test** for each role that matters
   — see the matrix in :doc:`api-reference`.  ``all_role_users`` plus
   ``pytest.mark.parametrize`` keeps that to a few lines.
-- **Mock at the boundary, never inside.**  Stripe is exercised by patching
-  ``stripe.PaymentIntent.create`` / ``.retrieve`` and
-  ``stripe.Webhook.construct_event``; PayPal, which is called over ``httpx``
+- **Mock at the boundary, never inside.**  Stripe is faked at the SDK
+  boundary: the ``fake_intents`` fixture replaces the provider's
+  ``stripe_client`` factory, and the stand-in client's
+  ``v1.payment_intents.create`` / ``.retrieve`` answer with real
+  ``stripe.PaymentIntent`` objects built by ``construct_from``, so the provider
+  meets the types the library really returns.  Patch the factory, not
+  ``stripe.PaymentIntent``: the provider never calls the module-level helpers.
+  Webhook bodies are signed with ``STRIPE_WEBHOOK_SECRET`` exactly as Stripe
+  signs them and ``stripe.Webhook.construct_event`` verifies them for real;
+  nothing patches the signature check.  PayPal, which is called over ``httpx``
   with no SDK, is exercised with ``respx`` intercepting the HTTP.  Neither
   provider module is stubbed out.
 - **Freeze the clock rather than computing around it.**  The reminder scanner's
