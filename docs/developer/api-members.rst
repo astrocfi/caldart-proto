@@ -10,6 +10,8 @@ Every route below requires the ``account_admin`` role.  ``system_admin``
 passes every role check, so a system administrator has them too.  An
 unauthenticated request gets **401** (``caldart.exceptions`` overrides DRF's
 403 for session auth); an authenticated request without the role gets **403**.
+An unsafe method with no ``X-CSRFToken`` gets **403** before either check,
+signed in or not.
 
 The code lives in ``backend/apps/members/``:
 

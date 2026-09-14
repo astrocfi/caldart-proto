@@ -6,7 +6,9 @@ The ``apps.aircraft`` part of the ``/api/v1/`` contract: the aircraft
 register, its CSV and PDF exports (see also :doc:`reports`), and the DART
 leader check.  Conventions from :doc:`api-reference` apply throughout — session
 authentication, ``X-CSRFToken`` on unsafe methods, DRF error bodies, and
-``401`` (never ``403``) for an unauthenticated request.
+``401`` (not ``403``) for an unauthenticated request that reaches the
+permission check.  An unsafe method with no CSRF token is refused with ``403``
+before it, signed in or not.
 
 
 N-number normalization

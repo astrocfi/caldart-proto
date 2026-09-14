@@ -142,15 +142,19 @@ rewrites ``NotAuthenticated`` to 401.  The rule is therefore:
    * - **401**
      - Nobody is signed in.  Sign in and retry.
    * - **403**
-     - Somebody is signed in, and the request was refused.  Retrying will not
-       help, unless the ``detail`` starts ``CSRF Failed``.
+     - The request was refused, and retrying will not help unless the
+       ``detail`` starts ``CSRF Failed``.  A refusal on the caller's roles
+       means somebody is signed in; a CSRF refusal reaches an anonymous caller
+       just as readily.
 
 Four deliberate departures are worth knowing:
 
 - A **403** whose ``detail`` starts ``CSRF Failed`` is the one worth
-  repeating.  It comes from CSRF enforcement, before any permission class
-  runs, so the caller's roles are not what was refused: fetch a token again
-  and resend the request once (see :ref:`api-csrf-bootstrap`).
+  repeating.  It comes from CSRF enforcement, before authentication settles
+  and before any permission class runs, so neither the caller's roles nor the
+  absence of a session is what was refused — an anonymous unsafe method that
+  carries no token is answered this way rather than with 401.  Fetch a token
+  again and resend the request once (see :ref:`api-csrf-bootstrap`).
 - ``POST /auth/login`` answers **400** for wrong credentials (``{"detail":
   "Incorrect email address or password."}``) and **403** for a known but
   deactivated account.  It is an authentication endpoint; a 401 from it would
@@ -311,7 +315,10 @@ Who may call what.  ``·`` means no access, ✓ means access.  ``system_admin``
 is omitted from the columns because it passes every row except the three
 payment-confirmation rows, which are owner-only for everybody.
 
-*Anonymous* means no session at all; anything it cannot reach answers **401**.
+*Anonymous* means no session at all; anything it cannot reach answers **401**,
+provided the request carried a CSRF token.  An unsafe method without one never
+reaches the permission check: it is refused with **403** first, signed in or
+not (see :ref:`api-csrf-bootstrap`).
 
 .. list-table::
    :header-rows: 1

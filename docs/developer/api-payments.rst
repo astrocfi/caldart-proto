@@ -7,8 +7,9 @@ checkout and its confirmation for each provider, the webhooks, and the
 payment reports.  General API conventions — session
 authentication, the CSRF header, pagination, error shapes — are in
 :doc:`api-reference`; the two worth repeating here are that an
-unauthenticated request gets **401** (not 403), and that money is always
-integer cents.
+unauthenticated request that reaches the permission check gets **401** (not
+403, which is reserved for a refused role and for a missing CSRF token), and
+that money is always integer cents.
 
 The rule that shapes all of this: **the server never trusts a client-supplied
 amount**.  A checkout request names a plan slug and a contribution; the total

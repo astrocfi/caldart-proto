@@ -165,6 +165,20 @@ def test_a_reset_confirm_succeeds_with_the_bootstrapped_token(
 
 
 # --------------------------------------------------------------------------
+# CSRF is decided before the permission check
+# --------------------------------------------------------------------------
+def test_an_anonymous_protected_post_without_a_token_is_403_not_401(csrf_client, db) -> None:
+    """CSRF runs first, so the 401 the permission matrix promises never happens."""
+    assert csrf_client.post(CHECKOUT, {"provider": "mock"}).status_code == 403
+
+
+def test_an_anonymous_protected_post_with_a_token_is_401(csrf_client, csrf_headers, db) -> None:
+    headers = csrf_headers(csrf_client)
+
+    assert csrf_client.post(CHECKOUT, {"provider": "mock"}, **headers).status_code == 401
+
+
+# --------------------------------------------------------------------------
 # Signed-in callers, safe methods, and the webhooks
 # --------------------------------------------------------------------------
 def test_a_signed_in_checkout_without_a_token_is_refused(csrf_client, member) -> None:
