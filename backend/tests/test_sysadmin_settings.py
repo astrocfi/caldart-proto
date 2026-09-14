@@ -171,6 +171,27 @@ def test_mock_payments_are_off_by_default(prod):
     assert prod.PAYMENTS_MOCK_ENABLED is False
 
 
+# ------------------------------------------------------- throttles and cache
+def test_one_proxy_sits_in_front_so_throttles_key_on_the_client_address(prod) -> None:
+    """DRF otherwise keys on the whole ``X-Forwarded-For``, which a client writes."""
+    assert prod.REST_FRAMEWORK["NUM_PROXIES"] == 1
+
+
+def test_the_base_rest_framework_settings_are_not_mutated(prod) -> None:
+    from caldart.settings import base
+
+    assert "NUM_PROXIES" not in base.REST_FRAMEWORK
+
+
+def test_throttle_counters_are_shared_through_the_database(prod) -> None:
+    """Every gunicorn worker would otherwise keep a private budget of its own."""
+    assert prod.CACHES["default"]["BACKEND"] == "django.core.cache.backends.db.DatabaseCache"
+
+
+def test_the_cache_table_is_the_one_the_deployment_guide_creates(prod) -> None:
+    assert prod.CACHES["default"]["LOCATION"] == "caldart_cache"
+
+
 # ------------------------------------------------------- assets and email
 def test_static_files_use_the_hashed_manifest_storage(prod):
     backend = prod.STORAGES["staticfiles"]["BACKEND"]

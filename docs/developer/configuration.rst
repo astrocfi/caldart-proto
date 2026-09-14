@@ -131,11 +131,12 @@ Core
 Authentication rate limits
 ==========================
 
-Three anonymous endpoints are throttled by client address.  Each takes a DRF
-rate as ``<count>/<period>``, where the period is ``second``, ``minute``,
-``hour`` or ``day`` (or their initials).  Setting one to an empty value turns
-that throttle **off**, which is what ``caldart.settings.test`` does to all
-three so tests never race a shared counter.  Exceeding a rate is a **429**.
+Three anonymous endpoints are throttled per client address, counted as
+described below.  Each takes a DRF rate as ``<count>/<period>``, where the
+period is ``second``, ``minute``, ``hour`` or ``day`` (or their initials).
+Setting one to an empty value turns that throttle **off**, which is what
+``caldart.settings.test`` does to all three so tests never race a shared
+counter.  Exceeding a rate is a **429**.
 
 ``AUTH_THROTTLE_LOGIN``
    ``POST /auth/login``.
@@ -161,6 +162,30 @@ three so tests never race a shared counter.  Exceeding a rate is a **429**.
 The rates land in the ``AUTH_THROTTLE_RATES`` setting and are read by
 ``apps.accounts.throttling``.  There is no project-wide throttle; every other
 endpoint is unlimited.  See :doc:`api-reference`.
+
+Which address is counted
+------------------------
+
+The client address is the **last** entry of ``X-Forwarded-For``, the one the
+proxy wrote.  ``prod.py`` sets DRF's ``NUM_PROXIES`` to ``1``, a constant
+rather than a variable, because that is a fact about the shipped deployment:
+Apache and nginx both pass a client's own header through and append the address
+they saw, and gunicorn accepts ``X-Forwarded-*`` only from loopback.  Reading
+any earlier entry would count an address the client chose, and a caller that
+varied it would never be throttled at all.
+
+Put a CDN or a second load balancer in front and that count is wrong: each
+extra hop appends another address, so ``NUM_PROXIES`` must rise to match the
+number of proxies that are guaranteed to append one.  Set it too high and
+callers share a budget; too low and they escape it.
+
+The counters live in the default cache.  ``prod.py`` configures a
+``DatabaseCache`` in the ``caldart_cache`` table, because Django's fallback
+cache is per-process: gunicorn runs up to twelve workers and recycles each
+after about a thousand requests, so an attacker would otherwise get a fresh
+budget from every worker.  ``manage.py createcachetable`` creates the table and
+is part of both the first deploy and every upgrade; see :doc:`deployment`.
+Development and tests keep the local-memory cache.
 
 
 Email

@@ -16,13 +16,14 @@ from copy import deepcopy
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
-from .base import LOGGING, REPO_ROOT, env
+from .base import LOGGING, REPO_ROOT, REST_FRAMEWORK, env
 
 # ``from .base import *`` binds the *same* dict objects as the base module, so
 # editing them in place would reach back into whatever settings module is
-# already loaded.  Copy the two we change.
+# already loaded.  Copy the three we change.
 DATABASES = deepcopy(DATABASES)  # noqa: F405
 LOGGING = deepcopy(LOGGING)
+REST_FRAMEWORK = deepcopy(REST_FRAMEWORK)
 
 # --------------------------------------------------------------------------
 # Core
@@ -105,6 +106,35 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 # --------------------------------------------------------------------------
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=60)  # noqa: F405
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = True  # noqa: F405
+
+# --------------------------------------------------------------------------
+# Cache
+#
+# The auth throttles count in the default cache.  Django's fallback cache is
+# per-process, so each of gunicorn's workers would keep a budget of its own and
+# reset it whenever the worker recycled.  The database cache is shared by every
+# worker and needs no service beyond Postgres -- only `manage.py
+# createcachetable`, which the deployment guide runs on install and upgrade.
+# --------------------------------------------------------------------------
+CACHE_TABLE = "caldart_cache"
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": CACHE_TABLE,
+    }
+}
+
+# --------------------------------------------------------------------------
+# Django REST Framework
+#
+# Both shipped vhosts pass a client's own X-Forwarded-For through and append the
+# address they saw, so only the last entry is trustworthy.  Telling DRF that
+# exactly one proxy sits in front makes it read that entry; without it the
+# throttles key on the whole header, and a client that varies its prefix is
+# never throttled.  gunicorn accepts X-Forwarded-* only from loopback, so the
+# proxy is the only thing that can write it.
+# --------------------------------------------------------------------------
+REST_FRAMEWORK["NUM_PROXIES"] = 1
 
 # --------------------------------------------------------------------------
 # Email

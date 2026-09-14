@@ -194,9 +194,15 @@ Run these as the service user with the production settings::
       DJANGO_SETTINGS_MODULE=caldart.settings.prod \
       /srv/caldart/.venv/bin/python manage.py migrate
 
+  sudo -u caldart ... manage.py createcachetable
   sudo -u caldart ... manage.py seed_roles
   sudo -u caldart ... manage.py seed_content     # example pages; optional
   sudo -u caldart ... manage.py collectstatic --noinput
+
+``createcachetable`` builds ``caldart_cache``, the table the default cache
+uses.  The anonymous auth throttles count in that cache, and every gunicorn
+worker has to see the same counters.  The command is idempotent, so running it
+again costs nothing.
 
 Do **not** run ``seed_demo`` on a production box: it creates demo accounts with
 a published password.
@@ -396,13 +402,16 @@ Take a backup first, always::
 
   cd backend
   sudo -u caldart ... manage.py migrate
+  sudo -u caldart ... manage.py createcachetable
   sudo -u caldart ... manage.py collectstatic --noinput
 
   sudo systemctl restart caldart-web
   journalctl -u caldart-web -n 30
 
 Order matters: build the frontend before ``collectstatic``, and restart the web
-unit last.  ``preload_app`` is on, so a restart — not a reload — is what picks
+unit last.  ``createcachetable`` is idempotent: it does nothing when
+``caldart_cache`` is already there, and it is in the list so that no upgrade
+can leave a box without it.  ``preload_app`` is on, so a restart — not a reload — is what picks
 up new code.
 
 Rolling back is the same sequence against the previous commit, plus a
