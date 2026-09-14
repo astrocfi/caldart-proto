@@ -267,6 +267,16 @@ processing off, and ``src/**/*.{test,spec}.{ts,tsx}`` as the include pattern.
 **Tests sit beside what they test** — ``LoginPage.test.tsx`` next to
 ``LoginPage.tsx`` — so a feature's tests move with it.
 
+**Every render runs in StrictMode.**  ``src/test/setup.ts`` calls
+``configure({reactStrictMode: true})``, so Testing Library wraps each render in
+``<StrictMode>`` exactly as ``src/portal/main.tsx`` wraps the portal.  React
+then runs every effect as setup, cleanup, setup, which means **an effect must
+tolerate running twice** or its test fails.  Make the effect undo its own work
+in the cleanup — abort the request with an ``AbortController``, clear the timer
+— rather than guarding it with a ref: a ref outlives the cycle, so the second
+setup does nothing while the first one's cleanup has already canceled its
+work.
+
 Two helpers do the heavy lifting:
 
 ``src/test/render.tsx``

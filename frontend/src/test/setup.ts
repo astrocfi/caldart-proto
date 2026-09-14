@@ -1,9 +1,14 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest'; // codespell:ignore afterall
 
 import { resetCsrfBootstrap } from '../portal/api/client';
 import { server } from './server';
+
+// `main.tsx` mounts the portal inside `<StrictMode>`, which runs every effect as
+// setup, cleanup, setup. Rendering tests the same way is what catches an effect
+// that cannot survive being run twice.
+configure({ reactStrictMode: true });
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 

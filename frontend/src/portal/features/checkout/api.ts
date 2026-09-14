@@ -17,6 +17,16 @@ import type {
 
 export const PAYMENTS_CONFIG_KEY = ['payments', 'config'] as const;
 
+/**
+ * True when a rejection is `fetch` refusing to run because its `AbortSignal` fired.
+ *
+ * An aborted request carries no news about the payment, so a caller that asked for the
+ * abort has nothing to report to the member.
+ */
+export function isAbortError(caught: unknown): boolean {
+  return caught instanceof DOMException && caught.name === 'AbortError';
+}
+
 export function fetchPaymentsConfig(): Promise<PaymentsConfig> {
   return api.get<PaymentsConfig>('/payments/config');
 }
@@ -30,18 +40,40 @@ export function usePaymentsConfig() {
   });
 }
 
-export function createCheckout(request: CheckoutRequest): Promise<CheckoutResponse> {
-  return api.post<CheckoutResponse>('/payments/checkout', request);
+/**
+ * Start a payment, and with it the provider-side session the panel renders.
+ *
+ * Pass `signal` to abandon the attempt. What the abort buys depends on when it lands: one
+ * that fires before `fetch` dispatches, as an effect cleanup run straight after setup
+ * does, stops the request outright and no PaymentIntent is created; one that fires
+ * mid-flight only discards the answer, and the intent the server made stays unconfirmed.
+ */
+export function createCheckout(
+  request: CheckoutRequest,
+  signal?: AbortSignal,
+): Promise<CheckoutResponse> {
+  return api.post<CheckoutResponse>('/payments/checkout', request, { signal });
 }
 
+/**
+ * Tell the server that Stripe has finished with a PaymentIntent.
+ *
+ * The call is idempotent, and `signal` abandons it without changing what the server
+ * has already recorded.
+ */
 export function confirmStripePayment(
   paymentId: number,
   paymentIntentId: string,
+  signal?: AbortSignal,
 ): Promise<PaymentResult> {
-  return api.post<PaymentResult>('/payments/stripe/confirm', {
-    payment_id: paymentId,
-    payment_intent_id: paymentIntentId,
-  });
+  return api.post<PaymentResult>(
+    '/payments/stripe/confirm',
+    {
+      payment_id: paymentId,
+      payment_intent_id: paymentIntentId,
+    },
+    { signal },
+  );
 }
 
 export function capturePayPalOrder(paymentId: number, orderId: string): Promise<PaymentResult> {
@@ -61,8 +93,9 @@ export function completeMockPayment(
   });
 }
 
-export function fetchPayment(paymentId: number): Promise<PaymentResult> {
-  return api.get<PaymentResult>(`/payments/${paymentId}`);
+/** Read a payment's current status; `signal` abandons a poll that is no longer wanted. */
+export function fetchPayment(paymentId: number, signal?: AbortSignal): Promise<PaymentResult> {
+  return api.get<PaymentResult>(`/payments/${paymentId}`, { signal });
 }
 
 /** Human label for each provider tab. */
