@@ -22,8 +22,10 @@ import stripe
 from apps.members.models import Membership
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
 from apps.payments.providers import paypal
+from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.base import ProviderUnavailable
 from apps.payments.services import create_checkout
+from tests.test_payments_stripe import fake_stripe_client
 
 pytestmark = pytest.mark.django_db
 
@@ -64,11 +66,23 @@ def _providers_configured(settings):
     paypal.reset_token_cache()
 
 
-def raise_stripe(error: stripe.StripeError):
-    def fail(*args, **kwargs):
-        raise error
+class FailingIntents:
+    """A ``v1.payment_intents`` service whose every call raises ``error``."""
 
-    return fail
+    def __init__(self, error: stripe.StripeError):
+        self.error = error
+
+    def create(self, params, options=None):
+        raise self.error
+
+    def retrieve(self, intent_id, params=None, options=None):
+        raise self.error
+
+
+def break_stripe(monkeypatch, error: stripe.StripeError) -> None:
+    """Make every Stripe call raise ``error`` instead of reaching the network."""
+    client = fake_stripe_client(FailingIntents(error))
+    monkeypatch.setattr(stripe_provider, "stripe_client", lambda: client)
 
 
 def token_route(mock):
@@ -118,7 +132,7 @@ def messages(caplog) -> list[str]:
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("error", STRIPE_ERRORS, ids=STRIPE_ERROR_IDS)
 def test_a_stripe_failure_at_checkout_is_a_400(api_client, member, annual_plan, monkeypatch, error):
-    monkeypatch.setattr(stripe.PaymentIntent, "create", raise_stripe(error))
+    break_stripe(monkeypatch, error)
 
     api_client.force_login(member)
     response = api_client.post(
@@ -133,7 +147,7 @@ def test_a_stripe_failure_at_checkout_is_a_400(api_client, member, annual_plan, 
 def test_a_stripe_failure_at_checkout_leaves_no_payment_behind(
     api_client, member, annual_plan, monkeypatch, error
 ):
-    monkeypatch.setattr(stripe.PaymentIntent, "create", raise_stripe(error))
+    break_stripe(monkeypatch, error)
 
     api_client.force_login(member)
     api_client.post(CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"})
@@ -145,9 +159,7 @@ def test_a_stripe_failure_at_checkout_logs_the_exception_class(
     api_client, member, annual_plan, monkeypatch, caplog
 ):
     caplog.set_level(logging.WARNING, logger=STRIPE_LOGGER)
-    monkeypatch.setattr(
-        stripe.PaymentIntent, "create", raise_stripe(stripe.APIConnectionError("aborted"))
-    )
+    break_stripe(monkeypatch, stripe.APIConnectionError("aborted"))
 
     api_client.force_login(member)
     api_client.post(CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"})
@@ -157,9 +169,7 @@ def test_a_stripe_failure_at_checkout_logs_the_exception_class(
 
 def test_a_stripe_failure_at_confirm_is_a_400(api_client, member, annual_plan, monkeypatch):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    monkeypatch.setattr(
-        stripe.PaymentIntent, "retrieve", raise_stripe(stripe.APIConnectionError("aborted"))
-    )
+    break_stripe(monkeypatch, stripe.APIConnectionError("aborted"))
 
     api_client.force_login(member)
     response = api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_out"})
@@ -172,9 +182,7 @@ def test_a_stripe_failure_at_confirm_leaves_the_payment_pending(
     api_client, member, annual_plan, monkeypatch
 ):
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    monkeypatch.setattr(
-        stripe.PaymentIntent, "retrieve", raise_stripe(stripe.RateLimitError("slow down"))
-    )
+    break_stripe(monkeypatch, stripe.RateLimitError("slow down"))
 
     api_client.force_login(member)
     api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_out"})
@@ -187,15 +195,13 @@ def test_a_stripe_failure_never_logs_an_email_address(
     api_client, member, annual_plan, monkeypatch, caplog
 ):
     caplog.set_level(logging.WARNING, logger=STRIPE_LOGGER)
-    monkeypatch.setattr(
-        stripe.PaymentIntent, "create", raise_stripe(stripe.APIConnectionError("aborted"))
-    )
+    break_stripe(monkeypatch, stripe.APIConnectionError("aborted"))
 
     api_client.force_login(member)
     api_client.post(CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"})
 
     logged = " ".join(messages(caplog))
-    assert "Stripe PaymentIntent.create failed" in logged
+    assert "Stripe payment_intents.create failed" in logged
     assert "@" not in logged
 
 

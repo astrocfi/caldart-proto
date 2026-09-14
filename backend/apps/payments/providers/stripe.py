@@ -11,6 +11,10 @@ The flow:
 4. ``handle_webhook`` is the safety net for redirect-based methods, and is
    idempotent because :func:`~apps.payments.services.mark_succeeded` is.
 
+Every call goes through :func:`stripe_client`, whose timeout and retry budget
+are shorter than the timeouts of the proxies in front of Django, so a slow
+Stripe never becomes a gateway error over a request that is still running.
+
 The SDK answers with ``stripe.PaymentIntent`` and ``stripe.Event`` objects,
 which are not dicts.  Each is converted with ``to_dict()`` the moment it
 arrives, so everything below the boundary works on plain nested dicts that
@@ -21,6 +25,7 @@ from __future__ import annotations
 
 import json
 import logging
+from functools import lru_cache
 
 import stripe
 from django.conf import settings
@@ -51,6 +56,45 @@ WALLET_TYPES: dict[str, str] = {
 
 #: Intent statuses that mean the customer will not be charged.
 FAILED_STATUSES = frozenset({"canceled", "requires_payment_method"})
+
+#: How long one Stripe HTTP attempt may take, and how many times the library
+#: may retry it.  The worst case is the product plus one attempt -- 40 seconds
+#: -- which has to stay below gunicorn's ``timeout``, nginx's
+#: ``proxy_read_timeout`` and Apache's ``ProxyTimeout``, all 60 seconds in
+#: ``deploy/``.  The library's own defaults are 80 seconds and two retries,
+#: which would let a call outlive the request it belongs to.
+STRIPE_TIMEOUT_SECONDS = 20.0
+STRIPE_MAX_NETWORK_RETRIES = 1
+
+
+@lru_cache(maxsize=1)
+def http_client() -> stripe.HTTPClient:
+    """The one HTTP client every Stripe call shares, so it pools connections."""
+    return stripe.new_default_http_client(timeout=STRIPE_TIMEOUT_SECONDS)
+
+
+def stripe_client() -> stripe.StripeClient:
+    """A Stripe client bound by our timeout and retry budget.
+
+    Raises :class:`~apps.payments.providers.base.ProviderNotConfigured` when no
+    secret key is configured, so the API answers 400 rather than 500.  Calls go
+    through the client's ``v1`` namespace; the shorthand on the client itself
+    is deprecated.
+    """
+    return stripe.StripeClient(
+        secret_key(),
+        max_network_retries=STRIPE_MAX_NETWORK_RETRIES,
+        http_client=http_client(),
+    )
+
+
+def idempotency_key(payment: Payment) -> str:
+    """The key that ties one PaymentIntent to one payment row.
+
+    Starting the same payment twice then returns the intent already created
+    instead of a second one.
+    """
+    return f"caldart-payment-{payment.pk}-start"
 
 
 def unavailable(payment: Payment, call: str, exc: stripe.StripeError) -> ProviderUnavailable:
@@ -128,22 +172,25 @@ class StripeProvider(Provider):
     # ----------------------------------------------------------------- start
     def start(self, payment: Payment) -> dict:
         """Create the PaymentIntent and hand the client its ``client_secret``."""
+        client = stripe_client()
         try:
-            created = stripe.PaymentIntent.create(
-                api_key=secret_key(),
-                amount=payment.amount_cents,
-                currency=payment.currency,
-                automatic_payment_methods={"enabled": True},
-                description=f"CalDART · {payment.description}",
-                receipt_email=payment.user.email or None,
-                metadata={
-                    "payment_id": str(payment.pk),
-                    "user_id": str(payment.user_id),
-                    "plan": payment.plan.slug if payment.plan_id else "",
+            created = client.v1.payment_intents.create(
+                {
+                    "amount": payment.amount_cents,
+                    "currency": payment.currency,
+                    "automatic_payment_methods": {"enabled": True},
+                    "description": f"CalDART · {payment.description}",
+                    "receipt_email": payment.user.email or None,
+                    "metadata": {
+                        "payment_id": str(payment.pk),
+                        "user_id": str(payment.user_id),
+                        "plan": payment.plan.slug if payment.plan_id else "",
+                    },
                 },
+                {"idempotency_key": idempotency_key(payment)},
             )
         except stripe.StripeError as exc:
-            raise unavailable(payment, "PaymentIntent.create", exc) from exc
+            raise unavailable(payment, "payment_intents.create", exc) from exc
         intent = created.to_dict()
         payment.provider_ref = intent["id"]
         payment.raw = jsonable(intent)
@@ -159,12 +206,11 @@ class StripeProvider(Provider):
         if payment.provider_ref and intent_id != payment.provider_ref:
             raise PaymentVerificationError("That PaymentIntent belongs to another payment.")
 
+        client = stripe_client()
         try:
-            retrieved = stripe.PaymentIntent.retrieve(
-                intent_id, api_key=secret_key(), expand=["latest_charge"]
-            )
+            retrieved = client.v1.payment_intents.retrieve(intent_id, {"expand": ["latest_charge"]})
         except stripe.StripeError as exc:
-            raise unavailable(payment, "PaymentIntent.retrieve", exc) from exc
+            raise unavailable(payment, "payment_intents.retrieve", exc) from exc
         intent = retrieved.to_dict()
         self.verify(payment, intent)
 

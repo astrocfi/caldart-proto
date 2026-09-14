@@ -272,6 +272,25 @@ or ``google_pay``, a payment method whose own ``type`` is ``link``, else plain
 ``card``.  When the charge or its details are missing altogether the wallet is
 recorded as ``unknown`` rather than guessed at.
 
+How long a call may take
+------------------------
+
+Every Stripe call goes through a client the provider builds itself, with a
+20-second timeout and one network retry, so the worst case is 40 seconds.  That
+has to stay below each timeout in front of Django — gunicorn's ``timeout``,
+nginx's ``proxy_read_timeout`` and Apache's ``ProxyTimeout``, all 60 seconds in
+``deploy/`` (:doc:`deployment`) — otherwise a slow Stripe reaches the browser
+as a gateway error while the request is still running.  ``stripe`` defaults to
+80 seconds and two retries, which would allow four minutes.  A backend test
+reads the three deployment files and fails if the budget stops fitting under
+them, so raise the budget and the proxy timeouts together or not at all.
+
+PayPal is called over ``httpx`` with the same 20-second timeout and no retries.
+
+Creating a PaymentIntent sends the idempotency key
+``caldart-payment-<payment id>-start``, so starting the same payment row twice
+returns the intent Stripe already has rather than creating a second one.
+
 
 PayPal
 ======
@@ -414,9 +433,13 @@ imports every provider module, so importing the package registers them all.
 slug), and ``available_providers()`` lists the slugs whose settings are
 present, which is what ``GET /payments/config`` offers the checkout.  A
 provider signals trouble by raising ``PaymentError``, which the API answers
-with HTTP 400; ``ProviderNotConfigured`` (missing keys) and
-``PaymentVerificationError`` (the provider's record disagrees with ours) are
-its two subclasses.
+with HTTP 400.  It has three subclasses: ``ProviderNotConfigured`` (missing
+keys), ``PaymentVerificationError`` (the provider's record disagrees with
+ours), and ``ProviderUnavailable`` (the call never completed, or the provider
+reported a failure of its own).  A provider must convert its library's and its
+transport's own exceptions into one of these, so that an outage is a 400 with
+"try again" rather than a 500 — at checkout the pending payment row is then
+deleted, and at confirmation it is left ``pending`` for another attempt.
 
 Adding a provider therefore means a registered subclass in a module of its
 own, an import in ``providers/__init__.py``, a branch in

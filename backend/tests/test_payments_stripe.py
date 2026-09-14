@@ -1,10 +1,11 @@
 """Stripe: PaymentIntent creation, server-side confirmation and webhooks.
 
-Stripe itself is never called.  ``stripe.PaymentIntent.create`` / ``.retrieve``
-are replaced by a fake that answers with real ``stripe.PaymentIntent`` objects,
-so the provider is exercised against the types the SDK actually returns.
-Webhook payloads are signed with the configured secret exactly as Stripe signs
-them, so the library's own ``construct_event`` verifies every delivery.
+Stripe itself is never called.  ``stripe_client`` is replaced by a fake whose
+``v1.payment_intents`` service answers with real ``stripe.PaymentIntent``
+objects, so the provider is exercised against the types the SDK actually
+returns.  Webhook payloads are signed with the configured secret exactly as
+Stripe signs them, so the library's own ``construct_event`` verifies every
+delivery.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import hashlib
 import hmac
 import json
 import time
+from types import SimpleNamespace
 
 import pytest
 import stripe
@@ -20,6 +22,7 @@ import stripe
 from apps.members.models import Membership
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.providers import get_provider
+from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.stripe import wallet_from_intent
 from apps.payments.services import create_checkout
 
@@ -72,38 +75,51 @@ def intent_object(payload: dict) -> stripe.PaymentIntent:
     return stripe.PaymentIntent.construct_from(payload, SECRET_KEY)
 
 
+def fake_stripe_client(payment_intents) -> SimpleNamespace:
+    """A stand-in for ``stripe.StripeClient`` exposing one service."""
+    return SimpleNamespace(v1=SimpleNamespace(payment_intents=payment_intents))
+
+
 class FakeIntents:
-    """Stand-in for ``stripe.PaymentIntent`` that records what it was asked."""
+    """Stand-in for ``v1.payment_intents`` that records what it was asked."""
 
     def __init__(self, payload: dict | None = None):
         self.payload = payload or {}
+        self.api_key = ""
         self.created: dict = {}
+        self.create_options: dict = {}
         self.retrieved: dict = {}
 
-    def create(self, **kwargs):
-        self.created = kwargs
+    def create(self, params, options=None):
+        self.created = params
+        self.create_options = options or {}
         return intent_object(
             {
                 "id": "pi_test_created",
                 "object": "payment_intent",
                 "client_secret": "pi_test_created_secret_abc",
                 "status": "requires_payment_method",
-                "amount": kwargs["amount"],
-                "currency": kwargs["currency"],
-                "metadata": kwargs["metadata"],
+                "amount": params["amount"],
+                "currency": params["currency"],
+                "metadata": params["metadata"],
             }
         )
 
-    def retrieve(self, intent_id, **kwargs):
-        self.retrieved = {"id": intent_id, **kwargs}
+    def retrieve(self, intent_id, params=None, options=None):
+        self.retrieved = {"id": intent_id, **(params or {})}
         return intent_object(self.payload)
 
 
 @pytest.fixture
 def fake_intents(monkeypatch):
     fake = FakeIntents()
-    monkeypatch.setattr(stripe.PaymentIntent, "create", fake.create)
-    monkeypatch.setattr(stripe.PaymentIntent, "retrieve", fake.retrieve)
+
+    def client():
+        # Through the real key lookup, so a missing key still refuses.
+        fake.api_key = stripe_provider.secret_key()
+        return fake_stripe_client(fake)
+
+    monkeypatch.setattr(stripe_provider, "stripe_client", client)
     return fake
 
 
@@ -130,7 +146,7 @@ def test_checkout_creates_a_payment_intent(api_client, member, annual_plan, fake
         "user_id": str(member.pk),
         "plan": "annual",
     }
-    assert created["api_key"] == SECRET_KEY
+    assert fake_intents.api_key == SECRET_KEY
     assert payment.provider_ref == "pi_test_created"
 
 
