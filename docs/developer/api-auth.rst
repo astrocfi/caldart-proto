@@ -331,6 +331,18 @@ may change anybody's.  Every role counts, administrative or not.  Names are
 outside the guard entirely, so a user administrator can still correct the
 spelling of a system administrator's surname.
 
+What the guard measures is the write in front of it, against the roles the two
+accounts hold when it arrives — it does not bound what the caller can reach over
+two requests.  A user administrator may grant themselves the role they lack, or
+take it off the target, and send the refused edit again; both are ordinary
+``roles`` writes on ``PATCH /admin/users/{id}``, which is the role's whole
+purpose.  ``system_admin`` is where the two rules meet and the reach stops: that
+role is refused in both directions to a caller who is not a system
+administrator, so a system administrator's account — a ``createsuperuser`` one
+included — is closed to a lower administrator by either route.  Against an
+account administrator the guard is absolute in one request as well as two,
+because ``PATCH /admin/members/{user_id}`` has no ``roles`` field at all.
+
 On a record whose protected fields the caller may not write, a value that is not
 a real change is dropped rather than saved, so an address resent in another case
 leaves the stored one exactly as it was.  A caller who may write those fields

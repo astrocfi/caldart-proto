@@ -39,6 +39,12 @@ Three rules are enforced by the server, not just hidden in the interface:
   account administrator's or a system administrator's.  Names are not covered:
   you can correct anybody's spelling.
 
+The last of those judges the save in front of it, not the person making it.
+Roles are yours to grant, so on every role but ``system_admin`` you can lift the
+refusal yourself — tick the missing role on your own account and save.  The
+account you genuinely cannot touch is a system administrator's, because the rule
+above it keeps ``system_admin`` out of your hands in both directions.
+
 
 Finding an account
 ==================
@@ -80,10 +86,16 @@ An address you may not move is refused for a different reason.  The email
 address is where a password reset link goes, so moving somebody's address is
 enough to take their account over, and the server allows it only when you
 already hold every role that account holds — every role, ``dart_leader`` and
-``website_admin`` as much as the administrative ones.  A system administrator,
-or a colleague who holds every role that account holds, has to make the change,
-or grant you the missing role first.  The same applies to the Active box; names
-are free to edit either way.
+``website_admin`` as much as the administrative ones.  Granting roles is your
+job, so for every role but ``system_admin`` the missing role is one you can give
+yourself: tick it in the Roles section below, save, and the address is yours to
+move.  Take the refusal as a prompt to be sure you are moving the address of the
+person you think you are, and to leave a colleague's account to them.  Only
+``system_admin`` is beyond you, because only a system administrator may move
+that role: a system administrator's account — including one carrying Django
+superuser access without the role — stays out of reach until one of them makes
+the change.  The same applies to the Active box; names are free to edit either
+way.
 
 Roles
 -----
