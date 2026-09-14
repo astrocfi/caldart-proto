@@ -118,14 +118,19 @@ own, and two outcomes are handled rather than raised:
 
 **The mail server refuses the message** (an ``SMTPException``, or any other
 ``OSError`` from the connection).  The transaction rolls back, so no
-``ReminderLog`` row survives and the reminder is still due.  For every kind but
-``expired`` the next run picks it up by itself, because the member is still
-inside the catch-up window (:ref:`reminders-window`).  ``expired`` matches its
-own day alone, so once that day is over the cohort is gone and the message is
-not recovered — sending it late would tell the member their membership expires
-today when it expired yesterday.  Their term already reads as expired in the
-portal, and the next thing CalDART sends them is the ``post30`` note.  The
-failure is counted in ``failed`` and ``failed_by_kind``, and logged at ERROR
+``ReminderLog`` row survives and the reminder is still due.  A later run sends
+it only while that member's ``ends_on`` is still inside the kind's window
+(:ref:`reminders-window`), so the retry is the rest of the window and nothing
+more.  For the four windowed kinds the window opens on the kind's own date and
+runs for three days: a send that fails on its first or second day is tried
+again the next morning, and one that fails on the third day — a send that was
+already two days behind — is not, because the next run no longer has that term
+in the cohort.  ``expired`` matches its own day alone, so a failed ``expired``
+send is never retried: once that day is over the cohort is gone and the message
+is not recovered — sending it late would tell the member their membership
+expires today when it expired yesterday.  Their term already reads as expired
+in the portal, and the next thing CalDART sends them is the ``post30`` note.
+The failure is counted in ``failed`` and ``failed_by_kind``, and logged at ERROR
 with the kind, the user id, the membership id and the exception class.
 Addresses are deliberately left out of that line.
 
