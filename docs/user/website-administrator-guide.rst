@@ -190,6 +190,10 @@ block, or from rich text with the document-link button.
 Give every upload a title that describes it — the title is what appears in the
 chooser, in search, and (for documents) as the default link text.
 
+Every document belongs to a **collection**, chosen when you upload it and
+changeable afterwards on the document's own page.  The collection is what
+decides who may download the file: see :ref:`members-only-documents` below.
+
 
 The members-only area
 =====================
@@ -214,6 +218,36 @@ pages underneath it, so set it on each page you want closed.
    works, and can restrict a page by password or by Wagtail group.  The
    members-only switch is the one to use for "current members only" because it
    understands membership expiry.
+
+
+.. _members-only-documents:
+
+Members-only documents
+----------------------
+
+The switch closes a *page*.  A file is closed by the collection it lives in:
+upload it into the **Members only** collection, and it is served to exactly the
+people the switch lets through.  Everyone else gets the same wall, with HTTP
+403, instead of the file — whether they followed a link or typed the URL.
+
+Collections nest, so you can group the files without opening them up: anything
+under **Members only**, such as a "Board minutes" collection inside it, is
+closed too.
+
+Files in any other collection — the root collection a document lands in by
+default, a "Press kit" collection, anything else — are public to anyone with
+the link.  Put the handbooks, rosters, bylaws and member forms in **Members
+only**, and leave flyers, logos and public forms outside it.
+
+To move a file that is already uploaded, open it under **Documents**, change
+**Collection** and save; the links to it keep working.
+
+.. note::
+
+   The **Documents** list has a collection filter; use it to check what sits in
+   **Members only**.  When you upload several files at once, the collection you
+   pick applies to the whole batch, so upload members-only files separately
+   from public ones.
 
 
 Site settings

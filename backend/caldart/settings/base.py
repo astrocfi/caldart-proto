@@ -223,6 +223,10 @@ AUTH_THROTTLE_RATES = {
 WAGTAIL_SITE_NAME = "CalDART"
 WAGTAILADMIN_BASE_URL = SITE_URL
 WAGTAILDOCS_EXTENSIONS = ["csv", "docx", "key", "odt", "pdf", "pptx", "rtf", "txt", "xlsx", "zip"]
+# Every document link points at Django's serve view, whatever the storage
+# backend, so the members-only hook in apps.cms.wagtail_hooks sees every
+# download.  A URL into /media/ would hand the file over without asking.
+WAGTAILDOCS_SERVE_METHOD = "serve_view"
 WAGTAILIMAGES_EXTENSIONS = ["gif", "jpg", "jpeg", "png", "webp", "svg"]
 WAGTAIL_APPEND_SLASH = True
 SITE_ID = 1

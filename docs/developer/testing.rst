@@ -231,9 +231,10 @@ What the backend suite covers
    * - ``test_reminders.py``, ``test_reminders_api.py``
      - each kind on its exact offset, dedupe, dry runs, skip reasons
    * - ``test_cms_pages.py``, ``…_permissions.py``, ``…_seed_content.py``,
-       ``test_site_config.py``
+       ``test_cms_documents.py``, ``test_site_config.py``
      - page types, blocks, the members-only wall in every visitor state,
-       editor permissions, and the seeded tree
+       the document guard and the proxy rules behind it, editor permissions,
+       and the seeded tree
    * - ``test_sysadmin*.py``
      - backup, restore, reset, health, the production settings module
    * - ``test_seed.py``, ``test_shell_views.py``

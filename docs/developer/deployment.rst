@@ -33,7 +33,10 @@ Three things run continuously: the Docker Postgres container, the
 serves it through the proxy so that the hashed filenames ``collectstatic``
 produces stay authoritative and get far-future cache headers.  Only
 ``/media/`` — Wagtail's user uploads, which keep their filenames — is served
-straight off disk.
+straight off disk, and ``/media/documents/`` is carved back out of it: a
+document may belong to the members-only collection, and Django's document view
+is what enforces that (:doc:`cms`).  Both vhosts refuse that prefix, so a
+document is only ever reachable at ``/documents/<id>/<filename>``.
 
 
 1. Operating system packages
@@ -325,6 +328,9 @@ The vhost:
   cannot forge it;
 * serves ``/media/`` from ``/srv/caldart/backend/media/`` with a one-week cache
   and ``X-Content-Type-Options: nosniff``, and excludes it from the proxy;
+* denies ``/srv/caldart/backend/media/documents``, the directory Wagtail writes
+  document uploads to, with ``Require all denied``.  The deeper ``<Directory>``
+  section is applied after the one above it, so it wins;
 * sets **no** security headers of its own on proxied responses.  HSTS,
   ``X-Content-Type-Options``, ``Referrer-Policy`` and ``X-Frame-Options`` all
   come from ``prod.py``, where they are configurable per deployment.  A second
@@ -367,7 +373,9 @@ It is the same shape: ACME on port 80, TLS and proxying on 443,
 ``proxy_set_header X-Forwarded-Proto $scheme``, ``/media/`` from disk,
 ``client_max_body_size 25m``, and the security headers left to Django.  nginx's
 ``add_header`` does not replace what the upstream sent, so a copy here would
-reach the browser alongside Django's.
+reach the browser alongside Django's.  ``/media/documents/`` gets a
+``return 404;`` of its own; it is the longer prefix, so nginx matches it ahead
+of ``/media/``.
 
 
 10. Renewal reminders
