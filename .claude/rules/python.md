@@ -65,8 +65,8 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 ## 5. Docstrings
 
 - ALWAYS include a docstring for every module, class, function, and method.
-- Follow **PEP 257** using **Google style**. Use `Parameters:` (not `Args:`).
-- Include `Returns:`, `Raises:`, and any important behavioral notes.
+- Follow **PEP 257**. Describe the behavior in prose, and name the parameters, return value, raised exceptions and important behavioral notes that a caller needs.
+- No `Parameters:`/`Args:`, `Returns:` or `Raises:` sections are required. Such sections only serve ReadTheDocs rendering, which this project doesn't use.
 - NEVER mention backwards compatibility, a user request, change history, or an issue/ticket number in a docstring. Docstrings are usage documentation, not a place to explain the code's provenance; describe only observable behavior. (Issue references are allowed in inline `#` code comments per Section 3, and in commit messages and PR descriptions. Citing the specification, e.g. `PLAN §10`, is fine.)
 - Docstrings MUST be detailed enough to write a black-box test from the docstring alone.
 - Wrap docstring text to **90** characters.
