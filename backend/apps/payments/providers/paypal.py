@@ -273,8 +273,9 @@ class PayPalProvider(Provider):
             # The capture may have been taken before the connection died, so
             # this one needs reconciling rather than a silent retry.
             log.error(
-                "PayPal capture for payment %s did not complete; the money may have moved",
+                "PayPal capture for payment %s did not complete; up to %s cents may have moved",
                 payment.pk,
+                payment.amount_cents,
             )
             raise
 

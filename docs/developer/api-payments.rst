@@ -145,8 +145,10 @@ no-op that answers 200 without calling PayPal again.
 A capture that completes for the wrong amount, currency or ``custom_id`` is
 refused with a **400**, and a call that fails in transit answers the same
 **400** with the payment left ``pending``.  PayPal may already hold the money
-in both cases, so each one writes an ``ERROR`` log record naming the payment
-and both amounts, for an administrator to reconcile in the PayPal dashboard.
+in both cases, so each one writes an ``ERROR`` log record for an administrator
+to reconcile in the PayPal dashboard: the mismatch names the payment and both
+amounts, and the call that never completed names the payment and the amount at
+stake.
 
 ``POST /payments/mock/complete``
 --------------------------------

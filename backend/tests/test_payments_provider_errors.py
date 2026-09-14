@@ -305,7 +305,9 @@ def test_a_capture_timeout_leaves_the_payment_pending(api_client, member, annual
 
 
 @respx.mock
-def test_a_capture_timeout_is_logged_with_the_payment_id(api_client, member, annual_plan, caplog):
+def test_a_capture_timeout_is_logged_with_the_payment_and_amount(
+    api_client, member, annual_plan, caplog
+):
     caplog.set_level(logging.ERROR, logger=PAYPAL_LOGGER)
     payment = pending_paypal_payment(member)
     token_route(respx)
@@ -314,8 +316,9 @@ def test_a_capture_timeout_is_logged_with_the_payment_id(api_client, member, ann
     api_client.force_login(member)
     api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
 
-    errors = [r.getMessage() for r in caplog.records if r.levelno == logging.ERROR]
-    assert any(str(payment.pk) in message for message in errors)
+    logged = " ".join(r.getMessage() for r in caplog.records if r.levelno == logging.ERROR)
+    assert f"payment {payment.pk}" in logged
+    assert f"{payment.amount_cents} cents" in logged
 
 
 @respx.mock
