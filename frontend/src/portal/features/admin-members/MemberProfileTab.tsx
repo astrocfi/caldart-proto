@@ -5,10 +5,11 @@
 import { useState } from 'react';
 
 import { Button, Card, useToast } from '../../components';
+import { ProfileFieldsets } from '../profile/ProfileFieldsets';
 import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '../profile/form';
 import {
   AccountFields,
-  ProfileFields,
+  AdminOnlyFields,
   adminOnlyDraft,
   adminProfilePayload,
 } from './MemberFormFields';
@@ -64,14 +65,14 @@ export function MemberProfileTab({ member }: { member: MemberDetail }) {
         ) : null}
 
         <AccountFields value={account} onChange={setAccount} errors={errors.account} withActive />
-        <ProfileFields
+        <ProfileFieldsets
           value={profile}
           onChange={setProfile}
-          adminOnly={adminOnly}
-          onAdminOnlyChange={setAdminOnly}
           errors={errors.profile}
           darts={darts.data ?? []}
+          dartsLoading={darts.isPending}
         />
+        <AdminOnlyFields value={adminOnly} onChange={setAdminOnly} errors={errors.profile} />
 
         <div className="cluster">
           <Button type="submit" disabled={update.isPending}>

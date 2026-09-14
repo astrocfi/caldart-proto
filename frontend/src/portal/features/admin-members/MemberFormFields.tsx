@@ -1,29 +1,20 @@
 /**
- * The account and profile field groups, shared by "New member" and the
- * Profile tab of a member record so the two forms cannot drift apart.
+ * The field groups an administrator gets on top of the profile itself, shared
+ * by "New member" and the Profile tab of a member record.
  *
- * The profile half *is* the member's own form state: `ProfileFormValues`,
- * `profileToForm` and `formToPatch` from `features/profile/form`, so an
- * administrator and a member are editing one definition of a profile and
- * converting it to the wire the same way.  Only the two admin-only fields are
- * extra, and they live in their own small draft.
+ * The profile fields are `<ProfileFieldsets/>` from `features/profile`, the
+ * very ones the member fills in at `/profile`, editing the same
+ * `ProfileFormValues` and converting to the wire through the same
+ * `formToPatch`.  What an administrator adds is the account itself and the two
+ * fields only they can read, and those are the components here.
  *
- * The markup differs from `<ProfileForm/>` deliberately: an administrator gets
- * a two-column layout, the account fields, the admin-only fieldset, and no
- * client-side insistence that a half-known record be completed.  The server's
- * rules still apply to both.
+ * Administrator screens render the profile fieldsets without required markers
+ * and do no client-side insistence that a half-known record be completed.  The
+ * server's rules still apply to both.
  */
+import type { JSX } from 'react';
+
 import { Field } from '../../components';
-import type { Dart } from '../../api/types';
-import type { ProfileFormValues } from '../profile/form';
-import {
-  CA_COUNTIES,
-  CERTIFICATE_TYPES,
-  IFR_OPTIONS,
-  MEDICAL_TYPES,
-  RATINGS,
-  VOLUNTEER_INTERESTS,
-} from './choices';
 import type { AdminProfile, AdminProfilePayload } from './types';
 
 export interface AccountDraft {
@@ -156,214 +147,51 @@ export function AccountFields({
   );
 }
 
-export interface ProfileFieldsProps {
-  value: ProfileFormValues;
-  onChange: (next: ProfileFormValues) => void;
-  adminOnly: AdminOnlyDraft;
-  onAdminOnlyChange: (next: AdminOnlyDraft) => void;
+export interface AdminOnlyFieldsProps {
+  value: AdminOnlyDraft;
+  onChange: (next: AdminOnlyDraft) => void;
   errors?: FieldErrors;
-  darts: Dart[];
 }
 
-export function ProfileFields({
+/**
+ * The Administration fieldset: how the member heard about CalDART, and the
+ * notes only account administrators can read.  Members never see either, on
+ * any screen.
+ *
+ * @param value - the draft being edited; the component holds no state of its own.
+ * @param onChange - called with the whole next draft on every edit.
+ */
+export function AdminOnlyFields({
   value,
   onChange,
-  adminOnly,
-  onAdminOnlyChange,
   errors = {},
-  darts,
-}: ProfileFieldsProps) {
-  const set = <Key extends keyof ProfileFormValues>(key: Key, next: ProfileFormValues[Key]) =>
-    onChange({ ...value, [key]: next });
-
-  const toggleRating = (rating: ProfileFormValues['ratings'][number], checked: boolean) =>
-    set(
-      'ratings',
-      checked ? [...value.ratings, rating] : value.ratings.filter((item) => item !== rating),
-    );
-
-  const text = <Key extends keyof ProfileFormValues>(
-    key: Key,
-    label: string,
-    type = 'text',
-    autoComplete?: string,
-  ) => (
-    <Field label={label} error={errors[key]}>
-      {(props) => (
-        <input
-          {...props}
-          type={type}
-          autoComplete={autoComplete}
-          value={String(value[key] ?? '')}
-          onChange={(event) => set(key, event.target.value as ProfileFormValues[Key])}
-        />
-      )}
-    </Field>
-  );
-
-  const choose = <Key extends keyof ProfileFormValues>(
-    key: Key,
-    label: string,
-    options: readonly { value: string; label: string }[],
-  ) => (
-    <Field label={label} error={errors[key]}>
-      {(props) => (
-        <select
-          {...props}
-          value={String(value[key] ?? '')}
-          onChange={(event) => set(key, event.target.value as ProfileFormValues[Key])}
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      )}
-    </Field>
-  );
-
+}: AdminOnlyFieldsProps): JSX.Element {
   return (
-    <>
-      <fieldset>
-        <legend>Contact</legend>
-        <div className="grid">
-          <div className="col-half">{text('phone', 'Phone', 'tel', 'tel')}</div>
-          <div className="col-half">{text('phone_alt', 'Alternate phone', 'tel')}</div>
-          <div className="col-half">
-            {text('address_line1', 'Address', 'text', 'address-line1')}
-          </div>
-          <div className="col-half">
-            {text('address_line2', 'Address line 2', 'text', 'address-line2')}
-          </div>
-          <div className="col-half">{text('city', 'City', 'text', 'address-level2')}</div>
-          <div className="col-half">{text('state', 'State', 'text', 'address-level1')}</div>
-          <div className="col-half">{text('postal_code', 'ZIP code', 'text', 'postal-code')}</div>
-          <div className="col-half">
-            <Field label="County" error={errors.county}>
-              {(props) => (
-                <input
-                  {...props}
-                  type="text"
-                  list="admin-member-counties"
-                  value={value.county}
-                  onChange={(event) => set('county', event.target.value)}
-                />
-              )}
-            </Field>
-            <datalist id="admin-member-counties">
-              {CA_COUNTIES.map((county) => (
-                <option key={county} value={county} />
-              ))}
-            </datalist>
-          </div>
-          <div className="col-half">{text('emergency_contact_name', 'Emergency contact')}</div>
-          <div className="col-half">
-            {text('emergency_contact_phone', 'Emergency contact phone', 'tel')}
-          </div>
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Aviation</legend>
-        <div className="grid">
-          <div className="col-half">
-            {text('home_airport_identifier', 'Home airport identifier')}
-          </div>
-          <div className="col-half">{text('home_airport_city', 'Home airport city')}</div>
-          <div className="col-half">
-            <Field label="DART" error={errors.dart_id}>
-              {(props) => (
-                <select
-                  {...props}
-                  value={value.dart_id}
-                  onChange={(event) => set('dart_id', event.target.value)}
-                >
-                  <option value="">Unaffiliated</option>
-                  {darts.map((dart) => (
-                    <option key={dart.id} value={String(dart.id)}>
-                      {dart.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-          </div>
-          <div className="col-half">
-            {text('air_care_alliance_number', 'Air Care Alliance number')}
-          </div>
-          <div className="col-half">
-            {choose('pilot_certificate_type', 'Pilot certificate', CERTIFICATE_TYPES)}
-          </div>
-          <div className="col-half">{text('certificate_number', 'Certificate number')}</div>
-          <div className="col-half">{choose('ifr_rated', 'Instrument rated', IFR_OPTIONS)}</div>
-          <div className="col-half">{choose('medical_type', 'Medical', MEDICAL_TYPES)}</div>
-          <div className="col-half">{text('medical_expiration', 'Medical expiration', 'date')}</div>
-          <div className="col-half">{text('flight_review_date', 'Flight review', 'date')}</div>
-          <div className="col-half">{text('total_hours', 'Total hours', 'number')}</div>
-        </div>
-
-        <fieldset>
-          <legend>Ratings</legend>
-          <div className="cluster">
-            {RATINGS.map((choice) => (
-              <label key={choice.value}>
-                <input
-                  type="checkbox"
-                  checked={value.ratings.includes(choice.value)}
-                  onChange={(event) => toggleRating(choice.value, event.target.checked)}
-                />{' '}
-                {choice.label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </fieldset>
-
-      <fieldset>
-        <legend>Volunteer interests</legend>
-        <div className="cluster">
-          {VOLUNTEER_INTERESTS.map((entry) => (
-            <label key={entry.field}>
-              <input
-                type="checkbox"
-                checked={value[entry.field]}
-                onChange={(event) => set(entry.field, event.target.checked)}
-              />{' '}
-              {entry.label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Administration</legend>
-        <Field label="How they heard about CalDART" error={errors.how_heard}>
-          {(props) => (
-            <input
-              {...props}
-              type="text"
-              value={adminOnly.how_heard}
-              onChange={(event) =>
-                onAdminOnlyChange({ ...adminOnly, how_heard: event.target.value })
-              }
-            />
-          )}
-        </Field>
-        <Field
-          label="Administrator notes"
-          hint="Only account administrators can read these."
-          error={errors.notes}
-        >
-          {(props) => (
-            <textarea
-              {...props}
-              value={adminOnly.notes}
-              onChange={(event) => onAdminOnlyChange({ ...adminOnly, notes: event.target.value })}
-            />
-          )}
-        </Field>
-      </fieldset>
-    </>
+    <fieldset>
+      <legend>Administration</legend>
+      <Field label="How they heard about CalDART" error={errors.how_heard}>
+        {(props) => (
+          <input
+            {...props}
+            type="text"
+            value={value.how_heard}
+            onChange={(event) => onChange({ ...value, how_heard: event.target.value })}
+          />
+        )}
+      </Field>
+      <Field
+        label="Administrator notes"
+        hint="Only account administrators can read these."
+        error={errors.notes}
+      >
+        {(props) => (
+          <textarea
+            {...props}
+            value={value.notes}
+            onChange={(event) => onChange({ ...value, notes: event.target.value })}
+          />
+        )}
+      </Field>
+    </fieldset>
   );
 }

@@ -1,27 +1,18 @@
 /**
  * The coded values the admin screens show that the member's own screens do not.
  *
- * The profile vocabularies — certificate, IFR, medical, ratings, volunteer
- * interests, county suggestions — come from the portal's shared `choices`
- * module through `features/profile/constants`, and are re-exported here so the
- * filter bar, the admin form and `/profile` can never label the same code
- * differently.
+ * The certificate and medical vocabularies the filter bar and the member list
+ * share with `/profile` come from the portal's shared `choices` module through
+ * `features/profile/constants`, and are re-exported here so no screen can
+ * label the same code differently.
  */
 import type { RoleSlug } from '../../api/types';
 import { labelFor } from '../../choices';
 import type { Choice } from '../../choices';
-import {
-  CERTIFICATE_TYPES,
-  IFR_OPTIONS,
-  MEDICAL_TYPES,
-  RATINGS,
-  VOLUNTEER_INTERESTS,
-} from '../profile/constants';
+import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '../profile/constants';
 
-export { CA_COUNTIES } from '../profile/constants';
-export { CERTIFICATE_TYPES, IFR_OPTIONS, MEDICAL_TYPES, RATINGS, VOLUNTEER_INTERESTS };
+export { CERTIFICATE_TYPES, MEDICAL_TYPES };
 export { certificateLabel, medicalLabel } from '../../choices';
-export type { Choice };
 
 export const ROLE_CHOICES: Choice<RoleSlug>[] = [
   { value: 'member', label: 'Member' },

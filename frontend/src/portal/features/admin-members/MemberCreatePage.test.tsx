@@ -142,4 +142,23 @@ describe('MemberCreatePage', () => {
     renderCreate();
     expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/admin/members');
   });
+
+  it.each(['Home airport', 'IFR rated', 'Medical expires', 'Last flight review'])(
+    'labels %s exactly as the member form does',
+    (label) => {
+      server.use(...createHandlers());
+      renderCreate();
+      expect(screen.getByLabelText(label)).toBeInTheDocument();
+    },
+  );
+
+  it('leaves the profile fields unstarred, so a half-known record can be saved', () => {
+    server.use(...createHandlers());
+    const { container } = renderCreate();
+
+    const starred = Array.from(container.querySelectorAll('.field__required')).map(
+      (marker) => marker.parentElement?.textContent,
+    );
+    expect(starred).toEqual(['Email address*']);
+  });
 });

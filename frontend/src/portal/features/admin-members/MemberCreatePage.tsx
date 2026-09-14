@@ -8,11 +8,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, ButtonLink, Card, Page, useToast } from '../../components';
+import { ProfileFieldsets } from '../profile/ProfileFieldsets';
 import { EMPTY_PROFILE_FORM, formToPatch } from '../profile/form';
 import {
   AccountFields,
+  AdminOnlyFields,
   EMPTY_ADMIN_ONLY,
-  ProfileFields,
   adminProfilePayload,
   emptyAccountDraft,
 } from './MemberFormFields';
@@ -80,14 +81,14 @@ export function MemberCreatePage() {
             errors={errors.account}
             withPassword
           />
-          <ProfileFields
+          <ProfileFieldsets
             value={profile}
             onChange={setProfile}
-            adminOnly={adminOnly}
-            onAdminOnlyChange={setAdminOnly}
             errors={errors.profile}
             darts={darts.data ?? []}
+            dartsLoading={darts.isPending}
           />
+          <AdminOnlyFields value={adminOnly} onChange={setAdminOnly} errors={errors.profile} />
 
           <div className="cluster">
             <Button type="submit" disabled={create.isPending}>
