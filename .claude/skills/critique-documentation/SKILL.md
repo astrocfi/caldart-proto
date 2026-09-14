@@ -65,8 +65,9 @@ Apply these criteria to the documentation set. Map each finding to the rule file
   warnings, broken `toctree` entries, documents not in any `toctree`, and unresolved `:doc:` or
   `:ref:` targets. Note any `.. graphviz::` without an ASCII equivalent in
   `.. only:: not graphviz`.
-- **Prose conventions:** American spelling; one space after sentence-ending periods; terms
-  defined on first use; **no time-anchored or migration framing** ("new", "legacy", "now",
+- **Prose conventions:** American spelling; one space after sentence-ending periods; CalDART
+  terms (such as DART) defined on first use, but not standard aviation terms (N-number,
+  BasicMed, flight review), which the readers know; **no time-anchored or migration framing** ("new", "legacy", "now",
   "recently", "backwards compatible"). No unicode smart quotes/em-dashes/arrows inside `.py`
   files.
 
