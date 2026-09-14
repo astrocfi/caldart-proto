@@ -24,7 +24,17 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
 ## 2. Prose Conventions
 
 - One space between a sentence-ending period and the next sentence.
-- American spelling, not British (e.g. `color`, not `colour`).
+- American spelling, not British (e.g. `color`, not `colour`). <!-- codespell:ignore colour -->
+  `make lint` enforces this with `make lint-spelling`, which runs codespell over
+  `README.rst`, `CLAUDE.md`, `docs/`, `backend/`, `frontend/src/`, `frontend/e2e/`,
+  `.github/`, `deploy/` and `.claude/` with the `clear`, `rare` and `en-GB_to_en-US`
+  dictionaries. `plans/` is not checked: the archived plans are frozen, and a live plan
+  may quote the very words a fix replaces. The configuration lives in `[tool.codespell]`
+  in `pyproject.toml`, and ignores exactly four words: `nnumber` (the `nNumber`
+  identifier), `unparseable` (a valid American spelling), `afterall` (Vitest's `afterAll`
+  hook) and `onother` (the `onOther` callback prop). To keep a British spelling on one
+  line, such as the example above, end the line with a `codespell:ignore <word>` comment
+  rather than adding the word to that list.
 - Define each CalDART-specific term on first use, such as DART. Don't define
   standard aviation terms (N-number, BasicMed, medical classes, flight review):
   the readers are pilots and DART volunteers.

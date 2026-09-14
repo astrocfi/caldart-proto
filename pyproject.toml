@@ -27,6 +27,7 @@ dev = [
     "factory-boy>=3.3",
     "freezegun>=1.5",
     "respx>=0.21",
+    "codespell>=2.4.3",
     "ruff>=0.7",
     "sphinx>=8.0",
     "furo>=2024.8.6",
@@ -49,6 +50,16 @@ filterwarnings = [
     # matches the message rather than a module.
     "ignore:No directory at:UserWarning",
 ]
+
+[tool.codespell]
+# `en-GB_to_en-US` enforces the American spelling rule; `clear,rare` catch typos.
+builtin = "clear,rare,en-GB_to_en-US"
+skip = "*.lock,package-lock.json,*.svg,*.png,*.woff2,node_modules,.venv,docs/_build,frontend/dist,backend/staticfiles"
+# nnumber: the nNumber identifier, which spells the FAA N-number in camelCase.
+# unparseable: a valid American spelling that the `rare` dictionary flags.
+# afterall: Vitest's afterAll hook.  onother: the onOther callback prop, named
+# for the "Other amount" choice it reports.
+ignore-words-list = "nnumber,unparseable,afterall,onother"
 
 [tool.ruff]
 line-length = 100
