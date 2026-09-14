@@ -276,7 +276,7 @@ Exports
 ``GET /admin/members/export.csv`` and ``export.pdf`` take **every filter and
 ordering parameter the list takes** and apply them to the whole result set —
 they are not paginated.  The CSV streams, so a report over the entire member
-table never materialises in memory.  The PDF prints the applied filters under
+table never materializes in memory.  The PDF prints the applied filters under
 its title.  Columns, style and how to add one: :doc:`reports`.
 
 

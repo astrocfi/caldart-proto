@@ -212,7 +212,7 @@ NEWS_POSTS: tuple[dict, ...] = (
             "year's multi-county exercise."
         ),
         "body": (
-            "<p>Nine DARTs flew a coordinated exercise on Saturday, moving palletised "
+            "<p>Nine DARTs flew a coordinated exercise on Saturday, moving palletized "
             "“relief supplies” — in practice, sandbags and marked cartons — between airports "
             "on a schedule set by a simulated county emergency operations center.</p>"
             "<p>The scenario assumed a magnitude 6.8 earthquake had closed two state "
