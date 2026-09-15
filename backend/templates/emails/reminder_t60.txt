@@ -1,4 +1,4 @@
-{{ org_name }} — two months to go
+{{ org_name }} — {{ days }} days to go
 
 Hello {{ first_name }},
 

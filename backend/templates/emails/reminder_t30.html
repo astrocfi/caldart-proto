@@ -1,15 +1,15 @@
 {% extends "emails/reminder_base.html" %}
 
-{% block preheader %}One month left on your {{ plan_name }} membership. It expires {{ expires_on|date:"F j, Y" }}.{% endblock %}
+{% block preheader %}{{ days }} days left on your {{ plan_name }} membership. It expires {{ expires_on|date:"F j, Y" }}.{% endblock %}
 
-{% block heading %}One month left{% endblock %}
+{% block heading %}{{ days }} days left{% endblock %}
 
 {% block lede %}Your {{ plan_name }} membership expires on {{ expires_on|date:"F j, Y" }}.{% endblock %}
 
 {% block body %}
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
   <p style="margin:0 0 14px 0;">
-    Thirty days from now your membership lapses, and with it your access to the
+    In {{ days }} days your membership lapses, and with it your access to the
     members-only area and your place on the roster your DART leader works from.
   </p>
   <p style="margin:0 0 14px 0;">
