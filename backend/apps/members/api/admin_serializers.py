@@ -19,13 +19,13 @@ from rest_framework import serializers
 
 from apps.accounts.api.serializers import MembershipStatusSerializer, guard_account_edit
 from apps.accounts.roles import MEMBER
-from apps.members.api.admin_filters import membership_payload
 from apps.members.api.profile_serializers import (
     MembershipTermSerializer,
     PaymentSummarySerializer,
     ProfileSerializer,
 )
 from apps.members.models import MemberProfile, MembershipPlan
+from apps.members.services import membership_of, membership_payload
 
 User = get_user_model()
 
@@ -219,11 +219,7 @@ class MemberDetailSerializer(serializers.Serializer):
         return first.starts_on if first else None
 
     def get_membership(self, obj) -> dict:
-        if hasattr(obj, "covers_today"):
-            payload = membership_payload(obj)
-        else:
-            payload = obj.membership_status
-        return MembershipStatusSerializer(payload).data
+        return MembershipStatusSerializer(membership_of(obj)).data
 
     def get_profile(self, obj) -> dict | None:
         profile = getattr(obj, "profile", None)

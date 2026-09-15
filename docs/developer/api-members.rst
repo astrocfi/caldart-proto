@@ -23,7 +23,8 @@ The code lives in ``backend/apps/members/``:
    ``api/profile_serializers.py``, so an administrator and a member see one
    definition of a profile and one set of validation rules.
 ``api/admin_filters.py``
-   The filter set, the ordering backend, and the SQL membership annotations.
+   The filter set, the ordering backend, and the queryset the list is served
+   from.  The membership annotations it builds on live in ``services.py``.
 ``api/admin_urls.py``
    Routes, included from ``api/urls.py``.
 ``reports.py``
@@ -136,7 +137,7 @@ after the previous one ends, so an early renewal shows the new expiry
 immediately.
 
 The admin list has to *filter* and *order* on that, which Python cannot do
-before pagination.  ``api/admin_filters.membership_annotations`` therefore
+before pagination.  ``members.services.membership_annotations`` therefore
 states the same rules as correlated subqueries on the user queryset:
 
 ``covers_today``
@@ -163,19 +164,31 @@ states the same rules as correlated subqueries on the user queryset:
    covers today.
 ``joined_on``
    The earliest term's ``starts_on``.
+
+``member_admin_queryset`` hangs those on the user table through
+``members.services.with_membership`` and adds the two the list needs of its
+own, in ``api/admin_filters.derived_annotations()``:
+
 ``full_name``
    ``first_name`` and ``last_name`` concatenated, so ``?search=`` can match a
    full name in one ``icontains``.
-
-One more annotation is derived from those, in ``derived_annotations()``:
-
 ``effective_expiry``
    ``coverage_end`` when ``covers_today``, else ``past_end``.  This is the
    column ``?ordering=expires_on`` actually sorts on, with ``NULL`` — lifetime
    members and people who never joined — forced to the end in both directions.
 
-``membership_payload(user)`` reads those annotations back into the
-``membership_status`` dictionary, and the whole page costs one query.
+``members.services.membership_payload(user)`` reads those annotations back into
+the ``membership_status`` dictionary, and the whole page costs one query.
+``membership_of(user)`` is the reader for code that cannot be sure how the row
+was fetched: it takes the annotations when they are present and calls
+``membership_status`` when they are not.
+
+Every list that shows a membership status is served this way — ``GET
+/admin/members``, ``GET /admin/users`` (see :doc:`api-auth`), the leader search
+and the ``pilots`` on an aircraft record (see :doc:`api-aircraft`) — so none of
+them costs a query per row.  ``backend/tests/test_membership_query_counts.py``
+drives each of them at three rows and at twenty and pins the count, which is
+the same at both.
 
 Two implementations of one rule can drift, so
 ``backend/tests/test_members_admin_status.py`` builds fourteen histories —
@@ -303,7 +316,11 @@ Tests
    fixture, ordering, creation with and without a password, nested profile
    updates, the delete rules and the grant-term arithmetic.
 ``backend/tests/test_members_admin_status.py``
-   The SQL annotations against ``membership_status``.
+   The SQL annotations against ``membership_status``, and ``membership_of``
+   answering the same either way.
+``backend/tests/test_membership_query_counts.py``
+   The pinned query count of every list that shows a membership status, at two
+   page sizes.
 ``backend/tests/test_members_reports.py``
    The two exports.
 

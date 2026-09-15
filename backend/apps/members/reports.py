@@ -17,7 +17,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from apps.members.api.admin_filters import membership_payload
+from apps.members.services import membership_payload
 
 #: Header text and the value function for every column, in export order.
 #: A lifetime membership has no expiry date, so ``expires_on`` is blank for one;

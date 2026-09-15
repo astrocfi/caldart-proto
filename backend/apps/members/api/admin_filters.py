@@ -1,31 +1,11 @@
-"""Filtering, ordering and membership annotations for the members admin API.
+"""Filtering and ordering for the members admin API.
 
 The ``status`` and ``expiring_within`` filters and ``ordering=expires_on`` all
-need the *computed* membership status, which
-``members.services.membership_status`` works out in Python.  Recomputing that
-per row would be a query per member and could not be filtered or ordered in the
-database at all, so :func:`membership_annotations` expresses exactly the same
-rules as correlated subqueries.
-
-The translation, term by term:
-
-``covers_today``
-    An active term has started and has not run out — ``_current_term``.
-``coverage_end``
-    ``_coverage`` walks forward from the covering term through terms that start
-    no later than the day after the previous one ends.  The end of that walk is
-    the earliest *boundary*: an active term ending on or after today that no
-    other active term continues.  Anything ending earlier inside the chain has
-    a follower by definition, and anything in a later chain ends after the gap,
-    so "earliest boundary" and "end of the walk" are the same date.  NULL means
-    the chain reaches a lifetime term (or that nothing covers today).
-``past_end`` / ``past_plan``
-    The most recent non-canceled term that has started, which
-    ``membership_status`` reports for an expired member.
-
-``tests/test_members_admin_status.py`` checks the two implementations agree
-over a deliberately awkward set of histories, including early renewals, gaps
-and canceled terms.
+need the *computed* membership status, which ``members.services`` states as
+correlated subqueries so the database can filter, order and paginate on it.
+:func:`member_admin_queryset` hangs those annotations on the user table with
+``members.services.with_membership`` and adds the two this list needs on top of
+them, in :func:`derived_annotations`.
 """
 
 from __future__ import annotations
@@ -34,30 +14,14 @@ from datetime import date, timedelta
 
 import django_filters
 from django.contrib.auth import get_user_model
-from django.db.models import (
-    Case,
-    CharField,
-    DateField,
-    Exists,
-    F,
-    OuterRef,
-    Q,
-    QuerySet,
-    Subquery,
-    Value,
-    When,
-)
+from django.db.models import Case, CharField, DateField, F, Q, QuerySet, Value, When
 from django.db.models.functions import Concat
 from django.utils import timezone
 from rest_framework import filters as drf_filters
 
 from apps.accounts.roles import ROLE_SLUGS
-from apps.members.models import (
-    MedicalType,
-    Membership,
-    MembershipStatusChoices,
-    PilotCertificateType,
-)
+from apps.members.models import MedicalType, PilotCertificateType
+from apps.members.services import with_membership
 
 User = get_user_model()
 
@@ -69,56 +33,15 @@ STATUS_CHOICES: tuple[tuple[str, str], ...] = (
 )
 
 
-def membership_annotations(today: date | None = None) -> dict:
-    """Annotations mirroring ``members.services.membership_status`` in SQL."""
-    today = today or timezone.localdate()
-    active = Membership.objects.filter(status=MembershipStatusChoices.ACTIVE)
-
-    # A later term that continues the one being examined: it starts no later
-    # than the day after this one ends, and reaches further into the future.
-    follower = active.filter(
-        user=OuterRef("user"),
-        starts_on__lte=OuterRef("ends_on") + timedelta(days=1),
-    ).filter(Q(ends_on__isnull=True) | Q(ends_on__gt=OuterRef("ends_on")))
-
-    boundaries = (
-        active.filter(user=OuterRef("pk"), ends_on__isnull=False, ends_on__gte=today)
-        .filter(~Exists(follower))
-        .order_by("ends_on")
-    )
-
-    lifetime = active.filter(user=OuterRef("pk"), ends_on__isnull=True).order_by("starts_on")
-
-    started = Membership.objects.exclude(status=MembershipStatusChoices.CANCELED).filter(
-        user=OuterRef("pk"), starts_on__lte=today
-    )
-    past = started.order_by(F("ends_on").desc(nulls_first=True), "-starts_on")
-
-    return {
-        "covers_today": Exists(
-            active.filter(user=OuterRef("pk"), starts_on__lte=today).filter(
-                Q(ends_on__isnull=True) | Q(ends_on__gte=today)
-            )
-        ),
-        "has_started_term": Exists(started),
-        "coverage_end": Subquery(boundaries.values("ends_on")[:1], output_field=DateField()),
-        "coverage_plan": Subquery(boundaries.values("plan__name")[:1], output_field=CharField()),
-        "lifetime_plan": Subquery(lifetime.values("plan__name")[:1], output_field=CharField()),
-        "past_end": Subquery(past.values("ends_on")[:1], output_field=DateField()),
-        "past_plan": Subquery(past.values("plan__name")[:1], output_field=CharField()),
-        "joined_on": Subquery(
-            Membership.objects.filter(user=OuterRef("pk"))
-            .order_by("starts_on")
-            .values("starts_on")[:1],
-            output_field=DateField(),
-        ),
-        "full_name": Concat(F("first_name"), Value(" "), F("last_name"), output_field=CharField()),
-    }
-
-
 def derived_annotations() -> dict:
-    """Annotations built on :func:`membership_annotations`, for ``?ordering=``."""
+    """What this list needs on top of the membership annotations.
+
+    ``full_name`` serves ``?search=``; ``effective_expiry`` is built on
+    ``covers_today``, ``coverage_end`` and ``past_end`` and serves
+    ``?ordering=expires_on``.
+    """
     return {
+        "full_name": Concat(F("first_name"), Value(" "), F("last_name"), output_field=CharField()),
         # The date the list sorts on: the end of current coverage, else the
         # date the last term ran out.  NULL for lifetime and never-a-member,
         # which ``MemberOrderingFilter`` keeps at the end of the page.
@@ -136,32 +59,12 @@ def member_admin_queryset(today: date | None = None) -> QuerySet:
     Everyone in the table is listed: ``member`` is granted at registration, so
     "members" and "accounts" are the same population, and ``?role=`` narrows it.
     """
-    return (
-        User.objects.select_related("profile", "profile__dart")
-        .prefetch_related("profile__aircraft")
-        .annotate(**membership_annotations(today))
-        .annotate(**derived_annotations())
-    )
-
-
-def membership_payload(user) -> dict:
-    """Read the annotated status back in ``membership_status`` shape."""
-    if user.covers_today:
-        lifetime = user.coverage_end is None
-        return {
-            "status": "current",
-            "expires_on": user.coverage_end,
-            "plan": user.lifetime_plan if lifetime else user.coverage_plan,
-            "is_lifetime": lifetime,
-        }
-    if user.has_started_term:
-        return {
-            "status": "expired",
-            "expires_on": user.past_end,
-            "plan": user.past_plan,
-            "is_lifetime": False,
-        }
-    return {"status": "none", "expires_on": None, "plan": None, "is_lifetime": False}
+    return with_membership(
+        User.objects.select_related("profile", "profile__dart").prefetch_related(
+            "profile__aircraft"
+        ),
+        today=today,
+    ).annotate(**derived_annotations())
 
 
 class MemberAdminFilterSet(django_filters.FilterSet):

@@ -16,6 +16,7 @@ from apps.accounts.services import (
     may_edit_protected_fields,
     user_from_uid,
 )
+from apps.members.services import membership_of
 
 User = get_user_model()
 
@@ -54,7 +55,7 @@ class UserSerializer(serializers.ModelSerializer):
         return obj.roles
 
     def get_membership(self, obj) -> dict:
-        return MembershipStatusSerializer(obj.membership_status).data
+        return MembershipStatusSerializer(membership_of(obj)).data
 
     def get_profile_complete(self, obj) -> bool:
         """``MemberProfile.is_complete`` is the one definition."""

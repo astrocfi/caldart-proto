@@ -1,10 +1,11 @@
 """The SQL membership annotations must agree with ``membership_status``.
 
-``apps.members.api.admin_filters`` re-expresses ``members.services`` as
-correlated subqueries so the admin list can filter and order on a computed
-status.  Two implementations of one rule is a standing invitation to drift, so
-this module builds every awkward history it can think of and asserts the two
-agree, row by row.
+``apps.members.services`` states the membership rule twice: once in Python, in
+``membership_status``, and once as correlated subqueries, in
+``membership_annotations``, so a list can filter, order and paginate on a
+computed status.  Two implementations of one rule is a standing invitation to
+drift, so this module builds every awkward history it can think of and asserts
+the two agree, row by row.
 """
 
 from __future__ import annotations
@@ -14,9 +15,14 @@ from datetime import timedelta
 import pytest
 from django.contrib.auth import get_user_model
 
-from apps.members.api.admin_filters import member_admin_queryset, membership_payload
+from apps.members.api.admin_filters import member_admin_queryset
 from apps.members.models import MembershipStatusChoices
-from apps.members.services import membership_status
+from apps.members.services import (
+    membership_of,
+    membership_payload,
+    membership_status,
+    with_membership,
+)
 from tests.factories import MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -184,3 +190,17 @@ def test_joined_on_is_the_earliest_term_start(histories, today):
     user = member_admin_queryset().get(pk=histories["three-back-to-back"].pk)
     assert user.joined_on == today - timedelta(days=700)
     assert member_admin_queryset().get(pk=histories["never"].pk).joined_on is None
+
+
+def test_membership_of_reads_the_annotations(histories):
+    """An annotated row is answered from the annotations, and answered right."""
+    annotated = {user.pk: user for user in with_membership(User.objects.all())}
+    for label, user in histories.items():
+        assert membership_of(annotated[user.pk]) == membership_status(user), label
+
+
+@pytest.mark.parametrize("label", ["renewed-early", "expired", "lifetime", "never"])
+def test_membership_of_falls_back_to_the_service(histories, label):
+    """A row fetched without the annotations still gets the same answer."""
+    plain = User.objects.get(pk=histories[label].pk)
+    assert membership_of(plain) == membership_status(histories[label])
