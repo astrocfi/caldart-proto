@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HttpResponse, http } from 'msw';
+import { HttpResponse, delay, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import { API } from '../../../test/handlers';
@@ -82,7 +82,7 @@ describe('BackupsPanel', () => {
     server.use(
       listHandler([]),
       http.post(`${API}/system/backups`, async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await delay(50);
         return HttpResponse.json(BACKUPS[0], { status: 201 });
       }),
     );
