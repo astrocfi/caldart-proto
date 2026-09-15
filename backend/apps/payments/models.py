@@ -47,7 +47,10 @@ class Payment(TimestampedModel):
     """One attempt to pay for a membership term and/or make a contribution."""
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payments"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="payments",
+        help_text="Protected: a payment is a financial record and outlives the account.",
     )
     plan = models.ForeignKey(
         "members.MembershipPlan",

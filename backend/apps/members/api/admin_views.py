@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
@@ -44,6 +45,19 @@ from apps.members.services import activate_term
 from caldart.reports import csv_response, filter_summary, pdf_table_response
 
 User = get_user_model()
+
+
+def payment_refusal(member, count: int) -> str:
+    """The reason a member holding ``count`` payments cannot be deleted.
+
+    ``count`` must be at least one.  The sentence names the member, the number of
+    payment records that must be kept, and deactivation as the alternative.
+    """
+    plural = "" if count == 1 else "s"
+    return (
+        f"{member.display_name} has {count} payment record{plural}, which must be kept. "
+        "Deactivate the account instead."
+    )
 
 
 class MemberAdminBaseView(generics.GenericAPIView):
@@ -91,10 +105,16 @@ class MemberAdminDetailView(MemberAdminBaseView, generics.RetrieveUpdateDestroyA
         return Response(MemberDetailSerializer(self.get_queryset().get(pk=instance.pk)).data)
 
     def perform_destroy(self, instance):
-        """Hard delete.  Nobody may delete themselves; only a system admin may delete one.
+        """Hard delete, refused three ways.
 
-        Both sides are judged on effective roles, so a Django superuser counts as a
-        system administrator whether or not the role group was ever added.
+        Nobody may delete themselves; only a system admin may delete one.  Both of
+        those tests are judged on effective roles, so a Django superuser counts as a
+        system administrator whether or not the role group was ever added.  The third
+        refusal protects the accounts: a member with any payment, whatever its status,
+        cannot be deleted, because the payment is a financial record.  Deactivation is
+        the alternative.
+
+        Every refusal raises ``PermissionDenied`` (403) and writes nothing.
         """
         caller = self.request.user
         if instance.pk == caller.pk:
@@ -102,7 +122,15 @@ class MemberAdminDetailView(MemberAdminBaseView, generics.RetrieveUpdateDestroyA
         target_is_system_admin = SYSTEM_ADMIN in effective_roles(instance)
         if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(caller):
             raise PermissionDenied("Only a system administrator can delete a system administrator.")
-        instance.delete()
+        payment_count = instance.payments.count()
+        if payment_count > 0:
+            raise PermissionDenied(payment_refusal(instance, payment_count))
+        try:
+            instance.delete()
+        except ProtectedError as exc:
+            # ``Payment.user`` is the only protected reference to an account, so a row
+            # created between the count above and the delete lands here.
+            raise PermissionDenied(payment_refusal(instance, instance.payments.count())) from exc
 
 
 class MemberMembershipGrantView(APIView):
