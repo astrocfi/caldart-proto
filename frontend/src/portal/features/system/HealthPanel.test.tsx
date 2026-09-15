@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
@@ -11,9 +11,9 @@ import { HealthPanel, healthChecks } from './HealthPanel';
 
 const NOW = new Date('2026-06-15T12:00:00Z');
 
-/** Yesterday, whenever the suite happens to run: the panel grades against the
- *  real clock, so a hard-coded date would age into a failure. */
-const RECENT_BACKUP = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+/** One day before `NOW`. `HealthPanel` itself grades against the pinned system
+ *  clock, so every fixture date is derived from `NOW` rather than the real clock. */
+const RECENT_BACKUP = new Date(NOW.getTime() - 24 * 3600 * 1000).toISOString();
 
 function health(overrides: Partial<Health> = {}): Health {
   return {
@@ -36,6 +36,15 @@ function verdictFor(key: string, payload: Health): string {
 }
 
 describe('healthChecks', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('passes a healthy box', () => {
     expect(healthChecks(health(), NOW).every((check) => check.verdict === 'ok')).toBe(true);
   });
@@ -73,6 +82,15 @@ describe('healthChecks', () => {
 });
 
 describe('HealthPanel', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders a row per check with a status chip', async () => {
     server.use(healthHandler(health()));
     renderWithProviders(<HealthPanel />);
@@ -115,7 +133,8 @@ describe('HealthPanel', () => {
     renderWithProviders(<HealthPanel />);
     await screen.findByText('Database');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(screen.getByRole('button', { name: 'Refresh' }));
 
     await waitFor(() => expect(calls).toBe(2));
   });

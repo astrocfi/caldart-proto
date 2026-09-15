@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, configure } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll } from 'vitest'; // codespell:ignore afterall
+import { afterAll, afterEach, beforeAll, vi } from 'vitest'; // codespell:ignore afterall
 
 import { resetCsrfBootstrap } from '../portal/api/client';
 import { server } from './server';
@@ -15,6 +15,9 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  // A test that faked the clock or timers restores them here, so a mistake in
+  // one file cannot leave the next test running against a stopped clock.
+  vi.useRealTimers();
   // Drop the cookies and the client's in-flight bootstrap together, so each test
   // starts with no CSRF token and fetches its own.
   for (const cookie of document.cookie.split(';')) {
