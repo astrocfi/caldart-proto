@@ -116,7 +116,10 @@ be set by the client.  Validation:
 Any authenticated user.  For a ``dart_leader``, ``account_admin`` or
 ``system_admin`` the response also carries ``pilots``: the members who list
 the aeroplane on their profile, each as
-``{user_id, name, email, membership_status, medical_is_current}``.
+``{user_id, name, email, membership_status, medical_is_current}``, sorted by
+surname then forename.  ``aircraft_pilots()`` fetches them in one query, with
+the membership annotations aboard (see :ref:`membership-status-sql`), so a
+popular aeroplane costs no more than a rarely-flown one.
 
 The key is **absent** for anyone else.  ``pilots`` is other members' email
 addresses, membership state and medical currency — exactly what the leader
@@ -195,8 +198,10 @@ The N-number branch only runs when the term contains a digit
 normalizes to ``NATE`` and matches every US registration on file.
 
 Rows are ``{user_id, name, email, dart, membership_status}`` where
-``membership_status`` is the ``current`` / ``expired`` / ``none`` string from
-``members.services.membership_status``.
+``membership_status`` is the ``current`` / ``expired`` / ``none`` string of the
+``members.services`` membership summary.  The search queryset carries that
+summary as annotations (see :ref:`membership-status-sql`), so twenty matches
+cost the same number of queries as one.
 
 ``GET /leader/members/{user_id}/status``
 ----------------------------------------

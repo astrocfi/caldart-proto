@@ -70,9 +70,14 @@ Every endpoint that returns an account returns the same object::
    slug, so adding a role later is a data change.
 
 ``membership``
-   Straight from ``apps.members.services.membership_status``.  ``expires_on`` is
+   The membership summary from ``apps.members.services``.  ``expires_on`` is
    the end of the member's *unbroken* coverage, so an early renewal shows next
    year's date immediately, and it is ``null`` for a lifetime membership.
+   A single-user endpoint such as ``/auth/me`` calls ``membership_status``,
+   which works it out in Python; ``GET /admin/users`` reads it from the SQL
+   annotations its queryset carries, so the page costs the same number of
+   queries whatever its size (see :ref:`membership-status-sql`).  Both state
+   the same rule and give the same answer.
 
 ``profile_complete``
    True when the member profile has ``phone``, ``address_line1``, ``city``,
