@@ -668,8 +668,8 @@ The same rules in SQL
 The account administrator's member list filters and orders on membership
 status *before* paginating.  Recomputing the service's answer per row would be
 a query per member, and could not be filtered or sorted in the database at all.
-So ``apps/members/api/admin_filters.py`` restates the identical rules as
-correlated subqueries in ``membership_annotations()``.
+So ``apps/members/services.py`` restates the identical rules as correlated
+subqueries in ``membership_annotations()``, beside the Python it mirrors.
 
 The translation, term by term:
 
@@ -711,14 +711,32 @@ The translation, term by term:
     The earliest ``starts_on`` across all of the user's terms, canceled ones
     included.
 
+``with_membership(queryset, today=None)`` hangs the lot on any ``User``
+queryset, and ``today`` is read when it is called, so a queryset built inside a
+view answers for the day of the request rather than the day the process
+started.
+
+``membership_payload(user)`` reads those annotations back in exactly the shape
+``membership_status`` returns, so a caller cannot tell which implementation
+answered.  ``membership_of(user)`` chooses between the two: the annotations
+when the row carries them, ``membership_status`` when it does not.
+
+Every list that shows a membership status reads it from these annotations, so
+its query count does not depend on how many rows it returns: the member list
+and its exports, ``GET /admin/users``, the DART leader's search, and the
+``pilots`` attached to an aircraft record.
+
+The account administrator's list adds two annotations of its own, in
+``apps/members/api/admin_filters.py``:
+
+``full_name``
+    ``first_name`` and ``last_name`` concatenated, so ``?search=`` matches a
+    full name in one ``icontains``.
+
 ``effective_expiry``
     ``coverage_end`` when ``covers_today``, else ``past_end``.  This is what
     ``?ordering=expires_on`` sorts on, with ``NULL`` — lifetime members and
     people who never joined — forced to the end in both directions.
-
-``membership_payload(user)`` reads those annotations back in exactly the shape
-``membership_status`` returns, so a caller cannot tell which implementation
-answered.
 
 .. important::
 
