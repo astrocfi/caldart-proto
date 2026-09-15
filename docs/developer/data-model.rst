@@ -880,6 +880,13 @@ One attempt to pay for a membership term, make a contribution, or both.
   ``DELETE /admin/members/{user_id}`` turns that into a **403** with a message
   pointing at deactivation (:doc:`api-members`); deactivating keeps the member,
   the profile, the terms and the payments and only stops the sign-in.
+- The two ways the Wagtail admin deletes an account — the delete view at
+  ``/admin/users/delete/<id>/`` and the ``Delete`` bulk action on the users
+  listing — are stopped before they write, by the ``before_delete_user`` and
+  ``before_bulk_action`` hooks in ``apps/payments/wagtail_hooks.py``.  Each
+  sends the operator back to the users listing with that same sentence as an
+  error message; one protected account refuses a whole bulk batch, because the
+  bulk delete is a single query that cannot succeed in part.
 - ``refunded`` is a value the schema accepts; nothing in the prototype sets it
   (see :doc:`roadmap`).
 

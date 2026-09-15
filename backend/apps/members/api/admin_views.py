@@ -42,22 +42,10 @@ from apps.members.reports import (
     member_report_rows,
 )
 from apps.members.services import activate_term
+from apps.payments.models import payment_deletion_refusal
 from caldart.reports import csv_response, filter_summary, pdf_table_response
 
 User = get_user_model()
-
-
-def payment_refusal(member, count: int) -> str:
-    """The reason a member holding ``count`` payments cannot be deleted.
-
-    ``count`` must be at least one.  The sentence names the member, the number of
-    payment records that must be kept, and deactivation as the alternative.
-    """
-    plural = "" if count == 1 else "s"
-    return (
-        f"{member.display_name} has {count} payment record{plural}, which must be kept. "
-        "Deactivate the account instead."
-    )
 
 
 class MemberAdminBaseView(generics.GenericAPIView):
@@ -122,15 +110,15 @@ class MemberAdminDetailView(MemberAdminBaseView, generics.RetrieveUpdateDestroyA
         target_is_system_admin = SYSTEM_ADMIN in effective_roles(instance)
         if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(caller):
             raise PermissionDenied("Only a system administrator can delete a system administrator.")
-        payment_count = instance.payments.count()
-        if payment_count > 0:
-            raise PermissionDenied(payment_refusal(instance, payment_count))
+        refusal = payment_deletion_refusal(instance)
+        if refusal is not None:
+            raise PermissionDenied(refusal)
         try:
             instance.delete()
         except ProtectedError as exc:
             # ``Payment.user`` is the only protected reference to an account, so a row
-            # created between the count above and the delete lands here.
-            raise PermissionDenied(payment_refusal(instance, instance.payments.count())) from exc
+            # created between the check above and the delete lands here.
+            raise PermissionDenied(payment_deletion_refusal(instance)) from exc
 
 
 class MemberMembershipGrantView(APIView):
