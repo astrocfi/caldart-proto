@@ -308,6 +308,20 @@ Two helpers do the heavy lifting:
     which means a mutation genuinely carries ``X-CSRFToken`` and a test can
     assert on it.
 
+**Time.**  A test never waits out a real debounce, poll or delay, and never
+builds a fixture date from the real clock.  Pin the system clock with
+``vi.useFakeTimers()`` and ``vi.setSystemTime(...)`` (add
+``{shouldAdvanceTime: true}`` when the component under test also renders and
+needs its own effects to keep making progress), then settle a debounce or a
+poll explicitly with ``await vi.advanceTimersByTimeAsync(ms)`` wrapped in
+``act(...)``.  Configure ``userEvent.setup({advanceTimers:
+vi.advanceTimersByTime})`` so its own internal waits advance the fake clock
+instead of sleeping.  ``src/test/setup.ts`` calls ``vi.useRealTimers()`` after
+every test, so a file that fakes the clock need not restore it itself, though
+doing so in its own ``afterEach`` documents the intent.  A one-off delay
+inside an msw handler uses msw's own ``delay(ms)`` rather than a raw
+``setTimeout``.
+
 .. code-block:: tsx
 
    import { http, HttpResponse } from 'msw';

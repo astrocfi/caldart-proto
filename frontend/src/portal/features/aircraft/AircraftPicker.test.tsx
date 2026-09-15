@@ -1,13 +1,25 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
 import { server } from '../../../test/server';
 import type { Aircraft } from '../../api/types';
+import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
 import { AircraftPicker } from './AircraftPicker';
+
+/** A userEvent instance whose internal waits advance the fake clock instead of sleeping. */
+function setupUser() {
+  return userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+}
+
+/** Type into the search box, then settle the debounce with the fake clock. */
+async function search(user: ReturnType<typeof setupUser>, label: RegExp, text: string) {
+  await user.type(screen.getByLabelText(label), text);
+  await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
+}
 
 function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
   return {
@@ -48,8 +60,16 @@ function searchOnly(results: Aircraft[]) {
 }
 
 describe('AircraftPicker', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('looks the registration up first and lists the exact match', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const aircraft = makeAircraft();
     const seen: string[] = [];
     server.use(
@@ -62,7 +82,7 @@ describe('AircraftPicker', () => {
     const onSelect = vi.fn();
     renderWithProviders(<AircraftPicker onSelect={onSelect} />);
 
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n-172sp');
+    await search(user, /Search the aircraft register/i, 'n-172sp');
 
     expect(await screen.findByText('N172SP')).toBeInTheDocument();
     expect(seen).toEqual(['n-172sp']);
@@ -70,7 +90,7 @@ describe('AircraftPicker', () => {
   });
 
   it('falls back to a search when the registration is unknown', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     let searchTerm: string | null = null;
     server.use(
       http.get(`${API}/aircraft/lookup`, () =>
@@ -88,27 +108,27 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'archer');
+    await search(user, /Search the aircraft register/i, 'archer');
 
     expect(await screen.findByText('N9021K')).toBeInTheDocument();
     expect(searchTerm).toBe('archer');
   });
 
   it('hands the chosen aircraft to onSelect', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const aircraft = makeAircraft();
     server.use(...searchOnly([aircraft]));
 
     const onSelect = vi.fn();
     renderWithProviders(<AircraftPicker onSelect={onSelect} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'cessna');
+    await search(user, /Search the aircraft register/i, 'cessna');
 
     await user.click(await screen.findByRole('button', { name: /N172SP/ }));
     expect(onSelect).toHaveBeenCalledWith(aircraft);
   });
 
   it('leaves out aircraft the member has already attached', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     server.use(
       ...searchOnly([
         makeAircraft({ id: 1, n_number: 'N172SP' }),
@@ -117,7 +137,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={vi.fn()} excludeIds={[1]} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'cessna');
+    await search(user, /Search the aircraft register/i, 'cessna');
 
     expect(await screen.findByText('N9021K')).toBeInTheDocument();
     const list = screen.getByRole('list');
@@ -126,7 +146,7 @@ describe('AircraftPicker', () => {
   });
 
   it('leaves out-of-service aircraft out of the fuzzy search', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     let params: URLSearchParams | null = null;
     server.use(
       http.get(`${API}/aircraft/lookup`, () =>
@@ -139,14 +159,14 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'cessna');
+    await search(user, /Search the aircraft register/i, 'cessna');
     await screen.findByText(/No aircraft matches that/i);
 
     expect(params!.get('is_active')).toBe('true');
   });
 
   it('flags an exact match that is out of service rather than hiding it', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     server.use(
       http.get(`${API}/aircraft/lookup`, () =>
         HttpResponse.json({ ...makeAircraft({ is_active: false }), pilots: [] }),
@@ -154,29 +174,29 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n172sp');
+    await search(user, /Search the aircraft register/i, 'n172sp');
 
     expect(await screen.findByText('N172SP')).toBeInTheDocument();
     expect(screen.getByText('Out of service')).toBeInTheDocument();
   });
 
   it('does not offer to create one the member has already attached', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     server.use(...searchOnly([makeAircraft({ id: 1, n_number: 'N172SP' })]));
 
     renderWithProviders(<AircraftPicker onSelect={vi.fn()} excludeIds={[1]} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n172sp');
+    await search(user, /Search the aircraft register/i, 'n172sp');
 
     expect(await screen.findByText(/already on your list/i)).toBeInTheDocument();
     expect(screen.queryByText(/No aircraft matches that/i)).not.toBeInTheDocument();
   });
 
   it('offers to create an aircraft when nothing matches', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     server.use(...searchOnly([]));
 
     renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n4321q');
+    await search(user, /Search the aircraft register/i, 'n4321q');
 
     expect(await screen.findByText(/No aircraft matches that/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Add a new aircraft/i }));
@@ -186,7 +206,7 @@ describe('AircraftPicker', () => {
   });
 
   it('creates the aircraft and selects it', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const created = makeAircraft({ id: 42, n_number: 'N4321Q', make: 'Cirrus', model: 'SR22' });
     let posted: Record<string, unknown> | null = null;
     server.use(
@@ -199,7 +219,7 @@ describe('AircraftPicker', () => {
 
     const onSelect = vi.fn();
     renderWithProviders(<AircraftPicker onSelect={onSelect} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n4321q');
+    await search(user, /Search the aircraft register/i, 'n4321q');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
 
     await user.type(screen.getByLabelText(/^Make/), 'Cirrus');
@@ -211,7 +231,7 @@ describe('AircraftPicker', () => {
   });
 
   it('will not submit without a make and model', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const post = vi.fn();
     server.use(
       ...searchOnly([]),
@@ -222,7 +242,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n4321q');
+    await search(user, /Search the aircraft register/i, 'n4321q');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
@@ -232,7 +252,7 @@ describe('AircraftPicker', () => {
   });
 
   it('shows the server’s field errors, such as a duplicate registration', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     server.use(
       ...searchOnly([]),
       http.post(`${API}/aircraft`, () =>
@@ -244,7 +264,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n172sp');
+    await search(user, /Search the aircraft register/i, 'n172sp');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await user.type(screen.getByLabelText(/^Make/), 'Cessna');
     await user.type(screen.getByLabelText(/^Model/), '172S');
@@ -254,7 +274,7 @@ describe('AircraftPicker', () => {
   });
 
   it('asks the server once per settled search term', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     let lookups = 0;
     server.use(
       http.get(`${API}/aircraft/lookup`, () => {
@@ -267,7 +287,7 @@ describe('AircraftPicker', () => {
     );
 
     renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
-    await user.type(screen.getByLabelText(/Search the aircraft register/i), 'n172sp');
+    await search(user, /Search the aircraft register/i, 'n172sp');
     await screen.findByText(/No aircraft matches that/i);
 
     expect(lookups).toBe(1);

@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API, makeUser, signedInAs } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
@@ -8,11 +8,13 @@ import { server } from '../../../test/server';
 import { RequireRole } from '../../auth/guards';
 import { SystemPage } from './SystemPage';
 
+const NOW = new Date('2026-06-15T12:00:00Z');
+
 const HEALTH = {
   db: 'ok',
   pending_migrations: 0,
   disk_free_mb: 40_960,
-  last_backup: new Date().toISOString(),
+  last_backup: NOW.toISOString(),
   version: '0.1.0',
   debug: false,
 };
@@ -28,6 +30,15 @@ function systemHandlers() {
 }
 
 describe('SystemPage', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('shows the three panels', async () => {
     server.use(...systemHandlers());
     renderWithProviders(<SystemPage />);

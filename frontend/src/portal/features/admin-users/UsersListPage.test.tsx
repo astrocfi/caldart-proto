@@ -1,7 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { User } from '../../api/types';
 import {
@@ -13,6 +13,7 @@ import {
 } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
 import { server } from '../../../test/server';
+import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
 import { UsersListPage } from './UsersListPage';
 
 const ROLES = [
@@ -66,6 +67,14 @@ function stubList(rows: User[] = [MARTA, PRIYA]) {
 }
 
 describe('UsersListPage', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('lists accounts with their roles, membership and status', async () => {
     stubList();
     renderWithProviders(<UsersListPage />);
@@ -82,10 +91,12 @@ describe('UsersListPage', () => {
 
   it('sends the search box to the API and narrows the table', async () => {
     const seen = stubList();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
 
-    await userEvent.type(screen.getByLabelText(/search/i), 'priya');
+    await user.type(screen.getByLabelText(/search/i), 'priya');
+    await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
 
     await waitFor(() =>
       expect(screen.queryByRole('link', { name: 'Marta Reyes' })).not.toBeInTheDocument(),
