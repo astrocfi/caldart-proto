@@ -306,6 +306,11 @@ as who may edit an aircraft record, are separate classes in the owning app
 ``website_admin`` grants **no API endpoint at all**.  It exists to give its
 holder Wagtail admin permissions, which are enforced by Wagtail, not by DRF.
 
+A signed-in account with no roles at all reaches every self-service endpoint
+(its own profile, membership, and payments, the aircraft register, checkout,
+and the public catalogs) exactly as a ``member`` does, and gets **403** from
+every role-gated endpoint and from the Wagtail admin.
+
 .. _api-permission-matrix:
 
 Permission matrix
