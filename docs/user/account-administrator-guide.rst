@@ -180,11 +180,19 @@ totals, use **Payments** in the menu.
 Danger zone
 -----------
 
-Deleting a member is permanent and takes their profile, every membership term
-and their whole payment history with them.  There is no undo and no archive.
+**A member who has ever paid cannot be deleted.**  Payments are the
+organization's financial record: a membership fee or a donation stays in the
+ledger, the month-by-month totals and the CSV export whatever happens to the
+person who made it.  The tab says so instead of offering the form, and names
+how many payment records the account carries.  Deactivate the account instead,
+as below.
+
+For an account with no payments — a duplicate, a spam sign-up, a test record —
+the delete is permanent and takes the profile and every membership term with
+it.  There is no undo and no archive.
 
 The delete button stays disabled until you type the member's email address
-into the confirmation box.  Two deletions are refused outright:
+into the confirmation box.  Two further deletions are refused outright:
 
 * your own account; and
 * a system administrator's account, unless you are a system administrator
@@ -192,11 +200,10 @@ into the confirmation box.  Two deletions are refused outright:
   administrator's here even if the role itself was never granted.
 
 If somebody has simply left, clearing **Account is active** on the Profile tab
-is almost always the better answer: it stops them signing in and keeps the
-record for the accounts.  That box is guarded like the email address, so on a
-record carrying a role you do not hold — a DART leader's, say — the save is
-refused; ask a system administrator, or a colleague who holds every role that
-account holds.
+is the answer: it stops them signing in and keeps the record for the accounts.
+That box is guarded like the email address, so on a record carrying a role you
+do not hold — a DART leader's, say — the save is refused; ask a system
+administrator, or a colleague who holds every role that account holds.
 
 
 Reports
@@ -286,6 +293,11 @@ When something goes wrong
    Ask a system administrator, or deactivate the account instead — which keeps
    the history and locks them out just as effectively.
 
+**"… has N payment records, which must be kept.  Deactivate the account instead."**
+   The Danger zone hides the delete form for a member who has paid, so this
+   answer only comes back when a payment landed while you had the page open.
+   Reload the record and deactivate instead.
+
 **You cannot change somebody's roles from the member record.**
    Roles live on the user-administration screen, behind the ``user_admin``
    role, not on the member record.  See :doc:`user-administrator`.
@@ -310,7 +322,14 @@ When something goes wrong
    you pressed **Apply** after typing in the Search or Expiring-within box —
    the dropdowns apply immediately, those two do not.
 
-**A deletion took the payments with it.**
-   Deleting a member is a hard delete: the profile, the membership history and
-   the payment records all go, and nothing recovers them short of a database
-   restore.  Deactivate rather than delete unless you are certain.
+**The Danger zone will not let me delete a member.**
+   Read what it says.  An account with any payment against it cannot be
+   deleted at all, because the payment records are kept: clear **Account is
+   active** on the Profile tab instead, which stops the sign-in and leaves
+   everything else in place.  An account with no payments is still refused if
+   it is your own, or a system administrator's and you are not one.
+
+**I deleted the wrong member.**
+   Deleting an account with no payments is a hard delete: the profile and the
+   membership history go with it, and nothing recovers them short of a
+   database restore.  Deactivate rather than delete unless you are certain.

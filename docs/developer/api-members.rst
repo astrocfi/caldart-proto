@@ -261,14 +261,33 @@ not deactivate their own account.  A refusal is a **400** keyed on ``email`` or
 request included.
 
 ``DELETE /admin/members/{user_id}`` hard-deletes: the cascade takes the
-profile, the membership terms and the payments.  It is refused with **403**
-when the target is
+profile and the membership terms.  It is refused with **403** when
 
-* the caller — you cannot delete your own account, whatever roles you hold; or
-* a ``system_admin``, unless the caller is a ``system_admin``.
+* the target is the caller — you cannot delete your own account, whatever roles
+  you hold;
+* the target is a ``system_admin``, unless the caller is a ``system_admin``; or
+* the target has any payment.
 
-Both of those role tests read *effective* roles, so a Django superuser without
-the role group counts as a system administrator on either side.
+The two role tests read *effective* roles, so a Django superuser without the
+role group counts as a system administrator on either side.  They are applied
+in that order, so an administrator who has paid is told they cannot delete
+themselves rather than told about their payments.
+
+The payment guard keeps the financial record: a payment is revenue or a
+donation, and the accounts must not change after the fact.  It counts every
+payment, ``pending`` and ``failed`` rows included, and the refusal reads
+``"<name> has N payment record(s), which must be kept.  Deactivate the account
+instead."``  Nothing is written — the payments, the profile and the membership
+terms are all still there afterwards.
+
+``Payment.user`` is ``PROTECT`` (:doc:`data-model`), so the protection is on
+the foreign key rather than on this view alone: the Django admin, a management
+command and a shell session all raise ``ProtectedError`` instead of cascading.
+The view catches that error and answers with the same **403**.
+
+Deactivation — ``PATCH`` with ``is_active`` false — is the tool for a member
+who has left.  The hard delete is for accounts that never paid: duplicates,
+spam and test accounts.
 
 
 Membership terms
@@ -315,6 +334,11 @@ Tests
    ``account_admin`` and ``system_admin``), every filter against a mixed
    fixture, ordering, creation with and without a password, nested profile
    updates, the delete rules and the grant-term arithmetic.
+``backend/tests/test_members_delete_payments.py``
+   The payment guard: a refusal for every payment status and its message, the
+   payment summary before and after a refusal, the same refusal for a system
+   administrator, the delete of a member who never paid, and the
+   ``ProtectedError`` the model raises on its own.
 ``backend/tests/test_members_admin_status.py``
    The SQL annotations against ``membership_status``, and ``membership_of``
    answering the same either way.
@@ -325,5 +349,6 @@ Tests
    The two exports.
 
 On the front end, ``frontend/src/portal/features/admin-members/`` holds a test
-per page: filters to query parameters, export hrefs, the grant-term form and
-the typed delete confirmation.
+per page: filters to query parameters, export hrefs, the grant-term form, the
+typed delete confirmation, and the Danger zone's explanation for a member whose
+payments keep the account.
