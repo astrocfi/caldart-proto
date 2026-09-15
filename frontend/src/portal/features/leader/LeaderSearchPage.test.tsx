@@ -1,13 +1,27 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
 import { server } from '../../../test/server';
 import type { LeaderSearchResult, LeaderStatus } from '../../api/types';
+import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
 import { LeaderSearchPage } from './LeaderSearchPage';
+
+const SEARCH_LABEL = /Name, email or N-number/i;
+
+/** A userEvent instance whose internal waits advance the fake clock instead of sleeping. */
+function setupUser() {
+  return userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+}
+
+/** Type into the search box, then settle the debounce with the fake clock. */
+async function search(user: ReturnType<typeof setupUser>, text: string) {
+  await user.type(screen.getByLabelText(SEARCH_LABEL), text);
+  await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
+}
 
 const MARTA: LeaderSearchResult = {
   user_id: 7,
@@ -37,8 +51,16 @@ function searchReturns(results: LeaderSearchResult[], onQuery?: (q: string) => v
 }
 
 describe('LeaderSearchPage', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('searches by name and lists the matches with their membership state', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const queries: string[] = [];
     server.use(
       searchReturns(
@@ -48,7 +70,7 @@ describe('LeaderSearchPage', () => {
     );
 
     renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
-    await user.type(screen.getByLabelText(/Name, email or N-number/i), 'reyes');
+    await search(user, 'reyes');
 
     expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
     expect(screen.getByText('Member current')).toBeInTheDocument();
@@ -57,26 +79,26 @@ describe('LeaderSearchPage', () => {
   });
 
   it('searches by N-number too', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const queries: string[] = [];
     server.use(searchReturns([MARTA], (q) => queries.push(q)));
 
     renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
-    await user.type(screen.getByLabelText(/Name, email or N-number/i), 'N172SP');
+    await search(user, 'N172SP');
 
     expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
     expect(queries).toEqual(['N172SP']);
   });
 
   it('opens the status card for the member the leader picks', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     server.use(
       searchReturns([MARTA]),
       http.get(`${API}/leader/members/7/status`, () => HttpResponse.json(STATUS)),
     );
 
     renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
-    await user.type(screen.getByLabelText(/Name, email or N-number/i), 'reyes');
+    await search(user, 'reyes');
     await user.click(await screen.findByRole('button', { name: /Marta Reyes/ }));
 
     expect(await screen.findByText('GO')).toBeInTheDocument();
@@ -84,7 +106,7 @@ describe('LeaderSearchPage', () => {
   });
 
   it('goes back to the search from the card', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     server.use(
       searchReturns([MARTA]),
       http.get(`${API}/leader/members/7/status`, () => HttpResponse.json(STATUS)),
@@ -129,11 +151,11 @@ describe('LeaderSearchPage', () => {
   });
 
   it('offers the aircraft check when an N-number matches no member', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     server.use(searchReturns([]));
 
     renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
-    await user.type(screen.getByLabelText(/Name, email or N-number/i), 'n-172sp');
+    await search(user, 'n-172sp');
 
     expect(await screen.findByText(/Nobody matches that/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Check N172SP/ })).toHaveAttribute(
@@ -143,11 +165,11 @@ describe('LeaderSearchPage', () => {
   });
 
   it('suggests another search when a name matches nobody', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     server.use(searchReturns([]));
 
     renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
-    await user.type(screen.getByLabelText(/Name, email or N-number/i), 'nobody');
+    await search(user, 'nobody');
 
     expect(await screen.findByText(/Try a surname/i)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Check/ })).not.toBeInTheDocument();

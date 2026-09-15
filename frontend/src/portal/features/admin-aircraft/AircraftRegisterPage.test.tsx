@@ -1,12 +1,13 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
 import { server } from '../../../test/server';
 import type { Aircraft } from '../../api/types';
+import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
 import { AircraftRegisterPage, orderingFor } from './AircraftRegisterPage';
 
 function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
@@ -51,6 +52,14 @@ describe('orderingFor', () => {
 });
 
 describe('AircraftRegisterPage', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('lists the register with its insurance state', async () => {
     const seen: URLSearchParams[] = [];
     server.use(
@@ -85,7 +94,7 @@ describe('AircraftRegisterPage', () => {
   });
 
   it('sends every filter to the API', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const seen: URLSearchParams[] = [];
     server.use(listReturns([makeAircraft()], seen));
 
@@ -93,6 +102,7 @@ describe('AircraftRegisterPage', () => {
     await screen.findByRole('link', { name: 'N172SP' });
 
     await user.type(screen.getByLabelText('Search'), 'cessna');
+    await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
     await user.selectOptions(screen.getByLabelText('Owner type'), 'club');
     await user.selectOptions(screen.getByLabelText('Insurance'), 'expired');
     await user.selectOptions(screen.getByLabelText('Expiring within'), '60');

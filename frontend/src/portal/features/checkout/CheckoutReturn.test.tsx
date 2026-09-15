@@ -1,11 +1,11 @@
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
 import { server } from '../../../test/server';
-import { CheckoutReturn } from './CheckoutReturn';
+import { CheckoutReturn, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from './CheckoutReturn';
 
 const RETURN_URL = '/join/done?payment_id=42&payment_intent=pi_42';
 
@@ -36,6 +36,14 @@ function servePayment(sequence: Record<string, unknown>[]) {
 }
 
 describe('CheckoutReturn', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('confirms and hands the membership back straight away', async () => {
     const onSuccess = vi.fn();
     serveConfirm(200, { status: 'succeeded', membership: CURRENT_MEMBERSHIP });
@@ -58,12 +66,25 @@ describe('CheckoutReturn', () => {
 
     renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
 
-    await waitFor(
-      () =>
-        expect(onSuccess).toHaveBeenCalledWith({ paymentId: 42, membership: CURRENT_MEMBERSHIP }),
-      { timeout: 5_000 },
-    );
-    expect(calls.count).toBeGreaterThan(1);
+    await waitFor(() => expect(calls.count).toBe(1));
+    await act(() => vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS));
+
+    expect(onSuccess).toHaveBeenCalledWith({ paymentId: 42, membership: CURRENT_MEMBERSHIP });
+    expect(calls.count).toBe(2);
+  });
+
+  it('gives up and says the payment is still being processed after the timeout', async () => {
+    const onSuccess = vi.fn();
+    serveConfirm(200, { status: 'pending', membership: NO_MEMBERSHIP });
+    servePayment([{ status: 'pending', membership: NO_MEMBERSHIP }]);
+
+    renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
+
+    await act(() => vi.advanceTimersByTimeAsync(POLL_TIMEOUT_MS + POLL_INTERVAL_MS));
+
+    expect(await screen.findByText('Payment not confirmed')).toBeInTheDocument();
+    expect(screen.getByText(/still being processed/i)).toBeInTheDocument();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it('polls after a confirm that errors, because the webhook may have won', async () => {
@@ -73,7 +94,7 @@ describe('CheckoutReturn', () => {
 
     renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
 
-    await waitFor(() => expect(onSuccess).toHaveBeenCalled(), { timeout: 5_000 });
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
   });
 
   it('reports a declined payment', async () => {
