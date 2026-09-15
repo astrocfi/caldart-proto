@@ -253,17 +253,26 @@ Three rules are enforced in ``AdminUserSerializer``:
 **Role slugs are validated.**  Anything outside ``ROLE_SLUGS`` is a 400 on
 ``roles``.  The list you send replaces the account's role groups exactly, and it
 comes back sorted into privilege order.  Group memberships that are not roles —
-Wagtail's editor groups, say — are left alone.
+Wagtail's editor groups, say — are left alone.  A list matching the groups the
+account already holds is not a write: the groups and the Django flags are left
+exactly as they are, so the portal may post the whole form on every save.
 
-**Only a system administrator may move ``system_admin``.**  Formally: if
-``system_admin`` appears in the symmetric difference between the roles you sent
-and the roles the account already holds, and you are not a system administrator,
-the request is 400.  A user administrator can therefore still edit a system
-administrator's *other* roles, as long as ``system_admin`` stays in the list.
+**Only a system administrator may move ``system_admin``.**  A write of the role
+list moves it when the list ticks ``system_admin`` on an account whose groups
+lack it, or leaves it unticked on an account that counts as a system
+administrator.  From a caller who is not one, that is a 400 on ``roles``.  The
+second half of the test reads *effective* roles, so a Django superuser without
+the role group counts as a system administrator, and so does the caller who
+holds the flag rather than the group.  A user administrator can therefore still
+edit a system administrator's *other* roles, as long as ``system_admin`` stays
+in the list — but no role list of a ``createsuperuser`` account is open to them,
+because writing one rebuilds the flags from that list alone: leaving the role
+out would take the superuser flag away, and putting it in grants the group.
 
-**Nobody may deactivate themselves.**  ``is_active: false`` on your own record is
-a 400 on ``is_active``.  Sending ``is_active: true`` for yourself is a harmless
-no-op.
+**The account-edit guard covers ``email`` and ``is_active``.**  It is shared
+with ``PATCH /admin/members/{user_id}`` and described in full under
+:ref:`account-edit-guard` below.  ``first_name`` and ``last_name`` are outside
+it: anyone who may open the record may correct a name on it.
 
 Granting or revoking ``system_admin`` also syncs the Django flags, because a
 system administrator is a Django superuser::
@@ -284,6 +293,84 @@ visitor::
     200 {"detail": "Password reset email sent to marta.reyes@example.org."}
     400 {"detail": "That account is deactivated, so no reset email was sent."}
     404 — no such account
+
+
+.. _account-edit-guard:
+
+The account-edit guard
+======================
+
+``email`` and ``is_active`` are the two account fields an administrator could use
+to take an account over: the address is the login *and* where a password reset
+link is mailed, and clearing the flag locks the account's owner out.  Both
+administrator edit endpoints — ``PATCH /admin/users/{id}`` above and ``PATCH
+/admin/members/{user_id}`` in :doc:`api-members` — run every write of those two
+fields past ``accounts.services.check_account_edit`` first.
+
+The rule, in the order it is applied:
+
+#. **Only a real change counts.**  A field that arrives carrying the value the
+   account already has is not a change, so an administration form that resends
+   every field is judged only on the fields it actually moves.  Email addresses
+   are compared case-insensitively after stripping, exactly as the uniqueness
+   constraint compares them, and ``is_active`` as a boolean.
+#. **Nobody may deactivate their own account**, whatever roles they hold.
+#. **Otherwise the actor must hold every role the target holds.**  A system
+   administrator holds every role, so one always passes.
+
+Both sides of that last comparison use *effective* roles:
+``accounts.services.effective_roles`` adds ``system_admin`` whenever
+``is_superuser`` is set.  An account created by ``manage.py createsuperuser``,
+which sets the flag without adding the role group, is therefore protected — and
+protects — like any other system administrator.
+
+Worked through the roles: a user administrator may change a plain member's
+address but not a DART leader's or an account administrator's, an account
+administrator may not change a user administrator's, and a system administrator
+may change anybody's.  Every role counts, administrative or not.  Names are
+outside the guard entirely, so a user administrator can still correct the
+spelling of a system administrator's surname.
+
+What the guard measures is the write in front of it, against the roles the two
+accounts hold when it arrives — it does not bound what the caller can reach over
+two requests.  A user administrator may grant themselves the role they lack, or
+take it off the target, and send the refused edit again; both are ordinary
+``roles`` writes on ``PATCH /admin/users/{id}``, which is the role's whole
+purpose.  ``system_admin`` is where the two rules meet and the reach stops: that
+role is refused in both directions to a caller who is not a system
+administrator, so a system administrator's account — a ``createsuperuser`` one
+included — is closed to a lower administrator by either route.  Against an
+account administrator the guard is absolute in one request as well as two,
+because ``PATCH /admin/members/{user_id}`` has no ``roles`` field at all.
+
+On a record whose protected fields the caller may not write, a value that is not
+a real change is dropped rather than saved, so an address resent in another case
+leaves the stored one exactly as it was.  A caller who may write those fields
+saves what they sent, case included.
+
+A refusal is a 400 keyed on the field it belongs to, the same shape as the
+``roles`` guard, so a client can show it against the input it came from::
+
+    400 {"email": ["<message>"]}
+
+=================  =============  ===============================================
+Refused change     Field          Message
+=================  =============  ===============================================
+Your own status    ``is_active``  You cannot deactivate your own account.
+Their address      ``email``      You cannot change the email address of an
+                                  account that holds roles you do not hold.
+Their status       ``is_active``  You cannot activate or deactivate an account
+                                  that holds roles you do not hold.
+=================  =============  ===============================================
+
+When both fields are refused at once the complaint lands on ``email``.  Every
+refusal also writes one WARNING record to the ``apps.accounts.services``
+logger::
+
+    Account edit refused: actor=12 target=3 fields=email
+
+Account ids and field names only: no address, and nothing else that identifies a
+person.
 
 
 Rate limiting
