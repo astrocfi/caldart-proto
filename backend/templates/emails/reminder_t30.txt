@@ -1,8 +1,8 @@
-{{ org_name }} — one month left
+{{ org_name }} — {{ days }} days left
 
 Hello {{ first_name }},
 
-Thirty days from now your {{ plan_name }} membership lapses, and with it your
+In {{ days }} days your {{ plan_name }} membership lapses, and with it your
 access to the members-only area and your place on the roster your DART leader
 works from. It expires on {{ expires_on|date:"F j, Y" }}.
 

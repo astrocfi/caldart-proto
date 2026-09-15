@@ -1,8 +1,9 @@
 """The renewal reminder scanner.
 
-Every kind fires on exactly its offset and nowhere near it, a second run sends
+Every kind fires on its own offset, nothing fires early, a second run sends
 nothing, a dry run writes nothing, and members who have already renewed —
-including lifetime members — are left alone.
+including lifetime members — are left alone.  Late runs and failed sends are
+covered by ``test_reminders_resilience.py``.
 """
 
 from __future__ import annotations
@@ -64,13 +65,14 @@ def test_each_kind_fires_on_its_own_offset(annual_plan, mailoutbox, kind):
 
 
 @pytest.mark.parametrize("kind", ALL_KINDS)
-@pytest.mark.parametrize("slip", [-1, 1])
-def test_nothing_fires_a_day_either_side(annual_plan, mailoutbox, kind, slip):
-    make_member(annual_plan, ends_on_for(kind) + timedelta(days=slip))
+def test_nothing_fires_a_day_early(annual_plan, mailoutbox, kind):
+    """A term a day further out than the cohort waits for its own day."""
+    make_member(annual_plan, ends_on_for(kind) + timedelta(days=1))
 
     run = send_renewal_reminders(today=TODAY)
 
-    assert (run.sent, len(mailoutbox)) == (0, 0)
+    assert run.sent == 0
+    assert mailoutbox == []
 
 
 def test_every_cohort_in_one_pass(annual_plan, mailoutbox):

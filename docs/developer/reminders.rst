@@ -38,8 +38,35 @@ date.  Negative offsets are before expiry.
 
 The offsets live in one place, ``REMINDER_OFFSETS`` in
 ``backend/apps/reminders/models.py``, and the scanner derives its query from
-them: for kind *k*, the cohort is every membership whose ``ends_on`` equals
-``today - offset(k)``.
+them: for kind *k*, the cohort is every membership whose ``ends_on`` falls in
+the window ending at ``today - offset(k)``.
+
+
+.. _reminders-window:
+
+The catch-up window
+===================
+
+One scan covers three days of expiry dates for each kind, ``WINDOW_DAYS`` in
+``apps/reminders/services.py``, counting back from that kind's own date.  A
+member whose term ends 60 days from today is in the ``t60`` cohort today, and
+is still in it on the next two runs.  A morning the timer never fired, or a run
+that stopped early, is therefore made good the next day rather than stepping
+over a cohort for good.
+
+The window cannot send twice.  ``ReminderLog`` still allows one row per
+``(user, membership, kind)``, so the overlap between consecutive runs is
+skipped as ``already_sent``.  It cannot blur two kinds together either: three
+days is shorter than the seven between ``t7`` and ``expired``, so no membership
+is ever in two cohorts at once.
+
+``expired`` is the exception, listed in ``EXACT_DAY_KINDS``.  "Your membership
+expires today" is untrue the morning after, so a missed ``expired`` is dropped
+rather than sent late; the member gets the ``post30`` note in due course.
+
+Because a reminder can go out behind its nominal date, the day count in the
+subject and body is computed from the dates themselves.  A ``t30`` reminder
+sent two days late says "expires in 28 days", not 30.
 
 
 What the scanner does
@@ -52,9 +79,10 @@ all call it.  In order:
 1. **Expire lapsed terms.**  Every ``Membership`` that is still ``active`` with
    an ``ends_on`` in the past is flipped to ``expired``.  This runs first so
    that the ``post30`` cohort is honestly labeled.
-2. **Walk the five kinds in order.**  For each, select memberships with the
-   matching ``ends_on``, excluding canceled ones.  Lifetime terms have no
-   ``ends_on`` at all, so they never appear.
+2. **Walk the five kinds in order.**  For each, select the memberships whose
+   ``ends_on`` falls in that kind's window (:ref:`reminders-window`), excluding
+   canceled ones.  Lifetime terms have no ``ends_on`` at all, so they never
+   appear.
 3. **Decide whether to send.**  A candidate is skipped, with a reason recorded
    in the summary, when:
 
@@ -78,7 +106,44 @@ all call it.  In order:
 
 The function returns a ``ReminderRun``: the date scanned, whether it was a dry
 run, how many terms were expired, how many emails were sent broken down by
-kind, and how many were skipped broken down by reason.
+kind, how many were skipped broken down by reason, and how many failed broken
+down by kind.
+
+
+When a send fails
+=================
+
+The scan never stops at the first bad address.  Each send is attempted on its
+own, and two outcomes are handled rather than raised:
+
+**The mail server refuses the message** (an ``SMTPException``, or any other
+``OSError`` from the connection).  The transaction rolls back, so no
+``ReminderLog`` row survives and the reminder is still due.  A later run sends
+it only while that member's ``ends_on`` is still inside the kind's window
+(:ref:`reminders-window`), so the retry is the rest of the window and nothing
+more.  For the four windowed kinds the window opens on the kind's own date and
+runs for three days: a send that fails on its first or second day is tried
+again the next morning, and one that fails on the third day — a send that was
+already two days behind — is not, because the next run no longer has that term
+in the cohort.  ``expired`` matches its own day alone, so a failed ``expired``
+send is never retried: once that day is over the cohort is gone and the message
+is not recovered — sending it late would tell the member their membership
+expires today when it expired yesterday.  Their term already reads as expired
+in the portal, and the next thing CalDART sends them is the ``post30`` note.
+The failure is counted in ``failed`` and ``failed_by_kind``, and logged at ERROR
+with the kind, the user id, the membership id and the exception class.
+Addresses are deliberately left out of that line.
+
+**Another run logged the same reminder first**, so the insert hits the unique
+constraint.  That is not a failure: the other run is sending the email.  It is
+logged at WARNING and counted as ``already_sent``.
+
+Either way the scan carries on with the next member and returns its summary.
+``manage.py send_renewal_reminders`` prints the failure count and exits
+non-zero when it is not zero, which is what makes the systemd unit go to
+``failed`` and show up in ``systemctl list-timers`` and the journal.  The
+``POST /system/reminders/run`` payload carries ``{sent, skipped}`` alone, so a
+failure reaches the operator through the log rather than through the response.
 
 
 Running it
@@ -113,10 +178,15 @@ The command prints a structured summary::
   skipped          2
     already_sent   1
     lifetime       1
+  failed           0
   would send 12, skipped 2
 
 A dry run writes nothing at all: no email, no log row, and no membership status
 flips.  It is safe on production.
+
+The command exits 0 when ``failed`` is 0, and 1 with a ``CommandError`` on
+stderr when it is not.  Everything it managed to send is still sent, and the
+summary is still printed; the non-zero status is what the timer notices.
 
 System administrators can also run the scan from ``/portal/system``, with the
 same dry-run switch.  That endpoint is ``POST /system/reminders/run`` and
@@ -161,10 +231,14 @@ Running it by hand is safe at any time::
   sudo systemctl restart caldart-reminders.timer
 
 ``OnCalendar=*-*-* 06:30:00`` moves it to 06:30; ``Mon *-*-* 07:00:00`` makes
-it weekly.  Nothing else has to change — the scanner is date-driven and
-idempotent, so running it more often simply finds nothing new, and running it
-less often risks stepping over a cohort entirely, since a member is only in the
-``t30`` cohort on exactly one day.  That is the reason for ``Persistent=true``.
+it weekly.  The scanner is date-driven and idempotent, so running it more often
+simply finds nothing new.  Keep the cadence daily, though: ``expired`` matches
+its own day alone (:ref:`reminders-window`), so a timer that skips a day drops
+that day's ``expired`` cohort for good.  Only the four windowed kinds tolerate a
+slower timer, and only down to one run every three days, because the window is
+three days wide; a weekly timer misses most of their cohorts as well.  With a
+daily timer, ``Persistent=true`` and the overlap between runs cover a machine
+that was off at 07:00.
 
 **Changing which reminders exist** is a code change: add the kind to
 ``ReminderKind`` and ``REMINDER_OFFSETS``, add a subject to ``SUBJECTS`` in
@@ -200,14 +274,17 @@ Variable               Meaning
 ``contact_email``      ``SiteSettings.contact_email``, may be empty
 ``plan_name``          ``Annual`` or ``Life``
 ``expires_on``         the term's ``ends_on`` date
-``days``               the kind's offset in days, unsigned
+``days``               days between ``today`` and ``expires_on``, unsigned
 ``today``              the date being scanned
 ``renew_url``          ``SITE_URL/portal/renew``
 ``site_url``           ``SITE_URL`` without a trailing slash
 =====================  ====================================================
 
 Subject lines are *not* in the templates; they are in ``SUBJECTS`` in
-``services.py``, keyed by kind, with ``{org}`` substituted.
+``services.py``, keyed by kind, with ``{org}`` and ``{days}`` substituted.
+
+Every kind but ``expired`` states ``days`` in its subject and its body, so the
+wording follows the dates when a reminder goes out behind its nominal day.
 
 House voice: plain, specific, no exclamation marks, no emoji.  Say what expires
 and when, give one link, and stop.
@@ -254,10 +331,16 @@ supported way to re-send one to a member who never received it.
 Testing
 =======
 
-``backend/tests/test_reminders.py`` covers the scanner: each kind on its exact
-offset and silence a day either side, dedupe across runs, the expiry flip, the
-dry run writing nothing, lifetime and deactivated members being skipped, early
+``backend/tests/test_reminders.py`` covers the scanner: each kind on its own
+offset and silence a day early, dedupe across runs, the expiry flip, the dry
+run writing nothing, lifetime and deactivated members being skipped, early
 renewals being skipped, and the rendered content of every template.
+``backend/tests/test_reminders_resilience.py`` covers the edges of the window,
+one and two days late sending and three days late not, ``expired`` never going
+out late, the day count in a late email, and the failure paths: a locmem
+backend that refuses one address, the log line that names ids and no address,
+a log row written under the scan to stand in for a racing run, and a failed
+``expired`` send that the next day's run leaves alone.
 ``backend/tests/test_reminders_api.py`` covers the endpoints and their role
 matrix.  Dates are pinned with ``freezegun`` where the code reads the clock,
 and passed explicitly everywhere else.

@@ -2,9 +2,9 @@
 
 Hello {{ first_name }},
 
-Your {{ plan_name }} membership lapsed on {{ expires_on|date:"F j, Y" }}, a month
-ago today. Your profile, your aircraft and your DART are all still on file,
-exactly as you left them.
+Your {{ plan_name }} membership lapsed on {{ expires_on|date:"F j, Y" }},
+{{ days }} days ago. Your profile, your aircraft and your DART are all still
+on file, exactly as you left them.
 
 Rejoining restores your access straight away — there is no penalty for the gap
 and no forms to fill in twice:
