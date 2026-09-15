@@ -18,6 +18,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsAccountAdmin
 from apps.accounts.roles import SYSTEM_ADMIN
+from apps.accounts.services import effective_roles
 from apps.members.api.admin_filters import (
     MemberAdminFilterSet,
     MemberOrderingFilter,
@@ -82,18 +83,24 @@ class MemberAdminDetailView(MemberAdminBaseView, generics.RetrieveUpdateDestroyA
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = MemberUpdateSerializer(instance, data=request.data, partial=True)
+        serializer = MemberUpdateSerializer(
+            instance, data=request.data, partial=True, context=self.get_serializer_context()
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(MemberDetailSerializer(self.get_queryset().get(pk=instance.pk)).data)
 
     def perform_destroy(self, instance):
-        """Hard delete.  Nobody may delete themselves; only a system admin may delete one."""
+        """Hard delete.  Nobody may delete themselves; only a system admin may delete one.
+
+        Both sides are judged on effective roles, so a Django superuser counts as a
+        system administrator whether or not the role group was ever added.
+        """
         caller = self.request.user
         if instance.pk == caller.pk:
             raise PermissionDenied("You cannot delete your own account.")
-        caller_is_system_admin = caller.is_superuser or SYSTEM_ADMIN in caller.roles
-        if SYSTEM_ADMIN in instance.roles and not caller_is_system_admin:
+        target_is_system_admin = SYSTEM_ADMIN in effective_roles(instance)
+        if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(caller):
             raise PermissionDenied("Only a system administrator can delete a system administrator.")
         instance.delete()
 

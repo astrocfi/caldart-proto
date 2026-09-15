@@ -8,7 +8,14 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.accounts.roles import ROLE_SLUGS, SYSTEM_ADMIN
-from apps.accounts.services import user_from_uid
+from apps.accounts.services import (
+    PROTECTED_ACCOUNT_FIELDS,
+    AccountEditRefused,
+    check_account_edit,
+    effective_roles,
+    may_edit_protected_fields,
+    user_from_uid,
+)
 
 User = get_user_model()
 
@@ -78,6 +85,28 @@ def run_password_validators(password: str, user=None, *, field: str | None = Non
         messages = list(error.messages)
         raise serializers.ValidationError({field: messages} if field else messages) from error
     return password
+
+
+def guard_account_edit(actor, target, changes: dict) -> None:
+    """The account-edit guard as a serializer rule.
+
+    Call it from ``validate()`` on any serializer that writes an account's email
+    address or active flag.  A refusal becomes a field-keyed 400, so the complaint
+    lands on the input it came from, exactly as the ``system_admin`` role guard does.
+
+    A value that does not really alter the account is not a refusal, but on a record
+    whose protected fields the actor may not write it is dropped from ``changes``
+    rather than saved: an address resent in another case would otherwise rewrite the
+    stored one.  A caller who may write these fields saves exactly what they sent.
+    """
+    try:
+        check_account_edit(actor, target, changes)
+    except AccountEditRefused as error:
+        raise serializers.ValidationError({error.field: [error.message]}) from error
+
+    if not may_edit_protected_fields(actor, target):
+        for field in PROTECTED_ACCOUNT_FIELDS:
+            changes.pop(field, None)
 
 
 class LoginSerializer(serializers.Serializer):
@@ -164,12 +193,43 @@ class RoleSerializer(serializers.Serializer):
     description = serializers.CharField()
 
 
+def _writes_roles(target, wanted: set[str]) -> bool:
+    """True when writing ``wanted`` would alter ``target``'s role groups.
+
+    A list matching the groups the account already holds is not a write at all, so the
+    administration form may resend it with every save.  ``None`` as the target is an
+    account that does not exist yet, which any list writes.
+    """
+    return target is None or wanted != set(target.roles)
+
+
+def _moves_system_admin(target, wanted: set[str]) -> bool:
+    """True when writing ``wanted`` to ``target`` would move the ``system_admin`` role.
+
+    Writing a role list rebuilds the Django flags from that list alone, so the two
+    directions are measured against different sets.  A write grants the role when it
+    ticks ``system_admin`` on an account whose groups lack it, and revokes it when it
+    leaves the box unticked on an account that counts as a system administrator --
+    which a ``createsuperuser`` account does, on the superuser flag alone.
+    """
+    if target is None:
+        return SYSTEM_ADMIN in wanted
+    if SYSTEM_ADMIN in wanted:
+        return SYSTEM_ADMIN not in target.roles
+    return SYSTEM_ADMIN in effective_roles(target)
+
+
 class AdminUserSerializer(UserSerializer):
     """``/admin/users``: the ``user`` shape, partly writable.
 
-    ``roles`` is validated against ``accounts.roles``; the escalation rule —
-    only a ``system_admin`` may grant or revoke ``system_admin`` — lives here
-    because it needs both the caller and the target.
+    ``roles`` is validated against ``accounts.roles``; the escalation rules — only a
+    ``system_admin`` may move ``system_admin``, and the email address and active flag
+    of an account holding roles the caller lacks are untouchable — live here because
+    they need both the caller and the target.  A Django superuser without the role
+    group counts as a ``system_admin`` on either side of both rules.  The portal posts
+    the whole form on every save, so a field carrying the value the account already
+    has is not a change and is judged as none: that holds for the role list as much as
+    for the email address, and such a list is not written at all.
     """
 
     roles = serializers.ListField(
@@ -202,20 +262,23 @@ class AdminUserSerializer(UserSerializer):
             raise serializers.ValidationError("Another account already uses that email address.")
         return value
 
-    def validate_is_active(self, value: bool) -> bool:
-        if not value and self.instance is not None and self.instance == self._actor:
-            raise serializers.ValidationError("You cannot deactivate your own account.")
-        return value
-
     def validate_roles(self, value: list[str]) -> list[str]:
         wanted = set(value)
-        held = set(self.instance.roles) if self.instance is not None else set()
-        if SYSTEM_ADMIN in wanted ^ held and not self._actor.has_role(SYSTEM_ADMIN):
+        is_refused = (
+            _writes_roles(self.instance, wanted)
+            and _moves_system_admin(self.instance, wanted)
+            and SYSTEM_ADMIN not in effective_roles(self._actor)
+        )
+        if is_refused:
             raise serializers.ValidationError(
                 "Only a system administrator can grant or revoke the system_admin role."
             )
         # Keep the canonical privilege order rather than whatever came in.
         return [slug for slug in ROLE_SLUGS if slug in wanted]
+
+    def validate(self, attrs: dict) -> dict:
+        guard_account_edit(self._actor, self.instance, attrs)
+        return attrs
 
     def update(self, instance, validated_data: dict):
         from apps.accounts.services import sync_django_flags
@@ -223,7 +286,10 @@ class AdminUserSerializer(UserSerializer):
         roles = validated_data.pop("roles", None)
         for field, value in validated_data.items():
             setattr(instance, field, value)
-        if roles is not None:
+        # `sync_django_flags` rebuilds `is_superuser` from the list alone, so writing a
+        # list the account already holds would quietly strip a `createsuperuser` account
+        # of its access on a save that meant to correct a name.
+        if roles is not None and _writes_roles(instance, set(roles)):
             instance.set_roles(roles)
             sync_django_flags(instance)
         instance.save()

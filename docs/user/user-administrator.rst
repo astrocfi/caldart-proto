@@ -25,13 +25,25 @@ Correct names and email addresses          Delete an account
 Send a password reset link                 Read or set anyone's password
 =========================================  ================================
 
-Two rules are enforced by the server, not just hidden in the interface:
+Three rules are enforced by the server, not just hidden in the interface:
 
 * **You cannot deactivate your own account.**  The switch is disabled on your
   own record, and the API refuses it even if you go around the interface.
 * **Only a system administrator may move the ``system_admin`` role.**  As a user
   administrator you can edit every other role on a system administrator's
   account, but you cannot grant that role to anyone or take it away.
+* **You cannot change the email address or the Active box of an account that
+  holds a role you do not hold.**  Any role counts, not just the administrative
+  ones: a user administrator may move a plain member's address, or another user
+  administrator's, but not a DART leader's, a website administrator's, an
+  account administrator's or a system administrator's.  Names are not covered:
+  you can correct anybody's spelling.
+
+The last of those judges the save in front of it, not the person making it.
+Roles are yours to grant, so on every role but ``system_admin`` you can lift the
+refusal yourself — tick the missing role on your own account and save.  The
+account you genuinely cannot touch is a system administrator's, because the rule
+above it keeps ``system_admin`` out of your hands in both directions.
 
 
 Finding an account
@@ -70,6 +82,21 @@ form.  The email address is also the login, so tell the person you have changed
 it.  Addresses are unique regardless of case: if another account already uses
 the address you type, the form says so and saves nothing.
 
+An address you may not move is refused for a different reason.  The email
+address is where a password reset link goes, so moving somebody's address is
+enough to take their account over, and the server allows it only when you
+already hold every role that account holds — every role, ``dart_leader`` and
+``website_admin`` as much as the administrative ones.  Granting roles is your
+job, so for every role but ``system_admin`` the missing role is one you can give
+yourself: tick it in the Roles section below, save, and the address is yours to
+move.  Take the refusal as a prompt to be sure you are moving the address of the
+person you think you are, and to leave a colleague's account to them.  Only
+``system_admin`` is beyond you, because only a system administrator may move
+that role: a system administrator's account — including one carrying Django
+superuser access without the role — stays out of reach until one of them makes
+the change.  The same applies to the Active box; names are free to edit either
+way.
+
 Roles
 -----
 
@@ -89,7 +116,13 @@ Things worth knowing:
   screens.
 * ``system_admin`` implies every other role in permission checks, and also makes
   the account a Django superuser.  Grant it sparingly.
-* Removing ``system_admin`` takes the superuser flag away again.
+* Removing ``system_admin`` takes the superuser flag away again.  An account
+  that has the flag but never had the role — the one the site was installed
+  with, typically — counts as a system administrator all the same, so only a
+  system administrator can change its ticks: leaving the role unticked would
+  take that access away, and ticking it is granting the role.  Leave them as
+  you found them and the form still saves — a name correction on such an
+  account goes through like any other.
 * ``website_admin`` is what opens the Wagtail admin at ``/admin/``.  Saving it
   sets the account's Django "staff" flag, and removing it clears the flag
   again — so granting the role is the whole job, and there is nothing else to
@@ -159,9 +192,12 @@ When something goes wrong
 =========================
 
 **"Only a system administrator can grant or revoke the system_admin role."**
-   Exactly what it says, and holding the Django superuser flag is not a
-   substitute — the check asks for the role itself.  Ask a system
-   administrator.
+   Exactly what it says.  Ask a system administrator.  You will also see it when
+   you change any tick on an account that carries Django superuser access
+   without the role: saving a changed Roles section rebuilds that access from the
+   ticked boxes, so the change would either take the access away or grant the
+   role outright.  Put the ticks back as you found them and the save goes
+   through; a name correction was never the part it objected to.
 
 **"You cannot deactivate your own account."**
    Deliberate, so the last administrator cannot lock everybody out by
@@ -170,6 +206,19 @@ When something goes wrong
 **The email address will not save.**
    Another account already uses it, case ignored.  Search for that address:
    you have probably found the duplicate account you were looking for.
+
+**"You cannot change the email address of an account that holds roles you do not hold."**
+   The account carries a role you do not have — ``dart_leader``,
+   ``website_admin``, ``account_admin`` or ``system_admin`` — and moving an
+   address is enough to take an account over, so the server reserves it for
+   somebody who already holds every role that account holds.  On the first
+   three, grant yourself what is missing: tick the role in the Roles section of
+   your own record, save, and make the change.  Only ``system_admin`` is beyond
+   you, so an account holding it — including one carrying Django superuser
+   access without the role — needs a system administrator to make the change.
+   The Active box answers "You cannot activate or deactivate an account that
+   holds roles you do not hold." for the same reason and lifts the same way,
+   and neither refusal changes anything on the record.
 
 **Send password reset is grayed out.**
    The account is deactivated.  Tick **Active**, save, then send the link.
