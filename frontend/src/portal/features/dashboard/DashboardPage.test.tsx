@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API, makeUser, signedInAs } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
@@ -12,7 +12,10 @@ import type {
   SiteConfig,
   User,
 } from '../../api/types';
+import { EXPIRING_WINDOW_DAYS } from '../../components/StatusChip';
 import { DashboardPage } from './DashboardPage';
+
+const NOW = new Date('2026-06-15T12:00:00Z');
 
 const SITE_CONFIG: SiteConfig = {
   org_name: 'CalDART',
@@ -22,11 +25,14 @@ const SITE_CONFIG: SiteConfig = {
   members_pages: [],
 };
 
-/** A date far enough out that the dashboard is calm about it. */
+/** `NOW` plus `days`, as a local calendar date, the way `daysUntil` reads it. */
 function isoIn(days: number): string {
-  const date = new Date();
+  const date = new Date(NOW);
   date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function membership(status: MembershipStatus): MembershipDetail {
@@ -92,7 +98,13 @@ const LIFETIME: MembershipStatus = {
 
 describe('<DashboardPage/>', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(NOW);
     server.use(http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('greets a current member and offers a quiet renewal', async () => {
@@ -112,6 +124,24 @@ describe('<DashboardPage/>', () => {
     const status = card('Your membership is current');
     expect(status.getByText('Expiring soon')).toHaveAttribute('data-tone', 'expiring');
     expect(status.getByRole('link', { name: 'Renew' })).not.toHaveClass('button--secondary');
+  });
+
+  it('is still current one day outside the expiring window', async () => {
+    const status: MembershipStatus = { ...CURRENT, expires_on: isoIn(EXPIRING_WINDOW_DAYS + 1) };
+    mount({ user: makeUser({ membership: status }), status });
+
+    await screen.findByRole('heading', { name: 'Your membership is current' });
+    const chip = card('Your membership is current');
+    expect(chip.getByText('Current')).toHaveAttribute('data-tone', 'current');
+  });
+
+  it('is expiring soon one day inside the expiring window', async () => {
+    const status: MembershipStatus = { ...CURRENT, expires_on: isoIn(EXPIRING_WINDOW_DAYS - 1) };
+    mount({ user: makeUser({ membership: status }), status });
+
+    await screen.findByRole('heading', { name: 'Your membership is current' });
+    const chip = card('Your membership is current');
+    expect(chip.getByText('Expiring soon')).toHaveAttribute('data-tone', 'expiring');
   });
 
   it('leads with "Renew now" once the membership has expired', async () => {
