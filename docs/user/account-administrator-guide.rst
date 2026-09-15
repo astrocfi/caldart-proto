@@ -293,7 +293,7 @@ When something goes wrong
    Ask a system administrator, or deactivate the account instead — which keeps
    the history and locks them out just as effectively.
 
-**"… has N payment records, which must be kept.  Deactivate the account instead."**
+**"… has N payment records, which must be kept. Deactivate the account instead."**
    The Danger zone hides the delete form for a member who has paid, so this
    answer only comes back when a payment landed while you had the page open.
    Reload the record and deactivate instead.

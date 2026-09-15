@@ -275,10 +275,12 @@ themselves rather than told about their payments.
 
 The payment guard keeps the financial record: a payment is revenue or a
 donation, and the accounts must not change after the fact.  It counts every
-payment, ``pending`` and ``failed`` rows included, and the refusal reads
-``"<name> has N payment record(s), which must be kept.  Deactivate the account
-instead."``  Nothing is written — the payments, the profile and the membership
-terms are all still there afterwards.
+payment, ``pending`` and ``failed`` rows included, and the ``detail`` reads::
+
+   Ana Bracco has 3 payment records, which must be kept. Deactivate the account instead.
+
+with ``payment record`` singular for a count of one.  Nothing is written — the
+payments, the profile and the membership terms are all still there afterwards.
 
 ``Payment.user`` is ``PROTECT`` (:doc:`data-model`), so the protection is on
 the foreign key rather than on this view alone: the Django admin, a management
