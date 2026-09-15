@@ -34,6 +34,7 @@ from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import register_user, send_password_reset_email
 from apps.accounts.throttling import LoginThrottle, PasswordResetThrottle, RegisterThrottle
+from apps.members.services import with_membership
 
 User = get_user_model()
 
@@ -179,8 +180,12 @@ class RolesView(APIView):
 # Users admin — user_admin, and system_admin by implication
 # --------------------------------------------------------------------------
 def admin_user_queryset():
-    """Every user, with the rows the ``user`` payload needs already loaded."""
-    return User.objects.select_related("profile").prefetch_related("groups").all()
+    """Every user, with the rows the ``user`` payload needs already loaded.
+
+    The membership annotations are worked out for the date this is called, so
+    both views below build the queryset per request rather than once at import.
+    """
+    return with_membership(User.objects.select_related("profile").prefetch_related("groups"))
 
 
 class AdminUserListView(generics.ListAPIView):
@@ -188,12 +193,14 @@ class AdminUserListView(generics.ListAPIView):
 
     permission_classes = [IsUserAdmin]
     serializer_class = AdminUserSerializer
-    queryset = admin_user_queryset()
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = UserFilter
     search_fields = ["first_name", "last_name", "email"]
     ordering_fields = ["last_name", "first_name", "email", "is_active", "created_at"]
     ordering = ["last_name", "first_name", "email"]
+
+    def get_queryset(self):
+        return admin_user_queryset()
 
 
 class AdminUserDetailView(generics.RetrieveUpdateAPIView):
@@ -201,8 +208,10 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView):
 
     permission_classes = [IsUserAdmin]
     serializer_class = AdminUserSerializer
-    queryset = admin_user_queryset()
     http_method_names = ["get", "patch", "head", "options"]
+
+    def get_queryset(self):
+        return admin_user_queryset()
 
 
 class AdminUserSendPasswordResetView(APIView):

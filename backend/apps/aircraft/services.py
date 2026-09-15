@@ -15,7 +15,12 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from apps.aircraft.models import Aircraft, normalize_n_number
-from apps.members.services import membership_status
+from apps.members.services import (
+    membership_of,
+    membership_payload,
+    membership_status,
+    with_membership,
+)
 
 User = get_user_model()
 
@@ -40,7 +45,11 @@ def looks_like_registration(term: str) -> bool:
 
 
 def search_members(query: str, limit: int = SEARCH_LIMIT) -> QuerySet:
-    """Members matching ``query`` by name, email, or an aircraft N-number."""
+    """Members matching ``query`` by name, email, or an aircraft N-number.
+
+    Every row carries the membership annotations, so :func:`search_result`
+    reads a status without a query per person.
+    """
     term = (query or "").strip()
     if not term:
         return User.objects.none()
@@ -59,12 +68,12 @@ def search_members(query: str, limit: int = SEARCH_LIMIT) -> QuerySet:
         matches |= Q(profile__aircraft__n_number=normalize_n_number(term))
         matches |= Q(profile__aircraft__n_number__icontains=_cleaned(term))
 
-    return (
+    return with_membership(
         User.objects.filter(matches)
         .select_related("profile", "profile__dart")
         .distinct()
-        .order_by("last_name", "first_name", "email")[:limit]
-    )
+        .order_by("last_name", "first_name", "email")
+    )[:limit]
 
 
 def search_result(user) -> dict:
@@ -76,7 +85,7 @@ def search_result(user) -> dict:
         "name": user.display_name,
         "email": user.email,
         "dart": dart.name if dart is not None else None,
-        "membership_status": membership_status(user)["status"],
+        "membership_status": membership_of(user)["status"],
     }
 
 
@@ -119,19 +128,23 @@ def leader_status(user) -> dict:
 
 
 def aircraft_pilots(aircraft: Aircraft) -> list[dict]:
-    """The members who list ``aircraft`` among the planes they commonly fly."""
-    profiles = aircraft.pilots.select_related("user").order_by(
-        "user__last_name", "user__first_name"
-    )
+    """The members who list ``aircraft`` among the planes they commonly fly.
+
+    One query whatever the number of pilots: the membership annotations ride
+    along with the row.
+    """
+    pilots = with_membership(
+        User.objects.filter(profile__aircraft=aircraft).select_related("profile")
+    ).order_by("last_name", "first_name")
     return [
         {
-            "user_id": profile.user_id,
-            "name": profile.display_name,
-            "email": profile.user.email,
-            "membership_status": membership_status(profile.user)["status"],
-            "medical_is_current": profile.medical_is_current,
+            "user_id": user.pk,
+            "name": user.display_name,
+            "email": user.email,
+            "membership_status": membership_payload(user)["status"],
+            "medical_is_current": user.profile.medical_is_current,
         }
-        for profile in profiles
+        for user in pilots
     ]
 
 
