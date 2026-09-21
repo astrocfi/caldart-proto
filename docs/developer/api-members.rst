@@ -118,7 +118,10 @@ Filters
    does not include a system administrator who lacks the ``member`` group.
 ``expiring_within``
    A number of days.  Selects current members whose computed expiry falls on
-   or before ``today + N``.  Lifetime members are never matched.
+   or before ``today + N``.  Lifetime members are never matched.  ``N`` is
+   clamped to ``0..3650`` (ten years): a negative value behaves like ``0``,
+   and a value past the limit like the limit, so an oversized or negative
+   query string never produces a server error.
 ``is_active``
    ``true`` or ``false``.
 

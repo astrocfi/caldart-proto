@@ -25,6 +25,12 @@ from apps.members.services import with_membership
 
 User = get_user_model()
 
+#: Longest "expiring within" window this filter will answer.  Matches
+#: ``apps.aircraft.services.MAX_EXPIRING_WINDOW_DAYS``; clamping to it keeps
+#: ``today + timedelta(days=n)`` from raising ``OverflowError`` -- a 500 -- on
+#: an absurd query string.
+MAX_EXPIRING_WINDOW_DAYS = 3650
+
 
 def derived_annotations() -> dict:
     """What this list needs on top of the membership annotations.
@@ -126,11 +132,15 @@ class MemberAdminFilterSet(django_filters.FilterSet):
         return queryset.filter(groups__name=value)
 
     def filter_expiring_within(self, queryset, name, value):
-        """Current members whose computed expiry falls in the next N days."""
+        """Current members whose computed expiry falls in the next N days.
+
+        ``value`` is clamped to ``0..MAX_EXPIRING_WINDOW_DAYS`` before use, so a
+        negative or absurdly large window never raises ``OverflowError``.
+        """
         if value is None:
             return queryset
-        days = int(value)
-        cutoff = timezone.localdate() + timedelta(days=days)
+        window = min(max(int(value), 0), MAX_EXPIRING_WINDOW_DAYS)
+        cutoff = timezone.localdate() + timedelta(days=window)
         return queryset.filter(
             covers_today=True, coverage_end__isnull=False, coverage_end__lte=cutoff
         )
