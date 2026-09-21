@@ -7,13 +7,47 @@ then the two portal actions every visitor needs.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
+from django.db.models import QuerySet
 from django.http import HttpRequest
 from wagtail.models import Page, Site
 
+from apps.accounts.models import User
 from apps.accounts.roles import SYSTEM_ADMIN, WEBSITE_ADMIN
 
+if TYPE_CHECKING:
+    from apps.cms.models import SiteSettings
 
-def site_chrome(request: HttpRequest) -> dict:
+
+class NavEntry(TypedDict):
+    """One entry of the top navigation."""
+
+    title: str
+    url: str
+    active: bool
+    kind: str
+
+
+class SiteChrome(TypedDict):
+    """The template context every server-rendered page shares."""
+
+    site_settings: SiteSettings | None
+    theme: str
+    nav: list[NavEntry]
+    can_preview_theme: bool
+
+
+def site_chrome(request: HttpRequest) -> SiteChrome:
+    """The chrome context for ``request``.
+
+    ``site_settings`` is the settings row, or ``None`` before ``migrate`` has
+    created the site.  ``theme`` falls back to ``sierra`` when the row is missing
+    or its theme is blank.  ``nav`` is the same list ``build_nav`` returns, and
+    ``can_preview_theme`` says whether the reader may override the theme with
+    ``?theme=``.
+    """
     from apps.cms.models import DEFAULT_THEME, get_site_settings
 
     settings_obj = get_site_settings(request)
@@ -26,32 +60,45 @@ def site_chrome(request: HttpRequest) -> dict:
     }
 
 
-def can_preview_theme(user) -> bool:
-    """Website and system administrators may preview a theme with ``?theme=``."""
-    if user is None or not getattr(user, "is_authenticated", False):
+def can_preview_theme(user: User | AnonymousUser | None) -> bool:
+    """Website and system administrators may preview a theme with ``?theme=``.
+
+    ``None`` and anonymous visitors are refused, as is a signed-in account holding
+    neither role.  Superusers are always allowed.
+    """
+    if user is None or not user.is_authenticated:
         return False
-    if getattr(user, "is_superuser", False):
+    if user.is_superuser:
         return True
-    has_any_role = getattr(user, "has_any_role", None)
-    return bool(has_any_role and has_any_role(WEBSITE_ADMIN, SYSTEM_ADMIN))
+    return user.has_any_role(WEBSITE_ADMIN, SYSTEM_ADMIN)
 
 
-def menu_pages(request: HttpRequest):
-    """Live top-level pages flagged *show in menus*, in tree order."""
+def menu_pages(request: HttpRequest) -> QuerySet[Page]:
+    """Live top-level pages flagged *show in menus*, in tree order.
+
+    Only the children of the site's root page are listed, and only those that are
+    live, public and flagged for menus.  An empty queryset comes back when
+    ``request`` matches no Wagtail site, or that site has no root page.
+    """
     site = Site.find_for_request(request)
     root = site.root_page if site else None
     if root is None:
-        return Page.objects.none()
-    return Page.objects.child_of(root).live().public().in_menu().order_by("path")
+        empty: QuerySet[Page] = Page.objects.none()
+        return empty
+    pages: QuerySet[Page] = Page.objects.child_of(root).live().public().in_menu().order_by("path")
+    return pages
 
 
-def build_nav(request: HttpRequest) -> list[dict]:
+def build_nav(request: HttpRequest) -> list[NavEntry]:
     """Top navigation entries.
 
     Wagtail pages come first as ``kind="page"``; the portal links follow as
-    ``kind="portal"`` so the template can set them apart as actions.
+    ``kind="portal"`` so the template can set them apart as actions.  Join is
+    always offered; the second portal link is Members for a signed-in reader and
+    Log in for everybody else.  An entry is ``active`` when the request path
+    starts with its URL, which never marks the home page's own ``/``.
     """
-    entries: list[dict] = [
+    entries: list[NavEntry] = [
         {"title": page.title, "url": page.url, "active": False, "kind": "page"}
         for page in menu_pages(request)
     ]

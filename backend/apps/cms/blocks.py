@@ -9,6 +9,8 @@ the editor for everybody else.
 
 from __future__ import annotations
 
+from typing import Any
+
 from django.utils.text import slugify
 from wagtail import blocks
 from wagtail.documents.blocks import DocumentChooserBlock
@@ -35,7 +37,12 @@ RESTRICTED_BLOCK_TYPES: tuple[str, ...] = ("raw_html",)
 
 
 def heading_anchor(text: str) -> str:
-    """The ``id`` a heading block renders with, and its "on this page" link."""
+    """The ``id`` a heading block renders with, and its "on this page" link.
+
+    The heading text slugified and cut to 60 characters, so "Who we need" becomes
+    ``who-we-need``.  Text that slugifies to nothing, such as punctuation alone,
+    gives ``section``.
+    """
     return slugify(text)[:60] or "section"
 
 
@@ -54,8 +61,11 @@ class HeadingBlock(blocks.StructBlock):
         label = "Heading"
         template = "cms/blocks/heading.html"
 
-    def get_context(self, value, parent_context=None):
-        context = super().get_context(value, parent_context=parent_context)
+    def get_context(
+        self, value: blocks.StructValue, parent_context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """The block's template context plus ``anchor``, the heading's ``id``."""
+        context: dict[str, Any] = super().get_context(value, parent_context=parent_context)
         context["anchor"] = heading_anchor(value["text"])
         return context
 
@@ -63,7 +73,12 @@ class HeadingBlock(blocks.StructBlock):
 class ParagraphBlock(blocks.RichTextBlock):
     """Body copy, held to a readable measure by the template."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
+        """Build the block, defaulting its rich-text features to the body set.
+
+        A caller that passes ``features`` keeps it; every other keyword argument
+        goes straight to Wagtail's rich-text block.
+        """
         kwargs.setdefault("features", RICH_TEXT_FEATURES)
         super().__init__(**kwargs)
 
@@ -131,7 +146,13 @@ class CTABlock(blocks.StructBlock):
         label = "Call to action"
         template = "cms/blocks/cta.html"
 
-    def clean(self, value):
+    def clean(self, value: blocks.StructValue) -> blocks.StructValue:
+        """Validate the block, requiring a destination.
+
+        Raises ``StructBlockValidationError`` with the message "Choose a page or
+        enter a URL." when neither ``page`` nor ``url`` is filled in.  Returns the
+        cleaned value when either one is.
+        """
         value = super().clean(value)
         if not value.get("page") and not value.get("url"):
             raise blocks.StructBlockValidationError(
@@ -139,8 +160,15 @@ class CTABlock(blocks.StructBlock):
             )
         return value
 
-    def get_context(self, value, parent_context=None):
-        context = super().get_context(value, parent_context=parent_context)
+    def get_context(
+        self, value: blocks.StructValue, parent_context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """The block's template context plus ``href``, where the button points.
+
+        A chosen page wins over a typed URL, the typed URL is used when there is no
+        page, and ``#`` stands in when the chosen page has no URL of its own.
+        """
+        context: dict[str, Any] = super().get_context(value, parent_context=parent_context)
         page = value.get("page")
         context["href"] = (page.url if page is not None else "") or value.get("url") or "#"
         return context
@@ -233,9 +261,14 @@ class ConceptStreamBlock(blocks.StreamBlock):
         required = False
 
 
-def stream_headings(value) -> list[dict]:
-    """Top-level H2 ``heading`` blocks of ``value``, for the "on this page" rail."""
-    found: list[dict] = []
+def stream_headings(value: blocks.StreamValue | None) -> list[dict[str, str]]:
+    """Top-level H2 ``heading`` blocks of ``value``, for the "on this page" rail.
+
+    Each entry is ``{"text", "anchor"}``, in the order the blocks appear.  Blocks
+    of any other type, H3 headings, and headings nested inside another block are
+    all skipped, and ``None`` gives an empty list.
+    """
+    found: list[dict[str, str]] = []
     for child in value or []:
         if child.block_type != "heading" or child.value.get("level") != "h2":
             continue

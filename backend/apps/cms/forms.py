@@ -9,25 +9,37 @@ knows both the user and the field.
 
 from __future__ import annotations
 
+from typing import Any
+
+from django.contrib.auth.models import AnonymousUser
 from wagtail.admin.forms import WagtailAdminPageForm
 from wagtail.blocks import BlockWidget, StreamBlock
 
+from apps.accounts.models import User
 from apps.accounts.roles import WEBSITE_ADMIN
 from apps.cms.blocks import RESTRICTED_BLOCK_TYPES
 
 
-def can_use_raw_html(user) -> bool:
-    """Only superusers and ``website_admin`` may paste unescaped HTML."""
-    if user is None or not getattr(user, "is_authenticated", False):
+def can_use_raw_html(user: User | AnonymousUser | None) -> bool:
+    """Only superusers and ``website_admin`` may paste unescaped HTML.
+
+    ``None`` and anonymous visitors are refused, as is a signed-in account that
+    holds neither the role nor superuser status.  ``system_admin`` counts, because
+    it implies every role.
+    """
+    if user is None or not user.is_authenticated:
         return False
-    if getattr(user, "is_superuser", False):
+    if user.is_superuser:
         return True
-    has_role = getattr(user, "has_role", None)
-    return bool(has_role and has_role(WEBSITE_ADMIN))
+    return user.has_role(WEBSITE_ADMIN)
 
 
 def _without_restricted_blocks(block: StreamBlock) -> StreamBlock:
-    """A copy of ``block`` with every :data:`RESTRICTED_BLOCK_TYPES` child gone."""
+    """A copy of ``block`` with every :data:`RESTRICTED_BLOCK_TYPES` child gone.
+
+    The copy keeps the original's ``required`` setting and the order of the child
+    blocks that survive.  ``block`` itself is not modified.
+    """
     allowed = [
         (name, child)
         for name, child in block.child_blocks.items()
@@ -43,7 +55,14 @@ class RestrictedBlocksPageForm(WagtailAdminPageForm):
     field's block and widget here affects this editing session only.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Build the page form, dropping restricted blocks the editor may not use.
+
+        The form is unchanged for an editor who passes ``can_use_raw_html``.  For
+        anybody else every StreamField on the form is rebuilt without its
+        restricted child blocks, so the editor is never offered them; a field whose
+        block has none is left alone.
+        """
         super().__init__(*args, **kwargs)
         if can_use_raw_html(self.for_user):
             return

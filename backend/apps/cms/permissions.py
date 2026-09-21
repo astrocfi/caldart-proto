@@ -20,9 +20,31 @@ models; every query is written against plain fields for that reason.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, Protocol
+
 from django.apps import apps as django_apps
+from django.contrib.auth.models import Group, Permission
 
 from apps.accounts.roles import WEBSITE_ADMIN
+
+if TYPE_CHECKING:
+    from django.apps.registry import Apps
+    from django.core.management.base import OutputWrapper
+
+
+class ModelGetter(Protocol):
+    """How a registry hands over a model class: ``get_model(app_label, model_name)``.
+
+    Both the live app registry and the historical one a data migration carries
+    answer this call, which is why the functions below take a registry rather than
+    importing the models directly.  A historical model class is built at migration
+    time and has no static type, so the class comes back unchecked.
+    """
+
+    def __call__(self, app_label: str, model_name: str) -> type[Any]:
+        """Return the model class registered as ``app_label.model_name``."""
+        ...
+
 
 #: Page permissions granted on the tree root, in Wagtail's own naming.
 PAGE_PERMISSION_TYPES: tuple[str, ...] = (
@@ -72,56 +94,76 @@ PERMISSION_NAMES: dict[str, str] = {
 }
 
 
-def _permission(models, app_label: str, model: str, codename: str):
+def _permission(models: ModelGetter, app_label: str, model: str, codename: str) -> Permission:
     """Fetch (or create) one ``auth.Permission`` row.
+
+    The row is looked up by content type and ``codename``; a row created here is
+    named from :data:`PERMISSION_NAMES`, falling back to the codename with its
+    underscores turned into spaces.  The content type is created too when it is
+    missing.
 
     ``get_or_create`` rather than ``get`` because this also runs from a data
     migration, and Django only creates the permission rows in a ``post_migrate``
     handler that has not fired yet.  Django's own creation step skips codenames
     that already exist, so pre-creating them here is safe.
     """
-    Permission = models("auth", "Permission")
-    ContentType = models("contenttypes", "ContentType")
+    permission_model = models("auth", "Permission")
+    content_type_model = models("contenttypes", "ContentType")
 
-    content_type, _ = ContentType.objects.get_or_create(app_label=app_label, model=model)
-    permission, _ = Permission.objects.get_or_create(
+    content_type, _ = content_type_model.objects.get_or_create(app_label=app_label, model=model)
+    permission: Permission = permission_model.objects.get_or_create(
         content_type=content_type,
         codename=codename,
         defaults={"name": PERMISSION_NAMES.get(codename, codename.replace("_", " ").capitalize())},
-    )
+    )[0]
     return permission
 
 
-def grant_website_admin_permissions(apps=None, *, stdout=None):
-    """Give the ``website_admin`` group its Wagtail rights.  Idempotent."""
+def grant_website_admin_permissions(
+    apps: Apps | None = None, *, stdout: OutputWrapper | None = None
+) -> Group:
+    """Give the ``website_admin`` group its Wagtail rights.  Idempotent.
+
+    Returns the group, creating it if it does not exist yet.  It gains the model
+    permissions in :data:`MODEL_PERMISSIONS`, the page permissions in
+    :data:`PAGE_PERMISSION_TYPES` on the tree root, and the collection permissions
+    in :data:`COLLECTION_PERMISSIONS` on the root collection.  A missing tree root
+    or root collection simply skips that half of the grant, so the call still
+    succeeds on an empty database.  Permissions the group already holds are left
+    as they are, and none is ever taken away.
+
+    ``apps`` is a historical app registry, which a data migration passes so the
+    grant runs against the models of its own moment; the live registry is used
+    without one.  With ``stdout``, one line confirming the grant is written to it.
+    """
     registry = apps or django_apps
-    models = registry.get_model
+    models: ModelGetter = registry.get_model
 
-    Group = models("auth", "Group")
-    Page = models("wagtailcore", "Page")
-    Collection = models("wagtailcore", "Collection")
-    GroupPagePermission = models("wagtailcore", "GroupPagePermission")
-    GroupCollectionPermission = models("wagtailcore", "GroupCollectionPermission")
+    group_model = models("auth", "Group")
+    page_model = models("wagtailcore", "Page")
+    collection_model = models("wagtailcore", "Collection")
+    group_page_permission_model = models("wagtailcore", "GroupPagePermission")
+    group_collection_permission_model = models("wagtailcore", "GroupCollectionPermission")
 
-    group, _ = Group.objects.get_or_create(name=WEBSITE_ADMIN)
+    group: Group = group_model.objects.get_or_create(name=WEBSITE_ADMIN)[0]
 
     for app_label, model, codename in MODEL_PERMISSIONS:
         group.permissions.add(_permission(models, app_label, model, codename))
 
     # The tree root, so the grant covers every current and future page.
-    root_page = Page.objects.filter(depth=1).order_by("path").first()
+    root_page = page_model.objects.filter(depth=1).order_by("path").first()
     if root_page is not None:
         for permission_type in PAGE_PERMISSION_TYPES:
-            GroupPagePermission.objects.get_or_create(
+            group_page_permission_model.objects.get_or_create(
                 group=group,
                 page=root_page,
                 permission=_permission(models, "wagtailcore", "page", f"{permission_type}_page"),
             )
 
-    root_collection = Collection.objects.order_by("path").first()
+    root_collection = collection_model.objects.order_by("path").first()
     if root_collection is not None:
         for app_label, model, codename in COLLECTION_PERMISSIONS:
-            GroupCollectionPermission.objects.get_or_create(
+            group_collection_permission_model.objects.get_or_create(
                 group=group,
                 collection=root_collection,
                 permission=_permission(models, app_label, model, codename),

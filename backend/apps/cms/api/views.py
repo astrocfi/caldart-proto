@@ -9,6 +9,7 @@ pages are listed only for callers who may actually open them.
 from __future__ import annotations
 
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -26,7 +27,19 @@ class SiteConfigView(APIView):
 
     permission_classes = [AllowAny]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Answer ``GET /api/v1/site/config`` with HTTP 200 for any caller.
+
+        No authentication is required.  The body carries ``org_name``, ``theme``,
+        ``contact_email``, ``nav`` and ``members_pages``.  Before ``migrate`` has
+        created the site settings row, ``org_name`` falls back to ``CalDART``,
+        ``theme`` to ``sierra`` and ``contact_email`` to an empty string; an unset
+        theme falls back to ``sierra`` as well.  ``nav`` is the same list of
+        ``{title, url, active, kind}`` entries the server-rendered site shows.
+        ``members_pages`` lists ``{title, url}`` for every live members-only page
+        when the caller may read members-only content, and is empty otherwise, so
+        an anonymous caller never learns which pages exist.
+        """
         settings_obj = get_site_settings(request)
         can_see_members = user_can_access_members_content(request.user)
 
