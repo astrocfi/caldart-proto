@@ -7,8 +7,9 @@ their membership runs out, what is on their record, and what the organization
 can prove about all of it in a spreadsheet or a PDF.
 
 You need the ``account_admin`` role to use any of the screens on this page.
-System administrators have it implicitly.  Everything lives under **Members**
-in the portal menu, at ``/portal/admin/members``.
+System administrators have it implicitly.  The role also opens **Payments**
+and **Aircraft** in the portal menu; this page covers **Members**, at
+``/portal/admin/members``.
 
 
 The member list
