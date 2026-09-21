@@ -327,6 +327,8 @@ def _password_link_context(user: User, *, request: HttpRequest | None) -> dict[s
     address before a website administrator has set them.  ``expiry_days`` is
     ``PASSWORD_RESET_TIMEOUT`` in whole days, never less than one.
     """
+    # Inline: cms is the top layer and apps.cms.models imports apps.accounts.roles,
+    # so a top-level import here would close the cycle.
     from apps.cms.models import get_site_settings
 
     site_settings = get_site_settings(request)

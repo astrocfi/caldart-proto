@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from apps.members.models import TimestampedModel
+from caldart.models import TimestampedModel
 
 _N_NUMBER_STRIP = re.compile(r"[^A-Za-z0-9]")
 

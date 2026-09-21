@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 
-from apps.members.models import TimestampedModel
+from caldart.models import TimestampedModel
 
 
 class PaymentProvider(models.TextChoices):

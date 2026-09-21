@@ -75,7 +75,6 @@ from apps.members.models import (
     MembershipState,
     MembershipStatusChoices,
 )
-from apps.payments.models import payment_deletion_refusal
 from caldart.exceptions import DomainPermissionError
 
 User = get_user_model()
@@ -182,6 +181,10 @@ def delete_member(actor: User, target: User) -> None:
     target_is_system_admin = SYSTEM_ADMIN in effective_roles(target)
     if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(actor):
         raise DomainPermissionError(SYSTEM_ADMIN_DELETE_REFUSED)
+    # Inline: payments sits above members and apps.payments.services imports this
+    # module, so a top-level import here would close the cycle.
+    from apps.payments.models import payment_deletion_refusal
+
     refusal = payment_deletion_refusal(target)
     if refusal is not None:
         raise DomainPermissionError(refusal)
