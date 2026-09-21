@@ -8,14 +8,14 @@ year 9999 and turns an oversized query into a 500.
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 import pytest
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.api.admin_filters import MAX_EXPIRING_WINDOW_DAYS
-from apps.members.models import Membership, MembershipPlan
+from apps.members.models import MembershipPlan
 from tests.factories import MembershipFactory
 
 if TYPE_CHECKING:
@@ -27,16 +27,6 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.django_db
 
 LIST_URL = "/api/v1/admin/members"
-
-
-def _membership(**kwargs: Any) -> Membership:
-    """Build a ``Membership`` through the factory, typed for a strict caller.
-
-    ``MembershipFactory``'s metaclass carries no type annotations, so mypy cannot
-    infer that calling it returns a ``Membership`` rather than the factory class
-    itself; the cast supplies the type the factory's own docs promise.
-    """
-    return cast(Membership, MembershipFactory(**kwargs))  # type: ignore[no-untyped-call]
 
 
 @pytest.fixture
@@ -51,7 +41,7 @@ def expiring_member(annual_plan: MembershipPlan, today: date) -> User:
     """A current member whose coverage ends 30 days out."""
     assert annual_plan.duration_days is not None
     day = timedelta(days=1)
-    membership = _membership(
+    membership = MembershipFactory(
         plan=annual_plan,
         starts_on=today - (annual_plan.duration_days - 30) * day,
         ends_on=today + 30 * day,
@@ -64,7 +54,7 @@ def last_day_member(annual_plan: MembershipPlan, today: date) -> User:
     """A current member whose coverage ends today, the one match a zero-day window has."""
     assert annual_plan.duration_days is not None
     day = timedelta(days=1)
-    membership = _membership(
+    membership = MembershipFactory(
         plan=annual_plan,
         starts_on=today - (annual_plan.duration_days - 1) * day,
         ends_on=today,

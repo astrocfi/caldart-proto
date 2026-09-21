@@ -8,7 +8,6 @@ flying?" — so the truth table below is the most important test in this app.
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, cast
 
 import pytest
 from django.utils import timezone
@@ -16,12 +15,9 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, SYSTEM_ADMIN
-from apps.aircraft.models import Aircraft
 from apps.members.models import (
     Dart,
     MedicalType,
-    MemberProfile,
-    Membership,
     MembershipPlan,
     MembershipStatusChoices,
 )
@@ -38,32 +34,6 @@ SEARCH_URL = "/api/v1/leader/search"
 AIRCRAFT_URL = "/api/v1/leader/aircraft"
 
 
-def _user(**kwargs: Any) -> User:
-    """Build a ``User`` through the factory, typed for a strict caller.
-
-    factory_boy's metaclass carries no type annotations, so mypy cannot infer
-    that calling a factory returns a model instance rather than the factory
-    class itself; the cast supplies the type the factory's own ``Meta.model``
-    promises.
-    """
-    return cast(User, UserFactory(**kwargs))  # type: ignore[no-untyped-call]
-
-
-def _profile(**kwargs: Any) -> MemberProfile:
-    """Build a ``MemberProfile`` through the factory; see ``_user`` for why."""
-    return cast(MemberProfile, MemberProfileFactory(**kwargs))  # type: ignore[no-untyped-call]
-
-
-def _aircraft(**kwargs: Any) -> Aircraft:
-    """Build an ``Aircraft`` through the factory; see ``_user`` for why."""
-    return cast(Aircraft, AircraftFactory(**kwargs))  # type: ignore[no-untyped-call]
-
-
-def _membership(**kwargs: Any) -> Membership:
-    """Build a ``Membership`` through the factory; see ``_user`` for why."""
-    return cast(Membership, MembershipFactory(**kwargs))  # type: ignore[no-untyped-call]
-
-
 def status_url(user: User) -> str:
     """Return the leader status-card URL for ``user``."""
     return f"/api/v1/leader/members/{user.pk}/status"
@@ -73,8 +43,8 @@ def status_url(user: User) -> str:
 def pilot(db: None, dart: Dart, annual_plan: MembershipPlan) -> User:
     """A current member with a current medical and an insured airplane."""
     today = timezone.localdate()
-    user = _user(email="marta@example.test", first_name="Marta", last_name="Reyes")
-    profile = _profile(
+    user = UserFactory(email="marta@example.test", first_name="Marta", last_name="Reyes")
+    profile = MemberProfileFactory(
         user=user,
         dart=dart,
         phone="650-555-0100",
@@ -82,8 +52,8 @@ def pilot(db: None, dart: Dart, annual_plan: MembershipPlan) -> User:
         medical_type=MedicalType.THIRD,
         medical_expiration=today + timedelta(days=120),
     )
-    profile.aircraft.add(_aircraft(n_number="N172SP", make="Cessna", model="172S Skyhawk"))
-    _membership(
+    profile.aircraft.add(AircraftFactory(n_number="N172SP", make="Cessna", model="172S Skyhawk"))
+    MembershipFactory(
         user=user,
         plan=annual_plan,
         starts_on=today - timedelta(days=30),
@@ -170,8 +140,8 @@ def test_search_by_n_number_returns_every_pilot_of_that_aircraft(
 ) -> None:
     """A search by N-number returns every member who flies that airplane."""
     aircraft = pilot.profile.aircraft.get()
-    second = _user(email="owen@example.test", first_name="Owen", last_name="Delgado")
-    _profile(user=second).aircraft.add(aircraft)
+    second = UserFactory(email="owen@example.test", first_name="Owen", last_name="Delgado")
+    MemberProfileFactory(user=second).aircraft.add(aircraft)
 
     api_client.force_login(dart_leader)
     response = api_client.get(SEARCH_URL, {"q": "N172SP"})
@@ -182,8 +152,8 @@ def test_search_does_not_treat_a_name_as_a_registration(
     api_client: APIClient, dart_leader: User, pilot: User
 ) -> None:
     """A name like "Nate" must not match every N-numbered aircraft on file."""
-    nate = _user(email="nate@example.test", first_name="Nate", last_name="Cross")
-    _profile(user=nate).aircraft.add(_aircraft(n_number="N9021K"))
+    nate = UserFactory(email="nate@example.test", first_name="Nate", last_name="Cross")
+    MemberProfileFactory(user=nate).aircraft.add(AircraftFactory(n_number="N9021K"))
 
     api_client.force_login(dart_leader)
     response = api_client.get(SEARCH_URL, {"q": "Nate"})
@@ -210,9 +180,9 @@ def test_search_reports_an_expired_membership(
 ) -> None:
     """A search result reports ``expired`` for a member whose term has lapsed."""
     today = timezone.localdate()
-    lapsed = _user(email="lapsed@example.test", first_name="Lee", last_name="Past")
-    _profile(user=lapsed)
-    _membership(
+    lapsed = UserFactory(email="lapsed@example.test", first_name="Lee", last_name="Past")
+    MemberProfileFactory(user=lapsed)
+    MembershipFactory(
         user=lapsed,
         plan=annual_plan,
         starts_on=today - timedelta(days=400),
@@ -243,7 +213,7 @@ def test_search_finds_nothing_for_an_unknown_name(
 def test_search_is_capped_at_twenty_results(api_client: APIClient, dart_leader: User) -> None:
     """A search returns at most twenty results even when more members match."""
     for index in range(25):
-        _user(email=f"cap{index}@example.test", first_name="Cap", last_name=f"Test{index}")
+        UserFactory(email=f"cap{index}@example.test", first_name="Cap", last_name=f"Test{index}")
     api_client.force_login(dart_leader)
     assert len(api_client.get(SEARCH_URL, {"q": "Cap"}).data) == 20
 
@@ -252,7 +222,7 @@ def test_search_does_not_repeat_a_member_who_flies_two_aircraft(
     api_client: APIClient, dart_leader: User, pilot: User
 ) -> None:
     """A member who flies two matching aircraft appears once in the results."""
-    pilot.profile.aircraft.add(_aircraft(n_number="N1720P"))
+    pilot.profile.aircraft.add(AircraftFactory(n_number="N1720P"))
     api_client.force_login(dart_leader)
     assert len(api_client.get(SEARCH_URL, {"q": "172"}).data) == 1
 
@@ -308,24 +278,24 @@ def test_status_truth_table(
 ) -> None:
     """Membership x medical x insurance: every combination, one assertion each."""
     today = timezone.localdate()
-    user = _user(email="matrix@example.test", first_name="Mat", last_name="Rix")
-    profile = _profile(
+    user = UserFactory(email="matrix@example.test", first_name="Mat", last_name="Rix")
+    profile = MemberProfileFactory(
         user=user,
         medical_type=MedicalType.BASICMED,
         medical_expiration=today + timedelta(days=30 if medical_current else -30),
     )
     profile.aircraft.add(
-        _aircraft(
+        AircraftFactory(
             n_number="N7TT",
             insurance_expiration=today + timedelta(days=90 if insurance_current else -90),
         )
     )
     if membership_current:
-        _membership(
+        MembershipFactory(
             user=user, plan=annual_plan, starts_on=today, ends_on=today + timedelta(days=364)
         )
     else:
-        _membership(
+        MembershipFactory(
             user=user,
             plan=annual_plan,
             starts_on=today - timedelta(days=400),
@@ -350,16 +320,16 @@ def test_a_medical_expiring_today_is_still_current(
 ) -> None:
     """A medical that expires today still counts as current."""
     today = timezone.localdate()
-    user = _user(email="edge@example.test", first_name="Edge", last_name="Case")
-    _profile(user=user, medical_type=MedicalType.THIRD, medical_expiration=today)
+    user = UserFactory(email="edge@example.test", first_name="Edge", last_name="Case")
+    MemberProfileFactory(user=user, medical_type=MedicalType.THIRD, medical_expiration=today)
     api_client.force_login(dart_leader)
     assert api_client.get(status_url(user)).data["medical"]["is_current"] is True
 
 
 def test_no_medical_on_file_is_never_current(api_client: APIClient, dart_leader: User) -> None:
     """A member with no medical on file is never a go for medical."""
-    user = _user(email="nomed@example.test", first_name="No", last_name="Medical")
-    _profile(user=user, medical_type=MedicalType.NONE, medical_expiration=None)
+    user = UserFactory(email="nomed@example.test", first_name="No", last_name="Medical")
+    MemberProfileFactory(user=user, medical_type=MedicalType.NONE, medical_expiration=None)
     api_client.force_login(dart_leader)
     data = api_client.get(status_url(user)).data
     assert data["medical"] == {"type": "none", "expiration": None, "is_current": False}
@@ -370,8 +340,8 @@ def test_a_member_with_no_membership_at_all_is_a_no_go(
     api_client: APIClient, dart_leader: User
 ) -> None:
     """A member who has never held a membership term is a no-go for membership."""
-    user = _user(email="never@example.test", first_name="Never", last_name="Joined")
-    _profile(user=user)
+    user = UserFactory(email="never@example.test", first_name="Never", last_name="Joined")
+    MemberProfileFactory(user=user)
     api_client.force_login(dart_leader)
     data = api_client.get(status_url(user)).data
     assert data["membership"] == {"status": "none", "expires_on": None, "plan": None}
@@ -382,9 +352,9 @@ def test_a_lifetime_member_is_current_without_an_expiry(
     api_client: APIClient, dart_leader: User, life_plan: MembershipPlan
 ) -> None:
     """A lifetime member is current with no expiration date to report."""
-    user = _user(email="life@example.test", first_name="Life", last_name="Member")
-    _profile(user=user)
-    _membership(user=user, plan=life_plan, ends_on=None)
+    user = UserFactory(email="life@example.test", first_name="Life", last_name="Member")
+    MemberProfileFactory(user=user)
+    MembershipFactory(user=user, plan=life_plan, ends_on=None)
     api_client.force_login(dart_leader)
     data = api_client.get(status_url(user)).data
     assert data["membership"] == {
@@ -400,7 +370,7 @@ def test_status_card_lists_every_attached_aircraft(
 ) -> None:
     """The status card lists every aircraft attached to the member's profile."""
     pilot.profile.aircraft.add(
-        _aircraft(
+        AircraftFactory(
             n_number="N9021K",
             insurance_expiration=None,
             insurance_liability_per_occurrence_cents=0,
@@ -419,14 +389,14 @@ def test_status_card_for_a_member_with_no_aircraft(
     api_client: APIClient, dart_leader: User, member: User
 ) -> None:
     """The status card reports an empty aircraft list for a member who flies none."""
-    _profile(user=member)
+    MemberProfileFactory(user=member)
     api_client.force_login(dart_leader)
     assert api_client.get(status_url(member)).data["aircraft"] == []
 
 
 def test_status_card_for_a_user_without_a_profile(api_client: APIClient, dart_leader: User) -> None:
     """A user_admin can create an account before the member fills anything in."""
-    bare = _user(email="bare@example.test", first_name="Bare", last_name="Account")
+    bare = UserFactory(email="bare@example.test", first_name="Bare", last_name="Account")
     api_client.force_login(dart_leader)
     data = api_client.get(status_url(bare)).data
     assert data["phone"] == ""
@@ -487,7 +457,7 @@ def test_aircraft_card_without_an_n_number_is_a_400(
 
 def test_aircraft_card_shows_expired_cover(api_client: APIClient, dart_leader: User) -> None:
     """The aircraft card reports lapsed insurance and an empty pilot list."""
-    _aircraft(
+    AircraftFactory(
         n_number="N33MM",
         insurance_expiration=timezone.localdate() - timedelta(days=1),
     )

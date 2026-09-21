@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 import pytest
 from django.core import mail
@@ -16,13 +15,11 @@ from apps.accounts.services import EMAIL_CHANGE_REFUSED
 from apps.cms.models import SiteSettings
 from apps.members.models import Dart, MemberProfile
 from apps.members.services import create_member, delete_member, register_member, update_member
-from apps.payments.models import Payment, PaymentStatus
+from apps.payments.models import PaymentStatus
 from caldart.exceptions import DomainPermissionError, DomainValidationError
-from tests.factories import UserFactory
+from tests.factories import MemberProfileFactory, PaymentFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
-
-_user = cast(Callable[..., User], UserFactory)
 
 PASSWORD = "Sierra-Foothills-2027"  # noqa: S105 - test fixture
 
@@ -146,17 +143,17 @@ def test_create_member_rolls_back_a_half_made_member(
 # --------------------------------------------------------------------------
 def test_update_member_writes_the_account_half(account_admin: User) -> None:
     """An account-half edit is written to the target's account."""
-    target = _user(email="target@example.test", roles=[MEMBER])
+    target = UserFactory(email="target@example.test", roles=[MEMBER])
     update_member(account_admin, target, account={"first_name": "Marta"}, profile=None)
     target.refresh_from_db()
     assert target.first_name == "Marta"
 
 
 def test_update_member_writes_the_profile_half(
-    account_admin: User, profile_factory: Callable[..., MemberProfile]
+    account_admin: User, profile_factory: type[MemberProfileFactory]
 ) -> None:
     """A profile-half edit is written to the target's profile."""
-    target = _user(email="target@example.test", roles=[MEMBER])
+    target = UserFactory(email="target@example.test", roles=[MEMBER])
     profile_factory(user=target)
     update_member(account_admin, target, account={}, profile={"phone": "530-555-0142"})
     target.refresh_from_db()
@@ -165,7 +162,7 @@ def test_update_member_writes_the_profile_half(
 
 def test_update_member_creates_a_missing_profile(account_admin: User) -> None:
     """A profile-half edit creates the profile row when the target has none."""
-    target = _user(email="target@example.test", roles=[MEMBER])
+    target = UserFactory(email="target@example.test", roles=[MEMBER])
     update_member(account_admin, target, account={}, profile={"phone": "530-555-0142"})
     assert MemberProfile.objects.get(user=target).phone == "530-555-0142"
 
@@ -184,7 +181,7 @@ def test_update_member_obeys_the_account_edit_guard(
 
 
 def test_a_refused_account_edit_leaves_the_profile_alone(
-    account_admin: User, system_admin: User, profile_factory: Callable[..., MemberProfile]
+    account_admin: User, system_admin: User, profile_factory: type[MemberProfileFactory]
 ) -> None:
     """A refused account edit is written together with the profile, or not at all."""
     profile_factory(user=system_admin, phone="530-555-0100")
@@ -203,7 +200,7 @@ def test_a_refused_account_edit_leaves_the_profile_alone(
 # --------------------------------------------------------------------------
 def test_delete_member_removes_the_account(account_admin: User) -> None:
     """Deleting a member removes the account."""
-    target = _user(email="target@example.test", roles=[MEMBER])
+    target = UserFactory(email="target@example.test", roles=[MEMBER])
     delete_member(account_admin, target)
     assert User.objects.filter(email="target@example.test").exists() is False
 
@@ -224,33 +221,33 @@ def test_only_a_system_admin_may_delete_a_system_admin(
 
 def test_a_createsuperuser_account_is_protected_too(account_admin: User) -> None:
     """The superuser flag alone makes the target a system administrator."""
-    target = _user(email="root2@example.test", roles=[], is_superuser=True, is_staff=True)
+    target = UserFactory(email="root2@example.test", roles=[], is_superuser=True, is_staff=True)
     with pytest.raises(DomainPermissionError, match=re.escape(SYSTEM_ADMIN_DELETE_REFUSED)):
         delete_member(account_admin, target)
 
 
 def test_a_system_admin_may_delete_another_system_admin(system_admin: User) -> None:
     """A system administrator may delete another system administrator."""
-    target = _user(email="root2@example.test", roles=[MEMBER], is_superuser=True)
+    target = UserFactory(email="root2@example.test", roles=[MEMBER], is_superuser=True)
     delete_member(system_admin, target)
     assert User.objects.filter(email="root2@example.test").exists() is False
 
 
 def test_a_member_with_a_payment_cannot_be_deleted(
-    account_admin: User, payment_factory: Callable[..., Payment]
+    account_admin: User, payment_factory: type[PaymentFactory]
 ) -> None:
     """A member with any payment on file, whatever its status, cannot be deleted."""
-    target = _user(email="target@example.test", roles=[MEMBER])
+    target = UserFactory(email="target@example.test", roles=[MEMBER])
     payment_factory(user=target, status=PaymentStatus.PENDING)
     with pytest.raises(DomainPermissionError, match="which must be kept"):
         delete_member(account_admin, target)
 
 
 def test_the_payment_refusal_counts_the_records(
-    account_admin: User, payment_factory: Callable[..., Payment]
+    account_admin: User, payment_factory: type[PaymentFactory]
 ) -> None:
     """The refusal message states exactly how many payment records are kept."""
-    target = _user(email="target@example.test", roles=[MEMBER], first_name="", last_name="")
+    target = UserFactory(email="target@example.test", roles=[MEMBER], first_name="", last_name="")
     payment_factory(user=target)
     payment_factory(user=target)
     with pytest.raises(DomainPermissionError) as refusal:

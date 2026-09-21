@@ -10,8 +10,8 @@ still hard-deleted, profile and membership terms included.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, cast
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 import pytest
 from django.contrib.messages import get_messages
@@ -36,11 +36,6 @@ if TYPE_CHECKING:
     # exists only in the stub: Django monkey-patches the WSGI response at runtime
     # rather than defining a real subclass.
     from django.test.client import _MonkeyPatchedWSGIResponse as DjangoResponse
-
-_user = cast(Callable[..., User], UserFactory)
-_profile = cast(Callable[..., MemberProfile], MemberProfileFactory)
-_membership = cast(Callable[..., Membership], MembershipFactory)
-_payment = cast(Callable[..., Payment], PaymentFactory)
 
 LIST_URL = "/api/v1/admin/members"
 SUMMARY_URL = "/api/v1/admin/payments/summary"
@@ -74,9 +69,9 @@ def admin_messages(response: DjangoResponse) -> list[str]:
 @pytest.fixture
 def payer(db: None, annual_plan: MembershipPlan) -> User:
     """A plain member, Ana Bracco, with a profile and a membership term."""
-    user = _user(email="payer@example.test", first_name="Ana", last_name="Bracco")
-    _profile(user=user, phone="415-555-0100")
-    _membership(user=user, plan=annual_plan)
+    user = UserFactory(email="payer@example.test", first_name="Ana", last_name="Bracco")
+    MemberProfileFactory(user=user, phone="415-555-0100")
+    MembershipFactory(user=user, plan=annual_plan)
     return user
 
 
@@ -99,8 +94,8 @@ def crowded_batch(db: None, annual_plan: MembershipPlan) -> list[User]:
     """Two more paying accounts than a refused bulk delete names one by one."""
     users = []
     for index in range(MAX_REFUSALS_SHOWN + 2):
-        user = _user(email=f"payer{index}@example.test")
-        _payment(user=user, plan=annual_plan, provider_ref=f"bulk-{index}")
+        user = UserFactory(email=f"payer{index}@example.test")
+        PaymentFactory(user=user, plan=annual_plan, provider_ref=f"bulk-{index}")
         users.append(user)
     return users
 
@@ -113,7 +108,7 @@ def test_delete_is_refused_whatever_the_payment_status(
     admin_client: APIClient, payer: User, annual_plan: MembershipPlan, status_value: str
 ) -> None:
     """A single payment blocks the delete, pending or failed rows included."""
-    payment = _payment(user=payer, plan=annual_plan, status=status_value)
+    payment = PaymentFactory(user=payer, plan=annual_plan, status=status_value)
 
     response = admin_client.delete(detail_url(payer))
 
@@ -128,7 +123,7 @@ def test_the_refusal_counts_every_payment(
 ) -> None:
     """The message names the number of rows, pluralized."""
     for index in range(3):
-        _payment(user=payer, plan=annual_plan, provider_ref=f"ref-{index}")
+        PaymentFactory(user=payer, plan=annual_plan, provider_ref=f"ref-{index}")
 
     response = admin_client.delete(detail_url(payer))
 
@@ -139,7 +134,7 @@ def test_the_refusal_keeps_the_profile_and_the_membership_terms(
     admin_client: APIClient, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """A refused delete leaves the profile and every membership term in place."""
-    _payment(user=payer, plan=annual_plan)
+    PaymentFactory(user=payer, plan=annual_plan)
 
     assert admin_client.delete(detail_url(payer)).status_code == 403
     assert MemberProfile.objects.filter(user_id=payer.pk).exists()
@@ -150,7 +145,7 @@ def test_a_system_admin_is_refused_too(
     api_client: APIClient, system_admin: User, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """The guard is about the records, not about the caller's privilege."""
-    _payment(user=payer, plan=annual_plan)
+    PaymentFactory(user=payer, plan=annual_plan)
     api_client.force_login(system_admin)
 
     response = api_client.delete(detail_url(payer))
@@ -163,13 +158,13 @@ def test_the_self_delete_guard_still_comes_first(
     api_client: APIClient, annual_plan: MembershipPlan
 ) -> None:
     """An administrator with payments is refused for being themselves."""
-    admin = _user(
+    admin = UserFactory(
         email="selfpayer@example.test",
         first_name="Cyd",
         last_name="Ng",
         roles=[MEMBER, ACCOUNT_ADMIN],
     )
-    _payment(user=admin, plan=annual_plan)
+    PaymentFactory(user=admin, plan=annual_plan)
     api_client.force_login(admin)
 
     response = api_client.delete(detail_url(admin))
@@ -184,7 +179,7 @@ def test_the_payment_summary_is_unchanged_after_a_refusal(
     admin_client: APIClient, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """A refused delete leaves the accounts reading exactly as they did."""
-    _payment(
+    PaymentFactory(
         user=payer,
         plan=annual_plan,
         amount_cents=6_500,
@@ -225,7 +220,7 @@ def test_the_model_refuses_the_delete_and_keeps_the_payment(
     payer: User, annual_plan: MembershipPlan
 ) -> None:
     """``PROTECT`` guards every path, the Django admin and a shell included."""
-    payment = _payment(user=payer, plan=annual_plan)
+    payment = PaymentFactory(user=payer, plan=annual_plan)
 
     with pytest.raises(ProtectedError, match=r"referenced through protected foreign keys"):
         payer.delete()
@@ -237,8 +232,8 @@ def test_a_system_admin_role_does_not_bypass_the_database_guard(
     annual_plan: MembershipPlan,
 ) -> None:
     """The protection is on the foreign key, so no role escapes it."""
-    root = _user(email="root-payer@example.test", roles=[MEMBER, SYSTEM_ADMIN])
-    _payment(user=root, plan=annual_plan)
+    root = UserFactory(email="root-payer@example.test", roles=[MEMBER, SYSTEM_ADMIN])
+    PaymentFactory(user=root, plan=annual_plan)
 
     with pytest.raises(ProtectedError, match=r"'Payment\.user'"):
         root.delete()
@@ -251,7 +246,7 @@ def test_the_wagtail_admin_refuses_the_delete(
     wagtail_client: Client, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """The users admin turns the delete back rather than raising a server error."""
-    payment = _payment(user=payer, plan=annual_plan)
+    payment = PaymentFactory(user=payer, plan=annual_plan)
 
     response = wagtail_client.post(WAGTAIL_DELETE_URL.format(pk=payer.pk))
 
@@ -264,7 +259,7 @@ def test_the_wagtail_admin_explains_the_refusal(
     wagtail_client: Client, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """The operator reads the same sentence the API answers with."""
-    _payment(user=payer, plan=annual_plan)
+    PaymentFactory(user=payer, plan=annual_plan)
 
     response = wagtail_client.post(WAGTAIL_DELETE_URL.format(pk=payer.pk))
 
@@ -275,7 +270,7 @@ def test_the_wagtail_delete_page_refuses_before_it_is_confirmed(
     wagtail_client: Client, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """A protected account never reaches the confirmation form."""
-    _payment(user=payer, plan=annual_plan)
+    PaymentFactory(user=payer, plan=annual_plan)
 
     response = wagtail_client.get(WAGTAIL_DELETE_URL.format(pk=payer.pk))
 
@@ -296,8 +291,8 @@ def test_the_wagtail_bulk_delete_refuses_the_whole_batch(
     wagtail_client: Client, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """One protected account keeps every account in the batch: the delete is one query."""
-    _payment(user=payer, plan=annual_plan)
-    bystander = _user(email="bystander@example.test")
+    PaymentFactory(user=payer, plan=annual_plan)
+    bystander = UserFactory(email="bystander@example.test")
 
     response = wagtail_client.post(bulk_delete_url([payer, bystander]))
 
@@ -310,8 +305,8 @@ def test_the_wagtail_bulk_delete_names_the_account_that_refused(
     wagtail_client: Client, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """The batch's error message says which account must be kept, and why."""
-    _payment(user=payer, plan=annual_plan)
-    bystander = _user(email="bystander@example.test")
+    PaymentFactory(user=payer, plan=annual_plan)
+    bystander = UserFactory(email="bystander@example.test")
 
     response = wagtail_client.post(bulk_delete_url([payer, bystander]))
 

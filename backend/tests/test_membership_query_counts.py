@@ -28,8 +28,6 @@ from apps.accounts.roles import MEMBER
 from apps.aircraft.models import Aircraft
 from apps.members.models import (
     Dart,
-    MemberProfile,
-    Membership,
     MembershipPlan,
     MembershipStatusChoices,
 )
@@ -43,10 +41,6 @@ if TYPE_CHECKING:
     from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
 
 pytestmark = pytest.mark.django_db
-
-_user = cast(Callable[..., User], UserFactory)
-_profile = cast(Callable[..., MemberProfile], MemberProfileFactory)
-_membership = cast(Callable[..., Membership], MembershipFactory)
 
 ADMIN_USERS = "/api/v1/admin/users"
 ADMIN_MEMBERS = "/api/v1/admin/members"
@@ -82,11 +76,11 @@ def _add_history(
 ) -> None:
     """Give ``user`` the membership history named by ``kind``."""
     if kind == "current":
-        _membership(
+        MembershipFactory(
             user=user, plan=annual_plan, starts_on=today - days(100), ends_on=today + days(200)
         )
     elif kind == "expired":
-        _membership(
+        MembershipFactory(
             user=user,
             plan=annual_plan,
             starts_on=today - days(500),
@@ -94,7 +88,7 @@ def _add_history(
             status=MembershipStatusChoices.EXPIRED,
         )
     elif kind == "lifetime":
-        _membership(user=user, plan=life_plan, starts_on=today - days(900), ends_on=None)
+        MembershipFactory(user=user, plan=life_plan, starts_on=today - days(900), ends_on=None)
 
 
 @pytest.fixture
@@ -111,13 +105,13 @@ def population(
     def build(size: int) -> list[User]:
         people = []
         for index in range(size):
-            user = _user(
+            user = UserFactory(
                 email=f"row{index}@example.test",
                 first_name=f"Pat{index}",
                 last_name=SEARCH_TERM,
                 roles=[MEMBER],
             )
-            profile = _profile(user=user, dart=dart)
+            profile = MemberProfileFactory(user=user, dart=dart)
             profile.aircraft.add(aircraft)
             kind = HISTORIES[index % len(HISTORIES)]
             _add_history(user, kind, annual_plan, life_plan, today, days)
@@ -316,8 +310,10 @@ def expiring_member(
     annual_plan: MembershipPlan, today: date, days: Callable[[int], timedelta]
 ) -> User:
     """A member whose only term runs out ten days from today."""
-    user = _user(email="clock@example.test", roles=[MEMBER])
-    _membership(user=user, plan=annual_plan, starts_on=today - days(10), ends_on=today + days(10))
+    user = UserFactory(email="clock@example.test", roles=[MEMBER])
+    MembershipFactory(
+        user=user, plan=annual_plan, starts_on=today - days(10), ends_on=today + days(10)
+    )
     return user
 
 

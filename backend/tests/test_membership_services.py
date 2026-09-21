@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from datetime import date, timedelta
-from typing import cast
 
 import pytest
 from freezegun import freeze_time
@@ -17,13 +16,9 @@ from apps.members.models import (
     MembershipStatusChoices,
 )
 from apps.members.services import activate_term, expire_lapsed_memberships, membership_status
-from apps.payments.models import Payment
 from tests.factories import MembershipFactory, PaymentFactory
 
 pytestmark = pytest.mark.django_db
-
-_membership = cast(Callable[..., Membership], MembershipFactory)
-_payment = cast(Callable[..., Payment], PaymentFactory)
 
 TODAY = date(2026, 6, 15)
 
@@ -58,7 +53,7 @@ def test_anonymous_user_is_none() -> None:
 
 def test_current_term(member: User, annual_plan: MembershipPlan, frozen: date) -> None:
     """A term covering today reports current, with its expiry and plan name."""
-    _membership(
+    MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=TODAY - timedelta(days=10),
@@ -75,7 +70,9 @@ def test_expiry_today_is_still_current(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
     """The last day of a term is inclusive."""
-    _membership(user=member, plan=annual_plan, starts_on=TODAY - timedelta(days=364), ends_on=TODAY)
+    MembershipFactory(
+        user=member, plan=annual_plan, starts_on=TODAY - timedelta(days=364), ends_on=TODAY
+    )
     assert membership_status(member)["status"] == "current"
 
 
@@ -83,7 +80,7 @@ def test_expiry_yesterday_is_expired(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
     """A term that ended yesterday reports expired."""
-    _membership(
+    MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=TODAY - timedelta(days=365),
@@ -96,7 +93,7 @@ def test_term_starting_tomorrow_is_not_yet_current(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
     """A term that starts tomorrow does not yet count as current."""
-    _membership(
+    MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=TODAY + timedelta(days=1),
@@ -109,13 +106,17 @@ def test_term_starting_today_is_current(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
     """A term that starts today already counts as current."""
-    _membership(user=member, plan=annual_plan, starts_on=TODAY, ends_on=TODAY + timedelta(days=364))
+    MembershipFactory(
+        user=member, plan=annual_plan, starts_on=TODAY, ends_on=TODAY + timedelta(days=364)
+    )
     assert membership_status(member)["status"] == "current"
 
 
 def test_lifetime_membership(member: User, life_plan: MembershipPlan, frozen: date) -> None:
     """A lifetime term reports current with no expiry date."""
-    _membership(user=member, plan=life_plan, starts_on=TODAY - timedelta(days=900), ends_on=None)
+    MembershipFactory(
+        user=member, plan=life_plan, starts_on=TODAY - timedelta(days=900), ends_on=None
+    )
     status = membership_status(member)
     assert status == {
         "status": "current",
@@ -129,8 +130,10 @@ def test_lifetime_wins_over_a_shorter_current_term(
     member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan, frozen: date
 ) -> None:
     """A lifetime term reports as lifetime even alongside a shorter current term."""
-    _membership(user=member, plan=annual_plan, starts_on=TODAY, ends_on=TODAY + timedelta(days=10))
-    _membership(user=member, plan=life_plan, starts_on=TODAY, ends_on=None)
+    MembershipFactory(
+        user=member, plan=annual_plan, starts_on=TODAY, ends_on=TODAY + timedelta(days=10)
+    )
+    MembershipFactory(user=member, plan=life_plan, starts_on=TODAY, ends_on=None)
     assert membership_status(member)["is_lifetime"] is True
 
 
@@ -138,7 +141,7 @@ def test_canceled_term_does_not_count(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
     """A canceled term is not counted, even while its dates cover today."""
-    _membership(
+    MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=TODAY,
@@ -152,14 +155,14 @@ def test_expired_reports_the_most_recent_term(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
     """An expired member's status reports the most recent term's end date."""
-    _membership(
+    MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=TODAY - timedelta(days=800),
         ends_on=TODAY - timedelta(days=436),
     )
     latest_end = TODAY - timedelta(days=71)
-    _membership(
+    MembershipFactory(
         user=member, plan=annual_plan, starts_on=TODAY - timedelta(days=435), ends_on=latest_end
     )
     status = membership_status(member)
@@ -171,7 +174,7 @@ def test_membership_status_accepts_an_explicit_date(
     member: User, annual_plan: MembershipPlan
 ) -> None:
     """``membership_status`` judges coverage against an explicit date, not only today."""
-    _membership(
+    MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=date(2026, 1, 1),
@@ -197,7 +200,7 @@ def test_renewal_starts_the_day_after_the_current_expiry(
 ) -> None:
     """A renewal of a current term starts the day after the current expiry."""
     expiry = TODAY + timedelta(days=40)
-    _membership(
+    MembershipFactory(
         user=member, plan=annual_plan, starts_on=TODAY - timedelta(days=324), ends_on=expiry
     )
     term = activate_term(member, annual_plan, source=MembershipSource.MANUAL)
@@ -209,7 +212,7 @@ def test_renewal_after_expiry_starts_today(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
     """A renewal after the previous term has lapsed starts today."""
-    _membership(
+    MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=TODAY - timedelta(days=400),
@@ -223,7 +226,9 @@ def test_renewal_on_the_expiry_day_starts_tomorrow(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
     """A renewal made on the current term's last day starts the next day."""
-    _membership(user=member, plan=annual_plan, starts_on=TODAY - timedelta(days=364), ends_on=TODAY)
+    MembershipFactory(
+        user=member, plan=annual_plan, starts_on=TODAY - timedelta(days=364), ends_on=TODAY
+    )
     term = activate_term(member, annual_plan, source=MembershipSource.MANUAL)
     assert term.starts_on == TODAY + timedelta(days=1)
 
@@ -250,7 +255,7 @@ def test_activate_term_is_idempotent_on_payment(
     member: User, annual_plan: MembershipPlan, frozen: date
 ) -> None:
     """Activating a term twice for the same payment creates only one term."""
-    payment = _payment(user=member, plan=annual_plan)
+    payment = PaymentFactory(user=member, plan=annual_plan)
     first = activate_term(member, annual_plan, payment=payment)
     second = activate_term(member, annual_plan, payment=payment)
     assert first.pk == second.pk
@@ -276,20 +281,22 @@ def test_new_term_for_a_lifetime_member_starts_today(
     member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan, frozen: date
 ) -> None:
     """A new annual term for an existing lifetime member still starts today."""
-    _membership(user=member, plan=life_plan, starts_on=TODAY - timedelta(days=100), ends_on=None)
+    MembershipFactory(
+        user=member, plan=life_plan, starts_on=TODAY - timedelta(days=100), ends_on=None
+    )
     term = activate_term(member, annual_plan, source=MembershipSource.MANUAL)
     assert term.starts_on == TODAY
 
 
 def test_expire_lapsed_memberships(member: User, annual_plan: MembershipPlan, frozen: date) -> None:
     """The lapsed-term sweep expires only the terms whose end date has passed."""
-    lapsed = _membership(
+    lapsed = MembershipFactory(
         user=member,
         plan=annual_plan,
         starts_on=TODAY - timedelta(days=400),
         ends_on=TODAY - timedelta(days=1),
     )
-    live = _membership(
+    live = MembershipFactory(
         user=member, plan=annual_plan, starts_on=TODAY, ends_on=TODAY + timedelta(days=364)
     )
     assert expire_lapsed_memberships(TODAY) == 1
@@ -301,7 +308,7 @@ def test_expire_lapsed_memberships(member: User, annual_plan: MembershipPlan, fr
 
 def test_membership_covers(member: User, annual_plan: MembershipPlan, frozen: date) -> None:
     """``Membership.covers`` is true exactly across the term's start and end dates."""
-    term = _membership(
+    term = MembershipFactory(
         user=member, plan=annual_plan, starts_on=TODAY, ends_on=TODAY + timedelta(days=9)
     )
     assert term.covers(TODAY)

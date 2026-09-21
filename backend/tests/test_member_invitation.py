@@ -8,7 +8,7 @@ and mails an invitation.  The link is the same password-reset link
 from __future__ import annotations
 
 import re
-from typing import Any, cast
+from typing import cast
 
 import pytest
 from django.core import mail
@@ -31,17 +31,6 @@ GOOD_PASSWORD = "correct-horse-battery"
 #: The ``SiteSettings`` defaults the ``site_settings`` fixture writes.
 ORG_NAME = "The California DART Network"
 CONTACT_EMAIL = "info@caldart.example.org"
-
-
-def _user(**kwargs: Any) -> User:
-    """Build a ``User`` through the factory, typed for a strict caller.
-
-    factory_boy's metaclass carries no type annotations, so mypy cannot infer
-    that calling a factory returns a model instance rather than the factory
-    class itself; the cast supplies the type the factory's own ``Meta.model``
-    promises.
-    """
-    return cast(User, UserFactory(**kwargs))  # type: ignore[no-untyped-call]
 
 
 def _sent(index: int = 0) -> EmailMultiAlternatives:
@@ -70,7 +59,7 @@ def admin_client(api_client: APIClient, account_admin: User) -> APIClient:
 @pytest.fixture
 def invitee(db: None) -> User:
     """An account created without a password, waiting to be invited."""
-    user = _user(email="invited@example.test", first_name="Nova", last_name="Ito")
+    user = UserFactory(email="invited@example.test", first_name="Nova", last_name="Ito")
     user.set_unusable_password()
     user.save(update_fields=["password"])
     return user

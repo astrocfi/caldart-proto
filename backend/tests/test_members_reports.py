@@ -10,7 +10,7 @@ from __future__ import annotations
 import csv
 import io
 import re
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, cast
 
@@ -19,14 +19,11 @@ from django.http import StreamingHttpResponse
 from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
 from apps.accounts.models import User
-from apps.aircraft.models import Aircraft
 from apps.members.api.admin_filters import applied_filters
 from apps.members.api.admin_views import MemberExportPdfView
 from apps.members.models import (
     Dart,
     MedicalType,
-    MemberProfile,
-    Membership,
     MembershipPlan,
     MembershipStatusChoices,
     PilotCertificateType,
@@ -48,12 +45,6 @@ if TYPE_CHECKING:
     from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
 
 pytestmark = pytest.mark.django_db
-
-_user = cast(Callable[..., User], UserFactory)
-_dart = cast(Callable[..., Dart], DartFactory)
-_aircraft = cast(Callable[..., Aircraft], AircraftFactory)
-_profile = cast(Callable[..., MemberProfile], MemberProfileFactory)
-_membership = cast(Callable[..., Membership], MembershipFactory)
 
 CSV_URL = "/api/v1/admin/members/export.csv"
 PDF_URL = "/api/v1/admin/members/export.pdf"
@@ -92,10 +83,10 @@ def reportable(
 ) -> dict[str, User]:
     """Three members whose report rows exercise every kind of cell."""
     day = timedelta(days=1)
-    napa = _dart(name="Napa", airport_identifier="APC", city="Napa")
+    napa = DartFactory(name="Napa", airport_identifier="APC", city="Napa")
 
-    pilot = _user(email="pilot@example.test", first_name="Ada", last_name="Marsh")
-    _profile(
+    pilot = UserFactory(email="pilot@example.test", first_name="Ada", last_name="Marsh")
+    MemberProfileFactory(
         user=pilot,
         dart=dart,
         phone="415-555-0100",
@@ -106,15 +97,17 @@ def reportable(
         medical_type=MedicalType.SECOND,
         medical_expiration=today + 90 * day,
     )
-    pilot.profile.aircraft.add(_aircraft(n_number="N172SP"), _aircraft(n_number="N9021K"))
-    _membership(user=pilot, plan=annual_plan, starts_on=today - 30 * day)
+    pilot.profile.aircraft.add(
+        AircraftFactory(n_number="N172SP"), AircraftFactory(n_number="N9021K")
+    )
+    MembershipFactory(user=pilot, plan=annual_plan, starts_on=today - 30 * day)
 
-    lifer = _user(email="lifer@example.test", first_name="Bo", last_name="Nakano")
-    _profile(user=lifer, dart=napa, phone="707-555-0111", city="Napa")
-    _membership(user=lifer, plan=life_plan, starts_on=today - 400 * day, ends_on=None)
+    lifer = UserFactory(email="lifer@example.test", first_name="Bo", last_name="Nakano")
+    MemberProfileFactory(user=lifer, dart=napa, phone="707-555-0111", city="Napa")
+    MembershipFactory(user=lifer, plan=life_plan, starts_on=today - 400 * day, ends_on=None)
 
-    lapsed = _user(email="lapsed@example.test", first_name="Cy", last_name="Orr")
-    _profile(
+    lapsed = UserFactory(email="lapsed@example.test", first_name="Cy", last_name="Orr")
+    MemberProfileFactory(
         user=lapsed,
         dart=napa,
         phone="",
@@ -123,7 +116,7 @@ def reportable(
         medical_type=MedicalType.NONE,
         medical_expiration=None,
     )
-    _membership(
+    MembershipFactory(
         user=lapsed,
         plan=annual_plan,
         starts_on=today - 500 * day,
@@ -243,7 +236,7 @@ def test_csv_honors_the_ordering(admin_client: APIClient, reportable: dict[str, 
 def test_csv_is_not_paginated(admin_client: APIClient, reportable: dict[str, User]) -> None:
     """The CSV export is not paginated: every matching member is a row."""
     for index in range(30):
-        _profile(user=_user(email=f"bulk{index}@example.test"))
+        MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
     table = read_csv(admin_client.get(CSV_URL))
     assert len(table) - 1 >= 33
 
@@ -320,7 +313,7 @@ def test_pdf_subtitle_when_nothing_is_filtered(account_admin: User) -> None:
 def test_pdf_paginates_a_long_report(admin_client: APIClient, reportable: dict[str, User]) -> None:
     """A report long enough to overflow one page spans more than one."""
     for index in range(120):
-        _profile(user=_user(email=f"bulk{index}@example.test"))
+        MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
     body = admin_client.get(PDF_URL).content
     pages = len(re.findall(rb"/Type\s*/Page[^s]", body))
     assert pages >= 2

@@ -26,7 +26,6 @@ from apps.accounts.roles import (
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
-from apps.aircraft.models import Aircraft
 from apps.members.models import (
     Dart,
     MedicalType,
@@ -55,13 +54,6 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.django_db
 
-_user = cast(Callable[..., User], UserFactory)
-_dart = cast(Callable[..., Dart], DartFactory)
-_aircraft = cast(Callable[..., Aircraft], AircraftFactory)
-_profile = cast(Callable[..., MemberProfile], MemberProfileFactory)
-_membership = cast(Callable[..., Membership], MembershipFactory)
-_payment = cast(Callable[..., Payment], PaymentFactory)
-
 LIST_URL = "/api/v1/admin/members"
 CSV_URL = "/api/v1/admin/members/export.csv"
 PDF_URL = "/api/v1/admin/members/export.pdf"
@@ -72,17 +64,17 @@ DENIED_ROLES = [MEMBER, DART_LEADER, USER_ADMIN, WEBSITE_ADMIN]
 
 
 def detail_url(user: User) -> str:
-    """Return the detail URL for ``user``."""
+    """``/admin/members/{id}``, which reads, edits and deletes ``user``'s record."""
     return f"{LIST_URL}/{user.pk}"
 
 
 def grant_url(user: User) -> str:
-    """Return the URL that grants ``user`` a membership term."""
+    """``/admin/members/{id}/memberships``, which grants ``user`` a term by hand."""
     return f"{LIST_URL}/{user.pk}/memberships"
 
 
 def membership_url(term: Membership) -> str:
-    """Return the detail URL for the membership term ``term``."""
+    """``/admin/memberships/{id}``, which corrects ``term``'s end date or status."""
     return f"/api/v1/admin/memberships/{term.pk}"
 
 
@@ -109,13 +101,13 @@ def population(
 ) -> dict[str, User]:
     """A mixed member table: current, expiring, expired, lifetime and never."""
     day = timedelta(days=1)
-    other_dart = _dart(name="Livermore", airport_identifier="LVK", city="Livermore")
-    aircraft = _aircraft(n_number="N4242C")
+    other_dart = DartFactory(name="Livermore", airport_identifier="LVK", city="Livermore")
+    aircraft = AircraftFactory(n_number="N4242C")
 
     people: dict[str, User] = {}
 
-    current = _user(email="current@example.test", first_name="Ana", last_name="Bracco")
-    _profile(
+    current = UserFactory(email="current@example.test", first_name="Ana", last_name="Bracco")
+    MemberProfileFactory(
         user=current,
         dart=dart,
         phone="415-555-0100",
@@ -125,31 +117,31 @@ def population(
         city="Palo Alto",
     )
     current.profile.aircraft.add(aircraft)
-    _membership(user=current, plan=annual_plan, starts_on=today - 100 * day)
+    MembershipFactory(user=current, plan=annual_plan, starts_on=today - 100 * day)
     people["current"] = current
 
-    expiring = _user(email="expiring@example.test", first_name="Bo", last_name="Chen")
-    _profile(
+    expiring = UserFactory(email="expiring@example.test", first_name="Bo", last_name="Chen")
+    MemberProfileFactory(
         user=expiring,
         dart=other_dart,
         phone="510-555-0111",
         pilot_certificate_type=PilotCertificateType.COMMERCIAL,
         medical_type=MedicalType.BASICMED,
     )
-    _membership(
+    MembershipFactory(
         user=expiring, plan=annual_plan, starts_on=today - 350 * day, ends_on=today + 14 * day
     )
     people["expiring"] = expiring
 
-    expired = _user(email="expired@example.test", first_name="Cleo", last_name="Duarte")
-    _profile(
+    expired = UserFactory(email="expired@example.test", first_name="Cleo", last_name="Duarte")
+    MemberProfileFactory(
         user=expired,
         dart=dart,
         phone="650-555-0122",
         pilot_certificate_type=PilotCertificateType.STUDENT,
         medical_type=MedicalType.NONE,
     )
-    _membership(
+    MembershipFactory(
         user=expired,
         plan=annual_plan,
         starts_on=today - 500 * day,
@@ -158,13 +150,13 @@ def population(
     )
     people["expired"] = expired
 
-    lifetime = _user(email="lifetime@example.test", first_name="Dev", last_name="Ellis")
-    _profile(user=lifetime, dart=other_dart, phone="707-555-0133")
-    _membership(user=lifetime, plan=life_plan, starts_on=today - 900 * day, ends_on=None)
+    lifetime = UserFactory(email="lifetime@example.test", first_name="Dev", last_name="Ellis")
+    MemberProfileFactory(user=lifetime, dart=other_dart, phone="707-555-0133")
+    MembershipFactory(user=lifetime, plan=life_plan, starts_on=today - 900 * day, ends_on=None)
     people["lifetime"] = lifetime
 
-    never = _user(email="never@example.test", first_name="Eve", last_name="Franco")
-    _profile(user=never, dart=None, phone="")
+    never = UserFactory(email="never@example.test", first_name="Eve", last_name="Franco")
+    MemberProfileFactory(user=never, dart=None, phone="")
     people["never"] = never
 
     return people
@@ -217,7 +209,7 @@ def test_every_endpoint_is_401_when_anonymous(
     payload: dict[str, Any] | None,
 ) -> None:
     """Every members-admin endpoint refuses an anonymous caller with a 401."""
-    term = _membership(user=member, plan=annual_plan)
+    term = MembershipFactory(user=member, plan=annual_plan)
     response = getattr(api_client, method)(path_for(member, term), payload, format="json")
     assert response.status_code == 401
 
@@ -352,7 +344,7 @@ def test_expiring_within_follows_a_renewal(
 ) -> None:
     """Renewing early moves the member out of the expiring window at once."""
     expiring = population["expiring"]
-    _membership(
+    MembershipFactory(
         user=expiring,
         plan=annual_plan,
         starts_on=today + timedelta(days=15),
@@ -467,7 +459,7 @@ def test_the_list_does_not_scale_its_query_count_with_the_page(
 ) -> None:
     """Fetching a full page of members costs a fixed, small number of queries."""
     for index in range(30):
-        _profile(user=_user(email=f"bulk{index}@example.test"))
+        MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
     with django_assert_max_num_queries(8):
         assert admin_client.get(LIST_URL, {"page_size": 50}).status_code == 200
 
@@ -483,7 +475,7 @@ def test_detail_returns_the_whole_record(
     member.profile.notes = "Called about the Napa exercise."
     member.profile.how_heard = "EAA chapter meeting"
     member.profile.save()
-    _payment(user=member, plan=annual_plan, amount_cents=6_500, contribution_cents=2_000)
+    PaymentFactory(user=member, plan=annual_plan, amount_cents=6_500, contribution_cents=2_000)
 
     body = admin_client.get(detail_url(member)).json()
     assert set(body) >= {
@@ -687,7 +679,7 @@ def test_patch_rejects_an_email_already_in_use(
 
 def test_patch_creates_a_profile_when_the_account_has_none(admin_client: APIClient) -> None:
     """A patch creates the profile row when the target account has none."""
-    bare = _user(email="bare@example.test", roles=[MEMBER])
+    bare = UserFactory(email="bare@example.test", roles=[MEMBER])
     response = admin_client.patch(
         detail_url(bare), {"profile": {"phone": "916-555-0000"}}, format="json"
     )
@@ -721,7 +713,7 @@ def test_delete_is_refused_for_a_member_with_payments(
 ) -> None:
     """Payments are kept, so the account that made them cannot be deleted."""
     member = population["current"]
-    payment = _payment(user=member, plan=annual_plan)
+    payment = PaymentFactory(user=member, plan=annual_plan)
 
     response = admin_client.delete(detail_url(member))
 
@@ -749,7 +741,7 @@ def test_a_system_admin_can_delete_a_system_admin(
     api_client: APIClient, system_admin: User
 ) -> None:
     """A system administrator can delete another system administrator's account."""
-    other = _user(email="root2@example.test", roles=[MEMBER, SYSTEM_ADMIN])
+    other = UserFactory(email="root2@example.test", roles=[MEMBER, SYSTEM_ADMIN])
     api_client.force_login(system_admin)
     assert api_client.delete(detail_url(other)).status_code == 204
     assert not User.objects.filter(pk=other.pk).exists()
