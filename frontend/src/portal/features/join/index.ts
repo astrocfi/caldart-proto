@@ -14,4 +14,3 @@ export {
   nextJoinStep,
 } from './steps';
 export type { JoinStep } from './steps';
-export { useRegister } from './useRegister';
