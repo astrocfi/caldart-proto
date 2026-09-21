@@ -35,7 +35,8 @@ comments: state what the reader needs, or link the docs page that covers it.
 backend/                Django 5 + Wagtail 8
   manage.py
   caldart/              project: settings/{base,dev,prod,test}.py, urls.py,
-                        api_urls.py, reports.py, pagination.py, exceptions.py
+                        api_urls.py, models.py, reports.py, pagination.py,
+                        exceptions.py
   apps/<app>/           accounts, members, aircraft, payments, reminders,
                         cms, sysadmin — each with models.py, admin.py,
                         api/urls.py, seed.py, management/commands/

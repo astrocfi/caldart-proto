@@ -110,6 +110,8 @@ Repository layout
         api_urls.py             /api/v1/: includes every app's api/urls.py
         views.py                portal_shell, the page the SPA runs in
         authentication.py       session auth, with CSRF for anonymous callers
+        models.py               TimestampedModel, the abstract base every
+                                model inherits
         pagination.py           page-number pagination for the API
         exceptions.py           DRF error handling (401 for anonymous)
         reports.py              CSV and PDF house style
@@ -270,11 +272,58 @@ not every app needs every one.
     endpoints ``/system/health`` and ``/system/backups``.
 
 Code that several apps share lives in the project package:
-``caldart/reports.py`` (the CSV and PDF house style), ``caldart/pagination.py``
-and ``caldart/exceptions.py``.  ``make seed`` runs ``seed_roles``, then
-``seed_demo`` (every app's ``seed.py``, with a fixed random seed so every
-machine gets the same data), then ``seed_content``; all three are
-idempotent.
+``caldart/models.py`` (``TimestampedModel``, the abstract base that gives every
+model ``created_at`` and ``updated_at``), ``caldart/reports.py`` (the CSV and
+PDF house style), ``caldart/pagination.py`` and ``caldart/exceptions.py``.
+``make seed`` runs ``seed_roles``, then ``seed_demo`` (every app's ``seed.py``,
+with a fixed random seed so every machine gets the same data), then
+``seed_content``; all three are idempotent.
+
+.. _architecture-app-dependencies:
+
+Dependencies between apps
+-------------------------
+
+The apps depend on each other in one direction only, so a change is read in one
+place rather than three.  The rule applies to every *domain* module -- anything
+outside ``api/``, ``admin.py`` and ``management/``: ``models.py``,
+``services.py``, ``reports.py``, ``roles.py``, ``permissions.py``, ``seed.py``
+and the rest.  A domain module imports its own app or an app on a lower layer,
+never one on the same layer or a higher one:
+
+==========================================  ==================================
+Layer                                       Apps
+==========================================  ==================================
+0, the foundation                           ``caldart.models``,
+                                            ``caldart.reports``,
+                                            ``caldart.exceptions`` and
+                                            ``caldart.pagination``, which
+                                            import no app at all
+1                                           ``accounts``
+2                                           ``members``
+3                                           ``aircraft`` and ``payments``,
+                                            siblings that never import each
+                                            other
+4                                           ``reminders``
+5                                           ``cms`` and ``sysadmin``
+==========================================  ==================================
+
+Two further rules complete it:
+
+- No domain module imports an ``apps.<app>.api`` module.  ``api/``, ``admin.py``
+  and the management commands are the composition points: they may import any
+  app's models, services and serializers.
+- An upward import is allowed only inside a function, only where it breaks an
+  app-level cycle, and only with a comment on the line above saying which one.
+  There are five: ``User.membership_status`` and
+  ``User.can_access_members_content`` reaching ``members``, ``delete_member``
+  reaching ``payments.models`` for the refusal sentence, and the Wagtail
+  site-settings lookups in ``accounts.services`` and ``reminders.services``.
+
+``backend/tests/test_app_layering.py`` enforces all of this with an ``ast`` pass
+over ``backend/apps`` and ``backend/caldart``.  It lists the five inline imports
+by name and fails both when an undeclared one appears and when a declared one
+stops existing.
 
 The services layer
 ------------------
