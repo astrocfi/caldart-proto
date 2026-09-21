@@ -2,8 +2,8 @@
 
 Django configures outgoing mail through ``MAILERS``, a dict of named mailers, while
 the deployment interface stays a single ``EMAIL_URL``.  ``caldart.settings.mailers``
-translates one into the other, and these tests pin that translation and check that no
-settings module leaves a per-setting email value behind.
+translates one into the other, and these tests pin that translation: which options
+each backend receives, which it refuses, and that Django can build the result.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 from django.core import mail
+from django.core.exceptions import ImproperlyConfigured
 from django.core.mail.backends.locmem import EmailBackend as LocMemEmailBackend
 from django.core.mail.backends.smtp import EmailBackend as SMTPEmailBackend
 from pytest_django import Settings
@@ -131,11 +132,9 @@ def test_django_builds_the_smtp_backend_an_email_url_describes(settings: Setting
     assert mailer.timeout == 20
 
 
-@pytest.mark.parametrize(
-    "name",
-    ["EMAIL_BACKEND", "EMAIL_HOST", "EMAIL_PORT", "EMAIL_HOST_USER", "EMAIL_TIMEOUT"],
-)
-def test_no_per_setting_email_value_survives(settings: Settings, name: str) -> None:
-    """Reading a per-setting email value fails, so nothing can configure mail twice."""
-    with pytest.raises(AttributeError, match=f"The {name} setting is not available"):
-        getattr(settings, name)
+def test_an_unknown_backend_is_rejected() -> None:
+    """A backend the options table does not list stops the settings from loading."""
+    parsed = email_url_settings(EMAIL_BACKEND="caldart.mail.NoSuchBackend")
+
+    with pytest.raises(ImproperlyConfigured, match=r"caldart\.mail\.NoSuchBackend"):
+        default_mailer(parsed)

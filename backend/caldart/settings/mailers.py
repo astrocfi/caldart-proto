@@ -10,13 +10,19 @@ hand that result to ``default_mailer`` and store what it returns under ``"defaul
 
 from typing import Any
 
+from django.core.exceptions import ImproperlyConfigured
+
 CONSOLE_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DUMMY_BACKEND = "django.core.mail.backends.dummy.EmailBackend"
 FILE_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
+LOCMEM_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 SMTP_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
-#: The ``env.email_url`` keys each backend accepts, mapped to its option names.  A
-#: backend absent from this table, such as the console one, takes no options at all,
-#: and passing it one would be an error rather than a value it ignores.
+#: The ``env.email_url`` keys each backend accepts, mapped to its option names.  Every
+#: backend django-environ's ``email_url`` can name has an entry, and one that takes no
+#: options has an empty one: passing an option to a backend that does not know it is an
+#: error rather than a value it ignores.  A backend outside the table is a backend whose
+#: options nothing here has established, so it is rejected rather than configured blind.
 OPTIONS_FOR_BACKEND: dict[str, dict[str, str]] = {
     SMTP_BACKEND: {
         "EMAIL_HOST": "host",
@@ -27,6 +33,9 @@ OPTIONS_FOR_BACKEND: dict[str, dict[str, str]] = {
         "EMAIL_USE_SSL": "use_ssl",
     },
     FILE_BACKEND: {"EMAIL_FILE_PATH": "file_path"},
+    CONSOLE_BACKEND: {},
+    LOCMEM_BACKEND: {},
+    DUMMY_BACKEND: {},
 }
 
 
@@ -43,9 +52,20 @@ def default_mailer(email_url: dict[str, Any], *, timeout: int | None = None) -> 
     For ``smtp://caldart%40example.org:hunter2@smtp.example.org:587`` the result is
     ``{"BACKEND": SMTP_BACKEND, "OPTIONS": {"host": "smtp.example.org", "port": 587,
     "username": "caldart@example.org", "password": "hunter2"}}``.
+
+    Raises ``ImproperlyConfigured``, naming the backend, when ``EMAIL_BACKEND`` is one
+    ``OPTIONS_FOR_BACKEND`` does not list, since which of the URL's values that backend
+    accepts is then unknown.
     """
     backend = email_url["EMAIL_BACKEND"]
-    names = OPTIONS_FOR_BACKEND.get(backend, {})
+    try:
+        names = OPTIONS_FOR_BACKEND[backend]
+    except KeyError as exc:
+        known = ", ".join(sorted(OPTIONS_FOR_BACKEND))
+        raise ImproperlyConfigured(
+            f"EMAIL_URL names the mail backend {backend}, whose options caldart does "
+            f"not know. Known backends: {known}."
+        ) from exc
     options: dict[str, Any] = {
         option: email_url[key]
         for key, option in names.items()

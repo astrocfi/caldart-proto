@@ -207,7 +207,10 @@ Email
 
    The settings modules translate it into the one entry in Django's ``MAILERS``
    setting, so the host, port and credentials are options of that mailer rather
-   than settings of their own.
+   than settings of their own.  ``caldart.settings.mailers`` knows which options
+   each backend takes; a URL scheme naming a backend it does not list raises
+   ``ImproperlyConfigured`` at startup rather than dropping the connection
+   details silently.
 
    :Development: ``smtp://localhost:1025`` — Mailpit, whose web UI at
       http://localhost:8025 catches everything and delivers nothing.
