@@ -62,8 +62,9 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 - It is configured under `[tool.mypy]` in `pyproject.toml` with `strict = true` and the
   django-stubs and djangorestframework-stubs plugins. Only `disallow_subclassing_any` is
   relaxed, because Wagtail's base classes carry no types.
-- There are NO global exclusions beyond migrations, and no `[[tool.mypy.overrides]]` entry
-  carries `ignore_errors = true`: mypy checks every module. Never add one.
+- Apart from migrations, mypy excludes nothing: no `[[tool.mypy.overrides]]` entry carries
+  `ignore_errors = true`, and none may be added. `backend/tests/test_lint_config.py` fails
+  if one appears.
 - Silence a single line with `# type: ignore[<code>]  # <reason>` ONLY where no fix is
   possible, such as a missing or wrong stub. Never widen an annotation to `Any` or
   `object` to satisfy the checker: find the real type, and use a union or a `TypedDict`
@@ -118,5 +119,6 @@ enforced by review rather than by Ruff. Categories to consider adding: **A**, **
 **PT**, **RUF**, **DOC** (pydoclint, still preview), **PTH**, **RET**, **PERF**. Enable one
 only if the team agrees to fix or ignore the resulting diagnostics.
 
-**ANN** and **D** apply to the whole backend, tests included. `[tool.ruff.lint.per-file-ignores]`
-carries no `ANN` or `D` entry: every module satisfies both rule sets, and none may be added.
+**ANN** and **D** apply to the whole backend, tests included. There is no
+`[tool.ruff.lint.per-file-ignores]` table: every module satisfies both rule sets, no file may
+be exempted, and `backend/tests/test_lint_config.py` fails if an exemption appears.

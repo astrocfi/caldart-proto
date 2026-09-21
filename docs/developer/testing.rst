@@ -424,8 +424,10 @@ it finds (a ``_``-prefixed helper's docstring is a matter for review);
 ``max-doc-length = 90`` turns on ``W505``,
 which wraps those docstrings at 90 characters.  A package's ``__init__.py``
 (``D104``) and a nested ``Meta`` class (``D106``) need no docstring.  Both rule
-sets apply to the whole backend, tests included; ``[tool.ruff.lint.per-file-ignores]``
-carries no ``ANN`` or ``D`` entry, and none may be added.
+sets apply to the whole backend, tests included: there is no
+``[tool.ruff.lint.per-file-ignores]`` table, no file may be exempted, and
+``backend/tests/test_lint_config.py`` fails if an exemption or an
+``ignore_errors`` mypy override appears.
 
 ``mypy`` type-checks ``backend`` — the application and the tests alike — as the
 third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
