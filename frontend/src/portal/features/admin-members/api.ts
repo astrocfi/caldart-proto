@@ -59,7 +59,7 @@ export function useMembers(query: MemberListQuery): UseQueryResult<Paginated<Mem
   });
 }
 
-/** One member's detail record, or disabled while `id` is not a known member id. */
+/** One member's detail record, or disabled while `id` is null or not a number. */
 export function useMember(id: number | null): UseQueryResult<MemberDetail> {
   return useQuery({
     queryKey: [...MEMBERS_KEY, 'detail', id],
