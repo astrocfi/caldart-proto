@@ -383,6 +383,90 @@ Django at all.
    worker preloads Django and Wagtail.  Set it lower on a small VM.
 
 
+.. _configuration-csp:
+
+Content-Security-Policy
+=======================
+
+Every response carries an enforced ``Content-Security-Policy`` header — not
+``Content-Security-Policy-Report-Only``, so a browser refuses a resource the
+policy does not name.  django-csp builds it from the
+``CONTENT_SECURITY_POLICY`` setting in ``backend/caldart/settings/base.py``,
+which no environment variable touches: widening the policy means editing that
+dictionary and shipping the change.
+
+Each vendor's entries are copied from that vendor's own published policy
+requirements — Stripe's at https://docs.stripe.com/security/guide (the
+"Stripe.js" and "Link" entries of its Content Security Policy section) and
+PayPal's at https://developer.paypal.com/sdk/js/csp/ — narrowed to the products
+the checkout uses: the Stripe Payment Element with the Apple Pay, Google Pay and
+Link wallets, and PayPal's buttons.  PayPal names the same three hosts for four
+directives, written below as ``PAYPAL`` for brevity:
+
+.. code-block:: text
+
+   PAYPAL = https://*.paypal.com https://*.paypalobjects.com https://*.venmo.com
+
+The wildcards cover the live and the sandbox SDK alike, so ``PAYPAL_ENV`` can
+pick between them at run time while the header stays fixed at start-up.  PayPal
+writes those hosts without a scheme; ``base.py`` pins ``https`` so the policy
+cannot admit a plaintext copy of an SDK.
+
+``default-src 'self'``
+   Everything the following directives do not cover comes from CalDART's own
+   origin.
+
+``script-src 'self' https://js.stripe.com https://*.js.stripe.com PAYPAL``
+   The portal's own bundles plus the two payment vendors' browser SDKs.
+   Stripe asks for the wildcard beside the bare host so Stripe.js can start
+   frames on other origins.  No template carries an inline script.
+
+``frame-src 'self' https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com https://link.com https://*.link.com PAYPAL``
+   Stripe's Payment Element and PayPal's buttons render in vendor frames.
+   ``https://hooks.stripe.com`` is where a payment method that redirects — 3-D
+   Secure among them — lands, and the ``link.com`` hosts serve Link's
+   authentication UI.  ``'self'`` is there for Wagtail, whose admin previews a
+   page in a same-origin frame.
+
+``connect-src 'self' https://api.stripe.com https://link.com https://*.link.com PAYPAL``
+   The portal's own API calls, plus the calls those SDKs make from the browser
+   to authorize and capture a payment.
+
+``img-src 'self' data: https://*.link.com PAYPAL``
+   ``data:`` carries the inline SVG icons the portal and the Wagtail admin
+   draw, and the vendor hosts carry the wallet and funding-source artwork the
+   Payment Element and the PayPal buttons draw inside their own frames.  CalDART
+   itself serves every other image, so ``base.py`` sets
+   ``WAGTAIL_GRAVATAR_PROVIDER_URL = None``: the admin draws an account's
+   avatar from its own static files rather than from Gravatar, and an account's
+   email address stays out of a third-party request.
+
+``style-src 'self' 'unsafe-inline'``
+   Stripe's Payment Element and Wagtail's admin both set styles from
+   JavaScript, which a browser attributes to this directive.
+
+``caldart.middleware.WagtailAdminCspMiddleware`` makes the one exception:
+under the path Wagtail's admin is mounted at, ``script-src`` is replaced with
+``'self' 'unsafe-inline'``, because Wagtail's admin templates — the inline
+panel and the date and time widgets among them — write scripts into the page.
+The exception follows the path, so it covers the admin's own login page and
+reaches nothing else: the public site, the portal and the API keep the policy
+above.  Every other directive stays as it is even inside the admin.
+
+``caldart.settings.dev`` widens four directives so the pages work against the
+Vite dev server (``make dev-frontend``, ``DJANGO_VITE_DEV_MODE=true``): it adds
+``http://localhost:5173`` to ``default-src``, ``script-src``, ``connect-src``
+and ``img-src``, ``ws://localhost:5173`` to ``connect-src`` for the hot-reload
+socket, and ``'unsafe-inline'`` to ``script-src`` for React Fast Refresh's
+preamble.  It edits a copy, so the policy ``caldart.settings.prod`` serves is
+the one above.
+
+Adding a payment provider, an analytics script, a web font or an embedded
+video means adding its origin to the right directive, and
+``backend/tests/test_csp.py`` asserts the whole header directive by directive,
+so a change that widens the policy has to say so.
+
+
 Settings that are not environment variables
 ===========================================
 

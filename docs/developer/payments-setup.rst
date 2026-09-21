@@ -406,6 +406,28 @@ plausible wallets, so the payment reports have something realistic to group
 by.
 
 
+Origins the browser is allowed to reach
+=======================================
+
+The site's ``Content-Security-Policy`` names both vendors, so the checkout
+works without any change to a vhost.  Each vendor's entries come from that
+vendor's own published requirements: Stripe's at
+https://docs.stripe.com/security/guide and PayPal's at
+https://developer.paypal.com/sdk/js/csp/.  ``script-src`` carries
+``https://js.stripe.com`` and ``https://*.js.stripe.com``; ``frame-src`` adds
+``https://hooks.stripe.com`` for a payment method that redirects and the
+``link.com`` hosts for Link; ``connect-src`` carries ``https://api.stripe.com``;
+and all four resource directives carry PayPal's ``https://*.paypal.com``,
+``https://*.paypalobjects.com`` and ``https://*.venmo.com``, whose wildcards
+cover the live and the sandbox SDK alike, so ``PAYPAL_ENV`` can choose between
+them at run time while the header is fixed at start-up.
+
+A provider added to ``backend/apps/payments/providers/`` needs its own origins
+added to those directives, or the browser will refuse to load its SDK and the
+checkout tab will stay blank with a console violation.  :ref:`configuration-csp`
+gives the whole policy and where to edit it.
+
+
 The provider interface
 ======================
 
