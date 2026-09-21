@@ -12,7 +12,8 @@ Conventions are the ones in :doc:`api-reference`: session authentication,
 ``X-CSRFToken`` on unsafe methods, ISO-8601 dates, DRF error bodies.  An
 unauthenticated request to a protected endpoint returns **401**, not 403 —
 unless it is an unsafe method carrying no CSRF token, which is refused with
-**403** before the permission check.
+**403** before the permission check.  Both answers are the same on every
+``/me/...`` endpoint and are not repeated in the status lists below.
 
 
 Summary
@@ -33,14 +34,16 @@ Endpoint                                     Methods                  Who
 There is no role check beyond authentication: the resource *is* the caller,
 so there is no id to tamper with.  A member with no ``MemberProfile`` row
 gets an empty one created on first read or first attach, which keeps
-accounts created outside the registration flow usable.
+accounts created outside the registration flow usable.  A method outside the
+column above is a **405** — ``DELETE /me/profile`` among them, because a member
+may empty their profile but not remove it.
 
 
 ``GET /me/profile``
 ===================
 
 Returns every ``MemberProfile`` field except the admin-only ``notes`` and
-``how_heard``.
+``how_heard``, creating an empty profile row first if the account has none.
 
 .. code-block:: json
 
@@ -94,31 +97,83 @@ Read-only fields
   today, for BasicMed and class medicals alike; ``medical_type: "none"``
   is always ``false``).
 
+Statuses:
 
-``PUT`` and ``PATCH /me/profile``
-=================================
+* **200** — the profile above.
 
-``PUT`` is a **genuine full update**: any writable field left out of the
-body is reset to its model default, so a cleared text box really is
-cleared, an unticked checkbox really is unticked, and an omitted
-``dart_id`` clears the DART.  ``PATCH`` changes only what it names.
 
-That is a deliberate departure from DRF's default, which ignores absent
-optional fields even on a full update and would make the two verbs
-identical.  The portal always sends the complete form on ``PUT``.
+``PUT /me/profile``
+===================
 
-``dart_id``
-  The write side of ``dart``.  Accepts the id of an **active** ``Dart`` or
-  ``null``; an inactive or unknown id is a 400 on ``dart_id``.
+A **genuine full update**: any writable field left out of the body is reset to
+its model default, so a cleared text box really is cleared, an unticked
+checkbox really is unticked, and an omitted ``dart_id`` clears the DART.
+
+.. code-block:: json
+
+   {
+     "phone": "650-555-0101",
+     "address_line1": "1 Embarcadero",
+     "city": "San Carlos",
+     "state": "ca",
+     "postal_code": "94070",
+     "dart_id": 9,
+     "pilot_certificate_type": "private",
+     "certificate_number": "3141592",
+     "ratings": ["instrument"],
+     "medical_type": "third",
+     "medical_expiration": "2029-05-31",
+     "vol_ground_team": true
+   }
+
+That reset is a deliberate departure from DRF's default, which ignores absent
+optional fields even on a full update and would make the two verbs identical.
+The portal always sends the complete form on ``PUT``.  The response is the
+stored profile in the ``GET`` shape above, so ``state`` comes back upper-cased
+and ``dart`` as its ``{id, name}`` stub.
+
+Statuses:
+
+* **200** — the updated profile.
+* **400** — ``phone`` missing, or any rule in :ref:`profile-validation`
+  refused.  Nothing is written.
+
+
+``PATCH /me/profile``
+=====================
+
+Changes only the fields the body names and leaves the rest of the row alone.
+
+.. code-block:: json
+
+   {"medical_type": "basicmed", "medical_expiration": "2030-04-30"}
+
+The two cross-field rules are evaluated against the row as it *would be* after
+the write, so a ``PATCH`` that sets only ``medical_type`` is rejected unless an
+expiration date is already stored.  The response is the stored profile in the
+``GET`` shape above.
+
+Statuses:
+
+* **200** — the updated profile.
+* **400** — a blank ``phone``, or any rule in :ref:`profile-validation`
+  refused.  Nothing is written.
+
+.. _profile-validation:
 
 Validation
 ----------
+
+``dart_id`` is the write side of ``dart``.  It accepts the id of an **active**
+``Dart`` or ``null``; an inactive or unknown id is a 400 on ``dart_id``.
 
 ===========================  ===========================================================
 Field                        Rule
 ===========================  ===========================================================
 ``phone``                    Required on ``PUT``; never blank on ``PATCH``.
 ``state``                    Two letters if given; stored upper-cased (``ca`` → ``CA``).
+                             The column is two characters wide, so a longer value is
+                             refused by the field's own length check.
 ``postal_code``              ``12345`` or ``12345-6789`` if given.
 ``ratings``                  Each value from ``instrument, multi_engine, cfi, cfii,
                              mei, seaplane, helicopter, glider``; repeats are dropped
@@ -128,15 +183,19 @@ Field                        Rule
                              ``none``.
 ===========================  ===========================================================
 
-The two cross-field rules are evaluated against the row as it *would be*
-after the write, so a ``PATCH`` that sets only ``medical_type`` is rejected
-unless an expiration date is already stored.
-
-A rejection is a normal DRF 400:
+A rejection is a normal DRF 400, keyed on the field it belongs to, and both
+cross-field complaints are raised together when both apply:
 
 .. code-block:: json
 
-   {"medical_expiration": ["Give the expiration date of your medical certificate."]}
+   {
+     "medical_expiration": ["Give the expiration date of your medical certificate."],
+     "certificate_number": ["Give your pilot certificate number."]
+   }
+
+The other two sentences are "Use the two-letter state code, for example CA."
+— for a two-character value that is not two letters — and "Use a ZIP code like
+95035 or 95035-1234."
 
 The portal's form applies the same rules before it sends anything, and on top
 of them marks as required the five fields that make a profile complete
@@ -170,27 +229,49 @@ One list serves every reader of it:
 ``POST /me/profile/aircraft``
 =============================
 
-Attaches an aircraft to the caller's "planes commonly flown".
+Attaches an aircraft to the caller's "planes commonly flown" and answers with
+the whole list, so the client never has to re-read the profile.
 
-.. code-block:: text
+.. code-block:: json
 
-   POST /api/v1/me/profile/aircraft
    {"aircraft_id": 7}
 
-   200 OK
-   {"aircraft": [ ...aircraft summaries... ]}
+.. code-block:: json
 
-Idempotent — attaching twice is a no-op that returns the same list.  An
-unknown ``aircraft_id`` is **404**; a missing one is **400**.
+   {
+     "aircraft": [
+       {
+         "id": 7,
+         "n_number": "N12345",
+         "make": "Cessna",
+         "model": "182T Skylane",
+         "insurance_is_current": true,
+         "insurance_expiration": "2027-03-01",
+         "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01"
+       }
+     ]
+   }
+
+Idempotent — attaching twice is a no-op that returns the same list.
+
+Statuses:
+
+* **200** — the caller's aircraft list, including the one just attached.
+* **400** — ``aircraft_id`` missing or not an integer, reported as
+  ``{"aircraft_id": ["This field is required."]}``.
+* **404** — no aircraft has that id.
 
 
 ``DELETE /me/profile/aircraft/{aircraft_id}``
 =============================================
 
-Detaches it again and returns **204**.  Detaching something that was never
-attached is a no-op, also 204; an unknown aircraft is **404**.  Only the
-caller's link is removed — the ``Aircraft`` row and other members' links to
-it are untouched.
+Detaches the aircraft again, with an empty body.  Only the caller's link is
+removed — the ``Aircraft`` row and other members' links to it are untouched.
+
+Statuses:
+
+* **204** — the link is gone, and also when the caller never had it.
+* **404** — no aircraft has that id.
 
 
 ``GET /me/membership``
@@ -214,7 +295,13 @@ full term history, newest first.
 
 ``status`` is ``current``, ``expired`` or ``none``.  ``expires_on`` is the
 end of the member's *unbroken* coverage, so a renewal bought today shows
-next year's date immediately; it is ``null`` for a lifetime membership.
+next year's date immediately; it is ``null`` for a lifetime membership.  A
+member who has never held a term gets ``status: "none"`` and an empty
+``history`` rather than a 404.
+
+Statuses:
+
+* **200** — the dict above.
 
 
 ``GET /me/payments``
@@ -227,10 +314,19 @@ The caller's payments, newest first, unpaginated.
    [
      {"id": 31, "plan": "Annual", "amount_cents": 6500,
       "contribution_cents": 2000, "provider": "stripe",
-      "status": "succeeded", "completed_at": "2026-07-01T18:22:05Z"}
+      "status": "succeeded", "completed_at": "2026-07-01T18:22:05.601884-07:00"}
    ]
 
-``plan`` is ``null`` for a payment that was a pure contribution.
+``plan`` is ``null`` for a payment that was a pure contribution, and
+``completed_at`` is ``null`` for one that never succeeded.  Datetimes are
+rendered in the server's configured ``TIME_ZONE``, so they carry an offset
+rather than a trailing ``Z``.  An administrator
+reading the same payments through :doc:`api-members` sees more fields; this
+shape is the member's own.
+
+Statuses:
+
+* **200** — the array above, empty when the member has never paid.
 
 
 ``GET /darts``
@@ -242,6 +338,11 @@ Unpaginated.
 .. code-block:: json
 
    [{"id": 9, "name": "San Carlos", "airport_identifier": "SQL", "city": "San Carlos"}]
+
+Statuses:
+
+* **200** — the array above, for a signed-in caller and an anonymous one
+  alike.
 
 
 ``GET /plans``
@@ -258,6 +359,11 @@ Unpaginated.  ``duration_days`` is ``null`` for a lifetime plan.
      {"slug": "life", "name": "Life", "price_cents": 65000,
       "duration_days": null, "description": "A lifetime membership..."}
    ]
+
+Statuses:
+
+* **200** — the array above, for a signed-in caller and an anonymous one
+  alike.
 
 
 Where the code lives
