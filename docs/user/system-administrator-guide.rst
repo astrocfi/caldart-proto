@@ -101,7 +101,7 @@ standing between a mistake and a rebuilt membership list.
 
 There is no restore button, deliberately.  Restoring wipes the current database
 and is a command-line job with the site stopped; see
-:doc:`../developer/backup-restore`.
+:doc:`/developer/backup-restore`.
 
 
 Renewal reminders
@@ -131,7 +131,7 @@ told?" when somebody says their membership lapsed without warning.  Account
 administrators can see this log too.
 
 The wording of the emails and the 07:00 schedule are in
-:doc:`../developer/reminders`.
+:doc:`/developer/reminders`.
 
 
 Routine
@@ -162,11 +162,11 @@ developer guide:
 ============================================  ==================================
 Job                                           Where
 ============================================  ==================================
-Installing or upgrading the application       :doc:`../developer/deployment`
-Restoring a backup                            :doc:`../developer/backup-restore`
-Changing configuration or secrets             :doc:`../developer/configuration`
-Changing the reminder schedule or wording     :doc:`../developer/reminders`
-Payment provider keys and webhooks            :doc:`../developer/payments-setup`
+Installing or upgrading the application       :doc:`/developer/deployment`
+Restoring a backup                            :doc:`/developer/backup-restore`
+Changing configuration or secrets             :doc:`/developer/configuration`
+Changing the reminder schedule or wording     :doc:`/developer/reminders`
+Payment provider keys and webhooks            :doc:`/developer/payments-setup`
 ============================================  ==================================
 
 The quickest health check from a shell on the server is, using
@@ -220,7 +220,7 @@ When something goes wrong
 **The backup list is empty even though backups exist.**
    The panel reads one directory — the one named by ``BACKUP_DIR``.  A dump
    somebody wrote elsewhere is not listed and is not downloadable.  See
-   :doc:`../developer/configuration`.
+   :doc:`/developer/configuration`.
 
 **A backup download 404s.**
    Only a plain file name ending ``.sql.gz`` inside ``BACKUP_DIR`` can be
@@ -237,7 +237,7 @@ When something goes wrong
 **Health says migrations are pending.**
    Code has been deployed without ``manage.py migrate``.  Until it runs, the
    database and the application disagree about the schema; do it now.  See
-   :doc:`../developer/deployment`.
+   :doc:`/developer/deployment`.
 
 **Health says the last backup is old, or missing.**
    Backups are on demand in this prototype — there is no timer for them, only

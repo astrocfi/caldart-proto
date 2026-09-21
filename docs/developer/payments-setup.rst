@@ -508,3 +508,8 @@ Troubleshooting
   and ``raw`` hold the provider's last payload.  Both the confirm endpoint and
   the webhook call the same idempotent ``mark_succeeded``, so re-delivering
   the webhook from the Stripe dashboard is a safe way to repair it.
+
+Related
+=======
+
+:doc:`api-payments` documents the checkout and webhook endpoints in detail.

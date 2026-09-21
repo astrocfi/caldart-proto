@@ -1,14 +1,10 @@
 /**
  * Editing an aircraft from the member's own screen.
  *
- * The register lets the member who added an airplane keep it up to date —
- * `AircraftPermission` has always said so — but the only edit form used to be
- * the account administrator's, so in practice a member could add a record with
- * the wrong insurance expiry and never correct it.
- *
- * This is the same `<AircraftForm/>` the administrator uses, without the
- * administrator's own fields (notes, in-service), and only for a record this
- * member created; anyone else's shows who to ask instead.
+ * `AircraftPermission` lets the member who added an airplane keep it up to
+ * date.  This is the same `<AircraftForm/>` the administrator uses, without
+ * the administrator's own fields (notes, in-service), and only for a record
+ * this member created; anyone else's shows who to ask instead.
  */
 import { useAircraft, useUpdateAircraft } from '@/portal/features/aircraft';
 import { AircraftForm } from '@/portal/features/aircraft';

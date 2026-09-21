@@ -162,7 +162,7 @@ Every aircraft on **My aircraft** (``/portal/profile/aircraft``) has an
 **Edit** action.  For an aircraft the member added, it opens the same form the
 register uses, without the administrator-only controls.  For anyone else's, it
 shows a card headed *Someone else added this aircraft*.  The API enforces the
-same rule (:doc:`../developer/api-aircraft`), so a member who did not add the
+same rule (:doc:`/developer/api-aircraft`), so a member who did not add the
 record gets a 403 however they reach it.
 
 That card is keyed on who added the record, not on roles, so an account
