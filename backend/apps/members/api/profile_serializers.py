@@ -214,16 +214,20 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         errors: dict[str, str] = {}
 
         medical_type = self._merged(attrs, "medical_type")
-        if medical_type and medical_type != MedicalType.NONE:
-            if not self._merged(attrs, "medical_expiration"):
-                errors["medical_expiration"] = (
-                    "Give the expiration date of your medical certificate."
-                )
+        if (
+            medical_type
+            and medical_type != MedicalType.NONE
+            and not self._merged(attrs, "medical_expiration")
+        ):
+            errors["medical_expiration"] = "Give the expiration date of your medical certificate."
 
         certificate = self._merged(attrs, "pilot_certificate_type")
-        if certificate and certificate != PilotCertificateType.NONE:
-            if not self._merged_text(attrs, "certificate_number").strip():
-                errors["certificate_number"] = "Give your pilot certificate number."
+        if (
+            certificate
+            and certificate != PilotCertificateType.NONE
+            and not self._merged_text(attrs, "certificate_number").strip()
+        ):
+            errors["certificate_number"] = "Give your pilot certificate number."
 
         if errors:
             raise serializers.ValidationError(errors)
