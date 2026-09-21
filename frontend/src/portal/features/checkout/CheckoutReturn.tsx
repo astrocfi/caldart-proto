@@ -10,7 +10,7 @@
  * `routes/join.tsx` renders this at `/join/done`.
  */
 import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
@@ -46,7 +46,8 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps) {
+/** Confirms a redirect-based payment, polling until it settles or fails. */
+export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps): JSX.Element {
   const [params] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 

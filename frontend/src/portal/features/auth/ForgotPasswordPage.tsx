@@ -1,5 +1,5 @@
-/** `/forgot-password` — ask for a reset link. */
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { usePasswordResetRequest } from '../../auth/useAuth';
@@ -9,7 +9,8 @@ import { Field } from '../../components/Field';
 import { Page } from '../../components/Page';
 import { FormAlert, fieldError } from './form';
 
-export function ForgotPasswordPage() {
+/** `/forgot-password` — ask for a reset link. */
+export function ForgotPasswordPage(): JSX.Element {
   const request = usePasswordResetRequest();
   const [email, setEmail] = useState('');
 

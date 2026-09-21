@@ -1,4 +1,5 @@
-/** The plan radio cards at the top of the checkout. */
+import type { JSX } from 'react';
+
 import type { Plan } from '../../api/types';
 import { formatCents } from '../../components/Money';
 
@@ -16,7 +17,13 @@ function term(plan: Plan): string {
   return `${plan.duration_days} days`;
 }
 
-export function PlanChooser({ plans, value, onChange, disabled = false }: PlanChooserProps) {
+/** The plan radio cards at the top of the checkout. */
+export function PlanChooser({
+  plans,
+  value,
+  onChange,
+  disabled = false,
+}: PlanChooserProps): JSX.Element {
   return (
     <fieldset className="checkout__section">
       <legend>Membership</legend>

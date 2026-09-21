@@ -1,12 +1,13 @@
-/** `/logout` — end the session, empty the cache, land on the sign-in page. */
 import { useEffect } from 'react';
+import type { JSX } from 'react';
 import { Navigate } from 'react-router-dom';
 
 import { useAuth, useLogout } from '../../auth/useAuth';
 import { Card } from '../../components/Card';
 import { Page } from '../../components/Page';
 
-export function LogoutPage() {
+/** `/logout` — end the session, empty the cache, land on the sign-in page. */
+export function LogoutPage(): JSX.Element {
   const logout = useLogout();
   const { isAuthenticated, isLoading } = useAuth();
   const { mutate, isIdle } = logout;

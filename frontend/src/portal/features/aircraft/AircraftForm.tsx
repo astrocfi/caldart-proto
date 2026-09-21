@@ -3,6 +3,7 @@
  * insurance and the administrator's own notes.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 
 import type { AircraftPatch } from '../../api/types';
 import { Button } from '../../components/Button';
@@ -23,6 +24,7 @@ export interface AircraftFormProps {
   withAdminFields?: boolean;
 }
 
+/** The aircraft record form, shared by the create and edit screens. */
 export function AircraftForm({
   initial,
   submitLabel,
@@ -31,7 +33,7 @@ export function AircraftForm({
   onSubmit,
   onCancel,
   withAdminFields = false,
-}: AircraftFormProps) {
+}: AircraftFormProps): JSX.Element {
   const [values, setValues] = useState<AircraftFormValues>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
