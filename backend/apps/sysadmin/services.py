@@ -209,7 +209,10 @@ def pending_migrations() -> list[tuple[str, str]]:
 
     executor = MigrationExecutor(connection)
     targets = executor.loader.graph.leaf_nodes()
-    return [migration.key for migration, _backwards in executor.migration_plan(targets)]
+    return [
+        (migration.app_label, migration.name)
+        for migration, _backwards in executor.migration_plan(targets)
+    ]
 
 
 @lru_cache(maxsize=1)
