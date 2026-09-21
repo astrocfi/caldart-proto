@@ -484,9 +484,11 @@ def send_password_reset_email(user: User, *, request: HttpRequest | None = None)
     The subject is ``"<organization name>: reset your password"`` and the two
     bodies are ``emails/password_reset.{txt,html}``.
 
-    Inactive accounts and accounts without a usable password are skipped
-    silently: the caller answers 204 either way so the endpoint cannot be used
-    to discover which addresses are registered.
+    Inactive accounts and accounts without an address are skipped silently: the
+    caller answers 204 either way so the endpoint cannot be used to discover
+    which addresses are registered.  An account that has never set a usable
+    password is mailed the link like any other, so an invited member who asks
+    for a reset before following their invitation still receives one.
     """
     if not user.is_active or not user.email:
         return False

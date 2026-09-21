@@ -7,8 +7,9 @@ from django.utils.translation import gettext_lazy as _
 from apps.accounts.models import User
 
 
-# Django's ModelAdmin is not subscriptable at runtime, though django-stubs types it
-# as generic, so the model cannot be named here.
+# django-stubs types ModelAdmin as generic, but Django's own class carries no
+# __class_getitem__ when the admin autodiscovery that imports this module runs, so
+# naming the model here would raise TypeError on startup.
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
     """Django admin for the accounts, listing and searching them by name and address."""

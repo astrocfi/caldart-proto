@@ -192,9 +192,9 @@ class PasswordResetView(APIView):
         """Mail a reset link to the posted ``email`` and answer 204.
 
         Open to anonymous callers and throttled under the ``auth_password_reset`` scope.
-        An unregistered, deactivated or password-less address is answered 204 with no
-        mail sent, so the endpoint cannot be used to enumerate members.  A malformed
-        address is a 400.
+        An unregistered or deactivated address is answered 204 with no mail sent, so the
+        endpoint cannot be used to enumerate members.  An account that has never set a
+        password is mailed the link like any other.  A malformed address is a 400.
         """
         serializer = PasswordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
