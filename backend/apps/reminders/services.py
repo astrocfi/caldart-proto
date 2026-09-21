@@ -187,7 +187,7 @@ def build_email(
     """
     org = _org_name()
     # Lifetime terms (no ends_on) never reach here: _candidates() filters on ends_on.
-    assert membership.ends_on is not None
+    assert membership.ends_on is not None  # noqa: S101 - mypy strict narrowing, not test code
     days = abs((membership.ends_on - today).days)
     context = {
         "user": user,

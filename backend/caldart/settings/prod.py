@@ -33,7 +33,7 @@ DEBUG = False
 # The key ``base.py`` defaults to and ``.env.example`` ships.  It is published
 # in the repository, so a box still running it can have its sessions and
 # password-reset links forged by anyone who has read the source.
-DEVELOPMENT_SECRET_KEY = "dev-insecure-secret-key-change-me"
+DEVELOPMENT_SECRET_KEY = "dev-insecure-secret-key-change-me"  # noqa: S105 - already public
 
 # No default: a production box must set its own key, and a missing one is a
 # start-up error rather than a quietly shared development secret.
@@ -104,8 +104,8 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 # Persistent connections: gunicorn workers are long-lived, and reconnecting per
 # request to the Postgres container is pure latency.
 # --------------------------------------------------------------------------
-DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=60)  # noqa: F405
-DATABASES["default"]["CONN_HEALTH_CHECKS"] = True  # noqa: F405
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=60)
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 # --------------------------------------------------------------------------
 # Cache

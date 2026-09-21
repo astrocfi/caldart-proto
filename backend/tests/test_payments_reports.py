@@ -68,7 +68,7 @@ def history(
 ) -> list[Payment]:
     """Three months of payments across two years and both real providers."""
     other = user_factory(email="wilma@example.test", first_name="Wilma", last_name="Voss")
-    rows = [
+    return [
         make_payment(member, annual_plan, when=paid_at(2025, 11, 3)),
         make_payment(
             other, annual_plan, when=paid_at(2025, 11, 20), provider=PaymentProvider.PAYPAL
@@ -90,7 +90,6 @@ def history(
             member, annual_plan, when=paid_at(2026, 2, 4), status=PaymentStatus.PENDING, ref="wip"
         ),
     ]
-    return rows
 
 
 # --------------------------------------------------------------------------

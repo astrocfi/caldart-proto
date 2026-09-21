@@ -417,17 +417,28 @@ Linting and type-checking
 
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
 ``py312``, rule sets ``E``, ``F``, ``I``, ``UP``, ``B``, ``DJ``, ``C4``, ``W``,
-``ANN`` and ``D``, with migrations excluded.  ``ANN`` requires an annotation on
-every parameter and every return value, and ``D`` requires a docstring on every
-public module, class, function and method and checks the form of every docstring
-it finds (a ``_``-prefixed helper's docstring is a matter for review);
-``max-doc-length = 90`` turns on ``W505``,
+``ANN``, ``D``, ``A``, ``N``, ``RUF``, ``SIM``, ``PT``, ``PTH``, ``RET``,
+``PERF``, ``ERA``, ``T20`` and ``S``, with migrations excluded.  ``ANN``
+requires an annotation on every parameter and every return value, and ``D``
+requires a docstring on every public module, class, function and method and
+checks the form of every docstring it finds (a ``_``-prefixed helper's
+docstring is a matter for review); ``max-doc-length = 90`` turns on ``W505``,
 which wraps those docstrings at 90 characters.  A package's ``__init__.py``
-(``D104``) and a nested ``Meta`` class (``D106``) need no docstring.  Both rule
-sets apply to the whole backend, tests included: there is no
-``[tool.ruff.lint.per-file-ignores]`` table, no file may be exempted, and
-``backend/tests/test_lint_config.py`` fails if an exemption or an
-``ignore_errors`` mypy override appears.
+(``D104``) and a nested ``Meta`` class (``D106``) need no docstring.  ``ANN``
+and ``D`` apply to the whole backend, tests included: there is no
+``[tool.ruff.lint.per-file-ignores]`` entry for either, no file may be
+exempted from either, and ``backend/tests/test_lint_config.py`` fails if an
+exemption or an ``ignore_errors`` mypy override appears.  ``RUF012`` is
+ignored everywhere, because Django's ``Meta`` options, admin ``list_display``
+lists and serializer ``fields`` are class-level configuration the framework
+reads and nothing mutates; ``S101`` is ignored for ``backend/tests/**`` only,
+because ``assert`` is pytest's assertion mechanism.  Every other diagnostic
+from an enabled rule set is fixed at the call site; a single-line ``# noqa:
+<code> - <reason>`` is allowed only where the framework genuinely imposes the
+shape, and ``RUF100`` fails the build if a ``noqa`` names a rule that is not
+selected.  ``ARG`` (an unused function argument) stays off, because nearly
+every diagnostic it raises is a Django or DRF signature such as ``get(self,
+request, *args, **kwargs)``, where the framework dictates the parameter list.
 
 ``mypy`` type-checks ``backend`` — the application and the tests alike — as the
 third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets

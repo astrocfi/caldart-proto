@@ -86,7 +86,8 @@ def test_db_backup_passes_the_database_url_to_pg_dump(
 
     argv = pg_calls[0]["argv"]
     assert argv[0] == "pg_dump"
-    assert "--no-owner" in argv and "--no-privileges" in argv
+    assert "--no-owner" in argv
+    assert "--no-privileges" in argv
     assert settings.DATABASES["default"]["NAME"] in argv[argv.index("--dbname") + 1]
 
 

@@ -1,7 +1,7 @@
 """A provider outage is a 400, not a 500, and a captured mismatch is logged.
 
 Every Stripe SDK error and every PayPal transport error is converted to
-``ProviderUnavailable``, which the API already turns into a 400.  Checkout then
+``ProviderUnavailableError``, which the API already turns into a 400.  Checkout then
 deletes the pending row it had just created, and confirmation leaves the
 payment pending for another attempt.
 
@@ -29,7 +29,7 @@ from apps.members.models import Membership, MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
 from apps.payments.providers import paypal
 from apps.payments.providers import stripe as stripe_provider
-from apps.payments.providers.base import ProviderUnavailable
+from apps.payments.providers.base import ProviderUnavailableError
 from apps.payments.services import create_checkout
 from tests.test_payments_stripe import fake_stripe_client
 
@@ -349,7 +349,7 @@ def test_an_order_connection_error_at_checkout_leaves_no_payment_behind(
 
 
 # --------------------------------------------------------------------------
-# PayPal: capture
+# PayPal capture
 # --------------------------------------------------------------------------
 @respx.mock
 def test_a_capture_timeout_is_a_400(
@@ -549,7 +549,7 @@ def test_a_verification_timeout_leaves_the_payment_pending(
 # --------------------------------------------------------------------------
 @respx.mock
 def test_the_token_call_raises_provider_unavailable() -> None:
-    """A timeout fetching a PayPal token raises ProviderUnavailable directly."""
+    """A timeout fetching a PayPal token raises ProviderUnavailableError directly."""
     respx.post(TOKEN_URL).mock(side_effect=httpx.ConnectTimeout("timed out"))
-    with pytest.raises(ProviderUnavailable, match="PayPal could not be reached"):
+    with pytest.raises(ProviderUnavailableError, match="PayPal could not be reached"):
         paypal.access_token()

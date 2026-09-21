@@ -12,8 +12,8 @@ from apps.members.models import Membership, MembershipPlan, MembershipSource
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.providers import available_providers, get_provider
-from apps.payments.providers.base import ProviderNotConfigured
-from apps.payments.providers.mock import MockPaymentsDisabled
+from apps.payments.providers.base import ProviderNotConfiguredError
+from apps.payments.providers.mock import MockPaymentsDisabledError
 from apps.payments.services import create_checkout, mark_failed, mark_succeeded
 from caldart.exceptions import DomainValidationError
 
@@ -75,7 +75,7 @@ def test_create_checkout_rejects_a_negative_contribution(
     member: User, annual_plan: MembershipPlan
 ) -> None:
     """A negative contribution is refused rather than subtracted from the total."""
-    with pytest.raises(DomainValidationError, match="Contribution cannot be negative."):
+    with pytest.raises(DomainValidationError, match=re.escape("Contribution cannot be negative.")):
         create_checkout(member, "annual", -100, PaymentProvider.MOCK)
 
 
@@ -90,7 +90,7 @@ def test_the_negative_contribution_refusal_names_the_contribution_field(
 
 def test_create_checkout_rejects_a_zero_total(member: User) -> None:
     """No plan and no contribution leaves nothing to charge, so it is refused."""
-    with pytest.raises(DomainValidationError, match="Nothing to charge."):
+    with pytest.raises(DomainValidationError, match=re.escape("Nothing to charge.")):
         create_checkout(member, None, 0, PaymentProvider.MOCK)
 
 
@@ -194,7 +194,7 @@ def test_mock_provider_respects_the_kill_switch(
     """Confirming through the mock provider while it is disabled raises."""
     settings.PAYMENTS_MOCK_ENABLED = False
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
-    with pytest.raises(MockPaymentsDisabled):
+    with pytest.raises(MockPaymentsDisabledError):
         get_provider("mock").confirm(payment)
 
 
@@ -207,7 +207,7 @@ def test_available_providers_reflects_configuration(settings: Settings) -> None:
     settings.PAYMENTS_MOCK_ENABLED = True
     assert available_providers() == ["mock"]
 
-    settings.STRIPE_SECRET_KEY = "sk_test"
+    settings.STRIPE_SECRET_KEY = "sk_test"  # noqa: S105 - test fixture
     settings.STRIPE_PUBLISHABLE_KEY = "pk_test"
     assert available_providers() == ["stripe", "mock"]
 
@@ -230,5 +230,5 @@ def test_real_providers_refuse_to_start_without_keys(
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     provider = get_provider(slug)
     assert provider.slug == slug
-    with pytest.raises(ProviderNotConfigured):
+    with pytest.raises(ProviderNotConfiguredError):
         provider.start(payment)

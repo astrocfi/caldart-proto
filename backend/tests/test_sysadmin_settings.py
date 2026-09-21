@@ -108,7 +108,7 @@ def prod(prod_env: None) -> ModuleType:
 def test_prod_settings_import_cleanly(prod: ModuleType) -> None:
     """Importing under ``MINIMAL_ENV`` sets DEBUG off and echoes the site identity."""
     assert prod.DEBUG is False
-    assert prod.SECRET_KEY == MINIMAL_ENV["SECRET_KEY"]
+    assert MINIMAL_ENV["SECRET_KEY"] == prod.SECRET_KEY
     assert prod.ALLOWED_HOSTS == ["caldart.example.org", "www.caldart.example.org"]
     assert prod.SITE_URL == "https://caldart.example.org"
     assert prod.CSRF_TRUSTED_ORIGINS == ["https://caldart.example.org"]

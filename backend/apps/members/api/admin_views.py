@@ -173,7 +173,7 @@ class MembershipAdminDetailView(generics.UpdateAPIView[Membership]):
         term = serializer.instance
         # ``UpdateModelMixin.update`` binds the row it loaded before calling this,
         # so the serializer always carries one here.
-        assert term is not None
+        assert term is not None  # noqa: S101 - mypy strict narrowing, not test code
         changed = [
             name
             for name, value in serializer.validated_data.items()

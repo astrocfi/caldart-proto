@@ -24,7 +24,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture(scope="module")
 def _unused() -> None:  # pragma: no cover
     """Declare a fixture with no import-time side effects; no test requests it."""
-    return None
+    return
 
 
 def _seed() -> None:
@@ -54,7 +54,8 @@ def test_sysadmin_is_a_superuser() -> None:
     """The seeded ``sysadmin@example.org`` account is a Django superuser and staff."""
     _seed()
     user = User.objects.get(email="sysadmin@example.org")
-    assert user.is_superuser and user.is_staff
+    assert user.is_superuser
+    assert user.is_staff
     assert user.has_role(SYSTEM_ADMIN)
 
 

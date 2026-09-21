@@ -433,13 +433,13 @@ imports every provider module, so importing the package registers them all.
 slug), and ``available_providers()`` lists the slugs whose settings are
 present, which is what ``GET /payments/config`` offers the checkout.  A
 provider signals trouble by raising ``PaymentError``, which the API answers
-with HTTP 400.  It has three subclasses: ``ProviderNotConfigured`` (missing
-keys), ``PaymentVerificationError`` (the provider's record disagrees with
-ours), and ``ProviderUnavailable`` (the call never completed, or the provider
-reported a failure of its own).  A provider must convert its library's and its
-transport's own exceptions into one of these, so that an outage is a 400 with
-"try again" rather than a 500 — at checkout the pending payment row is then
-deleted, and at confirmation it is left ``pending`` for another attempt.
+with HTTP 400.  It has three subclasses: ``ProviderNotConfiguredError``
+(missing keys), ``PaymentVerificationError`` (the provider's record disagrees
+with ours), and ``ProviderUnavailableError`` (the call never completed, or the
+provider reported a failure of its own).  A provider must convert its library's
+and its transport's own exceptions into one of these, so that an outage is a
+400 with "try again" rather than a 500 — at checkout the pending payment row is
+then deleted, and at confirmation it is left ``pending`` for another attempt.
 
 Adding a provider therefore means a registered subclass in a module of its
 own, an import in ``providers/__init__.py``, a branch in

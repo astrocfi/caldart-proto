@@ -174,7 +174,8 @@ def test_home_page_features_the_three_latest_news_posts(
     assert [p.title for p in home.featured_news] == ["Post 0", "Post 1", "Post 2"]
 
     body = client.get("/").content.decode()
-    assert "Post 0" in body and "Post 2" in body
+    assert "Post 0" in body
+    assert "Post 2" in body
     assert "Post 4" not in body
 
 
@@ -205,9 +206,13 @@ def test_standard_page_renders_every_block_type(
     assert "An intro" in body
     assert '<h2 class="block-heading" id="first-section">First section</h2>' in body
     assert "Body copy that a reader can actually read." in body
-    assert 'class="pullquote"' in body and "A volunteer" in body
-    assert 'href="/portal/join"' in body and "$45 a year" in body
-    assert 'class="columns"' in body and "Left column." in body and "Right column." in body
+    assert 'class="pullquote"' in body
+    assert "A volunteer" in body
+    assert 'href="/portal/join"' in body
+    assert "$45 a year" in body
+    assert 'class="columns"' in body
+    assert "Left column." in body
+    assert "Right column." in body
     assert 'class="block-heading block-heading--sub" id="a-sub-heading"' in body
     assert "<aside data-raw>Raw markup</aside>" in body
 

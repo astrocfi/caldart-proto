@@ -20,7 +20,7 @@ from apps.accounts.models import User
 from apps.members.models import MembershipPlan
 from apps.payments.models import PaymentProvider
 from apps.payments.providers import stripe as stripe_provider
-from apps.payments.providers.base import ProviderNotConfigured
+from apps.payments.providers.base import ProviderNotConfiguredError
 from apps.payments.providers.stripe import (
     STRIPE_MAX_NETWORK_RETRIES,
     STRIPE_TIMEOUT_SECONDS,
@@ -94,9 +94,9 @@ def test_the_client_carries_the_configured_secret_key(settings: Settings) -> Non
 
 
 def test_the_client_refuses_to_build_without_a_secret_key(settings: Settings) -> None:
-    """Building a client with no secret key raises ``ProviderNotConfigured``."""
+    """Building a client with no secret key raises ``ProviderNotConfiguredError``."""
     settings.STRIPE_SECRET_KEY = ""
-    with pytest.raises(ProviderNotConfigured, match="STRIPE_SECRET_KEY is empty"):
+    with pytest.raises(ProviderNotConfiguredError, match="STRIPE_SECRET_KEY is empty"):
         stripe_client()
 
 

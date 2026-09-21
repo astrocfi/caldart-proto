@@ -21,7 +21,7 @@ from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.providers import paypal
-from apps.payments.providers.base import PaymentVerificationError, ProviderNotConfigured
+from apps.payments.providers.base import PaymentVerificationError, ProviderNotConfiguredError
 from apps.payments.services import create_checkout
 from tests.factories import UserFactory
 
@@ -142,9 +142,9 @@ def test_bad_credentials_raise() -> None:
 
 
 def test_missing_credentials_raise(settings: Settings) -> None:
-    """Fetching a token with no client id configured raises ProviderNotConfigured."""
+    """Fetching a token with no client id configured raises ProviderNotConfiguredError."""
     settings.PAYPAL_CLIENT_ID = ""
-    with pytest.raises(ProviderNotConfigured):
+    with pytest.raises(ProviderNotConfiguredError):
         paypal.access_token()
 
 

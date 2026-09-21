@@ -32,7 +32,7 @@ def _actor(request: Request) -> User:
     record naming the wrong actor.  Python run with ``-O`` skips the assertion,
     leaving only the permission class.
     """
-    assert isinstance(request.user, User)
+    assert isinstance(request.user, User)  # noqa: S101 - mypy strict narrowing, not test code
     return request.user
 
 
