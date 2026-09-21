@@ -19,12 +19,14 @@ from datetime import date, timedelta
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, transaction
+from django.db.models import Model
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 from apps.members.models import Membership, MembershipState, MembershipStatusChoices
 from apps.members.services import expire_lapsed_memberships, membership_status
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
+from caldart import audit
 
 log = logging.getLogger(__name__)
 
@@ -233,7 +235,12 @@ def _candidates(kind: str, today: date):
     )
 
 
-def send_renewal_reminders(*, today: date | None = None, dry_run: bool = False) -> ReminderRun:
+def send_renewal_reminders(
+    *,
+    today: date | None = None,
+    dry_run: bool = False,
+    actor: Model | str = audit.COMMAND_ACTOR,
+) -> ReminderRun:
     """Scan for due reminders and send them.
 
     Flips memberships whose ``ends_on`` has passed to ``expired`` first, so the
@@ -245,6 +252,10 @@ def send_renewal_reminders(*, today: date | None = None, dry_run: bool = False) 
     no log row, so the next run inside the window tries again.  A log row
     another run wrote first counts as ``already_sent``.  The run summary is
     returned either way; nothing is raised.
+
+    Every run ends with one audit record carrying the mode and the four counts.
+    ``actor`` is the account that asked for it; the management command and the
+    daily timer leave it at ``command``.
     """
     today = today or timezone.localdate()
     run = ReminderRun(today=today, dry_run=dry_run)
@@ -292,6 +303,15 @@ def send_renewal_reminders(*, today: date | None = None, dry_run: bool = False) 
             else:
                 run.record_sent(kind)
 
+    audit.record(
+        audit.REMINDERS_RUN,
+        actor=actor,
+        dry_run=dry_run,
+        sent=run.sent,
+        skipped=run.skipped,
+        failed=run.failed,
+        expired_flipped=run.expired_flipped,
+    )
     return run
 
 

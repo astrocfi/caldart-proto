@@ -62,5 +62,5 @@ class ReminderRunView(APIView):
     def post(self, request):
         payload = ReminderRunRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        run = send_renewal_reminders(dry_run=payload.validated_data["dry_run"])
+        run = send_renewal_reminders(dry_run=payload.validated_data["dry_run"], actor=request.user)
         return Response(ReminderRunResultSerializer(run.as_dict()).data, status=status.HTTP_200_OK)

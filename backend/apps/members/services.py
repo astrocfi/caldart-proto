@@ -40,8 +40,8 @@ and canceled terms.
 
 from __future__ import annotations
 
-import logging
 from datetime import date, timedelta
+from typing import NoReturn
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -75,11 +75,10 @@ from apps.members.models import (
     MembershipState,
     MembershipStatusChoices,
 )
+from caldart import audit
 from caldart.exceptions import DomainPermissionError
 
 User = get_user_model()
-
-log = logging.getLogger(__name__)
 
 #: Shape returned by :func:`membership_status`.
 MembershipStatusDict = dict
@@ -133,7 +132,7 @@ def create_member(
     MemberProfile.objects.create(user=user, **(profile or {}))
     if not password:
         transaction.on_commit(lambda: send_password_invitation(user, request=request))
-    log.info("Member created: actor=%s user=%s invited=%s", actor.pk, user.pk, not password)
+    audit.record(audit.MEMBER_CREATE, actor=actor, target=user, invited=not password)
     return user
 
 
@@ -174,26 +173,39 @@ def delete_member(actor: User, target: User) -> None:
     whatever its status, cannot be deleted, because the payment is a financial
     record.  Deactivation is the alternative.
 
-    Every refusal raises ``DomainPermissionError`` and writes nothing.
+    Every refusal raises ``DomainPermissionError``, writes nothing and is recorded
+    in the audit log at WARNING with a reason; the delete itself is recorded at
+    INFO, which is the only trace the account leaves.
     """
     if target.pk == actor.pk:
-        raise DomainPermissionError(SELF_DELETE_REFUSED)
+        _refuse_delete(actor, target, audit.REASON_SELF_DELETE, SELF_DELETE_REFUSED)
     target_is_system_admin = SYSTEM_ADMIN in effective_roles(target)
     if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(actor):
-        raise DomainPermissionError(SYSTEM_ADMIN_DELETE_REFUSED)
+        _refuse_delete(actor, target, audit.REASON_SYSTEM_ADMIN_TARGET, SYSTEM_ADMIN_DELETE_REFUSED)
     # Inline: payments sits above members and apps.payments.services imports this
     # module, so a top-level import here would close the cycle.
     from apps.payments.models import payment_deletion_refusal
 
     refusal = payment_deletion_refusal(target)
     if refusal is not None:
-        raise DomainPermissionError(refusal)
+        _refuse_delete(actor, target, audit.REASON_HAS_PAYMENTS, refusal)
+    target_id = target.pk
     try:
         target.delete()
     except ProtectedError as exc:
         # ``Payment.user`` is the only protected reference to an account, so a row
         # created between the check above and the delete lands here.
+        audit.refuse(
+            audit.MEMBER_DELETE, actor=actor, target=target, reason=audit.REASON_HAS_PAYMENTS
+        )
         raise DomainPermissionError(payment_deletion_refusal(target)) from exc
+    audit.record(audit.MEMBER_DELETE, actor=actor, target=target_id)
+
+
+def _refuse_delete(actor: User, target: User, reason: str, message: str) -> NoReturn:
+    """Record the refused delete and raise ``DomainPermissionError`` carrying ``message``."""
+    audit.refuse(audit.MEMBER_DELETE, actor=actor, target=target, reason=reason)
+    raise DomainPermissionError(message)
 
 
 def _no_membership() -> MembershipStatusDict:

@@ -35,6 +35,7 @@ from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import send_password_reset_email
 from apps.accounts.throttling import LoginThrottle, PasswordResetThrottle, RegisterThrottle
 from apps.members.services import register_member, with_membership
+from caldart import audit
 
 User = get_user_model()
 
@@ -223,8 +224,15 @@ class AdminUserSendPasswordResetView(APIView):
         user = generics.get_object_or_404(User, pk=pk)
         sent = send_password_reset_email(user, request=request)
         if not sent:
+            audit.refuse(
+                audit.PASSWORD_RESET_ADMIN_SENT,
+                actor=request.user,
+                target=user,
+                reason=audit.REASON_INACTIVE_ACCOUNT,
+            )
             return Response(
                 {"detail": "That account is deactivated, so no reset email was sent."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        audit.record(audit.PASSWORD_RESET_ADMIN_SENT, actor=request.user, target=user)
         return Response({"detail": f"Password reset email sent to {user.email}."})

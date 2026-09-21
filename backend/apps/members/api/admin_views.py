@@ -38,6 +38,7 @@ from apps.members.reports import (
     member_report_rows,
 )
 from apps.members.services import activate_term, delete_member
+from caldart import audit
 from caldart.reports import csv_response, filter_summary, pdf_table_response
 
 User = get_user_model()
@@ -113,6 +114,13 @@ class MemberMembershipGrantView(APIView):
             starts_on=serializer.validated_data.get("starts_on") or None,
             note=serializer.validated_data.get("note", ""),
         )
+        audit.record(
+            audit.MEMBERSHIP_GRANT,
+            actor=request.user,
+            target=member,
+            plan=term.plan.slug,
+            term=term.pk,
+        )
         return Response(AdminMembershipSerializer(term).data, status=status.HTTP_201_CREATED)
 
 
@@ -123,6 +131,28 @@ class MembershipAdminDetailView(generics.UpdateAPIView):
     serializer_class = AdminMembershipSerializer
     http_method_names = ["patch", "head", "options"]
     queryset = Membership.objects.select_related("plan", "granted_by", "user")
+
+    def perform_update(self, serializer: AdminMembershipSerializer) -> None:
+        """Save the correction and record which of the term's fields it rewrote.
+
+        The names are worked out before the save and cover only the fields whose
+        value really changes, so a form that resends the whole term records the
+        one field the administrator touched.
+        """
+        term = serializer.instance
+        changed = [
+            name
+            for name, value in serializer.validated_data.items()
+            if getattr(term, name) != value
+        ]
+        serializer.save()
+        audit.record(
+            audit.MEMBERSHIP_CORRECT,
+            actor=self.request.user,
+            target=term.user,
+            term=term.pk,
+            fields=changed,
+        )
 
 
 # --------------------------------------------------------------------------

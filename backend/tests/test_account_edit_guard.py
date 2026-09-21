@@ -3,14 +3,12 @@
 A protected change -- the email address or the active flag -- is refused unless the
 actor holds every role the target holds.  A Django superuser counts as a system
 administrator whether or not the role group was ever added.  These cases replay the
-takeover the guard closes, check the edits that stay allowed, mark how far a caller
-who may also write roles reaches over a second request, and check that a refusal is
-logged without any personal data.
+takeover the guard closes, check the edits that stay allowed, and mark how far a
+caller who may also write roles reaches over a second request.  What a refusal
+writes to the audit log is ``tests/test_audit_logging.py``.
 """
 
 from __future__ import annotations
-
-import logging
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -34,8 +32,6 @@ RESET = "/api/v1/auth/password/reset"
 
 #: The address an attacker would move a privileged account to.
 ATTACKER_EMAIL = "attacker@example.test"
-
-GUARD_LOGGER = "apps.accounts.services"
 
 
 def user_detail(user) -> str:
@@ -437,28 +433,3 @@ def test_a_refused_email_edit_leaves_the_attacker_no_reset_email(
 
     assert response.status_code == 204
     assert len(mail.outbox) == 0
-
-
-# --------------------------------------------------------------------------
-# Logging
-# --------------------------------------------------------------------------
-def test_a_refusal_logs_one_warning_with_ids(api_client, user_admin, system_admin, caplog) -> None:
-    api_client.force_login(user_admin)
-    with caplog.at_level(logging.WARNING, logger=GUARD_LOGGER):
-        api_client.patch(user_detail(system_admin), {"email": ATTACKER_EMAIL})
-
-    records = [record for record in caplog.records if record.name == GUARD_LOGGER]
-    assert len(records) == 1
-    assert records[0].levelno == logging.WARNING
-    assert records[0].getMessage() == (
-        f"Account edit refused: actor={user_admin.pk} target={system_admin.pk} fields=email"
-    )
-
-
-def test_a_refusal_logs_no_email_address(api_client, user_admin, system_admin, caplog) -> None:
-    api_client.force_login(user_admin)
-    with caplog.at_level(logging.WARNING, logger=GUARD_LOGGER):
-        api_client.patch(user_detail(system_admin), {"email": ATTACKER_EMAIL})
-
-    records = [record for record in caplog.records if record.name == GUARD_LOGGER]
-    assert "@" not in records[0].getMessage()

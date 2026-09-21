@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 from apps.accounts.permissions import IsSystemAdmin
 from apps.sysadmin import services
 from apps.sysadmin.api.serializers import BackupSerializer, HealthSerializer
+from caldart import audit
 
 
 class HealthView(APIView):
@@ -41,6 +42,12 @@ class BackupListCreateView(APIView):
             backup = services.create_backup()
         except services.BackupError as exc:
             raise ValidationError({"detail": str(exc)}) from exc
+        audit.record(
+            audit.BACKUP_CREATE,
+            actor=request.user,
+            file=backup.name,
+            size=backup.size_bytes,
+        )
         return Response(
             BackupSerializer(backup.as_dict()).data,
             status=status.HTTP_201_CREATED,
@@ -60,8 +67,13 @@ class BackupDownloadView(APIView):
         try:
             path = services.resolve_backup(name)
         except services.BackupError as exc:
+            # The refused name came off the URL, so only the refusal is recorded.
+            audit.refuse(
+                audit.BACKUP_DOWNLOAD, actor=request.user, reason=audit.REASON_NO_SUCH_BACKUP
+            )
             raise NotFound(str(exc)) from exc
 
+        audit.record(audit.BACKUP_DOWNLOAD, actor=request.user, file=path.name)
         return FileResponse(
             path.open("rb"),
             as_attachment=True,
