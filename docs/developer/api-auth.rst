@@ -419,17 +419,21 @@ anonymous visitor.  There is no request body.
 
    {"detail": "Password reset email sent to marta.reyes@example.org."}
 
-A deactivated account has nobody to mail, and the refusal says so::
+An account with nobody to mail is refused::
 
     400 {"detail": "That account is deactivated, so no reset email was sent."}
+
+Two accounts have nobody to mail: a deactivated one, and one that holds no
+email address.  Both are refused with that one sentence, so a caller who sees
+it on an active account should check the address on the member record.
 
 Both the send and the refusal are recorded in the audit log
 (:ref:`deploy-audit-log`).
 
-Statuses: **200** when the mail went out; **400** for a deactivated account;
-**401** when anonymous; **403** without ``user_admin``; **404** for an unknown
-id.  This endpoint is not throttled — the throttles guard the anonymous
-routes.
+Statuses: **200** when the mail went out; **400** for an account that is
+deactivated or holds no email address; **401** when anonymous; **403** without
+``user_admin``; **404** for an unknown id.  This endpoint is not throttled —
+the throttles guard the anonymous routes.
 
 
 .. _account-edit-guard:

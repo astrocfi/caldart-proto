@@ -82,9 +82,12 @@ and answers with what it did.  ``system_admin`` only.  The body is optional;
 ``sent`` counts the reminders the run mailed and ``skipped`` those it decided
 against — a member who has already had that reminder, or who is outside the
 cohort.  A dry run writes nothing at all: no email, no log rows and no
-membership status flips, and it reports the counts the live run would have
-produced.  Sends the mail server refuses are logged at ERROR and left out of
-both counts, so a run whose numbers look thin is worth reading the log for.
+membership status flips.  Its ``sent`` is therefore a count of candidates, not
+of outcomes: every member the scan would try to mail lands in it, including
+ones a live run would end up recording as a failure, or as skipped because a
+concurrent run got there first.  Sends the mail server refuses are logged at
+ERROR and left out of both counts, so a run whose numbers look thin is worth
+reading the log for.
 The full breakdown per kind and per skip reason is what
 ``manage.py send_renewal_reminders`` prints; see :doc:`reminders`.
 
@@ -256,7 +259,7 @@ Tests
 
 ``backend/tests/test_reminders_api.py``
    The role matrix on both reminder endpoints, the log filters, and that a dry
-   run writes nothing while reporting the counts a live run would have.
+   run writes nothing while still counting the candidates it found.
 
 ``backend/tests/test_sysadmin_api.py``
    The health payload field by field, the backup list and create paths, and

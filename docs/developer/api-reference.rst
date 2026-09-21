@@ -274,9 +274,12 @@ under the field they concern rather than a list of one:
        export take no ``?ordering=`` at all, so they never raise it
 
 A client that renders field errors should therefore accept either a string or
-a list of them.  The two aircraft rows are also the only ones a view writes as
-a plain 400 response rather than raising; the rest are DRF ``ValidationError``
-instances and reach the same handler as everything else.
+a list of them.  Of the rows above, the two aircraft ones are the only ones a
+view builds as a plain 400 response rather than raising; the rest are DRF
+``ValidationError`` instances and reach the same handler as everything else.
+Two views outside the table build a plain response too, but with a ``detail``
+string rather than a field key: ``POST /auth/login`` for a wrong password and
+``POST /admin/users/{id}/send-password-reset`` when there is nobody to mail.
 
 Both shapes have two sources, one on each side of the layering.  A serializer
 validates the request — field formats, choices, uniqueness — and refuses it with
