@@ -73,10 +73,30 @@ export interface PasswordChangePayload {
   new_password: string;
 }
 
+/** `POST /auth/password/reset`. */
+export interface PasswordResetRequestPayload {
+  email: string;
+}
+
 export interface PasswordResetConfirmPayload {
   uid: string;
   token: string;
   new_password: string;
+}
+
+/* ------------------------------------------------------ user administration */
+/** The writable half of `PATCH /admin/users/{id}`. */
+export interface AdminUserPatch {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  is_active?: boolean;
+  roles?: RoleSlug[];
+}
+
+/** `POST /admin/users/{id}/send-password-reset`. */
+export interface SendPasswordResetResult {
+  detail: string;
 }
 
 /* ------------------------------------------------------------------ member */
@@ -146,6 +166,11 @@ export type ProfilePatch = Partial<
   Omit<Profile, 'dart' | 'aircraft' | 'medical_is_current'> & { dart_id: number | null }
 >;
 
+/** `POST /me/profile/aircraft` answers with the aircraft the profile now lists. */
+export interface AttachedAircraft {
+  aircraft: AircraftSummary[];
+}
+
 /** A row in the `account_admin` member list. */
 export interface MemberRow {
   user_id: number;
@@ -161,6 +186,83 @@ export interface MemberRow {
   medical_is_current: boolean;
   aircraft: string[];
   joined_on: IsoDate | null;
+}
+
+/* ---------------------------------------------------- member administration */
+/** The profile in `GET /admin/members/{id}`: the member's own, plus the notes. */
+export interface AdminProfile extends Profile {
+  notes: string;
+  how_heard: string;
+}
+
+/**
+ * One membership term in `GET /admin/members/{id}`, and the row that
+ * `PATCH /admin/memberships/{id}` edits.
+ */
+export interface MemberTerm extends MembershipTerm {
+  plan_slug: string;
+  note: string;
+  granted_by: string | null;
+  payment: number | null;
+  created_at: IsoDateTime;
+}
+
+/** One payment row in `GET /admin/members/{id}`: a `Payment` without the account it names. */
+export type MemberPayment = Omit<Payment, 'user_id' | 'user_name'>;
+
+/** `GET /admin/members/{id}`. */
+export interface MemberDetail {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  name: string;
+  is_active: boolean;
+  roles: RoleSlug[];
+  created_at: IsoDateTime;
+  joined_on: IsoDate | null;
+  membership: MembershipStatus;
+  profile: AdminProfile | null;
+  memberships: MemberTerm[];
+  payments: MemberPayment[];
+}
+
+/** The nested `profile` of a member write: the member's patch, plus the notes. */
+export type AdminProfilePayload = ProfilePatch & {
+  notes?: string;
+  how_heard?: string;
+};
+
+/** `POST /admin/members`. */
+export interface MemberCreatePayload {
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  password?: string;
+  profile?: AdminProfilePayload;
+}
+
+/** `PATCH /admin/members/{id}`. */
+export interface MemberUpdatePayload {
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  is_active?: boolean;
+  profile?: AdminProfilePayload;
+}
+
+/** `POST /admin/members/{id}/memberships`. */
+export interface GrantTermPayload {
+  plan: string;
+  starts_on?: IsoDate | null;
+  note?: string;
+}
+
+/** `PATCH /admin/memberships/{id}`. */
+export interface TermUpdatePayload {
+  ends_on?: IsoDate | null;
+  status?: MembershipTermStatus;
+  note?: string;
 }
 
 /* ---------------------------------------------------------------- aircraft */
@@ -198,6 +300,26 @@ export type AircraftPatch = Partial<
     'id' | 'insurance_is_current' | 'insurance_summary' | 'created_by' | 'n_number'
   > & { n_number: string }
 >;
+
+/** A member who lists an aircraft among the planes they commonly fly. */
+export interface AircraftPilot {
+  user_id: number;
+  name: string;
+  email: string;
+  membership_status: MembershipState;
+  medical_is_current: boolean;
+}
+
+/**
+ * `GET /aircraft/{id}`, `/aircraft/lookup` and `/leader/aircraft`.
+ *
+ * `pilots` names other members and reports their medical currency, so the
+ * server only sends it to a `dart_leader` or `account_admin`; it is absent
+ * for a plain member reading the register.
+ */
+export interface AircraftDetail extends Aircraft {
+  pilots?: AircraftPilot[];
+}
 
 /* ---------------------------------------------------------------- payments */
 export type PaymentProvider = 'stripe' | 'paypal' | 'mock';

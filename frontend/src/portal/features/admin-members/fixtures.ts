@@ -1,6 +1,5 @@
 /** Test fixtures for the members-admin screens. */
-import type { MemberRow, MembershipStatus } from '../../api/types';
-import type { MemberDetail } from './types';
+import type { MemberDetail, MemberRow, MembershipStatus } from '../../api/types';
 
 export const CURRENT: MembershipStatus = {
   status: 'current',

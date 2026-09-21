@@ -12,7 +12,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { AUTH_ME_KEY } from '../../auth/useAuth';
 import type {
-  AircraftSummary,
+  AttachedAircraft,
   Dart,
   MembershipDetail,
   PaymentSummary,
@@ -28,11 +28,6 @@ export const PAYMENTS_KEY = ['me', 'payments'] as const;
 export const DARTS_KEY = ['darts'] as const;
 export const PLANS_KEY = ['plans'] as const;
 export const SITE_CONFIG_KEY = ['site', 'config'] as const;
-
-/** `POST /me/profile/aircraft` and its DELETE both answer with the new list. */
-export interface AttachedAircraft {
-  aircraft: AircraftSummary[];
-}
 
 export function useProfile(): UseQueryResult<Profile> {
   return useQuery({ queryKey: PROFILE_KEY, queryFn: () => api.get<Profile>('/me/profile') });

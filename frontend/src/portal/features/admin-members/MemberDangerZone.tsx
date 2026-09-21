@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Card, Field, useToast } from '../../components';
 import { useDeleteMember } from './api';
 import { splitErrors } from './errors';
-import type { MemberDetail } from './types';
+import type { MemberDetail } from '../../api/types';
 
 function PaymentsKept({ member }: { member: MemberDetail }) {
   const count = member.payments.length;
