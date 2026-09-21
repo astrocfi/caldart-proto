@@ -31,7 +31,7 @@ description: Security best practices for the CalDART web application — secrets
 
 - NEVER implement custom cryptography. Use standard algorithms via trusted libraries (`cryptography`, `hashlib`) and Django's own password, signing, and token utilities.
 - When the application downloads or receives external data (including payment webhooks), verify integrity (signatures, checksums, expected schemas) where feasible.
-- Do NOT embed credentials, default passwords, or example secrets in source code, tests, or documentation. The only exceptions are clearly fake, local-only values: the demo password in `apps/accounts/seed.py` (documented in the README) and the throwaway `SECRET_KEY`s used by `make e2e` and CI. Never reuse them anywhere real.
+- Do NOT embed credentials, default passwords, or example secrets in source code, tests, or documentation. The only exceptions are clearly fake, local-only values: the demo password in `apps/accounts/seed.py` (documented in the README) and the throwaway `SECRET_KEY`s used by `make check-deploy`, `make e2e` and CI. Never reuse them anywhere real.
 
 ## 5. Logging
 

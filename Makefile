@@ -208,29 +208,32 @@ format: ## Auto-format Python and TypeScript
 
 # ---------------------------------------------------------------- check
 # The gates that are neither lint nor tests: Django's system checks (a warning
-# fails too), a model change without its migration, the production deployment
-# security check, and the production build.
-check: check-backend check-deploy check-frontend ## Django system checks, missing migrations, deploy security, production build
+# fails too), a model change without its migration, the deployment-only checks
+# against the production settings, and the production build.
+check: check-backend check-deploy check-frontend ## Django system checks, missing migrations, deployment checks, production build
 
 check-backend: ## Django system checks + missing-migration check
 	$(MANAGE) check --settings caldart.settings.test --fail-level WARNING
 	$(MANAGE) makemigrations --check --dry-run --settings caldart.settings.test
 
-# `--deploy` adds Django's production security checks to the default set;
-# `--tag security` narrows the run to those, so a `frontend/dist` this gate
-# never builds (the backend CI job does not run `check-frontend`) does not
-# fail it with an unrelated django_vite/staticfiles warning.  The environment
-# is a throwaway one set inline: no real secret is at risk, and it carries only
-# what prod.py requires outright.  No secure flag is pinned here -- every one of
-# them comes from prod.py's own default, so flipping a default off fails this
-# gate instead of being masked by a value the recipe supplies.
-check-deploy: ## Production deployment security check (manage.py check --deploy)
+# `--deploy` adds Django's deployment-only checks to the default set, and those
+# carry exactly three tags: security, caches and async_support.  Naming all
+# three runs every deployment-only check while leaving out the default ones
+# `check-backend` already covers -- among them the staticfiles/django_vite
+# check, which needs a `frontend/dist` this gate never builds (the backend CI
+# job does not run `check-frontend`).  The environment is a throwaway one set
+# inline: no real secret is at risk, and it carries only what prod.py requires
+# outright.  No secure flag is pinned here -- every one of them comes from
+# prod.py's own default, so flipping a default off fails this gate instead of
+# being masked by a value the recipe supplies.
+check-deploy: ## Production deployment checks (manage.py check --deploy)
 	SECRET_KEY="throwaway-check-deploy-key-not-a-real-secret-0123456789" \
 	  ALLOWED_HOSTS="check-deploy.example.com" \
 	  DATABASE_URL="postgres://caldart:caldart@localhost:5432/caldart" \
 	  SITE_URL="https://check-deploy.example.com" \
 	  EMAIL_URL="smtp://localhost:1025" \
-	  $(MANAGE) check --deploy --tag security --fail-level WARNING --settings caldart.settings.prod
+	  $(MANAGE) check --deploy --tag security --tag caches --tag async_support \
+	    --fail-level WARNING --settings caldart.settings.prod
 
 check-frontend: ## Production frontend build
 	cd frontend && $(NPM) run build

@@ -285,7 +285,7 @@ list, in full:
        ``manage.py makemigrations --check --dry-run``, both under
        ``caldart.settings.test``
    * - ``check-deploy``
-     - ``manage.py check --deploy --tag security --fail-level WARNING`` under
+     - ``manage.py check --deploy --fail-level WARNING`` under
        ``caldart.settings.prod``, in a throwaway environment — see
        :doc:`deployment`
    * - ``check-frontend``
