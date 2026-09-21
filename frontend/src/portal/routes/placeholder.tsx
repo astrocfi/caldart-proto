@@ -2,6 +2,8 @@
  * A "coming soon" page for a portal route whose screen is not built yet.  No
  * route uses it at present.
  */
+import type { JSX } from 'react';
+
 import { Card } from '../components/Card';
 import { Page } from '../components/Page';
 
@@ -10,7 +12,8 @@ export interface ComingSoonProps {
   branch: string;
 }
 
-export function ComingSoon({ feature, branch }: ComingSoonProps) {
+/** Placeholder page rendered for a route whose feature is not built yet. */
+export function ComingSoon({ feature, branch }: ComingSoonProps): JSX.Element {
   return (
     <Page title={feature} eyebrow="Not built yet">
       <Card>
@@ -24,6 +27,6 @@ export function ComingSoon({ feature, branch }: ComingSoonProps) {
 }
 
 /** Shorthand for a route's `element`. */
-export function comingSoon(feature: string, branch: string) {
+export function comingSoon(feature: string, branch: string): JSX.Element {
   return <ComingSoon feature={feature} branch={branch} />;
 }

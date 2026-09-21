@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import type { ReactElement, ReactNode } from 'react';
+import type { JSX, ReactElement, ReactNode } from 'react';
 
 export interface FieldProps {
   label: string;
@@ -15,7 +15,7 @@ export interface FieldProps {
 }
 
 /** Label + control + hint/error, wired up for screen readers. */
-export function Field({ label, children, hint, error, required }: FieldProps) {
+export function Field({ label, children, hint, error, required }: FieldProps): JSX.Element {
   const id = useId();
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;

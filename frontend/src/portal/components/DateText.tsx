@@ -1,3 +1,5 @@
+import type { JSX } from 'react';
+
 const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
   month: 'short',
@@ -19,12 +21,14 @@ function parse(iso: string): Date | null {
   return Number.isNaN(value.getTime()) ? null : value;
 }
 
+/** Formats an ISO date or datetime as a short date, or `placeholder` when it is unparseable. */
 export function formatDate(iso: string | null | undefined, placeholder = '—'): string {
   if (!iso) return placeholder;
   const value = parse(iso);
   return value ? DATE_FORMAT.format(value) : placeholder;
 }
 
+/** Formats an ISO datetime with the time of day, or `placeholder` when it is unparseable. */
 export function formatDateTime(iso: string | null | undefined, placeholder = '—'): string {
   if (!iso) return placeholder;
   const value = parse(iso);
@@ -39,7 +43,11 @@ export interface DateTextProps {
 }
 
 /** Dates render in the mono face so columns line up. */
-export function DateText({ value, withTime = false, placeholder = '—' }: DateTextProps) {
+export function DateText({
+  value,
+  withTime = false,
+  placeholder = '—',
+}: DateTextProps): JSX.Element {
   if (!value) return <span className="mono muted">{placeholder}</span>;
   const parsed = parse(value);
   const text = withTime ? formatDateTime(value, placeholder) : formatDate(value, placeholder);

@@ -89,6 +89,7 @@ export class UnexpectedResponseError extends Error {
   }
 }
 
+/** Read a cookie value by name, decoded, or `null` when it is not set or is empty. */
 export function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match?.[1] ? decodeURIComponent(match[1]) : null;
@@ -269,14 +270,23 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 }
 
 export const api = {
-  get: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
+  get: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T> =>
     request<T>(path, { ...options, method: 'GET' }),
-  post: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
-    request<T>(path, { ...options, method: 'POST', body }),
-  put: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
-    request<T>(path, { ...options, method: 'PUT', body }),
-  patch: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
-    request<T>(path, { ...options, method: 'PATCH', body }),
-  delete: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
+  post: <T>(
+    path: string,
+    body?: unknown,
+    options?: Omit<RequestOptions, 'method' | 'body'>,
+  ): Promise<T> => request<T>(path, { ...options, method: 'POST', body }),
+  put: <T>(
+    path: string,
+    body?: unknown,
+    options?: Omit<RequestOptions, 'method' | 'body'>,
+  ): Promise<T> => request<T>(path, { ...options, method: 'PUT', body }),
+  patch: <T>(
+    path: string,
+    body?: unknown,
+    options?: Omit<RequestOptions, 'method' | 'body'>,
+  ): Promise<T> => request<T>(path, { ...options, method: 'PATCH', body }),
+  delete: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T> =>
     request<T>(path, { ...options, method: 'DELETE' }),
 };

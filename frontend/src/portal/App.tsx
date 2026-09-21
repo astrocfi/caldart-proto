@@ -3,7 +3,7 @@
  * the router mounted under the `/portal` basename.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 import { ApiError } from './api/client';
@@ -12,6 +12,7 @@ import { routes } from './routes';
 
 export const PORTAL_BASENAME = '/portal';
 
+/** Builds the TanStack Query client, retrying failed queries but not 4xx responses. */
 export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -37,7 +38,7 @@ export interface AppProvidersProps {
 }
 
 /** Providers only — tests wrap their own router around this. */
-export function AppProviders({ client, children }: AppProvidersProps) {
+export function AppProviders({ client, children }: AppProvidersProps): JSX.Element {
   return (
     <QueryClientProvider client={client ?? createQueryClient()}>
       <ToastProvider>{children}</ToastProvider>
@@ -45,7 +46,8 @@ export function AppProviders({ client, children }: AppProvidersProps) {
   );
 }
 
-export function App() {
+/** The portal application: providers and the router. */
+export function App(): JSX.Element {
   return (
     <AppProviders>
       <RouterProvider router={router} />

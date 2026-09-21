@@ -8,6 +8,7 @@ import type { RouteObject } from 'react-router-dom';
 
 import { ToastProvider } from '../portal/components/Toast';
 
+/** A TanStack Query client with retries and caching turned off, for deterministic tests. */
 export function makeTestQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {

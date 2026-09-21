@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, JSX, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger';
@@ -22,6 +22,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
+/** A styled `<button>` in the design system's primary, secondary, quiet, or danger variant. */
 export function Button({
   variant = 'primary',
   small = false,
@@ -29,7 +30,7 @@ export function Button({
   type = 'button',
   children,
   ...rest
-}: ButtonProps) {
+}: ButtonProps): JSX.Element {
   return (
     <button type={type} className={classNames(variant, small, className)} {...rest}>
       {children}
@@ -52,7 +53,7 @@ export function ButtonLink({
   small = false,
   className,
   children,
-}: ButtonLinkProps) {
+}: ButtonLinkProps): JSX.Element {
   return (
     <Link to={to} className={classNames(variant, small, className)}>
       {children}

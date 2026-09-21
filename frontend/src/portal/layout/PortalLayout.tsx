@@ -3,12 +3,14 @@
  * mobile, filtered by the signed-in user's roles.
  */
 import { useEffect, useState } from 'react';
+import type { JSX } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../auth/useAuth';
 import { groupedNavItems } from '../nav';
 
-export function PortalLayout() {
+/** The portal chrome: header, role-filtered navigation, and the routed page outlet. */
+export function PortalLayout(): JSX.Element {
   const { user, roles, isAuthenticated } = useAuth();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);

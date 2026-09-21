@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import jsdoc from 'eslint-plugin-jsdoc';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
@@ -38,6 +39,42 @@ export default tseslint.config(
     files: ['**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    // Grows one directory at a time as the return-type and JSDoc sweeps
+    // (#44, #45) cover more of the tree; the last sweep widens this to
+    // `**/*.{ts,tsx}` and folds the two rules into the block above.
+    files: [
+      'src/portal/components/**/*.{ts,tsx}',
+      'src/portal/api/**/*.{ts,tsx}',
+      'src/portal/auth/**/*.{ts,tsx}',
+      'src/portal/routes/**/*.{ts,tsx}',
+      'src/portal/layout/**/*.{ts,tsx}',
+      'src/portal/App.tsx',
+      'src/portal/choices.ts',
+      'src/portal/nav.ts',
+      'src/site/**/*.{ts,tsx}',
+      'src/test/**/*.{ts,tsx}',
+      'e2e/**/*.{ts,tsx}',
+    ],
+    plugins: {
+      jsdoc,
+    },
+    rules: {
+      '@typescript-eslint/explicit-module-boundary-types': 'error',
+      'jsdoc/require-jsdoc': [
+        'error',
+        {
+          publicOnly: true,
+          require: {
+            FunctionDeclaration: true,
+            ArrowFunctionExpression: true,
+            FunctionExpression: true,
+          },
+        },
+      ],
+      'jsdoc/no-types': 'error',
     },
   },
 );
