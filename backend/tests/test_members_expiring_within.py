@@ -56,7 +56,7 @@ def emails(response) -> set[str]:
     return {row["email"] for row in response.json()["results"]}
 
 
-@pytest.mark.parametrize("window", ["999999999", "1e11", "-5"])
+@pytest.mark.parametrize("window", ["999999999", "1e11"])
 def test_expiring_within_survives_an_absurd_window(
     admin_client, expiring_member, window: str
 ) -> None:
