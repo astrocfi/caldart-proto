@@ -8,6 +8,7 @@
  * whole report rather than just the page on screen.
  */
 import { useMemo, useState } from 'react';
+import type { JSX } from 'react';
 
 import type { Payment } from '../../api/types';
 import { Button } from '../../components/Button';
@@ -78,7 +79,8 @@ const COLUMNS: Column<Payment>[] = [
   },
 ];
 
-export function AdminPaymentsPage() {
+/** `/admin/payments` page: the filterable payment list plus its summary dashboard. */
+export function AdminPaymentsPage(): JSX.Element {
   const [filters, setFilters] = useState<PaymentFilterState>(EMPTY_FILTERS);
   const [group, setGroup] = useState<SummaryGroup>('month');
   const [page, setPage] = useState(1);

@@ -1,4 +1,6 @@
 /** The payment report's filter bar. */
+import type { JSX } from 'react';
+
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import type { PaymentProvider, PaymentState } from '../../api/types';
@@ -14,7 +16,8 @@ export interface FilterBarProps {
 const PROVIDERS: PaymentProvider[] = ['stripe', 'paypal', 'mock'];
 const STATUSES: PaymentState[] = ['succeeded', 'pending', 'failed', 'refunded'];
 
-export function FilterBar({ value, onChange }: FilterBarProps) {
+/** The payment report's filter bar: date range, provider, status and search. */
+export function FilterBar({ value, onChange }: FilterBarProps): JSX.Element {
   function set<K extends keyof PaymentFilterState>(key: K, next: PaymentFilterState[K]) {
     onChange({ ...value, [key]: next });
   }

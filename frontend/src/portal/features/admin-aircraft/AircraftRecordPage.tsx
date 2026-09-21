@@ -2,6 +2,7 @@
  * `/admin/aircraft/:id` — one record: edit it, see who flies it, delete it.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
@@ -19,7 +20,8 @@ import { useAircraft, useDeleteAircraft, useUpdateAircraft } from '../aircraft/a
 import { aircraftToValues } from '../aircraft/form';
 import { AircraftForm } from '../aircraft/AircraftForm';
 
-export function AircraftRecordPage() {
+/** `/admin/aircraft/:id` page: edit, view pilots, and delete an aircraft record. */
+export function AircraftRecordPage(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   // `:id` matches any path segment, so `/admin/aircraft/abc` reaches this
   // page.  Treat an id that is not a record id as a record that is not there,

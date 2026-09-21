@@ -35,4 +35,5 @@ export const TERM_STATUS_CHOICES: Choice<'active' | 'expired' | 'canceled'>[] = 
   { value: 'canceled', label: 'Canceled' },
 ];
 
-export const roleLabel = (value: string) => labelFor(ROLE_CHOICES, value);
+/** The display label for a role slug, or the slug itself if it is not a known role. */
+export const roleLabel = (value: string): string => labelFor(ROLE_CHOICES, value);

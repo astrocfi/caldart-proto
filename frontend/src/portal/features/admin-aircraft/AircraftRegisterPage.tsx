@@ -3,6 +3,7 @@
  * filter, sort, export, and add a record.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
@@ -45,7 +46,8 @@ export function orderingFor(key: string, direction: SortDirection): string {
   return direction === 'desc' ? `-${key}` : key;
 }
 
-export function AircraftRegisterPage() {
+/** `/admin/aircraft` page: filter, sort, export and add aircraft register records. */
+export function AircraftRegisterPage(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
 

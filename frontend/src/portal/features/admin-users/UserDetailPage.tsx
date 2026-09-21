@@ -1,5 +1,6 @@
 /** `/admin/users/:id` — edit one account's names, email, roles and status. */
 import { useEffect, useState } from 'react';
+import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import type { RoleSlug, User } from '../../api/types';
@@ -36,7 +37,8 @@ function displayName(user: User): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
 }
 
-export function UserDetailPage() {
+/** `/admin/users/:id` page: edit one account's names, email, roles and status. */
+export function UserDetailPage(): JSX.Element {
   const { id = '' } = useParams();
   const query = useAdminUser(id);
   const roles = useRoles();

@@ -32,6 +32,7 @@ function flatten(body: unknown): FieldErrors {
   return out;
 }
 
+/** Splits a member form's DRF error body into account, profile and detail messages. */
 export function splitErrors(error: unknown): SplitErrors {
   if (!(error instanceof ApiError)) {
     return error ? { ...EMPTY, detail: 'Something went wrong. Please try again.' } : EMPTY;

@@ -11,6 +11,7 @@
  * system administrator unless you are one, and says so here.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, Card, Field, useToast } from '../../components';
@@ -34,7 +35,8 @@ function PaymentsKept({ member }: { member: MemberDetail }) {
   );
 }
 
-export function MemberDangerZone({ member }: { member: MemberDetail }) {
+/** The Danger zone tab: hard-delete a member record, once payments allow it. */
+export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
   const remove = useDeleteMember(member.id);

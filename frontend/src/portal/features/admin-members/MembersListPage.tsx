@@ -10,6 +10,7 @@
  * (DART, certificate, medical) ride along inside the member cell.
  */
 import { useMemo } from 'react';
+import type { JSX } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import {
@@ -94,7 +95,8 @@ function memberColumns(): Column<MemberRow>[] {
   ];
 }
 
-export function MembersListPage() {
+/** `/admin/members` page: the filtered, sortable, exportable member list. */
+export function MembersListPage(): JSX.Element {
   const [params, setParams] = useSearchParams();
   const filters = useMemo(() => filtersFromParams(params), [params]);
   const page = Number(params.get('page') ?? '1') || 1;

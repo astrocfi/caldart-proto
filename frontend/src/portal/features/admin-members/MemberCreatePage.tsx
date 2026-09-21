@@ -5,6 +5,7 @@
  * password and emails the new member a link to choose their own.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, ButtonLink, Card, Page, useToast } from '../../components';
@@ -20,7 +21,8 @@ import {
 import { useCreateMember, useDarts } from './api';
 import { splitErrors } from './errors';
 
-export function MemberCreatePage() {
+/** `/admin/members/new` page: create a member account and profile in one request. */
+export function MemberCreatePage(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
   const darts = useDarts();

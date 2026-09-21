@@ -5,6 +5,7 @@
  * whatever the table below is showing.
  */
 import { useQuery } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '../../api/client';
 import type {
@@ -42,6 +43,7 @@ export function filterParams(filters: PaymentFilterState): Record<string, string
   return params;
 }
 
+/** Turns filter parameters into a URL query string, or `''` when there are none. */
 export function queryString(params: Record<string, string>): string {
   const search = new URLSearchParams(params).toString();
   return search ? `?${search}` : '';
@@ -59,7 +61,11 @@ export interface ListOptions {
   ordering: string;
 }
 
-export function useAdminPayments(filters: PaymentFilterState, options: ListOptions) {
+/** The paginated payment list for `/admin/payments`, filtered, sorted and paged. */
+export function useAdminPayments(
+  filters: PaymentFilterState,
+  options: ListOptions,
+): UseQueryResult<Paginated<Payment>> {
   const params = {
     ...filterParams(filters),
     ordering: options.ordering,
@@ -73,7 +79,11 @@ export function useAdminPayments(filters: PaymentFilterState, options: ListOptio
   });
 }
 
-export function useAdminPaymentSummary(group: SummaryGroup, filters: PaymentFilterState) {
+/** The payment summary grouped by month or year, honoring the filter bar. */
+export function useAdminPaymentSummary(
+  group: SummaryGroup,
+  filters: PaymentFilterState,
+): UseQueryResult<PaymentPeriodSummary[]> {
   const params = { ...filterParams(filters), group };
   return useQuery({
     queryKey: ['admin', 'payments', 'summary', params],
@@ -82,7 +92,7 @@ export function useAdminPaymentSummary(group: SummaryGroup, filters: PaymentFilt
 }
 
 /** Unfiltered monthly summary, which the tiles are computed from. */
-export function useMonthlyTotals() {
+export function useMonthlyTotals(): UseQueryResult<PaymentPeriodSummary[]> {
   return useQuery({
     queryKey: ['admin', 'payments', 'summary', { group: 'month' }],
     queryFn: () => api.get<PaymentPeriodSummary[]>('/admin/payments/summary?group=month'),
