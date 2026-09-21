@@ -42,6 +42,12 @@ New to the codebase?  :doc:`setup` gets it running, the
 
 .. toctree::
    :maxdepth: 1
+   :caption: Extending
+
+   extending
+
+.. toctree::
+   :maxdepth: 1
    :caption: Building and running
 
    testing
