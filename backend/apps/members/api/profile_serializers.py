@@ -237,6 +237,10 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         update, which would make ``PUT`` and ``PATCH`` indistinguishable.  The
         API contract says one is a full update and the other partial,
         so unticked checkboxes and cleared text really do get cleared.
+
+        Raises ``TypeError`` if a writable field names something other than a
+        concrete model field, since only a concrete field carries the default
+        the reset needs.
         """
         if not self.partial:
             for name, field in self.fields.items():
@@ -245,11 +249,17 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
                 source = field.source or name
                 if source in validated_data:
                     continue
-                # ``get_field`` also answers reverse relations, which carry no
-                # default; none of the writable fields above is one.
+                # ``get_field`` also answers reverse relations and generic foreign
+                # keys, which carry no default. None of the writable fields above
+                # is one, so such an answer means the field list and the model have
+                # drifted apart, and the reset would silently skip a field.
                 model_field = MemberProfile._meta.get_field(source)
-                if isinstance(model_field, models.Field):
-                    validated_data[source] = model_field.get_default()
+                if not isinstance(model_field, models.Field):
+                    raise TypeError(
+                        f"MemberProfile.{source} is not a concrete field and has no "
+                        f"default to reset {name!r} to."
+                    )
+                validated_data[source] = model_field.get_default()
         return super().update(instance, validated_data)
 
 

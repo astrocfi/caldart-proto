@@ -170,7 +170,10 @@ class MembershipAdminDetailView(generics.UpdateAPIView[Membership]):
         value really changes, so a form that resends the whole term records the
         one field the administrator touched.
         """
-        term = self.get_object()
+        term = serializer.instance
+        # ``UpdateModelMixin.update`` binds the row it loaded before calling this,
+        # so the serializer always carries one here.
+        assert term is not None
         changed = [
             name
             for name, value in serializer.validated_data.items()
