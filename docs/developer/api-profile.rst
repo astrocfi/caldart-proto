@@ -271,6 +271,8 @@ Module                                                      Holds
                                                             shapes, shared with the
                                                             accounts and payments APIs
 ``backend/apps/members/api/profile_views.py``               the views
+``backend/apps/members/api/actors.py``                      the signed-in account
+                                                            behind a request
 ``backend/apps/members/api/profile_urls.py``                the routes
 ``backend/tests/test_profile_api.py``                       profile, membership,
                                                             payments, catalogs
