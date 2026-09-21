@@ -539,16 +539,30 @@ System checks and dependency audits
 
 .. code-block:: console
 
-   $ make check           # both halves below
+   $ make check           # every check below
    $ make check-backend   # manage.py check --fail-level WARNING, makemigrations --check --dry-run
+   $ make check-deploy    # manage.py check --deploy, throwaway environment
    $ make check-frontend  # npm run build
    $ make audit           # both halves below
    $ make audit-backend   # uv audit: the versions in uv.lock against the OSV database
    $ make audit-frontend  # npm audit: the versions in package-lock.json
 
 ``make check`` fails on a Django system-check warning, on a model change
-without its migration, and on a frontend that type-checks but does not build.
-The backend half uses ``caldart.settings.test``.
+without its migration, on a deployment warning against the production settings,
+and on a frontend that type-checks but does not build. ``check-backend`` uses
+``caldart.settings.test``.
+
+``check-deploy`` runs ``manage.py check --deploy`` against
+``caldart.settings.prod``, with a throwaway environment set inline in the
+Makefile recipe: a dummy ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``DATABASE_URL``,
+``SITE_URL`` and ``EMAIL_URL``, and no secure flag at all — each of those comes
+from ``caldart.settings.prod``'s own default, so turning one off fails the gate
+rather than being masked by a value the recipe supplies. The recipe names every
+tag Django's deployment-only checks carry — ``security``, ``caches`` and
+``async_support`` — so all of them run, while the default checks
+``check-backend`` already covers stay out, one of which would need a
+``frontend/dist`` this gate never builds. :doc:`deployment` covers the two
+warnings ``caldart.settings.prod`` silences deliberately.
 
 ``make audit`` fails on any known vulnerability in a locked dependency,
 development tooling included. Fix a finding by upgrading the affected package.
@@ -564,8 +578,8 @@ commands above run locally.
 
 **Backend**
     A PostgreSQL 16 service container, ``uv sync --frozen``, then
-    ``make lint-backend``, ``make lint-spelling``, ``make check-backend`` and
-    ``make test-backend``.
+    ``make lint-backend``, ``make lint-spelling``, ``make check-backend``,
+    ``make check-deploy`` and ``make test-backend``.
 
 **Frontend**
     Node 22, ``npm ci``, then ``make lint-frontend``, ``make test-frontend``
