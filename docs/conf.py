@@ -8,7 +8,14 @@ under ``sphinx-build -n -W`` (nitpicky; warnings are errors) -- ``make docs``
 runs it that way, and CI runs ``make docs`` on every PR.
 """
 
+from __future__ import annotations
+
 import shutil
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from docutils.nodes import Node
+    from sphinx.application import Sphinx
 
 # -- Project information -----------------------------------------------------
 
@@ -42,7 +49,7 @@ if _HAS_DOT:
 graphviz_output_format = "svg"
 
 
-def setup(app: object) -> None:
+def setup(app: Sphinx) -> None:
     """Keep ``.. graphviz::`` parseable even when the extension is not loaded.
 
     ``.. only::`` prunes the doctree *after* parsing, so a ``graphviz``
@@ -70,7 +77,7 @@ def setup(app: object) -> None:
             "name": directives.unchanged,
         }
 
-        def run(self) -> list[object]:
+        def run(self) -> list[Node]:
             """Discard the directive's content and produce no nodes."""
             return []
 
