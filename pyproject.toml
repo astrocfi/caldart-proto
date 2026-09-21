@@ -104,8 +104,6 @@ max-doc-length = 90
 [tool.ruff.lint.per-file-ignores]
 # Unit: payments
 "backend/apps/payments/**" = ["ANN", "D"]
-# Unit: cms
-"backend/apps/cms/**" = ["ANN", "D"]
 # Unit: members
 "backend/apps/members/**" = ["ANN", "D"]
 # Unit: tests-accounts
@@ -214,10 +212,6 @@ ignore_missing_imports = true
 module = ["apps.payments.*"]
 ignore_errors = true
 
-# Unit: cms
-[[tool.mypy.overrides]]
-module = ["apps.cms.*"]
-ignore_errors = true
 
 # Unit: members
 [[tool.mypy.overrides]]

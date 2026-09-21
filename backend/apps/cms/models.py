@@ -15,14 +15,20 @@ the ``Members only`` document collection, through the hook in
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 from django.db import models
+from django.db.models import QuerySet
+from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.fields import RichTextField, StreamField
-from wagtail.models import Collection, Page
+from wagtail.models import Collection, Page, PageManager
 from wagtail.search import index
 
+from apps.accounts.models import User
 from apps.cms.blocks import (
     RICH_TEXT_FEATURES,
     ConceptStreamBlock,
@@ -31,6 +37,13 @@ from apps.cms.blocks import (
 )
 from apps.cms.forms import RestrictedBlocksPageForm
 from apps.members.models import MembershipState
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
+
+    #: Either kind of request the site is served from: Django's own, or the
+    #: Django one wrapped by Django REST Framework for the portal's API.
+    type RequestLike = HttpRequest | Request
 
 #: Themes shipped in ``frontend/src/styles/themes/``.
 THEME_CHOICES: tuple[tuple[str, str], ...] = (
@@ -57,33 +70,52 @@ ON_THIS_PAGE_MIN_HEADINGS = 3
 #: only to readers who pass ``user_can_access_members_content``.
 MEMBERS_ONLY_COLLECTION_NAME = "Members only"
 
+#: Which call to action the members-only wall offers the reader.
+WallState = Literal["anonymous", "expired", "none"]
 
-def user_can_access_members_content(user) -> bool:
-    """``True`` when ``user`` may read members-only pages."""
-    if user is None or not getattr(user, "is_authenticated", False):
+
+class MembersWallContext(TypedDict):
+    """The extra template context the members-only wall renders from."""
+
+    wall_state: WallState
+    membership: dict[str, Any] | None
+
+
+def user_can_access_members_content(user: User | AnonymousUser | None) -> bool:
+    """``True`` when ``user`` may read members-only pages.
+
+    ``None`` and anonymous visitors are always refused.  A signed-in account is
+    admitted exactly when its ``can_access_members_content`` is true: a current
+    membership, a staff role, or a superuser.
+    """
+    if user is None or not user.is_authenticated:
         return False
-    return bool(getattr(user, "can_access_members_content", False))
+    return user.can_access_members_content
 
 
-def members_wall_state(user) -> str:
-    """Which call to action the wall shows: ``anonymous``/``expired``/``none``."""
-    if user is None or not getattr(user, "is_authenticated", False):
+def members_wall_state(user: User | AnonymousUser | None) -> WallState:
+    """Which call to action the wall shows ``user``.
+
+    ``anonymous`` for ``None`` and for a visitor who is not signed in, so the wall
+    invites them to sign in; ``expired`` for a signed-in account whose membership
+    status is ``expired``, so it invites a renewal; ``none`` for every other
+    signed-in account, whatever its status, so it invites them to join.
+    """
+    if user is None or not user.is_authenticated:
         return "anonymous"
     status = user.membership_status["status"]
     return "expired" if status == MembershipState.EXPIRED else "none"
 
 
-def members_wall_context(user) -> dict:
+def members_wall_context(user: User | AnonymousUser | None) -> MembersWallContext:
     """The wall's own context for ``user``: ``wall_state`` and ``membership``.
 
     ``membership`` is the signed-in account's membership status dictionary, and
-    ``None`` for an anonymous visitor.
+    ``None`` for ``None`` and for an anonymous visitor.
     """
-    is_authenticated = getattr(user, "is_authenticated", False)
-    return {
-        "wall_state": members_wall_state(user),
-        "membership": user.membership_status if is_authenticated else None,
-    }
+    if user is None or not user.is_authenticated:
+        return {"wall_state": members_wall_state(user), "membership": None}
+    return {"wall_state": members_wall_state(user), "membership": user.membership_status}
 
 
 def ensure_members_only_collection() -> Collection:
@@ -99,7 +131,7 @@ def ensure_members_only_collection() -> Collection:
     return Collection.get_first_root_node().add_child(name=MEMBERS_ONLY_COLLECTION_NAME)
 
 
-def collection_is_members_only(collection) -> bool:
+def collection_is_members_only(collection: Collection | None) -> bool:
     """``True`` for the ``Members only`` collection and every collection beneath it.
 
     ``None`` -- a document with no collection -- is public.
@@ -123,17 +155,46 @@ class BasePage(Page):
         abstract = True
 
     @property
-    def body_headings(self) -> list[dict]:
-        """H2 headings in ``body``, for the "on this page" rail."""
+    def body_headings(self) -> list[dict[str, str]]:
+        """H2 headings in ``body``, for the "on this page" rail.
+
+        Each entry is ``{"text", "anchor"}``.  A page type with no ``body`` field,
+        and a body with no H2 heading block, both give an empty list.
+        """
         return stream_headings(getattr(self, "body", None))
 
     @property
     def show_on_this_page(self) -> bool:
+        """``True`` once the body carries at least three H2 headings."""
         return len(self.body_headings) >= ON_THIS_PAGE_MIN_HEADINGS
 
 
-class MembersOnlyMixin(models.Model):
+if TYPE_CHECKING:
+    # Wagtail ships no type information, so ``Page`` is untyped and a mixin that
+    # calls into it has nothing to check against.  The mixin is only ever combined
+    # with ``BasePage``, and these are the two page methods it reaches through.
+    class _MembersOnlyBase(models.Model):
+        """Typing stand-in for the page class the mixin is combined with."""
+
+        class Meta:
+            abstract = True
+
+        def get_context(
+            self, request: HttpRequest, *args: Any, **kwargs: Any
+        ) -> dict[str, Any]: ...
+
+        def serve(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse: ...
+
+else:
+    _MembersOnlyBase = models.Model
+
+
+class MembersOnlyMixin(_MembersOnlyBase):
     """Adds ``members_only`` and the wall that enforces it."""
+
+    #: Wagtail's own manager, which it ships without type information; naming it
+    #: keeps the page classes below resolvable as Django models.
+    objects: ClassVar[PageManager]
 
     members_only = models.BooleanField(
         default=False,
@@ -150,14 +211,28 @@ class MembersOnlyMixin(models.Model):
     class Meta:
         abstract = True
 
-    def serve(self, request, *args, **kwargs):
+    def serve(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        """Render the page, or the wall when the reader may not read it.
+
+        A page whose ``members_only`` is false is served exactly as Wagtail would
+        serve it.  A members-only page is served the same way to a reader who
+        passes ``user_can_access_members_content``, and answered with the wall and
+        HTTP 403 for everybody else.
+        """
         if self.members_only and not user_can_access_members_content(request.user):
             return self.serve_members_only_wall(request)
         return super().serve(request, *args, **kwargs)
 
-    def serve_members_only_wall(self, request) -> TemplateResponse:
-        """The wall itself: the page chrome, a reason, and one clear next step."""
-        request.is_preview = getattr(request, "is_preview", False)
+    def serve_members_only_wall(self, request: HttpRequest) -> TemplateResponse:
+        """The wall itself: the page chrome, a reason, and one clear next step.
+
+        Renders ``cms/members_only_wall.html`` with HTTP 403, from the page's own
+        context plus ``wall_state`` and ``membership``.  Sets ``request.is_preview``
+        when Wagtail has not, since the page templates read it.
+        """
+        # Wagtail decorates the request with ``is_preview`` when it serves a page,
+        # and ships no type information for that.
+        request.is_preview = getattr(request, "is_preview", False)  # type: ignore[attr-defined]
         context = self.get_context(request)
         context.update(members_wall_context(request.user))
         return TemplateResponse(request, "cms/members_only_wall.html", context, status=403)
@@ -237,11 +312,16 @@ class HomePage(BasePage):
         verbose_name = "home page"
 
     def __str__(self) -> str:
-        return self.title
+        """The page title, which is how Wagtail lists and chooses the page."""
+        return str(self.title)
 
     @property
-    def featured_news(self):
-        """The three most recent live news posts."""
+    def featured_news(self) -> list[NewsPage]:
+        """The three most recent live public news posts, newest first.
+
+        Members-only posts are left out whoever is reading, because the home page
+        is public.  Ties on the post date are broken by the newer primary key.
+        """
         return list(
             NewsPage.objects.live()
             .public()
@@ -250,11 +330,14 @@ class HomePage(BasePage):
         )
 
     @property
-    def news_index(self):
-        return NewsIndexPage.objects.live().first()
+    def news_index(self) -> NewsIndexPage | None:
+        """The live news index the featured posts link to, or ``None`` if unpublished."""
+        index_page: NewsIndexPage | None = NewsIndexPage.objects.live().first()
+        return index_page
 
-    def get_context(self, request, *args, **kwargs):
-        context = super().get_context(request, *args, **kwargs)
+    def get_context(self, request: HttpRequest, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        """Wagtail's page context plus ``featured_news`` and ``news_index``."""
+        context: dict[str, Any] = super().get_context(request, *args, **kwargs)
         context["featured_news"] = self.featured_news
         context["news_index"] = self.news_index
         return context
@@ -286,7 +369,8 @@ class StandardPage(MembersOnlyMixin, BasePage):
         verbose_name = "standard page"
 
     def __str__(self) -> str:
-        return self.title
+        """The page title, which is how Wagtail lists and chooses the page."""
+        return str(self.title)
 
 
 class NewsIndexPage(BasePage):
@@ -304,17 +388,32 @@ class NewsIndexPage(BasePage):
         verbose_name = "news index"
         verbose_name_plural = "news indexes"
 
-    def posts(self, request):
-        """Live child posts, less any members-only post the visitor cannot read."""
-        queryset = NewsPage.objects.child_of(self).live().public().order_by("-date", "-pk")
+    def posts(self, request: HttpRequest) -> QuerySet[NewsPage]:
+        """Live child posts, newest first, less any the visitor cannot read.
+
+        A members-only post is included only for a reader who passes
+        ``user_can_access_members_content``; a request that carries no user at all
+        is treated as anonymous.  Ties on the post date are broken by the newer
+        primary key.
+        """
+        queryset: QuerySet[NewsPage] = (
+            NewsPage.objects.child_of(self).live().public().order_by("-date", "-pk")
+        )
         if not user_can_access_members_content(getattr(request, "user", None)):
             queryset = queryset.filter(members_only=False)
         return queryset
 
-    def get_context(self, request, *args, **kwargs):
+    def get_context(self, request: HttpRequest, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        """Wagtail's page context plus ``paginator`` and one page of ``posts``.
+
+        Eight posts fill a page.  ``?page=`` selects which one; anything that is
+        not a page number falls back to the first page, and a number past the end
+        to the last, because Django's paginator is asked for the page with
+        ``get_page``.
+        """
         from django.core.paginator import Paginator
 
-        context = super().get_context(request, *args, **kwargs)
+        context: dict[str, Any] = super().get_context(request, *args, **kwargs)
         paginator = Paginator(self.posts(request), NEWS_PAGE_SIZE)
         page_number = request.GET.get("page") or 1
         context["paginator"] = paginator
@@ -362,7 +461,8 @@ class NewsPage(MembersOnlyMixin, BasePage):
         ordering = ["-date"]
 
     def __str__(self) -> str:
-        return self.title
+        """The page title, which is how Wagtail lists and chooses the page."""
+        return str(self.title)
 
 
 class DartIndexPage(BasePage):
@@ -382,17 +482,25 @@ class DartIndexPage(BasePage):
         verbose_name_plural = "DART indexes"
 
     @property
-    def dart_pages(self):
-        return (
+    def dart_pages(self) -> QuerySet[DartPage]:
+        """The live public DART pages below this index, in the DARTs' own order.
+
+        Teams that share a sort order are ordered by page title.  A page whose
+        ``dart`` link is empty has no sort order, so it follows every linked page;
+        such pages are ordered among themselves by title.
+        """
+        pages: QuerySet[DartPage] = (
             DartPage.objects.child_of(self)
             .live()
             .public()
             .select_related("dart")
             .order_by("dart__sort_order", "title")
         )
+        return pages
 
-    def get_context(self, request, *args, **kwargs):
-        context = super().get_context(request, *args, **kwargs)
+    def get_context(self, request: HttpRequest, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        """Wagtail's page context plus ``dart_pages``, the rows of the directory."""
+        context: dict[str, Any] = super().get_context(request, *args, **kwargs)
         context["dart_pages"] = list(self.dart_pages)
         return context
 
@@ -439,10 +547,12 @@ class DartPage(BasePage):
 
     @property
     def airport_identifier(self) -> str:
+        """The linked DART's airport identifier, or an empty string when unlinked."""
         return self.dart.airport_identifier if self.dart else ""
 
     @property
     def city(self) -> str:
+        """The linked DART's city, or an empty string when the page links to no DART."""
         return self.dart.city if self.dart else ""
 
     @property
@@ -547,18 +657,23 @@ class SiteSettings(BaseSiteSetting):
         verbose_name = "site settings"
 
     def __str__(self) -> str:
+        """``Settings for <site>``, naming the Wagtail site the row belongs to."""
         return f"Settings for {self.site}"
 
     @classmethod
-    def get_theme(cls, request=None) -> str:
-        """The active theme slug, falling back to the default when unset."""
+    def get_theme(cls, request: RequestLike | None = None) -> str:
+        """The active theme slug for ``request``'s site, one of ``THEME_SLUGS``.
+
+        Falls back to ``sierra`` when the theme is blank and when there is no
+        settings row yet.  Without a request, the default site's theme is used.
+        """
         settings_obj = get_site_settings(request)
         if settings_obj is None:
             return DEFAULT_THEME
         return settings_obj.theme or DEFAULT_THEME
 
 
-def get_site_settings(request=None) -> SiteSettings | None:
+def get_site_settings(request: RequestLike | None = None) -> SiteSettings | None:
     """The ``SiteSettings`` row for ``request``'s site, or ``None``.
 
     Read-only on purpose: ``SiteSettings.for_request`` would create the row,
@@ -573,21 +688,24 @@ def get_site_settings(request=None) -> SiteSettings | None:
         site = Site.objects.filter(is_default_site=True).first()
     if site is None:
         return None
-    return SiteSettings.objects.filter(site=site).first()
+    settings_obj: SiteSettings | None = SiteSettings.objects.filter(site=site).first()
+    return settings_obj
 
 
-def members_only_pages(request=None) -> list:
+def members_only_pages(request: RequestLike | None = None) -> list[StandardPage | NewsPage]:
     """Live pages flagged ``members_only``, for the portal's quick links.
 
-    Scoped to the requested site when there is one, so a second Wagtail site
-    would never leak its members' area into another site's config.
+    Standard pages come first, then news posts, each group in tree order.  Scoped
+    to the requested site when there is one, so a second Wagtail site would never
+    leak its members' area into another site's config.  Draft and privacy-
+    restricted pages are left out; the list is empty when there are none.
     """
     from wagtail.models import Site
 
     site = Site.find_for_request(request) if request is not None else None
     root = site.root_page if site else None
 
-    pages: list = []
+    pages: list[StandardPage | NewsPage] = []
     for model in (StandardPage, NewsPage):
         queryset = model.objects.live().public().filter(members_only=True)
         if root is not None:

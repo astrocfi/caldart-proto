@@ -27,12 +27,15 @@ it — and any website administrator can replace it from ``/admin/``.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import timedelta
+from typing import Any, NotRequired, TypedDict
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
+from wagtail.models import Page, Site
 
 from apps.cms.models import (
     MEMBERS_ONLY_COLLECTION_NAME,
@@ -49,6 +52,22 @@ from apps.cms.permissions import grant_website_admin_permissions
 from apps.cms.seed import ensure_site_root
 from apps.members.models import Dart
 from apps.members.seed import seed_darts
+
+#: One entry of a page body: the block type, then either rich text or the block's
+#: own field values.
+type StreamItem = tuple[str, str] | tuple[str, dict[str, str]]
+
+
+class NewsPostSpec(TypedDict):
+    """The example copy one seeded news post is built from."""
+
+    slug: str
+    title: str
+    days_ago: int
+    intro: str
+    body: str
+    quote: NotRequired[tuple[str, str]]
+
 
 # ---------------------------------------------------------------------------
 # Copy
@@ -207,7 +226,7 @@ DIRECTORS: tuple[tuple[str, str], ...] = (
     ("Director at large", "Rosa Villanueva — Livermore DART, communications lead"),
 )
 
-NEWS_POSTS: tuple[dict, ...] = (
+NEWS_POSTS: tuple[NewsPostSpec, ...] = (
     {
         "slug": "statewide-exercise-moves-simulated-relief-loads",
         "title": "Statewide exercise moves simulated relief loads between nine airports",
@@ -324,29 +343,53 @@ MEMBERS_INTRO = (
 
 
 def rich(html: str) -> tuple[str, str]:
+    """A ``paragraph`` body block holding ``html`` as rich text."""
     return ("paragraph", html)
 
 
-def heading(text: str, level: str = "h2") -> tuple[str, dict]:
+def heading(text: str, level: str = "h2") -> tuple[str, dict[str, str]]:
+    """A ``heading`` body block, at H2 unless ``level`` says otherwise."""
     return ("heading", {"text": text, "level": level})
 
 
-def quote(text: str, attribution: str = "") -> tuple[str, dict]:
+def quote(text: str, attribution: str = "") -> tuple[str, dict[str, str]]:
+    """A ``quote`` body block, unattributed unless ``attribution`` is given."""
     return ("quote", {"quote": text, "attribution": attribution})
 
 
-def cta(label: str, url: str, style: str = "primary", note: str = "") -> tuple[str, dict]:
+def cta(label: str, url: str, style: str = "primary", note: str = "") -> tuple[str, dict[str, str]]:
+    """A ``cta`` body block: a primary button unless another ``style`` is given."""
     return ("cta", {"label": label, "url": url, "style": style, "note": note})
 
 
-def definition_list(rows) -> str:
-    """Rich-text markup for a term/description list, which the blocks allow."""
+def definition_list(rows: Sequence[tuple[str, str]]) -> str:
+    """Rich-text markup for a term/description list, which the blocks allow.
+
+    Each ``(term, text)`` pair becomes one list item with the term in bold, in the
+    order given; no rows give an empty list.  The strings are not escaped, so they
+    are example copy and editor input, never anything a visitor supplied.
+    """
     items = "".join(f"<li><b>{term}</b> — {text}</li>" for term, text in rows)
     return f"<ul>{items}</ul>"
 
 
-def upsert_page(parent, model, slug: str, *, title: str, show_in_menus: bool = False, **fields):
-    """Create or update ``slug`` under ``parent`` and publish it."""
+def upsert_page[PageT: Page](
+    parent: Page,
+    model: type[PageT],
+    slug: str,
+    *,
+    title: str,
+    show_in_menus: bool = False,
+    **fields: Any,
+) -> PageT:
+    """Create or update ``slug`` under ``parent`` and publish it.
+
+    A page of ``model`` with that slug below ``parent`` is updated in place, and
+    one is created when there is none; either way ``title``, ``show_in_menus`` and
+    every keyword in ``fields`` are written, a revision is saved and published, and
+    the page is returned freshly loaded from the database.  Fields the caller does
+    not name keep whatever they held.
+    """
     page = model.objects.child_of(parent).filter(slug=slug).first()
     if page is None:
         page = model(title=title, slug=slug, show_in_menus=show_in_menus)
@@ -360,7 +403,8 @@ def upsert_page(parent, model, slug: str, *, title: str, show_in_menus: bool = F
             setattr(page, key, value)
         page.save()
     page.save_revision().publish()
-    return model.objects.get(pk=page.pk)
+    saved: PageT = model.objects.get(pk=page.pk)
+    return saved
 
 
 # ---------------------------------------------------------------------------
@@ -369,6 +413,12 @@ def upsert_page(parent, model, slug: str, *, title: str, show_in_menus: bool = F
 
 
 def seed_home(home: HomePage, about_url: str = "/about/") -> HomePage:
+    """Fill in the home page: hero, mission, concept of operations and tax status.
+
+    Overwrites those fields every time, publishes a revision, and returns the page
+    reloaded from the database.  ``about_url`` is where the secondary call to
+    action points.
+    """
     home.hero_heading = HERO_HEADING
     home.hero_lede = HERO_LEDE
     home.primary_cta_label = "Join CalDART"
@@ -383,10 +433,12 @@ def seed_home(home: HomePage, about_url: str = "/about/") -> HomePage:
     home.tax_status = TAX_STATUS
     home.save()
     home.save_revision().publish()
-    return HomePage.objects.get(pk=home.pk)
+    saved: HomePage = HomePage.objects.get(pk=home.pk)
+    return saved
 
 
 def seed_about(home: HomePage) -> StandardPage:
+    """Create or update ``/about/``, the About Us page, in the menu."""
     return upsert_page(
         home,
         StandardPage,
@@ -430,6 +482,7 @@ def seed_about(home: HomePage) -> StandardPage:
 
 
 def seed_history(about: StandardPage) -> StandardPage:
+    """Create or update ``/about/history/``, which is not in the menu."""
     return upsert_page(
         about,
         StandardPage,
@@ -461,6 +514,13 @@ def seed_history(about: StandardPage) -> StandardPage:
 
 
 def seed_darts_section(about: StandardPage) -> DartIndexPage:
+    """Create or update ``/about/darts/`` and one DART page below it per team.
+
+    Each page is slugged by the team's airport identifier, or by its name when it
+    has none, and carries a leader name and a generated example contact address.
+    A page whose team no longer exists is deleted, so re-seeding converges on
+    exactly one page per DART.  Returns the index page.
+    """
     index = upsert_page(
         about,
         DartIndexPage,
@@ -532,6 +592,7 @@ def seed_darts_section(about: StandardPage) -> DartIndexPage:
 
 
 def seed_directors(about: StandardPage) -> StandardPage:
+    """Create or update ``/about/directors/``, the board listing."""
     return upsert_page(
         about,
         StandardPage,
@@ -552,6 +613,11 @@ def seed_directors(about: StandardPage) -> StandardPage:
 
 
 def seed_news(home: HomePage) -> NewsIndexPage:
+    """Create or update ``/news/`` and its example posts, and return the index.
+
+    Each post is dated relative to today, so the newest is always recent, and the
+    one that has a pull-quote gets it appended to its body.
+    """
     index = upsert_page(
         home,
         NewsIndexPage,
@@ -562,7 +628,7 @@ def seed_news(home: HomePage) -> NewsIndexPage:
     )
     today = timezone.localdate()
     for post in NEWS_POSTS:
-        body: list = [rich(post["body"])]
+        body: list[StreamItem] = [rich(post["body"])]
         if "quote" in post:
             body.append(quote(*post["quote"]))
         upsert_page(
@@ -578,6 +644,7 @@ def seed_news(home: HomePage) -> NewsIndexPage:
 
 
 def seed_join(home: HomePage) -> StandardPage:
+    """Create or update ``/join/``, the dues and eligibility page, in the menu."""
     return upsert_page(
         home,
         StandardPage,
@@ -630,6 +697,7 @@ def seed_join(home: HomePage) -> StandardPage:
 
 
 def seed_donate(home: HomePage) -> StandardPage:
+    """Create or update ``/donate/``, which is not in the menu."""
     return upsert_page(
         home,
         StandardPage,
@@ -661,6 +729,7 @@ def seed_donate(home: HomePage) -> StandardPage:
 
 
 def seed_sponsors(home: HomePage) -> StandardPage:
+    """Create or update ``/sponsors/``, which is not in the menu."""
     return upsert_page(
         home,
         StandardPage,
@@ -683,6 +752,7 @@ def seed_sponsors(home: HomePage) -> StandardPage:
 
 
 def seed_contact(home: HomePage) -> ContactPage:
+    """Create or update ``/contact/``, the contact page, in the menu."""
     return upsert_page(
         home,
         ContactPage,
@@ -707,6 +777,12 @@ def seed_contact(home: HomePage) -> ContactPage:
 
 
 def seed_members_area(home: HomePage) -> StandardPage:
+    """Create or update ``/members/`` and the two pages below it.
+
+    All three are flagged members-only, so a reader without members-only access is
+    answered with the wall.  The ``Members only`` document collection is created
+    first, because the copy tells editors to upload into it.  Returns the top page.
+    """
     # The pages tell editors to upload handbooks and forms into this collection,
     # so the collection has to exist before anyone reads that instruction.
     ensure_members_only_collection()
@@ -794,9 +870,13 @@ def seed_members_area(home: HomePage) -> StandardPage:
     return members
 
 
-def seed_settings(site) -> None:
-    """Fill in the site settings the example content refers to, without
-    overwriting anything an administrator has already changed."""
+def seed_settings(site: Site) -> None:
+    """Fill in the site settings the example content refers to.
+
+    The contact phone, mailing address, EIN, donate URL and the two social links
+    are written only where the field is empty, so anything an administrator has
+    already changed survives.  The settings row is created if it is missing.
+    """
     from apps.cms.models import SiteSettings
 
     settings_obj, _ = SiteSettings.objects.get_or_create(site=site)
@@ -816,10 +896,20 @@ def seed_settings(site) -> None:
 
 
 class Command(BaseCommand):
+    """``manage.py seed_content``, which builds the example site."""
+
     help = "Create the CalDART example website content (idempotent)."
 
     @transaction.atomic
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Build the whole example tree in one transaction, then report its size.
+
+        Takes no arguments.  Seeds the DARTs first, because the DART pages link to
+        them, then every page from the home page down, then the site settings and
+        the ``website_admin`` Wagtail permissions.  Writes one progress line per
+        step and a final count of the pages below the home page.  Running it again
+        updates the same pages rather than adding more.
+        """
         self.stdout.write("Seeding site content:")
 
         seed_darts()
@@ -840,8 +930,6 @@ class Command(BaseCommand):
         seed_settings(site)
 
         grant_website_admin_permissions(stdout=self.stdout)
-
-        from wagtail.models import Page
 
         total = Page.objects.descendant_of(home, inclusive=True).count()
         self.stdout.write(self.style.SUCCESS(f"Example site ready: {total} pages."))
