@@ -45,6 +45,8 @@ Renew at ``/portal/renew`` and you are current again the moment the payment
 clears.  A new term after a lapse starts **today**, not on the day the old one
 ended — you do not pay for the gap, and you do not get it back either.
 
+See :doc:`member-guide`.
+
 Will you remind me?
 -------------------
 
@@ -56,6 +58,8 @@ Reminders go to the email address on your account, which is also the address
 you sign in with.  If they are not arriving, check your spam folder first, then
 that the address is right at ``/portal/profile``.
 
+See :doc:`member-guide`.
+
 Can I have more than one membership at once?
 --------------------------------------------
 
@@ -63,6 +67,8 @@ You can buy a term while another is running — that is what renewing early is �
 and they chain end to end rather than overlapping.  Buying a Life membership
 while an Annual term is running simply makes you a life member; the Annual term
 becomes irrelevant.
+
+See :doc:`payments`.
 
 Paying
 ======
@@ -80,8 +86,8 @@ shows what is actually available.  In full it offers:
 - **PayPal**.
 
 On a demonstration or test deployment with no payment keys you will instead see
-a single **Mock** panel with *Succeed* and *Fail* buttons.  Nothing is charged
-and no card details are collected.  See :doc:`payments`.
+a single **Test payment** panel with *Succeed* and *Fail* buttons.  Nothing is
+charged and no card details are collected.  See :doc:`payments`.
 
 How do I change the card on file?
 ---------------------------------
@@ -94,6 +100,8 @@ update: just pay with whatever you like when you next renew.
 (Automatic renewal is a possible future addition, and would change this
 answer.)
 
+See :doc:`payments`.
+
 Can I add a donation?
 ---------------------
 
@@ -103,13 +111,17 @@ amount* box and a *No thank you*.  The contribution is added to the membership
 fee in one payment and is recorded separately, so the organization can tell
 dues from donations.
 
+See :doc:`payments`.
+
 Do I get a receipt?
 -------------------
 
 If you paid by card through Stripe, Stripe emails you one.  CalDART does not
-send a receipt of its own yet.  Your payment history is always at
+send a receipt of its own.  Your payment history is always at
 ``/portal/`` on the dashboard, with the date, plan, amount and method, and an
 account administrator can confirm any payment for you.
+
+See :doc:`payments`.
 
 My payment failed. Was I charged?
 ---------------------------------
@@ -120,12 +132,16 @@ nothing else.  Try again, or try a different method; if a charge appears on
 your statement without a matching membership, contact the office and quote the
 date.
 
+See :doc:`payments`.
+
 Can I get a refund?
 -------------------
 
 Ask the office.  There is no self-service refund, and administrators cannot
 issue one from CalDART either — it is done in the payment provider's own
 dashboard and then reconciled by hand.
+
+See :doc:`payments`.
 
 Profile and aircraft
 ====================
@@ -140,6 +156,8 @@ class medicals are treated identically in this respect.
 
 Update it at ``/portal/profile``, in the *Aviation* section.  A medical class
 requires an expiry date — the form will not save one without the other.
+
+See :doc:`member-guide`.
 
 Why is an aircraft's insurance showing as expired?
 --------------------------------------------------
@@ -162,6 +180,8 @@ you.  The register normalizes registrations, so ``N12345``, ``n-12345`` and
 ``12345`` all find the same airplane and a duplicate cannot be created by
 typing it differently.
 
+See :doc:`aircraft`.
+
 Access and sign-in
 ==================
 
@@ -176,16 +196,20 @@ You get through if your membership is current, **or** if you hold any role
 beyond plain ``member`` — a DART leader or an administrator reads members-only
 pages whatever their own membership is doing.
 
+See :doc:`member-guide`.
+
 I have forgotten my password
 ----------------------------
 
-Use **Forgot password** on the sign-in screen.  You will get an email with a
-link that lets you set a new one; the link is single-use and expires.  The
-message is the same whether or not the address is registered, so it cannot be
-used to find out who is a member.
+Use **Forgot your password?** on the sign-in screen.  You will get an email
+with a link that lets you set a new one; the link is single-use and expires.
+The message is the same whether or not the address is registered, so it
+cannot be used to find out who is a member.
 
 If nothing arrives, check spam, then confirm you are using the address the
 account was created with.  A user administrator can send the reset for you.
+
+See :doc:`member-guide`.
 
 A menu entry I expect is missing, or I get "403 — you do not have access"
 -------------------------------------------------------------------------
@@ -202,6 +226,8 @@ administrator action.  Ask a user administrator or an account administrator.
 Capitalization never matters: ``Marta@example.org`` and ``marta@example.org``
 are the same account.
 
+See :doc:`user-administrator`.
+
 Who do I contact about a data correction?
 -----------------------------------------
 
@@ -215,3 +241,5 @@ For the record, an administrator can see your profile including the internal
 notes field, your membership history and your payment history.  They cannot see
 your password: it is stored only as a hash, and nobody can read it or tell it
 to you.
+
+See :doc:`account-administrator-guide`.
