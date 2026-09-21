@@ -57,6 +57,194 @@ both PayPal credentials must be present for PayPal.  Restart Django after
 editing ``.env`` — the settings module reads it once at import.
 
 
+The checkout sequence
+=====================
+
+Every provider runs the same three-act shape: **start** creates the pending
+payment and asks the provider for whatever the browser needs, the member pays
+in the browser, and **confirm** asks the provider what really happened before
+anything is activated.  Only the provider calls in acts one and three differ.
+
+.. only:: graphviz
+
+   .. graphviz::
+      :caption: One checkout, from the Pay button to an activated term.  Each
+                column is a participant and the dashed line below it is its
+                lifeline; a **solid arrow** is a call, a **dashed arrow** a
+                reply, and a **dotted arrow** the webhook that covers a browser
+                that never comes back.  The provider calls named second are
+                PayPal's.  Time runs down the page.
+      :alt: Sequence diagram of a CalDART checkout across browser, API,
+            provider and database
+
+      digraph checkout_sequence {
+          rankdir=TB;
+          bgcolor="transparent";
+          splines=false;
+          ranksep=0.30;
+          nodesep=0.60;
+          edge [fontname="Helvetica", fontsize=9];
+
+          node [shape=box, style="rounded", fontname="Helvetica", fontsize=10];
+          browser [label="Browser\l(checkout screen)\l"];
+          api [label="CalDART API\l(payments/api/views.py)\l"];
+          provider [label="Stripe or PayPal\l(payments/providers/)\l"];
+          db [label="Database\l(Payment, Membership)\l"];
+
+          // Flat edges fix the left-to-right order of the four lifelines.
+          {
+              rank=same;
+              edge [style=invis];
+              browser -> api -> provider -> db;
+          }
+
+          node [shape=point, width=0.03, color="gray40", label=""];
+          b1; b2; b3; b4; b5; b6; b7; b8; b9; b10; b11; b12;
+          a1; a2; a3; a4; a5; a6; a7; a8; a9; a10; a11; a12;
+          p1; p2; p3; p4; p5; p6; p7; p8; p9; p10; p11; p12;
+          d1; d2; d3; d4; d5; d6; d7; d8; d9; d10; d11; d12;
+
+          edge [arrowhead=none, style=dashed, color="gray60"];
+          browser -> b1 -> b2 -> b3 -> b4 -> b5 -> b6 -> b7 -> b8 -> b9 -> b10 -> b11 -> b12;
+          api -> a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8 -> a9 -> a10 -> a11 -> a12;
+          provider -> p1 -> p2 -> p3 -> p4 -> p5 -> p6 -> p7 -> p8 -> p9 -> p10 -> p11 -> p12;
+          db -> d1 -> d2 -> d3 -> d4 -> d5 -> d6 -> d7 -> d8 -> d9 -> d10 -> d11 -> d12;
+
+          {rank=same; b1; a1; p1; d1;}
+          {rank=same; b2; a2; p2; d2;}
+          {rank=same; b3; a3; p3; d3;}
+          {rank=same; b4; a4; p4; d4;}
+          {rank=same; b5; a5; p5; d5;}
+          {rank=same; b6; a6; p6; d6;}
+          {rank=same; b7; a7; p7; d7;}
+          {rank=same; b8; a8; p8; d8;}
+          {rank=same; b9; a9; p9; d9;}
+          {rank=same; b10; a10; p10; d10;}
+          {rank=same; b11; a11; p11; d11;}
+          {rank=same; b12; a12; p12; d12;}
+
+          edge [arrowhead=vee, style=solid, color="black", constraint=false];
+          b1 -> a1 [label="1  POST /payments/checkout {plan, contribution_cents, provider}"];
+          a2 -> d2 [label="2  INSERT Payment (pending), amount = plan price + contribution"];
+          a3 -> p3 [label="3  start(payment): create the PaymentIntent / the CAPTURE order"];
+          b6 -> p6 [label="6  the member pays in the Payment Element / the PayPal buttons"];
+          b7 -> a7 [label="7  POST /payments/stripe/confirm or /payments/paypal/capture"];
+          a8 -> p8 [label="8  retrieve the intent / capture the order"];
+          a10 -> d10 [label="10  status succeeded, completed_at, wallet; INSERT Membership"];
+
+          edge [arrowhead=vee, style=dashed, color="black", constraint=false];
+          p4 -> a4 [label="4  client_secret / order id: into provider_ref, reply into raw"];
+          a5 -> b5 [label="5  201 {payment_id, provider, client}"];
+          p9 -> a9 [label="9  status, amount, currency, payment id -- all four checked"];
+          a11 -> b11 [label="11  200 {status, membership}"];
+
+          edge [arrowhead=vee, style=dotted, color="black", constraint=false];
+          p12 -> a12 [label="12  webhook, later or instead: the same idempotent activation"];
+      }
+
+.. only:: not graphviz
+
+   Install Graphviz and rebuild for a drawn version of this diagram.  The
+   drawing and the numbered exchange below carry the same steps.
+
+   .. code-block:: text
+
+         Browser            CalDART API        Stripe / PayPal   Database
+         |                  |                  |                 |
+         |     1  POST /payments/checkout      |                 |
+         |     {plan, contribution_cents, provider}              |
+         |----------------->|                  |                 |
+         |                  |                  |                 |
+         |                  |     2  INSERT Payment (pending), amount =
+         |                  |     plan price + contribution      |
+         |                  |----------------------------------->|
+         |                  |                  |                 |
+         |                  |     3  start(payment): create the  |
+         |                  |     PaymentIntent / the CAPTURE order
+         |                  |----------------->|                 |
+         |                  |                  |                 |
+         |                  |     4  client_secret / order id: into
+         |                  |     provider_ref, the reply into raw
+         |                  |<-----------------|                 |
+         |                  |                  |                 |
+         |     5  201 {payment_id, provider, client}             |
+         |<-----------------|                  |                 |
+         |                  |                  |                 |
+         |     6  the member pays in the Payment                 |
+         |     Element / the PayPal buttons    |                 |
+         |------------------------------------>|                 |
+         |                  |                  |                 |
+         |     7  POST /payments/stripe/confirm or               |
+         |     /payments/paypal/capture        |                 |
+         |----------------->|                  |                 |
+         |                  |                  |                 |
+         |                  |     8  retrieve the intent / capture the order
+         |                  |----------------->|                 |
+         |                  |                  |                 |
+         |                  |     9  status, amount, currency, payment id
+         |                  |     -- all four checked against the row
+         |                  |<-----------------|                 |
+         |                  |                  |                 |
+         |                  |     10  status succeeded, completed_at,
+         |                  |     wallet; INSERT Membership term |
+         |                  |----------------------------------->|
+         |                  |                  |                 |
+         |     11  200 {status, membership}    |                 |
+         |<-----------------|                  |                 |
+         |                  |                  |                 |
+         |                  |     12  webhook, later or instead: the
+         |                  |     same idempotent activation     |
+         |                  |<.................|                 |
+         |                  |                  |                 |
+
+   Time runs down the page.  The provider calls named second are PayPal's.
+
+Step by step:
+
+#. ``POST /api/v1/payments/checkout`` names the plan slug, the contribution in
+   cents and the provider.  A slug the client sends is a *choice*, never a
+   price.
+#. ``create_checkout`` computes the amount as the active plan's price plus the
+   contribution and writes a ``pending`` payment.  A negative contribution, an
+   unknown plan, an unknown provider and a zero total are each refused with a
+   400 naming the field, and nothing is written.
+#. The provider's ``start`` creates the PaymentIntent (Stripe) or the
+   ``intent=CAPTURE`` order (PayPal).  If the provider cannot be reached the API
+   deletes the pending payment again and answers 400, so a failed start leaves
+   no orphan row.
+#. The provider's id goes into ``provider_ref`` and the whole reply into
+   ``raw``.
+#. The 201 hands the browser the payment id and whatever the provider's own
+   SDK needs: Stripe's ``client_secret``, PayPal's order id.
+#. The member pays in the browser.  No money has moved for PayPal yet: the
+   capture in step 8 is what takes it.
+#. The browser posts the intent or order id back with the payment id.
+#. ``confirm`` retrieves the intent, or captures the order.
+#. The API compares the provider's status, amount, currency and payment id with
+   the ``Payment`` row and refuses to go on when any of them disagrees.  This is
+   the step that makes the client-supplied ids harmless.
+#. The payment is marked succeeded and ``activate_term`` creates the membership
+   term, in one transaction.  Marking succeeded is idempotent, so the confirm
+   call and the webhook cannot create two terms.
+#. The response carries the payment's status and the membership it bought, so
+   the member is current by the time the page moves on.
+
+Step 12, the webhook, is the safety net for a browser that closes mid-redirect,
+and what it can do depends on the provider.  Stripe's handler checks the
+``Stripe-Signature`` header against ``STRIPE_WEBHOOK_SECRET`` — a body that
+fails the check is refused with a 400 — and then runs the same idempotent
+activation as the confirm call, which is why one arriving after a successful
+confirm changes nothing.  PayPal's handler files every notification against the
+payment and activates only one it has verified, which needs
+``PAYPAL_WEBHOOK_ID``: with that setting unset, verification returns false
+without calling PayPal, so the notification is recorded and nothing else
+happens, and the capture in step 8 remains the only thing that activates a
+term.
+
+What each provider verifies, how long it may take, and how the mock provider
+stands in for both are below.
+
+
 Stripe
 ======
 

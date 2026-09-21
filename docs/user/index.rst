@@ -8,9 +8,15 @@ before a flight, and administering accounts, content and the system itself.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Start here
+
+   overview
+   getting-started
+
+.. toctree::
+   :maxdepth: 1
    :caption: For members
 
-   getting-started
    member-guide
    aircraft
 
