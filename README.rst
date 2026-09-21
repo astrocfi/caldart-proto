@@ -159,4 +159,4 @@ See ``docs/developer/testing.rst`` for how the test suites are organized.
 License
 =======
 
-Prototype code for CalDART. Not yet licensed for redistribution.
+Prototype code for CalDART. It carries no license for redistribution.
