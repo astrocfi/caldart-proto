@@ -177,7 +177,7 @@ def user_factory() -> type[UserFactory]:
 
 @pytest.fixture
 def password() -> str:
-    """Return the plaintext password every ``UserFactory`` user is created with."""
+    """The plaintext password a ``UserFactory`` user gets unless one is passed."""
     return DEFAULT_PASSWORD
 
 
