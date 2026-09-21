@@ -314,8 +314,9 @@ The account-edit guard
 to take an account over: the address is the login *and* where a password reset
 link is mailed, and clearing the flag locks the account's owner out.  Both
 administrator edit endpoints — ``PATCH /admin/users/{id}`` above and ``PATCH
-/admin/members/{user_id}`` in :doc:`api-members` — run every write of those two
-fields past ``accounts.services.check_account_edit`` first.
+/admin/members/{user_id}`` in :doc:`api-members` — write through
+``accounts.services.update_account``, which runs every write of those two fields
+past ``accounts.services.check_account_edit`` first.
 
 The rule, in the order it is applied:
 
@@ -457,3 +458,7 @@ Tests
 
 ``backend/tests/test_auth_api.py``
    The minimal surface the portal shell needs — CSRF, login, logout, me.
+
+``backend/tests/test_account_services.py``
+   ``accounts.services`` on its own: creating an account, and each edit rule
+   both allowed and refused, down to the field the refusal names.

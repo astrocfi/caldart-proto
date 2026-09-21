@@ -294,8 +294,15 @@ commands, the seeders and the tests all run the same code:
 - ``reminders.services.send_renewal_reminders()`` backs the command, the
   systemd timer and the portal's run button alike.
 - ``aircraft.services.leader_status()`` builds the DART leader's status card;
-  ``accounts.services`` registers users and sends password-reset mail; and
+  ``accounts.services`` creates an account, applies every rule about who may
+  edit one, and sends the password mail; ``members.services`` owns the member
+  record — registration, an administrator's create, edit and delete — and
   ``sysadmin.services`` takes and restores backups and reports health.
+
+A service refuses work by raising one of the ``DomainError`` subclasses in
+``caldart/exceptions.py``, never an HTTP exception, so the same rule and the
+same sentence reach a command, the Django admin and a test.  The API layer
+translates them; :doc:`api-reference` gives the two shapes.
 
 When one app changes another's state, it calls that app's service: a payment
 reaches the membership tables only through ``activate_term()``.

@@ -1,18 +1,19 @@
 """Payment services.
 
 The server never trusts a client-supplied amount: totals are recomputed from
-the plan price plus the contribution.
+the plan price plus the contribution.  Input the server will not act on is
+refused with a ``DomainValidationError`` naming the field it came from.
 """
 
 from __future__ import annotations
 
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
 
 from apps.members.models import MembershipPlan, MembershipSource
 from apps.members.services import activate_term
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
+from caldart.exceptions import DomainValidationError
 
 
 @transaction.atomic
@@ -24,23 +25,23 @@ def create_checkout(
 ) -> Payment:
     """Create a ``pending`` payment for ``plan_slug`` plus an optional donation."""
     if provider not in PaymentProvider.values:
-        raise ValidationError({"provider": f"Unknown payment provider '{provider}'."})
+        raise DomainValidationError("provider", f"Unknown payment provider '{provider}'.")
 
     contribution_cents = int(contribution_cents or 0)
     if contribution_cents < 0:
-        raise ValidationError({"contribution_cents": "Contribution cannot be negative."})
+        raise DomainValidationError("contribution_cents", "Contribution cannot be negative.")
 
     plan = None
     plan_amount_cents = 0
     if plan_slug:
         plan = MembershipPlan.objects.filter(slug=plan_slug, is_active=True).first()
         if plan is None:
-            raise ValidationError({"plan": f"Unknown membership plan '{plan_slug}'."})
+            raise DomainValidationError("plan", f"Unknown membership plan '{plan_slug}'.")
         plan_amount_cents = plan.price_cents
 
     amount_cents = plan_amount_cents + contribution_cents
     if amount_cents <= 0:
-        raise ValidationError({"amount_cents": "Nothing to charge."})
+        raise DomainValidationError("amount_cents", "Nothing to charge.")
 
     return Payment.objects.create(
         user=user,

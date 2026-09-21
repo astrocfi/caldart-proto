@@ -9,17 +9,13 @@ from __future__ import annotations
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsAccountAdmin
-from apps.accounts.roles import SYSTEM_ADMIN
-from apps.accounts.services import effective_roles
 from apps.members.api.admin_filters import (
     MemberAdminFilterSet,
     MemberOrderingFilter,
@@ -41,8 +37,7 @@ from apps.members.reports import (
     member_report_filename,
     member_report_rows,
 )
-from apps.members.services import activate_term
-from apps.payments.models import payment_deletion_refusal
+from apps.members.services import activate_term, delete_member
 from caldart.reports import csv_response, filter_summary, pdf_table_response
 
 User = get_user_model()
@@ -93,32 +88,11 @@ class MemberAdminDetailView(MemberAdminBaseView, generics.RetrieveUpdateDestroyA
         return Response(MemberDetailSerializer(self.get_queryset().get(pk=instance.pk)).data)
 
     def perform_destroy(self, instance):
-        """Hard delete, refused three ways.
+        """Hard delete, refused three ways by ``members.services.delete_member``.
 
-        Nobody may delete themselves; only a system admin may delete one.  Both of
-        those tests are judged on effective roles, so a Django superuser counts as a
-        system administrator whether or not the role group was ever added.  The third
-        refusal protects the accounts: a member with any payment, whatever its status,
-        cannot be deleted, because the payment is a financial record.  Deactivation is
-        the alternative.
-
-        Every refusal raises ``PermissionDenied`` (403) and writes nothing.
+        Each refusal is a 403 carrying the sentence the service raised.
         """
-        caller = self.request.user
-        if instance.pk == caller.pk:
-            raise PermissionDenied("You cannot delete your own account.")
-        target_is_system_admin = SYSTEM_ADMIN in effective_roles(instance)
-        if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(caller):
-            raise PermissionDenied("Only a system administrator can delete a system administrator.")
-        refusal = payment_deletion_refusal(instance)
-        if refusal is not None:
-            raise PermissionDenied(refusal)
-        try:
-            instance.delete()
-        except ProtectedError as exc:
-            # ``Payment.user`` is the only protected reference to an account, so a row
-            # created between the check above and the delete lands here.
-            raise PermissionDenied(payment_deletion_refusal(instance)) from exc
+        delete_member(self.request.user, instance)
 
 
 class MemberMembershipGrantView(APIView):

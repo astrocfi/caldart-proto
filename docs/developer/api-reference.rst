@@ -244,6 +244,32 @@ Two endpoints return a bare dict rather than the standard envelope:
 unparseable registration with ``{"n_number": "Enter a registration, for example
 N12345."}``.
 
+Both shapes have two sources, one on each side of the layering.  A serializer
+validates the request — field formats, choices, uniqueness — and refuses it with
+DRF's own errors.  Everything that changes state lives in a service, which
+enforces the rules that need more than the input (who is asking, and what the
+record already holds) and raises a ``DomainError`` instead of an HTTP exception,
+so a management command or the Django admin gets the same rule and the same
+sentence.  ``caldart.exceptions.caldart_exception_handler`` translates the two
+subclasses into the shapes above:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 12 48
+
+   * - Raised by a service
+     - Status
+     - Body
+   * - ``DomainValidationError(field, message)``
+     - 400
+     - ``{field: [message]}``
+   * - ``DomainPermissionError(message)``
+     - 403
+     - ``{"detail": message}``
+
+An exception the handler does not recognize is left to Django, so a bug stays a
+500 rather than becoming a misleading 400.
+
 Throttling
 ----------
 
@@ -751,4 +777,5 @@ user fixture per role (``member``, ``dart_leader``, ``user_admin``,
 ``account_admin``, ``website_admin``, ``system_admin``) and an
 ``all_role_users`` dict keyed by slug, so a new endpoint's permission test is a
 short parametrized loop over the roles that should pass and the roles that
-should not.  See :doc:`testing`.
+should not.  ``backend/tests/test_domain_errors.py`` pins the two shapes above
+and the 401.  See :doc:`testing`.

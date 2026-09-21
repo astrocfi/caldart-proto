@@ -32,6 +32,7 @@ from apps.payments.api.serializers import (
     CheckoutSerializer,
     MockCompleteSerializer,
     PaymentPeriodSummarySerializer,
+    PaymentReportQuerySerializer,
     PaymentResultSerializer,
     PaymentsConfigSerializer,
     PaymentSerializer,
@@ -234,6 +235,17 @@ class PayPalWebhookView(APIView):
 # --------------------------------------------------------------------------
 # Reports — account_admin
 # --------------------------------------------------------------------------
+def report_query(request) -> PaymentReportQuerySerializer:
+    """The validated report parameters of ``request``.
+
+    Raises DRF's ``ValidationError`` -- a 400 keyed by the parameter at fault --
+    for anything the three report endpoints will not act on.
+    """
+    serializer = PaymentReportQuerySerializer(data=request.query_params)
+    serializer.is_valid(raise_exception=True)
+    return serializer
+
+
 class AdminPaymentListView(ListAPIView):
     """``GET /admin/payments`` — filtered, searchable, ordered, paginated."""
 
@@ -244,7 +256,7 @@ class AdminPaymentListView(ListAPIView):
     filter_backends: list = []
 
     def get_queryset(self):
-        filters = reports.PaymentFilters.from_query(self.request.query_params)
+        filters = report_query(self.request).to_filters()
         queryset = reports.apply_filters(reports.base_queryset(), filters)
         return queryset.order_by(*self.requested_ordering())
 
@@ -262,10 +274,9 @@ class AdminPaymentSummaryView(APIView):
     permission_classes = [IsAuthenticated, IsAccountAdmin]
 
     def get(self, request):
-        group = (request.query_params.get("group") or "month").strip()
-        filters = reports.PaymentFilters.from_query(request.query_params)
-        queryset = reports.apply_filters(reports.base_queryset(), filters)
-        rows = reports.summarize(queryset, group)
+        query = report_query(request)
+        queryset = reports.apply_filters(reports.base_queryset(), query.to_filters())
+        rows = reports.summarize(queryset, query.validated_data["group"])
         return Response(PaymentPeriodSummarySerializer(rows, many=True).data)
 
 
@@ -275,7 +286,7 @@ class AdminPaymentExportView(APIView):
     permission_classes = [IsAuthenticated, IsAccountAdmin]
 
     def get(self, request):
-        filters = reports.PaymentFilters.from_query(request.query_params)
+        filters = report_query(request).to_filters()
         queryset = reports.apply_filters(reports.base_queryset(), filters).order_by("-paid_at")
         return csv_response(
             "caldart-payments.csv",
