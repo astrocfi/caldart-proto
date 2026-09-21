@@ -187,17 +187,10 @@ through ``heading_anchor`` so long pages get a table of contents, and
 Adding a block
 --------------
 
-#. Write the block class in ``blocks.py``, with a ``Meta`` that sets ``icon``,
-   ``label`` and ``template``.
-#. Add it to ``ContentStreamBlock`` (and to ``ColumnStreamBlock`` if it makes
-   sense inside a column).
-#. Write ``backend/templates/cms/blocks/<name>.html``.  Use the semantic
-   tokens; do not introduce colors (see :doc:`theming`).
-#. Style it in ``frontend/src/styles/site.css``.
-#. ``manage.py makemigrations cms`` — a StreamField change is a migration even
-   though the column type does not change.
-#. Cover it in ``backend/tests/test_cms_pages.py``; the
-   ``test_standard_page_renders_every_block_type`` test builds one of each.
+:ref:`extending-block` in :doc:`extending` has the recipe and a skeleton: the
+block class and its ``Meta``, the stream it joins, its template and styles, the
+migration a StreamField change still needs, and the test that renders one of
+every block.
 
 Restricting a block
 -------------------
@@ -216,17 +209,10 @@ To restrict another block, add its name to ``RESTRICTED_BLOCK_TYPES``.
 Adding a page type
 ==================
 
-#. Subclass ``BasePage`` (plus ``MembersOnlyMixin`` if it can be closed) in
-   ``models.py``.
-#. Declare ``content_panels``, ``search_fields``, ``template``, and
-   ``parent_page_types`` / ``subpage_types``.
-#. Give it a ``Meta.verbose_name``, so Wagtail's "add a child page" chooser
-   names it the way an editor would.  A ``__str__`` is not one of the things a
-   page type declares: Wagtail's ``Page`` already returns the page title.
-#. Write ``backend/templates/cms/<snake_name>.html`` extending ``base.html``.
-#. ``manage.py makemigrations cms``.
-#. Extend ``seed_content`` if the example site should have one.
-#. Test that it renders, and that its permissions behave.
+:ref:`extending-page-type` in :doc:`extending` has the recipe and a skeleton:
+the bases to subclass, the panels, search fields, template and tree
+constraints to declare, the migration, the ``seed_content`` entry, and the
+tests for rendering and access.
 
 
 Navigation and site settings
