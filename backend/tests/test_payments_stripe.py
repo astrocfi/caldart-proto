@@ -177,7 +177,8 @@ def test_checkout_creates_a_payment_intent(
     )
 
     assert response.status_code == 201
-    assert response.data["client"]["client_secret"] == "pi_test_created_secret_abc"
+    expected_secret = "pi_test_created_secret_abc"  # noqa: S105 - test fixture
+    assert response.data["client"]["client_secret"] == expected_secret
 
     created = fake_intents.created
     payment = Payment.objects.get(pk=response.data["payment_id"])

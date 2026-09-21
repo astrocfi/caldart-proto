@@ -36,7 +36,7 @@ WEB_UNIT = DEPLOY / "systemd" / "caldart-web.service"
 #: The key ``base.py`` defaults to and ``.env.example`` ships.  It is published
 #: in the repository, so a box still running it can have its sessions and
 #: password-reset links forged by anyone who has read the source.
-DEVELOPMENT_SECRET_KEY = "dev-insecure-secret-key-change-me"
+DEVELOPMENT_SECRET_KEY = "dev-insecure-secret-key-change-me"  # noqa: S105 - already public
 
 SETTINGS_PACKAGE = "caldart.settings"
 

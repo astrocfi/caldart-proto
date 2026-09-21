@@ -124,7 +124,7 @@ def test_a_later_kind_still_fires_after_an_earlier_one(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """The same term earns a second, different-kind email as it gets closer to expiry."""
-    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    _user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
 
     send_renewal_reminders(today=TODAY)
     # 23 days later the same term is a week from expiry.

@@ -127,7 +127,11 @@ def test_register_rejects_a_weak_password(api_client: APIClient, password: str) 
 def test_register_rejects_a_password_that_looks_like_the_email(api_client: APIClient) -> None:
     """The similarity-to-username validator applies to the email address too."""
     response = api_client.post(
-        REGISTER, register_payload(email="norabright@example.test", password="norabright")
+        REGISTER,
+        register_payload(
+            email="norabright@example.test",
+            password="norabright",  # noqa: S106 - test fixture
+        ),
     )
     assert response.status_code == 400
     assert "password" in response.json()

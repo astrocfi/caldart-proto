@@ -26,7 +26,7 @@ pytestmark = pytest.mark.django_db
 
 MEMBERS_URL = "/api/v1/admin/members"
 RESET_CONFIRM = "/api/v1/auth/password/reset/confirm"
-GOOD_PASSWORD = "correct-horse-battery"
+GOOD_PASSWORD = "correct-horse-battery"  # noqa: S105 - test fixture
 
 #: The ``SiteSettings`` defaults the ``site_settings`` fixture writes.
 ORG_NAME = "The California DART Network"

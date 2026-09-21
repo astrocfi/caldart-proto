@@ -170,7 +170,9 @@ def test_csv_content(api_client: APIClient, account_admin: User, register: Regis
 
     assert by_number["N33MM"][10] == "no"
     missing = by_number["N44BE"]
-    assert missing[8] == "" and missing[9] == "" and missing[10] == "no"
+    assert missing[8] == ""
+    assert missing[9] == ""
+    assert missing[10] == "no"
 
 
 def test_csv_pilots_column_lists_attached_members(

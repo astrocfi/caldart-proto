@@ -88,20 +88,20 @@ class UserFactory(ModelFactory["UserModel"]):
     # factory.post_generation is untyped (a factory_boy stub gap), which otherwise
     # makes the decorated function untyped too under strict mode.
     @factory.post_generation  # type: ignore[untyped-decorator]
-    def password(obj: UserModel, create: bool, extracted: str | None, **kwargs: Any) -> None:
+    def password(self: UserModel, create: bool, extracted: str | None, **kwargs: Any) -> None:
         """Set the password to ``extracted``, falling back to ``DEFAULT_PASSWORD``."""
         if not create:
             return
-        obj.set_password(extracted or DEFAULT_PASSWORD)
-        obj.save(update_fields=["password"])
+        self.set_password(extracted or DEFAULT_PASSWORD)
+        self.save(update_fields=["password"])
 
     @factory.post_generation  # type: ignore[untyped-decorator]
-    def roles(obj: UserModel, create: bool, extracted: list[str] | None, **kwargs: Any) -> None:
+    def roles(self: UserModel, create: bool, extracted: list[str] | None, **kwargs: Any) -> None:
         """Grant the user each role slug in ``extracted``, or none if it is falsy."""
         if not create or not extracted:
             return
         for slug in extracted:
-            obj.add_role(slug)
+            self.add_role(slug)
 
 
 class DartFactory(ModelFactory[Dart]):
