@@ -182,6 +182,11 @@ it is invalidated by the password changing or by ``PASSWORD_RESET_TIMEOUT``
 (three days by default) elapsing.  In development Mailpit catches the mail on
 SMTP 1025; read it at http://localhost:8025/.
 
+``apps.accounts.services.build_reset_url`` builds that link, stripping any
+trailing slash from ``SITE_URL``, and the invitation an administrator-created
+account receives (:doc:`api-members`) uses the same function, so both links are
+spent at the confirm endpoint below.
+
 ``POST /auth/password/reset/confirm``
 -------------------------------------
 
