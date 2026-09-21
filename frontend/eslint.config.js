@@ -60,9 +60,10 @@ export default tseslint.config(
         },
       ],
       'jsdoc/no-types': 'error',
-      // `base.css` strips the markers from `ul[role='list']` only, and Safari's
-      // VoiceOver stops announcing a list once its markers are gone.  The
-      // attribute is what keeps the semantics, so it is not redundant here.
+      // `base.css` strips the markers from both `ul[role='list']` and
+      // `ol[role='list']`, and Safari's VoiceOver stops announcing a list once
+      // its markers are gone.  The attribute is what keeps the semantics, so it
+      // is not redundant here.
       'jsx-a11y/no-redundant-roles': ['error', { ul: ['list'], ol: ['list'] }],
     },
   },

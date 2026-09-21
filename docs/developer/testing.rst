@@ -488,17 +488,26 @@ image without ``alt``, an interactive role that cannot take focus, an
 ``autoFocus`` prop.  An accessibility finding is fixed in the markup rather
 than silenced.  The one configured exception is
 ``jsx-a11y/no-redundant-roles``, which allows ``role="list"`` on ``ul`` and
-``ol``: ``src/styles/base.css`` strips the markers from ``ul[role='list']``
-only, and VoiceOver stops announcing a list once its markers are gone, so the
-attribute carries the semantics rather than repeating them.
+``ol``: ``src/styles/base.css`` strips the markers from both
+``ul[role='list']`` and ``ol[role='list']``, and VoiceOver stops announcing a
+list once its markers are gone, so the attribute carries the semantics rather
+than repeating them.
 
-Three project rules apply to every TypeScript file under ``frontend``, its
-configuration files included:
+The project's own rules apply to every TypeScript file under ``frontend``, its
+configuration files included.
 ``@typescript-eslint/explicit-module-boundary-types`` requires an explicit
 return type on every exported function, and ``eslint-plugin-jsdoc``'s
 ``jsdoc/require-jsdoc`` requires a JSDoc comment on every exported function,
 component and class (``jsdoc/no-types`` keeps that comment free of ``{type}``
 annotations, since the types live in TypeScript).
+``@typescript-eslint/consistent-type-imports`` requires a separate ``import
+type`` statement for a type-only symbol, and
+``@typescript-eslint/no-unused-vars`` accepts a name that begins with an
+underscore, the marker for a deliberately unused variable or parameter.  The
+``react-hooks`` recommended rules join them, and
+``react-refresh/only-export-components`` is off, because a feature module
+deliberately keeps a component beside the pure helper that computes its input.
+``jsx-a11y/no-redundant-roles`` carries its list exception here as well.
 
 ``make lint-spelling`` runs ``codespell``, configured under ``[tool.codespell]``
 in ``pyproject.toml``, over ``README.rst``, ``CLAUDE.md``, ``docs``, ``backend``,
