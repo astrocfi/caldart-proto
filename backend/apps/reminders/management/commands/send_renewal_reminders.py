@@ -9,7 +9,9 @@ a clean run that reached nobody.
 
 from __future__ import annotations
 
+import argparse
 from datetime import date
+from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 
@@ -17,9 +19,12 @@ from apps.reminders.services import send_renewal_reminders
 
 
 class Command(BaseCommand):
+    """Runs the renewal reminder scan and reports its results to stdout."""
+
     help = "Send t60/t30/t7/expired/post30 renewal reminders and expire lapsed terms."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Register ``--dry-run`` and ``--today`` on the command's argument parser."""
         parser.add_argument(
             "--dry-run",
             action="store_true",
@@ -31,7 +36,13 @@ class Command(BaseCommand):
             help="Scan as of this date instead of today. Useful for rehearsals.",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Run the scan and print its summary.
+
+        ``--today`` must be an ISO ``YYYY-MM-DD`` date, or ``CommandError`` is raised
+        with the invalid value quoted. After the scan, ``CommandError`` is raised
+        naming how many reminders failed to send, so the command exits non-zero.
+        """
         scan_date: date | None = None
         if options["today"]:
             try:

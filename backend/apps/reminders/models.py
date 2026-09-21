@@ -9,6 +9,8 @@ from caldart.models import TimestampedModel
 
 
 class ReminderKind(models.TextChoices):
+    """The five renewal reminder emails, keyed by their offset from expiry."""
+
     T60 = "t60", "60 days before expiry"
     T30 = "t30", "30 days before expiry"
     T7 = "t7", "7 days before expiry"
@@ -55,4 +57,5 @@ class ReminderLog(TimestampedModel):
         ]
 
     def __str__(self) -> str:
+        """Return ``"<kind label> to <email> on <sent_at date>"``."""
         return f"{self.get_kind_display()} to {self.to_email} on {self.sent_at:%Y-%m-%d}"
