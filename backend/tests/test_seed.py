@@ -22,8 +22,8 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(scope="module")
-def _unused() -> None:  # pragma: no cover - placeholder so the module has no import side effects
-    """Return ``None``; exists only so the module keeps at least one fixture."""
+def _unused() -> None:  # pragma: no cover
+    """Declare a fixture with no import-time side effects; no test requests it."""
     return None
 
 

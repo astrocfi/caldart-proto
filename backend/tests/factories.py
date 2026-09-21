@@ -192,7 +192,7 @@ class LifetimePlanFactory(MembershipPlanFactory):
 
 
 class PaymentFactory(ModelFactory[Payment]):
-    """Builds a pending mock ``Payment`` of the annual plan's price."""
+    """Builds a pending mock ``Payment`` of 4,500 cents, whatever plan it names."""
 
     class Meta:
         model = Payment
