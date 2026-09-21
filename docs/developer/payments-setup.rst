@@ -350,7 +350,9 @@ no SDK.  Three calls, in ``backend/apps/payments/providers/paypal.py``:
 3. ``POST /v2/checkout/orders/{id}/capture`` when the buyer approves.
 
 A capture only activates a membership when PayPal answers ``COMPLETED`` *and*
-the captured amount, currency and ``custom_id`` all match our own record.
+the captured amount and currency match our own record.  A ``custom_id`` on the
+capture has to match too, but a capture that carries none is still accepted:
+see :doc:`api-payments`.
 
 Testing it
 ----------

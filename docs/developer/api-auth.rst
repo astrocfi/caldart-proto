@@ -45,23 +45,25 @@ usual ``{count, next, previous, results}`` envelope.
 The user payload
 ================
 
-Every endpoint that returns an account returns the same object::
+Every endpoint that returns an account returns the same object:
 
-    {
-      "id": 12,
-      "email": "marta.reyes@example.org",
-      "first_name": "Marta",
-      "last_name": "Reyes",
-      "roles": ["member", "dart_leader"],
-      "is_active": true,
-      "membership": {
-        "status": "current",
-        "expires_on": "2027-06-30",
-        "plan": "Annual",
-        "is_lifetime": false
-      },
-      "profile_complete": true
-    }
+.. code-block:: json
+
+   {
+     "id": 12,
+     "email": "marta.reyes@example.org",
+     "first_name": "Marta",
+     "last_name": "Reyes",
+     "roles": ["member", "dart_leader"],
+     "is_active": true,
+     "membership": {
+       "status": "current",
+       "expires_on": "2027-06-30",
+       "plan": "Annual",
+       "is_lifetime": false
+     },
+     "profile_complete": true
+   }
 
 ``roles``
    Slugs the account holds, always in privilege order (``member``,
@@ -93,20 +95,31 @@ Authentication
 ``GET /auth/csrf``
 ------------------
 
-204, and sets the ``csrftoken`` cookie.  Open to anyone.
+Issues a ``csrftoken`` cookie and answers with no body at all.  Open to
+anyone; it is the one call a client makes before it can send an unsafe method.
+
+Statuses: **204**, for anybody.
 
 ``POST /auth/register``
 -----------------------
 
-Creates a member account, signs them in and returns **201** with the user
-payload::
-
-    POST /api/v1/auth/register
-    {"email": "...", "password": "...", "first_name": "...", "last_name": "..."}
-
-All four fields are required.  In one transaction the endpoint creates the
+Creates a member account, signs them in and returns the user payload.  All
+four fields are required.  In one transaction the endpoint creates the
 ``User``, grants the ``member`` role and creates an empty ``MemberProfile``, then
 calls ``django.contrib.auth.login``.  If any part fails, none of it is written.
+
+.. code-block:: json
+
+   {"email": "marta.reyes@example.org", "password": "...",
+    "first_name": "Marta", "last_name": "Reyes"}
+
+.. code-block:: json
+
+   {"id": 12, "email": "marta.reyes@example.org", "first_name": "Marta",
+    "last_name": "Reyes", "roles": ["member"], "is_active": true,
+    "membership": {"status": "none", "expires_on": null, "plan": null,
+                   "is_lifetime": false},
+    "profile_complete": false}
 
 Rejections, all 400:
 
@@ -122,30 +135,55 @@ Rejections, all 400:
 ``{"<field>": ["This field is required."]}``
    A field was missing.  All four are mandatory.
 
+Statuses: **201** with the user payload; **400** for any rejection above;
+**429** when the ``auth_register`` throttle is exhausted.
+
 ``POST /auth/login``
 --------------------
 
-``{"email", "password"}`` → 200 with the user payload, and a session cookie.
-Email matching is case-insensitive (``UserManager.get_by_natural_key`` uses
-``email__iexact``).
+Starts a session and returns the user payload.  Email matching is
+case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
+
+.. code-block:: json
+
+   {"email": "marta.reyes@example.org", "password": "..."}
+
+.. code-block:: json
+
+   {"id": 12, "email": "marta.reyes@example.org", "first_name": "Marta",
+    "last_name": "Reyes", "roles": ["member", "dart_leader"], "is_active": true,
+    "membership": {"status": "current", "expires_on": "2027-06-30",
+                   "plan": "Annual", "is_lifetime": false},
+    "profile_complete": true}
 
 * **400** ``{"detail": "Incorrect email address or password."}`` — wrong
   credentials.  The message never says which half was wrong.
-* **403** ``{"detail": "This account has been deactivated. ..."}`` — the
-  credentials may well be right, but ``is_active`` is false.
+* **403** ``{"detail": "This account has been deactivated. Ask a CalDART
+  administrator."}`` — the credentials may well be right, but ``is_active``
+  is false.
+
+Statuses: **200** with the user payload and a session cookie; **400** for a
+missing field or wrong credentials; **403** for a deactivated account;
+**429** when the ``auth_login`` throttle is exhausted.
 
 ``POST /auth/logout``
 ---------------------
 
-204.  Safe to call when nobody is signed in.
+Ends the session and answers with no body.  Safe to call when nobody is signed
+in: the answer is the same either way, so a client can sign out without first
+working out whether it is signed in.
+
+Statuses: **204**, for anybody.
 
 ``GET /auth/me``
 ----------------
 
-The signed-in user's payload, or **401** when anonymous.  This is the portal's
-single source of truth for identity; the SPA caches it under the TanStack Query
-key ``['auth', 'me']`` and everything that can change who you are writes or
-invalidates that key.
+The signed-in user's payload.  This is the portal's single source of truth for
+identity; the SPA caches it under the TanStack Query key ``['auth', 'me']`` and
+everything that can change who you are writes or invalidates that key.  The
+body is the user payload above, unchanged.
+
+Statuses: **200**; **401** when anonymous.
 
 
 Passwords
@@ -154,7 +192,12 @@ Passwords
 ``POST /auth/password/change``
 ------------------------------
 
-``{"current_password", "new_password"}`` → **204**.  Requires a session.
+Replaces the signed-in account's own password and answers with no body.
+Requires a session.
+
+.. code-block:: json
+
+   {"current_password": "...", "new_password": "..."}
 
 The view calls ``update_session_auth_hash`` afterwards, so changing your
 password does not sign you out of the browser you changed it from.  Other
@@ -164,13 +207,21 @@ password.
 * ``{"current_password": [...]}`` — did not match.
 * ``{"new_password": [...]}`` — refused by a password validator.
 
+Statuses: **204**; **400** for either rejection above or a missing field;
+**401** when anonymous.
+
 ``POST /auth/password/reset``
 -----------------------------
 
-``{"email"}`` → **204, always**.  Whether the address is registered, belongs to a
-deactivated account, or has never been seen, the answer is identical: the
-endpoint must not be usable to enumerate members.  A malformed address is still
-a 400, since that is a client bug rather than an answer about the database.
+Mails a reset link to the address, and answers with no body **whatever
+happens**.  Whether the address is registered, belongs to a deactivated
+account, or has never been seen, the answer is identical: the endpoint must not
+be usable to enumerate members.  A malformed address is still a 400, since that
+is a client bug rather than an answer about the database.
+
+.. code-block:: json
+
+   {"email": "marta.reyes@example.org"}
 
 When there is an active account, ``apps.accounts.services.send_password_reset_email``
 renders ``templates/emails/password_reset.{txt,html}`` and mails a link::
@@ -187,10 +238,19 @@ trailing slash from ``SITE_URL``, and the invitation an administrator-created
 account receives (:doc:`api-members`) uses the same function, so both links are
 spent at the confirm endpoint below.
 
+Statuses: **204**, registered address or not; **400** for a missing or
+malformed address; **429** when the ``auth_password_reset`` throttle is
+exhausted.
+
 ``POST /auth/password/reset/confirm``
 -------------------------------------
 
-``{"uid", "token", "new_password"}`` → **204**.
+Spends a reset link: sets the password it authorizes, and answers with no
+body.
+
+.. code-block:: json
+
+   {"uid": "MTI", "token": "cs2k3t-4f2a...", "new_password": "..."}
 
 Every way a link can be unusable — a mangled ``uid``, an unknown user, a
 deactivated account, a token that has expired or has already been spent —
@@ -200,6 +260,10 @@ under ``new_password``.
 
 The endpoint does not sign the user in; the portal sends them to ``/login``.
 
+Statuses: **204**; **400** for an unusable link, a weak password or a missing
+field; **429** when the ``auth_password_reset`` throttle is exhausted, which
+is the same budget the request endpoint draws on.
+
 
 Roles
 =====
@@ -207,13 +271,22 @@ Roles
 ``GET /roles``
 --------------
 
-Any authenticated caller.  Returns the catalog, in privilege order::
+The role catalog, in privilege order, for any authenticated caller.  It is a
+bare array rather than a paginated envelope: there are six roles and there
+will not be many more.
 
-    [{"slug": "member", "description": "Own profile, own payments and ..."}, ...]
+.. code-block:: json
+
+   [{"slug": "member",
+     "description": "Own profile, own payments and membership, join and renew, and members-only content while the membership is current."},
+    {"slug": "dart_leader",
+     "description": "Look up any member and see membership, medical, certificate and aircraft insurance currency."}]
 
 Descriptions live in ``apps.accounts.roles.ROLE_DESCRIPTIONS``, which is also
 what ``manage.py seed_roles`` iterates, so the API, the seed and the portal's
 role checkboxes can never drift apart.
+
+Statuses: **200**; **401** when anonymous.
 
 
 Users admin
@@ -227,6 +300,22 @@ every role check, so system administrators have them too; every other role gets
 --------------------
 
 Paginated list of user payloads, ordered by last name, first name, email.
+
+.. code-block:: json
+
+   {
+     "count": 137,
+     "next": "http://localhost:8000/api/v1/admin/users?page=2",
+     "previous": null,
+     "results": [
+       {"id": 12, "email": "marta.reyes@example.org", "first_name": "Marta",
+        "last_name": "Reyes", "roles": ["member", "dart_leader"],
+        "is_active": true,
+        "membership": {"status": "current", "expires_on": "2027-06-30",
+                       "plan": "Annual", "is_lifetime": false},
+        "profile_complete": true}
+     ]
+   }
 
 =================  ============================================================
 Parameter          Effect
@@ -244,10 +333,17 @@ Parameter          Effect
 ``page_size``
 =================  ============================================================
 
+Statuses: **200**; **400** for an unknown ``role`` slug; **401** when
+anonymous; **403** without ``user_admin``; **404** for a ``page`` past the
+end.
+
 ``GET /admin/users/{id}``
 -------------------------
 
-One user payload; 404 for an unknown id.
+One user payload, exactly as the list returns it.
+
+Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
+**404** for an unknown id.
 
 ``PATCH /admin/users/{id}``
 ---------------------------
@@ -257,6 +353,19 @@ Accepts any of ``first_name``, ``last_name``, ``email``, ``is_active`` and
 this API edits accounts, it does not replace or remove them.  Deleting a member
 is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
 :doc:`api-members`.
+
+.. code-block:: json
+
+   {"roles": ["member", "dart_leader"], "is_active": false}
+
+.. code-block:: json
+
+   {"id": 12, "email": "marta.reyes@example.org", "first_name": "Marta",
+    "last_name": "Reyes", "roles": ["member", "dart_leader"],
+    "is_active": false,
+    "membership": {"status": "current", "expires_on": "2027-06-30",
+                   "plan": "Annual", "is_lifetime": false},
+    "profile_complete": true}
 
 Three rules are enforced in ``AdminUserSerializer``:
 
@@ -293,16 +402,38 @@ system administrator is a Django superuser::
 ``website_admin`` is in that second line so an unrelated role edit cannot take
 the Wagtail admin away from a website administrator.
 
+Statuses: **200** with the updated payload; **400** for an unknown role slug,
+a move of ``system_admin`` by a caller who is not one, an address already in
+use, or a refusal from the account-edit guard below; **401** when anonymous;
+**403** without ``user_admin``; **404** for an unknown id; **405** for ``PUT``
+and ``DELETE``.
+
 ``POST /admin/users/{id}/send-password-reset``
 ----------------------------------------------
 
 Sends the same email as ``/auth/password/reset``, but this one reports what
-happened, because the caller is a trusted administrator rather than an anonymous
-visitor::
+happened, because the caller is a trusted administrator rather than an
+anonymous visitor.  There is no request body.
 
-    200 {"detail": "Password reset email sent to marta.reyes@example.org."}
+.. code-block:: json
+
+   {"detail": "Password reset email sent to marta.reyes@example.org."}
+
+An account with nobody to mail is refused::
+
     400 {"detail": "That account is deactivated, so no reset email was sent."}
-    404 — no such account
+
+Two accounts have nobody to mail: a deactivated one, and one that holds no
+email address.  Both are refused with that one sentence, so a caller who sees
+it on an active account should check the address on the member record.
+
+Both the send and the refusal are recorded in the audit log
+(:ref:`deploy-audit-log`).
+
+Statuses: **200** when the mail went out; **400** for an account that is
+deactivated or holds no email address; **401** when anonymous; **403** without
+``user_admin``; **404** for an unknown id.  This endpoint is not throttled —
+the throttles guard the anonymous routes.
 
 
 .. _account-edit-guard:
