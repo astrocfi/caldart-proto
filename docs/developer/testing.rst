@@ -397,8 +397,8 @@ The API contract
 ================
 
 The DRF serializers under ``apps/*/api/`` and the portal's
-``frontend/src/portal/api/types.ts`` describe the same objects.  Two tests keep
-them saying the same thing, and both run inside ``make check``: rename a
+``frontend/src/portal/api/types.ts`` describe the same objects.  Two test files
+keep them saying the same thing, and both run inside ``make check``: rename a
 serializer field without following it in ``types.ts`` and the gate goes red.
 
 The description in the middle is OpenAPI, generated from the views:
@@ -439,8 +439,9 @@ The frontend half
 -----------------
 
 ``frontend/src/portal/api/types.contract.test.ts`` pairs each interface in
-``api/types.ts`` with its schema component and asserts the two are mutually
-assignable.  The comparison strips ``readonly`` and optionality at every depth,
+``api/types.ts`` that the serializers describe with its schema component and
+asserts the two are mutually assignable.  An interface whose endpoint is a plain
+``APIView`` has no counterpart to pair with, so it is not listed.  The comparison strips ``readonly`` and optionality at every depth,
 because OpenAPI marks a property optional whenever the serializer does not
 require it on input, which says nothing about whether the response carries it;
 property names and property types are what the two sides must agree on.  A
