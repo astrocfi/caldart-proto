@@ -10,14 +10,27 @@ from __future__ import annotations
 import csv
 import io
 import re
-from datetime import timedelta
+from collections.abc import Callable, Iterator
+from datetime import date, timedelta
+from typing import TYPE_CHECKING, cast
 
 import pytest
-from rest_framework.test import APIRequestFactory, force_authenticate
+from django.http import StreamingHttpResponse
+from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
+from apps.accounts.models import User
+from apps.aircraft.models import Aircraft
 from apps.members.api.admin_filters import applied_filters
 from apps.members.api.admin_views import MemberExportPdfView
-from apps.members.models import MedicalType, MembershipStatusChoices, PilotCertificateType
+from apps.members.models import (
+    Dart,
+    MedicalType,
+    MemberProfile,
+    Membership,
+    MembershipPlan,
+    MembershipStatusChoices,
+    PilotCertificateType,
+)
 from apps.members.reports import MEMBER_REPORT_HEADER, member_report_filename
 from caldart.reports import filter_summary
 from tests.factories import (
@@ -28,7 +41,19 @@ from tests.factories import (
     UserFactory,
 )
 
+if TYPE_CHECKING:
+    # rest_framework.test.APIClient.get() is typed to return this class, but it
+    # exists only in the stub: rest_framework monkey-patches Django's test response
+    # at runtime rather than defining a real subclass.
+    from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
+
 pytestmark = pytest.mark.django_db
+
+_user = cast(Callable[..., User], UserFactory)
+_dart = cast(Callable[..., Dart], DartFactory)
+_aircraft = cast(Callable[..., Aircraft], AircraftFactory)
+_profile = cast(Callable[..., MemberProfile], MemberProfileFactory)
+_membership = cast(Callable[..., Membership], MembershipFactory)
 
 CSV_URL = "/api/v1/admin/members/export.csv"
 PDF_URL = "/api/v1/admin/members/export.pdf"
@@ -55,19 +80,22 @@ DOCUMENTED_COLUMNS = (
 
 
 @pytest.fixture
-def admin_client(api_client, account_admin):
+def admin_client(api_client: APIClient, account_admin: User) -> APIClient:
+    """An API client signed in as an account administrator."""
     api_client.force_login(account_admin)
     return api_client
 
 
 @pytest.fixture
-def reportable(annual_plan, life_plan, today, dart):
+def reportable(
+    annual_plan: MembershipPlan, life_plan: MembershipPlan, today: date, dart: Dart
+) -> dict[str, User]:
     """Three members whose report rows exercise every kind of cell."""
     day = timedelta(days=1)
-    napa = DartFactory(name="Napa", airport_identifier="APC", city="Napa")
+    napa = _dart(name="Napa", airport_identifier="APC", city="Napa")
 
-    pilot = UserFactory(email="pilot@example.test", first_name="Ada", last_name="Marsh")
-    MemberProfileFactory(
+    pilot = _user(email="pilot@example.test", first_name="Ada", last_name="Marsh")
+    _profile(
         user=pilot,
         dart=dart,
         phone="415-555-0100",
@@ -78,17 +106,15 @@ def reportable(annual_plan, life_plan, today, dart):
         medical_type=MedicalType.SECOND,
         medical_expiration=today + 90 * day,
     )
-    pilot.profile.aircraft.add(
-        AircraftFactory(n_number="N172SP"), AircraftFactory(n_number="N9021K")
-    )
-    MembershipFactory(user=pilot, plan=annual_plan, starts_on=today - 30 * day)
+    pilot.profile.aircraft.add(_aircraft(n_number="N172SP"), _aircraft(n_number="N9021K"))
+    _membership(user=pilot, plan=annual_plan, starts_on=today - 30 * day)
 
-    lifer = UserFactory(email="lifer@example.test", first_name="Bo", last_name="Nakano")
-    MemberProfileFactory(user=lifer, dart=napa, phone="707-555-0111", city="Napa")
-    MembershipFactory(user=lifer, plan=life_plan, starts_on=today - 400 * day, ends_on=None)
+    lifer = _user(email="lifer@example.test", first_name="Bo", last_name="Nakano")
+    _profile(user=lifer, dart=napa, phone="707-555-0111", city="Napa")
+    _membership(user=lifer, plan=life_plan, starts_on=today - 400 * day, ends_on=None)
 
-    lapsed = UserFactory(email="lapsed@example.test", first_name="Cy", last_name="Orr")
-    MemberProfileFactory(
+    lapsed = _user(email="lapsed@example.test", first_name="Cy", last_name="Orr")
+    _profile(
         user=lapsed,
         dart=napa,
         phone="",
@@ -97,7 +123,7 @@ def reportable(annual_plan, life_plan, today, dart):
         medical_type=MedicalType.NONE,
         medical_expiration=None,
     )
-    MembershipFactory(
+    _membership(
         user=lapsed,
         plan=annual_plan,
         starts_on=today - 500 * day,
@@ -107,12 +133,16 @@ def reportable(annual_plan, life_plan, today, dart):
     return {"pilot": pilot, "lifer": lifer, "lapsed": lapsed}
 
 
-def read_csv(response) -> list[list[str]]:
-    body = b"".join(response.streaming_content).decode()
+def read_csv(response: ApiResponse) -> list[list[str]]:
+    """Decode a streamed CSV download's content into rows of cells."""
+    streaming = cast(StreamingHttpResponse, response)
+    content = cast("Iterator[bytes]", streaming.streaming_content)
+    body = b"".join(content).decode()
     return list(csv.reader(io.StringIO(body)))
 
 
 def row_for(table: list[list[str]], email: str) -> dict[str, str]:
+    """The CSV row for ``email``, as a header-keyed dict, or raise if it is absent."""
     header = table[0]
     for row in table[1:]:
         if row[header.index("email")] == email:
@@ -123,11 +153,15 @@ def row_for(table: list[list[str]], email: str) -> dict[str, str]:
 # --------------------------------------------------------------------------
 # CSV
 # --------------------------------------------------------------------------
-def test_csv_columns_are_the_ones_the_plan_lists():
+def test_csv_columns_are_the_ones_the_plan_lists() -> None:
+    """The exported CSV header matches the documented column order exactly."""
     assert MEMBER_REPORT_HEADER == DOCUMENTED_COLUMNS
 
 
-def test_csv_download_headers(admin_client, reportable, today):
+def test_csv_download_headers(
+    admin_client: APIClient, reportable: dict[str, User], today: date
+) -> None:
+    """The CSV download carries a CSV content type and a dated filename."""
     response = admin_client.get(CSV_URL)
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/csv")
@@ -137,7 +171,10 @@ def test_csv_download_headers(admin_client, reportable, today):
     assert member_report_filename("csv") == f"caldart-members-{today.isoformat()}.csv"
 
 
-def test_csv_row_content(admin_client, reportable, today, annual_plan):
+def test_csv_row_content(
+    admin_client: APIClient, reportable: dict[str, User], today: date, annual_plan: MembershipPlan
+) -> None:
+    """A pilot's row carries every documented column, correctly formatted."""
     table = read_csv(admin_client.get(CSV_URL))
     assert table[0] == list(DOCUMENTED_COLUMNS)
 
@@ -159,14 +196,20 @@ def test_csv_row_content(admin_client, reportable, today, annual_plan):
     assert row["joined_on"] == (today - timedelta(days=30)).isoformat()
 
 
-def test_csv_leaves_a_lifetime_expiry_blank(admin_client, reportable, life_plan):
+def test_csv_leaves_a_lifetime_expiry_blank(
+    admin_client: APIClient, reportable: dict[str, User], life_plan: MembershipPlan
+) -> None:
+    """A lifetime member's row leaves the expiry column blank."""
     row = row_for(read_csv(admin_client.get(CSV_URL)), "lifer@example.test")
     assert row["status"] == "current"
     assert row["plan"] == life_plan.name
     assert row["expires_on"] == ""
 
 
-def test_csv_blanks_a_missing_certificate_and_medical(admin_client, reportable):
+def test_csv_blanks_a_missing_certificate_and_medical(
+    admin_client: APIClient, reportable: dict[str, User]
+) -> None:
+    """A member with no certificate, medical or aircraft on file gets blank cells."""
     row = row_for(read_csv(admin_client.get(CSV_URL)), "lapsed@example.test")
     assert row["status"] == "expired"
     assert row["certificate"] == ""
@@ -175,7 +218,8 @@ def test_csv_blanks_a_missing_certificate_and_medical(admin_client, reportable):
     assert row["aircraft"] == ""
 
 
-def test_csv_honors_the_list_filters(admin_client, reportable):
+def test_csv_honors_the_list_filters(admin_client: APIClient, reportable: dict[str, User]) -> None:
+    """The CSV export applies the same status, dart and search filters as the list."""
     table = read_csv(admin_client.get(CSV_URL, {"status": "expired"}))
     assert len(table) == 2
     assert table[1][1] == "lapsed@example.test"
@@ -189,20 +233,25 @@ def test_csv_honors_the_list_filters(admin_client, reportable):
     assert table[1][1] == "pilot@example.test"
 
 
-def test_csv_honors_the_ordering(admin_client, reportable):
+def test_csv_honors_the_ordering(admin_client: APIClient, reportable: dict[str, User]) -> None:
+    """The CSV export applies the requested ordering."""
     table = read_csv(admin_client.get(CSV_URL, {"ordering": "-email"}))
     exported = [row[1] for row in table[1:]]
     assert exported == sorted(exported, reverse=True)
 
 
-def test_csv_is_not_paginated(admin_client, reportable):
+def test_csv_is_not_paginated(admin_client: APIClient, reportable: dict[str, User]) -> None:
+    """The CSV export is not paginated: every matching member is a row."""
     for index in range(30):
-        MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
+        _profile(user=_user(email=f"bulk{index}@example.test"))
     table = read_csv(admin_client.get(CSV_URL))
     assert len(table) - 1 >= 33
 
 
-def test_csv_with_no_matches_is_a_header_only(admin_client, reportable):
+def test_csv_with_no_matches_is_a_header_only(
+    admin_client: APIClient, reportable: dict[str, User]
+) -> None:
+    """A filter matching nobody exports the header row alone."""
     table = read_csv(admin_client.get(CSV_URL, {"search": "nobody-by-that-name"}))
     assert table == [list(DOCUMENTED_COLUMNS)]
 
@@ -210,7 +259,10 @@ def test_csv_with_no_matches_is_a_header_only(admin_client, reportable):
 # --------------------------------------------------------------------------
 # PDF
 # --------------------------------------------------------------------------
-def test_pdf_is_a_valid_landscape_letter_document(admin_client, reportable, today):
+def test_pdf_is_a_valid_landscape_letter_document(
+    admin_client: APIClient, reportable: dict[str, User], today: date
+) -> None:
+    """The PDF export is a valid landscape US-letter document with a title."""
     response = admin_client.get(PDF_URL)
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
@@ -225,13 +277,17 @@ def test_pdf_is_a_valid_landscape_letter_document(admin_client, reportable, toda
     assert b"/Title (CalDART membership report)" in body
 
 
-def test_pdf_survives_an_empty_result_set(admin_client, reportable):
+def test_pdf_survives_an_empty_result_set(
+    admin_client: APIClient, reportable: dict[str, User]
+) -> None:
+    """A filter matching nobody still produces a valid PDF."""
     response = admin_client.get(PDF_URL, {"search": "nobody-by-that-name"})
     assert response.status_code == 200
     assert response.content.startswith(b"%PDF-")
 
 
-def test_pdf_subtitle_summarizes_the_applied_filters(account_admin):
+def test_pdf_subtitle_summarizes_the_applied_filters(account_admin: User) -> None:
+    """The PDF subtitle names every non-empty filter applied to the export."""
     request = APIRequestFactory().get(
         PDF_URL, {"status": "current", "dart": "Napa", "expiring_within": "30", "search": ""}
     )
@@ -252,7 +308,8 @@ def test_pdf_subtitle_summarizes_the_applied_filters(account_admin):
     assert "search" not in subtitle
 
 
-def test_pdf_subtitle_when_nothing_is_filtered(account_admin):
+def test_pdf_subtitle_when_nothing_is_filtered(account_admin: User) -> None:
+    """With no filters applied, the PDF subtitle is the default summary."""
     request = APIRequestFactory().get(PDF_URL)
     force_authenticate(request, user=account_admin)
     view = MemberExportPdfView()
@@ -260,9 +317,10 @@ def test_pdf_subtitle_when_nothing_is_filtered(account_admin):
     assert view.subtitle(view.request) == filter_summary({})
 
 
-def test_pdf_paginates_a_long_report(admin_client, reportable):
+def test_pdf_paginates_a_long_report(admin_client: APIClient, reportable: dict[str, User]) -> None:
+    """A report long enough to overflow one page spans more than one."""
     for index in range(120):
-        MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
+        _profile(user=_user(email=f"bulk{index}@example.test"))
     body = admin_client.get(PDF_URL).content
     pages = len(re.findall(rb"/Type\s*/Page[^s]", body))
     assert pages >= 2
