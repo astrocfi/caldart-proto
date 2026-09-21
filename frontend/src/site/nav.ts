@@ -9,6 +9,7 @@
 export const THEMES = ['sierra', 'pacific', 'night'] as const;
 export type Theme = (typeof THEMES)[number];
 
+/** Checks whether `value` is one of the shipped theme names. */
 export function isTheme(value: string | null | undefined): value is Theme {
   return typeof value === 'string' && (THEMES as readonly string[]).includes(value);
 }

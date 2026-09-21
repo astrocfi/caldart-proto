@@ -1,3 +1,5 @@
+import type { JSX } from 'react';
+
 const USD = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -26,7 +28,7 @@ export interface MoneyProps {
 }
 
 /** Money always renders in the mono face with tabular figures. */
-export function Money({ cents, whole = false, placeholder = '—' }: MoneyProps) {
+export function Money({ cents, whole = false, placeholder = '—' }: MoneyProps): JSX.Element {
   if (cents === null || cents === undefined) {
     return <span className="mono muted">{placeholder}</span>;
   }

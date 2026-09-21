@@ -6,7 +6,7 @@
  * invalidates it here rather than in a page.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UseQueryResult } from '@tanstack/react-query';
+import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { ApiError, api } from '../api/client';
 import type {
@@ -23,6 +23,7 @@ import type {
 export const AUTH_ME_KEY = ['auth', 'me'] as const;
 export const ROLES_KEY = ['auth', 'roles'] as const;
 
+/** Fetch the signed-in user from `GET /auth/me`, or `null` for an anonymous visitor. */
 export async function fetchMe(): Promise<User | null> {
   try {
     return await api.get<User>('/auth/me');
@@ -78,7 +79,7 @@ export function useAuth(): AuthState {
 }
 
 /** The role catalog from `GET /roles`, for the users-admin screens. */
-export function useRoles() {
+export function useRoles(): UseQueryResult<Role[]> {
   return useQuery({
     queryKey: ROLES_KEY,
     queryFn: () => api.get<Role[]>('/roles'),
@@ -86,7 +87,8 @@ export function useRoles() {
   });
 }
 
-export function useLogin() {
+/** Signs in against `POST /auth/login` and seeds the auth-me cache with the result. */
+export function useLogin(): UseMutationResult<User, Error, LoginPayload> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: LoginPayload) => api.post<User>('/auth/login', payload),
@@ -98,7 +100,8 @@ export function useLogin() {
   });
 }
 
-export function useRegister() {
+/** Registers against `POST /auth/register` and seeds the auth-me cache with the result. */
+export function useRegister(): UseMutationResult<User, Error, RegisterPayload> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: RegisterPayload) => api.post<User>('/auth/register', payload),
@@ -109,7 +112,8 @@ export function useRegister() {
   });
 }
 
-export function useLogout() {
+/** Signs out against `POST /auth/logout` and clears every cached query. */
+export function useLogout(): UseMutationResult<null, Error, void> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => api.post<null>('/auth/logout'),
@@ -121,21 +125,32 @@ export function useLogout() {
   });
 }
 
-export function usePasswordChange() {
+/** Changes the signed-in user's password through `POST /auth/password/change`. */
+export function usePasswordChange(): UseMutationResult<null, Error, PasswordChangePayload> {
   return useMutation({
     mutationFn: (payload: PasswordChangePayload) =>
       api.post<null>('/auth/password/change', payload),
   });
 }
 
-export function usePasswordResetRequest() {
+/** Requests a password-reset email through `POST /auth/password/reset`. */
+export function usePasswordResetRequest(): UseMutationResult<
+  null,
+  Error,
+  PasswordResetRequestPayload
+> {
   return useMutation({
     mutationFn: (payload: PasswordResetRequestPayload) =>
       api.post<null>('/auth/password/reset', payload),
   });
 }
 
-export function usePasswordResetConfirm() {
+/** Completes a password reset through `POST /auth/password/reset/confirm`. */
+export function usePasswordResetConfirm(): UseMutationResult<
+  null,
+  Error,
+  PasswordResetConfirmPayload
+> {
   return useMutation({
     mutationFn: (payload: PasswordResetConfirmPayload) =>
       api.post<null>('/auth/password/reset/confirm', payload),

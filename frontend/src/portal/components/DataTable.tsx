@@ -3,7 +3,7 @@
  * filter bar and CSV/PDF export buttons.
  */
 import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 import { EmptyState } from './EmptyState';
 
@@ -46,6 +46,7 @@ function compare(a: string | number | null, b: string | number | null): number {
   return String(a).localeCompare(String(b), 'en', { numeric: true, sensitivity: 'base' });
 }
 
+/** Sorts `rows` by `column`'s `sortValue`, or returns them unchanged when it has none. */
 export function sortRows<Row>(
   rows: Row[],
   column: Column<Row> | undefined,
@@ -57,6 +58,7 @@ export function sortRows<Row>(
   return direction === 'asc' ? sorted : sorted.reverse();
 }
 
+/** A sortable table with an optional filter bar and CSV/PDF export buttons. */
 export function DataTable<Row>({
   columns,
   rows,
@@ -70,7 +72,7 @@ export function DataTable<Row>({
   isLoading = false,
   onSortChange,
   initialSort,
-}: DataTableProps<Row>) {
+}: DataTableProps<Row>): JSX.Element {
   const [sortKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
   const [direction, setDirection] = useState<SortDirection>(initialSort?.direction ?? 'asc');
 

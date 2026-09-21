@@ -1,7 +1,8 @@
 /** Join and renew routes. */
+import type { ComponentType } from 'react';
 import type { RouteObject } from 'react-router-dom';
 
-async function joinWizard() {
+async function joinWizard(): Promise<{ Component: ComponentType }> {
   return { Component: (await import('../features/join/JoinWizard')).JoinWizard };
 }
 

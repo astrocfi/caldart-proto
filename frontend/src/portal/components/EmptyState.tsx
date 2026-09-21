@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 export interface EmptyStateProps {
   title: string;
@@ -7,7 +7,7 @@ export interface EmptyStateProps {
 }
 
 /** Shown instead of an empty table or list. */
-export function EmptyState({ title, description, action }: EmptyStateProps) {
+export function EmptyState({ title, description, action }: EmptyStateProps): JSX.Element {
   return (
     <div className="empty-state">
       <p className="empty-state__title">{title}</p>

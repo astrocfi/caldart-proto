@@ -1,4 +1,5 @@
 import { HttpResponse, http } from 'msw';
+import type { HttpHandler } from 'msw';
 
 import type { MembershipStatus, RoleSlug, User } from '../portal/api/types';
 
@@ -52,6 +53,6 @@ export const handlers = [
 ];
 
 /** Convenience: make `/auth/me` answer with `user`. */
-export function signedInAs(user: User) {
+export function signedInAs(user: User): HttpHandler {
   return http.get(`${API}/auth/me`, () => HttpResponse.json(user));
 }

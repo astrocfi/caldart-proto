@@ -1,3 +1,5 @@
+import type { JSX } from 'react';
+
 import type { MembershipStatus, PaymentState } from '../api/types';
 import { PAYMENT_STATUS_LABELS } from '../choices';
 
@@ -48,7 +50,8 @@ export interface StatusChipProps {
   title?: string;
 }
 
-export function StatusChip({ tone, label, title }: StatusChipProps) {
+/** The base tone-colored chip; most callers want {@link MembershipChip} or a sibling instead. */
+export function StatusChip({ tone, label, title }: StatusChipProps): JSX.Element {
   return (
     <span className={`chip ${TONE_CLASS[tone]}`} data-tone={tone} title={title}>
       {label ?? TONE_LABEL[tone]}
@@ -62,7 +65,7 @@ export interface MembershipChipProps {
 }
 
 /** The chip most screens want: tone and wording derived from the membership. */
-export function MembershipChip({ membership, today }: MembershipChipProps) {
+export function MembershipChip({ membership, today }: MembershipChipProps): JSX.Element {
   const tone = membershipTone(membership, today);
   if (membership.is_lifetime && membership.status === 'current') {
     return <StatusChip tone="current" label="Lifetime member" />;
@@ -71,13 +74,14 @@ export function MembershipChip({ membership, today }: MembershipChipProps) {
 }
 
 /** Insurance / medical currency, which is a plain boolean. */
+/** Chip for a plain currency flag, such as insurance or medical currency. */
 export function CurrencyChip({
   isCurrent,
   missing = false,
 }: {
   isCurrent: boolean;
   missing?: boolean;
-}) {
+}): JSX.Element {
   if (missing) return <StatusChip tone="none" label="Not on file" />;
   return isCurrent ? (
     <StatusChip tone="current" label="Current" />
@@ -94,6 +98,7 @@ export function paymentStatusTone(status: PaymentState): StatusTone {
   return 'none';
 }
 
-export function PaymentChip({ status }: { status: PaymentState }) {
+/** Chip for a payment's state, in the shared status palette. */
+export function PaymentChip({ status }: { status: PaymentState }): JSX.Element {
   return <StatusChip tone={paymentStatusTone(status)} label={PAYMENT_STATUS_LABELS[status]} />;
 }
