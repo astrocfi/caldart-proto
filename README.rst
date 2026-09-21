@@ -149,7 +149,7 @@ the gates every pull request must pass:
 
    $ make test     # pytest + vitest; a warning fails the run
    $ make lint     # ruff, mypy, tsc, eslint (no warnings), prettier, codespell
-   $ make check    # manage.py check, makemigrations --check, npm run build
+   $ make check    # system checks, migrations, deployment checks, build
    $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors
    $ make audit    # uv audit + npm audit: known vulnerabilities
 
