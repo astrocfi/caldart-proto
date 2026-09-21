@@ -23,7 +23,7 @@ export const BACKUPS_KEY = ['system', 'backups'] as const;
 /** Reminder log rows are cached per kind filter. */
 export function reminderLogKey(
   kind: ReminderKind | 'all',
-): readonly [string, string, string, ReminderKind | 'all'] {
+): readonly ['system', 'reminders', 'log', ReminderKind | 'all'] {
   return ['system', 'reminders', 'log', kind] as const;
 }
 

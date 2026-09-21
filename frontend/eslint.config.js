@@ -43,16 +43,11 @@ export default tseslint.config(
             FunctionDeclaration: true,
             ArrowFunctionExpression: true,
             FunctionExpression: true,
+            ClassDeclaration: true,
           },
         },
       ],
       'jsdoc/no-types': 'error',
-    },
-  },
-  {
-    files: ['**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
-    rules: {
-      'react-refresh/only-export-components': 'off',
     },
   },
 );
