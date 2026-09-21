@@ -241,9 +241,17 @@ Parameter        Meaning
 ``status``       ``pending``, ``succeeded``, ``failed`` or
                  ``refunded``.
 ``search``       Member name, email, or the provider's reference.
+``group``        ``month`` or ``year``; the summary's period.
 ===============  ====================================================
 
-An unparseable date or an unknown provider or status is a **400**.
+One serializer reads all six for all three endpoints, so each refuses the same
+input the same way, with the complaint keyed by the parameter it came from.  An
+empty parameter narrows nothing, and a date the calendar does not have — such as
+``2026-02-30`` — is as much a **400** as ``last tuesday``:
+
+.. code-block:: json
+
+   {"from": ["Expected a date as YYYY-MM-DD."]}
 
 ``GET /admin/payments``
 -----------------------
@@ -273,7 +281,7 @@ prefix for descending; anything else is a **400**.
 ``GET /admin/payments/summary``
 -------------------------------
 
-``?group=month`` (default) or ``?group=year``, plus the filters above.
+``?group=`` defaults to ``month``, and the filters above apply.
 **Succeeded payments only** — a failed attempt was never revenue.  Oldest
 period first; periods with nothing in them are omitted.
 
