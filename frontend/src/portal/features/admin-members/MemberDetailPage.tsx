@@ -6,6 +6,7 @@
  * arrow keys move between tabs, Home and End jump to the ends.
  */
 import { useRef } from 'react';
+import type { JSX } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { ButtonLink, Card, DateText, EmptyState, MembershipChip, Page } from '../../components';
@@ -131,7 +132,8 @@ function MemberHeader({ member }: { member: MemberDetail }) {
   );
 }
 
-export function MemberDetailPage() {
+/** `/admin/members/:id` page: a member's profile, memberships and payments tabs. */
+export function MemberDetailPage(): JSX.Element {
   const { id } = useParams();
   const memberId = Number(id);
   const [params, setParams] = useSearchParams();

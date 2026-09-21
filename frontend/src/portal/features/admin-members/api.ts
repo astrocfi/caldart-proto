@@ -6,6 +6,7 @@
  * the whole `admin-members` tree.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '../../api/client';
 import type {
@@ -45,7 +46,8 @@ export interface MemberListQuery extends Partial<MemberFilters> {
   page_size?: number;
 }
 
-export function useMembers(query: MemberListQuery) {
+/** The paginated member list for `/admin/members`, filtered and sorted by `query`. */
+export function useMembers(query: MemberListQuery): UseQueryResult<Paginated<MemberRow>> {
   const params = filterParams(query);
   if (query.page && query.page > 1) params.set('page', String(query.page));
   if (query.page_size) params.set('page_size', String(query.page_size));
@@ -57,7 +59,8 @@ export function useMembers(query: MemberListQuery) {
   });
 }
 
-export function useMember(id: number | null) {
+/** One member's detail record, or disabled while `id` is null or not a number. */
+export function useMember(id: number | null): UseQueryResult<MemberDetail> {
   return useQuery({
     queryKey: [...MEMBERS_KEY, 'detail', id],
     queryFn: () => api.get<MemberDetail>(`/admin/members/${id}`),
@@ -69,12 +72,13 @@ export function useMember(id: number | null) {
 // re-exported so the admin screens use exactly one query key for each.
 export { useDarts, usePlans } from '../profile/api';
 
-function useInvalidateMembers() {
+function useInvalidateMembers(): () => Promise<void> {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: MEMBERS_KEY });
 }
 
-export function useCreateMember() {
+/** Creates a member account and profile; invalidates `admin-members` on success. */
+export function useCreateMember(): UseMutationResult<MemberDetail, Error, MemberCreatePayload> {
   const invalidate = useInvalidateMembers();
   return useMutation({
     mutationFn: (payload: MemberCreatePayload) => api.post<MemberDetail>('/admin/members', payload),
@@ -82,7 +86,10 @@ export function useCreateMember() {
   });
 }
 
-export function useUpdateMember(id: number) {
+/** Patches a member's account and profile; invalidates `admin-members` on success. */
+export function useUpdateMember(
+  id: number,
+): UseMutationResult<MemberDetail, Error, MemberUpdatePayload> {
   const invalidate = useInvalidateMembers();
   return useMutation({
     mutationFn: (payload: MemberUpdatePayload) =>
@@ -91,7 +98,8 @@ export function useUpdateMember(id: number) {
   });
 }
 
-export function useDeleteMember(id: number) {
+/** Deletes a member with no payment history; invalidates `admin-members` on success. */
+export function useDeleteMember(id: number): UseMutationResult<null, Error, void> {
   const invalidate = useInvalidateMembers();
   return useMutation({
     mutationFn: () => api.delete<null>(`/admin/members/${id}`),
@@ -99,7 +107,8 @@ export function useDeleteMember(id: number) {
   });
 }
 
-export function useGrantTerm(id: number) {
+/** Grants a membership term for a member; invalidates `admin-members` on success. */
+export function useGrantTerm(id: number): UseMutationResult<MemberTerm, Error, GrantTermPayload> {
   const invalidate = useInvalidateMembers();
   return useMutation({
     mutationFn: (payload: GrantTermPayload) =>
@@ -108,7 +117,12 @@ export function useGrantTerm(id: number) {
   });
 }
 
-export function useUpdateTerm() {
+/** Patches one membership term; invalidates `admin-members` on success. */
+export function useUpdateTerm(): UseMutationResult<
+  MemberTerm,
+  Error,
+  TermUpdatePayload & { termId: number }
+> {
   const invalidate = useInvalidateMembers();
   return useMutation({
     mutationFn: ({ termId, ...payload }: TermUpdatePayload & { termId: number }) =>

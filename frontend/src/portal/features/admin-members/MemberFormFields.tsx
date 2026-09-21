@@ -33,10 +33,12 @@ export interface AdminOnlyDraft {
 
 export const EMPTY_ADMIN_ONLY: AdminOnlyDraft = { notes: '', how_heard: '' };
 
+/** A blank account draft for the "New member" form, active by default. */
 export function emptyAccountDraft(): AccountDraft {
   return { email: '', first_name: '', last_name: '', password: '', is_active: true };
 }
 
+/** The admin-only draft for a member's profile, or a blank one when there is none yet. */
 export function adminOnlyDraft(profile: AdminProfile | null): AdminOnlyDraft {
   if (!profile) return { ...EMPTY_ADMIN_ONLY };
   return { notes: profile.notes, how_heard: profile.how_heard };
@@ -62,13 +64,14 @@ export interface AccountFieldsProps {
   withActive?: boolean;
 }
 
+/** The account fieldset: email, name, and optionally a password and active switch. */
 export function AccountFields({
   value,
   onChange,
   errors = {},
   withPassword = false,
   withActive = false,
-}: AccountFieldsProps) {
+}: AccountFieldsProps): JSX.Element {
   const set = <Key extends keyof AccountDraft>(key: Key, next: AccountDraft[Key]) =>
     onChange({ ...value, [key]: next });
 

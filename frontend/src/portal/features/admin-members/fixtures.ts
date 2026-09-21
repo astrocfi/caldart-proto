@@ -15,6 +15,7 @@ export const LIFETIME: MembershipStatus = {
   is_lifetime: true,
 };
 
+/** Builds a member list row for tests, with `overrides` replacing any default field. */
 export function makeRow(overrides: Partial<MemberRow> = {}): MemberRow {
   return {
     user_id: 1,
@@ -34,6 +35,7 @@ export function makeRow(overrides: Partial<MemberRow> = {}): MemberRow {
   };
 }
 
+/** Builds a member detail record for tests, with `overrides` replacing any default field. */
 export function makeDetail(overrides: Partial<MemberDetail> = {}): MemberDetail {
   return {
     id: 1,

@@ -3,6 +3,7 @@
  * the account's active switch and the administrator-only notes.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 
 import { Button, Card, useToast } from '../../components';
 import { ProfileFieldsets } from '../profile/ProfileFieldsets';
@@ -28,7 +29,8 @@ function accountDraftFrom(member: MemberDetail): AccountDraft {
   };
 }
 
-export function MemberProfileTab({ member }: { member: MemberDetail }) {
+/** The Profile tab of a member record: profile fields plus the account controls. */
+export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Element {
   const toast = useToast();
   const darts = useDarts();
   const update = useUpdateMember(member.id);

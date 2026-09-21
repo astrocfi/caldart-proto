@@ -6,6 +6,7 @@
  * bar is one `<form>`, which is what makes Enter work from any control.
  */
 import { useEffect, useState } from 'react';
+import type { JSX } from 'react';
 
 import { Button, Field } from '../../components';
 import type { Dart } from '../../api/types';
@@ -19,7 +20,8 @@ export interface MembersFilterBarProps {
   darts: Dart[];
 }
 
-export function MembersFilterBar({ value, onChange, darts }: MembersFilterBarProps) {
+/** The member list's filter bar: instant dropdowns and a submit-to-apply search. */
+export function MembersFilterBar({ value, onChange, darts }: MembersFilterBarProps): JSX.Element {
   const [draft, setDraft] = useState(value);
 
   // Keep the typed boxes in step when the URL changes underneath us (back

@@ -1,4 +1,6 @@
 /** The three headline figures above the payments dashboard. */
+import type { JSX } from 'react';
+
 import { formatCents } from '../../components/Money';
 import type { DashboardTotals } from './api';
 
@@ -25,7 +27,8 @@ function Tile({ label, cents, count }: TileProps) {
   );
 }
 
-export function SummaryTiles({ totals, isLoading = false }: SummaryTilesProps) {
+/** The three headline figures above the payments dashboard. */
+export function SummaryTiles({ totals, isLoading = false }: SummaryTilesProps): JSX.Element {
   if (isLoading) {
     return (
       <p className="muted" role="status">

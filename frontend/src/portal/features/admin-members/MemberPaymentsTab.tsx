@@ -5,6 +5,8 @@
  * `/admin/payments`; this table is the per-member slice an administrator needs
  * while looking at one record.
  */
+import type { JSX } from 'react';
+
 import { Card, DataTable, DateText, Money, PaymentChip } from '../../components';
 import type { Column } from '../../components';
 import type { MemberDetail, MemberPayment } from '../../api/types';
@@ -42,7 +44,8 @@ const COLUMNS: Column<MemberPayment>[] = [
   },
 ];
 
-export function MemberPaymentsTab({ member }: { member: MemberDetail }) {
+/** The Payments tab: this member's own payment records, newest first. */
+export function MemberPaymentsTab({ member }: { member: MemberDetail }): JSX.Element {
   return (
     <Card title="Payments" eyebrow="History">
       <DataTable
