@@ -202,7 +202,12 @@ Email
 ``EMAIL_URL``
    SMTP connection URL.  ``smtp://`` plain, ``smtp+tls://`` for STARTTLS,
    ``smtp+ssl://`` for implicit TLS.  Credentials are URL-encoded, so an ``@``
-   in the username becomes ``%40``.
+   in the username becomes ``%40``.  ``consolemail://`` prints each message
+   instead of sending it, which is what the end-to-end run uses.
+
+   The settings modules translate it into the one entry in Django's ``MAILERS``
+   setting, so the host, port and credentials are options of that mailer rather
+   than settings of their own.
 
    :Development: ``smtp://localhost:1025`` — Mailpit, whose web UI at
       http://localhost:8025 catches everything and delivers nothing.

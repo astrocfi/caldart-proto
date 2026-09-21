@@ -58,8 +58,10 @@ What ``caldart.settings.test`` changes
 
 - ``PASSWORD_HASHERS`` is MD5 — the single biggest speed-up in a suite that
   creates hundreds of users.
-- ``EMAIL_BACKEND`` is ``locmem``, so ``django.core.mail.outbox`` is what you
-  assert against and nothing leaves the process.
+- The one mailer in ``MAILERS`` uses the ``locmem`` backend, so
+  ``django.core.mail.outbox`` is what you assert against and nothing leaves the
+  process.  A test that needs a different backend assigns a whole ``MAILERS``
+  dict, as ``test_reminders_resilience.py`` does to make one address fail.
 - Every entry in ``AUTH_THROTTLE_RATES`` is set to ``None``, which makes the
   auth throttles inert.  The throttling test turns one back on with
   ``override_settings`` rather than having every other test race a shared
