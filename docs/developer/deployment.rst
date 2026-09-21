@@ -534,7 +534,8 @@ can leave a box without it.  ``preload_app`` is on, so a restart — not a reloa
 up new code.
 
 Rolling back is the same sequence against the previous commit, plus a
-``db_restore`` if the migration was not backwards compatible.
+``db_restore`` if the schema the previous commit expects differs from the
+one currently applied.
 
 
 .. _deploy-troubleshooting:

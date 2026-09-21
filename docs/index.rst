@@ -7,7 +7,8 @@ that organizes California pilots and ground personnel to provide volunteer
 disaster air transportation.
 
 It is two things behind one address.  The **public website** — the home page,
-the DART directory, the news, and the members-only area — is managed in
+the DART (Disaster Airlift Response Team) directory, the news, and the
+members-only area — is managed in
 Wagtail by the people who write the words.  The **member portal** at
 ``/portal/`` is a React application where members join, pay, renew and keep
 their own details current, DART leaders check whether somebody is fit to fly
