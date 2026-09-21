@@ -14,8 +14,8 @@ export default defineConfig({
   base: '/static/',
   plugins: [react()],
   // Mirrors the `@/*` path mapping in tsconfig.json so the bundler and the
-  // type-checker agree; features import each other's public entry points as
-  // `@/features/<name>` rather than counting `../`s.
+  // type-checker agree; code imports across the portal as `@/portal/...`
+  // rather than counting `../`s.
   resolve: {
     alias: { '@': resolve(__dirname, 'src') },
   },

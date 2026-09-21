@@ -11,13 +11,7 @@ from __future__ import annotations
 
 from rest_framework.permissions import BasePermission
 
-from apps.accounts.roles import (
-    ACCOUNT_ADMIN,
-    DART_LEADER,
-    SYSTEM_ADMIN,
-    USER_ADMIN,
-    WEBSITE_ADMIN,
-)
+from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, USER_ADMIN
 
 
 def user_has_any_role(user, slugs: tuple[str, ...]) -> bool:
@@ -55,27 +49,6 @@ def HasRole(slug: str) -> type[_RolePermission]:  # noqa: N802 - DRF style
 
 
 # Convenience classes for the roles used across the API.
-IsDartLeader = HasRole(DART_LEADER)
 IsUserAdmin = HasRole(USER_ADMIN)
 IsAccountAdmin = HasRole(ACCOUNT_ADMIN)
-IsWebsiteAdmin = HasRole(WEBSITE_ADMIN)
 IsSystemAdmin = HasRole(SYSTEM_ADMIN)
-
-
-class IsSelfOrHasAnyRole(BasePermission):
-    """Object permission: the object's ``user`` is the caller, or a role matches.
-
-    Subclasses set ``required_roles`` and optionally ``owner_field``.
-    """
-
-    required_roles: tuple[str, ...] = (ACCOUNT_ADMIN,)
-    owner_field: str = "user"
-
-    def has_permission(self, request, view) -> bool:
-        return bool(request.user and request.user.is_authenticated)
-
-    def has_object_permission(self, request, view, obj) -> bool:
-        owner = getattr(obj, self.owner_field, None)
-        if owner is not None and owner == request.user:
-            return True
-        return user_has_any_role(request.user, self.required_roles)
