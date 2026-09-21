@@ -202,9 +202,14 @@ Filtering, search and ordering
 ------------------------------
 
 ``DEFAULT_FILTER_BACKENDS`` is ``DjangoFilterBackend``, ``OrderingFilter`` and
-``SearchFilter``, and most list endpoints use them with a ``filterset_class``.
-Two do not, for reasons worth knowing:
+``SearchFilter``.  ``GET /admin/users`` and ``GET /admin/reminders/log`` use
+exactly those three with a ``filterset_class``.  Three list endpoints replace
+them, for reasons worth knowing:
 
+- ``GET /aircraft`` and the two aircraft exports use ``DjangoFilterBackend``
+  with a ``NullsLastOrderingFilter``, and no ``SearchFilter``: ``?search=``
+  is a method on ``AircraftFilter`` instead, so that it can match the
+  normalized N-number as well as the stored one (see :doc:`api-aircraft`).
 - ``GET /admin/members`` uses a custom ``MemberOrderingFilter`` because its
   sort keys are computed annotations rather than columns (see
   :ref:`membership-status-sql`).
@@ -213,6 +218,10 @@ Two do not, for reasons worth knowing:
   ``Coalesce(completed_at, created_at)`` — that the list, the summary and the
   CSV export all share, so the three can never disagree about when a payment
   happened.
+
+Detail views carry no backends at all, since there is nothing to filter: the
+member record at ``/admin/members/{user_id}`` sets the list to empty for that
+reason.
 
 ``?ordering=`` takes a field name, optionally ``-`` prefixed for descending.
 Endpoints differ in how strict they are: ``/admin/payments`` **rejects** an
@@ -226,7 +235,8 @@ Error shape
 -----------
 
 Errors are DRF-standard JSON.  Field errors are keyed by field name with a
-list of messages; non-field errors use ``detail`` or ``non_field_errors``:
+list of messages, except in the handful of places noted below where the value
+is a single string; non-field errors use ``detail`` or ``non_field_errors``:
 
 .. code-block:: json
 
@@ -241,10 +251,32 @@ Validation failures are **400**, permission failures **403**, missing objects
 restrict ``http_method_names``, so ``PUT`` where only ``PATCH`` is offered is a
 405 rather than a silent full replace).
 
-Two endpoints return a bare dict rather than the standard envelope:
-``GET /aircraft/lookup`` and ``GET /leader/aircraft`` answer a missing or
-unparseable registration with ``{"n_number": "Enter a registration, for example
-N12345."}``.
+A serializer always produces the list form, because that is what DRF builds.
+The exceptions are the refusals a view raises by hand, which carry one string
+under the field they concern rather than a list of one:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 42 58
+
+   * - Where
+     - Body
+   * - ``GET /aircraft/lookup``, ``GET /leader/aircraft``
+     - ``{"n_number": "Enter a registration, for example N12345."}`` for a
+       missing or unparseable registration
+   * - ``POST /payments/checkout``
+     - ``{"provider": "'x' is not configured."}``
+   * - The three payment confirm endpoints
+     - ``{"payment_id": "That payment is not a stripe payment."}`` when the
+       payment was started with another provider
+   * - ``GET /admin/payments``
+     - ``{"ordering": "Cannot order by 'x'."}``.  The summary and the CSV
+       export take no ``?ordering=`` at all, so they never raise it
+
+A client that renders field errors should therefore accept either a string or
+a list of them.  The two aircraft rows are also the only ones a view writes as
+a plain 400 response rather than raising; the rest are DRF ``ValidationError``
+instances and reach the same handler as everything else.
 
 Both shapes have two sources, one on each side of the layering.  A serializer
 validates the request — field formats, choices, uniqueness — and refuses it with
@@ -275,8 +307,10 @@ An exception the handler does not recognize is left to Django, so a bug stays a
 Throttling
 ----------
 
-There is no project-wide throttle.  Three anonymous auth endpoints are rate
-limited by client IP address, with the rates read from the environment:
+There is no project-wide throttle.  Four anonymous auth endpoints are rate
+limited by client IP address across three scopes, with the rates read from the
+environment.  Both password-reset endpoints share one scope, so asking for
+links and spending them draw on the same budget:
 
 .. list-table::
    :header-rows: 1
