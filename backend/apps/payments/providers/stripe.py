@@ -36,8 +36,8 @@ from apps.payments.models import Payment, PaymentProvider, PaymentWallet
 from apps.payments.providers.base import (
     PaymentVerificationError,
     Provider,
-    ProviderNotConfigured,
-    ProviderUnavailable,
+    ProviderNotConfiguredError,
+    ProviderUnavailableError,
     register,
 )
 from apps.payments.services import mark_failed, mark_succeeded
@@ -77,7 +77,7 @@ def http_client() -> stripe.HTTPClient:
 def stripe_client() -> stripe.StripeClient:
     """A Stripe client bound by our timeout and retry budget.
 
-    Raises :class:`~apps.payments.providers.base.ProviderNotConfigured` when no
+    Raises :class:`~apps.payments.providers.base.ProviderNotConfiguredError` when no
     secret key is configured, so the API answers 400 rather than 500.  Calls go
     through the client's ``v1`` namespace; the shorthand on the client itself
     is deprecated.
@@ -98,21 +98,21 @@ def idempotency_key(payment: Payment) -> str:
     return f"caldart-payment-{payment.pk}-start"
 
 
-def unavailable(payment: Payment, call: str, exc: stripe.StripeError) -> ProviderUnavailable:
+def unavailable(payment: Payment, call: str, exc: stripe.StripeError) -> ProviderUnavailableError:
     """Log a failed Stripe call and build the error the API answers 400 with.
 
     Only the payment id and the exception's class are recorded: the message can
     quote request data, and nothing about a member belongs in the log.
     """
     log.warning("Stripe %s failed for payment %s: %s", call, payment.pk, type(exc).__name__)
-    return ProviderUnavailable(UNAVAILABLE_MESSAGE)
+    return ProviderUnavailableError(UNAVAILABLE_MESSAGE)
 
 
 def secret_key() -> str:
     """The configured secret key, or raise so the API answers 400 rather than 500."""
     key: str = settings.STRIPE_SECRET_KEY
     if not key:
-        raise ProviderNotConfigured("Stripe is not configured (STRIPE_SECRET_KEY is empty).")
+        raise ProviderNotConfiguredError("Stripe is not configured (STRIPE_SECRET_KEY is empty).")
     return key
 
 
@@ -192,8 +192,8 @@ class StripeProvider(Provider):
         Stores the intent's id as ``provider_ref`` and the whole intent in ``raw``,
         and returns ``{"client_secret": ...}``.  The call is idempotent per payment,
         so starting the same payment twice returns the first intent rather than
-        charging twice.  Raises :class:`ProviderNotConfigured` without a secret key
-        and :class:`ProviderUnavailable` when Stripe cannot be reached.
+        charging twice.  Raises :class:`ProviderNotConfiguredError` without a secret key
+        and :class:`ProviderUnavailableError` when Stripe cannot be reached.
         """
         client = stripe_client()
         try:
@@ -233,7 +233,7 @@ class StripeProvider(Provider):
         :class:`PaymentVerificationError` when there is no intent to confirm, when
         the intent belongs to another payment, when :meth:`verify` disagrees, and
         when Stripe reports any other status.  Raises
-        :class:`ProviderUnavailable` when Stripe cannot be reached.
+        :class:`ProviderUnavailableError` when Stripe cannot be reached.
         """
         intent_id = payment_intent_id or payment.provider_ref
         if not intent_id:
@@ -299,7 +299,7 @@ class StripeProvider(Provider):
             verified = stripe.Webhook.construct_event(
                 request.body, signature, settings.STRIPE_WEBHOOK_SECRET
             )
-        except Exception as exc:  # noqa: BLE001 - any failure here is a bad signature
+        except Exception as exc:
             log.warning("Rejected Stripe webhook: %s", exc)
             return JsonResponse({"detail": "Invalid Stripe signature."}, status=400)
 

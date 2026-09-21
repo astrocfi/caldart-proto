@@ -13,11 +13,11 @@ class PaymentError(RuntimeError):
     """A payment could not be completed.  The API turns this into HTTP 400."""
 
 
-class ProviderNotConfigured(PaymentError):
+class ProviderNotConfiguredError(PaymentError):
     """The provider is missing its API keys."""
 
 
-class ProviderUnavailable(PaymentError):
+class ProviderUnavailableError(PaymentError):
     """The provider could not be reached, or failed on its own side.
 
     Raised for transport failures (timeouts, refused connections, unreadable
@@ -92,7 +92,7 @@ def get_provider(slug: str) -> Provider:
 
     Raises ``ValueError`` naming the slug when no provider is registered under it.
     A slug that is registered but unconfigured still instantiates: it is the call
-    to ``start`` or ``confirm`` that raises :class:`ProviderNotConfigured`.
+    to ``start`` or ``confirm`` that raises :class:`ProviderNotConfiguredError`.
     """
     # Import for side effects so the registry is populated.
     from apps.payments import providers  # noqa: F401

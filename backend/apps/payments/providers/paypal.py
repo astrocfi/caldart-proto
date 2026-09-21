@@ -29,8 +29,8 @@ from apps.payments.providers.base import (
     PaymentError,
     PaymentVerificationError,
     Provider,
-    ProviderNotConfigured,
-    ProviderUnavailable,
+    ProviderNotConfiguredError,
+    ProviderUnavailableError,
     register,
 )
 from apps.payments.services import mark_failed, mark_succeeded, record_provider_event
@@ -60,26 +60,26 @@ def api_base() -> str:
     return LIVE_BASE if settings.PAYPAL_ENV == "live" else SANDBOX_BASE
 
 
-def unavailable(call_name: str, exc: Exception) -> ProviderUnavailable:
+def unavailable(call_name: str, exc: Exception) -> ProviderUnavailableError:
     """Log a PayPal call that never completed, and build the error to raise.
 
     ``call_name`` is the method and path attempted.  Only the exception's class
     is recorded, because its message can quote request data.
     """
     log.warning("PayPal %s failed: %s", call_name, type(exc).__name__)
-    return ProviderUnavailable(UNAVAILABLE_MESSAGE)
+    return ProviderUnavailableError(UNAVAILABLE_MESSAGE)
 
 
 def credentials() -> tuple[str, str]:
     """The configured client id and secret.
 
-    Raises :class:`ProviderNotConfigured` when either is empty, so an
+    Raises :class:`ProviderNotConfiguredError` when either is empty, so an
     unconfigured PayPal answers 400 rather than 500.
     """
     client_id = settings.PAYPAL_CLIENT_ID
     client_secret = settings.PAYPAL_CLIENT_SECRET
     if not client_id or not client_secret:
-        raise ProviderNotConfigured(
+        raise ProviderNotConfiguredError(
             "PayPal is not configured (PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are empty)."
         )
     return client_id, client_secret
@@ -96,7 +96,7 @@ def cents(value: str | float | int) -> int:
     Takes the decimal string PayPal sends, or a number.  Raises ``ValueError``
     for a string that is not a number.
     """
-    return int(round(float(value) * 100))
+    return round(float(value) * 100)
 
 
 # --------------------------------------------------------------------------
@@ -126,8 +126,8 @@ def access_token() -> str:
 
     The cache is keyed on the API base and client id, so changing either fetches
     a fresh token, and a token is dropped ``TOKEN_SKEW_SECONDS`` before PayPal
-    says it expires.  Raises :class:`ProviderNotConfigured` without credentials,
-    :class:`ProviderUnavailable` when the token call does not complete, and
+    says it expires.  Raises :class:`ProviderNotConfiguredError` without credentials,
+    :class:`ProviderUnavailableError` when the token call does not complete, and
     :class:`PaymentVerificationError` when PayPal refuses the credentials or
     returns no token.
     """
@@ -178,7 +178,7 @@ def access_token() -> str:
 def call(method: str, path: str, *, json_body: dict[str, Any] | None = None) -> dict[str, Any]:
     """One authenticated Orders v2 call, returning the decoded body.
 
-    Raises :class:`~apps.payments.providers.base.ProviderUnavailable` when the
+    Raises :class:`~apps.payments.providers.base.ProviderUnavailableError` when the
     call never completes, and
     :class:`~apps.payments.providers.base.PaymentVerificationError` when PayPal
     answers with an error status.  A body that is not JSON is read as an empty
@@ -219,9 +219,11 @@ def completed_captures(order: dict[str, Any]) -> list[dict[str, Any]]:
     """
     captures: list[dict[str, Any]] = []
     for unit in order.get("purchase_units") or []:
-        for capture in (unit.get("payments") or {}).get("captures") or []:
-            if capture.get("status") == "COMPLETED":
-                captures.append(capture)
+        captures.extend(
+            capture
+            for capture in (unit.get("payments") or {}).get("captures") or []
+            if capture.get("status") == "COMPLETED"
+        )
     return captures
 
 
@@ -261,8 +263,8 @@ class PayPalProvider(Provider):
 
         Stores the order id as ``provider_ref`` and the order in ``raw``, and
         returns ``{"order_id": ...}``.  No money moves yet: :meth:`confirm` is what
-        captures it.  Raises :class:`ProviderNotConfigured` without credentials,
-        :class:`ProviderUnavailable` when PayPal cannot be reached, and
+        captures it.  Raises :class:`ProviderNotConfiguredError` without credentials,
+        :class:`ProviderUnavailableError` when PayPal cannot be reached, and
         :class:`PaymentVerificationError` when PayPal rejects the request or
         answers without an order id.
         """
@@ -316,7 +318,7 @@ class PayPalProvider(Provider):
         disagrees with the payment.  Of those, a status other than ``COMPLETED``
         and a completed order without a capture also mark the payment failed;
         the rest leave it as it was.  A capture that never completes raises
-        :class:`ProviderUnavailable` and is logged at ERROR for reconciliation,
+        :class:`ProviderUnavailableError` and is logged at ERROR for reconciliation,
         because the money may have moved.
         """
         if payment.is_succeeded:
@@ -331,7 +333,7 @@ class PayPalProvider(Provider):
 
         try:
             order = call("POST", f"/v2/checkout/orders/{order_id}/capture")
-        except ProviderUnavailable:
+        except ProviderUnavailableError:
             # The capture may have been taken before the connection died, so
             # this one needs reconciling rather than a silent retry.
             log.error(
@@ -488,9 +490,11 @@ def payment_for_resource(resource: dict[str, Any]) -> Payment | None:
     refs = [resource.get("id")]
     supplementary = (resource.get("supplementary_data") or {}).get("related_ids") or {}
     refs.append(supplementary.get("order_id"))
-    for link in resource.get("links") or []:
-        if link.get("rel") == "up":
-            refs.append((link.get("href") or "").rstrip("/").rsplit("/", 1)[-1])
+    refs.extend(
+        (link.get("href") or "").rstrip("/").rsplit("/", 1)[-1]
+        for link in resource.get("links") or []
+        if link.get("rel") == "up"
+    )
 
     for ref in refs:
         if not ref:

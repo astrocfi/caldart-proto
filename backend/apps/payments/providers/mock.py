@@ -12,7 +12,7 @@ from apps.payments.providers.base import Provider, register
 from apps.payments.services import mark_failed, mark_succeeded
 
 
-class MockPaymentsDisabled(RuntimeError):
+class MockPaymentsDisabledError(RuntimeError):
     """Raised when the mock provider is used with ``PAYMENTS_MOCK_ENABLED`` off."""
 
 
@@ -20,7 +20,7 @@ class MockPaymentsDisabled(RuntimeError):
 class MockProvider(Provider):
     """A provider that moves no money, for development, tests and e2e runs.
 
-    Every entry point raises :class:`MockPaymentsDisabled` unless
+    Every entry point raises :class:`MockPaymentsDisabledError` unless
     ``PAYMENTS_MOCK_ENABLED`` is on, so a production deployment cannot use it to
     grant itself a membership.
     """
@@ -29,12 +29,12 @@ class MockProvider(Provider):
 
     def _check_enabled(self) -> None:
         if not settings.PAYMENTS_MOCK_ENABLED:
-            raise MockPaymentsDisabled("The mock payment provider is disabled.")
+            raise MockPaymentsDisabledError("The mock payment provider is disabled.")
 
     def start(self, payment: Payment) -> dict[str, Any]:
         """Nothing for the browser to do, so an empty dict.
 
-        Raises :class:`MockPaymentsDisabled` when ``PAYMENTS_MOCK_ENABLED`` is off.
+        Raises :class:`MockPaymentsDisabledError` when ``PAYMENTS_MOCK_ENABLED`` is off.
         """
         self._check_enabled()
         return {}
@@ -46,7 +46,7 @@ class MockProvider(Provider):
         succeeded with the ``mock`` wallet, gives it the reference ``mock_<id>`` if
         it has none, activates the term and returns ``True``; anything else marks it
         failed and returns ``False``.  Either way ``raw`` records the outcome and the
-        amount.  Raises :class:`MockPaymentsDisabled` when ``PAYMENTS_MOCK_ENABLED``
+        amount.  Raises :class:`MockPaymentsDisabledError` when ``PAYMENTS_MOCK_ENABLED``
         is off.
         """
         self._check_enabled()
