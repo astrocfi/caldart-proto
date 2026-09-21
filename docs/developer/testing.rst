@@ -558,8 +558,8 @@ Makefile recipe: a dummy ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``DATABASE_URL``,
 ``SITE_URL`` and ``EMAIL_URL``, and no secure flag at all — each of those comes
 from ``caldart.settings.prod``'s own default, so turning one off fails the gate
 rather than being masked by a value the recipe supplies. The recipe names every
-tag Django's deployment-only checks carry — ``security``, ``caches`` and
-``async_support`` — so all of them run, while the default checks
+tag Django's deployment-only checks carry — ``security``, ``caches``,
+``async_support`` and ``mail`` — so all of them run, while the default checks
 ``check-backend`` already covers stay out, one of which would need a
 ``frontend/dist`` this gate never builds. :doc:`deployment` covers the two
 warnings ``caldart.settings.prod`` silences deliberately.

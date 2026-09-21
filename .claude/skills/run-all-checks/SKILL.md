@@ -57,7 +57,7 @@ make check-deploy    # manage.py check --deploy --fail-level WARNING
 make check-frontend  # production build (npm run build)
 ```
 
-Both `check-backend` commands run with `caldart.settings.test`. `check-deploy` runs with `caldart.settings.prod` under a throwaway environment the Makefile recipe sets inline, and names every tag Django's deployment-only checks carry (`security`, `caches`, `async_support`).
+Both `check-backend` commands run with `caldart.settings.test`. `check-deploy` runs with `caldart.settings.prod` under a throwaway environment the Makefile recipe sets inline, and names every tag Django's deployment-only checks carry (`security`, `caches`, `async_support`, `mail`).
 
 ### Documentation (`make docs`)
 

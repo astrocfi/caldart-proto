@@ -436,10 +436,10 @@ Deployment checks
 ``caldart.settings.prod``, so the production settings are audited before every
 change reaches ``main`` and whenever you want to audit them on a checkout.
 ``--deploy`` adds Django's deployment-only checks to the default set, and those
-carry three tags — ``security``, ``caches`` and ``async_support``.  The recipe
-names all three, which runs every deployment-only check while leaving out the
-default checks ``make check-backend`` already runs, one of which needs a built
-``frontend/dist``.
+carry four tags — ``security``, ``caches``, ``async_support`` and ``mail``.
+The recipe names all four, which runs every deployment-only check while leaving
+out the default checks ``make check-backend`` already runs, one of which needs
+a built ``frontend/dist``.
 
 The recipe supplies a throwaway environment inline rather than reading
 ``/etc/caldart/caldart.env``.  That environment carries only what
