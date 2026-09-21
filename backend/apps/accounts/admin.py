@@ -7,8 +7,13 @@ from django.utils.translation import gettext_lazy as _
 from apps.accounts.models import User
 
 
+# django-stubs types ModelAdmin as generic, but Django's own class carries no
+# __class_getitem__ when the admin autodiscovery that imports this module runs, so
+# naming the model here would raise TypeError on startup.
 @admin.register(User)
-class UserAdmin(DjangoUserAdmin):
+class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
+    """Django admin for the accounts, listing and searching them by name and address."""
+
     ordering = ["last_name", "first_name", "email"]
     list_display = ["email", "first_name", "last_name", "is_active", "role_list"]
     list_filter = ["is_active", "is_staff", "is_superuser", "groups"]
@@ -45,4 +50,5 @@ class UserAdmin(DjangoUserAdmin):
 
     @admin.display(description="roles")
     def role_list(self, obj: User) -> str:
+        """The account's role slugs, comma separated, or a dash when it holds none."""
         return ", ".join(obj.roles) or "—"

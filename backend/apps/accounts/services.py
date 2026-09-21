@@ -15,7 +15,6 @@ from __future__ import annotations
 from typing import TypedDict
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
@@ -24,11 +23,10 @@ from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
+from apps.accounts.models import User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
 from caldart import audit
 from caldart.exceptions import DomainValidationError
-
-User = get_user_model()
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
 RESET_PATH = "/portal/reset-password"
@@ -58,6 +56,21 @@ STATUS_CHANGE_REFUSED = (
     "You cannot activate or deactivate an account that holds roles you do not hold."
 )
 ROLE_CHANGE_REFUSED = "Only a system administrator can grant or revoke the system_admin role."
+
+#: What one account column carries in an edit: an address or a name, or the active flag.
+type AccountFieldValue = str | bool
+
+
+class AuditFields(TypedDict, total=False):
+    """The extra fields an account audit line carries.  Every key is optional.
+
+    ``fields`` names the account columns a save really altered; ``added`` and
+    ``removed`` the role slugs a role write really moved.
+    """
+
+    fields: list[str]
+    added: list[str]
+    removed: list[str]
 
 
 class AccountChanges(TypedDict, total=False):
@@ -156,8 +169,8 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
     Everything the save really writes is recorded in the audit log, by field name
     and role slug: an edit that alters nothing records nothing.
     """
-    fields = dict(changes)
-    roles = fields.pop("roles", None)
+    fields = _account_fields(changes)
+    roles = changes.get("roles")
 
     _refuse_self_deactivation(actor, target, _protected_changes(target, fields))
     if roles is not None:
@@ -181,7 +194,28 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
     return target
 
 
-def _change_records(target: User, fields: dict, roles: list[str] | None) -> list[tuple[str, dict]]:
+def _account_fields(changes: AccountChanges) -> dict[str, AccountFieldValue]:
+    """The account columns ``changes`` carries, in ``ACCOUNT_FIELDS`` order.
+
+    The role list is left out, and so is any key that is not an account column: only
+    these four are ever written.  A key ``changes`` does not carry is absent from the
+    result rather than present as ``None``.
+    """
+    fields: dict[str, AccountFieldValue] = {}
+    if "email" in changes:
+        fields["email"] = changes["email"]
+    if "first_name" in changes:
+        fields["first_name"] = changes["first_name"]
+    if "last_name" in changes:
+        fields["last_name"] = changes["last_name"]
+    if "is_active" in changes:
+        fields["is_active"] = changes["is_active"]
+    return fields
+
+
+def _change_records(
+    target: User, fields: dict[str, AccountFieldValue], roles: list[str] | None
+) -> list[tuple[str, AuditFields]]:
     """The audit records this edit will produce, measured before it is written.
 
     One ``account.update`` for the columns whose stored value the save really
@@ -190,7 +224,7 @@ def _change_records(target: User, fields: dict, roles: list[str] | None) -> list
     the active flag really turns over; and one ``account.roles`` carrying the
     slugs added and removed when the role list really changes.
     """
-    records = []
+    records: list[tuple[str, AuditFields]] = []
     altered = _altered_fields(target, fields, ACCOUNT_FIELDS)
     written = [name for name in altered if name != "is_active"]
     if len(written) > 0:
@@ -261,7 +295,7 @@ def may_edit_protected_fields(actor: User, target: User) -> bool:
     return len(effective_roles(target) - actor_roles) == 0
 
 
-def check_account_edit(actor: User, target: User, changes: dict) -> None:
+def check_account_edit(actor: User, target: User, changes: dict[str, AccountFieldValue]) -> None:
     """Refuse an edit of ``target``'s protected fields that ``actor`` may not make.
 
     ``changes`` is the incoming data; only the keys in ``PROTECTED_ACCOUNT_FIELDS``
@@ -318,12 +352,14 @@ def _refuse_self_deactivation(actor: User, target: User, changed: list[str]) -> 
         )
 
 
-def _protected_changes(target: User, changes: dict) -> list[str]:
+def _protected_changes(target: User, changes: dict[str, AccountFieldValue]) -> list[str]:
     """The protected fields ``changes`` would alter on ``target``, in field order."""
     return _altered_fields(target, changes, PROTECTED_ACCOUNT_FIELDS)
 
 
-def _altered_fields(target: User, changes: dict, fields: tuple[str, ...]) -> list[str]:
+def _altered_fields(
+    target: User, changes: dict[str, AccountFieldValue], fields: tuple[str, ...]
+) -> list[str]:
     """Those of ``fields`` that ``changes`` would alter on ``target``, in that order.
 
     A field ``changes`` does not carry is not altered, and neither is one it carries at
@@ -334,7 +370,7 @@ def _altered_fields(target: User, changes: dict, fields: tuple[str, ...]) -> lis
     ]
 
 
-def _alters(target: User, field: str, value: str | bool) -> bool:
+def _alters(target: User, field: str, value: AccountFieldValue) -> bool:
     """True when writing ``value`` to ``target.<field>`` would change the account.
 
     An email address is compared normalized, so the stored address resent in another
@@ -345,12 +381,15 @@ def _alters(target: User, field: str, value: str | bool) -> bool:
         return _normalized_email(value) != _normalized_email(target.email)
     if field == "is_active":
         return bool(value) != target.is_active
-    return value != getattr(target, field)
+    return bool(value != getattr(target, field))
 
 
-def _normalized_email(value: str | None) -> str:
-    """``value`` as the case-insensitive unique constraint sees it."""
-    return (value or "").strip().lower()
+def _normalized_email(value: AccountFieldValue | None) -> str:
+    """``value`` as the case-insensitive unique constraint sees it.
+
+    Stripped and lowercased; ``None`` and an empty address both give an empty string.
+    """
+    return str(value or "").strip().lower()
 
 
 def _refuse(
@@ -445,9 +484,11 @@ def send_password_reset_email(user: User, *, request: HttpRequest | None = None)
     The subject is ``"<organization name>: reset your password"`` and the two
     bodies are ``emails/password_reset.{txt,html}``.
 
-    Inactive accounts and accounts without a usable password are skipped
-    silently: the caller answers 204 either way so the endpoint cannot be used
-    to discover which addresses are registered.
+    Inactive accounts and accounts without an address are skipped silently: the
+    caller answers 204 either way so the endpoint cannot be used to discover
+    which addresses are registered.  An account that has never set a usable
+    password is mailed the link like any other, so an invited member who asks
+    for a reset before following their invitation still receives one.
     """
     if not user.is_active or not user.email:
         return False
