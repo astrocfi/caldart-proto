@@ -4,11 +4,10 @@ import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
-import { useAuth } from '../../auth/useAuth';
+import { useAuth, useRegister } from '../../auth/useAuth';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Field } from '../../components/Field';
-import { useRegister } from './useRegister';
 import './join.css';
 
 export interface AccountStepProps {
