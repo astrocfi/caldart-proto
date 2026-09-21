@@ -10,33 +10,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, ApiError, api } from '../../api/client';
 import type {
   Aircraft,
+  AircraftDetail,
   AircraftPatch,
-  MembershipState,
   OwnerType,
   Paginated,
 } from '../../api/types';
 
 export type InsuranceState = 'current' | 'expired' | 'missing';
-
-/** A member who lists an aircraft among the planes they commonly fly. */
-export interface AircraftPilot {
-  user_id: number;
-  name: string;
-  email: string;
-  membership_status: MembershipState;
-  medical_is_current: boolean;
-}
-
-/**
- * `GET /aircraft/{id}`, `/aircraft/lookup` and the leader's aircraft card.
- *
- * `pilots` names other members and reports their medical currency, so the
- * server only sends it to a `dart_leader` or `account_admin`; it is absent
- * for a plain member reading the register.
- */
-export interface AircraftDetail extends Aircraft {
-  pilots?: AircraftPilot[];
-}
 
 /** Every filter the list endpoint and both exports understand. */
 export interface AircraftFilters {

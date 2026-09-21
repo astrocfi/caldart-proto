@@ -16,7 +16,7 @@ import {
 import type { AccountDraft } from './MemberFormFields';
 import { useDarts, useUpdateMember } from './api';
 import { splitErrors } from './errors';
-import type { MemberDetail } from './types';
+import type { MemberDetail } from '../../api/types';
 
 function accountDraftFrom(member: MemberDetail): AccountDraft {
   return {

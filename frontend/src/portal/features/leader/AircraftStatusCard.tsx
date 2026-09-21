@@ -7,7 +7,7 @@ import { Money } from '../../components/Money';
 import { StatusChip } from '../../components/StatusChip';
 import { InsuranceChip } from '../aircraft/InsuranceChip';
 import { ServiceChip } from '../aircraft/ServiceChip';
-import type { AircraftDetail } from '../aircraft/api';
+import type { AircraftDetail } from '../../api/types';
 import { OWNER_TYPE_LABELS } from '../aircraft/form';
 import { insuranceTone } from '../aircraft/insurance';
 import './leader.css';

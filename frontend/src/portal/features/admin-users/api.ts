@@ -2,17 +2,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '../../api/client';
-import type { Paginated, RoleSlug, User } from '../../api/types';
+import type {
+  AdminUserPatch,
+  Paginated,
+  RoleSlug,
+  SendPasswordResetResult,
+  User,
+} from '../../api/types';
 import { AUTH_ME_KEY } from '../../auth/useAuth';
-
-/** The writable half of `PATCH /admin/users/{id}`. */
-export interface AdminUserPatch {
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  is_active?: boolean;
-  roles?: RoleSlug[];
-}
 
 export interface AdminUserFilters {
   search?: string;
@@ -66,10 +63,6 @@ export function useUpdateAdminUser(id: string | number) {
       void queryClient.invalidateQueries({ queryKey: AUTH_ME_KEY });
     },
   });
-}
-
-export interface SendPasswordResetResult {
-  detail: string;
 }
 
 export function useSendPasswordReset(id: string | number) {

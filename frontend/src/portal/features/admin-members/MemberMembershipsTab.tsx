@@ -13,8 +13,7 @@ import type { Column } from '../../components';
 import { TERM_STATUS_CHOICES } from './choices';
 import { useGrantTerm, usePlans, useUpdateTerm } from './api';
 import { splitErrors } from './errors';
-import type { MembershipTermStatus } from '../../api/types';
-import type { MemberDetail, MemberTerm } from './types';
+import type { MemberDetail, MemberTerm, MembershipTermStatus } from '../../api/types';
 
 interface TermEdit {
   ends_on: string;

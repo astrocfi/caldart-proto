@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { renderWithProviders } from '../../../test/render';
 import { MemberDangerZone } from './MemberDangerZone';
 import { makeDetail } from './fixtures';
-import type { MemberPayment } from './types';
+import type { MemberPayment } from '../../api/types';
 
 const PAYMENT: MemberPayment = {
   id: 21,
