@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import random
 from importlib import import_module
+from typing import Any
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandParser
 from django.db import transaction
 from django.utils import timezone
 from faker import Faker
@@ -31,9 +32,12 @@ RANDOM_SEED = 20260904
 
 
 class Command(BaseCommand):
+    """``manage.py seed_demo`` -- create the demo data set, idempotently."""
+
     help = "Create the CalDART demo data set (idempotent)."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
+        """Declare ``--seed``, the integer that makes the generated data reproducible."""
         parser.add_argument(
             "--seed",
             type=int,
@@ -42,12 +46,19 @@ class Command(BaseCommand):
         )
 
     @transaction.atomic
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Seed the roles, then run each app's seeder in dependency order.
+
+        Everything happens in one transaction, so a failure part-way leaves the
+        database as it was.  The seeders share one context dictionary, so a later app
+        can use the rows an earlier one created.  Re-running updates the existing rows
+        rather than duplicating them.
+        """
         seed = options["seed"]
         faker = Faker("en_US")
         Faker.seed(seed)
 
-        ctx: dict = {
+        ctx: dict[str, Any] = {
             "rng": random.Random(seed),
             "faker": faker,
             "today": timezone.localdate(),

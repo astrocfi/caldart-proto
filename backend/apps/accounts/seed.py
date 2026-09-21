@@ -7,9 +7,11 @@ Every seeded account uses the password ``caldart-demo``.
 from __future__ import annotations
 
 import re
+from typing import Any
 
-from django.contrib.auth import get_user_model
+from django.core.management.base import OutputWrapper
 
+from apps.accounts.models import User
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
@@ -18,8 +20,6 @@ from apps.accounts.roles import (
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
-
-User = get_user_model()
 
 DEMO_PASSWORD = "caldart-demo"  # noqa: S105 - demo data, documented in the README
 
@@ -55,6 +55,11 @@ _SLUG_RE = re.compile(r"[^a-z]")
 
 
 def _email_for(first: str, last: str, index: int) -> str:
+    """``first.last<index>@example.org``, lowercased with every non-letter dropped.
+
+    ``index`` is zero-padded to two digits, and a name that loses every character
+    falls back to ``member`` or ``caldart``, so the address is always well formed.
+    """
     first = _SLUG_RE.sub("", first.lower()) or "member"
     last = _SLUG_RE.sub("", last.lower()) or "caldart"
     return f"{first}.{last}{index:02d}@example.org"
@@ -69,7 +74,12 @@ def upsert_user(
     is_superuser: bool = False,
     password: str = DEMO_PASSWORD,
 ) -> tuple[User, bool]:
-    """Create or refresh a demo user, returning ``(user, created)``."""
+    """Create or refresh the demo user with ``email``, returning ``(user, created)``.
+
+    The names, the password and the role list are written every time, the account is
+    left active, and the Django staff and superuser flags both follow
+    ``is_superuser``.  ``created`` is True only on the call that first inserted the row.
+    """
     user, created = User.objects.get_or_create(
         email=email,
         defaults={"first_name": first_name, "last_name": last_name},
@@ -85,8 +95,14 @@ def upsert_user(
     return user, created
 
 
-def run(ctx: dict, stdout=None) -> dict:
-    """Create the named demo accounts plus ``GENERATED_MEMBER_COUNT`` members."""
+def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
+    """Create the named demo accounts plus ``GENERATED_MEMBER_COUNT`` members.
+
+    Reads ``faker`` from ``ctx`` to invent the generated members' names, and adds
+    ``demo_users`` (keyed by the short name in ``DEMO_ACCOUNTS``), ``generated_users``
+    and ``users``, the two lists joined.  Returns the same ``ctx``, which it mutated in
+    place.  When ``stdout`` is given, one summary line is written to it.
+    """
     faker = ctx["faker"]
 
     demo: dict[str, User] = {}

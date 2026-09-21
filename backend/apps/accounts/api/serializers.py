@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
-from django.contrib.auth import get_user_model
+from typing import Any
+
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from apps.accounts.models import User
 from apps.accounts.roles import ROLE_SLUGS
-from apps.accounts.services import update_account, user_from_uid
+from apps.accounts.services import AccountChanges, update_account, user_from_uid
 from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.services import membership_of
 
-User = get_user_model()
 
-
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer[User]):
     """The ``user`` payload every account endpoint returns."""
 
     roles = serializers.SerializerMethodField()
@@ -36,14 +37,25 @@ class UserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_roles(self, obj) -> list[str]:
+    def get_roles(self, obj: User) -> list[str]:
+        """The account's role slugs, in privilege order; empty when it holds none."""
         return obj.roles
 
-    def get_membership(self, obj) -> dict:
-        return MembershipStatusSerializer(membership_of(obj)).data
+    def get_membership(self, obj: User) -> dict[str, Any]:
+        """The account's membership summary, as ``MembershipStatusSerializer`` renders it.
 
-    def get_profile_complete(self, obj) -> bool:
-        """``MemberProfile.is_complete`` is the one definition."""
+        Carries ``status``, ``expires_on``, ``plan`` and ``is_lifetime``, read from the
+        annotations when the row came from ``with_membership``.
+        """
+        membership: dict[str, Any] = MembershipStatusSerializer(membership_of(obj)).data
+        return membership
+
+    def get_profile_complete(self, obj: User) -> bool:
+        """True when the account has a member profile and that profile is complete.
+
+        ``MemberProfile.is_complete`` is the one definition; an account with no profile
+        row at all is False.
+        """
         profile = getattr(obj, "profile", None)
         return bool(profile and profile.is_complete)
 
@@ -51,7 +63,12 @@ class UserSerializer(serializers.ModelSerializer):
 class PasswordField(serializers.CharField):
     """A password input that is never trimmed and never echoed back."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
+        """Build the field, defaulting it to write-only, untrimmed and 128 characters.
+
+        Any of those defaults may be overridden through ``kwargs``, which are otherwise
+        passed to ``CharField`` unchanged.
+        """
         kwargs.setdefault("write_only", True)
         kwargs.setdefault("trim_whitespace", False)
         kwargs.setdefault("style", {"input_type": "password"})
@@ -59,11 +76,17 @@ class PasswordField(serializers.CharField):
         super().__init__(**kwargs)
 
 
-def run_password_validators(password: str, user=None, *, field: str | None = None) -> str:
-    """Django's ``AUTH_PASSWORD_VALIDATORS`` as a DRF validator.
+def run_password_validators(
+    password: str, user: User | None = None, *, field: str | None = None
+) -> str:
+    """Run Django's ``AUTH_PASSWORD_VALIDATORS`` over ``password`` and return it.
 
-    Pass ``field`` from a serializer-level ``validate()`` so the complaint
-    lands on the password input rather than in ``non_field_errors``.
+    ``user`` lets the similarity validator compare the password with the account's own
+    name and address.  A password the validators reject raises
+    ``serializers.ValidationError`` carrying their messages: keyed by ``field`` when one
+    is given, so the complaint lands on the password input, and as a plain list
+    otherwise, which DRF reports under ``non_field_errors``.  Pass ``field`` from a
+    serializer-level ``validate()``.
     """
     try:
         validate_password(password, user=user)
@@ -73,13 +96,15 @@ def run_password_validators(password: str, user=None, *, field: str | None = Non
     return password
 
 
-class LoginSerializer(serializers.Serializer):
+class LoginSerializer(serializers.Serializer[None]):
+    """``POST /auth/login``: the email address and password to sign in with."""
+
     email = serializers.EmailField()
     password = serializers.CharField(style={"input_type": "password"}, trim_whitespace=False)
 
 
-class RegisterSerializer(serializers.Serializer):
-    """``POST /auth/register``."""
+class RegisterSerializer(serializers.Serializer[None]):
+    """``POST /auth/register``: the four fields a self-service signup supplies."""
 
     email = serializers.EmailField()
     password = PasswordField()
@@ -87,6 +112,11 @@ class RegisterSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=150)
 
     def validate_email(self, value: str) -> str:
+        """The address, stripped, provided no account already uses it.
+
+        Rejects a taken address, compared case-insensitively, with "An account already
+        uses that email address. Sign in, or reset your password."
+        """
         value = value.strip()
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError(
@@ -94,7 +124,12 @@ class RegisterSerializer(serializers.Serializer):
             )
         return value
 
-    def validate(self, attrs: dict) -> dict:
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """``attrs`` unchanged, once the password passes Django's validators.
+
+        A rejected password raises ``serializers.ValidationError`` under the
+        ``password`` key.
+        """
         # Validate against the user-to-be so UserAttributeSimilarityValidator
         # can reject "marta.reyes" as a password for marta.reyes@example.org.
         candidate = User(
@@ -106,30 +141,40 @@ class RegisterSerializer(serializers.Serializer):
         return attrs
 
 
-class PasswordChangeSerializer(serializers.Serializer):
-    """``POST /auth/password/change``."""
+class PasswordChangeSerializer(serializers.Serializer[None]):
+    """``POST /auth/password/change``: the current password and the one to replace it."""
 
     current_password = PasswordField()
     new_password = PasswordField()
 
     def validate_current_password(self, value: str) -> str:
+        """``value`` unchanged when it really is the signed-in user's password.
+
+        Rejects anything else with "That is not your current password."
+        """
         user = self.context["request"].user
         if not user.check_password(value):
             raise serializers.ValidationError("That is not your current password.")
         return value
 
     def validate_new_password(self, value: str) -> str:
-        return run_password_validators(value, user=self.context["request"].user)
+        """``value`` unchanged when Django's password validators accept it.
+
+        The signed-in user is passed to them, so a password resembling that account's
+        own name or address is rejected with their messages.
+        """
+        password: str = run_password_validators(value, user=self.context["request"].user)
+        return password
 
 
-class PasswordResetSerializer(serializers.Serializer):
-    """``POST /auth/password/reset`` — the request half."""
+class PasswordResetSerializer(serializers.Serializer[None]):
+    """``POST /auth/password/reset`` — the request half: the address to mail."""
 
     email = serializers.EmailField()
 
 
-class PasswordResetConfirmSerializer(serializers.Serializer):
-    """``POST /auth/password/reset/confirm`` — the token half."""
+class PasswordResetConfirmSerializer(serializers.Serializer[None]):
+    """``POST /auth/password/reset/confirm`` — the token half: the link and password."""
 
     uid = serializers.CharField()
     token = serializers.CharField()
@@ -139,9 +184,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     #: tell "no such account" from "already used".
     INVALID_LINK = "That password reset link is invalid or has expired. Request a new one."
 
-    def validate(self, attrs: dict) -> dict:
-        from django.contrib.auth.tokens import default_token_generator
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """``attrs`` with the account the link names added under ``user``.
 
+        An unreadable or unknown ``uid``, an inactive account, and a ``token`` the
+        default generator refuses all raise ``serializers.ValidationError`` under the
+        ``token`` key carrying ``INVALID_LINK``, so a caller cannot tell them apart.  A
+        password Django's validators reject is raised under ``new_password``.
+        """
         user = user_from_uid(attrs["uid"])
         if user is None or not user.is_active:
             raise serializers.ValidationError({"token": [self.INVALID_LINK]})
@@ -152,7 +202,9 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         return attrs
 
 
-class RoleSerializer(serializers.Serializer):
+class RoleSerializer(serializers.Serializer[dict[str, str]]):
+    """``GET /roles``: one role's slug and its human description."""
+
     slug = serializers.CharField()
     description = serializers.CharField()
 
@@ -167,7 +219,9 @@ class AdminUserSerializer(UserSerializer):
     holding roles the caller lacks are untouchable.
     """
 
-    roles = serializers.ListField(
+    # djangorestframework-stubs types SerializerMethodField as a bare Field, so
+    # replacing the inherited declared field reads as an incompatible assignment.
+    roles = serializers.ListField(  # type: ignore[assignment]
         child=serializers.ChoiceField(choices=list(ROLE_SLUGS)),
         allow_empty=True,
         required=False,
@@ -185,10 +239,18 @@ class AdminUserSerializer(UserSerializer):
         }
 
     @property
-    def _actor(self):
-        return self.context["request"].user
+    def _actor(self) -> User:
+        """The signed-in user making the edit, taken from the request in the context."""
+        actor: User = self.context["request"].user
+        return actor
 
     def validate_email(self, value: str) -> str:
+        """The address, stripped, provided no other account uses it.
+
+        The account being edited is excluded from the check, so resending its own
+        address is accepted.  Any other match, compared case-insensitively, is rejected
+        with "Another account already uses that email address."
+        """
         value = value.strip()
         clash = User.objects.filter(email__iexact=value)
         if self.instance is not None:
@@ -197,5 +259,10 @@ class AdminUserSerializer(UserSerializer):
             raise serializers.ValidationError("Another account already uses that email address.")
         return value
 
-    def update(self, instance, validated_data: dict):
+    def update(self, instance: User, validated_data: AccountChanges) -> User:
+        """Hand the change to ``accounts.services.update_account`` and return the account.
+
+        That is where the rules needing both accounts live, so a refusal surfaces as the
+        ``DomainValidationError`` it raises rather than as a serializer error.
+        """
         return update_account(self._actor, instance, validated_data)

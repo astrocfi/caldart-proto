@@ -9,13 +9,23 @@ factory helpers or by subclassing::
 
 from __future__ import annotations
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import BasePermission
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
+from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, USER_ADMIN
 
 
-def user_has_any_role(user, slugs: tuple[str, ...]) -> bool:
-    """Role test that is safe for anonymous users."""
+def user_has_any_role(user: User | AnonymousUser | None, slugs: tuple[str, ...]) -> bool:
+    """True when ``user`` holds at least one of ``slugs``.
+
+    ``None`` and an anonymous user are False rather than an error.  A Django
+    superuser and a ``system_admin`` are True whatever ``slugs`` names; everyone else
+    needs one of the slugs among their own roles.  An empty ``slugs`` is therefore
+    False for an ordinary account.
+    """
     if user is None or not user.is_authenticated:
         return False
     if getattr(user, "is_superuser", False):
@@ -31,7 +41,8 @@ class _RolePermission(BasePermission):
 
     required_roles: tuple[str, ...] = ()
 
-    def has_permission(self, request, view) -> bool:
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        """True when the request's user holds one of ``required_roles``."""
         return user_has_any_role(request.user, self.required_roles)
 
 

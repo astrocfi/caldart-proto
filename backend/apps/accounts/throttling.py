@@ -15,7 +15,9 @@ races a shared counter.
 from __future__ import annotations
 
 from django.conf import settings
+from rest_framework.request import Request
 from rest_framework.throttling import AnonRateThrottle
+from rest_framework.views import APIView
 
 #: Scope names, also the keys of ``settings.AUTH_THROTTLE_RATES``.
 LOGIN_SCOPE = "auth_login"
@@ -38,7 +40,7 @@ class AuthScopedThrottle(AnonRateThrottle):
         """
         return settings.AUTH_THROTTLE_RATES.get(self.scope) or None
 
-    def get_cache_key(self, request, view) -> str:
+    def get_cache_key(self, request: Request, view: APIView) -> str:
         """Always count by client address.
 
         ``AnonRateThrottle`` exempts anyone with a session, which would let a
@@ -49,12 +51,18 @@ class AuthScopedThrottle(AnonRateThrottle):
 
 
 class LoginThrottle(AuthScopedThrottle):
+    """Throttles ``POST /auth/login`` under the ``auth_login`` rate."""
+
     scope = LOGIN_SCOPE
 
 
 class RegisterThrottle(AuthScopedThrottle):
+    """Throttles ``POST /auth/register`` under the ``auth_register`` rate."""
+
     scope = REGISTER_SCOPE
 
 
 class PasswordResetThrottle(AuthScopedThrottle):
+    """Throttles both password-reset endpoints under the ``auth_password_reset`` rate."""
+
     scope = PASSWORD_RESET_SCOPE

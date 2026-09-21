@@ -104,8 +104,8 @@ max-doc-length = 90
 [tool.ruff.lint.per-file-ignores]
 # Unit: aircraft
 "backend/apps/aircraft/**" = ["ANN", "D"]
-# Unit: accounts
-"backend/apps/accounts/**" = ["ANN", "D"]
+# Unit: payments
+"backend/apps/payments/**" = ["ANN", "D"]
 # Unit: cms
 "backend/apps/cms/**" = ["ANN", "D"]
 # Unit: members
@@ -191,20 +191,20 @@ exclude = ["/migrations/"]
 [tool.django-stubs]
 django_settings_module = "caldart.settings.test"
 
-# Dependencies that ship no type information and have no stubs on PyPI.  treebeard,
-# modelcluster, taggit and modelsearch are Wagtail's own dependencies, pulled in
-# whenever the django-stubs plugin resolves INSTALLED_APPS.
+# Dependencies that ship no type information and have no stubs on PyPI.  The last
+# four are Wagtail's own dependencies, which its models reach through when the
+# django-stubs plugin loads the app registry.
 [[tool.mypy.overrides]]
 module = [
+    "wagtail.*",
+    "environ.*",
     "django_filters.*",
     "django_vite.*",
-    "environ.*",
+    "whitenoise.*",
     "modelcluster.*",
     "modelsearch.*",
     "taggit.*",
     "treebeard.*",
-    "wagtail.*",
-    "whitenoise.*",
 ]
 ignore_missing_imports = true
 
@@ -215,9 +215,9 @@ ignore_missing_imports = true
 module = ["apps.aircraft.*"]
 ignore_errors = true
 
-# Unit: accounts
+# Unit: payments
 [[tool.mypy.overrides]]
-module = ["apps.accounts.*"]
+module = ["apps.payments.*"]
 ignore_errors = true
 
 # Unit: cms

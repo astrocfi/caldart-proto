@@ -7,8 +7,12 @@ from django.utils.translation import gettext_lazy as _
 from apps.accounts.models import User
 
 
+# Django's ModelAdmin is not subscriptable at runtime, though django-stubs types it
+# as generic, so the model cannot be named here.
 @admin.register(User)
-class UserAdmin(DjangoUserAdmin):
+class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
+    """Django admin for the accounts, listing and searching them by name and address."""
+
     ordering = ["last_name", "first_name", "email"]
     list_display = ["email", "first_name", "last_name", "is_active", "role_list"]
     list_filter = ["is_active", "is_staff", "is_superuser", "groups"]
@@ -45,4 +49,5 @@ class UserAdmin(DjangoUserAdmin):
 
     @admin.display(description="roles")
     def role_list(self, obj: User) -> str:
+        """The account's role slugs, comma separated, or a dash when it holds none."""
         return ", ".join(obj.roles) or "—"
