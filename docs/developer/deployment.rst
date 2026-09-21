@@ -311,8 +311,12 @@ Deployment security check
 ``make check-deploy`` runs ``manage.py check --deploy --tag security`` against
 ``caldart.settings.prod`` before every change reaches ``main``, using a
 throwaway environment set inline in the Makefile recipe rather than
-``/etc/caldart/caldart.env``.  It exercises the same secure defaults a real
-box gets, without touching a real secret or a real database.
+``/etc/caldart/caldart.env``.  That environment carries only what
+``caldart.settings.prod`` requires outright — a dummy ``SECRET_KEY``,
+``ALLOWED_HOSTS``, ``DATABASE_URL``, ``SITE_URL`` and ``EMAIL_URL`` — and pins
+no secure flag, so each one comes from the module's own default and the check
+exercises what a real box gets, without touching a real secret or a real
+database.
 
 ``caldart.settings.prod`` silences two of Django's deployment warnings
 deliberately, both in ``SILENCED_SYSTEM_CHECKS``:
@@ -327,8 +331,9 @@ deliberately, both in ``SILENCED_SYSTEM_CHECKS``:
    ``DENY`` would break that preview; framing by other origins is still
    refused.
 
-A real finding — ``SECURE_SSL_REDIRECT`` left off, for instance — still fails
-the check, since only these two are silenced.
+A real finding still fails the check, since only these two are silenced: turn
+``SECURE_SSL_REDIRECT`` off — in the environment, or by changing its default in
+``caldart.settings.prod`` — and the gate stops on ``security.W008``.
 
 
 9. Apache

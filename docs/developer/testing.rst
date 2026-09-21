@@ -553,7 +553,9 @@ frontend that type-checks but does not build. ``check-backend`` uses
 ``check-deploy`` runs ``manage.py check --deploy --tag security`` against
 ``caldart.settings.prod``, with a throwaway environment set inline in the
 Makefile recipe: a dummy ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``DATABASE_URL``,
-``SITE_URL`` and ``EMAIL_URL``, and every secure flag on. ``--tag security``
+``SITE_URL`` and ``EMAIL_URL``, and no secure flag at all — each of those comes
+from ``caldart.settings.prod``'s own default, so turning one off fails the gate
+rather than being masked by a value the recipe supplies. ``--tag security``
 narrows Django's ``--deploy`` checks to the security ones, so a
 ``frontend/dist`` this gate never builds does not fail it with an unrelated
 ``django_vite`` or ``staticfiles`` warning. :doc:`deployment` covers the two

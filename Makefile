@@ -220,15 +220,16 @@ check-backend: ## Django system checks + missing-migration check
 # `--tag security` narrows the run to those, so a `frontend/dist` this gate
 # never builds (the backend CI job does not run `check-frontend`) does not
 # fail it with an unrelated django_vite/staticfiles warning.  The environment
-# is a throwaway one set inline: no real secret is at risk, and every secure
-# flag is on so the check exercises the same defaults production gets.
+# is a throwaway one set inline: no real secret is at risk, and it carries only
+# what prod.py requires outright.  No secure flag is pinned here -- every one of
+# them comes from prod.py's own default, so flipping a default off fails this
+# gate instead of being masked by a value the recipe supplies.
 check-deploy: ## Production deployment security check (manage.py check --deploy)
 	SECRET_KEY="throwaway-check-deploy-key-not-a-real-secret-0123456789" \
 	  ALLOWED_HOSTS="check-deploy.example.com" \
 	  DATABASE_URL="postgres://caldart:caldart@localhost:5432/caldart" \
 	  SITE_URL="https://check-deploy.example.com" \
 	  EMAIL_URL="smtp://localhost:1025" \
-	  SECURE_SSL_REDIRECT=true \
 	  $(MANAGE) check --deploy --tag security --fail-level WARNING --settings caldart.settings.prod
 
 check-frontend: ## Production frontend build

@@ -73,7 +73,7 @@ Everyday commands
    $ make test           # pytest + vitest
    $ make e2e            # Playwright, end to end (see below)
    $ make lint           # ruff + mypy + tsc + eslint + prettier + codespell
-   $ make check          # Django system checks, missing migrations, production build
+   $ make check          # system checks, migrations, deploy security, build
    $ make docs           # Sphinx, nitpicky, warnings are errors
    $ make audit          # known vulnerabilities in Python and npm dependencies
    $ make reset          # destroy and re-seed the dev database
