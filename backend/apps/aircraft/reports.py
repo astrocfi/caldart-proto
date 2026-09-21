@@ -56,13 +56,14 @@ def _dollars(cents: int | None, *, currency: bool) -> str:
     return f"{cents / 100:.2f}"
 
 
-def export_queryset(queryset: QuerySet | None = None) -> QuerySet:
+def export_queryset(queryset: QuerySet[Aircraft] | None = None) -> QuerySet[Aircraft]:
     """The queryset the exports read, with the pilot join prefetched."""
     base = Aircraft.objects.all() if queryset is None else queryset
     return base.prefetch_related("pilots__user")
 
 
 def aircraft_row(aircraft: Aircraft, *, currency: bool = False) -> list[Any]:
+    """Return one report row for ``aircraft``, in the order of ``HEADER``."""
     return [
         aircraft.n_number,
         aircraft.make,

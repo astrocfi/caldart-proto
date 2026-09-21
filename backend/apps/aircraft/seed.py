@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import random
 from datetime import timedelta
+from typing import TYPE_CHECKING, Any
 
 from apps.aircraft.models import Aircraft, OwnerType
+
+if TYPE_CHECKING:
+    from io import TextIOBase
 
 AIRCRAFT_COUNT = 25
 
@@ -49,7 +54,7 @@ INSURANCE_MIX: tuple[tuple[str, int], ...] = (
 SUFFIX_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"
 
 
-def _n_number(rng) -> str:
+def _n_number(rng: random.Random) -> str:
     """A plausible, unique-ish US registration."""
     style = rng.random()
     if style < 0.6:
@@ -60,7 +65,13 @@ def _n_number(rng) -> str:
     return f"N{rng.randint(10000, 99999)}"
 
 
-def run(ctx: dict, stdout=None) -> dict:
+def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]:
+    """Create the aircraft register and attach airframes to pilot profiles.
+
+    Reads ``rng``, ``faker`` and ``today`` from ``ctx``, and ``profiles`` when present.
+    Adds the created ``Aircraft`` list to ``ctx`` under ``aircraft`` and returns
+    ``ctx``. Writes a one-line summary to ``stdout`` when given.
+    """
     rng = ctx["rng"]
     faker = ctx["faker"]
     today = ctx["today"]
