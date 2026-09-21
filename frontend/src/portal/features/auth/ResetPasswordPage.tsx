@@ -77,7 +77,6 @@ export function ResetPasswordPage(): JSX.Element {
                 type="password"
                 name="new_password"
                 autoComplete="new-password"
-                autoFocus
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}

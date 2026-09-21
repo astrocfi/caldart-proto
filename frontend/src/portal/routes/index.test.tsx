@@ -18,11 +18,10 @@ import { routes } from './index';
 
 const { pageStub } = vi.hoisted(() => ({
   /** A stand-in for one page: it renders its name as the page heading. */
-  pageStub(name: string) {
-    return function PageStub() {
+  pageStub: (name: string) =>
+    function PageStub() {
       return <h1>{name}</h1>;
-    };
-  },
+    },
 }));
 
 vi.mock('../features/auth', () => ({

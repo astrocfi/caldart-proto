@@ -127,7 +127,7 @@ export function AircraftRegisterPage(): JSX.Element {
       onSuccess: (aircraft) => {
         setAdding(false);
         toast.show(`${aircraft.n_number} added to the register.`, 'success');
-        navigate(`/admin/aircraft/${aircraft.id}`);
+        void navigate(`/admin/aircraft/${aircraft.id}`);
       },
     });
   };

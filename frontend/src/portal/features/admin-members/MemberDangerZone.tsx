@@ -51,7 +51,7 @@ export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Elem
     remove.mutate(undefined, {
       onSuccess: () => {
         toast.show(`${member.name} has been deleted.`, 'success');
-        navigate('/admin/members');
+        void navigate('/admin/members');
       },
     });
   };

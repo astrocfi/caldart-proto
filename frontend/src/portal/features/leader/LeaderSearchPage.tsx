@@ -57,7 +57,7 @@ export function LeaderSearchPage(): JSX.Element {
             description={
               status.error instanceof ApiError && status.error.status === 404
                 ? 'No member with that id. They may have been removed.'
-                : (status.error as Error).message
+                : status.error.message
             }
             action={
               <Button variant="secondary" onClick={back}>
