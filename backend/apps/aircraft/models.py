@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from django.conf import settings
 from django.db import models
@@ -31,6 +32,8 @@ def normalize_n_number(value: str | None) -> str:
 
 
 class OwnerType(models.TextChoices):
+    """Who holds title to an aircraft on the register."""
+
     INDIVIDUAL = "individual", "Individual"
     FBO = "fbo", "FBO"
     CLUB = "club", "Flying club"
@@ -80,15 +83,18 @@ class Aircraft(TimestampedModel):
         ]
 
     def __str__(self) -> str:
+        """Return the N-number, with the make and model in parentheses when known."""
         descriptor = " ".join(p for p in (self.make, self.model) if p)
         return f"{self.n_number} ({descriptor})" if descriptor else self.n_number
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Save the record after normalizing ``n_number`` to canonical form."""
         self.n_number = normalize_n_number(self.n_number)
-        return super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @property
     def insurance_is_current(self) -> bool:
+        """Return whether an insurance expiration date is on file and not yet past."""
         if self.insurance_expiration is None:
             return False
         return self.insurance_expiration >= timezone.localdate()
@@ -109,5 +115,6 @@ class Aircraft(TimestampedModel):
 
     @property
     def display_name(self) -> str:
+        """Return the N-number, with the make and model after an em dash when known."""
         descriptor = " ".join(p for p in (self.make, self.model) if p)
         return f"{self.n_number} — {descriptor}" if descriptor else self.n_number

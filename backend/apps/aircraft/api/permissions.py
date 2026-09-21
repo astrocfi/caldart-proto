@@ -8,10 +8,18 @@ administrator may edit someone else's record or delete one.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 from apps.accounts.permissions import user_has_any_role
 from apps.accounts.roles import ACCOUNT_ADMIN
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
+    from rest_framework.views import APIView
+
+    from apps.aircraft.models import Aircraft
 
 ADMIN_ROLES: tuple[str, ...] = (ACCOUNT_ADMIN,)
 
@@ -21,10 +29,12 @@ class AircraftPermission(BasePermission):
 
     message = "Only the member who added this aircraft, or an administrator, can change it."
 
-    def has_permission(self, request, view) -> bool:
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        """Return whether ``request`` carries an authenticated user."""
         return bool(request.user and request.user.is_authenticated)
 
-    def has_object_permission(self, request, view, obj) -> bool:
+    def has_object_permission(self, request: Request, view: APIView, obj: Aircraft) -> bool:
+        """Return whether ``request`` may act on ``obj`` under the rules above."""
         if request.method in SAFE_METHODS:
             return True
         if user_has_any_role(request.user, ADMIN_ROLES):

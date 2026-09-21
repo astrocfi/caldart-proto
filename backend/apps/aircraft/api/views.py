@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -10,6 +12,12 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+    from django.http import HttpResponse, StreamingHttpResponse
+    from rest_framework.request import Request
+    from rest_framework.serializers import BaseSerializer
 
 from apps.accounts.permissions import HasAnyRole, IsAccountAdmin, user_has_any_role
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER
@@ -40,7 +48,7 @@ ORDERING_FIELDS = ["n_number", "make", "insurance_expiration", "model", "owner_n
 PILOT_ROLES: tuple[str, ...] = (DART_LEADER, ACCOUNT_ADMIN)
 
 
-def aircraft_serializer_for(request):
+def aircraft_serializer_for(request: Request) -> type[AircraftSerializer]:
     """The register record, with ``pilots`` only for callers entitled to it.
 
     ``pilots`` carries other members' email addresses, membership state and
@@ -53,7 +61,7 @@ def aircraft_serializer_for(request):
     return AircraftSerializer
 
 
-class AircraftQuerysetMixin:
+class AircraftQuerysetMixin(generics.GenericAPIView[Aircraft]):
     """The register, filtered and ordered identically everywhere."""
 
     queryset = Aircraft.objects.all()
@@ -63,23 +71,25 @@ class AircraftQuerysetMixin:
     ordering = ["n_number"]
 
 
-class AircraftListCreateView(AircraftQuerysetMixin, generics.ListCreateAPIView):
+class AircraftListCreateView(AircraftQuerysetMixin, generics.ListCreateAPIView[Aircraft]):
     """``GET /aircraft`` (any member) and ``POST /aircraft`` (any member)."""
 
     serializer_class = AircraftSerializer
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer) -> None:
+    def perform_create(self, serializer: BaseSerializer[Aircraft]) -> None:
+        """Save the new aircraft with ``created_by`` set to the requesting user."""
         serializer.save(created_by=self.request.user)
 
 
-class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView):
+class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
     """``GET/PATCH/DELETE /aircraft/{id}`` with the register's object rules."""
 
     queryset = Aircraft.objects.all()
     permission_classes = [AircraftPermission]
 
-    def get_serializer_class(self):
+    def get_serializer_class(self) -> type[AircraftSerializer]:
+        """Return the detail or summary serializer, per ``aircraft_serializer_for``."""
         return aircraft_serializer_for(self.request)
 
 
@@ -88,7 +98,12 @@ class AircraftLookupView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Look up the aircraft with the normalized ``n_number``.
+
+        Answers 400 when ``n_number`` is missing or normalizes to nothing, and 404 when
+        no aircraft matches.
+        """
         n_number = normalize_n_number(request.query_params.get("n_number", ""))
         if not n_number:
             return Response({"n_number": "Enter a registration, for example N12345."}, status=400)
@@ -106,7 +121,8 @@ class AircraftExportMixin(AircraftQuerysetMixin):
     permission_classes = [IsAccountAdmin]
     serializer_class = AircraftSerializer
 
-    def export_queryset(self):
+    def export_queryset(self) -> QuerySet[Aircraft]:
+        """Return the filtered register with the pilot join prefetched for export."""
         return aircraft_reports.export_queryset(self.filter_queryset(self.get_queryset()))
 
     def applied_filters(self) -> dict[str, str]:
@@ -123,13 +139,15 @@ class AircraftExportMixin(AircraftQuerysetMixin):
         return {key: self.request.query_params.get(key, "") for key in wanted}
 
     def filename(self, suffix: str) -> str:
+        """Return today's export filename with the given extension, e.g. ``...csv``."""
         return f"caldart-aircraft-{timezone.localdate().isoformat()}.{suffix}"
 
 
-class AircraftExportCsvView(AircraftExportMixin, generics.GenericAPIView):
+class AircraftExportCsvView(AircraftExportMixin, generics.GenericAPIView[Aircraft]):
     """``GET /admin/aircraft/export.csv?<filters>``."""
 
-    def get(self, request):
+    def get(self, request: Request) -> StreamingHttpResponse:
+        """Return the filtered register as a CSV file for download."""
         return csv_response(
             self.filename("csv"),
             aircraft_reports.HEADER,
@@ -137,10 +155,11 @@ class AircraftExportCsvView(AircraftExportMixin, generics.GenericAPIView):
         )
 
 
-class AircraftExportPdfView(AircraftExportMixin, generics.GenericAPIView):
+class AircraftExportPdfView(AircraftExportMixin, generics.GenericAPIView[Aircraft]):
     """``GET /admin/aircraft/export.pdf?<filters>`` — landscape letter."""
 
-    def get(self, request):
+    def get(self, request: Request) -> HttpResponse:
+        """Return the filtered register as a landscape-letter PDF for download."""
         return pdf_table_response(
             self.filename("pdf"),
             title="CalDART aircraft register",
@@ -158,7 +177,8 @@ class LeaderSearchView(APIView):
 
     permission_classes = [IsLeader]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Return up to 20 members matching ``q`` by name, email or N-number."""
         query = request.query_params.get("q", "")
         results = [services.search_result(user) for user in services.search_members(query)]
         return Response(LeaderSearchResultSerializer(results, many=True).data)
@@ -169,7 +189,11 @@ class LeaderMemberStatusView(APIView):
 
     permission_classes = [IsLeader]
 
-    def get(self, request, user_id: int):
+    def get(self, request: Request, user_id: int) -> Response:
+        """Return the pre-flight status card for the member with primary key ``user_id``.
+
+        Answers 404 when no such member exists.
+        """
         user = get_object_or_404(
             User.objects.select_related("profile", "profile__dart"), pk=user_id
         )
@@ -181,7 +205,12 @@ class LeaderAircraftView(APIView):
 
     permission_classes = [IsLeader]
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
+        """Return the insurance card for the aircraft with the normalized ``n_number``.
+
+        Answers 400 when ``n_number`` is missing or normalizes to nothing, and 404 when
+        no aircraft matches.
+        """
         n_number = normalize_n_number(request.query_params.get("n_number", ""))
         if not n_number:
             return Response({"n_number": "Enter a registration, for example N12345."}, status=400)

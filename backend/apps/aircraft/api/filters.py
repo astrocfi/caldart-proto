@@ -6,12 +6,18 @@ member downloads always contains exactly the rows they were looking at.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 import django_filters
-from django.db.models import F, Q
+from django.db.models import F, Q, QuerySet
 from rest_framework.filters import OrderingFilter
 
 from apps.aircraft.models import Aircraft, OwnerType, normalize_n_number
 from apps.aircraft.services import expiring_within, insurance_queryset
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
+    from rest_framework.views import APIView
 
 INSURANCE_CHOICES = (
     ("current", "Current"),
@@ -38,7 +44,9 @@ class AircraftFilter(django_filters.FilterSet):
         model = Aircraft
         fields = ["search", "make", "owner_type", "insurance", "expiring_within", "is_active"]
 
-    def filter_search(self, queryset, name, value):
+    def filter_search(
+        self, queryset: QuerySet[Aircraft], name: str, value: str
+    ) -> QuerySet[Aircraft]:
         """N-number, make, model or owner name.
 
         The N-number half searches the normalized form too, so ``n-172sp``,
@@ -58,10 +66,16 @@ class AircraftFilter(django_filters.FilterSet):
             matches |= Q(n_number__icontains=normalized)
         return queryset.filter(matches)
 
-    def filter_insurance(self, queryset, name, value):
+    def filter_insurance(
+        self, queryset: QuerySet[Aircraft], name: str, value: str
+    ) -> QuerySet[Aircraft]:
+        """Narrow ``queryset`` to ``current``, ``expired`` or ``missing`` cover."""
         return insurance_queryset(queryset, value)
 
-    def filter_expiring_within(self, queryset, name, value):
+    def filter_expiring_within(
+        self, queryset: QuerySet[Aircraft], name: str, value: str | None
+    ) -> QuerySet[Aircraft]:
+        """Return ``queryset`` unfiltered when ``value`` is ``None``, else clamp to it."""
         if value is None:
             return queryset
         return expiring_within(queryset, int(value))
@@ -80,7 +94,10 @@ class NullsLastOrderingFilter(OrderingFilter):
     ``LIMIT``/``OFFSET`` query can then repeat or skip rows.
     """
 
-    def filter_queryset(self, request, queryset, view):
+    def filter_queryset(
+        self, request: Request, queryset: QuerySet[Any], view: APIView
+    ) -> QuerySet[Any]:
+        """Apply ``ordering``, with NULLs last and the primary key as a tiebreaker."""
         ordering = self.get_ordering(request, queryset, view)
         if not ordering:
             return queryset

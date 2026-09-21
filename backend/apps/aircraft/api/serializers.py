@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
@@ -19,7 +21,11 @@ class NNumberField(serializers.CharField):
     uniqueness check sees ``N12345`` even when the member typed ``n-12345``.
     """
 
-    def to_internal_value(self, data) -> str:
+    def to_internal_value(self, data: str) -> str:
+        """Return ``data`` normalized to canonical N-number form.
+
+        Raises a validation error when normalization leaves nothing usable.
+        """
         value = super().to_internal_value(data)
         normalized = normalize_n_number(value)
         if not normalized:
@@ -27,7 +33,7 @@ class NNumberField(serializers.CharField):
         return normalized
 
 
-class AircraftSummarySerializer(serializers.ModelSerializer):
+class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
     """The short form embedded in profiles, leader cards and pickers."""
 
     insurance_is_current = serializers.BooleanField(read_only=True)
@@ -47,7 +53,7 @@ class AircraftSummarySerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class AircraftSerializer(serializers.ModelSerializer):
+class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
     """The full record.  ``created_by`` is set by the view."""
 
     n_number = NNumberField(
@@ -103,7 +109,7 @@ class AircraftSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_by", "insurance_is_current", "insurance_summary"]
 
 
-class AircraftPilotSerializer(serializers.Serializer):
+class AircraftPilotSerializer(serializers.Serializer[Any]):
     """A member who lists this aircraft as one they commonly fly."""
 
     user_id = serializers.IntegerField()
@@ -121,16 +127,23 @@ class AircraftDetailSerializer(AircraftSerializer):
     class Meta(AircraftSerializer.Meta):
         fields = [*AircraftSerializer.Meta.fields, "pilots"]
 
-    def get_pilots(self, obj: Aircraft) -> list[dict]:
+    def get_pilots(self, obj: Aircraft) -> list[dict[str, Any]]:
+        """Return the serialized pilots who list ``obj`` among the aircraft they fly."""
         from apps.aircraft.services import aircraft_pilots
 
-        return AircraftPilotSerializer(aircraft_pilots(obj), many=True).data
+        # The stubs type a serializer's `.data` for the single-instance case; with
+        # `many=True` DRF builds a `ListSerializer` at runtime and `.data` is a list.
+        return cast(
+            "list[dict[str, Any]]", AircraftPilotSerializer(aircraft_pilots(obj), many=True).data
+        )
 
 
 # --------------------------------------------------------------------------
 # Leader check
 # --------------------------------------------------------------------------
-class LeaderSearchResultSerializer(serializers.Serializer):
+class LeaderSearchResultSerializer(serializers.Serializer[Any]):
+    """One row of a leader's member search."""
+
     user_id = serializers.IntegerField()
     name = serializers.CharField()
     email = serializers.EmailField()
@@ -138,31 +151,39 @@ class LeaderSearchResultSerializer(serializers.Serializer):
     membership_status = serializers.ChoiceField(choices=MembershipState.choices)
 
 
-class LeaderMembershipSerializer(serializers.Serializer):
+class LeaderMembershipSerializer(serializers.Serializer[Any]):
+    """The membership fields of the leader status card."""
+
     status = serializers.ChoiceField(choices=MembershipState.choices)
     expires_on = serializers.DateField(allow_null=True)
     plan = serializers.CharField(allow_null=True)
 
 
-class LeaderCertificateSerializer(serializers.Serializer):
+class LeaderCertificateSerializer(serializers.Serializer[Any]):
+    """The pilot certificate fields of the leader status card."""
+
     type = serializers.CharField()
     number = serializers.CharField(allow_blank=True)
     ifr_rated = serializers.CharField()
     ratings = serializers.ListField(child=serializers.CharField())
 
 
-class LeaderMedicalSerializer(serializers.Serializer):
+class LeaderMedicalSerializer(serializers.Serializer[Any]):
+    """The medical certificate fields of the leader status card."""
+
     type = serializers.CharField()
     expiration = serializers.DateField(allow_null=True)
     is_current = serializers.BooleanField()
 
 
-class LeaderGoNoGoSerializer(serializers.Serializer):
+class LeaderGoNoGoSerializer(serializers.Serializer[Any]):
+    """The two go/no-go booleans, so a leader sees why, not just whether."""
+
     membership = serializers.BooleanField()
     medical = serializers.BooleanField()
 
 
-class LeaderStatusSerializer(serializers.Serializer):
+class LeaderStatusSerializer(serializers.Serializer[Any]):
     """The status card a DART leader reads before a flight."""
 
     name = serializers.CharField()
