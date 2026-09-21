@@ -98,46 +98,6 @@ convention = "google"
 # Enables W505, which wraps docstrings and comments at the width python.md asks for.
 max-doc-length = 90
 
-# The annotation and docstring ratchet.  Each entry below suspends ANN and D for one
-# unit of the backend; the unit's own change deletes its entry and never adds one.
-# No entry may remain once every unit is annotated and documented.
-[tool.ruff.lint.per-file-ignores]
-# Unit: tests-members
-"backend/tests/test_leader_api.py" = ["ANN", "D"]
-"backend/tests/test_member_invitation.py" = ["ANN", "D"]
-"backend/tests/test_member_services.py" = ["ANN", "D"]
-"backend/tests/test_members_admin.py" = ["ANN", "D"]
-"backend/tests/test_members_admin_status.py" = ["ANN", "D"]
-"backend/tests/test_members_delete_payments.py" = ["ANN", "D"]
-"backend/tests/test_members_expiring_within.py" = ["ANN", "D"]
-"backend/tests/test_members_reports.py" = ["ANN", "D"]
-"backend/tests/test_membership_query_counts.py" = ["ANN", "D"]
-"backend/tests/test_membership_services.py" = ["ANN", "D"]
-# Unit: tests-payments
-"backend/tests/test_payment_report_query.py" = ["ANN", "D"]
-"backend/tests/test_payments_api.py" = ["ANN", "D"]
-"backend/tests/test_payments_apple_pay.py" = ["ANN", "D"]
-"backend/tests/test_payments_mock_provider.py" = ["ANN", "D"]
-"backend/tests/test_payments_paypal.py" = ["ANN", "D"]
-"backend/tests/test_payments_provider_errors.py" = ["ANN", "D"]
-"backend/tests/test_payments_reports.py" = ["ANN", "D"]
-"backend/tests/test_payments_stripe.py" = ["ANN", "D"]
-"backend/tests/test_payments_stripe_client.py" = ["ANN", "D"]
-# Unit: tests-aircraft
-"backend/tests/test_aircraft_api.py" = ["ANN", "D"]
-"backend/tests/test_aircraft_exports.py" = ["ANN", "D"]
-"backend/tests/test_aircraft_models.py" = ["ANN", "D"]
-"backend/tests/test_profile_aircraft_api.py" = ["ANN", "D"]
-# Unit: tests-reminders
-"backend/tests/test_reminders.py" = ["ANN", "D"]
-"backend/tests/test_reminders_api.py" = ["ANN", "D"]
-"backend/tests/test_reminders_resilience.py" = ["ANN", "D"]
-# Unit: tests-sysadmin
-"backend/tests/test_sysadmin.py" = ["ANN", "D"]
-"backend/tests/test_sysadmin_api.py" = ["ANN", "D"]
-"backend/tests/test_sysadmin_commands.py" = ["ANN", "D"]
-"backend/tests/test_sysadmin_settings.py" = ["ANN", "D"]
-
 [tool.mypy]
 python_version = "3.12"
 mypy_path = "backend"
@@ -177,69 +137,4 @@ ignore_missing_imports = true
 module = ["factory", "factory.*"]
 implicit_reexport = true
 
-# The type-checking ratchet, unit by unit, matching the ruff table above.  Each
-# unit's own change deletes its override; none may remain once every unit is typed.
-
-
-
-
-# Unit: tests-members
-[[tool.mypy.overrides]]
-module = [
-    "tests.test_leader_api",
-    "tests.test_member_invitation",
-    "tests.test_member_services",
-    "tests.test_members_admin",
-    "tests.test_members_admin_status",
-    "tests.test_members_delete_payments",
-    "tests.test_members_expiring_within",
-    "tests.test_members_reports",
-    "tests.test_membership_query_counts",
-    "tests.test_membership_services",
-]
-ignore_errors = true
-
-# Unit: tests-payments
-[[tool.mypy.overrides]]
-module = [
-    "tests.test_payment_report_query",
-    "tests.test_payments_api",
-    "tests.test_payments_apple_pay",
-    "tests.test_payments_mock_provider",
-    "tests.test_payments_paypal",
-    "tests.test_payments_provider_errors",
-    "tests.test_payments_reports",
-    "tests.test_payments_stripe",
-    "tests.test_payments_stripe_client",
-]
-ignore_errors = true
-
-# Unit: tests-aircraft
-[[tool.mypy.overrides]]
-module = [
-    "tests.test_aircraft_api",
-    "tests.test_aircraft_exports",
-    "tests.test_aircraft_models",
-    "tests.test_profile_aircraft_api",
-]
-ignore_errors = true
-
-# Unit: tests-reminders
-[[tool.mypy.overrides]]
-module = [
-    "tests.test_reminders",
-    "tests.test_reminders_api",
-    "tests.test_reminders_resilience",
-]
-ignore_errors = true
-
-# Unit: tests-sysadmin
-[[tool.mypy.overrides]]
-module = [
-    "tests.test_sysadmin",
-    "tests.test_sysadmin_api",
-    "tests.test_sysadmin_commands",
-    "tests.test_sysadmin_settings",
-]
-ignore_errors = true
 

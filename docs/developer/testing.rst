@@ -424,10 +424,8 @@ it finds (a ``_``-prefixed helper's docstring is a matter for review);
 ``max-doc-length = 90`` turns on ``W505``,
 which wraps those docstrings at 90 characters.  A package's ``__init__.py``
 (``D104``) and a nested ``Meta`` class (``D106``) need no docstring.  Both rule
-sets are suspended for the backend units listed in
-``[tool.ruff.lint.per-file-ignores]``, one entry per unit under a comment naming
-it.  An entry disappears when its unit carries annotations and docstrings
-throughout, and no entry may be added.
+sets apply to the whole backend, tests included; ``[tool.ruff.lint.per-file-ignores]``
+carries no ``ANN`` or ``D`` entry, and none may be added.
 
 ``mypy`` type-checks ``backend`` — the application and the tests alike — as the
 third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
@@ -444,9 +442,9 @@ stub gaps: ``untyped_calls_exclude = ["factory"]`` accepts the unannotated
 declarative API (``Faker``, ``Sequence``, ``SubFactory``, ``LazyFunction``,
 ``LazyAttribute``, ``post_generation``), and ``implicit_reexport`` accepts the
 names ``factory`` re-exports without an ``as`` alias.  As with the ruff rule sets,
-one ``[[tool.mypy.overrides]]`` entry per unit carries ``ignore_errors = true``,
-and an entry disappears when its unit type-checks clean.  Silencing one line
-takes ``# type: ignore[<code>]`` with a comment naming the stub gap behind it.
+no ``[[tool.mypy.overrides]]`` entry carries ``ignore_errors = true``: mypy checks
+the whole backend clean.  Silencing one line takes ``# type: ignore[<code>]`` with
+a comment naming the stub gap behind it.
 
 TypeScript runs in strict mode; ``tsc --noEmit`` is
 part of linting rather than of the build, so a type error fails ``make lint``.
