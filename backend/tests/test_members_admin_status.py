@@ -10,9 +10,7 @@ the two agree, row by row.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from datetime import date, timedelta
-from typing import cast
 
 import pytest
 
@@ -29,16 +27,13 @@ from tests.factories import MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
-_user = cast(Callable[..., User], UserFactory)
-_membership = cast(Callable[..., Membership], MembershipFactory)
-
 
 def build_histories(annual: MembershipPlan, life: MembershipPlan, today: date) -> dict[str, User]:
     """``{label: user}`` covering the cases the two implementations must share."""
     day = timedelta(days=1)
 
     def user(label: str) -> User:
-        return _user(email=f"{label}@example.test", roles=["member"])
+        return UserFactory(email=f"{label}@example.test", roles=["member"])
 
     def term(
         owner: User,
@@ -47,7 +42,7 @@ def build_histories(annual: MembershipPlan, life: MembershipPlan, today: date) -
         ends_on: date | None,
         status: str = MembershipStatusChoices.ACTIVE,
     ) -> Membership:
-        return _membership(
+        return MembershipFactory(
             user=owner, plan=plan, starts_on=starts_on, ends_on=ends_on, status=status
         )
 
