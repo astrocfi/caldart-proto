@@ -4,11 +4,18 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from apps.aircraft.models import Aircraft, normalize_n_number
-from apps.members.models import MembershipState
+from apps.members.models import (
+    RATING_VALUES,
+    IfrRated,
+    MedicalType,
+    MembershipState,
+    PilotCertificateType,
+)
 
 NEGATIVE_MONEY_MESSAGE = "Enter an amount of $0 or more."
 
@@ -131,6 +138,7 @@ class AircraftDetailSerializer(AircraftSerializer):
     class Meta(AircraftSerializer.Meta):
         fields = [*AircraftSerializer.Meta.fields, "pilots"]
 
+    @extend_schema_field(AircraftPilotSerializer(many=True))
     def get_pilots(self, obj: Aircraft) -> list[dict[str, Any]]:
         """Return the serialized pilots who list ``obj`` among the aircraft they fly."""
         from apps.aircraft.services import aircraft_pilots
@@ -166,16 +174,16 @@ class LeaderMembershipSerializer(serializers.Serializer[Any]):
 class LeaderCertificateSerializer(serializers.Serializer[Any]):
     """The pilot certificate fields of the leader status card."""
 
-    type = serializers.CharField()
+    type = serializers.ChoiceField(choices=PilotCertificateType.choices)
     number = serializers.CharField(allow_blank=True)
-    ifr_rated = serializers.CharField()
-    ratings = serializers.ListField(child=serializers.CharField())
+    ifr_rated = serializers.ChoiceField(choices=IfrRated.choices)
+    ratings = serializers.ListField(child=serializers.ChoiceField(choices=RATING_VALUES))
 
 
 class LeaderMedicalSerializer(serializers.Serializer[Any]):
     """The medical certificate fields of the leader status card."""
 
-    type = serializers.CharField()
+    type = serializers.ChoiceField(choices=MedicalType.choices)
     expiration = serializers.DateField(allow_null=True)
     is_current = serializers.BooleanField()
 

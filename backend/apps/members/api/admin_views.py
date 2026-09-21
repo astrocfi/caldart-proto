@@ -15,6 +15,7 @@ from django.db.models import QuerySet
 from django.http import HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -47,7 +48,12 @@ from apps.members.reports import (
 )
 from apps.members.services import activate_term, delete_member
 from caldart import audit
-from caldart.reports import csv_response, filter_summary, pdf_table_response
+from caldart.reports import (
+    csv_response,
+    download_response_schema,
+    filter_summary,
+    pdf_table_response,
+)
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -66,6 +72,12 @@ class MemberAdminBaseView(generics.GenericAPIView["MemberRow"]):
         return member_admin_queryset()
 
 
+# The create handler answers with the whole member record rather than with the
+# fields it accepted, so the response serializer is named here: the generic view's
+# own ``serializer_class`` describes the request alone.
+@extend_schema_view(
+    post=extend_schema(request=MemberCreateSerializer, responses={201: MemberDetailSerializer})
+)
 class MemberAdminListCreateView(MemberAdminBaseView, generics.ListCreateAPIView["MemberRow"]):
     """``GET /admin/members`` (filtered, ordered, paginated) and ``POST``."""
 
@@ -86,6 +98,10 @@ class MemberAdminListCreateView(MemberAdminBaseView, generics.ListCreateAPIView[
         return Response(detail.data, status=status.HTTP_201_CREATED)
 
 
+# A PATCH answers with the whole member record too, however few fields it carried.
+@extend_schema_view(
+    patch=extend_schema(request=MemberUpdateSerializer, responses={200: MemberDetailSerializer})
+)
 class MemberAdminDetailView(
     MemberAdminBaseView, generics.RetrieveUpdateDestroyAPIView["MemberRow"]
 ):
@@ -125,6 +141,7 @@ class MemberMembershipGrantView(APIView):
 
     permission_classes = [IsAccountAdmin]
 
+    @extend_schema(request=MembershipGrantSerializer, responses={201: AdminMembershipSerializer})
     @transaction.atomic
     def post(self, request: Request, pk: int) -> Response:
         """201 with the granted term, recorded in the audit log.
@@ -211,6 +228,7 @@ class MemberExportBaseView(MemberAdminBaseView):
 class MemberExportCsvView(MemberExportBaseView):
     """``GET /admin/members/export.csv``."""
 
+    @extend_schema(responses={200: download_response_schema("The member list as a CSV file.")})
     def get(self, request: Request, *args: Any, **kwargs: Any) -> StreamingHttpResponse:
         """The filtered member list as a streamed CSV download."""
         return csv_response(member_report_filename("csv"), MEMBER_REPORT_HEADER, self.rows(request))
@@ -219,6 +237,7 @@ class MemberExportCsvView(MemberExportBaseView):
 class MemberExportPdfView(MemberExportBaseView):
     """``GET /admin/members/export.pdf`` — landscape letter."""
 
+    @extend_schema(responses={200: download_response_schema("The member list as a PDF file.")})
     def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         """The filtered member list as a landscape-letter PDF download."""
         return pdf_table_response(

@@ -208,8 +208,17 @@ class PasswordResetConfirmSerializer(serializers.Serializer[None]):
 class RoleSerializer(serializers.Serializer[dict[str, str]]):
     """``GET /roles``: one role's slug and its human description."""
 
-    slug = serializers.CharField()
+    slug = serializers.ChoiceField(choices=list(ROLE_SLUGS))
     description = serializers.CharField()
+
+
+class SendPasswordResetResultSerializer(serializers.Serializer[dict[str, str]]):
+    """``POST /admin/users/{id}/send-password-reset``: the sentence to show.
+
+    The one field, ``detail``, names the address the link went to.
+    """
+
+    detail = serializers.CharField()
 
 
 class AdminUserSerializer(UserSerializer):

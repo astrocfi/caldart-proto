@@ -19,6 +19,7 @@ from django.db.models import QuerySet
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status as http_status
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -34,6 +35,7 @@ from apps.members.models import MembershipPlan
 from apps.members.services import membership_status
 from apps.payments import reports
 from apps.payments.api.serializers import (
+    CheckoutResponseSerializer,
     CheckoutSerializer,
     MockCompleteSerializer,
     PaymentPeriodSummarySerializer,
@@ -48,7 +50,13 @@ from apps.payments.models import CONTRIBUTION_TIERS, Payment, PaymentProvider
 from apps.payments.providers import available_providers, get_provider
 from apps.payments.providers.base import PaymentError
 from apps.payments.services import create_checkout
-from caldart.reports import csv_response
+from caldart.reports import csv_response, download_response_schema
+
+#: What the webhook endpoints answer with.  The provider chooses the body, and
+#: neither portal screen reads it, so the schema describes only the status.
+WEBHOOK_RESPONSE_DESCRIPTION = (
+    "Acknowledged.  The body is whatever the provider's own handler returns."
+)
 
 
 def payment_result(payment: Payment) -> dict[str, Any]:
@@ -105,6 +113,7 @@ class PaymentsConfigView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: PaymentsConfigSerializer})
     def get(self, request: Request) -> Response:
         """200 with what the checkout screen may offer.
 
@@ -127,6 +136,7 @@ class CheckoutView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=CheckoutSerializer, responses={201: CheckoutResponseSerializer})
     def post(self, request: Request) -> Response:
         """201 with ``{payment_id, provider, client}`` for a signed-in member.
 
@@ -165,6 +175,7 @@ class StripeConfirmView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=StripeConfirmSerializer, responses={200: PaymentResultSerializer})
     def post(self, request: Request) -> Response:
         """200 with ``{status, membership}`` once Stripe has been asked about the intent.
 
@@ -197,6 +208,7 @@ class PayPalCaptureView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=PayPalCaptureSerializer, responses={200: PaymentResultSerializer})
     def post(self, request: Request) -> Response:
         """200 with ``{status, membership}`` once the PayPal order has been captured.
 
@@ -232,6 +244,7 @@ class MockCompleteView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=MockCompleteSerializer, responses={200: PaymentResultSerializer})
     def post(self, request: Request) -> Response:
         """200 with ``{status, membership}`` after completing a mock payment.
 
@@ -285,6 +298,10 @@ class StripeWebhookView(APIView):
     authentication_classes = []
     permission_classes = []
 
+    @extend_schema(
+        request=None,
+        responses={200: OpenApiResponse(description=WEBHOOK_RESPONSE_DESCRIPTION)},
+    )
     def post(self, request: Request) -> HttpResponse:
         """Hand the signed event to the Stripe provider, which answers it.
 
@@ -301,6 +318,10 @@ class PayPalWebhookView(APIView):
     authentication_classes = []
     permission_classes = []
 
+    @extend_schema(
+        request=None,
+        responses={200: OpenApiResponse(description=WEBHOOK_RESPONSE_DESCRIPTION)},
+    )
     def post(self, request: Request) -> HttpResponse:
         """Hand the notification to the PayPal provider, which records it.
 
@@ -366,6 +387,7 @@ class AdminPaymentSummaryView(APIView):
 
     permission_classes = [IsAuthenticated, IsAccountAdmin]
 
+    @extend_schema(responses={200: PaymentPeriodSummarySerializer(many=True)})
     def get(self, request: Request) -> Response:
         """200 with one row per period, oldest first, for ``account_admin`` only.
 
@@ -386,6 +408,9 @@ class AdminPaymentExportView(APIView):
 
     permission_classes = [IsAuthenticated, IsAccountAdmin]
 
+    @extend_schema(
+        responses={200: download_response_schema("The filtered payment list as a CSV file.")}
+    )
     def get(self, request: Request) -> StreamingHttpResponse:
         """200 with ``caldart-payments.csv`` as an attachment, for ``account_admin`` only.
 

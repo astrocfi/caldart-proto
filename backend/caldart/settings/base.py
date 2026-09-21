@@ -242,11 +242,22 @@ SPECTACULAR_SETTINGS = {
     # The choice labels belong in the API reference, not in a generated
     # description that would churn the snapshot whenever a label is reworded.
     "ENUM_GENERATE_CHOICE_DESCRIPTION": False,
-    # Several serializers expose the same payment-status choices, which would
-    # otherwise collide and be disambiguated with a hash suffix that changes
-    # whenever the set of serializers does.  One name covers all of them.
+    # Several serializers expose the same choices under the same field name --
+    # three different things are called ``status``, and two are called ``type``
+    # -- which would otherwise be disambiguated with a hash suffix that changes
+    # whenever the set of serializers does.  Naming each choice set here gives
+    # every one of them one stable component, whichever serializer reaches it
+    # first.
     "ENUM_NAME_OVERRIDES": {
         "PaymentStatusEnum": "apps.payments.models.PaymentStatus.choices",
+        "PaymentProviderEnum": "apps.payments.models.PaymentProvider.choices",
+        "MembershipStateEnum": "apps.members.models.MembershipState.choices",
+        "MembershipTermStatusEnum": "apps.members.models.MembershipStatusChoices.choices",
+        "PilotCertificateTypeEnum": "apps.members.models.PilotCertificateType.choices",
+        "MedicalTypeEnum": "apps.members.models.MedicalType.choices",
+        "RolesEnum": "apps.accounts.roles.ROLE_SLUGS",
+        "ReminderKindEnum": "apps.reminders.models.ReminderKind.choices",
+        "NavKindEnum": "apps.cms.api.serializers.NAV_KINDS",
     },
     # A read-only field and a write-only one describe different objects, so the
     # request body gets its own component; that is the split the portal's

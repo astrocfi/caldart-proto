@@ -17,6 +17,8 @@ from typing import IO, Any
 
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import landscape as landscape_size
@@ -114,6 +116,17 @@ def csv_response(
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+def download_response_schema(description: str) -> OpenApiResponse:
+    """The OpenAPI description of a file download: an opaque body, not JSON.
+
+    Every export endpoint answers with an attachment rather than a serialized
+    object, so the schema describes the body as binary and leans on
+    ``description`` to say which file arrives.  Pass it as the ``200`` entry of an
+    ``@extend_schema`` ``responses`` mapping.
+    """
+    return OpenApiResponse(response=OpenApiTypes.BINARY, description=description)
 
 
 # --------------------------------------------------------------------------
