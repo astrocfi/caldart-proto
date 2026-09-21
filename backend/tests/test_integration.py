@@ -27,7 +27,7 @@ pytestmark = pytest.mark.django_db
 
 # ------------------------------------------------------- one completeness rule
 def test_complete_fields_are_the_ones_the_plan_names():
-    """Exactly these five decide ``profile_complete`` (``docs/developer/api-auth.rst``)."""
+    """These five alone decide ``profile_complete`` (``docs/developer/api-auth.rst``)."""
     assert MemberProfile.COMPLETE_FIELDS == (
         "phone",
         "address_line1",

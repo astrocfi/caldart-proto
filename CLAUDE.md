@@ -70,7 +70,7 @@ critiques/              dated review reports
 | `make dev-frontend` | Vite dev server on :5173 (set `DJANGO_VITE_DEV_MODE=true`) |
 | `make build` | production frontend assets into `frontend/dist` |
 | `make test` | `pytest` (warnings are errors) + `vitest` |
-| `make lint` | `ruff check`, `ruff format --check`, `tsc`, `eslint --max-warnings 0`, `prettier`, `codespell` |
+| `make lint` | `ruff check`, `ruff format --check`, `mypy`, `tsc`, `eslint --max-warnings 0`, `prettier`, `codespell` |
 | `make check` | `manage.py check --fail-level WARNING`, `makemigrations --check`, production build |
 | `make docs` | `sphinx-build -n -W` |
 | `make audit` | `uv audit` + `npm audit` |

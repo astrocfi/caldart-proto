@@ -58,7 +58,7 @@ PROTECTED_TARGETS = ["system_admin", "bare_superuser"]
 
 @pytest.fixture
 def bare_superuser(db):
-    """A Django superuser without the ``system_admin`` role, as ``createsuperuser`` makes one."""
+    """A superuser without the ``system_admin`` role, as ``createsuperuser`` makes one."""
     return UserFactory(
         email="root-no-role@example.test", roles=[MEMBER], is_superuser=True, is_staff=True
     )
@@ -72,7 +72,7 @@ def bare_superuser(db):
 def test_a_lower_admin_cannot_change_a_protected_accounts_email(
     request, api_client, target_fixture, actor_role, detail
 ) -> None:
-    """``is_superuser`` alone protects an account, because it means system administrator."""
+    """``is_superuser`` alone protects an account: it means system administrator."""
     target = request.getfixturevalue(target_fixture)
     stored_email = target.email
     api_client.force_login(request.getfixturevalue(actor_role))
@@ -190,7 +190,7 @@ def test_a_role_less_superuser_may_change_a_system_admins_email(
 def test_resending_the_stored_values_with_a_name_change_succeeds(
     request, api_client, system_admin, actor_role, detail
 ) -> None:
-    """The portal sends the whole form, so an unchanged protected field is not a change."""
+    """The portal sends the whole form, so an unchanged protected field is no change."""
     actor = request.getfixturevalue(actor_role)
     api_client.force_login(actor)
     response = api_client.patch(
@@ -269,7 +269,7 @@ def test_a_user_admin_may_save_the_whole_form_of_a_role_less_superuser(
 def test_a_user_admin_cannot_change_a_role_less_superusers_roles(
     api_client, user_admin, bare_superuser
 ) -> None:
-    """A different list rebuilds ``is_superuser`` from it, so it revokes ``system_admin``."""
+    """A different list rebuilds ``is_superuser``, so it drops ``system_admin``."""
     api_client.force_login(user_admin)
     response = api_client.patch(user_detail(bare_superuser), {"roles": [MEMBER, DART_LEADER]})
 

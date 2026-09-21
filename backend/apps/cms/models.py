@@ -305,7 +305,7 @@ class NewsIndexPage(BasePage):
         verbose_name_plural = "news indexes"
 
     def posts(self, request):
-        """Live child posts, hiding members-only ones from visitors who may not read them."""
+        """Live child posts, less any members-only post the visitor cannot read."""
         queryset = NewsPage.objects.child_of(self).live().public().order_by("-date", "-pk")
         if not user_can_access_members_content(getattr(request, "user", None)):
             queryset = queryset.filter(members_only=False)

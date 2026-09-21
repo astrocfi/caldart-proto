@@ -31,6 +31,10 @@ dev = [
     "ruff>=0.7",
     "sphinx>=8.0",
     "furo>=2024.8.6",
+    "mypy>=2.3.1",
+    "django-stubs[compatible-mypy]>=6.1.1",
+    "djangorestframework-stubs[compatible-mypy]>=3.18.1",
+    "types-reportlab>=5.0.0.20260911",
 ]
 
 [tool.uv]
@@ -75,8 +79,278 @@ extend-exclude = ["**/migrations/*"]
 src = ["backend"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "DJ", "C4", "W"]
-ignore = ["B008", "DJ001"]
+select = ["E", "F", "I", "UP", "B", "DJ", "C4", "W", "ANN", "D"]
+# D104: a package's __init__.py needs no docstring.
+# D106: a model's or serializer's nested Meta class needs no docstring.
+ignore = ["B008", "DJ001", "D104", "D106"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["caldart", "apps"]
+
+[tool.ruff.lint.flake8-annotations]
+# `*args` and `**kwargs` forwarded to an untyped Django or DRF base may be `Any`.
+allow-star-arg-any = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pycodestyle]
+# Enables W505, which wraps docstrings and comments at the width python.md asks for.
+max-doc-length = 90
+
+# The annotation and docstring ratchet.  Each entry below suspends ANN and D for one
+# unit of the backend; the unit's own change deletes its entry and never adds one.
+# No entry may remain once every unit is annotated and documented.
+[tool.ruff.lint.per-file-ignores]
+# Unit: core
+"backend/caldart/**" = ["ANN", "D"]
+"backend/manage.py" = ["ANN", "D"]
+"docs/conf.py" = ["ANN", "D"]
+# Unit: reminders
+"backend/apps/reminders/**" = ["ANN", "D"]
+# Unit: sysadmin
+"backend/apps/sysadmin/**" = ["ANN", "D"]
+# Unit: aircraft
+"backend/apps/aircraft/**" = ["ANN", "D"]
+# Unit: payments
+"backend/apps/payments/**" = ["ANN", "D"]
+# Unit: accounts
+"backend/apps/accounts/**" = ["ANN", "D"]
+# Unit: cms
+"backend/apps/cms/**" = ["ANN", "D"]
+# Unit: members
+"backend/apps/members/**" = ["ANN", "D"]
+# Unit: tests-accounts
+"backend/tests/test_account_edit_guard.py" = ["ANN", "D"]
+"backend/tests/test_account_services.py" = ["ANN", "D"]
+"backend/tests/test_accounts_auth.py" = ["ANN", "D"]
+"backend/tests/test_auth_api.py" = ["ANN", "D"]
+"backend/tests/test_auth_throttle_ident.py" = ["ANN", "D"]
+"backend/tests/test_auth_throttle_rates.py" = ["ANN", "D"]
+"backend/tests/test_csrf.py" = ["ANN", "D"]
+"backend/tests/test_profile_api.py" = ["ANN", "D"]
+"backend/tests/test_roles_permissions.py" = ["ANN", "D"]
+"backend/tests/test_users_admin_api.py" = ["ANN", "D"]
+# Unit: tests-members
+"backend/tests/test_leader_api.py" = ["ANN", "D"]
+"backend/tests/test_member_invitation.py" = ["ANN", "D"]
+"backend/tests/test_member_services.py" = ["ANN", "D"]
+"backend/tests/test_members_admin.py" = ["ANN", "D"]
+"backend/tests/test_members_admin_status.py" = ["ANN", "D"]
+"backend/tests/test_members_delete_payments.py" = ["ANN", "D"]
+"backend/tests/test_members_expiring_within.py" = ["ANN", "D"]
+"backend/tests/test_members_reports.py" = ["ANN", "D"]
+"backend/tests/test_membership_query_counts.py" = ["ANN", "D"]
+"backend/tests/test_membership_services.py" = ["ANN", "D"]
+# Unit: tests-aircraft
+"backend/tests/test_aircraft_api.py" = ["ANN", "D"]
+"backend/tests/test_aircraft_exports.py" = ["ANN", "D"]
+"backend/tests/test_aircraft_models.py" = ["ANN", "D"]
+"backend/tests/test_profile_aircraft_api.py" = ["ANN", "D"]
+# Unit: tests-payments
+"backend/tests/test_payment_report_query.py" = ["ANN", "D"]
+"backend/tests/test_payments_api.py" = ["ANN", "D"]
+"backend/tests/test_payments_apple_pay.py" = ["ANN", "D"]
+"backend/tests/test_payments_mock_provider.py" = ["ANN", "D"]
+"backend/tests/test_payments_paypal.py" = ["ANN", "D"]
+"backend/tests/test_payments_provider_errors.py" = ["ANN", "D"]
+"backend/tests/test_payments_reports.py" = ["ANN", "D"]
+"backend/tests/test_payments_stripe.py" = ["ANN", "D"]
+"backend/tests/test_payments_stripe_client.py" = ["ANN", "D"]
+# Unit: tests-reminders
+"backend/tests/test_reminders.py" = ["ANN", "D"]
+"backend/tests/test_reminders_api.py" = ["ANN", "D"]
+"backend/tests/test_reminders_resilience.py" = ["ANN", "D"]
+# Unit: tests-cms
+"backend/tests/test_cms_documents.py" = ["ANN", "D"]
+"backend/tests/test_cms_pages.py" = ["ANN", "D"]
+"backend/tests/test_cms_permissions.py" = ["ANN", "D"]
+"backend/tests/test_cms_seed_content.py" = ["ANN", "D"]
+"backend/tests/test_shell_views.py" = ["ANN", "D"]
+"backend/tests/test_site_config.py" = ["ANN", "D"]
+# Unit: tests-sysadmin
+"backend/tests/test_sysadmin.py" = ["ANN", "D"]
+"backend/tests/test_sysadmin_api.py" = ["ANN", "D"]
+"backend/tests/test_sysadmin_commands.py" = ["ANN", "D"]
+"backend/tests/test_sysadmin_settings.py" = ["ANN", "D"]
+# Unit: tests-shared
+"backend/tests/conftest.py" = ["ANN", "D"]
+"backend/tests/factories.py" = ["ANN", "D"]
+"backend/tests/test_app_layering.py" = ["ANN", "D"]
+"backend/tests/test_audit_logging.py" = ["ANN", "D"]
+"backend/tests/test_domain_errors.py" = ["ANN", "D"]
+"backend/tests/test_hsts.py" = ["ANN", "D"]
+"backend/tests/test_integration.py" = ["ANN", "D"]
+"backend/tests/test_makefile_switches.py" = ["ANN", "D"]
+"backend/tests/test_permission_matrix.py" = ["ANN", "D"]
+"backend/tests/test_reports.py" = ["ANN", "D"]
+"backend/tests/test_seed.py" = ["ANN", "D"]
+"backend/tests/test_server_controlled_fields.py" = ["ANN", "D"]
+"backend/tests/test_settings_fail_closed.py" = ["ANN", "D"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "backend"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+strict = true
+# Wagtail's page, block and settings base classes are untyped, so every model that
+# subclasses one would otherwise be an error rather than a checked class.
+disallow_subclassing_any = false
+exclude = ["/migrations/"]
+
+[tool.django-stubs]
+django_settings_module = "caldart.settings.test"
+
+# Dependencies that ship no type information and have no stubs on PyPI.
+[[tool.mypy.overrides]]
+module = ["wagtail.*", "environ.*", "django_filters.*", "django_vite.*", "whitenoise.*"]
+ignore_missing_imports = true
+
+# The type-checking ratchet, unit by unit, matching the ruff table above.  Each
+# unit's own change deletes its override; none may remain once every unit is typed.
+# Unit: core
+[[tool.mypy.overrides]]
+module = ["caldart.*", "manage"]
+ignore_errors = true
+
+# Unit: reminders
+[[tool.mypy.overrides]]
+module = ["apps.reminders.*"]
+ignore_errors = true
+
+# Unit: sysadmin
+[[tool.mypy.overrides]]
+module = ["apps.sysadmin.*"]
+ignore_errors = true
+
+# Unit: aircraft
+[[tool.mypy.overrides]]
+module = ["apps.aircraft.*"]
+ignore_errors = true
+
+# Unit: payments
+[[tool.mypy.overrides]]
+module = ["apps.payments.*"]
+ignore_errors = true
+
+# Unit: accounts
+[[tool.mypy.overrides]]
+module = ["apps.accounts.*"]
+ignore_errors = true
+
+# Unit: cms
+[[tool.mypy.overrides]]
+module = ["apps.cms.*"]
+ignore_errors = true
+
+# Unit: members
+[[tool.mypy.overrides]]
+module = ["apps.members.*"]
+ignore_errors = true
+
+# Unit: tests-accounts
+[[tool.mypy.overrides]]
+module = [
+    "tests.test_account_edit_guard",
+    "tests.test_account_services",
+    "tests.test_accounts_auth",
+    "tests.test_auth_api",
+    "tests.test_auth_throttle_ident",
+    "tests.test_auth_throttle_rates",
+    "tests.test_csrf",
+    "tests.test_profile_api",
+    "tests.test_roles_permissions",
+    "tests.test_users_admin_api",
+]
+ignore_errors = true
+
+# Unit: tests-members
+[[tool.mypy.overrides]]
+module = [
+    "tests.test_leader_api",
+    "tests.test_member_invitation",
+    "tests.test_member_services",
+    "tests.test_members_admin",
+    "tests.test_members_admin_status",
+    "tests.test_members_delete_payments",
+    "tests.test_members_expiring_within",
+    "tests.test_members_reports",
+    "tests.test_membership_query_counts",
+    "tests.test_membership_services",
+]
+ignore_errors = true
+
+# Unit: tests-aircraft
+[[tool.mypy.overrides]]
+module = [
+    "tests.test_aircraft_api",
+    "tests.test_aircraft_exports",
+    "tests.test_aircraft_models",
+    "tests.test_profile_aircraft_api",
+]
+ignore_errors = true
+
+# Unit: tests-payments
+[[tool.mypy.overrides]]
+module = [
+    "tests.test_payment_report_query",
+    "tests.test_payments_api",
+    "tests.test_payments_apple_pay",
+    "tests.test_payments_mock_provider",
+    "tests.test_payments_paypal",
+    "tests.test_payments_provider_errors",
+    "tests.test_payments_reports",
+    "tests.test_payments_stripe",
+    "tests.test_payments_stripe_client",
+]
+ignore_errors = true
+
+# Unit: tests-reminders
+[[tool.mypy.overrides]]
+module = [
+    "tests.test_reminders",
+    "tests.test_reminders_api",
+    "tests.test_reminders_resilience",
+]
+ignore_errors = true
+
+# Unit: tests-cms
+[[tool.mypy.overrides]]
+module = [
+    "tests.test_cms_documents",
+    "tests.test_cms_pages",
+    "tests.test_cms_permissions",
+    "tests.test_cms_seed_content",
+    "tests.test_shell_views",
+    "tests.test_site_config",
+]
+ignore_errors = true
+
+# Unit: tests-sysadmin
+[[tool.mypy.overrides]]
+module = [
+    "tests.test_sysadmin",
+    "tests.test_sysadmin_api",
+    "tests.test_sysadmin_commands",
+    "tests.test_sysadmin_settings",
+]
+ignore_errors = true
+
+# Unit: tests-shared
+[[tool.mypy.overrides]]
+module = [
+    "tests.conftest",
+    "tests.factories",
+    "tests.test_app_layering",
+    "tests.test_audit_logging",
+    "tests.test_domain_errors",
+    "tests.test_hsts",
+    "tests.test_integration",
+    "tests.test_makefile_switches",
+    "tests.test_permission_matrix",
+    "tests.test_reports",
+    "tests.test_seed",
+    "tests.test_server_controlled_fields",
+    "tests.test_settings_fail_closed",
+]
+ignore_errors = true
