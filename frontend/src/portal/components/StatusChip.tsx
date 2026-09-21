@@ -73,7 +73,6 @@ export function MembershipChip({ membership, today }: MembershipChipProps): JSX.
   return <StatusChip tone={tone} title={membership.expires_on ?? undefined} />;
 }
 
-/** Insurance / medical currency, which is a plain boolean. */
 /** Chip for a plain currency flag, such as insurance or medical currency. */
 export function CurrencyChip({
   isCurrent,
