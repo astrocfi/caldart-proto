@@ -102,17 +102,6 @@ max-doc-length = 90
 # unit of the backend; the unit's own change deletes its entry and never adds one.
 # No entry may remain once every unit is annotated and documented.
 [tool.ruff.lint.per-file-ignores]
-# Unit: tests-accounts
-"backend/tests/test_account_edit_guard.py" = ["ANN", "D"]
-"backend/tests/test_account_services.py" = ["ANN", "D"]
-"backend/tests/test_accounts_auth.py" = ["ANN", "D"]
-"backend/tests/test_auth_api.py" = ["ANN", "D"]
-"backend/tests/test_auth_throttle_ident.py" = ["ANN", "D"]
-"backend/tests/test_auth_throttle_rates.py" = ["ANN", "D"]
-"backend/tests/test_csrf.py" = ["ANN", "D"]
-"backend/tests/test_profile_api.py" = ["ANN", "D"]
-"backend/tests/test_roles_permissions.py" = ["ANN", "D"]
-"backend/tests/test_users_admin_api.py" = ["ANN", "D"]
 # Unit: tests-members
 "backend/tests/test_leader_api.py" = ["ANN", "D"]
 "backend/tests/test_member_invitation.py" = ["ANN", "D"]
@@ -193,22 +182,6 @@ implicit_reexport = true
 
 
 
-
-# Unit: tests-accounts
-[[tool.mypy.overrides]]
-module = [
-    "tests.test_account_edit_guard",
-    "tests.test_account_services",
-    "tests.test_accounts_auth",
-    "tests.test_auth_api",
-    "tests.test_auth_throttle_ident",
-    "tests.test_auth_throttle_rates",
-    "tests.test_csrf",
-    "tests.test_profile_api",
-    "tests.test_roles_permissions",
-    "tests.test_users_admin_api",
-]
-ignore_errors = true
 
 # Unit: tests-members
 [[tool.mypy.overrides]]

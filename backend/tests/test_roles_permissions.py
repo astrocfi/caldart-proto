@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from collections.abc import Callable
+from datetime import date, timedelta
 
 import pytest
 from django.contrib.auth.models import Group
 from django.utils import timezone
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, BasePermission
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory
 from rest_framework.views import APIView
 
+from apps.accounts.models import User
 from apps.accounts.permissions import HasAnyRole, HasRole, user_has_any_role
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
@@ -23,12 +26,14 @@ from apps.accounts.roles import (
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
+from apps.members.models import MembershipPlan
 from tests.factories import MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
 
-def test_role_slugs_are_the_six_from_the_plan():
+def test_role_slugs_are_the_six_from_the_plan() -> None:
+    """``ROLE_SLUGS`` lists the six roles in order, and staff excludes member."""
     assert ROLE_SLUGS == (
         MEMBER,
         DART_LEADER,
@@ -41,7 +46,8 @@ def test_role_slugs_are_the_six_from_the_plan():
     assert set(STAFF_ROLE_SLUGS) == set(ROLE_SLUGS) - {MEMBER}
 
 
-def test_seed_roles_is_idempotent():
+def test_seed_roles_is_idempotent() -> None:
+    """Running ``seed_roles`` twice still leaves exactly one group per role."""
     from apps.accounts.management.commands.seed_roles import seed_roles
 
     seed_roles()
@@ -49,24 +55,28 @@ def test_seed_roles_is_idempotent():
     assert Group.objects.filter(name__in=ROLE_SLUGS).count() == len(ROLE_SLUGS)
 
 
-def test_roles_property_is_in_privilege_order(member):
+def test_roles_property_is_in_privilege_order(member: User) -> None:
+    """``User.roles`` lists the held roles in privilege order, not grant order."""
     member.add_role(ACCOUNT_ADMIN)
     member.add_role(DART_LEADER)
     assert member.roles == [MEMBER, DART_LEADER, ACCOUNT_ADMIN]
 
 
-def test_has_role_is_exact_for_ordinary_roles(member):
+def test_has_role_is_exact_for_ordinary_roles(member: User) -> None:
+    """``has_role`` is true only for a role the account actually holds."""
     assert member.has_role(MEMBER)
     assert not member.has_role(ACCOUNT_ADMIN)
 
 
-def test_system_admin_implies_every_role(system_admin):
+def test_system_admin_implies_every_role(system_admin: User) -> None:
+    """A system administrator's ``has_role``/``has_any_role`` are true for every slug."""
     for slug in ROLE_SLUGS:
         assert system_admin.has_role(slug)
     assert system_admin.has_any_role(WEBSITE_ADMIN)
 
 
-def test_set_roles_replaces_only_role_groups(member):
+def test_set_roles_replaces_only_role_groups(member: User) -> None:
+    """``set_roles`` replaces the role groups but leaves a non-role group alone."""
     other = Group.objects.create(name="wagtail-editors")
     member.groups.add(other)
     member.set_roles([MEMBER, USER_ADMIN])
@@ -74,25 +84,33 @@ def test_set_roles_replaces_only_role_groups(member):
     assert other in member.groups.all()
 
 
-def test_remove_role(member):
+def test_remove_role(member: User) -> None:
+    """``remove_role`` drops exactly the named role."""
     member.add_role(DART_LEADER)
     member.remove_role(DART_LEADER)
     assert member.roles == [MEMBER]
 
 
 @pytest.mark.parametrize("slug", ROLE_SLUGS)
-def test_can_access_members_content_for_each_role(slug, today):
+def test_can_access_members_content_for_each_role(slug: str, today: date) -> None:
+    """Every role but a plain member can access members content with no membership."""
     user = UserFactory(email=f"{slug}@roles.test", roles=[slug])
     expected = slug != MEMBER
     assert user.can_access_members_content is expected
 
 
-def test_member_with_current_membership_can_access_members_content(member, annual_plan, today):
+def test_member_with_current_membership_can_access_members_content(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A plain member with a current membership can access members-only content."""
     MembershipFactory(user=member, plan=annual_plan, starts_on=today)
     assert member.can_access_members_content is True
 
 
-def test_member_with_expired_membership_cannot_access_members_content(member, annual_plan, today):
+def test_member_with_expired_membership_cannot_access_members_content(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A plain member with an expired membership cannot access members-only content."""
     MembershipFactory(
         user=member,
         plan=annual_plan,
@@ -102,7 +120,8 @@ def test_member_with_expired_membership_cannot_access_members_content(member, an
     assert member.can_access_members_content is False
 
 
-def test_str_and_display_name(member):
+def test_str_and_display_name(member: User) -> None:
+    """``str(user)`` and ``display_name`` are the full name, falling back to the email."""
     member.first_name = "Ada"
     member.last_name = "Lovelace"
     assert str(member) == "Ada Lovelace"
@@ -111,20 +130,23 @@ def test_str_and_display_name(member):
     assert str(member) == member.email
 
 
-def test_email_login_is_case_insensitive(member, password):
+def test_email_login_is_case_insensitive(member: User, password: str) -> None:
+    """``authenticate`` accepts the email in any case."""
     from django.contrib.auth import authenticate
 
     assert authenticate(username=member.email.upper(), password=password) == member
 
 
-def test_user_manager_requires_email():
+def test_user_manager_requires_email() -> None:
+    """``create_user`` with a blank email raises ``ValueError``."""
     from django.contrib.auth import get_user_model
 
     with pytest.raises(ValueError, match="email"):
         get_user_model().objects.create_user(email="", password="x")
 
 
-def test_create_superuser_sets_flags():
+def test_create_superuser_sets_flags() -> None:
+    """``create_superuser`` sets both ``is_superuser`` and ``is_staff``."""
     from django.contrib.auth import get_user_model
 
     user = get_user_model().objects.create_superuser(
@@ -134,11 +156,13 @@ def test_create_superuser_sets_flags():
 
 
 # -- permission classes ----------------------------------------------------
-def _view_for(permission_class):
+def _view_for(permission_class: type[BasePermission]) -> Callable[..., Response]:
+    """A minimal ``APIView`` guarded by ``permission_class``."""
+
     class _View(APIView):
         permission_classes = [permission_class]
 
-        def get(self, request):
+        def get(self, request: Request) -> Response:
             return Response({"ok": True})
 
     return _View.as_view()
@@ -155,7 +179,8 @@ def _view_for(permission_class):
         (SYSTEM_ADMIN, True),
     ],
 )
-def test_has_role_matrix(slug, allowed, all_role_users):
+def test_has_role_matrix(slug: str, allowed: bool, all_role_users: dict[str, User]) -> None:
+    """``HasRole(dart_leader)`` allows only a dart leader or a system administrator."""
     view = _view_for(HasRole(DART_LEADER))
     request = APIRequestFactory().get("/")
     request.user = all_role_users[slug]
@@ -173,14 +198,16 @@ def test_has_role_matrix(slug, allowed, all_role_users):
         (SYSTEM_ADMIN, True),
     ],
 )
-def test_has_any_role_matrix(slug, allowed, all_role_users):
+def test_has_any_role_matrix(slug: str, allowed: bool, all_role_users: dict[str, User]) -> None:
+    """``HasAnyRole(user_admin, account_admin)`` admits either admin, or system admin."""
     view = _view_for(HasAnyRole(USER_ADMIN, ACCOUNT_ADMIN))
     request = APIRequestFactory().get("/")
     request.user = all_role_users[slug]
     assert (view(request).status_code == 200) is allowed
 
 
-def test_permission_denies_anonymous():
+def test_permission_denies_anonymous() -> None:
+    """An anonymous request is refused with 401 or 403, never let through."""
     from django.contrib.auth.models import AnonymousUser
 
     view = _view_for(HasRole(MEMBER))
@@ -189,12 +216,14 @@ def test_permission_denies_anonymous():
     assert view(request).status_code in (401, 403)
 
 
-def test_has_any_role_requires_at_least_one_slug():
+def test_has_any_role_requires_at_least_one_slug() -> None:
+    """Constructing ``HasAnyRole`` with no slugs raises ``ValueError``."""
     with pytest.raises(ValueError, match="at least one role"):
         HasAnyRole()
 
 
-def test_user_has_any_role_helper(member, superuser):
+def test_user_has_any_role_helper(member: User, superuser: User) -> None:
+    """``user_has_any_role`` checks membership; true for a superuser, false for None."""
     from django.contrib.auth.models import AnonymousUser
 
     assert user_has_any_role(member, (MEMBER,)) is True
@@ -204,7 +233,8 @@ def test_user_has_any_role_helper(member, superuser):
     assert user_has_any_role(None, (MEMBER,)) is False
 
 
-def test_allow_any_still_works():
+def test_allow_any_still_works() -> None:
+    """``AllowAny`` still admits an anonymous request."""
     view = _view_for(AllowAny)
     from django.contrib.auth.models import AnonymousUser
 
@@ -213,6 +243,7 @@ def test_allow_any_still_works():
     assert view(request).status_code == 200
 
 
-def test_membership_status_property_delegates(member, annual_plan):
+def test_membership_status_property_delegates(member: User, annual_plan: MembershipPlan) -> None:
+    """``User.membership_status`` reports the status of the current membership."""
     MembershipFactory(user=member, plan=annual_plan, starts_on=timezone.localdate())
     assert member.membership_status["status"] == "current"
