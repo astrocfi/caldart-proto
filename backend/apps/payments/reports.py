@@ -16,10 +16,8 @@ from dataclasses import dataclass
 from django.db.models import Count, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce, TruncMonth, TruncYear
 from django.utils import timezone
-from django.utils.dateparse import parse_date
-from rest_framework.exceptions import ValidationError
 
-from apps.payments.models import Payment, PaymentProvider, PaymentStatus
+from apps.payments.models import Payment, PaymentStatus
 
 #: Columns of ``GET /admin/payments/export.csv``.
 CSV_HEADER = (
@@ -38,6 +36,9 @@ CSV_HEADER = (
 
 GROUPS = {"month": TruncMonth, "year": TruncYear}
 PERIOD_FORMAT = {"month": "%Y-%m", "year": "%Y"}
+
+#: The period :func:`summarize` groups by unless the caller asks for the other.
+DEFAULT_GROUP = "month"
 
 #: Fields ``?ordering=`` accepts, as DRF's OrderingFilter would spell them.
 ORDERING_FIELDS = (
@@ -63,40 +64,17 @@ def base_queryset() -> QuerySet[Payment]:
 
 @dataclass(frozen=True)
 class PaymentFilters:
-    """The query parameters shared by the list, summary and CSV endpoints."""
+    """The narrowing the list, summary and CSV endpoints share.
+
+    Each field is already validated: the API layer reads the query string, and an
+    empty string or ``None`` means "do not narrow on this".
+    """
 
     date_from: dt.date | None = None
     date_to: dt.date | None = None
     provider: str = ""
     status: str = ""
     search: str = ""
-
-    @classmethod
-    def from_query(cls, params) -> PaymentFilters:
-        provider = (params.get("provider") or "").strip()
-        if provider and provider not in PaymentProvider.values:
-            raise ValidationError({"provider": f"Unknown provider '{provider}'."})
-
-        status = (params.get("status") or "").strip()
-        if status and status not in PaymentStatus.values:
-            raise ValidationError({"status": f"Unknown status '{status}'."})
-
-        return cls(
-            date_from=_date(params.get("from"), "from"),
-            date_to=_date(params.get("to"), "to"),
-            provider=provider,
-            status=status,
-            search=(params.get("search") or "").strip(),
-        )
-
-
-def _date(value: str | None, field: str) -> dt.date | None:
-    if not value:
-        return None
-    parsed = parse_date(value)
-    if parsed is None:
-        raise ValidationError({field: "Expected a date as YYYY-MM-DD."})
-    return parsed
 
 
 def apply_filters(queryset: QuerySet[Payment], filters: PaymentFilters) -> QuerySet[Payment]:
@@ -120,16 +98,14 @@ def apply_filters(queryset: QuerySet[Payment], filters: PaymentFilters) -> Query
     return queryset
 
 
-def summarize(queryset: QuerySet[Payment], group: str = "month") -> list[dict]:
+def summarize(queryset: QuerySet[Payment], group: str = DEFAULT_GROUP) -> list[dict]:
     """Money received per period, oldest first.
 
+    ``group`` is a key of :data:`GROUPS`, which the API layer has already checked.
     Only succeeded payments count: a pending or failed attempt never became
     revenue.  ``by_provider`` breaks the period total down by provider and
     omits providers with nothing in that period.
     """
-    if group not in GROUPS:
-        raise ValidationError({"group": "Expected 'month' or 'year'."})
-
     rows = (
         queryset.filter(status=PaymentStatus.SUCCEEDED)
         .annotate(period=GROUPS[group]("paid_at"))

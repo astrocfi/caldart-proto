@@ -232,9 +232,7 @@ def test_an_account_admin_may_change_a_plain_members_email(account_admin) -> Non
 # --------------------------------------------------------------------------
 # update_account: atomicity
 # --------------------------------------------------------------------------
-def test_update_account_writes_nothing_when_the_role_sync_fails(
-    system_admin, monkeypatch
-) -> None:
+def test_update_account_writes_nothing_when_the_role_sync_fails(system_admin, monkeypatch) -> None:
     def boom(user) -> None:
         raise RuntimeError("flags exploded")
 
