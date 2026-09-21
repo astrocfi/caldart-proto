@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import factory
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.db.models import Model
 from django.utils import timezone
 from factory.django import DjangoModelFactory
 
@@ -35,8 +36,28 @@ User = get_user_model()
 
 DEFAULT_PASSWORD = "test-password-123"  # noqa: S105 - test fixture
 
+ModelT = TypeVar("ModelT", bound=Model)
 
-class GroupFactory(DjangoModelFactory):
+
+class ModelFactory(DjangoModelFactory[ModelT]):
+    """Base for the factories below, declaring the model type that calling one returns.
+
+    Every factory here is a ``ModelFactory[SomeModel]``, and calling it saves and
+    returns a ``SomeModel``. Subclasses give their model in ``Meta.model`` as usual.
+    """
+
+    class Meta:
+        abstract = True
+
+    # factory_boy builds through an unannotated metaclass ``__call__``, which a type
+    # checker cannot read, so it would infer the factory class itself.  Declaring
+    # ``__new__`` states the real result type; the metaclass never reaches this body.
+    def __new__(cls, **kwargs: Any) -> ModelT:  # type: ignore[misc]
+        """Return the saved model instance that calling the factory builds."""
+        raise NotImplementedError
+
+
+class GroupFactory(ModelFactory[Group]):
     """Builds an auth ``Group``, reusing an existing row with the same name."""
 
     class Meta:
@@ -46,7 +67,7 @@ class GroupFactory(DjangoModelFactory):
     name = MEMBER
 
 
-class UserFactory(DjangoModelFactory):
+class UserFactory(ModelFactory["UserModel"]):
     """Builds a ``User``, reusing an existing row with the same email.
 
     ``roles=[...]`` grants each named role slug through ``User.add_role`` after
@@ -83,7 +104,7 @@ class UserFactory(DjangoModelFactory):
             obj.add_role(slug)
 
 
-class DartFactory(DjangoModelFactory):
+class DartFactory(ModelFactory[Dart]):
     """Builds a ``Dart``, reusing an existing row with the same name."""
 
     class Meta:
@@ -97,7 +118,7 @@ class DartFactory(DjangoModelFactory):
     sort_order = factory.Sequence(lambda n: n)
 
 
-class AircraftFactory(DjangoModelFactory):
+class AircraftFactory(ModelFactory[Aircraft]):
     """Builds an ``Aircraft``, reusing an existing row with the same N-number."""
 
     class Meta:
@@ -121,7 +142,7 @@ class AircraftFactory(DjangoModelFactory):
     is_active = True
 
 
-class MemberProfileFactory(DjangoModelFactory):
+class MemberProfileFactory(ModelFactory[MemberProfile]):
     """Builds a ``MemberProfile``, reusing an existing row for the same user."""
 
     class Meta:
@@ -145,7 +166,7 @@ class MemberProfileFactory(DjangoModelFactory):
     total_hours = 750
 
 
-class MembershipPlanFactory(DjangoModelFactory):
+class MembershipPlanFactory(ModelFactory[MembershipPlan]):
     """Builds an annual ``MembershipPlan``, reusing an existing row with the same slug."""
 
     class Meta:
@@ -170,7 +191,7 @@ class LifetimePlanFactory(MembershipPlanFactory):
     sort_order = 2
 
 
-class PaymentFactory(DjangoModelFactory):
+class PaymentFactory(ModelFactory[Payment]):
     """Builds a pending mock ``Payment`` of the annual plan's price."""
 
     class Meta:
@@ -188,7 +209,7 @@ class PaymentFactory(DjangoModelFactory):
     status = PaymentStatus.PENDING
 
 
-class MembershipFactory(DjangoModelFactory):
+class MembershipFactory(ModelFactory[Membership]):
     """Builds an active ``Membership`` starting today, ending per the plan's duration."""
 
     class Meta:
@@ -208,8 +229,13 @@ class MembershipFactory(DjangoModelFactory):
     source = MembershipSource.SEED
 
 
-class ReminderLogFactory(DjangoModelFactory):
-    """Builds a ``ReminderLog`` for a T-30 reminder sent to the membership's user."""
+class ReminderLogFactory(ModelFactory[ReminderLog]):
+    """Builds a T-30 ``ReminderLog`` sent now, addressed to its own ``user``.
+
+    ``user`` and ``membership`` default to independent new records, so ``to_email`` is
+    the log user's email and not the membership owner's. Pass both to record a reminder
+    about a member's own membership.
+    """
 
     class Meta:
         model = ReminderLog

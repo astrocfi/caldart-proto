@@ -165,6 +165,7 @@ strict = true
 # subclasses one would otherwise be an error rather than a checked class.
 disallow_subclassing_any = false
 exclude = ["/migrations/"]
+untyped_calls_exclude = ["factory"]
 
 [tool.django-stubs]
 django_settings_module = "caldart.settings.test"
@@ -186,13 +187,13 @@ module = [
 ]
 ignore_missing_imports = true
 
-# factory_boy ships py.typed, but its declarative API (Faker, Sequence, SubFactory,
-# LazyFunction, LazyAttribute, post_generation) and its metaclass constructor are not
-# annotated, so analyzing its source surfaces stub-gap errors at every call site rather
-# than at the library itself.  Skip following it so its names resolve to Any instead.
+# factory_boy ships py.typed but re-exports its declarative API from ``factory`` without
+# ``as`` aliases, and leaves that API unannotated.  Accepting the re-exports here, and
+# the untyped calls through ``untyped_calls_exclude`` above, keeps its source followed,
+# so a factory's declared model type still reaches every caller.
 [[tool.mypy.overrides]]
 module = ["factory", "factory.*"]
-follow_imports = "skip"
+implicit_reexport = true
 
 # The type-checking ratchet, unit by unit, matching the ruff table above.  Each
 # unit's own change deletes its override; none may remain once every unit is typed.
