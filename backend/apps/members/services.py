@@ -82,6 +82,9 @@ from caldart.exceptions import DomainPermissionError
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
 
+    # Inline: payments sits above members and apps.payments.services imports this
+    # module, so a top-level import here would close the cycle.  This one is read
+    # by the type checker alone and costs nothing at run time.
     from apps.payments.models import Payment
 
 
@@ -420,9 +423,7 @@ def membership_annotations(today: date | None = None) -> dict[str, Exists | Subq
     }
 
 
-def with_membership(
-    queryset: QuerySet[User], *, today: date | None = None
-) -> QuerySet[User, MemberRow]:
+def with_membership(queryset: QuerySet[User], *, today: date | None = None) -> QuerySet[MemberRow]:
     """``queryset`` of users, carrying the membership annotations.
 
     Every row then answers ``membership_status`` without a further query, which
@@ -431,7 +432,7 @@ def with_membership(
     """
     # django-stubs can only follow ``annotate`` when the annotations are spelled out
     # as keyword arguments, so the row type is stated here rather than inferred.
-    return cast("QuerySet[User, MemberRow]", queryset.annotate(**membership_annotations(today)))
+    return cast("QuerySet[MemberRow]", queryset.annotate(**membership_annotations(today)))
 
 
 def membership_payload(user: MemberRow) -> MembershipStatusDict:

@@ -1,12 +1,30 @@
 """Django admin for the members domain."""
 
+from typing import TYPE_CHECKING
+
 from django.contrib import admin
 
 from apps.members.models import Dart, MemberProfile, Membership, MembershipPlan
 
+if TYPE_CHECKING:
+    # ``ModelAdmin`` carries the model it manages for the type checker, but it is
+    # a plain class at runtime and cannot be subscripted, so each base is named
+    # here and falls back to the bare class when the module is imported.
+    DartAdminBase = admin.ModelAdmin[Dart]
+    ProfileAdminBase = admin.ModelAdmin[MemberProfile]
+    PlanAdminBase = admin.ModelAdmin[MembershipPlan]
+    MembershipAdminBase = admin.ModelAdmin[Membership]
+else:
+    DartAdminBase = admin.ModelAdmin
+    ProfileAdminBase = admin.ModelAdmin
+    PlanAdminBase = admin.ModelAdmin
+    MembershipAdminBase = admin.ModelAdmin
+
 
 @admin.register(Dart)
-class DartAdmin(admin.ModelAdmin):
+class DartAdmin(DartAdminBase):
+    """DARTs, in the order the public catalog lists them."""
+
     list_display = ["name", "airport_identifier", "city", "is_active", "sort_order"]
     list_filter = ["is_active"]
     search_fields = ["name", "airport_identifier", "city"]
@@ -14,7 +32,9 @@ class DartAdmin(admin.ModelAdmin):
 
 
 @admin.register(MemberProfile)
-class MemberProfileAdmin(admin.ModelAdmin):
+class MemberProfileAdmin(ProfileAdminBase):
+    """Member profiles, searchable by account and certificate number."""
+
     list_display = [
         "display_name",
         "dart",
@@ -30,11 +50,14 @@ class MemberProfileAdmin(admin.ModelAdmin):
 
     @admin.display(boolean=True, description="medical current")
     def medical_is_current(self, obj: MemberProfile) -> bool:
+        """True when the member holds a medical that has not expired."""
         return obj.medical_is_current
 
 
 @admin.register(MembershipPlan)
-class MembershipPlanAdmin(admin.ModelAdmin):
+class MembershipPlanAdmin(PlanAdminBase):
+    """Membership plans, with the slug prepopulated from the name."""
+
     list_display = ["name", "slug", "price_cents", "duration_days", "is_active", "sort_order"]
     list_filter = ["is_active"]
     prepopulated_fields = {"slug": ("name",)}
@@ -42,7 +65,9 @@ class MembershipPlanAdmin(admin.ModelAdmin):
 
 
 @admin.register(Membership)
-class MembershipAdmin(admin.ModelAdmin):
+class MembershipAdmin(MembershipAdminBase):
+    """Membership terms, browsable by start date."""
+
     list_display = ["user", "plan", "starts_on", "ends_on", "status", "source"]
     list_filter = ["status", "source", "plan"]
     search_fields = ["user__email", "user__first_name", "user__last_name"]

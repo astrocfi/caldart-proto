@@ -1,13 +1,18 @@
 """Seed DARTs, membership plans and member profiles.
 
-Also decides each seeded user's *membership target* — the status their history
-should end up in — which ``apps.payments.seed`` turns into real payments and
+Also decides each seeded user's *membership target* -- the status their history
+should end up in -- which ``apps.payments.seed`` turns into real payments and
 terms through ``members.services.activate_term``.
 """
 
 from __future__ import annotations
 
-from datetime import timedelta
+import random
+from datetime import date, timedelta
+from typing import Any, TypedDict
+
+from django.core.management.base import OutputWrapper
+from faker import Faker
 
 from apps.members.models import (
     RATING_VALUES,
@@ -39,8 +44,20 @@ DARTS: tuple[tuple[str, str, str], ...] = (
     ("Unaffiliated", "", ""),
 )
 
+
+class PlanSpec(TypedDict):
+    """One membership plan the seed creates, keyed on its slug."""
+
+    name: str
+    slug: str
+    price_cents: int
+    duration_days: int | None
+    sort_order: int
+    description: str
+
+
 #: The membership plans to seed.
-PLANS: tuple[dict, ...] = (
+PLANS: tuple[PlanSpec, ...] = (
     {
         "name": "Annual",
         "slug": "annual",
@@ -99,6 +116,11 @@ MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
 
 
 def seed_darts() -> list[Dart]:
+    """Create or update every DART in :data:`DARTS`, and return them in that order.
+
+    Each is keyed on its name, so running the seed twice leaves one row per
+    DART with the airport, city and sort order the table gives it.
+    """
     darts = []
     for order, (name, identifier, city) in enumerate(DARTS, start=1):
         dart, _ = Dart.objects.update_or_create(
@@ -115,6 +137,11 @@ def seed_darts() -> list[Dart]:
 
 
 def seed_plans() -> list[MembershipPlan]:
+    """Create or update every plan in :data:`PLANS`, and return them in that order.
+
+    Each is keyed on its slug, so running the seed twice leaves one row per
+    plan with the price, duration and description the table gives it.
+    """
     plans = []
     for spec in PLANS:
         plan, _ = MembershipPlan.objects.update_or_create(
@@ -132,7 +159,17 @@ def seed_plans() -> list[MembershipPlan]:
     return plans
 
 
-def _profile_defaults(rng, faker, darts, today) -> dict:
+def _profile_defaults(
+    rng: random.Random, faker: Faker, darts: list[Dart], today: date
+) -> dict[str, Any]:
+    """One plausible profile, drawn from ``rng`` and ``faker``.
+
+    The answers hang together: only a pilot carries a medical, a certificate
+    number, ratings, hours and a flight review, and roughly a quarter of pilots
+    are given a medical that expired before ``today`` so the leader checks have
+    something to fail on.  The DART is drawn from ``darts`` and supplies the
+    member's city and home airport.
+    """
     certificate = rng.choices(
         [
             PilotCertificateType.NONE,
@@ -205,8 +242,13 @@ def _profile_defaults(rng, faker, darts, today) -> dict:
     }
 
 
-def _assign_targets(rng, ctx) -> dict[int, str]:
-    """Give every seeded user a membership outcome for the payments seed."""
+def _assign_targets(rng: random.Random, ctx: dict[str, Any]) -> dict[int, str]:
+    """Give every seeded user a membership outcome for the payments seed.
+
+    The demo accounts get fixed outcomes, so the walkthrough always shows the
+    same thing, and the generated accounts are dealt from :data:`MEMBERSHIP_TARGETS`
+    in the weights it gives.  The answer is keyed by user id.
+    """
     targets: dict[int, str] = {}
 
     demo = ctx["demo_users"]
@@ -228,7 +270,15 @@ def _assign_targets(rng, ctx) -> dict[int, str]:
     return targets
 
 
-def run(ctx: dict, stdout=None) -> dict:
+def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
+    """Seed the DARTs, the plans and one profile per user, and return ``ctx``.
+
+    Reads ``rng``, ``faker``, ``today`` and ``users`` from ``ctx`` and adds
+    ``darts``, ``plans`` (keyed by slug), ``profiles`` and ``membership_targets``
+    for the seeds that run after this one.  A user who already has a profile has
+    it overwritten, so re-seeding leaves one profile per account.  ``stdout``, when
+    given, gets a one-line count.
+    """
     rng = ctx["rng"]
     faker = ctx["faker"]
     today = ctx["today"]
