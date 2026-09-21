@@ -7,13 +7,18 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "schema:json": "cd .. && uv run backend/manage.py spectacular --settings caldart.settings.test --format openapi-json --file backend/openapi.json",
+    "schema:types": "openapi-typescript ../backend/openapi.json --output src/portal/api/schema.d.ts",
+    "schema": "npm run schema:json && npm run schema:types",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" playwright.config.ts",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" playwright.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "pretypecheck": "npm run schema",
+    "pretest": "npm run schema"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.1.0",
@@ -45,6 +50,7 @@
     "globals": "^15.14.0",
     "jsdom": "^25.0.1",
     "msw": "^2.7.0",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.4.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.0",

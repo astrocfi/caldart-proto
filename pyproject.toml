@@ -19,6 +19,7 @@ dependencies = [
     "reportlab>=4.2",
     "faker>=30.0",
     "django-csp>=4.0",
+    "drf-spectacular>=0.28",
 ]
 
 [dependency-groups]
