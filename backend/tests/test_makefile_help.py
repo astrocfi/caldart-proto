@@ -40,7 +40,7 @@ def _phony_targets() -> list[str]:
 def test_make_help_lists_every_phony_target() -> None:
     """Each ``.PHONY`` target appears once in ``make help``, including ``e2e``."""
     assert MAKE is not None
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603 - fixed argv, MAKE is a resolved path
         [MAKE, "--no-print-directory", "help"],
         cwd=REPO_ROOT,
         capture_output=True,
