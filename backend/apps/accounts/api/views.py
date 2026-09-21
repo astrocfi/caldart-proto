@@ -41,8 +41,9 @@ def signed_in_user(request: Request) -> User:
     """The account behind ``request``.
 
     For handlers whose permission classes have already turned an anonymous caller
-    away.  Raises ``NotAuthenticated``, which DRF answers 401, if one reaches it
-    anyway.
+    away.  Raises ``NotAuthenticated`` if one reaches it anyway; the project's
+    exception handler renders that as 401, where DRF alone would answer 403 because
+    session authentication offers no ``WWW-Authenticate`` challenge.
     """
     user = request.user
     if isinstance(user, AnonymousUser):
@@ -292,9 +293,10 @@ class AdminUserSendPasswordResetView(APIView):
         """Mail the account with id ``pk`` a reset link, and answer 200 with a message.
 
         Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone
-        else gets 403 and an unknown ``pk`` gets 404.  A deactivated account is a 400
-        with "That account is deactivated, so no reset email was sent."  Both the send
-        and the refusal are recorded in the audit log.
+        else gets 403 and an unknown ``pk`` gets 404.  An account with nobody to mail --
+        a deactivated one, or one with no email address -- is a 400 with "That account
+        is deactivated, so no reset email was sent."  Both the send and the refusal are
+        recorded in the audit log.
         """
         actor = signed_in_user(request)
         user = generics.get_object_or_404(User, pk=pk)

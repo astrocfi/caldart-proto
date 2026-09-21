@@ -6,8 +6,9 @@ from django.apps import AppConfig
 class AccountsConfig(AppConfig):
     """Registers the app under the label ``accounts``.
 
-    Django loads it from the dotted path ``apps.accounts``, so the label has to be
-    stated: the default would be ``accounts`` only by accident of the last segment.
+    Django loads it from the dotted path ``apps.accounts``.  The label restates the
+    last segment of that path, which is the label Django derives by default, so
+    migrations and model references read ``accounts.<Model>``.
     """
 
     default_auto_field = "django.db.models.BigAutoField"

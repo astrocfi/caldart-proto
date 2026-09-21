@@ -9,11 +9,13 @@ from apps.accounts.roles import ROLE_SLUGS
 
 
 def seed_roles(stdout: OutputWrapper | None = None) -> list[Group]:
-    """Ensure one ``Group`` exists per role slug, and return them in slug order.
+    """Ensure one ``Group`` exists per role slug, and return them in privilege order.
 
-    Safe to run repeatedly: a group that already exists is returned untouched, and no
-    role is ever removed.  When ``stdout`` is given, each slug is written to it as
-    ``created`` or ``exists``.
+    The order is the one the role slugs are declared in, least privileged first:
+    ``member``, ``dart_leader``, ``user_admin``, ``account_admin``, ``website_admin``,
+    ``system_admin``.  Safe to run repeatedly: a group that already exists is returned
+    untouched, and no role is ever removed.  When ``stdout`` is given, each slug is
+    written to it as ``created`` or ``exists``.
     """
     groups = []
     for slug in ROLE_SLUGS:

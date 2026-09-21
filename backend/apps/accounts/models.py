@@ -68,7 +68,8 @@ class UserManager(DjangoUserManager["User"]):
         """The user whose email address is ``username``, compared case-insensitively.
 
         Authentication and ``manage.py`` both reach this.  Raises ``User.DoesNotExist``
-        when no account matches.
+        when no account matches, including when ``username`` is ``None``: the column is
+        never null, so a null lookup matches nothing.
         """
         return self.get(email__iexact=username)
 

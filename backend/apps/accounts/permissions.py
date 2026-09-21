@@ -42,7 +42,11 @@ class _RolePermission(BasePermission):
     required_roles: tuple[str, ...] = ()
 
     def has_permission(self, request: Request, view: APIView) -> bool:
-        """True when the request's user holds one of ``required_roles``."""
+        """True when the request's user holds one of ``required_roles``.
+
+        A Django superuser and a ``system_admin`` pass whatever ``required_roles``
+        names, and an anonymous caller is always False.
+        """
         return user_has_any_role(request.user, self.required_roles)
 
 
