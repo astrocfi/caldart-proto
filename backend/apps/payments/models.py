@@ -47,7 +47,8 @@ class ContributionTier(TypedDict):
     cents: int
 
 
-#: Contribution tiers offered at checkout.  ``None`` means "other".
+#: Contribution tiers offered at checkout, from no contribution up to Platinum.
+#: A member who wants some other amount types it instead of picking a tier.
 CONTRIBUTION_TIERS: tuple[ContributionTier, ...] = (
     {"label": "No contribution", "cents": 0},
     {"label": "Participating", "cents": 2_000},

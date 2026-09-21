@@ -9,7 +9,7 @@ from apps.payments.models import Payment
 # django-stubs makes ModelAdmin generic in the model, but Django's own class is
 # not subscriptable at runtime, so the parameter cannot be written here.
 class PaymentAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-    """Read-mostly payment ledger: every money field is editable, the record is not.
+    """Browse the payment ledger: its money and status columns, with a date drill-down.
 
     ``created_at``, ``updated_at`` and the provider's ``raw`` payload are shown but
     cannot be edited, and the list is filtered by provider, status, wallet and plan

@@ -236,8 +236,9 @@ class MockCompleteView(APIView):
         """200 with ``{status, membership}`` after completing a mock payment.
 
         ``outcome`` chooses between succeeding and failing it.  404 when the mock
-        provider is disabled, and when the payment is not the caller's own mock
-        payment.
+        provider is disabled, and when the payment is not the caller's own; a
+        payment the caller owns that was started with another provider is a 400
+        keyed by ``payment_id``.
         """
         if not settings.PAYMENTS_MOCK_ENABLED:
             raise Http404("The mock payment provider is disabled.")
