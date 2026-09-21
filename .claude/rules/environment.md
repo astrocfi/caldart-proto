@@ -32,7 +32,7 @@ have `-backend` and `-frontend` halves for iterating on one side.
 |-------|--------|------|
 | Code | `make lint` | `ruff check`, `ruff format --check`, `mypy backend`, `tsc --noEmit`, ESLint (`--max-warnings 0`), `prettier --check`, `codespell` |
 | Tests | `make test` | pytest (needs `make up`; warnings are errors) and vitest |
-| System | `make check` | Django system checks (`--fail-level WARNING`), missing-migration check, deployment checks against the production settings (`check --deploy` with the `security`, `caches`, `async_support` and `mail` tags against `caldart.settings.prod`), production frontend build |
+| System | `make check` | Django system checks (`--fail-level WARNING`), missing-migration check, deployment checks against the production settings (`check --deploy` with the `security`, `caches`, `async_support` and `mail` tags against `caldart.settings.prod`), the OpenAPI schema the portal's types are checked against, production frontend build |
 | Docs | `make docs` | `sphinx-build -n -W` |
 | Dependencies | `make audit` | `uv audit` (Python, from `uv.lock`) and `npm audit` (frontend) |
 | End-to-end (opt-in) | `make e2e` | Playwright against its own database and server |

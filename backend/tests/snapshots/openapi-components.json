@@ -1,0 +1,1305 @@
+{
+  "AdminMembership": {
+    "properties": {
+      "created_at": "string(date-time)",
+      "ends_on": "string(date)|null",
+      "granted_by": "string|null",
+      "id": "integer",
+      "note": "string",
+      "payment": "integer|null",
+      "plan": "string",
+      "plan_slug": "string",
+      "source": "ref:SourceEnum",
+      "starts_on": "string(date)",
+      "status": "ref:MembershipTermStatusEnum"
+    },
+    "required": [
+      "created_at",
+      "granted_by",
+      "id",
+      "payment",
+      "plan",
+      "plan_slug",
+      "source",
+      "starts_on"
+    ]
+  },
+  "AdminPayment": {
+    "properties": {
+      "amount_cents": "integer",
+      "completed_at": "string(date-time)|null",
+      "contribution_cents": "integer",
+      "created_at": "string(date-time)",
+      "currency": "string",
+      "id": "integer",
+      "plan": "string|null",
+      "plan_amount_cents": "integer",
+      "provider": "ref:PaymentProviderEnum",
+      "provider_ref": "string",
+      "status": "ref:PaymentStatusEnum",
+      "wallet": "ref:WalletEnum"
+    },
+    "required": [
+      "amount_cents",
+      "completed_at",
+      "contribution_cents",
+      "created_at",
+      "currency",
+      "id",
+      "plan",
+      "plan_amount_cents",
+      "provider",
+      "provider_ref",
+      "status",
+      "wallet"
+    ]
+  },
+  "AdminProfile": {
+    "properties": {
+      "address_line1": "string",
+      "address_line2": "string",
+      "air_care_alliance_number": "string",
+      "aircraft": "array<ref:AircraftSummary>",
+      "certificate_number": "string",
+      "city": "string",
+      "county": "string",
+      "dart": "ref:DartRef|null",
+      "emergency_contact_name": "string",
+      "emergency_contact_phone": "string",
+      "flight_review_date": "string(date)|null",
+      "home_airport_city": "string",
+      "home_airport_identifier": "string",
+      "how_heard": "string",
+      "ifr_rated": "ref:IfrRatedEnum",
+      "medical_expiration": "string(date)|null",
+      "medical_is_current": "boolean",
+      "medical_type": "ref:MedicalTypeEnum",
+      "notes": "string",
+      "phone": "string",
+      "phone_alt": "string",
+      "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "postal_code": "string",
+      "ratings": "array<ref:RatingsEnum>",
+      "state": "string",
+      "total_hours": "integer|null",
+      "vol_exercise_training": "boolean",
+      "vol_fundraising": "boolean",
+      "vol_ground_team": "boolean",
+      "vol_member_support": "boolean",
+      "vol_newsletter": "boolean",
+      "vol_social_media": "boolean"
+    },
+    "required": [
+      "aircraft",
+      "dart",
+      "medical_is_current"
+    ]
+  },
+  "AdminProfileRequest": {
+    "properties": {
+      "address_line1": "string",
+      "address_line2": "string",
+      "air_care_alliance_number": "string",
+      "certificate_number": "string",
+      "city": "string",
+      "county": "string",
+      "dart_id": "integer|null",
+      "emergency_contact_name": "string",
+      "emergency_contact_phone": "string",
+      "flight_review_date": "string(date)|null",
+      "home_airport_city": "string",
+      "home_airport_identifier": "string",
+      "how_heard": "string",
+      "ifr_rated": "ref:IfrRatedEnum",
+      "medical_expiration": "string(date)|null",
+      "medical_type": "ref:MedicalTypeEnum",
+      "notes": "string",
+      "phone": "string",
+      "phone_alt": "string",
+      "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "postal_code": "string",
+      "ratings": "array<ref:RatingsEnum>",
+      "state": "string",
+      "total_hours": "integer|null",
+      "vol_exercise_training": "boolean",
+      "vol_fundraising": "boolean",
+      "vol_ground_team": "boolean",
+      "vol_member_support": "boolean",
+      "vol_newsletter": "boolean",
+      "vol_social_media": "boolean"
+    },
+    "required": []
+  },
+  "AdminUser": {
+    "properties": {
+      "email": "string(email)",
+      "first_name": "string",
+      "id": "integer",
+      "is_active": "boolean",
+      "last_name": "string",
+      "membership": "ref:MembershipStatus",
+      "profile_complete": "boolean",
+      "roles": "array<ref:RolesEnum>"
+    },
+    "required": [
+      "id",
+      "membership",
+      "profile_complete"
+    ]
+  },
+  "Aircraft": {
+    "properties": {
+      "created_by": "integer|null",
+      "id": "integer",
+      "insurance_carrier": "string",
+      "insurance_expiration": "string(date)|null",
+      "insurance_hull_cents": "integer|null",
+      "insurance_is_current": "boolean",
+      "insurance_liability_per_occurrence_cents": "integer",
+      "insurance_liability_per_person_cents": "integer",
+      "insurance_policy_number": "string",
+      "insurance_summary": "string",
+      "is_active": "boolean",
+      "make": "string",
+      "model": "string",
+      "n_number": "string",
+      "notes": "string",
+      "owner_contact": "string",
+      "owner_name": "string",
+      "owner_type": "ref:OwnerTypeEnum",
+      "seats": "integer|null",
+      "year": "integer|null"
+    },
+    "required": [
+      "created_by",
+      "id",
+      "insurance_is_current",
+      "insurance_summary",
+      "make",
+      "model",
+      "n_number"
+    ]
+  },
+  "AircraftAttachRequest": {
+    "properties": {
+      "aircraft_id": "integer"
+    },
+    "required": [
+      "aircraft_id"
+    ]
+  },
+  "AircraftDetail": {
+    "properties": {
+      "created_by": "integer|null",
+      "id": "integer",
+      "insurance_carrier": "string",
+      "insurance_expiration": "string(date)|null",
+      "insurance_hull_cents": "integer|null",
+      "insurance_is_current": "boolean",
+      "insurance_liability_per_occurrence_cents": "integer",
+      "insurance_liability_per_person_cents": "integer",
+      "insurance_policy_number": "string",
+      "insurance_summary": "string",
+      "is_active": "boolean",
+      "make": "string",
+      "model": "string",
+      "n_number": "string",
+      "notes": "string",
+      "owner_contact": "string",
+      "owner_name": "string",
+      "owner_type": "ref:OwnerTypeEnum",
+      "pilots": "array<ref:AircraftPilot>",
+      "seats": "integer|null",
+      "year": "integer|null"
+    },
+    "required": [
+      "created_by",
+      "id",
+      "insurance_is_current",
+      "insurance_summary",
+      "make",
+      "model",
+      "n_number",
+      "pilots"
+    ]
+  },
+  "AircraftPilot": {
+    "properties": {
+      "email": "string(email)",
+      "medical_is_current": "boolean",
+      "membership_status": "ref:MembershipStateEnum",
+      "name": "string",
+      "user_id": "integer"
+    },
+    "required": [
+      "email",
+      "medical_is_current",
+      "membership_status",
+      "name",
+      "user_id"
+    ]
+  },
+  "AircraftRequest": {
+    "properties": {
+      "insurance_carrier": "string",
+      "insurance_expiration": "string(date)|null",
+      "insurance_hull_cents": "integer|null",
+      "insurance_liability_per_occurrence_cents": "integer",
+      "insurance_liability_per_person_cents": "integer",
+      "insurance_policy_number": "string",
+      "is_active": "boolean",
+      "make": "string",
+      "model": "string",
+      "n_number": "string",
+      "notes": "string",
+      "owner_contact": "string",
+      "owner_name": "string",
+      "owner_type": "ref:OwnerTypeEnum",
+      "seats": "integer|null",
+      "year": "integer|null"
+    },
+    "required": [
+      "make",
+      "model",
+      "n_number"
+    ]
+  },
+  "AircraftSummary": {
+    "properties": {
+      "id": "integer",
+      "insurance_expiration": "string(date)|null",
+      "insurance_is_current": "boolean",
+      "insurance_summary": "string",
+      "make": "string",
+      "model": "string",
+      "n_number": "string"
+    },
+    "required": [
+      "id",
+      "insurance_expiration",
+      "insurance_is_current",
+      "insurance_summary",
+      "make",
+      "model",
+      "n_number"
+    ]
+  },
+  "AttachedAircraft": {
+    "properties": {
+      "aircraft": "array<ref:AircraftSummary>"
+    },
+    "required": [
+      "aircraft"
+    ]
+  },
+  "Backup": {
+    "properties": {
+      "created_at": "string(date-time)",
+      "name": "string",
+      "size_bytes": "integer"
+    },
+    "required": [
+      "created_at",
+      "name",
+      "size_bytes"
+    ]
+  },
+  "CheckoutClient": {
+    "properties": {
+      "client_secret": "string",
+      "order_id": "string"
+    },
+    "required": []
+  },
+  "CheckoutRequest": {
+    "properties": {
+      "contribution_cents": "integer",
+      "plan": "string|null",
+      "provider": "ref:PaymentProviderEnum"
+    },
+    "required": [
+      "provider"
+    ]
+  },
+  "CheckoutResponse": {
+    "properties": {
+      "client": "ref:CheckoutClient",
+      "payment_id": "integer",
+      "provider": "ref:PaymentProviderEnum"
+    },
+    "required": [
+      "client",
+      "payment_id",
+      "provider"
+    ]
+  },
+  "ContributionTier": {
+    "properties": {
+      "cents": "integer",
+      "label": "string"
+    },
+    "required": [
+      "cents",
+      "label"
+    ]
+  },
+  "Dart": {
+    "properties": {
+      "airport_identifier": "string",
+      "city": "string",
+      "id": "integer",
+      "name": "string"
+    },
+    "required": [
+      "airport_identifier",
+      "city",
+      "id",
+      "name"
+    ]
+  },
+  "DartRef": {
+    "properties": {
+      "id": "integer",
+      "name": "string"
+    },
+    "required": [
+      "id",
+      "name"
+    ]
+  },
+  "Health": {
+    "properties": {
+      "db": "string",
+      "debug": "boolean",
+      "disk_free_mb": "integer",
+      "last_backup": "string(date-time)|null",
+      "pending_migrations": "integer",
+      "version": "string"
+    },
+    "required": [
+      "db",
+      "debug",
+      "disk_free_mb",
+      "last_backup",
+      "pending_migrations",
+      "version"
+    ]
+  },
+  "IfrRatedEnum": {
+    "enum": [
+      "na",
+      "yes",
+      "no"
+    ]
+  },
+  "LeaderCertificate": {
+    "properties": {
+      "ifr_rated": "ref:IfrRatedEnum",
+      "number": "string",
+      "ratings": "array<ref:RatingsEnum>",
+      "type": "ref:PilotCertificateTypeEnum"
+    },
+    "required": [
+      "ifr_rated",
+      "number",
+      "ratings",
+      "type"
+    ]
+  },
+  "LeaderGoNoGo": {
+    "properties": {
+      "medical": "boolean",
+      "membership": "boolean"
+    },
+    "required": [
+      "medical",
+      "membership"
+    ]
+  },
+  "LeaderMedical": {
+    "properties": {
+      "expiration": "string(date)|null",
+      "is_current": "boolean",
+      "type": "ref:MedicalTypeEnum"
+    },
+    "required": [
+      "expiration",
+      "is_current",
+      "type"
+    ]
+  },
+  "LeaderMembership": {
+    "properties": {
+      "expires_on": "string(date)|null",
+      "plan": "string|null",
+      "status": "ref:MembershipStateEnum"
+    },
+    "required": [
+      "expires_on",
+      "plan",
+      "status"
+    ]
+  },
+  "LeaderSearchResult": {
+    "properties": {
+      "dart": "string|null",
+      "email": "string(email)",
+      "membership_status": "ref:MembershipStateEnum",
+      "name": "string",
+      "user_id": "integer"
+    },
+    "required": [
+      "dart",
+      "email",
+      "membership_status",
+      "name",
+      "user_id"
+    ]
+  },
+  "LeaderStatus": {
+    "properties": {
+      "aircraft": "array<ref:AircraftSummary>",
+      "certificate": "ref:LeaderCertificate",
+      "dart": "string|null",
+      "email": "string(email)",
+      "go_no_go": "ref:LeaderGoNoGo",
+      "medical": "ref:LeaderMedical",
+      "membership": "ref:LeaderMembership",
+      "name": "string",
+      "phone": "string"
+    },
+    "required": [
+      "aircraft",
+      "certificate",
+      "dart",
+      "email",
+      "go_no_go",
+      "medical",
+      "membership",
+      "name",
+      "phone"
+    ]
+  },
+  "LoginRequest": {
+    "properties": {
+      "email": "string(email)",
+      "password": "string"
+    },
+    "required": [
+      "email",
+      "password"
+    ]
+  },
+  "MedicalTypeEnum": {
+    "enum": [
+      "none",
+      "basicmed",
+      "first",
+      "second",
+      "third"
+    ]
+  },
+  "MemberCreateRequest": {
+    "properties": {
+      "email": "string(email)",
+      "first_name": "string",
+      "last_name": "string",
+      "password": "string",
+      "profile": "ref:AdminProfileRequest"
+    },
+    "required": [
+      "email"
+    ]
+  },
+  "MemberDetail": {
+    "properties": {
+      "created_at": "string(date-time)",
+      "email": "string(email)",
+      "first_name": "string",
+      "id": "integer",
+      "is_active": "boolean",
+      "joined_on": "string(date)|null",
+      "last_name": "string",
+      "membership": "ref:MembershipStatus",
+      "memberships": "array<ref:AdminMembership>",
+      "name": "string",
+      "payments": "array<ref:AdminPayment>",
+      "profile": "ref:AdminProfile|null",
+      "roles": "array<ref:RolesEnum>"
+    },
+    "required": [
+      "created_at",
+      "email",
+      "first_name",
+      "id",
+      "is_active",
+      "joined_on",
+      "last_name",
+      "membership",
+      "memberships",
+      "name",
+      "payments",
+      "profile",
+      "roles"
+    ]
+  },
+  "MemberList": {
+    "properties": {
+      "aircraft": "array<string>",
+      "dart": "string|null",
+      "email": "string(email)",
+      "is_active": "boolean",
+      "joined_on": "string(date)|null",
+      "medical_expiration": "string(date)|null",
+      "medical_is_current": "boolean",
+      "medical_type": "ref:MedicalTypeEnum",
+      "membership": "ref:MembershipStatus",
+      "name": "string",
+      "phone": "string",
+      "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "user_id": "integer"
+    },
+    "required": [
+      "aircraft",
+      "dart",
+      "email",
+      "is_active",
+      "joined_on",
+      "medical_expiration",
+      "medical_is_current",
+      "medical_type",
+      "membership",
+      "name",
+      "phone",
+      "pilot_certificate_type",
+      "user_id"
+    ]
+  },
+  "MembersPage": {
+    "properties": {
+      "title": "string",
+      "url": "string"
+    },
+    "required": [
+      "title",
+      "url"
+    ]
+  },
+  "MembershipDetail": {
+    "properties": {
+      "expires_on": "string(date)|null",
+      "history": "array<ref:MembershipTerm>",
+      "is_lifetime": "boolean",
+      "plan": "string|null",
+      "status": "ref:MembershipStateEnum"
+    },
+    "required": [
+      "expires_on",
+      "history",
+      "is_lifetime",
+      "plan",
+      "status"
+    ]
+  },
+  "MembershipGrantRequest": {
+    "properties": {
+      "note": "string",
+      "plan": "string",
+      "starts_on": "string(date)|null"
+    },
+    "required": [
+      "plan"
+    ]
+  },
+  "MembershipStateEnum": {
+    "enum": [
+      "current",
+      "expired",
+      "none"
+    ]
+  },
+  "MembershipStatus": {
+    "properties": {
+      "expires_on": "string(date)|null",
+      "is_lifetime": "boolean",
+      "plan": "string|null",
+      "status": "ref:MembershipStateEnum"
+    },
+    "required": [
+      "expires_on",
+      "is_lifetime",
+      "plan",
+      "status"
+    ]
+  },
+  "MembershipTerm": {
+    "properties": {
+      "ends_on": "string(date)|null",
+      "id": "integer",
+      "plan": "string",
+      "source": "ref:SourceEnum",
+      "starts_on": "string(date)",
+      "status": "ref:MembershipTermStatusEnum"
+    },
+    "required": [
+      "ends_on",
+      "id",
+      "plan",
+      "source",
+      "starts_on",
+      "status"
+    ]
+  },
+  "MembershipTermStatusEnum": {
+    "enum": [
+      "active",
+      "expired",
+      "canceled"
+    ]
+  },
+  "MockCompleteRequest": {
+    "properties": {
+      "outcome": "ref:OutcomeEnum",
+      "payment_id": "integer"
+    },
+    "required": [
+      "payment_id"
+    ]
+  },
+  "NavEntry": {
+    "properties": {
+      "active": "boolean",
+      "kind": "ref:NavKindEnum",
+      "title": "string",
+      "url": "string"
+    },
+    "required": [
+      "active",
+      "kind",
+      "title",
+      "url"
+    ]
+  },
+  "NavKindEnum": {
+    "enum": [
+      "page",
+      "portal"
+    ]
+  },
+  "OutcomeEnum": {
+    "enum": [
+      "succeed",
+      "fail"
+    ]
+  },
+  "OwnerTypeEnum": {
+    "enum": [
+      "individual",
+      "fbo",
+      "club"
+    ]
+  },
+  "PaginatedAdminUserList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:AdminUser>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PaginatedAircraftList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:Aircraft>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PaginatedMemberListList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:MemberList>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PaginatedPaymentList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:Payment>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PaginatedReminderLogList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:ReminderLog>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PasswordChangeRequest": {
+    "properties": {
+      "current_password": "string",
+      "new_password": "string"
+    },
+    "required": [
+      "current_password",
+      "new_password"
+    ]
+  },
+  "PasswordResetConfirmRequest": {
+    "properties": {
+      "new_password": "string",
+      "token": "string",
+      "uid": "string"
+    },
+    "required": [
+      "new_password",
+      "token",
+      "uid"
+    ]
+  },
+  "PasswordResetRequest": {
+    "properties": {
+      "email": "string(email)"
+    },
+    "required": [
+      "email"
+    ]
+  },
+  "PatchedAdminMembershipRequest": {
+    "properties": {
+      "ends_on": "string(date)|null",
+      "note": "string",
+      "status": "ref:MembershipTermStatusEnum"
+    },
+    "required": []
+  },
+  "PatchedAdminProfileRequest": {
+    "properties": {
+      "address_line1": "string",
+      "address_line2": "string",
+      "air_care_alliance_number": "string",
+      "certificate_number": "string",
+      "city": "string",
+      "county": "string",
+      "dart_id": "integer|null",
+      "emergency_contact_name": "string",
+      "emergency_contact_phone": "string",
+      "flight_review_date": "string(date)|null",
+      "home_airport_city": "string",
+      "home_airport_identifier": "string",
+      "how_heard": "string",
+      "ifr_rated": "ref:IfrRatedEnum",
+      "medical_expiration": "string(date)|null",
+      "medical_type": "ref:MedicalTypeEnum",
+      "notes": "string",
+      "phone": "string",
+      "phone_alt": "string",
+      "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "postal_code": "string",
+      "ratings": "array<ref:RatingsEnum>",
+      "state": "string",
+      "total_hours": "integer|null",
+      "vol_exercise_training": "boolean",
+      "vol_fundraising": "boolean",
+      "vol_ground_team": "boolean",
+      "vol_member_support": "boolean",
+      "vol_newsletter": "boolean",
+      "vol_social_media": "boolean"
+    },
+    "required": []
+  },
+  "PatchedAdminUserRequest": {
+    "properties": {
+      "email": "string(email)",
+      "first_name": "string",
+      "is_active": "boolean",
+      "last_name": "string",
+      "roles": "array<ref:RolesEnum>"
+    },
+    "required": []
+  },
+  "PatchedAircraftRequest": {
+    "properties": {
+      "insurance_carrier": "string",
+      "insurance_expiration": "string(date)|null",
+      "insurance_hull_cents": "integer|null",
+      "insurance_liability_per_occurrence_cents": "integer",
+      "insurance_liability_per_person_cents": "integer",
+      "insurance_policy_number": "string",
+      "is_active": "boolean",
+      "make": "string",
+      "model": "string",
+      "n_number": "string",
+      "notes": "string",
+      "owner_contact": "string",
+      "owner_name": "string",
+      "owner_type": "ref:OwnerTypeEnum",
+      "seats": "integer|null",
+      "year": "integer|null"
+    },
+    "required": []
+  },
+  "PatchedMemberUpdateRequest": {
+    "properties": {
+      "email": "string(email)",
+      "first_name": "string",
+      "is_active": "boolean",
+      "last_name": "string",
+      "profile": "ref:PatchedAdminProfileRequest"
+    },
+    "required": []
+  },
+  "PatchedProfileRequest": {
+    "properties": {
+      "address_line1": "string",
+      "address_line2": "string",
+      "air_care_alliance_number": "string",
+      "certificate_number": "string",
+      "city": "string",
+      "county": "string",
+      "dart_id": "integer|null",
+      "emergency_contact_name": "string",
+      "emergency_contact_phone": "string",
+      "flight_review_date": "string(date)|null",
+      "home_airport_city": "string",
+      "home_airport_identifier": "string",
+      "ifr_rated": "ref:IfrRatedEnum",
+      "medical_expiration": "string(date)|null",
+      "medical_type": "ref:MedicalTypeEnum",
+      "phone": "string",
+      "phone_alt": "string",
+      "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "postal_code": "string",
+      "ratings": "array<ref:RatingsEnum>",
+      "state": "string",
+      "total_hours": "integer|null",
+      "vol_exercise_training": "boolean",
+      "vol_fundraising": "boolean",
+      "vol_ground_team": "boolean",
+      "vol_member_support": "boolean",
+      "vol_newsletter": "boolean",
+      "vol_social_media": "boolean"
+    },
+    "required": []
+  },
+  "PayPalCaptureRequest": {
+    "properties": {
+      "order_id": "string",
+      "payment_id": "integer"
+    },
+    "required": [
+      "payment_id"
+    ]
+  },
+  "Payment": {
+    "properties": {
+      "amount_cents": "integer",
+      "completed_at": "string(date-time)|null",
+      "contribution_cents": "integer",
+      "created_at": "string(date-time)",
+      "currency": "string",
+      "id": "integer",
+      "plan": "string|null",
+      "plan_amount_cents": "integer",
+      "provider": "ref:PaymentProviderEnum",
+      "provider_ref": "string",
+      "status": "ref:PaymentStatusEnum",
+      "user_id": "integer",
+      "user_name": "string",
+      "wallet": "ref:WalletEnum"
+    },
+    "required": [
+      "amount_cents",
+      "completed_at",
+      "contribution_cents",
+      "created_at",
+      "currency",
+      "id",
+      "plan",
+      "plan_amount_cents",
+      "provider",
+      "provider_ref",
+      "status",
+      "user_id",
+      "user_name",
+      "wallet"
+    ]
+  },
+  "PaymentPeriodSummary": {
+    "properties": {
+      "by_provider": "ref:ProviderTotals",
+      "contribution_cents": "integer",
+      "count": "integer",
+      "period": "string",
+      "plan_cents": "integer",
+      "total_cents": "integer"
+    },
+    "required": [
+      "by_provider",
+      "contribution_cents",
+      "count",
+      "period",
+      "plan_cents",
+      "total_cents"
+    ]
+  },
+  "PaymentProviderEnum": {
+    "enum": [
+      "stripe",
+      "paypal",
+      "mock"
+    ]
+  },
+  "PaymentResult": {
+    "properties": {
+      "membership": "ref:MembershipStatus",
+      "status": "ref:PaymentStatusEnum"
+    },
+    "required": [
+      "membership",
+      "status"
+    ]
+  },
+  "PaymentStatusEnum": {
+    "enum": [
+      "pending",
+      "succeeded",
+      "failed",
+      "refunded"
+    ]
+  },
+  "PaymentSummary": {
+    "properties": {
+      "amount_cents": "integer",
+      "completed_at": "string(date-time)|null",
+      "contribution_cents": "integer",
+      "id": "integer",
+      "plan": "string|null",
+      "provider": "ref:PaymentProviderEnum",
+      "status": "ref:PaymentStatusEnum"
+    },
+    "required": [
+      "amount_cents",
+      "completed_at",
+      "contribution_cents",
+      "id",
+      "plan",
+      "provider",
+      "status"
+    ]
+  },
+  "PaymentsConfig": {
+    "properties": {
+      "contribution_tiers": "array<ref:ContributionTier>",
+      "paypal_client_id": "string",
+      "plans": "array<ref:Plan>",
+      "providers": "array<ref:PaymentProviderEnum>",
+      "stripe_publishable_key": "string"
+    },
+    "required": [
+      "contribution_tiers",
+      "paypal_client_id",
+      "plans",
+      "providers",
+      "stripe_publishable_key"
+    ]
+  },
+  "PilotCertificateTypeEnum": {
+    "enum": [
+      "none",
+      "student",
+      "sport",
+      "recreational",
+      "private",
+      "commercial",
+      "atp"
+    ]
+  },
+  "Plan": {
+    "properties": {
+      "description": "string",
+      "duration_days": "integer|null",
+      "name": "string",
+      "price_cents": "integer",
+      "slug": "string"
+    },
+    "required": [
+      "description",
+      "duration_days",
+      "name",
+      "price_cents",
+      "slug"
+    ]
+  },
+  "Profile": {
+    "properties": {
+      "address_line1": "string",
+      "address_line2": "string",
+      "air_care_alliance_number": "string",
+      "aircraft": "array<ref:AircraftSummary>",
+      "certificate_number": "string",
+      "city": "string",
+      "county": "string",
+      "dart": "ref:DartRef|null",
+      "emergency_contact_name": "string",
+      "emergency_contact_phone": "string",
+      "flight_review_date": "string(date)|null",
+      "home_airport_city": "string",
+      "home_airport_identifier": "string",
+      "ifr_rated": "ref:IfrRatedEnum",
+      "medical_expiration": "string(date)|null",
+      "medical_is_current": "boolean",
+      "medical_type": "ref:MedicalTypeEnum",
+      "phone": "string",
+      "phone_alt": "string",
+      "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "postal_code": "string",
+      "ratings": "array<ref:RatingsEnum>",
+      "state": "string",
+      "total_hours": "integer|null",
+      "vol_exercise_training": "boolean",
+      "vol_fundraising": "boolean",
+      "vol_ground_team": "boolean",
+      "vol_member_support": "boolean",
+      "vol_newsletter": "boolean",
+      "vol_social_media": "boolean"
+    },
+    "required": [
+      "aircraft",
+      "dart",
+      "medical_is_current",
+      "phone"
+    ]
+  },
+  "ProfileRequest": {
+    "properties": {
+      "address_line1": "string",
+      "address_line2": "string",
+      "air_care_alliance_number": "string",
+      "certificate_number": "string",
+      "city": "string",
+      "county": "string",
+      "dart_id": "integer|null",
+      "emergency_contact_name": "string",
+      "emergency_contact_phone": "string",
+      "flight_review_date": "string(date)|null",
+      "home_airport_city": "string",
+      "home_airport_identifier": "string",
+      "ifr_rated": "ref:IfrRatedEnum",
+      "medical_expiration": "string(date)|null",
+      "medical_type": "ref:MedicalTypeEnum",
+      "phone": "string",
+      "phone_alt": "string",
+      "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "postal_code": "string",
+      "ratings": "array<ref:RatingsEnum>",
+      "state": "string",
+      "total_hours": "integer|null",
+      "vol_exercise_training": "boolean",
+      "vol_fundraising": "boolean",
+      "vol_ground_team": "boolean",
+      "vol_member_support": "boolean",
+      "vol_newsletter": "boolean",
+      "vol_social_media": "boolean"
+    },
+    "required": [
+      "phone"
+    ]
+  },
+  "ProviderTotals": {
+    "properties": {
+      "mock": "integer",
+      "paypal": "integer",
+      "stripe": "integer"
+    },
+    "required": []
+  },
+  "RatingsEnum": {
+    "enum": [
+      "instrument",
+      "multi_engine",
+      "cfi",
+      "cfii",
+      "mei",
+      "seaplane",
+      "helicopter",
+      "glider"
+    ]
+  },
+  "RegisterRequest": {
+    "properties": {
+      "email": "string(email)",
+      "first_name": "string",
+      "last_name": "string",
+      "password": "string"
+    },
+    "required": [
+      "email",
+      "first_name",
+      "last_name",
+      "password"
+    ]
+  },
+  "ReminderKindEnum": {
+    "enum": [
+      "t60",
+      "t30",
+      "t7",
+      "expired",
+      "post30"
+    ]
+  },
+  "ReminderLog": {
+    "properties": {
+      "id": "integer",
+      "kind": "ref:ReminderKindEnum",
+      "membership_id": "integer",
+      "sent_at": "string(date-time)",
+      "to_email": "string(email)",
+      "user_id": "integer",
+      "user_name": "string"
+    },
+    "required": [
+      "id",
+      "kind",
+      "membership_id",
+      "sent_at",
+      "to_email",
+      "user_id",
+      "user_name"
+    ]
+  },
+  "ReminderRunRequestRequest": {
+    "properties": {
+      "dry_run": "boolean"
+    },
+    "required": []
+  },
+  "ReminderRunResult": {
+    "properties": {
+      "sent": "integer",
+      "skipped": "integer"
+    },
+    "required": [
+      "sent",
+      "skipped"
+    ]
+  },
+  "Role": {
+    "properties": {
+      "description": "string",
+      "slug": "ref:RolesEnum"
+    },
+    "required": [
+      "description",
+      "slug"
+    ]
+  },
+  "RolesEnum": {
+    "enum": [
+      "member",
+      "dart_leader",
+      "user_admin",
+      "account_admin",
+      "website_admin",
+      "system_admin"
+    ]
+  },
+  "SendPasswordResetResult": {
+    "properties": {
+      "detail": "string"
+    },
+    "required": [
+      "detail"
+    ]
+  },
+  "SiteConfig": {
+    "properties": {
+      "contact_email": "string",
+      "members_pages": "array<ref:MembersPage>",
+      "nav": "array<ref:NavEntry>",
+      "org_name": "string",
+      "theme": "string"
+    },
+    "required": [
+      "contact_email",
+      "members_pages",
+      "nav",
+      "org_name",
+      "theme"
+    ]
+  },
+  "SourceEnum": {
+    "enum": [
+      "payment",
+      "manual",
+      "seed"
+    ]
+  },
+  "StripeConfirmRequest": {
+    "properties": {
+      "payment_id": "integer",
+      "payment_intent_id": "string"
+    },
+    "required": [
+      "payment_id"
+    ]
+  },
+  "User": {
+    "properties": {
+      "email": "string(email)",
+      "first_name": "string",
+      "id": "integer",
+      "is_active": "boolean",
+      "last_name": "string",
+      "membership": "ref:MembershipStatus",
+      "profile_complete": "boolean",
+      "roles": "array<ref:RolesEnum>"
+    },
+    "required": [
+      "email",
+      "first_name",
+      "id",
+      "is_active",
+      "last_name",
+      "membership",
+      "profile_complete",
+      "roles"
+    ]
+  },
+  "WalletEnum": {
+    "enum": [
+      "card",
+      "apple_pay",
+      "google_pay",
+      "link",
+      "paypal",
+      "mock",
+      "unknown"
+    ]
+  }
+}

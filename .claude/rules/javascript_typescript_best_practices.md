@@ -38,7 +38,7 @@ React 19 + TypeScript).
 - Avoid **`any`**. Use **`unknown`** when the type is truly unknown and narrow with type guards. Use **`never`** for exhaustive checks.
 - Use **discriminated unions** for state or result types (e.g. `{ status: 'loading' } | { status: 'error'; error: Error }`).
 - Use **generic constraints** instead of `any` when types are parameterized. Prefer `Record<string, unknown>` over `Record<string, any>` for generic objects.
-- API object shapes are declared once in `src/portal/api/types.ts`; use those types rather than redeclaring them.
+- API object shapes are declared once in `src/portal/api/types.ts`; use those types rather than redeclaring them. They are held to the backend's OpenAPI schema by `src/portal/api/types.contract.test.ts`, which pairs each interface with its generated component and asserts the two are mutually assignable, so a serializer change the types have not followed fails `tsc --noEmit`. Change an interface only together with the serializer behind it, and regenerate the schema with `npm run schema` (`npm run typecheck` and `npm run test` do it for you). `src/portal/api/schema.d.ts` is generated output: never edit or commit it.
 - In **JSDoc**, use `@param`, `@returns`, and `@throws` where they add value; keep types in TypeScript syntax.
 
 ## 4. Modules and Imports

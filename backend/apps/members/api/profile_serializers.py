@@ -15,6 +15,7 @@ from django.db import models
 from rest_framework import serializers
 
 from apps.aircraft.api.serializers import AircraftSummarySerializer
+from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.models import (
     RATING_VALUES,
     Dart,
@@ -61,6 +62,12 @@ class MembershipTermSerializer(serializers.ModelSerializer[Membership]):
         read_only_fields = fields
 
 
+class MembershipDetailSerializer(MembershipStatusSerializer):
+    """``GET /me/membership`` — the status summary plus every term, newest first."""
+
+    history = MembershipTermSerializer(many=True, read_only=True)
+
+
 class PaymentSummarySerializer(serializers.ModelSerializer[Payment]):
     """The trimmed payment row a member sees for themselves."""
 
@@ -92,7 +99,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     admin-only ``notes`` and ``how_heard`` fields are deliberately absent.
     """
 
-    dart = DartRefSerializer(read_only=True)
+    dart = DartRefSerializer(read_only=True, allow_null=True)
     dart_id = serializers.PrimaryKeyRelatedField(
         source="dart",
         queryset=Dart.objects.filter(is_active=True),
@@ -271,3 +278,9 @@ class AircraftAttachSerializer(serializers.Serializer[Any]):
     """``POST /me/profile/aircraft`` body."""
 
     aircraft_id = serializers.IntegerField()
+
+
+class AttachedAircraftSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /me/profile/aircraft`` response: the aircraft the profile now lists."""
+
+    aircraft = AircraftSummarySerializer(many=True, read_only=True)

@@ -340,6 +340,38 @@ The classes subclass ``AnonRateThrottle`` but override
 registration signs the new account in, and every request after the first would
 otherwise go uncounted.  Exceeding a rate is **429**.
 
+.. _api-machine-readable-schema:
+
+Machine-readable schema
+-----------------------
+
+The serializers behind this page also render to OpenAPI 3.0, which is how the
+portal's TypeScript types are held to the same contract the prose describes:
+
+.. code-block:: console
+
+   $ make check-backend     # writes backend/openapi.json
+
+The file is build output and is not committed, and no route serves it — there
+is no schema endpoint to call.  ``SPECTACULAR_SETTINGS`` in
+``caldart/settings/base.py`` configures the generator, and
+``caldart/api_urls.py`` carries the hook that narrows the description to
+``/api/v1/`` together with the description of the session authentication above.
+
+Request and response bodies get separate components, because a read-only field
+and a write-only one describe different objects: ``Profile`` is what
+``GET /me/profile`` answers and ``PatchedProfileRequest`` is what
+``PATCH /me/profile`` accepts, matching the ``Profile`` and ``ProfilePatch``
+pair in ``frontend/src/portal/api/types.ts``.
+
+Every endpoint under ``/api/v1/`` names its request and its response, through
+the serializer a generic view already carries or through an ``@extend_schema``
+annotation on a plain ``APIView``.  What has no component is what has no object
+to describe: a **204** answer, a webhook acknowledgment, and an export, whose
+body is a file.  :ref:`testing-api-contract` covers the two tests that compare
+the schema with the committed snapshot and with the portal's types, and lists
+the residual in full.
+
 Roles
 -----
 

@@ -9,6 +9,7 @@ from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -26,6 +27,7 @@ from apps.accounts.api.serializers import (
     PasswordResetSerializer,
     RegisterSerializer,
     RoleSerializer,
+    SendPasswordResetResultSerializer,
     UserSerializer,
 )
 from apps.accounts.models import User
@@ -57,6 +59,10 @@ class CsrfView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=None,
+        responses={204: OpenApiResponse(description="The CSRF cookie is set; no body.")},
+    )
     def get(self, request: Request) -> Response:
         """Answer 204 with no body, having set the CSRF cookie on the response.
 
@@ -73,6 +79,7 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [RegisterThrottle]
 
+    @extend_schema(request=RegisterSerializer, responses={201: UserSerializer})
     def post(self, request: Request) -> Response:
         """Create a member account from the posted fields, sign it in, and answer 201.
 
@@ -94,6 +101,7 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [LoginThrottle]
 
+    @extend_schema(request=LoginSerializer, responses={200: UserSerializer})
     def post(self, request: Request) -> Response:
         """Sign in by ``email`` and ``password``, answering 200 with the ``user`` payload.
 
@@ -132,6 +140,10 @@ class LogoutView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=None,
+        responses={204: OpenApiResponse(description="The session is over; no body.")},
+    )
     def post(self, request: Request) -> Response:
         """End the session and answer 204.
 
@@ -147,6 +159,7 @@ class MeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: UserSerializer})
     def get(self, request: Request) -> Response:
         """The signed-in account as the ``user`` payload, 200.
 
@@ -160,6 +173,10 @@ class PasswordChangeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=PasswordChangeSerializer,
+        responses={204: OpenApiResponse(description="The password is replaced; no body.")},
+    )
     def post(self, request: Request) -> Response:
         """Replace the signed-in account's password and answer 204.
 
@@ -189,6 +206,10 @@ class PasswordResetView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [PasswordResetThrottle]
 
+    @extend_schema(
+        request=PasswordResetSerializer,
+        responses={204: OpenApiResponse(description="Answered the same way for any address.")},
+    )
     def post(self, request: Request) -> Response:
         """Mail a reset link to the posted ``email`` and answer 204.
 
@@ -211,6 +232,10 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [PasswordResetThrottle]
 
+    @extend_schema(
+        request=PasswordResetConfirmSerializer,
+        responses={204: OpenApiResponse(description="The new password is set; no body.")},
+    )
     def post(self, request: Request) -> Response:
         """Set the new password the reset link authorizes, and answer 204.
 
@@ -232,6 +257,7 @@ class RolesView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: RoleSerializer(many=True)})
     def get(self, request: Request) -> Response:
         """Every role as ``{"slug", "description"}``, least privileged first, 200.
 
@@ -289,6 +315,7 @@ class AdminUserSendPasswordResetView(APIView):
 
     permission_classes = [IsUserAdmin]
 
+    @extend_schema(request=None, responses={200: SendPasswordResetResultSerializer})
     def post(self, request: Request, pk: int) -> Response:
         """Mail the account with id ``pk`` a reset link, and answer 200 with a message.
 

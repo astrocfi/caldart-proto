@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -32,7 +33,14 @@ from apps.aircraft.api.serializers import (
     LeaderStatusSerializer,
 )
 from apps.aircraft.models import Aircraft, normalize_n_number
-from caldart.reports import csv_response, filter_summary, pdf_table_response
+from caldart.reports import (
+    CSV_MEDIA_TYPE,
+    PDF_MEDIA_TYPE,
+    csv_response,
+    download_responses,
+    filter_summary,
+    pdf_table_response,
+)
 
 User = get_user_model()
 
@@ -103,6 +111,7 @@ class AircraftLookupView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: AircraftDetailSerializer})
     def get(self, request: Request) -> Response:
         """Look up the aircraft with the normalized ``n_number``.
 
@@ -151,6 +160,9 @@ class AircraftExportMixin(AircraftQuerysetMixin):
 class AircraftExportCsvView(AircraftExportMixin, generics.GenericAPIView[Aircraft]):
     """``GET /admin/aircraft/export.csv?<filters>``."""
 
+    @extend_schema(
+        responses=download_responses(CSV_MEDIA_TYPE, "The aircraft register as a CSV file.")
+    )
     def get(self, request: Request) -> StreamingHttpResponse:
         """Return the filtered register as a CSV file for download."""
         return csv_response(
@@ -163,6 +175,9 @@ class AircraftExportCsvView(AircraftExportMixin, generics.GenericAPIView[Aircraf
 class AircraftExportPdfView(AircraftExportMixin, generics.GenericAPIView[Aircraft]):
     """``GET /admin/aircraft/export.pdf?<filters>`` — landscape letter."""
 
+    @extend_schema(
+        responses=download_responses(PDF_MEDIA_TYPE, "The aircraft register as a PDF file.")
+    )
     def get(self, request: Request) -> HttpResponse:
         """Return the filtered register as a landscape-letter PDF for download."""
         return pdf_table_response(
@@ -182,6 +197,7 @@ class LeaderSearchView(APIView):
 
     permission_classes = [IsLeader]
 
+    @extend_schema(responses={200: LeaderSearchResultSerializer(many=True)})
     def get(self, request: Request) -> Response:
         """Return up to 20 members matching ``q`` by name, email or N-number."""
         query = request.query_params.get("q", "")
@@ -194,6 +210,7 @@ class LeaderMemberStatusView(APIView):
 
     permission_classes = [IsLeader]
 
+    @extend_schema(responses={200: LeaderStatusSerializer})
     def get(self, request: Request, user_id: int) -> Response:
         """Return the pre-flight status card for the member with primary key ``user_id``.
 
@@ -210,6 +227,7 @@ class LeaderAircraftView(APIView):
 
     permission_classes = [IsLeader]
 
+    @extend_schema(responses={200: AircraftDetailSerializer})
     def get(self, request: Request) -> Response:
         """Return the insurance card for the aircraft with the normalized ``n_number``.
 

@@ -8,6 +8,7 @@ command line deliberately; it is not something to do from a browser tab.
 from __future__ import annotations
 
 from django.http import FileResponse
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
@@ -19,6 +20,10 @@ from apps.accounts.permissions import IsSystemAdmin
 from apps.sysadmin import services
 from apps.sysadmin.api.serializers import BackupSerializer, HealthSerializer
 from caldart import audit
+from caldart.reports import download_responses
+
+#: The media type a database dump is served with.
+BACKUP_MEDIA_TYPE = "application/gzip"
 
 
 def _actor(request: Request) -> User:
@@ -41,6 +46,7 @@ class HealthView(APIView):
 
     permission_classes = [IsSystemAdmin]
 
+    @extend_schema(responses={200: HealthSerializer})
     def get(self, request: Request) -> Response:
         """Return the health payload with status 200.
 
@@ -61,6 +67,7 @@ class BackupListCreateView(APIView):
 
     permission_classes = [IsSystemAdmin]
 
+    @extend_schema(responses={200: BackupSerializer(many=True)})
     def get(self, request: Request) -> Response:
         """List existing dumps, newest first, as ``{name, size_bytes, created_at}``."""
         backups = [backup.as_dict() for backup in services.list_backups()]
@@ -68,6 +75,7 @@ class BackupListCreateView(APIView):
         # and does not model the `many=True` overload, which actually takes a sequence.
         return Response(BackupSerializer(backups, many=True).data)  # type: ignore[arg-type]
 
+    @extend_schema(request=None, responses={201: BackupSerializer})
     def post(self, request: Request) -> Response:
         """Create a new dump and return it with status 201.
 
@@ -104,6 +112,7 @@ class BackupDownloadView(APIView):
 
     permission_classes = [IsSystemAdmin]
 
+    @extend_schema(responses=download_responses(BACKUP_MEDIA_TYPE, "The gzipped database dump."))
     def get(self, request: Request, name: str) -> FileResponse:
         """Stream the gzipped dump called ``name`` as an attachment.
 
@@ -133,5 +142,5 @@ class BackupDownloadView(APIView):
             path.open("rb"),
             as_attachment=True,
             filename=path.name,
-            content_type="application/gzip",
+            content_type=BACKUP_MEDIA_TYPE,
         )
