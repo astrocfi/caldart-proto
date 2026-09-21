@@ -67,12 +67,14 @@ Role                 What it adds
 ``member``           Your own profile, payments and membership; renew;
                      members-only content while your membership is
                      current.
-``dart_leader``      Look up any member and check membership, medical,
+``dart_leader``      A Disaster Airlift Response Team (DART) member: look
+                     up any member and check membership, medical,
                      certificate and aircraft insurance currency.
 ``user_admin``       List accounts, assign roles, activate and
                      deactivate, and trigger password resets.
-``account_admin``    Create and edit members, grant membership terms by
-                     hand, maintain aircraft, and run reports.
+``account_admin``    Create, edit and delete members, grant membership
+                     terms by hand, maintain aircraft and payments, run
+                     reports, and check members like a DART leader.
 ``website_admin``    Edit the public site in the Wagtail admin.
 ``system_admin``     Everything above, plus backups, health and
                      reminder runs.
@@ -165,7 +167,8 @@ The portal's left-hand menu is grouped, and each entry appears only if your
 roles allow it:
 
 **Membership**
-   Your dashboard, your profile, the aircraft you fly, and renewal.
+   Your dashboard, your profile, the aircraft you fly, renewal, and
+   changing your password.
 
 **Operations**
    The DART leader's member and aircraft checks.

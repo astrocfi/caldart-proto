@@ -69,7 +69,9 @@ Step 3 — Pay
 Choose **Annual** ($45.00, one year) or **Life** ($650.00, once and never
 again), optionally add a contribution, and pay by card, Apple Pay, Google
 Pay or PayPal.  Your membership is activated the moment the payment clears
-— there is no waiting for anyone to approve it.
+— there is no waiting for anyone to approve it.  :doc:`payments` covers the
+checkout in more depth, including what a failed or pending payment looks
+like.
 
 Step 4 — Done
 -------------
@@ -174,7 +176,8 @@ An aircraft's insurance is what a DART leader checks before letting you fly a
 mission in it, so keep the carrier, limits and expiration date accurate.
 Every aircraft here has an **Edit** action.  On one you added, it opens the
 aircraft's details for editing; on one somebody else added, it tells you to
-ask an account administrator.
+ask an account administrator.  :doc:`aircraft` covers the shared register in
+more depth, including how insurance currency is worked out.
 
 
 Members-only content
