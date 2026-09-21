@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from rest_framework import serializers
 
 
-class HealthSerializer(serializers.Serializer):
+class HealthSerializer(serializers.Serializer[dict[str, Any]]):
     """``GET /system/health``."""
 
     db = serializers.CharField()
@@ -16,7 +18,7 @@ class HealthSerializer(serializers.Serializer):
     debug = serializers.BooleanField()
 
 
-class BackupSerializer(serializers.Serializer):
+class BackupSerializer(serializers.Serializer[dict[str, Any]]):
     """One entry of ``GET /system/backups``."""
 
     name = serializers.CharField()

@@ -5,17 +5,21 @@ replayed, because ``pg_dump`` writes ``CREATE TABLE`` without ``DROP``.
 """
 
 from pathlib import Path
+from typing import Any
 
 from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 from apps.sysadmin.services import BackupError, backup_dir, restore_backup
 
 
 class Command(BaseCommand):
+    """``manage.py db_restore`` command: replays a dump over the current database."""
+
     help = "Restore a backup over the current database. Destructive."
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
+        """Register the ``file`` argument and the ``--yes``/``--noinput`` flag."""
         parser.add_argument("file", help="Path to a .sql.gz dump, or a name inside BACKUP_DIR.")
         parser.add_argument(
             "--yes",
@@ -26,7 +30,14 @@ class Command(BaseCommand):
             help="Do not prompt for confirmation.",
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Drop the public schema and restore ``file`` over the current database.
+
+        ``file`` is resolved as a path first, then as a name inside
+        ``BACKUP_DIR``. Prompts for confirmation and raises ``CommandError`` on
+        any answer other than ``yes`` unless ``--yes`` was given, and when
+        ``file`` cannot be resolved or the restore itself fails.
+        """
         path = Path(options["file"])
         if not path.is_file():
             path = backup_dir() / options["file"]
