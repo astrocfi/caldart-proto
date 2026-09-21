@@ -217,8 +217,8 @@ check-backend: ## Django system checks + missing-migration check
 	$(MANAGE) makemigrations --check --dry-run --settings caldart.settings.test
 
 # `--deploy` adds Django's deployment-only checks to the default set, and those
-# carry exactly three tags: security, caches and async_support.  Naming all
-# three runs every deployment-only check while leaving out the default ones
+# carry exactly four tags: security, caches, async_support and mail.  Naming
+# all four runs every deployment-only check while leaving out the default ones
 # `check-backend` already covers -- among them the staticfiles/django_vite
 # check, which needs a `frontend/dist` this gate never builds (the backend CI
 # job does not run `check-frontend`).  The environment is a throwaway one set
@@ -233,7 +233,7 @@ check-deploy: ## Production deployment checks (manage.py check --deploy)
 	  SITE_URL="https://check-deploy.example.com" \
 	  EMAIL_URL="smtp://localhost:1025" \
 	  $(MANAGE) check --deploy --tag security --tag caches --tag async_support \
-	    --fail-level WARNING --settings caldart.settings.prod
+	    --tag mail --fail-level WARNING --settings caldart.settings.prod
 
 check-frontend: ## Production frontend build
 	cd frontend && $(NPM) run build
