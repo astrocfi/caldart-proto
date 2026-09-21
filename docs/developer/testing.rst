@@ -212,6 +212,9 @@ What the backend suite covers
 
    * - Module
      - Subject
+   * - ``test_app_layering.py``
+     - the one-way dependency rule between the apps
+       (:ref:`architecture-app-dependencies`), checked by an ``ast`` pass
    * - ``test_roles_permissions.py``
      - role helpers and the DRF permission classes
    * - ``test_server_controlled_fields.py``
