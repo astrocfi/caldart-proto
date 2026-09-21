@@ -83,7 +83,10 @@ def summary_differences(
 @pytest.fixture(scope="session")
 def openapi_schema() -> dict[str, Any]:
     """The OpenAPI document the project's serializers and views generate."""
-    schema: dict[str, Any] = SchemaGenerator().get_schema(request=None, public=True)
+    # drf-spectacular's generator carries no annotations, so mypy sees both calls
+    # as untyped; the document it returns is a plain JSON-shaped dict.
+    generator = SchemaGenerator()  # type: ignore[no-untyped-call]
+    schema: dict[str, Any] = generator.get_schema(request=None, public=True)  # type: ignore[no-untyped-call]
     return schema
 
 
@@ -113,9 +116,7 @@ def test_schema_components_match_the_snapshot(
         )
         pytest.skip(f"{SNAPSHOT_PATH.name} rewritten from the generated schema")
 
-    expected: dict[str, ComponentSummary] = json.loads(
-        SNAPSHOT_PATH.read_text(encoding="utf-8")
-    )
+    expected: dict[str, ComponentSummary] = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
     assert summary_differences(expected, generated_summaries) == []
 
 

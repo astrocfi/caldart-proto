@@ -120,8 +120,7 @@ const paymentResult: Matches<PaymentResult, Schemas['PaymentResult']> = true;
 const reminderLog: Matches<ReminderLogEntry, Schemas['ReminderLog']> = true;
 const paginatedPayments: Matches<Paginated<Payment>, Schemas['PaginatedPaymentList']> = true;
 const paginatedUsers: Matches<Paginated<User>, Schemas['PaginatedAdminUserList']> = true;
-const paginatedMembers: Matches<Paginated<MemberRow>, Schemas['PaginatedMemberListList']> =
-  true;
+const paginatedMembers: Matches<Paginated<MemberRow>, Schemas['PaginatedMemberListList']> = true;
 const paginatedAircraft: Matches<Paginated<Aircraft>, Schemas['PaginatedAircraftList']> = true;
 const paginatedReminders: Matches<
   Paginated<ReminderLogEntry>,

@@ -264,6 +264,9 @@ What the backend suite covers
        and the seeded tree
    * - ``test_sysadmin*.py``
      - backup, restore, reset, health, the production settings module
+   * - ``test_openapi_contract.py``
+     - the serializers still render the components, properties and enum values
+       the snapshot records (:ref:`testing-api-contract`)
    * - ``test_seed.py``, ``test_shell_views.py``
      - the seed commands run twice cleanly; the portal and public shells
 
@@ -384,7 +387,78 @@ the aircraft picker's search, exclude and create paths; the leader search and
 status card in each verdict state; every admin screen's filters, paging, export
 links and save paths; the payments summary's headline tiles and its table by
 month and by year; the checkout with the Stripe and PayPal SDKs mocked; and
-the four system panels.
+the four system panels.  ``api/types.contract.test.ts`` is a different kind of
+test: it checks the portal's own types against the backend's schema rather than
+any component's behavior (:ref:`testing-api-contract`).
+
+.. _testing-api-contract:
+
+The API contract
+================
+
+The DRF serializers under ``apps/*/api/`` and the portal's
+``frontend/src/portal/api/types.ts`` describe the same objects.  Two tests keep
+them saying the same thing, and both run inside ``make check``: rename a
+serializer field without following it in ``types.ts`` and the gate goes red.
+
+The description in the middle is OpenAPI, generated from the views:
+
+.. code-block:: console
+
+   $ make check-backend     # writes backend/openapi.json
+   $ cd frontend && npm run schema   # that JSON, then src/portal/api/schema.d.ts
+
+Neither artifact is committed.  ``backend/openapi.json`` comes from
+``manage.py spectacular``; ``frontend/src/portal/api/schema.d.ts`` comes from
+``openapi-typescript`` reading it.  The frontend's ``pretypecheck`` and
+``pretest`` scripts regenerate both, so ``tsc`` and vitest always read a schema
+that matches the serializers in the working tree.  ``drf-spectacular`` is
+configured by ``SPECTACULAR_SETTINGS`` in ``caldart/settings/base.py``, and
+``caldart/api_urls.py`` carries the preprocessing hook that narrows the schema
+to ``/api/v1/`` along with the description of the session authentication.  No
+route serves the schema: it is build output, not an endpoint.
+
+The backend half
+----------------
+
+``backend/tests/test_openapi_contract.py`` reduces the generated description to
+one summary per component — the property names and the required names, sorted,
+or the values of an enumeration in declared order — and compares that to
+``backend/tests/snapshots/openapi-components.json``.  A difference is reported
+one line per component, naming the snapshot's summary and the schema's.
+
+When the change is intended, refresh the snapshot and commit it with the code:
+
+.. code-block:: console
+
+   $ UPDATE_OPENAPI_SNAPSHOT=1 uv run pytest backend/tests/test_openapi_contract.py
+
+The test reports as skipped on that run, and passes on the next one.
+
+The frontend half
+-----------------
+
+``frontend/src/portal/api/types.contract.test.ts`` pairs each interface in
+``api/types.ts`` with its schema component and asserts the two are mutually
+assignable.  The comparison strips ``readonly`` and optionality at every depth,
+because OpenAPI marks a property optional whenever the serializer does not
+require it on input, which says nothing about whether the response carries it;
+property names and property types are what the two sides must agree on.  A
+mismatch is a ``tsc --noEmit`` error on the assertion's line, so
+``make lint-frontend`` and ``make check-frontend`` both catch it.  The file's
+runtime half asserts that every component the pairs name is still in the
+generated schema, which is the clearer failure when a serializer disappears
+altogether.
+
+What the schema does not cover
+------------------------------
+
+An endpoint served by a plain ``APIView`` with no serializer has nothing for the
+generator to read, so it contributes no component and the generator says so as
+it runs.  Checkout, the payment configuration, the leader status card, health,
+backups and the site configuration are in that group; they are documented by
+hand in :doc:`api-reference` and its pages.  Giving such a view a serializer, or
+an ``@extend_schema`` annotation, brings it into the contract.
 
 End-to-end tests
 ================
@@ -577,17 +651,19 @@ System checks and dependency audits
 .. code-block:: console
 
    $ make check           # every check below
-   $ make check-backend   # manage.py check --fail-level WARNING, makemigrations --check --dry-run
+   $ make check-backend   # manage.py check, makemigrations --check --dry-run, spectacular
    $ make check-deploy    # manage.py check --deploy, throwaway environment
-   $ make check-frontend  # npm run build
+   $ make check-frontend  # npm run typecheck, npm run build
    $ make audit           # both halves below
    $ make audit-backend   # uv audit: the versions in uv.lock against the OSV database
    $ make audit-frontend  # npm audit: the versions in package-lock.json
 
 ``make check`` fails on a Django system-check warning, on a model change
 without its migration, on a deployment warning against the production settings,
-and on a frontend that type-checks but does not build. ``check-backend`` uses
-``caldart.settings.test``.
+on portal types that no longer match the serializers
+(:ref:`testing-api-contract`), and on a frontend that type-checks but does not
+build. ``check-backend`` uses ``caldart.settings.test``, and writes the OpenAPI
+description ``check-frontend`` then checks the portal against.
 
 ``check-deploy`` runs ``manage.py check --deploy`` against
 ``caldart.settings.prod``, with a throwaway environment set inline in the
@@ -619,8 +695,9 @@ commands above run locally.
     ``make check-deploy`` and ``make test-backend``.
 
 **Frontend**
-    Node 22, ``npm ci``, then ``make lint-frontend``, ``make test-frontend``
-    and ``make check-frontend``.
+    Node 22 and ``npm ci``, plus uv and ``uv sync`` because every frontend
+    target regenerates the OpenAPI description from the serializers first; then
+    ``make lint-frontend``, ``make test-frontend`` and ``make check-frontend``.
 
 **Audit**
     ``make audit``.

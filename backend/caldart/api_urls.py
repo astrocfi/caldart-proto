@@ -14,6 +14,7 @@ from typing import Any
 from django.conf import settings
 from django.urls import include, path
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
+from drf_spectacular.openapi import AutoSchema
 
 app_name = "api"
 
@@ -22,21 +23,23 @@ app_name = "api"
 API_PATH_PREFIX = "/api/v1/"
 
 
-def portal_api_endpoints(*, endpoints: list[tuple[str, Any, Any, Any]], **_: Any) -> list[
-    tuple[str, Any, Any, Any]
-]:
+#: One entry of the generator's endpoint list: path, path regex, method, callback.
+type Endpoint = tuple[str, str, str, Any]
+
+
+def portal_api_endpoints(*, endpoints: list[Endpoint], **_: Any) -> list[Endpoint]:
     """Keep only the routes mounted under ``/api/v1/`` when generating the schema.
 
-    Wagtail's admin API view sets share the project's URL configuration but are driven by
-    Wagtail's own router, which cannot describe itself without a live request.  The portal
-    contract covers ``/api/v1/`` alone, so every other path is dropped before the generator
-    inspects it.  ``endpoints`` is a list of ``(path, path_regex, method, callback)``
-    tuples, and the return value is the filtered list in the same order.
+    Wagtail's admin API view sets share the project's URL configuration but are
+    driven by Wagtail's own router, which cannot describe itself without a live
+    request.  The portal contract covers ``/api/v1/`` alone, so every other path is
+    dropped before the generator inspects it.  The surviving entries come back in
+    the order they arrived.
     """
     return [entry for entry in endpoints if entry[0].startswith(API_PATH_PREFIX)]
 
 
-class SessionAuthenticationScheme(OpenApiAuthenticationExtension):
+class SessionAuthenticationScheme(OpenApiAuthenticationExtension):  # type: ignore[no-untyped-call]  # drf-spectacular's registering __init_subclass__ carries no annotations
     """Describe the project's session authentication to the OpenAPI generator.
 
     Importing this module registers the scheme, which every operation then names as
@@ -47,7 +50,7 @@ class SessionAuthenticationScheme(OpenApiAuthenticationExtension):
     target_class = "caldart.authentication.CsrfEnforcingSessionAuthentication"
     name = "sessionAuth"
 
-    def get_security_definition(self, auto_schema: Any) -> dict[str, str]:
+    def get_security_definition(self, auto_schema: AutoSchema) -> dict[str, str]:
         """Return the OpenAPI security scheme for the session cookie."""
         return {
             "type": "apiKey",
