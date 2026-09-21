@@ -180,6 +180,8 @@ you.  The register normalizes registrations, so ``N12345``, ``n-12345`` and
 ``12345`` all find the same airplane and a duplicate cannot be created by
 typing it differently.
 
+See :doc:`aircraft`.
+
 Access and sign-in
 ==================
 
