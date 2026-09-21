@@ -8,7 +8,7 @@
  * failed outright gets an error with a "Try again" button, because a server
  * error is not a sign-out.
  */
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import type { Location } from 'react-router-dom';
 
@@ -53,7 +53,8 @@ function AuthUnavailable({ onRetry, isRetrying }: AuthUnavailableProps): ReactNo
   );
 }
 
-export function RequireAuth({ children }: { children?: ReactNode }) {
+/** Route guard: renders the outlet only once `GET /auth/me` confirms a signed-in user. */
+export function RequireAuth({ children }: { children?: ReactNode }): JSX.Element {
   const { isAuthenticated, isLoading, isRefetching, error, refetch } = useAuth();
   const location = useLocation();
 
@@ -71,7 +72,8 @@ export interface RequireRoleProps {
   children?: ReactNode;
 }
 
-export function RequireRole({ roles, children }: RequireRoleProps) {
+/** Route guard: renders the outlet only for a signed-in user who holds one of `roles`. */
+export function RequireRole({ roles, children }: RequireRoleProps): JSX.Element {
   const { isAuthenticated, isLoading, isRefetching, error, refetch, roles: userRoles } = useAuth();
   const location = useLocation();
 
@@ -88,7 +90,8 @@ function roleLabel(slug: RoleSlug): string {
   return slug.replace(/_/g, ' ');
 }
 
-export function Forbidden({ roles = [] }: { roles?: RoleSlug[] }) {
+/** The 403 page shown when a signed-in user lacks the role a route needs. */
+export function Forbidden({ roles = [] }: { roles?: RoleSlug[] }): JSX.Element {
   const needed = roles.map(roleLabel).join(' or ');
   return (
     <Page title="Not allowed" eyebrow="403">

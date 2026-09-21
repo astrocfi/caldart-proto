@@ -92,8 +92,10 @@ export const IFR_LABELS: Record<IfrRated, string> = {
   no: 'VFR only',
 };
 
-export const certificateLabel = (value: string) => labelFor(CERTIFICATE_TYPES, value);
-export const medicalLabel = (value: string) => labelFor(MEDICAL_TYPES, value);
+/** The label for a certificate type code. */
+export const certificateLabel = (value: string): string => labelFor(CERTIFICATE_TYPES, value);
+/** The label for a medical type code. */
+export const medicalLabel = (value: string): string => labelFor(MEDICAL_TYPES, value);
 
 /** Ratings as one readable phrase, e.g. "Instrument, Multi-engine". */
 export function ratingLabels(ratings: readonly Rating[]): string {

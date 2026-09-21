@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 export interface PageProps {
   title: string;
@@ -12,7 +12,7 @@ export interface PageProps {
 }
 
 /** The standard portal page frame: header rule, title block, then content. */
-export function Page({ title, eyebrow, lede, actions, children }: PageProps) {
+export function Page({ title, eyebrow, lede, actions, children }: PageProps): JSX.Element {
   return (
     <article className="page">
       <header className="page__header">

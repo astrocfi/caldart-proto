@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 export interface CardProps {
   title?: ReactNode;
@@ -9,7 +9,7 @@ export interface CardProps {
 }
 
 /** A flat panel with a hairline border — no shadow, near-square corners. */
-export function Card({ title, eyebrow, footer, className, children }: CardProps) {
+export function Card({ title, eyebrow, footer, className, children }: CardProps): JSX.Element {
   return (
     <section className={className ? `card ${className}` : 'card'}>
       {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}

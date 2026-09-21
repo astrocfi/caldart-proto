@@ -3,7 +3,7 @@
  * `useToast().show(...)` from anywhere.
  */
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 export type ToastTone = 'info' | 'success' | 'error';
 
@@ -23,7 +23,8 @@ const ToastContext = createContext<ToastApi | null>(null);
 
 export const TOAST_TIMEOUT_MS = 6000;
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+/** Provides the toast queue and renders its viewport above `children`. */
+export function ToastProvider({ children }: { children: ReactNode }): JSX.Element {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(1);
 
@@ -50,19 +51,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Reads the toast queue from context; throws outside a `<ToastProvider>`. */
 export function useToast(): ToastApi {
   const context = useContext(ToastContext);
   if (!context) throw new Error('useToast must be used inside a <ToastProvider>');
   return context;
 }
 
+/** Renders the queued toasts, or nothing when the queue is empty. */
 export function ToastViewport({
   toasts,
   onDismiss,
 }: {
   toasts: Toast[];
   onDismiss: (id: number) => void;
-}) {
+}): JSX.Element | null {
   if (toasts.length === 0) return null;
   return (
     <div className="toast-viewport" role="status" aria-live="polite">
