@@ -134,10 +134,6 @@ max-doc-length = 90
 "backend/tests/test_payments_reports.py" = ["ANN", "D"]
 "backend/tests/test_payments_stripe.py" = ["ANN", "D"]
 "backend/tests/test_payments_stripe_client.py" = ["ANN", "D"]
-# Unit: tests-reminders
-"backend/tests/test_reminders.py" = ["ANN", "D"]
-"backend/tests/test_reminders_api.py" = ["ANN", "D"]
-"backend/tests/test_reminders_resilience.py" = ["ANN", "D"]
 # Unit: tests-cms
 "backend/tests/test_cms_documents.py" = ["ANN", "D"]
 "backend/tests/test_cms_pages.py" = ["ANN", "D"]
@@ -235,15 +231,6 @@ module = [
     "tests.test_payments_reports",
     "tests.test_payments_stripe",
     "tests.test_payments_stripe_client",
-]
-ignore_errors = true
-
-# Unit: tests-reminders
-[[tool.mypy.overrides]]
-module = [
-    "tests.test_reminders",
-    "tests.test_reminders_api",
-    "tests.test_reminders_resilience",
 ]
 ignore_errors = true
 
