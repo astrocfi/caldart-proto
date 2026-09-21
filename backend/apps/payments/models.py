@@ -47,7 +47,10 @@ class Payment(TimestampedModel):
     """One attempt to pay for a membership term and/or make a contribution."""
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payments"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="payments",
+        help_text="Protected: a payment is a financial record and outlives the account.",
     )
     plan = models.ForeignKey(
         "members.MembershipPlan",
@@ -108,3 +111,21 @@ class Payment(TimestampedModel):
         if self.contribution_cents:
             parts.append(f"contribution ${self.contribution_cents / 100:,.2f}")
         return " + ".join(parts) or "Contribution"
+
+
+def payment_deletion_refusal(user) -> str | None:
+    """The reason ``user`` cannot be deleted, or ``None`` when nothing stops it.
+
+    ``Payment.user`` is ``PROTECT``, so an account with any payment -- pending and
+    failed rows included -- cannot be deleted.  The sentence names the account, the
+    number of payment records that must be kept, and deactivation as the alternative.
+    Every surface that deletes an account shows this same sentence.
+    """
+    count = user.payments.count()
+    if count == 0:
+        return None
+    plural = "" if count == 1 else "s"
+    return (
+        f"{user.display_name} has {count} payment record{plural}, which must be kept. "
+        "Deactivate the account instead."
+    )

@@ -79,7 +79,7 @@ Domain schema
           Membership -> User [label="granted_by (null, SET_NULL)"];
           Membership -> Plan [label="plan (PROTECT)"];
           Membership -> Payment [label="payment  1--1 (null, SET_NULL)", arrowhead=none];
-          Payment -> User [label="user (CASCADE)"];
+          Payment -> User [label="user (PROTECT)"];
           Payment -> Plan [label="plan (null, PROTECT)"];
           Aircraft -> User [label="created_by (null, SET_NULL)"];
           Reminder -> User [label="user (CASCADE)"];
@@ -167,7 +167,7 @@ Domain schema
       members.Membership.granted_by  -> accounts.User            FK, SET_NULL, nullable
       members.Membership.plan        -> members.MembershipPlan   FK, PROTECT
       members.Membership.payment     -> payments.Payment         1--1, SET_NULL, nullable
-      payments.Payment.user          -> accounts.User            FK, CASCADE
+      payments.Payment.user          -> accounts.User            FK, PROTECT
       payments.Payment.plan          -> members.MembershipPlan   FK, PROTECT, nullable
       payments.Payment.provider      -> payments.Provider        slug, via get_provider()
       aircraft.Aircraft.created_by   -> accounts.User            FK, SET_NULL, nullable
@@ -837,7 +837,7 @@ One attempt to pay for a membership term, make a contribution, or both.
    * - Field
      - Notes
    * - ``user``
-     - FK, ``CASCADE``
+     - FK, ``PROTECT`` — the payment outlives the account
    * - ``plan``
      - FK, ``PROTECT``, **nullable** — ``NULL`` is a pure donation
    * - ``amount_cents``
@@ -872,6 +872,21 @@ One attempt to pay for a membership term, make a contribution, or both.
 - ``amount_cents`` is **never** taken from the client.  ``create_checkout``
   recomputes it as ``plan.price_cents + contribution_cents`` and refuses a
   total of zero.
+- ``user`` is ``PROTECT``, which makes the payment table the ledger the
+  accounts can rely on: revenue and donations for a closed period cannot
+  disappear because somebody tidied up a departed member.  Deleting an account
+  that has any payment raises ``ProtectedError``, whether the delete comes from
+  the API, the Django admin, a management command or a shell.
+  ``DELETE /admin/members/{user_id}`` turns that into a **403** with a message
+  pointing at deactivation (:doc:`api-members`); deactivating keeps the member,
+  the profile, the terms and the payments and only stops the sign-in.
+- The two ways the Wagtail admin deletes an account — the delete view at
+  ``/admin/users/delete/<id>/`` and the ``Delete`` bulk action on the users
+  listing — are stopped before they write, by the ``before_delete_user`` and
+  ``before_bulk_action`` hooks in ``apps/payments/wagtail_hooks.py``.  Each
+  sends the operator back to the users listing with that same sentence as an
+  error message; one protected account refuses a whole bulk batch, because the
+  bulk delete is a single query that cannot succeed in part.
 - ``refunded`` is a value the schema accepts; nothing in the prototype sets it
   (see :doc:`roadmap`).
 

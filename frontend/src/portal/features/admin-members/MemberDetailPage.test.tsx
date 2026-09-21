@@ -180,7 +180,8 @@ describe('MemberDetailPage', () => {
 
   it('requires the email address to be typed before deleting', async () => {
     const user = userEvent.setup();
-    server.use(...detailHandlers());
+    // Only a member who never paid can be deleted at all.
+    server.use(...detailHandlers(makeDetail({ payments: [] })));
     renderDetail('/admin/members/1?tab=danger');
 
     const button = await screen.findByRole('button', { name: 'Delete member' });
@@ -206,7 +207,7 @@ describe('MemberDetailPage', () => {
       http.delete(`${API}/admin/members/1`, () =>
         HttpResponse.json({ detail: 'You cannot delete your own account.' }, { status: 403 }),
       ),
-      ...detailHandlers(),
+      ...detailHandlers(makeDetail({ payments: [] })),
     );
     renderDetail('/admin/members/1?tab=danger');
 
