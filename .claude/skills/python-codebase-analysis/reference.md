@@ -18,7 +18,7 @@ Use this when you need concrete examples for a dimension or wording guidance. Th
 
 **Best practices – error messages**
 - **Finding**: Exceptions raised with no context: `raise ValueError("invalid input")`. **Evidence**: `backend/apps/<app>/services.py` lines 30, 55. **Suggestion**: Include the actual value and constraint: `raise ValueError(f"amount must be positive, got {amount}")`.
-- **Finding**: Callers cannot tell a misconfigured provider from a declined payment because both raise `RuntimeError`. **Evidence**: grep for `raise RuntimeError` under `apps/payments/`. **Suggestion**: Raise the domain exceptions (`ProviderNotConfigured`, `PaymentVerificationError`) so the API can answer 400 vs 402/409 appropriately.
+- **Finding**: Callers cannot tell a misconfigured provider from a declined payment because both raise `RuntimeError`. **Evidence**: grep for `raise RuntimeError` under `apps/payments/`. **Suggestion**: Raise the domain exceptions (`ProviderNotConfiguredError`, `PaymentVerificationError`) so the API can answer 400 vs 402/409 appropriately.
 
 **Best practices – encoding and I/O**
 - **Finding**: `open()` calls omit `encoding`; relies on platform default. **Evidence**: `backend/apps/<app>/management/commands/example.py` lines 18, 42. **Suggestion**: Add `encoding='utf-8'` (or the appropriate encoding) to all `open()` calls.
