@@ -433,7 +433,12 @@ page, block and settings base classes carry no types, and Wagtail, the four
 libraries it builds on (``django-modelcluster``, ``django-taggit``,
 ``django-treebeard`` and ``modelsearch``), ``django-environ``,
 ``django-filter``, ``django-vite`` and ``whitenoise`` are declared as untyped
-imports for the same reason.  As with the ruff rule sets,
+imports for the same reason.  ``factory_boy`` ships types but its declarative
+API (``Faker``, ``Sequence``, ``SubFactory``, ``LazyFunction``,
+``LazyAttribute``, ``post_generation``) and its metaclass constructor are not
+annotated, so its module is set to ``follow_imports = "skip"`` instead: mypy
+resolves its names as ``Any`` rather than reporting the gap at every call site.
+As with the ruff rule sets,
 one ``[[tool.mypy.overrides]]`` entry per unit carries ``ignore_errors = true``,
 and an entry disappears when its unit type-checks clean.  Silencing one line
 takes ``# type: ignore[<code>]`` with a comment naming the stub gap behind it.
