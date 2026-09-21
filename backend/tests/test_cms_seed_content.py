@@ -80,13 +80,15 @@ def test_seed_content_creates_one_page_per_dart() -> None:
 
 
 def test_seed_content_creates_three_news_posts() -> None:
-    """``seed_content`` creates three live news posts, newest first by date."""
+    """``seed_content`` creates three live news posts, one per date, newest first."""
     seed()
     index = NewsIndexPage.objects.get(slug="news")
     posts = NewsPage.objects.child_of(index).order_by("-date")
     assert posts.count() == 3
     assert all(post.live and post.intro for post in posts)
-    assert posts.first().date >= posts.last().date
+    dates = [post.date for post in posts]
+    assert dates == sorted(dates, reverse=True)
+    assert len(set(dates)) == 3
 
 
 def test_seed_content_flags_the_members_area() -> None:
@@ -181,7 +183,7 @@ def test_every_seeded_page_renders(client: Client) -> None:
 
 
 def test_seed_content_runs_twice_cleanly() -> None:
-    """Running ``seed_content`` twice leaves the tree byte-for-byte identical."""
+    """Running ``seed_content`` twice leaves the page counts and URL paths unchanged."""
     seed()
     first = {
         "pages": Page.objects.count(),

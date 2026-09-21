@@ -88,8 +88,7 @@ def make_contact_page(
 def grant_membership(user: User, plan: MembershipPlan, *, days_left: int = 200) -> Membership:
     """Give ``user`` a term that is current for ``days_left`` more days."""
     today = timezone.localdate()
-    # factory_boy's generated Factory.__call__ carries no stub annotations.
-    return MembershipFactory(  # type: ignore[no-untyped-call,return-value]
+    return MembershipFactory(
         user=user,
         plan=plan,
         starts_on=today - timedelta(days=30),
@@ -100,8 +99,7 @@ def grant_membership(user: User, plan: MembershipPlan, *, days_left: int = 200) 
 def expire_membership(user: User, plan: MembershipPlan, *, days_ago: int = 30) -> Membership:
     """Give ``user`` a term that lapsed ``days_ago`` days ago."""
     today = timezone.localdate()
-    # factory_boy's generated Factory.__call__ carries no stub annotations.
-    return MembershipFactory(  # type: ignore[no-untyped-call,return-value]
+    return MembershipFactory(
         user=user,
         plan=plan,
         starts_on=today - timedelta(days=days_ago + 365),
@@ -254,7 +252,7 @@ def test_standard_page_lists_its_children_in_the_aside(
 
 # ------------------------------------------------------------------ news
 def test_news_index_lists_and_paginates(client: Client, site_settings: SiteSettings) -> None:
-    """The news index paginates at ten posts and shows the newest posts first."""
+    """Ten news posts fill two pages, the newest posts on the first."""
     home = site_settings.site.root_page.specific
     index = make_news_index(home, intro="What we have been doing.")
     for position in range(10):
