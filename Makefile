@@ -64,7 +64,7 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
         audit-frontend backup restore reminders docs shell superuser collectstatic clean
 
 help: ## Show this help
-	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
+	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[1m%-16s\033[0m %s\n", $$1, $$2}'
 
 # ---------------------------------------------------------------- setup
@@ -81,7 +81,7 @@ up: ## Start Postgres and Mailpit
 down: ## Stop the containers (data survives in the caldart_pgdata volume)
 	$(COMPOSE) down
 
-wait-db:
+wait-db: ## Internal helper: block until Postgres in the containers accepts connections
 	@for i in $$(seq 1 60); do \
 	  $(COMPOSE) exec -T db pg_isready -U caldart -d caldart >/dev/null 2>&1 && exit 0; \
 	  sleep 1; \
@@ -182,7 +182,7 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 # ----------------------------------------------------------------- lint
 lint: lint-backend lint-frontend lint-spelling ## ruff + mypy + tsc + eslint + prettier + codespell
 
-lint-backend:
+lint-backend: ## ruff check + ruff format --check + mypy
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
 	$(UV) run mypy backend
@@ -191,11 +191,11 @@ lint-backend:
 # `plans/` stays out: the archived plans are frozen, and a live plan may quote
 # the very words a fix replaces.  `--check-hidden` is what reaches .github and
 # .claude, which codespell would otherwise skip for their leading dot.
-lint-spelling:
+lint-spelling: ## codespell over docs, prose and code
 	$(UV) run codespell --check-hidden README.rst CLAUDE.md docs backend frontend/src \
 	  frontend/e2e .github deploy .claude
 
-lint-frontend:
+lint-frontend: ## tsc --noEmit + eslint + prettier --check
 	cd frontend && $(NPM) run typecheck
 	cd frontend && $(NPM) run lint
 	cd frontend && $(NPM) run format:check
@@ -210,11 +210,11 @@ format: ## Auto-format Python and TypeScript
 # fails too), a model change without its migration, and the production build.
 check: check-backend check-frontend ## Django system checks, missing migrations, production build
 
-check-backend:
+check-backend: ## Django system checks + missing-migration check
 	$(MANAGE) check --settings caldart.settings.test --fail-level WARNING
 	$(MANAGE) makemigrations --check --dry-run --settings caldart.settings.test
 
-check-frontend:
+check-frontend: ## Production frontend build
 	cd frontend && $(NPM) run build
 
 # ---------------------------------------------------------------- audit
@@ -222,10 +222,10 @@ audit: audit-backend audit-frontend ## Known vulnerabilities in Python and npm d
 
 # `uv audit` checks the versions pinned in uv.lock against the OSV database.
 # It is a uv preview feature; the flag acknowledges that and silences the notice.
-audit-backend:
+audit-backend: ## uv audit against the OSV database
 	$(UV) audit --frozen --preview-features audit
 
-audit-frontend:
+audit-frontend: ## npm audit against known vulnerabilities
 	cd frontend && $(NPM) audit
 
 # ------------------------------------------------------------ scheduled
