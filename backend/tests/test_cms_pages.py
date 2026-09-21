@@ -7,62 +7,85 @@ import them rather than repeating the boilerplate.
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any, cast
 
 import pytest
 from django.template.loader import render_to_string
+from django.test import Client
 from django.utils import timezone
+from wagtail.models import Page
 
+from apps.accounts.models import User
 from apps.cms.models import (
     ContactPage,
     DartIndexPage,
     DartPage,
     NewsIndexPage,
     NewsPage,
+    SiteSettings,
     StandardPage,
 )
-from apps.members.models import MembershipStatusChoices
+from apps.members.models import Dart, Membership, MembershipPlan, MembershipStatusChoices
 from tests.factories import MembershipFactory
 
 pytestmark = pytest.mark.django_db
 
 
 # ---------------------------------------------------------------- helpers
-def publish(parent, page):
+def publish[P: Page](parent: Page, page: P) -> P:
     """Add ``page`` under ``parent``, publish it, and return it fresh."""
     parent.add_child(instance=page)
     page.save_revision().publish()
-    return type(page).objects.get(pk=page.pk)
+    # Wagtail's PageManager is untyped, so `.get()` returns Any; the caller always
+    # passes an instance of the page's own concrete class.
+    return cast(P, type(page).objects.get(pk=page.pk))
 
 
-def make_standard_page(parent, slug="a-page", title="A page", **fields):
+def make_standard_page(
+    parent: Page, slug: str = "a-page", title: str = "A page", **fields: Any
+) -> StandardPage:
+    """Publish a ``StandardPage`` named ``title`` under ``parent`` and return it."""
     return publish(parent, StandardPage(title=title, slug=slug, **fields))
 
 
-def make_news_index(parent, slug="news", title="News", **fields):
+def make_news_index(
+    parent: Page, slug: str = "news", title: str = "News", **fields: Any
+) -> NewsIndexPage:
+    """Publish a ``NewsIndexPage`` named ``title`` under ``parent`` and return it."""
     return publish(parent, NewsIndexPage(title=title, slug=slug, **fields))
 
 
-def make_news_page(parent, slug, title, *, days_ago=0, **fields):
+def make_news_page(
+    parent: Page, slug: str, title: str, *, days_ago: int = 0, **fields: Any
+) -> NewsPage:
+    """Publish a ``NewsPage`` dated ``days_ago`` days before today and return it."""
     fields.setdefault("date", timezone.localdate() - timedelta(days=days_ago))
     return publish(parent, NewsPage(title=title, slug=slug, **fields))
 
 
-def make_dart_index(parent, slug="darts", title="DARTs", **fields):
+def make_dart_index(
+    parent: Page, slug: str = "darts", title: str = "DARTs", **fields: Any
+) -> DartIndexPage:
+    """Publish a ``DartIndexPage`` named ``title`` under ``parent`` and return it."""
     return publish(parent, DartIndexPage(title=title, slug=slug, **fields))
 
 
-def make_dart_page(parent, dart, **fields):
+def make_dart_page(parent: Page, dart: Dart, **fields: Any) -> DartPage:
+    """Publish a ``DartPage`` for ``dart`` under ``parent`` and return it."""
     fields.setdefault("leader_name", "Helen Marchetti")
     fields.setdefault("leader_contact", "helen@example.org")
     slug = dart.airport_identifier.lower() or "team"
     return publish(parent, DartPage(title=dart.name, slug=slug, dart=dart, **fields))
 
 
-def make_contact_page(parent, slug="contact", title="Contact Us", **fields):
+def make_contact_page(
+    parent: Page, slug: str = "contact", title: str = "Contact Us", **fields: Any
+) -> ContactPage:
+    """Publish a ``ContactPage`` named ``title`` under ``parent`` and return it."""
     return publish(parent, ContactPage(title=title, slug=slug, **fields))
 
 
-def grant_membership(user, plan, *, days_left=200):
+def grant_membership(user: User, plan: MembershipPlan, *, days_left: int = 200) -> Membership:
     """Give ``user`` a term that is current for ``days_left`` more days."""
     today = timezone.localdate()
     return MembershipFactory(
@@ -73,7 +96,8 @@ def grant_membership(user, plan, *, days_left=200):
     )
 
 
-def expire_membership(user, plan, *, days_ago=30):
+def expire_membership(user: User, plan: MembershipPlan, *, days_ago: int = 30) -> Membership:
+    """Give ``user`` a term that lapsed ``days_ago`` days ago."""
     today = timezone.localdate()
     return MembershipFactory(
         user=user,
@@ -104,7 +128,10 @@ ALL_BLOCKS = [
 
 
 # ------------------------------------------------------------- home page
-def test_home_page_renders_the_editorial_layout(client, site_settings):
+def test_home_page_renders_the_editorial_layout(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The home page renders its hero, mission, concept steps and tax status copy."""
     home = site_settings.site.root_page.specific
     home.hero_heading = "Volunteer air transportation"
     home.hero_lede = "Relief supplies keep moving."
@@ -129,7 +156,10 @@ def test_home_page_renders_the_editorial_layout(client, site_settings):
     assert "data-site-nav" in body
 
 
-def test_home_page_features_the_three_latest_news_posts(client, site_settings):
+def test_home_page_features_the_three_latest_news_posts(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The home page lists only the three most recent public news posts."""
     home = site_settings.site.root_page.specific
     index = make_news_index(home)
     for position in range(5):
@@ -148,7 +178,10 @@ def test_home_page_features_the_three_latest_news_posts(client, site_settings):
     assert "Post 4" not in body
 
 
-def test_home_page_hides_members_only_posts_from_the_featured_list(client, site_settings):
+def test_home_page_hides_members_only_posts_from_the_featured_list(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """A members-only post never appears in the home page's featured news list."""
     home = site_settings.site.root_page.specific
     index = make_news_index(home)
     make_news_page(index, "secret", "Members briefing", days_ago=0, members_only=True)
@@ -158,7 +191,10 @@ def test_home_page_hides_members_only_posts_from_the_featured_list(client, site_
 
 
 # --------------------------------------------------------- standard page
-def test_standard_page_renders_every_block_type(client, site_settings):
+def test_standard_page_renders_every_block_type(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """A standard page renders the intro and every StreamField block type it holds."""
     home = site_settings.site.root_page.specific
     page = make_standard_page(home, "blocks", "Blocks", intro="An intro", body=ALL_BLOCKS)
 
@@ -176,7 +212,10 @@ def test_standard_page_renders_every_block_type(client, site_settings):
     assert "<aside data-raw>Raw markup</aside>" in body
 
 
-def test_standard_page_shows_the_on_this_page_rail_only_when_it_earns_it(client, site_settings):
+def test_standard_page_shows_the_on_this_page_rail_only_when_it_earns_it(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The "On this page" rail appears only once a page has more than one heading."""
     home = site_settings.site.root_page.specific
     long_page = make_standard_page(home, "long", "Long", body=ALL_BLOCKS)
     short_page = make_standard_page(
@@ -198,7 +237,10 @@ def test_standard_page_shows_the_on_this_page_rail_only_when_it_earns_it(client,
     assert "On this page" not in client.get(short_page.url).content.decode()
 
 
-def test_standard_page_lists_its_children_in_the_aside(client, site_settings):
+def test_standard_page_lists_its_children_in_the_aside(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """A standard page with children lists them under an "In this section" heading."""
     home = site_settings.site.root_page.specific
     about = make_standard_page(home, "about", "About Us")
     make_standard_page(about, "history", "History")
@@ -209,7 +251,8 @@ def test_standard_page_lists_its_children_in_the_aside(client, site_settings):
 
 
 # ------------------------------------------------------------------ news
-def test_news_index_lists_and_paginates(client, site_settings):
+def test_news_index_lists_and_paginates(client: Client, site_settings: SiteSettings) -> None:
+    """Ten news posts fill two pages, the newest posts on the first."""
     home = site_settings.site.root_page.specific
     index = make_news_index(home, intro="What we have been doing.")
     for position in range(10):
@@ -228,8 +271,9 @@ def test_news_index_lists_and_paginates(client, site_settings):
 
 
 def test_news_index_hides_members_only_posts_from_visitors(
-    client, site_settings, member, annual_plan
-):
+    client: Client, site_settings: SiteSettings, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A members-only news post appears in the index only once the visitor is a member."""
     home = site_settings.site.root_page.specific
     index = make_news_index(home)
     make_news_page(index, "open", "Open post", days_ago=1)
@@ -245,7 +289,8 @@ def test_news_index_hides_members_only_posts_from_visitors(
     assert "Members briefing" in member_body
 
 
-def test_news_page_renders(client, site_settings):
+def test_news_page_renders(client: Client, site_settings: SiteSettings) -> None:
+    """A news post renders its intro, body and a link back to the news index."""
     home = site_settings.site.root_page.specific
     index = make_news_index(home)
     post = make_news_page(
@@ -265,7 +310,10 @@ def test_news_page_renders(client, site_settings):
 
 
 # ------------------------------------------------------------------ dart
-def test_dart_index_renders_a_table_of_teams(client, site_settings, dart):
+def test_dart_index_renders_a_table_of_teams(
+    client: Client, site_settings: SiteSettings, dart: Dart
+) -> None:
+    """The DART index renders a table row with each team's airport, name and leader."""
     home = site_settings.site.root_page.specific
     about = make_standard_page(home, "about", "About Us")
     index = make_dart_index(about, intro="Find the team nearest you.")
@@ -280,7 +328,10 @@ def test_dart_index_renders_a_table_of_teams(client, site_settings, dart):
     assert "Helen Marchetti" in body
 
 
-def test_dart_page_renders_its_facts(client, site_settings, dart):
+def test_dart_page_renders_its_facts(
+    client: Client, site_settings: SiteSettings, dart: Dart
+) -> None:
+    """A DART page exposes the team's airport identifier, city and leader mail link."""
     home = site_settings.site.root_page.specific
     about = make_standard_page(home, "about", "About Us")
     index = make_dart_index(about)
@@ -296,7 +347,10 @@ def test_dart_page_renders_its_facts(client, site_settings, dart):
     assert "← All DARTs" in body
 
 
-def test_dart_page_leader_href_handles_a_phone_number(site_settings, dart):
+def test_dart_page_leader_href_handles_a_phone_number(
+    site_settings: SiteSettings, dart: Dart
+) -> None:
+    """A leader contact that is a phone number becomes a ``tel:`` link, digits only."""
     home = site_settings.site.root_page.specific
     index = make_dart_index(home)
     page = make_dart_page(index, dart, leader_contact="(650) 555-0143")
@@ -307,7 +361,10 @@ def test_dart_page_leader_href_handles_a_phone_number(site_settings, dart):
 
 
 # --------------------------------------------------------------- contact
-def test_contact_page_pulls_details_from_site_settings(client, site_settings):
+def test_contact_page_pulls_details_from_site_settings(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The contact page renders the email, phone, mailing address and EIN in settings."""
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.contact_phone = "(650) 555-0143"
     site_settings.mailing_address = "PO Box 1180\nSan Carlos, CA 94070"
@@ -327,7 +384,8 @@ def test_contact_page_pulls_details_from_site_settings(client, site_settings):
 
 # ---------------------------------------------------- members-only wall
 @pytest.fixture
-def walled_page(site_settings):
+def walled_page(site_settings: SiteSettings) -> StandardPage:
+    """A published, members-only standard page holding one secret paragraph."""
     home = site_settings.site.root_page.specific
     return make_standard_page(
         home,
@@ -339,7 +397,10 @@ def walled_page(site_settings):
     )
 
 
-def test_wall_blocks_anonymous_visitors_with_a_sign_in_cta(client, walled_page):
+def test_wall_blocks_anonymous_visitors_with_a_sign_in_cta(
+    client: Client, walled_page: StandardPage
+) -> None:
+    """An anonymous visitor gets the members-only wall with a sign-in and join link."""
     response = client.get(walled_page.url)
     assert response.status_code == 403
     body = response.content.decode()
@@ -350,7 +411,10 @@ def test_wall_blocks_anonymous_visitors_with_a_sign_in_cta(client, walled_page):
     assert "/portal/join" in body
 
 
-def test_wall_offers_renewal_to_an_expired_member(client, walled_page, member, annual_plan):
+def test_wall_offers_renewal_to_an_expired_member(
+    client: Client, walled_page: StandardPage, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A member whose term lapsed sees the wall with a renewal link, not the page."""
     expire_membership(member, annual_plan)
     client.force_login(member)
 
@@ -362,7 +426,10 @@ def test_wall_offers_renewal_to_an_expired_member(client, walled_page, member, a
     assert "The secret handbook." not in body
 
 
-def test_wall_offers_joining_to_a_member_who_never_paid(client, walled_page, member):
+def test_wall_offers_joining_to_a_member_who_never_paid(
+    client: Client, walled_page: StandardPage, member: User
+) -> None:
+    """A signed-in user with no membership at all sees the wall with a join link."""
     client.force_login(member)
 
     response = client.get(walled_page.url)
@@ -372,7 +439,10 @@ def test_wall_offers_joining_to_a_member_who_never_paid(client, walled_page, mem
     assert "/portal/join" in body
 
 
-def test_current_member_reads_the_page(client, walled_page, member, annual_plan):
+def test_current_member_reads_the_page(
+    client: Client, walled_page: StandardPage, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A member with a current term reads the walled page's content."""
     grant_membership(member, annual_plan)
     client.force_login(member)
 
@@ -381,7 +451,10 @@ def test_current_member_reads_the_page(client, walled_page, member, annual_plan)
     assert "The secret handbook." in response.content.decode()
 
 
-def test_dart_leader_without_a_membership_reads_the_page(client, walled_page, leader):
+def test_dart_leader_without_a_membership_reads_the_page(
+    client: Client, walled_page: StandardPage, leader: User
+) -> None:
+    """A DART leader with no membership of their own still reads the walled page."""
     assert leader.membership_status["status"] == "none"
     client.force_login(leader)
 
@@ -390,12 +463,16 @@ def test_dart_leader_without_a_membership_reads_the_page(client, walled_page, le
     assert "The secret handbook." in response.content.decode()
 
 
-def test_superuser_reads_the_page(client, walled_page, superuser):
+def test_superuser_reads_the_page(
+    client: Client, walled_page: StandardPage, superuser: User
+) -> None:
+    """A superuser reads the walled page regardless of membership."""
     client.force_login(superuser)
     assert client.get(walled_page.url).status_code == 200
 
 
-def test_a_page_that_is_not_walled_is_public(client, site_settings):
+def test_a_page_that_is_not_walled_is_public(client: Client, site_settings: SiteSettings) -> None:
+    """A page with ``members_only`` unset stays reachable by an anonymous visitor."""
     home = site_settings.site.root_page.specific
     page = make_standard_page(home, "open", "Open", body=[("paragraph", "<p>Public.</p>")])
     response = client.get(page.url)
@@ -403,7 +480,10 @@ def test_a_page_that_is_not_walled_is_public(client, site_settings):
     assert "Public." in response.content.decode()
 
 
-def test_members_only_news_post_is_walled(client, site_settings, member):
+def test_members_only_news_post_is_walled(
+    client: Client, site_settings: SiteSettings, member: User
+) -> None:
+    """A members-only news post is walled off even for a member with no term."""
     home = site_settings.site.root_page.specific
     index = make_news_index(home)
     post = make_news_page(index, "closed", "Briefing", members_only=True)
@@ -414,7 +494,10 @@ def test_members_only_news_post_is_walled(client, site_settings, member):
 
 
 # --------------------------------------------------------------- the nav
-def test_nav_lists_menu_pages_then_the_portal_actions(client, site_settings):
+def test_nav_lists_menu_pages_then_the_portal_actions(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The nav lists menu pages first, then the anonymous portal actions."""
     home = site_settings.site.root_page.specific
     make_standard_page(home, "about", "About Us", show_in_menus=True)
     make_standard_page(home, "hidden", "Hidden", show_in_menus=False)
@@ -433,7 +516,10 @@ def test_nav_lists_menu_pages_then_the_portal_actions(client, site_settings):
     assert "Hidden" not in body
 
 
-def test_nav_shows_members_instead_of_log_in_when_signed_in(client, site_settings, member):
+def test_nav_shows_members_instead_of_log_in_when_signed_in(
+    client: Client, site_settings: SiteSettings, member: User
+) -> None:
+    """A signed-in visitor sees a "Members" link in place of "Log in"."""
     client.force_login(member)
     body = client.get("/").content.decode()
     assert ">Members</a>" in body
@@ -441,7 +527,8 @@ def test_nav_shows_members_instead_of_log_in_when_signed_in(client, site_setting
     assert ">Log in</a>" not in body
 
 
-def test_nav_marks_the_current_section(client, site_settings):
+def test_nav_marks_the_current_section(client: Client, site_settings: SiteSettings) -> None:
+    """The nav marks the top-level ancestor of the current page as current."""
     home = site_settings.site.root_page.specific
     about = make_standard_page(home, "about", "About Us", show_in_menus=True)
     history = make_standard_page(about, "history", "History")
@@ -450,7 +537,8 @@ def test_nav_marks_the_current_section(client, site_settings):
     assert 'href="/about/" aria-current="page"' in body
 
 
-def test_nav_skips_unpublished_pages(client, site_settings):
+def test_nav_skips_unpublished_pages(client: Client, site_settings: SiteSettings) -> None:
+    """An unpublished page never appears in the server-rendered nav or home page."""
     home = site_settings.site.root_page.specific
     draft = make_standard_page(home, "draft", "Draft page", show_in_menus=True)
     draft.unpublish()
@@ -459,15 +547,17 @@ def test_nav_skips_unpublished_pages(client, site_settings):
 
 
 # ---------------------------------------------------------------- theme
-def test_theme_comes_from_site_settings(client, site_settings):
+def test_theme_comes_from_site_settings(client: Client, site_settings: SiteSettings) -> None:
+    """The rendered page carries the ``data-theme`` attribute from site settings."""
     site_settings.theme = "pacific"
     site_settings.save(update_fields=["theme"])
     assert 'data-theme="pacific"' in client.get("/").content.decode()
 
 
 def test_theme_preview_is_only_offered_to_administrators(
-    client, site_settings, member, website_admin
-):
+    client: Client, site_settings: SiteSettings, member: User, website_admin: User
+) -> None:
+    """Only a website administrator's page carries the theme-preview marker."""
     assert "data-theme-preview" not in client.get("/").content.decode()
 
     client.force_login(member)
@@ -478,7 +568,8 @@ def test_theme_preview_is_only_offered_to_administrators(
 
 
 # ----------------------------------------------------------- error pages
-def test_404_page_uses_the_site_chrome(client, site_settings):
+def test_404_page_uses_the_site_chrome(client: Client, site_settings: SiteSettings) -> None:
+    """A missing URL renders the 404 page inside the normal site chrome."""
     response = client.get("/no-such-page/")
     assert response.status_code == 404
     body = response.content.decode()
@@ -486,7 +577,7 @@ def test_404_page_uses_the_site_chrome(client, site_settings):
     assert 'class="skip-link"' in body
 
 
-def test_500_template_renders_without_a_request_or_context():
+def test_500_template_renders_without_a_request_or_context() -> None:
     """Django's 500 handler renders with no request, so no context processor runs."""
     body = render_to_string("500.html")
     assert "Something went wrong at our end" in body

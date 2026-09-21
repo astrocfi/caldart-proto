@@ -12,21 +12,30 @@ through the guarded view.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from io import StringIO
 from pathlib import Path
+from typing import cast
 
 import pytest
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.management import call_command
+from django.http import HttpResponse, HttpResponseBase, StreamingHttpResponse
+from django.test import Client
+from pytest_django.fixtures import Settings
 from wagtail.documents import get_document_model
+from wagtail.documents.models import Document as WagtailDocument
 from wagtail.models import Collection
 
+from apps.accounts.models import User
 from apps.cms.models import (
     MEMBERS_ONLY_COLLECTION_NAME,
+    SiteSettings,
     StandardPage,
     ensure_members_only_collection,
 )
+from apps.members.models import MembershipPlan
 from tests.test_cms_pages import expire_membership, grant_membership
 from tests.test_sysadmin_settings import DEPLOY
 
@@ -41,8 +50,8 @@ APACHE = DEPLOY / "apache" / "caldart.conf"
 NGINX = DEPLOY / "nginx" / "caldart.conf"
 
 
-def make_document(collection: Collection, *, title: str = "Member roster") -> Document:
-    """Upload ``SECRET`` into ``collection`` under a fixed filename."""
+def make_document(collection: Collection, *, title: str = "Member roster") -> WagtailDocument:
+    """Upload ``SECRET`` into ``collection`` under a fixed filename and return it."""
     return Document.objects.create(
         title=title,
         file=ContentFile(SECRET, name="roster.pdf"),
@@ -50,11 +59,15 @@ def make_document(collection: Collection, *, title: str = "Member roster") -> Do
     )
 
 
-def body_of(response) -> bytes:
+def body_of(response: HttpResponseBase) -> bytes:
     """The response body, whether it streams (a served file) or not (the wall)."""
+    # The test client's stub loses the real response subclass (it monkeypatches
+    # the class Wagtail's view returns), so mypy only sees the common base here;
+    # `.streaming` at runtime says which real type each response actually is.
     if response.streaming:
-        return b"".join(response.streaming_content)
-    return response.content
+        streaming_content = cast(StreamingHttpResponse, response).streaming_content
+        return b"".join(cast(Iterator[bytes], streaming_content))
+    return cast(HttpResponse, response).content
 
 
 def config_text(config: Path) -> str:
@@ -64,7 +77,7 @@ def config_text(config: Path) -> str:
 
 
 @pytest.fixture(autouse=True)
-def document_storage(settings, tmp_path) -> None:
+def document_storage(settings: Settings, tmp_path: Path) -> None:
     """Store uploads on a real filesystem, as the deployed site does.
 
     The suite's default in-memory storage has no readable path, so the serve
@@ -78,37 +91,56 @@ def document_storage(settings, tmp_path) -> None:
 
 
 @pytest.fixture
-def members_collection(db) -> Collection:
+def members_collection(db: None) -> Collection:
+    """The "Members only" document collection, created if it does not exist."""
     return ensure_members_only_collection()
 
 
 @pytest.fixture
-def members_document(members_collection) -> Document:
+def members_document(members_collection: Collection) -> WagtailDocument:
+    """A document uploaded into the members-only collection."""
     return make_document(members_collection)
 
 
 # ------------------------------------------------------------ who is refused
-def test_an_anonymous_visitor_is_refused(client, site_settings, members_document) -> None:
+def test_an_anonymous_visitor_is_refused(
+    client: Client, site_settings: SiteSettings, members_document: WagtailDocument
+) -> None:
+    """An anonymous visitor downloading a members-only document gets a 403."""
     assert client.get(members_document.url).status_code == 403
 
 
-def test_a_refusal_withholds_the_file(client, site_settings, members_document) -> None:
+def test_a_refusal_withholds_the_file(
+    client: Client, site_settings: SiteSettings, members_document: WagtailDocument
+) -> None:
+    """A refused download never contains the guarded file's bytes."""
     assert SECRET not in body_of(client.get(members_document.url))
 
 
-def test_a_refusal_renders_the_members_only_wall(client, site_settings, members_document) -> None:
+def test_a_refusal_renders_the_members_only_wall(
+    client: Client, site_settings: SiteSettings, members_document: WagtailDocument
+) -> None:
+    """A refused document download renders the members-only wall's sign-in link."""
     body = body_of(client.get(members_document.url)).decode()
     assert "/portal/login?next=" in body
 
 
-def test_the_wall_names_the_document(client, site_settings, members_document) -> None:
+def test_the_wall_names_the_document(
+    client: Client, site_settings: SiteSettings, members_document: WagtailDocument
+) -> None:
+    """The members-only wall names the document the visitor tried to download."""
     body = body_of(client.get(members_document.url)).decode()
     assert "Member roster" in body
 
 
 def test_a_member_whose_membership_lapsed_is_refused(
-    client, site_settings, members_document, member, annual_plan
+    client: Client,
+    site_settings: SiteSettings,
+    members_document: WagtailDocument,
+    member: User,
+    annual_plan: MembershipPlan,
 ) -> None:
+    """A member whose term expired is refused a members-only document."""
     expire_membership(member, annual_plan)
     client.force_login(member)
 
@@ -116,8 +148,13 @@ def test_a_member_whose_membership_lapsed_is_refused(
 
 
 def test_a_lapsed_member_is_offered_renewal(
-    client, site_settings, members_document, member, annual_plan
+    client: Client,
+    site_settings: SiteSettings,
+    members_document: WagtailDocument,
+    member: User,
+    annual_plan: MembershipPlan,
 ) -> None:
+    """A member whose term expired is offered a renewal link on the wall."""
     expire_membership(member, annual_plan)
     client.force_login(member)
 
@@ -125,8 +162,9 @@ def test_a_lapsed_member_is_offered_renewal(
 
 
 def test_a_member_who_never_paid_is_refused(
-    client, site_settings, members_document, member
+    client: Client, site_settings: SiteSettings, members_document: WagtailDocument, member: User
 ) -> None:
+    """A signed-in user with no membership at all is refused the document."""
     client.force_login(member)
 
     assert client.get(members_document.url).status_code == 403
@@ -134,8 +172,13 @@ def test_a_member_who_never_paid_is_refused(
 
 # ------------------------------------------------------------- who is served
 def test_a_current_member_is_served_the_file(
-    client, site_settings, members_document, member, annual_plan
+    client: Client,
+    site_settings: SiteSettings,
+    members_document: WagtailDocument,
+    member: User,
+    annual_plan: MembershipPlan,
 ) -> None:
+    """A member with a current term downloads the exact file bytes."""
     grant_membership(member, annual_plan)
     client.force_login(member)
 
@@ -143,8 +186,9 @@ def test_a_current_member_is_served_the_file(
 
 
 def test_a_dart_leader_without_a_membership_is_served_the_file(
-    client, site_settings, members_document, leader
+    client: Client, site_settings: SiteSettings, members_document: WagtailDocument, leader: User
 ) -> None:
+    """A DART leader with no membership of their own still downloads the file."""
     assert leader.membership_status["status"] == "none"
     client.force_login(leader)
 
@@ -152,20 +196,27 @@ def test_a_dart_leader_without_a_membership_is_served_the_file(
 
 
 # ------------------------------------------------- which collections are closed
-def test_a_child_collection_is_guarded_too(client, site_settings, members_collection) -> None:
+def test_a_child_collection_is_guarded_too(
+    client: Client, site_settings: SiteSettings, members_collection: Collection
+) -> None:
+    """A document in a collection nested under "Members only" is guarded too."""
     child = members_collection.add_child(name="Board minutes")
     document = make_document(child, title="Minutes")
 
     assert client.get(document.url).status_code == 403
 
 
-def test_a_document_in_the_root_collection_stays_public(client, site_settings) -> None:
+def test_a_document_in_the_root_collection_stays_public(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """A document in the root collection downloads without signing in."""
     document = make_document(Collection.get_first_root_node(), title="Sponsor flyer")
 
     assert body_of(client.get(document.url)) == SECRET
 
 
-def test_a_sibling_collection_stays_public(client, site_settings) -> None:
+def test_a_sibling_collection_stays_public(client: Client, site_settings: SiteSettings) -> None:
+    """A document outside "Members only" and its children stays public."""
     other = Collection.get_first_root_node().add_child(name="Press kit")
     document = make_document(other, title="Logo pack")
 
@@ -174,21 +225,25 @@ def test_a_sibling_collection_stays_public(client, site_settings) -> None:
 
 # -------------------------------------------------------------- the serve path
 def test_documents_are_served_through_django() -> None:
+    """``WAGTAILDOCS_SERVE_METHOD`` routes document downloads through Django."""
     assert settings.WAGTAILDOCS_SERVE_METHOD == "serve_view"
 
 
-def test_a_document_url_does_not_point_at_media(members_document) -> None:
+def test_a_document_url_does_not_point_at_media(members_document: WagtailDocument) -> None:
+    """A document's URL is served from ``/documents/``, never ``/media/``."""
     assert members_document.url.startswith("/documents/")
 
 
 # --------------------------------------------------------------------- the seed
 def test_the_seed_creates_the_members_only_collection() -> None:
+    """``seed_content`` creates exactly one "Members only" collection."""
     call_command("seed_content", stdout=StringIO())
 
     assert Collection.objects.filter(name=MEMBERS_ONLY_COLLECTION_NAME).count() == 1
 
 
 def test_seeding_twice_leaves_one_collection() -> None:
+    """Running ``seed_content`` twice does not duplicate the collection."""
     call_command("seed_content", stdout=StringIO())
     call_command("seed_content", stdout=StringIO())
 
@@ -196,6 +251,7 @@ def test_seeding_twice_leaves_one_collection() -> None:
 
 
 def test_the_seeded_collection_sits_under_the_root() -> None:
+    """The seeded "Members only" collection is a direct child of the root collection."""
     call_command("seed_content", stdout=StringIO())
 
     collection = Collection.objects.get(name=MEMBERS_ONLY_COLLECTION_NAME)
@@ -203,6 +259,7 @@ def test_the_seeded_collection_sits_under_the_root() -> None:
 
 
 def test_the_documents_page_says_where_to_upload_members_only_files() -> None:
+    """The seeded documents-and-links page names the members-only collection."""
     call_command("seed_content", stdout=StringIO())
 
     page = StandardPage.objects.get(slug="docs-and-links")
@@ -212,11 +269,13 @@ def test_the_documents_page_says_where_to_upload_members_only_files() -> None:
 
 # ------------------------------------------------------------------ the proxies
 def test_nginx_refuses_the_documents_directory() -> None:
+    """The nginx config returns 404 for any request under ``/media/documents/``."""
     pattern = r"location\s+/media/documents/\s*\{[^}]*return\s+404;"
     assert re.search(pattern, config_text(NGINX)) is not None
 
 
 def test_apache_refuses_the_documents_directory() -> None:
+    """The Apache config denies all access to the documents media directory."""
     pattern = (
         r"<Directory\s+\"?/srv/caldart/backend/media/documents\"?\s*>"
         r"[^<]*Require\s+all\s+denied"
@@ -225,4 +284,5 @@ def test_apache_refuses_the_documents_directory() -> None:
 
 
 def test_apache_no_longer_calls_the_uploads_public() -> None:
+    """The Apache config no longer describes uploads as public by design."""
     assert "public by design" not in APACHE.read_text()
