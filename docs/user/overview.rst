@@ -76,7 +76,7 @@ does not replace the first term; it adds another one after it.
               T60 -> T30 -> T7 -> TEnd -> TPost;
           }
 
-          TEnd -> Expired [style=dotted, label="the same day"];
+          TEnd -> Expired [style=dotted, label="still current that day;\lExpired the next morning\l"];
       }
 
 .. only:: not graphviz
@@ -129,7 +129,8 @@ does not replace the first term; it adds another one after it.
       renewal page:
 
         60 days before  ->  30 days before  ->  7 days before  ->
-        the day it ends (the same day the term becomes Expired)  ->
+        the day it ends (you are still current that day; the term
+        becomes Expired the next morning)  ->
         30 days after
 
       "Expiring soon" and "Life member" are drawn dashed above because neither
@@ -146,9 +147,10 @@ What each state means
   the join wizard before paying.
 
 **Current**
-  A term covers today.  Members-only pages open, your dashboard shows a
-  **Current** chip and the date your membership runs to, and the membership
-  half of a DART leader's check passes.
+  A term covers today, which includes its own end date: you are current up to
+  and including the last day of the term.  Members-only pages open, your
+  dashboard shows a **Current** chip and the date your membership runs to, and
+  the membership half of a DART leader's check passes.
 
 **Expiring soon**
   Still current, with 30 days or fewer to run.  The portal turns the dashboard
@@ -156,7 +158,8 @@ What each state means
   is taken away.
 
 **Expired**
-  A term started and ran out, and no other term covers today.  You can still
+  A term started and ran out — the day after its end date is the first day it
+  no longer counts — and no other term covers today.  You can still
   sign in, see your own profile and renew; members-only pages show the wall
   instead of the page.
 
