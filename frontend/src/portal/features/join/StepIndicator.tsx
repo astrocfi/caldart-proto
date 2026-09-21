@@ -1,4 +1,6 @@
 /** The wizard's progress rail: numbered, ticked once passed, wraps on a phone. */
+import type { JSX } from 'react';
+
 import { JOIN_STEPS, JOIN_STEP_LABELS, joinStepIndex } from './steps';
 import type { JoinStep } from './steps';
 import './join.css';
@@ -7,7 +9,8 @@ export interface StepIndicatorProps {
   current: JoinStep;
 }
 
-export function StepIndicator({ current }: StepIndicatorProps) {
+/** Renders the join wizard's numbered progress rail, ticking off finished steps. */
+export function StepIndicator({ current }: StepIndicatorProps): JSX.Element {
   const currentIndex = joinStepIndex(current);
 
   return (

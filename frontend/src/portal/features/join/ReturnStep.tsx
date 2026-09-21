@@ -8,6 +8,7 @@
  */
 import { CheckoutReturn } from '@/portal/features/checkout';
 import type { CheckoutResult } from '@/portal/features/checkout';
+import type { JSX } from 'react';
 
 import { ButtonLink } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -17,7 +18,8 @@ export interface ReturnStepProps {
   onSettled: (result: CheckoutResult) => void;
 }
 
-export function ReturnStep({ onSettled }: ReturnStepProps) {
+/** Confirms a redirect-based payment method and settles it via `<CheckoutReturn/>`. */
+export function ReturnStep({ onSettled }: ReturnStepProps): JSX.Element {
   return (
     <Card className="join-card" eyebrow="Step 3 of 4" title="Finishing your payment">
       <CheckoutReturn

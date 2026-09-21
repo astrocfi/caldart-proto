@@ -1,10 +1,13 @@
 /** `/portal/system` — health, backups and reminders. */
+import type { JSX } from 'react';
+
 import { Page } from '../../components/Page';
 import { BackupsPanel } from './BackupsPanel';
 import { HealthPanel } from './HealthPanel';
 import { RemindersPanel } from './RemindersPanel';
 
-export function SystemPage() {
+/** Renders the system administration screen: health, backups and reminders. */
+export function SystemPage(): JSX.Element {
   return (
     <Page
       title="System"

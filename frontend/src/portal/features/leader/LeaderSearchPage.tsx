@@ -5,6 +5,7 @@
  * use the back button, and reload without losing the card.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
@@ -20,7 +21,8 @@ import { MemberStatusCard } from './MemberStatusCard';
 import { useLeaderSearch, useMemberStatus } from './api';
 import './leader.css';
 
-export function LeaderSearchPage() {
+/** Searches members and renders the chosen one's pre-flight status card. */
+export function LeaderSearchPage(): JSX.Element {
   const [params, setParams] = useSearchParams();
   // `?member=` comes from a link or a hand-edited URL: only a real record id
   // opens the card, so a stray value cannot become a request for member NaN.

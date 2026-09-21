@@ -4,6 +4,8 @@
  * `healthChecks` turns the raw payload into one row per check with an ok /
  * warn / bad verdict; the component only renders what it returns.
  */
+import type { JSX } from 'react';
+
 import type { Health } from '../../api/types';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -114,7 +116,8 @@ export function healthChecks(health: Health, now: Date = new Date()): HealthChec
   ];
 }
 
-export function HealthPanel() {
+/** Renders the server's health checks, with a button to refresh them. */
+export function HealthPanel(): JSX.Element {
   const { data, isPending, isError, error, refetch, isFetching } = useHealth();
 
   return (

@@ -1,4 +1,6 @@
 /** Step 2 — the same profile form `/profile` uses. */
+import type { JSX } from 'react';
+
 import { ApiError } from '../../api/client';
 import { Card } from '../../components/Card';
 import { EmptyState } from '../../components/EmptyState';
@@ -12,7 +14,8 @@ export interface ProfileStepProps {
   onDone: () => void;
 }
 
-export function ProfileStep({ onDone }: ProfileStepProps) {
+/** Step 2 of the join wizard: the profile form shared with `/profile`. */
+export function ProfileStep({ onDone }: ProfileStepProps): JSX.Element {
   const profile = useProfile();
   const save = useSaveProfile();
   const toast = useToast();

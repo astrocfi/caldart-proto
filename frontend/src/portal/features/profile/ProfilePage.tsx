@@ -1,4 +1,5 @@
 /** `/profile` — the member's own details. */
+import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
@@ -11,7 +12,8 @@ import { ProfileForm } from './ProfileForm';
 import { useProfile, useSaveProfile } from './api';
 import { profileToForm, saveErrorMessage } from './form';
 
-export function ProfilePage() {
+/** Renders and saves the signed-in member's own profile. */
+export function ProfilePage(): JSX.Element {
   const profile = useProfile();
   const save = useSaveProfile();
   const toast = useToast();

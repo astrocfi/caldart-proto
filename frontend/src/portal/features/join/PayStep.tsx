@@ -9,6 +9,7 @@
 import { Checkout } from '@/portal/features/checkout';
 import type { CheckoutResult } from '@/portal/features/checkout';
 import { useQueryClient } from '@tanstack/react-query';
+import type { JSX } from 'react';
 
 import { Card } from '../../components/Card';
 import { refreshAfterPayment } from './refresh';
@@ -18,7 +19,8 @@ export interface PayStepProps {
   onDone: () => void;
 }
 
-export function PayStep({ onDone }: PayStepProps) {
+/** Step 3 of the join wizard: collects payment through `<Checkout/>`. */
+export function PayStep({ onDone }: PayStepProps): JSX.Element {
   const queryClient = useQueryClient();
 
   function handleSuccess(_result: CheckoutResult) {
