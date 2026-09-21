@@ -124,20 +124,37 @@ shape of the module and everything that has to be told about it.
            return True
 
        def handle_webhook(self, request: HttpRequest) -> HttpResponse:
-           """Apply one Acme notification, idempotently."""
+           """Apply one Acme notification, idempotently.
+
+           A ``charge.paid`` event for a known charge that Acme still reports at the
+           recorded amount and currency activates the membership term; a
+           ``charge.failed`` event marks the payment failed.  An unknown charge, a
+           failed verification and every other event type are received but not
+           handled.
+           """
            if request.method != "POST":
                return HttpResponseNotAllowed(["POST"])
            if not self._signature_is_valid(request):
                return JsonResponse({"detail": "Invalid Acme signature."}, status=400)
            event = json.loads(request.body)
+           event_type = str(event.get("type", ""))
            charge_id = str(event.get("charge_id", ""))
            payment = Payment.objects.filter(provider=self.slug, provider_ref=charge_id).first()
            if payment is None:
                log.info("Acme webhook named an unknown charge %s", charge_id)
                return JsonResponse({"received": True, "handled": False})
-           charge = self._read_charge(charge_id)
-           self._verify(payment, charge)
-           mark_succeeded(payment, wallet=PaymentWallet.CARD, raw=dict(charge))
+           if event_type == "charge.paid":
+               charge = self._read_charge(charge_id)
+               try:
+                   self._verify(payment, charge)
+               except PaymentVerificationError as exc:
+                   log.error("Acme webhook verification failed: %s", exc)
+                   return JsonResponse({"received": True, "handled": False})
+               mark_succeeded(payment, wallet=PaymentWallet.CARD, raw=dict(charge))
+           elif event_type == "charge.failed":
+               mark_failed(payment, dict(event))
+           else:
+               return JsonResponse({"received": True, "handled": False})
            return JsonResponse({"received": True, "handled": True})
 
        def _verify(self, payment: Payment, charge: AcmeCharge) -> None:
@@ -168,15 +185,23 @@ shape of the module and everything that has to be told about it.
 
 The three helpers are the only places the vendor's library appears.  Each must
 turn that library's exceptions into ``ProviderUnavailableError`` (and a missing
-key into ``ProviderNotConfiguredError``), because the API answers a
-``PaymentError`` with HTTP 400 and anything else with a 500.  ``confirm`` and
-``handle_webhook`` both reach the money through ``mark_succeeded``, which is
-idempotent, so a webhook that arrives after the browser's confirmation is a
-no-op rather than a second membership term.
+key into ``ProviderNotConfiguredError``), because the confirm view catches
+``PaymentError`` and answers it with HTTP 400, while anything else becomes a
+500.  The webhook view catches nothing: it hands the request straight to
+``handle_webhook``, so the skeleton catches ``PaymentVerificationError`` itself
+and answers 200 with ``handled: false``.  An exception that escapes there is a
+500, which a provider reads as a failed delivery and retries, so a single
+mismatched amount would arrive again and again.
 
-Never trust the notification body: the skeleton reads the charge back from Acme
-and compares the amount and currency against the stored payment before it
-settles anything.
+``confirm`` and ``handle_webhook`` both reach the money through
+``mark_succeeded``, which is idempotent, so a webhook that arrives after the
+browser's confirmation is a no-op rather than a second membership term.
+
+Never trust the notification body.  The skeleton settles nothing on the
+strength of the event alone: it branches on the event type, reads the charge
+back from Acme, and compares the amount and currency against the stored payment
+before it activates a term.  A notification that reports anything other than a
+paid charge must never reach ``mark_succeeded``.
 
 **Documentation to change:** :doc:`payments-setup` (the provider list and the
 go-live checklist), :doc:`api-payments` (the confirm and webhook endpoints),
