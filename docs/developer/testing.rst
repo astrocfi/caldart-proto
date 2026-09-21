@@ -405,14 +405,38 @@ Linting and type-checking
 .. code-block:: console
 
    $ make lint            # everything below
-   $ make lint-backend    # ruff check, ruff format --check
+   $ make lint-backend    # ruff check, ruff format --check, mypy backend
    $ make lint-frontend   # tsc --noEmit, eslint --max-warnings 0, prettier --check
    $ make lint-spelling   # codespell over the prose, the code and the tests
    $ make format          # fix what can be fixed automatically
 
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
 ``py312``, rule sets ``E``, ``F``, ``I``, ``UP``, ``B``, ``DJ``, ``C4``, ``W``,
-with migrations excluded.  TypeScript runs in strict mode; ``tsc --noEmit`` is
+``ANN`` and ``D``, with migrations excluded.  ``ANN`` requires an annotation on
+every parameter and every return value, and ``D`` requires a docstring on every
+public module, class, function and method and checks the form of every docstring
+it finds (a ``_``-prefixed helper's docstring is a matter for review);
+``max-doc-length = 90`` turns on ``W505``,
+which wraps those docstrings at 90 characters.  A package's ``__init__.py``
+(``D104``) and a nested ``Meta`` class (``D106``) need no docstring.  Both rule
+sets are suspended for the backend units listed in
+``[tool.ruff.lint.per-file-ignores]``, one entry per unit under a comment naming
+it.  An entry disappears when its unit carries annotations and docstrings
+throughout, and no entry may be added.
+
+``mypy`` type-checks ``backend`` — the application and the tests alike — as the
+third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
+``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
+and ``caldart.settings.test`` as the settings module the Django plugin reads;
+migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
+page, block and settings base classes carry no types, and Wagtail,
+``django-environ``, ``django-filter``, ``django-vite`` and ``whitenoise`` are
+declared as untyped imports for the same reason.  As with the ruff rule sets,
+one ``[[tool.mypy.overrides]]`` entry per unit carries ``ignore_errors = true``,
+and an entry disappears when its unit type-checks clean.  Silencing one line
+takes ``# type: ignore[<code>]`` with a comment naming the stub gap behind it.
+
+TypeScript runs in strict mode; ``tsc --noEmit`` is
 part of linting rather than of the build, so a type error fails ``make lint``.
 ESLint runs with ``--max-warnings 0``, so a warning, such as a missing hook
 dependency, fails ``make lint`` too.  Two rules apply to every TypeScript file

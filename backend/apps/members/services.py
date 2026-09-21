@@ -203,7 +203,7 @@ def delete_member(actor: User, target: User) -> None:
 
 
 def _refuse_delete(actor: User, target: User, reason: str, message: str) -> NoReturn:
-    """Record the refused delete and raise ``DomainPermissionError`` carrying ``message``."""
+    """Log the refused delete and raise ``DomainPermissionError`` carrying ``message``."""
     audit.refuse(audit.MEMBER_DELETE, actor=actor, target=target, reason=reason)
     raise DomainPermissionError(message)
 

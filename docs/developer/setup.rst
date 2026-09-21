@@ -271,7 +271,7 @@ descriptions.  In full, halves and helpers included:
    * - ``lint``
      - ``lint-backend``, ``lint-frontend``, then ``lint-spelling``
    * - ``lint-backend``
-     - ``ruff check`` and ``ruff format --check``
+     - ``ruff check``, ``ruff format --check`` and ``mypy backend``
    * - ``lint-frontend``
      - ``tsc --noEmit``, ``eslint``, ``prettier --check``
    * - ``lint-spelling``
@@ -361,7 +361,7 @@ Five commands must be green, and CI runs all five on every pull request:
 .. code-block:: console
 
    $ make test     # pytest + vitest; a warning fails the run
-   $ make lint     # ruff, tsc, eslint (no warnings), prettier, codespell
+   $ make lint     # ruff, mypy, tsc, eslint (no warnings), prettier, codespell
    $ make check    # manage.py check, makemigrations --check, npm run build
    $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors
    $ make audit    # uv audit + npm audit: known vulnerabilities

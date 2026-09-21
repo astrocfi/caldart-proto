@@ -148,7 +148,7 @@ def test_anonymous_cannot_delete_aircraft(api_client: APIClient, other_aircraft:
 def test_anonymous_cannot_complete_a_mock_payment(
     api_client: APIClient, payment_factory: type[PaymentFactory], annual_plan: MembershipPlan
 ) -> None:
-    """The mock provider's completion hook needs a session, so the payment stays pending."""
+    """The mock provider's completion hook needs a session, so the payment is pending."""
     payment = payment_factory(plan=annual_plan, status=PaymentStatus.PENDING)
     response = api_client.post(MOCK_COMPLETE_URL, {"payment_id": payment.pk, "outcome": "succeed"})
     assert response.status_code == 401
@@ -307,6 +307,6 @@ def test_no_role_user_may_check_out(
 def test_no_role_user_is_refused_role_gated_endpoints(
     api_client: APIClient, no_role_user: User, url: str
 ) -> None:
-    """Every role-gated endpoint answers 403, not 401: the session is real, the role is not."""
+    """Role-gated endpoints answer 403, not 401: the session is real, the role is not."""
     api_client.force_login(no_role_user)
     assert api_client.get(url).status_code == 403
