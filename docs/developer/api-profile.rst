@@ -257,8 +257,9 @@ Idempotent — attaching twice is a no-op that returns the same list.
 Statuses:
 
 * **200** — the caller's aircraft list, including the one just attached.
-* **400** — ``aircraft_id`` missing or not an integer, reported as
-  ``{"aircraft_id": ["This field is required."]}``.
+* **400** — ``aircraft_id`` is missing, reported as
+  ``{"aircraft_id": ["This field is required."]}``, or is present but not an
+  integer, reported as ``{"aircraft_id": ["A valid integer is required."]}``.
 * **404** — no aircraft has that id.
 
 
