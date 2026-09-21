@@ -81,10 +81,20 @@ extend-exclude = ["**/migrations/*"]
 src = ["backend"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "DJ", "C4", "W", "ANN", "D"]
+select = [
+    "E", "F", "I", "UP", "B", "DJ", "C4", "W", "ANN", "D",
+    "A", "N", "RUF", "SIM", "PT", "PTH", "RET", "PERF", "ERA", "T20", "S",
+]
 # D104: a package's __init__.py needs no docstring.
 # D106: a model's or serializer's nested Meta class needs no docstring.
-ignore = ["B008", "DJ001", "D104", "D106"]
+# RUF012: Django's Meta options, admin list_display lists and serializer fields are
+# class-level configuration the framework reads and nothing mutates, so ClassVar would
+# document nothing.
+ignore = ["B008", "DJ001", "D104", "D106", "RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+# S101: assert is pytest's assertion mechanism.
+"backend/tests/**" = ["S101"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["caldart", "apps"]

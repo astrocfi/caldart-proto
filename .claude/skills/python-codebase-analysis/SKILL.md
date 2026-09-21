@@ -38,7 +38,7 @@ Compare against project rules (`.claude/rules/python.md`). Check:
 - Error handling: narrow try/except; no bare except.
 - Layering: request validation in DRF serializers and forms (see `security`); thin views; domain logic in each app's `services.py`.
 - Management commands and application code: user-facing command output through `self.stdout` / `self.stderr`, failures through `CommandError`; no `print()` or `sys.exit()` anywhere else; diagnostics through a module-level `logging.getLogger(__name__)`.
-- Error message quality: exceptions include enough context to diagnose (`ValueError("x must be positive, got -3")` not `ValueError("bad value")`). Domain exceptions (e.g. the payment providers' `PaymentVerificationError`, `ProviderNotConfigured`) where callers need to tell failures apart. API error responses carry a clear message.
+- Error message quality: exceptions include enough context to diagnose (`ValueError("x must be positive, got -3")` not `ValueError("bad value")`). Domain exceptions (e.g. the payment providers' `PaymentVerificationError`, `ProviderNotConfiguredError`) where callers need to tell failures apart. API error responses carry a clear message.
 - Encoding and I/O: explicit `encoding='utf-8'` on `open()` calls (platform default varies). Consistent use of `pathlib.Path` over `os.path` string manipulation. Context managers for all files and connections.
 
 **Evidence**: Rule name or quote, example file:line or pattern. Grep for `print(`, `sys.exit`, `sys.stdout`, `open(` without `encoding=`.

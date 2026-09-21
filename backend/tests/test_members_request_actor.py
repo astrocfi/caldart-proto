@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import cast
 
 import pytest
@@ -38,5 +39,7 @@ def test_it_refuses_an_anonymous_request() -> None:
     request = Request(APIRequestFactory().get("/api/v1/me/profile"))
     request.user = AnonymousUser()
 
-    with pytest.raises(NotAuthenticated, match="Authentication credentials were not provided."):
+    with pytest.raises(
+        NotAuthenticated, match=re.escape("Authentication credentials were not provided.")
+    ):
         acting_user(request)

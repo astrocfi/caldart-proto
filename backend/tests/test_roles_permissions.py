@@ -142,7 +142,7 @@ def test_user_manager_requires_email() -> None:
     from django.contrib.auth import get_user_model
 
     with pytest.raises(ValueError, match="email"):
-        get_user_model().objects.create_user(email="", password="x")
+        get_user_model().objects.create_user(email="", password="x")  # noqa: S106 - test fixture
 
 
 def test_create_superuser_sets_flags() -> None:
@@ -150,9 +150,12 @@ def test_create_superuser_sets_flags() -> None:
     from django.contrib.auth import get_user_model
 
     user = get_user_model().objects.create_superuser(
-        email="su@example.test", password="pw", first_name="S"
+        email="su@example.test",
+        password="pw",  # noqa: S106 - test fixture
+        first_name="S",
     )
-    assert user.is_superuser and user.is_staff
+    assert user.is_superuser
+    assert user.is_staff
 
 
 # -- permission classes ----------------------------------------------------

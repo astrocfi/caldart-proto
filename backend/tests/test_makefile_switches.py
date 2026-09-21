@@ -10,12 +10,21 @@ touches the database, the mail server or a backup file.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
+from typing import Final
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+#: Resolved once so every ``run_make`` call passes an absolute path, not a bare name
+#: `PATH` would otherwise have to resolve on each subprocess launch.
+_make = shutil.which("make")
+if _make is None:  # pragma: no cover - the dev environment always has make installed.
+    raise RuntimeError("make is not on PATH")
+MAKE: Final[str] = _make
 
 # `make test` runs pytest from inside make, and a nested make that inherits its
 # parent's flags warns about the unavailable jobserver on stderr.  Drop make's own
@@ -44,8 +53,8 @@ def run_make(*arguments: str) -> subprocess.CompletedProcess[str]:
     environment = {key: value for key, value in os.environ.items() if key not in UNSET_VARIABLES}
     environment.pop("YES", None)
     environment.pop("DRY_RUN", None)
-    return subprocess.run(
-        ["make", "-n", *arguments],
+    return subprocess.run(  # noqa: S603 - resolved executable, arguments are test constants
+        [MAKE, "-n", *arguments],
         cwd=REPO_ROOT,
         env=environment,
         capture_output=True,

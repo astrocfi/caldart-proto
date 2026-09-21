@@ -22,7 +22,7 @@ from rest_framework.views import APIView
 #: Scope names, also the keys of ``settings.AUTH_THROTTLE_RATES``.
 LOGIN_SCOPE = "auth_login"
 REGISTER_SCOPE = "auth_register"
-PASSWORD_RESET_SCOPE = "auth_password_reset"
+PASSWORD_RESET_SCOPE = "auth_password_reset"  # noqa: S105 - a throttle scope name, not a secret
 
 
 class AuthScopedThrottle(AnonRateThrottle):

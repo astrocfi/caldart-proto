@@ -99,8 +99,7 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 
 ## 7. Ruff Rule Categories
 
-`pyproject.toml` enables these categories, excludes `**/migrations/*`, and ignores `B008`,
-`DJ001`, `D104` (an empty package `__init__.py`) and `D106` (a nested `Meta` class):
+`pyproject.toml` enables these categories and excludes `**/migrations/*`:
 
 | Code | Source | Purpose |
 |------|--------|---------|
@@ -113,12 +112,37 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 | **C4** | flake8-comprehensions | Prefer comprehensions over loops where clear. |
 | **ANN** | flake8-annotations | An annotation on every parameter and return value (Section 4). |
 | **D** | pydocstyle | A docstring on every public module, class and function, and a well-formed one wherever there is one (Section 5). |
+| **A** | flake8-builtins | No name shadows a Python builtin (Section 1). |
+| **N** | pep8-naming | Naming conventions (Section 1), including an `Error` suffix on exception classes and `self` as a method's first parameter. |
+| **RUF** | Ruff-native | Ruff's own checks: ambiguous unicode, unsorted `__all__`, an unused `noqa`, and more. |
+| **SIM** | flake8-simplify | Rewrites that simplify a conditional or a boolean expression. |
+| **PT** | flake8-pytest-style | pytest conventions (`import pytest`, one assertion per `assert`). |
+| **PTH** | flake8-use-pathlib | Prefer `pathlib.Path` over `os.path`. |
+| **RET** | flake8-return | No unnecessary assignment or explicit `return None` before a `return`. |
+| **PERF** | Perflint | Avoidable performance costs, such as a manual loop that only appends. |
+| **ERA** | eradicate | Commented-out code, which is removed rather than kept as a comment. |
+| **T20** | flake8-print | No `print()` call outside a management command's `self.stdout`/`self.stderr`. |
+| **S** | flake8-bandit | Security checks: hardcoded passwords, `subprocess` and `assert` misuse, weak randomness, and more. |
 
-**A** (builtin shadowing) and **N** (naming) are not enabled, so those rules in Section 1 are
-enforced by review rather than by Ruff. Categories to consider adding: **A**, **N**, **SIM**,
-**PT**, **RUF**, **DOC** (pydoclint, still preview), **PTH**, **RET**, **PERF**. Enable one
-only if the team agrees to fix or ignore the resulting diagnostics.
+Two exceptions, each carried in `pyproject.toml` with a comment: `RUF012` is ignored,
+because Django's `Meta` options, admin `list_display` lists and serializer `fields` are
+class-level configuration the framework reads and nothing mutates, so `ClassVar` on them
+would document nothing; and `S101` is ignored for `backend/tests/**` only, because
+`assert` is pytest's assertion mechanism. Every other `S`, `RUF`, `PT`, `PERF`, `N`, `ERA`,
+`SIM` and `RET` diagnostic is fixed at the call site rather than ignored; where the
+framework genuinely imposes the shape (a `subprocess` call with a resolved executable
+path, a settings-module `assert` that narrows a type for mypy strict, a fake secret a
+test needs literally), a single-line `# noqa: <code> - <reason>` carries the reason.
+`RUF100` fails the build if a `noqa` names a rule that is not selected, so a stale
+suppression cannot survive a rule-set change. **ARG** (an unused function argument) stays
+off: it raises 505 diagnostics, almost all of them a Django or DRF signature such as
+`get(self, request, *args, **kwargs)`, where the framework, not the implementation,
+dictates the parameter list.
 
-**ANN** and **D** apply to the whole backend, tests included. There is no
-`[tool.ruff.lint.per-file-ignores]` table: every module satisfies both rule sets, no file may
-be exempted, and `backend/tests/test_lint_config.py` fails if an exemption appears.
+**B008**, **DJ001**, **D104** (an empty package `__init__.py`) and **D106** (a nested
+`Meta` class) are ignored; every other diagnostic in every enabled category is fixed.
+
+**ANN** and **D** apply to the whole backend, tests included. Other than the `S101`
+exception above, there is no further `[tool.ruff.lint.per-file-ignores]` entry: every
+module satisfies `ANN` and `D`, no file may be exempted from either, and
+`backend/tests/test_lint_config.py` fails if an exemption appears.

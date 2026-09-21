@@ -104,7 +104,7 @@ def app_imports(path: Path) -> list[AppImport]:
     """
     tree = ast.parse(path.read_text(encoding="utf-8"))
     top_level = {id(node) for node in tree.body}
-    found = []
+    found: list[AppImport] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
             if node.level != 0 or node.module is None:
@@ -114,9 +114,11 @@ def app_imports(path: Path) -> list[AppImport]:
             targets = [alias.name for alias in node.names]
         else:
             continue
-        for target in dict.fromkeys(targets):
-            if target == "apps" or target.startswith("apps."):
-                found.append(AppImport(target, id(node) not in top_level, node.lineno))
+        found.extend(
+            AppImport(target, id(node) not in top_level, node.lineno)
+            for target in dict.fromkeys(targets)
+            if target == "apps" or target.startswith("apps.")
+        )
     return found
 
 
@@ -153,23 +155,27 @@ def test_domain_modules_import_only_their_own_app_or_a_lower_layer() -> None:
 
 def test_no_domain_module_imports_an_api_module() -> None:
     """The API layer is a composition point: domain code never reads from it."""
-    offenders = []
+    offenders: list[str] = []
     for path in domain_modules():
         module = module_name(path)
-        for record in app_imports(path):
-            if record.target.split(".")[2:3] == ["api"]:
-                offenders.append(f"{module} imports {record.target}")
+        offenders.extend(
+            f"{module} imports {record.target}"
+            for record in app_imports(path)
+            if record.target.split(".")[2:3] == ["api"]
+        )
     assert sorted(offenders) == []
 
 
 def test_every_inline_cross_app_import_is_sanctioned() -> None:
     """An inline import that is not on the list is an undeclared upward edge."""
-    unsanctioned = []
+    unsanctioned: list[str] = []
     for path in domain_modules():
         module = module_name(path)
-        for record in cross_app_imports(path):
-            if record.is_inline and (module, record.target) not in SANCTIONED_INLINE_IMPORTS:
-                unsanctioned.append(f"{module} imports {record.target}")
+        unsanctioned.extend(
+            f"{module} imports {record.target}"
+            for record in cross_app_imports(path)
+            if record.is_inline and (module, record.target) not in SANCTIONED_INLINE_IMPORTS
+        )
     assert sorted(unsanctioned) == []
 
 
@@ -259,11 +265,12 @@ def test_the_comment_block_is_read_from_its_first_line(lines: list[str], expecte
 
 def test_project_foundation_modules_import_nothing_from_apps() -> None:
     """``caldart`` models, reports, exceptions and pagination sit below every app."""
-    offenders = []
+    offenders: list[str] = []
     for filename in FOUNDATION_MODULES:
         path = BACKEND_ROOT / "caldart" / filename
-        for record in app_imports(path):
-            offenders.append(f"caldart.{path.stem} imports {record.target}")
+        offenders.extend(
+            f"caldart.{path.stem} imports {record.target}" for record in app_imports(path)
+        )
     assert sorted(offenders) == []
 
 

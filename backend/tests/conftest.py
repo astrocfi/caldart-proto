@@ -40,8 +40,6 @@ from tests.factories import (
 )
 
 if TYPE_CHECKING:
-    from pytest import Config
-
     from apps.accounts.models import User as UserModel
     from apps.aircraft.models import Aircraft
     from apps.cms.models import HomePage, SiteSettings
@@ -96,7 +94,7 @@ def _reload_vite_loader() -> None:
     DjangoViteAssetLoader.instance()
 
 
-def pytest_configure(config: Config) -> None:
+def pytest_configure(config: pytest.Config) -> None:
     """Write the stub Vite manifest when no real frontend build is present.
 
     Sets the module-level ``_stubbed_manifest`` flag so ``pytest_unconfigure`` knows
@@ -111,7 +109,7 @@ def pytest_configure(config: Config) -> None:
     _reload_vite_loader()
 
 
-def pytest_unconfigure(config: Config) -> None:
+def pytest_unconfigure(config: pytest.Config) -> None:
     """Leave the tree as we found it."""
     if not _stubbed_manifest:
         return

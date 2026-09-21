@@ -306,4 +306,4 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     return ctx
 
 
-__all__ = ["run", "seed_darts", "seed_plans", "DARTS", "PLANS"]
+__all__ = ["DARTS", "PLANS", "run", "seed_darts", "seed_plans"]

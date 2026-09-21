@@ -70,10 +70,10 @@ def test_config_includes_stripe_and_paypal_when_keys_are_set(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
     """Configuring Stripe and PayPal keys adds both providers to the list."""
-    settings.STRIPE_SECRET_KEY = "sk_test_x"
+    settings.STRIPE_SECRET_KEY = "sk_test_x"  # noqa: S105 - test fixture
     settings.STRIPE_PUBLISHABLE_KEY = "pk_test_x"
     settings.PAYPAL_CLIENT_ID = "paypal-id"
-    settings.PAYPAL_CLIENT_SECRET = "paypal-secret"
+    settings.PAYPAL_CLIENT_SECRET = "paypal-secret"  # noqa: S105 - test fixture
 
     api_client.force_login(member)
     body = api_client.get(CONFIG).data
@@ -381,7 +381,7 @@ def test_a_lifetime_plan_never_expires(
 
 
 # --------------------------------------------------------------------------
-# GET /payments/{id}
+# Retrieve one payment
 # --------------------------------------------------------------------------
 def test_owner_may_read_their_payment(
     api_client: APIClient, member: User, annual_plan: MembershipPlan

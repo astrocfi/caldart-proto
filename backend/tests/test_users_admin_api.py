@@ -323,7 +323,7 @@ def test_a_user_may_reactivate_themselves_noop(api_client: APIClient, user_admin
 
 
 # --------------------------------------------------------------------------
-# PATCH: roles
+# PATCH updates roles
 # --------------------------------------------------------------------------
 def test_patch_sets_roles(api_client: APIClient, user_admin: User, member: User) -> None:
     """A ``PATCH`` with a ``roles`` list replaces the account's role groups."""

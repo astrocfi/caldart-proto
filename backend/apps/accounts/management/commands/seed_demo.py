@@ -59,7 +59,7 @@ class Command(BaseCommand):
         Faker.seed(seed)
 
         ctx: dict[str, Any] = {
-            "rng": random.Random(seed),
+            "rng": random.Random(seed),  # noqa: S311 - demo data, not security-sensitive
             "faker": faker,
             "today": timezone.localdate(),
             "stdout": self.stdout,

@@ -308,7 +308,7 @@ class Membership(TimestampedModel):
     def __str__(self) -> str:
         """The member, the plan name and the dates, with ``lifetime`` for no end."""
         end = self.ends_on.isoformat() if self.ends_on else "lifetime"
-        return f"{self.user} · {self.plan.name} · {self.starts_on.isoformat()}–{end}"
+        return f"{self.user} · {self.plan.name} · {self.starts_on.isoformat()}-{end}"
 
     @property
     def is_lifetime(self) -> bool:

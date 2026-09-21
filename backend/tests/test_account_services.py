@@ -33,7 +33,10 @@ pytestmark = pytest.mark.django_db
 # --------------------------------------------------------------------------
 def test_create_account_grants_the_member_role() -> None:
     """A newly created account holds only the ``member`` role."""
-    user = create_account(email="joan.ames@example.test", password="Sierra-Foothills-2027")
+    user = create_account(
+        email="joan.ames@example.test",
+        password="Sierra-Foothills-2027",  # noqa: S106 - test fixture
+    )
     assert user.roles == [MEMBER]
 
 
@@ -45,7 +48,10 @@ def test_create_account_stores_the_names_stripped() -> None:
 
 def test_create_account_sets_the_password_it_is_given() -> None:
     """The account can authenticate with the password it was created with."""
-    user = create_account(email="joan.ames@example.test", password="Sierra-Foothills-2027")
+    user = create_account(
+        email="joan.ames@example.test",
+        password="Sierra-Foothills-2027",  # noqa: S106 - test fixture
+    )
     assert user.check_password("Sierra-Foothills-2027") is True
 
 
@@ -83,7 +89,7 @@ def test_update_account_deactivates_another_account(user_admin: User) -> None:
 
 
 # --------------------------------------------------------------------------
-# update_account: self-deactivation
+# update_account rejects self-deactivation
 # --------------------------------------------------------------------------
 def test_deactivating_your_own_account_is_refused(system_admin: User) -> None:
     """Deactivating your own account raises the self-deactivation refusal."""
@@ -259,7 +265,7 @@ def test_an_account_admin_may_change_a_plain_members_email(account_admin: User) 
 
 
 # --------------------------------------------------------------------------
-# update_account: atomicity
+# update_account writes atomically
 # --------------------------------------------------------------------------
 def test_update_account_writes_nothing_when_the_role_sync_fails(
     system_admin: User, monkeypatch: pytest.MonkeyPatch
