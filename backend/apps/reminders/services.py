@@ -356,4 +356,4 @@ def _send_one(user: User, membership: Membership, kind: str, today: date) -> Non
         sent_at=timezone.now(),
         to_email=user.email,
     )
-    build_email(user, membership, kind, today).send(fail_silently=False)
+    build_email(user, membership, kind, today).send()

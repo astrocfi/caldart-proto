@@ -58,7 +58,7 @@ exact ones.
 ==============  ==============================================================
 Layer           What CalDART uses
 ==============  ==============================================================
-Backend         Python 3.12, Django 5.2, and Django REST Framework 3 with
+Backend         Python 3.12, Django 6, and Django REST Framework 3 with
                 django-filter; django-environ reads settings from the
                 environment or ``.env``
 CMS             Wagtail 8: page tree, StreamField, images, documents, site

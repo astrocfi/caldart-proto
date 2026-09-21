@@ -225,10 +225,17 @@ def test_vite_reads_the_built_manifest(prod: ModuleType) -> None:
 
 
 def test_email_comes_from_email_url(prod: ModuleType) -> None:
-    """``EMAIL_URL`` is parsed into the host, port, and user for the email backend."""
-    assert prod.EMAIL_HOST == "smtp.example.org"
-    assert prod.EMAIL_PORT == 587
-    assert prod.EMAIL_HOST_USER == "caldart@example.org"
+    """``EMAIL_URL`` is parsed into the options of the default mailer."""
+    assert prod.MAILERS["default"] == {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": "smtp.example.org",
+            "port": 587,
+            "username": "caldart@example.org",
+            "password": "hunter2",
+            "timeout": 20,
+        },
+    }
 
 
 def test_logging_goes_to_the_console(prod: ModuleType) -> None:

@@ -17,6 +17,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
 from .base import LOGGING, REPO_ROOT, REST_FRAMEWORK, env
+from .mailers import default_mailer
 
 # ``from .base import *`` binds the *same* dict objects as the base module, so
 # editing them in place would reach back into whatever settings module is
@@ -142,8 +143,11 @@ REST_FRAMEWORK["NUM_PROXIES"] = 1
 # No default: reminder and password-reset mail silently going nowhere is worse
 # than a start-up error.  Mailpit's smtp://localhost:1025 is a development URL.
 # --------------------------------------------------------------------------
-vars().update(env.email_url("EMAIL_URL"))
-EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=20)
+MAILERS = {
+    "default": default_mailer(
+        env.email_url("EMAIL_URL"), timeout=env.int("EMAIL_TIMEOUT", default=20)
+    )
+}
 
 # --------------------------------------------------------------------------
 # Static files
