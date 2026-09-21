@@ -2,7 +2,7 @@
 Aircraft
 ========
 
-CalDART keeps one register of aeroplanes.  Members add the aircraft they
+CalDART keeps one register of airplanes.  Members add the aircraft they
 commonly fly and attach them to their profile; account administrators keep the
 insurance details straight; DART leaders read the result before a mission.
 This page covers both halves.
@@ -13,27 +13,27 @@ N-numbers
 
 A registration is stored in one canonical form: upper case, no punctuation,
 with the leading ``N`` supplied if you leave it off.  All of these are the same
-aeroplane, and any of them can be typed into any search box in the portal:
+airplane, and any of them can be typed into any search box in the portal:
 
 .. code-block:: text
 
    12345      n12345      N-12345      N12345   ->  N12345
    172sp      n-172-sp    N172SP                ->  N172SP
 
-Because of that, an aeroplane can only be in the register once, however the
+Because of that, an airplane can only be in the register once, however the
 person adding it happened to type the number.
 
 
-For members: adding an aeroplane you fly
+For members: adding an airplane you fly
 ========================================
 
 #. Open **My aircraft** in the portal menu.
 #. Search the register in the panel underneath: type the registration, or the
    make, model or owner if you do not have the number to hand.
-#. Pick the aeroplane from the results.  It is attached to your profile
+#. Pick the airplane from the results.  It is attached to your profile
    straight away and appears in the list above with its insurance chip.
 
-Aeroplanes already on your list are filtered out of the results and named
+Airplanes already on your list are filtered out of the results and named
 underneath, so you can tell the difference between "not in the register" and
 "already attached".
 
@@ -51,7 +51,7 @@ Insurance carrier      Optional, but a DART leader will look for it
 Insurance expires      Optional, and the single most useful field on the form
 =====================  ==========================================================
 
-Saving adds the aeroplane to the register *and* attaches it to your profile.
+Saving adds the airplane to the register *and* attaches it to your profile.
 
 You can correct an aircraft you added: on **My aircraft**, press **Edit**
 beside it.  Only an account administrator can delete an aircraft, since
@@ -60,7 +60,7 @@ member or an account administrator.
 
 .. tip::
 
-   Keep the insurance expiry current on the aeroplanes you fly.  It is what a
+   Keep the insurance expiry current on the airplanes you fly.  It is what a
    DART leader sees at the moment they decide whether to launch you.
 
 
@@ -90,7 +90,7 @@ The register lists in-service and out-of-service airframes alike, so nothing
 disappears from an administrator's view.
 
 Every column sorts, and sorting happens on the server, so it sorts the whole
-register rather than the page you are looking at.  Aeroplanes with no
+register rather than the page you are looking at.  Airplanes with no
 insurance on file always sort to the bottom, whichever direction you sort the
 expiry column, so they never crowd out the ones that are about to lapse.
 
@@ -106,7 +106,7 @@ selected — set the filters first, then export.  Both carry the same columns:
    liability_per_occurrence, liability_per_person, hull,
    insurance_expiration, insurance_current, pilots
 
-``pilots`` is the members who list the aeroplane on their profile.  The CSV
+``pilots`` is the members who list the airplane on their profile.  The CSV
 gives money as plain decimal dollars for a spreadsheet; the PDF is a
 landscape-letter table with the filters printed under the title.
 
@@ -128,7 +128,7 @@ Click a registration to open the record.  It is in four sections:
   register, on the record, and on a DART leader's aircraft check, and it stops
   being offered to members searching for a plane to add to their profile.  A
   member who types its exact registration still sees it, labeled, so they do
-  not try to add a second record for the same aeroplane.
+  not try to add a second record for the same airplane.
 
 Underneath, **Pilots who fly this aircraft** lists every member who has
 attached it, with their membership and medical currency — the same facts a
@@ -136,7 +136,7 @@ DART leader would see.
 
 **Delete this aircraft** removes it from the register permanently, and from
 every profile that had it attached.  It asks once for confirmation.  Prefer
-clearing the "in service" flag if the aeroplane may come back — the history
+clearing the "in service" flag if the airplane may come back — the history
 stays, and a leader checking the tail number can still see what was on file.
 
 
@@ -155,7 +155,7 @@ Delete a record            no          no          no          yes
 Export CSV / PDF           no          no          no          yes
 =========================  ==========  ==========  ==========  ==========
 
-"Creator" means the member who added that particular aeroplane.
+"Creator" means the member who added that particular airplane.
 ``system_admin`` may do everything in the table.
 
 Every aircraft on **My aircraft** (``/portal/profile/aircraft``) has an
@@ -178,14 +178,14 @@ When something goes wrong
    Search for it and attach the existing record instead of adding a second —
    that is the whole point of one shared register.  Registrations are
    normalized, so ``N12345``, ``n-12345`` and ``12345`` cannot be entered as
-   three separate aeroplanes.
+   three separate airplanes.
 
 **"Enter a registration, for example N12345."**
    The lookup box got something it could not read as a tail number.  Letters
    and digits are all it needs; punctuation, spaces and case are ignored.
 
-**The picker finds nothing, but you know the aeroplane is on file.**
-   The fuzzy search leaves out aeroplanes marked *out of service*.  Type the
+**The picker finds nothing, but you know the airplane is on file.**
+   The fuzzy search leaves out airplanes marked *out of service*.  Type the
    exact registration and it will still be found, labeled as out of service,
    so you do not add a duplicate.
 
@@ -196,7 +196,7 @@ When something goes wrong
 
 **"Only an account administrator can delete an aircraft."**
    Deleting is never granted to the creator alone, because the record may be
-   attached to other people's profiles.  If the aeroplane is simply out of
+   attached to other people's profiles.  If the airplane is simply out of
    use, clear the **in service** flag rather than asking for a deletion.
 
 **An insurance chip says "No insurance on file" and you think it is insured.**
@@ -209,6 +209,6 @@ When something goes wrong
    — a negative number, or text the form cannot read as one.  Enter dollars;
    commas and a leading ``$`` are accepted and stripped for you.
 
-**You removed an aeroplane and worry you deleted it.**
+**You removed an airplane and worry you deleted it.**
    **Remove** on your own profile only detaches it from you.  The record, and
    everybody else's link to it, is untouched.

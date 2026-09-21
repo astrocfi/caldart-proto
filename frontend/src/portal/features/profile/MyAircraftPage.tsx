@@ -30,7 +30,7 @@ export function MyAircraftPage(): JSX.Element {
   const detach = useDetachAircraft();
   const toast = useToast();
   const { user } = useAuth();
-  // The record open for editing, if any.  A member may correct an aeroplane
+  // The record open for editing, if any.  A member may correct an airplane
   // they added themselves.
   const [editing, setEditing] = useState<number | null>(null);
 

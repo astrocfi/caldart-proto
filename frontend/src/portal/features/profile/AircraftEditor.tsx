@@ -1,7 +1,7 @@
 /**
  * Editing an aircraft from the member's own screen.
  *
- * The register lets the member who added an aeroplane keep it up to date —
+ * The register lets the member who added an airplane keep it up to date —
  * `AircraftPermission` has always said so — but the only edit form used to be
  * the account administrator's, so in practice a member could add a record with
  * the wrong insurance expiry and never correct it.

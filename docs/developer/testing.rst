@@ -120,7 +120,7 @@ for constantly:
    * - ``annual_plan``, ``life_plan``
      - the two seeded plans
    * - ``dart``, ``profile``, ``aircraft``
-     - a Palo Alto DART, a profile for ``member``, one insured aeroplane
+     - a Palo Alto DART, a profile for ``member``, one insured airplane
    * - ``home_page``, ``site_settings``
      - a Wagtail tree with a home page, and the settings row
    * - ``today``, ``days``
@@ -165,7 +165,7 @@ Things worth knowing about the factories:
 - ``MembershipFactory`` computes ``ends_on`` from the plan
   (``starts_on + duration_days - 1``, ``None`` for a lifetime plan), so a
   correct term is one line.  Its ``source`` defaults to ``seed``.
-- ``AircraftFactory`` produces an insured aeroplane — expiry 200 days out —
+- ``AircraftFactory`` produces an insured airplane — expiry 200 days out —
   so "insurance current" is the default and you opt into the awkward cases.
 - ``PaymentFactory`` defaults to the ``mock`` provider with status
   ``pending``; drive it through ``payments.services.mark_succeeded`` rather

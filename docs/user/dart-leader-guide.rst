@@ -44,7 +44,7 @@ You type                      What you get
 Registrations are normalized for you: the leading ``N`` is optional and
 punctuation, spaces and case are ignored.  A search term with no digits in it
 is never treated as a registration, so looking for "Nate" finds Nate rather
-than every N-numbered aeroplane on file.
+than every N-numbered airplane on file.
 
 The search returns at most twenty people, each with their membership state, so
 you can often tell who you want before opening the card.  If nobody comes back
@@ -62,7 +62,7 @@ them to fix.
 .. note::
 
    The band is about the *person*.  Aircraft insurance is listed separately
-   below it, because a member with a lapsed policy on one aeroplane may be
+   below it, because a member with a lapsed policy on one airplane may be
    perfectly current in another.  Read both before you launch.
 
 **Membership** shows the state, the plan, and the expiry date.  A lifetime
@@ -78,7 +78,7 @@ an expired medical, and the card says which it is.
 the member is IFR rated, and any ratings they have listed.  It does not feed
 the go/no-go verdict.
 
-**Aircraft** lists every aeroplane on the member's profile with its own
+**Aircraft** lists every airplane on the member's profile with its own
 insurance chip:
 
 ======================  =========================================================
@@ -87,7 +87,7 @@ Chip                    Meaning
 Insured                 A policy is on file and has not expired
 Expiring soon           Insured, but the policy runs out within 30 days
 Insurance expired       The policy's expiry date has passed
-No insurance on file    Nobody has recorded a policy for this aeroplane
+No insurance on file    Nobody has recorded a policy for this airplane
 ======================  =========================================================
 
 The member's phone number and email address are links: tap to call or mail
@@ -100,16 +100,16 @@ Checking an aircraft on its own
 **Aircraft check** (``/portal/leader/aircraft``) takes a tail number and shows
 one card: **INSURED** or **NOT INSURED**, the carrier, the liability limits per
 occurrence and per person, the hull value, the expiry date, the owner, and
-every member who lists that aeroplane on their profile with their own
+every member who lists that airplane on their profile with their own
 membership and medical currency.  The policy number is on the record but not on
 this card; an account administrator can read it out of the register.
 
-Use it when the aeroplane in front of you is not the one on the member's
-profile — a club aeroplane, or one they have just started flying.  As on the
+Use it when the airplane in front of you is not the one on the member's
+profile — a club airplane, or one they have just started flying.  As on the
 member search, you can type the registration however you like.
 
 If the registration is not in the register at all, the card says so.  Ask the
-pilot to add the aeroplane from **My aircraft** in their portal, or ask an
+pilot to add the airplane from **My aircraft** in their portal, or ask an
 account administrator to add it to the register.
 
 
@@ -124,10 +124,10 @@ reads expired, an account administrator can look at their payment history.
 medical in **My profile**.  Nobody else can enter it for them except an
 account administrator.
 
-**An aircraft is missing from the card.**  Members attach the aeroplanes they
+**An aircraft is missing from the card.**  Members attach the airplanes they
 commonly fly themselves, in **My aircraft**.  Use the aircraft check for
 anything not on their list.
 
 **The insurance dates look stale.**  Insurance is maintained by account
 administrators in the aircraft register, and by the member who first added the
-aeroplane.  Point them at :doc:`aircraft`.
+airplane.  Point them at :doc:`aircraft`.

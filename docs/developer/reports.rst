@@ -193,7 +193,7 @@ The twelve columns, in order: ``n_number``, ``make``, ``model``, ``owner``,
 ``owner_type``, ``insurance_carrier``, ``liability_per_occurrence``,
 ``liability_per_person``, ``hull``, ``insurance_expiration``,
 ``insurance_current``, and ``pilots`` — the display names of the members who
-have attached the aeroplane, from ``apps.aircraft.services.pilot_names``.
+have attached the airplane, from ``apps.aircraft.services.pilot_names``.
 
 Both exports take the register's full filter set: ``search``, ``make``,
 ``owner_type``, ``insurance`` (``current`` / ``expired`` / ``missing``),

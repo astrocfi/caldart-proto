@@ -63,7 +63,7 @@ What it does
 - **Aircraft.**  One shared register of airframes with insurance carriers,
   limits and expiry dates, which members attach to their own profiles.
 - **The leader check.**  One screen that answers "may this person fly this
-  aeroplane for us today?" — membership, medical and insurance in a single
+  airplane for us today?" — membership, medical and insurance in a single
   GO / NO-GO verdict.
 - **Payments.**  Stripe (card, Apple Pay, Google Pay, Link) and PayPal, plus a
   mock provider for demonstrations and tests, with optional donations at

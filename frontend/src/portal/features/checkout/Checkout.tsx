@@ -130,7 +130,7 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
       {providers.length === 0 ? (
         <EmptyState
           title="Online payment is not set up yet"
-          description="Please contact CalDART to pay by cheque, or try again later."
+          description="Please contact CalDART to pay by check, or try again later."
         />
       ) : (
         <ProviderTabs
