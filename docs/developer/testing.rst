@@ -65,7 +65,11 @@ What ``caldart.settings.test`` changes
   ``override_settings`` rather than having every other test race a shared
   counter.
 - ``PAYMENTS_MOCK_ENABLED`` is on; ``DEBUG`` is off; storage is in-memory;
-  logging is quietened to ``ERROR``.
+  the root logger is quietened to ``ERROR``.  The ``caldart.audit`` logger
+  keeps its own ``INFO`` level (:ref:`deploy-audit-log`), so a test that
+  provokes a privileged action shows the record in the captured output.
+  ``tests/test_audit_logging.py`` shows how to capture it: the logger does not
+  propagate, so ``caplog.handler`` has to be attached to it.
 
 The Vite manifest
 -----------------

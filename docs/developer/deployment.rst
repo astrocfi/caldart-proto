@@ -444,6 +444,63 @@ Postgres                     ``sudo docker compose logs -f db``
 ``LOG_LEVEL`` in the environment file sets Django's root level; ``INFO`` is the
 default and ``WARNING`` is reasonable once things are quiet.
 
+.. _deploy-audit-log:
+
+The audit log
+-------------
+
+Every privileged action writes one line to the ``caldart.audit`` logger, which
+has its own level and its own handler and does not pass records to the root
+logger.  ``LOG_LEVEL`` therefore never silences it: the audit trail is there
+whatever the rest of the application is set to.
+
+The lines go to the journal with everything else, so a filter picks them out::
+
+  journalctl -u caldart-web | grep caldart.audit
+  journalctl -u caldart-web | grep 'action=member.delete'
+  journalctl -u caldart-web -p warning | grep caldart.audit   # refused attempts
+  journalctl -u caldart-reminders | grep 'action=reminders.run'
+
+Each line is ``key=value`` pairs in a fixed order::
+
+  INFO  2026-09-14 09:31:02,144 caldart.audit action=account.roles actor=12 target=34 added=account_admin removed=-
+
+``actor`` is the id of the account that acted, or ``command`` for a management
+command and for the reminder timer.  ``target`` is the id of the account or
+record acted on, or ``-``.  The actions:
+
+============================= ===============================================
+Action                        Fields beyond actor and target
+============================= ===============================================
+``account.update``            ``fields`` -- the account columns written
+``account.roles``             ``added``, ``removed`` -- role slugs
+``account.activate``          --
+``account.deactivate``        --
+``member.create``             ``invited`` -- whether an invitation was mailed
+``member.delete``             --
+``membership.grant``          ``plan``, ``term``
+``membership.correct``        ``term``, ``fields``
+``password_reset.admin_sent`` --
+``backup.create``             ``file``, ``size``
+``backup.download``           ``file``
+``backup.restore``            ``file``
+``db.reset``                  ``database``, ``seeded``
+``reminders.run``             ``dry_run``, ``sent``, ``skipped``, ``failed``,
+                              ``expired_flipped``
+============================= ===============================================
+
+A privileged attempt a rule turns away is logged at WARNING under the same
+action, with a ``reason`` slug saying which rule refused it: ``self_deactivation``,
+``roles_not_held``, ``system_admin_role``, ``self_delete``,
+``system_admin_target``, ``has_payments``, ``inactive_account`` or
+``no_such_backup``.
+
+A record carries ids, counts, flags and slugs and nothing else.  Email
+addresses, names, passwords, tokens and database contents are not values the
+helper accepts, so a line can never carry them; reading it back therefore means
+looking the ids up.  A richer trail, held in the database and readable from the
+portal, is the ``AuditEntry`` model in :doc:`roadmap`.
+
 
 Upgrading
 =========

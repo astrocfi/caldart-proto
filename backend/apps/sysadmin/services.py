@@ -21,6 +21,8 @@ from django.conf import settings
 from django.db import connection
 from django.utils import timezone
 
+from caldart import audit
+
 BACKUP_SUFFIX = ".sql.gz"
 
 #: A backup file name we are willing to open.  No directory separators, no
@@ -169,6 +171,9 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     ``pg_dump`` writes ``CREATE TABLE`` without ``DROP``, so the schema has to
     go first or every statement collides with what is already there.
     ``drop_first=False`` is for restoring into an empty database.
+
+    A restore only ever runs from the command line, so the audit record it
+    writes on success names ``command`` as the actor and the dump's file name.
     """
     if not path.is_file():
         raise BackupError(f"No such backup: {path}")
@@ -187,6 +192,8 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     result = _run_pg([*argv, "--quiet", "--dbname", _dbname_url_for(argv)], input=sql)
     if result.returncode != 0:
         raise BackupError(result.stderr.decode(errors="replace").strip() or "psql failed")
+
+    audit.record(audit.BACKUP_RESTORE, actor=audit.COMMAND_ACTOR, file=audit.safe_slug(path.name))
 
 
 def drop_schema() -> None:

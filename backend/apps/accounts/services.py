@@ -12,7 +12,6 @@ expiry wording can never drift apart.
 
 from __future__ import annotations
 
-import logging
 from typing import TypedDict
 
 from django.conf import settings
@@ -26,11 +25,10 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
+from caldart import audit
 from caldart.exceptions import DomainValidationError
 
 User = get_user_model()
-
-log = logging.getLogger(__name__)
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
 RESET_PATH = "/portal/reset-password"
@@ -154,6 +152,9 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
     at all: rebuilding the Django flags from it would strip a ``createsuperuser``
     account of its access on a save that meant to correct a name.  Roles are
     stored in privilege order however they arrive.
+
+    Everything the save really writes is recorded in the audit log, by field name
+    and role slug: an edit that alters nothing records nothing.
     """
     fields = dict(changes)
     roles = fields.pop("roles", None)
@@ -166,6 +167,7 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
         for field in PROTECTED_ACCOUNT_FIELDS:
             fields.pop(field, None)
 
+    records = _change_records(target, fields, roles)
     for field in ACCOUNT_FIELDS:
         if field in fields:
             setattr(target, field, fields[field])
@@ -173,7 +175,34 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
         target.set_roles(roles)
         sync_django_flags(target)
     target.save()
+
+    for action, logged in records:
+        audit.record(action, actor=actor, target=target, **logged)
     return target
+
+
+def _change_records(target: User, fields: dict, roles: list[str] | None) -> list[tuple[str, dict]]:
+    """The audit records this edit will produce, measured before it is written.
+
+    One ``account.update`` for the columns the save writes, named but never
+    valued; one ``account.activate`` or ``account.deactivate`` when the active
+    flag really turns over; and one ``account.roles`` carrying the slugs added
+    and removed when the role list really changes.
+    """
+    records = []
+    written = [name for name in ACCOUNT_FIELDS if name in fields and name != "is_active"]
+    if len(written) > 0:
+        records.append((audit.ACCOUNT_UPDATE, {"fields": written}))
+    if "is_active" in _protected_changes(target, fields):
+        activating = bool(fields["is_active"])
+        records.append((audit.ACCOUNT_ACTIVATE if activating else audit.ACCOUNT_DEACTIVATE, {}))
+    if roles is not None and _writes_roles(target, set(roles)):
+        held = set(target.roles)
+        wanted = set(roles)
+        added = [slug for slug in ROLE_SLUGS if slug in wanted - held]
+        removed = [slug for slug in ROLE_SLUGS if slug in held - wanted]
+        records.append((audit.ACCOUNT_ROLES, {"added": added, "removed": removed}))
+    return records
 
 
 def _checked_roles(actor: User, target: User, wanted: list[str]) -> list[str]:
@@ -194,6 +223,12 @@ def _checked_roles(actor: User, target: User, wanted: list[str]) -> list[str]:
         and SYSTEM_ADMIN not in effective_roles(actor)
     )
     if is_refused:
+        audit.refuse(
+            audit.ACCOUNT_ROLES,
+            actor=actor,
+            target=target,
+            reason=audit.REASON_SYSTEM_ADMIN_ROLE,
+        )
         raise DomainValidationError("roles", ROLE_CHANGE_REFUSED)
     return [slug for slug in ROLE_SLUGS if slug in held]
 
@@ -237,8 +272,9 @@ def check_account_edit(actor: User, target: User, changes: dict) -> None:
     refused unless the actor holds every role the target holds; a system
     administrator, including a Django superuser without the role, holds them all.
     Raises ``DomainValidationError`` on the first refused field, email before status,
-    and returns ``None`` when the edit is allowed.  Every refusal is logged at
-    WARNING with the two account ids and the field names, and no personal data.
+    and returns ``None`` when the edit is allowed.  Every refusal is recorded in the
+    audit log at WARNING with the two account ids, the field names and a reason, and
+    no personal data.
     """
     changed = _protected_changes(target, changes)
     if len(changed) == 0:
@@ -251,7 +287,15 @@ def check_account_edit(actor: User, target: User, changes: dict) -> None:
 
     field = changed[0]
     message = EMAIL_CHANGE_REFUSED if field == "email" else STATUS_CHANGE_REFUSED
-    _refuse(actor, target, changed, field, message)
+    _refuse(
+        actor,
+        target,
+        changed,
+        field=field,
+        message=message,
+        action=audit.ACCOUNT_UPDATE,
+        reason=audit.REASON_ROLES_NOT_HELD,
+    )
 
 
 def _refuse_self_deactivation(actor: User, target: User, changed: list[str]) -> None:
@@ -261,7 +305,15 @@ def _refuse_self_deactivation(actor: User, target: User, changed: list[str]) -> 
     flag is to clear it.  ``changed`` is the protected fields the edit really alters.
     """
     if target.pk == actor.pk and "is_active" in changed:
-        _refuse(actor, target, changed, "is_active", SELF_DEACTIVATION_REFUSED)
+        _refuse(
+            actor,
+            target,
+            changed,
+            field="is_active",
+            message=SELF_DEACTIVATION_REFUSED,
+            action=audit.ACCOUNT_DEACTIVATE,
+            reason=audit.REASON_SELF_DEACTIVATION,
+        )
 
 
 def _protected_changes(target: User, changes: dict) -> list[str]:
@@ -285,14 +337,23 @@ def _normalized_email(value: str | None) -> str:
     return (value or "").strip().lower()
 
 
-def _refuse(actor: User, target: User, changed: list[str], field: str, message: str) -> None:
-    """Log the refused edit and raise ``DomainValidationError`` for ``field``."""
-    log.warning(
-        "Account edit refused: actor=%s target=%s fields=%s",
-        actor.pk,
-        target.pk,
-        ",".join(changed),
-    )
+def _refuse(
+    actor: User,
+    target: User,
+    changed: list[str],
+    *,
+    field: str,
+    message: str,
+    action: str,
+    reason: str,
+) -> None:
+    """Record the refused edit and raise ``DomainValidationError`` for ``field``.
+
+    ``changed`` is the protected fields the edit really alters, ``action`` the
+    audit action the attempt belongs to and ``reason`` the slug saying which rule
+    turned it away.
+    """
+    audit.refuse(action, actor=actor, target=target, fields=changed, reason=reason)
     raise DomainValidationError(field, message)
 
 

@@ -4,6 +4,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 
 from apps.sysadmin.services import drop_schema
+from caldart import audit
 
 
 class Command(BaseCommand):
@@ -45,4 +46,10 @@ class Command(BaseCommand):
             call_command("seed_demo")
             call_command("seed_content")
 
+        audit.record(
+            audit.DB_RESET,
+            actor=audit.COMMAND_ACTOR,
+            database=audit.safe_slug(name),
+            seeded=options["seed"],
+        )
         self.stdout.write(self.style.SUCCESS(f"Database '{name}' reset."))

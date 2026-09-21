@@ -359,7 +359,10 @@ Django at all.
 
 ``LOG_LEVEL``
    Root logger level; everything goes to stdout and so to the journal.
-   Default ``INFO``.
+   Default ``INFO``.  The ``caldart.audit`` logger keeps its own level and
+   handler and does not pass records to the root logger, so raising this to
+   ``WARNING`` quiets the application without silencing the audit trail
+   (:ref:`deploy-audit-log`).
 
 ``DB_CONN_MAX_AGE``
    Seconds to keep a database connection open between requests.  Default
