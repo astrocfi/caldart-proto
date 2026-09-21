@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import environ
+from csp.constants import SELF, UNSAFE_INLINE
 from django.core.exceptions import ImproperlyConfigured
 
 # Absolute, not relative: ``backend/tests/test_auth_throttle_rates.py`` executes this
@@ -77,6 +78,8 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "django_filters",
     "django_vite",
+    # Installed for its system checks, which catch a misspelled policy setting.
+    "csp",
 ]
 
 LOCAL_APPS = [
@@ -93,6 +96,10 @@ INSTALLED_APPS = DJANGO_APPS + WAGTAIL_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Response middleware runs bottom-up, so the admin relaxation must sit below
+    # CSPMiddleware: it marks the response, CSPMiddleware then writes the header.
+    "csp.middleware.CSPMiddleware",
+    "caldart.middleware.WagtailAdminCspMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -288,6 +295,47 @@ PAYPAL_ENV = env("PAYPAL_ENV", default="sandbox")
 # Optional: set it to have the PayPal webhook verify its signature.
 PAYPAL_WEBHOOK_ID = env("PAYPAL_WEBHOOK_ID", default="")
 PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED", default=True)
+
+# --------------------------------------------------------------------------
+# Content-Security-Policy
+#
+# Enforced rather than report-only: the browser refuses a resource the policy
+# does not allow.  ``csp.middleware.CSPMiddleware`` writes the header on every
+# response, and ``caldart.middleware.WagtailAdminCspMiddleware`` relaxes
+# ``script-src`` for the Wagtail admin alone.
+#
+# Both PayPal hostnames are listed because ``PAYPAL_ENV`` chooses between the
+# live and the sandbox SDK at run time while the policy is fixed at start-up.
+# --------------------------------------------------------------------------
+#: Origins that serve the payment vendors' browser SDKs and their payment frames.
+PAYMENT_VENDOR_ORIGINS = [
+    "https://js.stripe.com",
+    "https://www.paypal.com",
+    "https://www.sandbox.paypal.com",
+]
+#: Origins those SDKs call from the browser to authorize and capture a payment.
+PAYMENT_API_ORIGINS = [
+    "https://api.stripe.com",
+    "https://www.paypal.com",
+    "https://www.sandbox.paypal.com",
+]
+
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": [SELF],
+        "script-src": [SELF, *PAYMENT_VENDOR_ORIGINS],
+        # ``SELF`` as well as the vendors: Wagtail's admin previews a page in a
+        # same-origin frame, which a vendor-only ``frame-src`` would refuse.
+        "frame-src": [SELF, *PAYMENT_VENDOR_ORIGINS],
+        "connect-src": [SELF, *PAYMENT_API_ORIGINS],
+        # ``data:`` carries the inline SVG icons the portal and the admin draw.
+        "img-src": [SELF, "data:"],
+        # Stripe's Payment Element and Wagtail's admin both set styles from
+        # JavaScript.  No template carries an inline script, so ``script-src``
+        # needs no matching relaxation outside the admin.
+        "style-src": [SELF, UNSAFE_INLINE],
+    }
+}
 
 # --------------------------------------------------------------------------
 # sysadmin
