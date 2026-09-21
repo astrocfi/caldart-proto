@@ -477,8 +477,9 @@ residual is short:
   provider's own handler returns.  Each declares that response, but there is no
   object to describe.
 * **Downloads.**  The member, aircraft and payment exports and the backup
-  download answer with a file, described as a binary body rather than as a
-  component.
+  download answer with a file.  Each names its media type -- ``text/csv``,
+  ``application/pdf``, ``application/gzip`` -- and describes the body as opaque
+  bytes, so there is no component to compare.
 * **Error bodies.**  A **400** field-keyed error, and the **401**, **403** and
   **404** bodies, are described in :doc:`api-reference` rather than in the
   schema.

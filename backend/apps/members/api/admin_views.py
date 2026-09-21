@@ -49,8 +49,10 @@ from apps.members.reports import (
 from apps.members.services import activate_term, delete_member
 from caldart import audit
 from caldart.reports import (
+    CSV_MEDIA_TYPE,
+    PDF_MEDIA_TYPE,
     csv_response,
-    download_response_schema,
+    download_responses,
     filter_summary,
     pdf_table_response,
 )
@@ -228,7 +230,7 @@ class MemberExportBaseView(MemberAdminBaseView):
 class MemberExportCsvView(MemberExportBaseView):
     """``GET /admin/members/export.csv``."""
 
-    @extend_schema(responses={200: download_response_schema("The member list as a CSV file.")})
+    @extend_schema(responses=download_responses(CSV_MEDIA_TYPE, "The member list as a CSV file."))
     def get(self, request: Request, *args: Any, **kwargs: Any) -> StreamingHttpResponse:
         """The filtered member list as a streamed CSV download."""
         return csv_response(member_report_filename("csv"), MEMBER_REPORT_HEADER, self.rows(request))
@@ -237,7 +239,7 @@ class MemberExportCsvView(MemberExportBaseView):
 class MemberExportPdfView(MemberExportBaseView):
     """``GET /admin/members/export.pdf`` — landscape letter."""
 
-    @extend_schema(responses={200: download_response_schema("The member list as a PDF file.")})
+    @extend_schema(responses=download_responses(PDF_MEDIA_TYPE, "The member list as a PDF file."))
     def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         """The filtered member list as a landscape-letter PDF download."""
         return pdf_table_response(

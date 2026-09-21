@@ -20,7 +20,10 @@ from apps.accounts.permissions import IsSystemAdmin
 from apps.sysadmin import services
 from apps.sysadmin.api.serializers import BackupSerializer, HealthSerializer
 from caldart import audit
-from caldart.reports import download_response_schema
+from caldart.reports import download_responses
+
+#: The media type a database dump is served with.
+BACKUP_MEDIA_TYPE = "application/gzip"
 
 
 def _actor(request: Request) -> User:
@@ -109,7 +112,7 @@ class BackupDownloadView(APIView):
 
     permission_classes = [IsSystemAdmin]
 
-    @extend_schema(responses={200: download_response_schema("The gzipped database dump.")})
+    @extend_schema(responses=download_responses(BACKUP_MEDIA_TYPE, "The gzipped database dump."))
     def get(self, request: Request, name: str) -> FileResponse:
         """Stream the gzipped dump called ``name`` as an attachment.
 
@@ -139,5 +142,5 @@ class BackupDownloadView(APIView):
             path.open("rb"),
             as_attachment=True,
             filename=path.name,
-            content_type="application/gzip",
+            content_type=BACKUP_MEDIA_TYPE,
         )

@@ -50,7 +50,7 @@ from apps.payments.models import CONTRIBUTION_TIERS, Payment, PaymentProvider
 from apps.payments.providers import available_providers, get_provider
 from apps.payments.providers.base import PaymentError
 from apps.payments.services import create_checkout
-from caldart.reports import csv_response, download_response_schema
+from caldart.reports import CSV_MEDIA_TYPE, csv_response, download_responses
 
 #: What the webhook endpoints answer with.  The provider chooses the body, and
 #: neither portal screen reads it, so the schema describes only the status.
@@ -409,7 +409,7 @@ class AdminPaymentExportView(APIView):
     permission_classes = [IsAuthenticated, IsAccountAdmin]
 
     @extend_schema(
-        responses={200: download_response_schema("The filtered payment list as a CSV file.")}
+        responses=download_responses(CSV_MEDIA_TYPE, "The filtered payment list as a CSV file.")
     )
     def get(self, request: Request) -> StreamingHttpResponse:
         """200 with ``caldart-payments.csv`` as an attachment, for ``account_admin`` only.

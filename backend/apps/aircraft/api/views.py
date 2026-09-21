@@ -34,8 +34,10 @@ from apps.aircraft.api.serializers import (
 )
 from apps.aircraft.models import Aircraft, normalize_n_number
 from caldart.reports import (
+    CSV_MEDIA_TYPE,
+    PDF_MEDIA_TYPE,
     csv_response,
-    download_response_schema,
+    download_responses,
     filter_summary,
     pdf_table_response,
 )
@@ -159,7 +161,7 @@ class AircraftExportCsvView(AircraftExportMixin, generics.GenericAPIView[Aircraf
     """``GET /admin/aircraft/export.csv?<filters>``."""
 
     @extend_schema(
-        responses={200: download_response_schema("The aircraft register as a CSV file.")}
+        responses=download_responses(CSV_MEDIA_TYPE, "The aircraft register as a CSV file.")
     )
     def get(self, request: Request) -> StreamingHttpResponse:
         """Return the filtered register as a CSV file for download."""
@@ -174,7 +176,7 @@ class AircraftExportPdfView(AircraftExportMixin, generics.GenericAPIView[Aircraf
     """``GET /admin/aircraft/export.pdf?<filters>`` — landscape letter."""
 
     @extend_schema(
-        responses={200: download_response_schema("The aircraft register as a PDF file.")}
+        responses=download_responses(PDF_MEDIA_TYPE, "The aircraft register as a PDF file.")
     )
     def get(self, request: Request) -> HttpResponse:
         """Return the filtered register as a landscape-letter PDF for download."""
