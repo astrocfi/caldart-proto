@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from django.http import HttpRequest, HttpResponse
 
 from apps.payments.models import Payment
@@ -45,16 +47,28 @@ class Provider:
 
     slug: str = ""
 
-    def start(self, payment: Payment) -> dict:
-        """Client-side parameters, e.g. ``{"client_secret": ...}``."""
+    def start(self, payment: Payment) -> dict[str, Any]:
+        """Client-side parameters, e.g. ``{"client_secret": ...}``.
+
+        Raises ``NotImplementedError``: every subclass must define it.
+        """
         raise NotImplementedError
 
-    def confirm(self, payment: Payment, **kwargs) -> bool:
-        """Verify with the provider and mark the payment succeeded or failed."""
+    def confirm(self, payment: Payment, **kwargs: Any) -> bool:
+        """Verify with the provider and mark the payment succeeded or failed.
+
+        Returns whether the money arrived.  The keyword arguments are the
+        provider's own handle on the attempt, such as Stripe's intent id or
+        PayPal's order id.  Raises ``NotImplementedError``: every subclass must
+        define it.
+        """
         raise NotImplementedError
 
     def handle_webhook(self, request: HttpRequest) -> HttpResponse:
-        """Process a provider webhook.  Must be idempotent."""
+        """Process a provider webhook.  Must be idempotent.
+
+        Raises ``NotImplementedError``: every subclass must define it.
+        """
         raise NotImplementedError
 
 
@@ -62,7 +76,11 @@ _REGISTRY: dict[str, type[Provider]] = {}
 
 
 def register(cls: type[Provider]) -> type[Provider]:
-    """Class decorator registering a provider under its ``slug``."""
+    """Class decorator registering a provider under its ``slug``.
+
+    Returns ``cls`` unchanged, and raises ``ValueError`` naming the class when its
+    ``slug`` is empty.  Registering a slug twice keeps the last class registered.
+    """
     if not cls.slug:
         raise ValueError(f"{cls.__name__} must define a slug")
     _REGISTRY[cls.slug] = cls
@@ -70,7 +88,12 @@ def register(cls: type[Provider]) -> type[Provider]:
 
 
 def get_provider(slug: str) -> Provider:
-    """Instantiate the provider registered under ``slug``."""
+    """Instantiate the provider registered under ``slug``.
+
+    Raises ``ValueError`` naming the slug when no provider is registered under it.
+    A slug that is registered but unconfigured still instantiates: it is the call
+    to ``start`` or ``confirm`` that raises :class:`ProviderNotConfigured`.
+    """
     # Import for side effects so the registry is populated.
     from apps.payments import providers  # noqa: F401
 
@@ -81,7 +104,12 @@ def get_provider(slug: str) -> Provider:
 
 
 def available_providers() -> list[str]:
-    """Slugs of providers that are configured well enough to use."""
+    """Slugs of providers that are configured well enough to use.
+
+    ``stripe`` needs both Stripe keys, ``paypal`` both PayPal credentials, and
+    ``mock`` needs ``PAYMENTS_MOCK_ENABLED``.  The order is fixed -- stripe, paypal,
+    mock -- so the checkout screen offers the same choice every time.
+    """
     from django.conf import settings
 
     from apps.payments import providers  # noqa: F401
