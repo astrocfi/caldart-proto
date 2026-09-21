@@ -7,6 +7,7 @@ from typing import Any
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.accounts.models import User
@@ -37,10 +38,12 @@ class UserSerializer(serializers.ModelSerializer[User]):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(serializers.ListField(child=serializers.ChoiceField(choices=ROLE_SLUGS)))
     def get_roles(self, obj: User) -> list[str]:
         """The account's role slugs, in privilege order; empty when it holds none."""
         return obj.roles
 
+    @extend_schema_field(MembershipStatusSerializer)
     def get_membership(self, obj: User) -> dict[str, Any]:
         """The account's membership summary, as ``MembershipStatusSerializer`` renders it.
 

@@ -92,7 +92,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     admin-only ``notes`` and ``how_heard`` fields are deliberately absent.
     """
 
-    dart = DartRefSerializer(read_only=True)
+    dart = DartRefSerializer(read_only=True, allow_null=True)
     dart_id = serializers.PrimaryKeyRelatedField(
         source="dart",
         queryset=Dart.objects.filter(is_active=True),

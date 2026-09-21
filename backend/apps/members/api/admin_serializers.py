@@ -12,9 +12,11 @@ from datetime import date
 from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth import password_validation
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.accounts.models import User
+from apps.accounts.roles import ROLE_SLUGS
 from apps.accounts.services import AccountChanges
 from apps.members.api.profile_serializers import (
     MembershipTermSerializer,
@@ -22,11 +24,22 @@ from apps.members.api.profile_serializers import (
     ProfileSerializer,
 )
 from apps.members.api.serializers import MembershipStatusSerializer
-from apps.members.models import MemberProfile, Membership, MembershipPlan
+from apps.members.models import (
+    MedicalType,
+    MemberProfile,
+    Membership,
+    MembershipPlan,
+    PilotCertificateType,
+)
 from apps.members.services import create_member, membership_of, membership_payload, update_member
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
+else:
+    # ``MemberRow`` is a type-checking-only alias for an annotated ``User``.  The OpenAPI
+    # generator evaluates every annotation on a ``SerializerMethodField`` handler, so the
+    # name has to resolve at runtime as well; the plain model is what it stands for.
+    MemberRow = User
 
 
 # --------------------------------------------------------------------------
@@ -181,15 +194,18 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
         profile = self._profile(obj)
         return profile.dart.name if profile and profile.dart is not None else None
 
+    @extend_schema_field(MembershipStatusSerializer)
     def get_membership(self, obj: MemberRow) -> dict[str, Any]:
         """The membership status, read off the row's annotations."""
         return dict(MembershipStatusSerializer(membership_payload(obj)).data)
 
+    @extend_schema_field(serializers.ChoiceField(choices=PilotCertificateType.choices))
     def get_pilot_certificate_type(self, obj: MemberRow) -> str:
         """The certificate the member holds, ``none`` when there is no profile."""
         profile = self._profile(obj)
         return profile.pilot_certificate_type if profile else "none"
 
+    @extend_schema_field(serializers.ChoiceField(choices=MedicalType.choices))
     def get_medical_type(self, obj: MemberRow) -> str:
         """The medical the member holds, ``none`` when there is no profile."""
         profile = self._profile(obj)
@@ -238,6 +254,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
     memberships = serializers.SerializerMethodField()
     payments = serializers.SerializerMethodField()
 
+    @extend_schema_field(serializers.ListField(child=serializers.ChoiceField(choices=ROLE_SLUGS)))
     def get_roles(self, obj: User) -> list[str]:
         """The role slugs the account holds, in the order the roles are declared."""
         return obj.roles
@@ -254,20 +271,24 @@ class MemberDetailSerializer(serializers.Serializer[User]):
         first = obj.memberships.order_by("starts_on").first()
         return first.starts_on if first else None
 
+    @extend_schema_field(MembershipStatusSerializer)
     def get_membership(self, obj: User) -> dict[str, Any]:
         """The membership status, from the row's annotations where it has them."""
         return dict(MembershipStatusSerializer(membership_of(obj)).data)
 
+    @extend_schema_field(AdminProfileSerializer(allow_null=True))
     def get_profile(self, obj: User) -> dict[str, Any] | None:
         """The profile including the admin-only fields, or ``None`` if there is none."""
         profile: MemberProfile | None = getattr(obj, "profile", None)
         return dict(AdminProfileSerializer(profile).data) if profile else None
 
+    @extend_schema_field(AdminMembershipSerializer(many=True))
     def get_memberships(self, obj: User) -> list[dict[str, Any]]:
         """Every term the member holds, newest start first."""
         terms = obj.memberships.select_related("plan", "granted_by").order_by("-starts_on", "-id")
         return list(AdminMembershipSerializer(terms, many=True).data)
 
+    @extend_schema_field(AdminPaymentSerializer(many=True))
     def get_payments(self, obj: User) -> list[dict[str, Any]]:
         """Every payment the member has made, newest first."""
         payments = obj.payments.select_related("plan").order_by("-created_at", "-id")
