@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 ('completed_at', models.DateTimeField(blank=True, null=True)),
                 ('raw', models.JSONField(blank=True, default=dict)),
                 ('plan', models.ForeignKey(blank=True, help_text='Null for a pure donation.', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='payments', to='members.membershipplan')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='payments', to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(help_text='Protected: a payment is a financial record and outlives the account.', on_delete=django.db.models.deletion.PROTECT, related_name='payments', to=settings.AUTH_USER_MODEL)),
             ],
             options={
                 'ordering': ['-created_at', '-id'],

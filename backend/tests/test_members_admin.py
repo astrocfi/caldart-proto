@@ -30,6 +30,7 @@ from apps.members.models import (
     MembershipStatusChoices,
     PilotCertificateType,
 )
+from apps.payments.models import Payment
 from tests.factories import (
     AircraftFactory,
     DartFactory,
@@ -591,15 +592,27 @@ def test_put_is_not_offered(admin_client, population):
 # --------------------------------------------------------------------------
 # Delete
 # --------------------------------------------------------------------------
-def test_delete_hard_deletes_and_cascades(admin_client, population, annual_plan):
+def test_delete_hard_deletes_and_cascades(admin_client, population):
+    """A member who never paid goes, and the profile and terms go with them."""
     member = population["current"]
-    PaymentFactory(user=member, plan=annual_plan)
     pk = member.pk
 
     assert admin_client.delete(detail_url(member)).status_code == 204
     assert not User.objects.filter(pk=pk).exists()
     assert not MemberProfile.objects.filter(user_id=pk).exists()
     assert not Membership.objects.filter(user_id=pk).exists()
+
+
+def test_delete_is_refused_for_a_member_with_payments(admin_client, population, annual_plan):
+    """Payments are kept, so the account that made them cannot be deleted."""
+    member = population["current"]
+    payment = PaymentFactory(user=member, plan=annual_plan)
+
+    response = admin_client.delete(detail_url(member))
+
+    assert response.status_code == 403
+    assert User.objects.filter(pk=member.pk).exists()
+    assert Payment.objects.filter(pk=payment.pk).exists()
 
 
 def test_you_cannot_delete_yourself(admin_client, account_admin):
