@@ -9,7 +9,7 @@
  * The three demo accounts used here are seeded deliberately: the leader is
  * current with a current medical and an insured airplane (a GO), the expired
  * account is expired on both counts (a NO-GO), and the website administrator
- * is a GO whose aeroplane's insurance has lapsed.
+ * is a GO whose airplane's insurance has lapsed.
  */
 import { expect, test } from '@playwright/test';
 

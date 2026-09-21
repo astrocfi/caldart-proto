@@ -257,7 +257,7 @@ airplane for us today?" in one screen.*
    and states the reasons — *"Medical expired"*, *"Membership expired"* —
    in the order a leader would say them out loud.
 6. Follow **Aircraft check** (``/portal/leader/aircraft``) and enter a
-   registration, e.g. ``N419JM``.  You get the aeroplane's insurance card and
+   registration, e.g. ``N419JM``.  You get the airplane's insurance card and
    a list of the members who fly it, each with their own membership and
    medical currency.
 
