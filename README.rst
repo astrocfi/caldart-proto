@@ -1,28 +1,65 @@
-==============================================
-CalDART — website and member management system
-==============================================
+========
+CalDART
+========
 
-A prototype for **The California DART Network**: a Wagtail-managed public
-website plus a React member portal with roles, profiles, an aircraft
-register, online join/renew, renewal reminders and admin reporting.
+CalDART is the website and member management system for The California DART
+Network, a 501(c)(3) that organizes California pilots and ground personnel to
+provide volunteer disaster air transportation. It is a prototype: a
+Wagtail-managed public website plus a React member portal, with roles,
+profiles, an aircraft register, online join/renew, renewal reminders and
+admin reporting.
 
 The documentation in ``docs/`` is the specification. If the code and the docs
 disagree, one of them is wrong — fix it in the same pull request.
 
 
-Quick start
-===========
+Features
+========
 
-Requirements: Python 3.12, `uv <https://docs.astral.sh/uv/>`_, Node 20+ and
-npm, Docker with Compose, and ``make``. No local PostgreSQL client is needed;
-the compose stack provides one.
+- **Accounts and roles.** Email-and-password sign-in, six roles held as
+  Django groups, and self-service password reset.
+- **Membership.** Two plans — Annual at $45 for 365 days and Life at $650 —
+  bought online and activated the instant the payment clears.
+- **Profiles.** Contact details, DART (Disaster Airlift Response Team)
+  affiliation, pilot certificate, medical, flight review, hours and
+  volunteer interests.
+- **Aircraft.** One shared register of airframes with insurance carriers,
+  limits and expiry dates, which members attach to their own profiles.
+- **The leader check.** One screen that answers "may this person fly this
+  airplane for us today?" — membership, medical and insurance in a single
+  GO / NO-GO verdict.
+- **Payments.** Stripe (card, Apple Pay, Google Pay, Link) and PayPal, plus a
+  mock provider for demonstrations and tests, with optional donations at
+  checkout and month-by-month reporting.
+- **Reminders.** Scheduled renewal email at 60, 30 and 7 days before expiry,
+  on the day, and 30 days after.
+- **Reports.** Membership and aircraft exports as CSV and PDF, payment
+  exports as CSV, all with the same filters as the screen you exported them
+  from.
+- **Content.** Wagtail page types, StreamField blocks, three themes, and a
+  members-only wall that only current members and staff get past.
+- **Operations.** Health checks, database backups, restore and reset, from
+  the command line or the portal.
+
+
+Requirements
+============
+
+Python 3.12, `uv <https://docs.astral.sh/uv/>`_, Node 20+ and npm, Docker
+with Compose, and ``make``. No local PostgreSQL client is needed; the
+compose stack provides one. The lock file resolves Django 6. See
+``docs/developer/configuration.rst`` for every setting ``.env`` accepts.
+
+
+Setup
+=====
 
 .. code-block:: console
 
    $ make setup     # uv sync, npm ci, copy .env.example to .env
    $ make up        # start Postgres (:5432) and Mailpit (:8025 / :1025)
    $ make migrate   # create the schema and the role groups
-   $ make seed      # demo accounts, members, aircraft, payments
+   $ make seed      # demo accounts, members, aircraft, payments and content
    $ make build     # build the frontend into frontend/dist
    $ make run       # Django on http://localhost:8000
 
@@ -42,11 +79,8 @@ For hot module reload while working on the frontend, set
 ``DJANGO_VITE_DEV_MODE=true`` in ``.env`` and run ``make dev-frontend`` in a
 second terminal.
 
-
-Demo accounts
-=============
-
-``make seed`` creates these, all with the password ``caldart-demo``:
+``make seed`` creates these demo accounts, all with the password
+``caldart-demo``:
 
 =============================  ====================================
 Email                          Roles
@@ -64,85 +98,65 @@ Plus about 40 generated members with mixed membership, certificate and
 medical states, 25 aircraft with varied insurance currency, and two years of
 payment history.
 
-
-Everyday commands
-=================
+Everyday commands:
 
 .. code-block:: console
 
-   $ make test           # pytest + vitest
-   $ make e2e            # Playwright, end to end (see below)
-   $ make lint           # ruff + mypy + tsc + eslint + prettier + codespell
-   $ make check          # system checks, migrations, deployment checks, build
-   $ make docs           # Sphinx, nitpicky, warnings are errors
-   $ make audit          # known vulnerabilities in Python and npm dependencies
-   $ make reset          # destroy and re-seed the dev database
-   $ make backup         # gzipped pg_dump into backups/
-   $ make help           # the everyday targets
+   $ make test      # pytest + vitest
+   $ make e2e       # Playwright, end to end (see below)
+   $ make lint      # ruff + mypy + tsc + eslint + prettier + codespell
+   $ make check     # system checks, migrations, deployment checks, build
+   $ make docs      # Sphinx, nitpicky, warnings are errors
+   $ make audit     # known vulnerabilities in Python and npm dependencies
+   $ make reset     # destroy and re-seed the dev database
+   $ make backup    # gzipped pg_dump into backups/
+   $ make help      # every target, one line each
 
-``make help`` covers the everyday targets. The Make targets table in
-``docs/developer/setup.rst`` lists every target the Makefile defines, halves
-and helpers included.
+The Make targets table in ``docs/developer/setup.rst`` lists every target in
+full.
 
 
 End-to-end tests
-================
+=================
 
 ``frontend/e2e`` holds Playwright specs for the five flows of the demo
-walkthrough (``docs/demo-walkthrough.rst``), driven through a real browser
-against a real server, paying with the mock
-provider. Install the browser once:
+walkthrough, run with ``make e2e``. See ``docs/developer/testing.rst`` for
+the browser install step, environment variables, and how to run or watch a
+single spec.
+
+
+Documentation
+=============
 
 .. code-block:: console
 
-   $ cd frontend && npx playwright install chromium
+   $ make docs
 
-Then, from the repository root:
+builds the Sphinx documentation into ``docs/_build/html/index.html``; there
+is no hosted copy. It covers the user guide (``docs/user/``) for members,
+DART leaders and administrators, and the developer guide
+(``docs/developer/``) for setup, architecture and the API reference.
 
-.. code-block:: console
 
-   $ make e2e
+Contributing
+============
 
-That creates and seeds its own ``caldart_e2e`` database, builds the frontend,
-collects the static files, starts Django on :8021, runs the specs and stops the
-server again — your development database is never touched. Add ``E2E_PORT=…``
-or ``E2E_DB=…`` to move either. The target pins every setting the run needs
-(``DEBUG``, ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, the mock provider,
-the login throttle), so it behaves the same with your ``.env`` and without one
-— which is what CI has. To watch a run, or to work on one spec:
-
-.. code-block:: console
-
-   $ cd frontend && E2E_BASE_URL=http://localhost:8000 npx playwright test --headed leader
-
-against a server you started yourself with ``make run``.
-
-If Chromium will not start for want of system libraries, install them with
-``npx playwright install-deps chromium``, which needs ``sudo``:
+Read ``CLAUDE.md`` for the conventions this repository follows and the
+"Before you open a pull request" section of ``docs/developer/setup.rst`` for
+the gates every pull request must pass:
 
 .. code-block:: console
 
-   $ sudo $(which npx) playwright install-deps chromium
+   $ make test     # pytest + vitest; a warning fails the run
+   $ make lint     # ruff, mypy, tsc, eslint (no warnings), prettier, codespell
+   $ make check    # system checks, migrations, deployment checks, build
+   $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors
+   $ make audit    # uv audit + npm audit: known vulnerabilities
 
-CI installs them itself (``playwright install --with-deps chromium`` on
-``ubuntu-latest``), so nothing there needs a privileged step.
-
-
-Layout
-======
-
-::
-
-   backend/     Django + Wagtail (caldart project, apps/, templates/, tests/)
-   frontend/    Vite + React + TypeScript (public-site JS and the portal SPA)
-   docs/        Sphinx documentation (user/ and developer/)
-   deploy/      gunicorn, systemd, Apache and nginx configuration
-   plans/       implementation plans; archive/ holds finished ones
-   critiques/   dated review reports
-   CLAUDE.md    conventions for working in this repository
+See ``docs/developer/testing.rst`` for how the test suites are organized.
 
 
 License
 =======
 
-Prototype code for CalDART. Not yet licensed for redistribution.
+Prototype code for CalDART. It carries no license for redistribution.
