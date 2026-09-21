@@ -40,8 +40,9 @@ class Command(BaseCommand):
         """Run the scan and print its summary.
 
         ``--today`` must be an ISO ``YYYY-MM-DD`` date, or ``CommandError`` is raised
-        with the invalid value quoted. After the scan, ``CommandError`` is raised
-        naming how many reminders failed to send, so the command exits non-zero.
+        with the invalid value quoted. After the scan, if any reminder failed to
+        send, ``CommandError`` is raised naming how many did, so the command exits
+        non-zero; a scan with no failures returns normally.
         """
         scan_date: date | None = None
         if options["today"]:

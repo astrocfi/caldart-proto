@@ -148,6 +148,11 @@ def renew_url() -> str:
 
 
 def _site_settings() -> SiteSettings | None:
+    """The default site's ``SiteSettings`` row, or ``None`` when there is none.
+
+    It is ``None`` before ``migrate`` has set the site up, and reading it never
+    creates the row.
+    """
     # Inline: the site settings live in cms, the top layer, and a top-level import
     # would make reminders depend upward on it.
     from apps.cms.models import get_site_settings
@@ -162,6 +167,11 @@ def _org_name() -> str:
 
 
 def _contact_email() -> str:
+    """The contact address from Wagtail site settings, or ``""``.
+
+    It is empty when the site settings are missing or their ``contact_email`` is
+    blank; the templates then omit the contact line.
+    """
     site_settings = _site_settings()
     return (getattr(site_settings, "contact_email", "") if site_settings else "") or ""
 

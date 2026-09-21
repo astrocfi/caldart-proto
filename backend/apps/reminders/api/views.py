@@ -54,7 +54,11 @@ class ReminderLogListView(ListAPIView[ReminderLog]):
     search_fields = ["to_email", "user__email", "user__last_name", "user__first_name"]
 
     def get_queryset(self) -> QuerySet[ReminderLog]:
-        """Return every reminder log row, newest first, with its user preloaded."""
+        """Return every reminder log row with its user preloaded.
+
+        The rows come back in ``ReminderLog``'s default ordering, newest ``sent_at``
+        first, unless the request asks for another ``ordering``.
+        """
         return ReminderLog.objects.select_related("user").all()
 
 

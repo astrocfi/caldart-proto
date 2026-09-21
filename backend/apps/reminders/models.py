@@ -9,7 +9,7 @@ from caldart.models import TimestampedModel
 
 
 class ReminderKind(models.TextChoices):
-    """The five renewal reminder emails, keyed by their offset from expiry."""
+    """The five renewal reminder emails.  ``REMINDER_OFFSETS`` dates each one."""
 
     T60 = "t60", "60 days before expiry"
     T30 = "t30", "30 days before expiry"
