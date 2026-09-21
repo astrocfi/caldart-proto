@@ -201,12 +201,20 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
         return profile.medical_expiration if profile else None
 
     def get_medical_is_current(self, obj: MemberRow) -> bool:
-        """True when the member holds a medical that has not expired."""
+        """True when the member holds a medical that has not expired.
+
+        False when the account has no profile, and false when the profile records
+        no medical.
+        """
         profile = self._profile(obj)
         return bool(profile and profile.medical_is_current)
 
     def get_aircraft(self, obj: MemberRow) -> list[str]:
-        """The N-numbers of the aircraft on the member's profile."""
+        """The N-numbers of the aircraft on the member's profile.
+
+        Empty when the account has no profile, and empty when the profile has no
+        aircraft attached.
+        """
         profile = self._profile(obj)
         if profile is None:
             return []
