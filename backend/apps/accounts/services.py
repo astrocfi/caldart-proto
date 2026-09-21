@@ -176,7 +176,7 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
     return target
 
 
-def _checked_roles(actor: User, target: User | None, wanted: list[str]) -> list[str]:
+def _checked_roles(actor: User, target: User, wanted: list[str]) -> list[str]:
     """``wanted`` in privilege order, refusing a ``system_admin`` move ``actor`` may not make.
 
     Writing a role list rebuilds the Django flags from that list alone, so the two
@@ -185,8 +185,7 @@ def _checked_roles(actor: User, target: User | None, wanted: list[str]) -> list[
     leaves the role out of the list for an account that counts as a system
     administrator -- which a ``createsuperuser`` account does, on the superuser flag
     alone.  A list matching the groups the account already holds writes nothing and
-    is never refused.  ``None`` as the target is an account that does not exist yet,
-    which any list writes.
+    is never refused.
     """
     held = set(wanted)
     is_refused = (
@@ -199,15 +198,13 @@ def _checked_roles(actor: User, target: User | None, wanted: list[str]) -> list[
     return [slug for slug in ROLE_SLUGS if slug in held]
 
 
-def _writes_roles(target: User | None, wanted: set[str]) -> bool:
+def _writes_roles(target: User, wanted: set[str]) -> bool:
     """True when writing ``wanted`` would alter ``target``'s role groups."""
-    return target is None or wanted != set(target.roles)
+    return wanted != set(target.roles)
 
 
-def _moves_system_admin(target: User | None, wanted: set[str]) -> bool:
+def _moves_system_admin(target: User, wanted: set[str]) -> bool:
     """True when writing ``wanted`` to ``target`` would move the ``system_admin`` role."""
-    if target is None:
-        return SYSTEM_ADMIN in wanted
     if SYSTEM_ADMIN in wanted:
         return SYSTEM_ADMIN not in target.roles
     return SYSTEM_ADMIN in effective_roles(target)

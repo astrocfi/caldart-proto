@@ -81,5 +81,7 @@ def test_an_empty_provider_and_status_are_no_filter(report_client, url: str) -> 
 
 
 def test_a_real_date_range_still_filters(report_client, member, payment_factory) -> None:
+    """A well-formed bound narrows the report rather than being accepted and ignored."""
     payment_factory(user=member)
     assert report_client.get(LIST, {"from": "2026-01-01"}).data["count"] == 1
+    assert report_client.get(LIST, {"from": "2100-01-01"}).data["count"] == 0
