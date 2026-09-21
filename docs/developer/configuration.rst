@@ -383,6 +383,67 @@ Django at all.
    worker preloads Django and Wagtail.  Set it lower on a small VM.
 
 
+.. _configuration-csp:
+
+Content-Security-Policy
+=======================
+
+Every response carries an enforced ``Content-Security-Policy`` header — not
+``Content-Security-Policy-Report-Only``, so a browser refuses a resource the
+policy does not name.  django-csp builds it from the
+``CONTENT_SECURITY_POLICY`` setting in ``backend/caldart/settings/base.py``,
+which no environment variable touches: widening the policy means editing that
+dictionary and shipping the change.
+
+``default-src 'self'``
+   Everything the following directives do not cover comes from CalDART's own
+   origin.
+
+``script-src 'self' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com``
+   The portal's own bundles plus the two payment vendors' browser SDKs.  Both
+   PayPal hostnames are listed because ``PAYPAL_ENV`` picks between the live
+   and the sandbox SDK while the header is fixed at start-up.  No template
+   carries an inline script.
+
+``frame-src 'self' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com``
+   Stripe's Payment Element and PayPal's buttons render in vendor frames.
+   ``'self'`` is there for Wagtail, whose admin previews a page in a
+   same-origin frame.
+
+``connect-src 'self' https://api.stripe.com https://www.paypal.com https://www.sandbox.paypal.com``
+   The portal's own API calls, plus the calls those SDKs make from the browser
+   to authorize and capture a payment.
+
+``img-src 'self' data:``
+   ``data:`` carries the inline SVG icons the portal and the Wagtail admin
+   draw.
+
+``style-src 'self' 'unsafe-inline'``
+   Stripe's Payment Element and Wagtail's admin both set styles from
+   JavaScript, which a browser attributes to this directive.
+
+``caldart.middleware.WagtailAdminCspMiddleware`` makes the one exception:
+under the path Wagtail's admin is mounted at, ``script-src`` is replaced with
+``'self' 'unsafe-inline'``, because Wagtail's admin templates — the inline
+panel and the date and time widgets among them — write scripts into the page.
+The exception follows the path, so it covers the admin's own login page and
+reaches nothing else: the public site, the portal and the API keep the policy
+above.  Every other directive stays as it is even inside the admin.
+
+``caldart.settings.dev`` widens four directives so the pages work against the
+Vite dev server (``make dev-frontend``, ``DJANGO_VITE_DEV_MODE=true``): it adds
+``http://localhost:5173`` to ``default-src``, ``script-src``, ``connect-src``
+and ``img-src``, ``ws://localhost:5173`` to ``connect-src`` for the hot-reload
+socket, and ``'unsafe-inline'`` to ``script-src`` for React Fast Refresh's
+preamble.  It edits a copy, so the policy ``caldart.settings.prod`` serves is
+the one above.
+
+Adding a payment provider, an analytics script, a web font or an embedded
+video means adding its origin to the right directive, and
+``backend/tests/test_csp.py`` asserts the whole header directive by directive,
+so a change that widens the policy has to say so.
+
+
 Settings that are not environment variables
 ===========================================
 

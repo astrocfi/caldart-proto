@@ -406,6 +406,23 @@ plausible wallets, so the payment reports have something realistic to group
 by.
 
 
+Origins the browser is allowed to reach
+=======================================
+
+The site's ``Content-Security-Policy`` names both vendors, so the checkout
+works without any change to a vhost: ``script-src`` and ``frame-src`` carry
+``https://js.stripe.com``, ``https://www.paypal.com`` and
+``https://www.sandbox.paypal.com``, and ``connect-src`` carries
+``https://api.stripe.com`` alongside the two PayPal hosts.  Both PayPal
+hostnames are listed because ``PAYPAL_ENV`` chooses between the live and the
+sandbox SDK at run time while the header is fixed at start-up.
+
+A provider added to ``backend/apps/payments/providers/`` needs its own origins
+added to those directives, or the browser will refuse to load its SDK and the
+checkout tab will stay blank with a console violation.  :ref:`configuration-csp`
+gives the whole policy and where to edit it.
+
+
 The provider interface
 ======================
 
