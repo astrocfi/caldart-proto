@@ -17,13 +17,92 @@ Every path below assumes the deploy root
 What you are deploying
 ======================
 
-::
+.. only:: graphviz
 
-  browser ──HTTPS──▶ Apache :443 ──HTTP──▶ gunicorn 127.0.0.1:8001
-                       │                      │
-                       ├─ /media/  from disk  ├─ Django + Wagtail
-                       └─ ACME challenges     ├─ /static/ via whitenoise
-                                              └─ Postgres in Docker :5432
+   .. graphviz::
+      :caption: One server, from the outside in.  A **solid arrow** is a
+                request, labeled with the protocol and the port it arrives on;
+                a **dashed arrow** is an outbound call the application makes; a
+                **dotted arrow** is a file read straight off disk.  The
+                **dashed box** is the one machine.  ``nginx``
+                (``deploy/nginx/caldart.conf``) takes Apache's place unchanged
+                when you deploy it instead.
+      :alt: Topology of a CalDART production server: Apache, gunicorn,
+            Postgres in Docker and the reminder timer
+
+      digraph caldart_topology {
+          rankdir=TB;
+          bgcolor="transparent";
+          node [shape=box, style="rounded", fontname="Helvetica", fontsize=10];
+          edge [fontname="Helvetica", fontsize=9];
+
+          Browser [label="Browser\l  member portal, public site,\l  Wagtail admin\l"];
+          Stripe [label="Stripe and PayPal\l  api.stripe.com,\l  api-m.paypal.com\l"];
+          Smtp [label="SMTP server\l  from EMAIL_URL\l"];
+
+          subgraph cluster_server {
+              label="One Linux server, deploy root /srv/caldart";
+              fontname="Helvetica";
+              fontsize=10;
+              style=dashed;
+              color="gray";
+
+              Apache [label="Apache 2.4 :80 and :443\l  deploy/apache/caldart.conf\l  terminates TLS (certbot)\l  :80 -> :443, except ACME\l  ProxyTimeout 60\l"];
+              Gunicorn [label="gunicorn 127.0.0.1:8001\l  caldart-web.service\l  deploy/gunicorn.conf.py\l  2 x CPU + 1 workers, max 12\l  timeout 60, preload\l"];
+              Django [label="Django 6 + Wagtail 8\l  caldart.settings.prod\l  /static/ via whitenoise\l"];
+              Postgres [label="Postgres in Docker :5432\l  compose service db\l"];
+              Timer [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
+              Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to the\l  web server\l", shape=folder, style=""];
+              Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for both units\l", shape=note, style=""];
+
+              Apache -> Gunicorn [label="HTTP 127.0.0.1:8001\lX-Forwarded-Proto: https"];
+              Gunicorn -> Django [label="WSGI\lcaldart.wsgi:application", arrowhead=none];
+              Django -> Postgres [label="DATABASE_URL"];
+              Timer -> Postgres [label="reads terms,\lwrites ReminderLog"];
+              Apache -> Media [label="/media/ off disk", style=dotted];
+              Django -> Media [label="/documents/<id>/<name>\lafter the members-only check", style=dotted];
+              Env -> Gunicorn [label="settings", style=dashed, arrowhead=none];
+              Env -> Timer [label="settings", style=dashed, arrowhead=none];
+          }
+
+          Browser -> Apache [label="HTTPS :443\lHTTP :80 redirected"];
+          Django -> Stripe [label="checkout and confirm", style=dashed];
+          Stripe -> Apache [label="webhooks, HTTPS :443"];
+          Django -> Smtp [label="password resets,\linvitations", style=dashed];
+          Timer -> Smtp [label="renewal reminders", style=dashed];
+      }
+
+.. only:: not graphviz
+
+   Install Graphviz and rebuild for a drawn version of this diagram.  The
+   drawing and the sketch below carry the same pieces and the same traffic.
+
+   .. code-block:: text
+
+      browser --HTTPS :443--> Apache 2.4 --HTTP--> gunicorn 127.0.0.1:8001
+      (:80 redirects              |                   |
+       except ACME)               |                   |  caldart-web.service
+                                  |                   |  2 x CPU + 1 workers,
+            serves /media/ -------'                   |  max 12, timeout 60
+            off disk; documents/ is denied,           v
+            because Django's members-only       Django 6 + Wagtail 8
+            check is the only way in            caldart.settings.prod
+                                                /static/ via whitenoise
+      Stripe / PayPal webhooks arrive                 |
+      through Apache like any other request           v
+                                                Postgres in Docker :5432
+      caldart-reminders.timer, daily 07:00            ^
+        -> caldart-reminders.service                  |
+           manage.py send_renewal_reminders ----------'
+           -> the SMTP server from EMAIL_URL
+
+   Apache, gunicorn, Postgres and the timer run on one Linux server with the
+   deploy root ``/srv/caldart``, and both systemd units read their settings
+   from ``/etc/caldart/caldart.env`` (``root:caldart``, mode ``0640``).  Django
+   calls out to ``api.stripe.com`` and ``api-m.paypal.com`` during a checkout,
+   and to the same SMTP server for password resets and invitations.  ``nginx``
+   (``deploy/nginx/caldart.conf``) takes Apache's place unchanged when you
+   deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
 ``caldart-web`` gunicorn unit, and Apache.  One thing runs daily: the
