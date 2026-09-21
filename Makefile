@@ -25,11 +25,6 @@ export DATABASE_URL
 
 DB_NAME := $(shell printf '%s' "$(DATABASE_URL)" | sed -e 's#.*/##' -e 's/?.*//')
 
-# The generated OpenAPI description of /api/v1/.  It is a build artifact, not a
-# source file: `check-backend` writes it and the frontend's `schema` script
-# reads it to generate the portal's schema types.
-OPENAPI_JSON ?= backend/openapi.json
-
 # `make e2e` runs against its own database and its own server, so it never
 # disturbs the one you are developing against.
 E2E_PORT ?= 8021
@@ -217,11 +212,14 @@ format: ## Auto-format Python and TypeScript
 # against the production settings, and the production build.
 check: check-backend check-deploy check-frontend ## Django system checks, missing migrations, deployment checks, production build
 
+# `backend/openapi.json` is a build artifact, not a source file, and its path is
+# fixed rather than a variable: this target writes it and the frontend's
+# `schema` script reads it from there, so the two must never disagree.
 check-backend: ## Django system checks + missing-migration check + OpenAPI schema
 	$(MANAGE) check --settings caldart.settings.test --fail-level WARNING
 	$(MANAGE) makemigrations --check --dry-run --settings caldart.settings.test
 	$(MANAGE) spectacular --settings caldart.settings.test --format openapi-json \
-	  --file $(OPENAPI_JSON)
+	  --file backend/openapi.json
 
 # `--deploy` adds Django's deployment-only checks to the default set, and those
 # carry exactly four tags: security, caches, async_support and mail.  Naming

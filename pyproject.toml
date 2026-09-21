@@ -67,7 +67,10 @@ builtin = "clear,rare,en-GB_to_en-US"
 dictionary = ".codespell-dictionary.txt,-"
 # `.claude/worktrees` holds nested checkouts of this repository, each with its own
 # build output and its own copy of `plans/`; none of it belongs to this tree's sources.
-skip = "*.lock,package-lock.json,*.svg,*.png,*.woff2,node_modules,.venv,docs/_build,frontend/dist,backend/staticfiles,.claude/worktrees"
+# `backend/openapi.json` and `frontend/src/portal/api/schema.d.ts` are generated into
+# trees this lint scans, so skipping them keeps the result the same whether or not a
+# build step has run.
+skip = "*.lock,package-lock.json,*.svg,*.png,*.woff2,node_modules,.venv,docs/_build,frontend/dist,backend/staticfiles,.claude/worktrees,backend/openapi.json,frontend/src/portal/api/schema.d.ts"
 # nnumber: the nNumber identifier, which spells the FAA N-number in camelCase.
 # unparseable: a valid American spelling that the `rare` dictionary flags.
 # Anything else stays reportable: silence a single line with a trailing
