@@ -1,7 +1,12 @@
-"""Account services: registration, the account-edit guard, roles and reset email.
+"""Account services: registration, the account-edit guard, roles and password email.
 
 The API layer validates; everything that changes state lives here so the
 management commands, the Django admin and the tests can reuse it.
+
+Two emails carry a password link: the reset a member asks for, and the
+invitation an administrator-created account receives.  Both render a pair of
+templates from the same context, so the link, the organization name and the
+expiry wording can never drift apart.
 """
 
 from __future__ import annotations
@@ -25,6 +30,13 @@ log = logging.getLogger(__name__)
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
 RESET_PATH = "/portal/reset-password"
+
+#: The name the password emails use before a website administrator has filled
+#: in the organization name in Wagtail's site settings.
+DEFAULT_ORG_NAME = "CalDART"
+
+#: Seconds in a day, for turning ``PASSWORD_RESET_TIMEOUT`` into whole days.
+SECONDS_PER_DAY = 86_400
 
 #: The fields an administrator may change on another account only while holding
 #: every role that account holds.  Both are takeover routes: the email address is
@@ -212,39 +224,81 @@ def build_reset_url(user: User) -> str:
     return f"{settings.SITE_URL.rstrip('/')}{RESET_PATH}?uid={uid}&token={token}"
 
 
+def _password_link_context(user: User, *, request) -> dict:
+    """The context both password emails render, carrying a fresh reset link.
+
+    ``org_name`` and ``contact_email`` come from Wagtail's site settings for
+    ``request``'s site, falling back to ``DEFAULT_ORG_NAME`` and an empty
+    address before a website administrator has set them.  ``expiry_days`` is
+    ``PASSWORD_RESET_TIMEOUT`` in whole days, never less than one.
+    """
+    from apps.cms.models import get_site_settings
+
+    site_settings = get_site_settings(request)
+    return {
+        "user": user,
+        "display_name": user.display_name,
+        "first_name": user.first_name or user.display_name,
+        "reset_url": build_reset_url(user),
+        "site_url": settings.SITE_URL.rstrip("/"),
+        "org_name": site_settings.org_name if site_settings else DEFAULT_ORG_NAME,
+        "contact_email": site_settings.contact_email if site_settings else "",
+        "expiry_days": max(1, settings.PASSWORD_RESET_TIMEOUT // SECONDS_PER_DAY),
+    }
+
+
+def _send_password_link_email(user: User, *, template: str, subject: str, context: dict) -> None:
+    """Mail ``user`` both bodies of ``emails/<template>.{txt,html}``.
+
+    The text body is the message proper and the HTML one an alternative, so a
+    client that renders no markup still reads the whole thing.
+    """
+    message = EmailMultiAlternatives(
+        subject=subject,
+        body=render_to_string(f"emails/{template}.txt", context),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    message.attach_alternative(render_to_string(f"emails/{template}.html", context), "text/html")
+    message.send()
+
+
 def send_password_reset_email(user: User, *, request=None) -> bool:
     """Mail ``user`` a reset link.  Returns False when there is nobody to mail.
+
+    The subject is ``"<organization name>: reset your password"`` and the two
+    bodies are ``emails/password_reset.{txt,html}``.
 
     Inactive accounts and accounts without a usable password are skipped
     silently: the caller answers 204 either way so the endpoint cannot be used
     to discover which addresses are registered.
     """
-    from apps.cms.models import get_site_settings
-
     if not user.is_active or not user.email:
         return False
 
-    site_settings = get_site_settings(request)
-    context = {
-        "user": user,
-        "display_name": user.display_name,
-        "reset_url": build_reset_url(user),
-        "site_url": settings.SITE_URL.rstrip("/"),
-        "org_name": site_settings.org_name if site_settings else "CalDART",
-        "contact_email": site_settings.contact_email if site_settings else "",
-        "expiry_days": max(1, settings.PASSWORD_RESET_TIMEOUT // 86_400),
-    }
-
-    subject = f"{context['org_name']}: reset your password"
-    text_body = render_to_string("emails/password_reset.txt", context)
-    html_body = render_to_string("emails/password_reset.html", context)
-
-    message = EmailMultiAlternatives(
-        subject=subject,
-        body=text_body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user.email],
+    context = _password_link_context(user, request=request)
+    _send_password_link_email(
+        user,
+        template="password_reset",
+        subject=f"{context['org_name']}: reset your password",
+        context=context,
     )
-    message.attach_alternative(html_body, "text/html")
-    message.send()
     return True
+
+
+def send_password_invitation(user: User, *, request=None) -> None:
+    """Mail ``user`` the link that sets the first password on their account.
+
+    An administrator may create a member without a password; the account holds
+    an unusable one until the invitation is followed.  The subject is
+    ``"<organization name>: set your password"`` and the two bodies are
+    ``emails/member_invitation.{txt,html}``.  The link is the ordinary reset
+    link, so ``/auth/password/reset/confirm`` accepts it unchanged.
+    """
+    context = _password_link_context(user, request=request)
+    _send_password_link_email(
+        user,
+        template="member_invitation",
+        subject=f"{context['org_name']}: set your password",
+        context=context,
+    )

@@ -53,11 +53,27 @@ from apps.members.models import (
     Membership,
     MembershipPlan,
     MembershipSource,
+    MembershipState,
     MembershipStatusChoices,
 )
 
 #: Shape returned by :func:`membership_status`.
 MembershipStatusDict = dict
+
+
+def _no_membership() -> MembershipStatusDict:
+    """The status of an account nothing has ever covered.
+
+    A fresh dictionary each call, so a caller that adds its own keys -- the
+    ``/me/membership`` payload hangs the term history off it -- cannot reach
+    the next caller's answer.
+    """
+    return {
+        "status": MembershipState.NONE,
+        "expires_on": None,
+        "plan": None,
+        "is_lifetime": False,
+    }
 
 
 def _current_term(user, on_date: date) -> Membership | None:
@@ -133,12 +149,12 @@ def membership_status(user, on_date: date | None = None) -> MembershipStatusDict
     on_date = on_date or timezone.localdate()
 
     if user is None or not getattr(user, "is_authenticated", False):
-        return {"status": "none", "expires_on": None, "plan": None, "is_lifetime": False}
+        return _no_membership()
 
     covering = _coverage(user, on_date)
     if covering is not None:
         return {
-            "status": "current",
+            "status": MembershipState.CURRENT,
             "expires_on": covering.ends_on,
             "plan": covering.plan.name,
             "is_lifetime": covering.ends_on is None,
@@ -152,9 +168,9 @@ def membership_status(user, on_date: date | None = None) -> MembershipStatusDict
         .first()
     )
     if past is None:
-        return {"status": "none", "expires_on": None, "plan": None, "is_lifetime": False}
+        return _no_membership()
     return {
-        "status": "expired",
+        "status": MembershipState.EXPIRED,
         "expires_on": past.ends_on,
         "plan": past.plan.name,
         "is_lifetime": False,
@@ -232,19 +248,19 @@ def membership_payload(user) -> MembershipStatusDict:
     if user.covers_today:
         lifetime = user.coverage_end is None
         return {
-            "status": "current",
+            "status": MembershipState.CURRENT,
             "expires_on": user.coverage_end,
             "plan": user.lifetime_plan if lifetime else user.coverage_plan,
             "is_lifetime": lifetime,
         }
     if user.has_started_term:
         return {
-            "status": "expired",
+            "status": MembershipState.EXPIRED,
             "expires_on": user.past_end,
             "plan": user.past_plan,
             "is_lifetime": False,
         }
-    return {"status": "none", "expires_on": None, "plan": None, "is_lifetime": False}
+    return _no_membership()
 
 
 def membership_of(user) -> MembershipStatusDict:

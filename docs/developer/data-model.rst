@@ -623,6 +623,14 @@ The service
 ``none``
     Nothing has started.  Everything else is ``None`` / ``False``.
 
+Those three values are ``apps.members.models.MembershipState``, a
+``TextChoices`` nothing stores: it is the computed answer, as against
+``MembershipStatusChoices``, which is the state written on a term.  Every
+serializer that offers the status, the ``?status=`` filter on the member list
+and the payload builders take their values from it, so the backend spells them
+in exactly one place.  The portal's ``MembershipState`` union, in
+``frontend/src/portal/api/types.ts``, is the same three values.
+
 The subtlety is ``expires_on`` for a current member.  Renewing early creates a
 term that starts the day *after* the present one ends, and the member is
 entitled to see next year's date immediately.  So ``_coverage()`` does not stop

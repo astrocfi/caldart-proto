@@ -134,8 +134,10 @@ class User(AbstractUser):
     @property
     def can_access_members_content(self) -> bool:
         """Current membership, or any role beyond plain ``member``."""
+        from apps.members.models import MembershipState
+
         if self.is_superuser:
             return True
-        if self.membership_status["status"] == "current":
+        if self.membership_status["status"] == MembershipState.CURRENT:
             return True
         return bool(set(self.roles) & set(STAFF_ROLE_SLUGS))

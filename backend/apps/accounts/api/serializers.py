@@ -16,18 +16,10 @@ from apps.accounts.services import (
     may_edit_protected_fields,
     user_from_uid,
 )
+from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.services import membership_of
 
 User = get_user_model()
-
-
-class MembershipStatusSerializer(serializers.Serializer):
-    """The ``membership_status`` dict returned by ``members.services``."""
-
-    status = serializers.ChoiceField(choices=["current", "expired", "none"])
-    expires_on = serializers.DateField(allow_null=True)
-    plan = serializers.CharField(allow_null=True)
-    is_lifetime = serializers.BooleanField()
 
 
 class UserSerializer(serializers.ModelSerializer):

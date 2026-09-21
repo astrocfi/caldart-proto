@@ -1,0 +1,17 @@
+{% autoescape off %}{{ org_name }} — set your password
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+An account has been created for you at {{ org_name }}, registered to
+{{ user.email }}. Choose a password to finish setting it up:
+
+{{ reset_url }}
+
+The link can be used once and expires in {{ expiry_days }} day{{ expiry_days|pluralize }}.
+
+If you were not expecting this you can ignore this message — no account of
+yours changes until the link is used.{% if contact_email %} Anything that looks wrong, write to {{ contact_email }}.{% endif %}
+
+— {{ org_name }}
+{{ site_url }}
+{% endautoescape %}

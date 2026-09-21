@@ -120,7 +120,7 @@ Repository layout
         base.html               the public-site shell
         portal.html             the SPA mount point
         cms/                    page, block and include templates
-        emails/                 password-reset and renewal-reminder mail
+        emails/                 password, invitation and reminder mail
       tests/                    every backend test, one test_<feature>.py each
       media/                    Wagtail uploads (gitignored)
       staticfiles/              collectstatic output (gitignored)

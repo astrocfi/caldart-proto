@@ -18,10 +18,15 @@ The code lives in ``backend/apps/members/``:
 ``api/admin_views.py``
    The views.
 ``api/admin_serializers.py``
-   Request and response shapes, and the invitation email.  The profile, term
-   and payment serializers extend the member-facing ones in
-   ``api/profile_serializers.py``, so an administrator and a member see one
-   definition of a profile and one set of validation rules.
+   Request and response shapes.  The profile, term and payment serializers
+   extend the member-facing ones in ``api/profile_serializers.py``, so an
+   administrator and a member see one definition of a profile and one set of
+   validation rules.
+``api/serializers.py``
+   The two shapes more than one app returns: ``MembershipStatusSerializer``
+   over the dict ``services.membership_status`` builds, and ``PlanSerializer``
+   over a ``MembershipPlan``.  The accounts, members and payments APIs all
+   import them from here.
 ``api/admin_filters.py``
    The filter set, the ordering backend, and the queryset the list is served
    from.  The membership annotations it builds on live in ``services.py``.
@@ -225,11 +230,15 @@ is — plus ``notes`` and ``how_heard``, and nothing mandatory.
 
 The user is granted the ``member`` role and given an empty ``MemberProfile``
 populated from ``profile``.  With no ``password`` the account gets an unusable
-password and ``send_password_invitation`` emails a link to
-``{SITE_URL}/portal/reset-password?uid=…&token=…``, which the portal posts back
-to ``/auth/password/reset/confirm`` (:doc:`api-auth`).  The mail is queued with
-``transaction.on_commit``, so a failed create never sends one — and a test has
-to use ``django_capture_on_commit_callbacks`` to see it.
+password and ``apps.accounts.services.send_password_invitation`` emails an
+invitation whose subject is ``<organization name>: set your password``.  It
+renders
+``templates/emails/member_invitation.{txt,html}`` from the same context as the
+reset email — organization name, contact address and link expiry from Wagtail's
+site settings — and its link is ``build_reset_url``'s, so the portal posts it
+back to ``/auth/password/reset/confirm`` unchanged (:doc:`api-auth`).  The mail
+is queued with ``transaction.on_commit``, so a failed create never sends one —
+and a test has to use ``django_capture_on_commit_callbacks`` to see it.
 
 **400** on a duplicate email address (compared case-insensitively), a password
 that fails Django's validators, or an unknown rating.
@@ -344,6 +353,10 @@ Tests
 ``backend/tests/test_members_admin_status.py``
    The SQL annotations against ``membership_status``, and ``membership_of``
    answering the same either way.
+``backend/tests/test_member_invitation.py``
+   The invitation email: the link with and without a trailing slash on
+   ``SITE_URL``, the subject, both bodies, and the mailed link being accepted
+   by ``/auth/password/reset/confirm``.
 ``backend/tests/test_membership_query_counts.py``
    The pinned query count of every list that shows a membership status, at two
    page sizes.
