@@ -258,4 +258,3 @@ module = [
     "tests.test_site_config",
 ]
 ignore_errors = true
-

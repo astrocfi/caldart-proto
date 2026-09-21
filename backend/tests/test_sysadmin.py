@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import os
 from io import StringIO
 from pathlib import Path
 
@@ -14,6 +15,11 @@ from pytest_django import Settings
 from apps.sysadmin import services
 
 pytestmark = pytest.mark.django_db
+
+# Modification times a month apart, set explicitly so the listing's order is decided by
+# the timestamps rather than by whatever order the files happened to be written in.
+OLDER_MTIME = 1767225600.0  # 2026-01-01T00:00:00Z
+NEWER_MTIME = 1769990400.0  # 2026-02-02T00:00:00Z
 
 
 @pytest.fixture
@@ -30,17 +36,22 @@ def test_list_backups_is_empty_to_start(backup_dir: Path) -> None:
 
 
 def test_list_backups_newest_first(backup_dir: Path) -> None:
-    """Every dump on disk is listed, regardless of write order."""
+    """The dumps on disk are listed by modification time, newest first."""
     services.backup_dir()
-    for name in ("caldart-20260101-000000.sql.gz", "caldart-20260202-000000.sql.gz"):
+    for name, mtime in (
+        ("caldart-20260101-000000.sql.gz", OLDER_MTIME),
+        ("caldart-20260202-000000.sql.gz", NEWER_MTIME),
+    ):
         with gzip.open(backup_dir / name, "wb") as handle:
             handle.write(b"-- dump\n")
+        os.utime(backup_dir / name, (mtime, mtime))
+
     names = [b.name for b in services.list_backups()]
-    assert len(names) == 2
-    assert set(names) == {
-        "caldart-20260101-000000.sql.gz",
+
+    assert names == [
         "caldart-20260202-000000.sql.gz",
-    }
+        "caldart-20260101-000000.sql.gz",
+    ]
 
 
 def test_backup_dir_ignores_other_files(backup_dir: Path) -> None:

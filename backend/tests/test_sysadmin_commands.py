@@ -81,7 +81,7 @@ def test_db_backup_honors_an_explicit_name(
 def test_db_backup_passes_the_database_url_to_pg_dump(
     backup_dir: Path, pg_calls: list[dict[str, Any]], settings: Settings
 ) -> None:
-    """``db_backup`` invokes ``pg_dump`` with ``--no-owner``, ``--no-privileges``."""
+    """``pg_dump`` gets the database URL, ``--no-owner`` and ``--no-privileges``."""
     call_command("db_backup", stdout=StringIO())
 
     argv = pg_calls[0]["argv"]

@@ -68,8 +68,7 @@ def import_prod_over_a_fresh_base() -> ModuleType:
     original = sys.modules.get("caldart.settings.base")
     sys.modules.pop("caldart.settings.base", None)
     try:
-        # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
-        return import_prod()  # type: ignore[no-untyped-call,no-any-return]
+        return import_prod()
     finally:
         if original is not None:
             sys.modules["caldart.settings.base"] = original
@@ -176,8 +175,7 @@ def test_production_refuses_the_published_development_secret_key(
     monkeypatch.setenv("SECRET_KEY", DEVELOPMENT_SECRET_KEY)
 
     with pytest.raises(ImproperlyConfigured, match="SECRET_KEY"):
-        # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
-        import_prod()  # type: ignore[no-untyped-call]
+        import_prod()
 
 
 # --------------------------------------------------------------- mock payments
@@ -187,8 +185,7 @@ def test_production_ignores_the_development_mock_payments_flag(
     """An ``.env`` copied onto the server would otherwise hand out memberships."""
     monkeypatch.setenv("PAYMENTS_MOCK_ENABLED", "true")
 
-    # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
-    prod = import_prod()  # type: ignore[no-untyped-call]
+    prod = import_prod()
     assert prod.PAYMENTS_MOCK_ENABLED is False
 
 
@@ -198,8 +195,7 @@ def test_production_mock_payments_need_their_own_variable(
     """Production enables mock payments only via its own dedicated variable."""
     monkeypatch.setenv("PAYMENTS_MOCK_ENABLED_IN_PRODUCTION", "true")
 
-    # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
-    prod = import_prod()  # type: ignore[no-untyped-call]
+    prod = import_prod()
     assert prod.PAYMENTS_MOCK_ENABLED is True
 
 
@@ -254,8 +250,7 @@ def test_an_unedited_production_template_refuses_to_start(
         monkeypatch.setenv(key, value)
 
     with pytest.raises(ImproperlyConfigured, match="SECRET_KEY"):
-        # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
-        import_prod()  # type: ignore[no-untyped-call]
+        import_prod()
 
 
 def test_the_web_unit_installs_the_production_template() -> None:

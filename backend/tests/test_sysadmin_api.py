@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import cast
 
 import pytest
-from django.http import StreamingHttpResponse
+from django.http import FileResponse
 from pytest_django import Settings
 from rest_framework.test import APIClient
 
@@ -240,11 +240,11 @@ def test_download_streams_the_dump(
     assert response["Content-Type"] == "application/gzip"
     assert a_backup.name in response["Content-Disposition"]
     assert "attachment" in response["Content-Disposition"]
-    # djangorestframework-stubs types the test client's response without
-    # StreamingHttpResponse's streaming_content, which is what the view actually returns.
+    # djangorestframework-stubs types the test client's response without the
+    # streaming_content of FileResponse, which is what the view actually returns.
     # The view never streams asynchronously, so the sync half of the union always applies.
-    streaming = cast(StreamingHttpResponse, response)
-    body = b"".join(cast("Iterator[bytes]", streaming.streaming_content))
+    file_response = cast(FileResponse, response)
+    body = b"".join(cast("Iterator[bytes]", file_response.streaming_content))
     assert gzip.decompress(body) == b"-- caldart dump\n"
 
 
