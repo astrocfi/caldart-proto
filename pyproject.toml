@@ -195,7 +195,9 @@ exclude = ["/migrations/"]
 [tool.django-stubs]
 django_settings_module = "caldart.settings.test"
 
-# Dependencies that ship no type information and have no stubs on PyPI.
+# Dependencies that ship no type information and have no stubs on PyPI.  treebeard,
+# modelcluster, taggit and modelsearch are Wagtail's own dependencies, pulled in
+# whenever the django-stubs plugin resolves INSTALLED_APPS.
 [[tool.mypy.overrides]]
 module = [
     "wagtail.*",
