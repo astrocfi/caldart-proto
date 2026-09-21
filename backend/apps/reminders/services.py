@@ -15,18 +15,25 @@ import logging
 import smtplib
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, transaction
-from django.db.models import Model
+from django.db.models import Model, QuerySet
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from apps.accounts.models import User
 from apps.members.models import Membership, MembershipState, MembershipStatusChoices
 from apps.members.services import expire_lapsed_memberships, membership_status
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from caldart import audit
+
+if TYPE_CHECKING:
+    # Inline: for typing only. A real import would make reminders (layer 4) depend
+    # upward on cms (layer 5); TYPE_CHECKING avoids that at runtime.
+    from apps.cms.models import SiteSettings
 
 log = logging.getLogger(__name__)
 
@@ -91,18 +98,21 @@ class ReminderRun:
     failed_by_kind: dict[str, int] = field(default_factory=dict)
 
     def record_sent(self, kind: str) -> None:
+        """Count one more reminder of ``kind`` sent, overall and per kind."""
         self.sent += 1
         self.sent_by_kind[kind] = self.sent_by_kind.get(kind, 0) + 1
 
     def record_skipped(self, reason: str) -> None:
+        """Count one more candidate skipped for ``reason``, overall and per reason."""
         self.skipped += 1
         self.skipped_by_reason[reason] = self.skipped_by_reason.get(reason, 0) + 1
 
     def record_failed(self, kind: str) -> None:
+        """Count one more failed send of ``kind``, overall and per kind."""
         self.failed += 1
         self.failed_by_kind[kind] = self.failed_by_kind.get(kind, 0) + 1
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, int]:
         """The ``{sent, skipped}`` payload of ``POST /system/reminders/run``.
 
         Failures are deliberately not in it: the panel reports what went out,
@@ -137,7 +147,12 @@ def renew_url() -> str:
     return f"{settings.SITE_URL.rstrip('/')}/portal/renew"
 
 
-def _site_settings():
+def _site_settings() -> SiteSettings | None:
+    """The default site's ``SiteSettings`` row, or ``None`` when there is none.
+
+    It is ``None`` before ``migrate`` has set the site up, and reading it never
+    creates the row.
+    """
     # Inline: the site settings live in cms, the top layer, and a top-level import
     # would make reminders depend upward on it.
     from apps.cms.models import get_site_settings
@@ -152,11 +167,18 @@ def _org_name() -> str:
 
 
 def _contact_email() -> str:
+    """The contact address from Wagtail site settings, or ``""``.
+
+    It is empty when the site settings are missing or their ``contact_email`` is
+    blank; the templates then omit the contact line.
+    """
     site_settings = _site_settings()
     return (getattr(site_settings, "contact_email", "") if site_settings else "") or ""
 
 
-def build_email(user, membership: Membership, kind: str, today: date) -> EmailMultiAlternatives:
+def build_email(
+    user: User, membership: Membership, kind: str, today: date
+) -> EmailMultiAlternatives:
     """Render ``emails/reminder_<kind>.{txt,html}`` for one member.
 
     ``days`` is counted from the dates rather than taken from the kind's offset,
@@ -164,6 +186,8 @@ def build_email(user, membership: Membership, kind: str, today: date) -> EmailMu
     rather than claiming 30.
     """
     org = _org_name()
+    # Lifetime terms (no ends_on) never reach here: _candidates() filters on ends_on.
+    assert membership.ends_on is not None
     days = abs((membership.ends_on - today).days)
     context = {
         "user": user,
@@ -188,7 +212,7 @@ def build_email(user, membership: Membership, kind: str, today: date) -> EmailMu
     return message
 
 
-def _skip_reason(user, membership: Membership, kind: str, today: date) -> str | None:
+def _skip_reason(user: User, membership: Membership, kind: str, today: date) -> str | None:
     """Why this candidate should not be emailed, or ``None`` to send."""
     if not user.is_active:
         return "inactive_user"
@@ -212,7 +236,7 @@ def _skip_reason(user, membership: Membership, kind: str, today: date) -> str | 
     return None
 
 
-def _candidates(kind: str, today: date):
+def _candidates(kind: str, today: date) -> QuerySet[Membership]:
     """Memberships due this kind of reminder on ``today``, or overdue one.
 
     ``REMINDER_OFFSETS`` counts days from expiry, negative before it, so the
@@ -316,7 +340,7 @@ def send_renewal_reminders(
 
 
 @transaction.atomic
-def _send_one(user, membership: Membership, kind: str, today: date) -> None:
+def _send_one(user: User, membership: Membership, kind: str, today: date) -> None:
     """Log the reminder, then send it.
 
     The log row goes in first and inside the transaction, so a send that fails

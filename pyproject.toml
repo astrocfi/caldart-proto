@@ -102,8 +102,6 @@ max-doc-length = 90
 # unit of the backend; the unit's own change deletes its entry and never adds one.
 # No entry may remain once every unit is annotated and documented.
 [tool.ruff.lint.per-file-ignores]
-# Unit: reminders
-"backend/apps/reminders/**" = ["ANN", "D"]
 # Unit: sysadmin
 "backend/apps/sysadmin/**" = ["ANN", "D"]
 # Unit: aircraft
@@ -199,16 +197,21 @@ django_settings_module = "caldart.settings.test"
 
 # Dependencies that ship no type information and have no stubs on PyPI.
 [[tool.mypy.overrides]]
-module = ["wagtail.*", "environ.*", "django_filters.*", "django_vite.*", "whitenoise.*"]
+module = [
+    "wagtail.*",
+    "environ.*",
+    "django_filters.*",
+    "django_vite.*",
+    "whitenoise.*",
+    "taggit.*",
+    "modelcluster.*",
+    "modelsearch.*",
+    "treebeard.*",
+]
 ignore_missing_imports = true
 
 # The type-checking ratchet, unit by unit, matching the ruff table above.  Each
 # unit's own change deletes its override; none may remain once every unit is typed.
-# Unit: reminders
-[[tool.mypy.overrides]]
-module = ["apps.reminders.*"]
-ignore_errors = true
-
 # Unit: sysadmin
 [[tool.mypy.overrides]]
 module = ["apps.sysadmin.*"]
