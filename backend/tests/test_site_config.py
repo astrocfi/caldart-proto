@@ -8,7 +8,12 @@ could not open those pages anyway.
 from __future__ import annotations
 
 import pytest
+from rest_framework.test import APIClient
+from wagtail.models import Page
 
+from apps.accounts.models import User
+from apps.cms.models import SiteSettings
+from apps.members.models import MembershipPlan
 from tests.test_cms_pages import (
     expire_membership,
     grant_membership,
@@ -23,7 +28,7 @@ URL = "/api/v1/site/config"
 
 
 @pytest.fixture
-def site_tree(site_settings):
+def site_tree(site_settings: SiteSettings) -> Page:
     """A home page with one menu page and a two-page members-only area."""
     home = site_settings.site.root_page.specific
     make_standard_page(home, "about", "About Us", show_in_menus=True)
@@ -34,7 +39,10 @@ def site_tree(site_settings):
     return home
 
 
-def test_anonymous_callers_get_the_chrome(api_client, site_settings, site_tree):
+def test_anonymous_callers_get_the_chrome(
+    api_client: APIClient, site_settings: SiteSettings, site_tree: Page
+) -> None:
+    """An anonymous caller gets the org name, contact email, theme and no member pages."""
     site_settings.org_name = "The California DART Network"
     site_settings.contact_email = "info@caldart.example.org"
     site_settings.theme = "pacific"
@@ -50,7 +58,8 @@ def test_anonymous_callers_get_the_chrome(api_client, site_settings, site_tree):
     assert data["members_pages"] == []
 
 
-def test_the_nav_matches_the_server_rendered_site(api_client, site_tree):
+def test_the_nav_matches_the_server_rendered_site(api_client: APIClient, site_tree: Page) -> None:
+    """The API's nav lists the same titles, in the same order, as the rendered site."""
     data = api_client.get(URL).json()
     titles = [entry["title"] for entry in data["nav"]]
     assert titles == ["About Us", "Members", "News", "Join", "Log in"]
@@ -58,13 +67,19 @@ def test_the_nav_matches_the_server_rendered_site(api_client, site_tree):
     assert data["nav"][-2]["url"] == "/portal/join"
 
 
-def test_signed_in_callers_see_the_members_entry_in_the_nav(api_client, site_tree, member):
+def test_signed_in_callers_see_the_members_entry_in_the_nav(
+    api_client: APIClient, site_tree: Page, member: User
+) -> None:
+    """A signed-in caller's nav ends with a "Members" entry, not "Log in"."""
     api_client.force_login(member)
     titles = [entry["title"] for entry in api_client.get(URL).json()["nav"]]
     assert titles[-1] == "Members"
 
 
-def test_a_current_member_gets_the_members_pages(api_client, site_tree, member, annual_plan):
+def test_a_current_member_gets_the_members_pages(
+    api_client: APIClient, site_tree: Page, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A member with a current term gets every members-only page's title and URL."""
     grant_membership(member, annual_plan)
     api_client.force_login(member)
 
@@ -77,29 +92,44 @@ def test_a_current_member_gets_the_members_pages(api_client, site_tree, member, 
     assert {p["url"] for p in data["members_pages"]} >= {"/members/", "/members/docs-and-links/"}
 
 
-def test_an_expired_member_gets_no_members_pages(api_client, site_tree, member, annual_plan):
+def test_an_expired_member_gets_no_members_pages(
+    api_client: APIClient, site_tree: Page, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A member whose term expired gets an empty members-pages list."""
     expire_membership(member, annual_plan)
     api_client.force_login(member)
     assert api_client.get(URL).json()["members_pages"] == []
 
 
-def test_a_member_who_never_paid_gets_no_members_pages(api_client, site_tree, member):
+def test_a_member_who_never_paid_gets_no_members_pages(
+    api_client: APIClient, site_tree: Page, member: User
+) -> None:
+    """A signed-in user with no membership at all gets an empty members-pages list."""
     api_client.force_login(member)
     assert api_client.get(URL).json()["members_pages"] == []
 
 
-def test_a_dart_leader_without_a_membership_gets_the_members_pages(api_client, site_tree, leader):
+def test_a_dart_leader_without_a_membership_gets_the_members_pages(
+    api_client: APIClient, site_tree: Page, leader: User
+) -> None:
+    """A DART leader with no membership of their own still gets the members pages."""
     assert leader.membership_status["status"] == "none"
     api_client.force_login(leader)
     assert api_client.get(URL).json()["members_pages"]
 
 
-def test_a_superuser_gets_the_members_pages(api_client, site_tree, superuser):
+def test_a_superuser_gets_the_members_pages(
+    api_client: APIClient, site_tree: Page, superuser: User
+) -> None:
+    """A superuser gets the members pages regardless of membership."""
     api_client.force_login(superuser)
     assert api_client.get(URL).json()["members_pages"]
 
 
-def test_unpublished_members_pages_are_not_listed(api_client, site_tree, leader):
+def test_unpublished_members_pages_are_not_listed(
+    api_client: APIClient, site_tree: Page, leader: User
+) -> None:
+    """An unpublished members-only page is left out of the members-pages list."""
     from apps.cms.models import StandardPage
 
     StandardPage.objects.get(slug="docs-and-links").unpublish()
@@ -109,7 +139,9 @@ def test_unpublished_members_pages_are_not_listed(api_client, site_tree, leader)
     assert "Documents and Links" not in titles
 
 
-def test_config_falls_back_when_there_is_no_site_settings_row(api_client, db):
+def test_config_falls_back_when_there_is_no_site_settings_row(
+    api_client: APIClient, db: None
+) -> None:
     """The endpoint must answer before ``seed`` has run."""
     from apps.cms.models import SiteSettings
 

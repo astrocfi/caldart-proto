@@ -10,20 +10,24 @@ from __future__ import annotations
 import copy
 import json
 from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
 
 import pytest
 from django.test import Client
 from django_vite.core.asset_loader import DjangoViteAssetLoader
 from pytest_django.fixtures import Settings
 
-from apps.cms.models import SiteSettings
+from apps.cms.models import HomePage, SiteSettings
 from tests.conftest import VITE_MANIFEST
 
 pytestmark = pytest.mark.django_db
 
 
-def manifest_entry(source: str) -> dict:
-    return json.loads(VITE_MANIFEST.read_text())[source]
+def manifest_entry(source: str) -> dict[str, Any]:
+    """The Vite manifest entry for ``source`` (a build entry point)."""
+    manifest: dict[str, dict[str, Any]] = json.loads(VITE_MANIFEST.read_text())
+    return manifest[source]
 
 
 @pytest.fixture
@@ -42,7 +46,8 @@ def vite_dev_mode(settings: Settings) -> Iterator[None]:
     DjangoViteAssetLoader._instance = None
 
 
-def test_portal_shell_renders(client, site_settings):
+def test_portal_shell_renders(client: Client, site_settings: SiteSettings) -> None:
+    """The portal shell renders its root mount and the site's theme attribute."""
     response = client.get("/portal/")
     assert response.status_code == 200
     body = response.content.decode()
@@ -53,18 +58,22 @@ def test_portal_shell_renders(client, site_settings):
 @pytest.mark.parametrize(
     "path", ["/portal/", "/portal/login", "/portal/admin/members/42", "/portal/anything/deep"]
 )
-def test_portal_catch_all(client, site_settings, path):
+def test_portal_catch_all(client: Client, site_settings: SiteSettings, path: str) -> None:
     """Every client-side route must serve the same shell."""
     assert client.get(path).status_code == 200
 
 
-def test_portal_theme_follows_site_settings(client, site_settings):
+def test_portal_theme_follows_site_settings(client: Client, site_settings: SiteSettings) -> None:
+    """The portal shell's ``data-theme`` attribute follows a changed site setting."""
     site_settings.theme = "night"
     site_settings.save(update_fields=["theme"])
     assert 'data-theme="night"' in client.get("/portal/").content.decode()
 
 
-def test_portal_shell_includes_the_portal_bundle(client, site_settings, frontend_is_built):
+def test_portal_shell_includes_the_portal_bundle(
+    client: Client, site_settings: SiteSettings, frontend_is_built: bool
+) -> None:
+    """The built shell references the portal bundle's script and stylesheet files."""
     if not frontend_is_built:
         pytest.skip("frontend/dist not built (run `make build`)")
     body = client.get("/portal/").content.decode()
@@ -92,7 +101,10 @@ def test_portal_shell_has_no_react_refresh_preamble_in_production(
     assert "RefreshRuntime" not in client.get("/portal/").content.decode()
 
 
-def test_home_page_renders(client, home_page, site_settings):
+def test_home_page_renders(
+    client: Client, home_page: HomePage, site_settings: SiteSettings
+) -> None:
+    """The home page renders CalDART's name, skip link and site navigation."""
     response = client.get("/")
     assert response.status_code == 200
     body = response.content.decode()
@@ -101,37 +113,49 @@ def test_home_page_renders(client, home_page, site_settings):
     assert "data-site-nav" in body
 
 
-def test_home_page_nav_comes_from_the_context_processor(client, home_page, site_settings):
+def test_home_page_nav_comes_from_the_context_processor(
+    client: Client, home_page: HomePage, site_settings: SiteSettings
+) -> None:
+    """The home page's nav links to the join and log-in portal routes."""
     body = client.get("/").content.decode()
     assert 'href="/portal/join"' in body
     assert 'href="/portal/login"' in body
 
 
-def test_home_page_includes_the_site_bundle(client, home_page, site_settings, frontend_is_built):
+def test_home_page_includes_the_site_bundle(
+    client: Client, home_page: HomePage, site_settings: SiteSettings, frontend_is_built: bool
+) -> None:
+    """The built home page references the site bundle's script file."""
     if not frontend_is_built:
         pytest.skip("frontend/dist not built (run `make build`)")
     body = client.get("/").content.decode()
     assert manifest_entry("src/site/main.ts")["file"] in body
 
 
-def test_wagtail_admin_login_page(client):
+def test_wagtail_admin_login_page(client: Client) -> None:
+    """The Wagtail admin login page answers 200."""
     response = client.get("/admin/login/")
     assert response.status_code == 200
 
 
-def test_django_admin_login_page(client):
+def test_django_admin_login_page(client: Client) -> None:
+    """The Django admin login page answers 200."""
     response = client.get("/django-admin/login/")
     assert response.status_code == 200
 
 
-def test_apple_pay_association_is_404_when_unconfigured(client, settings):
+def test_apple_pay_association_is_404_when_unconfigured(client: Client, settings: Settings) -> None:
+    """The Apple Pay domain association file answers 404 when unconfigured."""
     settings.STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION = ""
     assert (
         client.get("/.well-known/apple-developer-merchantid-domain-association").status_code == 404
     )
 
 
-def test_apple_pay_association_serves_the_file(client, settings, tmp_path):
+def test_apple_pay_association_serves_the_file(
+    client: Client, settings: Settings, tmp_path: Path
+) -> None:
+    """The Apple Pay domain association route serves the configured file's bytes."""
     path = tmp_path / "association.txt"
     path.write_text("7B227073...")
     settings.STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION = str(path)
