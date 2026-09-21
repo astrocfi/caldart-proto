@@ -60,8 +60,9 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend e2e lint lint-backend \
-        lint-frontend lint-spelling format check check-backend check-frontend audit audit-backend \
-        audit-frontend backup restore reminders docs shell superuser collectstatic clean
+        lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
+        audit audit-backend audit-frontend backup restore reminders docs shell superuser \
+        collectstatic clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -207,12 +208,28 @@ format: ## Auto-format Python and TypeScript
 
 # ---------------------------------------------------------------- check
 # The gates that are neither lint nor tests: Django's system checks (a warning
-# fails too), a model change without its migration, and the production build.
-check: check-backend check-frontend ## Django system checks, missing migrations, production build
+# fails too), a model change without its migration, the production deployment
+# security check, and the production build.
+check: check-backend check-deploy check-frontend ## Django system checks, missing migrations, deploy security, production build
 
 check-backend: ## Django system checks + missing-migration check
 	$(MANAGE) check --settings caldart.settings.test --fail-level WARNING
 	$(MANAGE) makemigrations --check --dry-run --settings caldart.settings.test
+
+# `--deploy` adds Django's production security checks to the default set;
+# `--tag security` narrows the run to those, so a `frontend/dist` this gate
+# never builds (the backend CI job does not run `check-frontend`) does not
+# fail it with an unrelated django_vite/staticfiles warning.  The environment
+# is a throwaway one set inline: no real secret is at risk, and every secure
+# flag is on so the check exercises the same defaults production gets.
+check-deploy: ## Production deployment security check (manage.py check --deploy)
+	SECRET_KEY="throwaway-check-deploy-key-not-a-real-secret-0123456789" \
+	  ALLOWED_HOSTS="check-deploy.example.com" \
+	  DATABASE_URL="postgres://caldart:caldart@localhost:5432/caldart" \
+	  SITE_URL="https://check-deploy.example.com" \
+	  EMAIL_URL="smtp://localhost:1025" \
+	  SECURE_SSL_REDIRECT=true \
+	  $(MANAGE) check --deploy --tag security --fail-level WARNING --settings caldart.settings.prod
 
 check-frontend: ## Production frontend build
 	cd frontend && $(NPM) run build

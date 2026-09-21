@@ -76,7 +76,11 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # `manage.py check --deploy` reports security.W021 whenever preload is off.
 # Leaving it off is the deliberate choice above, so the deployment audit stays
 # clean and a real finding is not lost in a known one.
-SILENCED_SYSTEM_CHECKS = ["security.W021"]
+#
+# security.W019 fires because X_FRAME_OPTIONS is "SAMEORIGIN" rather than
+# "DENY".  That is deliberate too: Wagtail's admin previews pages in a
+# same-origin frame, and DENY breaks that preview.
+SILENCED_SYSTEM_CHECKS = ["security.W021", "security.W019"]
 
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True

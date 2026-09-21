@@ -179,7 +179,7 @@ def test_hsts_preload_can_be_turned_on(prod_env: None, monkeypatch: pytest.Monke
 
 def test_the_preload_deployment_warning_is_silenced_deliberately(prod: ModuleType) -> None:
     """``check --deploy`` reports W021 whenever preload is off; that is the choice."""
-    assert prod.SILENCED_SYSTEM_CHECKS == ["security.W021"]
+    assert prod.SILENCED_SYSTEM_CHECKS == ["security.W021", "security.W019"]
 
 
 def test_mock_payments_are_off_by_default(prod: ModuleType) -> None:

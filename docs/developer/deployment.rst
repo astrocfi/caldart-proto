@@ -305,6 +305,31 @@ It is hardened with the usual systemd sandbox — ``ProtectSystem=strict``,
 the new path to ``ReadWritePaths`` or backups will fail with a permission
 error.
 
+Deployment security check
+--------------------------
+
+``make check-deploy`` runs ``manage.py check --deploy --tag security`` against
+``caldart.settings.prod`` before every change reaches ``main``, using a
+throwaway environment set inline in the Makefile recipe rather than
+``/etc/caldart/caldart.env``.  It exercises the same secure defaults a real
+box gets, without touching a real secret or a real database.
+
+``caldart.settings.prod`` silences two of Django's deployment warnings
+deliberately, both in ``SILENCED_SYSTEM_CHECKS``:
+
+``security.W021``
+   Reported while ``SECURE_HSTS_PRELOAD`` is off.  :doc:`configuration`
+   explains why that is the default.
+
+``security.W019``
+   Reported because ``X_FRAME_OPTIONS`` is ``"SAMEORIGIN"`` rather than
+   ``"DENY"``.  Wagtail's admin previews pages in a same-origin frame, and
+   ``DENY`` would break that preview; framing by other origins is still
+   refused.
+
+A real finding — ``SECURE_SSL_REDIRECT`` left off, for instance — still fails
+the check, since only these two are silenced.
+
 
 9. Apache
 =========
