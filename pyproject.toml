@@ -134,13 +134,15 @@ max-doc-length = 90
 "backend/tests/test_payments_reports.py" = ["ANN", "D"]
 "backend/tests/test_payments_stripe.py" = ["ANN", "D"]
 "backend/tests/test_payments_stripe_client.py" = ["ANN", "D"]
-# Unit: tests-cms
-"backend/tests/test_cms_documents.py" = ["ANN", "D"]
-"backend/tests/test_cms_pages.py" = ["ANN", "D"]
-"backend/tests/test_cms_permissions.py" = ["ANN", "D"]
-"backend/tests/test_cms_seed_content.py" = ["ANN", "D"]
-"backend/tests/test_shell_views.py" = ["ANN", "D"]
-"backend/tests/test_site_config.py" = ["ANN", "D"]
+# Unit: tests-reminders
+"backend/tests/test_reminders.py" = ["ANN", "D"]
+"backend/tests/test_reminders_api.py" = ["ANN", "D"]
+"backend/tests/test_reminders_resilience.py" = ["ANN", "D"]
+# Unit: tests-sysadmin
+"backend/tests/test_sysadmin.py" = ["ANN", "D"]
+"backend/tests/test_sysadmin_api.py" = ["ANN", "D"]
+"backend/tests/test_sysadmin_commands.py" = ["ANN", "D"]
+"backend/tests/test_sysadmin_settings.py" = ["ANN", "D"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -234,14 +236,22 @@ module = [
 ]
 ignore_errors = true
 
-# Unit: tests-cms
+# Unit: tests-reminders
 [[tool.mypy.overrides]]
 module = [
-    "tests.test_cms_documents",
-    "tests.test_cms_pages",
-    "tests.test_cms_permissions",
-    "tests.test_cms_seed_content",
-    "tests.test_shell_views",
-    "tests.test_site_config",
+    "tests.test_reminders",
+    "tests.test_reminders_api",
+    "tests.test_reminders_resilience",
 ]
 ignore_errors = true
+
+# Unit: tests-sysadmin
+[[tool.mypy.overrides]]
+module = [
+    "tests.test_sysadmin",
+    "tests.test_sysadmin_api",
+    "tests.test_sysadmin_commands",
+    "tests.test_sysadmin_settings",
+]
+ignore_errors = true
+
