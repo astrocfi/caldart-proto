@@ -5,13 +5,15 @@
  * refuses it entirely unless `PAYMENTS_MOCK_ENABLED` is on.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 
 import { ApiError } from '../../api/client';
 import { Button } from '../../components/Button';
 import { completeMockPayment, createCheckout } from './api';
 import type { ProviderPanelProps } from './types';
 
-export function MockPanel({ plan, contributionCents, onSuccess }: ProviderPanelProps) {
+/** Succeed / Fail buttons that drive the mock payment provider directly. */
+export function MockPanel({ plan, contributionCents, onSuccess }: ProviderPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 

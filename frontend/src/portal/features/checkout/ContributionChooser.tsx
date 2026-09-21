@@ -5,6 +5,7 @@
  * two escape hatches every fundraising form needs.
  */
 import { useId } from 'react';
+import type { JSX } from 'react';
 
 import type { ContributionTier } from '../../api/types';
 import { formatCents } from '../../components/Money';
@@ -27,6 +28,7 @@ function label(tier: ContributionTier): string {
   return `${tier.label} · ${formatCents(tier.cents, { whole: true })}`;
 }
 
+/** The contribution tier cards, plus an "Other amount" input. */
 export function ContributionChooser({
   tiers,
   value,
@@ -34,7 +36,7 @@ export function ContributionChooser({
   isOther,
   onOther, // codespell:ignore onother
   disabled = false,
-}: ContributionChooserProps) {
+}: ContributionChooserProps): JSX.Element {
   const otherId = useId();
 
   return (

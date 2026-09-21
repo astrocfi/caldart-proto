@@ -7,6 +7,7 @@
  */
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { useRef, useState } from 'react';
+import type { JSX } from 'react';
 
 import { ApiError } from '../../api/client';
 import { capturePayPalOrder, createCheckout } from './api';
@@ -16,13 +17,14 @@ export interface PayPalPanelProps extends ProviderPanelProps {
   clientId: string;
 }
 
+/** PayPal's buttons: creates an order on our server, then captures it. */
 export function PayPalPanel({
   clientId,
   plan,
   contributionCents,
   amountCents,
   onSuccess,
-}: PayPalPanelProps) {
+}: PayPalPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const paymentId = useRef<number | null>(null);
 

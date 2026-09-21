@@ -14,6 +14,7 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { loadStripe } from '@stripe/stripe-js';
 import type { Appearance, Stripe } from '@stripe/stripe-js';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { JSX } from 'react';
 
 import { ApiError } from '../../api/client';
 import { Button } from '../../components/Button';
@@ -25,6 +26,7 @@ import type { ProviderPanelProps } from './types';
 /** Stripe.js is a singleton per publishable key. */
 const stripeByKey = new Map<string, Promise<Stripe | null>>();
 
+/** The shared Stripe.js instance for `publishableKey`, loaded at most once. */
 export function stripeFor(publishableKey: string): Promise<Stripe | null> {
   const existing = stripeByKey.get(publishableKey);
   if (existing) return existing;
@@ -90,13 +92,14 @@ export interface StripePanelProps extends ProviderPanelProps {
   publishableKey: string;
 }
 
+/** Creates a PaymentIntent for the current amount, then mounts the Payment Element. */
 export function StripePanel({
   publishableKey,
   plan,
   contributionCents,
   amountCents,
   onSuccess,
-}: StripePanelProps) {
+}: StripePanelProps): JSX.Element {
   const [intent, setIntent] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const settled = useDebounced(`${plan ?? ''}:${contributionCents}`, AMOUNT_DEBOUNCE_MS);
@@ -178,7 +181,8 @@ interface StripeFormProps {
   onSuccess: ProviderPanelProps['onSuccess'];
 }
 
-export function StripeForm({ paymentId, amountCents, onSuccess }: StripeFormProps) {
+/** The Payment Element plus its submit button, confirming the intent on submit. */
+export function StripeForm({ paymentId, amountCents, onSuccess }: StripeFormProps): JSX.Element {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);

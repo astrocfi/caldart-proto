@@ -1,5 +1,5 @@
-/** `/login` — email + password, honoring `?next=`. */
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAuth, useLogin } from '../../auth/useAuth';
@@ -16,7 +16,8 @@ export function safeNext(raw: string | null): string {
   return raw;
 }
 
-export function LoginPage() {
+/** `/login` — email + password, honoring `?next=`. */
+export function LoginPage(): JSX.Element {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const login = useLogin();

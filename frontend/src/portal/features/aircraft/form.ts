@@ -35,6 +35,7 @@ export const OWNER_TYPE_LABELS: Record<OwnerType, string> = {
 
 export const OWNER_TYPES: OwnerType[] = ['individual', 'fbo', 'club'];
 
+/** A blank form draft, prefilled with `nNumber` when the search suggests one. */
 export function emptyAircraftValues(nNumber = ''): AircraftFormValues {
   return {
     n_number: nNumber,
@@ -56,6 +57,7 @@ export function emptyAircraftValues(nNumber = ''): AircraftFormValues {
   };
 }
 
+/** An existing aircraft record as editable form values. */
 export function aircraftToValues(aircraft: Aircraft): AircraftFormValues {
   return {
     n_number: aircraft.n_number,
