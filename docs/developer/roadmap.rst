@@ -116,17 +116,22 @@ would need the same treatment.
 Audit log
 ---------
 
-Several actions are consequential and leave only a partial trace.
-``Membership`` records ``granted_by`` and ``note``, and ``Payment`` keeps the
-provider's ``raw`` payload — but nothing records that an administrator changed
-somebody's email address, revoked a role, deactivated an account, or
-hard-deleted a member.  ``DELETE /admin/members/{id}`` is a hard delete, so the
-evidence goes with the row.
+Every privileged action writes one line to the ``caldart.audit`` logger: an
+account edit by field name, a role change by slug, an activation, a member
+creation or hard delete, a manual grant or term correction, an
+administrator-triggered password reset, a backup created, downloaded or
+restored, a database reset, and each reminder run with its counts.  A refused
+attempt is logged at WARNING with a reason.  :ref:`deploy-audit-log` lists the
+actions and how to read them out of the journal.
 
-A minimal version is an ``AuditEntry`` model — actor, action, target content
-type and id, a JSON diff, timestamp — written from the admin serializers'
-``update`` and ``destroy`` paths, with a read-only screen for system
-administrators.  A fuller version replaces the hard delete with a soft one.
+The trail is a log, so it lives as long as the journal does, it holds ids
+rather than values, and nobody can read it from the portal.  The next step is
+an ``AuditEntry`` model — actor, action, target content type and id, a JSON
+diff, timestamp — written alongside the log line, with a read-only screen for
+system administrators, a retention policy and a filter by actor or target.
+That is what turns "grep the journal" into "show me everything this
+administrator did".  A fuller version also replaces the hard delete with a soft
+one, so ``DELETE /admin/members/{id}`` stops taking the evidence with the row.
 
 Communication
 =============

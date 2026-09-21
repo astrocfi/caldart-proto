@@ -375,13 +375,16 @@ Their status       ``is_active``  You cannot activate or deactivate an account
 =================  =============  ===============================================
 
 When both fields are refused at once the complaint lands on ``email``.  Every
-refusal also writes one WARNING record to the ``apps.accounts.services``
-logger::
+refusal also writes one WARNING record to the audit log
+(:ref:`deploy-audit-log`)::
 
-    Account edit refused: actor=12 target=3 fields=email
+    action=account.update actor=12 target=3 fields=email reason=roles_not_held
 
-Account ids and field names only: no address, and nothing else that identifies a
-person.
+Account ids, field names and a reason slug only: no address, and nothing else
+that identifies a person.  A refused role change reads
+``action=account.roles ... reason=system_admin_role``, and a refused
+self-deactivation ``action=account.deactivate ... reason=self_deactivation``.
+An edit that goes through is recorded the same way at INFO.
 
 
 Rate limiting

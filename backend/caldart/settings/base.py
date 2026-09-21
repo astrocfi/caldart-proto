@@ -304,5 +304,8 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "INFO"},
     "loggers": {
         "django.db.backends": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        # The audit trail carries its own level and handler and stops here, so
+        # raising LOG_LEVEL to quiet the application cannot silence it.
+        "caldart.audit": {"level": "INFO", "handlers": ["console"], "propagate": False},
     },
 }
