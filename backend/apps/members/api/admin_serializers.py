@@ -8,22 +8,19 @@ payments.
 
 from __future__ import annotations
 
-from django.conf import settings
 from django.contrib.auth import get_user_model, password_validation
-from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 from django.db import transaction
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
 from rest_framework import serializers
 
-from apps.accounts.api.serializers import MembershipStatusSerializer, guard_account_edit
+from apps.accounts.api.serializers import guard_account_edit
 from apps.accounts.roles import MEMBER
+from apps.accounts.services import send_password_invitation
 from apps.members.api.profile_serializers import (
     MembershipTermSerializer,
     PaymentSummarySerializer,
     ProfileSerializer,
 )
+from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.models import MemberProfile, MembershipPlan
 from apps.members.services import membership_of, membership_payload
 
@@ -237,33 +234,6 @@ class MemberDetailSerializer(serializers.Serializer):
 # --------------------------------------------------------------------------
 # Write serializers
 # --------------------------------------------------------------------------
-def send_password_invitation(user) -> None:
-    """Email a "set your password" link to an account created without one.
-
-    The link points at the portal's reset-password screen, which posts back to
-    ``/auth/password/reset/confirm``.
-    """
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = default_token_generator.make_token(user)
-    url = f"{settings.SITE_URL}/portal/reset-password?uid={uid}&token={token}"
-    name = user.first_name or user.display_name
-    body = (
-        f"Hello {name},\n\n"
-        "An account has been created for you on the CalDART member portal.\n"
-        "Choose a password to finish setting it up:\n\n"
-        f"{url}\n\n"
-        "If you were not expecting this, you can ignore this message.\n\n"
-        "— The California DART Network\n"
-    )
-    send_mail(
-        subject="Set your CalDART password",
-        message=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=False,
-    )
-
-
 class MemberCreateSerializer(serializers.Serializer):
     """``POST /admin/members`` — account plus nested profile."""
 
@@ -304,7 +274,9 @@ class MemberCreateSerializer(serializers.Serializer):
         MemberProfile.objects.create(user=user, **profile_data)
 
         if not password:
-            transaction.on_commit(lambda: send_password_invitation(user))
+            # Queued past the commit, so a create that rolls back mails nobody.
+            request = self.context["request"]
+            transaction.on_commit(lambda: send_password_invitation(user, request=request))
         return user
 
 
@@ -373,5 +345,4 @@ __all__ = [
     "MemberListSerializer",
     "MemberUpdateSerializer",
     "MembershipGrantSerializer",
-    "send_password_invitation",
 ]

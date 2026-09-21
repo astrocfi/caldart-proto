@@ -18,7 +18,6 @@ from apps.members.models import (
     MedicalType,
     MemberProfile,
     Membership,
-    MembershipPlan,
     PilotCertificateType,
 )
 from apps.payments.models import Payment
@@ -45,15 +44,6 @@ class DartRefSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dart
         fields = ["id", "name"]
-        read_only_fields = fields
-
-
-class PlanSerializer(serializers.ModelSerializer):
-    """``GET /plans`` — the public plan catalog."""
-
-    class Meta:
-        model = MembershipPlan
-        fields = ["slug", "name", "price_cents", "duration_days", "description"]
         read_only_fields = fields
 
 

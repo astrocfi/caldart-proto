@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from apps.aircraft.models import Aircraft, normalize_n_number
+from apps.members.models import MembershipState
 
 NEGATIVE_MONEY_MESSAGE = "Enter an amount of $0 or more."
 
@@ -108,7 +109,7 @@ class AircraftPilotSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     name = serializers.CharField()
     email = serializers.EmailField()
-    membership_status = serializers.ChoiceField(choices=["current", "expired", "none"])
+    membership_status = serializers.ChoiceField(choices=MembershipState.choices)
     medical_is_current = serializers.BooleanField()
 
 
@@ -134,11 +135,11 @@ class LeaderSearchResultSerializer(serializers.Serializer):
     name = serializers.CharField()
     email = serializers.EmailField()
     dart = serializers.CharField(allow_null=True)
-    membership_status = serializers.ChoiceField(choices=["current", "expired", "none"])
+    membership_status = serializers.ChoiceField(choices=MembershipState.choices)
 
 
 class LeaderMembershipSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=["current", "expired", "none"])
+    status = serializers.ChoiceField(choices=MembershipState.choices)
     expires_on = serializers.DateField(allow_null=True)
     plan = serializers.CharField(allow_null=True)
 

@@ -20,17 +20,10 @@ from django.utils import timezone
 from rest_framework import filters as drf_filters
 
 from apps.accounts.roles import ROLE_SLUGS
-from apps.members.models import MedicalType, PilotCertificateType
+from apps.members.models import MedicalType, MembershipState, PilotCertificateType
 from apps.members.services import with_membership
 
 User = get_user_model()
-
-#: The three values ``?status=`` accepts.
-STATUS_CHOICES: tuple[tuple[str, str], ...] = (
-    ("current", "Current"),
-    ("expired", "Expired"),
-    ("none", "Never a member"),
-)
 
 
 def derived_annotations() -> dict:
@@ -74,7 +67,7 @@ class MemberAdminFilterSet(django_filters.FilterSet):
         method="filter_search", label="Name, email, phone or certificate number"
     )
     status = django_filters.ChoiceFilter(
-        choices=STATUS_CHOICES, method="filter_status", label="Membership status"
+        choices=MembershipState.choices, method="filter_status", label="Membership status"
     )
     certificate = django_filters.ChoiceFilter(
         field_name="profile__pilot_certificate_type",
@@ -111,11 +104,11 @@ class MemberAdminFilterSet(django_filters.FilterSet):
         )
 
     def filter_status(self, queryset, name, value):
-        if value == "current":
+        if value == MembershipState.CURRENT:
             return queryset.filter(covers_today=True)
-        if value == "expired":
+        if value == MembershipState.EXPIRED:
             return queryset.filter(covers_today=False, has_started_term=True)
-        if value == "none":
+        if value == MembershipState.NONE:
             return queryset.filter(covers_today=False, has_started_term=False)
         return queryset
 

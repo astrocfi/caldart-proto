@@ -267,6 +267,9 @@ Where the code lives
 Module                                                      Holds
 ==========================================================  ==========================
 ``backend/apps/members/api/profile_serializers.py``         every serializer and rule
+``backend/apps/members/api/serializers.py``                 the plan and membership
+                                                            shapes, shared with the
+                                                            accounts and payments APIs
 ``backend/apps/members/api/profile_views.py``               the views
 ``backend/apps/members/api/profile_urls.py``                the routes
 ``backend/tests/test_profile_api.py``                       profile, membership,
@@ -275,7 +278,7 @@ Module                                                      Holds
 ``frontend/src/portal/features/profile/api.ts``             the TanStack Query hooks
 ==========================================================  ==========================
 
-``AircraftSummarySerializer`` is declared in ``profile_serializers.py``
-rather than imported from ``apps.aircraft`` so the members app does not
-depend on a module owned by another branch; the shape is the one §6.5
-specifies and matches ``AircraftSummary`` in ``portal/api/types.ts``.
+``AircraftSummarySerializer`` comes from ``apps.aircraft.api.serializers``,
+and ``PlanSerializer`` from ``apps.members.api.serializers``: both shapes are
+declared once and matched by ``AircraftSummary`` and ``Plan`` in
+``portal/api/types.ts``.
