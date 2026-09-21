@@ -2,6 +2,8 @@
  * Flow D in `docs/demo-walkthrough.rst`: an account administrator sees
  * payments per month and per year, and downloads the CSV.
  */
+import { readFile } from 'node:fs/promises';
+
 import { expect, test } from '@playwright/test';
 
 import { DEMO, signIn } from './helpers';
@@ -48,10 +50,7 @@ test('an account administrator reads the monthly and yearly totals and exports t
     page.getByRole('link', { name: 'Export CSV' }).click(),
   ]);
   expect(download.suggestedFilename()).toMatch(/\.csv$/);
-  const stream = await download.createReadStream();
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
-  const csv = Buffer.concat(chunks).toString('utf8');
+  const csv = await readFile(await download.path(), 'utf8');
   expect(csv.split('\n')[0]).toContain('paid_on,name,email,plan');
   expect(csv.trim().split('\n').length).toBeGreaterThan(1);
 });

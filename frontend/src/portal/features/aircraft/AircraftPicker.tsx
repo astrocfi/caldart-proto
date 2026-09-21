@@ -255,7 +255,7 @@ function NewAircraftForm({ nNumber, onCancel, onCreated, create }: NewAircraftFo
 
       {create.isError && Object.keys(errors).length === 0 ? (
         <p className="field__error" role="alert">
-          {(create.error as Error).message}
+          {create.error.message}
         </p>
       ) : null}
 

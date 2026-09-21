@@ -81,10 +81,7 @@ export function LeaderAircraftPage(): JSX.Element {
       ) : null}
 
       {query.isError && !notFound ? (
-        <EmptyState
-          title="That check could not be run"
-          description={(query.error as Error).message}
-        />
+        <EmptyState title="That check could not be run" description={query.error.message} />
       ) : null}
 
       {query.data ? <AircraftStatusCard aircraft={query.data} /> : null}

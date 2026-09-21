@@ -58,7 +58,7 @@ export function JoinWizard(): JSX.Element {
     setReturnSettled(true);
     // The provider's query string has done its job; drop it so a refresh does
     // not confirm the same payment twice.
-    navigate('/join/done', { replace: true });
+    void navigate('/join/done', { replace: true });
   }, [navigate, queryClient]);
 
   if (isLoading) {
@@ -91,7 +91,7 @@ export function JoinWizard(): JSX.Element {
   function advance(from: JoinStep) {
     const next = nextJoinStep(from);
     setReached((seen) => laterJoinStep(seen, next));
-    navigate(`/join/${next}`);
+    void navigate(`/join/${next}`);
   }
 
   return (

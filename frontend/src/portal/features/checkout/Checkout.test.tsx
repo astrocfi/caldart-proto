@@ -36,10 +36,12 @@ vi.mock('@paypal/react-paypal-js', () => ({
   }) => (
     <button
       type="button"
-      onClick={async () => {
-        const orderId = await createOrder();
-        payPalApprove.run = () => onApprove({ orderID: orderId });
-        await payPalApprove.run();
+      onClick={() => {
+        void (async () => {
+          const orderId = await createOrder();
+          payPalApprove.run = () => onApprove({ orderID: orderId });
+          await payPalApprove.run();
+        })();
       }}
     >
       Pay with PayPal

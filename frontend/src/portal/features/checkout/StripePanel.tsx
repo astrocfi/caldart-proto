@@ -231,7 +231,7 @@ export function StripeForm({ paymentId, amountCents, onSuccess }: StripeFormProp
   }
 
   return (
-    <form onSubmit={submit} className="stack">
+    <form onSubmit={(event) => void submit(event)} className="stack">
       <PaymentElement options={{ layout: 'tabs' }} />
       {error ? (
         <p className="checkout__error" role="alert">

@@ -42,7 +42,11 @@ export function LoginPage(): JSX.Element {
             event.preventDefault();
             login.mutate(
               { email, password },
-              { onSuccess: () => navigate(next, { replace: true }) },
+              {
+                onSuccess: () => {
+                  void navigate(next, { replace: true });
+                },
+              },
             );
           }}
         >
@@ -53,7 +57,6 @@ export function LoginPage(): JSX.Element {
                 type="email"
                 name="email"
                 autoComplete="username"
-                autoFocus
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}

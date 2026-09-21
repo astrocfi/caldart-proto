@@ -37,8 +37,11 @@ export const EMPTY_FILTERS: PaymentFilterState = {
 /** Filters as query parameters, dropping everything left blank. */
 export function filterParams(filters: PaymentFilterState): Record<string, string> {
   const params: Record<string, string> = {};
-  for (const [key, value] of Object.entries(filters)) {
-    if (value) params[key] = value;
+  // `Object.keys` is typed `string[]` for soundness, but this interface is
+  // closed, so narrowing the keys back to its own is safe here.
+  for (const key of Object.keys(filters) as (keyof PaymentFilterState)[]) {
+    const value = filters[key];
+    if (value !== '') params[key] = value;
   }
   return params;
 }

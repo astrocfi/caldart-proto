@@ -60,7 +60,6 @@ export function ForgotPasswordPage(): JSX.Element {
                 type="email"
                 name="email"
                 autoComplete="username"
-                autoFocus
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}

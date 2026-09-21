@@ -232,7 +232,7 @@ export function UserDetailPage(): JSX.Element {
             onClick={() =>
               sendReset.mutate(undefined, {
                 onSuccess: (result) => toast.show(result.detail, 'success'),
-                onError: (error) => toast.show((error as Error).message, 'error'),
+                onError: (error) => toast.show(error.message, 'error'),
               })
             }
           >

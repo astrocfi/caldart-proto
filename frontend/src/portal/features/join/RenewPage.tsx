@@ -33,7 +33,7 @@ export function RenewPage(): JSX.Element {
   function handleSuccess() {
     refreshAfterPayment(queryClient);
     toast.show('Thank you — your membership is renewed.', 'success');
-    navigate('/');
+    void navigate('/');
   }
 
   return (

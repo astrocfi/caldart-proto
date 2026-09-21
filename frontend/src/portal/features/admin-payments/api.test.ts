@@ -11,7 +11,12 @@ import {
   recentMonthKeys,
 } from './api';
 
-function row(period: string, total: number, count: number, by: Record<string, number> = {}) {
+function row(
+  period: string,
+  total: number,
+  count: number,
+  by: Record<string, number> = {},
+): PaymentPeriodSummary {
   return {
     period,
     count,
@@ -19,7 +24,7 @@ function row(period: string, total: number, count: number, by: Record<string, nu
     plan_cents: total,
     contribution_cents: 0,
     by_provider: by,
-  } as PaymentPeriodSummary;
+  };
 }
 
 /** 15 March 2026, so "this month", "this year" and "last 12" all differ. */

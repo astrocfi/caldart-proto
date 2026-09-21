@@ -46,7 +46,7 @@ export function MembersFilterBar({ value, onChange, darts }: MembersFilterBarPro
         <select
           {...props}
           value={draft[key]}
-          onChange={(event) => apply({ [key]: event.target.value } as Partial<MemberFilters>)}
+          onChange={(event) => apply({ [key]: event.target.value })}
         >
           <option value="">{anyLabel}</option>
           {options.map((option) => (

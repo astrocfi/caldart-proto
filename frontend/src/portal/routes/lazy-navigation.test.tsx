@@ -36,8 +36,11 @@ async function startNavigationToMembers(): Promise<void> {
   const { router } = renderRoutes(routes, { route: '/' });
   expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
 
-  await act(async () => {
+  // `act` is handed an already-resolved promise rather than the navigation's
+  // own, so React flushes its effects while the page module is still loading.
+  await act(() => {
     void router.navigate('/admin/members');
+    return Promise.resolve();
   });
   expect(router.state.navigation.state).toBe('loading');
 }
