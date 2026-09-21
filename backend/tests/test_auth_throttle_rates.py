@@ -14,7 +14,9 @@ from types import ModuleType
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
+from rest_framework.test import APIClient
 
+from apps.accounts.models import User
 from apps.accounts.throttling import LOGIN_SCOPE, LoginThrottle
 
 pytestmark = pytest.mark.django_db
@@ -39,6 +41,8 @@ def import_base_settings() -> ModuleType:
     settings the rest of the suite runs under.
     """
     spec = importlib.util.spec_from_file_location("caldart_base_settings_probe", BASE_SETTINGS)
+    assert spec is not None
+    assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -48,6 +52,7 @@ def import_base_settings() -> ModuleType:
 def test_an_unset_variable_uses_the_shipped_default(
     monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
 ) -> None:
+    """With no environment variable set, the shipped default rate is used."""
     monkeypatch.delenv(variable, raising=False)
 
     assert import_base_settings().AUTH_THROTTLE_RATES[scope] == default
@@ -57,6 +62,7 @@ def test_an_unset_variable_uses_the_shipped_default(
 def test_an_empty_variable_turns_the_throttle_off(
     monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
 ) -> None:
+    """An empty environment variable turns the corresponding throttle off."""
     monkeypatch.setenv(variable, "")
 
     assert import_base_settings().AUTH_THROTTLE_RATES[scope] is None
@@ -66,6 +72,7 @@ def test_an_empty_variable_turns_the_throttle_off(
 def test_a_blank_variable_turns_the_throttle_off(
     monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
 ) -> None:
+    """A whitespace-only environment variable also turns the throttle off."""
     monkeypatch.setenv(variable, "   ")
 
     assert import_base_settings().AUTH_THROTTLE_RATES[scope] is None
@@ -75,12 +82,14 @@ def test_a_blank_variable_turns_the_throttle_off(
 def test_a_configured_rate_is_kept(
     monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str
 ) -> None:
+    """A well-formed rate from the environment is stored exactly as given."""
     monkeypatch.setenv(variable, "5/second")
 
     assert import_base_settings().AUTH_THROTTLE_RATES[scope] == "5/second"
 
 
 def test_surrounding_whitespace_is_stripped_from_a_rate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Leading and trailing whitespace around a configured rate is stripped."""
     monkeypatch.setenv("AUTH_THROTTLE_LOGIN", "  30/min  ")
 
     assert import_base_settings().AUTH_THROTTLE_RATES["auth_login"] == "30/min"
@@ -94,6 +103,7 @@ def test_surrounding_whitespace_is_stripped_from_a_rate(monkeypatch: pytest.Monk
 def test_a_malformed_rate_stops_start_up(
     monkeypatch: pytest.MonkeyPatch, variable: str, scope: str, default: str, rate: str
 ) -> None:
+    """A rate that does not match ``<count>/<period>`` raises ``ImproperlyConfigured``."""
     monkeypatch.setenv(variable, rate)
 
     with pytest.raises(ImproperlyConfigured) as excinfo:
@@ -105,11 +115,12 @@ def test_a_malformed_rate_stops_start_up(
 
 @override_settings(AUTH_THROTTLE_RATES={LOGIN_SCOPE: ""})
 def test_an_empty_rate_makes_the_throttle_inert() -> None:
+    """An empty configured rate makes ``get_rate`` return ``None``."""
     assert LoginThrottle().get_rate() is None
 
 
 @override_settings(AUTH_THROTTLE_RATES={LOGIN_SCOPE: ""})
-def test_an_empty_rate_leaves_login_unlimited(api_client, member) -> None:
+def test_an_empty_rate_leaves_login_unlimited(api_client: APIClient, member: User) -> None:
     """An empty override is off, not a 500 from an unparseable rate."""
     statuses = {
         api_client.post(LOGIN, {"email": member.email, "password": "wrong"}).status_code

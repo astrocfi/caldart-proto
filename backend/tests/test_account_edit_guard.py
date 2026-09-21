@@ -10,10 +10,13 @@ writes to the audit log is ``tests/test_audit_logging.py``.
 
 from __future__ import annotations
 
-import pytest
-from django.contrib.auth import get_user_model
-from django.core import mail
+from collections.abc import Callable
 
+import pytest
+from django.core import mail
+from rest_framework.test import APIClient
+
+from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, MEMBER, SYSTEM_ADMIN, USER_ADMIN
 from apps.accounts.services import (
     EMAIL_CHANGE_REFUSED,
@@ -24,8 +27,6 @@ from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
 
-User = get_user_model()
-
 USERS = "/api/v1/admin/users"
 MEMBERS = "/api/v1/admin/members"
 RESET = "/api/v1/auth/password/reset"
@@ -34,12 +35,12 @@ RESET = "/api/v1/auth/password/reset"
 ATTACKER_EMAIL = "attacker@example.test"
 
 
-def user_detail(user) -> str:
+def user_detail(user: User) -> str:
     """``/admin/users/{id}`` for ``user``."""
     return f"{USERS}/{user.pk}"
 
 
-def member_detail(user) -> str:
+def member_detail(user: User) -> str:
     """``/admin/members/{user_id}`` for ``user``."""
     return f"{MEMBERS}/{user.pk}"
 
@@ -57,7 +58,7 @@ PROTECTED_TARGETS = ["system_admin", "bare_superuser"]
 
 
 @pytest.fixture
-def bare_superuser(db):
+def bare_superuser(db: None) -> User:
     """A superuser without the ``system_admin`` role, as ``createsuperuser`` makes one."""
     return UserFactory(
         email="root-no-role@example.test", roles=[MEMBER], is_superuser=True, is_staff=True
@@ -70,7 +71,11 @@ def bare_superuser(db):
 @pytest.mark.parametrize("target_fixture", PROTECTED_TARGETS)
 @pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
 def test_a_lower_admin_cannot_change_a_protected_accounts_email(
-    request, api_client, target_fixture, actor_role, detail
+    request: pytest.FixtureRequest,
+    api_client: APIClient,
+    target_fixture: str,
+    actor_role: str,
+    detail: Callable[[User], str],
 ) -> None:
     """``is_superuser`` alone protects an account: it means system administrator."""
     target = request.getfixturevalue(target_fixture)
@@ -87,7 +92,11 @@ def test_a_lower_admin_cannot_change_a_protected_accounts_email(
 @pytest.mark.parametrize("target_fixture", PROTECTED_TARGETS)
 @pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
 def test_a_lower_admin_cannot_deactivate_a_protected_account(
-    request, api_client, target_fixture, actor_role, detail
+    request: pytest.FixtureRequest,
+    api_client: APIClient,
+    target_fixture: str,
+    actor_role: str,
+    detail: Callable[[User], str],
 ) -> None:
     """The Active box is guarded exactly as the address is, on both kinds of target."""
     target = request.getfixturevalue(target_fixture)
@@ -101,7 +110,7 @@ def test_a_lower_admin_cannot_deactivate_a_protected_account(
 
 
 def test_an_account_admin_cannot_change_a_user_admins_email(
-    api_client, account_admin, user_admin
+    api_client: APIClient, account_admin: User, user_admin: User
 ) -> None:
     """The rule is general: a role the target holds and the actor lacks is enough."""
     api_client.force_login(account_admin)
@@ -114,8 +123,9 @@ def test_an_account_admin_cannot_change_a_user_admins_email(
 
 
 def test_a_user_admin_cannot_change_an_account_admins_email(
-    api_client, user_admin, account_admin
+    api_client: APIClient, user_admin: User, account_admin: User
 ) -> None:
+    """A user administrator cannot change an account administrator's email."""
     api_client.force_login(user_admin)
     response = api_client.patch(user_detail(account_admin), {"email": ATTACKER_EMAIL})
 
@@ -125,7 +135,9 @@ def test_a_user_admin_cannot_change_an_account_admins_email(
     assert account_admin.email == "accountadmin@example.test"
 
 
-def test_a_user_admin_cannot_deactivate_a_dart_leader(api_client, user_admin, dart_leader) -> None:
+def test_a_user_admin_cannot_deactivate_a_dart_leader(
+    api_client: APIClient, user_admin: User, dart_leader: User
+) -> None:
     """Any role the actor lacks protects the account, administrative or not."""
     api_client.force_login(user_admin)
     response = api_client.patch(user_detail(dart_leader), {"is_active": False})
@@ -136,7 +148,10 @@ def test_a_user_admin_cannot_deactivate_a_dart_leader(api_client, user_admin, da
     assert dart_leader.is_active is True
 
 
-def test_an_account_admin_cannot_deactivate_themselves(api_client, account_admin) -> None:
+def test_an_account_admin_cannot_deactivate_themselves(
+    api_client: APIClient, account_admin: User
+) -> None:
+    """An account administrator cannot deactivate their own account."""
     api_client.force_login(account_admin)
     response = api_client.patch(member_detail(account_admin), {"is_active": False})
 
@@ -151,8 +166,13 @@ def test_an_account_admin_cannot_deactivate_themselves(api_client, account_admin
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
 def test_an_admin_may_still_change_a_plain_members_email(
-    request, api_client, member, actor_role, detail
+    request: pytest.FixtureRequest,
+    api_client: APIClient,
+    member: User,
+    actor_role: str,
+    detail: Callable[[User], str],
 ) -> None:
+    """Neither guard applies to a plain member: both endpoints may edit the email."""
     actor = request.getfixturevalue(actor_role)
     api_client.force_login(actor)
     response = api_client.patch(detail(member), {"email": "marta@example.test"})
@@ -163,8 +183,9 @@ def test_an_admin_may_still_change_a_plain_members_email(
 
 
 def test_a_system_admin_may_change_another_system_admins_email(
-    api_client, system_admin, user_factory
+    api_client: APIClient, system_admin: User, user_factory: type[UserFactory]
 ) -> None:
+    """A system administrator may change another system administrator's email."""
     target = user_factory(email="other-sysadmin@example.test", roles=[MEMBER, SYSTEM_ADMIN])
     api_client.force_login(system_admin)
     response = api_client.patch(user_detail(target), {"email": "moved@example.test"})
@@ -175,7 +196,7 @@ def test_a_system_admin_may_change_another_system_admins_email(
 
 
 def test_a_role_less_superuser_may_change_a_system_admins_email(
-    api_client, bare_superuser, system_admin
+    api_client: APIClient, bare_superuser: User, system_admin: User
 ) -> None:
     """The superuser flag satisfies the rule for the actor as well as the target."""
     api_client.force_login(bare_superuser)
@@ -188,7 +209,11 @@ def test_a_role_less_superuser_may_change_a_system_admins_email(
 
 @pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
 def test_resending_the_stored_values_with_a_name_change_succeeds(
-    request, api_client, system_admin, actor_role, detail
+    request: pytest.FixtureRequest,
+    api_client: APIClient,
+    system_admin: User,
+    actor_role: str,
+    detail: Callable[[User], str],
 ) -> None:
     """The portal sends the whole form, so an unchanged protected field is no change."""
     actor = request.getfixturevalue(actor_role)
@@ -204,7 +229,7 @@ def test_resending_the_stored_values_with_a_name_change_succeeds(
 
 
 def test_an_email_that_differs_only_in_case_is_not_a_change(
-    api_client, user_admin, system_admin
+    api_client: APIClient, user_admin: User, system_admin: User
 ) -> None:
     """The save is allowed, and the record keeps the address it was stored under."""
     api_client.force_login(user_admin)
@@ -216,7 +241,7 @@ def test_an_email_that_differs_only_in_case_is_not_a_change(
 
 
 def test_an_admin_who_may_edit_the_address_saves_the_case_they_sent(
-    api_client, system_admin, member
+    api_client: APIClient, system_admin: User, member: User
 ) -> None:
     """Nothing is dropped from a record the actor may edit: the write goes in verbatim."""
     api_client.force_login(system_admin)
@@ -227,7 +252,10 @@ def test_an_admin_who_may_edit_the_address_saves_the_case_they_sent(
     assert member.email == "MEMBER@EXAMPLE.TEST"
 
 
-def test_a_user_admin_may_still_rename_a_system_admin(api_client, user_admin, system_admin) -> None:
+def test_a_user_admin_may_still_rename_a_system_admin(
+    api_client: APIClient, user_admin: User, system_admin: User
+) -> None:
+    """A name edit on a system administrator is never subject to the guard."""
     api_client.force_login(user_admin)
     response = api_client.patch(user_detail(system_admin), {"last_name": "Okonkwo"})
 
@@ -240,7 +268,7 @@ def test_a_user_admin_may_still_rename_a_system_admin(api_client, user_admin, sy
 # Roles: the flag that makes an account a system administrator
 # --------------------------------------------------------------------------
 def test_a_user_admin_may_save_the_whole_form_of_a_role_less_superuser(
-    api_client, user_admin, bare_superuser
+    api_client: APIClient, user_admin: User, bare_superuser: User
 ) -> None:
     """The portal posts every field, so correcting a name resends the stored role list.
 
@@ -267,7 +295,7 @@ def test_a_user_admin_may_save_the_whole_form_of_a_role_less_superuser(
 
 
 def test_a_user_admin_cannot_change_a_role_less_superusers_roles(
-    api_client, user_admin, bare_superuser
+    api_client: APIClient, user_admin: User, bare_superuser: User
 ) -> None:
     """A different list rebuilds ``is_superuser``, so it drops ``system_admin``."""
     api_client.force_login(user_admin)
@@ -281,7 +309,7 @@ def test_a_user_admin_cannot_change_a_role_less_superusers_roles(
 
 
 def test_a_user_admin_cannot_grant_the_system_admin_role_to_a_role_less_superuser(
-    api_client, user_admin, bare_superuser
+    api_client: APIClient, user_admin: User, bare_superuser: User
 ) -> None:
     """Ticking the box grants the role, even on an account that counts as one already."""
     api_client.force_login(user_admin)
@@ -294,7 +322,7 @@ def test_a_user_admin_cannot_grant_the_system_admin_role_to_a_role_less_superuse
 
 
 def test_a_system_admin_may_record_the_role_on_a_role_less_superuser(
-    api_client, system_admin, bare_superuser
+    api_client: APIClient, system_admin: User, bare_superuser: User
 ) -> None:
     """The group the account never had is a system administrator's to add."""
     api_client.force_login(system_admin)
@@ -307,7 +335,7 @@ def test_a_system_admin_may_record_the_role_on_a_role_less_superuser(
 
 
 def test_the_roles_guard_keeps_a_role_less_superusers_email_out_of_reach(
-    api_client, user_admin, bare_superuser
+    api_client: APIClient, user_admin: User, bare_superuser: User
 ) -> None:
     """The two-request takeover: try to drop the flag first, then move the address.
 
@@ -328,7 +356,7 @@ def test_the_roles_guard_keeps_a_role_less_superusers_email_out_of_reach(
 # Roles: how far a second request reaches
 # --------------------------------------------------------------------------
 def test_a_user_admin_lifts_the_refusal_by_granting_themselves_the_missing_role(
-    api_client, user_admin, dart_leader
+    api_client: APIClient, user_admin: User, dart_leader: User
 ) -> None:
     """The guard judges one write, and granting roles is the user administrator's job.
 
@@ -350,7 +378,7 @@ def test_a_user_admin_lifts_the_refusal_by_granting_themselves_the_missing_role(
 
 
 def test_a_user_admin_cannot_grant_themselves_the_system_admin_role(
-    api_client, user_admin, system_admin
+    api_client: APIClient, user_admin: User, system_admin: User
 ) -> None:
     """The one role that cannot be self-granted, so the address stays out of reach."""
     api_client.force_login(user_admin)
@@ -367,7 +395,7 @@ def test_a_user_admin_cannot_grant_themselves_the_system_admin_role(
 
 
 def test_the_roles_guard_keeps_a_system_admins_email_out_of_reach(
-    api_client, user_admin, system_admin
+    api_client: APIClient, user_admin: User, system_admin: User
 ) -> None:
     """The mirror route: strip the role from the target first, then move the address."""
     api_client.force_login(user_admin)
@@ -382,7 +410,7 @@ def test_the_roles_guard_keeps_a_system_admins_email_out_of_reach(
 
 
 def test_a_role_less_superuser_may_grant_the_system_admin_role(
-    api_client, bare_superuser, member
+    api_client: APIClient, bare_superuser: User, member: User
 ) -> None:
     """The superuser flag satisfies the roles guard for the actor as well."""
     api_client.force_login(bare_superuser)
@@ -397,8 +425,9 @@ def test_a_role_less_superuser_may_grant_the_system_admin_role(
 # Delete
 # --------------------------------------------------------------------------
 def test_an_account_admin_cannot_delete_a_role_less_superuser(
-    api_client, account_admin, bare_superuser
+    api_client: APIClient, account_admin: User, bare_superuser: User
 ) -> None:
+    """An account administrator cannot delete a role-less superuser."""
     api_client.force_login(account_admin)
     response = api_client.delete(member_detail(bare_superuser))
 
@@ -407,8 +436,9 @@ def test_an_account_admin_cannot_delete_a_role_less_superuser(
 
 
 def test_a_role_less_superuser_may_delete_a_system_admin(
-    api_client, bare_superuser, system_admin
+    api_client: APIClient, bare_superuser: User, system_admin: User
 ) -> None:
+    """A role-less superuser may delete a system administrator's account."""
     api_client.force_login(bare_superuser)
     response = api_client.delete(member_detail(system_admin))
 
@@ -421,7 +451,11 @@ def test_a_role_less_superuser_may_delete_a_system_admin(
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize(("actor_role", "detail"), BOTH_ENDPOINTS)
 def test_a_refused_email_edit_leaves_the_attacker_no_reset_email(
-    request, api_client, system_admin, actor_role, detail
+    request: pytest.FixtureRequest,
+    api_client: APIClient,
+    system_admin: User,
+    actor_role: str,
+    detail: Callable[[User], str],
 ) -> None:
     """The takeover chain: move the address, then ask for a reset link at it."""
     actor = request.getfixturevalue(actor_role)
