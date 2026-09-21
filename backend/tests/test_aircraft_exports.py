@@ -5,13 +5,22 @@ from __future__ import annotations
 import csv
 import io
 import re
+from collections.abc import Iterator
 from datetime import timedelta
+from typing import cast
 
 import pytest
+from django.http import HttpResponseBase, StreamingHttpResponse
 from django.utils import timezone
+from rest_framework.test import APIClient
 
+from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
+from apps.aircraft.models import Aircraft
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
+
+#: Aircraft register fixture, keyed by scenario name.
+RegisterDict = dict[str, Aircraft]
 
 pytestmark = pytest.mark.django_db
 
@@ -35,7 +44,8 @@ EXPECTED_HEADER = [
 
 
 @pytest.fixture
-def register(db):
+def register(db: None) -> RegisterDict:
+    """Three aircraft: current insurance, expired insurance, and nothing on file."""
     today = timezone.localdate()
     current = AircraftFactory(
         n_number="N172SP",
@@ -72,12 +82,22 @@ def register(db):
     return {"current": current, "expired": expired, "missing": missing}
 
 
-def read_csv(response) -> list[list[str]]:
-    body = b"".join(response.streaming_content).decode()
+def read_csv(response: HttpResponseBase) -> list[list[str]]:
+    """Decode a streamed CSV response into rows of string cells.
+
+    The CSV export streams, so the response must be a ``StreamingHttpResponse``; any
+    other response type fails the assertion rather than the attribute lookup.
+    """
+    assert isinstance(response, StreamingHttpResponse)
+    # A synchronous StreamingHttpResponse yields bytes; the async branch of the
+    # declared union cannot occur here.
+    chunks = cast(Iterator[bytes], response.streaming_content)
+    body = b"".join(chunks).decode()
     return list(csv.reader(io.StringIO(body)))
 
 
 def page_count(pdf: bytes) -> int:
+    """Count the ``/Type /Page`` objects in a raw PDF document."""
     return len(re.findall(rb"/Type\s*/Page[^s]", pdf))
 
 
@@ -85,12 +105,16 @@ def page_count(pdf: bytes) -> int:
 # Permissions
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("url", [CSV_URL, PDF_URL])
-def test_exports_require_authentication(api_client, url):
+def test_exports_require_authentication(api_client: APIClient, url: str) -> None:
+    """Both export endpoints refuse an anonymous caller with a 401."""
     assert api_client.get(url).status_code == 401
 
 
 @pytest.mark.parametrize("url", [CSV_URL, PDF_URL])
-def test_export_role_matrix(api_client, all_role_users, register, url):
+def test_export_role_matrix(
+    api_client: APIClient, all_role_users: dict[str, User], register: RegisterDict, url: str
+) -> None:
+    """Only account and system admins get 200 from either export; others get 403."""
     allowed = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
     for slug, user in all_role_users.items():
         api_client.force_login(user)
@@ -103,7 +127,10 @@ def test_export_role_matrix(api_client, all_role_users, register, url):
 # --------------------------------------------------------------------------
 # CSV
 # --------------------------------------------------------------------------
-def test_csv_headers_and_filename(api_client, account_admin, register):
+def test_csv_headers_and_filename(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """The CSV export sets a ``text/csv`` type and an attachment filename."""
     api_client.force_login(account_admin)
     response = api_client.get(CSV_URL)
     assert response.status_code == 200
@@ -112,13 +139,17 @@ def test_csv_headers_and_filename(api_client, account_admin, register):
     assert "caldart-aircraft-" in response["Content-Disposition"]
 
 
-def test_csv_columns_are_the_ones_the_plan_names(api_client, account_admin, register):
+def test_csv_columns_are_the_ones_the_plan_names(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """The CSV header row matches the documented column order exactly."""
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL))
     assert rows[0] == EXPECTED_HEADER
 
 
-def test_csv_content(api_client, account_admin, register):
+def test_csv_content(api_client: APIClient, account_admin: User, register: RegisterDict) -> None:
+    """Each row's fields, including formatted money and insurance status, are correct."""
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL))
     by_number = {row[0]: row for row in rows[1:]}
@@ -132,7 +163,9 @@ def test_csv_content(api_client, account_admin, register):
         "Avemco",
     ]
     assert current[6:9] == ["1000000.00", "100000.00", "145000.00"]
-    assert current[9] == register["current"].insurance_expiration.isoformat()
+    expiration = register["current"].insurance_expiration
+    assert expiration is not None
+    assert current[9] == expiration.isoformat()
     assert current[10] == "yes"
 
     assert by_number["N33MM"][10] == "no"
@@ -140,7 +173,10 @@ def test_csv_content(api_client, account_admin, register):
     assert missing[8] == "" and missing[9] == "" and missing[10] == "no"
 
 
-def test_csv_pilots_column_lists_attached_members(api_client, account_admin, register):
+def test_csv_pilots_column_lists_attached_members(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """The pilots column lists every profile attached to the aircraft, joined by "; "."""
     marta = UserFactory(email="marta@example.test", first_name="Marta", last_name="Reyes")
     owen = UserFactory(email="owen@example.test", first_name="Owen", last_name="Delgado")
     MemberProfileFactory(user=marta).aircraft.add(register["current"])
@@ -153,7 +189,10 @@ def test_csv_pilots_column_lists_attached_members(api_client, account_admin, reg
     assert pilots["N33MM"] == ""
 
 
-def test_csv_honors_the_same_filters_as_the_list(api_client, account_admin, register):
+def test_csv_honors_the_same_filters_as_the_list(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """The CSV export applies the ``insurance``, ``search`` and ``owner_type`` filters."""
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL, {"insurance": "expired"}))
     assert [row[0] for row in rows[1:]] == ["N33MM"]
@@ -165,13 +204,17 @@ def test_csv_honors_the_same_filters_as_the_list(api_client, account_admin, regi
     assert [row[0] for row in rows[1:]] == ["N44BE"]
 
 
-def test_csv_honors_ordering(api_client, account_admin, register):
+def test_csv_honors_ordering(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """The CSV export honors the ``ordering`` parameter, descending N-number here."""
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL, {"ordering": "-n_number"}))
     assert [row[0] for row in rows[1:]] == ["N44BE", "N33MM", "N172SP"]
 
 
-def test_csv_is_not_paginated(api_client, account_admin):
+def test_csv_is_not_paginated(api_client: APIClient, account_admin: User) -> None:
+    """The CSV export returns every matching row, not one page of the list view."""
     for index in range(30):
         AircraftFactory(n_number=f"N{2000 + index}EX")
     api_client.force_login(account_admin)
@@ -182,7 +225,10 @@ def test_csv_is_not_paginated(api_client, account_admin):
 # --------------------------------------------------------------------------
 # PDF
 # --------------------------------------------------------------------------
-def test_pdf_is_a_valid_document(api_client, account_admin, register):
+def test_pdf_is_a_valid_document(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """The PDF export is a one-page, well-formed PDF with the standard filename prefix."""
     api_client.force_login(account_admin)
     response = api_client.get(PDF_URL)
     assert response.status_code == 200
@@ -194,7 +240,10 @@ def test_pdf_is_a_valid_document(api_client, account_admin, register):
     assert page_count(body) == 1
 
 
-def test_pdf_is_filtered_like_the_list(api_client, account_admin, register):
+def test_pdf_is_filtered_like_the_list(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """A filtered PDF export is smaller than the unfiltered one, and still valid."""
     api_client.force_login(account_admin)
     everything = api_client.get(PDF_URL).content
     filtered = api_client.get(PDF_URL, {"insurance": "expired"}).content
@@ -203,7 +252,8 @@ def test_pdf_is_filtered_like_the_list(api_client, account_admin, register):
     assert len(filtered) < len(everything)
 
 
-def test_pdf_paginates_a_large_register(api_client, account_admin):
+def test_pdf_paginates_a_large_register(api_client: APIClient, account_admin: User) -> None:
+    """A register too large for one page produces a multi-page PDF."""
     for index in range(120):
         AircraftFactory(n_number=f"N{3000 + index}PD")
     api_client.force_login(account_admin)
@@ -211,14 +261,20 @@ def test_pdf_paginates_a_large_register(api_client, account_admin):
     assert page_count(body) > 1
 
 
-def test_pdf_survives_an_empty_result_set(api_client, account_admin, register):
+def test_pdf_survives_an_empty_result_set(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """A filter that matches nothing still returns a valid, empty-of-rows PDF."""
     api_client.force_login(account_admin)
     response = api_client.get(PDF_URL, {"search": "no-such-aircraft"})
     assert response.status_code == 200
     assert response.content.startswith(b"%PDF-")
 
 
-def test_pdf_states_the_filters_it_was_run_with(api_client, account_admin, register):
+def test_pdf_states_the_filters_it_was_run_with(
+    api_client: APIClient, account_admin: User, register: RegisterDict
+) -> None:
+    """A filtered PDF export is still a valid single-page document."""
     api_client.force_login(account_admin)
     body = api_client.get(PDF_URL, {"insurance": "expired"}).content
     # reportlab writes the subtitle into the content stream, compressed; the
@@ -227,7 +283,8 @@ def test_pdf_states_the_filters_it_was_run_with(api_client, account_admin, regis
     assert page_count(body) == 1
 
 
-def test_money_is_formatted_for_people_in_the_pdf_rows(register):
+def test_money_is_formatted_for_people_in_the_pdf_rows(register: RegisterDict) -> None:
+    """``aircraft_row`` formats cents as dollar amounts only when ``currency`` is set."""
     from apps.aircraft.reports import aircraft_row
 
     row = aircraft_row(register["current"], currency=True)
@@ -236,7 +293,8 @@ def test_money_is_formatted_for_people_in_the_pdf_rows(register):
     assert plain[6:9] == ["1000000.00", "100000.00", "145000.00"]
 
 
-def test_odd_cent_amounts_keep_their_cents(register):
+def test_odd_cent_amounts_keep_their_cents(register: RegisterDict) -> None:
+    """``aircraft_row``'s currency format keeps non-round cent amounts precise."""
     from apps.aircraft.reports import aircraft_row
 
     register["current"].insurance_hull_cents = 12_345

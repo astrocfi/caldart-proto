@@ -124,11 +124,6 @@ max-doc-length = 90
 "backend/tests/test_members_reports.py" = ["ANN", "D"]
 "backend/tests/test_membership_query_counts.py" = ["ANN", "D"]
 "backend/tests/test_membership_services.py" = ["ANN", "D"]
-# Unit: tests-aircraft
-"backend/tests/test_aircraft_api.py" = ["ANN", "D"]
-"backend/tests/test_aircraft_exports.py" = ["ANN", "D"]
-"backend/tests/test_aircraft_models.py" = ["ANN", "D"]
-"backend/tests/test_profile_aircraft_api.py" = ["ANN", "D"]
 # Unit: tests-payments
 "backend/tests/test_payment_report_query.py" = ["ANN", "D"]
 "backend/tests/test_payments_api.py" = ["ANN", "D"]
@@ -230,16 +225,6 @@ module = [
     "tests.test_members_reports",
     "tests.test_membership_query_counts",
     "tests.test_membership_services",
-]
-ignore_errors = true
-
-# Unit: tests-aircraft
-[[tool.mypy.overrides]]
-module = [
-    "tests.test_aircraft_api",
-    "tests.test_aircraft_exports",
-    "tests.test_aircraft_models",
-    "tests.test_profile_aircraft_api",
 ]
 ignore_errors = true
 
