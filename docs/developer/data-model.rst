@@ -18,9 +18,13 @@ House rules that apply throughout:
   ``django.utils.timezone.localdate()``.
 - **Most models carry ``created_at`` and ``updated_at``**, inherited from
   ``caldart.models.TimestampedModel`` (``User`` declares its own pair,
-  because it inherits from ``AbstractUser`` instead).  ``cms.BasePage`` and
-  ``cms.SiteSettings`` do not: Wagtail's ``Page`` and ``BaseSiteSetting``
-  already track their own change history.
+  because it inherits from ``AbstractUser`` instead).  ``cms.BasePage`` does
+  not, because Wagtail's ``Page`` keeps its own dates: ``first_published_at``,
+  ``last_published_at`` and ``latest_revision_created_at``, alongside the
+  revision history behind them.  ``cms.SiteSettings`` carries no dates either,
+  and Wagtail's ``BaseSiteSetting`` adds only the one-to-one to
+  ``wagtailcore.Site``, so editing the settings overwrites the single row and
+  records nothing about when or by whom.
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``.**
 
 Entity relationships
