@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -37,12 +38,15 @@ class BackupError(RuntimeError):
 
 @dataclass(frozen=True)
 class BackupFile:
+    """One dump on disk: its name, path, size, and modification time."""
+
     name: str
     path: Path
     size_bytes: int
     created_at: datetime
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
+        """Return ``{name, size_bytes, created_at}``, with ``created_at`` as ISO 8601."""
         return {
             "name": self.name,
             "size_bytes": self.size_bytes,
@@ -51,6 +55,11 @@ class BackupFile:
 
 
 def backup_dir() -> Path:
+    """The backup directory, creating it if it does not exist.
+
+    ``settings.BACKUP_DIR`` is resolved against ``settings.REPO_ROOT`` when it is
+    relative.
+    """
     path = Path(settings.BACKUP_DIR)
     if not path.is_absolute():
         path = settings.REPO_ROOT / path
@@ -86,7 +95,7 @@ def _pg_command(tool: str) -> list[str] | None:
     return in_container if has_docker else None
 
 
-def _run_pg(argv: list[str], **kwargs) -> subprocess.CompletedProcess:
+def _run_pg(argv: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
     """Run a pg tool from the repository root so compose finds its file."""
     return subprocess.run(  # noqa: S603 - argv is built from settings, not user input
         argv,
@@ -226,12 +235,14 @@ def app_version() -> str:
     path = Path(settings.REPO_ROOT) / "pyproject.toml"
     try:
         with path.open("rb") as handle:
-            return tomllib.load(handle)["project"]["version"]
+            data = tomllib.load(handle)
+        version = data["project"]["version"]
     except (OSError, KeyError, tomllib.TOMLDecodeError):
         return settings.CALDART_VERSION
+    return version if isinstance(version, str) else settings.CALDART_VERSION
 
 
-def health() -> dict:
+def health() -> dict[str, Any]:
     """The payload behind ``GET /system/health``.
 
     Disk space is measured on ``BACKUP_DIR``: that is the filesystem that fills

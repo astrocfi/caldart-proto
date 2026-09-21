@@ -102,8 +102,6 @@ max-doc-length = 90
 # unit of the backend; the unit's own change deletes its entry and never adds one.
 # No entry may remain once every unit is annotated and documented.
 [tool.ruff.lint.per-file-ignores]
-# Unit: sysadmin
-"backend/apps/sysadmin/**" = ["ANN", "D"]
 # Unit: aircraft
 "backend/apps/aircraft/**" = ["ANN", "D"]
 # Unit: payments
@@ -214,11 +212,6 @@ ignore_missing_imports = true
 
 # The type-checking ratchet, unit by unit, matching the ruff table above.  Each
 # unit's own change deletes its override; none may remain once every unit is typed.
-# Unit: sysadmin
-[[tool.mypy.overrides]]
-module = ["apps.sysadmin.*"]
-ignore_errors = true
-
 # Unit: aircraft
 [[tool.mypy.overrides]]
 module = ["apps.aircraft.*"]
