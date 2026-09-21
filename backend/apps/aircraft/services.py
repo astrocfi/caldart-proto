@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import re
 from datetime import timedelta
+from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
+from apps.accounts.models import User as UserModel
 from apps.aircraft.models import Aircraft, normalize_n_number
 from apps.members.models import MembershipState
 from apps.members.services import (
@@ -45,7 +47,7 @@ def looks_like_registration(term: str) -> bool:
     return any(character.isdigit() for character in term)
 
 
-def search_members(query: str, limit: int = SEARCH_LIMIT) -> QuerySet:
+def search_members(query: str, limit: int = SEARCH_LIMIT) -> QuerySet[UserModel]:
     """Members matching ``query`` by name, email, or an aircraft N-number.
 
     Every row carries the membership annotations, so :func:`search_result`
@@ -77,7 +79,7 @@ def search_members(query: str, limit: int = SEARCH_LIMIT) -> QuerySet:
     )[:limit]
 
 
-def search_result(user) -> dict:
+def search_result(user: UserModel) -> dict[str, Any]:
     """One row of ``GET /leader/search``."""
     profile = getattr(user, "profile", None)
     dart = profile.dart if profile is not None else None
@@ -90,7 +92,7 @@ def search_result(user) -> dict:
     }
 
 
-def leader_status(user) -> dict:
+def leader_status(user: UserModel) -> dict[str, Any]:
     """The status card for one member.
 
     ``go_no_go`` is deliberately two plain booleans: a leader is entitled to
@@ -128,7 +130,7 @@ def leader_status(user) -> dict:
     }
 
 
-def aircraft_pilots(aircraft: Aircraft) -> list[dict]:
+def aircraft_pilots(aircraft: Aircraft) -> list[dict[str, Any]]:
     """The members who list ``aircraft`` among the planes they commonly fly.
 
     One query whatever the number of pilots: the membership annotations ride
@@ -154,7 +156,7 @@ def pilot_names(aircraft: Aircraft) -> list[str]:
     return [profile.display_name for profile in aircraft.pilots.all()]
 
 
-def insurance_queryset(queryset: QuerySet, state: str) -> QuerySet:
+def insurance_queryset(queryset: QuerySet[Aircraft], state: str) -> QuerySet[Aircraft]:
     """Narrow ``queryset`` to ``current``, ``expired`` or ``missing`` cover."""
     today = timezone.localdate()
     if state == "current":
@@ -172,7 +174,7 @@ def insurance_queryset(queryset: QuerySet, state: str) -> QuerySet:
 MAX_EXPIRING_WINDOW_DAYS = 3650
 
 
-def expiring_within(queryset: QuerySet, days: int) -> QuerySet:
+def expiring_within(queryset: QuerySet[Aircraft], days: int) -> QuerySet[Aircraft]:
     """Aircraft whose cover runs out in the next ``days`` days (never expired)."""
     today = timezone.localdate()
     window = min(max(days, 0), MAX_EXPIRING_WINDOW_DAYS)

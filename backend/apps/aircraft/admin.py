@@ -6,7 +6,13 @@ from apps.aircraft.models import Aircraft
 
 
 @admin.register(Aircraft)
-class AircraftAdmin(admin.ModelAdmin):
+# django-stubs types ModelAdmin as generic, but Django's own class is not subscriptable.
+# django-stubs-ext patches __class_getitem__ onto it at runtime, and that patch lands only
+# once a later app is imported -- well after the admin autodiscovery that imports this
+# module -- so writing ModelAdmin[Aircraft] here raises TypeError during django.setup().
+class AircraftAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    """The Django admin view of the aircraft register."""
+
     list_display = [
         "n_number",
         "make",
@@ -25,4 +31,5 @@ class AircraftAdmin(admin.ModelAdmin):
 
     @admin.display(boolean=True, description="insurance current")
     def insurance_is_current(self, obj: Aircraft) -> bool:
+        """Return whether ``obj`` has a non-expired insurance expiration date."""
         return obj.insurance_is_current
