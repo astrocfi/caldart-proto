@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -9,7 +11,10 @@ from django.utils import timezone
 from caldart.models import TimestampedModel
 
 
-class Dart(TimestampedModel):
+# ``cms.DartPage`` points here with ``related_name="pages"``, but it is a Wagtail
+# page: its base classes are untyped, so django-stubs cannot build the reverse
+# manager for the relation and reports it against this end of it.
+class Dart(TimestampedModel):  # type: ignore[django-manager-missing]
     """A local Disaster Airlift Response Team."""
 
     name = models.CharField(max_length=120, unique=True)
@@ -27,12 +32,15 @@ class Dart(TimestampedModel):
         indexes = [models.Index(fields=["is_active", "sort_order"], name="members_dart_active_idx")]
 
     def __str__(self) -> str:
+        """The name, with the airport identifier in parentheses when there is one."""
         if self.airport_identifier:
             return f"{self.name} ({self.airport_identifier})"
         return self.name
 
 
 class PilotCertificateType(models.TextChoices):
+    """The pilot certificate a member holds, or ``NONE`` for a non-pilot."""
+
     NONE = "none", "None"
     STUDENT = "student", "Student"
     SPORT = "sport", "Sport"
@@ -43,12 +51,16 @@ class PilotCertificateType(models.TextChoices):
 
 
 class IfrRated(models.TextChoices):
+    """Whether a pilot holds an instrument rating; ``NA`` for a non-pilot."""
+
     NA = "na", "Not applicable"
     YES = "yes", "Yes"
     NO = "no", "No"
 
 
 class MedicalType(models.TextChoices):
+    """The medical certificate a member holds, or ``NONE`` for none on file."""
+
     NONE = "none", "None"
     BASICMED = "basicmed", "BasicMed"
     FIRST = "first", "First class"
@@ -134,10 +146,16 @@ class MemberProfile(TimestampedModel):
         ]
 
     def __str__(self) -> str:
+        """``Profile for`` the member's display name."""
         return f"Profile for {self.display_name}"
 
     @property
     def display_name(self) -> str:
+        """The member's full name, falling back to their email address.
+
+        The name is both parts joined by a space, trimmed, so a record holding
+        only a first name reads as that name alone.
+        """
         full = f"{self.user.first_name} {self.user.last_name}".strip()
         return full or self.user.email
 
@@ -150,6 +168,12 @@ class MemberProfile(TimestampedModel):
 
     @property
     def volunteer_interests(self) -> list[str]:
+        """The volunteer areas ticked, as slugs without the ``vol_`` prefix.
+
+        Empty when the member has volunteered for nothing, and in the order the
+        interests are declared on the model rather than the order they were
+        ticked.
+        """
         fields = [
             "vol_ground_team",
             "vol_exercise_training",
@@ -202,10 +226,12 @@ class MembershipPlan(TimestampedModel):
         verbose_name_plural = "membership plans"
 
     def __str__(self) -> str:
+        """The plan name and its price in dollars, e.g. ``Annual ($45.00)``."""
         return f"{self.name} (${self.price_cents / 100:,.2f})"
 
     @property
     def is_lifetime(self) -> bool:
+        """True when the plan never runs out, which is what a blank duration means."""
         return self.duration_days is None
 
 
@@ -232,6 +258,8 @@ class MembershipState(models.TextChoices):
 
 
 class MembershipSource(models.TextChoices):
+    """How a term was come by: paid for, granted by hand, or seeded."""
+
     PAYMENT = "payment", "Payment"
     MANUAL = "manual", "Manual grant"
     SEED = "seed", "Seed data"
@@ -278,14 +306,16 @@ class Membership(TimestampedModel):
         ]
 
     def __str__(self) -> str:
+        """The member, the plan name and the dates, with ``lifetime`` for no end."""
         end = self.ends_on.isoformat() if self.ends_on else "lifetime"
         return f"{self.user} · {self.plan.name} · {self.starts_on.isoformat()}–{end}"
 
     @property
     def is_lifetime(self) -> bool:
+        """True when the term never runs out, which is what a blank ``ends_on`` means."""
         return self.ends_on is None
 
-    def covers(self, on_date=None) -> bool:
+    def covers(self, on_date: date | None = None) -> bool:
         """True when this term is active and covers ``on_date`` (default today)."""
         if self.status != MembershipStatusChoices.ACTIVE:
             return False
