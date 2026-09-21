@@ -149,42 +149,53 @@ anything is activated.  Only the provider calls in acts one and three differ.
 
    .. code-block:: text
 
-      Browser          CalDART API      Stripe / PayPal      Database
+         Browser            CalDART API        Stripe / PayPal   Database
          |                  |                  |                 |
-         |-- 1 POST /payments/checkout          |                 |
-         |     {plan, contribution_cents, provider}               |
+         |     1  POST /payments/checkout      |                 |
+         |     {plan, contribution_cents, provider}              |
          |----------------->|                  |                 |
-         |                  |-- 2 INSERT Payment (pending),       |
-         |                  |     amount = plan price + contribution
-         |                  |-------------------------------------|
-         |                  |-- 3 start(payment): create the      |
+         |                  |                  |                 |
+         |                  |     2  INSERT Payment (pending), amount =
+         |                  |     plan price + contribution      |
+         |                  |----------------------------------->|
+         |                  |                  |                 |
+         |                  |     3  start(payment): create the  |
          |                  |     PaymentIntent / the CAPTURE order
          |                  |----------------->|                 |
-         |                  |<- 4 client_secret / order id: into  |
-         |                  |     provider_ref, reply into raw    |
+         |                  |                  |                 |
+         |                  |     4  client_secret / order id: into
+         |                  |     provider_ref, the reply into raw
          |                  |<-----------------|                 |
-         |<- 5 201 {payment_id, provider, client}                 |
+         |                  |                  |                 |
+         |     5  201 {payment_id, provider, client}             |
          |<-----------------|                  |                 |
-         |-- 6 the member pays in the Payment Element /           |
-         |     the PayPal buttons              |                 |
+         |                  |                  |                 |
+         |     6  the member pays in the Payment                 |
+         |     Element / the PayPal buttons    |                 |
          |------------------------------------>|                 |
-         |-- 7 POST /payments/stripe/confirm or                   |
+         |                  |                  |                 |
+         |     7  POST /payments/stripe/confirm or               |
          |     /payments/paypal/capture        |                 |
          |----------------->|                  |                 |
-         |                  |-- 8 retrieve the intent /           |
-         |                  |     capture the order               |
+         |                  |                  |                 |
+         |                  |     8  retrieve the intent / capture the order
          |                  |----------------->|                 |
-         |                  |<- 9 status, amount, currency,       |
-         |                  |     payment id -- all four checked  |
+         |                  |                  |                 |
+         |                  |     9  status, amount, currency, payment id
+         |                  |     -- all four checked against the row
          |                  |<-----------------|                 |
-         |                  |- 10 status succeeded, completed_at, |
-         |                  |     wallet; INSERT Membership       |
-         |                  |-------------------------------------|
-         |<- 11 200 {status, membership}       |                 |
+         |                  |                  |                 |
+         |                  |     10  status succeeded, completed_at,
+         |                  |     wallet; INSERT Membership term |
+         |                  |----------------------------------->|
+         |                  |                  |                 |
+         |     11  200 {status, membership}    |                 |
          |<-----------------|                  |                 |
-         |                  |< 12 webhook, later or instead:      |
-         |                  |     the same idempotent activation  |
+         |                  |                  |                 |
+         |                  |     12  webhook, later or instead: the
+         |                  |     same idempotent activation     |
          |                  |<.................|                 |
+         |                  |                  |                 |
 
       Time runs down the page.  The provider calls named second are PayPal's.
 
