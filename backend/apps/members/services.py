@@ -41,9 +41,9 @@ and canceled terms.
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn, TypedDict, cast
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
 from django.db.models import (
     CharField,
@@ -59,6 +59,7 @@ from django.db.models.deletion import ProtectedError
 from django.http import HttpRequest
 from django.utils import timezone
 
+from apps.accounts.models import User
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.accounts.services import (
     AccountChanges,
@@ -78,10 +79,44 @@ from apps.members.models import (
 from caldart import audit
 from caldart.exceptions import DomainPermissionError
 
-User = get_user_model()
+if TYPE_CHECKING:
+    from django_stubs_ext import WithAnnotations
 
-#: Shape returned by :func:`membership_status`.
-MembershipStatusDict = dict
+    # Inline: payments sits above members and apps.payments.services imports this
+    # module, so a top-level import here would close the cycle.  This one is read
+    # by the type checker alone and costs nothing at run time.
+    from apps.payments.models import Payment
+
+
+class MembershipStatusDict(TypedDict):
+    """The summary :func:`membership_status` and :func:`membership_payload` return."""
+
+    status: MembershipState
+    expires_on: date | None
+    plan: str | None
+    is_lifetime: bool
+
+
+class MembershipAnnotations(TypedDict):
+    """The columns :func:`membership_annotations` adds to a user row."""
+
+    covers_today: bool
+    has_started_term: bool
+    coverage_end: date | None
+    coverage_plan: str | None
+    lifetime_plan: str | None
+    past_end: date | None
+    past_plan: str | None
+    joined_on: date | None
+
+
+if TYPE_CHECKING:
+    #: A user row that came through :func:`with_membership`, so the membership
+    #: annotations can be read straight off it.
+    type MemberRow = WithAnnotations[User, MembershipAnnotations]
+
+#: The profile fields an administrator may set when creating or editing a member.
+type ProfileChanges = dict[str, Any]
 
 SELF_DELETE_REFUSED = "You cannot delete your own account."
 SYSTEM_ADMIN_DELETE_REFUSED = "Only a system administrator can delete a system administrator."
@@ -115,7 +150,7 @@ def create_member(
     password: str = "",
     first_name: str = "",
     last_name: str = "",
-    profile: dict | None = None,
+    profile: ProfileChanges | None = None,
     request: HttpRequest | None = None,
 ) -> User:
     """Create a member an administrator is entering, and return the account.
@@ -142,7 +177,7 @@ def update_member(
     target: User,
     *,
     account: AccountChanges | None = None,
-    profile: dict | None = None,
+    profile: ProfileChanges | None = None,
 ) -> User:
     """Apply an administrator's edit to a member, and return the account.
 
@@ -194,11 +229,16 @@ def delete_member(actor: User, target: User) -> None:
         target.delete()
     except ProtectedError as exc:
         # ``Payment.user`` is the only protected reference to an account, so a row
-        # created between the check above and the delete lands here.
+        # created between the check above and the delete lands here, and the same
+        # sentence is now there to quote.  Anything else protecting the row is a
+        # bug, not a refusal, and travels on as the server error it is.
+        late_refusal = payment_deletion_refusal(target)
+        if late_refusal is None:
+            raise
         audit.refuse(
             audit.MEMBER_DELETE, actor=actor, target=target, reason=audit.REASON_HAS_PAYMENTS
         )
-        raise DomainPermissionError(payment_deletion_refusal(target)) from exc
+        raise DomainPermissionError(late_refusal) from exc
     audit.record(audit.MEMBER_DELETE, actor=actor, target=target_id)
 
 
@@ -223,7 +263,7 @@ def _no_membership() -> MembershipStatusDict:
     }
 
 
-def _current_term(user, on_date: date) -> Membership | None:
+def _current_term(user: User, on_date: date) -> Membership | None:
     """The active term covering ``on_date``, preferring lifetime then latest end."""
     terms = [
         m
@@ -239,7 +279,7 @@ def _current_term(user, on_date: date) -> Membership | None:
     return terms[0]
 
 
-def _latest_expiry(user) -> date | None:
+def _latest_expiry(user: User) -> date | None:
     """Latest ``ends_on`` across active terms, or ``None`` if any is lifetime."""
     ends: list[date] = []
     for m in user.memberships.all():
@@ -251,7 +291,7 @@ def _latest_expiry(user) -> date | None:
     return max(ends) if ends else None
 
 
-def _coverage(user, on_date: date) -> Membership | None:
+def _coverage(user: User, on_date: date) -> Membership | None:
     """The term the member's *unbroken* coverage from ``on_date`` ends with.
 
     Renewing early creates a term that starts the day after the current one
@@ -283,19 +323,25 @@ def _coverage(user, on_date: date) -> Membership | None:
     return last
 
 
-def membership_status(user, on_date: date | None = None) -> MembershipStatusDict:
-    """Summarize a user's membership.
+def membership_status(
+    user: User | AnonymousUser | None, on_date: date | None = None
+) -> MembershipStatusDict:
+    """Summarize a user's membership, reading the terms out of the database.
 
     Returns ``{"status", "expires_on", "plan", "is_lifetime"}`` where status is
     ``current`` (a term covers ``on_date``), ``expired`` (a term has started and
-    run out) or ``none`` (nothing has started yet).
+    run out) or ``none`` (nothing has started yet).  ``on_date`` defaults to the
+    current local date.  An anonymous caller, or none at all, is answered
+    ``none`` with no expiry, no plan and ``is_lifetime`` false, so a signed-out
+    visitor is never mistaken for a lapsed member.
 
     ``expires_on`` is the end of the member's unbroken coverage, so a renewal
-    bought today shows next year's date immediately.
+    bought today shows next year's date immediately, and is ``None`` for a
+    lifetime term.  ``plan`` is the name of the plan behind the term reported.
     """
     on_date = on_date or timezone.localdate()
 
-    if user is None or not getattr(user, "is_authenticated", False):
+    if not isinstance(user, User):
         return _no_membership()
 
     covering = _coverage(user, on_date)
@@ -324,13 +370,14 @@ def membership_status(user, on_date: date | None = None) -> MembershipStatusDict
     }
 
 
-def membership_annotations(today: date | None = None) -> dict:
+def membership_annotations(today: date | None = None) -> dict[str, Exists | Subquery]:
     """Annotations restating :func:`membership_status` as correlated subqueries.
 
-    ``today`` defaults to the current local date, which is read when this is
-    called, so a queryset built per request always answers for the day of the
-    request.  Splat the result into ``QuerySet.annotate`` on a ``User``
-    queryset, or use :func:`with_membership`.
+    The keys are the eight names in ``MembershipAnnotations``.  ``today``
+    defaults to the current local date, which is read when this is called, so a
+    queryset built per request always answers for the day of the request.  Splat
+    the result into ``QuerySet.annotate`` on a ``User`` queryset, or use
+    :func:`with_membership`.
     """
     today = today or timezone.localdate()
     active = Membership.objects.filter(status=MembershipStatusChoices.ACTIVE)
@@ -376,21 +423,26 @@ def membership_annotations(today: date | None = None) -> dict:
     }
 
 
-def with_membership(queryset: QuerySet, *, today: date | None = None) -> QuerySet:
+def with_membership(queryset: QuerySet[User], *, today: date | None = None) -> QuerySet[MemberRow]:
     """``queryset`` of users, carrying the membership annotations.
 
     Every row then answers ``membership_status`` without a further query, which
     :func:`membership_payload` and :func:`membership_of` read back.  The status
     is worked out for ``today``, defaulting to the current local date.
     """
-    return queryset.annotate(**membership_annotations(today))
+    # django-stubs can only follow ``annotate`` when the annotations are spelled out
+    # as keyword arguments, so the row type is stated here rather than inferred.
+    return cast("QuerySet[MemberRow]", queryset.annotate(**membership_annotations(today)))
 
 
-def membership_payload(user) -> MembershipStatusDict:
+def membership_payload(user: MemberRow) -> MembershipStatusDict:
     """Read the annotated status back in ``membership_status`` shape.
 
-    ``user`` must have come from :func:`with_membership`; reach for
-    :func:`membership_of` when that is not guaranteed.
+    Answers exactly what :func:`membership_status` would for the same row, out
+    of the annotations alone and with no further query.  ``user`` must have come
+    from :func:`with_membership`, otherwise the annotations are missing and the
+    read raises ``AttributeError``; reach for :func:`membership_of` when that is
+    not guaranteed.
     """
     if user.covers_today:
         lifetime = user.coverage_end is None
@@ -410,7 +462,7 @@ def membership_payload(user) -> MembershipStatusDict:
     return _no_membership()
 
 
-def membership_of(user) -> MembershipStatusDict:
+def membership_of(user: User) -> MembershipStatusDict:
     """The membership summary for ``user``, however the row was fetched.
 
     A user that came through :func:`with_membership` is answered from its
@@ -419,26 +471,30 @@ def membership_of(user) -> MembershipStatusDict:
     Python.  Both answers are identical.
     """
     if hasattr(user, "covers_today"):
-        return membership_payload(user)
+        # django-stubs cannot tell an annotated row from a plain one, so the
+        # test above is what proves the annotations are there to be read.
+        return membership_payload(cast("MemberRow", user))
     return membership_status(user)
 
 
 @transaction.atomic
 def activate_term(
-    user,
+    user: User,
     plan: MembershipPlan,
     *,
     source: str = MembershipSource.PAYMENT,
-    payment=None,
-    granted_by=None,
+    payment: Payment | None = None,
+    granted_by: User | None = None,
     starts_on: date | None = None,
     note: str = "",
 ) -> Membership:
     """Create (or return) the membership term for ``plan``.
 
     A renewal starts the day after the current expiry when the member is
-    already current; otherwise it starts today.  ``ends_on`` is
-    ``starts_on + duration_days - 1``, or ``None`` for a lifetime plan.
+    already current; otherwise it starts today, and ``starts_on`` overrides both.
+    ``ends_on`` is ``starts_on + duration_days - 1``, or ``None`` for a lifetime
+    plan.  ``source`` records how the term was come by, ``granted_by`` the
+    administrator behind a manual grant, and ``note`` their reason.
 
     Idempotent on ``payment``: calling twice with the same payment returns the
     term created the first time.

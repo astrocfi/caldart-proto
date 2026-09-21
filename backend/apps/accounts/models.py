@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.contrib.auth.models import AbstractUser, Group
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -11,6 +11,11 @@ from django.db.models.functions import Lower
 from django.utils import timezone
 
 from apps.accounts.roles import ROLE_SLUGS, STAFF_ROLE_SLUGS, SYSTEM_ADMIN
+
+if TYPE_CHECKING:
+    # Inline: members sits above accounts in the app order, so even a type-only
+    # import of it may not be top-level.
+    from apps.members.services import MembershipStatusDict
 
 
 class UserManager(DjangoUserManager["User"]):
@@ -181,7 +186,7 @@ class User(AbstractUser):
 
     # -- membership -------------------------------------------------------
     @property
-    def membership_status(self) -> dict[str, Any]:
+    def membership_status(self) -> MembershipStatusDict:
         """The membership summary for this account, worked out for today.
 
         Carries ``status`` (``current``, ``expired`` or ``none``), ``expires_on``,

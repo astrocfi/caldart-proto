@@ -2,25 +2,31 @@
 
 The member record an administrator works with is a *user plus its profile*, so
 these serializers write both halves in one request and read back the full
-picture — profile (including the admin-only notes), membership history and
+picture -- profile (including the admin-only notes), membership history and
 payments.
 """
 
 from __future__ import annotations
 
-from django.contrib.auth import get_user_model, password_validation
+from datetime import date
+from typing import TYPE_CHECKING, Any, cast
+
+from django.contrib.auth import password_validation
 from rest_framework import serializers
 
+from apps.accounts.models import User
+from apps.accounts.services import AccountChanges
 from apps.members.api.profile_serializers import (
     MembershipTermSerializer,
     PaymentSummarySerializer,
     ProfileSerializer,
 )
 from apps.members.api.serializers import MembershipStatusSerializer
-from apps.members.models import MemberProfile, MembershipPlan
+from apps.members.models import MemberProfile, Membership, MembershipPlan
 from apps.members.services import create_member, membership_of, membership_payload, update_member
 
-User = get_user_model()
+if TYPE_CHECKING:
+    from apps.members.services import MemberRow
 
 
 # --------------------------------------------------------------------------
@@ -40,7 +46,8 @@ class AdminProfileSerializer(ProfileSerializer):
     class Meta(ProfileSerializer.Meta):
         fields = [*ProfileSerializer.Meta.fields, "notes", "how_heard"]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Build the serializer, then make every field optional."""
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.required = False
@@ -81,10 +88,19 @@ class AdminMembershipSerializer(MembershipTermSerializer):
             "created_at",
         ]
 
-    def get_granted_by(self, obj) -> str | None:
-        return obj.granted_by.display_name if obj.granted_by_id else None
+    def get_granted_by(self, obj: Membership) -> str | None:
+        """The display name of the administrator who granted the term, if any."""
+        return obj.granted_by.display_name if obj.granted_by is not None else None
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Refuse an end date before the start date, and return ``attrs``.
+
+        The start date is the term's stored one, since it is read-only, and the
+        end date the incoming one where the request carries it.  A term that
+        would end before it began is refused against ``ends_on`` with "The end
+        date cannot be before the start date."  A blank end date is a lifetime
+        term and passes.
+        """
         ends_on = attrs.get("ends_on", self.instance.ends_on if self.instance else None)
         starts_on = self.instance.starts_on if self.instance else attrs.get("starts_on")
         if ends_on is not None and starts_on is not None and ends_on < starts_on:
@@ -94,7 +110,7 @@ class AdminMembershipSerializer(MembershipTermSerializer):
         return attrs
 
 
-class MembershipGrantSerializer(serializers.Serializer):
+class MembershipGrantSerializer(serializers.Serializer[Any]):
     """``POST /admin/members/{id}/memberships`` — grant a term by hand."""
 
     plan = serializers.SlugRelatedField(
@@ -105,8 +121,11 @@ class MembershipGrantSerializer(serializers.Serializer):
 
 
 class AdminPaymentSerializer(PaymentSummarySerializer):
-    """The member's own payment row, plus the split and the provider reference
-    an administrator needs when reconciling."""
+    """The member's own payment row, plus what reconciling needs.
+
+    The split between plan price and contribution, the wallet and the
+    provider's own reference are added; every field is read-only.
+    """
 
     class Meta(PaymentSummarySerializer.Meta):
         fields = [
@@ -129,7 +148,7 @@ class AdminPaymentSerializer(PaymentSummarySerializer):
 # --------------------------------------------------------------------------
 # Member list / detail
 # --------------------------------------------------------------------------
-class MemberListSerializer(serializers.Serializer):
+class MemberListSerializer(serializers.Serializer["MemberRow"]):
     """One row of ``GET /admin/members`` (``MemberRow`` in the portal types)."""
 
     user_id = serializers.IntegerField(source="pk", read_only=True)
@@ -147,44 +166,62 @@ class MemberListSerializer(serializers.Serializer):
     joined_on = serializers.DateField(read_only=True, allow_null=True)
 
     @staticmethod
-    def _profile(obj) -> MemberProfile | None:
-        return getattr(obj, "profile", None)
+    def _profile(obj: MemberRow) -> MemberProfile | None:
+        """The member's profile row, or ``None`` when the account has none."""
+        profile: MemberProfile | None = getattr(obj, "profile", None)
+        return profile
 
-    def get_phone(self, obj) -> str:
+    def get_phone(self, obj: MemberRow) -> str:
+        """The member's phone number, blank when there is no profile."""
         profile = self._profile(obj)
         return profile.phone if profile else ""
 
-    def get_dart(self, obj) -> str | None:
+    def get_dart(self, obj: MemberRow) -> str | None:
+        """The name of the DART the member belongs to, or ``None``."""
         profile = self._profile(obj)
-        return profile.dart.name if profile and profile.dart_id else None
+        return profile.dart.name if profile and profile.dart is not None else None
 
-    def get_membership(self, obj) -> dict:
-        return MembershipStatusSerializer(membership_payload(obj)).data
+    def get_membership(self, obj: MemberRow) -> dict[str, Any]:
+        """The membership status, read off the row's annotations."""
+        return dict(MembershipStatusSerializer(membership_payload(obj)).data)
 
-    def get_pilot_certificate_type(self, obj) -> str:
+    def get_pilot_certificate_type(self, obj: MemberRow) -> str:
+        """The certificate the member holds, ``none`` when there is no profile."""
         profile = self._profile(obj)
         return profile.pilot_certificate_type if profile else "none"
 
-    def get_medical_type(self, obj) -> str:
+    def get_medical_type(self, obj: MemberRow) -> str:
+        """The medical the member holds, ``none`` when there is no profile."""
         profile = self._profile(obj)
         return profile.medical_type if profile else "none"
 
-    def get_medical_expiration(self, obj):
+    def get_medical_expiration(self, obj: MemberRow) -> date | None:
+        """The medical expiration date, or ``None`` when there is none on file."""
         profile = self._profile(obj)
         return profile.medical_expiration if profile else None
 
-    def get_medical_is_current(self, obj) -> bool:
+    def get_medical_is_current(self, obj: MemberRow) -> bool:
+        """True when the member holds a medical that has not expired.
+
+        False when the account has no profile, and false when the profile records
+        no medical.
+        """
         profile = self._profile(obj)
         return bool(profile and profile.medical_is_current)
 
-    def get_aircraft(self, obj) -> list[str]:
+    def get_aircraft(self, obj: MemberRow) -> list[str]:
+        """The N-numbers of the aircraft on the member's profile.
+
+        Empty when the account has no profile, and empty when the profile has no
+        aircraft attached.
+        """
         profile = self._profile(obj)
         if profile is None:
             return []
         return [aircraft.n_number for aircraft in profile.aircraft.all()]
 
 
-class MemberDetailSerializer(serializers.Serializer):
+class MemberDetailSerializer(serializers.Serializer[User]):
     """``GET /admin/members/{id}`` — user, profile, memberships and payments."""
 
     id = serializers.IntegerField(read_only=True)
@@ -201,36 +238,46 @@ class MemberDetailSerializer(serializers.Serializer):
     memberships = serializers.SerializerMethodField()
     payments = serializers.SerializerMethodField()
 
-    def get_roles(self, obj) -> list[str]:
+    def get_roles(self, obj: User) -> list[str]:
+        """The role slugs the account holds, in the order the roles are declared."""
         return obj.roles
 
-    def get_joined_on(self, obj):
-        annotated = getattr(obj, "joined_on", None)
+    def get_joined_on(self, obj: User) -> date | None:
+        """The start of the member's earliest term, or ``None`` if they have none.
+
+        An annotated row answers from its annotation; any other row spends a
+        query on it.
+        """
+        annotated: date | None = getattr(obj, "joined_on", None)
         if annotated is not None:
             return annotated
         first = obj.memberships.order_by("starts_on").first()
         return first.starts_on if first else None
 
-    def get_membership(self, obj) -> dict:
-        return MembershipStatusSerializer(membership_of(obj)).data
+    def get_membership(self, obj: User) -> dict[str, Any]:
+        """The membership status, from the row's annotations where it has them."""
+        return dict(MembershipStatusSerializer(membership_of(obj)).data)
 
-    def get_profile(self, obj) -> dict | None:
-        profile = getattr(obj, "profile", None)
-        return AdminProfileSerializer(profile).data if profile else None
+    def get_profile(self, obj: User) -> dict[str, Any] | None:
+        """The profile including the admin-only fields, or ``None`` if there is none."""
+        profile: MemberProfile | None = getattr(obj, "profile", None)
+        return dict(AdminProfileSerializer(profile).data) if profile else None
 
-    def get_memberships(self, obj) -> list[dict]:
+    def get_memberships(self, obj: User) -> list[dict[str, Any]]:
+        """Every term the member holds, newest start first."""
         terms = obj.memberships.select_related("plan", "granted_by").order_by("-starts_on", "-id")
-        return AdminMembershipSerializer(terms, many=True).data
+        return list(AdminMembershipSerializer(terms, many=True).data)
 
-    def get_payments(self, obj) -> list[dict]:
+    def get_payments(self, obj: User) -> list[dict[str, Any]]:
+        """Every payment the member has made, newest first."""
         payments = obj.payments.select_related("plan").order_by("-created_at", "-id")
-        return AdminPaymentSerializer(payments, many=True).data
+        return list(AdminPaymentSerializer(payments, many=True).data)
 
 
 # --------------------------------------------------------------------------
 # Write serializers
 # --------------------------------------------------------------------------
-class MemberCreateSerializer(serializers.Serializer):
+class MemberCreateSerializer(serializers.Serializer[User]):
     """``POST /admin/members`` — account plus nested profile."""
 
     email = serializers.EmailField()
@@ -239,18 +286,34 @@ class MemberCreateSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     profile = AdminProfileSerializer(required=False)
 
-    def validate_email(self, value):
+    def validate_email(self, value: str) -> str:
+        """Trim the address, refusing one an account already has.
+
+        The test ignores case, and the complaint is "An account with that email
+        address already exists."
+        """
         value = value.strip()
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("An account with that email address already exists.")
         return value
 
-    def validate_password(self, value):
+    def validate_password(self, value: str) -> str:
+        """Put a password through Django's validators; a blank one is allowed.
+
+        A blank password means the account is mailed an invitation instead, so
+        only a value that was given is checked, and a weak one is refused with
+        Django's own sentences.
+        """
         if value:
             password_validation.validate_password(value)
         return value
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> User:
+        """Create the account and its profile, and return the account.
+
+        The acting administrator comes from the request in the serializer's
+        context, and is recorded in the audit log by the service.
+        """
         request = self.context["request"]
         return create_member(
             request.user,
@@ -263,7 +326,7 @@ class MemberCreateSerializer(serializers.Serializer):
         )
 
 
-class MemberUpdateSerializer(serializers.Serializer):
+class MemberUpdateSerializer(serializers.Serializer[User]):
     """``PATCH /admin/members/{id}`` — account fields and nested profile.
 
     The account half goes through the same service as ``/admin/users/{id}``, so it
@@ -278,7 +341,8 @@ class MemberUpdateSerializer(serializers.Serializer):
     is_active = serializers.BooleanField(required=False)
     profile = AdminProfileSerializer(required=False, partial=True)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Build the serializer, binding the member's profile row to the nested field."""
         super().__init__(*args, **kwargs)
         # The profile's cross-field rules ("a medical class needs an expiry
         # date") read `self.instance` to see what a partial update would leave
@@ -286,9 +350,17 @@ class MemberUpdateSerializer(serializers.Serializer):
         # profile, not against the two fields it happens to send.
         profile = getattr(self.instance, "profile", None) if self.instance is not None else None
         if profile is not None:
-            self.fields["profile"].instance = profile
+            # DRF types every entry of ``fields`` as a plain ``Field``, which a
+            # nested serializer is, without a way to say which one.
+            nested = cast("AdminProfileSerializer", self.fields["profile"])
+            nested.instance = profile
 
-    def validate_email(self, value):
+    def validate_email(self, value: str) -> str:
+        """Trim the address, refusing one another account already has.
+
+        The test ignores case and skips the member being edited, and the
+        complaint is "An account with that email address already exists."
+        """
         value = value.strip()
         clash = User.objects.filter(email__iexact=value)
         if self.instance is not None:
@@ -297,12 +369,26 @@ class MemberUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError("An account with that email address already exists.")
         return value
 
-    def update(self, instance, validated_data):
+    def update(self, instance: User, validated_data: dict[str, Any]) -> User:
+        """Apply the edit through the member service, and return the account.
+
+        The account fields and the nested profile are written together, so an
+        edit the guard refuses leaves the profile alone.
+        """
         profile_data = validated_data.pop("profile", None)
+        account: AccountChanges = {}
+        if "email" in validated_data:
+            account["email"] = validated_data["email"]
+        if "first_name" in validated_data:
+            account["first_name"] = validated_data["first_name"]
+        if "last_name" in validated_data:
+            account["last_name"] = validated_data["last_name"]
+        if "is_active" in validated_data:
+            account["is_active"] = validated_data["is_active"]
         return update_member(
             self.context["request"].user,
             instance,
-            account=validated_data,
+            account=account,
             profile=profile_data,
         )
 
