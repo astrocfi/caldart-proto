@@ -55,6 +55,21 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 - ALWAYS annotate all function/method parameters and return values, including `-> None` for functions (and `__init__`) that return nothing.
 - Use modern generic syntax (`list[str]`, `dict[str, int]`, `X | None`) for Python 3.12+.
 
+### Mypy
+
+- `mypy` runs over the whole backend, tests included: `make lint-backend` ends with
+  `uv run mypy backend`, and CI calls that target.
+- It is configured under `[tool.mypy]` in `pyproject.toml` with `strict = true` and the
+  django-stubs and djangorestframework-stubs plugins. Only `disallow_subclassing_any` is
+  relaxed, because Wagtail's base classes carry no types.
+- There are NO global exclusions beyond migrations. The `[[tool.mypy.overrides]]` entries
+  carrying `ignore_errors = true` are a temporary adoption ratchet, one per backend unit:
+  delete the entry for the unit you are typing, and never add one.
+- Silence a single line with `# type: ignore[<code>]  # <reason>` ONLY where no fix is
+  possible, such as a missing or wrong stub. Never widen an annotation to `Any` or
+  `object` to satisfy the checker: find the real type, and use a union or a `TypedDict`
+  when the value genuinely varies.
+
 ### Ruff
 
 - `ruff` is in the `dev` dependency group.

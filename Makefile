@@ -180,11 +180,12 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
 
 # ----------------------------------------------------------------- lint
-lint: lint-backend lint-frontend lint-spelling ## ruff + tsc + eslint + prettier + codespell
+lint: lint-backend lint-frontend lint-spelling ## ruff + mypy + tsc + eslint + prettier + codespell
 
 lint-backend:
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
+	$(UV) run mypy backend
 
 # American spelling and common typos, everywhere prose and code are written.
 # `plans/` stays out: the archived plans are frozen, and a live plan may quote
