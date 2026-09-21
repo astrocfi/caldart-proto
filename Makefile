@@ -25,6 +25,11 @@ export DATABASE_URL
 
 DB_NAME := $(shell printf '%s' "$(DATABASE_URL)" | sed -e 's#.*/##' -e 's/?.*//')
 
+# The generated OpenAPI description of /api/v1/.  It is a build artifact, not a
+# source file: `check-backend` writes it and the frontend's `schema` script
+# reads it to generate the portal's schema types.
+OPENAPI_JSON ?= backend/openapi.json
+
 # `make e2e` runs against its own database and its own server, so it never
 # disturbs the one you are developing against.
 E2E_PORT ?= 8021
@@ -212,9 +217,11 @@ format: ## Auto-format Python and TypeScript
 # against the production settings, and the production build.
 check: check-backend check-deploy check-frontend ## Django system checks, missing migrations, deployment checks, production build
 
-check-backend: ## Django system checks + missing-migration check
+check-backend: ## Django system checks + missing-migration check + OpenAPI schema
 	$(MANAGE) check --settings caldart.settings.test --fail-level WARNING
 	$(MANAGE) makemigrations --check --dry-run --settings caldart.settings.test
+	$(MANAGE) spectacular --settings caldart.settings.test --format openapi-json \
+	  --file $(OPENAPI_JSON)
 
 # `--deploy` adds Django's deployment-only checks to the default set, and those
 # carry exactly four tags: security, caches, async_support and mail.  Naming
@@ -235,7 +242,11 @@ check-deploy: ## Production deployment checks (manage.py check --deploy)
 	  $(MANAGE) check --deploy --tag security --tag caches --tag async_support \
 	    --tag mail --fail-level WARNING --settings caldart.settings.prod
 
-check-frontend: ## Production frontend build
+# `typecheck` regenerates frontend/src/portal/api/schema.d.ts from the schema
+# `check-backend` wrote, then type-checks the portal against it: that is where a
+# serializer change the portal's types have not followed fails.
+check-frontend: ## Portal types against the OpenAPI schema, then the production build
+	cd frontend && $(NPM) run typecheck
 	cd frontend && $(NPM) run build
 
 # ---------------------------------------------------------------- audit
