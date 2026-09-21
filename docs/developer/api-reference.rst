@@ -15,11 +15,13 @@ to document each app's endpoints in detail, request body by response body.
    api-members
    api-aircraft
    api-payments
+   api-system
 
-Reminder, system and site endpoints have no page of their own; they are
-covered by :doc:`reminders`, :doc:`backup-restore` and :doc:`cms`
-respectively, and all of them appear in the :ref:`permission matrix
-<api-permission-matrix>` below.
+Every endpoint the project serves is on one of those six pages, and every one
+of them appears in the :ref:`permission matrix <api-permission-matrix>` below.
+:doc:`api-system` covers the reminder, system and site routes; the subsystem
+chapters behind them are :doc:`reminders`, :doc:`backup-restore` and
+:doc:`cms`.
 
 Conventions
 ===========
@@ -717,56 +719,6 @@ the register from being a way around the leader-check gate.
 ``/admin/members/{id}`` accepts ``GET``, ``PATCH`` and ``DELETE``;
 ``/admin/memberships/{id}`` accepts ``PATCH`` only.  Everything else on those
 paths is 405.
-
-Endpoints without a page of their own
-=====================================
-
-.. _api-reminders-system:
-
-Reminders and system
---------------------
-
-.. code-block:: text
-
-   GET  /admin/reminders/log?kind=&from=&to=&search=&ordering=
-        → paginated {id, user_id, user_name, membership_id, kind, sent_at, to_email}
-   POST /system/reminders/run   {dry_run: bool}   → 200 {sent, skipped}
-   GET  /system/health   → {db, pending_migrations, disk_free_mb, last_backup,
-                            version, debug}
-   GET  /system/backups  → [{name, size_bytes, created_at}]
-   POST /system/backups  → 201 {name, size_bytes, created_at}
-   GET  /system/backups/{name}/download   → application/gzip
-
-``kind`` is one of ``t60``, ``t30``, ``t7``, ``expired``, ``post30``.  ``from``
-and ``to`` compare against ``sent_at__date``; ``from`` is injected into the
-filterset after class creation because it is a Python keyword.  Ordering is
-over ``sent_at`` and ``kind``, defaulting to newest first.
-
-The download route is declared with ``<path:name>`` rather than ``<str:name>``
-on purpose, so a traversal attempt reaches the view and is rejected there with
-a message, instead of 404ing at the URL resolver where no test could tell it
-from a typo.  ``resolve_backup`` requires the name to match
-``^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$`` **and** re-checks that the resolved
-path's parent is exactly ``BACKUP_DIR``, which defeats ``..``, absolute paths
-and symlinks out of the directory.
-
-**Restore is deliberately absent from the API.**  Wiping the database is not
-something to do from a browser tab; it is ``manage.py db_restore``.  See
-:doc:`backup-restore`.
-
-Site config
------------
-
-.. code-block:: text
-
-   GET /site/config → {org_name, theme, contact_email, nav, members_pages}
-
-The one call the SPA makes before it has a user, so it is ``AllowAny``.  ``nav``
-entries carry a ``kind`` of ``page`` or ``portal``, which is how the public
-templates render content pages as links and Join / Members as buttons.
-``members_pages`` is populated only when the caller passes the same
-``can_access_members_content`` test the members-only wall uses; everyone else
-gets an empty list rather than a 403.  See :doc:`cms`.
 
 Testing the API
 ===============
