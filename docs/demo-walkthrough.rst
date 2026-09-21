@@ -34,8 +34,8 @@ in development lands there and nowhere else.
 .. note::
 
    If you run several checkouts of this repository side by side, each one uses
-   its own database and its own port.  Substitute your own port for ``8000``
-   throughout this page.
+   its own database, but ``make run`` always serves on ``:8000``, so only one
+   checkout can run at a time.
 
 The demo accounts all use the password ``caldart-demo``:
 
@@ -119,7 +119,7 @@ clears.*
    The total updates as you choose.
 
    Below the plan is one tab per configured payment provider.  With no keys
-   set the only tab is **Mock**.  Press **Succeed**.
+   set the only tab is **Test payment**.  Press **Succeed**.
 
    .. tip::
 
@@ -140,8 +140,9 @@ The public page ``/members/`` now opens instead of showing the wall.
 
 **What can go wrong.**
 
-- *"A user with this email already exists."*  Case-insensitive: registering
-  ``Marta@example.org`` collides with ``marta@example.org``.
+- *"An account already uses that email address. Sign in, or reset your
+  password."*  Case-insensitive: registering ``Marta@example.org`` collides
+  with ``marta@example.org``.
 - *The provider tab list is empty.*  ``PAYMENTS_MOCK_ENABLED`` is off and no
   Stripe or PayPal keys are configured.  See
   :doc:`developer/payments-setup`.
@@ -360,8 +361,11 @@ Flow E — a website administrator adds, edits and deletes a page
    are allowed to.
 
 **What to check.**  You are deliberately *not* a Django superuser.  You can
-edit pages, images, documents, redirects and site settings; you cannot reach
-``/django-admin/`` or the system screens.
+edit pages, images, documents, redirects and site settings.  ``website_admin``
+also sets the Django ``is_staff`` flag, so you can sign in to
+``/django-admin/`` too — its index comes up empty, because you hold no Django
+model permissions there.  The portal's own system screens stay out of reach:
+those need the ``system_admin`` role.
 
 **What can go wrong.**
 
