@@ -14,6 +14,8 @@ which is also what the SPA's ``client.ts`` keys "log in again" off.
 
 from __future__ import annotations
 
+from typing import Any
+
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
@@ -27,6 +29,7 @@ class DomainError(Exception):
     """
 
     def __init__(self, message: str) -> None:
+        """Store ``message`` as both ``self.message`` and the exception's string form."""
         super().__init__(message)
         self.message = message
 
@@ -39,6 +42,7 @@ class DomainValidationError(DomainError):
     """
 
     def __init__(self, field: str, message: str) -> None:
+        """Store ``field`` and pass ``message`` to :class:`DomainError`."""
         super().__init__(message)
         self.field = field
 
@@ -51,7 +55,7 @@ class DomainPermissionError(DomainError):
     """
 
 
-def caldart_exception_handler(exc: Exception, context: dict) -> Response | None:
+def caldart_exception_handler(exc: Exception, context: dict[str, Any]) -> Response | None:
     """Render ``exc`` as an API response, or ``None`` to leave it to Django.
 
     A ``DomainValidationError`` becomes 400 ``{field: [message]}`` and a

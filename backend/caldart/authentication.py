@@ -7,6 +7,8 @@ module adds is the CSRF check for callers who have no session yet.
 
 from __future__ import annotations
 
+from typing import Any
+
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 
@@ -31,7 +33,7 @@ class CsrfEnforcingSessionAuthentication(SessionAuthentication):
     ``authentication_classes = []`` and so never reaches this class.
     """
 
-    def authenticate(self, request: Request) -> tuple | None:
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         """Return the signed-in user, or ``None`` once CSRF has been checked.
 
         Raises DRF's ``PermissionDenied`` when an unsafe method arrives without

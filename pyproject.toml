@@ -102,10 +102,6 @@ max-doc-length = 90
 # unit of the backend; the unit's own change deletes its entry and never adds one.
 # No entry may remain once every unit is annotated and documented.
 [tool.ruff.lint.per-file-ignores]
-# Unit: core
-"backend/caldart/**" = ["ANN", "D"]
-"backend/manage.py" = ["ANN", "D"]
-"docs/conf.py" = ["ANN", "D"]
 # Unit: reminders
 "backend/apps/reminders/**" = ["ANN", "D"]
 # Unit: sysadmin
@@ -208,11 +204,6 @@ ignore_missing_imports = true
 
 # The type-checking ratchet, unit by unit, matching the ruff table above.  Each
 # unit's own change deletes its override; none may remain once every unit is typed.
-# Unit: core
-[[tool.mypy.overrides]]
-module = ["caldart.*", "manage"]
-ignore_errors = true
-
 # Unit: reminders
 [[tool.mypy.overrides]]
 module = ["apps.reminders.*"]
