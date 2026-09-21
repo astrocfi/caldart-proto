@@ -10,13 +10,15 @@ the two agree, row by row.
 
 from __future__ import annotations
 
-from datetime import timedelta
+from collections.abc import Callable
+from datetime import date, timedelta
+from typing import cast
 
 import pytest
-from django.contrib.auth import get_user_model
 
+from apps.accounts.models import User
 from apps.members.api.admin_filters import member_admin_queryset
-from apps.members.models import MembershipStatusChoices
+from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
 from apps.members.services import (
     membership_of,
     membership_payload,
@@ -27,22 +29,29 @@ from tests.factories import MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
-User = get_user_model()
+_user = cast(Callable[..., User], UserFactory)
+_membership = cast(Callable[..., Membership], MembershipFactory)
 
 
-def build_histories(annual, life, today):
+def build_histories(annual: MembershipPlan, life: MembershipPlan, today: date) -> dict[str, User]:
     """``{label: user}`` covering the cases the two implementations must share."""
     day = timedelta(days=1)
 
-    def user(label: str):
-        return UserFactory(email=f"{label}@example.test", roles=["member"])
+    def user(label: str) -> User:
+        return _user(email=f"{label}@example.test", roles=["member"])
 
-    def term(owner, plan, starts_on, ends_on, status=MembershipStatusChoices.ACTIVE):
-        return MembershipFactory(
+    def term(
+        owner: User,
+        plan: MembershipPlan,
+        starts_on: date,
+        ends_on: date | None,
+        status: str = MembershipStatusChoices.ACTIVE,
+    ) -> Membership:
+        return _membership(
             user=owner, plan=plan, starts_on=starts_on, ends_on=ends_on, status=status
         )
 
-    histories: dict = {}
+    histories: dict[str, User] = {}
 
     histories["never"] = user("never")
 
@@ -125,11 +134,15 @@ def build_histories(annual, life, today):
 
 
 @pytest.fixture
-def histories(annual_plan, life_plan, today):
+def histories(
+    annual_plan: MembershipPlan, life_plan: MembershipPlan, today: date
+) -> dict[str, User]:
+    """The histories every test in this module checks the two implementations against."""
     return build_histories(annual_plan, life_plan, today)
 
 
-def test_annotations_match_the_membership_status_service(histories):
+def test_annotations_match_the_membership_status_service(histories: dict[str, User]) -> None:
+    """Every annotated row's payload matches ``membership_status`` for the same user."""
     annotated = {user.pk: user for user in member_admin_queryset()}
     for label, user in histories.items():
         expected = membership_status(user)
@@ -156,43 +169,54 @@ def test_annotations_match_the_membership_status_service(histories):
         ("ends-today", "current", False),
     ],
 )
-def test_expected_status_per_history(histories, label, expected_status, is_lifetime):
+def test_expected_status_per_history(
+    histories: dict[str, User], label: str, expected_status: str, is_lifetime: bool
+) -> None:
+    """Each history lands on the status and lifetime flag its label promises."""
     user = member_admin_queryset().get(pk=histories[label].pk)
     payload = membership_payload(user)
     assert payload["status"] == expected_status
     assert payload["is_lifetime"] is is_lifetime
 
 
-def test_coverage_stops_at_a_gap(histories, today):
+def test_coverage_stops_at_a_gap(histories: dict[str, User], today: date) -> None:
     """A term starting after a break is not part of today's coverage."""
     user = member_admin_queryset().get(pk=histories["future-term-after-a-gap"].pk)
     assert membership_payload(user)["expires_on"] == today + timedelta(days=10)
 
 
-def test_early_renewal_shows_the_new_expiry(histories, today):
+def test_early_renewal_shows_the_new_expiry(histories: dict[str, User], today: date) -> None:
+    """An early renewal reports the new term's end date, not the old one's."""
     user = member_admin_queryset().get(pk=histories["renewed-early"].pk)
     assert membership_payload(user)["expires_on"] == today + timedelta(days=375)
 
 
-def test_three_back_to_back_terms_chain_to_the_last(histories, today):
+def test_three_back_to_back_terms_chain_to_the_last(
+    histories: dict[str, User], today: date
+) -> None:
+    """Three back-to-back terms chain to the last one's end date."""
     user = member_admin_queryset().get(pk=histories["three-back-to-back"].pk)
     assert membership_payload(user)["expires_on"] == today + timedelta(days=394)
 
 
-def test_lifetime_reports_the_life_plan(histories, life_plan):
+def test_lifetime_reports_the_life_plan(
+    histories: dict[str, User], life_plan: MembershipPlan
+) -> None:
+    """A member who upgraded to a lifetime plan reports it, with no expiry."""
     user = member_admin_queryset().get(pk=histories["annual-then-life"].pk)
     payload = membership_payload(user)
     assert payload["expires_on"] is None
     assert payload["plan"] == life_plan.name
 
 
-def test_joined_on_is_the_earliest_term_start(histories, today):
+def test_joined_on_is_the_earliest_term_start(histories: dict[str, User], today: date) -> None:
+    """``joined_on`` is the earliest term's start date, or ``None`` with no terms."""
     user = member_admin_queryset().get(pk=histories["three-back-to-back"].pk)
     assert user.joined_on == today - timedelta(days=700)
     assert member_admin_queryset().get(pk=histories["never"].pk).joined_on is None
 
 
-def test_membership_of_reads_the_annotations(histories):
+def test_membership_of_reads_the_annotations(histories: dict[str, User]) -> None:
     """An annotated row is answered from the annotations, and answered right."""
     annotated = {user.pk: user for user in with_membership(User.objects.all())}
     for label, user in histories.items():
@@ -200,7 +224,7 @@ def test_membership_of_reads_the_annotations(histories):
 
 
 @pytest.mark.parametrize("label", ["renewed-early", "expired", "lifetime", "never"])
-def test_membership_of_falls_back_to_the_service(histories, label):
+def test_membership_of_falls_back_to_the_service(histories: dict[str, User], label: str) -> None:
     """A row fetched without the annotations still gets the same answer."""
     plain = User.objects.get(pk=histories[label].pk)
     assert membership_of(plain) == membership_status(histories[label])
