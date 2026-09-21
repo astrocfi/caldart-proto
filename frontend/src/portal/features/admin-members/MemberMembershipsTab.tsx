@@ -7,6 +7,7 @@
  * their present one ends, and a lapsed member's begins today.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 
 import { Button, Card, DataTable, DateText, Field, useToast } from '../../components';
 import type { Column } from '../../components';
@@ -25,7 +26,8 @@ function editFrom(term: MemberTerm): TermEdit {
   return { ends_on: term.ends_on ?? '', status: term.status, note: term.note };
 }
 
-export function MemberMembershipsTab({ member }: { member: MemberDetail }) {
+/** The Memberships tab: term history, an inline correction form, and granting a term. */
+export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.Element {
   const toast = useToast();
   const plans = usePlans();
   const grant = useGrantTerm(member.id);

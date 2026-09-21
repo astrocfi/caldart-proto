@@ -1,5 +1,6 @@
 /** `/admin/users` — find an account and see what it may do. */
 import { useEffect, useState } from 'react';
+import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { RoleSlug, User } from '../../api/types';
@@ -63,7 +64,8 @@ const columns: Column<User>[] = [
   },
 ];
 
-export function UsersListPage() {
+/** `/admin/users` page: search accounts and see what each one may do. */
+export function UsersListPage(): JSX.Element {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<RoleSlug | ''>('');
   const [isActive, setIsActive] = useState<'true' | 'false' | ''>('');
