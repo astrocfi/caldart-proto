@@ -98,8 +98,8 @@ def members_wall_state(user: User | AnonymousUser | None) -> WallState:
 
     ``anonymous`` for ``None`` and for a visitor who is not signed in, so the wall
     invites them to sign in; ``expired`` for a signed-in account whose membership
-    has run out, so it invites a renewal; ``none`` for a signed-in account that has
-    never held a membership, so it invites them to join.
+    status is ``expired``, so it invites a renewal; ``none`` for every other
+    signed-in account, whatever its status, so it invites them to join.
     """
     if user is None or not user.is_authenticated:
         return "anonymous"

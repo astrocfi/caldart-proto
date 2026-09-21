@@ -78,14 +78,15 @@ def menu_pages(request: HttpRequest) -> QuerySet[Page]:
 
     Only the children of the site's root page are listed, and only those that are
     live, public and flagged for menus.  An empty queryset comes back when
-    ``request`` matches no Wagtail site, or that site has no root page.
+    ``request`` matches no Wagtail site; every site has a root page.
     """
     site = Site.find_for_request(request)
-    root = site.root_page if site else None
-    if root is None:
+    if site is None:
         empty: QuerySet[Page] = Page.objects.none()
         return empty
-    pages: QuerySet[Page] = Page.objects.child_of(root).live().public().in_menu().order_by("path")
+    pages: QuerySet[Page] = (
+        Page.objects.child_of(site.root_page).live().public().in_menu().order_by("path")
+    )
     return pages
 
 
