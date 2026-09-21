@@ -194,8 +194,8 @@ cross-field complaints are raised together when both apply:
    }
 
 The other two sentences are "Use the two-letter state code, for example CA."
-— for a two-character value that is not two letters — and "Use a ZIP code like
-95035 or 95035-1234."
+— for any non-blank ``state`` that is not two letters, a single character such
+as ``C`` included — and "Use a ZIP code like 95035 or 95035-1234."
 
 The portal's form applies the same rules before it sends anything, and on top
 of them marks as required the five fields that make a profile complete
