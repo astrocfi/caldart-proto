@@ -97,7 +97,7 @@ export interface AircraftSearchResult {
  */
 export async function findAircraft(term: string, limit = 8): Promise<AircraftSearchResult> {
   // An exact registration is shown even when it is out of service, so a
-  // member learns why the aeroplane is not on offer rather than being told
+  // member learns why the airplane is not on offer rather than being told
   // "no match" and inventing a duplicate record for it.
   const exact = await lookupAircraft(term);
   if (exact) return { exact, matches: [exact] };

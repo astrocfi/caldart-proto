@@ -7,7 +7,7 @@
  * on a ramp with a phone.
  *
  * The three demo accounts used here are seeded deliberately: the leader is
- * current with a current medical and an insured aeroplane (a GO), the expired
+ * current with a current medical and an insured airplane (a GO), the expired
  * account is expired on both counts (a NO-GO), and the website administrator
  * is a GO whose aeroplane's insurance has lapsed.
  */
@@ -54,9 +54,7 @@ test('a member who is current on both counts is a GO', async ({ page }) => {
   await expect(card.locator('.leader-aircraft__row .chip')).toHaveText('Insured');
 });
 
-test('a lapsed insurance policy is called out on the aeroplane, not the pilot', async ({
-  page,
-}) => {
+test('a lapsed insurance policy is called out on the airplane, not the pilot', async ({ page }) => {
   await signIn(page, DEMO.leader);
 
   await page.goto('/portal/leader');

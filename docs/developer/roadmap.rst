@@ -193,9 +193,9 @@ Interface
 =========
 
 **Aircraft in the leader's verdict.**  The GO / NO-GO band is membership and
-medical only; insurance is shown per aeroplane beside it, because which
-aeroplane the member is about to fly is a fact the leader has and the system
-does not.  Letting the leader pick the aeroplane and fold its insurance into a
+medical only; insurance is shown per airplane beside it, because which
+airplane the member is about to fly is a fact the leader has and the system
+does not.  Letting the leader pick the airplane and fold its insurance into a
 single verdict would be a genuine improvement.
 
 **Offline use.**  The leader check is the one screen used away from a desk, on

@@ -33,7 +33,7 @@ def status_url(user) -> str:
 
 @pytest.fixture
 def pilot(db, dart, annual_plan):
-    """A current member with a current medical and an insured aeroplane."""
+    """A current member with a current medical and an insured airplane."""
     today = timezone.localdate()
     user = UserFactory(email="marta@example.test", first_name="Marta", last_name="Reyes")
     profile = MemberProfileFactory(
