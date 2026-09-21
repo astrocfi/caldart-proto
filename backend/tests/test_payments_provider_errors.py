@@ -48,8 +48,15 @@ VERIFY_URL = f"{SANDBOX}/v1/notifications/verify-webhook-signature"
 STRIPE_LOGGER = "apps.payments.providers.stripe"
 PAYPAL_LOGGER = "apps.payments.providers.paypal"
 
+
+def connection_error(message: str) -> stripe.APIConnectionError:
+    """Build the Stripe transport failure that carries ``message``."""
+    # The stripe stubs leave APIConnectionError.__init__ untyped.
+    return stripe.APIConnectionError(message)  # type: ignore[no-untyped-call]
+
+
 STRIPE_ERRORS = [
-    stripe.APIConnectionError("connection aborted"),  # type: ignore[no-untyped-call]  # stripe stubs leave APIConnectionError.__init__ untyped
+    connection_error("connection aborted"),
     stripe.RateLimitError("too many requests"),
     stripe.APIError("something went wrong on our end"),
     stripe.AuthenticationError("no valid API key provided"),
@@ -199,10 +206,7 @@ def test_a_stripe_failure_at_checkout_logs_the_exception_class(
 ) -> None:
     """A Stripe failure at checkout logs the SDK exception's class name."""
     caplog.set_level(logging.WARNING, logger=STRIPE_LOGGER)
-    break_stripe(
-        monkeypatch,
-        stripe.APIConnectionError("aborted"),  # type: ignore[no-untyped-call]  # stripe stubs leave APIConnectionError.__init__ untyped
-    )
+    break_stripe(monkeypatch, connection_error("aborted"))
 
     api_client.force_login(member)
     api_client.post(CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"})
@@ -218,10 +222,7 @@ def test_a_stripe_failure_at_confirm_is_a_400(
 ) -> None:
     """A Stripe failure at confirm comes back as a 400, not a 500."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    break_stripe(
-        monkeypatch,
-        stripe.APIConnectionError("aborted"),  # type: ignore[no-untyped-call]  # stripe stubs leave APIConnectionError.__init__ untyped
-    )
+    break_stripe(monkeypatch, connection_error("aborted"))
 
     api_client.force_login(member)
     response = api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_out"})
@@ -256,10 +257,7 @@ def test_a_stripe_failure_never_logs_an_email_address(
 ) -> None:
     """The logged Stripe failure message never includes an email address."""
     caplog.set_level(logging.WARNING, logger=STRIPE_LOGGER)
-    break_stripe(
-        monkeypatch,
-        stripe.APIConnectionError("aborted"),  # type: ignore[no-untyped-call]  # stripe stubs leave APIConnectionError.__init__ untyped
-    )
+    break_stripe(monkeypatch, connection_error("aborted"))
 
     api_client.force_login(member)
     api_client.post(CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"})
@@ -510,7 +508,7 @@ def capture_completed_event(payment: Payment) -> dict[str, Any]:
 
 
 def post_webhook(client: APIClient, event: dict[str, Any]) -> Response:
-    """Post a PayPal webhook body, unsigned, as PayPal's own headers would arrive."""
+    """POST the body to the PayPal webhook endpoint as JSON, with no signature headers."""
     return client.post(WEBHOOK, data=json.dumps(event), content_type="application/json")
 
 

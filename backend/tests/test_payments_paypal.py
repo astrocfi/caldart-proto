@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator
-from typing import Any, cast
+from typing import Any
 
 import httpx
 import pytest
@@ -73,7 +73,12 @@ def capture_payload(
     currency: str = "USD",
     custom_id: str | None = None,
 ) -> dict[str, Any]:
-    """A PayPal order-capture response body naming ``payment`` in its custom id."""
+    """A PayPal order-capture response body naming ``payment`` in its custom id.
+
+    The single capture carries ``payment.pk`` as its custom id; ``custom_id=...``
+    replaces it with any other value, so a caller can point the body at a different
+    payment or at no payment at all.
+    """
     return {
         "id": order_id,
         "status": status,
@@ -388,8 +393,7 @@ def test_capture_rejects_someone_elses_payment(
 ) -> None:
     """A signed-in user capturing another member's payment gets a 404."""
     payment = pending_paypal_payment(member)
-    # factory_boy's stubs type a Factory call as returning the factory, not its model.
-    thief = cast("User", user_factory(email="thief@example.test", roles=["member"]))
+    thief = user_factory(email="thief@example.test", roles=["member"])
     api_client.force_login(thief)
     response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
     assert response.status_code == 404
@@ -415,7 +419,7 @@ def webhook_event(
 
 
 def post_webhook(client: APIClient, body: dict[str, Any]) -> Response:
-    """Post a PayPal webhook body, unsigned, as PayPal's own headers would arrive."""
+    """POST the body to the PayPal webhook endpoint as JSON, with no signature headers."""
     return client.post(WEBHOOK, data=json.dumps(body), content_type="application/json")
 
 

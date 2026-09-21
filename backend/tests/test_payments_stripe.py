@@ -15,7 +15,7 @@ import hmac
 import json
 import time
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Protocol
 
 import pytest
 import stripe
@@ -82,11 +82,30 @@ def intent_object(payload: dict[str, Any]) -> stripe.PaymentIntent:
     return stripe.PaymentIntent.construct_from(payload, SECRET_KEY)
 
 
-def fake_stripe_client(payment_intents: object) -> SimpleNamespace:
-    """A stand-in for ``stripe.StripeClient`` exposing one service.
+class PaymentIntentsService(Protocol):
+    """The part of Stripe's ``v1.payment_intents`` service the provider calls."""
 
-    ``payment_intents`` is any object shaped like ``v1.payment_intents``, such as
-    ``FakeIntents`` or a test-local recorder that only needs ``create``.
+    def create(
+        self, params: dict[str, Any], options: dict[str, Any] | None = None
+    ) -> stripe.PaymentIntent:
+        """Create a PaymentIntent from ``params``, under the request ``options``."""
+        ...
+
+    def retrieve(
+        self,
+        intent_id: str,
+        params: dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> stripe.PaymentIntent:
+        """Return the PaymentIntent named by ``intent_id``."""
+        ...
+
+
+def fake_stripe_client(payment_intents: PaymentIntentsService) -> SimpleNamespace:
+    """A stand-in for ``stripe.StripeClient`` exposing ``v1.payment_intents`` only.
+
+    ``payment_intents`` answers the ``create`` and ``retrieve`` calls the provider
+    makes, so a fake such as ``FakeIntents`` stands in for the whole SDK client.
     """
     return SimpleNamespace(v1=SimpleNamespace(payment_intents=payment_intents))
 
@@ -396,8 +415,7 @@ def test_confirm_rejects_someone_elses_payment(
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     fake_intents.payload = intent_payload(payment, id="pi_x")
 
-    # factory_boy's stubs type a Factory call as returning the factory, not its model.
-    thief = cast("User", user_factory(email="thief@example.test", roles=["member"]))
+    thief = user_factory(email="thief@example.test", roles=["member"])
     api_client.force_login(thief)
     response = api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_x"})
     assert response.status_code == 404

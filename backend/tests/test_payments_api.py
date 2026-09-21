@@ -7,7 +7,7 @@ read a payment back.
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 
 import pytest
 from pytest_django.fixtures import Settings
@@ -303,8 +303,7 @@ def test_mock_complete_rejects_another_members_payment(
     api_client.force_login(member)
     checkout = start_mock_checkout(api_client)
 
-    # factory_boy's stubs type a Factory call as returning the factory, not its model.
-    other = cast("User", user_factory(email="other@example.test", roles=[MEMBER]))
+    other = user_factory(email="other@example.test", roles=[MEMBER])
     api_client.force_login(other)
     response = api_client.post(
         MOCK_COMPLETE, {"payment_id": checkout["payment_id"], "outcome": "succeed"}
@@ -419,8 +418,7 @@ def test_another_member_may_not_read_a_payment(
     api_client.force_login(member)
     checkout = start_mock_checkout(api_client)
 
-    # factory_boy's stubs type a Factory call as returning the factory, not its model.
-    nosy = cast("User", user_factory(email="nosy@example.test", roles=[MEMBER]))
+    nosy = user_factory(email="nosy@example.test", roles=[MEMBER])
     api_client.force_login(nosy)
     assert api_client.get(f"/api/v1/payments/{checkout['payment_id']}").status_code == 403
 
@@ -432,8 +430,7 @@ def test_anonymous_may_not_read_a_payment(
     payment_factory: type[PaymentFactory],
 ) -> None:
     """An anonymous caller gets a 401 reading any payment."""
-    # factory_boy's stubs type a Factory call as returning the factory, not its model.
-    payment = cast("Payment", payment_factory(user=member, plan=annual_plan))
+    payment = payment_factory(user=member, plan=annual_plan)
     assert api_client.get(f"/api/v1/payments/{payment.pk}").status_code == 401
 
 
@@ -445,10 +442,7 @@ def test_payment_detail_role_matrix(
 ) -> None:
     """Only the owner and an account admin (or system admin) may look."""
     owner = all_role_users[MEMBER]
-    # factory_boy's stubs type a Factory call as returning the factory, not its model.
-    payment = cast(
-        "Payment", payment_factory(user=owner, plan=annual_plan, provider=PaymentProvider.MOCK)
-    )
+    payment = payment_factory(user=owner, plan=annual_plan, provider=PaymentProvider.MOCK)
     url = f"/api/v1/payments/{payment.pk}"
 
     allowed = {MEMBER, ACCOUNT_ADMIN, SYSTEM_ADMIN}

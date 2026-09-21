@@ -11,10 +11,8 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
 
 import pytest
-import stripe
 from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
@@ -28,7 +26,7 @@ from apps.payments.providers.stripe import (
     STRIPE_TIMEOUT_SECONDS,
     stripe_client,
 )
-from tests.test_payments_stripe import fake_stripe_client
+from tests.test_payments_stripe import FakeIntents, fake_stripe_client
 
 pytestmark = pytest.mark.django_db
 
@@ -68,31 +66,6 @@ def configured_seconds(path: Path, pattern: str) -> int:
 def worst_case_seconds() -> float:
     """The longest a Stripe call can take: the first attempt plus its retries."""
     return STRIPE_TIMEOUT_SECONDS * (STRIPE_MAX_NETWORK_RETRIES + 1)
-
-
-class RecordingIntents:
-    """A ``v1.payment_intents`` service that keeps the options it was passed."""
-
-    def __init__(self) -> None:
-        """Start with no recorded options."""
-        self.options: dict[str, Any] = {}
-
-    def create(
-        self, params: dict[str, Any], options: dict[str, Any] | None = None
-    ) -> stripe.PaymentIntent:
-        """Record ``options`` and return a fake ``requires_payment_method`` intent."""
-        self.options = options or {}
-        return stripe.PaymentIntent.construct_from(
-            {
-                "id": "pi_idem",
-                "object": "payment_intent",
-                "client_secret": "pi_idem_secret",
-                "status": "requires_payment_method",
-                "amount": params["amount"],
-                "currency": params["currency"],
-            },
-            SECRET_KEY,
-        )
 
 
 # --------------------------------------------------------------------------
@@ -152,7 +125,7 @@ def test_checkout_sends_an_idempotency_key_derived_from_the_payment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The Stripe checkout call carries an idempotency key derived from the payment id."""
-    intents = RecordingIntents()
+    intents = FakeIntents()
     monkeypatch.setattr(stripe_provider, "stripe_client", lambda: fake_stripe_client(intents))
 
     api_client.force_login(member)
@@ -163,5 +136,6 @@ def test_checkout_sends_an_idempotency_key_derived_from_the_payment(
 
     assert response.status_code == 201
     assert (
-        intents.options["idempotency_key"] == f"caldart-payment-{response.data['payment_id']}-start"
+        intents.create_options["idempotency_key"]
+        == f"caldart-payment-{response.data['payment_id']}-start"
     )

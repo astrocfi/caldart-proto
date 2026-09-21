@@ -67,10 +67,7 @@ def history(
     member: User, user_factory: type[UserFactory], annual_plan: MembershipPlan
 ) -> list[Payment]:
     """Three months of payments across two years and both real providers."""
-    # factory_boy's stubs type a Factory call as returning the factory, not its model.
-    other = cast(
-        "User", user_factory(email="wilma@example.test", first_name="Wilma", last_name="Voss")
-    )
+    other = user_factory(email="wilma@example.test", first_name="Wilma", last_name="Voss")
     rows = [
         make_payment(member, annual_plan, when=paid_at(2025, 11, 3)),
         make_payment(
