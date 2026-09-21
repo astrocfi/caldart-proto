@@ -145,11 +145,6 @@ max-doc-length = 90
 "backend/tests/test_cms_seed_content.py" = ["ANN", "D"]
 "backend/tests/test_shell_views.py" = ["ANN", "D"]
 "backend/tests/test_site_config.py" = ["ANN", "D"]
-# Unit: tests-sysadmin
-"backend/tests/test_sysadmin.py" = ["ANN", "D"]
-"backend/tests/test_sysadmin_api.py" = ["ANN", "D"]
-"backend/tests/test_sysadmin_commands.py" = ["ANN", "D"]
-"backend/tests/test_sysadmin_settings.py" = ["ANN", "D"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -263,14 +258,3 @@ module = [
     "tests.test_site_config",
 ]
 ignore_errors = true
-
-# Unit: tests-sysadmin
-[[tool.mypy.overrides]]
-module = [
-    "tests.test_sysadmin",
-    "tests.test_sysadmin_api",
-    "tests.test_sysadmin_commands",
-    "tests.test_sysadmin_settings",
-]
-ignore_errors = true
-
