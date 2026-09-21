@@ -230,7 +230,9 @@ def app_version() -> str:
 
     The deployed tree always has the file next to it, so the version reported by
     ``/system/health`` is the one that was actually installed.  Falls back to
-    ``settings.CALDART_VERSION`` if the file is missing or unreadable.
+    ``settings.CALDART_VERSION`` when the file is missing, unreadable or not valid
+    TOML, when it declares no ``[project] version``, and when that key holds
+    anything other than a string.  The result is computed once and cached.
     """
     path = Path(settings.REPO_ROOT) / "pyproject.toml"
     try:

@@ -24,8 +24,13 @@ from caldart import audit
 def _actor(request: Request) -> User:
     """The signed-in user making ``request``, for an audit record's ``actor``.
 
-    Every view here requires ``IsSystemAdmin``, so the request is always
-    authenticated by the time this runs.
+    ``IsSystemAdmin`` runs before any handler in this module and rejects an
+    anonymous caller, so the request is authenticated by the time this runs;
+    that permission class is the whole of the guarantee.  An assertion restates
+    it for the type checker, so a request that somehow reaches here unauthenticated
+    raises ``AssertionError`` and the caller sees a 500 rather than an audit
+    record naming the wrong actor.  Python run with ``-O`` skips the assertion,
+    leaving only the permission class.
     """
     assert isinstance(request.user, User)
     return request.user
@@ -37,7 +42,17 @@ class HealthView(APIView):
     permission_classes = [IsSystemAdmin]
 
     def get(self, request: Request) -> Response:
-        """Return the health payload from :func:`apps.sysadmin.services.health`."""
+        """Return the health payload with status 200.
+
+        The body is a single object: ``db`` is ``"ok"`` when a trivial query
+        succeeds and ``"error: <message>"`` when it does not; ``pending_migrations``
+        counts the migrations on disk that are not applied, and is ``-1`` when
+        ``db`` is not ``"ok"``; ``disk_free_mb`` is the free space on the backup
+        directory's filesystem in whole mebibytes; ``last_backup`` is the
+        modification time of the newest dump, or ``null`` when there is none;
+        ``version`` is the project version; and ``debug`` reports whether the
+        server runs with ``DEBUG`` on.
+        """
         return Response(HealthSerializer(services.health()).data)
 
 
@@ -56,8 +71,13 @@ class BackupListCreateView(APIView):
     def post(self, request: Request) -> Response:
         """Create a new dump and return it with status 201.
 
+        The body is the created dump as ``{name, size_bytes, created_at}``, and a
+        ``backup.create`` audit record naming the caller, the file and its size is
+        written before the response.
+
         Raises a 400 :class:`~rest_framework.exceptions.ValidationError` when
-        ``pg_dump`` and docker are both unavailable, or ``pg_dump`` itself fails.
+        ``pg_dump`` and docker are both unavailable, or ``pg_dump`` itself fails;
+        nothing is recorded in that case.
         """
         try:
             backup = services.create_backup()
@@ -85,10 +105,19 @@ class BackupDownloadView(APIView):
     permission_classes = [IsSystemAdmin]
 
     def get(self, request: Request, name: str) -> FileResponse:
-        """Stream the gzipped dump called ``name``.
+        """Stream the gzipped dump called ``name`` as an attachment.
 
-        Raises a 404 :class:`~rest_framework.exceptions.NotFound` when ``name``
-        is not a plain ``*.sql.gz`` file name resolving inside ``BACKUP_DIR``.
+        The response carries the file with content type ``application/gzip`` and
+        the dump's own name, and a ``backup.download`` audit record naming the
+        caller and the file is written first.
+
+        Raises a 404 :class:`~rest_framework.exceptions.NotFound` in two cases:
+        ``name`` is not a plain ``*.sql.gz`` file name resolving inside
+        ``BACKUP_DIR``, with the detail ``Not a backup file name: '<name>'``; or
+        it is such a name but no file of that name exists, with the detail
+        ``No such backup: <name>``.  Either refusal writes a WARNING
+        ``backup.download`` audit record with reason ``no_such_backup`` instead
+        of the success record; the refused name itself is not recorded.
         """
         try:
             path = services.resolve_backup(name)
