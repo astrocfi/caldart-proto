@@ -34,7 +34,11 @@ class AircraftPermission(BasePermission):
         return bool(request.user and request.user.is_authenticated)
 
     def has_object_permission(self, request: Request, view: APIView, obj: Aircraft) -> bool:
-        """Return whether ``request`` may act on ``obj`` under the rules above."""
+        """Return whether ``request`` may act on ``obj``.
+
+        Safe methods and account administrators always pass.  Any other caller is
+        refused a ``DELETE``, and may write only to the aircraft they created.
+        """
         if request.method in SAFE_METHODS:
             return True
         if user_has_any_role(request.user, ADMIN_ROLES):

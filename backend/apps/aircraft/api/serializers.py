@@ -21,12 +21,16 @@ class NNumberField(serializers.CharField):
     uniqueness check sees ``N12345`` even when the member typed ``n-12345``.
     """
 
-    def to_internal_value(self, data: str) -> str:
+    def to_internal_value(self, data: object) -> str:
         """Return ``data`` normalized to canonical N-number form.
 
-        Raises a validation error when normalization leaves nothing usable.
+        ``data`` is the raw value from the request body, which ``CharField`` coerces
+        to a string and rejects when it is a mapping, a list or a boolean.  Raises a
+        validation error when normalization leaves nothing usable.
         """
-        value = super().to_internal_value(data)
+        # The stubs type `CharField.to_internal_value` as taking a `str`; the runtime
+        # field also coerces an int or a float and rejects every other type itself.
+        value = super().to_internal_value(cast("str", data))
         normalized = normalize_n_number(value)
         if not normalized:
             raise serializers.ValidationError("Enter a registration, for example N12345.")

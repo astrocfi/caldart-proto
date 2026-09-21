@@ -76,10 +76,13 @@ class AircraftFilter(django_filters.FilterSet):
     def filter_expiring_within(
         self, queryset: QuerySet[Aircraft], name: str, value: Decimal | None
     ) -> QuerySet[Aircraft]:
-        """Return ``queryset`` unfiltered when ``value`` is ``None``, else clamp to it.
+        """Narrow ``queryset`` to cover that expires within ``value`` days from today.
 
-        ``NumberFilter`` cleans the query string through a form ``DecimalField``, so
-        ``value`` arrives as a ``Decimal`` number of days, truncated here to whole days.
+        Returns ``queryset`` unfiltered when ``value`` is ``None``.  ``NumberFilter``
+        cleans the query string through a form ``DecimalField``, so ``value`` arrives
+        as a ``Decimal`` number of days, truncated here to whole days and clamped to
+        ``0..MAX_EXPIRING_WINDOW_DAYS`` (3650) before use.  Aircraft whose cover has
+        already lapsed are excluded.
         """
         if value is None:
             return queryset
