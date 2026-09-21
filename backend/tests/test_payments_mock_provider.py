@@ -5,8 +5,10 @@ from __future__ import annotations
 import re
 
 import pytest
+from pytest_django.fixtures import Settings
 
-from apps.members.models import Membership, MembershipSource
+from apps.accounts.models import User
+from apps.members.models import Membership, MembershipPlan, MembershipSource
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.providers import available_providers, get_provider
@@ -18,7 +20,8 @@ from caldart.exceptions import DomainValidationError
 pytestmark = pytest.mark.django_db
 
 
-def test_create_checkout_computes_the_total(member, annual_plan):
+def test_create_checkout_computes_the_total(member: User, annual_plan: MembershipPlan) -> None:
+    """A checkout's amount is the plan price plus the contribution, exactly."""
     payment = create_checkout(member, "annual", 10_000, PaymentProvider.MOCK)
     assert payment.status == PaymentStatus.PENDING
     assert payment.plan_amount_cents == 4_500
@@ -27,66 +30,88 @@ def test_create_checkout_computes_the_total(member, annual_plan):
     assert payment.currency == "usd"
 
 
-def test_create_checkout_ignores_a_client_amount(member, annual_plan):
+def test_create_checkout_ignores_a_client_amount(
+    member: User, annual_plan: MembershipPlan
+) -> None:
     """The server recomputes from the plan; there is no amount parameter."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     assert payment.amount_cents == annual_plan.price_cents
 
 
-def test_create_checkout_rejects_an_unknown_plan(member, annual_plan):
+def test_create_checkout_rejects_an_unknown_plan(member: User, annual_plan: MembershipPlan) -> None:
+    """A plan slug that does not exist is refused rather than silently ignored."""
     with pytest.raises(
         DomainValidationError, match=re.escape("Unknown membership plan 'platinum'.")
     ):
         create_checkout(member, "platinum", 0, PaymentProvider.MOCK)
 
 
-def test_the_unknown_plan_refusal_names_the_plan_field(member, annual_plan):
+def test_the_unknown_plan_refusal_names_the_plan_field(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """The refusal names ``plan`` as the offending field."""
     with pytest.raises(DomainValidationError) as refusal:
         create_checkout(member, "platinum", 0, PaymentProvider.MOCK)
     assert refusal.value.field == "plan"
 
 
-def test_create_checkout_rejects_an_unknown_provider(member, annual_plan):
+def test_create_checkout_rejects_an_unknown_provider(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """A provider slug outside ``PaymentProvider`` is refused by name."""
     message = re.escape("Unknown payment provider 'bitcoin'.")
     with pytest.raises(DomainValidationError, match=message):
         create_checkout(member, "annual", 0, "bitcoin")
 
 
-def test_the_unknown_provider_refusal_names_the_provider_field(member, annual_plan):
+def test_the_unknown_provider_refusal_names_the_provider_field(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """The refusal names ``provider`` as the offending field."""
     with pytest.raises(DomainValidationError) as refusal:
         create_checkout(member, "annual", 0, "bitcoin")
     assert refusal.value.field == "provider"
 
 
-def test_create_checkout_rejects_a_negative_contribution(member, annual_plan):
+def test_create_checkout_rejects_a_negative_contribution(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """A negative contribution is refused rather than subtracted from the total."""
     with pytest.raises(DomainValidationError, match="Contribution cannot be negative."):
         create_checkout(member, "annual", -100, PaymentProvider.MOCK)
 
 
-def test_the_negative_contribution_refusal_names_the_contribution_field(member, annual_plan):
+def test_the_negative_contribution_refusal_names_the_contribution_field(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """The refusal names ``contribution_cents`` as the offending field."""
     with pytest.raises(DomainValidationError) as refusal:
         create_checkout(member, "annual", -100, PaymentProvider.MOCK)
     assert refusal.value.field == "contribution_cents"
 
 
-def test_create_checkout_rejects_a_zero_total(member):
+def test_create_checkout_rejects_a_zero_total(member: User) -> None:
+    """No plan and no contribution leaves nothing to charge, so it is refused."""
     with pytest.raises(DomainValidationError, match="Nothing to charge."):
         create_checkout(member, None, 0, PaymentProvider.MOCK)
 
 
-def test_the_zero_total_refusal_names_the_amount_field(member):
+def test_the_zero_total_refusal_names_the_amount_field(member: User) -> None:
+    """The refusal names ``amount_cents`` as the offending field."""
     with pytest.raises(DomainValidationError) as refusal:
         create_checkout(member, None, 0, PaymentProvider.MOCK)
     assert refusal.value.field == "amount_cents"
 
 
-def test_donation_only_checkout_has_no_plan(member):
+def test_donation_only_checkout_has_no_plan(member: User) -> None:
+    """A checkout with a contribution and no plan records no plan and the full amount."""
     payment = create_checkout(member, None, 5_000, PaymentProvider.MOCK)
     assert payment.plan is None
     assert payment.amount_cents == 5_000
 
 
-def test_mock_provider_end_to_end(member, annual_plan):
+def test_mock_provider_end_to_end(member: User, annual_plan: MembershipPlan) -> None:
+    """Starting and confirming a checkout marks it succeeded and grants a membership."""
     payment = create_checkout(member, "annual", 2_000, PaymentProvider.MOCK)
     provider = get_provider("mock")
     assert provider.start(payment) == {}
@@ -107,7 +132,10 @@ def test_mock_provider_end_to_end(member, annual_plan):
     assert term.source == MembershipSource.PAYMENT
 
 
-def test_mock_provider_failure_leaves_no_membership(member, annual_plan):
+def test_mock_provider_failure_leaves_no_membership(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """Confirming a checkout as failed marks it failed and grants no membership."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     assert get_provider("mock").confirm(payment, outcome="fail") is False
     payment.refresh_from_db()
@@ -115,7 +143,8 @@ def test_mock_provider_failure_leaves_no_membership(member, annual_plan):
     assert membership_status(member)["status"] == "none"
 
 
-def test_mark_succeeded_is_idempotent(member, annual_plan):
+def test_mark_succeeded_is_idempotent(member: User, annual_plan: MembershipPlan) -> None:
+    """Keeps the first completion time, wallet, and payload on a second call."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     mark_succeeded(payment, wallet=PaymentWallet.MOCK, raw={"n": 1})
     first_completed = Payment.objects.get(pk=payment.pk).completed_at
@@ -128,7 +157,8 @@ def test_mark_succeeded_is_idempotent(member, annual_plan):
     assert Membership.objects.filter(user=member).count() == 1
 
 
-def test_mark_failed_never_downgrades_a_success(member, annual_plan):
+def test_mark_failed_never_downgrades_a_success(member: User, annual_plan: MembershipPlan) -> None:
+    """Marking an already-succeeded payment failed leaves its status succeeded."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     mark_succeeded(payment)
     mark_failed(payment, {"why": "late webhook"})
@@ -136,13 +166,17 @@ def test_mark_failed_never_downgrades_a_success(member, annual_plan):
     assert payment.status == PaymentStatus.SUCCEEDED
 
 
-def test_donation_only_payment_creates_no_membership(member):
+def test_donation_only_payment_creates_no_membership(member: User) -> None:
+    """Succeeding a donation-only payment grants no membership."""
     payment = create_checkout(member, None, 3_000, PaymentProvider.MOCK)
     mark_succeeded(payment)
     assert Membership.objects.filter(user=member).count() == 0
 
 
-def test_renewal_through_the_mock_provider_extends_the_term(member, annual_plan):
+def test_renewal_through_the_mock_provider_extends_the_term(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """A second annual payment extends the expiry by exactly one year."""
     first = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     mark_succeeded(first)
     first_expiry = membership_status(member)["expires_on"]
@@ -151,17 +185,23 @@ def test_renewal_through_the_mock_provider_extends_the_term(member, annual_plan)
     mark_succeeded(second)
 
     new_expiry = membership_status(member)["expires_on"]
+    assert first_expiry is not None
+    assert new_expiry is not None
     assert (new_expiry - first_expiry).days == 365
 
 
-def test_mock_provider_respects_the_kill_switch(member, annual_plan, settings):
+def test_mock_provider_respects_the_kill_switch(
+    member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """Confirming through the mock provider while it is disabled raises."""
     settings.PAYMENTS_MOCK_ENABLED = False
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     with pytest.raises(MockPaymentsDisabled):
         get_provider("mock").confirm(payment)
 
 
-def test_available_providers_reflects_configuration(settings):
+def test_available_providers_reflects_configuration(settings: Settings) -> None:
+    """The available-providers list follows which providers have keys configured."""
     settings.STRIPE_SECRET_KEY = ""
     settings.STRIPE_PUBLISHABLE_KEY = ""
     settings.PAYPAL_CLIENT_ID = ""
@@ -174,13 +214,16 @@ def test_available_providers_reflects_configuration(settings):
     assert available_providers() == ["stripe", "mock"]
 
 
-def test_unknown_provider_slug():
+def test_unknown_provider_slug() -> None:
+    """Looking up a provider slug that does not exist raises ``ValueError``."""
     with pytest.raises(ValueError, match="Unknown payment provider"):
         get_provider("not-a-provider")
 
 
 @pytest.mark.parametrize("slug", ["stripe", "paypal"])
-def test_real_providers_refuse_to_start_without_keys(slug, member, annual_plan, settings):
+def test_real_providers_refuse_to_start_without_keys(
+    slug: str, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
     """Missing keys are a configuration error, not a 500."""
     settings.STRIPE_SECRET_KEY = ""
     settings.PAYPAL_CLIENT_ID = ""
