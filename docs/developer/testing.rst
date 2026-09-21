@@ -429,9 +429,11 @@ third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
 ``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
 and ``caldart.settings.test`` as the settings module the Django plugin reads;
 migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
-page, block and settings base classes carry no types, and Wagtail,
-``django-environ``, ``django-filter``, ``django-vite`` and ``whitenoise`` are
-declared as untyped imports for the same reason.  As with the ruff rule sets,
+page, block and settings base classes carry no types, and Wagtail, the four
+libraries it builds on (``django-modelcluster``, ``django-taggit``,
+``django-treebeard`` and ``modelsearch``), ``django-environ``,
+``django-filter``, ``django-vite`` and ``whitenoise`` are declared as untyped
+imports for the same reason.  As with the ruff rule sets,
 one ``[[tool.mypy.overrides]]`` entry per unit carries ``ignore_errors = true``,
 and an entry disappears when its unit type-checks clean.  Silencing one line
 takes ``# type: ignore[<code>]`` with a comment naming the stub gap behind it.
