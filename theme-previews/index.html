@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CalDART theme previews</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         color: #16181c; background: #f7f7f6; }
+  header { padding: 32px 24px 16px; border-bottom: 1px solid #dcdcd8; background: #fff; }
+  h1 { margin: 0 0 8px; font-size: 28px; }
+  header p { margin: 0 0 16px; max-width: 70ch; color: #55595f; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; }
+  nav a { padding: 4px 10px; border: 1px solid #cfcfca; border-radius: 2px;
+          text-decoration: none; color: #16181c; font-size: 14px; }
+  nav a:hover { background: #eceae5; }
+  main { padding: 0 24px 64px; }
+  section { padding: 32px 0; border-bottom: 1px solid #dcdcd8; }
+  h2 { margin: 0 0 4px; font-size: 24px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  h3 { margin: 28px 0 8px; font-size: 15px; text-transform: uppercase; letter-spacing: .08em;
+       color: #55595f; }
+  .intent { margin: 0; color: #55595f; }
+  .shots { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-top: 20px; }
+  figure { margin: 0; }
+  /* Cap the height, not the width, so the 420px-wide mobile shot sits in the
+     same row as the 1440px ones instead of towering over them. */
+  figure img { display: block; max-width: 340px; max-height: 236px; width: auto;
+               height: auto; border: 1px solid #cfcfca; background: #fff; }
+  figcaption { font-size: 13px; color: #55595f; padding-top: 4px; }
+  .palette { display: flex; flex-wrap: wrap; gap: 8px; }
+  .swatch { display: flex; align-items: center; gap: 6px; border: 1px solid #dcdcd8;
+            background: #fff; padding: 4px 8px; font-size: 12px; }
+  .chip { width: 18px; height: 18px; border: 1px solid #b6b6b0; display: inline-block; }
+  table { border-collapse: collapse; font-size: 13px; background: #fff; }
+  th, td { border: 1px solid #dcdcd8; padding: 4px 10px; text-align: left; }
+  th { background: #f0efec; font-weight: 600; }
+  tr.fail td { background: #fde8e6; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  ul.reproduce { margin: 0; padding-left: 20px; max-width: 90ch; }
+  ul.reproduce li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CalDART theme previews</h1>
+  <p>Every theme shipped in <code>frontend/src/styles/themes/</code>, shot against the seeded
+     demo site. Click a thumbnail for the full-size PNG. Contrast ratios come from
+     <code>frontend/scripts/theme-contrast.mjs</code>, which <code>make lint</code> runs.</p>
+  <nav><a href="#sierra">sierra</a>
+<a href="#pacific">pacific</a>
+<a href="#night">night</a>
+<a href="#squadron">squadron</a>
+<a href="#flight-deck">flight-deck</a>
+<a href="#contrail">contrail</a>
+<a href="#sectional">sectional</a>
+<a href="#tarmac">tarmac</a>
+<a href="#coastal">coastal</a>
+<a href="#slate">slate</a>
+<a href="#meridian">meridian</a>
+<a href="#monterey-night">monterey-night</a>
+<a href="#granite">granite</a></nav>
+</header>
+<main>
+<section id="sierra">
+  <h2>sierra</h2>
+  <p class="intent">The default: warm paper, deep conifer, signal orange.</p>
+  <div class="shots"><figure><a href="sierra/site-home.png"><img src="sierra/site-home.png" alt="sierra: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="sierra/site-inner.png"><img src="sierra/site-inner.png" alt="sierra: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="sierra/portal-dashboard.png"><img src="sierra/portal-dashboard.png" alt="sierra: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="sierra/portal-profile.png"><img src="sierra/portal-profile.png" alt="sierra: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="sierra/mobile-home.png"><img src="sierra/mobile-home.png" alt="sierra: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#f4f1ea"></span><code>bg</code><code>#f4f1ea</code></div>
+<div class="swatch"><span class="chip" style="background:#fbfaf6"></span><code>bg-raised</code><code>#fbfaf6</code></div>
+<div class="swatch"><span class="chip" style="background:#ebe7dd"></span><code>bg-sunken</code><code>#ebe7dd</code></div>
+<div class="swatch"><span class="chip" style="background:#1b1f24"></span><code>fg</code><code>#1b1f24</code></div>
+<div class="swatch"><span class="chip" style="background:#1f4d3a"></span><code>primary</code><code>#1f4d3a</code></div>
+<div class="swatch"><span class="chip" style="background:#f7f5ef"></span><code>primary-fg</code><code>#f7f5ef</code></div>
+<div class="swatch"><span class="chip" style="background:#17392b"></span><code>primary-hover</code><code>#17392b</code></div>
+<div class="swatch"><span class="chip" style="background:#bb4623"></span><code>accent</code><code>#bb4623</code></div>
+<div class="swatch"><span class="chip" style="background:#f2a900"></span><code>secondary</code><code>#f2a900</code></div>
+<div class="swatch"><span class="chip" style="background:#d9d3c7"></span><code>rule</code><code>#d9d3c7</code></div>
+<div class="swatch"><span class="chip" style="background:#b9b1a0"></span><code>rule-strong</code><code>#b9b1a0</code></div>
+<div class="swatch"><span class="chip" style="background:#64676e"></span><code>muted</code><code>#64676e</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#1f4d3a"></span><code>focus</code><code>#1f4d3a</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Fraunces</td><td><code>@fontsource-variable/fraunces</code></td></tr>
+<tr><td>Body</td><td>IBM Plex Sans</td><td><code>@fontsource/ibm-plex-sans</code></td></tr>
+<tr><td>Mono</td><td>IBM Plex Mono</td><td><code>@fontsource/ibm-plex-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>14.68:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>15.86:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>13.41:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>5.02:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>5.42:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>4.59:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>8.54:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>9.22:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>8.83:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>11.63:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>4.64:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>5.86:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>5.51:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>5.66:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>4.92:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>4.68:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>4.71:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>8.54:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/sierra.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="sierra"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=sierra</code></li>
+    <li>Font packages: <code>@fontsource-variable/fraunces @fontsource/ibm-plex-sans @fontsource/ibm-plex-mono</code></li>
+  </ul>
+</section>
+
+<section id="pacific">
+  <h2>pacific</h2>
+  <p class="intent">Cooler paper and a deep pacific blue primary.</p>
+  <div class="shots"><figure><a href="pacific/site-home.png"><img src="pacific/site-home.png" alt="pacific: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="pacific/site-inner.png"><img src="pacific/site-inner.png" alt="pacific: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="pacific/portal-dashboard.png"><img src="pacific/portal-dashboard.png" alt="pacific: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="pacific/portal-profile.png"><img src="pacific/portal-profile.png" alt="pacific: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="pacific/mobile-home.png"><img src="pacific/mobile-home.png" alt="pacific: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#f6f7f5"></span><code>bg</code><code>#f6f7f5</code></div>
+<div class="swatch"><span class="chip" style="background:#fdfdfc"></span><code>bg-raised</code><code>#fdfdfc</code></div>
+<div class="swatch"><span class="chip" style="background:#e9ecea"></span><code>bg-sunken</code><code>#e9ecea</code></div>
+<div class="swatch"><span class="chip" style="background:#14212b"></span><code>fg</code><code>#14212b</code></div>
+<div class="swatch"><span class="chip" style="background:#0f3d5c"></span><code>primary</code><code>#0f3d5c</code></div>
+<div class="swatch"><span class="chip" style="background:#f4f8fa"></span><code>primary-fg</code><code>#f4f8fa</code></div>
+<div class="swatch"><span class="chip" style="background:#0a2c43"></span><code>primary-hover</code><code>#0a2c43</code></div>
+<div class="swatch"><span class="chip" style="background:#bb4623"></span><code>accent</code><code>#bb4623</code></div>
+<div class="swatch"><span class="chip" style="background:#8da9b8"></span><code>secondary</code><code>#8da9b8</code></div>
+<div class="swatch"><span class="chip" style="background:#d3dadd"></span><code>rule</code><code>#d3dadd</code></div>
+<div class="swatch"><span class="chip" style="background:#adb9bf"></span><code>rule-strong</code><code>#adb9bf</code></div>
+<div class="swatch"><span class="chip" style="background:#5c6b74"></span><code>muted</code><code>#5c6b74</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#0f3d5c"></span><code>focus</code><code>#0f3d5c</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Fraunces</td><td><code>@fontsource-variable/fraunces</code></td></tr>
+<tr><td>Body</td><td>IBM Plex Sans</td><td><code>@fontsource/ibm-plex-sans</code></td></tr>
+<tr><td>Mono</td><td>IBM Plex Mono</td><td><code>@fontsource/ibm-plex-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>15.24:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>16.09:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>13.77:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>5.13:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>5.41:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>4.63:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>10.61:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>11.20:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>10.67:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>13.52:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>4.87:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>6.15:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>5.78:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>5.94:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>5.18:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>4.89:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>4.95:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>10.61:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/pacific.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="pacific"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=pacific</code></li>
+    <li>Font packages: <code>@fontsource-variable/fraunces @fontsource/ibm-plex-sans @fontsource/ibm-plex-mono</code></li>
+  </ul>
+</section>
+
+<section id="night">
+  <h2>night</h2>
+  <p class="intent">The dark counterpart to sierra, with lifted status colors.</p>
+  <div class="shots"><figure><a href="night/site-home.png"><img src="night/site-home.png" alt="night: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="night/site-inner.png"><img src="night/site-inner.png" alt="night: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="night/portal-dashboard.png"><img src="night/portal-dashboard.png" alt="night: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="night/portal-profile.png"><img src="night/portal-profile.png" alt="night: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="night/mobile-home.png"><img src="night/mobile-home.png" alt="night: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#151719"></span><code>bg</code><code>#151719</code></div>
+<div class="swatch"><span class="chip" style="background:#1d2023"></span><code>bg-raised</code><code>#1d2023</code></div>
+<div class="swatch"><span class="chip" style="background:#101214"></span><code>bg-sunken</code><code>#101214</code></div>
+<div class="swatch"><span class="chip" style="background:#ece9e1"></span><code>fg</code><code>#ece9e1</code></div>
+<div class="swatch"><span class="chip" style="background:#7fb69b"></span><code>primary</code><code>#7fb69b</code></div>
+<div class="swatch"><span class="chip" style="background:#10201a"></span><code>primary-fg</code><code>#10201a</code></div>
+<div class="swatch"><span class="chip" style="background:#98c9b0"></span><code>primary-hover</code><code>#98c9b0</code></div>
+<div class="swatch"><span class="chip" style="background:#ff7a52"></span><code>accent</code><code>#ff7a52</code></div>
+<div class="swatch"><span class="chip" style="background:#f2c14e"></span><code>secondary</code><code>#f2c14e</code></div>
+<div class="swatch"><span class="chip" style="background:#2c3034"></span><code>rule</code><code>#2c3034</code></div>
+<div class="swatch"><span class="chip" style="background:#444a50"></span><code>rule-strong</code><code>#444a50</code></div>
+<div class="swatch"><span class="chip" style="background:#9aa1a8"></span><code>muted</code><code>#9aa1a8</code></div>
+<div class="swatch"><span class="chip" style="background:#6cc08c"></span><code>ok</code><code>#6cc08c</code></div>
+<div class="swatch"><span class="chip" style="background:#e5b74a"></span><code>warn</code><code>#e5b74a</code></div>
+<div class="swatch"><span class="chip" style="background:#f0796a"></span><code>bad</code><code>#f0796a</code></div>
+<div class="swatch"><span class="chip" style="background:#f2c14e"></span><code>focus</code><code>#f2c14e</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Fraunces</td><td><code>@fontsource-variable/fraunces</code></td></tr>
+<tr><td>Body</td><td>IBM Plex Sans</td><td><code>@fontsource/ibm-plex-sans</code></td></tr>
+<tr><td>Mono</td><td>IBM Plex Mono</td><td><code>@fontsource/ibm-plex-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>14.81:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>13.49:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>15.47:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>6.88:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>6.26:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>7.18:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>7.76:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>7.07:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>7.29:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>9.10:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>6.98:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>8.18:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>9.59:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>6.55:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>6.27:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>7.12:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>5.24:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>10.71:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/night.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="night"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=night</code></li>
+    <li>Font packages: <code>@fontsource-variable/fraunces @fontsource/ibm-plex-sans @fontsource/ibm-plex-mono</code></li>
+  </ul>
+</section>
+
+<section id="squadron">
+  <h2>squadron</h2>
+  <p class="intent">The CalDART logo on white: cobalt, crimson, sky, and a lot of air.</p>
+  <div class="shots"><figure><a href="squadron/site-home.png"><img src="squadron/site-home.png" alt="squadron: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="squadron/site-inner.png"><img src="squadron/site-inner.png" alt="squadron: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="squadron/portal-dashboard.png"><img src="squadron/portal-dashboard.png" alt="squadron: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="squadron/portal-profile.png"><img src="squadron/portal-profile.png" alt="squadron: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="squadron/mobile-home.png"><img src="squadron/mobile-home.png" alt="squadron: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#ffffff"></span><code>bg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#f6f7fb"></span><code>bg-raised</code><code>#f6f7fb</code></div>
+<div class="swatch"><span class="chip" style="background:#eceef5"></span><code>bg-sunken</code><code>#eceef5</code></div>
+<div class="swatch"><span class="chip" style="background:#14213d"></span><code>fg</code><code>#14213d</code></div>
+<div class="swatch"><span class="chip" style="background:#1b409a"></span><code>primary</code><code>#1b409a</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>primary-fg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#142f73"></span><code>primary-hover</code><code>#142f73</code></div>
+<div class="swatch"><span class="chip" style="background:#b8303f"></span><code>accent</code><code>#b8303f</code></div>
+<div class="swatch"><span class="chip" style="background:#4f8fe8"></span><code>secondary</code><code>#4f8fe8</code></div>
+<div class="swatch"><span class="chip" style="background:#dde1ec"></span><code>rule</code><code>#dde1ec</code></div>
+<div class="swatch"><span class="chip" style="background:#a9b2c8"></span><code>rule-strong</code><code>#a9b2c8</code></div>
+<div class="swatch"><span class="chip" style="background:#59627c"></span><code>muted</code><code>#59627c</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#1b409a"></span><code>focus</code><code>#1b409a</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Barlow</td><td><code>@fontsource/barlow</code></td></tr>
+<tr><td>Body</td><td>Source Sans 3</td><td><code>@fontsource-variable/source-sans-3</code></td></tr>
+<tr><td>Mono</td><td>JetBrains Mono</td><td><code>@fontsource-variable/jetbrains-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>15.97:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>14.92:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>13.78:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>6.06:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>5.66:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>5.23:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>9.35:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>8.73:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>9.35:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>12.47:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>5.94:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>6.61:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>6.22:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>6.38:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>5.54:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>5.23:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>5.30:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>9.35:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/squadron.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="squadron"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=squadron</code></li>
+    <li>Font packages: <code>@fontsource/barlow @fontsource-variable/source-sans-3 @fontsource-variable/jetbrains-mono</code></li>
+  </ul>
+</section>
+
+<section id="flight-deck">
+  <h2>flight-deck</h2>
+  <p class="intent">The logo after dark: navy instruments, cobalt tint, crimson and amber.</p>
+  <div class="shots"><figure><a href="flight-deck/site-home.png"><img src="flight-deck/site-home.png" alt="flight-deck: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="flight-deck/site-inner.png"><img src="flight-deck/site-inner.png" alt="flight-deck: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="flight-deck/portal-dashboard.png"><img src="flight-deck/portal-dashboard.png" alt="flight-deck: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="flight-deck/portal-profile.png"><img src="flight-deck/portal-profile.png" alt="flight-deck: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="flight-deck/mobile-home.png"><img src="flight-deck/mobile-home.png" alt="flight-deck: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#0f1a33"></span><code>bg</code><code>#0f1a33</code></div>
+<div class="swatch"><span class="chip" style="background:#16233f"></span><code>bg-raised</code><code>#16233f</code></div>
+<div class="swatch"><span class="chip" style="background:#0a1226"></span><code>bg-sunken</code><code>#0a1226</code></div>
+<div class="swatch"><span class="chip" style="background:#e8ecf5"></span><code>fg</code><code>#e8ecf5</code></div>
+<div class="swatch"><span class="chip" style="background:#7ea2ff"></span><code>primary</code><code>#7ea2ff</code></div>
+<div class="swatch"><span class="chip" style="background:#0f1a33"></span><code>primary-fg</code><code>#0f1a33</code></div>
+<div class="swatch"><span class="chip" style="background:#9db8ff"></span><code>primary-hover</code><code>#9db8ff</code></div>
+<div class="swatch"><span class="chip" style="background:#ef6b78"></span><code>accent</code><code>#ef6b78</code></div>
+<div class="swatch"><span class="chip" style="background:#ffc857"></span><code>secondary</code><code>#ffc857</code></div>
+<div class="swatch"><span class="chip" style="background:#26314d"></span><code>rule</code><code>#26314d</code></div>
+<div class="swatch"><span class="chip" style="background:#465170"></span><code>rule-strong</code><code>#465170</code></div>
+<div class="swatch"><span class="chip" style="background:#a4afc9"></span><code>muted</code><code>#a4afc9</code></div>
+<div class="swatch"><span class="chip" style="background:#63d0a0"></span><code>ok</code><code>#63d0a0</code></div>
+<div class="swatch"><span class="chip" style="background:#ffc857"></span><code>warn</code><code>#ffc857</code></div>
+<div class="swatch"><span class="chip" style="background:#f4818c"></span><code>bad</code><code>#f4818c</code></div>
+<div class="swatch"><span class="chip" style="background:#ffc857"></span><code>focus</code><code>#ffc857</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Exo 2</td><td><code>@fontsource-variable/exo-2</code></td></tr>
+<tr><td>Body</td><td>Inter</td><td><code>@fontsource-variable/inter</code></td></tr>
+<tr><td>Mono</td><td>IBM Plex Mono</td><td><code>@fontsource/ibm-plex-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>14.60:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>13.18:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>15.74:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>7.86:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>7.10:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>8.47:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>6.99:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>6.31:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>6.99:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>8.83:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>5.79:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>9.10:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>11.23:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>6.88:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>6.75:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>8.08:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>5.50:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>11.23:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/flight-deck.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="flight-deck"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=flight-deck</code></li>
+    <li>Font packages: <code>@fontsource-variable/exo-2 @fontsource-variable/inter @fontsource/ibm-plex-mono</code></li>
+  </ul>
+</section>
+
+<section id="contrail">
+  <h2>contrail</h2>
+  <p class="intent">The logo gone light and airy: high sky paper, cobalt, crimson.</p>
+  <div class="shots"><figure><a href="contrail/site-home.png"><img src="contrail/site-home.png" alt="contrail: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="contrail/site-inner.png"><img src="contrail/site-inner.png" alt="contrail: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="contrail/portal-dashboard.png"><img src="contrail/portal-dashboard.png" alt="contrail: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="contrail/portal-profile.png"><img src="contrail/portal-profile.png" alt="contrail: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="contrail/mobile-home.png"><img src="contrail/mobile-home.png" alt="contrail: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#eef4fb"></span><code>bg</code><code>#eef4fb</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>bg-raised</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#dfe8f5"></span><code>bg-sunken</code><code>#dfe8f5</code></div>
+<div class="swatch"><span class="chip" style="background:#1a2333"></span><code>fg</code><code>#1a2333</code></div>
+<div class="swatch"><span class="chip" style="background:#1b409a"></span><code>primary</code><code>#1b409a</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>primary-fg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#142f73"></span><code>primary-hover</code><code>#142f73</code></div>
+<div class="swatch"><span class="chip" style="background:#b02c3a"></span><code>accent</code><code>#b02c3a</code></div>
+<div class="swatch"><span class="chip" style="background:#3b7dd8"></span><code>secondary</code><code>#3b7dd8</code></div>
+<div class="swatch"><span class="chip" style="background:#cfdcec"></span><code>rule</code><code>#cfdcec</code></div>
+<div class="swatch"><span class="chip" style="background:#a0b2cb"></span><code>rule-strong</code><code>#a0b2cb</code></div>
+<div class="swatch"><span class="chip" style="background:#515c70"></span><code>muted</code><code>#515c70</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#1b409a"></span><code>focus</code><code>#1b409a</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Titillium Web</td><td><code>@fontsource/titillium-web</code></td></tr>
+<tr><td>Body</td><td>Open Sans</td><td><code>@fontsource-variable/open-sans</code></td></tr>
+<tr><td>Mono</td><td>Roboto Mono</td><td><code>@fontsource-variable/roboto-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>14.24:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>15.76:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>12.76:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>6.09:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>6.74:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>5.46:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>8.44:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>9.35:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>9.35:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>12.47:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>5.81:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>5.97:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>5.62:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>5.77:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>5.02:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>4.74:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>4.80:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>8.44:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/contrail.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="contrail"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=contrail</code></li>
+    <li>Font packages: <code>@fontsource/titillium-web @fontsource-variable/open-sans @fontsource-variable/roboto-mono</code></li>
+  </ul>
+</section>
+
+<section id="sectional">
+  <h2>sectional</h2>
+  <p class="intent">An aeronautical chart: chart cream, chart blue, airspace magenta, terrain tan.</p>
+  <div class="shots"><figure><a href="sectional/site-home.png"><img src="sectional/site-home.png" alt="sectional: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="sectional/site-inner.png"><img src="sectional/site-inner.png" alt="sectional: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="sectional/portal-dashboard.png"><img src="sectional/portal-dashboard.png" alt="sectional: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="sectional/portal-profile.png"><img src="sectional/portal-profile.png" alt="sectional: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="sectional/mobile-home.png"><img src="sectional/mobile-home.png" alt="sectional: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#f7f3e8"></span><code>bg</code><code>#f7f3e8</code></div>
+<div class="swatch"><span class="chip" style="background:#fffdf7"></span><code>bg-raised</code><code>#fffdf7</code></div>
+<div class="swatch"><span class="chip" style="background:#ece5d3"></span><code>bg-sunken</code><code>#ece5d3</code></div>
+<div class="swatch"><span class="chip" style="background:#24211c"></span><code>fg</code><code>#24211c</code></div>
+<div class="swatch"><span class="chip" style="background:#2c5aa0"></span><code>primary</code><code>#2c5aa0</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>primary-fg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#204478"></span><code>primary-hover</code><code>#204478</code></div>
+<div class="swatch"><span class="chip" style="background:#a72f80"></span><code>accent</code><code>#a72f80</code></div>
+<div class="swatch"><span class="chip" style="background:#b3833f"></span><code>secondary</code><code>#b3833f</code></div>
+<div class="swatch"><span class="chip" style="background:#ded5c0"></span><code>rule</code><code>#ded5c0</code></div>
+<div class="swatch"><span class="chip" style="background:#b5a88d"></span><code>rule-strong</code><code>#b5a88d</code></div>
+<div class="swatch"><span class="chip" style="background:#5d584c"></span><code>muted</code><code>#5d584c</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#2c5aa0"></span><code>focus</code><code>#2c5aa0</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Manrope</td><td><code>@fontsource-variable/manrope</code></td></tr>
+<tr><td>Body</td><td>Source Sans 3</td><td><code>@fontsource-variable/source-sans-3</code></td></tr>
+<tr><td>Mono</td><td>Roboto Mono</td><td><code>@fontsource-variable/roboto-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>14.47:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>15.77:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>12.77:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>6.39:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>6.96:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>5.64:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>6.16:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>6.71:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>6.82:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>9.72:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>5.63:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>5.96:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>5.61:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>5.76:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>5.01:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>4.74:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>4.80:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>6.16:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/sectional.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="sectional"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=sectional</code></li>
+    <li>Font packages: <code>@fontsource-variable/manrope @fontsource-variable/source-sans-3 @fontsource-variable/roboto-mono</code></li>
+  </ul>
+</section>
+
+<section id="tarmac">
+  <h2>tarmac</h2>
+  <p class="intent">Industrial neutrals: concrete, asphalt, safety yellow on surfaces only.</p>
+  <div class="shots"><figure><a href="tarmac/site-home.png"><img src="tarmac/site-home.png" alt="tarmac: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="tarmac/site-inner.png"><img src="tarmac/site-inner.png" alt="tarmac: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="tarmac/portal-dashboard.png"><img src="tarmac/portal-dashboard.png" alt="tarmac: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="tarmac/portal-profile.png"><img src="tarmac/portal-profile.png" alt="tarmac: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="tarmac/mobile-home.png"><img src="tarmac/mobile-home.png" alt="tarmac: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#f2f2f0"></span><code>bg</code><code>#f2f2f0</code></div>
+<div class="swatch"><span class="chip" style="background:#fafaf9"></span><code>bg-raised</code><code>#fafaf9</code></div>
+<div class="swatch"><span class="chip" style="background:#e4e4e1"></span><code>bg-sunken</code><code>#e4e4e1</code></div>
+<div class="swatch"><span class="chip" style="background:#1a1c20"></span><code>fg</code><code>#1a1c20</code></div>
+<div class="swatch"><span class="chip" style="background:#2b2f36"></span><code>primary</code><code>#2b2f36</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>primary-fg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#16181c"></span><code>primary-hover</code><code>#16181c</code></div>
+<div class="swatch"><span class="chip" style="background:#b40d27"></span><code>accent</code><code>#b40d27</code></div>
+<div class="swatch"><span class="chip" style="background:#e3b505"></span><code>secondary</code><code>#e3b505</code></div>
+<div class="swatch"><span class="chip" style="background:#d8d8d4"></span><code>rule</code><code>#d8d8d4</code></div>
+<div class="swatch"><span class="chip" style="background:#adada8"></span><code>rule-strong</code><code>#adada8</code></div>
+<div class="swatch"><span class="chip" style="background:#5a5e64"></span><code>muted</code><code>#5a5e64</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#2b2f36"></span><code>focus</code><code>#2b2f36</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Archivo</td><td><code>@fontsource-variable/archivo</code></td></tr>
+<tr><td>Body</td><td>Karla</td><td><code>@fontsource-variable/karla</code></td></tr>
+<tr><td>Mono</td><td>Fira Code</td><td><code>@fontsource-variable/fira-code</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>15.22:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>16.34:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>13.39:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>5.82:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>6.24:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>5.12:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>11.99:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>12.87:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>13.44:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>17.77:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>6.19:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>5.89:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>5.55:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>5.69:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>4.95:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>4.68:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>4.74:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>11.99:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/tarmac.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="tarmac"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=tarmac</code></li>
+    <li>Font packages: <code>@fontsource-variable/archivo @fontsource-variable/karla @fontsource-variable/fira-code</code></li>
+  </ul>
+</section>
+
+<section id="coastal">
+  <h2>coastal</h2>
+  <p class="intent">The California shoreline: fog paper, ocean teal, sunset coral, dune sand.</p>
+  <div class="shots"><figure><a href="coastal/site-home.png"><img src="coastal/site-home.png" alt="coastal: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="coastal/site-inner.png"><img src="coastal/site-inner.png" alt="coastal: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="coastal/portal-dashboard.png"><img src="coastal/portal-dashboard.png" alt="coastal: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="coastal/portal-profile.png"><img src="coastal/portal-profile.png" alt="coastal: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="coastal/mobile-home.png"><img src="coastal/mobile-home.png" alt="coastal: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#f3f6f7"></span><code>bg</code><code>#f3f6f7</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>bg-raised</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#e3e9eb"></span><code>bg-sunken</code><code>#e3e9eb</code></div>
+<div class="swatch"><span class="chip" style="background:#1c2a30"></span><code>fg</code><code>#1c2a30</code></div>
+<div class="swatch"><span class="chip" style="background:#146c7a"></span><code>primary</code><code>#146c7a</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>primary-fg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#0e515c"></span><code>primary-hover</code><code>#0e515c</code></div>
+<div class="swatch"><span class="chip" style="background:#bd4a2a"></span><code>accent</code><code>#bd4a2a</code></div>
+<div class="swatch"><span class="chip" style="background:#c9a15a"></span><code>secondary</code><code>#c9a15a</code></div>
+<div class="swatch"><span class="chip" style="background:#d2dcdf"></span><code>rule</code><code>#d2dcdf</code></div>
+<div class="swatch"><span class="chip" style="background:#a3b2b7"></span><code>rule-strong</code><code>#a3b2b7</code></div>
+<div class="swatch"><span class="chip" style="background:#54626a"></span><code>muted</code><code>#54626a</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#146c7a"></span><code>focus</code><code>#146c7a</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Lora</td><td><code>@fontsource-variable/lora</code></td></tr>
+<tr><td>Body</td><td>Nunito Sans</td><td><code>@fontsource-variable/nunito-sans</code></td></tr>
+<tr><td>Mono</td><td>Source Code Pro</td><td><code>@fontsource-variable/source-code-pro</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>13.59:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>14.76:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>12.03:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>5.80:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>6.30:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>5.14:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>5.60:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>6.08:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>6.08:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>8.94:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>4.63:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>6.08:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>5.72:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>5.88:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>5.12:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>4.83:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>4.90:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>5.60:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/coastal.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="coastal"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=coastal</code></li>
+    <li>Font packages: <code>@fontsource-variable/lora @fontsource-variable/nunito-sans @fontsource-variable/source-code-pro</code></li>
+  </ul>
+</section>
+
+<section id="slate">
+  <h2>slate</h2>
+  <p class="intent">Cool corporate: slate blue-gray, amber emphasis, a teal supporting hue.</p>
+  <div class="shots"><figure><a href="slate/site-home.png"><img src="slate/site-home.png" alt="slate: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="slate/site-inner.png"><img src="slate/site-inner.png" alt="slate: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="slate/portal-dashboard.png"><img src="slate/portal-dashboard.png" alt="slate: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="slate/portal-profile.png"><img src="slate/portal-profile.png" alt="slate: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="slate/mobile-home.png"><img src="slate/mobile-home.png" alt="slate: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#f5f7fa"></span><code>bg</code><code>#f5f7fa</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>bg-raised</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#e8ecf1"></span><code>bg-sunken</code><code>#e8ecf1</code></div>
+<div class="swatch"><span class="chip" style="background:#1f2933"></span><code>fg</code><code>#1f2933</code></div>
+<div class="swatch"><span class="chip" style="background:#34495e"></span><code>primary</code><code>#34495e</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>primary-fg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#22303f"></span><code>primary-hover</code><code>#22303f</code></div>
+<div class="swatch"><span class="chip" style="background:#a94c08"></span><code>accent</code><code>#a94c08</code></div>
+<div class="swatch"><span class="chip" style="background:#2f7f9e"></span><code>secondary</code><code>#2f7f9e</code></div>
+<div class="swatch"><span class="chip" style="background:#dbe1e9"></span><code>rule</code><code>#dbe1e9</code></div>
+<div class="swatch"><span class="chip" style="background:#a7b1c0"></span><code>rule-strong</code><code>#a7b1c0</code></div>
+<div class="swatch"><span class="chip" style="background:#586475"></span><code>muted</code><code>#586475</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#34495e"></span><code>focus</code><code>#34495e</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Merriweather</td><td><code>@fontsource-variable/merriweather</code></td></tr>
+<tr><td>Body</td><td>Work Sans</td><td><code>@fontsource-variable/work-sans</code></td></tr>
+<tr><td>Mono</td><td>DM Mono</td><td><code>@fontsource/dm-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>13.75:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>14.76:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>12.44:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>5.60:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>6.01:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>5.06:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>8.66:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>9.29:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>9.29:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>13.44:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>5.25:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>6.16:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>5.79:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>5.95:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>5.18:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>4.89:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>4.96:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>8.66:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/slate.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="slate"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=slate</code></li>
+    <li>Font packages: <code>@fontsource-variable/merriweather @fontsource-variable/work-sans @fontsource/dm-mono</code></li>
+  </ul>
+</section>
+
+<section id="meridian">
+  <h2>meridian</h2>
+  <p class="intent">High-contrast civic: white, navy, burnt orange, one typeface throughout.</p>
+  <div class="shots"><figure><a href="meridian/site-home.png"><img src="meridian/site-home.png" alt="meridian: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="meridian/site-inner.png"><img src="meridian/site-inner.png" alt="meridian: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="meridian/portal-dashboard.png"><img src="meridian/portal-dashboard.png" alt="meridian: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="meridian/portal-profile.png"><img src="meridian/portal-profile.png" alt="meridian: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="meridian/mobile-home.png"><img src="meridian/mobile-home.png" alt="meridian: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#ffffff"></span><code>bg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#f8f9fb"></span><code>bg-raised</code><code>#f8f9fb</code></div>
+<div class="swatch"><span class="chip" style="background:#eef0f4"></span><code>bg-sunken</code><code>#eef0f4</code></div>
+<div class="swatch"><span class="chip" style="background:#0b1220"></span><code>fg</code><code>#0b1220</code></div>
+<div class="swatch"><span class="chip" style="background:#0d3b66"></span><code>primary</code><code>#0d3b66</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>primary-fg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#072744"></span><code>primary-hover</code><code>#072744</code></div>
+<div class="swatch"><span class="chip" style="background:#b03a0a"></span><code>accent</code><code>#b03a0a</code></div>
+<div class="swatch"><span class="chip" style="background:#166b64"></span><code>secondary</code><code>#166b64</code></div>
+<div class="swatch"><span class="chip" style="background:#dde1e9"></span><code>rule</code><code>#dde1e9</code></div>
+<div class="swatch"><span class="chip" style="background:#a5aebe"></span><code>rule-strong</code><code>#a5aebe</code></div>
+<div class="swatch"><span class="chip" style="background:#4b5465"></span><code>muted</code><code>#4b5465</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#0d3b66"></span><code>focus</code><code>#0d3b66</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Libre Franklin</td><td><code>@fontsource-variable/libre-franklin</code></td></tr>
+<tr><td>Body</td><td>Libre Franklin</td><td><code>@fontsource-variable/libre-franklin</code></td></tr>
+<tr><td>Mono</td><td>Roboto Mono</td><td><code>@fontsource-variable/roboto-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>18.72:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>17.77:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>16.41:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>7.62:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>7.24:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>6.68:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>11.45:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>10.87:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>11.45:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>15.19:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>6.08:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>6.61:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>6.22:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>6.38:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>5.54:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>5.23:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>5.30:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>11.45:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/meridian.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="meridian"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=meridian</code></li>
+    <li>Font packages: <code>@fontsource-variable/libre-franklin @fontsource-variable/roboto-mono</code></li>
+  </ul>
+</section>
+
+<section id="monterey-night">
+  <h2>monterey-night</h2>
+  <p class="intent">Charcoal dark: sea green primary, amber accent, a cool blue support.</p>
+  <div class="shots"><figure><a href="monterey-night/site-home.png"><img src="monterey-night/site-home.png" alt="monterey-night: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="monterey-night/site-inner.png"><img src="monterey-night/site-inner.png" alt="monterey-night: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="monterey-night/portal-dashboard.png"><img src="monterey-night/portal-dashboard.png" alt="monterey-night: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="monterey-night/portal-profile.png"><img src="monterey-night/portal-profile.png" alt="monterey-night: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="monterey-night/mobile-home.png"><img src="monterey-night/mobile-home.png" alt="monterey-night: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#14171c"></span><code>bg</code><code>#14171c</code></div>
+<div class="swatch"><span class="chip" style="background:#1c2027"></span><code>bg-raised</code><code>#1c2027</code></div>
+<div class="swatch"><span class="chip" style="background:#0f1115"></span><code>bg-sunken</code><code>#0f1115</code></div>
+<div class="swatch"><span class="chip" style="background:#e6e8ec"></span><code>fg</code><code>#e6e8ec</code></div>
+<div class="swatch"><span class="chip" style="background:#5ec8b8"></span><code>primary</code><code>#5ec8b8</code></div>
+<div class="swatch"><span class="chip" style="background:#0f1115"></span><code>primary-fg</code><code>#0f1115</code></div>
+<div class="swatch"><span class="chip" style="background:#7ad6c8"></span><code>primary-hover</code><code>#7ad6c8</code></div>
+<div class="swatch"><span class="chip" style="background:#ffb454"></span><code>accent</code><code>#ffb454</code></div>
+<div class="swatch"><span class="chip" style="background:#8ab4f8"></span><code>secondary</code><code>#8ab4f8</code></div>
+<div class="swatch"><span class="chip" style="background:#2a2f38"></span><code>rule</code><code>#2a2f38</code></div>
+<div class="swatch"><span class="chip" style="background:#474e5a"></span><code>rule-strong</code><code>#474e5a</code></div>
+<div class="swatch"><span class="chip" style="background:#98a2b0"></span><code>muted</code><code>#98a2b0</code></div>
+<div class="swatch"><span class="chip" style="background:#63d2a4"></span><code>ok</code><code>#63d2a4</code></div>
+<div class="swatch"><span class="chip" style="background:#ffb454"></span><code>warn</code><code>#ffb454</code></div>
+<div class="swatch"><span class="chip" style="background:#ff8a80"></span><code>bad</code><code>#ff8a80</code></div>
+<div class="swatch"><span class="chip" style="background:#ffb454"></span><code>focus</code><code>#ffb454</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Sora</td><td><code>@fontsource-variable/sora</code></td></tr>
+<tr><td>Body</td><td>Inter</td><td><code>@fontsource-variable/inter</code></td></tr>
+<tr><td>Mono</td><td>JetBrains Mono</td><td><code>@fontsource-variable/jetbrains-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>14.64:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>13.32:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>15.40:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>6.95:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>6.33:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>7.32:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>8.92:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>8.11:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>9.39:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>11.05:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>10.19:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>9.65:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>10.19:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>7.87:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>7.15:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>7.54:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>6.13:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>10.19:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/monterey-night.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="monterey-night"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=monterey-night</code></li>
+    <li>Font packages: <code>@fontsource-variable/sora @fontsource-variable/inter @fontsource-variable/jetbrains-mono</code></li>
+  </ul>
+</section>
+
+<section id="granite">
+  <h2>granite</h2>
+  <p class="intent">Near-monochrome: white, near-black, grays, and one blue for links.</p>
+  <div class="shots"><figure><a href="granite/site-home.png"><img src="granite/site-home.png" alt="granite: Public home" loading="lazy"></a><figcaption>Public home</figcaption></figure>
+<figure><a href="granite/site-inner.png"><img src="granite/site-inner.png" alt="granite: Public inner page" loading="lazy"></a><figcaption>Public inner page</figcaption></figure>
+<figure><a href="granite/portal-dashboard.png"><img src="granite/portal-dashboard.png" alt="granite: Portal dashboard" loading="lazy"></a><figcaption>Portal dashboard</figcaption></figure>
+<figure><a href="granite/portal-profile.png"><img src="granite/portal-profile.png" alt="granite: Member profile" loading="lazy"></a><figcaption>Member profile</figcaption></figure>
+<figure><a href="granite/mobile-home.png"><img src="granite/mobile-home.png" alt="granite: Home at 420px" loading="lazy"></a><figcaption>Home at 420px</figcaption></figure></div>
+  <h3>Palette</h3>
+  <div class="palette"><div class="swatch"><span class="chip" style="background:#ffffff"></span><code>bg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#fafafa"></span><code>bg-raised</code><code>#fafafa</code></div>
+<div class="swatch"><span class="chip" style="background:#f0f0f0"></span><code>bg-sunken</code><code>#f0f0f0</code></div>
+<div class="swatch"><span class="chip" style="background:#111111"></span><code>fg</code><code>#111111</code></div>
+<div class="swatch"><span class="chip" style="background:#1f1f1f"></span><code>primary</code><code>#1f1f1f</code></div>
+<div class="swatch"><span class="chip" style="background:#ffffff"></span><code>primary-fg</code><code>#ffffff</code></div>
+<div class="swatch"><span class="chip" style="background:#000000"></span><code>primary-hover</code><code>#000000</code></div>
+<div class="swatch"><span class="chip" style="background:#0a58ca"></span><code>accent</code><code>#0a58ca</code></div>
+<div class="swatch"><span class="chip" style="background:#6b7280"></span><code>secondary</code><code>#6b7280</code></div>
+<div class="swatch"><span class="chip" style="background:#e2e2e2"></span><code>rule</code><code>#e2e2e2</code></div>
+<div class="swatch"><span class="chip" style="background:#b1b1b1"></span><code>rule-strong</code><code>#b1b1b1</code></div>
+<div class="swatch"><span class="chip" style="background:#5c5c5c"></span><code>muted</code><code>#5c5c5c</code></div>
+<div class="swatch"><span class="chip" style="background:#27693f"></span><code>ok</code><code>#27693f</code></div>
+<div class="swatch"><span class="chip" style="background:#825900"></span><code>warn</code><code>#825900</code></div>
+<div class="swatch"><span class="chip" style="background:#ab3628"></span><code>bad</code><code>#ab3628</code></div>
+<div class="swatch"><span class="chip" style="background:#0a58ca"></span><code>focus</code><code>#0a58ca</code></div></div>
+  <h3>Fonts</h3>
+  <table class="fonts"><thead><tr><th>Role</th><th>Family</th><th>Package</th></tr></thead><tbody><tr><td>Display</td><td>Inter Tight</td><td><code>@fontsource-variable/inter-tight</code></td></tr>
+<tr><td>Body</td><td>Inter</td><td><code>@fontsource-variable/inter</code></td></tr>
+<tr><td>Mono</td><td>Geist Mono</td><td><code>@fontsource-variable/geist-mono</code></td></tr></tbody></table>
+  <h3>Contrast (WCAG 2.1 AA)</h3>
+  <table class="contrast"><thead><tr><th>Pair</th><th>Ratio</th><th>Needs</th><th></th></tr></thead><tbody><tr class="pass"><td>fg on bg</td><td>18.88:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-raised</td><td>18.09:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>fg on bg-sunken</td><td>16.57:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg</td><td>6.69:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-raised</td><td>6.41:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>muted on bg-sunken</td><td>5.87:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg</td><td>16.48:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary on bg-raised</td><td>15.79:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary</td><td>16.48:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>primary-fg on primary-hover</td><td>21.00:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>accent on bg</td><td>6.44:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on bg</td><td>6.61:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on bg</td><td>6.22:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bg</td><td>6.38:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>ok on ok-bg over bg</td><td>5.54:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>warn on warn-bg over bg</td><td>5.23:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>bad on bad-bg over bg</td><td>5.30:1</td><td>4.5:1</td><td>pass</td></tr>
+<tr class="pass"><td>focus on bg</td><td>6.44:1</td><td>3:1</td><td>pass</td></tr></tbody></table>
+  <h3>Reproduce</h3>
+  <ul class="reproduce">
+    <li>Theme file: <code>frontend/src/styles/themes/granite.css</code></li>
+    <li>Attribute the server renders: <code>&lt;html data-theme="granite"&gt;</code></li>
+    <li>Select it in Wagtail: <strong>Settings &rarr; Site settings &rarr; Theme</strong>, then save.</li>
+    <li>Preview without saving (website or system administrator):
+      <code>https://&lt;your-site&gt;/?theme=granite</code></li>
+    <li>Font packages: <code>@fontsource-variable/inter-tight @fontsource-variable/inter @fontsource-variable/geist-mono</code></li>
+  </ul>
+</section></main>
+</body>
+</html>
