@@ -4,8 +4,8 @@ This plan works through the documentation findings collected in #60 and the tool
 cross-cutting findings in #61, as re-audited on 2026-09-21 against `main`
 (`critiques/2026-09-21-remaining-findings.md`), plus two findings that audit showed no
 issue had captured: an API page for the reminder, system and site endpoints, and the
-abstract models in the data-model diagram. Fifteen work packages in three waves; eight
-run on Sonnet, seven on Opus (§7 names the model for each).
+abstract models in the data-model diagram. Sixteen work packages in three waves; eight
+run on Sonnet, eight on Opus (§7 names the model for each).
 
 ## 1. How to run this plan
 
@@ -52,17 +52,17 @@ and branch are removed. Nothing merges on a red check.
 
 Settled here so no worker has to choose:
 
-- **Node.** Pin Node 22, the version CI already uses: `engines.node` in `frontend/package.json` as `>=22 <23`, a `.nvmrc` reading `22`, and the prose in `README.rst` and `setup.rst` says 22.
-- **Python minimums.** `django>=5.2,<6.0`, `wagtail>=8.0`, `djangorestframework>=3.18`, matching what the lock resolves. The `<6.0` bound stays, with a comment beside it: the lock and gates are verified on Django 5.2 only, and the bound moves when the lock does.
+- **Node.** No pin. The project does not control when its CI runner image moves to a newer Node, so pinning would only create a mismatch to chase; the prose keeps "Node 20+" as the minimum the code is known to work on, and no `engines` field or `.nvmrc` is added.
+- **Python minimums and Django 6.** `make-help-and-minimums` raises the minimums to `django>=5.2,<6.0`, `wagtail>=8.0`, `djangorestframework>=3.18`, matching what the lock resolves, and keeps the upper bound for the moment. `django-6-upgrade` then moves the lock to Django 6, runs every gate and the end-to-end suite against it, fixes what breaks, and drops the bound in the same PR, so the bound never outlives its reason. If Wagtail, django-stubs or DRF refuse to resolve with Django 6, that package stops as §6 describes and its draft PR records which dependency blocks the upgrade.
 - **`make help`.** Add a `##` comment to every target that lacks one rather than softening the claim; internal helpers such as `wait-db` get a comment that says they are helpers.
 - **Deploy check.** `make check-deploy` runs `manage.py check --deploy --fail-level WARNING --settings caldart.settings.prod` with a throwaway environment set inline (a dummy `SECRET_KEY`, `ALLOWED_HOSTS`, `DATABASE_URL`, `SITE_URL`, and the secure flags on). It runs in CI's backend job. `security.W019` is silenced in `prod.py` with a comment: `X_FRAME_OPTIONS = "SAMEORIGIN"` is deliberate because the Wagtail admin previews pages in a same-origin frame.
 - **Ruff.** A convention a linter can check is never left to review. Enable every rule set the rules file lists as review-enforced or "to consider", plus the security set: `A`, `N`, `RUF`, `SIM`, `PT`, `PTH`, `RET`, `PERF`, `ERA`, `T20` and `S`. Measured on `main` on 2026-09-21: `A` 0, `N` 5, `RUF` 224 (180 of them `RUF012`), `SIM` 3, `PT` 9, `PTH` 0, `RET` 2, `PERF` 6, `ERA` 5, `T20` 0, `S` 17 once `S101` is set aside. Two exceptions, each carried in `pyproject.toml` with a comment: `RUF012` is ignored, because Django's `Meta` options, admin `list_display` lists and serializer `fields` are class-level configuration the framework reads and nothing mutates, so `ClassVar` on 180 of them would document nothing; and `S101` is ignored for `backend/tests/**` only, because `assert` is pytest's assertion. Every other diagnostic is fixed, not ignored: the hardcoded-password findings (`S105`/`S106`) are fixed by reading the demo password from the one constant the seed defines rather than repeating the literal, and the `subprocess` findings by passing a resolved executable path; a per-line `noqa` is allowed only where the framework imposes the shape, with a comment saying so. Delete every `noqa` for a rule that is not selected (`RUF100` now enforces this). `ARG` (505 diagnostics, almost all Django and DRF signatures such as `get(self, request, *args, **kwargs)`) stays off; `python.md` §7 records the count and the reason so it is a decision, not an omission.
-- **ESLint.** Adopt `tseslint.configs.recommendedTypeChecked` with `languageOptions.parserOptions.projectService` (not a hand-listed `project` array) and fix every diagnostic; suppressions only where a library's types force one, each with a comment. Add `eslint-plugin-jsx-a11y` with its `recommended` flat config and fix its findings. Test-only types (`vitest/globals`, `@testing-library/jest-dom`) move to a `tsconfig.test.json` that `include`s test files and `src/test/`, referenced by the vitest config's `typecheck` and by ESLint's project service.
+- **ESLint.** Adopt `tseslint.configs.recommendedTypeChecked` with `languageOptions.parserOptions.projectService` (not a hand-listed `project` array) and fix every diagnostic; suppressions only where a library's types force one, each with a comment. Add `eslint-plugin-jsx-a11y` with its `recommended` flat config and fix its findings. The test globals go away rather than being scoped: `vitest/globals` and `@testing-library/jest-dom` leave `tsconfig.json`'s `types`, the vitest config sets `globals: false`, every test file imports `describe`, `it`, `expect`, `vi` and the hooks it uses from `vitest`, and the jest-dom matchers are typed through `import '@testing-library/jest-dom/vitest'` in `src/test/setup.ts`. A production file that uses `expect` then fails `tsc`.
 - **Content-Security-Policy.** Use `django-csp` (the `CSP_*` settings of its 4.x `CONTENT_SECURITY_POLICY` dict form). Enforce, not report-only. Sources: `default-src 'self'`; `script-src 'self' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com`; `frame-src` the same two vendors; `connect-src 'self' https://api.stripe.com https://www.paypal.com https://www.sandbox.paypal.com`; `img-src 'self' data:`; `style-src 'self' 'unsafe-inline'` (Stripe's Payment Element and Wagtail's admin both inject inline styles; the templates carry no inline scripts). In `dev.py`, add the Vite dev server origin and `ws:` for HMR. The Wagtail admin path gets `script-src 'self' 'unsafe-inline'` through django-csp's per-view exemption, because Wagtail's admin inlines scripts. The checkout e2e specs and the Wagtail admin smoke test must pass with the header on.
 - **API contract test.** Add `drf-spectacular`; `make check-backend` generates `backend/openapi.json` (not committed) and a backend test asserts the schema's component names and field sets match a committed snapshot at `backend/tests/snapshots/openapi-components.json` (update by running the test with `--snapshot-update` style flag documented in `testing.rst`). On the frontend, `openapi-typescript` generates `src/portal/api/schema.d.ts` from that JSON (not committed; generated by `make check-frontend` before `tsc`), and a type-level vitest test asserts each interface in `api/types.ts` is mutually assignable with its schema counterpart. That is the contract: a serializer change that the TS types do not follow fails `make check`.
 - **The API pages.** Every endpoint gets a heading in the form `` `GET /admin/members` `` (method and path), a one-paragraph description, a request example where there is a body, a `code-block:: json` response example, and a status list covering every status the view can answer. Pages keep their prose sections between endpoints. A new `docs/developer/api-system.rst` documents the reminder, system and site endpoints; `api-reference.rst` and the developer index link it.
 - **Diagrams.** Graphviz with an ASCII equivalent, per the docs rule. The member-lifecycle diagram lives on a new `docs/user/overview.rst`, first in the user toctree. The checkout sequence diagram goes in `payments-setup.rst`. The production topology goes in `deployment.rst`. The abstract models (`TimestampedModel`, `BasePage`) join the existing data-model diagram.
-- **How-to articles.** Four pages under `docs/user/how-to/`: grant or correct a membership by hand, run and check the reminders, restore a backup, and preview and select a theme. Each follows the how-to shape (prerequisites, numbered steps, what success looks like, troubleshooting, related pages). `demo-walkthrough.rst` takes the same shape, with its five tasks as numbered sections.
+- **The demo walkthrough.** No separate how-to pages. `demo-walkthrough.rst` takes the how-to shape: prerequisites, its five tasks as numbered step sections, what success looks like after each, troubleshooting, and related pages.
 - **Extension recipes.** One page, `docs/developer/extending.rst`, with a code skeleton for each of: a payment provider, an API endpoint, a portal screen, a management command, a page type and a block (the last two replace the prose recipes in `cms.rst`, which then link here). Skeletons are complete enough to compile after renaming; each states which docs page must change with it.
 - **Cross-references.** Every cross-directory `:doc:` target is written absolute (`/developer/...`, `/user/...`). Each subsystem chapter ends with a "Related" section linking its API page.
 - **README.** Sections in this order: title (plain "CalDART"), one-paragraph description, Features, Requirements, Setup, Documentation (links to the built docs and the two guides), Contributing (the gates and the PR conventions in five lines, linking `testing.rst`), License. The end-to-end section shrinks to three lines linking `testing.rst`.
@@ -80,16 +80,15 @@ Settled here so no worker has to choose:
 
 ### Wave 1
 
-#### make-help-and-pins (Sonnet)
+#### make-help-and-minimums (Sonnet)
 
 - **Refs:** #61
-- **Branch:** `chore/make-help-and-pins`; database `caldart_make_help_and_pins`
-- **Owns:** `Makefile#help-comments`, `frontend/package.json#engines`, `.nvmrc` (new), `README.rst#requirements`, `docs/developer/setup.rst#requirements`, `pyproject.toml#dependencies`.
+- **Branch:** `chore/make-help-and-minimums`; database `caldart_make_help_and_minimums`
+- **Owns:** `Makefile#help-comments`, `pyproject.toml#dependencies`.
 - **Steps:**
   1. Add a `##` comment to `wait-db`, `lint-backend`, `lint-spelling`, `lint-frontend`, `check-backend`, `check-frontend`, `audit-backend`, `audit-frontend`, so `make help` really lists every target (§5).
-  2. Pin Node 22 (§5) and update the two prose mentions.
-  3. Raise the three dependency minimums and comment the `<6.0` bound (§5); `uv lock` must not change any resolved version (`git diff uv.lock` empty or metadata-only).
-- **Verify:** `make help | wc -l` equals the number of targets in `.PHONY`; `node -e "require('./frontend/package.json').engines"` prints the range; `uv lock --check` passes.
+  2. Raise the three dependency minimums (§5), keeping the `<6.0` bound for `django-6-upgrade` to remove; `uv lock` must not change any resolved version (`git diff uv.lock` empty or metadata-only).
+- **Verify:** `make help | wc -l` equals the number of targets in `.PHONY`; `uv lock --check` passes.
 
 #### ruff-rule-sets (Sonnet)
 
@@ -107,9 +106,9 @@ Settled here so no worker has to choose:
 
 - **Refs:** #61
 - **Branch:** `chore/eslint-type-checked`; database `caldart_eslint_type_checked`; e2e port 8121
-- **Owns:** `frontend/eslint.config.js`, `frontend/tsconfig.json`, `frontend/tsconfig.test.json` (new), `frontend/vite.config.ts#test-typecheck`, `frontend/package.json#devDependencies`, `frontend/package-lock.json`, every file under `frontend/src` and `frontend/e2e` the new rules flag (fixes only), `.claude/rules/javascript_typescript_best_practices.md#lint`, `docs/developer/testing.rst#eslint`.
-- **Steps:** §5's ESLint decision: type-checked preset with the project service, `jsx-a11y`, the test-only tsconfig, then fix every diagnostic. An accessibility finding is fixed in the markup, not suppressed. Document the two new rule sources in the rules file and `testing.rst`.
-- **Verify:** `cd frontend && npx eslint . --max-warnings 0` clean; `npx tsc --noEmit -p tsconfig.json` and `-p tsconfig.test.json` clean; a throwaway file with an unawaited promise fails lint (`@typescript-eslint/no-floating-promises`), then is deleted.
+- **Owns:** `frontend/eslint.config.js`, `frontend/tsconfig.json#types`, `frontend/vite.config.ts#test-globals`, `frontend/src/test/setup.ts`, `frontend/package.json#devDependencies`, `frontend/package-lock.json`, every `*.test.ts`/`*.test.tsx` file and every file under `frontend/src` and `frontend/e2e` the new rules flag (imports and fixes only), `.claude/rules/javascript_typescript_best_practices.md#lint`, `.claude/rules/javascript_typescript_best_practices.md#testing`, `docs/developer/testing.rst#eslint`.
+- **Steps:** §5's ESLint decision: type-checked preset with the project service, `jsx-a11y`, the test globals removed in favor of explicit `vitest` imports, then fix every diagnostic. An accessibility finding is fixed in the markup, not suppressed. Document the two new rule sources and the import convention in the rules file and `testing.rst`.
+- **Verify:** `cd frontend && npx eslint . --max-warnings 0` clean; `npx tsc --noEmit` clean; `git grep -n "vitest/globals" frontend` empty; a throwaway production file that calls `expect` fails `tsc`, and a throwaway file with an unawaited promise fails lint (`@typescript-eslint/no-floating-promises`), then both are deleted.
 
 #### user-guide-corrections (Sonnet)
 
@@ -163,16 +162,25 @@ Settled here so no worker has to choose:
 #### check-deploy (Sonnet)
 
 - **Refs:** #61
-- **After:** make-help-and-pins
+- **After:** make-help-and-minimums
 - **Branch:** `chore/check-deploy`; database `caldart_check_deploy`
 - **Owns:** `Makefile#check-deploy`, `.github/workflows/ci.yml#backend-job`, `backend/caldart/settings/prod.py#silenced-checks`, `docs/developer/testing.rst#gates`, `docs/developer/deployment.rst#check-deploy`, `.claude/rules/environment.md#gates`.
 - **Steps:** §5's deploy check; `make check` calls `check-deploy` after `check-backend`; CI's backend job runs it; W019 silenced with its comment; the three docs describe the gate.
 - **Verify:** `make check-deploy` passes; with `SECURE_SSL_REDIRECT=false` in the throwaway environment it fails on W008, proving the gate bites.
 
+#### django-6-upgrade (Opus)
+
+- **Refs:** #61
+- **After:** make-help-and-minimums
+- **Branch:** `build/django-6-upgrade`; database `caldart_django_6_upgrade`; e2e port 8123
+- **Owns:** `pyproject.toml#dependencies`, `uv.lock`, every backend file the upgrade breaks (fixes only), `docs/developer/setup.rst#requirements`, `docs/developer/deployment.rst#django-version`.
+- **Steps:** §5's Django 6 decision. Resolve the lock to the newest Django 6 that `wagtail`, `django-stubs` and `djangorestframework` accept; run `make lint test check docs audit` and `make e2e`; fix every failure, reading the Django 6 release notes for each; drop the `<6.0` bound and state the version the docs assume. If the resolver refuses, stop per §6 with the blocking dependency named in the draft PR.
+- **Verify:** `uv run python -c "import django; print(django.__version__)"` prints a 6.x version; every gate and the end-to-end suite green; `git grep -n "<6.0" pyproject.toml` empty.
+
 #### content-security-policy (Opus)
 
 - **Refs:** #61
-- **After:** make-help-and-pins
+- **After:** django-6-upgrade
 - **Branch:** `feature/content-security-policy`; database `caldart_content_security_policy`; e2e port 8122
 - **Owns:** `pyproject.toml#dependencies`, `uv.lock`, `backend/caldart/settings/base.py#csp`, `backend/caldart/settings/dev.py#csp`, `backend/caldart/settings/prod.py#csp`, `backend/caldart/settings/test.py#csp`, `backend/apps/cms/wagtail_hooks.py#csp` (or a middleware module under `backend/caldart/` if the admin exemption needs one), `backend/tests/test_csp.py` (new), `docs/developer/deployment.rst#csp`, `docs/developer/configuration.rst#csp`, `docs/developer/payments-setup.rst#csp`, `deploy/caldart.env.example#csp`.
 - **Steps:** §5's policy. Tests assert the exact header on a public page, on a portal page, and the admin exemption; the checkout e2e specs (Stripe mock and PayPal panels) pass with the header enforced; `make e2e` on the package's port.
@@ -181,7 +189,7 @@ Settled here so no worker has to choose:
 #### developer-guide-corrections (Sonnet)
 
 - **Refs:** #60
-- **After:** make-help-and-pins, user-guide-corrections, faq-and-walkthrough
+- **After:** make-help-and-minimums, user-guide-corrections, faq-and-walkthrough
 - **Branch:** `docs/developer-guide-corrections`; database `caldart_developer_guide_corrections`
 - **Owns:** `docs/conf.py`, `docs/index.rst`, `docs/developer/index.rst#intro`, `docs/developer/roadmap.rst`, `docs/developer/deployment.rst#wording`, `docs/developer/data-model.rst#timestamps`, `docs/developer/reminders.rst#add-a-kind`, `docs/developer/cms.rst#handbook-example`, `docs/developer/reports.rst#is-active-warning`, `docs/developer/testing.rst#e2e-env`, `docs/developer/setup.rst#smoke-test`, the "Related" sections of `payments-setup.rst`, `reminders.rst`, `backup-restore.rst`, `theming.rst`, `cms.rst`, `reports.rst`, every relative `../` `:doc:` target in `docs/`, `backend/tests/test_integration.py#history-comments`, `frontend/src/portal/features/profile/AircraftEditor.tsx#header-comment`.
 - **Steps:**
@@ -200,21 +208,21 @@ Settled here so no worker has to choose:
   13. Remove the change history at `test_integration.py:61,119` and the history-named test at `:140`, and at `AircraftEditor.tsx:4-7`.
 - **Verify:** `make docs` clean with `nitpicky` on; `git grep -n ":doc:\`[^/\`]*\.\./" docs` empty.
 
-#### how-to-articles (Sonnet)
+#### walkthrough-structure (Sonnet)
 
 - **Refs:** #60
-- **After:** faq-and-walkthrough, user-guide-corrections
-- **Branch:** `docs/how-to-articles`; database `caldart_how_to_articles`
-- **Owns:** `docs/user/how-to/` (new pages), `docs/user/index.rst#toctree`, `docs/demo-walkthrough.rst#structure`.
-- **Steps:** §5's four how-to pages, each verified against the current UI and commands (read the guides and the code, and run the commands where they are cheap); `demo-walkthrough.rst` restructured into the how-to shape with its five tasks as numbered sections; the user toctree lists the new pages.
-- **Verify:** `make docs` clean; every command in a how-to page runs as written in a fresh worktree.
+- **After:** faq-and-walkthrough
+- **Branch:** `docs/walkthrough-structure`; database `caldart_walkthrough_structure`
+- **Owns:** `docs/demo-walkthrough.rst#structure`.
+- **Steps:** §5's how-to shape for the walkthrough, every step verified against the current UI and commands (run each command where it is cheap).
+- **Verify:** `make docs` clean; every command in the page runs as written in a fresh worktree.
 
 ### Wave 3
 
 #### api-contract-test (Opus)
 
 - **Closes:** #61
-- **After:** check-deploy, ruff-rule-sets, eslint-type-checked, content-security-policy
+- **After:** check-deploy, ruff-rule-sets, eslint-type-checked, content-security-policy, django-6-upgrade
 - **Branch:** `feature/api-contract-test`; database `caldart_api_contract_test`
 - **Owns:** `pyproject.toml#dependencies`, `uv.lock`, `backend/caldart/settings/base.py#spectacular`, `backend/caldart/api_urls.py#schema`, `backend/tests/test_openapi_contract.py` (new), `backend/tests/snapshots/` (new), `Makefile#check-backend`, `Makefile#check-frontend`, `frontend/package.json`, `frontend/package-lock.json`, `frontend/src/portal/api/schema.d.ts` (generated, gitignored), `frontend/src/portal/api/types.contract.test.ts` (new), `.gitignore`, `docs/developer/testing.rst#contract`, `docs/developer/api-reference.rst#schema`, `.claude/rules/javascript_typescript_best_practices.md#api-types`.
 - **Steps:** §5's contract test. The PR shows both halves biting: renaming a serializer field fails the backend snapshot test, and changing an interface in `types.ts` fails the type-level test.
@@ -232,16 +240,16 @@ Settled here so no worker has to choose:
 #### readme-restructure (Sonnet)
 
 - **Refs:** #60
-- **After:** make-help-and-pins, developer-guide-corrections
+- **After:** developer-guide-corrections
 - **Branch:** `docs/readme-restructure`; database `caldart_readme_restructure`
 - **Owns:** `README.rst`.
-- **Steps:** §5's README shape; fix `:25` (`make seed` also seeds CMS content), `:148` (time-anchored licensing wording), expand DART on first use.
+- **Steps:** §5's README shape; fix `:25` (`make seed` also seeds CMS content), `:148` (time-anchored licensing wording), expand DART on first use; the Requirements section states the Django version the lock carries and "Node 20+".
 - **Verify:** `make docs` and `make lint-spelling` clean; every command in the README runs as written.
 
 #### extension-recipes (Opus)
 
 - **Closes:** #60
-- **After:** developer-guide-corrections, how-to-articles, diagrams-and-overview, readme-restructure
+- **After:** developer-guide-corrections, walkthrough-structure, diagrams-and-overview, readme-restructure
 - **Branch:** `docs/extension-recipes`; database `caldart_extension_recipes`
 - **Owns:** `docs/developer/extending.rst` (new), `docs/developer/index.rst#toctree`, `docs/developer/cms.rst#recipes`.
 - **Steps:** §5's six skeletons, each checked by pasting it into a scratch module and running `ruff check` and `mypy` (or `tsc`) on it before deletion; `cms.rst`'s two prose recipes become links to the page. The PR body lists every item of #60 with the PR that settled it.
@@ -251,20 +259,21 @@ Settled here so no worker has to choose:
 
 ```json
 [
-  {"wave": 1, "package": "make-help-and-pins", "model": "sonnet", "branch": "chore/make-help-and-pins", "database": "caldart_make_help_and_pins", "e2e_port": null, "closes": [], "refs": [61], "owns": ["Makefile#help-comments", "frontend/package.json#engines", ".nvmrc", "README.rst#requirements", "docs/developer/setup.rst#requirements", "pyproject.toml#dependencies"], "after": []},
+  {"wave": 1, "package": "make-help-and-minimums", "model": "sonnet", "branch": "chore/make-help-and-minimums", "database": "caldart_make_help_and_minimums", "e2e_port": null, "closes": [], "refs": [61], "owns": ["Makefile#help-comments", "pyproject.toml#dependencies"], "after": []},
   {"wave": 1, "package": "ruff-rule-sets", "model": "sonnet", "branch": "chore/ruff-rule-sets", "database": "caldart_ruff_rule_sets", "e2e_port": null, "closes": [], "refs": [61], "owns": ["pyproject.toml#ruff", "backend/**/*.py#rule-fixes", "backend/apps/accounts/seed.py#demo-password-constant", ".claude/rules/python.md#ruff-categories", ".claude/rules/python_testing.md#assert", "docs/developer/testing.rst#ruff"], "after": []},
-  {"wave": 1, "package": "eslint-type-checked", "model": "opus", "branch": "chore/eslint-type-checked", "database": "caldart_eslint_type_checked", "e2e_port": 8121, "closes": [], "refs": [61], "owns": ["frontend/eslint.config.js", "frontend/tsconfig.json", "frontend/tsconfig.test.json", "frontend/vite.config.ts#test-typecheck", "frontend/package.json#devDependencies", "frontend/package-lock.json", "frontend/src/**#rule-fixes", "frontend/e2e/**#rule-fixes", ".claude/rules/javascript_typescript_best_practices.md#lint", "docs/developer/testing.rst#eslint"], "after": []},
+  {"wave": 1, "package": "eslint-type-checked", "model": "opus", "branch": "chore/eslint-type-checked", "database": "caldart_eslint_type_checked", "e2e_port": 8121, "closes": [], "refs": [61], "owns": ["frontend/eslint.config.js", "frontend/tsconfig.json#types", "frontend/vite.config.ts#test-globals", "frontend/src/test/setup.ts", "frontend/package.json#devDependencies", "frontend/package-lock.json", "frontend/src/**#rule-fixes", "frontend/e2e/**#rule-fixes", ".claude/rules/javascript_typescript_best_practices.md#lint", ".claude/rules/javascript_typescript_best_practices.md#testing", "docs/developer/testing.rst#eslint"], "after": []},
   {"wave": 1, "package": "user-guide-corrections", "model": "sonnet", "branch": "docs/user-guide-corrections", "database": "caldart_user_guide_corrections", "e2e_port": null, "closes": [], "refs": [60], "owns": ["docs/user/system-administrator-guide.rst", "docs/user/account-administrator-guide.rst", "docs/user/getting-started.rst", "docs/user/website-administrator-guide.rst", "docs/user/member-guide.rst", "docs/user/index.rst", "docs/user/payments.rst#placement", "docs/developer/deployment.rst#troubleshooting-label"], "after": []},
   {"wave": 1, "package": "faq-and-walkthrough", "model": "sonnet", "branch": "docs/faq-and-walkthrough", "database": "caldart_faq_and_walkthrough", "e2e_port": null, "closes": [], "refs": [60], "owns": ["docs/user/faq.rst", "docs/demo-walkthrough.rst#facts"], "after": []},
   {"wave": 1, "package": "api-members-aircraft-profile", "model": "opus", "branch": "docs/api-members-aircraft-profile", "database": "caldart_api_members_aircraft_profile", "e2e_port": null, "closes": [], "refs": [60], "owns": ["docs/developer/api-members.rst", "docs/developer/api-aircraft.rst", "docs/developer/api-profile.rst"], "after": []},
   {"wave": 1, "package": "api-auth-payments-system", "model": "opus", "branch": "docs/api-auth-payments-system", "database": "caldart_api_auth_payments_system", "e2e_port": null, "closes": [], "refs": [60], "owns": ["docs/developer/api-auth.rst", "docs/developer/api-payments.rst", "docs/developer/api-reference.rst", "docs/developer/api-system.rst", "docs/developer/index.rst#toctree"], "after": []},
-  {"wave": 2, "package": "check-deploy", "model": "sonnet", "branch": "chore/check-deploy", "database": "caldart_check_deploy", "e2e_port": null, "closes": [], "refs": [61], "owns": ["Makefile#check-deploy", ".github/workflows/ci.yml#backend-job", "backend/caldart/settings/prod.py#silenced-checks", "docs/developer/testing.rst#gates", "docs/developer/deployment.rst#check-deploy", ".claude/rules/environment.md#gates"], "after": ["make-help-and-pins"]},
-  {"wave": 2, "package": "content-security-policy", "model": "opus", "branch": "feature/content-security-policy", "database": "caldart_content_security_policy", "e2e_port": 8122, "closes": [], "refs": [61], "owns": ["pyproject.toml#dependencies", "uv.lock", "backend/caldart/settings/base.py#csp", "backend/caldart/settings/dev.py#csp", "backend/caldart/settings/prod.py#csp", "backend/caldart/settings/test.py#csp", "backend/apps/cms/wagtail_hooks.py#csp", "backend/tests/test_csp.py", "docs/developer/deployment.rst#csp", "docs/developer/configuration.rst#csp", "docs/developer/payments-setup.rst#csp", "deploy/caldart.env.example#csp"], "after": ["make-help-and-pins"]},
-  {"wave": 2, "package": "developer-guide-corrections", "model": "sonnet", "branch": "docs/developer-guide-corrections", "database": "caldart_developer_guide_corrections", "e2e_port": null, "closes": [], "refs": [60], "owns": ["docs/conf.py", "docs/index.rst", "docs/developer/index.rst#intro", "docs/developer/roadmap.rst", "docs/developer/deployment.rst#wording", "docs/developer/data-model.rst#timestamps", "docs/developer/reminders.rst#add-a-kind", "docs/developer/cms.rst#handbook-example", "docs/developer/reports.rst#is-active-warning", "docs/developer/testing.rst#e2e-env", "docs/developer/setup.rst#smoke-test", "docs/developer/*.rst#related", "docs/**/*.rst#absolute-doc-targets", "backend/tests/test_integration.py#history-comments", "frontend/src/portal/features/profile/AircraftEditor.tsx#header-comment"], "after": ["make-help-and-pins", "user-guide-corrections", "faq-and-walkthrough"]},
-  {"wave": 2, "package": "how-to-articles", "model": "sonnet", "branch": "docs/how-to-articles", "database": "caldart_how_to_articles", "e2e_port": null, "closes": [], "refs": [60], "owns": ["docs/user/how-to/*", "docs/user/index.rst#toctree", "docs/demo-walkthrough.rst#structure"], "after": ["faq-and-walkthrough", "user-guide-corrections"]},
-  {"wave": 3, "package": "api-contract-test", "model": "opus", "branch": "feature/api-contract-test", "database": "caldart_api_contract_test", "e2e_port": null, "closes": [61], "refs": [], "owns": ["pyproject.toml#dependencies", "uv.lock", "backend/caldart/settings/base.py#spectacular", "backend/caldart/api_urls.py#schema", "backend/tests/test_openapi_contract.py", "backend/tests/snapshots/*", "Makefile#check-backend", "Makefile#check-frontend", "frontend/package.json", "frontend/package-lock.json", "frontend/src/portal/api/schema.d.ts", "frontend/src/portal/api/types.contract.test.ts", ".gitignore", "docs/developer/testing.rst#contract", "docs/developer/api-reference.rst#schema", ".claude/rules/javascript_typescript_best_practices.md#api-types"], "after": ["check-deploy", "ruff-rule-sets", "eslint-type-checked", "content-security-policy"]},
+  {"wave": 2, "package": "check-deploy", "model": "sonnet", "branch": "chore/check-deploy", "database": "caldart_check_deploy", "e2e_port": null, "closes": [], "refs": [61], "owns": ["Makefile#check-deploy", ".github/workflows/ci.yml#backend-job", "backend/caldart/settings/prod.py#silenced-checks", "docs/developer/testing.rst#gates", "docs/developer/deployment.rst#check-deploy", ".claude/rules/environment.md#gates"], "after": ["make-help-and-minimums"]},
+  {"wave": 2, "package": "django-6-upgrade", "model": "opus", "branch": "build/django-6-upgrade", "database": "caldart_django_6_upgrade", "e2e_port": 8123, "closes": [], "refs": [61], "owns": ["pyproject.toml#dependencies", "uv.lock", "backend/**#upgrade-fixes", "docs/developer/setup.rst#requirements", "docs/developer/deployment.rst#django-version"], "after": ["make-help-and-minimums"]},
+  {"wave": 2, "package": "content-security-policy", "model": "opus", "branch": "feature/content-security-policy", "database": "caldart_content_security_policy", "e2e_port": 8122, "closes": [], "refs": [61], "owns": ["pyproject.toml#dependencies", "uv.lock", "backend/caldart/settings/base.py#csp", "backend/caldart/settings/dev.py#csp", "backend/caldart/settings/prod.py#csp", "backend/caldart/settings/test.py#csp", "backend/apps/cms/wagtail_hooks.py#csp", "backend/tests/test_csp.py", "docs/developer/deployment.rst#csp", "docs/developer/configuration.rst#csp", "docs/developer/payments-setup.rst#csp", "deploy/caldart.env.example#csp"], "after": ["django-6-upgrade"]},
+  {"wave": 2, "package": "developer-guide-corrections", "model": "sonnet", "branch": "docs/developer-guide-corrections", "database": "caldart_developer_guide_corrections", "e2e_port": null, "closes": [], "refs": [60], "owns": ["docs/conf.py", "docs/index.rst", "docs/developer/index.rst#intro", "docs/developer/roadmap.rst", "docs/developer/deployment.rst#wording", "docs/developer/data-model.rst#timestamps", "docs/developer/reminders.rst#add-a-kind", "docs/developer/cms.rst#handbook-example", "docs/developer/reports.rst#is-active-warning", "docs/developer/testing.rst#e2e-env", "docs/developer/setup.rst#smoke-test", "docs/developer/*.rst#related", "docs/**/*.rst#absolute-doc-targets", "backend/tests/test_integration.py#history-comments", "frontend/src/portal/features/profile/AircraftEditor.tsx#header-comment"], "after": ["make-help-and-minimums", "user-guide-corrections", "faq-and-walkthrough"]},
+  {"wave": 2, "package": "walkthrough-structure", "model": "sonnet", "branch": "docs/walkthrough-structure", "database": "caldart_walkthrough_structure", "e2e_port": null, "closes": [], "refs": [60], "owns": ["docs/demo-walkthrough.rst#structure"], "after": ["faq-and-walkthrough"]},
+  {"wave": 3, "package": "api-contract-test", "model": "opus", "branch": "feature/api-contract-test", "database": "caldart_api_contract_test", "e2e_port": null, "closes": [61], "refs": [], "owns": ["pyproject.toml#dependencies", "uv.lock", "backend/caldart/settings/base.py#spectacular", "backend/caldart/api_urls.py#schema", "backend/tests/test_openapi_contract.py", "backend/tests/snapshots/*", "Makefile#check-backend", "Makefile#check-frontend", "frontend/package.json", "frontend/package-lock.json", "frontend/src/portal/api/schema.d.ts", "frontend/src/portal/api/types.contract.test.ts", ".gitignore", "docs/developer/testing.rst#contract", "docs/developer/api-reference.rst#schema", ".claude/rules/javascript_typescript_best_practices.md#api-types"], "after": ["check-deploy", "ruff-rule-sets", "eslint-type-checked", "content-security-policy", "django-6-upgrade"]},
   {"wave": 3, "package": "diagrams-and-overview", "model": "opus", "branch": "docs/diagrams-and-overview", "database": "caldart_diagrams_and_overview", "e2e_port": null, "closes": [], "refs": [60], "owns": ["docs/user/overview.rst", "docs/user/index.rst#toctree", "docs/developer/payments-setup.rst#sequence", "docs/developer/deployment.rst#topology", "docs/developer/data-model.rst#diagram"], "after": ["user-guide-corrections", "developer-guide-corrections"]},
-  {"wave": 3, "package": "readme-restructure", "model": "sonnet", "branch": "docs/readme-restructure", "database": "caldart_readme_restructure", "e2e_port": null, "closes": [], "refs": [60], "owns": ["README.rst"], "after": ["make-help-and-pins", "developer-guide-corrections"]},
-  {"wave": 3, "package": "extension-recipes", "model": "opus", "branch": "docs/extension-recipes", "database": "caldart_extension_recipes", "e2e_port": null, "closes": [60], "refs": [], "owns": ["docs/developer/extending.rst", "docs/developer/index.rst#toctree", "docs/developer/cms.rst#recipes"], "after": ["developer-guide-corrections", "how-to-articles", "diagrams-and-overview", "readme-restructure"]}
+  {"wave": 3, "package": "readme-restructure", "model": "sonnet", "branch": "docs/readme-restructure", "database": "caldart_readme_restructure", "e2e_port": null, "closes": [], "refs": [60], "owns": ["README.rst"], "after": ["developer-guide-corrections"]},
+  {"wave": 3, "package": "extension-recipes", "model": "opus", "branch": "docs/extension-recipes", "database": "caldart_extension_recipes", "e2e_port": null, "closes": [60], "refs": [], "owns": ["docs/developer/extending.rst", "docs/developer/index.rst#toctree", "docs/developer/cms.rst#recipes"], "after": ["developer-guide-corrections", "walkthrough-structure", "diagrams-and-overview", "readme-restructure"]}
 ]
 ```
