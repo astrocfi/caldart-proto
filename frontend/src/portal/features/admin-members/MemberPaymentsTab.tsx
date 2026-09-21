@@ -7,7 +7,7 @@
  */
 import { Card, DataTable, DateText, Money, PaymentChip } from '../../components';
 import type { Column } from '../../components';
-import type { MemberDetail, MemberPayment } from './types';
+import type { MemberDetail, MemberPayment } from '../../api/types';
 
 const COLUMNS: Column<MemberPayment>[] = [
   {

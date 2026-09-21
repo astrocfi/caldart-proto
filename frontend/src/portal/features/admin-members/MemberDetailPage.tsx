@@ -15,7 +15,7 @@ import { MemberPaymentsTab } from './MemberPaymentsTab';
 import { MemberProfileTab } from './MemberProfileTab';
 import { useMember } from './api';
 import { roleLabel } from './choices';
-import type { MemberDetail } from './types';
+import type { MemberDetail } from '../../api/types';
 
 const TABS = [
   { id: 'profile', label: 'Profile' },

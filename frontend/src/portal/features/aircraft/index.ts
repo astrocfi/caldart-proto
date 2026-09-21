@@ -18,13 +18,7 @@ export {
   useDeleteAircraft,
   useUpdateAircraft,
 } from './api';
-export type {
-  AircraftDetail,
-  AircraftFilters,
-  AircraftPilot,
-  AircraftSearchResult,
-  InsuranceState,
-} from './api';
+export type { AircraftFilters, AircraftSearchResult, InsuranceState } from './api';
 export {
   centsToDollars,
   dollarsToCents,

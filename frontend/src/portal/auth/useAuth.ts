@@ -13,6 +13,7 @@ import type {
   LoginPayload,
   PasswordChangePayload,
   PasswordResetConfirmPayload,
+  PasswordResetRequestPayload,
   RegisterPayload,
   Role,
   RoleSlug,
@@ -21,10 +22,6 @@ import type {
 
 export const AUTH_ME_KEY = ['auth', 'me'] as const;
 export const ROLES_KEY = ['auth', 'roles'] as const;
-
-export interface PasswordResetRequestPayload {
-  email: string;
-}
 
 export async function fetchMe(): Promise<User | null> {
   try {

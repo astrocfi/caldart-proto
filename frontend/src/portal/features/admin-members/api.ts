@@ -8,16 +8,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { API_BASE, api } from '../../api/client';
-import type { MemberRow, Paginated } from '../../api/types';
 import type {
   GrantTermPayload,
   MemberCreatePayload,
   MemberDetail,
-  MemberFilters,
+  MemberRow,
   MemberTerm,
   MemberUpdatePayload,
+  Paginated,
   TermUpdatePayload,
-} from './types';
+} from '../../api/types';
+import type { MemberFilters } from './types';
 import { FILTER_KEYS } from './types';
 
 export const MEMBERS_KEY = ['admin-members'] as const;

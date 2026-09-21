@@ -5,4 +5,4 @@ export { MemberDetailPage } from './MemberDetailPage';
 export { MembersListPage, filtersFromParams } from './MembersListPage';
 export { MembersFilterBar } from './MembersFilterBar';
 export { exportUrl, filterParams } from './api';
-export type { MemberDetail, MemberFilters, MemberPayment, MemberTerm } from './types';
+export type { MemberFilters } from './types';

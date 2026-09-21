@@ -11,4 +11,4 @@ export {
   useSendPasswordReset,
   useUpdateAdminUser,
 } from './api';
-export type { AdminUserFilters, AdminUserPatch } from './api';
+export type { AdminUserFilters } from './api';
