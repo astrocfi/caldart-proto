@@ -165,8 +165,8 @@ def password() -> str:
 
 
 @pytest.fixture
-def anonymous_user(db):
-    """A user with no roles at all."""
+def no_role_user(db):
+    """A signed-in user with no roles at all."""
     return UserFactory(email="nobody@example.test", roles=[])
 
 
