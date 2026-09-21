@@ -132,7 +132,7 @@ class MembershipAdminDetailView(generics.UpdateAPIView):
     http_method_names = ["patch", "head", "options"]
     queryset = Membership.objects.select_related("plan", "granted_by", "user")
 
-    def perform_update(self, serializer):
+    def perform_update(self, serializer: AdminMembershipSerializer) -> None:
         """Save the correction and record which of the term's fields it rewrote.
 
         The names are worked out before the save and cover only the fields whose
