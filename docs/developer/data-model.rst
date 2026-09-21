@@ -17,7 +17,7 @@ House rules that apply throughout:
   ``America/Los_Angeles`` and ``USE_TZ`` is on, so "today" always means
   ``django.utils.timezone.localdate()``.
 - **Every model carries ``created_at`` and ``updated_at``**, inherited from
-  ``apps.members.models.TimestampedModel`` (``User`` declares its own pair,
+  ``caldart.models.TimestampedModel`` (``User`` declares its own pair,
   because it inherits from ``AbstractUser`` instead).
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``.**
 
@@ -54,7 +54,7 @@ Domain schema
           node [shape=box, style="rounded", fontname="Helvetica", fontsize=10];
           edge [fontname="Helvetica", fontsize=9];
 
-          Timestamped [label="members.TimestampedModel (abstract)\l  created_at, updated_at\l", style="rounded,dashed"];
+          Timestamped [label="caldart.TimestampedModel (abstract)\l  created_at, updated_at\l", style="rounded,dashed"];
           Provider [label="payments.Provider (abstract)\l  start(payment)\l  confirm(payment, **kwargs)\l  handle_webhook(request)\l", style="rounded,dashed"];
           Stripe [label="StripeProvider\l  slug = stripe\l"];
           PayPal [label="PayPalProvider\l  slug = paypal\l"];
@@ -102,7 +102,7 @@ Domain schema
 
       Abstract models (dashed boxes in the drawn version; no table of their own)
       -------------------------------------------------------------------------
-      members.TimestampedModel   created_at, updated_at
+      caldart.TimestampedModel   created_at, updated_at
                                  inherited by Dart, MemberProfile,
                                  MembershipPlan, Membership, Aircraft,
                                  Payment and ReminderLog

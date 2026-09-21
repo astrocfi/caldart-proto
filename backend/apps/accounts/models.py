@@ -127,6 +127,8 @@ class User(AbstractUser):
     @property
     def membership_status(self) -> dict:
         """Delegates to ``members.services.membership_status``."""
+        # Inline: members sits above accounts and apps.members.services imports
+        # apps.accounts.services, so a top-level import here would close the cycle.
         from apps.members.services import membership_status
 
         return membership_status(self)
@@ -134,6 +136,9 @@ class User(AbstractUser):
     @property
     def can_access_members_content(self) -> bool:
         """Current membership, or any role beyond plain ``member``."""
+        # Inline: members sits above accounts in the app order, so this module may
+        # not depend on it at the top level even though apps.members.models itself
+        # imports nothing from accounts.
         from apps.members.models import MembershipState
 
         if self.is_superuser:

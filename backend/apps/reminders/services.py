@@ -136,6 +136,8 @@ def renew_url() -> str:
 
 
 def _site_settings():
+    # Inline: the site settings live in cms, the top layer, and a top-level import
+    # would make reminders depend upward on it.
     from apps.cms.models import get_site_settings
 
     return get_site_settings()
