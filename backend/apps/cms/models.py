@@ -30,6 +30,7 @@ from apps.cms.blocks import (
     stream_headings,
 )
 from apps.cms.forms import RestrictedBlocksPageForm
+from apps.members.models import MembershipState
 
 #: Themes shipped in ``frontend/src/styles/themes/``.
 THEME_CHOICES: tuple[tuple[str, str], ...] = (
@@ -69,7 +70,7 @@ def members_wall_state(user) -> str:
     if user is None or not getattr(user, "is_authenticated", False):
         return "anonymous"
     status = user.membership_status["status"]
-    return "expired" if status == "expired" else "none"
+    return "expired" if status == MembershipState.EXPIRED else "none"
 
 
 def members_wall_context(user) -> dict:

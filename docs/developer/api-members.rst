@@ -234,8 +234,9 @@ password and ``apps.accounts.services.send_password_invitation`` emails an
 invitation whose subject is ``<organization name>: set your password``.  It
 renders
 ``templates/emails/member_invitation.{txt,html}`` from the same context as the
-reset email — organization name, contact address and link expiry from Wagtail's
-site settings — and its link is ``build_reset_url``'s, so the portal posts it
+reset email — organization name and contact address from Wagtail's site
+settings, link expiry from ``PASSWORD_RESET_TIMEOUT`` in whole days — and its
+link is ``build_reset_url``'s, so the portal posts it
 back to ``/auth/password/reset/confirm`` unchanged (:doc:`api-auth`).  The mail
 is queued with ``transaction.on_commit``, so a failed create never sends one —
 and a test has to use ``django_capture_on_commit_callbacks`` to see it.

@@ -18,6 +18,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
+from django.http import HttpRequest
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -224,7 +225,7 @@ def build_reset_url(user: User) -> str:
     return f"{settings.SITE_URL.rstrip('/')}{RESET_PATH}?uid={uid}&token={token}"
 
 
-def _password_link_context(user: User, *, request) -> dict:
+def _password_link_context(user: User, *, request: HttpRequest | None) -> dict[str, object]:
     """The context both password emails render, carrying a fresh reset link.
 
     ``org_name`` and ``contact_email`` come from Wagtail's site settings for
@@ -247,7 +248,9 @@ def _password_link_context(user: User, *, request) -> dict:
     }
 
 
-def _send_password_link_email(user: User, *, template: str, subject: str, context: dict) -> None:
+def _send_password_link_email(
+    user: User, *, template: str, subject: str, context: dict[str, object]
+) -> None:
     """Mail ``user`` both bodies of ``emails/<template>.{txt,html}``.
 
     The text body is the message proper and the HTML one an alternative, so a
@@ -263,7 +266,7 @@ def _send_password_link_email(user: User, *, template: str, subject: str, contex
     message.send()
 
 
-def send_password_reset_email(user: User, *, request=None) -> bool:
+def send_password_reset_email(user: User, *, request: HttpRequest | None = None) -> bool:
     """Mail ``user`` a reset link.  Returns False when there is nobody to mail.
 
     The subject is ``"<organization name>: reset your password"`` and the two
@@ -286,7 +289,7 @@ def send_password_reset_email(user: User, *, request=None) -> bool:
     return True
 
 
-def send_password_invitation(user: User, *, request=None) -> None:
+def send_password_invitation(user: User, *, request: HttpRequest | None = None) -> None:
     """Mail ``user`` the link that sets the first password on their account.
 
     An administrator may create a member without a password; the account holds
