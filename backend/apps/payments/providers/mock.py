@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 
@@ -16,18 +18,37 @@ class MockPaymentsDisabled(RuntimeError):
 
 @register
 class MockProvider(Provider):
+    """A provider that moves no money, for development, tests and e2e runs.
+
+    Every entry point raises :class:`MockPaymentsDisabled` unless
+    ``PAYMENTS_MOCK_ENABLED`` is on, so a production deployment cannot use it to
+    grant itself a membership.
+    """
+
     slug = "mock"
 
     def _check_enabled(self) -> None:
         if not settings.PAYMENTS_MOCK_ENABLED:
             raise MockPaymentsDisabled("The mock payment provider is disabled.")
 
-    def start(self, payment: Payment) -> dict:
+    def start(self, payment: Payment) -> dict[str, Any]:
+        """Nothing for the browser to do, so an empty dict.
+
+        Raises :class:`MockPaymentsDisabled` when ``PAYMENTS_MOCK_ENABLED`` is off.
+        """
         self._check_enabled()
         return {}
 
-    def confirm(self, payment: Payment, *, outcome: str = "succeed", **kwargs) -> bool:
-        """``outcome`` is ``"succeed"`` or ``"fail"``."""
+    def confirm(self, payment: Payment, *, outcome: str = "succeed", **kwargs: Any) -> bool:
+        """Complete the payment the way ``outcome`` asks.
+
+        ``outcome`` is ``"succeed"`` or ``"fail"``.  Succeeding marks the payment
+        succeeded with the ``mock`` wallet, gives it the reference ``mock_<id>`` if
+        it has none, activates the term and returns ``True``; anything else marks it
+        failed and returns ``False``.  Either way ``raw`` records the outcome and the
+        amount.  Raises :class:`MockPaymentsDisabled` when ``PAYMENTS_MOCK_ENABLED``
+        is off.
+        """
         self._check_enabled()
         raw = {"provider": "mock", "outcome": outcome, "amount_cents": payment.amount_cents}
         if outcome == "succeed":
@@ -42,6 +63,7 @@ class MockProvider(Provider):
         return False
 
     def handle_webhook(self, request: HttpRequest) -> HttpResponse:
+        """Accept and ignore: 204 for a ``POST``, 405 for any other method."""
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
         return HttpResponse(status=204)

@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import logging
 from functools import lru_cache
+from typing import Any
 
 import stripe
 from django.conf import settings
@@ -109,23 +110,30 @@ def unavailable(payment: Payment, call: str, exc: stripe.StripeError) -> Provide
 
 def secret_key() -> str:
     """The configured secret key, or raise so the API answers 400 rather than 500."""
-    key = settings.STRIPE_SECRET_KEY
+    key: str = settings.STRIPE_SECRET_KEY
     if not key:
         raise ProviderNotConfigured("Stripe is not configured (STRIPE_SECRET_KEY is empty).")
     return key
 
 
-def jsonable(value: dict) -> dict:
+def jsonable(value: dict[str, Any]) -> dict[str, Any]:
     """A plain, JSON-serializable dict for ``Payment.raw``.
 
     Stripe's own types are converted to dicts at the SDK boundary, so all this
-    has left to do is drop anything JSON cannot carry, such as a date.
+    has left to do is drop anything JSON cannot carry, such as a date.  Such a
+    value is replaced by its ``str()``.
     """
-    return json.loads(json.dumps(value, default=str))
+    converted: dict[str, Any] = json.loads(json.dumps(value, default=str))
+    return converted
 
 
-def wallet_from_intent(intent: dict) -> str:
-    """Map ``latest_charge.payment_method_details`` onto our wallet choices."""
+def wallet_from_intent(intent: dict[str, Any]) -> str:
+    """Map ``latest_charge.payment_method_details`` onto our wallet choices.
+
+    An Apple Pay, Google Pay or Link wallet gives that choice, a Link payment
+    method type gives ``link``, and any other readable card detail gives ``card``.
+    An intent whose latest charge is missing or unexpanded gives ``unknown``.
+    """
     charge = intent.get("latest_charge")
     if not isinstance(charge, dict):
         return PaymentWallet.UNKNOWN
@@ -145,8 +153,14 @@ def wallet_from_intent(intent: dict) -> str:
     return PaymentWallet.CARD
 
 
-def payment_for_intent(intent: dict) -> Payment | None:
-    """Find our row from the intent's metadata, falling back to the intent id."""
+def payment_for_intent(intent: dict[str, Any]) -> Payment | None:
+    """Find our row from the intent's metadata, falling back to the intent id.
+
+    Matches only Stripe payments: ``metadata.payment_id`` first, then
+    ``provider_ref`` against the intent's id.  A ``payment_id`` that is not a
+    number matches nothing, and the search falls through to the intent id.
+    Returns ``None`` when neither finds a row.
+    """
     metadata = intent.get("metadata") or {}
     raw_id = metadata.get("payment_id")
     if raw_id:
@@ -167,11 +181,20 @@ def payment_for_intent(intent: dict) -> Payment | None:
 
 @register
 class StripeProvider(Provider):
+    """Stripe via the Payment Element: card, Apple Pay, Google Pay and Link."""
+
     slug = "stripe"
 
     # ----------------------------------------------------------------- start
-    def start(self, payment: Payment) -> dict:
-        """Create the PaymentIntent and hand the client its ``client_secret``."""
+    def start(self, payment: Payment) -> dict[str, Any]:
+        """Create the PaymentIntent and hand the client its ``client_secret``.
+
+        Stores the intent's id as ``provider_ref`` and the whole intent in ``raw``,
+        and returns ``{"client_secret": ...}``.  The call is idempotent per payment,
+        so starting the same payment twice returns the first intent rather than
+        charging twice.  Raises :class:`ProviderNotConfigured` without a secret key
+        and :class:`ProviderUnavailable` when Stripe cannot be reached.
+        """
         client = stripe_client()
         try:
             created = client.v1.payment_intents.create(
@@ -180,11 +203,13 @@ class StripeProvider(Provider):
                     "currency": payment.currency,
                     "automatic_payment_methods": {"enabled": True},
                     "description": f"CalDART · {payment.description}",
-                    "receipt_email": payment.user.email or None,
+                    # stripe's params type the field as a string, but its API
+                    # takes null for "send no receipt".
+                    "receipt_email": payment.user.email or None,  # type: ignore[typeddict-item]
                     "metadata": {
                         "payment_id": str(payment.pk),
                         "user_id": str(payment.user_id),
-                        "plan": payment.plan.slug if payment.plan_id else "",
+                        "plan": payment.plan.slug if payment.plan is not None else "",
                     },
                 },
                 {"idempotency_key": idempotency_key(payment)},
@@ -198,8 +223,18 @@ class StripeProvider(Provider):
         return {"client_secret": intent["client_secret"]}
 
     # --------------------------------------------------------------- confirm
-    def confirm(self, payment: Payment, *, payment_intent_id: str = "", **kwargs) -> bool:
-        """Retrieve the intent and verify it before activating anything."""
+    def confirm(self, payment: Payment, *, payment_intent_id: str = "", **kwargs: Any) -> bool:
+        """Retrieve the intent and verify it before activating anything.
+
+        ``payment_intent_id`` defaults to the payment's own ``provider_ref``.
+        Returns ``True`` once Stripe reports ``succeeded`` and the payment has been
+        marked succeeded; returns ``False``, having marked the payment failed, when
+        Stripe reports ``canceled`` or ``requires_payment_method``.  Raises
+        :class:`PaymentVerificationError` when there is no intent to confirm, when
+        the intent belongs to another payment, when :meth:`verify` disagrees, and
+        when Stripe reports any other status.  Raises
+        :class:`ProviderUnavailable` when Stripe cannot be reached.
+        """
         intent_id = payment_intent_id or payment.provider_ref
         if not intent_id:
             raise PaymentVerificationError("No PaymentIntent to confirm.")
@@ -229,8 +264,13 @@ class StripeProvider(Provider):
         )
         return True
 
-    def verify(self, payment: Payment, intent: dict) -> None:
-        """Everything about the intent that must match our own row."""
+    def verify(self, payment: Payment, intent: dict[str, Any]) -> None:
+        """Everything about the intent that must match our own row.
+
+        Returns ``None`` when the intent's ``metadata.payment_id``, ``amount`` and
+        ``currency`` all match the payment.  Raises
+        :class:`PaymentVerificationError` naming the first that does not.
+        """
         metadata = intent.get("metadata") or {}
         if str(metadata.get("payment_id") or "") != str(payment.pk):
             raise PaymentVerificationError("PaymentIntent metadata does not match this payment.")
@@ -241,7 +281,16 @@ class StripeProvider(Provider):
 
     # --------------------------------------------------------------- webhook
     def handle_webhook(self, request: HttpRequest) -> HttpResponse:
-        """Verify ``Stripe-Signature``, then apply the event idempotently."""
+        """Verify ``Stripe-Signature``, then apply the event idempotently.
+
+        Answers 405 to any method but ``POST`` and 400 to a body whose signature
+        does not check out.  Otherwise the answer is 200 with
+        ``{"received": true, "handled": ...}``: ``handled`` is true when a
+        ``payment_intent.succeeded`` event passed :meth:`verify` and activated the
+        term, or a ``payment_intent.payment_failed`` event marked the payment
+        failed.  An unknown payment, a failed verification and any other event type
+        are all received but not handled.
+        """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
 

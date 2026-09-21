@@ -104,8 +104,6 @@ max-doc-length = 90
 [tool.ruff.lint.per-file-ignores]
 # Unit: aircraft
 "backend/apps/aircraft/**" = ["ANN", "D"]
-# Unit: payments
-"backend/apps/payments/**" = ["ANN", "D"]
 # Unit: accounts
 "backend/apps/accounts/**" = ["ANN", "D"]
 # Unit: cms
@@ -198,15 +196,15 @@ django_settings_module = "caldart.settings.test"
 # whenever the django-stubs plugin resolves INSTALLED_APPS.
 [[tool.mypy.overrides]]
 module = [
-    "wagtail.*",
-    "environ.*",
     "django_filters.*",
     "django_vite.*",
-    "whitenoise.*",
-    "taggit.*",
+    "environ.*",
     "modelcluster.*",
     "modelsearch.*",
+    "taggit.*",
     "treebeard.*",
+    "wagtail.*",
+    "whitenoise.*",
 ]
 ignore_missing_imports = true
 
@@ -215,11 +213,6 @@ ignore_missing_imports = true
 # Unit: aircraft
 [[tool.mypy.overrides]]
 module = ["apps.aircraft.*"]
-ignore_errors = true
-
-# Unit: payments
-[[tool.mypy.overrides]]
-module = ["apps.payments.*"]
 ignore_errors = true
 
 # Unit: accounts

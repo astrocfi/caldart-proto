@@ -10,13 +10,20 @@ with the same sentence the API answers with, and write nothing.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from django.contrib.auth import get_user_model
+from django.db.models import Model
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from wagtail import hooks
 from wagtail.admin import messages
 
+from apps.accounts.models import User
 from apps.payments.models import payment_deletion_refusal
+
+if TYPE_CHECKING:
+    from wagtail.admin.views.bulk_action import BulkAction
 
 #: Where a refused delete sends the operator back to.
 USERS_INDEX_URL_NAME = "wagtailusers_users:index"
@@ -25,8 +32,9 @@ USERS_INDEX_URL_NAME = "wagtailusers_users:index"
 MAX_REFUSALS_SHOWN = 5
 
 
-@hooks.register("before_delete_user")
-def refuse_to_delete_a_user_with_payments(request: HttpRequest, user) -> HttpResponse | None:
+# wagtail's hooks.register is untyped, which would otherwise make the hook untyped.
+@hooks.register("before_delete_user")  # type: ignore[untyped-decorator]
+def refuse_to_delete_a_user_with_payments(request: HttpRequest, user: User) -> HttpResponse | None:
     """Send a protected account's delete back to the users listing with the reason.
 
     Returns ``None`` -- letting the delete proceed -- for an account that has no
@@ -40,9 +48,10 @@ def refuse_to_delete_a_user_with_payments(request: HttpRequest, user) -> HttpRes
     return redirect(USERS_INDEX_URL_NAME)
 
 
-@hooks.register("before_bulk_action")
+# wagtail's hooks.register is untyped, which would otherwise make the hook untyped.
+@hooks.register("before_bulk_action")  # type: ignore[untyped-decorator]
 def refuse_to_bulk_delete_users_with_payments(
-    request: HttpRequest, action_type: str, objects: list, _action
+    request: HttpRequest, action_type: str, objects: list[Model], _action: BulkAction
 ) -> HttpResponse | None:
     """Refuse a bulk ``Delete`` that would take an account holding payments with it.
 
