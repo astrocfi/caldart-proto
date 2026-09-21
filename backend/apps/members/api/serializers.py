@@ -11,9 +11,10 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.members.models import MembershipPlan, MembershipState
+from apps.members.services import MembershipStatusDict
 
 
-class MembershipStatusSerializer(serializers.Serializer):
+class MembershipStatusSerializer(serializers.Serializer[MembershipStatusDict]):
     """The dict ``members.services.membership_status`` returns."""
 
     status = serializers.ChoiceField(choices=MembershipState.choices)
@@ -22,7 +23,7 @@ class MembershipStatusSerializer(serializers.Serializer):
     is_lifetime = serializers.BooleanField()
 
 
-class PlanSerializer(serializers.ModelSerializer):
+class PlanSerializer(serializers.ModelSerializer[MembershipPlan]):
     """One membership plan, as the public catalog and the checkout list it."""
 
     class Meta:

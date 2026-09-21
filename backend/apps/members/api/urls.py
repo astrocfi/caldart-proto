@@ -6,11 +6,11 @@ Member self-service (``/me/...``, ``/darts``, ``/plans``) lives in
 module and is included once below, so the two never collide here.
 """
 
-from django.urls import include, path
+from django.urls import URLPattern, URLResolver, include, path
 
 app_name = "members"
 
-urlpatterns: list = [
+urlpatterns: list[URLPattern | URLResolver] = [
     # -- profile -----------------------------------------------------------
     path("", include("apps.members.api.profile_urls")),
     # -- admin -------------------------------------------------------------
