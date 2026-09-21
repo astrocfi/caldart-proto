@@ -40,6 +40,18 @@ def expiring_member(annual_plan, today):
     return membership.user
 
 
+@pytest.fixture
+def last_day_member(annual_plan, today):
+    """A current member whose coverage ends today, the only match a zero-day window has."""
+    day = timedelta(days=1)
+    membership = MembershipFactory(
+        plan=annual_plan,
+        starts_on=today - (annual_plan.duration_days - 1) * day,
+        ends_on=today,
+    )
+    return membership.user
+
+
 def emails(response) -> set[str]:
     return {row["email"] for row in response.json()["results"]}
 
@@ -60,10 +72,14 @@ def test_expiring_within_huge_value_is_clamped_to_the_limit(admin_client, expiri
     assert expiring_member.email in huge
 
 
-def test_expiring_within_negative_value_is_clamped_to_zero(admin_client, expiring_member) -> None:
+def test_expiring_within_negative_value_is_clamped_to_zero(
+    admin_client, expiring_member, last_day_member
+) -> None:
+    """A window of ``-5`` days keeps today's expiries, which a shifted cutoff would drop."""
     negative = emails(admin_client.get(LIST_URL, {"expiring_within": "-5"}))
     zero = emails(admin_client.get(LIST_URL, {"expiring_within": "0"}))
     assert negative == zero
+    assert last_day_member.email in negative
     assert expiring_member.email not in negative
 
 
