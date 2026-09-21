@@ -66,7 +66,7 @@ export function useAircraftList(
   });
 }
 
-/** One aircraft's detail record, or disabled while `id` is null. */
+/** One aircraft's detail record, or disabled while `id` is null or not a number. */
 export function useAircraft(id: number | null): UseQueryResult<AircraftDetail> {
   return useQuery({
     queryKey: [AIRCRAFT_KEY, 'detail', id],
