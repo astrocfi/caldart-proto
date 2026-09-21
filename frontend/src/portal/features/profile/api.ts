@@ -77,7 +77,10 @@ export function useSiteConfig(): UseQueryResult<SiteConfig> {
   });
 }
 
-/** Saves the signed-in member's profile and invalidates the profile and `auth/me` queries. */
+/**
+ * Saves the signed-in member's profile, writes the response into the profile cache and
+ * invalidates the `auth/me` query.
+ */
 export function useSaveProfile(): UseMutationResult<Profile, Error, ProfilePatch> {
   const queryClient = useQueryClient();
   return useMutation({
