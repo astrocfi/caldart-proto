@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
-from rest_framework.exceptions import ValidationError
 
 from apps.members.models import Membership, MembershipSource
 from apps.members.services import membership_status
@@ -12,6 +13,7 @@ from apps.payments.providers import available_providers, get_provider
 from apps.payments.providers.base import ProviderNotConfigured
 from apps.payments.providers.mock import MockPaymentsDisabled
 from apps.payments.services import create_checkout, mark_failed, mark_succeeded
+from caldart.exceptions import DomainValidationError
 
 pytestmark = pytest.mark.django_db
 
@@ -32,23 +34,50 @@ def test_create_checkout_ignores_a_client_amount(member, annual_plan):
 
 
 def test_create_checkout_rejects_an_unknown_plan(member, annual_plan):
-    with pytest.raises(ValidationError):
+    with pytest.raises(
+        DomainValidationError, match=re.escape("Unknown membership plan 'platinum'.")
+    ):
         create_checkout(member, "platinum", 0, PaymentProvider.MOCK)
 
 
+def test_the_unknown_plan_refusal_names_the_plan_field(member, annual_plan):
+    with pytest.raises(DomainValidationError) as refusal:
+        create_checkout(member, "platinum", 0, PaymentProvider.MOCK)
+    assert refusal.value.field == "plan"
+
+
 def test_create_checkout_rejects_an_unknown_provider(member, annual_plan):
-    with pytest.raises(ValidationError):
+    message = re.escape("Unknown payment provider 'bitcoin'.")
+    with pytest.raises(DomainValidationError, match=message):
         create_checkout(member, "annual", 0, "bitcoin")
 
 
+def test_the_unknown_provider_refusal_names_the_provider_field(member, annual_plan):
+    with pytest.raises(DomainValidationError) as refusal:
+        create_checkout(member, "annual", 0, "bitcoin")
+    assert refusal.value.field == "provider"
+
+
 def test_create_checkout_rejects_a_negative_contribution(member, annual_plan):
-    with pytest.raises(ValidationError):
+    with pytest.raises(DomainValidationError, match="Contribution cannot be negative."):
         create_checkout(member, "annual", -100, PaymentProvider.MOCK)
 
 
+def test_the_negative_contribution_refusal_names_the_contribution_field(member, annual_plan):
+    with pytest.raises(DomainValidationError) as refusal:
+        create_checkout(member, "annual", -100, PaymentProvider.MOCK)
+    assert refusal.value.field == "contribution_cents"
+
+
 def test_create_checkout_rejects_a_zero_total(member):
-    with pytest.raises(ValidationError):
+    with pytest.raises(DomainValidationError, match="Nothing to charge."):
         create_checkout(member, None, 0, PaymentProvider.MOCK)
+
+
+def test_the_zero_total_refusal_names_the_amount_field(member):
+    with pytest.raises(DomainValidationError) as refusal:
+        create_checkout(member, None, 0, PaymentProvider.MOCK)
+    assert refusal.value.field == "amount_cents"
 
 
 def test_donation_only_checkout_has_no_plan(member):

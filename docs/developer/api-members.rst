@@ -30,6 +30,11 @@ The code lives in ``backend/apps/members/``:
 ``api/admin_filters.py``
    The filter set, the ordering backend, and the queryset the list is served
    from.  The membership annotations it builds on live in ``services.py``.
+``services.py``
+   The member record itself: ``register_member``, ``create_member``,
+   ``update_member`` and ``delete_member`` own the rules the endpoints below
+   state, and the account half of each goes to ``accounts.services``.  The
+   membership status and ``activate_term`` live here too.
 ``api/admin_urls.py``
    Routes, included from ``api/urls.py``.
 ``reports.py``
@@ -363,6 +368,10 @@ Tests
    page sizes.
 ``backend/tests/test_members_reports.py``
    The two exports.
+``backend/tests/test_member_services.py``
+   ``members.services`` on its own: atomic registration, the invitation sent
+   only without a password and only on commit, the two halves of an update, and
+   each delete guard.
 
 On the front end, ``frontend/src/portal/features/admin-members/`` holds a test
 per page: filters to query parameters, export hrefs, the grant-term form, the

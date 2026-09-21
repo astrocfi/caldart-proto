@@ -1,4 +1,10 @@
-"""Membership services.
+"""Member and membership services.
+
+A member record is an account plus its profile, and the four functions at the
+top of this module are the only ways one is created, edited or removed.  Each
+enforces its own rules and refuses with a ``DomainError``, so a management
+command, the Django admin and the API all behave the same way.  The account
+half of every rule belongs to ``accounts.services``.
 
 ``membership_status`` is the single source of truth for "is this person a
 current member"; ``activate_term`` is the single way a term is created.
@@ -34,8 +40,10 @@ and canceled terms.
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import (
     CharField,
@@ -47,18 +55,142 @@ from django.db.models import (
     QuerySet,
     Subquery,
 )
+from django.db.models.deletion import ProtectedError
+from django.http import HttpRequest
 from django.utils import timezone
 
+from apps.accounts.roles import SYSTEM_ADMIN
+from apps.accounts.services import (
+    AccountChanges,
+    create_account,
+    effective_roles,
+    send_password_invitation,
+    update_account,
+)
 from apps.members.models import (
+    MemberProfile,
     Membership,
     MembershipPlan,
     MembershipSource,
     MembershipState,
     MembershipStatusChoices,
 )
+from apps.payments.models import payment_deletion_refusal
+from caldart.exceptions import DomainPermissionError
+
+User = get_user_model()
+
+log = logging.getLogger(__name__)
 
 #: Shape returned by :func:`membership_status`.
 MembershipStatusDict = dict
+
+SELF_DELETE_REFUSED = "You cannot delete your own account."
+SYSTEM_ADMIN_DELETE_REFUSED = "Only a system administrator can delete a system administrator."
+
+
+# --------------------------------------------------------------------------
+# The member record: account plus profile
+# --------------------------------------------------------------------------
+@transaction.atomic
+def register_member(
+    *, email: str, password: str, first_name: str = "", last_name: str = ""
+) -> User:
+    """Create the member account ``POST /auth/register`` signs in, and return it.
+
+    The profile starts blank on purpose -- the join wizard fills it in -- but it
+    must exist so ``/me/profile`` is a PATCH rather than a create.  Account and
+    profile are written together, so a failure leaves no half-made member.
+    """
+    user = create_account(
+        email=email, password=password, first_name=first_name, last_name=last_name
+    )
+    MemberProfile.objects.get_or_create(user=user)
+    return user
+
+
+@transaction.atomic
+def create_member(
+    actor: User,
+    *,
+    email: str,
+    password: str = "",
+    first_name: str = "",
+    last_name: str = "",
+    profile: dict | None = None,
+    request: HttpRequest | None = None,
+) -> User:
+    """Create a member an administrator is entering, and return the account.
+
+    ``profile`` is the profile fields to record, which on the day somebody joins
+    at an airshow may be none of them.  Without a password the account holds an
+    unusable one and is mailed an invitation to set the first; the mail is queued
+    past the commit, so a create that rolls back mails nobody.  ``request`` only
+    tells that mail which site's name and contact address to use.
+    """
+    user = create_account(
+        email=email, password=password, first_name=first_name, last_name=last_name
+    )
+    MemberProfile.objects.create(user=user, **(profile or {}))
+    if not password:
+        transaction.on_commit(lambda: send_password_invitation(user, request=request))
+    log.info("Member created: actor=%s user=%s invited=%s", actor.pk, user.pk, not password)
+    return user
+
+
+@transaction.atomic
+def update_member(
+    actor: User,
+    target: User,
+    *,
+    account: AccountChanges | None = None,
+    profile: dict | None = None,
+) -> User:
+    """Apply an administrator's edit to a member, and return the account.
+
+    ``account`` goes to :func:`apps.accounts.services.update_account`, which owns
+    every rule about who may change what, and ``profile`` is written over the
+    member's profile row, creating it if the account somehow has none.  Both
+    halves are written together, so a refused account edit leaves the profile
+    alone.
+    """
+    update_account(actor, target, account or {})
+    if profile is not None:
+        row, _ = MemberProfile.objects.get_or_create(user=target)
+        for field, value in profile.items():
+            setattr(row, field, value)
+        row.save()
+        target.refresh_from_db()
+    return target
+
+
+@transaction.atomic
+def delete_member(actor: User, target: User) -> None:
+    """Delete ``target``'s account and everything hanging off it, refused three ways.
+
+    Nobody may delete themselves; only a system administrator may delete one.
+    Both of those tests are judged on effective roles, so a Django superuser
+    counts as a system administrator whether or not the role group was ever
+    added.  The third refusal protects the accounts: a member with any payment,
+    whatever its status, cannot be deleted, because the payment is a financial
+    record.  Deactivation is the alternative.
+
+    Every refusal raises ``DomainPermissionError`` and writes nothing.
+    """
+    if target.pk == actor.pk:
+        raise DomainPermissionError(SELF_DELETE_REFUSED)
+    target_is_system_admin = SYSTEM_ADMIN in effective_roles(target)
+    if target_is_system_admin and SYSTEM_ADMIN not in effective_roles(actor):
+        raise DomainPermissionError(SYSTEM_ADMIN_DELETE_REFUSED)
+    refusal = payment_deletion_refusal(target)
+    if refusal is not None:
+        raise DomainPermissionError(refusal)
+    try:
+        target.delete()
+    except ProtectedError as exc:
+        # ``Payment.user`` is the only protected reference to an account, so a row
+        # created between the check above and the delete lands here.
+        raise DomainPermissionError(payment_deletion_refusal(target)) from exc
 
 
 def _no_membership() -> MembershipStatusDict:

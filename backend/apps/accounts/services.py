@@ -1,7 +1,8 @@
-"""Account services: registration, the account-edit guard, roles and password email.
+"""Account services: creating an account, the account-edit guard, roles and password email.
 
 The API layer validates; everything that changes state lives here so the
-management commands, the Django admin and the tests can reuse it.
+management commands, the Django admin and the tests can reuse it.  A rule the
+caller breaks is refused with a ``DomainError``, never an HTTP exception.
 
 Two emails carry a password link: the reset a member asks for, and the
 invitation an administrator-created account receives.  Both render a pair of
@@ -12,6 +13,7 @@ expiry wording can never drift apart.
 from __future__ import annotations
 
 import logging
+from typing import TypedDict
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -23,7 +25,8 @@ from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-from apps.accounts.roles import MEMBER, SYSTEM_ADMIN, WEBSITE_ADMIN
+from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
+from caldart.exceptions import DomainValidationError
 
 User = get_user_model()
 
@@ -45,6 +48,10 @@ SECONDS_PER_DAY = 86_400
 #: The order is the order in which a refusal reports them.
 PROTECTED_ACCOUNT_FIELDS: tuple[str, ...] = ("email", "is_active")
 
+#: The account columns :func:`update_account` writes, in the order it writes them.
+#: Anything else in the changes it is handed is ignored.
+ACCOUNT_FIELDS: tuple[str, ...] = ("email", "first_name", "last_name", "is_active")
+
 SELF_DEACTIVATION_REFUSED = "You cannot deactivate your own account."
 EMAIL_CHANGE_REFUSED = (
     "You cannot change the email address of an account that holds roles you do not hold."
@@ -52,28 +59,44 @@ EMAIL_CHANGE_REFUSED = (
 STATUS_CHANGE_REFUSED = (
     "You cannot activate or deactivate an account that holds roles you do not hold."
 )
+ROLE_CHANGE_REFUSED = "Only a system administrator can grant or revoke the system_admin role."
+
+
+class AccountChanges(TypedDict, total=False):
+    """What :func:`update_account` may be asked to change.  Every key is optional.
+
+    ``roles`` is the complete list the account should end up holding, in any
+    order; the other keys are the account columns, written as given.
+    """
+
+    email: str
+    first_name: str
+    last_name: str
+    is_active: bool
+    roles: list[str]
 
 
 # --------------------------------------------------------------------------
-# Registration
+# Creating an account
 # --------------------------------------------------------------------------
 @transaction.atomic
-def register_user(*, email: str, password: str, first_name: str = "", last_name: str = "") -> User:
-    """Create a member account: user + ``member`` role + empty profile.
+def create_account(
+    *, email: str, password: str = "", first_name: str = "", last_name: str = ""
+) -> User:
+    """Create an account holding the ``member`` role, and return it.
 
-    The profile starts blank on purpose — the join wizard fills it in — but it
-    must exist so ``/me/profile`` is a PATCH rather than a create.
+    Every account on the site is at least a member, so the role is not a
+    parameter.  Without a password the account holds an unusable one and can
+    only be opened by following an invitation or reset link.  The names are
+    stored stripped.
     """
-    from apps.members.models import MemberProfile
-
     user = User.objects.create_user(
         email=email,
-        password=password,
+        password=password or None,
         first_name=first_name.strip(),
         last_name=last_name.strip(),
     )
     user.add_role(MEMBER)
-    MemberProfile.objects.get_or_create(user=user)
     return user
 
 
@@ -110,17 +133,81 @@ def sync_django_flags(user: User) -> None:
 # --------------------------------------------------------------------------
 # Account edits
 # --------------------------------------------------------------------------
-class AccountEditRefused(Exception):
-    """An account edit the actor may not make.
+@transaction.atomic
+def update_account(actor: User, target: User, changes: AccountChanges) -> User:
+    """Apply ``changes`` to ``target`` on ``actor``'s behalf, save it and return it.
 
-    ``field`` is the request field the complaint belongs on, so an API caller can
-    show it against the input it came from, and ``message`` is the text to show.
+    This is the only way an account is edited, so every rule is enforced once,
+    whichever endpoint, command or admin screen asked.  The rules run in this
+    order, and the first refusal raises ``DomainValidationError`` naming the
+    field it belongs on, leaving the account untouched:
+
+    #. nobody may deactivate their own account;
+    #. only a system administrator may grant or revoke ``system_admin``;
+    #. an account holding roles the actor does not hold has an untouchable email
+       address and active flag -- see :func:`check_account_edit`.
+
+    A value that would not really alter the account is not a change and so is
+    never a refusal; on a record whose protected fields the actor may not write
+    it is dropped rather than saved, so an address resent in another case cannot
+    rewrite the stored one.  A role list the account already holds is not written
+    at all: rebuilding the Django flags from it would strip a ``createsuperuser``
+    account of its access on a save that meant to correct a name.  Roles are
+    stored in privilege order however they arrive.
     """
+    fields = dict(changes)
+    roles = fields.pop("roles", None)
 
-    def __init__(self, field: str, message: str) -> None:
-        super().__init__(message)
-        self.field = field
-        self.message = message
+    _refuse_self_deactivation(actor, target, _protected_changes(target, fields))
+    if roles is not None:
+        roles = _checked_roles(actor, target, roles)
+    check_account_edit(actor, target, fields)
+    if not may_edit_protected_fields(actor, target):
+        for field in PROTECTED_ACCOUNT_FIELDS:
+            fields.pop(field, None)
+
+    for field in ACCOUNT_FIELDS:
+        if field in fields:
+            setattr(target, field, fields[field])
+    if roles is not None and _writes_roles(target, set(roles)):
+        target.set_roles(roles)
+        sync_django_flags(target)
+    target.save()
+    return target
+
+
+def _checked_roles(actor: User, target: User, wanted: list[str]) -> list[str]:
+    """``wanted`` in privilege order, refusing a ``system_admin`` move ``actor`` may not make.
+
+    Writing a role list rebuilds the Django flags from that list alone, so the two
+    directions are measured against different sets.  A write grants the role when it
+    names ``system_admin`` on an account whose groups lack it, and revokes it when it
+    leaves the role out of the list for an account that counts as a system
+    administrator -- which a ``createsuperuser`` account does, on the superuser flag
+    alone.  A list matching the groups the account already holds writes nothing and
+    is never refused.
+    """
+    held = set(wanted)
+    is_refused = (
+        _writes_roles(target, held)
+        and _moves_system_admin(target, held)
+        and SYSTEM_ADMIN not in effective_roles(actor)
+    )
+    if is_refused:
+        raise DomainValidationError("roles", ROLE_CHANGE_REFUSED)
+    return [slug for slug in ROLE_SLUGS if slug in held]
+
+
+def _writes_roles(target: User, wanted: set[str]) -> bool:
+    """True when writing ``wanted`` would alter ``target``'s role groups."""
+    return wanted != set(target.roles)
+
+
+def _moves_system_admin(target: User, wanted: set[str]) -> bool:
+    """True when writing ``wanted`` to ``target`` would move the ``system_admin`` role."""
+    if SYSTEM_ADMIN in wanted:
+        return SYSTEM_ADMIN not in target.roles
+    return SYSTEM_ADMIN in effective_roles(target)
 
 
 def may_edit_protected_fields(actor: User, target: User) -> bool:
@@ -149,7 +236,7 @@ def check_account_edit(actor: User, target: User, changes: dict) -> None:
     Nobody may deactivate their own account.  Beyond that, a protected change is
     refused unless the actor holds every role the target holds; a system
     administrator, including a Django superuser without the role, holds them all.
-    Raises ``AccountEditRefused`` on the first refused field, email before status,
+    Raises ``DomainValidationError`` on the first refused field, email before status,
     and returns ``None`` when the edit is allowed.  Every refusal is logged at
     WARNING with the two account ids and the field names, and no personal data.
     """
@@ -157,10 +244,7 @@ def check_account_edit(actor: User, target: User, changes: dict) -> None:
     if len(changed) == 0:
         return
 
-    if target.pk == actor.pk and "is_active" in changed:
-        # An authenticated actor is active, so the only change they can make to
-        # their own flag is to clear it.
-        _refuse(actor, target, changed, "is_active", SELF_DEACTIVATION_REFUSED)
+    _refuse_self_deactivation(actor, target, changed)
 
     if may_edit_protected_fields(actor, target):
         return
@@ -168,6 +252,16 @@ def check_account_edit(actor: User, target: User, changes: dict) -> None:
     field = changed[0]
     message = EMAIL_CHANGE_REFUSED if field == "email" else STATUS_CHANGE_REFUSED
     _refuse(actor, target, changed, field, message)
+
+
+def _refuse_self_deactivation(actor: User, target: User, changed: list[str]) -> None:
+    """Refuse the one protected change an actor can make to their own account.
+
+    An authenticated actor is active, so the only move they can make on their own
+    flag is to clear it.  ``changed`` is the protected fields the edit really alters.
+    """
+    if target.pk == actor.pk and "is_active" in changed:
+        _refuse(actor, target, changed, "is_active", SELF_DEACTIVATION_REFUSED)
 
 
 def _protected_changes(target: User, changes: dict) -> list[str]:
@@ -192,14 +286,14 @@ def _normalized_email(value: str | None) -> str:
 
 
 def _refuse(actor: User, target: User, changed: list[str], field: str, message: str) -> None:
-    """Log the refused edit and raise ``AccountEditRefused`` for ``field``."""
+    """Log the refused edit and raise ``DomainValidationError`` for ``field``."""
     log.warning(
         "Account edit refused: actor=%s target=%s fields=%s",
         actor.pk,
         target.pk,
         ",".join(changed),
     )
-    raise AccountEditRefused(field, message)
+    raise DomainValidationError(field, message)
 
 
 # --------------------------------------------------------------------------

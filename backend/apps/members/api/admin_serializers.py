@@ -9,12 +9,8 @@ payments.
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model, password_validation
-from django.db import transaction
 from rest_framework import serializers
 
-from apps.accounts.api.serializers import guard_account_edit
-from apps.accounts.roles import MEMBER
-from apps.accounts.services import send_password_invitation
 from apps.members.api.profile_serializers import (
     MembershipTermSerializer,
     PaymentSummarySerializer,
@@ -22,7 +18,7 @@ from apps.members.api.profile_serializers import (
 )
 from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.models import MemberProfile, MembershipPlan
-from apps.members.services import membership_of, membership_payload
+from apps.members.services import create_member, membership_of, membership_payload, update_member
 
 User = get_user_model()
 
@@ -254,39 +250,26 @@ class MemberCreateSerializer(serializers.Serializer):
             password_validation.validate_password(value)
         return value
 
-    @transaction.atomic
     def create(self, validated_data):
-        profile_data = validated_data.pop("profile", {}) or {}
-        password = validated_data.pop("password", "") or ""
-
-        user = User(
+        request = self.context["request"]
+        return create_member(
+            request.user,
             email=validated_data["email"],
+            password=validated_data.get("password", "") or "",
             first_name=validated_data.get("first_name", ""),
             last_name=validated_data.get("last_name", ""),
+            profile=validated_data.get("profile") or {},
+            request=request,
         )
-        if password:
-            user.set_password(password)
-        else:
-            user.set_unusable_password()
-        user.save()
-        user.add_role(MEMBER)
-
-        MemberProfile.objects.create(user=user, **profile_data)
-
-        if not password:
-            # Queued past the commit, so a create that rolls back mails nobody.
-            request = self.context["request"]
-            transaction.on_commit(lambda: send_password_invitation(user, request=request))
-        return user
 
 
 class MemberUpdateSerializer(serializers.Serializer):
     """``PATCH /admin/members/{id}`` — account fields and nested profile.
 
-    The account half obeys the same edit guard as ``/admin/users/{id}``: changing the
-    email address or the active flag of an account that holds roles the caller does
-    not hold is a field-keyed 400, and so is deactivating yourself.  It therefore
-    needs the request in its context.
+    The account half goes through the same service as ``/admin/users/{id}``, so it
+    obeys the same edit guard: changing the email address or the active flag of an
+    account that holds roles the caller does not hold is a field-keyed 400, and so is
+    deactivating yourself.  It therefore needs the request in its context.
     """
 
     email = serializers.EmailField(required=False)
@@ -314,26 +297,14 @@ class MemberUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError("An account with that email address already exists.")
         return value
 
-    def validate(self, attrs):
-        guard_account_edit(self.context["request"].user, self.instance, attrs)
-        return attrs
-
-    @transaction.atomic
     def update(self, instance, validated_data):
         profile_data = validated_data.pop("profile", None)
-
-        for field in ("email", "first_name", "last_name", "is_active"):
-            if field in validated_data:
-                setattr(instance, field, validated_data[field])
-        instance.save()
-
-        if profile_data is not None:
-            profile, _ = MemberProfile.objects.get_or_create(user=instance)
-            for field, value in profile_data.items():
-                setattr(profile, field, value)
-            profile.save()
-            instance.refresh_from_db()
-        return instance
+        return update_member(
+            self.context["request"].user,
+            instance,
+            account=validated_data,
+            profile=profile_data,
+        )
 
 
 __all__ = [

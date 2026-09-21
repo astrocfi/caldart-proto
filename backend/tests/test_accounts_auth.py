@@ -132,7 +132,7 @@ def test_register_requires_every_field(api_client, field):
 
 
 def test_register_rolls_back_when_the_profile_cannot_be_created(api_client, monkeypatch):
-    """``register_user`` is atomic: a half-made account must not survive."""
+    """``register_member`` is atomic: a half-made account must not survive."""
 
     def boom(*args, **kwargs):
         raise RuntimeError("profile exploded")
