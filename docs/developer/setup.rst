@@ -284,11 +284,15 @@ list, in full:
    * - ``format``
      - ``ruff format``, ``ruff check --fix``, ``prettier --write``
    * - ``check``
-     - ``check-backend`` then ``check-frontend``
+     - ``check-backend``, ``check-deploy``, then ``check-frontend``
    * - ``check-backend``
      - ``manage.py check --fail-level WARNING`` and
        ``manage.py makemigrations --check --dry-run``, both under
        ``caldart.settings.test``
+   * - ``check-deploy``
+     - ``manage.py check --deploy --fail-level WARNING`` under
+       ``caldart.settings.prod``, in a throwaway environment — see
+       :doc:`deployment`
    * - ``check-frontend``
      - ``npm run build`` — the production frontend build
    * - ``audit``

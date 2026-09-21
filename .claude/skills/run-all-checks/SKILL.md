@@ -53,10 +53,11 @@ The backend suite runs against Postgres, so it needs `make up`. Run a single fil
 
 ```bash
 make check-backend   # manage.py check --fail-level WARNING; makemigrations --check --dry-run
+make check-deploy    # manage.py check --deploy --fail-level WARNING
 make check-frontend  # production build (npm run build)
 ```
 
-Both backend commands run with `caldart.settings.test`.
+Both `check-backend` commands run with `caldart.settings.test`. `check-deploy` runs with `caldart.settings.prod` under a throwaway environment the Makefile recipe sets inline, and names every tag Django's deployment-only checks carry (`security`, `caches`, `async_support`).
 
 ### Documentation (`make docs`)
 

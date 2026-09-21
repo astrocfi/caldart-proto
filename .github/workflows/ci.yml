@@ -62,6 +62,9 @@ jobs:
       - name: Django system checks and missing migrations
         run: make check-backend
 
+      - name: Production deployment checks
+        run: make check-deploy
+
       - name: Tests
         run: make test-backend
 

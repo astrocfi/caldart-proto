@@ -312,7 +312,6 @@ It is hardened with the usual systemd sandbox — ``ProtectSystem=strict``,
 the new path to ``ReadWritePaths`` or backups will fail with a permission
 error.
 
-
 9. Apache
 =========
 
@@ -428,6 +427,45 @@ free space on the backup filesystem, the last backup, the version from
 
 Then, in a browser: the public site loads and is styled, ``/portal/`` signs you
 in, ``/admin/`` opens Wagtail, and ``/portal/system`` shows three green panels.
+
+
+Deployment checks
+=================
+
+``make check-deploy`` runs ``manage.py check --deploy`` against
+``caldart.settings.prod``, so the production settings are audited before every
+change reaches ``main`` and whenever you want to audit them on a checkout.
+``--deploy`` adds Django's deployment-only checks to the default set, and those
+carry three tags — ``security``, ``caches`` and ``async_support``.  The recipe
+names all three, which runs every deployment-only check while leaving out the
+default checks ``make check-backend`` already runs, one of which needs a built
+``frontend/dist``.
+
+The recipe supplies a throwaway environment inline rather than reading
+``/etc/caldart/caldart.env``.  That environment carries only what
+``caldart.settings.prod`` requires outright — a dummy ``SECRET_KEY``,
+``ALLOWED_HOSTS``, ``DATABASE_URL``, ``SITE_URL`` and ``EMAIL_URL`` — and pins
+no secure flag, so each one comes from the module's own default and the check
+exercises what a real box gets, without touching a real secret or a real
+database.
+
+``caldart.settings.prod`` silences two of Django's deployment warnings
+deliberately, both in ``SILENCED_SYSTEM_CHECKS``:
+
+``security.W021``
+   Reported while ``SECURE_HSTS_PRELOAD`` is off.  :doc:`configuration`
+   explains why that is the default.
+
+``security.W019``
+   Reported because ``X_FRAME_OPTIONS`` is ``"SAMEORIGIN"`` rather than
+   ``"DENY"``.  Wagtail's admin previews pages in a same-origin frame, and
+   ``DENY`` would break that preview; framing by other origins is still
+   refused.
+
+A real finding still fails the check, since only these two are silenced: turn
+``SECURE_SSL_REDIRECT`` off — in the environment, or by changing its default in
+``caldart.settings.prod`` — and the gate stops on ``security.W008``.
+:doc:`testing` lists it alongside the other gates.
 
 
 Logs
