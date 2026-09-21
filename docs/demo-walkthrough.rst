@@ -414,12 +414,12 @@ running, or stop them with ``make down`` — the data survives in the
 Related material
 ================
 
-- :doc:`developer/setup` — bring the application up from a clean checkout.
-- :doc:`developer/payments-setup` — configure Stripe or PayPal instead of the
+- :doc:`/developer/setup` — bring the application up from a clean checkout.
+- :doc:`/developer/payments-setup` — configure Stripe or PayPal instead of the
   mock provider.
-- :doc:`user/account-administrator-guide` — the full member, aircraft and
+- :doc:`/user/account-administrator-guide` — the full member, aircraft and
   payment filters and exports.
-- :doc:`user/user-administrator` — manage accounts and roles.
-- :doc:`user/system-administrator-guide` — health, backups and reminders from
+- :doc:`/user/user-administrator` — manage accounts and roles.
+- :doc:`/user/system-administrator-guide` — health, backups and reminders from
   the portal.
-- :doc:`developer/reminders` — how the renewal scan decides what to send.
+- :doc:`/developer/reminders` — how the renewal scan decides what to send.
