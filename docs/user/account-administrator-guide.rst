@@ -8,8 +8,10 @@ can prove about all of it in a spreadsheet or a PDF.
 
 You need the ``account_admin`` role to use any of the screens on this page.
 System administrators have it implicitly.  The role also opens **Payments**
-and **Aircraft** in the portal menu; this page covers **Members**, at
-``/portal/admin/members``.
+and **Aircraft** under *Administration* in the portal menu, and **Member
+check** and **Aircraft check** under *Operations* — the pre-flight currency
+checks described in :doc:`dart-leader-guide`.  This page covers **Members**,
+at ``/portal/admin/members``.
 
 
 The member list

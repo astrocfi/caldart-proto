@@ -23,14 +23,19 @@ payment can confirm it.  In practice you can:
 * do everything a member, DART leader, user administrator, account
   administrator and website administrator can do;
 * open ``/portal/system``: health, backups, reminders;
-* sign in to the Django admin at ``/django-admin/`` — holding ``system_admin``
-  always makes the account a Django superuser.
+* sign in to the Django admin at ``/django-admin/`` — granting ``system_admin``
+  in the portal also sets the account's Django superuser flag, and that flag is
+  what opens the door.
 
 Because it is total, keep it to the one or two people who actually run the
 site.  Everyone else should hold the narrower role that matches their job —
 ``account_admin`` for membership work, ``website_admin`` for pages,
-``user_admin`` for accounts and roles.  Roles are assigned under **Users &
-roles** in the portal.
+``user_admin`` for accounts and roles.  Grant roles under **Users & roles** in
+the portal, never by editing an account's groups in the Django admin's
+**Permissions** fieldset: only the portal keeps the Django superuser and staff
+flags in step with the roles it writes, so a ``system_admin`` group added by
+hand there leaves the superuser flag off and the account locked out of
+``/django-admin/``.
 
 
 The system screen
