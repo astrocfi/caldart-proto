@@ -304,32 +304,55 @@ PAYMENTS_MOCK_ENABLED = env.bool("PAYMENTS_MOCK_ENABLED", default=True)
 # response, and ``caldart.middleware.WagtailAdminCspMiddleware`` relaxes
 # ``script-src`` for the Wagtail admin alone.
 #
-# Both PayPal hostnames are listed because ``PAYPAL_ENV`` chooses between the
-# live and the sandbox SDK at run time while the policy is fixed at start-up.
+# Each vendor list below is copied from that vendor's own published
+# Content-Security-Policy page, narrowed to the products this site integrates.
+# A vendor that changes its requirements changes these lists.
 # --------------------------------------------------------------------------
-#: Origins that serve the payment vendors' browser SDKs and their payment frames.
-PAYMENT_VENDOR_ORIGINS = [
+# Stripe: the "Stripe.js" and "Link" entries of the Content Security Policy
+# section of https://docs.stripe.com/security/guide.  Checkout, Connect
+# embedded components and the crypto onramp are not used, so their origins are
+# absent.  Link is present because ``automatic_payment_methods`` lets the
+# Payment Element offer it beside Apple Pay and Google Pay.
+STRIPE_SCRIPT_ORIGINS = ["https://js.stripe.com", "https://*.js.stripe.com"]
+STRIPE_FRAME_ORIGINS = [
     "https://js.stripe.com",
-    "https://www.paypal.com",
-    "https://www.sandbox.paypal.com",
+    "https://*.js.stripe.com",
+    # Where a payment method that redirects, 3-D Secure among them, lands.
+    "https://hooks.stripe.com",
+    "https://link.com",
+    "https://*.link.com",
 ]
-#: Origins those SDKs call from the browser to authorize and capture a payment.
-PAYMENT_API_ORIGINS = [
+STRIPE_CONNECT_ORIGINS = [
     "https://api.stripe.com",
-    "https://www.paypal.com",
-    "https://www.sandbox.paypal.com",
+    "https://link.com",
+    "https://*.link.com",
+]
+STRIPE_IMG_ORIGINS = ["https://*.link.com"]
+
+# PayPal: the table at https://developer.paypal.com/sdk/js/csp/, which names
+# the same three hosts for ``script-src``, ``frame-src``, ``connect-src`` and
+# ``img-src``.  The wildcards cover the live and the sandbox SDK alike, so
+# ``PAYPAL_ENV`` can choose between them at run time while the policy is fixed
+# at start-up.  That page writes the hosts without a scheme; pinning ``https``
+# here keeps the policy from admitting a plaintext copy of an SDK.
+PAYPAL_ORIGINS = [
+    "https://*.paypal.com",
+    "https://*.paypalobjects.com",
+    "https://*.venmo.com",
 ]
 
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": [SELF],
-        "script-src": [SELF, *PAYMENT_VENDOR_ORIGINS],
+        "script-src": [SELF, *STRIPE_SCRIPT_ORIGINS, *PAYPAL_ORIGINS],
         # ``SELF`` as well as the vendors: Wagtail's admin previews a page in a
         # same-origin frame, which a vendor-only ``frame-src`` would refuse.
-        "frame-src": [SELF, *PAYMENT_VENDOR_ORIGINS],
-        "connect-src": [SELF, *PAYMENT_API_ORIGINS],
-        # ``data:`` carries the inline SVG icons the portal and the admin draw.
-        "img-src": [SELF, "data:"],
+        "frame-src": [SELF, *STRIPE_FRAME_ORIGINS, *PAYPAL_ORIGINS],
+        "connect-src": [SELF, *STRIPE_CONNECT_ORIGINS, *PAYPAL_ORIGINS],
+        # ``data:`` carries the inline SVG icons the portal and the admin draw;
+        # the vendor origins carry the wallet and funding-source artwork the
+        # Payment Element and the PayPal buttons draw inside their own frames.
+        "img-src": [SELF, "data:", *STRIPE_IMG_ORIGINS, *PAYPAL_ORIGINS],
         # Stripe's Payment Element and Wagtail's admin both set styles from
         # JavaScript.  No template carries an inline script, so ``script-src``
         # needs no matching relaxation outside the admin.

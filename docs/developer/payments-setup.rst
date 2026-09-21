@@ -410,12 +410,17 @@ Origins the browser is allowed to reach
 =======================================
 
 The site's ``Content-Security-Policy`` names both vendors, so the checkout
-works without any change to a vhost: ``script-src`` and ``frame-src`` carry
-``https://js.stripe.com``, ``https://www.paypal.com`` and
-``https://www.sandbox.paypal.com``, and ``connect-src`` carries
-``https://api.stripe.com`` alongside the two PayPal hosts.  Both PayPal
-hostnames are listed because ``PAYPAL_ENV`` chooses between the live and the
-sandbox SDK at run time while the header is fixed at start-up.
+works without any change to a vhost.  Each vendor's entries come from that
+vendor's own published requirements: Stripe's at
+https://docs.stripe.com/security/guide and PayPal's at
+https://developer.paypal.com/sdk/js/csp/.  ``script-src`` carries
+``https://js.stripe.com`` and ``https://*.js.stripe.com``; ``frame-src`` adds
+``https://hooks.stripe.com`` for a payment method that redirects and the
+``link.com`` hosts for Link; ``connect-src`` carries ``https://api.stripe.com``;
+and all four resource directives carry PayPal's ``https://*.paypal.com``,
+``https://*.paypalobjects.com`` and ``https://*.venmo.com``, whose wildcards
+cover the live and the sandbox SDK alike, so ``PAYPAL_ENV`` can choose between
+them at run time while the header is fixed at start-up.
 
 A provider added to ``backend/apps/payments/providers/`` needs its own origins
 added to those directives, or the browser will refuse to load its SDK and the

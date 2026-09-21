@@ -395,28 +395,48 @@ policy does not name.  django-csp builds it from the
 which no environment variable touches: widening the policy means editing that
 dictionary and shipping the change.
 
+Each vendor's entries are copied from that vendor's own published policy
+requirements — Stripe's at https://docs.stripe.com/security/guide (the
+"Stripe.js" and "Link" entries of its Content Security Policy section) and
+PayPal's at https://developer.paypal.com/sdk/js/csp/ — narrowed to the products
+the checkout uses: the Stripe Payment Element with the Apple Pay, Google Pay and
+Link wallets, and PayPal's buttons.  PayPal names the same three hosts for four
+directives, written below as ``PAYPAL`` for brevity:
+
+.. code-block:: text
+
+   PAYPAL = https://*.paypal.com https://*.paypalobjects.com https://*.venmo.com
+
+The wildcards cover the live and the sandbox SDK alike, so ``PAYPAL_ENV`` can
+pick between them at run time while the header stays fixed at start-up.  PayPal
+writes those hosts without a scheme; ``base.py`` pins ``https`` so the policy
+cannot admit a plaintext copy of an SDK.
+
 ``default-src 'self'``
    Everything the following directives do not cover comes from CalDART's own
    origin.
 
-``script-src 'self' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com``
-   The portal's own bundles plus the two payment vendors' browser SDKs.  Both
-   PayPal hostnames are listed because ``PAYPAL_ENV`` picks between the live
-   and the sandbox SDK while the header is fixed at start-up.  No template
-   carries an inline script.
+``script-src 'self' https://js.stripe.com https://*.js.stripe.com PAYPAL``
+   The portal's own bundles plus the two payment vendors' browser SDKs.
+   Stripe asks for the wildcard beside the bare host so Stripe.js can start
+   frames on other origins.  No template carries an inline script.
 
-``frame-src 'self' https://js.stripe.com https://www.paypal.com https://www.sandbox.paypal.com``
+``frame-src 'self' https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com https://link.com https://*.link.com PAYPAL``
    Stripe's Payment Element and PayPal's buttons render in vendor frames.
-   ``'self'`` is there for Wagtail, whose admin previews a page in a
-   same-origin frame.
+   ``https://hooks.stripe.com`` is where a payment method that redirects — 3-D
+   Secure among them — lands, and the ``link.com`` hosts serve Link's
+   authentication UI.  ``'self'`` is there for Wagtail, whose admin previews a
+   page in a same-origin frame.
 
-``connect-src 'self' https://api.stripe.com https://www.paypal.com https://www.sandbox.paypal.com``
+``connect-src 'self' https://api.stripe.com https://link.com https://*.link.com PAYPAL``
    The portal's own API calls, plus the calls those SDKs make from the browser
    to authorize and capture a payment.
 
-``img-src 'self' data:``
+``img-src 'self' data: https://*.link.com PAYPAL``
    ``data:`` carries the inline SVG icons the portal and the Wagtail admin
-   draw.  No image comes from anywhere else, so ``base.py`` sets
+   draw, and the vendor hosts carry the wallet and funding-source artwork the
+   Payment Element and the PayPal buttons draw inside their own frames.  CalDART
+   itself serves every other image, so ``base.py`` sets
    ``WAGTAIL_GRAVATAR_PROVIDER_URL = None``: the admin draws an account's
    avatar from its own static files rather than from Gravatar, and an account's
    email address stays out of a third-party request.

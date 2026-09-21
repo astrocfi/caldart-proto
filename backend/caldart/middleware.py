@@ -8,7 +8,6 @@ portal SPA and the API -- is served under that policy unchanged.
 from __future__ import annotations
 
 from collections.abc import Callable
-from functools import cached_property
 
 from csp.constants import SELF, UNSAFE_INLINE
 from django.http import HttpRequest, HttpResponseBase
@@ -34,19 +33,22 @@ class WagtailAdminCspMiddleware:
         """Store the next handler in the chain."""
         self.get_response = get_response
 
-    @cached_property
     def admin_prefix(self) -> str:
         """The path the Wagtail admin is mounted at, such as ``/admin/``.
 
         Read from the URLconf rather than written down, so moving the mount in
-        ``caldart.urls`` moves the relaxation with it.
+        ``caldart.urls`` moves the relaxation with it.  The result carries the
+        WSGI script prefix, so it is compared against ``request.path`` -- which
+        carries it too -- and not against ``request.path_info``, which does not.
+        Resolved per request rather than once, because the prefix comes from the
+        request under a deployment that mounts the site below the domain root.
         """
         return reverse("wagtailadmin_home")
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         """Mark a Wagtail admin response with its relaxed ``script-src``."""
         response = self.get_response(request)
-        if request.path_info.startswith(self.admin_prefix):
+        if request.path.startswith(self.admin_prefix()):
             # django-csp reads this attribute off the response; it is part of
             # that library's contract but absent from Django's response types.
             response._csp_replace = {  # type: ignore[attr-defined]
