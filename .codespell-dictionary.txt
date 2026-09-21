@@ -1,0 +1,4 @@
+aeroplane->airplane
+aeroplanes->airplanes
+cheque->check
+cheques->checks
