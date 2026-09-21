@@ -332,13 +332,41 @@ def test_an_activation_is_its_own_action(api_client, user_admin, target_member, 
 def test_an_edit_that_changes_nothing_records_nothing(
     api_client, user_admin, target_member, audit_log
 ) -> None:
-    """Resending the stored address is not a change, so it is not an entry."""
+    """Resending the stored values is not a change, so it is not an entry."""
     api_client.force_login(user_admin)
     response = api_client.patch(
-        f"{USERS_URL}/{target_member.pk}", {"is_active": True}, format="json"
+        f"{USERS_URL}/{target_member.pk}",
+        {
+            "email": TARGET_EMAIL,
+            "first_name": TARGET_FIRST_NAME,
+            "last_name": TARGET_LAST_NAME,
+            "is_active": True,
+        },
+        format="json",
     )
     assert response.status_code == 200
     assert messages(audit_log) == []
+
+
+def test_an_edit_records_only_the_columns_whose_value_changes(
+    api_client, user_admin, target_member, audit_log
+) -> None:
+    """The portal resends the whole form, so an unaltered column is not a field name."""
+    api_client.force_login(user_admin)
+    response = api_client.patch(
+        f"{USERS_URL}/{target_member.pk}",
+        {
+            "email": TARGET_EMAIL,
+            "first_name": "Renamed",
+            "last_name": TARGET_LAST_NAME,
+            "is_active": True,
+        },
+        format="json",
+    )
+    assert response.status_code == 200
+    assert one_message(audit_log) == (
+        f"action=account.update actor={user_admin.pk} target={target_member.pk} fields=first_name"
+    )
 
 
 def test_a_self_deactivation_is_refused_and_recorded(api_client, user_admin, audit_log) -> None:

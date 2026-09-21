@@ -472,7 +472,7 @@ record acted on, or ``-``.  The actions:
 ============================= ===============================================
 Action                        Fields beyond actor and target
 ============================= ===============================================
-``account.update``            ``fields`` -- the account columns written
+``account.update``            ``fields`` -- the account columns changed
 ``account.roles``             ``added``, ``removed`` -- role slugs
 ``account.activate``          --
 ``account.deactivate``        --
@@ -488,6 +488,11 @@ Action                        Fields beyond actor and target
 ``reminders.run``             ``dry_run``, ``sent``, ``skipped``, ``failed``,
                               ``expired_flipped``
 ============================= ===============================================
+
+An action is recorded only when it really alters the record.  The admin account
+form resends every field on each save, so ``account.update`` names just the
+columns whose stored value changed, and a save that changes nothing at all is
+not a line.
 
 A privileged attempt a rule turns away is logged at WARNING under the same
 action, with a ``reason`` slug saying which rule refused it: ``self_deactivation``,

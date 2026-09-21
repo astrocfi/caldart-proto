@@ -184,16 +184,18 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
 def _change_records(target: User, fields: dict, roles: list[str] | None) -> list[tuple[str, dict]]:
     """The audit records this edit will produce, measured before it is written.
 
-    One ``account.update`` for the columns the save writes, named but never
-    valued; one ``account.activate`` or ``account.deactivate`` when the active
-    flag really turns over; and one ``account.roles`` carrying the slugs added
-    and removed when the role list really changes.
+    One ``account.update`` for the columns whose stored value the save really
+    alters, named but never valued -- a form that resends a column unchanged is
+    not an edit of it; one ``account.activate`` or ``account.deactivate`` when
+    the active flag really turns over; and one ``account.roles`` carrying the
+    slugs added and removed when the role list really changes.
     """
     records = []
-    written = [name for name in ACCOUNT_FIELDS if name in fields and name != "is_active"]
+    altered = _altered_fields(target, fields, ACCOUNT_FIELDS)
+    written = [name for name in altered if name != "is_active"]
     if len(written) > 0:
         records.append((audit.ACCOUNT_UPDATE, {"fields": written}))
-    if "is_active" in _protected_changes(target, fields):
+    if "is_active" in altered:
         activating = bool(fields["is_active"])
         records.append((audit.ACCOUNT_ACTIVATE if activating else audit.ACCOUNT_DEACTIVATE, {}))
     if roles is not None and _writes_roles(target, set(roles)):
@@ -318,18 +320,32 @@ def _refuse_self_deactivation(actor: User, target: User, changed: list[str]) -> 
 
 def _protected_changes(target: User, changes: dict) -> list[str]:
     """The protected fields ``changes`` would really alter on ``target``, in field order."""
+    return _altered_fields(target, changes, PROTECTED_ACCOUNT_FIELDS)
+
+
+def _altered_fields(target: User, changes: dict, fields: tuple[str, ...]) -> list[str]:
+    """Those of ``fields`` that ``changes`` would really alter on ``target``, in that order.
+
+    A field ``changes`` does not carry is not altered, and neither is one it carries at
+    the value the account already holds.
+    """
     return [
-        field
-        for field in PROTECTED_ACCOUNT_FIELDS
-        if field in changes and _alters(target, field, changes[field])
+        field for field in fields if field in changes and _alters(target, field, changes[field])
     ]
 
 
 def _alters(target: User, field: str, value: str | bool) -> bool:
-    """True when writing ``value`` to ``target.<field>`` would change the account."""
+    """True when writing ``value`` to ``target.<field>`` would change the account.
+
+    An email address is compared normalized, so the stored address resent in another
+    case does not alter the account; ``is_active`` is compared as a boolean; a name is
+    compared exactly, so a change of case is a change.
+    """
     if field == "email":
         return _normalized_email(value) != _normalized_email(target.email)
-    return bool(value) != bool(target.is_active)
+    if field == "is_active":
+        return bool(value) != target.is_active
+    return value != getattr(target, field)
 
 
 def _normalized_email(value: str | None) -> str:
