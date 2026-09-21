@@ -89,7 +89,12 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
     permission_classes = [AircraftPermission]
 
     def get_serializer_class(self) -> type[AircraftSerializer]:
-        """Return the detail or summary serializer, per ``aircraft_serializer_for``."""
+        """Return the serializer ``aircraft_serializer_for`` picks for this request.
+
+        A DART leader or account admin gets ``AircraftDetailSerializer``, whose payload
+        includes ``pilots``; every other signed-in member gets ``AircraftSerializer``,
+        the same record without that field.
+        """
         return aircraft_serializer_for(self.request)
 
 

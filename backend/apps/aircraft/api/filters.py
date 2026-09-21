@@ -6,6 +6,7 @@ member downloads always contains exactly the rows they were looking at.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 import django_filters
@@ -73,9 +74,13 @@ class AircraftFilter(django_filters.FilterSet):
         return insurance_queryset(queryset, value)
 
     def filter_expiring_within(
-        self, queryset: QuerySet[Aircraft], name: str, value: str | None
+        self, queryset: QuerySet[Aircraft], name: str, value: Decimal | None
     ) -> QuerySet[Aircraft]:
-        """Return ``queryset`` unfiltered when ``value`` is ``None``, else clamp to it."""
+        """Return ``queryset`` unfiltered when ``value`` is ``None``, else clamp to it.
+
+        ``NumberFilter`` cleans the query string through a form ``DecimalField``, so
+        ``value`` arrives as a ``Decimal`` number of days, truncated here to whole days.
+        """
         if value is None:
             return queryset
         return expiring_within(queryset, int(value))
