@@ -183,10 +183,10 @@ membership buys.*
    members-only page links, or open http://localhost:8000/members/ directly.
    It renders because your membership is current.
 
-**What success looks like.**  Sign out and open http://localhost:8000/members/ again:
-you get the members-only wall with HTTP 403 and a *sign in* call to action.
-Sign in as ``expired@example.org`` and the same page offers *renew* instead,
-naming the date the membership ran out.
+**What success looks like.**  Sign out and open
+http://localhost:8000/members/ again: you get the members-only wall with HTTP
+403 and a *sign in* call to action.  Sign in as ``expired@example.org`` and
+the same page offers *renew* instead, naming the date the membership ran out.
 
 .. _walkthrough-flow-c:
 
@@ -232,8 +232,8 @@ airplane for us today?" in one screen.*
    a list of the members who fly it, each with their own membership and
    medical currency.
 
-**What success looks like.**  The subject of the card is in the query string, so a card
-can be reloaded, backed out of, or sent to another leader as a link.
+**What success looks like.**  The subject of the card is in the query string,
+so a card can be reloaded, backed out of, or sent to another leader as a link.
 
 .. _walkthrough-flow-d:
 
@@ -257,9 +257,9 @@ Flow D — an account administrator reviews payments by month and year
 6. Press **Export CSV**.  The download carries whatever filters the screen is
    showing — narrow the date range first and the file narrows with it.
 
-**What success looks like.**  The tiles, the period table and the export all key off one
-"when was this paid" rule — ``completed_at`` when the payment succeeded, and
-the creation time otherwise — so the three never disagree.
+**What success looks like.**  The tiles, the period table and the export all
+key off one "when was this paid" rule — ``completed_at`` when the payment
+succeeded, and the creation time otherwise — so the three never disagree.
 
 While you are signed in as this administrator, look at the other two
 Administration screens as well: **Members** (``/portal/admin/members``) with
@@ -311,76 +311,12 @@ Flow E — a website administrator adds, edits and deletes a page
    ``?theme=night`` to any public URL; only website and system administrators
    are allowed to.
 
-**What success looks like.**  You are deliberately *not* a Django superuser.  You can
-edit pages, images, documents, redirects and site settings.  ``website_admin``
-also sets the Django ``is_staff`` flag, so you can sign in to
+**What success looks like.**  You are deliberately *not* a Django superuser.
+You can edit pages, images, documents, redirects and site settings.
+``website_admin`` also sets the Django ``is_staff`` flag, so you can sign in to
 ``/django-admin/`` too — its index comes up empty, because you hold no Django
 model permissions there.  The portal's own system screens stay out of reach:
 those need the ``system_admin`` role.
-
-Troubleshooting
-===============
-
-.. rubric:: Flow A — a visitor joins and pays
-
-- *"An account already uses that email address. Sign in, or reset your
-  password."*  Case-insensitive: registering ``Marta@example.org`` collides
-  with ``marta@example.org``.
-- *The provider tab list is empty.*  ``PAYMENTS_MOCK_ENABLED`` is off and no
-  Stripe or PayPal keys are configured.  See
-  :doc:`developer/payments-setup`.
-- *You closed the tab mid-wizard.*  Return to ``/portal/join`` and it resumes
-  at the furthest step you actually finished — the wizard derives that from
-  the server's view of you (session, then ``profile_complete``, then
-  membership), not from anything stored in the browser.  You may go back to
-  an earlier step; you cannot skip ahead.
-
-.. rubric:: Flow B — a member signs in, edits their profile, reads members-only content
-
-- *"A phone number is required."*  The portal's form asks for phone, street
-  address, city and ZIP code, plus the certificate box, which always holds a
-  value — the same list the server uses for ``profile_complete``.  The API
-  itself only insists on phone, so a client that is not the portal may store a
-  partial profile.
-- *The "finish your profile" nudge will not go away.*  It reads
-  ``profile_complete``; open **Profile** and fill in whichever of those fields
-  is still blank.
-- *An aircraft will not attach.*  Attaching is idempotent, so a second attempt
-  at the same airplane is silently fine; a genuinely unknown id is a 404.
-- *You cannot see a members-only page you expect to see.*  Membership status
-  is not the only gate: any role beyond plain ``member`` also gets through.  A
-  DART leader with no membership of their own can read members-only pages.
-
-.. rubric:: Flow C — a DART leader checks a member before a flight
-
-- *"Nobody matches that."*  Search is over name, email and N-number only.  A
-  phone number or a certificate number will not find anybody here — those are
-  the account administrator's search fields.
-- *A member with no profile at all.*  You get a well-formed NO-GO card rather
-  than an error.
-- *An airplane marked out of service* is labeled as such on the card, and is
-  dropped from the picker's fuzzy search — though an exact registration still
-  finds it, labeled, so nobody adds a duplicate.
-
-.. rubric:: Flow D — an account administrator reviews payments by month and year
-
-- *"No payments match these filters."*  The default range is not "all time".
-  Widen the dates or clear the filters.
-- *The provider column you want is empty.*  Only providers that were actually
-  configured when a payment was taken appear against it; a demo database has
-  everything under ``mock``.
-
-.. rubric:: Flow E — a website administrator adds, edits and deletes a page
-
-- *The raw HTML block is missing from your block picker.*  It is restricted to
-  ``website_admin`` and ``system_admin``; the block list is rebuilt per editing
-  user, so someone with fewer permissions simply does not see it.
-- *A page will not go where you want it.*  Page types constrain the tree — a
-  news post may only live under the news index, a DART page only under the
-  DART directory.
-- *Your changes to Site settings vanished after a re-seed.*  They should not:
-  ``seed_content`` only fills in settings that are still blank.  It does
-  replace page content, so make example edits on a page you added.
 
 After the walkthrough
 =====================
@@ -410,6 +346,72 @@ See :doc:`user/system-administrator-guide` and
 When you are finished, stop Django with :kbd:`Ctrl-C`.  Leave the containers
 running, or stop them with ``make down`` — the data survives in the
 ``caldart_pgdata`` volume either way.
+
+Troubleshooting
+===============
+
+.. rubric:: Flow A — a visitor joins and pays
+
+- *"An account already uses that email address. Sign in, or reset your
+  password."*  Case-insensitive: registering ``Marta@example.org`` collides
+  with ``marta@example.org``.
+- *The provider tab list is empty.*  ``PAYMENTS_MOCK_ENABLED`` is off and no
+  Stripe or PayPal keys are configured.  See
+  :doc:`developer/payments-setup`.
+- *You closed the tab mid-wizard.*  Return to ``/portal/join`` and it resumes
+  at the furthest step you actually finished — the wizard derives that from
+  the server's view of you (session, then ``profile_complete``, then
+  membership), not from anything stored in the browser.  You may go back to
+  an earlier step; you cannot skip ahead.
+
+.. rubric:: Flow B — a member signs in, edits their profile, reads
+   members-only content
+
+- *"A phone number is required."*  The portal's form asks for phone, street
+  address, city and ZIP code, plus the certificate box, which always holds a
+  value — the same list the server uses for ``profile_complete``.  The API
+  itself only insists on phone, so a client that is not the portal may store a
+  partial profile.
+- *The "finish your profile" nudge will not go away.*  It reads
+  ``profile_complete``; open **Profile** and fill in whichever of those fields
+  is still blank.
+- *An aircraft will not attach.*  Attaching is idempotent, so a second attempt
+  at the same airplane is silently fine; a genuinely unknown id is a 404.
+- *You cannot see a members-only page you expect to see.*  Membership status
+  is not the only gate: any role beyond plain ``member`` also gets through.  A
+  DART leader with no membership of their own can read members-only pages.
+
+.. rubric:: Flow C — a DART leader checks a member before a flight
+
+- *"Nobody matches that."*  Search is over name, email and N-number only.  A
+  phone number or a certificate number will not find anybody here — those are
+  the account administrator's search fields.
+- *A member with no profile at all.*  You get a well-formed NO-GO card rather
+  than an error.
+- *An airplane marked out of service* is labeled as such on the card, and is
+  dropped from the picker's fuzzy search — though an exact registration still
+  finds it, labeled, so nobody adds a duplicate.
+
+.. rubric:: Flow D — an account administrator reviews payments by month
+   and year
+
+- *"No payments match these filters."*  The default range is not "all time".
+  Widen the dates or clear the filters.
+- *The provider column you want is empty.*  Only providers that were actually
+  configured when a payment was taken appear against it; a demo database has
+  everything under ``mock``.
+
+.. rubric:: Flow E — a website administrator adds, edits and deletes a page
+
+- *The raw HTML block is missing from your block picker.*  It is restricted to
+  ``website_admin`` and ``system_admin``; the block list is rebuilt per editing
+  user, so someone with fewer permissions simply does not see it.
+- *A page will not go where you want it.*  Page types constrain the tree — a
+  news post may only live under the news index, a DART page only under the
+  DART directory.
+- *Your changes to Site settings vanished after a re-seed.*  They should not:
+  ``seed_content`` only fills in settings that are still blank.  It does
+  replace page content, so make example edits on a page you added.
 
 Related material
 ================
