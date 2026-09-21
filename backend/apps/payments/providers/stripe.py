@@ -157,8 +157,9 @@ def payment_for_intent(intent: dict[str, Any]) -> Payment | None:
     """Find our row from the intent's metadata, falling back to the intent id.
 
     Matches only Stripe payments: ``metadata.payment_id`` first, then
-    ``provider_ref`` against the intent's id.  Returns ``None`` when neither finds
-    a row, and when the metadata holds an id that is not a number.
+    ``provider_ref`` against the intent's id.  A ``payment_id`` that is not a
+    number matches nothing, and the search falls through to the intent id.
+    Returns ``None`` when neither finds a row.
     """
     metadata = intent.get("metadata") or {}
     raw_id = metadata.get("payment_id")

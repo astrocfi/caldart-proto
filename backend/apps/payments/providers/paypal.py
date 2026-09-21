@@ -313,8 +313,9 @@ class PayPalProvider(Provider):
         capture, when the order belongs to another payment, when PayPal reports
         anything but ``COMPLETED``, when it completes the order without a capture,
         and when the captured total, the currency or the capture's ``custom_id``
-        disagrees with the payment.  The first two of those mark the payment
-        failed.  A capture that never completes raises
+        disagrees with the payment.  Of those, a status other than ``COMPLETED``
+        and a completed order without a capture also mark the payment failed;
+        the rest leave it as it was.  A capture that never completes raises
         :class:`ProviderUnavailable` and is logged at ERROR for reconciliation,
         because the money may have moved.
         """
@@ -469,8 +470,9 @@ def payment_for_resource(resource: dict[str, Any]) -> Payment | None:
 
     Matches only PayPal payments: ``custom_id`` as a payment id first, then
     ``provider_ref`` against the resource's own id, the related order id and the
-    id at the end of the resource's ``up`` link.  Returns ``None`` when none of
-    them finds a row, and when ``custom_id`` is not a number.
+    id at the end of the resource's ``up`` link.  A ``custom_id`` that is not a
+    number matches nothing, and the search falls through to those ids.  Returns
+    ``None`` when none of them finds a row.
     """
     custom_id = resource.get("custom_id")
     if custom_id:
