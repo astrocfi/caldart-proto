@@ -23,6 +23,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    configuration
    data-model
    api-reference
+   api-system
 
 .. toctree::
    :maxdepth: 1

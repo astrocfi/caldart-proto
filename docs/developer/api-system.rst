@@ -1,3 +1,5 @@
+.. _api-reminders-system:
+
 ===============================
 API: reminders, system and site
 ===============================
@@ -13,8 +15,6 @@ The subsystem chapters behind them are :doc:`reminders` (what the scan sends
 and when), :doc:`backup-restore` (what a dump contains and how to restore one)
 and :doc:`cms` (where the navigation and the members-only pages come from).
 
-
-.. _api-reminders-system:
 
 Reminders
 =========
