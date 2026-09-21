@@ -1,5 +1,3 @@
-/** The filter state behind the members-admin list screen. */
-
 /** The list's query parameters, all as strings for the URL. */
 export interface MemberFilters {
   search: string;
