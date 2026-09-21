@@ -1,4 +1,4 @@
-"""Account services: creating an account, the account-edit guard, roles and password email.
+"""Account services: account creation, the edit guard, roles and the password email.
 
 The API layer validates; everything that changes state lives here so the
 management commands, the Django admin and the tests can reuse it.  A rule the
@@ -208,7 +208,7 @@ def _change_records(target: User, fields: dict, roles: list[str] | None) -> list
 
 
 def _checked_roles(actor: User, target: User, wanted: list[str]) -> list[str]:
-    """``wanted`` in privilege order, refusing a ``system_admin`` move ``actor`` may not make.
+    """``wanted`` in privilege order, refusing a barred ``system_admin`` move.
 
     Writing a role list rebuilds the Django flags from that list alone, so the two
     directions are measured against different sets.  A write grants the role when it
@@ -319,12 +319,12 @@ def _refuse_self_deactivation(actor: User, target: User, changed: list[str]) -> 
 
 
 def _protected_changes(target: User, changes: dict) -> list[str]:
-    """The protected fields ``changes`` would really alter on ``target``, in field order."""
+    """The protected fields ``changes`` really alters on ``target``, in field order."""
     return _altered_fields(target, changes, PROTECTED_ACCOUNT_FIELDS)
 
 
 def _altered_fields(target: User, changes: dict, fields: tuple[str, ...]) -> list[str]:
-    """Those of ``fields`` that ``changes`` would really alter on ``target``, in that order.
+    """Those of ``fields`` that ``changes`` really alters on ``target``, in that order.
 
     A field ``changes`` does not carry is not altered, and neither is one it carries at
     the value the account already holds.

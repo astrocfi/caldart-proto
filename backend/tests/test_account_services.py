@@ -163,7 +163,7 @@ def test_granting_website_admin_keeps_the_wagtail_admin_reachable(user_admin) ->
 
 
 def test_resending_the_roles_an_account_already_holds_is_not_a_write(user_admin) -> None:
-    """Rebuilding the flags from an unchanged list would strip a createsuperuser account."""
+    """Rebuilding the flags from an unchanged list would strip a superuser account."""
     target = UserFactory(email="root2@example.test", roles=[], is_superuser=True, is_staff=True)
     update_account(user_admin, target, {"roles": [], "first_name": "Ada"})
     target.refresh_from_db()

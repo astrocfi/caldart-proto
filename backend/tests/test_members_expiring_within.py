@@ -42,7 +42,7 @@ def expiring_member(annual_plan, today):
 
 @pytest.fixture
 def last_day_member(annual_plan, today):
-    """A current member whose coverage ends today, the only match a zero-day window has."""
+    """A current member whose coverage ends today, the one match a zero-day window has."""
     day = timedelta(days=1)
     membership = MembershipFactory(
         plan=annual_plan,
@@ -75,7 +75,7 @@ def test_expiring_within_huge_value_is_clamped_to_the_limit(admin_client, expiri
 def test_expiring_within_negative_value_is_clamped_to_zero(
     admin_client, expiring_member, last_day_member
 ) -> None:
-    """A window of ``-5`` days keeps today's expiries, which a shifted cutoff would drop."""
+    """A window of ``-5`` days keeps today's expiries, which a shifted cutoff drops."""
     negative = emails(admin_client.get(LIST_URL, {"expiring_within": "-5"}))
     zero = emails(admin_client.get(LIST_URL, {"expiring_within": "0"}))
     assert negative == zero

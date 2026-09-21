@@ -93,13 +93,14 @@ def domain_modules() -> list[Path]:
 
 
 def app_imports(path: Path) -> list[AppImport]:
-    """Every ``apps.*`` import in the file at ``path``, each naming the module it depends on.
+    """Every ``apps.*`` import in the file at ``path``, each naming its target module.
 
     ``from apps import payments`` and ``from apps.accounts import api`` name their target
-    by its last segment, so those records read ``apps.payments`` and ``apps.accounts.api``;
-    a bare ``import apps`` is recorded as ``apps``.  An import is inline when it is not a
-    direct child of the module body, which is how a function-local import to break a
-    cycle appears.  Relative imports are not used in this codebase and are skipped.
+    by its last segment, so those records read ``apps.payments`` and
+    ``apps.accounts.api``; a bare ``import apps`` is recorded as ``apps``.  An import
+    is inline when it is not a direct child of the module body, which is how a
+    function-local import to break a cycle appears.  Relative imports are not used in
+    this codebase and are skipped.
     """
     tree = ast.parse(path.read_text(encoding="utf-8"))
     top_level = {id(node) for node in tree.body}
@@ -136,7 +137,7 @@ def cross_app_imports(path: Path) -> list[AppImport]:
 
 
 def test_domain_modules_import_only_their_own_app_or_a_lower_layer() -> None:
-    """No top-level import in a domain module reaches sideways, upward or to bare ``apps``."""
+    """No top-level import in a domain module reaches sideways, upward or to ``apps``."""
     upward = []
     for path in domain_modules():
         module = module_name(path)
@@ -184,7 +185,7 @@ def test_every_sanctioned_inline_import_still_exists() -> None:
 
 
 def test_every_sanctioned_inline_import_carries_a_comment() -> None:
-    """Each inline cross-app import sits directly under a comment block opening ``# Inline:``.
+    """Each inline cross-app import sits directly under a block opening ``# Inline:``.
 
     The block says which cycle the inline placement avoids; an unrelated comment such as
     a lint pragma does not count.
@@ -202,7 +203,7 @@ def test_every_sanctioned_inline_import_carries_a_comment() -> None:
 
 
 def _comment_block_above(lines: list[str], lineno: int) -> str:
-    """The first line of the comment block ending right above 1-based ``lineno``, or ``""``.
+    """The first line of the comment block directly above 1-based ``lineno``, or ``""``.
 
     The block is the unbroken run of comment lines directly above the line; a blank line
     or code between them ends it.
@@ -217,7 +218,7 @@ def _comment_block_above(lines: list[str], lineno: int) -> str:
 
 
 def test_short_import_forms_name_the_module_they_depend_on(tmp_path: Path) -> None:
-    """``from apps import x`` and ``from apps.<app> import y`` resolve to the real target."""
+    """``from apps import x`` and ``from apps.<app> import y`` resolve to the target."""
     probe = tmp_path / "probe.py"
     probe.write_text(
         "from apps import payments\n"
