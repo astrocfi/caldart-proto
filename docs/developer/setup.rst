@@ -217,8 +217,8 @@ match, so password-reset and reminder emails link back to the right one.
 Make targets
 ============
 
-``make help`` lists the targets you run day to day, with one-line
-descriptions.  In full, halves and helpers included:
+``make help`` lists every target with a one-line description.  The same
+list, in full:
 
 .. list-table::
    :header-rows: 1

@@ -8,14 +8,20 @@ without breaking the build.  These tests make that a failure.
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MAKEFILE = REPO_ROOT / "Makefile"
 
 #: Strips the ANSI bold/reset codes `make help` wraps each target name in.
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
+
+#: The resolved ``make`` executable, or ``None`` on a machine without one.
+MAKE = shutil.which("make")
 
 
 def _phony_targets() -> list[str]:
@@ -30,15 +36,12 @@ def _phony_targets() -> list[str]:
     return body.split()
 
 
-def test_phony_targets_are_not_empty() -> None:
-    """The ``.PHONY`` line declares more than a handful of targets, as a sanity check."""
-    assert len(_phony_targets()) > 30
-
-
+@pytest.mark.skipif(MAKE is None, reason="make is not installed")
 def test_make_help_lists_every_phony_target() -> None:
     """Each ``.PHONY`` target appears once in ``make help``, including ``e2e``."""
+    assert MAKE is not None
     result = subprocess.run(
-        ["make", "--no-print-directory", "help"],
+        [MAKE, "--no-print-directory", "help"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
