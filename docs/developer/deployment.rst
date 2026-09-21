@@ -468,6 +468,35 @@ A real finding still fails the check, since only these two are silenced: turn
 :doc:`testing` lists it alongside the other gates.
 
 
+Security headers
+================
+
+Django sends every security header the site relies on:
+``Strict-Transport-Security``, ``X-Content-Type-Options``, ``Referrer-Policy``,
+``X-Frame-Options`` and ``Content-Security-Policy``.  Every response that
+reaches gunicorn — the public site, the portal, the API and the Wagtail admin —
+therefore carries exactly what the settings say, which is why
+:ref:`configuration-csp` is the only place the policy is written down.
+
+The shipped vhosts set one header of their own, and only on the responses they
+answer without asking Django: the ``/media/`` block in
+``deploy/nginx/caldart.conf`` and the matching ``<Directory>`` section in
+``deploy/apache/caldart.conf`` each add ``X-Content-Type-Options: nosniff`` to
+the uploads they serve straight off disk, so an upload cannot be sniffed into
+another content type.  Neither vhost touches any other security header, on any
+response.
+
+Check the policy on a running box::
+
+  curl -sI https://caldart.example.org/ | grep -i content-security-policy
+
+Do not add a ``Content-Security-Policy`` header in Apache or nginx.  The
+application leaves a header the response already carries alone, so a vhost
+that sets its own silently replaces the policy — including the relaxation the
+Wagtail admin needs, which would leave ``/admin/`` unable to run its own
+scripts.
+
+
 Logs
 ====
 

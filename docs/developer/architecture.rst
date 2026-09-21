@@ -60,7 +60,8 @@ Layer           What CalDART uses
 ==============  ==============================================================
 Backend         Python 3.12, Django 6, and Django REST Framework 3 with
                 django-filter; django-environ reads settings from the
-                environment or ``.env``
+                environment or ``.env``; django-csp sends the
+                Content-Security-Policy header (:ref:`configuration-csp`)
 CMS             Wagtail 8: page tree, StreamField, images, documents, site
                 settings
 Database        PostgreSQL 16 in Docker Compose, through psycopg 3
