@@ -416,7 +416,10 @@ dictionary and shipping the change.
 
 ``img-src 'self' data:``
    ``data:`` carries the inline SVG icons the portal and the Wagtail admin
-   draw.
+   draw.  No image comes from anywhere else, so ``base.py`` sets
+   ``WAGTAIL_GRAVATAR_PROVIDER_URL = None``: the admin draws an account's
+   avatar from its own static files rather than from Gravatar, and an account's
+   email address stays out of a third-party request.
 
 ``style-src 'self' 'unsafe-inline'``
    Stripe's Payment Element and Wagtail's admin both set styles from

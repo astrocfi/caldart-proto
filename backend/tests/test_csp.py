@@ -9,7 +9,9 @@ scripts, and its other directives are untouched.
 from __future__ import annotations
 
 import importlib
+import re
 from types import ModuleType
+from urllib.parse import urlparse
 
 import pytest
 from django.conf import settings
@@ -55,6 +57,9 @@ SITE_POLICY = {
 #: The Wagtail admin's policy: the site policy with ``script-src`` replaced.
 ADMIN_POLICY = {**SITE_POLICY, "script-src": ["'self'", "'unsafe-inline'"]}
 
+#: The ``src`` of every ``<img>`` a rendered page draws.
+IMG_SRC = re.compile(r"<img\b[^>]*?\bsrc=\"([^\"]*)\"", re.IGNORECASE)
+
 #: What ``caldart.settings.dev`` adds so the Vite dev server can serve the
 #: modules, the hot-reload client, its socket and React Fast Refresh's inline
 #: preamble.
@@ -91,6 +96,23 @@ def directives(response: HttpResponseBase) -> dict[str, list[str]]:
         name, _, sources = part.strip().partition(" ")
         parsed[name] = sources.split()
     return parsed
+
+
+def offsite_image_sources(body: str) -> list[str]:
+    """The ``src`` of every ``<img>`` in rendered HTML that ``img-src`` refuses.
+
+    A source is allowed when it is a ``data:`` URI or carries neither a scheme
+    nor a host, which is every path the site serves itself.  A protocol-relative
+    ``//host/path`` carries a host, so it is reported.
+    """
+    offsite: list[str] = []
+    for source in IMG_SRC.findall(body):
+        if source.startswith("data:"):
+            continue
+        parsed = urlparse(source)
+        if parsed.scheme != "" or parsed.netloc != "":
+            offsite.append(source)
+    return offsite
 
 
 def test_public_page_carries_the_site_policy(
@@ -133,6 +155,25 @@ def test_wagtail_admin_keeps_every_other_directive(
     client.force_login(superuser)
     response = client.get("/admin/")
     assert directives(response) == ADMIN_POLICY
+
+
+def test_wagtail_admin_draws_images_only_from_allowed_sources(
+    client: Client, superuser: User, home_page: HomePage
+) -> None:
+    """No image on an admin page comes from an origin ``img-src`` refuses."""
+    client.force_login(superuser)
+    response = client.get("/admin/")
+    assert offsite_image_sources(response.content.decode()) == []
+
+
+def test_wagtail_admin_avatar_comes_from_the_site_itself(
+    client: Client, superuser: User, home_page: HomePage
+) -> None:
+    """The account avatar is CalDART's own static image, not a Gravatar one."""
+    client.force_login(superuser)
+    response = client.get("/admin/")
+    sources = IMG_SRC.findall(response.content.decode())
+    assert [src for src in sources if "default-user-avatar" in src] != []
 
 
 def test_wagtail_admin_login_page_is_relaxed_too(client: Client) -> None:

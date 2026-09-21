@@ -337,6 +337,12 @@ CONTENT_SECURITY_POLICY = {
     }
 }
 
+# Wagtail draws an account's avatar from Gravatar unless this is ``None``, which
+# ``img-src`` refuses; ``None`` makes the admin fall back to the avatar it
+# serves from its own static files, and keeps the account's email out of a
+# third-party request.
+WAGTAIL_GRAVATAR_PROVIDER_URL = None
+
 # --------------------------------------------------------------------------
 # sysadmin
 # --------------------------------------------------------------------------
