@@ -17,6 +17,7 @@ from __future__ import annotations
 from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
 from wagtail import hooks
+from wagtail.documents.models import Document
 
 from apps.cms.models import (
     collection_is_members_only,
@@ -25,8 +26,9 @@ from apps.cms.models import (
 )
 
 
-@hooks.register("before_serve_document")
-def guard_members_only_documents(document, request: HttpRequest) -> HttpResponse | None:
+# Wagtail ships no type information, so its hook registry is untyped.
+@hooks.register("before_serve_document")  # type: ignore[untyped-decorator]
+def guard_members_only_documents(document: Document, request: HttpRequest) -> HttpResponse | None:
     """Answer a members-only download with the wall, or ``None`` to let it through.
 
     A document outside the ``Members only`` collection subtree is always let

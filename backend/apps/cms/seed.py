@@ -6,13 +6,22 @@ guarantees the chrome the rest of the system reads.
 
 from __future__ import annotations
 
+from typing import Any
+
+from django.core.management.base import OutputWrapper
 from wagtail.models import Page, Site
 
 from apps.cms.models import DEFAULT_THEME, HomePage, SiteSettings
 
 
 def ensure_site_root() -> Site:
-    """Return the default site, creating a ``HomePage`` root if needed."""
+    """Return the default site, creating a ``HomePage`` root if needed.
+
+    A missing home page is created under the Wagtail root and published, and a
+    missing site is created as the default on ``localhost:80`` pointing at it.  An
+    existing site whose root page is some other page is repointed at the home page.
+    Safe to call repeatedly.
+    """
     site = Site.objects.filter(is_default_site=True).first()
     home = HomePage.objects.first()
 
@@ -46,7 +55,15 @@ def ensure_site_root() -> Site:
     return site
 
 
-def run(ctx: dict, stdout=None) -> dict:
+def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
+    """Seed the site root and its settings row, and record both in ``ctx``.
+
+    Returns ``ctx`` with ``site`` and ``site_settings`` added.  The settings row is
+    created with the default theme when it is missing, and a blank theme on an
+    existing row is filled in with the default.  Nothing else on the row is
+    touched, so an administrator's edits survive re-seeding.  With ``stdout``, one
+    line naming the root page is written to it.
+    """
     site = ensure_site_root()
     settings_obj, created = SiteSettings.objects.get_or_create(
         site=site, defaults={"theme": DEFAULT_THEME}
