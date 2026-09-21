@@ -5,11 +5,13 @@ from __future__ import annotations
 import csv
 import io
 import re
+from collections.abc import Iterator
 from datetime import timedelta
+from typing import cast
 
 import pytest
+from django.http import HttpResponseBase, StreamingHttpResponse
 from django.utils import timezone
-from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -80,10 +82,17 @@ def register(db: None) -> RegisterDict:
     return {"current": current, "expired": expired, "missing": missing}
 
 
-def read_csv(response: Response) -> list[list[str]]:
-    """Decode a streamed CSV response into rows of string cells."""
-    # streaming_content is a StreamingHttpResponse attribute the Response stub omits.
-    body = b"".join(response.streaming_content).decode()  # type: ignore[attr-defined]
+def read_csv(response: HttpResponseBase) -> list[list[str]]:
+    """Decode a streamed CSV response into rows of string cells.
+
+    The CSV export streams, so the response must be a ``StreamingHttpResponse``; any
+    other response type fails the assertion rather than the attribute lookup.
+    """
+    assert isinstance(response, StreamingHttpResponse)
+    # A synchronous StreamingHttpResponse yields bytes; the async branch of the
+    # declared union cannot occur here.
+    chunks = cast(Iterator[bytes], response.streaming_content)
+    body = b"".join(chunks).decode()
     return list(csv.reader(io.StringIO(body)))
 
 
@@ -265,7 +274,7 @@ def test_pdf_survives_an_empty_result_set(
 def test_pdf_states_the_filters_it_was_run_with(
     api_client: APIClient, account_admin: User, register: RegisterDict
 ) -> None:
-    """A filtered PDF export stays a valid one-page document with the right row count."""
+    """A filtered PDF export is still a valid single-page document."""
     api_client.force_login(account_admin)
     body = api_client.get(PDF_URL, {"insurance": "expired"}).content
     # reportlab writes the subtitle into the content stream, compressed; the
