@@ -220,11 +220,14 @@ When something goes wrong
 **A backup download 404s.**
    Only a plain file name ending ``.sql.gz`` inside ``BACKUP_DIR`` can be
    downloaded — starting with a letter or digit, then any run of letters,
-   digits, ``.``, ``_`` or ``-``.  That covers both the automatic
-   ``caldart-<timestamp>.sql.gz`` names and any name ``db_backup --name``
-   was given.  The check is deliberately strict: a name outside that pattern,
-   or one reached through a symbolic link out of the directory, is refused
-   rather than served.  Rename it to fit, or copy it off the server directly.
+   digits, ``.``, ``_`` or ``-``.  The automatic ``caldart-<timestamp>.sql.gz``
+   names always fit.  A name you chose yourself may not: ``db_backup --name``
+   writes whatever name you give it without checking, so a dump called
+   ``nightly backup.sql.gz`` or ``_snapshot.sql.gz`` is listed and then refused
+   at download, and one that does not end ``.sql.gz`` at all is never listed.
+   The check is deliberately strict: a name outside that pattern, or one
+   reached through a symbolic link out of the directory, is refused rather than
+   served.  Rename it to fit, or copy it off the server directly.
 
 **Health says migrations are pending.**
    Code has been deployed without ``manage.py migrate``.  Until it runs, the
