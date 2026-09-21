@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from io import StringIO
 
 import pytest
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from freezegun import freeze_time
@@ -53,20 +53,16 @@ def make_member(
     """A user with one term ending on ``ends_on`` (``None`` for lifetime)."""
     if email is not None:
         user_kwargs["email"] = email
-    # factory_boy's metaclass ``__call__`` carries no return type, so mypy sees every
-    # factory call as untyped; the explicit annotation recovers the real model type.
-    user: User = UserFactory(**user_kwargs)  # type: ignore[no-untyped-call, assignment]
+    user = UserFactory(**user_kwargs)
     starts_on = (ends_on - timedelta(days=364)) if ends_on else TODAY - timedelta(days=30)
-    membership: Membership = MembershipFactory(  # type: ignore[no-untyped-call, assignment]
-        user=user, plan=plan, starts_on=starts_on, ends_on=ends_on
-    )
+    membership = MembershipFactory(user=user, plan=plan, starts_on=starts_on, ends_on=ends_on)
     return user, membership
 
 
 # --------------------------------------------------------------------- kinds
 @pytest.mark.parametrize("kind", ALL_KINDS)
 def test_each_kind_fires_on_its_own_offset(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives], kind: str
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], kind: str
 ) -> None:
     """Each kind sends exactly one email and logs it, on its own offset."""
     user, membership = make_member(annual_plan, ends_on_for(kind))
@@ -83,7 +79,7 @@ def test_each_kind_fires_on_its_own_offset(
 
 @pytest.mark.parametrize("kind", ALL_KINDS)
 def test_nothing_fires_a_day_early(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives], kind: str
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], kind: str
 ) -> None:
     """A term a day further out than the cohort waits for its own day."""
     make_member(annual_plan, ends_on_for(kind) + timedelta(days=1))
@@ -95,7 +91,7 @@ def test_nothing_fires_a_day_early(
 
 
 def test_every_cohort_in_one_pass(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """One scan sends every kind due that day, each to its own member."""
     for kind in ALL_KINDS:
@@ -110,7 +106,7 @@ def test_every_cohort_in_one_pass(
 
 # --------------------------------------------------------------------- dedupe
 def test_a_second_run_the_same_day_sends_nothing(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A reminder already logged for ``(user, membership, kind)`` is never sent again."""
     make_member(annual_plan, ends_on_for(ReminderKind.T30))
@@ -125,7 +121,7 @@ def test_a_second_run_the_same_day_sends_nothing(
 
 
 def test_a_later_kind_still_fires_after_an_earlier_one(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """The same term earns a second, different-kind email as it gets closer to expiry."""
     user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
@@ -164,7 +160,7 @@ def test_a_term_ending_today_is_not_yet_expired(annual_plan: MembershipPlan) -> 
 
 # -------------------------------------------------------------------- dry run
 def test_dry_run_writes_nothing(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A dry run sends no mail, writes no log row, and flips no membership status."""
     make_member(annual_plan, ends_on_for(ReminderKind.T7), email="soon@example.test")
@@ -182,7 +178,7 @@ def test_dry_run_writes_nothing(
 
 
 def test_a_dry_run_does_not_suppress_the_real_one(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A dry run leaves no log row behind to block the live run that follows it."""
     make_member(annual_plan, ends_on_for(ReminderKind.T60))
@@ -196,14 +192,11 @@ def test_a_dry_run_does_not_suppress_the_real_one(
 
 # ---------------------------------------------------------------------- skips
 def test_lifetime_members_are_skipped(
-    annual_plan: MembershipPlan, life_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, life_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A member due for an annual reminder who also holds a lifetime term is skipped."""
     user, _annual = make_member(annual_plan, ends_on_for(ReminderKind.T30))
-    # factory_boy's metaclass __call__ carries no return type.
-    MembershipFactory(  # type: ignore[no-untyped-call]
-        user=user, plan=life_plan, starts_on=TODAY, ends_on=None
-    )
+    MembershipFactory(user=user, plan=life_plan, starts_on=TODAY, ends_on=None)
 
     run = send_renewal_reminders(today=TODAY)
 
@@ -213,7 +206,7 @@ def test_lifetime_members_are_skipped(
 
 
 def test_deactivated_users_are_skipped(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A due term belonging to a deactivated user is skipped."""
     make_member(annual_plan, ends_on_for(ReminderKind.T7), is_active=False)
@@ -225,7 +218,7 @@ def test_deactivated_users_are_skipped(
 
 
 def test_a_user_without_an_email_address_is_skipped(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A due term belonging to a user with no email address is skipped."""
     make_member(annual_plan, ends_on_for(ReminderKind.T7), email="")
@@ -237,13 +230,12 @@ def test_a_user_without_an_email_address_is_skipped(
 
 
 def test_a_member_who_renewed_early_is_skipped(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """Back-to-back terms mean coverage runs past this term's ``ends_on``."""
     expiring = ends_on_for(ReminderKind.T30)
     user, _term = make_member(annual_plan, expiring)
-    # factory_boy's metaclass __call__ carries no return type.
-    MembershipFactory(  # type: ignore[no-untyped-call]
+    MembershipFactory(
         user=user,
         plan=annual_plan,
         starts_on=expiring + timedelta(days=1),
@@ -258,12 +250,11 @@ def test_a_member_who_renewed_early_is_skipped(
 
 
 def test_post30_is_skipped_once_the_member_has_rejoined(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A lapsed member who started a fresh term is not sent a ``post30`` nudge."""
     user, _lapsed = make_member(annual_plan, ends_on_for(ReminderKind.POST30))
-    # factory_boy's metaclass __call__ carries no return type.
-    MembershipFactory(  # type: ignore[no-untyped-call]
+    MembershipFactory(
         user=user, plan=annual_plan, starts_on=TODAY, ends_on=TODAY + timedelta(days=364)
     )
 
@@ -274,7 +265,7 @@ def test_post30_is_skipped_once_the_member_has_rejoined(
 
 
 def test_canceled_terms_are_ignored_entirely(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """A canceled term produces no send, no skip count, and no email."""
     _user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
@@ -289,7 +280,7 @@ def test_canceled_terms_are_ignored_entirely(
 # ---------------------------------------------------------------------- email
 def test_email_content(
     annual_plan: MembershipPlan,
-    mailoutbox: list[EmailMultiAlternatives],
+    mailoutbox: list[EmailMessage],
     settings: Settings,
     site_settings: SiteSettings,
 ) -> None:
@@ -306,6 +297,7 @@ def test_email_content(
     send_renewal_reminders(today=TODAY)
 
     message = mailoutbox[0]
+    assert isinstance(message, EmailMultiAlternatives)
     assert message.subject == "The California DART Network: your membership expires in 30 days"
     assert message.to == [user.email]
     assert message.from_email == settings.DEFAULT_FROM_EMAIL
@@ -326,7 +318,7 @@ def test_email_content(
 
 @pytest.mark.parametrize("kind", ALL_KINDS)
 def test_every_kind_renders_both_bodies(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives], kind: str
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], kind: str
 ) -> None:
     """Every kind's plain-text and HTML bodies both carry a non-empty renewal link."""
     make_member(annual_plan, ends_on_for(kind))
@@ -334,6 +326,7 @@ def test_every_kind_renders_both_bodies(
     send_renewal_reminders(today=TODAY)
 
     message = mailoutbox[0]
+    assert isinstance(message, EmailMultiAlternatives)
     assert message.body.strip()
     assert renew_url() in message.body
     html = message.alternatives[0][0]
@@ -352,7 +345,7 @@ def test_renew_url_follows_site_url(settings: Settings) -> None:
 # named here rather than the day before.
 @freeze_time("2026-06-15 12:00:00")
 def test_the_scan_defaults_to_today(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """Calling ``send_renewal_reminders`` with no ``today`` uses the local date."""
     make_member(annual_plan, ends_on_for(ReminderKind.T7))
@@ -364,7 +357,7 @@ def test_the_scan_defaults_to_today(
 
 
 def test_command_sends_and_reports(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """The management command sends live mail and reports the date, mode and totals."""
     make_member(annual_plan, ends_on_for(ReminderKind.T30, date(2026, 6, 15)))
@@ -380,7 +373,7 @@ def test_command_sends_and_reports(
 
 
 def test_command_dry_run_says_so(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
     """``--dry-run`` sends no mail and reports what it would have sent."""
     make_member(annual_plan, ends_on_for(ReminderKind.T30, date(2026, 6, 15)))

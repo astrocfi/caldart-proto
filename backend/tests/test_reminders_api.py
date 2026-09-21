@@ -22,7 +22,7 @@ from apps.accounts.roles import (
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
-from apps.members.models import Membership, MembershipPlan
+from apps.members.models import MembershipPlan
 from apps.reminders.models import ReminderKind, ReminderLog
 from tests.factories import MembershipFactory, ReminderLogFactory, UserFactory
 
@@ -36,22 +36,17 @@ RUN_URL = "/api/v1/system/reminders/run"
 def log_entries(db: None, annual_plan: MembershipPlan) -> list[ReminderLog]:
     """Three entries by three members, on three days and of three kinds."""
     entries: list[ReminderLog] = []
-    # factory_boy's metaclass __call__ carries no return type, so each factory call
-    # below needs an explicit annotation to recover the real model type.
     for offset, kind in enumerate([ReminderKind.T60, ReminderKind.T30, ReminderKind.T7]):
-        user: User = UserFactory(  # type: ignore[no-untyped-call, assignment]
-            email=f"{kind}@example.test", first_name="Ada", last_name="Byron"
+        user = UserFactory(email=f"{kind}@example.test", first_name="Ada", last_name="Byron")
+        membership = MembershipFactory(user=user, plan=annual_plan)
+        entries.append(
+            ReminderLogFactory(
+                user=user,
+                membership=membership,
+                kind=kind,
+                sent_at=timezone.now() - timedelta(days=offset),
+            )
         )
-        membership: Membership = MembershipFactory(  # type: ignore[no-untyped-call, assignment]
-            user=user, plan=annual_plan
-        )
-        entry: ReminderLog = ReminderLogFactory(  # type: ignore[no-untyped-call, assignment]
-            user=user,
-            membership=membership,
-            kind=kind,
-            sent_at=timezone.now() - timedelta(days=offset),
-        )
-        entries.append(entry)
     return entries
 
 
@@ -197,11 +192,8 @@ def test_run_dry_run_reports_without_writing(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """A dry run through the endpoint reports what it would send but sends nothing."""
-    # factory_boy's metaclass __call__ carries no return type.
-    user: User = UserFactory(  # type: ignore[no-untyped-call, assignment]
-        email="expiring@example.test"
-    )
-    MembershipFactory(  # type: ignore[no-untyped-call]
+    user = UserFactory(email="expiring@example.test")
+    MembershipFactory(
         user=user,
         plan=annual_plan,
         starts_on=timezone.localdate() - timedelta(days=335),
@@ -223,11 +215,8 @@ def test_run_sends_for_real(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """A live run through the endpoint sends the email and logs it."""
-    # factory_boy's metaclass __call__ carries no return type.
-    user: User = UserFactory(  # type: ignore[no-untyped-call, assignment]
-        email="lastweek@example.test"
-    )
-    MembershipFactory(  # type: ignore[no-untyped-call]
+    user = UserFactory(email="lastweek@example.test")
+    MembershipFactory(
         user=user,
         plan=annual_plan,
         starts_on=timezone.localdate() - timedelta(days=358),
@@ -249,11 +238,8 @@ def test_run_is_idempotent(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """A second live run the same day sends nothing and reports the skip."""
-    # factory_boy's metaclass __call__ carries no return type.
-    user: User = UserFactory(  # type: ignore[no-untyped-call, assignment]
-        email="twice@example.test"
-    )
-    MembershipFactory(  # type: ignore[no-untyped-call]
+    user = UserFactory(email="twice@example.test")
+    MembershipFactory(
         user=user,
         plan=annual_plan,
         starts_on=timezone.localdate() - timedelta(days=358),
@@ -291,11 +277,8 @@ def test_log_records_survive_a_membership_being_read_back(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """The log row points at the term it was sent about."""
-    # factory_boy's metaclass __call__ carries no return type.
-    user: User = UserFactory(  # type: ignore[no-untyped-call, assignment]
-        email="linked@example.test"
-    )
-    membership: Membership = MembershipFactory(  # type: ignore[no-untyped-call, assignment]
+    user = UserFactory(email="linked@example.test")
+    membership = MembershipFactory(
         user=user,
         plan=annual_plan,
         starts_on=timezone.localdate() - timedelta(days=358),

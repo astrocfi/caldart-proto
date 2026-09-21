@@ -14,7 +14,6 @@ from datetime import date, timedelta
 from io import StringIO
 
 import pytest
-from _pytest.logging import LogCaptureFixture
 from django.core.mail import EmailMessage
 from django.core.mail.backends.locmem import EmailBackend as LocMemEmailBackend
 from django.core.management import call_command
@@ -50,10 +49,13 @@ class OneAddressFailsBackend(LocMemEmailBackend):
     """A locmem backend whose server refuses mail to :data:`FAILING_ADDRESS`."""
 
     def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
-        """Deliver every message to the locmem outbox except one to ``FAILING_ADDRESS``.
+        """Deliver the whole batch to the locmem outbox and return how many were sent.
 
-        Raises ``smtplib.SMTPDataError`` instead of sending when any message names
-        that address as a recipient.
+        Raises ``smtplib.SMTPDataError`` as soon as a message in the batch names
+        ``FAILING_ADDRESS`` as a recipient, before delivering any of them, so a batch
+        holding such a message reaches the outbox in full or not at all.  The reminder
+        scan sends one message per call, so only the failing recipient's own message
+        is lost.
         """
         for message in email_messages:
             if FAILING_ADDRESS in message.to:
@@ -112,7 +114,7 @@ def test_a_failed_send_leaves_no_log_row(
 
 
 def test_the_failure_log_names_the_ids_but_no_address(
-    annual_plan: MembershipPlan, failing_smtp: list[EmailMessage], caplog: LogCaptureFixture
+    annual_plan: MembershipPlan, failing_smtp: list[EmailMessage], caplog: pytest.LogCaptureFixture
 ) -> None:
     """A failed send logs one error naming the user and membership ids, no address."""
     user, membership = make_member(
