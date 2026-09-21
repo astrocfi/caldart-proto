@@ -216,6 +216,7 @@ def test_system_admin_may_correct_a_term(
     """A correction to a granted term is stored."""
     api_client.force_login(system_admin)
     term = target_member.memberships.first()
+    assert term is not None
     response = api_client.patch(membership_url(term), {"note": "corrected"})
     assert response.status_code == 200
     term.refresh_from_db()

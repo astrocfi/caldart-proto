@@ -7,8 +7,10 @@ duplicating them.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from datetime import date, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -36,6 +38,14 @@ from tests.factories import (
     make_home_page,
     make_site_settings,
 )
+
+if TYPE_CHECKING:
+    from pytest import Config
+
+    from apps.accounts.models import User as UserModel
+    from apps.aircraft.models import Aircraft
+    from apps.cms.models import HomePage, SiteSettings
+    from apps.members.models import Dart, MemberProfile, MembershipPlan
 
 User = get_user_model()
 
@@ -86,7 +96,13 @@ def _reload_vite_loader() -> None:
     DjangoViteAssetLoader.instance()
 
 
-def pytest_configure(config):
+def pytest_configure(config: Config) -> None:
+    """Write the stub Vite manifest when no real frontend build is present.
+
+    Sets the module-level ``_stubbed_manifest`` flag so ``pytest_unconfigure`` knows
+    whether to remove the file it wrote, and reloads django-vite's cached loader so it
+    picks up the manifest this hook just wrote or found.
+    """
     global _stubbed_manifest
     if not VITE_MANIFEST.is_file():
         VITE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
@@ -95,7 +111,7 @@ def pytest_configure(config):
     _reload_vite_loader()
 
 
-def pytest_unconfigure(config):
+def pytest_unconfigure(config: Config) -> None:
     """Leave the tree as we found it."""
     if not _stubbed_manifest:
         return
@@ -107,12 +123,12 @@ def pytest_unconfigure(config):
 
 @pytest.fixture(scope="session")
 def frontend_is_built() -> bool:
-    """False when the manifest is the stub above rather than a real build."""
+    """Return ``False`` when the manifest is the stub above rather than a real build."""
     return not _stubbed_manifest
 
 
 @pytest.fixture(autouse=True)
-def _roles(db):
+def _roles(db: None) -> None:
     """Every test gets the role groups, exactly as ``migrate`` leaves them."""
     from apps.accounts.management.commands.seed_roles import seed_roles
 
@@ -137,7 +153,7 @@ def csrf_client() -> APIClient:
 
 
 @pytest.fixture
-def csrf_headers():
+def csrf_headers() -> Callable[[APIClient], dict[str, str]]:
     """``csrf_headers(client)`` -> the header kwargs an unsafe method needs.
 
     Calling it issues ``GET /api/v1/auth/csrf``, which leaves the ``csrftoken``
@@ -154,26 +170,33 @@ def csrf_headers():
 
 
 @pytest.fixture
-def user_factory():
-    """The ``UserFactory`` class, for tests that need many users."""
+def user_factory() -> type[UserFactory]:
+    """Return the ``UserFactory`` class, for tests that need many users."""
     return UserFactory
 
 
 @pytest.fixture
 def password() -> str:
+    """Return the plaintext password every ``UserFactory`` user is created with."""
     return DEFAULT_PASSWORD
 
 
 @pytest.fixture
-def no_role_user(db):
-    """A signed-in user with no roles at all."""
+def no_role_user(db: None) -> UserModel:
+    """Return a signed-in user with no roles at all."""
     return UserFactory(email="nobody@example.test", roles=[])
 
 
 # -- one fixture per role --------------------------------------------------
-def _role_fixture(slug: str, email: str):
+def _role_fixture(slug: str, email: str) -> Callable[..., UserModel]:
+    """Return a pytest fixture function that creates a user holding role ``slug``.
+
+    ``MEMBER`` gets only the member role; every other role also carries member, since
+    every non-member role in this application implies membership.
+    """
+
     @pytest.fixture(name=slug if slug != MEMBER else "member")
-    def _fixture(db):
+    def _fixture(db: None) -> UserModel:
         return UserFactory(email=email, roles=[MEMBER, slug] if slug != MEMBER else [MEMBER])
 
     return _fixture
@@ -188,21 +211,29 @@ system_admin = _role_fixture(SYSTEM_ADMIN, "sysadmin@example.test")
 
 
 @pytest.fixture
-def leader(dart_leader):
-    """Alias for ``dart_leader``, the name used in most tests."""
+def leader(dart_leader: UserModel) -> UserModel:
+    """Return ``dart_leader``, under the name used in most tests."""
     return dart_leader
 
 
 @pytest.fixture
-def superuser(db):
+def superuser(db: None) -> UserModel:
+    """Return a Django superuser holding the system-admin role."""
     return UserFactory(
         email="root@example.test", roles=[SYSTEM_ADMIN], is_superuser=True, is_staff=True
     )
 
 
 @pytest.fixture
-def all_role_users(member, dart_leader, user_admin, account_admin, website_admin, system_admin):
-    """Every role fixture keyed by slug, for allow/deny matrix tests."""
+def all_role_users(
+    member: UserModel,
+    dart_leader: UserModel,
+    user_admin: UserModel,
+    account_admin: UserModel,
+    website_admin: UserModel,
+    system_admin: UserModel,
+) -> dict[str, UserModel]:
+    """Return every role fixture's user keyed by its role slug, for allow/deny tests."""
     return {
         MEMBER: member,
         DART_LEADER: dart_leader,
@@ -215,73 +246,86 @@ def all_role_users(member, dart_leader, user_admin, account_admin, website_admin
 
 # -- domain fixtures -------------------------------------------------------
 @pytest.fixture
-def annual_plan(db) -> MembershipPlanFactory:
+def annual_plan(db: None) -> MembershipPlan:
+    """Return a saved annual ``MembershipPlan`` built by ``MembershipPlanFactory``."""
     return MembershipPlanFactory()
 
 
 @pytest.fixture
-def life_plan(db):
+def life_plan(db: None) -> MembershipPlan:
+    """Return a saved lifetime ``MembershipPlan`` built by ``LifetimePlanFactory``."""
     return LifetimePlanFactory()
 
 
 @pytest.fixture
-def dart(db):
+def dart(db: None) -> Dart:
+    """Return a saved ``Dart`` named "Palo Alto" with airport identifier ``PAO``."""
     return DartFactory(name="Palo Alto", airport_identifier="PAO", city="Palo Alto")
 
 
 @pytest.fixture
-def profile(member, dart):
+def profile(member: UserModel, dart: Dart) -> MemberProfile:
+    """Return a saved ``MemberProfile`` for the ``member`` fixture's user at ``dart``."""
     return MemberProfileFactory(user=member, dart=dart)
 
 
 @pytest.fixture
-def aircraft(db):
+def aircraft(db: None) -> Aircraft:
+    """Return a saved ``Aircraft`` built by ``AircraftFactory``."""
     return AircraftFactory()
 
 
 @pytest.fixture
-def payment_factory():
+def payment_factory() -> type[PaymentFactory]:
+    """Return the ``PaymentFactory`` class, for tests that need many payments."""
     return PaymentFactory
 
 
 @pytest.fixture
-def membership_factory():
+def membership_factory() -> type[MembershipFactory]:
+    """Return the ``MembershipFactory`` class, for tests that need many memberships."""
     return MembershipFactory
 
 
 @pytest.fixture
-def reminder_log_factory():
+def reminder_log_factory() -> type[ReminderLogFactory]:
+    """Return the ``ReminderLogFactory`` class, for tests that need many reminder logs."""
     return ReminderLogFactory
 
 
 @pytest.fixture
-def aircraft_factory():
+def aircraft_factory() -> type[AircraftFactory]:
+    """Return the ``AircraftFactory`` class, for tests that need many aircraft."""
     return AircraftFactory
 
 
 @pytest.fixture
-def profile_factory():
+def profile_factory() -> type[MemberProfileFactory]:
+    """Return the ``MemberProfileFactory`` class, for tests that need many profiles."""
     return MemberProfileFactory
 
 
 @pytest.fixture
-def home_page(db):
+def home_page(db: None) -> HomePage:
+    """Return the site's ``HomePage``, created under the Wagtail tree root if needed."""
     return make_home_page()
 
 
 @pytest.fixture
-def site_settings(db):
+def site_settings(db: None) -> SiteSettings:
+    """Return the default site's ``SiteSettings`` row, created if it does not exist."""
     return make_site_settings()
 
 
 @pytest.fixture
 def today() -> date:
+    """Return the current local date."""
     from django.utils import timezone
 
     return timezone.localdate()
 
 
 @pytest.fixture
-def days():
+def days() -> Callable[[int], timedelta]:
     """``days(7)`` -> ``timedelta(days=7)``, to keep date math readable."""
     return lambda n: timedelta(days=n)

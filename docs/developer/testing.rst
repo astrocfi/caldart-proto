@@ -136,9 +136,11 @@ themselves are also exposed as fixtures — ``user_factory``,
 Writing tests with the factories
 --------------------------------
 
-``backend/tests/factories.py`` has a ``factory_boy`` factory per model.  Most
-use ``django_get_or_create``, so asking twice for the same key returns the same
-row instead of a unique-constraint error.
+``backend/tests/factories.py`` has a ``factory_boy`` factory per model.  Each
+subclasses ``ModelFactory[SomeModel]``, which names the model the factory
+returns so a type checker knows it too.  Most use ``django_get_or_create``, so
+asking twice for the same key returns the same row instead of a
+unique-constraint error.
 
 .. code-block:: python
 
@@ -170,6 +172,9 @@ Things worth knowing about the factories:
 - ``PaymentFactory`` defaults to the ``mock`` provider with status
   ``pending``; drive it through ``payments.services.mark_succeeded`` rather
   than setting ``status`` by hand, or you will not get the membership term.
+- ``ReminderLogFactory`` gives ``user`` and ``membership`` independent
+  defaults, and addresses the log to its own ``user``.  Pass both when the log
+  has to be about that member's own membership.
 - ``make_home_page()`` and ``make_site_settings(**kwargs)`` build the minimum
   Wagtail tree, which several CMS tests need.
 
@@ -433,7 +438,12 @@ page, block and settings base classes carry no types, and Wagtail, the four
 libraries it builds on (``django-modelcluster``, ``django-taggit``,
 ``django-treebeard`` and ``modelsearch``), ``django-environ``,
 ``django-filter``, ``django-vite`` and ``whitenoise`` are declared as untyped
-imports for the same reason.  As with the ruff rule sets,
+imports for the same reason.  ``factory_boy`` is followed rather than skipped,
+so that a factory's model type reaches its callers, and two settings absorb its
+stub gaps: ``untyped_calls_exclude = ["factory"]`` accepts the unannotated
+declarative API (``Faker``, ``Sequence``, ``SubFactory``, ``LazyFunction``,
+``LazyAttribute``, ``post_generation``), and ``implicit_reexport`` accepts the
+names ``factory`` re-exports without an ``as`` alias.  As with the ruff rule sets,
 one ``[[tool.mypy.overrides]]`` entry per unit carries ``ignore_errors = true``,
 and an entry disappears when its unit type-checks clean.  Silencing one line
 takes ``# type: ignore[<code>]`` with a comment naming the stub gap behind it.

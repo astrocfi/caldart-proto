@@ -155,20 +155,6 @@ max-doc-length = 90
 "backend/tests/test_sysadmin_api.py" = ["ANN", "D"]
 "backend/tests/test_sysadmin_commands.py" = ["ANN", "D"]
 "backend/tests/test_sysadmin_settings.py" = ["ANN", "D"]
-# Unit: tests-shared
-"backend/tests/conftest.py" = ["ANN", "D"]
-"backend/tests/factories.py" = ["ANN", "D"]
-"backend/tests/test_app_layering.py" = ["ANN", "D"]
-"backend/tests/test_audit_logging.py" = ["ANN", "D"]
-"backend/tests/test_domain_errors.py" = ["ANN", "D"]
-"backend/tests/test_hsts.py" = ["ANN", "D"]
-"backend/tests/test_integration.py" = ["ANN", "D"]
-"backend/tests/test_makefile_switches.py" = ["ANN", "D"]
-"backend/tests/test_permission_matrix.py" = ["ANN", "D"]
-"backend/tests/test_reports.py" = ["ANN", "D"]
-"backend/tests/test_seed.py" = ["ANN", "D"]
-"backend/tests/test_server_controlled_fields.py" = ["ANN", "D"]
-"backend/tests/test_settings_fail_closed.py" = ["ANN", "D"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -179,6 +165,7 @@ strict = true
 # subclasses one would otherwise be an error rather than a checked class.
 disallow_subclassing_any = false
 exclude = ["/migrations/"]
+untyped_calls_exclude = ["factory"]
 
 [tool.django-stubs]
 django_settings_module = "caldart.settings.test"
@@ -199,6 +186,14 @@ module = [
     "treebeard.*",
 ]
 ignore_missing_imports = true
+
+# factory_boy ships py.typed but re-exports its declarative API from ``factory`` without
+# ``as`` aliases, and leaves that API unannotated.  Accepting the re-exports here, and
+# the untyped calls through ``untyped_calls_exclude`` above, keeps its source followed,
+# so a factory's declared model type still reaches every caller.
+[[tool.mypy.overrides]]
+module = ["factory", "factory.*"]
+implicit_reexport = true
 
 # The type-checking ratchet, unit by unit, matching the ruff table above.  Each
 # unit's own change deletes its override; none may remain once every unit is typed.
@@ -294,21 +289,3 @@ module = [
 ]
 ignore_errors = true
 
-# Unit: tests-shared
-[[tool.mypy.overrides]]
-module = [
-    "tests.conftest",
-    "tests.factories",
-    "tests.test_app_layering",
-    "tests.test_audit_logging",
-    "tests.test_domain_errors",
-    "tests.test_hsts",
-    "tests.test_integration",
-    "tests.test_makefile_switches",
-    "tests.test_permission_matrix",
-    "tests.test_reports",
-    "tests.test_seed",
-    "tests.test_server_controlled_fields",
-    "tests.test_settings_fail_closed",
-]
-ignore_errors = true
