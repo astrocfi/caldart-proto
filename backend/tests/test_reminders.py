@@ -112,7 +112,7 @@ def test_every_cohort_in_one_pass(
 def test_a_second_run_the_same_day_sends_nothing(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMultiAlternatives]
 ) -> None:
-    """The unique constraint on ``(user, membership, kind)`` dedupes same-day runs."""
+    """A reminder already logged for ``(user, membership, kind)`` is never sent again."""
     make_member(annual_plan, ends_on_for(ReminderKind.T30))
 
     send_renewal_reminders(today=TODAY)
@@ -400,7 +400,7 @@ def test_command_rejects_a_bad_date(annual_plan: MembershipPlan) -> None:
 
 
 def test_summary_lines_cover_every_kind() -> None:
-    """``as_lines`` names every kind and reason recorded; ``as_dict`` sums them."""
+    """``as_lines`` lists every kind and each non-zero reason; ``as_dict`` sums both."""
     run = ReminderRun(today=TODAY, dry_run=False)
     run.record_sent(ReminderKind.T7)
     run.record_skipped("lifetime")
