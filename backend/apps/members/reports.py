@@ -13,16 +13,32 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Iterator
 from datetime import date
-from typing import Any
+from typing import TYPE_CHECKING, TypedDict
 
 from django.utils import timezone
 
-from apps.members.services import membership_payload
+from apps.members.models import MemberProfile
+from apps.members.services import MembershipStatusDict, membership_payload
+
+if TYPE_CHECKING:
+    from apps.members.services import MemberRow
+
+
+class RowContext(TypedDict):
+    """One member, gathered once so every column reads it without a query."""
+
+    user: MemberRow
+    profile: MemberProfile | None
+    dart: str
+    membership: MembershipStatusDict
+    aircraft: list[str]
+    joined_on: date | None
+
 
 #: Header text and the value function for every column, in export order.
 #: A lifetime membership has no expiry date, so ``expires_on`` is blank for one;
 #: the ``plan`` column ("Life") and ``status`` ("current") say what it is.
-MEMBER_REPORT_COLUMNS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
+MEMBER_REPORT_COLUMNS: tuple[tuple[str, Callable[[RowContext], str]], ...] = (
     ("name", lambda ctx: ctx["user"].display_name),
     ("email", lambda ctx: ctx["user"].email),
     ("phone", lambda ctx: ctx["profile"].phone if ctx["profile"] else ""),
@@ -34,7 +50,7 @@ MEMBER_REPORT_COLUMNS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
     ("certificate_number", lambda ctx: _value(ctx["profile"], "certificate_number")),
     ("ifr", lambda ctx: _display(ctx["profile"], "ifr_rated")),
     ("medical_type", lambda ctx: _display(ctx["profile"], "medical_type")),
-    ("medical_expiration", lambda ctx: _iso(_value(ctx["profile"], "medical_expiration") or None)),
+    ("medical_expiration", lambda ctx: _iso(_date(ctx["profile"], "medical_expiration"))),
     ("aircraft", lambda ctx: " ".join(ctx["aircraft"])),
     ("city", lambda ctx: _value(ctx["profile"], "city")),
     ("state", lambda ctx: _value(ctx["profile"], "state")),
@@ -48,11 +64,20 @@ REPORT_TITLE = "CalDART membership report"
 
 
 def _iso(value: date | None) -> str:
+    """The date as ``YYYY-MM-DD``, or a blank cell when there is none."""
     return value.isoformat() if value else ""
 
 
-def _value(profile, field: str):
-    return getattr(profile, field, "") if profile is not None else ""
+def _value(profile: MemberProfile | None, field: str) -> str:
+    """The text in ``field``, or a blank cell when the member has no profile."""
+    text: str = getattr(profile, field, "") if profile is not None else ""
+    return text
+
+
+def _date(profile: MemberProfile | None, field: str) -> date | None:
+    """The date in ``field``, or ``None`` when it is unset or there is no profile."""
+    value: date | None = getattr(profile, field, None) if profile is not None else None
+    return value
 
 
 #: Choice values that mean "nothing on file"; they read better as a blank cell
@@ -60,19 +85,29 @@ def _value(profile, field: str):
 _EMPTY_CHOICES = frozenset({"none", "na"})
 
 
-def _display(profile, field: str) -> str:
-    """The human label behind a ``choices`` field, e.g. ``private`` -> Private."""
+def _display(profile: MemberProfile | None, field: str) -> str:
+    """The human label behind a ``choices`` field, e.g. ``private`` -> Private.
+
+    A member without a profile, and one whose answer means "nothing on file",
+    both read as a blank cell.
+    """
     if profile is None or getattr(profile, field, "") in _EMPTY_CHOICES:
         return ""
-    return getattr(profile, f"get_{field}_display")()
+    label: str = getattr(profile, f"get_{field}_display")()
+    return label
 
 
-def _row_context(user) -> dict:
-    profile = getattr(user, "profile", None)
+def _row_context(user: MemberRow) -> RowContext:
+    """Everything the columns read for one member, fetched once.
+
+    An account with no profile row still yields a context: the profile is
+    ``None``, and every column that reads it is blank.
+    """
+    profile: MemberProfile | None = getattr(user, "profile", None)
     return {
         "user": user,
         "profile": profile,
-        "dart": profile.dart.name if profile is not None and profile.dart_id else "",
+        "dart": profile.dart.name if profile is not None and profile.dart is not None else "",
         "membership": membership_payload(user),
         "aircraft": (
             [aircraft.n_number for aircraft in profile.aircraft.all()]
@@ -83,11 +118,13 @@ def _row_context(user) -> dict:
     }
 
 
-def member_report_rows(users: Iterable) -> Iterator[list]:
+def member_report_rows(users: Iterable[MemberRow]) -> Iterator[list[str]]:
     """Yield one report row per user, lazily, in the queryset's order.
 
-    ``users`` must come from ``admin_filters.member_admin_queryset`` so the
-    membership annotations are present.
+    Each row holds the columns of :data:`MEMBER_REPORT_COLUMNS`, in that order,
+    every cell already text.  ``users`` must come from
+    ``admin_filters.member_admin_queryset`` so the membership annotations are
+    present.
     """
     for user in users:
         context = _row_context(user)
@@ -95,7 +132,11 @@ def member_report_rows(users: Iterable) -> Iterator[list]:
 
 
 def member_report_filename(extension: str, on_date: date | None = None) -> str:
-    """e.g. ``caldart-members-2026-09-04.csv``."""
+    """The download name for the report, e.g. ``caldart-members-2026-09-04.csv``.
+
+    ``on_date`` defaults to the current local date, and ``extension`` is added
+    as given.
+    """
     on_date = on_date or timezone.localdate()
     return f"caldart-members-{on_date.isoformat()}.{extension}"
 

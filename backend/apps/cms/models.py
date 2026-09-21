@@ -37,6 +37,7 @@ from apps.cms.blocks import (
 )
 from apps.cms.forms import RestrictedBlocksPageForm
 from apps.members.models import MembershipState
+from apps.members.services import MembershipStatusDict
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
@@ -78,7 +79,7 @@ class MembersWallContext(TypedDict):
     """The extra template context the members-only wall renders from."""
 
     wall_state: WallState
-    membership: dict[str, Any] | None
+    membership: MembershipStatusDict | None
 
 
 def user_can_access_members_content(user: User | AnonymousUser | None) -> bool:

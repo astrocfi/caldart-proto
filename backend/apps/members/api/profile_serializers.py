@@ -8,7 +8,10 @@ membership terms and payments they may read, and the two public catalogs
 from __future__ import annotations
 
 import re
+from datetime import date
+from typing import Any
 
+from django.db import models
 from rest_framework import serializers
 
 from apps.aircraft.api.serializers import AircraftSummarySerializer
@@ -29,7 +32,7 @@ STATE_RE = re.compile(r"^[A-Za-z]{2}$")
 POSTAL_RE = re.compile(r"^\d{5}(-\d{4})?$")
 
 
-class DartSerializer(serializers.ModelSerializer):
+class DartSerializer(serializers.ModelSerializer[Dart]):
     """``GET /darts`` — the public DART catalog."""
 
     class Meta:
@@ -38,7 +41,7 @@ class DartSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class DartRefSerializer(serializers.ModelSerializer):
+class DartRefSerializer(serializers.ModelSerializer[Dart]):
     """The ``dart: {id, name}`` stub nested in a profile."""
 
     class Meta:
@@ -47,7 +50,7 @@ class DartRefSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class MembershipTermSerializer(serializers.ModelSerializer):
+class MembershipTermSerializer(serializers.ModelSerializer[Membership]):
     """One row of the membership history in ``GET /me/membership``."""
 
     plan = serializers.CharField(source="plan.name", read_only=True)
@@ -58,7 +61,7 @@ class MembershipTermSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class PaymentSummarySerializer(serializers.ModelSerializer):
+class PaymentSummarySerializer(serializers.ModelSerializer[Payment]):
     """The trimmed payment row a member sees for themselves."""
 
     plan = serializers.SerializerMethodField()
@@ -76,11 +79,12 @@ class PaymentSummarySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_plan(self, obj) -> str | None:
-        return obj.plan.name if obj.plan_id else None
+    def get_plan(self, obj: Payment) -> str | None:
+        """The plan name behind the payment, or ``None`` for a bare contribution."""
+        return obj.plan.name if obj.plan is not None else None
 
 
-class ProfileSerializer(serializers.ModelSerializer):
+class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     """``GET/PUT/PATCH /me/profile``.
 
     ``dart`` reads as ``{id, name}`` and is written as ``dart_id``; ``aircraft``
@@ -148,12 +152,23 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     # -- field-level rules -------------------------------------------------
     def validate_state(self, value: str) -> str:
+        """Uppercase the state, rejecting anything but two letters.
+
+        A blank value passes: the field is optional.  Anything else that is not
+        exactly two letters is refused with "Use the two-letter state code, for
+        example CA."
+        """
         value = (value or "").strip().upper()
         if value and not STATE_RE.match(value):
             raise serializers.ValidationError("Use the two-letter state code, for example CA.")
         return value
 
     def validate_postal_code(self, value: str) -> str:
+        """Trim the ZIP code, rejecting anything but ``12345`` or ``12345-6789``.
+
+        A blank value passes: the field is optional.  Anything else is refused
+        with "Use a ZIP code like 95035 or 95035-1234."
+        """
         value = (value or "").strip()
         if value and not POSTAL_RE.match(value):
             raise serializers.ValidationError("Use a ZIP code like 95035 or 95035-1234.")
@@ -168,13 +183,34 @@ class ProfileSerializer(serializers.ModelSerializer):
         return unique
 
     # -- cross-field rules -------------------------------------------------
-    def _merged(self, attrs: dict, name: str):
-        """The value a PATCH would leave in place, so rules see the whole row."""
-        if name in attrs:
-            return attrs[name]
-        return getattr(self.instance, name, None)
+    def _merged(self, attrs: dict[str, Any], name: str) -> str | date | None:
+        """The value a PATCH would leave in place, so rules see the whole row.
 
-    def validate(self, attrs: dict) -> dict:
+        ``name`` is one of the choice or date fields the rules below read, and
+        the answer is the incoming value when the request carries the field and
+        the stored one otherwise, or ``None`` when neither has it.
+        """
+        merged: str | date | None = (
+            attrs[name] if name in attrs else getattr(self.instance, name, None)
+        )
+        return merged
+
+    def _merged_text(self, attrs: dict[str, Any], name: str) -> str:
+        """:meth:`_merged` for a text field, with anything unset read as blank."""
+        value = self._merged(attrs, name)
+        return value if isinstance(value, str) else ""
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Check the two rules that need more than one field, and return ``attrs``.
+
+        A medical class other than ``none`` needs an expiration date, refused
+        against ``medical_expiration`` with "Give the expiration date of your
+        medical certificate."  A pilot certificate other than ``none`` needs a
+        number, refused against ``certificate_number`` with "Give your pilot
+        certificate number."  Both are judged on the row a PATCH would leave
+        behind, not on the fields this request happens to carry, and both
+        complaints are raised together when both apply.
+        """
         errors: dict[str, str] = {}
 
         medical_type = self._merged(attrs, "medical_type")
@@ -186,7 +222,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
         certificate = self._merged(attrs, "pilot_certificate_type")
         if certificate and certificate != PilotCertificateType.NONE:
-            if not (self._merged(attrs, "certificate_number") or "").strip():
+            if not self._merged_text(attrs, "certificate_number").strip():
                 errors["certificate_number"] = "Give your pilot certificate number."
 
         if errors:
@@ -194,13 +230,17 @@ class ProfileSerializer(serializers.ModelSerializer):
         return attrs
 
     # -- write -------------------------------------------------------------
-    def update(self, instance, validated_data):
+    def update(self, instance: MemberProfile, validated_data: dict[str, Any]) -> MemberProfile:
         """``PUT`` really replaces: anything left out goes back to its default.
 
         DRF's own behavior is to ignore absent optional fields even on a full
         update, which would make ``PUT`` and ``PATCH`` indistinguishable.  The
         API contract says one is a full update and the other partial,
         so unticked checkboxes and cleared text really do get cleared.
+
+        Raises ``TypeError`` if a writable field names something other than a
+        concrete model field, since only a concrete field carries the default
+        the reset needs.
         """
         if not self.partial:
             for name, field in self.fields.items():
@@ -209,11 +249,21 @@ class ProfileSerializer(serializers.ModelSerializer):
                 source = field.source or name
                 if source in validated_data:
                     continue
-                validated_data[source] = MemberProfile._meta.get_field(source).get_default()
+                # ``get_field`` also answers reverse relations and generic foreign
+                # keys, which carry no default. None of the writable fields above
+                # is one, so such an answer means the field list and the model have
+                # drifted apart, and the reset would silently skip a field.
+                model_field = MemberProfile._meta.get_field(source)
+                if not isinstance(model_field, models.Field):
+                    raise TypeError(
+                        f"MemberProfile.{source} is not a concrete field and has no "
+                        f"default to reset {name!r} to."
+                    )
+                validated_data[source] = model_field.get_default()
         return super().update(instance, validated_data)
 
 
-class AircraftAttachSerializer(serializers.Serializer):
+class AircraftAttachSerializer(serializers.Serializer[Any]):
     """``POST /me/profile/aircraft`` body."""
 
     aircraft_id = serializers.IntegerField()

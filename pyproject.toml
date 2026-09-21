@@ -104,8 +104,6 @@ max-doc-length = 90
 [tool.ruff.lint.per-file-ignores]
 # Unit: payments
 "backend/apps/payments/**" = ["ANN", "D"]
-# Unit: members
-"backend/apps/members/**" = ["ANN", "D"]
 # Unit: tests-accounts
 "backend/tests/test_account_edit_guard.py" = ["ANN", "D"]
 "backend/tests/test_account_services.py" = ["ANN", "D"]
@@ -213,10 +211,6 @@ module = ["apps.payments.*"]
 ignore_errors = true
 
 
-# Unit: members
-[[tool.mypy.overrides]]
-module = ["apps.members.*"]
-ignore_errors = true
 
 # Unit: tests-accounts
 [[tool.mypy.overrides]]

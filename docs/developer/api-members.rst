@@ -35,6 +35,9 @@ The code lives in ``backend/apps/members/``:
    ``update_member`` and ``delete_member`` own the rules the endpoints below
    state, and the account half of each goes to ``accounts.services``.  The
    membership status and ``activate_term`` live here too.
+``api/actors.py``
+   ``acting_user(request)``, the signed-in account behind a request every
+   view here has already gated on a role.
 ``api/admin_urls.py``
    Routes, included from ``api/urls.py``.
 ``reports.py``
