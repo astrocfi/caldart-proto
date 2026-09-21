@@ -42,7 +42,7 @@ before expiry to do it again.  Recurring billing would mean:
 
 - **Stripe Subscriptions or Billing** rather than a bare PaymentIntent, with a
   ``Price`` per ``MembershipPlan`` and a ``Customer`` per ``User``.  The
-  ``Customer`` id is the missing column — there is nowhere to keep it today.
+  ``Customer`` id is the missing column — there is nowhere to keep it.
 - **PayPal Subscriptions** (a different API from Orders v2, which is what
   ``providers/paypal.py`` speaks).
 - A **``Subscription`` model** — provider, provider reference, plan, status,
@@ -73,12 +73,12 @@ Refunds
 -------
 
 ``PaymentStatus`` includes ``refunded`` and nothing ever sets it.  Refunding
-today means refunding in the Stripe or PayPal dashboard and then correcting
+means refunding in the Stripe or PayPal dashboard and then correcting
 CalDART by hand.  A refunds UI would need: an account-administrator action on
 the payment row, a provider call (``stripe.Refund.create``, PayPal's refund
 endpoint), the resulting status change, and a decision about the membership
 term the payment bought — cancel it, shorten it, or leave it.  The webhook
-handlers would need to accept refund events, which they currently ignore.
+handlers would need to accept refund events, which they ignore.
 
 Members and accounts
 ====================
@@ -92,7 +92,7 @@ privileges.  The prototype ships two plans, Annual and Life, and no notion of a
 tier that grants less.
 
 The schema is most of the way there.  ``MembershipPlan`` is a table, so a
-Friend plan is a row.  What is missing is the distinction in behavior: today
+Friend plan is a row.  What is missing is the distinction in behavior:
 membership currency is a single boolean question, and every current member gets
 the same members-only content and appears the same way in a DART leader's
 search.  A Friend tier needs a flag on the plan — call it ``grants_operational

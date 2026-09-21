@@ -111,6 +111,8 @@ Add the mixin to a new page type by listing it first in the bases and adding
 its panel::
 
     class HandbookPage(MembersOnlyMixin, BasePage):
+        body = StreamField(ContentStreamBlock(), blank=True)
+
         content_panels = [
             *Page.content_panels,
             FieldPanel("body"),
@@ -219,9 +221,8 @@ Adding a page type
 #. Declare ``content_panels``, ``search_fields``, ``template``, and
    ``parent_page_types`` / ``subpage_types``.
 #. Give it a ``Meta.verbose_name``, so Wagtail's "add a child page" chooser
-   names it the way an editor would.  A ``__str__`` is worth adding when the
-   page's title is not the whole story — ``DartPage`` has one, the index pages
-   do not.
+   names it the way an editor would.  A ``__str__`` is not one of the things a
+   page type declares: Wagtail's ``Page`` already returns the page title.
 #. Write ``backend/templates/cms/<snake_name>.html`` extending ``base.html``.
 #. ``manage.py makemigrations cms``.
 #. Extend ``seed_content`` if the example site should have one.
@@ -374,3 +375,9 @@ Testing
 
 Backend tests do not need a frontend build: ``conftest.py`` stubs the Vite
 manifest when ``frontend/dist`` is missing.
+
+Related
+=======
+
+:doc:`api-system` documents ``GET /site/config``, which reports the
+navigation and members-only pages this chapter builds.

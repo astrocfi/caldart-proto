@@ -5,7 +5,7 @@ Development setup
 From a clean machine to a running CalDART, then the everyday commands you will
 use while working on it.  Configuration is covered separately in
 :doc:`configuration`, and what the resulting application actually does is in
-the :doc:`../demo-walkthrough`.
+the :doc:`/demo-walkthrough`.
 
 Prerequisites
 =============
@@ -151,6 +151,34 @@ Sign in with any of the demo accounts, all of which use the password
 
 The list, the names attached to it and the password all live in
 ``backend/apps/accounts/seed.py``.
+
+Smoke test
+==========
+
+With ``make run`` still running in one terminal, check the four surfaces
+from another:
+
+.. code-block:: console
+
+   $ curl -sI http://localhost:8000/ | head -1
+   HTTP/1.1 200 OK
+   $ curl -sI http://localhost:8000/portal/ | head -1
+   HTTP/1.1 200 OK
+   $ curl -sI http://localhost:8000/api/v1/system/health | head -1
+   HTTP/1.1 401 Unauthorized
+   $ curl -sI http://localhost:8000/admin/ | head -1
+   HTTP/1.1 302 Found
+
+The public site and the portal shell both answer ``200``; the API rejects the
+signed-out health check (``401``) rather than 404ing, proving the URL is
+wired up; the Wagtail admin redirects (``302``) to its sign-in page for a
+signed-out request.  Sign in to
+``/portal/`` with a demo account from the table above to confirm the whole
+stack — Postgres, the seed data, and the built frontend bundle — is wired up
+end to end.  Anything other than these responses means one of the six setup
+steps above did not finish: check ``make migrate`` and ``make seed`` ran
+against the database named in ``.env``, and that ``make build`` produced
+``frontend/dist/.vite/manifest.json``.
 
 Working on the frontend
 =======================

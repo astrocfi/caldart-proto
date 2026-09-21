@@ -274,3 +274,8 @@ monitoring check at.
 The panel grades each one: free space warns below 2 GB and fails below 512 MB,
 the last backup warns after a week and fails after a month, any pending
 migration warns, and ``DEBUG`` being on in production fails.
+
+Related
+=======
+
+:doc:`api-system` documents the health and backup endpoints in detail.

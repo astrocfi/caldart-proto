@@ -396,7 +396,7 @@ End-to-end tests
 
 Playwright drives a real browser against a real server, and covers the five
 low-friction flows the system is built around (:doc:`architecture`) — the
-same ones the :doc:`../demo-walkthrough` walks a person through:
+same ones the :doc:`/demo-walkthrough` walks a person through:
 
 1. a visitor signs up and pays and is immediately a current member;
 2. a member signs in, edits their profile and reads members-only content;
@@ -416,6 +416,43 @@ on a machine needs the browser: ``cd frontend && npx playwright install
 chromium`` (on a bare machine add ``npx playwright install-deps chromium``,
 which needs ``sudo``).  The specs are single-worker on purpose: three of the
 flows write to the shared database.
+
+Environment variables
+----------------------
+
+``make e2e`` reads these to isolate itself from your development setup and
+from other end-to-end runs on the same machine:
+
+``E2E_PORT``
+   The port Django listens on for the run.  Defaults to ``8021``; a parallel
+   branch running its own ``make e2e`` sets this to something else so the two
+   servers do not collide.
+``E2E_DB``
+   The database name.  Defaults to ``caldart_e2e``; combine with ``E2E_PORT``
+   per branch for isolation.
+``E2E_DATABASE_URL``
+   The full connection string the run's Django process uses.  Defaults to
+   ``postgres://caldart:caldart@localhost:5432/$(E2E_DB)``; set it directly to
+   override the host or credentials instead of just the database name.
+``E2E_LOG``
+   Where the Django server's stdout and stderr are captured.  Defaults to
+   ``/tmp/caldart-e2e-server.log``; the target tails it automatically when
+   startup fails or a spec run reports failures.
+``SKIP_CREATEDB``
+   When set to any non-empty value, skips the ``make createdb`` step and
+   assumes the database already exists.  CI sets this because it creates the
+   database with ``psql`` directly, having no Docker Compose service to run
+   ``createdb`` against.
+``E2E_BASE_URL``
+   Read by ``frontend/playwright.config.ts``, not by the Makefile: the URL the
+   specs open in the browser.  ``make e2e`` sets it to
+   ``http://localhost:$(E2E_PORT)``; running Playwright by hand against an
+   already-running server needs it set explicitly.
+``CI``
+   Also read by ``playwright.config.ts``.  When set, Playwright forbids
+   ``test.only``, retries a failing spec once, and switches its reporter to a
+   list plus an HTML report instead of interactive output.  The CI workflow
+   sets it; a local run leaves it unset.
 
 Linting and type-checking
 =========================

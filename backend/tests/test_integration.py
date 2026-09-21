@@ -58,7 +58,7 @@ def test_every_named_field_is_needed(field: str) -> None:
 
 
 def test_state_is_not_part_of_the_rule() -> None:
-    """The portal's form used to insist on it; the rule does not."""
+    """``is_complete`` does not require ``state`` to be set."""
     profile = MemberProfileFactory(state="")
     assert profile.is_complete is True
 
@@ -116,7 +116,7 @@ def test_the_wizard_can_finish_what_the_api_accepts(api_client: APIClient) -> No
 
 # ------------------------------------------------------ one aircraft summary
 def test_profile_embeds_the_aircraft_app_serializer() -> None:
-    """``apps.members`` used to carry its own copy of this shape."""
+    """The profile ``aircraft`` field is the aircraft app's own summary serializer."""
     field = ProfileSerializer().fields["aircraft"]
     assert isinstance(field, ListSerializer)
     assert isinstance(field.child, AircraftSummarySerializer)
@@ -137,8 +137,11 @@ def test_profile_aircraft_shape_matches_the_register(
 
 
 # ------------------------------------------------------------ seeding is real
-def test_db_reset_seed_no_longer_swallows_a_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The try/except that hid ``seed_content`` before the CMS landed is gone."""
+def test_db_reset_seed_propagates_a_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failure in the content seed step propagates out of ``db_reset --seed``.
+
+    The preceding steps still run, so the recorded call order shows where it stopped.
+    """
     calls: list[str] = []
 
     def fake_call_command(name: str, *args: Any, **kwargs: Any) -> None:

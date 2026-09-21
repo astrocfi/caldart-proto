@@ -85,7 +85,6 @@ def setup(app: Sphinx) -> None:
 
 
 # The document that holds the root toctree.
-master_doc = "index"
 root_doc = "index"
 
 source_suffix = {".rst": "restructuredtext"}
@@ -108,7 +107,7 @@ rst_prolog = """
 """
 
 language = "en"
-nitpicky = False
+nitpicky = True
 
 # No warnings are suppressed: there is no ``nitpick_ignore`` and no
 # ``suppress_warnings``.
@@ -118,7 +117,7 @@ nitpicky = False
 html_theme = "furo"
 html_title = "CalDART"
 
-# No custom static assets or templates yet.  Pointing at directories that do
-# not exist raises a warning, and warnings are errors.
+# No custom static assets or templates.  Pointing at directories that do not
+# exist raises a warning, and warnings are errors.
 html_static_path: list[str] = []
 templates_path: list[str] = []

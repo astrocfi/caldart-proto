@@ -294,3 +294,9 @@ House rules
 * **Focus rings are never removed**, and ``prefers-reduced-motion`` is
   honored globally in ``base.css``.
 * **Contrast ≥ 4.5:1** for text in every theme.
+
+Related
+=======
+
+:doc:`api-system` documents ``GET /site/config``, which reports the active
+theme to the portal.

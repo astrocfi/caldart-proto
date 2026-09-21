@@ -229,7 +229,7 @@ city, state and join date.  A lifetime member has no expiry date, so that cell
 is empty and the plan column says *Life*.
 
 The columns are listed field by field in the developer documentation under
-:doc:`../developer/reports`.
+:doc:`/developer/reports`.
 
 
 Common tasks

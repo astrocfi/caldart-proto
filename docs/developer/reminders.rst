@@ -241,9 +241,14 @@ daily timer, ``Persistent=true`` and the overlap between runs cover a machine
 that was off at 07:00.
 
 **Changing which reminders exist** is a code change: add the kind to
-``ReminderKind`` and ``REMINDER_OFFSETS``, add a subject to ``SUBJECTS`` in
-``apps/reminders/services.py``, add the two templates, and generate a migration
-for the new choice.
+``ReminderKind`` and ``REMINDER_OFFSETS``, add it to ``KIND_ORDER`` and a
+subject to ``SUBJECTS`` in ``apps/reminders/services.py``, add the two
+templates, and generate a migration for the new choice.  On the frontend, add
+the kind to the ``ReminderKind`` union in ``frontend/src/portal/api/types.ts``,
+then a label to ``KIND_LABELS`` and an entry to ``KIND_OPTIONS`` in
+``frontend/src/portal/features/system/RemindersPanel.tsx`` — ``KIND_LABELS``
+names the kind in the log's table, and ``KIND_OPTIONS`` is what puts it in the
+log's kind filter.
 
 
 Templates
@@ -344,3 +349,9 @@ a log row written under the scan to stand in for a racing run, and a failed
 ``backend/tests/test_reminders_api.py`` covers the endpoints and their role
 matrix.  Dates are pinned with ``freezegun`` where the code reads the clock,
 and passed explicitly everywhere else.
+
+Related
+=======
+
+:doc:`api-system` documents the reminder log and manual-run endpoints in
+detail.

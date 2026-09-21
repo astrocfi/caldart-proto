@@ -197,14 +197,8 @@ have attached the airplane, from ``apps.aircraft.services.pilot_names``.
 
 Both exports take the register's full filter set: ``search``, ``make``,
 ``owner_type``, ``insurance`` (``current`` / ``expired`` / ``missing``),
-``expiring_within``, ``is_active`` and ``ordering``.
-
-.. warning::
-
-   ``is_active`` is applied to the data but is missing from the PDF subtitle's
-   filter list (``AircraftExportMixin.applied_filters``), so an
-   ``?is_active=false`` PDF is a filtered document that does not say it is
-   filtered.  Add it to that tuple when you touch the file.
+``expiring_within``, ``is_active`` and ``ordering``.  The PDF subtitle names
+every one of them, through ``AircraftExportMixin.applied_filters``.
 
 
 The payments report
@@ -256,3 +250,9 @@ the pattern to copy.  Assertions worth keeping:
 PDF page content is compressed, so you cannot grep the bytes for a cell.  Test
 what the document *says* at the level above instead: the subtitle is
 ``filter_summary(applied_filters(request))``, and both are ordinary functions.
+
+Related
+=======
+
+The export endpoints themselves are documented on the page for each app:
+:doc:`api-members`, :doc:`api-aircraft` and :doc:`api-payments`.

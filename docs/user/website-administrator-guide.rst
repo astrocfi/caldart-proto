@@ -294,7 +294,7 @@ while you are signed in as a website or system administrator — for example
 ``https://<your-site>/about/?theme=night``.  The preview is yours alone: it
 changes nothing on the server and nobody else sees it.
 
-Adding a fourth theme is a developer task; see :doc:`../developer/theming`.
+Adding a fourth theme is a developer task; see :doc:`/developer/theming`.
 
 
 .. _redirects:

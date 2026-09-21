@@ -16,9 +16,15 @@ House rules that apply throughout:
   timezone-aware ``DateTimeField``.  The project timezone is
   ``America/Los_Angeles`` and ``USE_TZ`` is on, so "today" always means
   ``django.utils.timezone.localdate()``.
-- **Every model carries ``created_at`` and ``updated_at``**, inherited from
+- **Most models carry ``created_at`` and ``updated_at``**, inherited from
   ``caldart.models.TimestampedModel`` (``User`` declares its own pair,
-  because it inherits from ``AbstractUser`` instead).
+  because it inherits from ``AbstractUser`` instead).  ``cms.BasePage`` does
+  not, because Wagtail's ``Page`` keeps its own dates: ``first_published_at``,
+  ``last_published_at`` and ``latest_revision_created_at``, alongside the
+  revision history behind them.  ``cms.SiteSettings`` carries no dates either,
+  and Wagtail's ``BaseSiteSetting`` adds only the one-to-one to
+  ``wagtailcore.Site``, so editing the settings overwrites the single row and
+  records nothing about when or by whom.
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``.**
 
 Entity relationships
