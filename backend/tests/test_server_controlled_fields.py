@@ -13,15 +13,23 @@ values.
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
+from typing import TYPE_CHECKING
 
 import pytest
 from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
 
 from apps.accounts.roles import MEMBER, SYSTEM_ADMIN
 from apps.members.models import MemberProfile, MembershipSource, MembershipStatusChoices
 from apps.payments.models import Payment, PaymentStatus
-from tests.factories import UserFactory
+from tests.factories import PaymentFactory, UserFactory
+
+if TYPE_CHECKING:
+    from pytest_django.fixtures import Settings
+
+    from apps.accounts.models import User as UserModel
+    from apps.members.models import MembershipPlan
 
 pytestmark = pytest.mark.django_db
 
@@ -44,21 +52,21 @@ ESCALATION_FIELDS: dict[str, object] = {
 
 
 @pytest.fixture(autouse=True)
-def _mock_provider(settings) -> None:
+def _mock_provider(settings: Settings) -> None:
     """The checkout case needs a configured provider; the mock is enough."""
     settings.PAYMENTS_MOCK_ENABLED = True
 
 
 @pytest.fixture
-def other_member(db) -> User:
-    """A second account, used as the identity a forged body tries to name."""
+def other_member(db: None) -> UserModel:
+    """Return a second account, used as the identity a forged body tries to name."""
     return UserFactory(email="other.member@example.test", roles=[MEMBER])
 
 
 # --------------------------------------------------------------------------
 # Accounts: roles and the Django flags
 # --------------------------------------------------------------------------
-def test_registration_ignores_roles_and_the_django_flags(api_client) -> None:
+def test_registration_ignores_roles_and_the_django_flags(api_client: APIClient) -> None:
     """A visitor cannot sign themselves up as a system administrator."""
     response = api_client.post(
         REGISTER,
@@ -81,7 +89,9 @@ def test_registration_ignores_roles_and_the_django_flags(api_client) -> None:
     assert user.is_active is True
 
 
-def test_member_creation_ignores_roles_and_the_django_flags(api_client, account_admin) -> None:
+def test_member_creation_ignores_roles_and_the_django_flags(
+    api_client: APIClient, account_admin: UserModel
+) -> None:
     """An account administrator cannot mint an administrator through the member form."""
     api_client.force_login(account_admin)
     response = api_client.post(
@@ -102,7 +112,9 @@ def test_member_creation_ignores_roles_and_the_django_flags(api_client, account_
     assert user.is_superuser is False
 
 
-def test_member_update_applies_the_name_and_nothing_else(api_client, account_admin, member) -> None:
+def test_member_update_applies_the_name_and_nothing_else(
+    api_client: APIClient, account_admin: UserModel, member: UserModel
+) -> None:
     """The member form edits names; roles and the flags are not its to change."""
     api_client.force_login(account_admin)
     response = api_client.patch(
@@ -119,7 +131,9 @@ def test_member_update_applies_the_name_and_nothing_else(api_client, account_adm
     assert member.is_superuser is False
 
 
-def test_user_update_ignores_the_django_flags(api_client, user_admin, member) -> None:
+def test_user_update_ignores_the_django_flags(
+    api_client: APIClient, user_admin: UserModel, member: UserModel
+) -> None:
     """The users-admin endpoint edits roles, and derives the flags from them."""
     api_client.force_login(user_admin)
     response = api_client.patch(
@@ -138,7 +152,7 @@ def test_user_update_ignores_the_django_flags(api_client, user_admin, member) ->
 # Ownership
 # --------------------------------------------------------------------------
 def test_profile_update_cannot_reassign_the_profile(
-    api_client, member, profile, other_member
+    api_client: APIClient, member: UserModel, profile: MemberProfile, other_member: UserModel
 ) -> None:
     """``/me/profile`` always writes the caller's own row."""
     api_client.force_login(member)
@@ -154,7 +168,13 @@ def test_profile_update_cannot_reassign_the_profile(
 # Membership provenance
 # --------------------------------------------------------------------------
 def test_manual_grant_ignores_provenance_dates_and_status(
-    api_client, account_admin, member, other_member, annual_plan, payment_factory, today
+    api_client: APIClient,
+    account_admin: UserModel,
+    member: UserModel,
+    other_member: UserModel,
+    annual_plan: MembershipPlan,
+    payment_factory: type[PaymentFactory],
+    today: date,
 ) -> None:
     """A granted term records the real grantor, and the plan's own arithmetic."""
     payment = payment_factory(user=member, plan=annual_plan)
@@ -176,6 +196,7 @@ def test_manual_grant_ignores_provenance_dates_and_status(
     term = member.memberships.get()
     assert term.source == MembershipSource.MANUAL
     assert term.granted_by == account_admin
+    assert annual_plan.duration_days is not None
     assert term.ends_on == today + timedelta(days=annual_plan.duration_days - 1)
     assert term.status == MembershipStatusChoices.ACTIVE
     assert term.payment_id is None
@@ -185,7 +206,7 @@ def test_manual_grant_ignores_provenance_dates_and_status(
 # Payment owner, status and amount
 # --------------------------------------------------------------------------
 def test_checkout_ignores_the_owner_status_and_amount(
-    api_client, member, other_member, annual_plan
+    api_client: APIClient, member: UserModel, other_member: UserModel, annual_plan: MembershipPlan
 ) -> None:
     """A checkout is the caller's, starts pending, and costs what the plan costs."""
     api_client.force_login(member)

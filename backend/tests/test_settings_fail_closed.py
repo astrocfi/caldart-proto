@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import importlib
 import sys
+from collections.abc import Iterator
 from pathlib import Path
+from types import ModuleType
 
 import environ
 import pytest
@@ -55,7 +57,7 @@ def forget(submodule: str) -> None:
         delattr(package, submodule)
 
 
-def import_prod_over_a_fresh_base():
+def import_prod_over_a_fresh_base() -> ModuleType:
     """Import production settings with ``base`` re-executed as well.
 
     The whole suite runs with ``base`` already imported, so its module-level
@@ -66,7 +68,8 @@ def import_prod_over_a_fresh_base():
     original = sys.modules.get("caldart.settings.base")
     sys.modules.pop("caldart.settings.base", None)
     try:
-        return import_prod()
+        # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
+        return import_prod()  # type: ignore[no-untyped-call,no-any-return]
     finally:
         if original is not None:
             sys.modules["caldart.settings.base"] = original
@@ -85,7 +88,7 @@ def uncommented_variables(template: Path) -> dict[str, str]:
 
 
 @pytest.fixture
-def fresh_settings():
+def fresh_settings() -> Iterator[None]:
     """Re-import the settings submodules from scratch, and leave them clean."""
     for submodule in RELOADABLE:
         forget(submodule)
@@ -95,11 +98,11 @@ def fresh_settings():
 
 
 @pytest.fixture
-def read_env_calls(monkeypatch):
+def read_env_calls(monkeypatch: pytest.MonkeyPatch) -> list[Path | None]:
     """Record every ``environ.Env.read_env`` call instead of touching the file."""
-    calls: list[object] = []
+    calls: list[Path | None] = []
 
-    def record(env_file=None, **overrides):
+    def record(env_file: Path | None = None, **overrides: object) -> None:
         calls.append(env_file)
 
     monkeypatch.setattr(environ.Env, "read_env", record)
@@ -107,7 +110,7 @@ def read_env_calls(monkeypatch):
 
 
 @pytest.fixture
-def prod_env(monkeypatch):
+def prod_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """A minimal production environment; the module is not imported yet."""
     apply_production_environment(monkeypatch)
     yield
@@ -115,41 +118,50 @@ def prod_env(monkeypatch):
 
 
 @pytest.fixture
-def bare_env(monkeypatch):
+def bare_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """No CalDART variable set at all, whatever the developer's shell holds."""
     for key in [*MINIMAL_ENV, *UNSET]:
         monkeypatch.delenv(key, raising=False)
 
 
 # --------------------------------------------------------------- the .env file
-def test_production_settings_never_read_the_dotenv_file(prod_env, read_env_calls) -> None:
+def test_production_settings_never_read_the_dotenv_file(
+    prod_env: None, read_env_calls: list[Path | None]
+) -> None:
     """A stray ``.env`` beside the checkout must not fill in a missing variable."""
     import_prod_over_a_fresh_base()
 
     assert read_env_calls == []
 
 
-def test_development_settings_read_the_dotenv_file(fresh_settings, read_env_calls) -> None:
+def test_development_settings_read_the_dotenv_file(
+    fresh_settings: None, read_env_calls: list[Path | None]
+) -> None:
+    """Development settings read the repository ``.env`` file exactly once."""
     importlib.import_module("caldart.settings.dev")
 
     assert read_env_calls == [DOTENV_PATH]
 
 
-def test_test_settings_read_the_dotenv_file(fresh_settings, read_env_calls) -> None:
+def test_test_settings_read_the_dotenv_file(
+    fresh_settings: None, read_env_calls: list[Path | None]
+) -> None:
     """``pytest`` picks its per-worktree ``DATABASE_URL`` out of ``.env``."""
     importlib.import_module("caldart.settings.test")
 
     assert read_env_calls == [DOTENV_PATH]
 
 
-def test_the_dotenv_module_reads_the_repository_env_file(fresh_settings) -> None:
+def test_the_dotenv_module_reads_the_repository_env_file(fresh_settings: None) -> None:
     """The one file involved, and the reason production must not import it."""
     dotenv = importlib.import_module(f"{SETTINGS_PACKAGE}._dotenv")
 
     assert dotenv.DOTENV_PATH == DOTENV_PATH
 
 
-def test_a_missing_secret_key_is_a_start_up_error(prod_env, monkeypatch) -> None:
+def test_a_missing_secret_key_is_a_start_up_error(
+    prod_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """No file is consulted, so nothing can fill the gap in."""
     monkeypatch.delenv("SECRET_KEY", raising=False)
 
@@ -157,30 +169,46 @@ def test_a_missing_secret_key_is_a_start_up_error(prod_env, monkeypatch) -> None
         import_prod_over_a_fresh_base()
 
 
-def test_production_refuses_the_published_development_secret_key(prod_env, monkeypatch) -> None:
+def test_production_refuses_the_published_development_secret_key(
+    prod_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Production refuses to start with the published development secret key."""
     monkeypatch.setenv("SECRET_KEY", DEVELOPMENT_SECRET_KEY)
 
     with pytest.raises(ImproperlyConfigured, match="SECRET_KEY"):
-        import_prod()
+        # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
+        import_prod()  # type: ignore[no-untyped-call]
 
 
 # --------------------------------------------------------------- mock payments
-def test_production_ignores_the_development_mock_payments_flag(prod_env, monkeypatch) -> None:
+def test_production_ignores_the_development_mock_payments_flag(
+    prod_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """An ``.env`` copied onto the server would otherwise hand out memberships."""
     monkeypatch.setenv("PAYMENTS_MOCK_ENABLED", "true")
 
-    assert import_prod().PAYMENTS_MOCK_ENABLED is False
+    # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
+    prod = import_prod()  # type: ignore[no-untyped-call]
+    assert prod.PAYMENTS_MOCK_ENABLED is False
 
 
-def test_production_mock_payments_need_their_own_variable(prod_env, monkeypatch) -> None:
+def test_production_mock_payments_need_their_own_variable(
+    prod_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Production enables mock payments only via its own dedicated variable."""
     monkeypatch.setenv("PAYMENTS_MOCK_ENABLED_IN_PRODUCTION", "true")
 
-    assert import_prod().PAYMENTS_MOCK_ENABLED is True
+    # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
+    prod = import_prod()  # type: ignore[no-untyped-call]
+    assert prod.PAYMENTS_MOCK_ENABLED is True
 
 
 # --------------------------------------------------------------- entry points
 @pytest.mark.parametrize("entry_point", ["caldart.wsgi", "caldart.asgi"])
-def test_the_application_servers_require_the_settings_module(monkeypatch, entry_point) -> None:
+def test_the_application_servers_require_the_settings_module(
+    monkeypatch: pytest.MonkeyPatch, entry_point: str
+) -> None:
+    """WSGI and ASGI refuse to start without ``DJANGO_SETTINGS_MODULE`` set."""
     monkeypatch.delenv("DJANGO_SETTINGS_MODULE", raising=False)
     sys.modules.pop(entry_point, None)
 
@@ -197,30 +225,39 @@ def test_manage_py_still_defaults_to_the_development_settings() -> None:
 
 # ---------------------------------------------------------- the env template
 def test_the_production_template_is_shipped() -> None:
+    """``deploy/caldart.env.example`` exists in the repository."""
     assert PRODUCTION_TEMPLATE.is_file()
 
 
 def test_the_production_template_sets_no_secret_key() -> None:
+    """The production environment template leaves ``SECRET_KEY`` commented out."""
     assert "SECRET_KEY" not in uncommented_variables(PRODUCTION_TEMPLATE)
 
 
 def test_the_production_template_turns_debug_off() -> None:
+    """The production environment template sets ``DEBUG=false``."""
     assert uncommented_variables(PRODUCTION_TEMPLATE)["DEBUG"] == "false"
 
 
 def test_the_production_template_enables_no_mock_payments() -> None:
+    """The production environment template leaves every ``MOCK`` variable unset."""
     enabled = [key for key in uncommented_variables(PRODUCTION_TEMPLATE) if "MOCK" in key]
 
     assert enabled == []
 
 
-def test_an_unedited_production_template_refuses_to_start(bare_env, monkeypatch) -> None:
+def test_an_unedited_production_template_refuses_to_start(
+    bare_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exporting the template's uncommented values as-is still fails on ``SECRET_KEY``."""
     for key, value in uncommented_variables(PRODUCTION_TEMPLATE).items():
         monkeypatch.setenv(key, value)
 
     with pytest.raises(ImproperlyConfigured, match="SECRET_KEY"):
-        import_prod()
+        # test_sysadmin_settings is not yet type-annotated (a sibling unit's file).
+        import_prod()  # type: ignore[no-untyped-call]
 
 
 def test_the_web_unit_installs_the_production_template() -> None:
+    """The web systemd unit installs the template to ``/etc/caldart/caldart.env``."""
     assert "deploy/caldart.env.example /etc/caldart/caldart.env" in WEB_UNIT.read_text()
