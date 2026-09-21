@@ -13,13 +13,19 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterator
+from typing import Any
 
 import httpx
 import pytest
 import respx
 import stripe
+from pytest_django.fixtures import Settings
+from rest_framework.response import Response
+from rest_framework.test import APIClient
 
-from apps.members.models import Membership
+from apps.accounts.models import User
+from apps.members.models import Membership, MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
 from apps.payments.providers import paypal
 from apps.payments.providers import stripe as stripe_provider
@@ -43,7 +49,7 @@ STRIPE_LOGGER = "apps.payments.providers.stripe"
 PAYPAL_LOGGER = "apps.payments.providers.paypal"
 
 STRIPE_ERRORS = [
-    stripe.APIConnectionError("connection aborted"),
+    stripe.APIConnectionError("connection aborted"),  # type: ignore[no-untyped-call]  # stripe stubs leave APIConnectionError.__init__ untyped
     stripe.RateLimitError("too many requests"),
     stripe.APIError("something went wrong on our end"),
     stripe.AuthenticationError("no valid API key provided"),
@@ -52,7 +58,8 @@ STRIPE_ERROR_IDS = ["connection", "rate-limit", "api", "authentication"]
 
 
 @pytest.fixture(autouse=True)
-def _providers_configured(settings):
+def _providers_configured(settings: Settings) -> Iterator[None]:
+    """Configure fake Stripe and PayPal keys and reset PayPal's token cache."""
     settings.STRIPE_SECRET_KEY = "sk_test_123"  # noqa: S105 - test fixture
     settings.STRIPE_PUBLISHABLE_KEY = "pk_test_123"
     settings.STRIPE_WEBHOOK_SECRET = "whsec_test"  # noqa: S105 - test fixture
@@ -69,29 +76,43 @@ def _providers_configured(settings):
 class FailingIntents:
     """A ``v1.payment_intents`` service whose every call raises ``error``."""
 
-    def __init__(self, error: stripe.StripeError):
+    def __init__(self, error: stripe.StripeError) -> None:
+        """Remember the error every call raises."""
         self.error = error
 
-    def create(self, params, options=None):
+    def create(
+        self, params: dict[str, Any], options: dict[str, Any] | None = None
+    ) -> stripe.PaymentIntent:
+        """Raise the configured error instead of creating an intent."""
         raise self.error
 
-    def retrieve(self, intent_id, params=None, options=None):
+    def retrieve(
+        self,
+        intent_id: str,
+        params: dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> stripe.PaymentIntent:
+        """Raise the configured error instead of retrieving an intent."""
         raise self.error
 
 
-def break_stripe(monkeypatch, error: stripe.StripeError) -> None:
+def break_stripe(monkeypatch: pytest.MonkeyPatch, error: stripe.StripeError) -> None:
     """Make every Stripe call raise ``error`` instead of reaching the network."""
     client = fake_stripe_client(FailingIntents(error))
     monkeypatch.setattr(stripe_provider, "stripe_client", lambda: client)
 
 
-def token_route(mock):
+def token_route(mock: respx.MockRouter) -> respx.Route:
+    """Mock the PayPal OAuth token endpoint to return a fake, long-lived token."""
     return mock.post(TOKEN_URL).mock(
         return_value=httpx.Response(200, json={"access_token": "A21AA-token", "expires_in": 32_400})
     )
 
 
-def capture_payload(payment: Payment, *, value: str | None = None, currency: str = "USD") -> dict:
+def capture_payload(
+    payment: Payment, *, value: str | None = None, currency: str = "USD"
+) -> dict[str, Any]:
+    """A PayPal capture webhook/API payload naming ``payment`` in its custom id."""
     return {
         "id": "ORDER-1",
         "status": "COMPLETED",
@@ -116,14 +137,16 @@ def capture_payload(payment: Payment, *, value: str | None = None, currency: str
     }
 
 
-def pending_paypal_payment(member) -> Payment:
+def pending_paypal_payment(member: User) -> Payment:
+    """Start a pending PayPal checkout with its order id already attached."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
     payment.provider_ref = "ORDER-1"
     payment.save(update_fields=["provider_ref"])
     return payment
 
 
-def messages(caplog) -> list[str]:
+def messages(caplog: pytest.LogCaptureFixture) -> list[str]:
+    """Every captured log record's rendered message, in order."""
     return [record.getMessage() for record in caplog.records]
 
 
@@ -131,7 +154,14 @@ def messages(caplog) -> list[str]:
 # Stripe
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("error", STRIPE_ERRORS, ids=STRIPE_ERROR_IDS)
-def test_a_stripe_failure_at_checkout_is_a_400(api_client, member, annual_plan, monkeypatch, error):
+def test_a_stripe_failure_at_checkout_is_a_400(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    monkeypatch: pytest.MonkeyPatch,
+    error: stripe.StripeError,
+) -> None:
+    """Any Stripe SDK error at checkout comes back as a 400, not a 500."""
     break_stripe(monkeypatch, error)
 
     api_client.force_login(member)
@@ -145,8 +175,13 @@ def test_a_stripe_failure_at_checkout_is_a_400(api_client, member, annual_plan, 
 
 @pytest.mark.parametrize("error", STRIPE_ERRORS, ids=STRIPE_ERROR_IDS)
 def test_a_stripe_failure_at_checkout_leaves_no_payment_behind(
-    api_client, member, annual_plan, monkeypatch, error
-):
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    monkeypatch: pytest.MonkeyPatch,
+    error: stripe.StripeError,
+) -> None:
+    """A Stripe failure at checkout deletes the pending payment it had just created."""
     break_stripe(monkeypatch, error)
 
     api_client.force_login(member)
@@ -156,10 +191,18 @@ def test_a_stripe_failure_at_checkout_leaves_no_payment_behind(
 
 
 def test_a_stripe_failure_at_checkout_logs_the_exception_class(
-    api_client, member, annual_plan, monkeypatch, caplog
-):
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A Stripe failure at checkout logs the SDK exception's class name."""
     caplog.set_level(logging.WARNING, logger=STRIPE_LOGGER)
-    break_stripe(monkeypatch, stripe.APIConnectionError("aborted"))
+    break_stripe(
+        monkeypatch,
+        stripe.APIConnectionError("aborted"),  # type: ignore[no-untyped-call]  # stripe stubs leave APIConnectionError.__init__ untyped
+    )
 
     api_client.force_login(member)
     api_client.post(CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"})
@@ -167,9 +210,18 @@ def test_a_stripe_failure_at_checkout_logs_the_exception_class(
     assert "APIConnectionError" in " ".join(messages(caplog))
 
 
-def test_a_stripe_failure_at_confirm_is_a_400(api_client, member, annual_plan, monkeypatch):
+def test_a_stripe_failure_at_confirm_is_a_400(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Stripe failure at confirm comes back as a 400, not a 500."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    break_stripe(monkeypatch, stripe.APIConnectionError("aborted"))
+    break_stripe(
+        monkeypatch,
+        stripe.APIConnectionError("aborted"),  # type: ignore[no-untyped-call]  # stripe stubs leave APIConnectionError.__init__ untyped
+    )
 
     api_client.force_login(member)
     response = api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_out"})
@@ -179,8 +231,12 @@ def test_a_stripe_failure_at_confirm_is_a_400(api_client, member, annual_plan, m
 
 
 def test_a_stripe_failure_at_confirm_leaves_the_payment_pending(
-    api_client, member, annual_plan, monkeypatch
-):
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Stripe failure at confirm leaves the payment pending for another attempt."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     break_stripe(monkeypatch, stripe.RateLimitError("slow down"))
 
@@ -192,10 +248,18 @@ def test_a_stripe_failure_at_confirm_leaves_the_payment_pending(
 
 
 def test_a_stripe_failure_never_logs_an_email_address(
-    api_client, member, annual_plan, monkeypatch, caplog
-):
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The logged Stripe failure message never includes an email address."""
     caplog.set_level(logging.WARNING, logger=STRIPE_LOGGER)
-    break_stripe(monkeypatch, stripe.APIConnectionError("aborted"))
+    break_stripe(
+        monkeypatch,
+        stripe.APIConnectionError("aborted"),  # type: ignore[no-untyped-call]  # stripe stubs leave APIConnectionError.__init__ untyped
+    )
 
     api_client.force_login(member)
     api_client.post(CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"})
@@ -209,7 +273,10 @@ def test_a_stripe_failure_never_logs_an_email_address(
 # PayPal: token and order creation
 # --------------------------------------------------------------------------
 @respx.mock
-def test_a_paypal_token_timeout_at_checkout_is_a_400(api_client, member, annual_plan):
+def test_a_paypal_token_timeout_at_checkout_is_a_400(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A timeout fetching a PayPal token at checkout is a 400, not a 500."""
     respx.post(TOKEN_URL).mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     api_client.force_login(member)
@@ -223,8 +290,9 @@ def test_a_paypal_token_timeout_at_checkout_is_a_400(api_client, member, annual_
 
 @respx.mock
 def test_a_paypal_token_timeout_at_checkout_leaves_no_payment_behind(
-    api_client, member, annual_plan
-):
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A PayPal token timeout at checkout leaves no payment row behind."""
     respx.post(TOKEN_URL).mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     api_client.force_login(member)
@@ -234,7 +302,10 @@ def test_a_paypal_token_timeout_at_checkout_leaves_no_payment_behind(
 
 
 @respx.mock
-def test_a_token_response_that_is_not_json_is_a_400(api_client, member, annual_plan):
+def test_a_token_response_that_is_not_json_is_a_400(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A non-JSON token response is treated as a provider outage, a 400."""
     respx.post(TOKEN_URL).mock(
         return_value=httpx.Response(200, text="<html>maintenance</html>", headers={})
     )
@@ -249,8 +320,11 @@ def test_a_token_response_that_is_not_json_is_a_400(api_client, member, annual_p
 
 
 @respx.mock
-def test_an_order_connection_error_at_checkout_is_a_400(api_client, member, annual_plan):
-    token_route(respx)
+def test_an_order_connection_error_at_checkout_is_a_400(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A connection error creating the PayPal order is a 400, not a 500."""
+    token_route(respx.mock)
     respx.post(ORDERS_URL).mock(side_effect=httpx.ConnectError("refused"))
 
     api_client.force_login(member)
@@ -264,9 +338,10 @@ def test_an_order_connection_error_at_checkout_is_a_400(api_client, member, annu
 
 @respx.mock
 def test_an_order_connection_error_at_checkout_leaves_no_payment_behind(
-    api_client, member, annual_plan
-):
-    token_route(respx)
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """An order-creation connection error leaves no payment row behind."""
+    token_route(respx.mock)
     respx.post(ORDERS_URL).mock(side_effect=httpx.ConnectError("refused"))
 
     api_client.force_login(member)
@@ -279,9 +354,12 @@ def test_an_order_connection_error_at_checkout_leaves_no_payment_behind(
 # PayPal: capture
 # --------------------------------------------------------------------------
 @respx.mock
-def test_a_capture_timeout_is_a_400(api_client, member, annual_plan):
+def test_a_capture_timeout_is_a_400(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A timeout capturing a PayPal order is a 400, not a 500."""
     payment = pending_paypal_payment(member)
-    token_route(respx)
+    token_route(respx.mock)
     respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     api_client.force_login(member)
@@ -292,9 +370,12 @@ def test_a_capture_timeout_is_a_400(api_client, member, annual_plan):
 
 
 @respx.mock
-def test_a_capture_timeout_leaves_the_payment_pending(api_client, member, annual_plan):
+def test_a_capture_timeout_leaves_the_payment_pending(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A capture timeout leaves the payment pending for another attempt."""
     payment = pending_paypal_payment(member)
-    token_route(respx)
+    token_route(respx.mock)
     respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     api_client.force_login(member)
@@ -306,11 +387,15 @@ def test_a_capture_timeout_leaves_the_payment_pending(api_client, member, annual
 
 @respx.mock
 def test_a_capture_timeout_is_logged_with_the_payment_and_amount(
-    api_client, member, annual_plan, caplog
-):
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A capture timeout is logged with the payment id and its amount in cents."""
     caplog.set_level(logging.ERROR, logger=PAYPAL_LOGGER)
     payment = pending_paypal_payment(member)
-    token_route(respx)
+    token_route(respx.mock)
     respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     api_client.force_login(member)
@@ -323,11 +408,15 @@ def test_a_capture_timeout_is_logged_with_the_payment_and_amount(
 
 @respx.mock
 def test_a_capture_of_the_wrong_amount_is_logged_with_both_amounts(
-    api_client, member, annual_plan, caplog
-):
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A capture whose amount does not match is logged with both amounts."""
     caplog.set_level(logging.ERROR, logger=PAYPAL_LOGGER)
     payment = pending_paypal_payment(member)
-    token_route(respx)
+    token_route(respx.mock)
     respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, value="1.00"))
     )
@@ -343,10 +432,16 @@ def test_a_capture_of_the_wrong_amount_is_logged_with_both_amounts(
 
 
 @respx.mock
-def test_a_capture_in_another_currency_is_logged(api_client, member, annual_plan, caplog):
+def test_a_capture_in_another_currency_is_logged(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A capture in the wrong currency is logged with the payment id."""
     caplog.set_level(logging.ERROR, logger=PAYPAL_LOGGER)
     payment = pending_paypal_payment(member)
-    token_route(respx)
+    token_route(respx.mock)
     respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, currency="CAD"))
     )
@@ -359,10 +454,16 @@ def test_a_capture_in_another_currency_is_logged(api_client, member, annual_plan
 
 
 @respx.mock
-def test_a_capture_mismatch_never_logs_an_email_address(api_client, member, annual_plan, caplog):
+def test_a_capture_mismatch_never_logs_an_email_address(
+    api_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The logged capture-mismatch message never includes an email address."""
     caplog.set_level(logging.ERROR, logger=PAYPAL_LOGGER)
     payment = pending_paypal_payment(member)
-    token_route(respx)
+    token_route(respx.mock)
     respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, value="1.00"))
     )
@@ -376,9 +477,12 @@ def test_a_capture_mismatch_never_logs_an_email_address(api_client, member, annu
 
 
 @respx.mock
-def test_a_capture_mismatch_grants_no_membership(api_client, member, annual_plan):
+def test_a_capture_mismatch_grants_no_membership(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A capture that does not match the payment grants no membership."""
     payment = pending_paypal_payment(member)
-    token_route(respx)
+    token_route(respx.mock)
     respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
         return_value=httpx.Response(201, json=capture_payload(payment, value="1.00"))
     )
@@ -392,7 +496,8 @@ def test_a_capture_mismatch_grants_no_membership(api_client, member, annual_plan
 # --------------------------------------------------------------------------
 # PayPal: webhook signature verification
 # --------------------------------------------------------------------------
-def capture_completed_event(payment: Payment) -> dict:
+def capture_completed_event(payment: Payment) -> dict[str, Any]:
+    """A ``PAYMENT.CAPTURE.COMPLETED`` webhook payload naming ``payment``."""
     return {
         "event_type": "PAYMENT.CAPTURE.COMPLETED",
         "resource": {
@@ -404,17 +509,19 @@ def capture_completed_event(payment: Payment) -> dict:
     }
 
 
-def post_webhook(client, event: dict):
+def post_webhook(client: APIClient, event: dict[str, Any]) -> Response:
+    """Post a PayPal webhook body, unsigned, as PayPal's own headers would arrive."""
     return client.post(WEBHOOK, data=json.dumps(event), content_type="application/json")
 
 
 @respx.mock
 def test_a_verification_timeout_leaves_the_webhook_unverified(
-    api_client, member, annual_plan, settings
-):
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A timeout verifying a PayPal webhook signature leaves it unverified, not a 500."""
     settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
     payment = pending_paypal_payment(member)
-    token_route(respx)
+    token_route(respx.mock)
     respx.post(VERIFY_URL).mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     response = post_webhook(api_client, capture_completed_event(payment))
@@ -425,11 +532,12 @@ def test_a_verification_timeout_leaves_the_webhook_unverified(
 
 @respx.mock
 def test_a_verification_timeout_leaves_the_payment_pending(
-    api_client, member, annual_plan, settings
-):
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A webhook signature-verification timeout leaves the payment pending."""
     settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
     payment = pending_paypal_payment(member)
-    token_route(respx)
+    token_route(respx.mock)
     respx.post(VERIFY_URL).mock(side_effect=httpx.ConnectTimeout("timed out"))
 
     post_webhook(api_client, capture_completed_event(payment))
@@ -442,7 +550,8 @@ def test_a_verification_timeout_leaves_the_payment_pending(
 # The exception itself
 # --------------------------------------------------------------------------
 @respx.mock
-def test_the_token_call_raises_provider_unavailable():
+def test_the_token_call_raises_provider_unavailable() -> None:
+    """A timeout fetching a PayPal token raises ProviderUnavailable directly."""
     respx.post(TOKEN_URL).mock(side_effect=httpx.ConnectTimeout("timed out"))
     with pytest.raises(ProviderUnavailable, match="PayPal could not be reached"):
         paypal.access_token()
