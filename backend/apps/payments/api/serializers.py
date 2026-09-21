@@ -2,23 +2,30 @@
 
 from __future__ import annotations
 
+import datetime as dt
+from typing import Any
+
 from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
-from apps.payments.reports import DEFAULT_GROUP, GROUPS, PaymentFilters
+from apps.payments.reports import DEFAULT_GROUP, GROUPS, PaymentFilters, PeriodSummary
 
 #: What a report date parameter answers with when it is not a date on the calendar.
 DATE_FORMAT_MESSAGE = "Expected a date as YYYY-MM-DD."
 GROUP_MESSAGE = "Expected 'month' or 'year'."
 
 
-class ContributionTierSerializer(serializers.Serializer):
-    label = serializers.CharField()
+class ContributionTierSerializer(serializers.Serializer[dict[str, Any]]):
+    """One preset contribution button of ``GET /payments/config``."""
+
+    # DRF's Field.label is a different thing from this serializer's own `label`
+    # field, so the stubs see the declaration as a narrowing of the attribute.
+    label = serializers.CharField()  # type: ignore[assignment]
     cents = serializers.IntegerField()
 
 
-class PaymentsConfigSerializer(serializers.Serializer):
+class PaymentsConfigSerializer(serializers.Serializer[dict[str, Any]]):
     """``GET /payments/config``."""
 
     providers = serializers.ListField(child=serializers.CharField())
@@ -28,7 +35,7 @@ class PaymentsConfigSerializer(serializers.Serializer):
     contribution_tiers = ContributionTierSerializer(many=True)
 
 
-class CheckoutSerializer(serializers.Serializer):
+class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /payments/checkout``.
 
     There is deliberately no amount field: the server recomputes the total from
@@ -40,35 +47,49 @@ class CheckoutSerializer(serializers.Serializer):
     provider = serializers.ChoiceField(choices=PaymentProvider.values)
 
 
-class CheckoutResponseSerializer(serializers.Serializer):
+class CheckoutResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    """The 201 body of ``POST /payments/checkout``."""
+
     payment_id = serializers.IntegerField()
     provider = serializers.CharField()
     client = serializers.DictField()
 
 
-class StripeConfirmSerializer(serializers.Serializer):
+class StripeConfirmSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /payments/stripe/confirm``.
+
+    ``payment_intent_id`` may be left out: the payment's own reference is used.
+    """
+
     payment_id = serializers.IntegerField()
     payment_intent_id = serializers.CharField(required=False, allow_blank=True, default="")
 
 
-class PayPalCaptureSerializer(serializers.Serializer):
+class PayPalCaptureSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /payments/paypal/capture``.
+
+    ``order_id`` may be left out: the payment's own reference is used.
+    """
+
     payment_id = serializers.IntegerField()
     order_id = serializers.CharField(required=False, allow_blank=True, default="")
 
 
-class MockCompleteSerializer(serializers.Serializer):
+class MockCompleteSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /payments/mock/complete``, whose ``outcome`` is ``succeed`` or ``fail``."""
+
     payment_id = serializers.IntegerField()
     outcome = serializers.ChoiceField(choices=["succeed", "fail"], default="succeed")
 
 
-class PaymentResultSerializer(serializers.Serializer):
+class PaymentResultSerializer(serializers.Serializer[dict[str, Any]]):
     """``GET /payments/{id}`` and the response to every confirm endpoint."""
 
     status = serializers.ChoiceField(choices=PaymentStatus.values)
     membership = MembershipStatusSerializer()
 
 
-class PaymentSerializer(serializers.ModelSerializer):
+class PaymentSerializer(serializers.ModelSerializer[Payment]):
     """A row of the ``account_admin`` payment report."""
 
     user_id = serializers.IntegerField(read_only=True)
@@ -96,14 +117,16 @@ class PaymentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_user_name(self, obj: Payment) -> str:
+        """The member's full name, or their email address when they have no name."""
         full = f"{obj.user.first_name} {obj.user.last_name}".strip()
         return full or obj.user.email
 
     def get_plan(self, obj: Payment) -> str | None:
-        return obj.plan.name if obj.plan_id else None
+        """The plan's name, or ``None`` for a payment that bought no plan."""
+        return obj.plan.name if obj.plan is not None else None
 
 
-class PaymentPeriodSummarySerializer(serializers.Serializer):
+class PaymentPeriodSummarySerializer(serializers.Serializer[PeriodSummary]):
     """One row of ``GET /admin/payments/summary``."""
 
     period = serializers.CharField()
@@ -123,19 +146,27 @@ class ReportDateField(serializers.DateField):
     this parameter.
     """
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
+        """Build the field, defaulting to optional, unbounded and our own message."""
         kwargs.setdefault("required", False)
         kwargs.setdefault("default", None)
         kwargs.setdefault("error_messages", {"invalid": DATE_FORMAT_MESSAGE})
         super().__init__(**kwargs)
 
-    def to_internal_value(self, value):
+    # DRF's DateField promises a date, and answering an empty parameter with
+    # ``None`` is the whole point of this field.
+    def to_internal_value(self, value: dt.date | str) -> dt.date | None:  # type: ignore[override]
+        """``None`` for an empty parameter, otherwise the date the string names.
+
+        Raises DRF's ``ValidationError`` with :data:`DATE_FORMAT_MESSAGE` for
+        anything else.
+        """
         if value == "":
             return None
         return super().to_internal_value(value)
 
 
-class PaymentReportQuerySerializer(serializers.Serializer):
+class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     """The query string ``GET /admin/payments``, ``/summary`` and ``/export.csv`` share.
 
     Every parameter is optional and an empty one narrows nothing: ``from`` and ``to``
@@ -151,7 +182,7 @@ class PaymentReportQuerySerializer(serializers.Serializer):
     search = serializers.CharField(required=False, allow_blank=True, default="")
     group = serializers.CharField(required=False, allow_blank=True, default=DEFAULT_GROUP)
 
-    def get_fields(self) -> dict:
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
         """The declared fields plus the date bounds, whose names are Python keywords."""
         fields = super().get_fields()
         fields["from"] = ReportDateField()
@@ -159,16 +190,29 @@ class PaymentReportQuerySerializer(serializers.Serializer):
         return fields
 
     def validate_provider(self, value: str) -> str:
+        """Return ``value``, or raise ``Unknown provider '<value>'.`` for an unknown one.
+
+        An empty string is accepted and narrows nothing.
+        """
         if value and value not in PaymentProvider.values:
             raise serializers.ValidationError(f"Unknown provider '{value}'.")
         return value
 
     def validate_status(self, value: str) -> str:
+        """Return ``value``, or raise ``Unknown status '<value>'.`` for an unknown one.
+
+        An empty string is accepted and narrows nothing.
+        """
         if value and value not in PaymentStatus.values:
             raise serializers.ValidationError(f"Unknown status '{value}'.")
         return value
 
     def validate_group(self, value: str) -> str:
+        """Return the period to group by, defaulting an empty parameter to ``month``.
+
+        Raises DRF's ``ValidationError`` with :data:`GROUP_MESSAGE` for anything
+        but ``month`` or ``year``.
+        """
         group = value or DEFAULT_GROUP
         if group not in GROUPS:
             raise serializers.ValidationError(GROUP_MESSAGE)
