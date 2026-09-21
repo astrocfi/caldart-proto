@@ -10,11 +10,15 @@ from __future__ import annotations
 
 import ast
 import importlib
+import runpy
 import sys
+from collections.abc import Generator
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
+from pytest_django import Settings
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEPLOY = REPO_ROOT / "deploy"
@@ -72,13 +76,13 @@ def variables_read_by(module_path: Path) -> set[str]:
     return names
 
 
-def import_prod():
+def import_prod() -> ModuleType:
     """Import ``caldart.settings.prod`` fresh, however it was left."""
     sys.modules.pop("caldart.settings.prod", None)
     return importlib.import_module("caldart.settings.prod")
 
 
-def apply_production_environment(monkeypatch) -> None:
+def apply_production_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pin ``MINIMAL_ENV`` and clear every other variable ``prod.py`` reads."""
     for key, value in MINIMAL_ENV.items():
         monkeypatch.setenv(key, value)
@@ -87,7 +91,7 @@ def apply_production_environment(monkeypatch) -> None:
 
 
 @pytest.fixture
-def prod_env(monkeypatch):
+def prod_env(monkeypatch: pytest.MonkeyPatch) -> Generator[None]:
     """A minimal production environment; the module is not imported yet."""
     apply_production_environment(monkeypatch)
     yield
@@ -95,13 +99,14 @@ def prod_env(monkeypatch):
 
 
 @pytest.fixture
-def prod(prod_env):
+def prod(prod_env: None) -> ModuleType:
     """The imported production settings module."""
     return import_prod()
 
 
 # ------------------------------------------------------------------- import
-def test_prod_settings_import_cleanly(prod):
+def test_prod_settings_import_cleanly(prod: ModuleType) -> None:
+    """Importing under ``MINIMAL_ENV`` sets DEBUG off and echoes the site identity."""
     assert prod.DEBUG is False
     assert prod.SECRET_KEY == MINIMAL_ENV["SECRET_KEY"]
     assert prod.ALLOWED_HOSTS == ["caldart.example.org", "www.caldart.example.org"]
@@ -111,7 +116,10 @@ def test_prod_settings_import_cleanly(prod):
 
 
 @pytest.mark.parametrize("variable", ["SECRET_KEY", "ALLOWED_HOSTS", "SITE_URL", "EMAIL_URL"])
-def test_the_required_variables_have_no_default(prod_env, monkeypatch, variable):
+def test_the_required_variables_have_no_default(
+    prod_env: None, monkeypatch: pytest.MonkeyPatch, variable: str
+) -> None:
+    """Unsetting a required variable raises ``ImproperlyConfigured`` naming it."""
     monkeypatch.delenv(variable, raising=False)
 
     with pytest.raises(ImproperlyConfigured, match=variable):
@@ -124,7 +132,8 @@ def test_unset_names_every_variable_production_reads() -> None:
 
 
 # ----------------------------------------------------------------- security
-def test_tls_is_enforced_behind_the_proxy(prod):
+def test_tls_is_enforced_behind_the_proxy(prod: ModuleType) -> None:
+    """TLS redirect, HSTS, and the proxy header are all on with a one-year HSTS window."""
     assert prod.SECURE_PROXY_SSL_HEADER == ("HTTP_X_FORWARDED_PROTO", "https")
     assert prod.SECURE_SSL_REDIRECT is True
     assert prod.SECURE_HSTS_SECONDS == 31536000
@@ -133,7 +142,8 @@ def test_tls_is_enforced_behind_the_proxy(prod):
     assert prod.SECURE_REFERRER_POLICY == "strict-origin-when-cross-origin"
 
 
-def test_cookies_are_secure_but_the_csrf_token_stays_readable(prod):
+def test_cookies_are_secure_but_the_csrf_token_stays_readable(prod: ModuleType) -> None:
+    """Session and CSRF cookies are secure, and only the session cookie is HTTP-only."""
     assert prod.SESSION_COOKIE_SECURE is True
     assert prod.SESSION_COOKIE_HTTPONLY is True
     assert prod.CSRF_COOKIE_SECURE is True
@@ -141,87 +151,102 @@ def test_cookies_are_secure_but_the_csrf_token_stays_readable(prod):
     assert prod.CSRF_COOKIE_HTTPONLY is False
 
 
-def test_framing_is_same_origin_so_wagtail_previews_work(prod):
+def test_framing_is_same_origin_so_wagtail_previews_work(prod: ModuleType) -> None:
+    """``X_FRAME_OPTIONS`` is ``SAMEORIGIN``, not ``DENY``."""
     assert prod.X_FRAME_OPTIONS == "SAMEORIGIN"
 
 
-def test_hsts_can_be_disabled_for_a_first_deploy(prod_env, monkeypatch):
+def test_hsts_can_be_disabled_for_a_first_deploy(
+    prod_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Setting ``SECURE_HSTS_SECONDS=0`` turns HSTS off."""
     monkeypatch.setenv("SECURE_HSTS_SECONDS", "0")
 
     assert import_prod().SECURE_HSTS_SECONDS == 0
 
 
-def test_hsts_preload_is_off_unless_it_is_asked_for(prod) -> None:
+def test_hsts_preload_is_off_unless_it_is_asked_for(prod: ModuleType) -> None:
     """Preloading is a commitment browsers will not let the site take back."""
     assert prod.SECURE_HSTS_PRELOAD is False
 
 
-def test_hsts_preload_can_be_turned_on(prod_env, monkeypatch) -> None:
+def test_hsts_preload_can_be_turned_on(prod_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Setting ``SECURE_HSTS_PRELOAD=true`` turns preloading on."""
     monkeypatch.setenv("SECURE_HSTS_PRELOAD", "true")
 
     assert import_prod().SECURE_HSTS_PRELOAD is True
 
 
-def test_the_preload_deployment_warning_is_silenced_deliberately(prod) -> None:
+def test_the_preload_deployment_warning_is_silenced_deliberately(prod: ModuleType) -> None:
     """``check --deploy`` reports W021 whenever preload is off; that is the choice."""
     assert prod.SILENCED_SYSTEM_CHECKS == ["security.W021"]
 
 
-def test_mock_payments_are_off_by_default(prod):
+def test_mock_payments_are_off_by_default(prod: ModuleType) -> None:
+    """Mock payment providers are disabled by default."""
     assert prod.PAYMENTS_MOCK_ENABLED is False
 
 
 # ------------------------------------------------------- throttles and cache
-def test_one_proxy_sits_in_front_so_throttles_key_on_the_client_address(prod) -> None:
+def test_one_proxy_sits_in_front_so_throttles_key_on_the_client_address(prod: ModuleType) -> None:
     """DRF otherwise keys on the whole ``X-Forwarded-For``, which a client writes."""
     assert prod.REST_FRAMEWORK["NUM_PROXIES"] == 1
 
 
-def test_the_base_rest_framework_settings_are_not_mutated(prod) -> None:
+def test_the_base_rest_framework_settings_are_not_mutated(prod: ModuleType) -> None:
+    """``prod.py`` adds ``NUM_PROXIES`` to its own copy, leaving base's dict untouched."""
     from caldart.settings import base
 
     assert "NUM_PROXIES" not in base.REST_FRAMEWORK
 
 
-def test_throttle_counters_are_shared_through_the_database(prod) -> None:
+def test_throttle_counters_are_shared_through_the_database(prod: ModuleType) -> None:
     """Every gunicorn worker would otherwise keep a private budget of its own."""
     assert prod.CACHES["default"]["BACKEND"] == "django.core.cache.backends.db.DatabaseCache"
 
 
-def test_the_cache_table_is_the_one_the_deployment_guide_creates(prod) -> None:
+def test_the_cache_table_is_the_one_the_deployment_guide_creates(prod: ModuleType) -> None:
+    """The cache table name matches the one the deployment guide has the operator make."""
     assert prod.CACHES["default"]["LOCATION"] == "caldart_cache"
 
 
 # ------------------------------------------------------- assets and email
-def test_static_files_use_the_hashed_manifest_storage(prod):
+def test_static_files_use_the_hashed_manifest_storage(prod: ModuleType) -> None:
+    """Static files are served through whitenoise's compressed manifest storage."""
     backend = prod.STORAGES["staticfiles"]["BACKEND"]
     assert backend == "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
-def test_vite_reads_the_built_manifest(prod):
+def test_vite_reads_the_built_manifest(prod: ModuleType) -> None:
+    """Vite dev mode is off and the manifest path points at a built ``manifest.json``."""
     assert prod.VITE_DEV_MODE is False
     assert prod.DJANGO_VITE["default"]["dev_mode"] is False
     assert prod.DJANGO_VITE["default"]["manifest_path"].endswith("manifest.json")
 
 
-def test_email_comes_from_email_url(prod):
+def test_email_comes_from_email_url(prod: ModuleType) -> None:
+    """``EMAIL_URL`` is parsed into the host, port, and user for the email backend."""
     assert prod.EMAIL_HOST == "smtp.example.org"
     assert prod.EMAIL_PORT == 587
     assert prod.EMAIL_HOST_USER == "caldart@example.org"
 
 
-def test_logging_goes_to_the_console(prod):
+def test_logging_goes_to_the_console(prod: ModuleType) -> None:
+    """The root logger writes to the console at INFO; request errors also mail admins."""
     assert prod.LOGGING["root"]["handlers"] == ["console"]
     assert prod.LOGGING["root"]["level"] == "INFO"
     assert "mail_admins" in prod.LOGGING["loggers"]["django.request"]["handlers"]
 
 
-def test_database_connections_are_reused(prod):
+def test_database_connections_are_reused(prod: ModuleType) -> None:
+    """Database connections persist for 60 seconds and are health-checked before reuse."""
     assert prod.DATABASES["default"]["CONN_MAX_AGE"] == 60
     assert prod.DATABASES["default"]["CONN_HEALTH_CHECKS"] is True
 
 
-def test_importing_prod_does_not_disturb_the_running_settings(prod, settings):
+def test_importing_prod_does_not_disturb_the_running_settings(
+    prod: ModuleType, settings: Settings
+) -> None:
     """``prod.py`` copies the dicts it edits rather than mutating base's."""
     from caldart.settings import base
 
@@ -235,7 +260,8 @@ def test_importing_prod_does_not_disturb_the_running_settings(prod, settings):
 
 
 # ------------------------------------------------------------------- deploy
-def test_gunicorn_binds_to_loopback_only():
+def test_gunicorn_binds_to_loopback_only() -> None:
+    """Gunicorn binds to loopback, trusts the proxy, and sizes workers to the CPU."""
     config = (DEPLOY / "gunicorn.conf.py").read_text()
 
     assert 'bind = "127.0.0.1:8001"' in config
@@ -243,10 +269,8 @@ def test_gunicorn_binds_to_loopback_only():
     assert "multiprocessing.cpu_count()" in config
 
 
-def test_gunicorn_worker_count_is_capped(monkeypatch):
+def test_gunicorn_worker_count_is_capped(monkeypatch: pytest.MonkeyPatch) -> None:
     """Every worker preloads Django, so the 2n+1 heuristic needs a ceiling."""
-    import runpy
-
     monkeypatch.delenv("WEB_CONCURRENCY", raising=False)
     config = runpy.run_path(str(DEPLOY / "gunicorn.conf.py"))
     assert 1 <= config["workers"] <= config["MAX_WORKERS"]
@@ -255,7 +279,8 @@ def test_gunicorn_worker_count_is_capped(monkeypatch):
     assert runpy.run_path(str(DEPLOY / "gunicorn.conf.py"))["workers"] == 3
 
 
-def test_apache_proxies_to_gunicorn_and_sets_the_scheme_header():
+def test_apache_proxies_to_gunicorn_and_sets_the_scheme_header() -> None:
+    """The Apache vhost proxies to gunicorn, forwards HTTPS, and serves media, certbot."""
     config = (DEPLOY / "apache" / "caldart.conf").read_text()
 
     assert "ProxyPass        / http://127.0.0.1:8001/" in config
@@ -264,14 +289,16 @@ def test_apache_proxies_to_gunicorn_and_sets_the_scheme_header():
     assert "certbot" in config
 
 
-def test_nginx_is_shipped_as_the_alternative():
+def test_nginx_is_shipped_as_the_alternative() -> None:
+    """The nginx config proxies to gunicorn and forwards the original scheme."""
     config = (DEPLOY / "nginx" / "caldart.conf").read_text()
 
     assert "proxy_pass http://127.0.0.1:8001;" in config
     assert "proxy_set_header X-Forwarded-Proto $scheme;" in config
 
 
-def test_the_web_unit_runs_gunicorn_from_the_venv():
+def test_the_web_unit_runs_gunicorn_from_the_venv() -> None:
+    """The systemd web unit runs gunicorn from the venv, under the ``caldart`` user."""
     unit = (DEPLOY / "systemd" / "caldart-web.service").read_text()
 
     assert "EnvironmentFile=/etc/caldart/caldart.env" in unit
@@ -280,7 +307,8 @@ def test_the_web_unit_runs_gunicorn_from_the_venv():
     assert "User=caldart" in unit
 
 
-def test_the_reminder_timer_runs_daily_at_seven():
+def test_the_reminder_timer_runs_daily_at_seven() -> None:
+    """The reminder timer fires the daily service at 07:00 and survives a reboot."""
     service = (DEPLOY / "systemd" / "caldart-reminders.service").read_text()
     timer = (DEPLOY / "systemd" / "caldart-reminders.timer").read_text()
 
