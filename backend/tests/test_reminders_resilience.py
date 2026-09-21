@@ -63,10 +63,15 @@ class OneAddressFailsBackend(LocMemEmailBackend):
         return super().send_messages(email_messages)
 
 
+def mailers_using(backend: str) -> dict[str, dict[str, str]]:
+    """The ``MAILERS`` setting whose one mailer, ``default``, is ``backend``."""
+    return {"default": {"BACKEND": backend}}
+
+
 @pytest.fixture
 def failing_smtp(settings: Settings, mailoutbox: list[EmailMessage]) -> list[EmailMessage]:
     """Deliver to the test outbox, except to :data:`FAILING_ADDRESS`."""
-    settings.EMAIL_BACKEND = f"{__name__}.OneAddressFailsBackend"
+    settings.MAILERS = mailers_using(f"{__name__}.OneAddressFailsBackend")
     return mailoutbox
 
 
@@ -140,7 +145,7 @@ def test_a_failed_send_is_retried_the_next_day(
     make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
 
     send_renewal_reminders(today=TODAY)
-    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    settings.MAILERS = mailers_using("django.core.mail.backends.locmem.EmailBackend")
     run = send_renewal_reminders(today=TODAY + timedelta(days=1))
 
     assert run.sent == 1
@@ -154,7 +159,7 @@ def test_a_failed_expired_send_is_not_retried_the_next_day(
     make_member(annual_plan, ends_on_for(ReminderKind.EXPIRED), email=FAILING_ADDRESS)
 
     send_renewal_reminders(today=TODAY)
-    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    settings.MAILERS = mailers_using("django.core.mail.backends.locmem.EmailBackend")
     run = send_renewal_reminders(today=TODAY + timedelta(days=1))
 
     assert run.sent == 0

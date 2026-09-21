@@ -15,6 +15,10 @@ from typing import Any
 import environ
 from django.core.exceptions import ImproperlyConfigured
 
+# Absolute, not relative: ``backend/tests/test_auth_throttle_rates.py`` executes this
+# module standalone, outside its package, to read the rates a given environment yields.
+from caldart.settings.mailers import default_mailer
+
 # backend/caldart/settings/base.py -> repo root
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 REPO_ROOT = BASE_DIR.parent
@@ -43,6 +47,9 @@ DJANGO_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    # Wagtail's search index stores a SearchVectorField and indexes it with a GinIndex,
+    # both of which Django serves only while this app is installed.
+    "django.contrib.postgres",
     "django.contrib.staticfiles",
     "django.contrib.sitemaps",
     "django.contrib.sites",
@@ -183,7 +190,7 @@ DJANGO_VITE = {
 # --------------------------------------------------------------------------
 # Email
 # --------------------------------------------------------------------------
-vars().update(env.email_url("EMAIL_URL", default="smtp://localhost:1025"))
+MAILERS = {"default": default_mailer(env.email_url("EMAIL_URL", default="smtp://localhost:1025"))}
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="CalDART <noreply@caldart.example.org>")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
