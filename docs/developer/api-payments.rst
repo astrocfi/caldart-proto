@@ -53,6 +53,8 @@ Any authenticated user.  What the checkout screen can offer.
 publishable values, safe in a browser; they are empty strings when unset.
 ``plans`` covers active plans only.
 
+Statuses: **200**; **401** when anonymous.
+
 ``POST /payments/checkout``
 ---------------------------
 
@@ -85,11 +87,14 @@ Provider      ``client``
 ============  ==============================================
 
 **400** for an unknown or inactive plan, a negative contribution, a total of
-zero, an unknown provider, a provider that is not configured, a provider that
+zero, an unknown provider, a provider that is not configured
+(``{"provider": "'x' is not configured."}``), a provider that
 refuses the request, or a provider that cannot be reached — a timeout, a
 refused connection or an error on the provider's own side, all of which answer
 ``{"detail": "<provider> could not be reached. Please try again."}``.  Nothing
 is left behind in the database when the provider rejects it or fails.
+
+Statuses: **201**; **400** for any of the above; **401** when anonymous.
 
 ``POST /payments/stripe/confirm``
 ---------------------------------
@@ -125,8 +130,15 @@ A ``canceled`` or ``requires_payment_method`` intent marks the payment
 ``failed`` and answers 200 with ``"status": "failed"``.  A mismatch, or an
 intent still ``processing``, is a **400** with the reason in ``detail``.  A
 provider that cannot be reached is a **400** too, and the payment stays
-``pending`` so the member can try again.  **404** if the payment is not the
-caller's.
+``pending`` so the member can try again.  A payment the caller does own but
+that was started with another provider is a **400** keyed by ``payment_id``:
+``{"payment_id": "That payment is not a stripe payment."}``.
+
+Statuses: **200** for a verified intent and for one Stripe reports as failed;
+**400** for a missing field, a payment started with another provider, a
+mismatch against our row, an intent still in flight, or Stripe being
+unreachable; **401** when anonymous; **404** when the payment is not the
+caller's, an unknown id included.
 
 ``POST /payments/paypal/capture``
 ---------------------------------
@@ -138,18 +150,32 @@ The payment's owner only.
    {"payment_id": 413, "order_id": "5O190127TN364715T"}
 
 Captures the order through Orders v2 and requires ``status == "COMPLETED"``,
-at least one completed capture, a captured total equal to ``amount_cents``,
-the same currency, and a ``custom_id`` naming this payment.  Response shape is
-the same as the Stripe confirm.  Capturing an already-succeeded payment is a
-no-op that answers 200 without calling PayPal again.
+at least one completed capture, a captured total equal to ``amount_cents`` and
+the same currency.  ``custom_id`` is checked only when the capture carries one:
+a capture that names a payment is required to name *this* one, and a capture
+with no ``custom_id`` at all is accepted on the amount, the currency and the
+order id.  Capturing an already-succeeded payment is a no-op that answers 200
+without calling PayPal again.
 
-A capture that completes for the wrong amount, currency or ``custom_id`` is
-refused with a **400**, and a call that fails in transit answers the same
-**400** with the payment left ``pending``.  PayPal may already hold the money
-in both cases, so each one writes an ``ERROR`` log record for an administrator
-to reconcile in the PayPal dashboard: the mismatch names the payment and both
-amounts, and the call that never completed names the payment and the amount at
-stake.
+.. code-block:: json
+
+   {"status": "succeeded",
+    "membership": {"status": "current", "expires_on": "2027-03-14",
+                   "plan": "Annual", "is_lifetime": false}}
+
+A capture that completes for the wrong amount or currency, or that names
+another payment in ``custom_id``, is refused with a **400**, and a call that
+fails in transit answers the same **400** with the payment left ``pending``.
+PayPal may already hold the money in both cases, so each one writes an
+``ERROR`` log record for an administrator to reconcile in the PayPal
+dashboard: the mismatch names the payment and both amounts, and the call that
+never completed names the payment and the amount at stake.
+
+Statuses: **200** for a completed capture and for a payment that had already
+succeeded; **400** for a missing field, a payment started with another
+provider (``{"payment_id": "That payment is not a paypal payment."}``), a
+capture PayPal did not complete, a mismatch, or PayPal being unreachable;
+**401** when anonymous; **404** when the payment is not the caller's.
 
 ``POST /payments/mock/complete``
 --------------------------------
@@ -162,7 +188,19 @@ otherwise **404**, so production never advertises the route.
    {"payment_id": 414, "outcome": "succeed"}
 
 ``outcome`` is ``succeed`` or ``fail``.  Succeeding takes exactly the same
-activation path as a real payment.
+activation path as a real payment, and the response is the same
+``{status, membership}`` body the two real confirm endpoints answer with:
+
+.. code-block:: json
+
+   {"status": "succeeded",
+    "membership": {"status": "current", "expires_on": "2027-03-14",
+                   "plan": "Annual", "is_lifetime": false}}
+
+Statuses: **200**; **400** for a missing field, an ``outcome`` outside those
+two, or a payment started with another provider; **401** when anonymous;
+**404** when the payment is not the caller's and when
+``PAYMENTS_MOCK_ENABLED`` is off.
 
 ``GET /payments/{id}``
 ----------------------
@@ -176,8 +214,11 @@ redirect-based payment.
     "membership": {"status": "none", "expires_on": null,
                    "plan": null, "is_lifetime": false}}
 
-``status`` is ``pending``, ``succeeded``, ``failed`` or ``refunded``.  **403**
-for any other signed-in user, **401** when anonymous.
+``status`` is ``pending``, ``succeeded``, ``failed`` or ``refunded``.
+
+Statuses: **200**; **401** when anonymous; **403** for a signed-in caller who
+neither owns the payment nor holds ``account_admin``; **404** for an unknown
+id.
 
 
 Webhooks
@@ -203,8 +244,14 @@ Everything else is acknowledged and ignored.  The response says what happened:
 
    {"received": true, "handled": true}
 
+``handled`` is false for an event about a payment this installation does not
+have, for a ``payment_intent.succeeded`` that fails the same verification the
+confirm endpoint applies, and for every event type above that is not listed.
 It is idempotent, so it is safe for it to race the browser's confirm call or
 to be re-delivered from the Stripe dashboard.
+
+Statuses: **200** whether or not the event was acted on; **400** for a
+signature that does not check out; **405** for any method but ``POST``.
 
 ``POST /payments/paypal/webhook``
 ---------------------------------
@@ -222,7 +269,12 @@ order id) and answers:
 ``PAYMENT.CAPTURE.COMPLETED`` for the right amount activates the membership;
 ``PAYMENT.CAPTURE.DENIED`` and ``PAYMENT.CAPTURE.REVERSED`` mark it failed.
 Without verification nothing changes — an unverifiable notification is not
-evidence that money moved.  Malformed JSON is a **400**.
+evidence that money moved.  A notification about a payment this installation
+does not have is received but not filed.
+
+Statuses: **200** whether or not the notification was verified or acted on;
+**400** ``{"detail": "Malformed JSON."}`` for a body that is not JSON;
+**405** for any method but ``POST``.
 
 
 Reports — ``account_admin``
@@ -273,10 +325,17 @@ prefix for descending; anything else is a **400**.
         "amount_cents": 14500, "plan_amount_cents": 4500,
         "contribution_cents": 10000, "currency": "usd", "provider": "stripe",
         "wallet": "apple_pay", "provider_ref": "pi_3NkP...",
-        "status": "succeeded", "created_at": "2026-01-08T20:00:00Z",
-        "completed_at": "2026-01-08T20:00:05Z"}
+        "status": "succeeded", "created_at": "2026-01-08T20:00:00-08:00",
+        "completed_at": "2026-01-08T20:00:05-08:00"}
      ]
    }
+
+Datetimes carry the site's own offset rather than ``Z``: DRF renders them in
+``TIME_ZONE``, which is ``America/Los_Angeles``, so the same instant reads
+``-08:00`` in winter and ``-07:00`` in summer.
+
+Statuses: **200**; **400** for an unusable filter or ``?ordering=`` value;
+**401** when anonymous; **403** without ``account_admin``.
 
 ``GET /admin/payments/summary``
 -------------------------------
@@ -297,6 +356,9 @@ period first; periods with nothing in them are omitted.
 site's time zone.  ``by_provider`` omits providers with nothing in that
 period, so it is safe to iterate but not to index blindly.
 
+Statuses: **200**; **400** for an unusable filter or ``group``; **401** when
+anonymous; **403** without ``account_admin``.
+
 ``GET /admin/payments/export.csv``
 ----------------------------------
 
@@ -311,6 +373,9 @@ The filtered list as ``text/csv``, streamed, attachment
 Money is decimal dollars here rather than cents, because the file is opened in
 a spreadsheet.
 
+Statuses: **200**; **400** for an unusable filter; **401** when anonymous;
+**403** without ``account_admin``.
+
 
 Other payment routes
 ====================
@@ -320,8 +385,15 @@ Other payment routes
 
 Not part of the JSON API, and served from the site root rather than
 ``/api/v1/``.  Returns the file at ``STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION`` as
-``text/plain`` so Stripe can verify the domain for Apple Pay, or **404** when
-the setting is empty or the file is missing.  See :doc:`payments-setup`.
+``text/plain`` so Stripe can verify the domain for Apple Pay.  See
+:doc:`payments-setup`.
+
+The response carries ``Cache-Control: max-age=3600, public``, since the file
+changes only when the domain is re-registered.
+
+Statuses: **200** with the file's contents, for anybody; **404** when
+``STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION`` is empty or names a file that is not
+there; **405** for any method but ``GET`` or ``HEAD``.
 
 
 Role summary

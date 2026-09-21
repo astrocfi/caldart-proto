@@ -15,11 +15,13 @@ to document each app's endpoints in detail, request body by response body.
    api-members
    api-aircraft
    api-payments
+   api-system
 
-Reminder, system and site endpoints have no page of their own; they are
-covered by :doc:`reminders`, :doc:`backup-restore` and :doc:`cms`
-respectively, and all of them appear in the :ref:`permission matrix
-<api-permission-matrix>` below.
+Every endpoint the project serves is on one of those six pages, and every one
+of them appears in the :ref:`permission matrix <api-permission-matrix>` below.
+:doc:`api-system` covers the reminder, system and site routes; the subsystem
+chapters behind them are :doc:`reminders`, :doc:`backup-restore` and
+:doc:`cms`.
 
 Conventions
 ===========
@@ -200,9 +202,14 @@ Filtering, search and ordering
 ------------------------------
 
 ``DEFAULT_FILTER_BACKENDS`` is ``DjangoFilterBackend``, ``OrderingFilter`` and
-``SearchFilter``, and most list endpoints use them with a ``filterset_class``.
-Two do not, for reasons worth knowing:
+``SearchFilter``.  ``GET /admin/users`` and ``GET /admin/reminders/log`` use
+exactly those three with a ``filterset_class``.  Three list endpoints replace
+them, for reasons worth knowing:
 
+- ``GET /aircraft`` and the two aircraft exports use ``DjangoFilterBackend``
+  with a ``NullsLastOrderingFilter``, and no ``SearchFilter``: ``?search=``
+  is a method on ``AircraftFilter`` instead, so that it can match the
+  normalized N-number as well as the stored one (see :doc:`api-aircraft`).
 - ``GET /admin/members`` uses a custom ``MemberOrderingFilter`` because its
   sort keys are computed annotations rather than columns (see
   :ref:`membership-status-sql`).
@@ -211,6 +218,10 @@ Two do not, for reasons worth knowing:
   ``Coalesce(completed_at, created_at)`` — that the list, the summary and the
   CSV export all share, so the three can never disagree about when a payment
   happened.
+
+Detail views carry no backends at all, since there is nothing to filter: the
+member record at ``/admin/members/{user_id}`` sets the list to empty for that
+reason.
 
 ``?ordering=`` takes a field name, optionally ``-`` prefixed for descending.
 Endpoints differ in how strict they are: ``/admin/payments`` **rejects** an
@@ -224,7 +235,8 @@ Error shape
 -----------
 
 Errors are DRF-standard JSON.  Field errors are keyed by field name with a
-list of messages; non-field errors use ``detail`` or ``non_field_errors``:
+list of messages, except in the handful of places noted below where the value
+is a single string; non-field errors use ``detail`` or ``non_field_errors``:
 
 .. code-block:: json
 
@@ -239,10 +251,35 @@ Validation failures are **400**, permission failures **403**, missing objects
 restrict ``http_method_names``, so ``PUT`` where only ``PATCH`` is offered is a
 405 rather than a silent full replace).
 
-Two endpoints return a bare dict rather than the standard envelope:
-``GET /aircraft/lookup`` and ``GET /leader/aircraft`` answer a missing or
-unparseable registration with ``{"n_number": "Enter a registration, for example
-N12345."}``.
+A serializer always produces the list form, because that is what DRF builds.
+The exceptions are the refusals a view raises by hand, which carry one string
+under the field they concern rather than a list of one:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 42 58
+
+   * - Where
+     - Body
+   * - ``GET /aircraft/lookup``, ``GET /leader/aircraft``
+     - ``{"n_number": "Enter a registration, for example N12345."}`` for a
+       missing or unparseable registration
+   * - ``POST /payments/checkout``
+     - ``{"provider": "'x' is not configured."}``
+   * - The three payment confirm endpoints
+     - ``{"payment_id": "That payment is not a stripe payment."}`` when the
+       payment was started with another provider
+   * - ``GET /admin/payments``
+     - ``{"ordering": "Cannot order by 'x'."}``.  The summary and the CSV
+       export take no ``?ordering=`` at all, so they never raise it
+
+A client that renders field errors should therefore accept either a string or
+a list of them.  Of the rows above, the two aircraft ones are the only ones a
+view builds as a plain 400 response rather than raising; the rest are DRF
+``ValidationError`` instances and reach the same handler as everything else.
+Two views outside the table build a plain response too, but with a ``detail``
+string rather than a field key: ``POST /auth/login`` for a wrong password and
+``POST /admin/users/{id}/send-password-reset`` when there is nobody to mail.
 
 Both shapes have two sources, one on each side of the layering.  A serializer
 validates the request — field formats, choices, uniqueness — and refuses it with
@@ -273,8 +310,10 @@ An exception the handler does not recognize is left to Django, so a bug stays a
 Throttling
 ----------
 
-There is no project-wide throttle.  Three anonymous auth endpoints are rate
-limited by client IP address, with the rates read from the environment:
+There is no project-wide throttle.  Four anonymous auth endpoints are rate
+limited by client IP address across three scopes, with the rates read from the
+environment.  Both password-reset endpoints share one scope, so asking for
+links and spending them draw on the same budget:
 
 .. list-table::
    :header-rows: 1
@@ -717,56 +756,6 @@ the register from being a way around the leader-check gate.
 ``/admin/members/{id}`` accepts ``GET``, ``PATCH`` and ``DELETE``;
 ``/admin/memberships/{id}`` accepts ``PATCH`` only.  Everything else on those
 paths is 405.
-
-Endpoints without a page of their own
-=====================================
-
-.. _api-reminders-system:
-
-Reminders and system
---------------------
-
-.. code-block:: text
-
-   GET  /admin/reminders/log?kind=&from=&to=&search=&ordering=
-        → paginated {id, user_id, user_name, membership_id, kind, sent_at, to_email}
-   POST /system/reminders/run   {dry_run: bool}   → 200 {sent, skipped}
-   GET  /system/health   → {db, pending_migrations, disk_free_mb, last_backup,
-                            version, debug}
-   GET  /system/backups  → [{name, size_bytes, created_at}]
-   POST /system/backups  → 201 {name, size_bytes, created_at}
-   GET  /system/backups/{name}/download   → application/gzip
-
-``kind`` is one of ``t60``, ``t30``, ``t7``, ``expired``, ``post30``.  ``from``
-and ``to`` compare against ``sent_at__date``; ``from`` is injected into the
-filterset after class creation because it is a Python keyword.  Ordering is
-over ``sent_at`` and ``kind``, defaulting to newest first.
-
-The download route is declared with ``<path:name>`` rather than ``<str:name>``
-on purpose, so a traversal attempt reaches the view and is rejected there with
-a message, instead of 404ing at the URL resolver where no test could tell it
-from a typo.  ``resolve_backup`` requires the name to match
-``^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$`` **and** re-checks that the resolved
-path's parent is exactly ``BACKUP_DIR``, which defeats ``..``, absolute paths
-and symlinks out of the directory.
-
-**Restore is deliberately absent from the API.**  Wiping the database is not
-something to do from a browser tab; it is ``manage.py db_restore``.  See
-:doc:`backup-restore`.
-
-Site config
------------
-
-.. code-block:: text
-
-   GET /site/config → {org_name, theme, contact_email, nav, members_pages}
-
-The one call the SPA makes before it has a user, so it is ``AllowAny``.  ``nav``
-entries carry a ``kind`` of ``page`` or ``portal``, which is how the public
-templates render content pages as links and Join / Members as buttons.
-``members_pages`` is populated only when the caller passes the same
-``can_access_members_content`` test the members-only wall uses; everyone else
-gets an empty list rather than a 403.  See :doc:`cms`.
 
 Testing the API
 ===============
