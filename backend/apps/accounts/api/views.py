@@ -32,9 +32,9 @@ from apps.accounts.api.serializers import (
 )
 from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
-from apps.accounts.services import register_user, send_password_reset_email
+from apps.accounts.services import send_password_reset_email
 from apps.accounts.throttling import LoginThrottle, PasswordResetThrottle, RegisterThrottle
-from apps.members.services import with_membership
+from apps.members.services import register_member, with_membership
 
 User = get_user_model()
 
@@ -59,7 +59,7 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = register_user(**serializer.validated_data)
+        user = register_member(**serializer.validated_data)
         login(request, user)
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
