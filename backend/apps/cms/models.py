@@ -485,8 +485,9 @@ class DartIndexPage(BasePage):
     def dart_pages(self) -> QuerySet[DartPage]:
         """The live public DART pages below this index, in the DARTs' own order.
 
-        Teams that share a sort order are ordered by page title, and a page whose
-        ``dart`` link is empty sorts with the others on the title alone.
+        Teams that share a sort order are ordered by page title.  A page whose
+        ``dart`` link is empty has no sort order, so it follows every linked page;
+        such pages are ordered among themselves by title.
         """
         pages: QuerySet[DartPage] = (
             DartPage.objects.child_of(self)

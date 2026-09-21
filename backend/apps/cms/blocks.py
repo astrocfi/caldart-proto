@@ -165,8 +165,9 @@ class CTABlock(blocks.StructBlock):
     ) -> dict[str, Any]:
         """The block's template context plus ``href``, where the button points.
 
-        A chosen page wins over a typed URL, the typed URL is used when there is no
-        page, and ``#`` stands in when the chosen page has no URL of its own.
+        The chosen page's own URL wins.  The typed URL is used when no page is
+        chosen or the chosen page has no URL of its own, and ``#`` stands in when
+        neither yields an address.
         """
         context: dict[str, Any] = super().get_context(value, parent_context=parent_context)
         page = value.get("page")
