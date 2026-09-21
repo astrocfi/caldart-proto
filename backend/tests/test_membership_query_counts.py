@@ -71,7 +71,7 @@ def _add_history(user, kind: str, annual_plan, life_plan, today, days) -> None:
 
 @pytest.fixture
 def population(annual_plan, life_plan, dart, aircraft, today, days):
-    """``population(n)`` -> ``n`` members sharing one aeroplane and one surname."""
+    """``population(n)`` -> ``n`` members sharing one airplane and one surname."""
 
     def build(size: int) -> list:
         people = []

@@ -181,13 +181,13 @@ membership buys.*
 4. Go to **My aircraft**.  Search the register — type ``N419JM``, or any part
    of a make or model such as ``Cirrus``.  The picker looks the exact
    registration up first and falls back to a fuzzy search, so ``419jm``,
-   ``n-419jm`` and ``N419JM`` all find the same aeroplane.
+   ``n-419jm`` and ``N419JM`` all find the same airplane.
 
    Each result carries an insurance chip.  Pick one whose chip says
    **Current** and add it.  It appears in your list with the same chip and a
    *Remove* button.
 
-   If the aeroplane you fly is not in the register, the picker offers a short
+   If the airplane you fly is not in the register, the picker offers a short
    inline form to add it — make, model and the insurance details — and selects
    it for you.  You may edit an aircraft you added; only an account
    administrator may edit one somebody else added.
@@ -212,7 +212,7 @@ naming the date the membership ran out.
   ``profile_complete``; open **Profile** and fill in whichever of those fields
   is still blank.
 - *An aircraft will not attach.*  Attaching is idempotent, so a second attempt
-  at the same aeroplane is silently fine; a genuinely unknown id is a 404.
+  at the same airplane is silently fine; a genuinely unknown id is a 404.
 - *You cannot see a members-only page you expect to see.*  Membership status
   is not the only gate: any role beyond plain ``member`` also gets through.  A
   DART leader with no membership of their own can read members-only pages.
@@ -223,7 +223,7 @@ Flow C — a DART leader checks a member before a flight
 ======================================================
 
 *Goal: standing on a ramp with a phone, answer "may this person fly this
-aeroplane for us today?" in one screen.*
+airplane for us today?" in one screen.*
 
 1. Sign out and sign in as ``leader@example.org`` / ``caldart-demo``.
 2. Follow **Member check** in the Operations group of the navigation
@@ -245,11 +245,11 @@ aeroplane for us today?" in one screen.*
    - **Medical** — the class and expiry, and whether it is current.  BasicMed
      and class medicals both use the stored expiration date.
    - **Certificate** — type, number, IFR rating and any ratings on file.
-   - **Aircraft** — a row per aeroplane attached to the profile, each with its
+   - **Aircraft** — a row per airplane attached to the profile, each with its
      own insurance state, limits and expiry.
 
    The verdict is membership **and** medical.  Insurance is shown per
-   aeroplane rather than folded into the verdict, because which aeroplane the
+   airplane rather than folded into the verdict, because which airplane the
    member is about to fly is a fact you have and the system does not.
 
 5. Undo flow B's edit if you want to see the other outcome: clear Marta's
@@ -257,7 +257,7 @@ aeroplane for us today?" in one screen.*
    and states the reasons — *"Medical expired"*, *"Membership expired"* —
    in the order a leader would say them out loud.
 6. Follow **Aircraft check** (``/portal/leader/aircraft``) and enter a
-   registration, e.g. ``N419JM``.  You get the aeroplane's insurance card and
+   registration, e.g. ``N419JM``.  You get the airplane's insurance card and
    a list of the members who fly it, each with their own membership and
    medical currency.
 
@@ -271,7 +271,7 @@ can be reloaded, backed out of, or sent to another leader as a link.
   the account administrator's search fields.
 - *A member with no profile at all.*  You get a well-formed NO-GO card rather
   than an error.
-- *An aeroplane marked out of service* is labeled as such on the card, and is
+- *An airplane marked out of service* is labeled as such on the card, and is
   dropped from the picker's fuzzy search — though an exact registration still
   finds it, labeled, so nobody adds a duplicate.
 

@@ -165,7 +165,7 @@ Leave the start date blank and the term starts itself correctly:
 * a **lifetime** plan has no end date at all.
 
 Fill the start date in only when you are recording something that happened on
-a particular day — a cheque that arrived last month, say.
+a particular day — a check that arrived last month, say.
 
 Payments
 --------
@@ -244,9 +244,9 @@ Common tasks
    DART, then Membership *Current*.  The caption under the filter bar gives
    the count.
 
-**Somebody paid by cheque.**
+**Somebody paid by check.**
    Open their record, Memberships, Grant a term, choose the plan, and note the
-   cheque number.  Leave the start date blank unless the cheque should be
+   check number.  Leave the start date blank unless the check should be
    backdated.
 
 **A member says they renewed but the site says expired.**

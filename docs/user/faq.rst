@@ -148,18 +148,18 @@ For the same reason: the ``insurance expiration`` on the aircraft record has
 passed, or there is no policy on file at all.  Those are different states — the
 card distinguishes them — but both fail the currency check.
 
-Anyone may add an aeroplane to the register, and the member who added a record
+Anyone may add an airplane to the register, and the member who added a record
 may keep it up to date.  If somebody else added the one you fly, ask an account
 administrator to correct it.  See :doc:`aircraft`.
 
-Somebody else already added the aeroplane I fly. Should I add another?
+Somebody else already added the airplane I fly. Should I add another?
 ----------------------------------------------------------------------
 
 No.  There is one register, shared by everybody, and one record per airframe.
 Attach the existing record to your profile — that is what "planes commonly
 flown" means — and an insurance renewal entered once is then right for all of
 you.  The register normalizes registrations, so ``N12345``, ``n-12345`` and
-``12345`` all find the same aeroplane and a duplicate cannot be created by
+``12345`` all find the same airplane and a duplicate cannot be created by
 typing it differently.
 
 Access and sign-in

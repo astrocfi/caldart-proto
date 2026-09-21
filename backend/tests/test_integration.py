@@ -2,7 +2,7 @@
 
 Each test here pins down a rule that two features share and could otherwise
 let drift apart: what "a complete profile" means, which serializer describes
-an aeroplane, whether the reset really seeds the site, and where a reminder
+an airplane, whether the reset really seeds the site, and where a reminder
 email gets the organization's name from.
 """
 

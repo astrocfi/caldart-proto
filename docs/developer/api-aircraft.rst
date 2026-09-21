@@ -79,7 +79,7 @@ Parameter            Meaning
 
 Ordering goes through ``NullsLastOrderingFilter``, which does two things.
 Postgres sorts ``NULL`` first on a descending order, which would put every
-aeroplane with no policy at the top of "latest expiry", so empty values are
+airplane with no policy at the top of "latest expiry", so empty values are
 pushed to the bottom in both directions.  And every ordering ends in the
 primary key: sorting by a column many rows share — ``make``, or the expiry
 date a whole club renews on — otherwise leaves ties in an undefined order, and
@@ -115,11 +115,11 @@ be set by the client.  Validation:
 
 Any authenticated user.  For a ``dart_leader``, ``account_admin`` or
 ``system_admin`` the response also carries ``pilots``: the members who list
-the aeroplane on their profile, each as
+the airplane on their profile, each as
 ``{user_id, name, email, membership_status, medical_is_current}``, sorted by
 surname then forename.  ``aircraft_pilots()`` fetches them in one query, with
 the membership annotations aboard (see :ref:`membership-status-sql`), so a
-popular aeroplane costs no more than a rarely-flown one.
+popular airplane costs no more than a rarely-flown one.
 
 The key is **absent** for anyone else.  ``pilots`` is other members' email
 addresses, membership state and medical currency — exactly what the leader
@@ -143,7 +143,7 @@ Method        Allowed
 ============  ============================================================
 
 ``system_admin`` (and any superuser) passes every check, through
-``accounts.permissions.user_has_any_role``.  An aeroplane created by the seed
+``accounts.permissions.user_has_any_role``.  An airplane created by the seed
 has ``created_by = None`` and so belongs to nobody: only an administrator can
 change it.
 
@@ -221,8 +221,8 @@ The status card::
 ``go_no_go`` is deliberately two booleans rather than one verdict: a leader is
 entitled to see *why* a member is a no-go.  The overall verdict is their
 conjunction, and the portal renders it as the GO / NO-GO band.  Insurance is
-reported per aeroplane and never folded into ``go_no_go``, because a member
-may be current in one aeroplane and not another.
+reported per airplane and never folded into ``go_no_go``, because a member
+may be current in one airplane and not another.
 
 A user with no ``MemberProfile`` — an account created by a user administrator
 before the member has filled anything in — is handled rather than 500ing:

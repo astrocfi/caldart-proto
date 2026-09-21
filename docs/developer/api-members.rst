@@ -317,7 +317,7 @@ Membership terms
 
 .. code-block:: json
 
-   {"plan": "annual", "starts_on": null, "note": "Cheque 1041"}
+   {"plan": "annual", "starts_on": null, "note": "Check 1041"}
 
 ``plan`` is a ``MembershipPlan`` slug and must be active.  The term is created
 through ``members.services.activate_term`` with ``source="manual"`` and

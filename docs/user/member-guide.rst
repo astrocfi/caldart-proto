@@ -247,7 +247,7 @@ When something goes wrong
 
 **Edit shows "Someone else added this aircraft".**
    One register is shared by everybody, so a record is not yours to change
-   simply because you fly the aeroplane.  **Edit** opens the form only for the
+   simply because you fly the airplane.  **Edit** opens the form only for the
    aircraft you added yourself.  Ask the member who added it, or an account
    administrator, to correct it.
 
