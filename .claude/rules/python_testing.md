@@ -90,7 +90,10 @@ pytest is configured under `[tool.pytest.ini_options]`; do not add separate `pyt
 - NEVER write a test whose only purpose is to execute a code path without
   asserting on the result. Every test asserts observable correctness.
 - Each `assert` MUST check exactly one condition — no `and` joining two checks
-  in one assertion (split them so failures pinpoint the cause).
+  in one assertion (split them so failures pinpoint the cause). Ruff's `PT018`
+  enforces this for a boolean `and`/`or` expression directly under `assert`; it
+  does not see a multi-line condition built from earlier statements, so apply
+  the same rule by hand wherever `PT018` cannot reach it.
 - Assert precise expected values, not ranges, types, or mere existence, unless
   the contract genuinely specifies a range.
 - For floating-point results, compare with `pytest.approx` (or an explicit
