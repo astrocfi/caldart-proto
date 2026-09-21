@@ -102,8 +102,6 @@ max-doc-length = 90
 # unit of the backend; the unit's own change deletes its entry and never adds one.
 # No entry may remain once every unit is annotated and documented.
 [tool.ruff.lint.per-file-ignores]
-# Unit: payments
-"backend/apps/payments/**" = ["ANN", "D"]
 # Unit: tests-accounts
 "backend/tests/test_account_edit_guard.py" = ["ANN", "D"]
 "backend/tests/test_account_services.py" = ["ANN", "D"]
@@ -205,10 +203,6 @@ ignore_missing_imports = true
 # The type-checking ratchet, unit by unit, matching the ruff table above.  Each
 # unit's own change deletes its override; none may remain once every unit is typed.
 
-# Unit: payments
-[[tool.mypy.overrides]]
-module = ["apps.payments.*"]
-ignore_errors = true
 
 
 
