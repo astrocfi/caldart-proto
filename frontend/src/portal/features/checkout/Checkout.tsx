@@ -161,7 +161,7 @@ interface ProviderTabsProps {
 function ProviderTabs({ providers, active, onChange, config, panelProps }: ProviderTabsProps) {
   const current = active ?? providers[0]!;
 
-  function onKeyDown(event: React.KeyboardEvent) {
+  function handleKeyDown(event: React.KeyboardEvent): void {
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
     event.preventDefault();
     const step = event.key === 'ArrowRight' ? 1 : -1;
@@ -173,12 +173,7 @@ function ProviderTabs({ providers, active, onChange, config, panelProps }: Provi
   return (
     <section className="checkout__pay">
       <h3 className="eyebrow">How would you like to pay?</h3>
-      <div
-        className="checkout__tabs"
-        role="tablist"
-        aria-label="Payment method"
-        onKeyDown={onKeyDown}
-      >
+      <div className="checkout__tabs" role="tablist" aria-label="Payment method">
         {providers.map((slug) => (
           <button
             key={slug}
@@ -190,6 +185,7 @@ function ProviderTabs({ providers, active, onChange, config, panelProps }: Provi
             tabIndex={slug === current ? 0 : -1}
             className="checkout__tab"
             onClick={() => onChange(slug)}
+            onKeyDown={handleKeyDown}
           >
             {PROVIDER_LABELS[slug]}
           </button>

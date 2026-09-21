@@ -50,7 +50,7 @@ describe('<ProfilePage/>', () => {
     const save = vi.fn();
     server.use(
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
-      http.put(`${API}/me/profile`, async () => {
+      http.put(`${API}/me/profile`, () => {
         save();
         return HttpResponse.json(makeProfile());
       }),

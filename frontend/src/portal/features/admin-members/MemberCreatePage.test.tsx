@@ -137,7 +137,7 @@ describe('MemberCreatePage', () => {
     expect(screen.getByLabelText(/Email address/)).toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('offers a way back to the list', async () => {
+  it('offers a way back to the list', () => {
     server.use(...createHandlers());
     renderCreate();
     expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/admin/members');

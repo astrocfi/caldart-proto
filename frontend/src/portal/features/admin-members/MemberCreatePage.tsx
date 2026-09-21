@@ -52,7 +52,7 @@ export function MemberCreatePage(): JSX.Element {
               : `${member.name} has been emailed a link to set a password.`,
             'success',
           );
-          navigate(`/admin/members/${member.id}`);
+          void navigate(`/admin/members/${member.id}`);
         },
       },
     );

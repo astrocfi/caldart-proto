@@ -275,8 +275,19 @@ Running the frontend suite
    $ cd frontend && npx vitest run src/portal/features/join
 
 Configuration is the ``test`` key in ``frontend/vite.config.ts``: the ``jsdom``
-environment, globals on, ``src/test/setup.ts`` as the setup file, CSS
+environment, globals off, ``src/test/setup.ts`` as the setup file, CSS
 processing off, and ``src/**/*.{test,spec}.{ts,tsx}`` as the include pattern.
+
+**Every test file imports what it uses.**  ``globals: false`` means the runner
+injects nothing, and ``tsconfig.json``'s ``types`` lists only ``vite/client``,
+so ``describe``, ``it``, ``expect``, ``vi`` and the lifecycle hooks come from a
+single ``import {...} from 'vitest'`` at the top of each file.  The jest-dom
+matchers are typed once for the whole suite by ``src/test/setup.ts``, which
+imports ``@testing-library/jest-dom/vitest``; individual files use
+``toBeInTheDocument`` and its siblings without importing anything further.  A
+production module that reaches for ``expect`` fails ``tsc`` instead of
+compiling, which is the point of keeping the globals out of the type
+environment.
 
 **Tests sit beside what they test** — ``LoginPage.test.tsx`` next to
 ``LoginPage.tsx`` — so a feature's tests move with it.
@@ -462,13 +473,52 @@ a comment naming the stub gap behind it.
 TypeScript runs in strict mode; ``tsc --noEmit`` is
 part of linting rather than of the build, so a type error fails ``make lint``.
 ESLint runs with ``--max-warnings 0``, so a warning, such as a missing hook
-dependency, fails ``make lint`` too.  Two rules apply to every TypeScript file
-under ``frontend``, its configuration files included:
+dependency, fails ``make lint`` too.  ``frontend/eslint.config.js`` draws its
+rules from four sources: ``@eslint/js``'s recommended set,
+``typescript-eslint``'s ``recommendedTypeChecked``,
+``eslint-plugin-jsx-a11y``'s ``recommended`` flat config, and the project's own
+rules below.
+
+``recommendedTypeChecked`` needs type information, which
+``languageOptions.parserOptions.projectService`` supplies: ESLint hands each
+file to the TypeScript program that already owns it, so a path added to
+``tsconfig.json``'s ``include`` is type-checked by the linter without a second
+list to maintain.  The rules that information buys are the ones review keeps
+missing — ``@typescript-eslint/no-floating-promises`` (a promise nothing awaits
+or marks with the ``void`` operator), ``no-misused-promises`` (an async
+function handed to an attribute that expects a void return),
+``no-unsafe-assignment`` and ``no-unsafe-argument`` (an ``any`` flowing into
+typed code), ``no-unnecessary-type-assertion`` and ``require-await``.  React
+Router's ``navigate`` returns a promise that callers deliberately do not await,
+so those call sites read ``void navigate(...)``.  A rule is suppressed only
+where a library's types force it, and the suppression carries a comment saying
+which.
+
+``eslint-plugin-jsx-a11y`` checks the markup: a label without a control, an
+image without ``alt``, an interactive role that cannot take focus, an
+``autoFocus`` prop.  An accessibility finding is fixed in the markup rather
+than silenced.  The one configured exception is
+``jsx-a11y/no-redundant-roles``, which allows ``role="list"`` on ``ul`` and
+``ol``: ``src/styles/base.css`` strips the markers from both
+``ul[role='list']`` and ``ol[role='list']``, and VoiceOver stops announcing a
+list once its markers are gone, so the attribute carries the semantics rather
+than repeating them.
+
+The project's own rules apply to every TypeScript file under ``frontend``, its
+configuration files included.
 ``@typescript-eslint/explicit-module-boundary-types`` requires an explicit
 return type on every exported function, and ``eslint-plugin-jsdoc``'s
 ``jsdoc/require-jsdoc`` requires a JSDoc comment on every exported function,
 component and class (``jsdoc/no-types`` keeps that comment free of ``{type}``
 annotations, since the types live in TypeScript).
+``@typescript-eslint/consistent-type-imports`` requires a separate ``import
+type`` statement for a type-only symbol, and
+``@typescript-eslint/no-unused-vars`` accepts a name that begins with an
+underscore, the marker for a deliberately unused variable or parameter.  The
+``react-hooks`` recommended rules join them, and
+``react-refresh/only-export-components`` is off, because a feature module
+deliberately keeps a component beside the pure helper that computes its input.
+``jsx-a11y/no-redundant-roles`` carries its list exception here as well.
 
 ``make lint-spelling`` runs ``codespell``, configured under ``[tool.codespell]``
 in ``pyproject.toml``, over ``README.rst``, ``CLAUDE.md``, ``docs``, ``backend``,

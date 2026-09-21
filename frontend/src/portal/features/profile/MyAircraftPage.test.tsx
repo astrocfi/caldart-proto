@@ -46,7 +46,7 @@ const excluded = vi.fn<(ids: number[] | undefined) => void>();
 vi.mock('@/portal/features/aircraft', async (importOriginal) => {
   // Keep the real module — the editor on this page is built from it — and
   // stand in only for the picker.
-  const actual = (await importOriginal()) as Record<string, unknown>;
+  const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
     AircraftPicker: (props: AircraftPickerProps) => {

@@ -82,10 +82,7 @@ export function AircraftEditor({
     );
   }
 
-  const serverErrors =
-    update.error instanceof ApiError
-      ? (update.error.fieldErrors as Record<string, string>)
-      : undefined;
+  const serverErrors = update.error instanceof ApiError ? update.error.fieldErrors : undefined;
 
   return (
     <Card eyebrow="Edit" title={record.n_number}>

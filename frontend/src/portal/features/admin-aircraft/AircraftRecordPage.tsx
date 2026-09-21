@@ -81,9 +81,9 @@ export function AircraftRecordPage(): JSX.Element {
     remove.mutate(undefined, {
       onSuccess: () => {
         toast.show(`${aircraft.n_number} deleted from the register.`, 'success');
-        navigate('/admin/aircraft');
+        void navigate('/admin/aircraft');
       },
-      onError: (error) => toast.show((error as Error).message, 'error'),
+      onError: (error) => toast.show(error.message, 'error'),
     });
   };
 

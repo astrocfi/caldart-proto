@@ -76,6 +76,8 @@ React 19 + TypeScript).
 
 - ALWAYS run `make lint-frontend` (`tsc --noEmit`, ESLint with `--max-warnings 0`, `prettier --check`) on changed code and fix every error and warning before delivering; `make format` applies Prettier.
 - Use the project’s ESLint config (`frontend/eslint.config.js`). Do not disable rules that enforce project conventions (e.g. no `any`, React hooks rules) without a documented exception.
+- The config extends `typescript-eslint`'s `recommendedTypeChecked` with `parserOptions.projectService`, so type-aware rules run on every file `tsconfig.json` includes. Fix what they report rather than suppressing it: mark a promise nobody awaits with the `void` operator (React Router's `navigate` is the common case), wrap an async function before handing it to an attribute that expects a void return, and narrow an `any` at its source instead of asserting it away. A `eslint-disable` comment is acceptable only where a library's types force one, and it must say which library and why.
+- The config extends `eslint-plugin-jsx-a11y`'s `recommended` flat config. Fix an accessibility finding in the markup — give the image an `alt`, put the keyboard handler on the focusable element, drop the `autoFocus` — rather than suppressing the rule.
 - Quoting (single), semicolons (on), and trailing commas (all) are set in the Prettier config; do not fight the formatter.
 - The React hooks rules (`react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`) are enabled; follow them rather than suppressing them.
 
@@ -83,6 +85,7 @@ React 19 + TypeScript).
 
 - ALWAYS write **tests** for new behavior and when fixing bugs. Prefer **unit tests** for pure logic; use **component tests** where behavior depends on DOM or I/O.
 - Use Vitest with Testing Library. Put `Foo.test.tsx` beside `Foo.tsx`, render through `src/test/render.tsx`, and mock the API with the msw server in `src/test/server.ts` rather than stubbing `fetch`. End-to-end flows are Playwright specs in `frontend/e2e/` (`make e2e`).
+- Vitest runs with `globals: false` and `tsconfig.json`'s `types` lists only `vite/client`, so ALWAYS import `describe`, `it`, `expect`, `vi` and the lifecycle hooks from `vitest` at the top of the test file. The jest-dom matchers are typed once in `src/test/setup.ts` through `@testing-library/jest-dom/vitest`; do not import them per file, and do not put the test globals back into `types`.
 - Prefer **one logical assertion per test** (or one behavior); avoid testing multiple unrelated things in one test.
 - Name tests **descriptively** (e.g. `it('returns 404 when resource is missing', ...)`). Test **edge cases** and **error paths**, not only the happy path.
 - Prefer **isolated tests**: no shared mutable state, no reliance on order. Mock external dependencies (APIs, time) when appropriate.
