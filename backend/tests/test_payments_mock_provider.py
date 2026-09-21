@@ -176,7 +176,7 @@ def test_available_providers_reflects_configuration(settings):
 
 def test_unknown_provider_slug():
     with pytest.raises(ValueError, match="Unknown payment provider"):
-        get_provider("check")
+        get_provider("not-a-provider")
 
 
 @pytest.mark.parametrize("slug", ["stripe", "paypal"])

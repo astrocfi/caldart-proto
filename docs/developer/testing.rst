@@ -414,7 +414,9 @@ Linting and type-checking
 ``py312``, rule sets ``E``, ``F``, ``I``, ``UP``, ``B``, ``DJ``, ``C4``, ``W``,
 ``ANN`` and ``D``, with migrations excluded.  ``ANN`` requires an annotation on
 every parameter and every return value, and ``D`` requires a docstring on every
-module, class, function and method; ``max-doc-length = 90`` turns on ``W505``,
+public module, class, function and method and checks the form of every docstring
+it finds (a ``_``-prefixed helper's docstring is a matter for review);
+``max-doc-length = 90`` turns on ``W505``,
 which wraps those docstrings at 90 characters.  A package's ``__init__.py``
 (``D104``) and a nested ``Meta`` class (``D106``) need no docstring.  Both rule
 sets are suspended for the backend units listed in

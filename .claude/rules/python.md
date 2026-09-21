@@ -80,8 +80,10 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 ## 5. Docstrings
 
 - ALWAYS include a docstring for every module, class, function, and method. Ruff's `D`
-  rules enforce that they exist and are well formed, and `W505` enforces the 90-character
-  wrap below. A package's `__init__.py` and a nested `Meta` class are exempt.
+  rules enforce that public ones exist and that every docstring is well formed, and
+  `W505` enforces the 90-character wrap below; a `_`-prefixed helper's docstring is
+  enforced by review, since pydocstyle does not check private names. A package's
+  `__init__.py` and a nested `Meta` class are exempt.
 - Follow **PEP 257**. Describe the behavior in prose, and name the parameters, return value, raised exceptions and important behavioral notes that a caller needs.
 - No `Parameters:`/`Args:`, `Returns:` or `Raises:` sections are required. Such sections only serve ReadTheDocs rendering, which this project doesn't use.
 - NEVER mention backwards compatibility, a user request, change history, or an issue/ticket number in a docstring. Docstrings are usage documentation, not a place to explain the code's provenance; describe only observable behavior. (Issue references are allowed in inline `#` code comments per Section 3, and in commit messages and PR descriptions. Never cite a plan from `plans/`; the docs stand alone.)
@@ -110,7 +112,7 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 | **DJ** | flake8-django | Django conventions (model `__str__`, form fields, `null` on text fields). |
 | **C4** | flake8-comprehensions | Prefer comprehensions over loops where clear. |
 | **ANN** | flake8-annotations | An annotation on every parameter and return value (Section 4). |
-| **D** | pydocstyle | A well-formed docstring on every module, class and function (Section 5). |
+| **D** | pydocstyle | A docstring on every public module, class and function, and a well-formed one wherever there is one (Section 5). |
 
 **A** (builtin shadowing) and **N** (naming) are not enabled, so those rules in Section 1 are
 enforced by review rather than by Ruff. Categories to consider adding: **A**, **N**, **SIM**,
