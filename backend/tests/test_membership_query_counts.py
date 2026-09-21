@@ -14,18 +14,33 @@ what ``membership_status`` reports.
 
 from __future__ import annotations
 
-import pytest
-from django.contrib.auth import get_user_model
-from freezegun import freeze_time
+from collections.abc import Callable
+from datetime import date, timedelta
+from typing import TYPE_CHECKING, Any, cast
 
+import pytest
+from freezegun import freeze_time
+from pytest_django.fixtures import DjangoAssertNumQueries
+from rest_framework.test import APIClient
+
+from apps.accounts.models import User
 from apps.accounts.roles import MEMBER
-from apps.members.models import MembershipStatusChoices
-from apps.members.services import membership_status
+from apps.aircraft.models import Aircraft
+from apps.members.models import (
+    Dart,
+    MembershipPlan,
+    MembershipStatusChoices,
+)
+from apps.members.services import MembershipStatusDict, membership_status
 from tests.factories import MemberProfileFactory, MembershipFactory, UserFactory
 
-pytestmark = pytest.mark.django_db
+if TYPE_CHECKING:
+    # rest_framework.test.APIClient.get() is typed to return this class, but it
+    # exists only in the stub: rest_framework monkey-patches Django's test response
+    # at runtime rather than defining a real subclass.
+    from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
 
-User = get_user_model()
+pytestmark = pytest.mark.django_db
 
 ADMIN_USERS = "/api/v1/admin/users"
 ADMIN_MEMBERS = "/api/v1/admin/members"
@@ -51,7 +66,14 @@ AIRCRAFT_LOOKUP_QUERIES = 5
 LEADER_AIRCRAFT_QUERIES = 5
 
 
-def _add_history(user, kind: str, annual_plan, life_plan, today, days) -> None:
+def _add_history(
+    user: User,
+    kind: str,
+    annual_plan: MembershipPlan,
+    life_plan: MembershipPlan,
+    today: date,
+    days: Callable[[int], timedelta],
+) -> None:
     """Give ``user`` the membership history named by ``kind``."""
     if kind == "current":
         MembershipFactory(
@@ -70,10 +92,17 @@ def _add_history(user, kind: str, annual_plan, life_plan, today, days) -> None:
 
 
 @pytest.fixture
-def population(annual_plan, life_plan, dart, aircraft, today, days):
+def population(
+    annual_plan: MembershipPlan,
+    life_plan: MembershipPlan,
+    dart: Dart,
+    aircraft: Aircraft,
+    today: date,
+    days: Callable[[int], timedelta],
+) -> Callable[[int], list[User]]:
     """``population(n)`` -> ``n`` members sharing one airplane and one surname."""
 
-    def build(size: int) -> list:
+    def build(size: int) -> list[User]:
         people = []
         for index in range(size):
             user = UserFactory(
@@ -93,12 +122,12 @@ def population(annual_plan, life_plan, dart, aircraft, today, days):
 
 
 @pytest.fixture
-def members(population) -> dict:
+def members(population: Callable[[int], list[User]]) -> dict[str, User]:
     """One member per history, keyed by history name."""
     return dict(zip(HISTORIES, population(len(HISTORIES)), strict=True))
 
 
-def _serialized(payload: dict) -> dict:
+def _serialized(payload: MembershipStatusDict) -> dict[str, Any]:
     """``membership_status`` as the ``membership`` field renders it."""
     expires_on = payload["expires_on"]
     return {
@@ -109,17 +138,17 @@ def _serialized(payload: dict) -> dict:
     }
 
 
-def _by_id(response, key: str) -> dict:
+def _by_id(response: ApiResponse, key: str) -> dict[int, dict[str, Any]]:
     """Rows of ``response`` keyed by the identifier in ``key``."""
     body = response.json()
     rows = body["results"] if isinstance(body, dict) else body
     return {row[key]: row for row in rows}
 
 
-def _membership_row(client, user) -> dict:
+def _membership_row(client: APIClient, user: User) -> dict[str, Any]:
     """The ``membership`` payload ``GET /admin/users`` reports for ``user``."""
     response = client.get(ADMIN_USERS, {"page_size": 200})
-    return _by_id(response, "id")[user.pk]["membership"]
+    return cast(dict[str, Any], _by_id(response, "id")[user.pk]["membership"])
 
 
 # --------------------------------------------------------------------------
@@ -127,8 +156,13 @@ def _membership_row(client, user) -> dict:
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_admin_users_costs_a_fixed_number_of_queries(
-    api_client, user_admin, population, django_assert_num_queries, size
-):
+    api_client: APIClient,
+    user_admin: User,
+    population: Callable[[int], list[User]],
+    django_assert_num_queries: DjangoAssertNumQueries,
+    size: int,
+) -> None:
+    """The admin users list costs a fixed number of queries at three and twenty rows."""
     population(size)
     api_client.force_login(user_admin)
     with django_assert_num_queries(ADMIN_USERS_QUERIES):
@@ -138,8 +172,13 @@ def test_admin_users_costs_a_fixed_number_of_queries(
 
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_admin_members_costs_a_fixed_number_of_queries(
-    api_client, account_admin, population, django_assert_num_queries, size
-):
+    api_client: APIClient,
+    account_admin: User,
+    population: Callable[[int], list[User]],
+    django_assert_num_queries: DjangoAssertNumQueries,
+    size: int,
+) -> None:
+    """The admin members list costs a fixed number of queries at three and twenty rows."""
     population(size)
     api_client.force_login(account_admin)
     with django_assert_num_queries(ADMIN_MEMBERS_QUERIES):
@@ -149,8 +188,13 @@ def test_admin_members_costs_a_fixed_number_of_queries(
 
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_leader_search_costs_a_fixed_number_of_queries(
-    api_client, leader, population, django_assert_num_queries, size
-):
+    api_client: APIClient,
+    leader: User,
+    population: Callable[[int], list[User]],
+    django_assert_num_queries: DjangoAssertNumQueries,
+    size: int,
+) -> None:
+    """A leader search costs a fixed number of queries at three and twenty matches."""
     population(size)
     api_client.force_login(leader)
     with django_assert_num_queries(LEADER_SEARCH_QUERIES):
@@ -160,8 +204,14 @@ def test_leader_search_costs_a_fixed_number_of_queries(
 
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_aircraft_detail_costs_a_fixed_number_of_queries(
-    api_client, leader, aircraft, population, django_assert_num_queries, size
-):
+    api_client: APIClient,
+    leader: User,
+    aircraft: Aircraft,
+    population: Callable[[int], list[User]],
+    django_assert_num_queries: DjangoAssertNumQueries,
+    size: int,
+) -> None:
+    """The aircraft detail card costs a fixed query count at three or twenty pilots."""
     population(size)
     api_client.force_login(leader)
     with django_assert_num_queries(AIRCRAFT_DETAIL_QUERIES):
@@ -171,8 +221,14 @@ def test_aircraft_detail_costs_a_fixed_number_of_queries(
 
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_aircraft_lookup_costs_a_fixed_number_of_queries(
-    api_client, leader, aircraft, population, django_assert_num_queries, size
-):
+    api_client: APIClient,
+    leader: User,
+    aircraft: Aircraft,
+    population: Callable[[int], list[User]],
+    django_assert_num_queries: DjangoAssertNumQueries,
+    size: int,
+) -> None:
+    """The aircraft lookup costs a fixed number of queries at three and twenty pilots."""
     population(size)
     api_client.force_login(leader)
     with django_assert_num_queries(AIRCRAFT_LOOKUP_QUERIES):
@@ -182,8 +238,14 @@ def test_aircraft_lookup_costs_a_fixed_number_of_queries(
 
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_leader_aircraft_costs_a_fixed_number_of_queries(
-    api_client, leader, aircraft, population, django_assert_num_queries, size
-):
+    api_client: APIClient,
+    leader: User,
+    aircraft: Aircraft,
+    population: Callable[[int], list[User]],
+    django_assert_num_queries: DjangoAssertNumQueries,
+    size: int,
+) -> None:
+    """The leader aircraft card costs a fixed query count at three or twenty pilots."""
     population(size)
     api_client.force_login(leader)
     with django_assert_num_queries(LEADER_AIRCRAFT_QUERIES):
@@ -195,14 +257,20 @@ def test_leader_aircraft_costs_a_fixed_number_of_queries(
 # The annotated answer is the same answer
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("kind", HISTORIES)
-def test_admin_users_membership_matches_the_service(api_client, user_admin, members, kind):
+def test_admin_users_membership_matches_the_service(
+    api_client: APIClient, user_admin: User, members: dict[str, User], kind: str
+) -> None:
+    """The admin users list reports the same membership payload as the service."""
     user = members[kind]
     api_client.force_login(user_admin)
     assert _membership_row(api_client, user) == _serialized(membership_status(user))
 
 
 @pytest.mark.parametrize("kind", HISTORIES)
-def test_admin_members_membership_matches_the_service(api_client, account_admin, members, kind):
+def test_admin_members_membership_matches_the_service(
+    api_client: APIClient, account_admin: User, members: dict[str, User], kind: str
+) -> None:
+    """The admin members list reports the same membership payload as the service."""
     user = members[kind]
     api_client.force_login(account_admin)
     response = api_client.get(ADMIN_MEMBERS, {"page_size": 200})
@@ -211,7 +279,10 @@ def test_admin_members_membership_matches_the_service(api_client, account_admin,
 
 
 @pytest.mark.parametrize("kind", HISTORIES)
-def test_leader_search_membership_matches_the_service(api_client, leader, members, kind):
+def test_leader_search_membership_matches_the_service(
+    api_client: APIClient, leader: User, members: dict[str, User], kind: str
+) -> None:
+    """A leader search reports the same status the service computes."""
     user = members[kind]
     api_client.force_login(leader)
     response = api_client.get(LEADER_SEARCH, {"q": SEARCH_TERM})
@@ -221,8 +292,9 @@ def test_leader_search_membership_matches_the_service(api_client, leader, member
 
 @pytest.mark.parametrize("kind", HISTORIES)
 def test_aircraft_pilots_membership_matches_the_service(
-    api_client, leader, aircraft, members, kind
-):
+    api_client: APIClient, leader: User, aircraft: Aircraft, members: dict[str, User], kind: str
+) -> None:
+    """An aircraft's pilot list reports the same status the service computes."""
     user = members[kind]
     api_client.force_login(leader)
     response = api_client.get(f"/api/v1/aircraft/{aircraft.pk}")
@@ -234,7 +306,9 @@ def test_aircraft_pilots_membership_matches_the_service(
 # The rule is evaluated per request, not once at start-up
 # --------------------------------------------------------------------------
 @pytest.fixture
-def expiring_member(annual_plan, today, days):
+def expiring_member(
+    annual_plan: MembershipPlan, today: date, days: Callable[[int], timedelta]
+) -> User:
     """A member whose only term runs out ten days from today."""
     user = UserFactory(email="clock@example.test", roles=[MEMBER])
     MembershipFactory(
@@ -244,8 +318,13 @@ def expiring_member(annual_plan, today, days):
 
 
 def test_admin_users_reports_current_before_the_term_ends(
-    api_client, user_admin, expiring_member, today, days
-):
+    api_client: APIClient,
+    user_admin: User,
+    expiring_member: User,
+    today: date,
+    days: Callable[[int], timedelta],
+) -> None:
+    """Five days before the term ends, the admin users list still reports current."""
     with freeze_time(f"{(today + days(5)).isoformat()} 12:00:00"):
         api_client.force_login(user_admin)
         row = _membership_row(api_client, expiring_member)
@@ -253,8 +332,12 @@ def test_admin_users_reports_current_before_the_term_ends(
 
 
 def test_admin_users_reports_expired_once_the_clock_passes_ends_on(
-    api_client, user_admin, expiring_member, today, days
-):
+    api_client: APIClient,
+    user_admin: User,
+    expiring_member: User,
+    today: date,
+    days: Callable[[int], timedelta],
+) -> None:
     """Proves the queryset, and so ``today``, is built for each request."""
     with freeze_time(f"{(today + days(20)).isoformat()} 12:00:00"):
         api_client.force_login(user_admin)
