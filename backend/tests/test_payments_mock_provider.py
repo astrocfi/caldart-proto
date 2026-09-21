@@ -30,9 +30,7 @@ def test_create_checkout_computes_the_total(member: User, annual_plan: Membershi
     assert payment.currency == "usd"
 
 
-def test_create_checkout_ignores_a_client_amount(
-    member: User, annual_plan: MembershipPlan
-) -> None:
+def test_create_checkout_ignores_a_client_amount(member: User, annual_plan: MembershipPlan) -> None:
     """The server recomputes from the plan; there is no amount parameter."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     assert payment.amount_cents == annual_plan.price_cents
