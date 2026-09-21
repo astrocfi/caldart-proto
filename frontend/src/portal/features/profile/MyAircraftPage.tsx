@@ -8,6 +8,7 @@
  */
 import { AircraftPicker } from '@/portal/features/aircraft';
 import { useState } from 'react';
+import type { JSX } from 'react';
 
 import { ApiError } from '../../api/client';
 import type { AircraftSummary } from '../../api/types';
@@ -22,7 +23,8 @@ import { AircraftEditor } from './AircraftEditor';
 import { useAttachAircraft, useDetachAircraft, useProfile } from './api';
 import './profile.css';
 
-export function MyAircraftPage() {
+/** Renders, attaches and detaches the planes on the signed-in member's profile. */
+export function MyAircraftPage(): JSX.Element {
   const profile = useProfile();
   const attach = useAttachAircraft();
   const detach = useDetachAircraft();

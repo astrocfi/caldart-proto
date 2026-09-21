@@ -415,7 +415,13 @@ Linting and type-checking
 with migrations excluded.  TypeScript runs in strict mode; ``tsc --noEmit`` is
 part of linting rather than of the build, so a type error fails ``make lint``.
 ESLint runs with ``--max-warnings 0``, so a warning, such as a missing hook
-dependency, fails ``make lint`` too.
+dependency, fails ``make lint`` too.  Two rules apply to every TypeScript file
+under ``frontend``, its configuration files included:
+``@typescript-eslint/explicit-module-boundary-types`` requires an explicit
+return type on every exported function, and ``eslint-plugin-jsdoc``'s
+``jsdoc/require-jsdoc`` requires a JSDoc comment on every exported function,
+component and class (``jsdoc/no-types`` keeps that comment free of ``{type}``
+annotations, since the types live in TypeScript).
 
 ``make lint-spelling`` runs ``codespell``, configured under ``[tool.codespell]``
 in ``pyproject.toml``, over ``README.rst``, ``CLAUDE.md``, ``docs``, ``backend``,

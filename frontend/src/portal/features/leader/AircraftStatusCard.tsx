@@ -2,6 +2,8 @@
  * The aircraft half of the leader check: is the insurance on this
  * tail number current, and who flies it?
  */
+import type { JSX } from 'react';
+
 import { DateText } from '../../components/DateText';
 import { Money } from '../../components/Money';
 import { StatusChip } from '../../components/StatusChip';
@@ -24,7 +26,8 @@ export interface AircraftStatusCardProps {
   today?: Date;
 }
 
-export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps) {
+/** The aircraft half of the leader check: insurance status and the pilots who fly it. */
+export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps): JSX.Element {
   const tone = insuranceTone(aircraft, today);
   const verdict = VERDICT[tone] ?? VERDICT.none!;
   // Only a leader or administrator is sent the pilot list.

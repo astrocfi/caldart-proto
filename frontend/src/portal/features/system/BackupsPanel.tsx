@@ -2,6 +2,8 @@
  * The backups panel of `/portal/system`: what is on disk, a button
  * that takes a fresh dump, and a download link per file.
  */
+import type { JSX } from 'react';
+
 import type { Backup } from '../../api/types';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -56,7 +58,8 @@ const COLUMNS: Column<Backup>[] = [
   },
 ];
 
-export function BackupsPanel() {
+/** Lists the database dumps on disk and offers a button to take a fresh one. */
+export function BackupsPanel(): JSX.Element {
   const { data, isPending, isError, error } = useBackups();
   const create = useCreateBackup();
   const toast = useToast();

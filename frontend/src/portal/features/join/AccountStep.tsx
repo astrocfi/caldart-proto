@@ -1,6 +1,6 @@
 /** Step 1 — create the account (`POST /auth/register`). */
 import { useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
@@ -14,7 +14,8 @@ export interface AccountStepProps {
   onDone: () => void;
 }
 
-export function AccountStep({ onDone }: AccountStepProps) {
+/** Step 1 of the join wizard: sign in, or register through `useRegister`. */
+export function AccountStep({ onDone }: AccountStepProps): JSX.Element {
   const { user, isAuthenticated } = useAuth();
   const register = useRegister();
   const [firstName, setFirstName] = useState('');

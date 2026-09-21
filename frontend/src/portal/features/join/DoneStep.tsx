@@ -1,4 +1,6 @@
 /** Step 4 — you are in: status card and the two places to go next. */
+import type { JSX } from 'react';
+
 import { ButtonLink } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { DateText } from '../../components/DateText';
@@ -7,7 +9,8 @@ import { MembershipChip } from '../../components/StatusChip';
 import { useMembership, useSiteConfig } from '../profile/api';
 import './join.css';
 
-export function DoneStep() {
+/** Step 4 of the join wizard: membership status and links to members-only pages. */
+export function DoneStep(): JSX.Element {
   const membership = useMembership();
   const siteConfig = useSiteConfig();
   const membersPages = siteConfig.data?.members_pages ?? [];

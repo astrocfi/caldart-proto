@@ -13,6 +13,7 @@
 import { useAircraft, useUpdateAircraft } from '@/portal/features/aircraft';
 import { AircraftForm } from '@/portal/features/aircraft';
 import { aircraftToValues } from '@/portal/features/aircraft';
+import type { JSX } from 'react';
 
 import { ApiError } from '../../api/client';
 import type { AircraftPatch } from '../../api/types';
@@ -29,7 +30,13 @@ export interface AircraftEditorProps {
   onSaved: () => void;
 }
 
-export function AircraftEditor({ aircraftId, userId, onClose, onSaved }: AircraftEditorProps) {
+/** Edits an aircraft the signed-in member added; shows who to ask for any other record. */
+export function AircraftEditor({
+  aircraftId,
+  userId,
+  onClose,
+  onSaved,
+}: AircraftEditorProps): JSX.Element {
   const aircraft = useAircraft(aircraftId);
   const update = useUpdateAircraft(aircraftId);
   const toast = useToast();

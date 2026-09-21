@@ -14,6 +14,7 @@
  * `done` step and lets `<ReturnStep/>` settle the payment first.
  */
 import { useCallback, useState } from 'react';
+import type { JSX } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -37,7 +38,8 @@ const LEDE: Record<JoinStep, string> = {
   done: 'You are a member of the California DART Network.',
 };
 
-export function JoinWizard() {
+/** Renders the join wizard step named by the URL, redirecting to a valid one. */
+export function JoinWizard(): JSX.Element {
   const { step: stepParam } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

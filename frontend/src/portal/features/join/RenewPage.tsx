@@ -6,6 +6,7 @@
  * member has now.
  */
 import { useQueryClient } from '@tanstack/react-query';
+import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Checkout } from '@/portal/features/checkout';
@@ -19,7 +20,8 @@ import { useMembership } from '../profile/api';
 import { refreshAfterPayment } from './refresh';
 import './join.css';
 
-export function RenewPage() {
+/** Renders the current membership status and a checkout to renew it. */
+export function RenewPage(): JSX.Element {
   const membership = useMembership();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
