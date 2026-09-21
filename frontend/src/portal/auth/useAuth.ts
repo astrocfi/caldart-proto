@@ -87,7 +87,10 @@ export function useRoles(): UseQueryResult<Role[]> {
   });
 }
 
-/** Signs in against `POST /auth/login` and seeds the auth-me cache with the result. */
+/**
+ * Signs in against `POST /auth/login`, drops every query cached for whoever was here
+ * before, and seeds the auth-me cache with the result.
+ */
 export function useLogin(): UseMutationResult<User, Error, LoginPayload> {
   const queryClient = useQueryClient();
   return useMutation({
@@ -100,7 +103,10 @@ export function useLogin(): UseMutationResult<User, Error, LoginPayload> {
   });
 }
 
-/** Registers against `POST /auth/register` and seeds the auth-me cache with the result. */
+/**
+ * Registers against `POST /auth/register`, drops every query cached for whoever was here
+ * before, and seeds the auth-me cache with the result.
+ */
 export function useRegister(): UseMutationResult<User, Error, RegisterPayload> {
   const queryClient = useQueryClient();
   return useMutation({

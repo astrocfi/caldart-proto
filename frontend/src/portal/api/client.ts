@@ -89,7 +89,7 @@ export class UnexpectedResponseError extends Error {
   }
 }
 
-/** Read a cookie value by name, decoded, or `null` when it is not set. */
+/** Read a cookie value by name, decoded, or `null` when it is not set or is empty. */
 export function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match?.[1] ? decodeURIComponent(match[1]) : null;
