@@ -472,10 +472,14 @@ export interface Backup {
 }
 
 /* -------------------------------------------------------------------- site */
+/** A top-navigation entry is either a Wagtail page or a portal action. */
+export type NavKind = 'page' | 'portal';
+
 export interface NavEntry {
   title: string;
   url: string;
-  active?: boolean;
+  active: boolean;
+  kind: NavKind;
 }
 
 export interface MembersPage {

@@ -13,10 +13,13 @@ from __future__ import annotations
 import csv
 from collections.abc import Iterable, Iterator, Sequence
 from datetime import datetime
+from http import HTTPStatus
 from typing import IO, Any
 
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import landscape as landscape_size
@@ -34,6 +37,15 @@ from reportlab.platypus import (
     Spacer,
     TableStyle,
 )
+
+#: The media type every CSV export answers with.
+CSV_MEDIA_TYPE = "text/csv; charset=utf-8"
+
+#: The media type every PDF export answers with.
+PDF_MEDIA_TYPE = "application/pdf"
+
+#: An ``@extend_schema`` ``responses`` mapping keyed by status and media type.
+type DownloadResponses = dict[tuple[HTTPStatus, str], OpenApiResponse]
 
 # House palette, matching the ``sierra`` theme.
 INK = colors.HexColor("#1B1F24")
@@ -108,12 +120,24 @@ def csv_response(
     The rows are consumed lazily, so a report over the whole member table never
     materializes in memory.
     """
-    response = StreamingHttpResponse(
-        csv_rows(header, rows),
-        content_type="text/csv; charset=utf-8",
-    )
+    response = StreamingHttpResponse(csv_rows(header, rows), content_type=CSV_MEDIA_TYPE)
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+def download_responses(media_type: str, description: str) -> DownloadResponses:
+    """The ``responses`` mapping of an endpoint that answers with a file download.
+
+    An export answers with an attachment rather than a serialized object, so the
+    one entry describes a ``200`` carrying an opaque binary body of ``media_type``,
+    and leans on ``description`` to say which file arrives.  Pass the result
+    straight to ``@extend_schema(responses=...)``.
+    """
+    return {
+        (HTTPStatus.OK, media_type): OpenApiResponse(
+            response=OpenApiTypes.BINARY, description=description
+        )
+    }
 
 
 # --------------------------------------------------------------------------
@@ -250,7 +274,7 @@ def pdf_table_response(
     landscape: bool = True,
 ) -> HttpResponse:
     """A landscape-letter PDF table download in the CalDART house style."""
-    response = HttpResponse(content_type="application/pdf")
+    response = HttpResponse(content_type=PDF_MEDIA_TYPE)
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     build_pdf_table(
         response,  # type: ignore[arg-type]  # HttpResponse.write() duck-types IO[bytes]

@@ -8,11 +8,13 @@ pages are listed only for callers who may actually open them.
 
 from __future__ import annotations
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.cms.api.serializers import SiteConfigSerializer
 from apps.cms.context_processors import build_nav
 from apps.cms.models import (
     DEFAULT_THEME,
@@ -27,6 +29,7 @@ class SiteConfigView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(responses={200: SiteConfigSerializer})
     def get(self, request: Request) -> Response:
         """Answer ``GET /api/v1/site/config`` with HTTP 200 for any caller.
 

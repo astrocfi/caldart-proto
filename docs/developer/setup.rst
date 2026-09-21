@@ -314,15 +314,16 @@ list, in full:
    * - ``check``
      - ``check-backend``, ``check-deploy``, then ``check-frontend``
    * - ``check-backend``
-     - ``manage.py check --fail-level WARNING`` and
-       ``manage.py makemigrations --check --dry-run``, both under
-       ``caldart.settings.test``
+     - ``manage.py check --fail-level WARNING``,
+       ``manage.py makemigrations --check --dry-run`` and
+       ``manage.py spectacular``, all under ``caldart.settings.test``
    * - ``check-deploy``
      - ``manage.py check --deploy --fail-level WARNING`` under
        ``caldart.settings.prod``, in a throwaway environment — see
        :doc:`deployment`
    * - ``check-frontend``
-     - ``npm run build`` — the production frontend build
+     - ``npm run typecheck`` against the generated schema, then
+       ``npm run build`` — the production frontend build
    * - ``audit``
      - ``audit-backend`` then ``audit-frontend``
    * - ``audit-backend``

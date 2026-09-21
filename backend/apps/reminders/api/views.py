@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import django_filters
 from django.db.models import QuerySet
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView
@@ -67,6 +68,9 @@ class ReminderRunView(APIView):
 
     permission_classes = [IsSystemAdmin]
 
+    @extend_schema(
+        request=ReminderRunRequestSerializer, responses={200: ReminderRunResultSerializer}
+    )
     def post(self, request: Request) -> Response:
         """Run the renewal scan and return its ``{sent, skipped}`` counts.
 

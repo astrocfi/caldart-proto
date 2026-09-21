@@ -212,9 +212,14 @@ format: ## Auto-format Python and TypeScript
 # against the production settings, and the production build.
 check: check-backend check-deploy check-frontend ## Django system checks, missing migrations, deployment checks, production build
 
-check-backend: ## Django system checks + missing-migration check
+# `backend/openapi.json` is a build artifact, not a source file, and its path is
+# fixed rather than a variable: this target writes it and the frontend's
+# `schema` script reads it from there, so the two must never disagree.
+check-backend: ## Django system checks + missing-migration check + OpenAPI schema
 	$(MANAGE) check --settings caldart.settings.test --fail-level WARNING
 	$(MANAGE) makemigrations --check --dry-run --settings caldart.settings.test
+	$(MANAGE) spectacular --settings caldart.settings.test --format openapi-json \
+	  --file backend/openapi.json
 
 # `--deploy` adds Django's deployment-only checks to the default set, and those
 # carry exactly four tags: security, caches, async_support and mail.  Naming
@@ -235,7 +240,11 @@ check-deploy: ## Production deployment checks (manage.py check --deploy)
 	  $(MANAGE) check --deploy --tag security --tag caches --tag async_support \
 	    --tag mail --fail-level WARNING --settings caldart.settings.prod
 
-check-frontend: ## Production frontend build
+# `typecheck` regenerates frontend/src/portal/api/schema.d.ts from the schema
+# `check-backend` wrote, then type-checks the portal against it: that is where a
+# serializer change the portal's types have not followed fails.
+check-frontend: ## Portal types against the OpenAPI schema, then the production build
+	cd frontend && $(NPM) run typecheck
 	cd frontend && $(NPM) run build
 
 # ---------------------------------------------------------------- audit

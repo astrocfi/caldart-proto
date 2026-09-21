@@ -219,6 +219,10 @@ __marimo__/
 
 # --- CalDART ---
 backups/
+# Generated from the DRF serializers by `make check-backend`, and from that
+# JSON into the portal's schema types by the frontend's `schema` script.
+backend/openapi.json
+frontend/src/portal/api/schema.d.ts
 frontend/dist/
 frontend/node_modules/
 node_modules/

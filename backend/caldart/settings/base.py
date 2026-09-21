@@ -76,6 +76,7 @@ WAGTAIL_APPS = [
 
 THIRD_PARTY_APPS = [
     "rest_framework",
+    "drf_spectacular",
     "django_filters",
     "django_vite",
     # Installed for its system checks, which catch a misspelled policy setting.
@@ -223,6 +224,47 @@ REST_FRAMEWORK = {
     ],
     "EXCEPTION_HANDLER": "caldart.exceptions.caldart_exception_handler",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# --------------------------------------------------------------------------
+# OpenAPI schema (drf-spectacular)
+# --------------------------------------------------------------------------
+# The schema is the machine-readable half of the API contract: the backend
+# snapshot test and the portal's type test both read it, so every setting here
+# is chosen to keep generation deterministic.  ``manage.py spectacular`` writes
+# it; no route serves it.
+SPECTACULAR_SETTINGS = {
+    "TITLE": "CalDART API",
+    "DESCRIPTION": "The portal's JSON API.",
+    "VERSION": "1.0.0",
+    "PREPROCESSING_HOOKS": ["caldart.api_urls.portal_api_endpoints"],
+    # The choice labels belong in the API reference, not in a generated
+    # description that would churn the snapshot whenever a label is reworded.
+    "ENUM_GENERATE_CHOICE_DESCRIPTION": False,
+    # Several serializers expose the same choices under the same field name --
+    # three different things are called ``status``, and two are called ``type``
+    # -- which would otherwise be disambiguated with a hash suffix that changes
+    # whenever the set of serializers does.  Naming each choice set here gives
+    # every one of them one stable component, whichever serializer reaches it
+    # first.
+    "ENUM_NAME_OVERRIDES": {
+        "PaymentStatusEnum": "apps.payments.models.PaymentStatus.choices",
+        "PaymentProviderEnum": "apps.payments.models.PaymentProvider.choices",
+        "MembershipStateEnum": "apps.members.models.MembershipState.choices",
+        "MembershipTermStatusEnum": "apps.members.models.MembershipStatusChoices.choices",
+        "PilotCertificateTypeEnum": "apps.members.models.PilotCertificateType.choices",
+        "MedicalTypeEnum": "apps.members.models.MedicalType.choices",
+        "RolesEnum": "apps.accounts.roles.ROLE_SLUGS",
+        "ReminderKindEnum": "apps.reminders.models.ReminderKind.choices",
+        "NavKindEnum": "apps.cms.api.serializers.NAV_KINDS",
+    },
+    # A read-only field and a write-only one describe different objects, so the
+    # request body gets its own component; that is the split the portal's
+    # ``Profile``/``ProfilePatch`` pairs already make.
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SORT_OPERATIONS": True,
+    "SCHEMA_PATH_PREFIX": "/api/v1",
 }
 
 # Rate limits for the anonymous auth endpoints, read by

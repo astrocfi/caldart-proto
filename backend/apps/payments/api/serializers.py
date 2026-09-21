@@ -28,7 +28,9 @@ class ContributionTierSerializer(serializers.Serializer[dict[str, Any]]):
 class PaymentsConfigSerializer(serializers.Serializer[dict[str, Any]]):
     """``GET /payments/config``."""
 
-    providers = serializers.ListField(child=serializers.CharField())
+    providers = serializers.ListField(
+        child=serializers.ChoiceField(choices=PaymentProvider.choices)
+    )
     stripe_publishable_key = serializers.CharField(allow_blank=True)
     paypal_client_id = serializers.CharField(allow_blank=True)
     plans = PlanSerializer(many=True)
@@ -44,15 +46,26 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
 
     plan = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
     contribution_cents = serializers.IntegerField(required=False, min_value=0, default=0)
-    provider = serializers.ChoiceField(choices=PaymentProvider.values)
+    provider = serializers.ChoiceField(choices=PaymentProvider.choices)
+
+
+class CheckoutClientSerializer(serializers.Serializer[dict[str, str]]):
+    """Whatever the chosen provider's browser SDK needs to take over.
+
+    Stripe answers with ``client_secret`` and PayPal with ``order_id``; the mock
+    provider sends neither, so both fields are optional.
+    """
+
+    client_secret = serializers.CharField(required=False)
+    order_id = serializers.CharField(required=False)
 
 
 class CheckoutResponseSerializer(serializers.Serializer[dict[str, Any]]):
     """The 201 body of ``POST /payments/checkout``."""
 
     payment_id = serializers.IntegerField()
-    provider = serializers.CharField()
-    client = serializers.DictField()
+    provider = serializers.ChoiceField(choices=PaymentProvider.choices)
+    client = CheckoutClientSerializer()
 
 
 class StripeConfirmSerializer(serializers.Serializer[dict[str, Any]]):
@@ -85,7 +98,7 @@ class MockCompleteSerializer(serializers.Serializer[dict[str, Any]]):
 class PaymentResultSerializer(serializers.Serializer[dict[str, Any]]):
     """``GET /payments/{id}`` and the response to every confirm endpoint."""
 
-    status = serializers.ChoiceField(choices=PaymentStatus.values)
+    status = serializers.ChoiceField(choices=PaymentStatus.choices)
     membership = MembershipStatusSerializer()
 
 
@@ -126,6 +139,22 @@ class PaymentSerializer(serializers.ModelSerializer[Payment]):
         return obj.plan.name if obj.plan is not None else None
 
 
+class ProviderTotalsSerializer(serializers.Serializer[dict[str, int]]):
+    """One period's money split by payment provider, in cents.
+
+    A provider that took no money in the period is left out rather than sent as
+    zero, so every key is optional.  The keys are exactly the payment providers,
+    whichever ones are configured.
+    """
+
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        """One optional integer field per payment provider, in declared order."""
+        return {
+            provider: serializers.IntegerField(required=False)
+            for provider in PaymentProvider.values
+        }
+
+
 class PaymentPeriodSummarySerializer(serializers.Serializer[PeriodSummary]):
     """One row of ``GET /admin/payments/summary``."""
 
@@ -134,7 +163,7 @@ class PaymentPeriodSummarySerializer(serializers.Serializer[PeriodSummary]):
     total_cents = serializers.IntegerField()
     plan_cents = serializers.IntegerField()
     contribution_cents = serializers.IntegerField()
-    by_provider = serializers.DictField(child=serializers.IntegerField())
+    by_provider = ProviderTotalsSerializer()
 
 
 class ReportDateField(serializers.DateField):

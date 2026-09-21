@@ -81,6 +81,20 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      # The portal's types are checked against the OpenAPI description the DRF
+      # serializers generate, so every frontend target regenerates it first.
+      # Generation reads the code alone and needs no database.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install backend dependencies
+        run: uv sync --frozen
+
       - name: Install dependencies
         run: npm ci
         working-directory: frontend

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -24,7 +25,9 @@ from apps.aircraft.models import Aircraft
 from apps.members.api.actors import acting_user
 from apps.members.api.profile_serializers import (
     AircraftAttachSerializer,
+    AttachedAircraftSerializer,
     DartSerializer,
+    MembershipDetailSerializer,
     MembershipTermSerializer,
     PaymentSummarySerializer,
     ProfileSerializer,
@@ -61,6 +64,7 @@ class MyMembershipView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: MembershipDetailSerializer})
     def get(self, request: Request) -> Response:
         """200 with the membership status, plus ``history`` over every term.
 
@@ -80,6 +84,7 @@ class MyPaymentsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: PaymentSummarySerializer(many=True)})
     def get(self, request: Request) -> Response:
         """200 with the caller's own payments, newest first."""
         payments = (
@@ -93,6 +98,7 @@ class MyProfileAircraftView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=AircraftAttachSerializer, responses={200: AttachedAircraftSerializer})
     def post(self, request: Request) -> Response:
         """200 with the caller's aircraft list once ``aircraft_id`` is attached.
 
@@ -115,6 +121,10 @@ class MyProfileAircraftDetailView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=None,
+        responses={204: OpenApiResponse(description="The aircraft is detached; no body.")},
+    )
     def delete(self, request: Request, aircraft_id: int) -> Response:
         """204 once the aircraft is off the caller's profile.
 
