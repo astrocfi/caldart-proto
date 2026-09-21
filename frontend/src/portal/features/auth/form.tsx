@@ -1,4 +1,6 @@
 /** Shared bits for the auth forms: DRF error plumbing, in one place. */
+import type { JSX } from 'react';
+
 import { ApiError } from '../../api/client';
 
 /** The message DRF returned for one field, or null. */
@@ -18,7 +20,7 @@ export interface FormAlertProps {
  * no input for (a stale reset token, say). Renders nothing when the form is
  * already showing everything the server said.
  */
-export function FormAlert({ error, handled = [] }: FormAlertProps) {
+export function FormAlert({ error, handled = [] }: FormAlertProps): JSX.Element | null {
   if (!(error instanceof ApiError)) return null;
 
   const fields = error.fieldErrors;

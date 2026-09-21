@@ -44,6 +44,7 @@ const INSURANCE_LABEL: Record<StatusTone, string> = {
   none: 'No insurance on file',
 };
 
+/** The chip text for an insurance tone. */
 export function insuranceLabel(tone: StatusTone): string {
   return INSURANCE_LABEL[tone];
 }

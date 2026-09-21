@@ -29,6 +29,7 @@ export interface AircraftPickerProps {
   excludeIds?: number[];
 }
 
+/** Search for an existing aircraft, or add one, then hand the pick to `onSelect`. */
 export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProps): JSX.Element {
   const [term, setTerm] = useState('');
   const [adding, setAdding] = useState(false);

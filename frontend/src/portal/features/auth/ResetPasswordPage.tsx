@@ -1,5 +1,5 @@
-/** `/reset-password?uid=&token=` — the form the reset email links to. */
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { usePasswordResetConfirm } from '../../auth/useAuth';
@@ -10,7 +10,8 @@ import { Field } from '../../components/Field';
 import { Page } from '../../components/Page';
 import { FormAlert, fieldError } from './form';
 
-export function ResetPasswordPage() {
+/** `/reset-password?uid=&token=` — the form the reset email links to. */
+export function ResetPasswordPage(): JSX.Element {
   const [params] = useSearchParams();
   const confirm = usePasswordResetConfirm();
   const [password, setPassword] = useState('');

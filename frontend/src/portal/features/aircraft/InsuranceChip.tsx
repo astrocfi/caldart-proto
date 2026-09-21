@@ -1,3 +1,5 @@
+import type { JSX } from 'react';
+
 import type { AircraftSummary } from '../../api/types';
 import { StatusChip } from '../../components/StatusChip';
 import { insuranceLabel, insuranceTone } from './insurance';
@@ -8,7 +10,7 @@ export interface InsuranceChipProps {
 }
 
 /** The one chip that says whether a plane may fly, used on every screen. */
-export function InsuranceChip({ aircraft, today }: InsuranceChipProps) {
+export function InsuranceChip({ aircraft, today }: InsuranceChipProps): JSX.Element {
   const tone = insuranceTone(aircraft, today);
   return (
     <StatusChip

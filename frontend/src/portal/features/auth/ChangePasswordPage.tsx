@@ -1,5 +1,5 @@
-/** `/change-password` — change your own password while signed in. */
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { usePasswordChange } from '../../auth/useAuth';
@@ -10,7 +10,8 @@ import { Page } from '../../components/Page';
 import { useToast } from '../../components/Toast';
 import { FormAlert, fieldError } from './form';
 
-export function ChangePasswordPage() {
+/** `/change-password` — change your own password while signed in. */
+export function ChangePasswordPage(): JSX.Element {
   const change = usePasswordChange();
   const toast = useToast();
   const [current, setCurrent] = useState('');

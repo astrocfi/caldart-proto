@@ -5,6 +5,7 @@
  * the contribution, so a request only names what the member chose.
  */
 import { useQuery } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '../../api/client';
 import type {
@@ -27,12 +28,13 @@ export function isAbortError(caught: unknown): boolean {
   return caught instanceof DOMException && caught.name === 'AbortError';
 }
 
+/** Fetch the plans, contribution tiers and providers this deployment can offer. */
 export function fetchPaymentsConfig(): Promise<PaymentsConfig> {
   return api.get<PaymentsConfig>('/payments/config');
 }
 
 /** Plans, contribution tiers and the providers this deployment can offer. */
-export function usePaymentsConfig() {
+export function usePaymentsConfig(): UseQueryResult<PaymentsConfig> {
   return useQuery({
     queryKey: PAYMENTS_CONFIG_KEY,
     queryFn: fetchPaymentsConfig,
@@ -76,6 +78,7 @@ export function confirmStripePayment(
   );
 }
 
+/** Capture a PayPal order the member approved, activating the membership on success. */
 export function capturePayPalOrder(paymentId: number, orderId: string): Promise<PaymentResult> {
   return api.post<PaymentResult>('/payments/paypal/capture', {
     payment_id: paymentId,
@@ -83,6 +86,7 @@ export function capturePayPalOrder(paymentId: number, orderId: string): Promise<
   });
 }
 
+/** Resolve a mock-provider payment as succeeded or failed. */
 export function completeMockPayment(
   paymentId: number,
   outcome: 'succeed' | 'fail',

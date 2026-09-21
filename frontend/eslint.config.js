@@ -61,6 +61,10 @@ export default tseslint.config(
       'src/portal/features/admin-members/**/*.{ts,tsx}',
       'src/portal/features/admin-payments/**/*.{ts,tsx}',
       'src/portal/features/admin-users/**/*.{ts,tsx}',
+      'src/portal/features/aircraft/**/*.{ts,tsx}',
+      'src/portal/features/auth/**/*.{ts,tsx}',
+      'src/portal/features/checkout/**/*.{ts,tsx}',
+      'src/portal/features/dashboard/**/*.{ts,tsx}',
     ],
     plugins: {
       jsdoc,

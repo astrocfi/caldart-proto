@@ -26,6 +26,7 @@ const DEFAULT_PLAN = 'annual';
 
 export type { CheckoutProps, CheckoutResult } from './types';
 
+/** Choose a plan and a contribution, then pay with the configured providers. */
 export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
   const queryClient = useQueryClient();
   const { data: config, isPending, error } = usePaymentsConfig();

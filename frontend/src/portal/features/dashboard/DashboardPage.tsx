@@ -1,10 +1,4 @@
-/**
- * `/` — the member's home.
- *
- * Reading order is the order things matter: is my membership current, is my
- * profile usable, what can I read, what have I paid.  The renewal call to
- * action moves to the top and takes an accent edge inside 30 days.
- */
+import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useAuth } from '../../auth/useAuth';
@@ -22,7 +16,14 @@ import './dashboard.css';
 /** How many payments the dashboard shows before sending you elsewhere. */
 const RECENT_PAYMENTS = 5;
 
-export function DashboardPage() {
+/**
+ * `/` — the member's home.
+ *
+ * Reading order is the order things matter: is my membership current, is my
+ * profile usable, what can I read, what have I paid.  The renewal call to
+ * action moves to the top and takes an accent edge inside 30 days.
+ */
+export function DashboardPage(): JSX.Element {
   const { user, roles } = useAuth();
   const membership = useMembership();
   const payments = useMyPayments();

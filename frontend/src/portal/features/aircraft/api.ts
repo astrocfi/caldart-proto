@@ -6,6 +6,7 @@
  * API expects.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, ApiError, api } from '../../api/client';
 import type {
@@ -52,7 +53,11 @@ export function aircraftExportUrl(format: 'csv' | 'pdf', filters: AircraftFilter
   return `${API_BASE}/admin/aircraft/export.${format}${query ? `?${query}` : ''}`;
 }
 
-export function useAircraftList(filters: AircraftFilters, enabled = true) {
+/** The paginated aircraft list for `/aircraft`, filtered by `filters`. */
+export function useAircraftList(
+  filters: AircraftFilters,
+  enabled = true,
+): UseQueryResult<Paginated<Aircraft>> {
   const query = aircraftQuery(filters);
   return useQuery({
     queryKey: [AIRCRAFT_KEY, 'list', query],
@@ -61,7 +66,8 @@ export function useAircraftList(filters: AircraftFilters, enabled = true) {
   });
 }
 
-export function useAircraft(id: number | null) {
+/** One aircraft's detail record, or disabled while `id` is null or not a number. */
+export function useAircraft(id: number | null): UseQueryResult<AircraftDetail> {
   return useQuery({
     queryKey: [AIRCRAFT_KEY, 'detail', id],
     queryFn: () => api.get<AircraftDetail>(`/aircraft/${id}`),
@@ -101,7 +107,8 @@ export async function findAircraft(term: string, limit = 8): Promise<AircraftSea
   return { exact: null, matches: page.results };
 }
 
-export function useAircraftSearch(term: string) {
+/** The picker's search results for `term`, disabled while it is blank. */
+export function useAircraftSearch(term: string): UseQueryResult<AircraftSearchResult> {
   return useQuery({
     queryKey: [AIRCRAFT_KEY, 'search', term],
     queryFn: () => findAircraft(term),
@@ -114,7 +121,8 @@ function useInvalidateAircraft() {
   return () => queryClient.invalidateQueries({ queryKey: [AIRCRAFT_KEY] });
 }
 
-export function useCreateAircraft() {
+/** Creates an aircraft record; invalidates `aircraft` on success. */
+export function useCreateAircraft(): UseMutationResult<AircraftDetail, Error, AircraftPatch> {
   const invalidate = useInvalidateAircraft();
   return useMutation({
     mutationFn: (payload: AircraftPatch) => api.post<AircraftDetail>('/aircraft', payload),
@@ -122,7 +130,10 @@ export function useCreateAircraft() {
   });
 }
 
-export function useUpdateAircraft(id: number) {
+/** Patches one aircraft record; invalidates `aircraft` on success. */
+export function useUpdateAircraft(
+  id: number,
+): UseMutationResult<AircraftDetail, Error, AircraftPatch> {
   const invalidate = useInvalidateAircraft();
   return useMutation({
     mutationFn: (payload: AircraftPatch) => api.patch<AircraftDetail>(`/aircraft/${id}`, payload),
@@ -130,7 +141,8 @@ export function useUpdateAircraft(id: number) {
   });
 }
 
-export function useDeleteAircraft(id: number) {
+/** Deletes one aircraft record; invalidates `aircraft` on success. */
+export function useDeleteAircraft(id: number): UseMutationResult<null, Error, void> {
   const invalidate = useInvalidateAircraft();
   return useMutation({
     mutationFn: () => api.delete<null>(`/aircraft/${id}`),

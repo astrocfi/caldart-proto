@@ -1,3 +1,5 @@
+import type { JSX } from 'react';
+
 import type { Aircraft } from '../../api/types';
 import { StatusChip } from '../../components/StatusChip';
 
@@ -12,7 +14,7 @@ export interface ServiceChipProps {
  * or sold; every screen that offers an aeroplane says so, rather than letting
  * the flag be a field that only the form ever reads.
  */
-export function ServiceChip({ aircraft }: ServiceChipProps) {
+export function ServiceChip({ aircraft }: ServiceChipProps): JSX.Element | null {
   if (aircraft.is_active) return null;
   return <StatusChip tone="none" label="Out of service" />;
 }
