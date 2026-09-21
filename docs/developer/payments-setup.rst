@@ -197,7 +197,7 @@ anything is activated.  Only the provider calls in acts one and three differ.
          |                  |<.................|                 |
          |                  |                  |                 |
 
-      Time runs down the page.  The provider calls named second are PayPal's.
+   Time runs down the page.  The provider calls named second are PayPal's.
 
 Step by step:
 
@@ -229,9 +229,17 @@ Step by step:
 #. The response carries the payment's status and the membership it bought, so
    the member is current by the time the page moves on.
 
-Step 12, the webhook, is the safety net for a browser that closes mid-redirect.
-It runs the same idempotent activation, which is why one arriving after a
-successful confirm changes nothing.
+Step 12, the webhook, is the safety net for a browser that closes mid-redirect,
+and what it can do depends on the provider.  Stripe's handler checks the
+``Stripe-Signature`` header against ``STRIPE_WEBHOOK_SECRET`` — a body that
+fails the check is refused with a 400 — and then runs the same idempotent
+activation as the confirm call, which is why one arriving after a successful
+confirm changes nothing.  PayPal's handler files every notification against the
+payment and activates only one it has verified, which needs
+``PAYPAL_WEBHOOK_ID``: with that setting unset, verification returns false
+without calling PayPal, so the notification is recorded and nothing else
+happens, and the capture in step 8 remains the only thing that activates a
+term.
 
 What each provider verifies, how long it may take, and how the mock provider
 stands in for both are below.

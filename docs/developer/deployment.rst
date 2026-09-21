@@ -96,13 +96,13 @@ What you are deploying
            manage.py send_renewal_reminders ----------'
            -> the SMTP server from EMAIL_URL
 
-      Apache, gunicorn, Postgres and the timer run on one Linux server with
-      the deploy root /srv/caldart, and both systemd units read their settings
-      from /etc/caldart/caldart.env (root:caldart, mode 0640).  Django calls
-      out to api.stripe.com and api-m.paypal.com during a checkout, and to the
-      same SMTP server for password resets and invitations.  nginx
-      (deploy/nginx/caldart.conf) takes Apache's place unchanged when you
-      deploy it instead.
+   Apache, gunicorn, Postgres and the timer run on one Linux server with the
+   deploy root ``/srv/caldart``, and both systemd units read their settings
+   from ``/etc/caldart/caldart.env`` (``root:caldart``, mode ``0640``).  Django
+   calls out to ``api.stripe.com`` and ``api-m.paypal.com`` during a checkout,
+   and to the same SMTP server for password resets and invitations.  ``nginx``
+   (``deploy/nginx/caldart.conf``) takes Apache's place unchanged when you
+   deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
 ``caldart-web`` gunicorn unit, and Apache.  One thing runs daily: the
