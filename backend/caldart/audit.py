@@ -162,8 +162,15 @@ def _target_id(target: Model | int | None) -> str:
 
 
 def _rendered(name: str, value: object) -> str:
-    """``value`` as it appears after ``name=``, refusing anything that is not an id,
-    a count, a flag or a slug."""
+    """Render ``value`` as it appears after ``name=``.
+
+    A bool renders as ``true`` or ``false``, any other int as its digits, a slug
+    verbatim, and a list or tuple of slugs as the slugs joined with commas. An empty
+    list or tuple renders as ``-``, never as an empty string.
+
+    Raises the error :func:`_field_error` builds when ``value`` is not an id, a count, a
+    flag or a slug (or a list/tuple of slugs).
+    """
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, int):

@@ -10,6 +10,7 @@ takes its values from the environment alone.
 """
 
 from pathlib import Path
+from typing import Any
 
 import environ
 from django.core.exceptions import ImproperlyConfigured
@@ -228,7 +229,7 @@ def _throttle_rate(variable: str, default: str) -> str | None:
     typo stops start-up instead of turning every request to the throttled
     endpoint into a 500.
     """
-    rate = env(variable, default=default).strip()
+    rate: str = env(variable, default=default).strip()
     if len(rate) == 0:
         return None
     parts = rate.split("/")
@@ -292,7 +293,7 @@ CALDART_VERSION = "0.1.0"
 # --------------------------------------------------------------------------
 # Logging
 # --------------------------------------------------------------------------
-LOGGING = {
+LOGGING: dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
