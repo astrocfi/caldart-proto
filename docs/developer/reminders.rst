@@ -244,9 +244,11 @@ that was off at 07:00.
 ``ReminderKind`` and ``REMINDER_OFFSETS``, add it to ``KIND_ORDER`` and a
 subject to ``SUBJECTS`` in ``apps/reminders/services.py``, add the two
 templates, and generate a migration for the new choice.  On the frontend, add
-the kind to the ``ReminderKind`` union in ``frontend/src/portal/api/types.ts``
-and a label to ``KIND_LABELS`` in
-``frontend/src/portal/features/system/RemindersPanel.tsx``.
+the kind to the ``ReminderKind`` union in ``frontend/src/portal/api/types.ts``,
+then a label to ``KIND_LABELS`` and an entry to ``KIND_OPTIONS`` in
+``frontend/src/portal/features/system/RemindersPanel.tsx`` — ``KIND_LABELS``
+names the kind in the log's table, and ``KIND_OPTIONS`` is what puts it in the
+log's kind filter.
 
 
 Templates

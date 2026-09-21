@@ -221,9 +221,8 @@ Adding a page type
 #. Declare ``content_panels``, ``search_fields``, ``template``, and
    ``parent_page_types`` / ``subpage_types``.
 #. Give it a ``Meta.verbose_name``, so Wagtail's "add a child page" chooser
-   names it the way an editor would.  A ``__str__`` is worth adding when the
-   page's title is not the whole story — ``SiteSettings`` has one that names
-   the Wagtail site the row belongs to.
+   names it the way an editor would.  A ``__str__`` is not one of the things a
+   page type declares: Wagtail's ``Page`` already returns the page title.
 #. Write ``backend/templates/cms/<snake_name>.html`` extending ``base.html``.
 #. ``manage.py makemigrations cms``.
 #. Extend ``seed_content`` if the example site should have one.

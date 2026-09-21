@@ -138,7 +138,10 @@ def test_profile_aircraft_shape_matches_the_register(
 
 # ------------------------------------------------------------ seeding is real
 def test_db_reset_seed_propagates_a_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A failure in any seed step propagates out of ``db_reset --seed``."""
+    """A failure in the content seed step propagates out of ``db_reset --seed``.
+
+    The preceding steps still run, so the recorded call order shows where it stopped.
+    """
     calls: list[str] = []
 
     def fake_call_command(name: str, *args: Any, **kwargs: Any) -> None:
