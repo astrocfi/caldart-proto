@@ -22,7 +22,7 @@ from django.db import IntegrityError, transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from apps.members.models import Membership, MembershipStatusChoices
+from apps.members.models import Membership, MembershipState, MembershipStatusChoices
 from apps.members.services import expire_lapsed_memberships, membership_status
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 
@@ -199,7 +199,7 @@ def _skip_reason(user, membership: Membership, kind: str, today: date) -> str | 
 
     if kind == ReminderKind.POST30:
         # Nothing to nag about once they are covered again.
-        return "renewed" if status["status"] == "current" else None
+        return "renewed" if status["status"] == MembershipState.CURRENT else None
 
     # For the pre-expiry kinds the member must still be running out on exactly
     # this term: an early renewal pushes unbroken coverage further out.

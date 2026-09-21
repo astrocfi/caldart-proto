@@ -15,6 +15,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from apps.aircraft.models import Aircraft, normalize_n_number
+from apps.members.models import MembershipState
 from apps.members.services import (
     membership_of,
     membership_payload,
@@ -97,7 +98,7 @@ def leader_status(user) -> dict:
     """
     profile = getattr(user, "profile", None)
     status = membership_status(user)
-    membership_ok = status["status"] == "current"
+    membership_ok = status["status"] == MembershipState.CURRENT
     medical_ok = bool(profile is not None and profile.medical_is_current)
     dart = profile.dart if profile is not None else None
 

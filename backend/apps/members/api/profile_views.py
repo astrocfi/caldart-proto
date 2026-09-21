@@ -22,9 +22,9 @@ from apps.members.api.profile_serializers import (
     DartSerializer,
     MembershipTermSerializer,
     PaymentSummarySerializer,
-    PlanSerializer,
     ProfileSerializer,
 )
+from apps.members.api.serializers import PlanSerializer
 from apps.members.models import Dart, MemberProfile, MembershipPlan
 from apps.members.services import membership_status
 

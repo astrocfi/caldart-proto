@@ -4,26 +4,8 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.members.models import MembershipPlan
+from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
-
-
-class MembershipStatusSerializer(serializers.Serializer):
-    """The dict returned by ``members.services.membership_status``."""
-
-    status = serializers.ChoiceField(choices=["current", "expired", "none"])
-    expires_on = serializers.DateField(allow_null=True)
-    plan = serializers.CharField(allow_null=True)
-    is_lifetime = serializers.BooleanField()
-
-
-class PlanSerializer(serializers.ModelSerializer):
-    """A purchasable plan, as offered by the checkout."""
-
-    class Meta:
-        model = MembershipPlan
-        fields = ["slug", "name", "price_cents", "duration_days", "description"]
-        read_only_fields = fields
 
 
 class ContributionTierSerializer(serializers.Serializer):
