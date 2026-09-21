@@ -29,6 +29,13 @@ Three things run continuously: the Docker Postgres container, the
 ``caldart-web`` gunicorn unit, and Apache.  One thing runs daily: the
 ``caldart-reminders`` timer.
 
+The application is a **Django 6** project with Wagtail 8 on top, and step 6
+installs it with ``uv sync --frozen``, so the box runs the exact versions
+``uv.lock`` pins and the ones the test suite ran against.  Django 6 configures
+outgoing mail through its ``MAILERS`` setting, which ``prod.py`` builds from
+``EMAIL_URL`` and ``EMAIL_TIMEOUT``; both are in the environment file written
+in step 5 and documented in :doc:`configuration`.
+
 ``/static/`` is deliberately **not** aliased in the web server.  whitenoise
 serves it through the proxy so that the hashed filenames ``collectstatic``
 produces stay authoritative and get far-future cache headers.  Only

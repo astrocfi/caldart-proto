@@ -32,7 +32,7 @@ comments: state what the reader needs, or link the docs page that covers it.
 ### Layout
 
 ```
-backend/                Django 5 + Wagtail 8
+backend/                Django 6 + Wagtail 8
   manage.py
   caldart/              project: settings/{base,dev,prod,test}.py, urls.py,
                         api_urls.py, models.py, reports.py, pagination.py,

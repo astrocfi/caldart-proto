@@ -37,6 +37,11 @@ You do **not** need a local PostgreSQL server or client: the compose stack
 provides both, and the backup commands fall back to running ``pg_dump`` inside
 the container when it is not on your ``PATH``.
 
+Nothing in the table is a framework: ``uv sync`` installs those from
+``uv.lock``.  The backend runs on **Django 6** with Wagtail 8 and Django REST
+Framework 3, and ``pyproject.toml`` states the minimum version of each.  The
+full stack is in :doc:`architecture`.
+
 Install ``uv`` from https://docs.astral.sh/uv/ if you do not have it.  It
 manages the Python toolchain itself, so a system Python older than 3.12 is not
 a problem.

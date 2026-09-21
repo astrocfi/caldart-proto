@@ -4,7 +4,7 @@ description: Python coding standards for writing correct, readable, maintainable
 
 # Python Best Practices
 
-Apply these rules to ALL new and modified Python code. The backend (`backend/`) is a Django 5 +
+Apply these rules to ALL new and modified Python code. The backend (`backend/`) is a Django 6 +
 Wagtail web application, not a published library. **Minimum Python version: 3.12.**
 
 ## 1. Naming and Style

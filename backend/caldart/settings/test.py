@@ -17,7 +17,7 @@ AUTH_THROTTLE_RATES = dict.fromkeys(AUTH_THROTTLE_RATES, None)
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
-EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+MAILERS = {"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}}
 
 PAYMENTS_MOCK_ENABLED = True
 
