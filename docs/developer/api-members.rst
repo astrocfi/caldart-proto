@@ -11,7 +11,8 @@ passes every role check, so a system administrator has them too.  An
 unauthenticated request gets **401** (``caldart.exceptions`` overrides DRF's
 403 for session auth); an authenticated request without the role gets **403**.
 An unsafe method with no ``X-CSRFToken`` gets **403** before either check,
-signed in or not.
+signed in or not.  Those two answers are the same on every endpoint here and
+are not repeated in the status lists below.
 
 The code lives in ``backend/apps/members/``:
 
@@ -64,11 +65,11 @@ table is listed: ``member`` is granted at registration, so accounts and members
 are one population, and ``?role=`` narrows it.
 
 
-List members
-============
+``GET /admin/members``
+======================
 
-``GET /admin/members`` — paginated with the project's standard
-``?page=&page_size=`` (25 by default, 200 at most).
+The member table, filtered, ordered and paginated with the project's standard
+``?page=&page_size=`` (25 rows by default, 200 at most).
 
 .. code-block:: json
 
@@ -102,7 +103,19 @@ List members
 
 The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.
 ``joined_on`` is the start of the earliest membership term, or ``null`` for
-somebody who has never had one.
+somebody who has never had one.  An account with no ``MemberProfile`` row still
+appears: ``phone`` is blank, ``dart`` and ``medical_expiration`` are ``null``,
+``pilot_certificate_type`` and ``medical_type`` read ``none``,
+``medical_is_current`` is false and ``aircraft`` is empty.
+
+Statuses:
+
+* **200** — the page of rows, empty ``results`` when nothing matches.
+* **400** — ``status``, ``certificate``, ``medical`` or ``role`` carried a
+  value outside its choice list, or ``expiring_within`` was not a number.  The
+  body is keyed on the offending parameter, for example
+  ``{"status": ["Select a valid choice. bogus is not one of the available
+  choices."]}``.
 
 Filters
 -------
@@ -131,7 +144,8 @@ Filters
    and a value past the limit like the limit, so an oversized or negative
    query string never produces a server error.
 ``is_active``
-   ``true`` or ``false``.
+   ``true`` or ``false``.  A value that is neither — ``?is_active=maybe`` —
+   narrows nothing rather than being refused.
 
 Ordering
 --------
@@ -140,7 +154,7 @@ Ordering
 optionally prefixed with ``-``.  ``name`` expands to surname, forename, email.
 The two date sorts keep rows with no date at the end in both directions, so
 lifetime members do not crowd out the answer to "who expires next".  Anything
-else falls back to ``name``.
+else falls back to ``name`` rather than being refused.
 
 
 Computed membership status
@@ -214,10 +228,11 @@ the SQL and the service agree on every one.  **Change one and you must change
 the other**; that test is what tells you.
 
 
-Create a member
-===============
+``POST /admin/members``
+=======================
 
-``POST /admin/members``:
+Creates an account and its profile in one request, and answers with the full
+member record ``GET /admin/members/{user_id}`` returns.
 
 .. code-block:: json
 
@@ -230,8 +245,7 @@ Create a member
    }
 
 Only ``email`` is required — an administrator records what they were told,
-which on the day somebody joins at an airshow may be no more than a name.  The
-response is the full member record (below) with **201**.
+which on the day somebody joins at an airshow may be no more than a name.
 
 ``profile`` is ``AdminProfileSerializer``, which extends the ``/me/profile``
 serializer: the same fields (``dart`` reads nested and is written as
@@ -252,21 +266,149 @@ back to ``/auth/password/reset/confirm`` unchanged (:doc:`api-auth`).  The mail
 is queued with ``transaction.on_commit``, so a failed create never sends one —
 and a test has to use ``django_capture_on_commit_callbacks`` to see it.
 
-**400** on a duplicate email address (compared case-insensitively), a password
-that fails Django's validators, or an unknown rating.
+Statuses:
+
+* **201** — the member record, in the detail shape below.
+* **400** — a duplicate email address (compared case-insensitively, reported as
+  ``{"email": ["An account with that email address already exists."]}``), a
+  missing ``email``, a password one of Django's validators refused, an unknown
+  rating, or any profile rule the nested serializer states.  Nothing is
+  written.
 
 
-Retrieve, update, delete
-========================
+``GET /admin/members/{user_id}``
+================================
 
-``GET /admin/members/{user_id}`` returns the whole record: the account, its
-roles, the computed membership, the profile *including* ``notes`` and
-``how_heard``, every membership term newest first, and every payment.
+The whole record: the account, its roles, the computed membership, the profile
+*including* ``notes`` and ``how_heard``, every membership term newest first,
+and every payment newest first.
 
-``PATCH /admin/members/{user_id}`` takes ``email``, ``first_name``,
-``last_name``, ``is_active`` and a partial ``profile`` object, and returns the
-updated record.  A profile is created if the account somehow has none.  ``PUT``
-is not offered (**405**).
+.. code-block:: json
+
+   {
+     "id": 11,
+     "email": "ana@example.org",
+     "first_name": "Ana",
+     "last_name": "Bracco",
+     "name": "Ana Bracco",
+     "is_active": true,
+     "roles": ["member"],
+     "created_at": "2024-07-01T16:04:11.318204-07:00",
+     "joined_on": "2024-07-01",
+     "membership": {
+       "status": "current",
+       "expires_on": "2027-05-23",
+       "plan": "Annual",
+       "is_lifetime": false
+     },
+     "profile": {
+       "phone": "415-555-0100",
+       "phone_alt": "",
+       "address_line1": "1 Embarcadero",
+       "address_line2": "",
+       "city": "San Carlos",
+       "state": "CA",
+       "postal_code": "94070",
+       "county": "San Mateo",
+       "emergency_contact_name": "Dana Lee",
+       "emergency_contact_phone": "650-555-0199",
+       "home_airport_identifier": "SQL",
+       "home_airport_city": "San Carlos",
+       "dart": {"id": 3, "name": "Palo Alto"},
+       "air_care_alliance_number": "",
+       "pilot_certificate_type": "private",
+       "certificate_number": "3141592",
+       "ifr_rated": "yes",
+       "ratings": ["instrument"],
+       "medical_type": "third",
+       "medical_expiration": "2027-01-31",
+       "medical_is_current": true,
+       "flight_review_date": null,
+       "total_hours": 750,
+       "aircraft": [
+         {
+           "id": 7,
+           "n_number": "N172SP",
+           "make": "Cessna",
+           "model": "172S Skyhawk",
+           "insurance_is_current": true,
+           "insurance_expiration": "2027-03-01",
+           "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01"
+         }
+       ],
+       "vol_ground_team": false,
+       "vol_exercise_training": false,
+       "vol_member_support": false,
+       "vol_fundraising": false,
+       "vol_social_media": false,
+       "vol_newsletter": false,
+       "notes": "Joined at the Palo Alto airshow.",
+       "how_heard": "Airshow"
+     },
+     "memberships": [
+       {
+         "id": 12,
+         "plan": "Annual",
+         "plan_slug": "annual",
+         "starts_on": "2026-05-24",
+         "ends_on": "2027-05-23",
+         "status": "active",
+         "source": "payment",
+         "note": "",
+         "granted_by": null,
+         "payment": 31,
+         "created_at": "2026-05-20T18:22:05.601884-07:00"
+       }
+     ],
+     "payments": [
+       {
+         "id": 31,
+         "plan": "Annual",
+         "amount_cents": 6500,
+         "plan_amount_cents": 4500,
+         "contribution_cents": 2000,
+         "currency": "usd",
+         "provider": "stripe",
+         "wallet": "unknown",
+         "provider_ref": "pi_3Q1example",
+         "status": "succeeded",
+         "created_at": "2026-05-20T18:21:40.114905-07:00",
+         "completed_at": "2026-05-20T18:22:05.601884-07:00"
+       }
+     ]
+   }
+
+``profile`` is ``null`` for an account that has no ``MemberProfile`` row.
+Datetimes are rendered in the server's configured ``TIME_ZONE``, so they carry
+an offset rather than a trailing ``Z``.
+``source`` is ``payment``, ``manual`` or ``seed``; ``granted_by`` is the
+display name of the administrator behind a manual grant and ``null``
+otherwise; ``payment`` is the id of the payment that bought the term, or
+``null``.
+
+Statuses:
+
+* **200** — the record above.
+* **404** — no account has that id.
+
+
+``PATCH /admin/members/{user_id}``
+==================================
+
+Edits the account and its profile together, and answers with the whole record
+however few fields the request carried.
+
+.. code-block:: json
+
+   {
+     "email": "ana.bracco@example.org",
+     "is_active": true,
+     "profile": {"medical_type": "basicmed", "notes": "Moved to BasicMed."}
+   }
+
+The body takes ``email``, ``first_name``, ``last_name``, ``is_active`` and a
+partial ``profile`` object.  A profile is created if the account somehow has
+none.  ``PUT`` is not offered.
 
 The nested profile serializer is bound to the stored row before validation, so
 a partial update is judged against the whole profile: sending only
@@ -281,8 +423,28 @@ not deactivate their own account.  A refusal is a **400** keyed on ``email`` or
 ``is_active``, and nothing is written at all — the profile half of the same
 request included.
 
-``DELETE /admin/members/{user_id}`` hard-deletes: the cascade takes the
-profile and the membership terms.  It is refused with **403** when
+Deactivation — ``PATCH`` with ``is_active`` false — is the tool for a member
+who has left.  The hard delete below is for accounts that never paid:
+duplicates, spam and test accounts.
+
+Statuses:
+
+* **200** — the updated record, in the detail shape above.
+* **400** — an email address another account already holds, a profile rule the
+  nested serializer refused, or an edit the account-edit guard refused.
+  Nothing is written.
+* **404** — no account has that id.
+* **405** — the request used ``PUT``.
+
+
+``DELETE /admin/members/{user_id}``
+===================================
+
+Hard-deletes the account: the cascade takes the profile and the membership
+terms with it, and the audit log is the only trace left.  There is no response
+body.
+
+The delete is refused when
 
 * the target is the caller — you cannot delete your own account, whatever roles
   you hold;
@@ -308,44 +470,125 @@ the foreign key rather than on this view alone: the Django admin, a management
 command and a shell session all raise ``ProtectedError`` instead of cascading.
 The view catches that error and answers with the same **403**.
 
-Deactivation — ``PATCH`` with ``is_active`` false — is the tool for a member
-who has left.  The hard delete is for accounts that never paid: duplicates,
-spam and test accounts.
+Statuses:
+
+* **204** — the account is gone, with an empty body.
+* **403** — one of the three refusals, as ``{"detail": "..."}``.  The sentences
+  are "You cannot delete your own account.", "Only a system administrator can
+  delete a system administrator." and the payment sentence above.
+* **404** — no account has that id.
 
 
-Membership terms
-================
+``POST /admin/members/{user_id}/memberships``
+=============================================
 
-``POST /admin/members/{user_id}/memberships``:
+Grants a membership term by hand — the endpoint behind "Grant a term" on the
+member record — and records the grant in the audit log.
 
 .. code-block:: json
 
    {"plan": "annual", "starts_on": null, "note": "Check 1041"}
 
-``plan`` is a ``MembershipPlan`` slug and must be active.  The term is created
-through ``members.services.activate_term`` with ``source="manual"`` and
-``granted_by`` set to the caller, so a manual grant obeys the same start-date
-rule as a payment: the day after the current expiry for a current member, today
-otherwise, and no end date for a lifetime plan.  Pass ``starts_on`` to override
-it.  **201** with the new term; **404** for an unknown member; **400** for an
-unknown or inactive plan.
+``plan`` is a ``MembershipPlan`` slug and must be an active plan.
+``starts_on`` and ``note`` are optional.  The term is created through
+``members.services.activate_term`` with ``source="manual"`` and ``granted_by``
+set to the caller, so a manual grant is placed by the same rule a payment is.
 
-``PATCH /admin/memberships/{id}`` edits ``ends_on``, ``status`` and ``note``
-only — the plan, the start date, the source and the payment link are read-only,
-because rewriting them would falsify the history rather than correct it.
-**400** if ``ends_on`` would fall before ``starts_on``.  Setting ``status`` to
-``canceled`` removes the term from the membership calculation while leaving
-the row in place.
+With no ``starts_on``, that rule reads the largest ``ends_on`` across the
+member's **active** terms — terms whose stored status is ``expired`` or
+``canceled`` are ignored:
+
+* if one of those active terms is a lifetime term, and so has no end date, the
+  grant starts **today**;
+* otherwise, if the largest end date is today or later, the grant starts the
+  **day after** it.  A term dated in the future therefore moves the start even
+  though it is not covering the member today: granting an annual term to
+  somebody whose term runs from next month to next spring starts the new one
+  the day after next spring;
+* otherwise — every term has run out, or there are none — the grant starts
+  **today**.
+
+``ends_on`` is then ``starts_on + duration_days - 1``, or ``null`` for a
+lifetime plan.  Passing ``starts_on`` overrides the whole rule and the end date
+is measured from the date given.
+
+.. code-block:: json
+
+   {
+     "id": 18,
+     "plan": "Annual",
+     "plan_slug": "annual",
+     "starts_on": "2027-05-24",
+     "ends_on": "2028-05-23",
+     "status": "active",
+     "source": "manual",
+     "note": "Check 1041",
+     "granted_by": "Rae Okonkwo",
+     "payment": null,
+     "created_at": "2026-09-21T19:40:02.750311-07:00"
+   }
+
+Statuses:
+
+* **201** — the granted term, in the shape above.
+* **400** — ``plan`` missing, unknown, or naming a plan that is not active.
+* **404** — no account has that ``user_id``.
 
 
-Exports
-=======
+``PATCH /admin/memberships/{id}``
+=================================
 
-``GET /admin/members/export.csv`` and ``export.pdf`` take **every filter and
-ordering parameter the list takes** and apply them to the whole result set —
-they are not paginated.  The CSV streams, so a report over the entire member
-table never materializes in memory.  The PDF prints the applied filters under
-its title.  Columns, style and how to add one: :doc:`reports`.
+Corrects a term that is already on file.  Only ``ends_on``, ``status`` and
+``note`` are writable: the plan, the start date, the source and the payment
+link are read-only, because rewriting them would falsify the history rather
+than correct it.
+
+.. code-block:: json
+
+   {"ends_on": "2028-06-30", "status": "active", "note": "Extended by one month."}
+
+Setting ``status`` to ``canceled`` removes the term from the membership
+calculation while leaving the row in place.  The response is the term in the
+same shape the grant endpoint returns, and the audit log records which fields
+the correction actually changed.
+
+Statuses:
+
+* **200** — the corrected term.
+* **400** — ``ends_on`` would fall before ``starts_on``, reported as
+  ``{"ends_on": ["The end date cannot be before the start date."]}``, or
+  ``status`` carried a value outside ``active``, ``expired`` and ``canceled``.
+* **404** — no term has that id.
+* **405** — the request used ``PUT``, ``GET`` or ``DELETE``.
+
+
+``GET /admin/members/export.csv``
+=================================
+
+The filtered member list as a CSV download, streamed through
+``caldart.reports.csv_response`` so a report over the entire member table never
+materializes in memory.  It takes **every filter and ordering parameter the
+list takes** and applies them to the whole result set — the export is not
+paginated.  Columns, style and how to add one: :doc:`reports`.
+
+Statuses:
+
+* **200** — ``text/csv``, with a ``Content-Disposition`` filename carrying
+  today's date.
+* **400** — the same filter refusals as the list.
+
+
+``GET /admin/members/export.pdf``
+=================================
+
+The same rows as the CSV, rendered as a landscape-letter table with the
+applied filters printed under the title.
+
+Statuses:
+
+* **200** — ``application/pdf``, with a ``Content-Disposition`` filename
+  carrying today's date.
+* **400** — the same filter refusals as the list.
 
 
 Tests
