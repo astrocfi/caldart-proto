@@ -16,7 +16,8 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any, TypedDict
 
 import httpx
 from django.conf import settings
@@ -55,7 +56,7 @@ CAPTURE_FAILED = frozenset({"PAYMENT.CAPTURE.DENIED", "PAYMENT.CAPTURE.REVERSED"
 
 
 def api_base() -> str:
-    """Sandbox or live, from ``PAYPAL_ENV``."""
+    """The PayPal API host: the live one when ``PAYPAL_ENV`` is ``live``, else sandbox."""
     return LIVE_BASE if settings.PAYPAL_ENV == "live" else SANDBOX_BASE
 
 
@@ -70,6 +71,11 @@ def unavailable(call_name: str, exc: Exception) -> ProviderUnavailable:
 
 
 def credentials() -> tuple[str, str]:
+    """The configured client id and secret.
+
+    Raises :class:`ProviderNotConfigured` when either is empty, so an
+    unconfigured PayPal answers 400 rather than 500.
+    """
     client_id = settings.PAYPAL_CLIENT_ID
     client_secret = settings.PAYPAL_CLIENT_SECRET
     if not client_id or not client_secret:
@@ -80,28 +86,51 @@ def credentials() -> tuple[str, str]:
 
 
 def dollars(cents: int) -> str:
-    """PayPal wants a decimal string: 4500 -> ``"45.00"``."""
+    """PayPal wants a decimal string, always with two places: 4500 -> ``"45.00"``."""
     return f"{cents / 100:.2f}"
 
 
 def cents(value: str | float | int) -> int:
-    """Inverse of :func:`dollars`, rounded to the nearest cent."""
+    """Inverse of :func:`dollars`, rounded to the nearest cent.
+
+    Takes the decimal string PayPal sends, or a number.  Raises ``ValueError``
+    for a string that is not a number.
+    """
     return int(round(float(value) * 100))
 
 
 # --------------------------------------------------------------------------
 # OAuth token cache (in-process)
 # --------------------------------------------------------------------------
-_token_cache: dict = {"key": None, "token": "", "expires_at": None}
+class TokenCache(TypedDict):
+    """The one cached OAuth token: what it was fetched for, and until when."""
+
+    key: tuple[str, str] | None
+    token: str
+    expires_at: datetime | None
+
+
+_token_cache: TokenCache = {"key": None, "token": "", "expires_at": None}
 
 
 def reset_token_cache() -> None:
-    """Forget the cached token.  Used by tests and after a config change."""
+    """Forget the cached token, so the next call fetches a fresh one.
+
+    Used by tests and after a configuration change.
+    """
     _token_cache.update({"key": None, "token": "", "expires_at": None})
 
 
 def access_token() -> str:
-    """A valid client-credentials token, fetched at most once per lifetime."""
+    """A valid client-credentials token, fetched at most once per lifetime.
+
+    The cache is keyed on the API base and client id, so changing either fetches
+    a fresh token, and a token is dropped ``TOKEN_SKEW_SECONDS`` before PayPal
+    says it expires.  Raises :class:`ProviderNotConfigured` without credentials,
+    :class:`ProviderUnavailable` when the token call does not complete, and
+    :class:`PaymentVerificationError` when PayPal refuses the credentials or
+    returns no token.
+    """
     client_id, client_secret = credentials()
     key = (api_base(), client_id)
     now = timezone.now()
@@ -131,7 +160,7 @@ def access_token() -> str:
         body = response.json()
     except ValueError as exc:
         raise unavailable("POST /v1/oauth2/token", exc) from exc
-    token = body.get("access_token") or ""
+    token: str = body.get("access_token") or ""
     if not token:
         raise PaymentVerificationError("PayPal returned no access token.")
 
@@ -146,13 +175,14 @@ def access_token() -> str:
     return token
 
 
-def call(method: str, path: str, *, json_body: dict | None = None) -> dict:
+def call(method: str, path: str, *, json_body: dict[str, Any] | None = None) -> dict[str, Any]:
     """One authenticated Orders v2 call, returning the decoded body.
 
     Raises :class:`~apps.payments.providers.base.ProviderUnavailable` when the
     call never completes, and
     :class:`~apps.payments.providers.base.PaymentVerificationError` when PayPal
-    answers with an error status.
+    answers with an error status.  A body that is not JSON is read as an empty
+    dict, so a successful call with an unreadable body returns ``{}``.
     """
     try:
         response = httpx.request(
@@ -169,7 +199,7 @@ def call(method: str, path: str, *, json_body: dict | None = None) -> dict:
     except httpx.HTTPError as exc:
         raise unavailable(f"{method} {path}", exc) from exc
     try:
-        body = response.json()
+        body: dict[str, Any] = response.json()
     except ValueError:
         body = {}
     if response.status_code >= 400:
@@ -181,9 +211,13 @@ def call(method: str, path: str, *, json_body: dict | None = None) -> dict:
 # --------------------------------------------------------------------------
 # Capture helpers
 # --------------------------------------------------------------------------
-def completed_captures(order: dict) -> list[dict]:
-    """Every ``COMPLETED`` capture in a capture response."""
-    captures: list[dict] = []
+def completed_captures(order: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every ``COMPLETED`` capture in a capture response.
+
+    Reads ``purchase_units[].payments.captures[]`` and skips a capture in any other
+    state.  An order with no purchase units gives an empty list.
+    """
+    captures: list[dict[str, Any]] = []
     for unit in order.get("purchase_units") or []:
         for capture in (unit.get("payments") or {}).get("captures") or []:
             if capture.get("status") == "COMPLETED":
@@ -191,11 +225,15 @@ def completed_captures(order: dict) -> list[dict]:
     return captures
 
 
-def captured_cents(order: dict) -> int:
+def captured_cents(order: dict[str, Any]) -> int:
+    """The total of every ``COMPLETED`` capture in ``order``, in cents.
+
+    An order with no completed capture totals zero.
+    """
     return sum(cents((c.get("amount") or {}).get("value", 0)) for c in completed_captures(order))
 
 
-def log_capture_mismatch(payment: Payment, order: dict, reason: str) -> None:
+def log_capture_mismatch(payment: Payment, order: dict[str, Any], reason: str) -> None:
     """Record at ERROR a capture that took money we cannot match to our row.
 
     PayPal has the money by this point, so the refusal needs a human to
@@ -213,11 +251,21 @@ def log_capture_mismatch(payment: Payment, order: dict, reason: str) -> None:
 
 @register
 class PayPalProvider(Provider):
+    """PayPal Orders v2: create an order, then capture it to take the money."""
+
     slug = "paypal"
 
     # ----------------------------------------------------------------- start
-    def start(self, payment: Payment) -> dict:
-        """Create an ``intent=CAPTURE`` order and return its id for the buttons."""
+    def start(self, payment: Payment) -> dict[str, Any]:
+        """Create an ``intent=CAPTURE`` order and return its id for the buttons.
+
+        Stores the order id as ``provider_ref`` and the order in ``raw``, and
+        returns ``{"order_id": ...}``.  No money moves yet: :meth:`confirm` is what
+        captures it.  Raises :class:`ProviderNotConfigured` without credentials,
+        :class:`ProviderUnavailable` when PayPal cannot be reached, and
+        :class:`PaymentVerificationError` when PayPal rejects the request or
+        answers without an order id.
+        """
         order = call(
             "POST",
             "/v2/checkout/orders",
@@ -255,8 +303,22 @@ class PayPalProvider(Provider):
         return {"order_id": order_id}
 
     # --------------------------------------------------------------- confirm
-    def confirm(self, payment: Payment, *, order_id: str = "", **kwargs) -> bool:
-        """Capture the order; ``COMPLETED`` for the right amount activates the term."""
+    def confirm(self, payment: Payment, *, order_id: str = "", **kwargs: Any) -> bool:
+        """Capture the order; ``COMPLETED`` for the right amount activates the term.
+
+        ``order_id`` defaults to the payment's own ``provider_ref``.  Returns
+        ``True`` once the term is activated, and ``True`` without calling PayPal
+        for a payment that already succeeded, so a second click is harmless.
+        Raises :class:`PaymentVerificationError` when there is no order to
+        capture, when the order belongs to another payment, when PayPal reports
+        anything but ``COMPLETED``, when it completes the order without a capture,
+        and when the captured total, the currency or the capture's ``custom_id``
+        disagrees with the payment.  Of those, a status other than ``COMPLETED``
+        and a completed order without a capture also mark the payment failed;
+        the rest leave it as it was.  A capture that never completes raises
+        :class:`ProviderUnavailable` and is logged at ERROR for reconciliation,
+        because the money may have moved.
+        """
         if payment.is_succeeded:
             # A second click, or a webhook that beat the browser back.
             return True
@@ -360,8 +422,13 @@ class PayPalProvider(Provider):
 
         return JsonResponse({"received": True, "verified": True, "handled": True})
 
-    def verify_signature(self, request: HttpRequest, payload: dict) -> bool:
-        """Ask PayPal whether the notification really came from them."""
+    def verify_signature(self, request: HttpRequest, payload: dict[str, Any]) -> bool:
+        """Ask PayPal whether the notification really came from them.
+
+        Returns ``False`` without calling PayPal when ``PAYPAL_WEBHOOK_ID`` is
+        unset, and ``False`` when the verification call itself fails, so an
+        unverifiable notification is only ever recorded.
+        """
         webhook_id = getattr(settings, "PAYPAL_WEBHOOK_ID", "")
         if not webhook_id:
             return False
@@ -386,16 +453,27 @@ class PayPalProvider(Provider):
         return result.get("verification_status") == "SUCCESS"
 
 
-def json_body(request: HttpRequest) -> dict:
-    """The request body as a dict, or ``ValueError``."""
+def json_body(request: HttpRequest) -> dict[str, Any]:
+    """The request body as a dict.
+
+    An empty body reads as ``{}``.  Raises ``ValueError`` for a body that is not
+    JSON and for one whose top level is not an object.
+    """
     body = json.loads(request.body or b"{}")
     if not isinstance(body, dict):
         raise ValueError("Webhook payload must be an object.")
     return body
 
 
-def payment_for_resource(resource: dict) -> Payment | None:
-    """Find our row from a webhook resource's ``custom_id`` or order id."""
+def payment_for_resource(resource: dict[str, Any]) -> Payment | None:
+    """Find our row from a webhook resource's ``custom_id`` or order id.
+
+    Matches only PayPal payments: ``custom_id`` as a payment id first, then
+    ``provider_ref`` against the resource's own id, the related order id and the
+    id at the end of the resource's ``up`` link.  A ``custom_id`` that is not a
+    number matches nothing, and the search falls through to those ids.  Returns
+    ``None`` when none of them finds a row.
+    """
     custom_id = resource.get("custom_id")
     if custom_id:
         try:

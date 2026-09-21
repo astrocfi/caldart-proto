@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime as dt
 from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import TypedDict
 
 from django.db.models import Count, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce, TruncMonth, TruncYear
@@ -55,6 +56,17 @@ ORDERING_FIELDS = (
 )
 
 
+class PeriodSummary(TypedDict):
+    """One row of :func:`summarize`: a period's money, and its split by provider."""
+
+    period: str
+    count: int
+    total_cents: int
+    plan_cents: int
+    contribution_cents: int
+    by_provider: dict[str, int]
+
+
 def base_queryset() -> QuerySet[Payment]:
     """Every payment, annotated with ``paid_at`` and joined for display."""
     return Payment.objects.select_related("user", "plan").annotate(
@@ -79,10 +91,12 @@ class PaymentFilters:
 
 def apply_filters(queryset: QuerySet[Payment], filters: PaymentFilters) -> QuerySet[Payment]:
     """Narrow ``queryset`` (which must carry ``paid_at``) by ``filters``."""
+    # django-stubs resolves field names against the model, so it cannot see the
+    # ``paid_at`` annotation :func:`base_queryset` adds.
     if filters.date_from:
-        queryset = queryset.filter(paid_at__date__gte=filters.date_from)
+        queryset = queryset.filter(paid_at__date__gte=filters.date_from)  # type: ignore[misc]
     if filters.date_to:
-        queryset = queryset.filter(paid_at__date__lte=filters.date_to)
+        queryset = queryset.filter(paid_at__date__lte=filters.date_to)  # type: ignore[misc]
     if filters.provider:
         queryset = queryset.filter(provider=filters.provider)
     if filters.status:
@@ -98,7 +112,7 @@ def apply_filters(queryset: QuerySet[Payment], filters: PaymentFilters) -> Query
     return queryset
 
 
-def summarize(queryset: QuerySet[Payment], group: str = DEFAULT_GROUP) -> list[dict]:
+def summarize(queryset: QuerySet[Payment], group: str = DEFAULT_GROUP) -> list[PeriodSummary]:
     """Money received per period, oldest first.
 
     ``group`` is a key of :data:`GROUPS`, which the API layer has already checked.
@@ -119,7 +133,7 @@ def summarize(queryset: QuerySet[Payment], group: str = DEFAULT_GROUP) -> list[d
         .order_by("period", "provider")
     )
 
-    periods: dict[str, dict] = {}
+    periods: dict[str, PeriodSummary] = {}
     for row in rows:
         if row["period"] is None:
             continue
@@ -151,8 +165,13 @@ def _dollars(cents: int | None) -> str:
     return f"{(cents or 0) / 100:.2f}"
 
 
-def csv_rows(queryset: QuerySet[Payment]) -> Iterator[list]:
-    """Lazily yield the export rows, matching :data:`CSV_HEADER`."""
+def csv_rows(queryset: QuerySet[Payment]) -> Iterator[list[str]]:
+    """Lazily yield the export rows, matching :data:`CSV_HEADER`.
+
+    Dates are the local date the money arrived, money is dollars with two places
+    and no sign, and a payment with no plan exports an empty plan cell.  A member
+    with neither first nor last name is exported under their email address.
+    """
     for payment in queryset.iterator(chunk_size=200):
         paid_at = payment.completed_at or payment.created_at
         name = f"{payment.user.first_name} {payment.user.last_name}".strip()
@@ -160,7 +179,7 @@ def csv_rows(queryset: QuerySet[Payment]) -> Iterator[list]:
             timezone.localtime(paid_at).date().isoformat() if paid_at else "",
             name or payment.user.email,
             payment.user.email,
-            payment.plan.name if payment.plan_id else "",
+            payment.plan.name if payment.plan is not None else "",
             _dollars(payment.plan_amount_cents),
             _dollars(payment.contribution_cents),
             _dollars(payment.amount_cents),

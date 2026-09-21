@@ -7,11 +7,15 @@ seeded data exercises the same code path as a real checkout.
 from __future__ import annotations
 
 import datetime as dt
+import random
 from datetime import timedelta
+from typing import Any
 
+from django.core.management.base import OutputWrapper
 from django.utils import timezone
 
-from apps.members.models import MembershipSource
+from apps.accounts.models import User
+from apps.members.models import MembershipPlan, MembershipSource
 from apps.members.services import activate_term, expire_lapsed_memberships
 from apps.payments.models import (
     CONTRIBUTION_TIERS,
@@ -37,13 +41,13 @@ STRIPE_WALLETS: tuple[tuple[str, int], ...] = (
 )
 
 
-def _pick(rng, mix: tuple[tuple[str, int], ...]) -> str:
+def _pick(rng: random.Random, mix: tuple[tuple[str, int], ...]) -> str:
     values = [v for v, _ in mix]
     weights = [w for _, w in mix]
     return rng.choices(values, weights=weights)[0]
 
 
-def _contribution(rng) -> int:
+def _contribution(rng: random.Random) -> int:
     if rng.random() < 0.62:
         return 0
     tier = rng.choice([t for t in CONTRIBUTION_TIERS if t["cents"]])
@@ -52,7 +56,7 @@ def _contribution(rng) -> int:
     return tier["cents"]
 
 
-def _term_starts(rng, target: str, today: dt.date) -> list[dt.date]:
+def _term_starts(rng: random.Random, target: str, today: dt.date) -> list[dt.date]:
     """Start dates for a user's terms, oldest first, matching ``target``."""
     if target == "none":
         return []
@@ -71,7 +75,22 @@ def _term_starts(rng, target: str, today: dt.date) -> list[dt.date]:
     return [last_start - timedelta(days=365 * i) for i in range(count - 1, -1, -1)]
 
 
-def _payment_for(user, plan, starts_on, index, rng, today) -> Payment:
+def _payment_for(
+    user: User,
+    plan: MembershipPlan,
+    starts_on: dt.date,
+    index: int,
+    rng: random.Random,
+    today: dt.date,
+) -> Payment:
+    """The succeeded payment that bought ``user`` the term starting ``starts_on``.
+
+    Keyed on ``provider`` and a reference built from ``user`` and ``index``, so a
+    second ``seed_demo`` run finds the row it made before instead of a duplicate.
+    A row it creates is backdated: ``created_at`` and ``completed_at`` both become
+    a random daytime moment on ``starts_on``, or on ``today`` when the term starts
+    in the future.
+    """
     provider = _pick(rng, PROVIDER_MIX)
     wallet = (
         _pick(rng, STRIPE_WALLETS) if provider == PaymentProvider.STRIPE else PaymentWallet.PAYPAL
@@ -112,7 +131,17 @@ def _payment_for(user, plan, starts_on, index, rng, today) -> Payment:
     return payment
 
 
-def run(ctx: dict, stdout=None) -> dict:
+def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
+    """Seed each user's payments and terms, and return the shared seed context.
+
+    ``ctx`` carries the seed run's ``rng``, ``today``, ``plans`` and ``users``, plus
+    the ``membership_targets`` that say which of ``none``, ``current``, ``expiring``,
+    ``expired`` or ``lifetime`` each user should end up in.  One payment is created
+    per term, every term is activated through the same service a real checkout uses,
+    and lapsed terms are then marked expired.  ``ctx["payment_count"]`` is set to the
+    number of payments, and a one-line summary is written to ``stdout`` when one is
+    given.  Running it twice over the same database changes nothing.
+    """
     rng = ctx["rng"]
     today = ctx["today"]
     plans = ctx["plans"]
