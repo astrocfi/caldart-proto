@@ -47,7 +47,7 @@ EXPECTED_HEADER = [
 def register(db: None) -> RegisterDict:
     """Three aircraft: current insurance, expired insurance, and nothing on file."""
     today = timezone.localdate()
-    current = AircraftFactory.create(
+    current = AircraftFactory(
         n_number="N172SP",
         make="Cessna",
         model="172S Skyhawk",
@@ -59,7 +59,7 @@ def register(db: None) -> RegisterDict:
         insurance_hull_cents=14_500_000,
         insurance_expiration=today + timedelta(days=200),
     )
-    expired = AircraftFactory.create(
+    expired = AircraftFactory(
         n_number="N33MM",
         make="Mooney",
         model="M20J",
@@ -67,7 +67,7 @@ def register(db: None) -> RegisterDict:
         owner_type="individual",
         insurance_expiration=today - timedelta(days=5),
     )
-    missing = AircraftFactory.create(
+    missing = AircraftFactory(
         n_number="N44BE",
         make="Beechcraft",
         model="A36 Bonanza",
@@ -177,10 +177,10 @@ def test_csv_pilots_column_lists_attached_members(
     api_client: APIClient, account_admin: User, register: RegisterDict
 ) -> None:
     """The pilots column lists every profile attached to the aircraft, joined by "; "."""
-    marta = UserFactory.create(email="marta@example.test", first_name="Marta", last_name="Reyes")
-    owen = UserFactory.create(email="owen@example.test", first_name="Owen", last_name="Delgado")
-    MemberProfileFactory.create(user=marta).aircraft.add(register["current"])
-    MemberProfileFactory.create(user=owen).aircraft.add(register["current"])
+    marta = UserFactory(email="marta@example.test", first_name="Marta", last_name="Reyes")
+    owen = UserFactory(email="owen@example.test", first_name="Owen", last_name="Delgado")
+    MemberProfileFactory(user=marta).aircraft.add(register["current"])
+    MemberProfileFactory(user=owen).aircraft.add(register["current"])
 
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL))
@@ -216,7 +216,7 @@ def test_csv_honors_ordering(
 def test_csv_is_not_paginated(api_client: APIClient, account_admin: User) -> None:
     """The CSV export returns every matching row, not one page of the list view."""
     for index in range(30):
-        AircraftFactory.create(n_number=f"N{2000 + index}EX")
+        AircraftFactory(n_number=f"N{2000 + index}EX")
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL))
     assert len(rows) == 31
@@ -255,7 +255,7 @@ def test_pdf_is_filtered_like_the_list(
 def test_pdf_paginates_a_large_register(api_client: APIClient, account_admin: User) -> None:
     """A register too large for one page produces a multi-page PDF."""
     for index in range(120):
-        AircraftFactory.create(n_number=f"N{3000 + index}PD")
+        AircraftFactory(n_number=f"N{3000 + index}PD")
     api_client.force_login(account_admin)
     body = api_client.get(PDF_URL).content
     assert page_count(body) > 1
@@ -294,7 +294,7 @@ def test_money_is_formatted_for_people_in_the_pdf_rows(register: RegisterDict) -
 
 
 def test_odd_cent_amounts_keep_their_cents(register: RegisterDict) -> None:
-    """``aircraft_row`` keeps non-round cent amounts precise formatting as currency."""
+    """``aircraft_row``'s currency format keeps non-round cent amounts precise."""
     from apps.aircraft.reports import aircraft_row
 
     register["current"].insurance_hull_cents = 12_345

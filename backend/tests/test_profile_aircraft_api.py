@@ -79,7 +79,7 @@ def test_attach_only_touches_the_callers_profile(
     api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft
 ) -> None:
     """Attaching an aircraft never adds it to another member's profile."""
-    stranger = MemberProfileFactory.create(user=UserFactory.create(email="stranger@example.test"))
+    stranger = MemberProfileFactory(user=UserFactory(email="stranger@example.test"))
     api_client.force_login(member)
 
     api_client.post(ATTACH_URL, {"aircraft_id": aircraft.id}, format="json")
@@ -133,7 +133,7 @@ def test_detach_does_not_affect_another_members_attachment(
     api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft
 ) -> None:
     """Detaching an aircraft from the caller leaves another member's attachment alone."""
-    stranger = MemberProfileFactory.create(user=UserFactory.create(email="stranger@example.test"))
+    stranger = MemberProfileFactory(user=UserFactory(email="stranger@example.test"))
     stranger.aircraft.add(aircraft)
     profile.aircraft.add(aircraft)
     api_client.force_login(member)
@@ -147,8 +147,8 @@ def test_several_aircraft_can_be_attached(
     api_client: APIClient, member: User, profile: MemberProfile
 ) -> None:
     """Attaching two different aircraft leaves both listed on the profile."""
-    first = AircraftFactory.create(n_number="N111AA")
-    second = AircraftFactory.create(n_number="N222BB")
+    first = AircraftFactory(n_number="N111AA")
+    second = AircraftFactory(n_number="N222BB")
     api_client.force_login(member)
 
     api_client.post(ATTACH_URL, {"aircraft_id": first.id}, format="json")

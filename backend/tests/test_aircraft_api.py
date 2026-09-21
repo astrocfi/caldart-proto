@@ -121,7 +121,7 @@ def test_a_plain_member_never_learns_who_else_flies_an_aircraft(
 ) -> None:
     """``pilots`` carries email, membership and medical: that is leader-check data."""
     profile.aircraft.add(aircraft)
-    other = UserFactory.create(email="other@example.test", roles=[MEMBER])
+    other = UserFactory(email="other@example.test", roles=[MEMBER])
     api_client.force_login(other)
     response = api_client.get(url_for(aircraft))
     assert response.status_code == 200
@@ -141,8 +141,8 @@ def test_lookup_shows_the_pilots_to_a_leader(
 
 def test_list_is_paginated_and_ordered_by_n_number(api_client: APIClient, member: User) -> None:
     """The list defaults to ascending N-number order and the standard page envelope."""
-    AircraftFactory.create(n_number="N900ZZ")
-    AircraftFactory.create(n_number="N100AA")
+    AircraftFactory(n_number="N900ZZ")
+    AircraftFactory(n_number="N100AA")
     api_client.force_login(member)
     response = api_client.get(LIST_URL)
     assert [row["n_number"] for row in response.data["results"]] == ["N100AA", "N900ZZ"]
@@ -189,7 +189,7 @@ def test_duplicate_n_number_is_rejected_after_normalization(
     api_client: APIClient, member: User
 ) -> None:
     """A new N-number normalizing to an existing one is rejected with a clear message."""
-    AircraftFactory.create(n_number="N12345")
+    AircraftFactory(n_number="N12345")
     api_client.force_login(member)
     response = api_client.post(LIST_URL, valid_payload(n_number="n-12345"))
     assert response.status_code == 400
@@ -250,7 +250,7 @@ def test_created_by_cannot_be_spoofed(
 # --------------------------------------------------------------------------
 def test_creator_may_update_their_own_aircraft(api_client: APIClient, member: User) -> None:
     """The member who created an aircraft may patch it."""
-    aircraft = AircraftFactory.create(n_number="N55CR", created_by=member)
+    aircraft = AircraftFactory(n_number="N55CR", created_by=member)
     api_client.force_login(member)
     response = api_client.patch(detail_url(aircraft), {"model": "182T Skylane II"})
     assert response.status_code == 200
@@ -262,8 +262,8 @@ def test_another_member_may_not_update_someone_elses_aircraft(
     api_client: APIClient, member: User
 ) -> None:
     """A member who did not create the aircraft gets 403 patching it; nothing changes."""
-    owner = UserFactory.create(email="owner@example.test", roles=[MEMBER])
-    aircraft = AircraftFactory.create(n_number="N56CR", created_by=owner)
+    owner = UserFactory(email="owner@example.test", roles=[MEMBER])
+    aircraft = AircraftFactory(n_number="N56CR", created_by=owner)
     api_client.force_login(member)
     response = api_client.patch(detail_url(aircraft), {"model": "hijacked"})
     assert response.status_code == 403
@@ -273,7 +273,7 @@ def test_another_member_may_not_update_someone_elses_aircraft(
 
 def test_nobody_owns_an_aircraft_created_by_the_seed(api_client: APIClient, member: User) -> None:
     """An aircraft with no creator (seeded) cannot be patched by a plain member."""
-    aircraft = AircraftFactory.create(n_number="N57CR", created_by=None)
+    aircraft = AircraftFactory(n_number="N57CR", created_by=None)
     api_client.force_login(member)
     assert api_client.patch(detail_url(aircraft), {"model": "x"}).status_code == 403
 
@@ -282,7 +282,7 @@ def test_account_admin_may_update_any_aircraft(
     api_client: APIClient, account_admin: User, member: User
 ) -> None:
     """An account admin may patch an aircraft created by someone else."""
-    aircraft = AircraftFactory.create(n_number="N58CR", created_by=member)
+    aircraft = AircraftFactory(n_number="N58CR", created_by=member)
     api_client.force_login(account_admin)
     response = api_client.patch(detail_url(aircraft), {"insurance_carrier": "USAIG"})
     assert response.status_code == 200
@@ -294,14 +294,14 @@ def test_system_admin_may_update_any_aircraft(
     api_client: APIClient, system_admin: User, member: User
 ) -> None:
     """A system admin may patch an aircraft created by someone else."""
-    aircraft = AircraftFactory.create(n_number="N59CR", created_by=member)
+    aircraft = AircraftFactory(n_number="N59CR", created_by=member)
     api_client.force_login(system_admin)
     assert api_client.patch(detail_url(aircraft), {"owner_name": "Club"}).status_code == 200
 
 
 def test_update_normalizes_a_retyped_n_number(api_client: APIClient, account_admin: User) -> None:
     """Patching the N-number normalizes the new value the same way as creation."""
-    aircraft = AircraftFactory.create(n_number="N60CR")
+    aircraft = AircraftFactory(n_number="N60CR")
     api_client.force_login(account_admin)
     response = api_client.patch(detail_url(aircraft), {"n_number": "n-61cr"})
     assert response.status_code == 200
@@ -313,7 +313,7 @@ def test_update_keeping_the_same_n_number_is_not_a_duplicate(
     api_client: APIClient, account_admin: User
 ) -> None:
     """Patching an aircraft with its own (differently typed) N-number is not rejected."""
-    aircraft = AircraftFactory.create(n_number="N62CR")
+    aircraft = AircraftFactory(n_number="N62CR")
     api_client.force_login(account_admin)
     response = api_client.patch(detail_url(aircraft), {"n_number": "62cr", "make": "Piper"})
     assert response.status_code == 200, response.data
@@ -326,7 +326,7 @@ def test_update_keeping_the_same_n_number_is_not_a_duplicate(
 # --------------------------------------------------------------------------
 def test_creator_may_not_delete_their_aircraft(api_client: APIClient, member: User) -> None:
     """The member who created an aircraft still cannot delete it."""
-    aircraft = AircraftFactory.create(n_number="N70DL", created_by=member)
+    aircraft = AircraftFactory(n_number="N70DL", created_by=member)
     api_client.force_login(member)
     assert api_client.delete(detail_url(aircraft)).status_code == 403
     assert Aircraft.objects.filter(pk=aircraft.pk).exists()
@@ -334,14 +334,14 @@ def test_creator_may_not_delete_their_aircraft(api_client: APIClient, member: Us
 
 def test_dart_leader_may_not_delete_an_aircraft(api_client: APIClient, dart_leader: User) -> None:
     """A DART leader gets 403 deleting an aircraft."""
-    aircraft = AircraftFactory.create(n_number="N71DL")
+    aircraft = AircraftFactory(n_number="N71DL")
     api_client.force_login(dart_leader)
     assert api_client.delete(detail_url(aircraft)).status_code == 403
 
 
 def test_account_admin_may_delete_an_aircraft(api_client: APIClient, account_admin: User) -> None:
     """An account admin deletes an aircraft and it no longer exists."""
-    aircraft = AircraftFactory.create(n_number="N72DL")
+    aircraft = AircraftFactory(n_number="N72DL")
     api_client.force_login(account_admin)
     assert api_client.delete(detail_url(aircraft)).status_code == 204
     assert not Aircraft.objects.filter(pk=aircraft.pk).exists()
@@ -351,7 +351,7 @@ def test_role_matrix_for_delete(api_client: APIClient, all_role_users: dict[str,
     """Only account and system admins get 204 deleting; every other role gets 403."""
     allowed = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
     for index, (slug, user) in enumerate(all_role_users.items()):
-        aircraft = AircraftFactory.create(n_number=f"N{800 + index}RM")
+        aircraft = AircraftFactory(n_number=f"N{800 + index}RM")
         api_client.force_login(user)
         response = api_client.delete(detail_url(aircraft))
         expected = 204 if slug in allowed else 403
@@ -367,7 +367,7 @@ def test_lookup_finds_an_aircraft_however_the_n_number_is_typed(
     api_client: APIClient, member: User, typed: str
 ) -> None:
     """Lookup finds the aircraft regardless of how the N-number is typed or cased."""
-    AircraftFactory.create(n_number="N172SP")
+    AircraftFactory(n_number="N172SP")
     api_client.force_login(member)
     response = api_client.get(LOOKUP_URL, {"n_number": typed})
     assert response.status_code == 200
@@ -390,7 +390,7 @@ def test_lookup_without_an_n_number_is_a_400(api_client: APIClient, member: User
 
 def test_lookup_is_exact_not_a_prefix_match(api_client: APIClient, member: User) -> None:
     """A prefix of a real N-number does not match the full aircraft."""
-    AircraftFactory.create(n_number="N172SP")
+    AircraftFactory(n_number="N172SP")
     api_client.force_login(member)
     assert api_client.get(LOOKUP_URL, {"n_number": "N172"}).status_code == 404
 
@@ -403,7 +403,7 @@ def register(db: None) -> RegisterDict:
     """A small register covering every insurance state."""
     today = timezone.localdate()
     return {
-        "current": AircraftFactory.create(
+        "current": AircraftFactory(
             n_number="N172SP",
             make="Cessna",
             model="172S Skyhawk",
@@ -411,7 +411,7 @@ def register(db: None) -> RegisterDict:
             owner_type="club",
             insurance_expiration=today + timedelta(days=200),
         ),
-        "expiring": AircraftFactory.create(
+        "expiring": AircraftFactory(
             n_number="N9021K",
             make="Piper",
             model="PA-28-181 Archer",
@@ -419,7 +419,7 @@ def register(db: None) -> RegisterDict:
             owner_type="individual",
             insurance_expiration=today + timedelta(days=10),
         ),
-        "expired": AircraftFactory.create(
+        "expired": AircraftFactory(
             n_number="N33MM",
             make="Mooney",
             model="M20J",
@@ -427,7 +427,7 @@ def register(db: None) -> RegisterDict:
             owner_type="individual",
             insurance_expiration=today - timedelta(days=5),
         ),
-        "missing": AircraftFactory.create(
+        "missing": AircraftFactory(
             n_number="N44BE",
             make="Beechcraft",
             model="A36 Bonanza",
@@ -524,7 +524,7 @@ def test_expiring_within_zero_days_means_expiring_today(
     api_client: APIClient, member: User, register: RegisterDict
 ) -> None:
     """``expiring_within=0`` matches cover expiring on today's date."""
-    AircraftFactory.create(n_number="N88TD", insurance_expiration=timezone.localdate())
+    AircraftFactory(n_number="N88TD", insurance_expiration=timezone.localdate())
     api_client.force_login(member)
     assert numbers(api_client.get(LIST_URL, {"expiring_within": 0})) == ["N88TD"]
 
@@ -551,7 +551,7 @@ def test_expiring_within_is_clamped_to_ten_years(
 
 def test_is_active_filter(api_client: APIClient, member: User, register: RegisterDict) -> None:
     """``is_active`` filters the register; the default list includes inactive aircraft."""
-    AircraftFactory.create(n_number="N77OS", is_active=False)
+    AircraftFactory(n_number="N77OS", is_active=False)
     api_client.force_login(member)
     assert "N77OS" in numbers(api_client.get(LIST_URL))
     assert "N77OS" not in numbers(api_client.get(LIST_URL, {"is_active": "true"}))
@@ -561,7 +561,7 @@ def test_is_active_filter(api_client: APIClient, member: User, register: Registe
 def test_ordering_is_stable_across_pages(api_client: APIClient, member: User) -> None:
     """Ties on a non-unique column must not shuffle between pages."""
     for index in range(10):
-        AircraftFactory.create(n_number=f"N{600 + index}TIE", make="Cessna", model="172S")
+        AircraftFactory(n_number=f"N{600 + index}TIE", make="Cessna", model="172S")
     api_client.force_login(member)
     query: dict[str, str | int] = {"ordering": "make", "page_size": 4}
     seen: list[str] = []
@@ -610,6 +610,6 @@ def test_search_matches_a_pilots_aircraft_only_through_the_register(
     api_client: APIClient, member: User, register: RegisterDict
 ) -> None:
     """The register search is about aircraft; member search is the leader check's job."""
-    MemberProfileFactory.create(user=member).aircraft.add(register["current"])
+    MemberProfileFactory(user=member).aircraft.add(register["current"])
     api_client.force_login(member)
     assert numbers(api_client.get(LIST_URL, {"search": "Reyes"})) == ["N9021K"]
