@@ -3,6 +3,7 @@
  * hand — optionally as a rehearsal — and read the log of what went out.
  */
 import { useState } from 'react';
+import type { JSX } from 'react';
 
 import type { ReminderKind, ReminderLogEntry, ReminderRunResult } from '../../api/types';
 import { Button } from '../../components/Button';
@@ -57,7 +58,8 @@ export function runSummary(result: ReminderRunResult, dryRun: boolean): string {
   return `${verb} ${emails}, skipped ${result.skipped}.`;
 }
 
-export function RemindersPanel() {
+/** Runs the renewal reminder scan on demand and shows its log. */
+export function RemindersPanel(): JSX.Element {
   const [kind, setKind] = useState<ReminderKind | 'all'>('all');
   const [dryRun, setDryRun] = useState(true);
   const [lastRunWasDry, setLastRunWasDry] = useState(true);

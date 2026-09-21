@@ -18,10 +18,12 @@ export const JOIN_STEP_LABELS: Record<JoinStep, string> = {
   done: 'Done',
 };
 
+/** True when `value` is one of the four join wizard step names. */
 export function isJoinStep(value: string | undefined): value is JoinStep {
   return value !== undefined && (JOIN_STEPS as readonly string[]).includes(value);
 }
 
+/** The zero-based position of `step` in the wizard's order. */
 export function joinStepIndex(step: JoinStep): number {
   return JOIN_STEPS.indexOf(step);
 }

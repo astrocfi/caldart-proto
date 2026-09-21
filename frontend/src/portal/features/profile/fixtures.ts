@@ -16,6 +16,7 @@ export const TEST_AIRCRAFT: AircraftSummary = {
   insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
 };
 
+/** A complete `Profile` fixture, with `overrides` merged over the defaults. */
 export function makeProfile(overrides: Partial<Profile> = {}): Profile {
   return {
     phone: '650-555-0101',

@@ -7,7 +7,7 @@
  * submit button a member needs.
  */
 import { useEffect, useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import type { FormEvent, JSX, ReactNode } from 'react';
 
 import type { ProfilePatch } from '../../api/types';
 import { Button } from '../../components/Button';
@@ -28,6 +28,7 @@ export interface ProfileFormProps {
   secondaryAction?: ReactNode;
 }
 
+/** The member profile form: validated fieldsets, a submit button, and an optional action. */
 export function ProfileForm({
   initialValues,
   onSubmit,
@@ -35,7 +36,7 @@ export function ProfileForm({
   submitLabel = 'Save profile',
   serverErrors,
   secondaryAction,
-}: ProfileFormProps) {
+}: ProfileFormProps): JSX.Element {
   const [values, setValues] = useState<ProfileFormValues>(initialValues);
   const [errors, setErrors] = useState<ProfileFormErrors>({});
   const [submitted, setSubmitted] = useState(false);

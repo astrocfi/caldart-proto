@@ -17,6 +17,7 @@ export default tseslint.config(
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      jsdoc,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -33,43 +34,6 @@ export default tseslint.config(
         'error',
         { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
       ],
-    },
-  },
-  {
-    files: ['**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
-    rules: {
-      'react-refresh/only-export-components': 'off',
-    },
-  },
-  {
-    // Grows one directory at a time as the return-type and JSDoc sweeps
-    // (#44, #45) cover more of the tree; the last sweep widens this to
-    // `**/*.{ts,tsx}` and folds the two rules into the block above.
-    files: [
-      'src/portal/components/**/*.{ts,tsx}',
-      'src/portal/api/**/*.{ts,tsx}',
-      'src/portal/auth/**/*.{ts,tsx}',
-      'src/portal/routes/**/*.{ts,tsx}',
-      'src/portal/layout/**/*.{ts,tsx}',
-      'src/portal/App.tsx',
-      'src/portal/choices.ts',
-      'src/portal/nav.ts',
-      'src/site/**/*.{ts,tsx}',
-      'src/test/**/*.{ts,tsx}',
-      'e2e/**/*.{ts,tsx}',
-      'src/portal/features/admin-aircraft/**/*.{ts,tsx}',
-      'src/portal/features/admin-members/**/*.{ts,tsx}',
-      'src/portal/features/admin-payments/**/*.{ts,tsx}',
-      'src/portal/features/admin-users/**/*.{ts,tsx}',
-      'src/portal/features/aircraft/**/*.{ts,tsx}',
-      'src/portal/features/auth/**/*.{ts,tsx}',
-      'src/portal/features/checkout/**/*.{ts,tsx}',
-      'src/portal/features/dashboard/**/*.{ts,tsx}',
-    ],
-    plugins: {
-      jsdoc,
-    },
-    rules: {
       '@typescript-eslint/explicit-module-boundary-types': 'error',
       'jsdoc/require-jsdoc': [
         'error',
@@ -83,6 +47,12 @@ export default tseslint.config(
         },
       ],
       'jsdoc/no-types': 'error',
+    },
+  },
+  {
+    files: ['**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 );

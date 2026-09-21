@@ -5,6 +5,7 @@
  * and can be sent to another leader.
  */
 import { useEffect, useState } from 'react';
+import type { JSX } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
@@ -18,7 +19,8 @@ import { AircraftStatusCard } from './AircraftStatusCard';
 import { useLeaderAircraft } from './api';
 import './leader.css';
 
-export function LeaderAircraftPage() {
+/** Looks up one tail number and renders its insurance status card. */
+export function LeaderAircraftPage(): JSX.Element {
   const [params, setParams] = useSearchParams();
   const asked = params.get('n_number') ?? '';
   const [term, setTerm] = useState(asked);

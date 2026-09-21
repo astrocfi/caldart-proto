@@ -5,6 +5,8 @@
  * verdict is a full-width band in words as well as color, and every row
  * answers one question — membership, medical, certificate, insurance.
  */
+import type { JSX } from 'react';
+
 import type { LeaderStatus, MembershipState } from '../../api/types';
 import { DateText } from '../../components/DateText';
 import { StatusChip } from '../../components/StatusChip';
@@ -54,7 +56,8 @@ export interface MemberStatusCardProps {
   today?: Date;
 }
 
-export function MemberStatusCard({ status, today }: MemberStatusCardProps) {
+/** The pre-flight status card: go/no-go verdict plus membership, medical and aircraft. */
+export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.Element {
   const go = isGo(status);
   const reasons = noGoReasons(status);
 

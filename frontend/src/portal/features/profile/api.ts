@@ -7,7 +7,7 @@
  * profile moves `profile_complete` and paying moves `membership`.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UseQueryResult } from '@tanstack/react-query';
+import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '../../api/client';
 import { AUTH_ME_KEY } from '../../auth/useAuth';
@@ -29,10 +29,12 @@ export const DARTS_KEY = ['darts'] as const;
 export const PLANS_KEY = ['plans'] as const;
 export const SITE_CONFIG_KEY = ['site', 'config'] as const;
 
+/** The signed-in member's own profile, via `GET /me/profile`. */
 export function useProfile(): UseQueryResult<Profile> {
   return useQuery({ queryKey: PROFILE_KEY, queryFn: () => api.get<Profile>('/me/profile') });
 }
 
+/** The signed-in member's membership status, via `GET /me/membership`. */
 export function useMembership(): UseQueryResult<MembershipDetail> {
   return useQuery({
     queryKey: MEMBERSHIP_KEY,
@@ -40,6 +42,7 @@ export function useMembership(): UseQueryResult<MembershipDetail> {
   });
 }
 
+/** The signed-in member's payment history, via `GET /me/payments`. */
 export function useMyPayments(): UseQueryResult<PaymentSummary[]> {
   return useQuery({
     queryKey: PAYMENTS_KEY,
@@ -74,7 +77,8 @@ export function useSiteConfig(): UseQueryResult<SiteConfig> {
   });
 }
 
-export function useSaveProfile() {
+/** Saves the signed-in member's profile and invalidates the profile and `auth/me` queries. */
+export function useSaveProfile(): UseMutationResult<Profile, Error, ProfilePatch> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (patch: ProfilePatch) => api.put<Profile>('/me/profile', patch),
@@ -86,7 +90,8 @@ export function useSaveProfile() {
   });
 }
 
-export function useAttachAircraft() {
+/** Attaches an aircraft to the signed-in member's profile and invalidates it. */
+export function useAttachAircraft(): UseMutationResult<AttachedAircraft, Error, number> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (aircraftId: number) =>
@@ -95,7 +100,8 @@ export function useAttachAircraft() {
   });
 }
 
-export function useDetachAircraft() {
+/** Detaches an aircraft from the signed-in member's profile and invalidates it. */
+export function useDetachAircraft(): UseMutationResult<null, Error, number> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (aircraftId: number) => api.delete<null>(`/me/profile/aircraft/${aircraftId}`),

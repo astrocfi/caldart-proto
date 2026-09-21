@@ -21,13 +21,16 @@ export const HEALTH_KEY = ['system', 'health'] as const;
 export const BACKUPS_KEY = ['system', 'backups'] as const;
 
 /** Reminder log rows are cached per kind filter. */
-export function reminderLogKey(kind: ReminderKind | 'all') {
+export function reminderLogKey(
+  kind: ReminderKind | 'all',
+): readonly [string, string, string, ReminderKind | 'all'] {
   return ['system', 'reminders', 'log', kind] as const;
 }
 
 /** How many recent reminders the panel shows. */
 export const REMINDER_LOG_PAGE_SIZE = 20;
 
+/** The server's health checks, via `GET /system/health`. */
 export function useHealth(): UseQueryResult<Health> {
   return useQuery({
     queryKey: HEALTH_KEY,
@@ -36,6 +39,7 @@ export function useHealth(): UseQueryResult<Health> {
   });
 }
 
+/** The database dumps on disk, via `GET /system/backups`. */
 export function useBackups(): UseQueryResult<Backup[]> {
   return useQuery({
     queryKey: BACKUPS_KEY,
@@ -55,6 +59,7 @@ export function useCreateBackup(): UseMutationResult<Backup, unknown, void> {
   });
 }
 
+/** A page of the reminder log for `kind`, via `GET /admin/reminders/log`. */
 export function useReminderLog(
   kind: ReminderKind | 'all',
 ): UseQueryResult<Paginated<ReminderLogEntry>> {
@@ -70,6 +75,7 @@ export function useReminderLog(
   });
 }
 
+/** Runs the reminder scan (or a dry run) via `POST /system/reminders/run`. */
 export function useRunReminders(): UseMutationResult<ReminderRunResult, unknown, boolean> {
   const queryClient = useQueryClient();
   return useMutation({
