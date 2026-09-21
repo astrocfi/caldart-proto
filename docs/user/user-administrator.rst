@@ -248,5 +248,5 @@ See also
 * :doc:`getting-started` — what members see, including the reset flow from
   their side.
 * :doc:`account-administrator-guide` — profiles, memberships and payments.
-* :doc:`../developer/api-auth` — the endpoints these screens call, for anyone
+* :doc:`/developer/api-auth` — the endpoints these screens call, for anyone
   scripting against them.

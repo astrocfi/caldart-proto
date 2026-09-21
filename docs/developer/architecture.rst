@@ -37,7 +37,7 @@ application.  Both halves share one design system and one theme setting
 (:doc:`theming`).
 
 Five flows shape the system, and each has to be quick on a phone.  The
-:doc:`../demo-walkthrough` drives them by hand on the demo data, and the
+:doc:`/demo-walkthrough` drives them by hand on the demo data, and the
 Playwright suite drives them in a browser (:doc:`testing`):
 
 - :ref:`walkthrough-flow-a`
