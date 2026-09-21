@@ -364,10 +364,13 @@ and a write-only one describe different objects: ``Profile`` is what
 ``PATCH /me/profile`` accepts, matching the ``Profile`` and ``ProfilePatch``
 pair in ``frontend/src/portal/api/types.ts``.
 
-An endpoint served by a plain ``APIView`` with no serializer contributes no
-component; those endpoints are described on the pages this one links to and
-nowhere else.  :ref:`testing-api-contract` covers the two tests that compare
-the schema with the committed snapshot and with the portal's types.
+Every endpoint under ``/api/v1/`` names its request and its response, through
+the serializer a generic view already carries or through an ``@extend_schema``
+annotation on a plain ``APIView``.  What has no component is what has no object
+to describe: a **204** answer, a webhook acknowledgment, and an export, whose
+body is a file.  :ref:`testing-api-contract` covers the two tests that compare
+the schema with the committed snapshot and with the portal's types, and lists
+the residual in full.
 
 Roles
 -----
