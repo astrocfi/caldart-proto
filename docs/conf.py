@@ -42,7 +42,7 @@ if _HAS_DOT:
 graphviz_output_format = "svg"
 
 
-def setup(app):
+def setup(app: object) -> None:
     """Keep ``.. graphviz::`` parseable even when the extension is not loaded.
 
     ``.. only::`` prunes the doctree *after* parsing, so a ``graphviz``
@@ -70,7 +70,8 @@ def setup(app):
             "name": directives.unchanged,
         }
 
-        def run(self):
+        def run(self) -> list[object]:
+            """Discard the directive's content and produce no nodes."""
             return []
 
     directives.register_directive("graphviz", _NoGraphviz)

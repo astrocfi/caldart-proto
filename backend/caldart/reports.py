@@ -13,7 +13,7 @@ from __future__ import annotations
 import csv
 from collections.abc import Iterable, Iterator, Sequence
 from datetime import datetime
-from typing import Any
+from typing import IO, Any
 
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils import timezone
@@ -26,6 +26,7 @@ from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas as pdf_canvas
 from reportlab.platypus import (
     BaseDocTemplate,
+    Flowable,
     Frame,
     LongTable,
     PageTemplate,
@@ -121,14 +122,18 @@ def csv_response(
 class _NumberedCanvas(pdf_canvas.Canvas):
     """Canvas that can print "Page n of m" because it defers the page writes."""
 
-    def __init__(self, *args, footer_left: str = "", **kwargs):
+    def __init__(self, *args: Any, footer_left: str = "", **kwargs: Any) -> None:
+        """Wrap :class:`~reportlab.pdfgen.canvas.Canvas`, adding a ``footer_left`` label.
+
+        ``args`` and ``kwargs`` pass straight through to ``Canvas.__init__``.
+        """
         super().__init__(*args, **kwargs)
-        self._saved_states: list[dict] = []
+        self._saved_states: list[dict[str, Any]] = []
         self._footer_left = footer_left
 
     def showPage(self) -> None:  # noqa: N802 - reportlab API
         self._saved_states.append(dict(self.__dict__))
-        self._startPage()
+        self._startPage()  # type: ignore[attr-defined]  # reportlab-stubs omits this private method
 
     def save(self) -> None:
         total = len(self._saved_states)
@@ -139,7 +144,8 @@ class _NumberedCanvas(pdf_canvas.Canvas):
         super().save()
 
     def _draw_footer(self, total: int) -> None:
-        width, _height = self._pagesize
+        # reportlab-stubs omits these private attributes (`_pagesize`, `_pageNumber`).
+        width, _height = self._pagesize  # type: ignore[attr-defined]
         self.saveState()
         self.setStrokeColor(RULE)
         self.setLineWidth(0.5)
@@ -147,7 +153,8 @@ class _NumberedCanvas(pdf_canvas.Canvas):
         self.setFont(BODY_FONT, 7)
         self.setFillColor(MUTED)
         self.drawString(MARGIN, MARGIN + 4, self._footer_left)
-        self.drawRightString(width - MARGIN, MARGIN + 4, f"Page {self._pageNumber} of {total}")
+        page_number = self._pageNumber  # type: ignore[attr-defined]
+        self.drawRightString(width - MARGIN, MARGIN + 4, f"Page {page_number} of {total}")
         self.restoreState()
 
 
@@ -161,7 +168,7 @@ def _as_cells(values: Sequence[Any], style: ParagraphStyle) -> list[Paragraph]:
 
 
 def build_pdf_table(
-    buffer,
+    buffer: IO[bytes],
     *,
     title: str,
     subtitle: str = "",
@@ -221,13 +228,13 @@ def build_pdf_table(
     table = LongTable(data, colWidths=[col_width] * columns, repeatRows=1)
     table.setStyle(style)
 
-    story = [Paragraph(title, TITLE_STYLE)]
+    story: list[Flowable] = [Paragraph(title, TITLE_STYLE)]
     if subtitle:
         story.append(Paragraph(subtitle, SUBTITLE_STYLE))
     story.append(Spacer(1, 10))
     story.append(table)
 
-    def make_canvas(*args, **kwargs):
+    def make_canvas(*args: Any, **kwargs: Any) -> _NumberedCanvas:
         return _NumberedCanvas(*args, footer_left=footer_left, **kwargs)
 
     doc.build(story, canvasmaker=make_canvas)
@@ -246,7 +253,7 @@ def pdf_table_response(
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     build_pdf_table(
-        response,
+        response,  # type: ignore[arg-type]  # HttpResponse.write() duck-types IO[bytes]
         title=title,
         subtitle=subtitle,
         header=header,
