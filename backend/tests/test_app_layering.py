@@ -10,6 +10,8 @@ import ast
 from pathlib import Path
 from typing import NamedTuple
 
+import pytest
+
 from apps.members.models import Dart
 from caldart.models import TimestampedModel
 
@@ -65,8 +67,9 @@ def module_name(path: Path) -> str:
 
 
 def app_of(dotted: str) -> str:
-    """The app name in a dotted ``apps.<app>...`` path."""
-    return dotted.split(".")[1]
+    """The app name in a dotted ``apps.<app>...`` path, or ``""`` for the bare package."""
+    parts = dotted.split(".")
+    return parts[1] if len(parts) > 1 else ""
 
 
 def domain_modules() -> list[Path]:
@@ -90,11 +93,13 @@ def domain_modules() -> list[Path]:
 
 
 def app_imports(path: Path) -> list[AppImport]:
-    """Every ``apps.*`` import in the file at ``path``.
+    """Every ``apps.*`` import in the file at ``path``, each naming the module it depends on.
 
-    An import is inline when it is not a direct child of the module body, which is how
-    a function-local import to break a cycle appears.  Relative imports are not used in
-    this codebase and are skipped.
+    ``from apps import payments`` and ``from apps.accounts import api`` name their target
+    by its last segment, so those records read ``apps.payments`` and ``apps.accounts.api``;
+    a bare ``import apps`` is recorded as ``apps``.  An import is inline when it is not a
+    direct child of the module body, which is how a function-local import to break a
+    cycle appears.  Relative imports are not used in this codebase and are skipped.
     """
     tree = ast.parse(path.read_text(encoding="utf-8"))
     top_level = {id(node) for node in tree.body}
@@ -103,15 +108,25 @@ def app_imports(path: Path) -> list[AppImport]:
         if isinstance(node, ast.ImportFrom):
             if node.level != 0 or node.module is None:
                 continue
-            targets = [node.module]
+            targets = [_imported_module(node.module, alias.name) for alias in node.names]
         elif isinstance(node, ast.Import):
             targets = [alias.name for alias in node.names]
         else:
             continue
-        for target in targets:
+        for target in dict.fromkeys(targets):
             if target == "apps" or target.startswith("apps."):
                 found.append(AppImport(target, id(node) not in top_level, node.lineno))
     return found
+
+
+def _imported_module(module: str, name: str) -> str:
+    """The module a ``from module import name`` statement depends on.
+
+    ``apps`` and ``apps.<app>`` are packages, so ``name`` is the module being imported and
+    is appended; anything deeper is a module and ``name`` is one of its symbols.
+    """
+    is_package = module == "apps" or (module.startswith("apps.") and module.count(".") == 1)
+    return f"{module}.{name}" if is_package else module
 
 
 def cross_app_imports(path: Path) -> list[AppImport]:
@@ -121,7 +136,7 @@ def cross_app_imports(path: Path) -> list[AppImport]:
 
 
 def test_domain_modules_import_only_their_own_app_or_a_lower_layer() -> None:
-    """No top-level import in a domain module reaches sideways or upward."""
+    """No top-level import in a domain module reaches sideways, upward or to bare ``apps``."""
     upward = []
     for path in domain_modules():
         module = module_name(path)
@@ -129,7 +144,8 @@ def test_domain_modules_import_only_their_own_app_or_a_lower_layer() -> None:
         for record in cross_app_imports(path):
             if record.is_inline:
                 continue
-            if APP_LAYERS[app_of(record.target)] >= layer:
+            target_layer = APP_LAYERS.get(app_of(record.target))
+            if target_layer is None or target_layer >= layer:
                 upward.append(f"{module} imports {record.target}")
     assert sorted(upward) == []
 
@@ -168,7 +184,11 @@ def test_every_sanctioned_inline_import_still_exists() -> None:
 
 
 def test_every_sanctioned_inline_import_carries_a_comment() -> None:
-    """Each inline cross-app import says, on the line above it, which cycle it avoids."""
+    """Each inline cross-app import sits directly under a comment block opening ``# Inline:``.
+
+    The block says which cycle the inline placement avoids; an unrelated comment such as
+    a lint pragma does not count.
+    """
     uncommented = []
     for path in domain_modules():
         module = module_name(path)
@@ -176,11 +196,64 @@ def test_every_sanctioned_inline_import_carries_a_comment() -> None:
         for record in cross_app_imports(path):
             if not record.is_inline:
                 continue
-            above = [line.strip() for line in lines[: record.lineno - 1]]
-            preceding = next((line for line in reversed(above) if line != ""), "")
-            if not preceding.startswith("#"):
+            if not _comment_block_above(lines, record.lineno).startswith("# Inline:"):
                 uncommented.append(f"{module}:{record.lineno} imports {record.target}")
     assert sorted(uncommented) == []
+
+
+def _comment_block_above(lines: list[str], lineno: int) -> str:
+    """The first line of the comment block ending right above 1-based ``lineno``, or ``""``.
+
+    The block is the unbroken run of comment lines directly above the line; a blank line
+    or code between them ends it.
+    """
+    block = []
+    for line in reversed(lines[: lineno - 1]):
+        stripped = line.strip()
+        if not stripped.startswith("#"):
+            break
+        block.append(stripped)
+    return block[-1] if block else ""
+
+
+def test_short_import_forms_name_the_module_they_depend_on(tmp_path: Path) -> None:
+    """``from apps import x`` and ``from apps.<app> import y`` resolve to the real target."""
+    probe = tmp_path / "probe.py"
+    probe.write_text(
+        "from apps import payments\n"
+        "from apps.accounts import api\n"
+        "import apps\n"
+        "from apps.members.services import first, second\n",
+        encoding="utf-8",
+    )
+    assert [record.target for record in app_imports(probe)] == [
+        "apps.payments",
+        "apps.accounts.api",
+        "apps",
+        "apps.members.services",
+    ]
+
+
+def test_the_bare_package_names_no_app() -> None:
+    """``import apps`` has no app for the layer table, so the layer test rejects it."""
+    assert app_of("apps") == ""
+
+
+@pytest.mark.parametrize(
+    ("lines", "expected"),
+    [
+        (
+            ["x = 1", "# Inline: why", "# and more", "from apps.cms.models import y"],
+            "# Inline: why",
+        ),
+        (["# Inline: why", "", "from apps.cms.models import y"], ""),
+        (["# noqa: F401", "from apps.cms.models import y"], "# noqa: F401"),
+    ],
+    ids=["block-first-line", "blank-line-breaks-the-block", "pragma-is-not-an-inline-comment"],
+)
+def test_the_comment_block_is_read_from_its_first_line(lines: list[str], expected: str) -> None:
+    """Only a block that opens with ``# Inline:`` satisfies the comment rule."""
+    assert _comment_block_above(lines, len(lines)) == expected
 
 
 def test_project_foundation_modules_import_nothing_from_apps() -> None:

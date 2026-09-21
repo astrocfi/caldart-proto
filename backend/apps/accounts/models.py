@@ -136,9 +136,9 @@ class User(AbstractUser):
     @property
     def can_access_members_content(self) -> bool:
         """Current membership, or any role beyond plain ``member``."""
-        # Inline: members sits above accounts, and apps.members.models declares the
-        # foreign keys back to this model, so a top-level import here would close
-        # the cycle.
+        # Inline: members sits above accounts in the app order, so this module may
+        # not depend on it at the top level even though apps.members.models itself
+        # imports nothing from accounts.
         from apps.members.models import MembershipState
 
         if self.is_superuser:
