@@ -155,8 +155,8 @@ Statuses: **200**; **401** when anonymous; **403** for every other role.
 ``POST /system/backups``
 ------------------------
 
-Takes a dump now.  The body is empty; the name is generated from the site
-clock as ``caldart-<YYYYMMDD-HHMMSS>.sql.gz``.
+Takes a dump immediately.  The body is empty; the name is generated from the
+site clock as ``caldart-<YYYYMMDD-HHMMSS>.sql.gz``.
 
 .. code-block:: json
 
