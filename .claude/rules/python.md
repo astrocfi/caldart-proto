@@ -79,7 +79,9 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 
 ## 5. Docstrings
 
-- ALWAYS include a docstring for every module, class, function, and method.
+- ALWAYS include a docstring for every module, class, function, and method. Ruff's `D`
+  rules enforce that they exist and are well formed, and `W505` enforces the 90-character
+  wrap below. A package's `__init__.py` and a nested `Meta` class are exempt.
 - Follow **PEP 257**. Describe the behavior in prose, and name the parameters, return value, raised exceptions and important behavioral notes that a caller needs.
 - No `Parameters:`/`Args:`, `Returns:` or `Raises:` sections are required. Such sections only serve ReadTheDocs rendering, which this project doesn't use.
 - NEVER mention backwards compatibility, a user request, change history, or an issue/ticket number in a docstring. Docstrings are usage documentation, not a place to explain the code's provenance; describe only observable behavior. (Issue references are allowed in inline `#` code comments per Section 3, and in commit messages and PR descriptions. Never cite a plan from `plans/`; the docs stand alone.)
@@ -95,8 +97,8 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 
 ## 7. Ruff Rule Categories
 
-`pyproject.toml` enables these categories, excludes `**/migrations/*`, and ignores `B008` and
-`DJ001`:
+`pyproject.toml` enables these categories, excludes `**/migrations/*`, and ignores `B008`,
+`DJ001`, `D104` (an empty package `__init__.py`) and `D106` (a nested `Meta` class):
 
 | Code | Source | Purpose |
 |------|--------|---------|
@@ -107,8 +109,14 @@ Wagtail web application, not a published library. **Minimum Python version: 3.12
 | **B** | flake8-bugbear | Common bugs (mutable defaults, assert, loop vars). |
 | **DJ** | flake8-django | Django conventions (model `__str__`, form fields, `null` on text fields). |
 | **C4** | flake8-comprehensions | Prefer comprehensions over loops where clear. |
+| **ANN** | flake8-annotations | An annotation on every parameter and return value (Section 4). |
+| **D** | pydocstyle | A well-formed docstring on every module, class and function (Section 5). |
 
 **A** (builtin shadowing) and **N** (naming) are not enabled, so those rules in Section 1 are
 enforced by review rather than by Ruff. Categories to consider adding: **A**, **N**, **SIM**,
-**PT**, **RUF**, **D**/**DOC** (docstrings), **PTH**, **RET**, **PERF**. Enable one only if the
-team agrees to fix or ignore the resulting diagnostics.
+**PT**, **RUF**, **DOC** (pydoclint, still preview), **PTH**, **RET**, **PERF**. Enable one
+only if the team agrees to fix or ignore the resulting diagnostics.
+
+**ANN** and **D** are adopted behind a ratchet: `[tool.ruff.lint.per-file-ignores]` suspends
+both for the parts of the backend that do not satisfy them yet, one entry per unit. Delete
+the entry for the unit you are annotating and documenting; never add one.

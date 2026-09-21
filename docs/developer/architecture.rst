@@ -79,7 +79,7 @@ Reports, email  reportlab for PDF and the standard library's ``csv`` for CSV;
                 on port 1025, web interface on 8025)
 Operations      gunicorn behind Apache 2.4 or nginx; a management command
                 run daily by a systemd timer
-Tooling         uv and npm; ruff; tsc, ESLint 9 and Prettier; pytest,
+Tooling         uv and npm; ruff and mypy; tsc, ESLint 9 and Prettier; pytest,
                 pytest-django, factory_boy, freezegun and respx; Vitest,
                 Testing Library and msw; Playwright; Sphinx with furo; GitHub
                 Actions, where every step is a make target
@@ -97,7 +97,7 @@ Repository layout
     Makefile                    every task; `make help` lists the everyday ones
     docker-compose.yml          Postgres and Mailpit, project name "caldart"
     .env.example                every environment variable, with dev defaults
-    pyproject.toml, uv.lock     backend dependencies; ruff and pytest settings
+    pyproject.toml, uv.lock     backend dependencies; ruff, mypy, pytest settings
     .github/workflows/ci.yml    the CI pipeline
     .claude/
       rules/                    coding, testing and documentation standards
