@@ -258,15 +258,16 @@ Site settings
 =====================  ======================================================
 Field                  Where it shows
 =====================  ======================================================
-Organization name      Page titles, footer, the member portal
+Org name               Page titles, footer, the member portal
 Tagline                Under the wordmark, and as the default page
                        description for search engines
 EIN                    Footer and the contact page
 Contact email          Footer, contact page, the members-only wall
 Contact phone          Footer and contact page
 Mailing address        Footer and contact page
-Donate URL             Footer link
-Facebook / X URL       Footer links
+Donate url             Footer link
+Facebook url           Footer link
+Twitter url            Footer link
 Theme                  The whole color palette — see below
 Footer text            The small print in the first footer column
 =====================  ======================================================

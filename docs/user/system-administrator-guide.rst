@@ -23,14 +23,19 @@ payment can confirm it.  In practice you can:
 * do everything a member, DART leader, user administrator, account
   administrator and website administrator can do;
 * open ``/portal/system``: health, backups, reminders;
-* sign in to the Django admin at ``/django-admin/`` if your account is also a
-  superuser.
+* sign in to the Django admin at ``/django-admin/`` — granting ``system_admin``
+  in the portal also sets the account's Django superuser flag, and that flag is
+  what opens the door.
 
 Because it is total, keep it to the one or two people who actually run the
 site.  Everyone else should hold the narrower role that matches their job —
 ``account_admin`` for membership work, ``website_admin`` for pages,
-``user_admin`` for accounts and roles.  Roles are assigned under **Users &
-roles** in the portal.
+``user_admin`` for accounts and roles.  Grant roles under **Users & roles** in
+the portal, never by editing an account's groups in the Django admin's
+**Permissions** fieldset: only the portal keeps the Django superuser and staff
+flags in step with the roles it writes, so a ``system_admin`` group added by
+hand there leaves the superuser flag off and the account locked out of
+``/django-admin/``.
 
 
 The system screen
@@ -49,7 +54,7 @@ re-runs them.
 **Database**
    Whether the application can reach Postgres.  Anything other than ``ok`` and
    the site is down or about to be; the value is the connection error.  This is
-   a server problem — see the deployment guide's troubleshooting section.
+   a server problem — see :ref:`deploy-troubleshooting`.
 
 **Pending migrations**
    Database changes that shipped with the code but have not been applied.
@@ -164,11 +169,24 @@ Changing the reminder schedule or wording     :doc:`../developer/reminders`
 Payment provider keys and webhooks            :doc:`../developer/payments-setup`
 ============================================  ==================================
 
-The quickest health check from a shell on the server is::
+The quickest health check from a shell on the server is, using
+``caldart_manage`` from :ref:`deploy-manage-commands`::
 
-  manage.py health --json
+  caldart_manage health --json
 
-which prints exactly what the health panel shows.
+which prints exactly what the health panel shows, for example::
+
+  {
+    "db": "ok",
+    "pending_migrations": 0,
+    "disk_free_mb": 48213,
+    "last_backup": "2026-09-20T07:00:04-07:00",
+    "version": "0.1.0",
+    "debug": false
+  }
+
+The command's own exit status is always ``0``, even when a field above reads
+badly — read the JSON, do not script against the exit code.
 
 
 Adding another administrator
@@ -205,10 +223,16 @@ When something goes wrong
    :doc:`../developer/configuration`.
 
 **A backup download 404s.**
-   Only files in ``BACKUP_DIR`` whose names look like ``caldart-….sql.gz`` can
-   be downloaded, and the check is deliberately strict — a renamed dump, or one
+   Only a plain file name ending ``.sql.gz`` inside ``BACKUP_DIR`` can be
+   downloaded — starting with a letter or digit, then any run of letters,
+   digits, ``.``, ``_`` or ``-``.  The automatic ``caldart-<timestamp>.sql.gz``
+   names always fit.  A name you chose yourself may not: ``db_backup --name``
+   writes whatever name you give it without checking, so a dump called
+   ``nightly backup.sql.gz`` or ``_snapshot.sql.gz`` is listed and then refused
+   at download, and one that does not end ``.sql.gz`` at all is never listed.
+   The check is deliberately strict: a name outside that pattern, or one
    reached through a symbolic link out of the directory, is refused rather than
-   served.  Rename it back, or copy it off the server directly.
+   served.  Rename it to fit, or copy it off the server directly.
 
 **Health says migrations are pending.**
    Code has been deployed without ``manage.py migrate``.  Until it runs, the
@@ -242,5 +266,6 @@ When something goes wrong
    could not send something, and ``journalctl -u caldart-reminders`` names the
    member and membership ids it could not reach.
 
-The quickest diagnosis from a shell on the server is ``manage.py health``, or
-``manage.py health --json`` if you want to feed it to something else.
+The quickest diagnosis from a shell on the server is ``caldart_manage
+health``, or ``caldart_manage health --json`` if you want to feed it to
+something else; see :ref:`deploy-manage-commands`.

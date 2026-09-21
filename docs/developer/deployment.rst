@@ -537,6 +537,8 @@ Rolling back is the same sequence against the previous commit, plus a
 ``db_restore`` if the migration was not backwards compatible.
 
 
+.. _deploy-troubleshooting:
+
 Troubleshooting
 ===============
 
