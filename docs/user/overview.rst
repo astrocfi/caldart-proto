@@ -186,6 +186,10 @@ mail you twice, and renewing stops the rest of the series.  Life members, and
 accounts that have been deactivated, are never mailed.  Every email links to
 the renewal page.
 
+Every one of those emails is recorded.  Account administrators read the record
+on the portal's **Reminders** screen, so "was I ever told?" has an answer:
+:doc:`account-administrator-guide` describes it.
+
 
 Where to go next
 ================

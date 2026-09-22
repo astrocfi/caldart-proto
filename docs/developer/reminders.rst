@@ -246,7 +246,7 @@ subject to ``SUBJECTS`` in ``apps/reminders/services.py``, add the two
 templates, and generate a migration for the new choice.  On the frontend, add
 the kind to the ``ReminderKind`` union in ``frontend/src/portal/api/types.ts``,
 then a label to ``KIND_LABELS`` and an entry to ``KIND_OPTIONS`` in
-``frontend/src/portal/features/system/RemindersPanel.tsx`` — ``KIND_LABELS``
+``frontend/src/portal/features/system/ReminderLog.tsx`` — ``KIND_LABELS``
 names the kind in the log's table, and ``KIND_OPTIONS`` is what puts it in the
 log's kind filter.
 
@@ -304,8 +304,24 @@ answer to "was this member ever told?".
 
 Read it at ``GET /admin/reminders/log`` — open to ``account_admin`` as well as
 ``system_admin``, since it is a membership question as much as an operations
-one — or in the reminders panel of ``/portal/system``, which shows the twenty
-most recent with a kind filter.
+one — or on either of the two portal screens that show it.
+
+.. _reminders-account-admin:
+
+Both screens render the same table, the component
+``frontend/src/portal/features/system/ReminderLog.tsx``: the twenty most recent
+reminders, newest first, with a filter by kind.
+
+``/portal/admin/reminders``
+   **Reminders**, under *Administration*, guarded by ``account_admin``.  The
+   log and nothing else, because starting a scan is a system administrator's
+   job.  :doc:`/user/account-administrator-guide` describes it for the people
+   who use it.
+
+``/portal/system``
+   The reminders panel of the System page, guarded by ``system_admin``.  The
+   same table with the *Run now* button and the *Dry run* switch above it,
+   which call ``POST /system/reminders/run``.
 
 The endpoint is paginated and takes five parameters:
 

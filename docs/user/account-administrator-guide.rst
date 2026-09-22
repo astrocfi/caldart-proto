@@ -11,7 +11,8 @@ System administrators have it implicitly.  The role also opens **Payments**
 and **Aircraft** under *Administration* in the portal menu, and **Member
 check** and **Aircraft check** under *Operations* — the pre-flight currency
 checks described in :doc:`dart-leader-guide`.  This page covers **Members**,
-at ``/portal/admin/members``.
+at ``/portal/admin/members``, and **Reminders**, at
+``/portal/admin/reminders``.
 
 
 The member list
@@ -230,6 +231,27 @@ is empty and the plan column says *Life*.
 
 The columns are listed field by field in the developer documentation under
 :doc:`/developer/reports`.
+
+
+Reminders
+=========
+
+**Reminders**, under *Administration*, is the record of the renewal emails
+CalDART has sent: one row per email, newest first, with the date and time it
+went out, which reminder it was, the member it went to and the address it was
+sent to.  It is the answer to "did we ever tell them?".
+
+The **Reminder** box above the table narrows it to one kind: *60 days before*,
+*30 days before*, *7 days before*, *Expiry day* or *30 days after*.  *All
+kinds* puts them back.  Sort by clicking a column heading.
+
+The scan that sends them runs every morning at 07:00 and needs nobody to start
+it; :doc:`overview` explains which email a member gets when.  Running it by
+hand is a system administrator's control and lives on their System page, so
+there is no button for it here.
+
+An empty table means nothing has matched a reminder window yet — on a fresh
+installation, or when every member renewed early.
 
 
 Common tasks
