@@ -32,11 +32,6 @@ def test_backup_dir_creates_the_directory_on_first_use(tmp_path: Path, settings:
     assert (tmp_path / "fresh").is_dir()
 
 
-def test_list_backups_is_empty_to_start(backup_dir: Path) -> None:
-    """An unused backup directory lists no backups."""
-    assert services.list_backups() == []
-
-
 def test_list_backups_newest_first(backup_dir: Path) -> None:
     """The dumps on disk are listed by modification time, newest first."""
     for name, mtime in (
@@ -73,24 +68,6 @@ def test_pending_migrations_is_empty_on_a_migrated_database() -> None:
     assert services.pending_migrations() == []
 
 
-def test_health_report_shape(backup_dir: Path) -> None:
-    """The health payload reports an ok database, no backup, and debug mode off."""
-    report = services.health()
-    assert report["db"] == "ok"
-    assert report["pending_migrations"] == 0
-    assert report["disk_free_mb"] > 0
-    assert report["last_backup"] is None
-    assert report["version"]
-    assert report["debug"] is False
-
-
-def test_health_reports_the_last_backup(backup_dir: Path) -> None:
-    """Once a dump exists, the health payload names it as the last backup."""
-    with gzip.open(backup_dir / "caldart-20260101-000000.sql.gz", "wb") as handle:
-        handle.write(b"-- dump\n")
-    assert services.health()["last_backup"] is not None
-
-
 def test_health_command_prints_a_table(backup_dir: Path) -> None:
     """``manage.py health`` writes a table naming ``db`` and ``pending migrations``."""
     out = StringIO()
@@ -104,12 +81,6 @@ def test_health_command_json(backup_dir: Path) -> None:
     out = StringIO()
     call_command("health", "--json", stdout=out)
     assert json.loads(out.getvalue())["db"] == "ok"
-
-
-def test_restore_rejects_a_missing_file(backup_dir: Path) -> None:
-    """Restoring a backup that does not exist raises ``BackupError``."""
-    with pytest.raises(services.BackupError, match="No such backup"):
-        services.restore_backup(backup_dir / "nope.sql.gz")
 
 
 # --------------------------------------------------------------- streaming

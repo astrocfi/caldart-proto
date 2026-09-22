@@ -211,3 +211,17 @@ def test_the_page_form_hides_raw_html_from_users_who_may_not_use_it(
     # StreamField.
     body_field = StandardPage._meta.get_field("body").stream_block  # type: ignore[union-attr]
     assert "raw_html" in body_field.child_blocks
+
+
+def test_website_admin_may_manage_redirects(website_admin: User) -> None:
+    """Renaming a page changes its URL, so an editor holds every redirect permission."""
+    grant_website_admin_permissions()
+    editor = type(website_admin).objects.get(pk=website_admin.pk)
+
+    for codename in ("add_redirect", "change_redirect", "delete_redirect"):
+        assert editor.has_perm(f"wagtailredirects.{codename}")
+
+
+def test_a_plain_member_may_not_manage_redirects(member: User) -> None:
+    """A plain member holds none of the Wagtail redirect permissions."""
+    assert not member.has_perm("wagtailredirects.add_redirect")

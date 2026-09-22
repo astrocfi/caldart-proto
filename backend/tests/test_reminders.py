@@ -15,15 +15,16 @@ import pytest
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.utils import timezone
 from freezegun import freeze_time
 from pytest_django.fixtures import Settings
 
 from apps.accounts.models import User
-from apps.cms.models import SiteSettings
+from apps.cms.models import SiteSettings, get_site_settings
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
-from apps.reminders.services import ReminderRun, renew_url, send_renewal_reminders
-from tests.factories import MembershipFactory, UserFactory
+from apps.reminders.services import ReminderRun, build_email, renew_url, send_renewal_reminders
+from tests.factories import MemberProfileFactory, MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -404,3 +405,22 @@ def test_summary_lines_cover_every_kind() -> None:
         assert kind in lines
     assert "lifetime" in lines
     assert run.as_dict() == {"sent": 1, "skipped": 1}
+
+
+def test_reminder_email_takes_its_name_from_site_settings() -> None:
+    """A reminder email's subject and body carry the seeded site's organization name."""
+    call_command("seed_content", stdout=StringIO(), verbosity=0)
+
+    profile = MemberProfileFactory()
+    membership = MembershipFactory(
+        user=profile.user, ends_on=timezone.localdate() + timedelta(days=30)
+    )
+
+    message = build_email(profile.user, membership, "t30", timezone.localdate())
+
+    site_settings = get_site_settings()
+    assert site_settings is not None
+    # The seeded site uses the organization's full name, not the short one.
+    assert site_settings.org_name != "CalDART"
+    assert site_settings.org_name in message.subject
+    assert site_settings.org_name in message.body

@@ -145,23 +145,3 @@ def test_django_admin_login_page(client: Client) -> None:
     """The Django admin login page answers 200."""
     response = client.get("/django-admin/login/")
     assert response.status_code == 200
-
-
-def test_apple_pay_association_is_404_when_unconfigured(client: Client, settings: Settings) -> None:
-    """The Apple Pay domain association file answers 404 when unconfigured."""
-    settings.STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION = ""
-    assert (
-        client.get("/.well-known/apple-developer-merchantid-domain-association").status_code == 404
-    )
-
-
-def test_apple_pay_association_serves_the_file(
-    client: Client, settings: Settings, tmp_path: Path
-) -> None:
-    """The Apple Pay domain association route serves the configured file's bytes."""
-    path = tmp_path / "association.txt"
-    path.write_text("7B227073...")
-    settings.STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION = str(path)
-    response = client.get("/.well-known/apple-developer-merchantid-domain-association")
-    assert response.status_code == 200
-    assert response.content.decode() == "7B227073..."

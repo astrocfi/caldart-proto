@@ -6,6 +6,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.aircraft.api.serializers import AircraftSummarySerializer
 from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile
 from tests.conftest import ROLE_MATRIX
@@ -176,3 +177,17 @@ def test_every_role_may_detach_their_own_aircraft(
     api_client.force_login(all_role_users[slug])
     api_client.post(ATTACH_URL, {"aircraft_id": aircraft.id}, format="json")
     assert api_client.delete(detach_url(aircraft.id)).status_code == 204
+
+
+def test_profile_aircraft_shape_matches_the_register(
+    api_client: APIClient, aircraft: Aircraft
+) -> None:
+    """The profile API's ``aircraft`` entries carry the register's summary fields."""
+    profile = MemberProfileFactory()
+    profile.aircraft.add(aircraft)
+    api_client.force_login(profile.user)
+
+    response = api_client.get("/api/v1/me/profile")
+
+    assert response.status_code == 200
+    assert set(response.json()["aircraft"][0]) == set(AircraftSummarySerializer().fields)

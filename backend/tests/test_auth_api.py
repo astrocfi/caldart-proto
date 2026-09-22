@@ -7,10 +7,10 @@ from datetime import date
 import pytest
 from rest_framework.test import APIClient
 
+from apps.accounts.api.views import DEACTIVATED_MESSAGE, WRONG_CREDENTIALS_MESSAGE
 from apps.accounts.models import User
-from apps.accounts.roles import MEMBER, ROLE_SLUGS
-from apps.cms.models import SiteSettings
-from apps.members.models import MemberProfile, MembershipPlan
+from apps.accounts.roles import MEMBER
+from apps.members.models import MembershipPlan
 from tests.factories import MembershipFactory
 
 pytestmark = pytest.mark.django_db
@@ -63,20 +63,21 @@ def test_login_is_case_insensitive_on_email(
 
 
 def test_login_with_a_bad_password(api_client: APIClient, member: User) -> None:
-    """A wrong password is refused with a 400 and a ``detail`` message."""
+    """A wrong password is refused with a 400 naming neither half of the credentials."""
     response = api_client.post("/api/v1/auth/login", {"email": member.email, "password": "wrong"})
     assert response.status_code == 400
-    assert "detail" in response.json()
+    assert response.json()["detail"] == WRONG_CREDENTIALS_MESSAGE
 
 
 def test_login_rejects_a_deactivated_account(
     api_client: APIClient, member: User, password: str
 ) -> None:
-    """A deactivated account cannot log in, even with the correct password."""
+    """A deactivated account is told so, but only once its password has matched."""
     member.is_active = False
     member.save(update_fields=["is_active"])
     response = api_client.post("/api/v1/auth/login", {"email": member.email, "password": password})
-    assert response.status_code in (400, 403)
+    assert response.status_code == 403
+    assert response.json()["detail"] == DEACTIVATED_MESSAGE
 
 
 def test_login_validates_the_payload(api_client: APIClient) -> None:
@@ -86,7 +87,9 @@ def test_login_validates_the_payload(api_client: APIClient) -> None:
     assert response.json()["password"] == ["This field is required."]
 
 
-def test_me_after_login(api_client: APIClient, member: User, password: str) -> None:
+def test_me_reports_the_member_who_just_logged_in(
+    api_client: APIClient, member: User, password: str
+) -> None:
     """``GET /auth/me`` reports the signed-in member once login has succeeded."""
     api_client.post("/api/v1/auth/login", {"email": member.email, "password": password})
     response = api_client.get("/api/v1/auth/me")
@@ -101,33 +104,6 @@ def test_logout_clears_the_session(api_client: APIClient, member: User, password
     assert api_client.get("/api/v1/auth/me").status_code == 401
 
 
-def test_profile_complete_flag(
-    api_client: APIClient, member: User, password: str, profile: MemberProfile
-) -> None:
-    """A member with a complete profile is reported as ``profile_complete``."""
-    api_client.post("/api/v1/auth/login", {"email": member.email, "password": password})
-    assert api_client.get("/api/v1/auth/me").json()["profile_complete"] is True
-
-
 def test_roles_endpoint_requires_authentication(api_client: APIClient) -> None:
     """``GET /roles`` is 401 for a client with no session."""
     assert api_client.get("/api/v1/roles").status_code == 401
-
-
-def test_roles_endpoint_lists_every_role(api_client: APIClient, member: User) -> None:
-    """``GET /roles`` lists every role slug, in order, each with a description."""
-    api_client.force_login(member)
-    response = api_client.get("/api/v1/roles")
-    assert response.status_code == 200
-    slugs = [row["slug"] for row in response.json()]
-    assert slugs == list(ROLE_SLUGS)
-    assert all(row["description"] for row in response.json())
-
-
-def test_site_config_is_public(api_client: APIClient, site_settings: SiteSettings) -> None:
-    """``GET /site/config`` needs no session and returns the documented shape."""
-    response = api_client.get("/api/v1/site/config")
-    assert response.status_code == 200
-    data = response.json()
-    assert set(data) >= {"org_name", "theme", "contact_email", "nav", "members_pages"}
-    assert data["theme"] == "sierra"

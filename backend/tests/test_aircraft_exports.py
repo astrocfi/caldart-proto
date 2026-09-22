@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import pytest
-from rest_framework.test import APIClient
+from rest_framework.request import Request
+from rest_framework.test import APIClient, APIRequestFactory
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
+from apps.aircraft.api.views import AircraftExportPdfView
 from apps.aircraft.reports import aircraft_row
 from tests.conftest import PdfText, RegisterDict, pdf_page_count, read_csv, role_matrix
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
@@ -262,3 +264,23 @@ def test_odd_cent_amounts_keep_their_cents(register: RegisterDict) -> None:
     """``aircraft_row``'s currency format keeps non-round cent amounts precise."""
     register["current"].insurance_hull_cents = 12_345
     assert aircraft_row(register["current"], currency=True)[8] == "$123.45"
+
+
+def test_the_export_subtitle_covers_every_filter_the_list_applies() -> None:
+    """``applied_filters`` reports every filter the register list supports."""
+    view = AircraftExportPdfView()
+    view.request = Request(APIRequestFactory().get("/", {"is_active": "true", "search": "N1"}))
+
+    filters = view.applied_filters()
+
+    assert filters["is_active"] == "true"
+    assert filters["search"] == "N1"
+    assert set(filters) == {
+        "search",
+        "make",
+        "owner_type",
+        "insurance",
+        "expiring_within",
+        "is_active",
+        "ordering",
+    }

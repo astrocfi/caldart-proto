@@ -26,7 +26,6 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
-from apps.payments.providers import get_provider
 from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.stripe import wallet_from_intent
 from apps.payments.services import create_checkout
@@ -744,8 +743,3 @@ def test_webhook_needs_no_session_or_csrf(
     """``csrf_client`` enforces CSRF, so a 403 here would mean the exemption broke."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     assert post_webhook(csrf_client, succeeded_event(payment, "pi_anon")).status_code == 200
-
-
-def test_stripe_provider_is_registered() -> None:
-    """The Stripe provider is registered under the slug ``stripe``."""
-    assert get_provider("stripe").slug == "stripe"

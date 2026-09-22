@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from io import StringIO
 
 import pytest
 from django.core.management import call_command
 from django.test import Client
+from django.utils import timezone
+from rest_framework.test import APIClient
 from wagtail.models import Page
 
 from apps.cms.management.commands import seed_content_data as content
@@ -20,6 +23,7 @@ from apps.cms.models import (
     StandardPage,
 )
 from apps.members.models import Dart
+from tests.factories import MemberProfileFactory, MembershipFactory
 
 #: Every test here runs `seed_content`, which builds the whole example site.
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
@@ -267,3 +271,18 @@ def test_definition_list_renders_one_bold_item_per_row() -> None:
 def test_definition_list_of_no_rows_is_an_empty_list() -> None:
     """No rows give an empty ``<ul>`` rather than any item markup."""
     assert content.definition_list([]) == "<ul></ul>"
+
+
+def test_seed_content_publishes_members_only_pages(api_client: APIClient) -> None:
+    """The dashboard's members-only list is empty until ``seed_content`` has run."""
+    call_command("seed_content", stdout=StringIO(), verbosity=0)
+
+    member = MemberProfileFactory().user
+    MembershipFactory(user=member, ends_on=timezone.localdate() + timedelta(days=30))
+    api_client.force_login(member)
+
+    config = api_client.get("/api/v1/site/config")
+
+    assert config.status_code == 200
+    assert config.json()["org_name"] != ""
+    assert len(config.json()["members_pages"]) > 0
