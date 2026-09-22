@@ -210,11 +210,14 @@ Conventions
   nothing patches the signature check.  PayPal, which is called over ``httpx``
   with no SDK, is exercised with ``respx`` intercepting the HTTP.  Neither
   provider module is stubbed out.
-- **No test may leave the machine.**  An autouse fixture in ``conftest.py``
-  wraps every test in a ``test_payments*`` module in a ``respx`` router armed
-  with ``assert_all_mocked=True``, so an ``httpx`` request no route matches
-  raises ``AllMockedAssertionError`` instead of travelling; the router nests
-  inside the one an individual test starts, so its own routes still answer.
+- **No payment test may leave the machine.**  The payment providers are the
+  only code that calls a third party, so the ``test_payments*`` modules are the
+  only ones the guard covers.  An autouse fixture in ``conftest.py`` wraps every
+  test in such a module in a ``respx`` router armed with
+  ``assert_all_mocked=True``, so an ``httpx`` request no route matches raises
+  ``AllMockedAssertionError`` instead of travelling; the router nests inside the
+  one an individual test starts, so its own routes still answer.  Tests in every
+  other module run untouched.
   The Stripe SDK carries its own transport rather than ``httpx``, so
   ``test_payments_stripe.py`` replaces the provider's ``http_client`` factory
   with one that raises.  Either way a forgotten mock fails the test that forgot
