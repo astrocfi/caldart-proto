@@ -25,7 +25,7 @@ def apple_pay_domain_association(request: HttpRequest) -> HttpResponse:
     a normal state for a development machine, and Apple Pay simply does not
     appear in the Payment Element.
     """
-    configured = getattr(settings, "STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION", "")
+    configured = settings.STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION
     if not configured:
         raise Http404("Apple Pay domain association file is not configured")
 

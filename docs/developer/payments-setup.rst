@@ -532,10 +532,28 @@ On the server, CalDART calls the Orders v2 REST API directly with ``httpx`` —
 no SDK.  Three calls, in ``backend/apps/payments/providers/paypal.py``:
 
 1. ``POST /v1/oauth2/token`` with the client id and secret, for a bearer token
-   that is cached in-process until shortly before it expires;
+   (see :ref:`paypal-token-cache`);
 2. ``POST /v2/checkout/orders`` with ``intent=CAPTURE``, the server-computed
    amount, ``custom_id`` set to our payment id, and the CalDART brand name;
 3. ``POST /v2/checkout/orders/{id}/capture`` when the buyer approves.
+
+.. _paypal-token-cache:
+
+The access token
+----------------
+
+The client-credentials token goes into Django's default cache under the key
+``paypal:access_token``, with a timeout of the lifetime PayPal advertised less
+a 60-second margin, so a token is never presented after PayPal has dropped it.
+The entry records the API base and client id it was fetched for: changing
+``PAYPAL_ENV`` or ``PAYPAL_CLIENT_ID`` fetches a fresh token instead of
+presenting one PayPal would refuse.
+
+How widely that token is shared is the cache backend's business.  Production
+uses the database cache table (see :doc:`deployment`), so every worker process
+shares one token; a per-process backend costs one extra token fetch per
+process and nothing else.  Emptying the cache forces the next call to fetch —
+which is how the tests do it.
 
 A capture only activates a membership when PayPal answers ``COMPLETED`` *and*
 the captured amount and currency match our own record.  A ``custom_id`` on the

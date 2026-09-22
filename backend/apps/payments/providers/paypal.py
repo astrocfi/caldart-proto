@@ -3,9 +3,9 @@
 No SDK — the three calls we need (OAuth token, create order, capture order) are
 plain JSON over HTTPS, and the SDK would add a dependency for nothing.
 
-The client-credentials token is cached in-process until shortly before it
-expires; the cache is keyed on the environment and client id so changing either
-(in tests, or by editing ``.env``) invalidates it.
+The client-credentials token is held in Django's default cache until shortly
+before it expires; the entry records the environment and client id, so changing
+either (in tests, or by editing ``.env``) fetches a fresh one.
 
 Capture is authoritative: ``confirm`` only activates a membership when PayPal
 answers ``COMPLETED`` *and* the captured amount matches our own row.  The
@@ -16,13 +16,12 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 import httpx
 from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonResponse
-from django.utils import timezone
 
 from apps.payments.models import Payment, PaymentProvider, PaymentWallet
 from apps.payments.providers.base import (
@@ -48,6 +47,14 @@ UNAVAILABLE_MESSAGE = "PayPal could not be reached. Please try again."
 #: Seconds shaved off the advertised token lifetime, so we never present one
 #: that expires mid-flight.
 TOKEN_SKEW_SECONDS = 60
+
+#: How long a token is kept when PayPal advertises a lifetime shorter than the
+#: skew above.  Caching for a moment is still better than a fetch per call.
+MINIMUM_TOKEN_SECONDS = 30
+
+#: Where the client-credentials token sits in Django's default cache.
+TOKEN_CACHE_KEY = "paypal:access_token"  # noqa: S105 - a cache key, not a secret
+
 TIMEOUT_SECONDS = 20.0
 
 #: Webhook events worth acting on when the signature has been verified.
@@ -100,47 +107,37 @@ def cents(value: str | float | int) -> int:
 
 
 # --------------------------------------------------------------------------
-# OAuth token cache (in-process)
+# OAuth token cache
 # --------------------------------------------------------------------------
-class TokenCache(TypedDict):
-    """The one cached OAuth token: what it was fetched for, and until when."""
+class CachedToken(TypedDict):
+    """The cached OAuth token and the API base and client id it was fetched for."""
 
-    key: tuple[str, str] | None
+    key: list[str]
     token: str
-    expires_at: datetime | None
-
-
-_token_cache: TokenCache = {"key": None, "token": "", "expires_at": None}
-
-
-def reset_token_cache() -> None:
-    """Forget the cached token, so the next call fetches a fresh one.
-
-    Used by tests and after a configuration change.
-    """
-    _token_cache.update({"key": None, "token": "", "expires_at": None})
 
 
 def access_token() -> str:
     """A valid client-credentials token, fetched at most once per lifetime.
 
-    The cache is keyed on the API base and client id, so changing either fetches
-    a fresh token, and a token is dropped ``TOKEN_SKEW_SECONDS`` before PayPal
-    says it expires.  Raises :class:`ProviderNotConfiguredError` without credentials,
+    The token is held in Django's default cache under
+    :data:`TOKEN_CACHE_KEY` for its remaining lifetime less
+    ``TOKEN_SKEW_SECONDS``, so it is never presented after PayPal has dropped it.
+    Whether that cache is shared between worker processes is the cache backend's
+    business: a per-process backend simply costs one token fetch per process.
+    The entry records the API base and client id it was fetched for, so changing
+    either fetches a fresh token rather than presenting one PayPal will refuse.
+    Emptying the cache forces the next call to fetch.
+
+    Raises :class:`ProviderNotConfiguredError` without credentials,
     :class:`ProviderUnavailableError` when the token call does not complete, and
     :class:`PaymentVerificationError` when PayPal refuses the credentials or
     returns no token.
     """
     client_id, client_secret = credentials()
-    key = (api_base(), client_id)
-    now = timezone.now()
-    if (
-        _token_cache["key"] == key
-        and _token_cache["token"]
-        and _token_cache["expires_at"] is not None
-        and _token_cache["expires_at"] > now
-    ):
-        return _token_cache["token"]
+    key = [api_base(), client_id]
+    cached: CachedToken | None = cache.get(TOKEN_CACHE_KEY)
+    if cached is not None and cached["key"] == key:
+        return cached["token"]
 
     try:
         response = httpx.post(
@@ -164,14 +161,8 @@ def access_token() -> str:
     if not token:
         raise PaymentVerificationError("PayPal returned no access token.")
 
-    _token_cache.update(
-        {
-            "key": key,
-            "token": token,
-            "expires_at": now
-            + timedelta(seconds=max(int(body.get("expires_in", 0)) - TOKEN_SKEW_SECONDS, 30)),
-        }
-    )
+    lifetime = max(int(body.get("expires_in", 0)) - TOKEN_SKEW_SECONDS, MINIMUM_TOKEN_SECONDS)
+    cache.set(TOKEN_CACHE_KEY, CachedToken(key=key, token=token), timeout=lifetime)
     return token
 
 
@@ -431,7 +422,7 @@ class PayPalProvider(Provider):
         unset, and ``False`` when the verification call itself fails, so an
         unverifiable notification is only ever recorded.
         """
-        webhook_id = getattr(settings, "PAYPAL_WEBHOOK_ID", "")
+        webhook_id = settings.PAYPAL_WEBHOOK_ID
         if not webhook_id:
             return False
         headers = request.headers

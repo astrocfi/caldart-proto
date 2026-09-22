@@ -202,8 +202,8 @@ link to set a new one.  To change a password you still know, choose
 **Change password** in the *Membership* section of the portal menu (it is
 also at ``/portal/change-password``).
 
-If your account has been deactivated, signing in tells you so; contact
-CalDART to have it reopened.
+If your account has been deactivated, signing in with the right password tells
+you so; contact CalDART to have it reopened.
 
 
 When something goes wrong
