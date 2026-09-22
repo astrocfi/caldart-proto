@@ -8,14 +8,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, ApiError, api } from '../../api/client';
+import { API_BASE, ApiError, api } from '@/portal/api/client';
 import type {
   Aircraft,
   AircraftDetail,
   AircraftPatch,
   OwnerType,
   Paginated,
-} from '../../api/types';
+} from '@/portal/api/types';
 
 export type InsuranceState = 'current' | 'expired' | 'missing';
 

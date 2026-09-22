@@ -1,33 +1,28 @@
 /**
- * Data access for member self-service.
+ * Data access for the signed-in member's own profile, membership and payments.
  *
- * The join wizard, the dashboard and the profile editor all read the same
- * three resources, so the query keys live here and every mutation invalidates
- * the ones it can have changed — including `['auth','me']`, because saving a
- * profile moves `profile_complete` and paying moves `membership`.
+ * The query keys live here and every mutation invalidates the ones it can
+ * have changed — including `['auth','me']`, because saving a profile moves
+ * `profile_complete` and paying moves `membership`. Queries more than one
+ * feature reads, such as the plan catalog and the DART list, live in
+ * `@/portal/api/queries` instead.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { api } from '../../api/client';
-import { AUTH_ME_KEY } from '../../auth/useAuth';
+import { api } from '@/portal/api/client';
 import type {
   AttachedAircraft,
-  Dart,
   MembershipDetail,
   PaymentSummary,
-  Plan,
   Profile,
   ProfilePatch,
-  SiteConfig,
-} from '../../api/types';
+} from '@/portal/api/types';
+import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 
 export const PROFILE_KEY = ['me', 'profile'] as const;
 export const MEMBERSHIP_KEY = ['me', 'membership'] as const;
 export const PAYMENTS_KEY = ['me', 'payments'] as const;
-export const DARTS_KEY = ['darts'] as const;
-export const PLANS_KEY = ['plans'] as const;
-export const SITE_CONFIG_KEY = ['site', 'config'] as const;
 
 /** The signed-in member's own profile, via `GET /me/profile`. */
 export function useProfile(): UseQueryResult<Profile> {
@@ -47,33 +42,6 @@ export function useMyPayments(): UseQueryResult<PaymentSummary[]> {
   return useQuery({
     queryKey: PAYMENTS_KEY,
     queryFn: () => api.get<PaymentSummary[]>('/me/payments'),
-  });
-}
-
-/** Public: the join wizard reads it before the visitor has an account. */
-export function useDarts(): UseQueryResult<Dart[]> {
-  return useQuery({
-    queryKey: DARTS_KEY,
-    queryFn: () => api.get<Dart[]>('/darts'),
-    staleTime: 5 * 60_000,
-  });
-}
-
-/** Public: the plan catalog shown on the pay step. */
-export function usePlans(): UseQueryResult<Plan[]> {
-  return useQuery({
-    queryKey: PLANS_KEY,
-    queryFn: () => api.get<Plan[]>('/plans'),
-    staleTime: 5 * 60_000,
-  });
-}
-
-/** Site chrome, read for the members-only page list on the dashboard. */
-export function useSiteConfig(): UseQueryResult<SiteConfig> {
-  return useQuery({
-    queryKey: SITE_CONFIG_KEY,
-    queryFn: () => api.get<SiteConfig>('/site/config'),
-    staleTime: 5 * 60_000,
   });
 }
 

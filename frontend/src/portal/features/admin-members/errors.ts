@@ -5,7 +5,7 @@
  * comes back as `{"profile": {"phone": ["..."]}}` while a duplicate address
  * comes back as `{"email": ["..."]}`.
  */
-import { ApiError } from '../../api/client';
+import { ApiError } from '@/portal/api/client';
 import type { FieldErrors } from './MemberFormFields';
 
 export interface SplitErrors {

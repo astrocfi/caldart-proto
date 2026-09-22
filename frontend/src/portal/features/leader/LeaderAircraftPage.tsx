@@ -8,13 +8,13 @@ import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { ApiError } from '../../api/client';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { Field } from '../../components/Field';
-import { Page } from '../../components/Page';
-import { normalizeNNumber } from '../aircraft/insurance';
+import { ApiError } from '@/portal/api/client';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { Field } from '@/portal/components/Field';
+import { Page } from '@/portal/components/Page';
+import { normalizeNNumber } from '@/portal/features/aircraft/insurance';
 import { AircraftStatusCard } from './AircraftStatusCard';
 import { useLeaderAircraft } from './api';
 import './leader.css';
@@ -33,7 +33,7 @@ export function LeaderAircraftPage(): JSX.Element {
   const normalized = normalizeNNumber(asked);
   const query = useLeaderAircraft(normalized);
 
-  const submit = (event: React.FormEvent): void => {
+  const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     const next = normalizeNNumber(term);
     setParams(next ? { n_number: next } : {});
@@ -48,7 +48,7 @@ export function LeaderAircraftPage(): JSX.Element {
       lede="Type the tail number of the aircraft in front of you to see whether its insurance is current."
     >
       <Card>
-        <form onSubmit={submit}>
+        <form onSubmit={handleSubmit}>
           <Field label="N-number" hint="12345, n12345 and N-12345 all find the same aircraft.">
             {(field) => (
               <input

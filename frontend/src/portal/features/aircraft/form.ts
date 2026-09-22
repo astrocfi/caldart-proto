@@ -5,7 +5,7 @@
  * edit form render different subsets of the same fields, so they share the
  * conversion between form strings and the API's integer cents.
  */
-import type { Aircraft, AircraftPatch, OwnerType } from '../../api/types';
+import type { Aircraft, AircraftPatch, OwnerType } from '@/portal/api/types';
 import { centsToDollars, dollarsToCents, normalizeNNumber } from './insurance';
 
 export interface AircraftFormValues {

@@ -7,8 +7,8 @@
  * wording per code.  Only the lists that belong to this form alone —
  * volunteer interests and the county suggestions — are defined below.
  */
-export { CERTIFICATE_TYPES, IFR_OPTIONS, MEDICAL_TYPES, RATINGS } from '../../choices';
-export type { Choice } from '../../choices';
+export { CERTIFICATE_TYPES, IFR_OPTIONS, MEDICAL_TYPES, RATINGS } from '@/portal/choices';
+export type { Choice } from '@/portal/choices';
 
 export const VOLUNTEER_INTERESTS = [
   { field: 'vol_ground_team', label: 'Ground team' },

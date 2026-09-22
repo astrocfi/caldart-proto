@@ -7,8 +7,8 @@
 import { useId } from 'react';
 import type { JSX } from 'react';
 
-import type { ContributionTier } from '../../api/types';
-import { formatCents } from '../../components/Money';
+import type { ContributionTier } from '@/portal/api/types';
+import { formatCents } from '@/portal/components/Money';
 
 export const OTHER = 'other';
 

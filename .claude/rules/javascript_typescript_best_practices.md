@@ -12,7 +12,7 @@ React 19 + TypeScript).
 - **Functions and variables**: Use `camelCase`. Use `SCREAMING_SNAKE_CASE` only for true constants (e.g. config flags, enum-like values).
 - **Classes, types, interfaces, and React components**: Use `PascalCase`.
 - **Module-internal**: Do not export it. Do not prefix it with an underscore: a leading `_` is reserved for intentionally unused variables and parameters, which ESLint allows. Use `#` private class fields for private class members.
-- **Event handlers (UI)**: Prefix with `handle` (e.g. `handleClick`, `handleSubmit`). For callbacks passed as props use `on` (e.g. `onClick`, `onChange`).
+- **Event handlers (UI)**: Prefix with `handle` (e.g. `handleClick`, `handleSubmit`). For callbacks passed as props use `on` (e.g. `onClick`, `onChange`). ESLint's `react/jsx-handler-names` enforces the `handle*` side: whatever value is wired to an `onX` JSX prop — a local function, a destructured prop, a hook's return value — must be named `handle*` at that point, even if that takes a destructuring alias (`onRetry: handleRetry`) or an inline arrow (`onClick={() => signOut()}`).
 - **Boolean variables**: Use `is`, `has`, `should`, `can` (e.g. `isLoading`, `hasError`, `shouldRetry`).
 - **Maximum line length**: 100 characters, enforced by Prettier. Break long lines at logical points.
 - **Falsy checks**: Be explicit. Use `x === null` or `x === undefined` (or `x == null` for both) when that is the intent; avoid relying on truthiness when `0`, `""`, or `false` are valid. For optional chaining prefer `?.` over manual null checks where it improves readability.
@@ -46,6 +46,9 @@ React 19 + TypeScript).
 - Use **ES modules** (`import`/`export`). Use **named exports** in `src/`; default exports appear only where a tool requires them (e.g. `vite.config.ts`, `eslint.config.js`).
 - Import type-only symbols with a separate `import type` statement (ESLint's `consistent-type-imports` and `verbatimModuleSyntax` require it).
 - Group imports: (1) standard/library, (2) third-party, (3) local/aliased (`@/…`). Separate groups with a blank line. Sort alphabetically within groups.
+- Import a shared component or module by the file that defines it, never through a barrel. `src/portal/components/` has no `index.ts`; name the file (`@/portal/components/Button`), not the directory.
+- Stay within the importing feature (`src/portal/features/<feature>/`) with a relative import (`./form`, `./ProfileFieldsets`); reach anything outside it — another feature (`@/portal/features/profile/api`), `src/portal/components/`, `src/portal/api/`, `src/test/` — through the `@/` alias (or `@test/` for the test helpers). ESLint's `no-restricted-imports` enforces this with two patterns: files under `src/portal/features/**` may not import a specifier starting with `../` at all, since one level up is already a sibling feature; everywhere else in `src/` a single `../` is allowed (`../components/Button` from `src/portal/routes/`) but `../../` is not. Every feature is a flat directory today; a feature that grows a subdirectory adds a `files` entry to `eslint.config.js` exempting that subdirectory, so its files can still reach the feature root with `../`.
+- `src/portal/api/queries.ts` holds a query hook more than one feature reads (the plan catalog, the DART list, site chrome); a hook only its own feature uses stays in that feature's `api.ts`.
 - Avoid **barrel files** that re-export everything; they can hurt tree-shaking and clarity. Re-export only the public API surface when needed.
 - Do NOT use **circular dependencies**. If A imports B and B imports A, extract shared code to a third module or invert the dependency.
 

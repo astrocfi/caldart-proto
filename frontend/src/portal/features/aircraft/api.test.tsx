@@ -5,9 +5,9 @@ import { HttpResponse, http } from 'msw';
 import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 
-import { API } from '../../../test/handlers';
-import { makeTestQueryClient } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API } from '@test/handlers';
+import { makeTestQueryClient } from '@test/render';
+import { server } from '@test/server';
 import { useAircraftList } from './api';
 
 /** One register row, with only the field these assertions read filled in. */

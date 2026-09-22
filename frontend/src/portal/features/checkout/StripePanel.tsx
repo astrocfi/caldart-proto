@@ -16,11 +16,11 @@ import type { Appearance, Stripe } from '@stripe/stripe-js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
-import { ApiError } from '../../api/client';
-import type { CheckoutRequest } from '../../api/types';
-import { Button } from '../../components/Button';
-import { formatCents } from '../../components/Money';
-import { useDebounced } from '../../components/useDebounced';
+import { ApiError } from '@/portal/api/client';
+import type { CheckoutRequest } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { formatCents } from '@/portal/components/Money';
+import { useDebounced } from '@/portal/components/useDebounced';
 import { confirmStripePayment, createCheckout, isAbortError } from './api';
 import type { ProviderPanelProps } from './types';
 
@@ -118,7 +118,7 @@ export function StripePanel({
   plan,
   contributionCents,
   amountCents,
-  onSuccess,
+  onSuccess: handleSuccess,
 }: StripePanelProps): JSX.Element {
   const [intent, setIntent] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -135,12 +135,11 @@ export function StripePanel({
     createCheckout(settled, controller.signal)
       .then((checkout) => {
         if (controller.signal.aborted) return;
-        const clientSecret = checkout.client.client_secret;
-        if (!clientSecret) {
+        if (checkout.provider !== 'stripe' || !checkout.client.client_secret) {
           setError('Stripe did not return a payment session. Please try again.');
           return;
         }
-        setIntent({ paymentId: checkout.payment_id, clientSecret });
+        setIntent({ paymentId: checkout.payment_id, clientSecret: checkout.client.client_secret });
       })
       .catch((caught: unknown) => {
         if (isAbortError(caught) || controller.signal.aborted) return;
@@ -183,7 +182,11 @@ export function StripePanel({
         stripe={stripePromise}
         options={{ clientSecret: intent.clientSecret, appearance }}
       >
-        <StripeForm paymentId={intent.paymentId} amountCents={amountCents} onSuccess={onSuccess} />
+        <StripeForm
+          paymentId={intent.paymentId}
+          amountCents={amountCents}
+          onSuccess={handleSuccess}
+        />
       </Elements>
     </div>
   );

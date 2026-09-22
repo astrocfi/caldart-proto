@@ -7,14 +7,14 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 
-import { api } from '../../api/client';
+import { api } from '@/portal/api/client';
 import type {
   CheckoutRequest,
   CheckoutResponse,
   PaymentProvider,
   PaymentResult,
   PaymentsConfig,
-} from '../../api/types';
+} from '@/portal/api/types';
 
 export const PAYMENTS_CONFIG_KEY = ['payments', 'config'] as const;
 

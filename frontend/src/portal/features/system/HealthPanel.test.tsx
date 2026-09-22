@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Health } from '../../api/types';
+import type { Health } from '@/portal/api/types';
 import { HealthPanel, healthChecks } from './HealthPanel';
 
 const NOW = new Date('2026-06-15T12:00:00Z');

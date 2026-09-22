@@ -6,7 +6,7 @@
  * without rendering anything.  They mirror the server rules in
  * `members/api/profile_serializers.py`; the server remains authoritative.
  */
-import { ApiError } from '../../api/client';
+import { ApiError } from '@/portal/api/client';
 import type {
   IfrRated,
   MedicalType,
@@ -14,7 +14,7 @@ import type {
   Profile,
   ProfilePatch,
   Rating,
-} from '../../api/types';
+} from '@/portal/api/types';
 
 /**
  * What to say in the toast when a save is rejected.

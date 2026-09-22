@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { AircraftDetail } from '../../api/types';
+import type { AircraftDetail } from '@/portal/api/types';
 import { LeaderAircraftPage } from './LeaderAircraftPage';
 
 function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {

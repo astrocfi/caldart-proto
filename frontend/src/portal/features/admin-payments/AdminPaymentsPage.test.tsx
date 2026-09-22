@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { Payment, PaymentPeriodSummary } from '../../api/types';
+import type { Payment, PaymentPeriodSummary } from '@/portal/api/types';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';

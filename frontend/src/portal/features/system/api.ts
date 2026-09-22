@@ -11,7 +11,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, api } from '../../api/client';
+import { API_BASE, api } from '@/portal/api/client';
 import type {
   Backup,
   Health,
@@ -19,7 +19,7 @@ import type {
   ReminderKind,
   ReminderLogEntry,
   ReminderRunResult,
-} from '../../api/types';
+} from '@/portal/api/types';
 
 export const HEALTH_KEY = ['system', 'health'] as const;
 export const BACKUPS_KEY = ['system', 'backups'] as const;

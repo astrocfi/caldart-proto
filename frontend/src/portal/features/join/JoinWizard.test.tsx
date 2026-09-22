@@ -13,7 +13,7 @@ import type {
   PaymentsConfig,
   SiteConfig,
   User,
-} from '../../api/types';
+} from '@/portal/api/types';
 import { TEST_DARTS, makeProfile } from '@test/fixtures/profile';
 import { JoinWizard } from './JoinWizard';
 

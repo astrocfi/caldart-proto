@@ -19,6 +19,7 @@ from typing import Any, TypedDict
 
 import pytest
 from drf_spectacular.generators import SchemaGenerator
+from drf_spectacular.renderers import OpenApiYamlRenderer
 
 from caldart.api_urls import API_PATH_PREFIX
 
@@ -40,6 +41,10 @@ class ComponentSummary(TypedDict, total=False):
     properties: dict[str, str]
     required: list[str]
     enum: list[str]
+    #: A polymorphic (``oneOf``) component's member component names, sorted.
+    one_of: list[str]
+    #: A polymorphic component's discriminator property name.
+    discriminator: str
 
 
 def property_type(schema: dict[str, Any]) -> str:
@@ -73,7 +78,11 @@ def component_summaries(schema: dict[str, Any]) -> dict[str, ComponentSummary]:
     """Reduce an OpenAPI document to one summary per component schema.
 
     An enumeration component yields ``{"enum": [...]}`` with its values in declared
-    order.  Every other component yields ``{"properties": {...}, "required": [...]}``,
+    order.  A polymorphic component -- one built from ``PolymorphicProxySerializer``,
+    such as ``CheckoutResponse`` -- carries ``oneOf`` and a ``discriminator`` instead of
+    its own properties, and yields ``{"one_of": [...], "discriminator": "..."}`` with the
+    member component names sorted, so a member gained, dropped or renamed changes the
+    summary.  Every other component yields ``{"properties": {...}, "required": [...]}``,
     where ``properties`` maps each property name to the type :func:`property_type`
     describes and ``required`` is sorted, so the summary is stable against a reordering
     of the serializer's field list but not against a rename or a change of type.  A
@@ -84,6 +93,14 @@ def component_summaries(schema: dict[str, Any]) -> dict[str, ComponentSummary]:
     for name, component in sorted(components.items()):
         if "enum" in component:
             summaries[name] = {"enum": list(component["enum"])}
+        elif "oneOf" in component:
+            summaries[name] = {
+                "one_of": sorted(
+                    member["$ref"].removeprefix(COMPONENT_REF_PREFIX)
+                    for member in component["oneOf"]
+                ),
+                "discriminator": component.get("discriminator", {}).get("propertyName", ""),
+            }
         else:
             summaries[name] = {
                 "properties": {
@@ -176,6 +193,37 @@ def test_every_operation_describes_a_response(openapi_schema: dict[str, Any]) ->
     assert undescribed == []
 
 
+def test_schema_renders_as_yaml(openapi_schema: dict[str, Any]) -> None:
+    """The document survives the YAML renderer ``manage.py spectacular`` defaults to.
+
+    Every key and value has to be a plain built-in type.  A Django ``TextChoices``
+    member used as a key -- a ``str`` subclass -- is one PyYAML's safe dumper refuses,
+    and the JSON format the contract check runs would never notice.
+    """
+    # The renderer carries no annotations, like the generator above; it answers bytes.
+    rendered: bytes = OpenApiYamlRenderer().render(openapi_schema)  # type: ignore[no-untyped-call]
+    assert b"CheckoutResponse" in rendered
+
+
+def test_mock_checkout_response_documents_its_client(
+    generated_summaries: dict[str, ComponentSummary],
+) -> None:
+    """The mock 201 body documents ``client``, the empty object the view always sends.
+
+    The mock provider's ``start`` returns ``{}`` and the view puts it under ``client``
+    like every other provider's, so the component carries the property even though it
+    has no fields of its own.
+    """
+    assert generated_summaries["MockCheckoutResponse"]["properties"]["client"] == "object"
+
+
+def test_mock_checkout_response_requires_its_client(
+    generated_summaries: dict[str, ComponentSummary],
+) -> None:
+    """``client`` is always present in the mock 201 body, never optional."""
+    assert "client" in generated_summaries["MockCheckoutResponse"]["required"]
+
+
 def test_schema_components_match_the_snapshot(
     generated_summaries: dict[str, ComponentSummary],
 ) -> None:
@@ -266,6 +314,30 @@ def test_component_summaries_record_enum_values_in_order() -> None:
     summaries = component_summaries(document)
 
     assert summaries["SquawkSeverityEnum"] == {"enum": ["low", "high"]}
+
+
+def test_component_summaries_record_a_polymorphic_component() -> None:
+    """A ``oneOf`` component summarizes its member names and its discriminator."""
+    document = {
+        "components": {
+            "schemas": {
+                "CheckoutResponse": {
+                    "oneOf": [
+                        {"$ref": f"{COMPONENT_REF_PREFIX}StripeCheckoutResponse"},
+                        {"$ref": f"{COMPONENT_REF_PREFIX}MockCheckoutResponse"},
+                    ],
+                    "discriminator": {"propertyName": "provider"},
+                }
+            }
+        }
+    }
+
+    summaries = component_summaries(document)
+
+    assert summaries["CheckoutResponse"] == {
+        "one_of": ["MockCheckoutResponse", "StripeCheckoutResponse"],
+        "discriminator": "provider",
+    }
 
 
 def test_a_renamed_field_is_reported_against_the_snapshot() -> None:

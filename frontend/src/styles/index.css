@@ -2,22 +2,31 @@
  * The single CSS entry point shared by the public site and the portal.
  *
  * Fonts are self-hosted through @fontsource so the site works offline.
- * Only the weights actually used are imported.
+ * Only the weights actually used are imported, and only the Latin and
+ * Latin Extended subsets: the site is English-language only, and the
+ * unimported subsets (cyrillic, greek, vietnamese, ...) would otherwise ship
+ * as dead weight in the production build.
  */
 
-/* Display: Fraunces variable.  `full.css` ships every axis (wght, opsz, SOFT,
- * WONK); the default `index.css` only ships weight. */
-@import '@fontsource-variable/fraunces/full.css';
+/* Display: Fraunces variable, Latin only -- see fraunces-latin.css for why
+ * that file exists instead of an upstream import. */
+@import './fraunces-latin.css';
 
 /* Body: IBM Plex Sans. */
-@import '@fontsource/ibm-plex-sans/400.css';
-@import '@fontsource/ibm-plex-sans/500.css';
-@import '@fontsource/ibm-plex-sans/600.css';
-@import '@fontsource/ibm-plex-sans/400-italic.css';
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-ext-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-ext-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-sans/latin-ext-600.css';
+@import '@fontsource/ibm-plex-sans/latin-400-italic.css';
+@import '@fontsource/ibm-plex-sans/latin-ext-400-italic.css';
 
 /* Data: IBM Plex Mono. */
-@import '@fontsource/ibm-plex-mono/400.css';
-@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-ext-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+@import '@fontsource/ibm-plex-mono/latin-ext-500.css';
 
 @import './tokens.css';
 @import './base.css';

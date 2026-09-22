@@ -5,9 +5,13 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 
-import { Button, Card, useToast } from '../../components';
-import { ProfileFieldsets } from '../profile/ProfileFieldsets';
-import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '../profile/form';
+import { useDarts } from '@/portal/api/queries';
+import type { MemberDetail } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { useToast } from '@/portal/components/Toast';
+import { ProfileFieldsets } from '@/portal/features/profile/ProfileFieldsets';
+import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '@/portal/features/profile/form';
 import {
   AccountFields,
   AdminOnlyFields,
@@ -15,9 +19,8 @@ import {
   adminProfilePayload,
 } from './MemberFormFields';
 import type { AccountDraft } from './MemberFormFields';
-import { useDarts, useUpdateMember } from './api';
+import { useUpdateMember } from './api';
 import { splitErrors } from './errors';
-import type { MemberDetail } from '../../api/types';
 
 function accountDraftFrom(member: MemberDetail): AccountDraft {
   return {
@@ -43,7 +46,7 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
 
   const errors = splitErrors(update.error);
 
-  const submit = (event: React.FormEvent) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     update.mutate(
       {
@@ -59,22 +62,31 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
 
   return (
     <Card>
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={handleSubmit} noValidate>
         {errors.detail ? (
           <p role="alert" className="field__error">
             {errors.detail}
           </p>
         ) : null}
 
-        <AccountFields value={account} onChange={setAccount} errors={errors.account} withActive />
+        <AccountFields
+          value={account}
+          onChange={(next) => setAccount(next)}
+          errors={errors.account}
+          withActive
+        />
         <ProfileFieldsets
           value={profile}
-          onChange={setProfile}
+          onChange={(next) => setProfile(next)}
           errors={errors.profile}
           darts={darts.data ?? []}
           dartsLoading={darts.isPending}
         />
-        <AdminOnlyFields value={adminOnly} onChange={setAdminOnly} errors={errors.profile} />
+        <AdminOnlyFields
+          value={adminOnly}
+          onChange={(next) => setAdminOnly(next)}
+          errors={errors.profile}
+        />
 
         <div className="cluster">
           <Button type="submit" disabled={update.isPending}>

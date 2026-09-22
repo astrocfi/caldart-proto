@@ -2,12 +2,12 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { usePasswordResetConfirm } from '../../auth/useAuth';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { Field } from '../../components/Field';
-import { Page } from '../../components/Page';
+import { usePasswordResetConfirm } from '@/portal/auth/useAuth';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { Field } from '@/portal/components/Field';
+import { Page } from '@/portal/components/Page';
 import { FormAlert, fieldError } from './form';
 
 /** `/reset-password?uid=&token=` — the form the reset email links to. */

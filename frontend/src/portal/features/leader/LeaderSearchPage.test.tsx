@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { LeaderSearchResult, LeaderStatus } from '../../api/types';
-import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
+import type { LeaderSearchResult, LeaderStatus } from '@/portal/api/types';
+import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { LeaderSearchPage } from './LeaderSearchPage';
 
 const SEARCH_LABEL = /Name, email or N-number/i;

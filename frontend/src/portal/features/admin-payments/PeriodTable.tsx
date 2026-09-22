@@ -6,9 +6,9 @@
  */
 import type { JSX } from 'react';
 
-import type { PaymentPeriodSummary } from '../../api/types';
-import { EmptyState } from '../../components/EmptyState';
-import { formatCents } from '../../components/Money';
+import type { PaymentPeriodSummary } from '@/portal/api/types';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { formatCents } from '@/portal/components/Money';
 import { PROVIDER_LABELS } from './labels';
 import { providersIn } from './api';
 import type { SummaryGroup } from './api';

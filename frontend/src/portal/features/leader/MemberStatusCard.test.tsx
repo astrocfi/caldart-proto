@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { renderWithProviders } from '@test/render';
-import type { AircraftSummary, LeaderStatus } from '../../api/types';
+import type { AircraftSummary, LeaderStatus } from '@/portal/api/types';
 import { MemberStatusCard, isGo, noGoReasons } from './MemberStatusCard';
 
 const TODAY = new Date('2026-06-01T09:00:00');

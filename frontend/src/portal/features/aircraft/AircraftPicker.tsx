@@ -8,13 +8,13 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 
-import { ApiError } from '../../api/client';
-import type { Aircraft } from '../../api/types';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { Field } from '../../components/Field';
-import { useDebounced } from '../../components/useDebounced';
+import { ApiError } from '@/portal/api/client';
+import type { Aircraft } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { Field } from '@/portal/components/Field';
+import { useDebounced } from '@/portal/components/useDebounced';
 import './aircraft.css';
 import { InsuranceChip } from './InsuranceChip';
 import { ServiceChip } from './ServiceChip';
@@ -45,7 +45,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
   // would invite a duplicate registration; say so instead.
   const nothingToAdd = searched && results.length === 0 && attached.length === 0;
 
-  const startAdding = (): void => {
+  const handleStartAdding = (): void => {
     create.reset();
     setAdding(true);
   };
@@ -121,7 +121,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
           title="No aircraft matches that"
           description="If the plane is not in the register yet, add it — it takes a moment."
           action={
-            <Button variant="secondary" onClick={startAdding}>
+            <Button variant="secondary" onClick={handleStartAdding}>
               Add a new aircraft
             </Button>
           }
@@ -148,7 +148,12 @@ interface NewAircraftFormProps {
 }
 
 /** The short form: enough to identify the plane and its insurance. */
-function NewAircraftForm({ nNumber, onCancel, onCreated, create }: NewAircraftFormProps) {
+function NewAircraftForm({
+  nNumber,
+  onCancel: handleCancel,
+  onCreated,
+  create,
+}: NewAircraftFormProps) {
   const [values, setValues] = useState<AircraftFormValues>(() => emptyAircraftValues(nNumber));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -156,7 +161,7 @@ function NewAircraftForm({ nNumber, onCancel, onCreated, create }: NewAircraftFo
     setValues((current) => ({ ...current, [key]: value }));
   };
 
-  const submit = (event: React.FormEvent): void => {
+  const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     const found = validateAircraft(values);
     setErrors(found);
@@ -170,7 +175,7 @@ function NewAircraftForm({ nNumber, onCancel, onCreated, create }: NewAircraftFo
   };
 
   return (
-    <form className="aircraft-new" onSubmit={submit} noValidate>
+    <form className="aircraft-new" onSubmit={handleSubmit} noValidate>
       <h3 className="aircraft-new__title">Add an aircraft to the register</h3>
 
       <Field label="N-number" required error={errors.n_number}>
@@ -263,7 +268,7 @@ function NewAircraftForm({ nNumber, onCancel, onCreated, create }: NewAircraftFo
         <Button type="submit" disabled={create.isPending}>
           {create.isPending ? 'Adding…' : 'Add aircraft'}
         </Button>
-        <Button variant="quiet" onClick={onCancel}>
+        <Button variant="quiet" onClick={handleCancel}>
           Cancel
         </Button>
       </div>

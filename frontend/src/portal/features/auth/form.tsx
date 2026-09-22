@@ -1,7 +1,7 @@
 /** Shared bits for the auth forms: DRF error plumbing, in one place. */
 import type { JSX } from 'react';
 
-import { ApiError } from '../../api/client';
+import { ApiError } from '@/portal/api/client';
 
 /** The message DRF returned for one field, or null. */
 export function fieldError(error: unknown, name: string): string | null {

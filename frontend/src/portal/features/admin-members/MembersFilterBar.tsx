@@ -8,8 +8,9 @@
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 
-import { Button, Field } from '../../components';
-import type { Dart } from '../../api/types';
+import type { Dart } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Field } from '@/portal/components/Field';
 import { CERTIFICATE_TYPES, MEDICAL_TYPES, ROLE_CHOICES, STATUS_CHOICES } from './choices';
 import type { MemberFilters } from './types';
 import { EMPTY_FILTERS } from './types';

@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 
-import type { Aircraft } from '../../api/types';
-import { StatusChip } from '../../components/StatusChip';
+import type { Aircraft } from '@/portal/api/types';
+import { StatusChip } from '@/portal/components/StatusChip';
 
 export interface ServiceChipProps {
   aircraft: Pick<Aircraft, 'is_active'>;

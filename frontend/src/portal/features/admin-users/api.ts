@@ -2,15 +2,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { api } from '../../api/client';
+import { api } from '@/portal/api/client';
 import type {
   AdminUserPatch,
   Paginated,
   RoleSlug,
   SendPasswordResetResult,
   User,
-} from '../../api/types';
-import { AUTH_ME_KEY } from '../../auth/useAuth';
+} from '@/portal/api/types';
+import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 
 export interface AdminUserFilters {
   search?: string;

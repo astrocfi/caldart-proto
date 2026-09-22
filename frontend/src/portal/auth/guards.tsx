@@ -35,7 +35,7 @@ interface AuthUnavailableProps {
  * idea who this is.  Sending them to the sign-in page would claim a sign-out
  * that never happened, and hide the outage behind it.
  */
-function AuthUnavailable({ onRetry, isRetrying }: AuthUnavailableProps): ReactNode {
+function AuthUnavailable({ onRetry: handleRetry, isRetrying }: AuthUnavailableProps): ReactNode {
   return (
     <Page title="Sign-in check failed" eyebrow="Error">
       <div role="alert">
@@ -43,7 +43,7 @@ function AuthUnavailable({ onRetry, isRetrying }: AuthUnavailableProps): ReactNo
           title="We could not check your sign-in"
           description="The server did not answer. You are probably still signed in, so try again in a moment."
           action={
-            <Button onClick={onRetry} disabled={isRetrying}>
+            <Button onClick={handleRetry} disabled={isRetrying}>
               Try again
             </Button>
           }
@@ -55,14 +55,14 @@ function AuthUnavailable({ onRetry, isRetrying }: AuthUnavailableProps): ReactNo
 
 /** Route guard: renders the outlet only once `GET /auth/me` confirms a signed-in user. */
 export function RequireAuth({ children }: { children?: ReactNode }): JSX.Element {
-  const { isAuthenticated, isLoading, isRefetching, error, refetch } = useAuth();
+  const { isAuthenticated, isLoading, isRefetching, error, refetch: handleRetry } = useAuth();
   const location = useLocation();
 
   if (isLoading) return <Loading />;
   // A failed check with nothing cached: React Query keeps `data` across a
   // failed refetch, so a signed-in member keeps their page instead.
   if (!isAuthenticated && error != null)
-    return <AuthUnavailable onRetry={refetch} isRetrying={isRefetching} />;
+    return <AuthUnavailable onRetry={handleRetry} isRetrying={isRefetching} />;
   if (!isAuthenticated) return <Navigate to={loginRedirect(location)} replace />;
   return <>{children ?? <Outlet />}</>;
 }
@@ -74,12 +74,19 @@ export interface RequireRoleProps {
 
 /** Route guard: renders the outlet only for a signed-in user who holds one of `roles`. */
 export function RequireRole({ roles, children }: RequireRoleProps): JSX.Element {
-  const { isAuthenticated, isLoading, isRefetching, error, refetch, roles: userRoles } = useAuth();
+  const {
+    isAuthenticated,
+    isLoading,
+    isRefetching,
+    error,
+    refetch: handleRetry,
+    roles: userRoles,
+  } = useAuth();
   const location = useLocation();
 
   if (isLoading) return <Loading />;
   if (!isAuthenticated && error != null)
-    return <AuthUnavailable onRetry={refetch} isRetrying={isRefetching} />;
+    return <AuthUnavailable onRetry={handleRetry} isRetrying={isRefetching} />;
   if (!isAuthenticated) return <Navigate to={loginRedirect(location)} replace />;
   if (!hasAnyRole(userRoles, roles)) return <Forbidden roles={roles} />;
   return <>{children ?? <Outlet />}</>;

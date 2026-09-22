@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 
-import type { AircraftSummary } from '../../api/types';
-import { StatusChip } from '../../components/StatusChip';
+import type { AircraftSummary } from '@/portal/api/types';
+import { StatusChip } from '@/portal/components/StatusChip';
 import { insuranceLabel, insuranceTone } from './insurance';
 
 export interface InsuranceChipProps {

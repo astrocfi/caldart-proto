@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { makeUser } from '@test/handlers';
-import type { MembershipStatus } from '../../api/types';
+import type { MembershipStatus } from '@/portal/api/types';
 import {
   clampJoinStep,
   furthestJoinStep,

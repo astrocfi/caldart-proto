@@ -9,10 +9,10 @@
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
-import type { ReminderKind, ReminderLogEntry } from '../../api/types';
-import { DataTable } from '../../components/DataTable';
-import type { Column } from '../../components/DataTable';
-import { DateText } from '../../components/DateText';
+import type { ReminderKind, ReminderLogEntry } from '@/portal/api/types';
+import { DataTable } from '@/portal/components/DataTable';
+import type { Column } from '@/portal/components/DataTable';
+import { DateText } from '@/portal/components/DateText';
 import { useReminderLog } from './api';
 
 /** Kind slug -> what the email actually says. */

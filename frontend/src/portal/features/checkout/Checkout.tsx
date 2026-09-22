@@ -11,10 +11,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
-import type { PaymentProvider } from '../../api/types';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { formatCents } from '../../components/Money';
+import type { PaymentProvider } from '@/portal/api/types';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { formatCents } from '@/portal/components/Money';
 import { PROVIDER_LABELS, PROVIDER_ORDER, usePaymentsConfig } from './api';
 import { ContributionChooser } from './ContributionChooser';
 import { MockPanel } from './MockPanel';
@@ -90,12 +90,12 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
       title={mode === 'renew' ? 'Renew your membership' : 'Join CalDART'}
       className="checkout"
     >
-      <PlanChooser plans={config.plans} value={effectivePlan} onChange={setPlan} />
+      <PlanChooser plans={config.plans} value={effectivePlan} onChange={(next) => setPlan(next)} />
 
       <ContributionChooser
         tiers={config.contribution_tiers}
         value={contributionCents}
-        onChange={setContributionCents}
+        onChange={(next) => setContributionCents(next)}
         isOther={isOther}
         // codespell:ignore-next-line onother
         onOther={(next) => {
@@ -132,7 +132,7 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
         <ProviderTabs
           providers={providers}
           active={provider}
-          onChange={setProvider}
+          onChange={(next) => setProvider(next)}
           config={config}
           panelProps={panelProps}
         />
