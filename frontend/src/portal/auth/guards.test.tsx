@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { Route, Routes, useSearchParams } from 'react-router-dom';
 
+import type { RoleSlug } from '../api/types';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -54,7 +55,7 @@ describe('RequireAuth', () => {
     expect(await screen.findByText('secret content')).toBeInTheDocument();
   });
 
-  it('redirects an anonymous visitor to /login with a next parameter', async () => {
+  it('redirects an anonymous visitor to /login, pointing next at the guarded page', async () => {
     renderWithProviders(
       tree(
         <RequireAuth>
@@ -64,49 +65,52 @@ describe('RequireAuth', () => {
       { route: '/secret' },
     );
     expect(await screen.findByText('login page')).toBeInTheDocument();
+    expect(screen.getByText('next=/secret')).toBeInTheDocument();
     expect(screen.queryByText('secret content')).not.toBeInTheDocument();
   });
 });
 
 describe('RequireRole', () => {
-  it('renders for a user holding the role', async () => {
-    server.use(signedInAs(makeUser({ roles: ['member', 'dart_leader'] })));
-    renderWithProviders(
+  /** Render `<RequireRole roles={gate}>` for a user holding `roles`. */
+  function renderGate(roles: RoleSlug[], gate: RoleSlug[]) {
+    server.use(signedInAs(makeUser({ roles })));
+    return renderWithProviders(
       tree(
-        <RequireRole roles={['dart_leader']}>
+        <RequireRole roles={gate}>
           <Secret />
         </RequireRole>,
       ),
       { route: '/secret' },
     );
+  }
+
+  // The last case is the rule that a system admin holds every gate open,
+  // whatever role that gate names.
+  it.each<[RoleSlug[], RoleSlug[]]>([
+    [['member', 'dart_leader'], ['dart_leader']],
+    [['account_admin'], ['account_admin']],
+    [['user_admin'], ['user_admin']],
+    [['website_admin'], ['website_admin']],
+    [
+      ['member', 'account_admin'],
+      ['dart_leader', 'account_admin'],
+    ],
+    [['system_admin'], ['account_admin']],
+  ])('renders the page for %s behind a %s gate', async (roles, gate) => {
+    renderGate(roles, gate);
     expect(await screen.findByText('secret content')).toBeInTheDocument();
   });
 
-  it('shows a 403 page for a user without the role', async () => {
-    server.use(signedInAs(makeUser({ roles: ['member'] })));
-    renderWithProviders(
-      tree(
-        <RequireRole roles={['account_admin']}>
-          <Secret />
-        </RequireRole>,
-      ),
-      { route: '/secret' },
-    );
+  it.each<[RoleSlug[], RoleSlug[]]>([
+    [['member'], ['account_admin']],
+    [['member'], ['dart_leader']],
+    [['dart_leader'], ['user_admin']],
+    [['account_admin'], ['system_admin']],
+    [[], ['member']],
+  ])('shows the 403 page for %s behind a %s gate', async (roles, gate) => {
+    renderGate(roles, gate);
     expect(await screen.findByText(/do not have access/i)).toBeInTheDocument();
     expect(screen.queryByText('secret content')).not.toBeInTheDocument();
-  });
-
-  it('lets a system_admin through any role gate', async () => {
-    server.use(signedInAs(makeUser({ roles: ['system_admin'] })));
-    renderWithProviders(
-      tree(
-        <RequireRole roles={['account_admin']}>
-          <Secret />
-        </RequireRole>,
-      ),
-      { route: '/secret' },
-    );
-    expect(await screen.findByText('secret content')).toBeInTheDocument();
   });
 
   it('sends an anonymous visitor to login rather than 403', async () => {
@@ -229,19 +233,5 @@ describe('the 403 page', () => {
     );
     expect(await screen.findByText(/open to the user admin role/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /go to the dashboard/i })).toBeInTheDocument();
-  });
-});
-
-describe('the next parameter', () => {
-  it('points back at the guarded page', async () => {
-    renderWithProviders(
-      tree(
-        <RequireAuth>
-          <Secret />
-        </RequireAuth>,
-      ),
-      { route: '/secret' },
-    );
-    expect(await screen.findByText('next=/secret')).toBeInTheDocument();
   });
 });
