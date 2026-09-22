@@ -1,4 +1,4 @@
-"""``manage.py db_backup`` — write a gzipped pg_dump into ``BACKUP_DIR``."""
+"""``manage.py db_backup`` -- write a gzipped pg_dump into ``BACKUP_DIR``."""
 
 from typing import Any
 

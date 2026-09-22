@@ -89,9 +89,13 @@ Step by step:
    checkout on the machine shares one pair of containers.  Data lives in the
    ``caldart_pgdata`` volume and survives ``make down``.
 
-3. **``make migrate``** applies the migrations.  One of them,
-   ``accounts.0002_seed_roles``, creates the six role groups, so a migrated
-   database already knows what a ``dart_leader`` is.
+3. **``make migrate``** applies the migrations.  Three of them carry data
+   rather than schema.
+   ``accounts.0002_seed_roles`` creates the six role groups, so a migrated
+   database already knows what a ``dart_leader`` is, ``cms.0002_site_root``
+   makes a ``HomePage`` the Wagtail site root, and
+   ``cms.0003_website_admin_permissions`` gives the ``website_admin`` group its
+   editing rights.
 
 4. **``make seed``** runs ``seed_roles``, then ``seed_demo`` (demo accounts,
    about forty generated members, twenty-five aircraft, two years of

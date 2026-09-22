@@ -1,6 +1,6 @@
 """PayPal provider: Orders v2 REST, called directly with ``httpx``.
 
-No SDK — the three calls we need (OAuth token, create order, capture order) are
+No SDK -- the three calls we need (OAuth token, create order, capture order) are
 plain JSON over HTTPS, and the SDK would add a dependency for nothing.
 
 The client-credentials token is held in Django's default cache until shortly
@@ -248,6 +248,15 @@ class PayPalProvider(Provider):
 
     slug = "paypal"
 
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Whether both ``PAYPAL_CLIENT_ID`` and ``PAYPAL_CLIENT_SECRET`` are set.
+
+        The buttons need the client id in the browser and the server needs both to
+        fetch an access token, so one without the other is not usable.
+        """
+        return bool(settings.PAYPAL_CLIENT_ID and settings.PAYPAL_CLIENT_SECRET)
+
     # ----------------------------------------------------------------- start
     def start(self, payment: Payment) -> dict[str, Any]:
         """Create an ``intent=CAPTURE`` order and return its id for the buttons.
@@ -268,7 +277,7 @@ class PayPalProvider(Provider):
                     {
                         "reference_id": f"payment-{payment.pk}",
                         "custom_id": str(payment.pk),
-                        "description": f"CalDART · {payment.description}"[:127],
+                        "description": f"CalDART \u00b7 {payment.description}"[:127],
                         "amount": {
                             "currency_code": payment.currency.upper(),
                             "value": dollars(payment.amount_cents),
@@ -377,7 +386,7 @@ class PayPalProvider(Provider):
         PayPal's signature check needs a ``PAYPAL_WEBHOOK_ID`` from the
         developer dashboard.  Without one we cannot tell a real notification
         from a forged one, so the payload is filed against the payment and
-        nothing else happens — capture (above) is what activates memberships.
+        nothing else happens -- capture (above) is what activates memberships.
         """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])

@@ -185,6 +185,15 @@ class StripeProvider(Provider):
 
     slug = "stripe"
 
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Whether both ``STRIPE_SECRET_KEY`` and ``STRIPE_PUBLISHABLE_KEY`` are set.
+
+        The Payment Element needs the publishable key in the browser as much as the
+        server needs the secret key, so one without the other is not usable.
+        """
+        return bool(settings.STRIPE_SECRET_KEY and settings.STRIPE_PUBLISHABLE_KEY)
+
     # ----------------------------------------------------------------- start
     def start(self, payment: Payment) -> dict[str, Any]:
         """Create the PaymentIntent and hand the client its ``client_secret``.
@@ -202,7 +211,7 @@ class StripeProvider(Provider):
                     "amount": payment.amount_cents,
                     "currency": payment.currency,
                     "automatic_payment_methods": {"enabled": True},
-                    "description": f"CalDART · {payment.description}",
+                    "description": f"CalDART \u00b7 {payment.description}",
                     # stripe's params type the field as a string, but its API
                     # takes null for "send no receipt".
                     "receipt_email": payment.user.email or None,  # type: ignore[typeddict-item]

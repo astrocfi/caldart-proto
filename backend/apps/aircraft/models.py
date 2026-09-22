@@ -101,7 +101,7 @@ class Aircraft(TimestampedModel):
 
     @property
     def insurance_summary(self) -> str:
-        """e.g. ``$1,000,000 / $100,000 · exp 2027-03-01``."""
+        """e.g. ``$1,000,000 / $100,000 \u00b7 exp 2027-03-01``."""
         if not self.insurance_liability_per_occurrence_cents and not self.insurance_expiration:
             return "No insurance on file"
         parts: list[str] = []
@@ -111,10 +111,10 @@ class Aircraft(TimestampedModel):
             parts.append(f"${occurrence:,} / ${person:,}")
         if self.insurance_expiration:
             parts.append(f"exp {self.insurance_expiration.isoformat()}")
-        return " · ".join(parts)
+        return " \u00b7 ".join(parts)
 
     @property
     def display_name(self) -> str:
         """Return the N-number, with the make and model after an em dash when known."""
         descriptor = " ".join(p for p in (self.make, self.model) if p)
-        return f"{self.n_number} — {descriptor}" if descriptor else self.n_number
+        return f"{self.n_number} \u2014 {descriptor}" if descriptor else self.n_number

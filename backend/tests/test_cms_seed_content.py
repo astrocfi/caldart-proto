@@ -9,6 +9,7 @@ from django.core.management import call_command
 from django.test import Client
 from wagtail.models import Page
 
+from apps.cms.management.commands import seed_content_data as content
 from apps.cms.models import (
     ContactPage,
     DartIndexPage,
@@ -217,3 +218,52 @@ def test_seed_content_is_safe_after_seed_demo() -> None:
     seed()
     assert DartPage.objects.count() == 16
     assert Page.objects.live().filter(slug="about").exists()
+
+
+# ------------------------------------------------------------ the copy module
+STANDARD_PAGE_SPECS = (
+    content.ABOUT,
+    content.HISTORY,
+    content.DIRECTORS,
+    content.JOIN,
+    content.DONATE,
+    content.SPONSORS,
+    content.MEMBERS,
+    content.MEMBERS_ONLY,
+    content.DOCS_AND_LINKS,
+)
+
+
+def test_every_standard_page_is_seeded_from_its_spec() -> None:
+    """The standard pages are exactly the specs, each with its title and intro."""
+    seed()
+
+    seeded = {page.slug: (page.title, page.intro) for page in StandardPage.objects.all()}
+
+    assert seeded == {spec.slug: (spec.title, spec.intro) for spec in STANDARD_PAGE_SPECS}
+
+
+def test_a_page_body_is_the_block_specs_its_page_spec_lists() -> None:
+    """The join page's body holds the join spec's blocks, in the order given."""
+    seed()
+
+    page = StandardPage.objects.get(slug=content.JOIN.slug)
+
+    assert [block.block_type for block in page.body] == [
+        spec.block_type for spec in content.JOIN.body
+    ]
+
+
+def test_definition_list_renders_one_bold_item_per_row() -> None:
+    """Each ``(term, text)`` pair becomes a list item with the term in bold."""
+    rows = [("2011", "The first exercise."), ("2013", "Two more airports.")]
+
+    assert content.definition_list(rows) == (
+        "<ul><li><b>2011</b> \u2014 The first exercise.</li>"
+        "<li><b>2013</b> \u2014 Two more airports.</li></ul>"
+    )
+
+
+def test_definition_list_of_no_rows_is_an_empty_list() -> None:
+    """No rows give an empty ``<ul>`` rather than any item markup."""
+    assert content.definition_list([]) == "<ul></ul>"

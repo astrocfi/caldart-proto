@@ -93,12 +93,12 @@ class NullsLastOrderingFilter(OrderingFilter):
     """``?ordering=`` that keeps empty values at the bottom either way.
 
     Postgres sorts NULLs first on a descending order, which would put every
-    aircraft with no insurance on file at the top of "latest expiry" — the
+    aircraft with no insurance on file at the top of "latest expiry" -- the
     opposite of what an administrator chasing lapsed cover wants to see.
 
     Every ordering also ends in the primary key.  Sorting the register by a
-    column many rows share — ``make``, or an expiry date a whole club renews
-    on one day — otherwise leaves the tie order undefined, and page two of a
+    column many rows share -- ``make``, or an expiry date a whole club renews
+    on one day -- otherwise leaves the tie order undefined, and page two of a
     ``LIMIT``/``OFFSET`` query can then repeat or skip rows.
     """
 

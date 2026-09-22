@@ -166,27 +166,9 @@ class MemberProfile(TimestampedModel):
             return False
         return self.medical_expiration >= timezone.localdate()
 
-    @property
-    def volunteer_interests(self) -> list[str]:
-        """The volunteer areas ticked, as slugs without the ``vol_`` prefix.
-
-        Empty when the member has volunteered for nothing, and in the order the
-        interests are declared on the model rather than the order they were
-        ticked.
-        """
-        fields = [
-            "vol_ground_team",
-            "vol_exercise_training",
-            "vol_member_support",
-            "vol_fundraising",
-            "vol_social_media",
-            "vol_newsletter",
-        ]
-        return [f.removeprefix("vol_") for f in fields if getattr(self, f)]
-
     #: The fields ``profile_complete`` requires.  One list, used by
-    #: :py:meth:`is_complete`, by the ``user`` payload the API returns, and —
-    #: mirrored — by the portal's profile form, so the join wizard can never
+    #: :py:meth:`is_complete`, by the ``user`` payload the API returns, and --
+    #: mirrored -- by the portal's profile form, so the join wizard can never
     #: accept a profile the server then calls incomplete.
     COMPLETE_FIELDS = (
         "phone",
@@ -308,7 +290,7 @@ class Membership(TimestampedModel):
     def __str__(self) -> str:
         """The member, the plan name and the dates, with ``lifetime`` for no end."""
         end = self.ends_on.isoformat() if self.ends_on else "lifetime"
-        return f"{self.user} · {self.plan.name} · {self.starts_on.isoformat()}-{end}"
+        return f"{self.user} \u00b7 {self.plan.name} \u00b7 {self.starts_on.isoformat()}-{end}"
 
     @property
     def is_lifetime(self) -> bool:

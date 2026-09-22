@@ -72,7 +72,7 @@ CSRF_URL = "/api/v1/auth/csrf"
 #
 # `templates/base.html` and `templates/portal.html` call `{% vite_asset %}`,
 # which raises when the entry is missing from the manifest django-vite loads.
-# Backend tests must not depend on `npm run build` having been run — CI runs
+# Backend tests must not depend on `npm run build` having been run -- CI runs
 # the two suites in separate jobs.
 #
 # `caldart.settings.test` resolves `DJANGO_VITE`'s manifest_path from the

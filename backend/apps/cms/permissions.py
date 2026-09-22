@@ -4,7 +4,7 @@ The role is a plain Django ``Group``, so granting website
 administrators their editing rights is just a matter of hanging the right
 permission rows off that group:
 
-* ``wagtailadmin.access_admin`` — lets them reach ``/admin/`` at all;
+* ``wagtailadmin.access_admin`` -- lets them reach ``/admin/`` at all;
 * add / change / publish / bulk-delete / lock on the **root page**, which
   cascades to every page in the tree;
 * add / change / choose on the **root collection** for images and documents;

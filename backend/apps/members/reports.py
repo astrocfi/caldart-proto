@@ -1,8 +1,8 @@
 """The membership report.
 
 One row per member, one column list shared by the CSV and the PDF so the two
-exports can never drift apart.  The house style — streaming CSV, landscape
-letter PDF with zebra rows, a repeated header and page numbers — lives in
+exports can never drift apart.  The house style -- streaming CSV, landscape
+letter PDF with zebra rows, a repeated header and page numbers -- lives in
 ``caldart.reports``; this module only decides *what* goes in the table.
 
 Adding a column means adding one entry to :data:`MEMBER_REPORT_COLUMNS`; the

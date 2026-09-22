@@ -53,7 +53,7 @@ class HeadingBlock(blocks.StructBlock):
     level = blocks.ChoiceBlock(
         choices=[("h2", "Section (H2)"), ("h3", "Sub-section (H3)")],
         default="h2",
-        help_text="H2 headings appear in the “on this page” list.",
+        help_text='H2 headings appear in the "on this page" list.',
     )
 
     class Meta:

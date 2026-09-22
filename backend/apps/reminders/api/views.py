@@ -46,7 +46,7 @@ ReminderLogFilterSet.base_filters["from"] = django_filters.DateFilter(
 
 
 class ReminderLogListView(ListAPIView[ReminderLog]):
-    """``GET /admin/reminders/log`` — paginated, newest first."""
+    """``GET /admin/reminders/log`` -- paginated, newest first."""
 
     permission_classes = [HasAnyRole(ACCOUNT_ADMIN, SYSTEM_ADMIN)]
     serializer_class = ReminderLogSerializer
@@ -64,7 +64,7 @@ class ReminderLogListView(ListAPIView[ReminderLog]):
 
 
 class ReminderRunView(APIView):
-    """``POST /system/reminders/run`` — run the scan now."""
+    """``POST /system/reminders/run`` -- run the scan now."""
 
     permission_classes = [IsSystemAdmin]
 

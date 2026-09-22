@@ -6,7 +6,7 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
-from apps.payments.models import Payment
+from apps.payments.models import Payment, PaymentProvider
 
 
 class PaymentError(RuntimeError):
@@ -46,6 +46,16 @@ class Provider:
     """
 
     slug: str = ""
+
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Whether the settings this provider needs to take a payment are present.
+
+        Called without instantiating the class, so a provider that cannot be built
+        without its keys still answers.  Raises ``NotImplementedError``: every
+        subclass must define it.
+        """
+        raise NotImplementedError
 
     def start(self, payment: Payment) -> dict[str, Any]:
         """Client-side parameters, e.g. ``{"client_secret": ...}``.
@@ -104,21 +114,14 @@ def get_provider(slug: str) -> Provider:
 
 
 def available_providers() -> list[str]:
-    """Slugs of providers that are configured well enough to use.
+    """Slugs of the registered providers that answer ``is_configured()``.
 
-    ``stripe`` needs both Stripe keys, ``paypal`` both PayPal credentials, and
-    ``mock`` needs ``PAYMENTS_MOCK_ENABLED``.  The order is fixed -- stripe, paypal,
-    mock -- so the checkout screen offers the same choice every time.
+    The order is the one ``PaymentProvider`` declares -- stripe, paypal, mock -- so
+    the checkout screen offers the same choice every time; a registered slug that
+    is not one of those choices follows them, in registration order.
     """
-    from django.conf import settings
-
     from apps.payments import providers  # noqa: F401
 
-    slugs: list[str] = []
-    if settings.STRIPE_SECRET_KEY and settings.STRIPE_PUBLISHABLE_KEY:
-        slugs.append("stripe")
-    if settings.PAYPAL_CLIENT_ID and settings.PAYPAL_CLIENT_SECRET:
-        slugs.append("paypal")
-    if settings.PAYMENTS_MOCK_ENABLED:
-        slugs.append("mock")
-    return slugs
+    rank = {slug: position for position, slug in enumerate(PaymentProvider.values)}
+    configured = [slug for slug, cls in _REGISTRY.items() if cls.is_configured()]
+    return sorted(configured, key=lambda slug: rank.get(slug, len(rank)))

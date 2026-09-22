@@ -1,6 +1,6 @@
 """The server-rendered shells: home page and the portal SPA mount.
 
-These run whether or not the frontend has been built — ``conftest.py`` stubs
+These run whether or not the frontend has been built -- ``conftest.py`` stubs
 the Vite manifest when there is no real build, and the two tests that assert on
 the actual bundle carry ``needs_frontend_build`` and skip unless one is present.
 """

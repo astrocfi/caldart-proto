@@ -63,7 +63,7 @@ def signed_in_user(request: Request) -> User:
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 class CsrfView(APIView):
-    """``GET /auth/csrf`` — 204, sets the ``csrftoken`` cookie."""
+    """``GET /auth/csrf`` -- 204, sets the ``csrftoken`` cookie."""
 
     permission_classes = [AllowAny]
 
@@ -82,7 +82,7 @@ class CsrfView(APIView):
 
 
 class RegisterView(APIView):
-    """``POST /auth/register`` — create a member account and sign them in."""
+    """``POST /auth/register`` -- create a member account and sign them in."""
 
     permission_classes = [AllowAny]
     throttle_classes = [RegisterThrottle]
@@ -104,7 +104,7 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
-    """``POST /auth/login`` — session login by email + password."""
+    """``POST /auth/login`` -- session login by email + password."""
 
     permission_classes = [AllowAny]
     throttle_classes = [LoginThrottle]
@@ -143,7 +143,7 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
-    """``POST /auth/logout`` — 204."""
+    """``POST /auth/logout`` -- 204."""
 
     permission_classes = [AllowAny]
 
@@ -162,7 +162,7 @@ class LogoutView(APIView):
 
 
 class MeView(APIView):
-    """``GET /auth/me`` — the signed-in user, 401 when anonymous."""
+    """``GET /auth/me`` -- the signed-in user, 401 when anonymous."""
 
     permission_classes = [IsAuthenticated]
 
@@ -176,7 +176,7 @@ class MeView(APIView):
 
 
 class PasswordChangeView(APIView):
-    """``POST /auth/password/change`` — 204, session kept alive."""
+    """``POST /auth/password/change`` -- 204, session kept alive."""
 
     permission_classes = [IsAuthenticated]
 
@@ -204,7 +204,7 @@ class PasswordChangeView(APIView):
 
 
 class PasswordResetView(APIView):
-    """``POST /auth/password/reset`` — 204 always.
+    """``POST /auth/password/reset`` -- 204 always.
 
     The answer never depends on whether the address is registered, so the
     endpoint cannot be used to enumerate members.
@@ -234,7 +234,7 @@ class PasswordResetView(APIView):
 
 
 class PasswordResetConfirmView(APIView):
-    """``POST /auth/password/reset/confirm`` — set the new password, 204."""
+    """``POST /auth/password/reset/confirm`` -- set the new password, 204."""
 
     permission_classes = [AllowAny]
     throttle_classes = [PasswordResetThrottle]
@@ -260,7 +260,7 @@ class PasswordResetConfirmView(APIView):
 
 
 class RolesView(APIView):
-    """``GET /roles`` — the role catalog, for any authenticated caller."""
+    """``GET /roles`` -- the role catalog, for any authenticated caller."""
 
     permission_classes = [IsAuthenticated]
 
@@ -278,7 +278,7 @@ class RolesView(APIView):
 
 
 # --------------------------------------------------------------------------
-# Users admin — user_admin, and system_admin by implication
+# Users admin -- user_admin, and system_admin by implication
 # --------------------------------------------------------------------------
 def admin_user_queryset() -> QuerySet[User]:
     """Every user, with the rows the ``user`` payload needs already loaded.
@@ -290,7 +290,7 @@ def admin_user_queryset() -> QuerySet[User]:
 
 
 class AdminUserListView(generics.ListAPIView[User]):
-    """``GET /admin/users?search=&role=&is_active=`` — paginated ``[user]``."""
+    """``GET /admin/users?search=&role=&is_active=`` -- paginated ``[user]``."""
 
     permission_classes = [IsUserAdmin]
     serializer_class = AdminUserSerializer
