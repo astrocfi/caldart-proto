@@ -320,7 +320,7 @@ def test_email_content(
 
 @pytest.fixture
 def named_site(settings: Settings, site_settings: SiteSettings) -> None:
-    """Pin the organization name, the contact address and the site URL the emails carry."""
+    """Pin the organization name, the contact address and the site URL in the emails."""
     settings.SITE_URL = "https://caldart.example.org/"
     site_settings.org_name = "The California DART Network"
     site_settings.contact_email = "info@caldart.example.org"
@@ -342,7 +342,7 @@ def test_each_kind_renders_its_recorded_text_body(
 
     send_renewal_reminders(today=TODAY)
 
-    golden(f"reminder-{kind}.txt", mailoutbox[0].body)
+    golden(f"reminder-{kind}.txt", str(mailoutbox[0].body))
 
 
 @pytest.mark.parametrize("kind", ALL_KINDS)

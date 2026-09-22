@@ -457,6 +457,13 @@ What the backend suite covers
        the snapshot records (:ref:`testing-api-contract`)
    * - ``test_seed.py``, ``test_shell_views.py``
      - the seed commands run twice cleanly; the portal and public shells
+   * - ``test_boundaries.py``
+     - the edges: page sizes at 25 and 200, an ``expiring_within`` window
+       clamped to ten years, a string one character over its column, and names
+       written outside ASCII
+   * - ``test_membership_transitions.py``, ``test_payments_race.py``
+     - a failed payment that later succeeds, a canceled term that is bought
+       again, and two threads confirming one payment at once
 
 Running the frontend suite
 ==========================

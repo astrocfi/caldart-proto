@@ -165,7 +165,7 @@ UPDATE_GOLDEN_OPTION = "--update-golden"
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """Register ``--update-golden``, which rewrites golden files rather than checking them."""
+    """Register ``--update-golden``, which rewrites golden files instead of checking."""
     parser.addoption(
         UPDATE_GOLDEN_OPTION,
         action="store_true",
@@ -661,7 +661,7 @@ def pdf_page_count(pdf: bytes) -> int:
 
 
 def csv_body(response: HttpResponseBase) -> str:
-    """Return the whole text of a streamed CSV download, separators and all.
+    r"""Return the whole text of a streamed CSV download, separators and all.
 
     ``response`` must be the ``StreamingHttpResponse`` that ``csv_response`` returns;
     any other response type fails the assertion rather than an attribute lookup.  The
@@ -695,7 +695,7 @@ class Golden(Protocol):
 
 @pytest.fixture
 def golden(request: pytest.FixtureRequest) -> Golden:
-    """``golden(name, text, replace=...)`` compares ``text`` with ``backend/tests/golden/name``.
+    r"""``golden(name, text)`` compares ``text`` with ``backend/tests/golden/<name>``.
 
     Every substitution in ``replace`` is applied to ``text`` first, each key replaced by
     its value, so a name, an address or a reference that a factory varies from run to run
