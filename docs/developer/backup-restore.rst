@@ -193,6 +193,13 @@ else — another host, object storage, an external disk — as a second step.  T
 health panel warns when the newest dump is more than seven days old and turns
 red past thirty.
 
+A dump carries everything in the database, and in production that includes the
+``caldart_cache`` table, so a dump taken while a PayPal access token is cached
+holds a token that stays valid for up to the nine hours PayPal grants it (see
+:ref:`paypal-token-cache`).  Treat a backup file as being as sensitive as the
+credentials inside it: restrict who can read it wherever you copy it to, and
+prefer an encrypted destination.
+
 
 Downloading a backup
 ====================
