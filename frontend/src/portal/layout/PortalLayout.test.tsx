@@ -7,6 +7,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
+import type { JSX } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -15,15 +16,28 @@ import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderRoutes, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { RoleSlug } from '../api/types';
+import { useAuth } from '../auth/useAuth';
 import { PortalLayout } from './PortalLayout';
+
+/**
+ * A routed page that names itself only once `GET /auth/me` has settled.
+ *
+ * The layout renders its outlet straight away, so waiting for page text alone
+ * would let an assertion about the anonymous chrome run while the check was
+ * still in flight — and pass whoever the visitor turned out to be.
+ */
+function Body({ label }: { label: string }): JSX.Element {
+  const { isLoading } = useAuth();
+  return <p>{isLoading ? 'checking who you are' : label}</p>;
+}
 
 /** The layout with one routed child, so the outlet has something to render. */
 function tree() {
   return (
     <Routes>
       <Route element={<PortalLayout />}>
-        <Route path="/" element={<p>dashboard body</p>} />
-        <Route path="/profile" element={<p>profile body</p>} />
+        <Route path="/" element={<Body label="dashboard body" />} />
+        <Route path="/profile" element={<Body label="profile body" />} />
       </Route>
     </Routes>
   );
@@ -98,14 +112,15 @@ describe('PortalLayout', () => {
   it('gives an anonymous visitor no rail at all', async () => {
     renderWithProviders(tree(), { route: '/' });
 
-    expect(await screen.findByText('dashboard body')).toBeInTheDocument();
+    await screen.findByText('dashboard body');
     expect(screen.queryByRole('navigation', { name: 'Portal sections' })).not.toBeInTheDocument();
   });
 
   it('offers an anonymous visitor a way to sign in instead of an identity', async () => {
     renderWithProviders(tree(), { route: '/' });
 
-    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
+    await screen.findByText('dashboard body');
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
   });
 
   it('names the signed-in user in the header', async () => {
@@ -149,7 +164,7 @@ describe('PortalLayout', () => {
   it('gives an anonymous visitor no drawer toggle', async () => {
     renderWithProviders(tree(), { route: '/' });
 
-    expect(await screen.findByText('dashboard body')).toBeInTheDocument();
+    await screen.findByText('dashboard body');
     expect(screen.queryByRole('button', { name: 'Menu' })).not.toBeInTheDocument();
   });
 
@@ -163,16 +178,16 @@ describe('PortalLayout', () => {
   });
 });
 
-function DashboardStub() {
-  return <h1>Dashboard</h1>;
-}
-
 function LoginStub() {
   return <h1>Sign in</h1>;
 }
 
 const routes: RouteObject[] = [
-  { path: '/', element: <PortalLayout />, children: [{ index: true, element: <DashboardStub /> }] },
+  {
+    path: '/',
+    element: <PortalLayout />,
+    children: [{ index: true, element: <Body label="dashboard body" /> }],
+  },
   { path: '/login', element: <LoginStub /> },
 ];
 
@@ -260,7 +275,7 @@ describe('<PortalLayout/> sign out', () => {
   it('offers sign in instead when nobody is signed in', async () => {
     renderRoutes(routes);
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+    await screen.findByText('dashboard body');
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument();
   });

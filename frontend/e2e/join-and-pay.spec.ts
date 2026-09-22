@@ -50,7 +50,7 @@ test('a visitor joins from the public site and pays their dues', async ({ page }
   // Step 3 — pay with the mock provider.
   await page.getByRole('tab', { name: 'Test payment' }).click();
   await expect(page.getByTestId('checkout-total')).toHaveText(
-    formatCents(SEED.planPricesCents.annual ?? 0),
+    formatCents(SEED.planPricesCents.annual),
   );
   await page.getByRole('button', { name: 'Succeed', exact: true }).click();
 

@@ -364,7 +364,9 @@ subject *is* the message declares it first:
    });
 
 The declaration covers the current test only, and every message it does not
-match still fails.
+match still fails.  It runs in both directions: a declaration nothing matched
+fails the test too, so a test whose subject is the warning cannot keep passing
+once the warning stops being written.
 
 Three helpers do the heavy lifting:
 

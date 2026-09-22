@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { expectConsoleMessage } from '@test/console';
 import { TOAST_TIMEOUT_MS, ToastProvider, ToastViewport, useToast } from './Toast';
 import type { ToastTone } from './Toast';
 
@@ -144,8 +143,6 @@ describe('ToastViewport', () => {
 
 describe('useToast', () => {
   it('refuses to work outside a ToastProvider', () => {
-    // React logs the error it re-throws from the failing render.
-    expectConsoleMessage(/useToast must be used inside a <ToastProvider>/);
     expect(() => renderHook(() => useToast())).toThrow(
       'useToast must be used inside a <ToastProvider>',
     );
