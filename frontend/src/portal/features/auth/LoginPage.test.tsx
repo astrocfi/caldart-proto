@@ -5,8 +5,9 @@ import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { API, makeUser } from '@test/handlers';
-import { renderWithProviders } from '@test/render';
+import { makeTestQueryClient, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { AUTH_ME_KEY } from '../../auth/useAuth';
 import { LoginPage, safeNext } from './LoginPage';
 
 function Dashboard() {
@@ -15,6 +16,21 @@ function Dashboard() {
 
 function Profile() {
   return <h1>My profile</h1>;
+}
+
+/**
+ * A query client that keeps what it is told, so a test can read the cache
+ * after the page that observed it has gone.  The suite's default client
+ * collects an unobserved query at once, which would hide the difference
+ * between "cleared on sign-in" and "collected on unmount".
+ */
+function persistentClient() {
+  const client = makeTestQueryClient();
+  client.setDefaultOptions({
+    queries: { retry: false, staleTime: 0, gcTime: Infinity },
+    mutations: { retry: false },
+  });
+  return client;
 }
 
 function renderLogin(route = '/login') {
@@ -104,6 +120,47 @@ describe('LoginPage', () => {
     const input = await screen.findByLabelText(/email address/i);
     await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'true'));
     expect(screen.getByText('Enter a valid email address.')).toBeInTheDocument();
+  });
+
+  it('drops everything the previous user had cached', async () => {
+    const user = makeUser({ id: 2, email: 'marta@example.org' });
+    server.use(http.post(`${API}/auth/login`, () => HttpResponse.json(user)));
+    const client = persistentClient();
+    client.setQueryData(['members', 'list'], [{ id: 1, name: 'Somebody else' }]);
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<Dashboard />} />
+      </Routes>,
+      { route: '/login', client },
+    );
+    await userEvent.type(await screen.findByLabelText(/email address/i), 'marta@example.org');
+    await userEvent.type(screen.getByLabelText(/password/i), 'correct-horse');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    expect(client.getQueryData(['members', 'list'])).toBeUndefined();
+  });
+
+  it('seeds the auth cache with the user who just signed in', async () => {
+    const user = makeUser({ id: 2, email: 'marta@example.org' });
+    server.use(http.post(`${API}/auth/login`, () => HttpResponse.json(user)));
+    const client = persistentClient();
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<Dashboard />} />
+      </Routes>,
+      { route: '/login', client },
+    );
+    await userEvent.type(await screen.findByLabelText(/email address/i), 'marta@example.org');
+    await userEvent.type(screen.getByLabelText(/password/i), 'correct-horse');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    expect(client.getQueryData(AUTH_ME_KEY)).toEqual(user);
   });
 
   it('redirects a visitor who is already signed in', async () => {

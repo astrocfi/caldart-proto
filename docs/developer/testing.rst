@@ -461,7 +461,12 @@ there to find the module nothing exercises, not to be argued with.
 What the frontend suite covers
 ------------------------------
 
-The API client and its error mapping; the route guards, and the real route
+The query client's retry policy, which gives up on a 4xx and tries a 5xx three
+times in all; the portal chrome — the skip link, the role-filtered rail, the
+identity area and the mobile drawer that closes on navigation; the toast queue,
+including the timeout that drops a toast on its own; the cache that sign-in
+empties before it seeds the new user;
+the API client and its error mapping; the route guards, and the real route
 table opened at every guarded path by an anonymous visitor and by a user
 holding each role, so a guard that loses a role fails a case, plus the order a
 guard and an on-demand page resolve in; the shared
