@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Backup } from '../../api/types';
+import type { Backup } from '@/portal/api/types';
 import { BackupsPanel, formatBytes } from './BackupsPanel';
 
 const BACKUPS: Backup[] = [

@@ -1,7 +1,7 @@
 /** The three headline figures above the payments dashboard. */
 import type { JSX } from 'react';
 
-import { formatCents } from '../../components/Money';
+import { formatCents } from '@/portal/components/Money';
 import type { DashboardTotals } from './api';
 
 export interface SummaryTilesProps {

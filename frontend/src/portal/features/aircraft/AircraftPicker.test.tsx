@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Aircraft } from '../../api/types';
-import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
+import type { Aircraft } from '@/portal/api/types';
+import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { AircraftPicker } from './AircraftPicker';
 
 /** A userEvent instance whose internal waits advance the fake clock instead of sleeping. */
@@ -79,8 +79,8 @@ describe('AircraftPicker', () => {
       }),
     );
 
-    const onSelect = vi.fn();
-    renderWithProviders(<AircraftPicker onSelect={onSelect} />);
+    const handleSelect = vi.fn();
+    renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
 
     await search(user, /Search the aircraft register/i, 'n-172sp');
 
@@ -107,7 +107,7 @@ describe('AircraftPicker', () => {
       }),
     );
 
-    renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'archer');
 
     expect(await screen.findByText('N9021K')).toBeInTheDocument();
@@ -119,12 +119,12 @@ describe('AircraftPicker', () => {
     const aircraft = makeAircraft();
     server.use(...searchOnly([aircraft]));
 
-    const onSelect = vi.fn();
-    renderWithProviders(<AircraftPicker onSelect={onSelect} />);
+    const handleSelect = vi.fn();
+    renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
     await search(user, /Search the aircraft register/i, 'cessna');
 
     await user.click(await screen.findByRole('button', { name: /N172SP/ }));
-    expect(onSelect).toHaveBeenCalledWith(aircraft);
+    expect(handleSelect).toHaveBeenCalledWith(aircraft);
   });
 
   it('leaves out aircraft the member has already attached', async () => {
@@ -136,7 +136,7 @@ describe('AircraftPicker', () => {
       ]),
     );
 
-    renderWithProviders(<AircraftPicker onSelect={vi.fn()} excludeIds={[1]} />);
+    renderWithProviders(<AircraftPicker onSelect={() => {}} excludeIds={[1]} />);
     await search(user, /Search the aircraft register/i, 'cessna');
 
     expect(await screen.findByText('N9021K')).toBeInTheDocument();
@@ -158,7 +158,7 @@ describe('AircraftPicker', () => {
       }),
     );
 
-    renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'cessna');
     await screen.findByText(/No aircraft matches that/i);
 
@@ -173,7 +173,7 @@ describe('AircraftPicker', () => {
       ),
     );
 
-    renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n172sp');
 
     expect(await screen.findByText('N172SP')).toBeInTheDocument();
@@ -184,7 +184,7 @@ describe('AircraftPicker', () => {
     const user = setupUser();
     server.use(...searchOnly([makeAircraft({ id: 1, n_number: 'N172SP' })]));
 
-    renderWithProviders(<AircraftPicker onSelect={vi.fn()} excludeIds={[1]} />);
+    renderWithProviders(<AircraftPicker onSelect={() => {}} excludeIds={[1]} />);
     await search(user, /Search the aircraft register/i, 'n172sp');
 
     expect(await screen.findByText(/already on your list/i)).toBeInTheDocument();
@@ -195,7 +195,7 @@ describe('AircraftPicker', () => {
     const user = setupUser();
     server.use(...searchOnly([]));
 
-    renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n4321q');
 
     expect(await screen.findByText(/No aircraft matches that/i)).toBeInTheDocument();
@@ -217,8 +217,8 @@ describe('AircraftPicker', () => {
       }),
     );
 
-    const onSelect = vi.fn();
-    renderWithProviders(<AircraftPicker onSelect={onSelect} />);
+    const handleSelect = vi.fn();
+    renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
     await search(user, /Search the aircraft register/i, 'n4321q');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
 
@@ -226,7 +226,9 @@ describe('AircraftPicker', () => {
     await user.type(screen.getByLabelText(/^Model/), 'SR22');
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
-    await waitFor(() => expect(onSelect).toHaveBeenCalledWith(expect.objectContaining(created)));
+    await waitFor(() =>
+      expect(handleSelect).toHaveBeenCalledWith(expect.objectContaining(created)),
+    );
     expect(posted).toMatchObject({ n_number: 'N4321Q', make: 'Cirrus', model: 'SR22' });
   });
 
@@ -241,7 +243,7 @@ describe('AircraftPicker', () => {
       }),
     );
 
-    renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n4321q');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
@@ -263,7 +265,7 @@ describe('AircraftPicker', () => {
       ),
     );
 
-    renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n172sp');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await user.type(screen.getByLabelText(/^Make/), 'Cessna');
@@ -286,7 +288,7 @@ describe('AircraftPicker', () => {
       ),
     );
 
-    renderWithProviders(<AircraftPicker onSelect={vi.fn()} />);
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n172sp');
     await screen.findByText(/No aircraft matches that/i);
 

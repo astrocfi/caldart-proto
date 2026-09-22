@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { API, makeUser } from '@test/handlers';
 import { makeTestQueryClient, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { AUTH_ME_KEY } from '../../auth/useAuth';
+import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 import { LoginPage, safeNext } from './LoginPage';
 
 function Dashboard() {

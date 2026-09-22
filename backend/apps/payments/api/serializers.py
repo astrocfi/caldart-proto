@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
+from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
 from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
@@ -57,23 +58,66 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     provider = serializers.ChoiceField(choices=PaymentProvider.choices)
 
 
-class CheckoutClientSerializer(serializers.Serializer[dict[str, str]]):
-    """Whatever the chosen provider's browser SDK needs to take over.
+class StripeCheckoutClientSerializer(serializers.Serializer[dict[str, str]]):
+    """What the Stripe Payment Element needs: the PaymentIntent's client secret."""
 
-    Stripe answers with ``client_secret`` and PayPal with ``order_id``; the mock
-    provider sends neither, so both fields are optional.
-    """
-
-    client_secret = serializers.CharField(required=False)
-    order_id = serializers.CharField(required=False)
+    client_secret = serializers.CharField()
 
 
-class CheckoutResponseSerializer(serializers.Serializer[dict[str, Any]]):
-    """The 201 body of ``POST /payments/checkout``."""
+class PayPalCheckoutClientSerializer(serializers.Serializer[dict[str, str]]):
+    """What the PayPal Buttons need: the id of the order just created."""
+
+    order_id = serializers.CharField()
+
+
+# A serializer with no fields renders as nothing at all, which would drop `client`
+# from the mock response the view does send.  The explicit schema keeps the empty
+# object in the document.
+@extend_schema_field({"type": "object"})
+class MockCheckoutClientSerializer(serializers.Serializer[dict[str, Any]]):
+    """The mock provider needs nothing from the browser to proceed."""
+
+
+class StripeCheckoutResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    """The 201 body of ``POST /payments/checkout`` when ``provider`` is Stripe."""
 
     payment_id = serializers.IntegerField()
-    provider = serializers.ChoiceField(choices=PaymentProvider.choices)
-    client = CheckoutClientSerializer()
+    provider = serializers.ChoiceField(choices=[PaymentProvider.STRIPE])
+    client = StripeCheckoutClientSerializer()
+
+
+class PayPalCheckoutResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    """The 201 body of ``POST /payments/checkout`` when ``provider`` is PayPal."""
+
+    payment_id = serializers.IntegerField()
+    provider = serializers.ChoiceField(choices=[PaymentProvider.PAYPAL])
+    client = PayPalCheckoutClientSerializer()
+
+
+class MockCheckoutResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    """The 201 body of ``POST /payments/checkout`` when ``provider`` is ``mock``."""
+
+    payment_id = serializers.IntegerField()
+    provider = serializers.ChoiceField(choices=[PaymentProvider.MOCK])
+    client = MockCheckoutClientSerializer()
+
+
+#: The 201 body of ``POST /payments/checkout``, schema-only: the view never calls this
+#: serializer, it only documents the shape ``get_provider(...).start()`` already produces.
+#: ``client`` carries what the chosen provider's browser SDK needs, discriminated by
+#: ``provider`` -- ``client_secret`` for Stripe, ``order_id`` for PayPal, nothing for the
+#: mock provider.  The keys are the plain ``str`` values, not the ``TextChoices``
+#: members: they become mapping keys in the document, and the YAML renderer
+#: ``manage.py spectacular`` defaults to refuses a ``str`` subclass.
+CheckoutResponseSerializer = PolymorphicProxySerializer(
+    component_name="CheckoutResponse",
+    serializers={
+        PaymentProvider.STRIPE.value: StripeCheckoutResponseSerializer,
+        PaymentProvider.PAYPAL.value: PayPalCheckoutResponseSerializer,
+        PaymentProvider.MOCK.value: MockCheckoutResponseSerializer,
+    },
+    resource_type_field_name="provider",
+)
 
 
 class StripeConfirmSerializer(serializers.Serializer[dict[str, Any]]):

@@ -10,14 +10,14 @@
 import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
-import type { Payment } from '../../api/types';
-import { Button } from '../../components/Button';
-import type { Column } from '../../components/DataTable';
-import { DataTable } from '../../components/DataTable';
-import { DateText } from '../../components/DateText';
-import { Money } from '../../components/Money';
-import { Page } from '../../components/Page';
-import { StatusChip } from '../../components/StatusChip';
+import type { Payment } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import type { Column } from '@/portal/components/DataTable';
+import { DataTable } from '@/portal/components/DataTable';
+import { DateText } from '@/portal/components/DateText';
+import { Money } from '@/portal/components/Money';
+import { Page } from '@/portal/components/Page';
+import { StatusChip } from '@/portal/components/StatusChip';
 import {
   EMPTY_FILTERS,
   dashboardTotals,
@@ -95,7 +95,7 @@ export function AdminPaymentsPage(): JSX.Element {
   const count = list.data?.count ?? 0;
   const lastPage = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
-  function changeFilters(next: PaymentFilterState) {
+  function handleFilterChange(next: PaymentFilterState) {
     setFilters(next);
     setPage(1);
   }
@@ -111,7 +111,7 @@ export function AdminPaymentsPage(): JSX.Element {
       <PeriodTable
         rows={summary.data ?? []}
         group={group}
-        onGroupChange={setGroup}
+        onGroupChange={(next) => setGroup(next)}
         isLoading={summary.isPending}
       />
 
@@ -122,7 +122,7 @@ export function AdminPaymentsPage(): JSX.Element {
           rows={rows}
           rowKey={(row) => row.id}
           caption={`${count} payment${count === 1 ? '' : 's'}`}
-          filters={<FilterBar value={filters} onChange={changeFilters} />}
+          filters={<FilterBar value={filters} onChange={handleFilterChange} />}
           exportCsvUrl={exportCsvUrl(filters)}
           isLoading={list.isPending}
           emptyTitle="No payments match these filters"

@@ -46,7 +46,7 @@ export function ToastProvider({ children }: { children: ReactNode }): JSX.Elemen
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+      <ToastViewport toasts={toasts} onDismiss={(id) => dismiss(id)} />
     </ToastContext.Provider>
   );
 }

@@ -116,17 +116,17 @@ describe('DataTable', () => {
 
   it('delegates to the server when onSortChange is given', async () => {
     const user = userEvent.setup();
-    const onSortChange = vi.fn();
+    const handleSortChange = vi.fn();
     render(
       <DataTable
         columns={COLUMNS}
         rows={ROWS}
         rowKey={(row) => row.id}
-        onSortChange={onSortChange}
+        onSortChange={handleSortChange}
       />,
     );
     await user.click(screen.getByRole('button', { name: /Name/ }));
-    expect(onSortChange).toHaveBeenCalledWith('name', 'asc');
+    expect(handleSortChange).toHaveBeenCalledWith('name', 'asc');
     // Row order is left to the server.
     expect(bodyNames()).toEqual(['Reyes, Marta', 'Delgado, Owen', 'Adeyemi, Kofi']);
   });

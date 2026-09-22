@@ -1,5 +1,5 @@
 /** Shapes shared by the checkout widget and its provider panels. */
-import type { MembershipStatus } from '../../api/types';
+import type { MembershipStatus } from '@/portal/api/types';
 
 /** What a completed checkout hands back to the join or renew flow. */
 export interface CheckoutResult {

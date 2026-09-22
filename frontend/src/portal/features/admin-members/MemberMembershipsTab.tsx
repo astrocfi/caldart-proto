@@ -9,12 +9,18 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 
-import { Button, Card, DataTable, DateText, Field, useToast } from '../../components';
-import type { Column } from '../../components';
+import { usePlans } from '@/portal/api/queries';
+import type { MemberDetail, MemberTerm, MembershipTermStatus } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import type { Column } from '@/portal/components/DataTable';
+import { DataTable } from '@/portal/components/DataTable';
+import { DateText } from '@/portal/components/DateText';
+import { Field } from '@/portal/components/Field';
+import { useToast } from '@/portal/components/Toast';
 import { TERM_STATUS_CHOICES } from './choices';
-import { useGrantTerm, usePlans, useUpdateTerm } from './api';
+import { useGrantTerm, useUpdateTerm } from './api';
 import { splitErrors } from './errors';
-import type { MemberDetail, MemberTerm, MembershipTermStatus } from '../../api/types';
 
 interface TermEdit {
   ends_on: string;
@@ -65,7 +71,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
     );
   };
 
-  const submitGrant = (event: React.FormEvent) => {
+  const handleSubmitGrant = (event: React.FormEvent) => {
     event.preventDefault();
     grant.mutate(
       { plan, starts_on: startsOn || null, note },
@@ -179,7 +185,7 @@ export function MemberMembershipsTab({ member }: { member: MemberDetail }): JSX.
       </Card>
 
       <Card title="Grant a term" eyebrow="Manual grant">
-        <form onSubmit={submitGrant} noValidate>
+        <form onSubmit={handleSubmitGrant} noValidate>
           {grantErrors.detail ? (
             <p role="alert" className="field__error">
               {grantErrors.detail}

@@ -14,8 +14,8 @@
  */
 import type { JSX } from 'react';
 
-import { Field } from '../../components';
-import type { AdminProfile, AdminProfilePayload } from '../../api/types';
+import type { AdminProfile, AdminProfilePayload } from '@/portal/api/types';
+import { Field } from '@/portal/components/Field';
 
 export interface AccountDraft {
   email: string;

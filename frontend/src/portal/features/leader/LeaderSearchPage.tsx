@@ -8,15 +8,15 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { ApiError } from '../../api/client';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { Field } from '../../components/Field';
-import { Page } from '../../components/Page';
-import { StatusChip } from '../../components/StatusChip';
-import { useDebounced } from '../../components/useDebounced';
-import { looksLikeRegistration, normalizeNNumber } from '../aircraft/insurance';
+import { ApiError } from '@/portal/api/client';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { Field } from '@/portal/components/Field';
+import { Page } from '@/portal/components/Page';
+import { StatusChip } from '@/portal/components/StatusChip';
+import { useDebounced } from '@/portal/components/useDebounced';
+import { looksLikeRegistration, normalizeNNumber } from '@/portal/features/aircraft/insurance';
 import { MemberStatusCard } from './MemberStatusCard';
 import { useLeaderSearch, useMemberStatus } from './api';
 import './leader.css';
@@ -38,7 +38,7 @@ export function LeaderSearchPage(): JSX.Element {
     setParams({ member: String(userId) });
   };
 
-  const back = (): void => {
+  const handleBack = (): void => {
     setParams({});
   };
 
@@ -46,7 +46,7 @@ export function LeaderSearchPage(): JSX.Element {
     return (
       <Page title="Member check" eyebrow="DART leader">
         <div className="leader-back">
-          <Button variant="quiet" small onClick={back}>
+          <Button variant="quiet" small onClick={handleBack}>
             ← Back to search
           </Button>
         </div>
@@ -60,7 +60,7 @@ export function LeaderSearchPage(): JSX.Element {
                 : status.error.message
             }
             action={
-              <Button variant="secondary" onClick={back}>
+              <Button variant="secondary" onClick={handleBack}>
                 Search again
               </Button>
             }

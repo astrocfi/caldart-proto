@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { User } from '../../api/types';
+import type { User } from '@/portal/api/types';
 import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
+import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { UsersListPage } from './UsersListPage';
 
 const ROLES = [

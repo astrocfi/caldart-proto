@@ -11,8 +11,8 @@ import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { useRef, useState } from 'react';
 import type { JSX } from 'react';
 
-import { ApiError } from '../../api/client';
-import { useToast } from '../../components/Toast';
+import { ApiError } from '@/portal/api/client';
+import { useToast } from '@/portal/components/Toast';
 import { capturePayPalOrder, createCheckout } from './api';
 import type { ProviderPanelProps } from './types';
 
@@ -62,9 +62,10 @@ export function PayPalPanel({
                 provider: 'paypal',
               });
               paymentId.current = checkout.payment_id;
-              const orderId = checkout.client.order_id;
-              if (!orderId) throw new Error('PayPal did not return an order.');
-              return orderId;
+              if (checkout.provider !== 'paypal' || !checkout.client.order_id) {
+                throw new Error('PayPal did not return an order.');
+              }
+              return checkout.client.order_id;
             } catch (caught) {
               // PayPal's own error panel says nothing about why, so the server's
               // reason is put on screen here before the rejection goes back to it.

@@ -6,13 +6,13 @@
  * `features/profile/constants`, and are re-exported here so no screen can
  * label the same code differently.
  */
-import type { RoleSlug } from '../../api/types';
-import { labelFor } from '../../choices';
-import type { Choice } from '../../choices';
-import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '../profile/constants';
+import type { RoleSlug } from '@/portal/api/types';
+import { labelFor } from '@/portal/choices';
+import type { Choice } from '@/portal/choices';
+import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '@/portal/features/profile/constants';
 
 export { CERTIFICATE_TYPES, MEDICAL_TYPES };
-export { certificateLabel, medicalLabel } from '../../choices';
+export { certificateLabel, medicalLabel } from '@/portal/choices';
 
 export const ROLE_CHOICES: Choice<RoleSlug>[] = [
   { value: 'member', label: 'Member' },

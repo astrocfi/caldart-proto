@@ -7,9 +7,13 @@
  */
 import type { JSX } from 'react';
 
-import { Card, DataTable, DateText, Money, PaymentChip } from '../../components';
-import type { Column } from '../../components';
-import type { MemberDetail, MemberPayment } from '../../api/types';
+import type { MemberDetail, MemberPayment } from '@/portal/api/types';
+import { Card } from '@/portal/components/Card';
+import type { Column } from '@/portal/components/DataTable';
+import { DataTable } from '@/portal/components/DataTable';
+import { DateText } from '@/portal/components/DateText';
+import { Money } from '@/portal/components/Money';
+import { PaymentChip } from '@/portal/components/StatusChip';
 
 const COLUMNS: Column<MemberPayment>[] = [
   {

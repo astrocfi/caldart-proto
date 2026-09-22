@@ -4,13 +4,13 @@
  */
 import type { JSX } from 'react';
 
-import type { Backup } from '../../api/types';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { DataTable } from '../../components/DataTable';
-import type { Column } from '../../components/DataTable';
-import { DateText } from '../../components/DateText';
-import { useToast } from '../../components/Toast';
+import type { Backup } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { DataTable } from '@/portal/components/DataTable';
+import type { Column } from '@/portal/components/DataTable';
+import { DateText } from '@/portal/components/DateText';
+import { useToast } from '@/portal/components/Toast';
 import { backupDownloadUrl, useBackups, useCreateBackup } from './api';
 
 /** Human file size; dumps run from a few hundred kB to a few hundred MB. */
@@ -64,7 +64,7 @@ export function BackupsPanel(): JSX.Element {
   const create = useCreateBackup();
   const toast = useToast();
 
-  const takeBackup = () => {
+  const handleCreateBackup = () => {
     create.mutate(undefined, {
       onSuccess: (backup) => toast.show(`Wrote ${backup.name}`, 'success'),
       onError: (failure) =>
@@ -78,7 +78,7 @@ export function BackupsPanel(): JSX.Element {
       title="Backups"
       footer={
         <>
-          <Button onClick={takeBackup} disabled={create.isPending}>
+          <Button onClick={handleCreateBackup} disabled={create.isPending}>
             {create.isPending ? 'Taking a backup…' : 'Create backup'}
           </Button>
           {create.isPending ? (

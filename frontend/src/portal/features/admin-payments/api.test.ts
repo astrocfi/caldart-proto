@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PaymentPeriodSummary } from '../../api/types';
+import type { PaymentPeriodSummary } from '@/portal/api/types';
 import {
   EMPTY_FILTERS,
   dashboardTotals,

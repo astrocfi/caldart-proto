@@ -11,7 +11,7 @@ import type { CheckoutResult } from '@/portal/features/checkout';
 import { useQueryClient } from '@tanstack/react-query';
 import type { JSX } from 'react';
 
-import { Card } from '../../components/Card';
+import { Card } from '@/portal/components/Card';
 import { refreshAfterPayment } from './refresh';
 import './join.css';
 

@@ -5,20 +5,20 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import { ApiError } from '../../api/client';
-import type { AircraftPatch } from '../../api/types';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { Page } from '../../components/Page';
-import { StatusChip } from '../../components/StatusChip';
-import { useToast } from '../../components/Toast';
-import { InsuranceChip } from '../aircraft/InsuranceChip';
-import { ServiceChip } from '../aircraft/ServiceChip';
-import '../aircraft/aircraft.css';
-import { useAircraft, useDeleteAircraft, useUpdateAircraft } from '../aircraft/api';
-import { aircraftToValues } from '../aircraft/form';
-import { AircraftForm } from '../aircraft/AircraftForm';
+import { ApiError } from '@/portal/api/client';
+import type { AircraftPatch } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { Page } from '@/portal/components/Page';
+import { StatusChip } from '@/portal/components/StatusChip';
+import { useToast } from '@/portal/components/Toast';
+import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
+import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
+import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
+import { useAircraft, useDeleteAircraft, useUpdateAircraft } from '@/portal/features/aircraft/api';
+import { aircraftToValues } from '@/portal/features/aircraft/form';
+import '@/portal/features/aircraft/aircraft.css';
 
 /** `/admin/aircraft/:id` page: edit, view pilots, and delete an aircraft record. */
 export function AircraftRecordPage(): JSX.Element {
@@ -71,13 +71,13 @@ export function AircraftRecordPage(): JSX.Element {
   // Absent for a caller without a leader or administrator role.
   const pilots = aircraft.pilots ?? [];
 
-  const save = (payload: AircraftPatch): void => {
+  const handleSave = (payload: AircraftPatch): void => {
     update.mutate(payload, {
       onSuccess: (saved) => toast.show(`${saved.n_number} saved.`, 'success'),
     });
   };
 
-  const destroy = (): void => {
+  const handleDelete = (): void => {
     remove.mutate(undefined, {
       onSuccess: () => {
         toast.show(`${aircraft.n_number} deleted from the register.`, 'success');
@@ -108,7 +108,7 @@ export function AircraftRecordPage(): JSX.Element {
           submitLabel="Save changes"
           pending={update.isPending}
           serverErrors={serverErrors}
-          onSubmit={save}
+          onSubmit={handleSave}
           withAdminFields
         />
       </Card>
@@ -144,7 +144,7 @@ export function AircraftRecordPage(): JSX.Element {
             <p className="field__error" role="alert">
               Delete {aircraft.n_number} permanently? It will disappear from every member's profile.
             </p>
-            <Button variant="danger" disabled={remove.isPending} onClick={destroy}>
+            <Button variant="danger" disabled={remove.isPending} onClick={handleDelete}>
               {remove.isPending ? 'Deleting…' : 'Yes, delete it'}
             </Button>
             <Button variant="quiet" onClick={() => setConfirming(false)}>

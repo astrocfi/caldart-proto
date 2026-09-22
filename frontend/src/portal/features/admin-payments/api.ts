@@ -7,14 +7,14 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, api } from '../../api/client';
+import { API_BASE, api } from '@/portal/api/client';
 import type {
   Paginated,
   Payment,
   PaymentPeriodSummary,
   PaymentProvider,
   PaymentState,
-} from '../../api/types';
+} from '@/portal/api/types';
 
 export type SummaryGroup = 'month' | 'year';
 

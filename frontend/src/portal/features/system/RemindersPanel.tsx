@@ -5,9 +5,9 @@
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
-import type { ReminderRunResult } from '../../api/types';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
+import type { ReminderRunResult } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
 import { useRunReminders } from './api';
 import { ReminderLog } from './ReminderLog';
 

@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Aircraft } from '../../api/types';
-import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
+import type { Aircraft } from '@/portal/api/types';
+import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { AircraftRegisterPage, orderingFor } from './AircraftRegisterPage';
 
 function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {

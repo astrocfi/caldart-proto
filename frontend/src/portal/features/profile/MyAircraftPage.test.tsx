@@ -8,7 +8,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { AircraftPickerProps } from '@/portal/features/aircraft';
 
-import type { Aircraft } from '../../api/types';
+import type { Aircraft } from '@/portal/api/types';
 import { MyAircraftPage } from './MyAircraftPage';
 import { TEST_AIRCRAFT, makeProfile } from '@test/fixtures/profile';
 

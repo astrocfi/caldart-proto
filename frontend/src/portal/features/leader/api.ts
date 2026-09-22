@@ -2,8 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 
-import { api } from '../../api/client';
-import type { AircraftDetail, LeaderSearchResult, LeaderStatus } from '../../api/types';
+import { api } from '@/portal/api/client';
+import type { AircraftDetail, LeaderSearchResult, LeaderStatus } from '@/portal/api/types';
 
 export const LEADER_KEY = 'leader';
 

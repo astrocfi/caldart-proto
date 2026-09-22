@@ -7,8 +7,8 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 
-import { ApiError } from '../../api/client';
-import { Button } from '../../components/Button';
+import { ApiError } from '@/portal/api/client';
+import { Button } from '@/portal/components/Button';
 import { completeMockPayment, createCheckout } from './api';
 import type { ProviderPanelProps } from './types';
 

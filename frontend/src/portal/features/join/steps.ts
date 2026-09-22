@@ -5,7 +5,7 @@
  * signed-in user (or nobody), which step should the visitor be on, and may
  * they be on the step the URL asks for?
  */
-import type { User } from '../../api/types';
+import type { User } from '@/portal/api/types';
 
 export const JOIN_STEPS = ['account', 'profile', 'pay', 'done'] as const;
 

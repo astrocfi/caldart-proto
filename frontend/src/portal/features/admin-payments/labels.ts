@@ -9,5 +9,5 @@ export {
   PAYMENT_PROVIDER_LABELS as PROVIDER_LABELS,
   PAYMENT_STATUS_LABELS as STATUS_LABELS,
   PAYMENT_WALLET_LABELS as WALLET_LABELS,
-} from '../../choices';
-export { paymentStatusTone as statusTone } from '../../components/StatusChip';
+} from '@/portal/choices';
+export { paymentStatusTone as statusTone } from '@/portal/components/StatusChip';
