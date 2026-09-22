@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import copy
 import json
+import os
 import re
 import shutil
 import tempfile
@@ -32,6 +33,7 @@ from apps.accounts.roles import (
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
+from caldart.settings.test import STATIC_ROOT_PREFIX
 from tests.factories import (
     DEFAULT_PASSWORD,
     AircraftFactory,
@@ -103,14 +105,20 @@ STUB_MANIFEST = {
 }
 
 #: Set by ``pytest_configure`` when it falls back to the stub manifest, so
-#: ``pytest_unconfigure`` and the ``needs_frontend_build`` skip guard know.
+#: ``pytest_unconfigure`` and the ``needs_frontend_build`` guard know.
 _stub_manifest_dir: Path | None = None
 _stub_manifest_path: Path | None = None
 
 #: The manifest ``pytest_configure`` looked for before falling back, named in
-#: the skip reason: ``DJANGO_VITE_MANIFEST_PATH`` can point it somewhere other
-#: than ``frontend/dist``, and then "not built" alone would mislead.
+#: the skip or failure reason: ``DJANGO_VITE_MANIFEST_PATH`` can point it
+#: somewhere other than ``frontend/dist``, and then "not built" alone would
+#: mislead.
 _missing_manifest_path: Path | None = None
+
+#: Set to a non-empty value by the CI runner (GitHub Actions sets ``CI=true``).
+#: It is what tells ``pytest_runtest_setup`` that a missing frontend build is a
+#: broken job rather than an unbuilt checkout.
+CI_ENV_VAR = "CI"
 
 
 def _reload_vite_loader() -> None:
@@ -145,25 +153,40 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 def pytest_unconfigure(config: pytest.Config) -> None:
-    """Remove the stub manifest directory ``pytest_configure`` created, if any."""
+    """Remove the temporary directories the session leaves behind.
+
+    Those are the stub manifest directory ``pytest_configure`` created, when it
+    created one, and the ``STATIC_ROOT`` that ``caldart.settings.test`` makes on
+    import so WhiteNoise never warns about a missing directory.  A ``STATIC_ROOT``
+    whose name does not carry that module's prefix is left alone, so a run under
+    other settings cannot delete a real one.
+    """
+    from django.conf import settings
+
     if _stub_manifest_dir is not None:
         shutil.rmtree(_stub_manifest_dir, ignore_errors=True)
+    static_root = Path(settings.STATIC_ROOT)
+    if static_root.name.startswith(STATIC_ROOT_PREFIX):
+        shutil.rmtree(static_root, ignore_errors=True)
 
 
-def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """Skip a ``needs_frontend_build`` test unless a real bundle is configured.
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """Skip a ``needs_frontend_build`` test with no real bundle, or fail it in CI.
 
-    Runs once, at collection time, rather than inside every such test — the
-    marker states the requirement declaratively and this hook enforces it.
+    The marker states the requirement declaratively and this hook enforces it.
+    A developer who has not run ``make build`` gets a skip naming the manifest
+    that was missing.  CI builds the frontend as part of the backend job, so
+    there a missing manifest means the job is silently not running these tests
+    at all: fail them instead, naming the same path.
     """
+    if item.get_closest_marker("needs_frontend_build") is None:
+        return
     if _stub_manifest_path is None:
         return
-    skip_reason = pytest.mark.skip(
-        reason=f"no Vite build at {_missing_manifest_path} (run `make build`)"
-    )
-    for item in items:
-        if item.get_closest_marker("needs_frontend_build") is not None:
-            item.add_marker(skip_reason)
+    reason = f"no Vite build at {_missing_manifest_path} (run `make build`)"
+    if os.environ.get(CI_ENV_VAR, "") != "":
+        pytest.fail(reason, pytrace=False)
+    pytest.skip(reason)
 
 
 @pytest.fixture(autouse=True)

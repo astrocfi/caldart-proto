@@ -66,8 +66,9 @@ Two custom markers are registered in ``pyproject.toml``:
 
 ``needs_frontend_build``
     The two ``test_shell_views.py`` tests that assert on the built bundle's
-    filenames.  A collection hook in ``conftest.py`` skips them unless a real
-    Vite manifest is configured (:ref:`testing-vite-manifest`).
+    filenames.  A hook in ``conftest.py`` skips them locally, and fails them in
+    CI, unless a real Vite manifest is configured
+    (:ref:`testing-vite-manifest`).
 
 Order independence
 -------------------
@@ -108,6 +109,12 @@ What ``caldart.settings.test`` changes
   auth throttles inert.  The throttling test turns one back on with
   ``override_settings`` rather than having every other test race a shared
   counter.
+- ``STATIC_ROOT`` is a temporary directory the settings module creates on
+  import, because WhiteNoise warns about a ``STATIC_ROOT`` that is not on disk
+  and the suite never runs ``collectstatic``.  ``conftest.py``'s
+  ``pytest_unconfigure`` removes it, along with any stub manifest directory, at
+  the end of the session, so a run leaves nothing behind in the temporary
+  directory.
 - ``PAYMENTS_MOCK_ENABLED`` is on; ``DEBUG`` is off; storage is in-memory;
   the root logger is quietened to ``ERROR``.  The ``caldart.audit`` logger
   keeps its own ``INFO`` level (:ref:`deploy-audit-log`), so a test that
@@ -138,8 +145,17 @@ The test settings load ``.env``, so a ``DJANGO_VITE_MANIFEST_PATH`` set there
 decides which manifest the suite reads (:doc:`configuration`).
 
 A test that genuinely needs the real bundle carries
-``@pytest.mark.needs_frontend_build``; a collection hook in ``conftest.py``
-skips it whenever that fallback fired, naming the manifest that was missing.
+``@pytest.mark.needs_frontend_build``; ``conftest.py``'s
+``pytest_runtest_setup`` acts on the marker whenever that fallback fired,
+naming the manifest that was missing.  What it does depends on the ``CI``
+environment variable:
+
+- Unset, as in a local run, the test is skipped: the checkout simply has no
+  build yet.
+- Set, as the CI runner sets it, the test fails with the same message.  CI's
+  backend job builds the frontend precisely so these tests run, so a manifest
+  that is not where the job says it is means the job is not testing the bundle
+  at all — a green run would be a lie.
 
 .. code-block:: console
 

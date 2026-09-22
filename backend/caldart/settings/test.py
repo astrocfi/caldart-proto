@@ -14,10 +14,15 @@ from .base import AUTH_THROTTLE_RATES, LOGGING, REPO_ROOT, env
 DEBUG = False
 ALLOWED_HOSTS = ["*", "testserver"]
 
+#: Prefix of the temporary STATIC_ROOT below, so that the pytest hook which
+#: removes the directory at the end of a session can recognize its own.
+STATIC_ROOT_PREFIX = "caldart-staticfiles-"
+
 # WhiteNoise warns when STATIC_ROOT does not exist on disk, and the suite never
 # runs collectstatic.  Pointing STATIC_ROOT at a directory this import creates
-# keeps that warning from firing at all, rather than silencing it.
-STATIC_ROOT = Path(tempfile.mkdtemp(prefix="caldart-staticfiles-"))
+# keeps that warning from firing at all, rather than silencing it.  A pytest run
+# removes the directory again in `pytest_unconfigure` (backend/tests/conftest.py).
+STATIC_ROOT = Path(tempfile.mkdtemp(prefix=STATIC_ROOT_PREFIX))
 
 # Throttles are inert under test; the throttling test turns one back on with
 # ``override_settings`` rather than every other test racing a shared counter.
