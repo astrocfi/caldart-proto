@@ -57,5 +57,19 @@ export default defineConfig({
     // Files and the tests inside them run in a random order, which is what
     // surfaces a test that only passes after another has run.
     sequence: { shuffle: true },
+    coverage: {
+      provider: 'v8',
+      // Production code only: the test helpers, the tests themselves and the
+      // generated OpenAPI types are not the subject of the measurement.
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/test/**',
+        'src/**/*.{test,spec}.{ts,tsx}',
+        'src/portal/api/schema.d.ts',
+        'src/**/*.d.ts',
+      ],
+      reporter: ['text', 'html'],
+      reportsDirectory: 'coverage',
+    },
   },
 });

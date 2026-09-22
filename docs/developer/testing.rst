@@ -297,12 +297,31 @@ Running the frontend suite
 .. code-block:: console
 
    $ make test-frontend                 # vitest run, once
+   $ make coverage-frontend             # the same run, with a coverage report
    $ cd frontend && npm run test:watch  # watch mode
    $ cd frontend && npx vitest run src/portal/features/join
 
 Configuration is the ``test`` key in ``frontend/vite.config.ts``: the ``jsdom``
 environment, globals off, ``src/test/setup.ts`` as the setup file, CSS
 processing off, and ``src/**/*.{test,spec}.{ts,tsx}`` as the include pattern.
+Three settings keep the suite honest:
+
+``allowOnly: false``
+    A committed ``.only`` would narrow the run to one test and still report
+    green.  vitest refuses it, exactly as Playwright's ``forbidOnly`` refuses
+    ``test.only`` in CI.
+
+``restoreMocks: true``
+    Every spy is restored before the next test, so a file that patches a module
+    member cannot leak it into the file that runs after it.  A spy therefore has
+    to be installed per test (or in a ``beforeEach``), never once in a
+    ``beforeAll``.
+
+``sequence.shuffle: true``
+    The files, and the tests inside each file, run in a random order — the
+    frontend's counterpart to ``pytest-randomly``.  A test that only passes
+    after another has run fails sooner or later, rather than the day someone
+    reorders a file.
 
 **Every test file imports what it uses.**  ``globals: false`` means the runner
 injects nothing, and ``tsconfig.json``'s ``types`` lists only ``vite/client``,
@@ -328,7 +347,26 @@ in the cleanup — abort the request with an ``AbortController``, clear the time
 setup does nothing while the first one's cleanup has already canceled its
 work.
 
-Two helpers do the heavy lifting:
+**The console is a gate.**  ``src/test/console.ts`` replaces ``console.error``
+and ``console.warn`` with capturing spies before every test and fails the test
+afterwards if it wrote a message — React's complaint about a missing ``key``, a
+library's deprecation notice, msw's report of a request nobody stubbed.  It is
+the frontend's counterpart to pytest's ``filterwarnings = error``.  A test whose
+subject *is* the message declares it first:
+
+.. code-block:: ts
+
+   import { expectConsoleMessage } from '@test/console';
+
+   it('warns about an unknown tone', () => {
+     expectConsoleMessage(/unknown tone/i);
+     // …
+   });
+
+The declaration covers the current test only, and every message it does not
+match still fails.
+
+Three helpers do the heavy lifting:
 
 ``src/test/render.tsx``
     ``renderWithProviders(ui, {route})`` wraps a component in the providers the
@@ -357,6 +395,18 @@ Two helpers do the heavy lifting:
     which means a mutation genuinely carries ``X-CSRFToken`` and a test can
     assert on it.
 
+``src/test/fixtures/``
+    The object factories that more than one file wants: ``profile.ts`` for the
+    profile, join and dashboard suites, ``members.ts`` for the members-admin
+    screens.  Test data lives here rather than beside the component, so nothing
+    test-only ships in the portal bundle.
+
+**Reach the helpers through the ``@test/`` alias** — ``@test/render``,
+``@test/server``, ``@test/handlers``, ``@test/console``,
+``@test/fixtures/profile`` — rather than counting ``../``s.  It is a path
+mapping in ``frontend/tsconfig.json`` mirrored by a ``resolve.alias`` entry in
+``frontend/vite.config.ts``, alongside the ``@/`` alias for ``src``.
+
 **Time.**  A test never waits out a real debounce, poll or delay, and never
 builds a fixture date from the real clock.  Pin the system clock with
 ``vi.useFakeTimers()`` and ``vi.setSystemTime(...)`` (add
@@ -376,8 +426,8 @@ inside an msw handler uses msw's own ``delay(ms)`` rather than a raw
    import { http, HttpResponse } from 'msw';
    import { screen } from '@testing-library/react';
 
-   import { renderWithProviders } from '../../../test/render';
-   import { server } from '../../../test/server';
+   import { renderWithProviders } from '@test/render';
+   import { server } from '@test/server';
    import { DashboardPage } from './DashboardPage';
 
    it('nudges a member whose profile is incomplete', async () => {
@@ -394,6 +444,19 @@ Query by role and by accessible name wherever you can
 (``getByRole("button", {name: /save/i})``).  The design system is built for
 keyboard and screen-reader use, and a test that goes through the accessibility
 tree keeps it that way.
+
+Measuring frontend coverage
+---------------------------
+
+``make coverage-frontend`` runs the same suite through ``@vitest/coverage-v8``
+and writes a text summary to the terminal and an HTML report to
+``frontend/coverage/`` (git-ignored; open ``frontend/coverage/index.html``).
+The measurement covers production code only: ``src/**/*.{ts,tsx}`` minus
+``src/test/``, the test files themselves and the generated
+``src/portal/api/schema.d.ts``.
+
+No threshold fails the run, and CI does not gate on the number.  The report is
+there to find the module nothing exercises, not to be argued with.
 
 What the frontend suite covers
 ------------------------------

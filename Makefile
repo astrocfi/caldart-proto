@@ -59,7 +59,8 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            AUTH_THROTTLE_LOGIN=1000/min
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
-        dev-frontend build test test-backend test-frontend e2e lint lint-backend \
+        dev-frontend build test test-backend test-frontend coverage-frontend e2e \
+        lint lint-backend \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
         audit audit-backend audit-frontend backup restore reminders docs shell superuser \
         collectstatic clean
@@ -153,6 +154,9 @@ test-backend: ## pytest (Postgres)
 
 test-frontend: ## vitest
 	cd frontend && $(NPM) run test
+
+coverage-frontend: ## vitest with coverage; writes frontend/coverage/
+	cd frontend && $(NPM) run coverage
 
 e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	@# CI creates the database with psql, having no compose services to exec into.
