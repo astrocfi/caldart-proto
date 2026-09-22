@@ -17,7 +17,7 @@ import { capturePayPalOrder, createCheckout } from './api';
 import type { ProviderPanelProps } from './types';
 
 /** What a member is told when they close PayPal's window without paying. */
-const PAYMENT_CANCELLED = 'Payment cancelled';
+const PAYMENT_CANCELED = 'Payment canceled';
 
 export interface PayPalPanelProps extends ProviderPanelProps {
   clientId: string;
@@ -93,7 +93,7 @@ export function PayPalPanel({
               );
             }
           }}
-          onCancel={() => toast.show(PAYMENT_CANCELLED)}
+          onCancel={() => toast.show(PAYMENT_CANCELED)}
           onError={() => setError('PayPal could not be reached. Please try again.')}
         />
       </PayPalScriptProvider>

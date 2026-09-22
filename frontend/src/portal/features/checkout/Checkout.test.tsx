@@ -460,7 +460,7 @@ describe('Checkout · PayPal', () => {
     );
   });
 
-  it('says the payment was cancelled when the PayPal window is closed', async () => {
+  it('says the payment was canceled when the PayPal window is closed', async () => {
     const user = userEvent.setup();
     const onSuccess = vi.fn();
     serveConfig(payPalConfig);
@@ -469,7 +469,7 @@ describe('Checkout · PayPal', () => {
     renderWithProviders(<Checkout mode="join" onSuccess={onSuccess} />);
     await user.click(await screen.findByRole('button', { name: 'Close the PayPal window' }));
 
-    expect(await screen.findByText('Payment cancelled')).toBeInTheDocument();
+    expect(await screen.findByText('Payment canceled')).toBeInTheDocument();
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
@@ -481,7 +481,7 @@ describe('Checkout · PayPal', () => {
     renderWithProviders(<Checkout mode="join" onSuccess={vi.fn()} />);
     await user.click(await screen.findByRole('button', { name: 'Close the PayPal window' }));
 
-    expect(await screen.findByText('Payment cancelled')).toBeInTheDocument();
+    expect(await screen.findByText('Payment canceled')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pay with PayPal' })).toBeInTheDocument();
     expect(screen.getByTestId('checkout-total')).toHaveTextContent('$45.00');
   });

@@ -101,7 +101,7 @@ If something goes wrong
    Nothing was charged.  Try another card, or the PayPal tab.
 
 *You closed the PayPal window without paying.*
-   Nothing was charged.  A note says **Payment cancelled**, and the checkout is
+   Nothing was charged.  A note says **Payment canceled**, and the checkout is
    exactly as you left it: the same plan, the same contribution, the same tabs.
 
 *PayPal would not open, and a message says why.*

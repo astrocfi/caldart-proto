@@ -155,9 +155,10 @@ interface ProviderTabsProps {
 }
 
 function ProviderTabs({ providers, active, onChange, config, panelProps }: ProviderTabsProps) {
-  const current = active ?? providers[0];
+  const selected = active ?? providers[0];
   // `providers` is never empty here: the caller renders the empty state instead.
-  if (current === undefined) return null;
+  if (selected === undefined) return null;
+  const current: PaymentProvider = selected;
 
   function handleKeyDown(event: React.KeyboardEvent): void {
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
