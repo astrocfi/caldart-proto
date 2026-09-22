@@ -27,13 +27,31 @@ It finds ``pg_dump`` in one of two places:
 
 * the local binary, when ``postgresql-client`` is installed and
   ``DB_BACKUP_VIA_DOCKER`` is false;
-* ``docker compose exec -T db pg_dump``, when it is not, or when
+* ``docker compose exec -T -e PGPASSWORD db pg_dump``, when it is not, or when
   ``DB_BACKUP_VIA_DOCKER=true`` forces it.
 
 The second is the default because a development machine usually has Docker but
 not the client tools.  On a server, install ``postgresql-client`` and set
 ``DB_BACKUP_VIA_DOCKER=false``: it is faster and it works even if the compose
 project name changes.
+
+.. _backup-credentials:
+
+How the credentials reach the tool
+----------------------------------
+
+``pg_dump`` and ``psql`` are given a connection URL through ``--dbname``, and
+that URL carries no password: an argument list is readable by every other user
+on the machine through ``ps``, and it lands in shell history.  The password
+travels in the ``PGPASSWORD`` environment variable of the child process
+instead, and the compose form names the variable without a value so Docker
+copies it across from the same environment rather than spelling it out in an
+argument.  An empty password is left unset, so a ``.pgpass`` file or a trust
+connection still works.
+
+The user name and the database name are percent-encoded into the URL, so an
+awkward account such as ``ann marie@caldart`` still produces a URL libpq can
+parse.
 
 ``BACKUP_DIR`` defaults to ``backups/`` at the repository root, which is
 gitignored.  A relative value is resolved against the repository root; an

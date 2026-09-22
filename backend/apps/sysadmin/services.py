@@ -7,6 +7,7 @@ The ``/system/...`` API wraps these, and so do the ``db_backup``,
 from __future__ import annotations
 
 import gzip
+import os
 import re
 import shutil
 import subprocess
@@ -16,7 +17,7 @@ from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote
 
 from django.conf import settings
 from django.db import connection
@@ -67,15 +68,31 @@ def backup_dir() -> Path:
     return path
 
 
-def database_url() -> str:
-    """The DATABASE_URL for the configured default connection."""
+def database_password() -> str:
+    """The password of the default connection, empty when there is none.
+
+    It reaches ``pg_dump`` and ``psql`` through ``PGPASSWORD`` rather than through
+    the connection URL, so it never appears in a command line that ``ps`` or a
+    shell history would show.
+    """
+    password: str = settings.DATABASES["default"].get("PASSWORD") or ""
+    return password
+
+
+def database_url(*, host: str | None = None, port: int | str | None = None) -> str:
+    """The connection URL for the configured default connection.
+
+    The user name and the database name are percent-encoded, so a user called
+    ``ann marie@caldart`` produces a URL a client can still parse.  The password
+    is deliberately absent; see :func:`database_password`.  ``host`` and ``port``
+    override the configured ones, which is what an in-container run needs.
+    """
     db = settings.DATABASES["default"]
     user = db.get("USER") or "caldart"
-    password = db.get("PASSWORD") or ""
-    host = db.get("HOST") or "localhost"
-    port = db.get("PORT") or 5432
     name = db.get("NAME") or "caldart"
-    return f"postgres://{user}:{password}@{host}:{port}/{name}"
+    host = host or db.get("HOST") or "localhost"
+    port = port or db.get("PORT") or 5432
+    return f"postgres://{quote(str(user), safe='')}@{host}:{port}/{quote(str(name), safe='')}"
 
 
 def _pg_command(tool: str) -> list[str] | None:
@@ -84,8 +101,11 @@ def _pg_command(tool: str) -> list[str] | None:
     ``DB_BACKUP_VIA_DOCKER`` forces the compose container, which is what a
     machine with no ``postgresql-client`` installed needs.  Otherwise prefer
     the local binary and fall back to the container.
+
+    The compose form names ``PGPASSWORD`` without a value, so compose copies it
+    from our own environment and the password never enters an argument list.
     """
-    in_container = ["docker", "compose", "exec", "-T", "db", tool]
+    in_container = ["docker", "compose", "exec", "-T", "-e", "PGPASSWORD", "db", tool]
     has_docker = shutil.which("docker") is not None
 
     if settings.DB_BACKUP_VIA_DOCKER and has_docker:
@@ -96,24 +116,32 @@ def _pg_command(tool: str) -> list[str] | None:
 
 
 def _run_pg(argv: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
-    """Run a pg tool from the repository root so compose finds its file."""
+    """Run a pg tool from the repository root so compose finds its file.
+
+    The password goes into the child's ``PGPASSWORD`` rather than into ``argv``.
+    An empty password is left out entirely, so a ``.pgpass`` file or a trust
+    connection still works.
+    """
+    env = dict(os.environ)
+    password = database_password()
+    if password:
+        env["PGPASSWORD"] = password
     return subprocess.run(  # noqa: S603 - argv is built from settings, not user input
         argv,
         cwd=settings.REPO_ROOT,
         capture_output=True,
         check=False,
+        env=env,
         **kwargs,
     )
 
 
 def _dbname_url_for(argv: list[str]) -> str:
     """The connection URL to hand the tool, rewritten for in-container runs."""
-    url = database_url()
     if argv[0] != "docker":
-        return url
+        return database_url()
     # Inside the compose network the server listens on localhost:5432.
-    parsed = urlparse(url)
-    return f"postgres://{parsed.username}:{parsed.password}@localhost:5432{parsed.path}"
+    return database_url(host="localhost", port=5432)
 
 
 def _backup_file(path: Path) -> BackupFile:

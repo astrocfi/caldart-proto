@@ -10,14 +10,19 @@ reach for an attribute defensively.
 from __future__ import annotations
 
 import csv
+import subprocess
+from collections.abc import Iterator
+from typing import Any
 
 import pytest
+from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.api.views import DEACTIVATED_MESSAGE, WRONG_CREDENTIALS_MESSAGE
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan
 from apps.payments.api.serializers import MAX_CONTRIBUTION_CENTS
+from apps.sysadmin import services
 from caldart import reports
 
 CHECKOUT = "/api/v1/payments/checkout"
@@ -180,3 +185,76 @@ def test_a_number_is_written_as_a_number() -> None:
     _header, row = list(reports.csv_rows(["value"], [[-4500]]))
 
     assert next(csv.reader([row])) == ["-4500"]
+
+
+# --------------------------------------------------------------------------
+# The database password never reaches a command line
+# --------------------------------------------------------------------------
+AWKWARD_USER = "ann marie@caldart"
+AWKWARD_PASSWORD = "p@ss:word/1"  # noqa: S105 - a fake password a test needs literally
+
+
+@pytest.fixture
+def awkward_credentials(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> Iterator[dict[str, Any]]:
+    """Point the default connection at a user and password full of URL syntax."""
+    alias = {
+        **settings.DATABASES["default"],
+        "USER": AWKWARD_USER,
+        "PASSWORD": AWKWARD_PASSWORD,
+        "HOST": "db.example.test",
+        "PORT": 5433,
+        "NAME": "caldart",
+    }
+    monkeypatch.setitem(settings.DATABASES, "default", alias)
+    yield alias
+
+
+def test_the_database_url_leaves_the_password_out(awkward_credentials: dict[str, Any]) -> None:
+    """The URL names the user and the database, and carries no password at all."""
+    assert services.database_url() == "postgres://ann%20marie%40caldart@db.example.test:5433/caldart"
+
+
+def test_the_container_url_names_the_container_host(awkward_credentials: dict[str, Any]) -> None:
+    """An in-container run reaches the server on ``localhost``, still without a password."""
+    argv = ["docker", "compose", "exec", "-T", "-e", "PGPASSWORD", "db", "pg_dump"]
+
+    assert services._dbname_url_for(argv) == "postgres://ann%20marie%40caldart@localhost:5432/caldart"
+
+
+def test_a_pg_tool_gets_the_password_in_its_environment(
+    awkward_credentials: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``_run_pg`` puts the password in ``PGPASSWORD`` rather than in the argv."""
+    seen: dict[str, Any] = {}
+
+    def fake_run(argv: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
+        seen.update({"argv": argv, "env": kwargs["env"]})
+        return subprocess.CompletedProcess(argv, 0, b"", b"")
+
+    monkeypatch.setattr(services.subprocess, "run", fake_run)
+
+    services._run_pg(["pg_dump", "--dbname", services.database_url()])
+
+    assert seen["env"]["PGPASSWORD"] == AWKWARD_PASSWORD
+    assert AWKWARD_PASSWORD not in " ".join(seen["argv"])
+
+
+def test_a_container_command_forwards_the_password_by_name(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The compose form names ``PGPASSWORD`` so its value never enters the argv."""
+    settings.DB_BACKUP_VIA_DOCKER = True
+    monkeypatch.setattr(services.shutil, "which", lambda tool: "/usr/bin/docker")
+
+    assert services._pg_command("pg_dump") == [
+        "docker",
+        "compose",
+        "exec",
+        "-T",
+        "-e",
+        "PGPASSWORD",
+        "db",
+        "pg_dump",
+    ]
