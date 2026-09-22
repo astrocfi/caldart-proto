@@ -31,10 +31,12 @@ vi.mock('@paypal/react-paypal-js', () => ({
     createOrder,
     onApprove,
     onCancel,
+    onError,
   }: {
     createOrder: () => Promise<string>;
     onApprove: (data: { orderID: string }) => Promise<void>;
     onCancel: () => void;
+    onError: (error: unknown) => void;
   }) => (
     <>
       <button
@@ -44,9 +46,10 @@ vi.mock('@paypal/react-paypal-js', () => ({
             try {
               const orderId = await createOrder();
               await onApprove({ orderID: orderId });
-            } catch {
-              // PayPal's SDK absorbs a `createOrder` rejection and shows its own
-              // notice; what the panel put on screen is the subject here.
+            } catch (caught) {
+              // The SDK absorbs a `createOrder` rejection and hands it to `onError`,
+              // so the panel's own handler runs right after its catch block.
+              onError(caught);
             }
           })();
         }}
@@ -55,6 +58,9 @@ vi.mock('@paypal/react-paypal-js', () => ({
       </button>
       <button type="button" onClick={onCancel}>
         Close the PayPal window
+      </button>
+      <button type="button" onClick={() => onError(new Error('the SDK never loaded'))}>
+        Break the PayPal window
       </button>
     </>
   ),
@@ -457,6 +463,20 @@ describe('Checkout · PayPal', () => {
     const panel = await screen.findByRole('tabpanel');
     expect(await within(panel).findByRole('alert')).toHaveTextContent(
       'That PayPal payment could not be started.',
+    );
+  });
+
+  it('reports an SDK failure that no checkout call caused', async () => {
+    const user = userEvent.setup();
+    serveConfig(payPalConfig);
+    serveCheckout({ order_id: 'ORDER-9' });
+
+    renderWithProviders(<Checkout mode="join" onSuccess={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Break the PayPal window' }));
+
+    const panel = await screen.findByRole('tabpanel');
+    expect(await within(panel).findByRole('alert')).toHaveTextContent(
+      'PayPal could not be reached. Please try again.',
     );
   });
 

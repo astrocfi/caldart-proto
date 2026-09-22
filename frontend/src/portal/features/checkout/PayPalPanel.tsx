@@ -33,6 +33,9 @@ export function PayPalPanel({
 }: PayPalPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const paymentId = useRef<number | null>(null);
+  // The SDK hands a `createOrder` rejection to `onError`, which would otherwise
+  // replace the server's reason with the generic notice.
+  const hasOrderError = useRef(false);
   const toast = useToast();
 
   return (
@@ -51,6 +54,7 @@ export function PayPalPanel({
           forceReRender={[amountCents, plan]}
           createOrder={async () => {
             setError(null);
+            hasOrderError.current = false;
             try {
               const checkout = await createCheckout({
                 plan,
@@ -64,6 +68,7 @@ export function PayPalPanel({
             } catch (caught) {
               // PayPal's own error panel says nothing about why, so the server's
               // reason is put on screen here before the rejection goes back to it.
+              hasOrderError.current = true;
               setError(
                 caught instanceof ApiError
                   ? caught.message
@@ -94,7 +99,13 @@ export function PayPalPanel({
             }
           }}
           onCancel={() => toast.show(PAYMENT_CANCELED)}
-          onError={() => setError('PayPal could not be reached. Please try again.')}
+          onError={() => {
+            if (hasOrderError.current) {
+              hasOrderError.current = false;
+              return;
+            }
+            setError('PayPal could not be reached. Please try again.');
+          }}
         />
       </PayPalScriptProvider>
 
