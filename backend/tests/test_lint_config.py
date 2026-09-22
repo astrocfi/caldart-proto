@@ -52,8 +52,13 @@ def test_no_mypy_override_ignores_errors() -> None:
 
 
 def _non_ascii_lines(path: Path) -> list[int]:
-    """The 1-based numbers of the lines in ``path`` that hold a non-ASCII character."""
-    lines = path.read_text(encoding="utf-8").splitlines()
+    """The 1-based numbers of the lines in ``path`` that hold a byte above ``0x7F``.
+
+    The file is read as bytes rather than decoded, so a file in some other encoding
+    is reported as an offending path like any other instead of raising a decoding
+    error out of the check.
+    """
+    lines = path.read_bytes().splitlines()
     return [number for number, line in enumerate(lines, start=1) if not line.isascii()]
 
 
