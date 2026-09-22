@@ -128,6 +128,10 @@ for constantly:
    * - ``today``, ``days``
      - ``timezone.localdate()`` and ``days(7) -> timedelta(days=7)``, to keep
        date arithmetic readable
+   * - ``pdf_text``
+     - ``pdf_text(body)`` reads a rendered PDF back into the strings it draws,
+       one list per page, so an export test asserts on the words the document
+       shows
 
 An autouse ``_roles`` fixture runs ``seed_roles()`` for every test, so the six
 groups always exist exactly as ``migrate`` leaves them.  The factory classes
@@ -206,6 +210,10 @@ Conventions
   nothing patches the signature check.  PayPal, which is called over ``httpx``
   with no SDK, is exercised with ``respx`` intercepting the HTTP.  Neither
   provider module is stubbed out.
+- **Assert what a document says, not how large it is.**  A PDF test reads the
+  rendered bytes back with the ``pdf_text`` fixture and asserts on the title,
+  the subtitle of applied filters, the column headings and the cells, so a
+  report that renders the wrong rows fails instead of merely changing size.
 - **Freeze the clock rather than computing around it.**  The reminder scanner's
   tests use ``freezegun`` to land exactly on each offset and to check the day
   either side stays silent.
@@ -243,7 +251,8 @@ What the backend suite covers
      - the admin list, its filters, and SQL-versus-service agreement
    * - ``test_members_reports.py``, ``test_aircraft_exports.py``,
        ``test_payments_reports.py``, ``test_reports.py``
-     - CSV content cell by cell, PDF validity, and filter propagation
+     - CSV content cell by cell, the text each PDF page draws, and filter
+       propagation
    * - ``test_aircraft_api.py``, ``test_aircraft_models.py``
      - N-number normalization, filters, orderings, object permissions
    * - ``test_leader_api.py``
