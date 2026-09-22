@@ -14,6 +14,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
+from django.core.cache import cache
 from freezegun import freeze_time
 from pytest_django.fixtures import Settings
 from respx.models import AllMockedAssertionError
@@ -50,9 +51,9 @@ def _paypal_configured(settings: Settings) -> Iterator[None]:
     settings.PAYPAL_ENV = "sandbox"
     settings.PAYPAL_WEBHOOK_ID = ""
     settings.PAYMENTS_MOCK_ENABLED = True
-    paypal.reset_token_cache()
+    cache.clear()
     yield
-    paypal.reset_token_cache()
+    cache.clear()
 
 
 def token_route(mock: respx.MockRouter, expires_in: int = 32_400) -> respx.Route:
@@ -152,6 +153,20 @@ def test_an_expired_token_is_fetched_again() -> None:
         clock.tick(timedelta(seconds=2))
         assert paypal.access_token() == "A21AA-token"
         assert route.call_count == 2
+
+
+@respx.mock
+def test_emptying_the_cache_fetches_a_fresh_token() -> None:
+    """Emptying Django's cache forces a fresh fetch on the next call."""
+    route = token_route(respx.mock, expires_in=0)
+    paypal.access_token()
+    paypal.access_token()
+    # expires_in=0 still leaves the 30s floor, so the cache holds.
+    assert route.call_count == 1
+
+    cache.clear()
+    paypal.access_token()
+    assert route.call_count == 2
 
 
 @respx.mock

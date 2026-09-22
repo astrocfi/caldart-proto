@@ -341,8 +341,9 @@ Preparing the database
 
 ``createcachetable`` builds ``caldart_cache``, the table the default cache
 uses.  The anonymous auth throttles count in that cache, and every gunicorn
-worker has to see the same counters.  The command is idempotent, so running it
-again costs nothing.
+worker has to see the same counters; the PayPal access token sits there too,
+so one fetch serves every worker (see :ref:`paypal-token-cache`).  The command
+is idempotent, so running it again costs nothing.
 
 Do **not** run ``seed_demo`` on a production box: it creates demo accounts with
 a published password.
