@@ -67,7 +67,9 @@ chosen provider.
 
 ``plan`` may be ``null`` for a contribution on its own, in which case no
 membership term is created when it succeeds.  There is no amount field; one
-sent anyway is ignored.
+sent anyway is ignored.  ``contribution_cents`` runs from ``0`` to
+``1000000000`` (ten million dollars) inclusive; anything outside that range is
+refused before a payment row is created.
 
 **201 Created**:
 
@@ -86,9 +88,9 @@ Provider      ``client``
 ``mock``      ``{}``
 ============  ==============================================
 
-**400** for an unknown or inactive plan, a negative contribution, a total of
-zero, an unknown provider, a provider that is not configured
-(``{"provider": "'x' is not configured."}``), a provider that
+**400** for an unknown or inactive plan, a contribution outside the accepted
+range, a total of zero, an unknown provider, a provider that is not
+configured (``{"provider": "'x' is not configured."}``), a provider that
 refuses the request, or a provider that cannot be reached — a timeout, a
 refused connection or an error on the provider's own side, all of which answer
 ``{"detail": "<provider> could not be reached. Please try again."}``.  Nothing
