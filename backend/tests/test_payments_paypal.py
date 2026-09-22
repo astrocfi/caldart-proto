@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator
+from datetime import timedelta
 from typing import Any
 
 import httpx
 import pytest
 import respx
+from freezegun import freeze_time
 from pytest_django.fixtures import Settings
 from respx.models import AllMockedAssertionError
 from rest_framework.response import Response
@@ -31,6 +33,9 @@ pytestmark = pytest.mark.django_db
 CHECKOUT = "/api/v1/payments/checkout"
 CAPTURE = "/api/v1/payments/paypal/capture"
 WEBHOOK = "/api/v1/payments/paypal/webhook"
+
+#: The lifetime PayPal reports for a token, in seconds.
+TOKEN_LIFETIME_SECONDS = 3_600
 
 SANDBOX = "https://api-m.sandbox.paypal.com"
 TOKEN_URL = f"{SANDBOX}/v1/oauth2/token"
@@ -131,30 +136,39 @@ def test_the_token_is_fetched_once_and_cached() -> None:
 
 @respx.mock
 def test_an_expired_token_is_fetched_again() -> None:
-    """Resetting the token cache forces a fresh fetch on the next call."""
-    route = token_route(respx.mock, expires_in=0)
-    paypal.access_token()
-    paypal.access_token()
-    # expires_in=0 still leaves the 30s floor, so the cache holds.
-    assert route.call_count == 1
+    """The cached token is reused until it expires, and a fresh one is fetched after.
 
-    paypal.reset_token_cache()
-    paypal.access_token()
-    assert route.call_count == 2
+    A token PayPal says lasts an hour is dropped ``TOKEN_SKEW_SECONDS`` early, so the
+    cache holds for 3540 seconds and the next second's call fetches again.
+    """
+    route = token_route(respx.mock, expires_in=TOKEN_LIFETIME_SECONDS)
+    with freeze_time("2026-09-22 12:00:00") as clock:
+        assert paypal.access_token() == "A21AA-token"
+
+        clock.tick(timedelta(seconds=TOKEN_LIFETIME_SECONDS - paypal.TOKEN_SKEW_SECONDS - 1))
+        assert paypal.access_token() == "A21AA-token"
+        assert route.call_count == 1
+
+        clock.tick(timedelta(seconds=2))
+        assert paypal.access_token() == "A21AA-token"
+        assert route.call_count == 2
 
 
 @respx.mock
 def test_bad_credentials_raise() -> None:
     """A 401 from the token endpoint raises PaymentVerificationError."""
     respx.post(TOKEN_URL).mock(return_value=httpx.Response(401, json={"error": "invalid_client"}))
-    with pytest.raises(PaymentVerificationError):
+    with pytest.raises(PaymentVerificationError, match=r"refused our credentials \(HTTP 401\)"):
         paypal.access_token()
 
 
 def test_missing_credentials_raise(settings: Settings) -> None:
     """Fetching a token with no client id configured raises ProviderNotConfiguredError."""
     settings.PAYPAL_CLIENT_ID = ""
-    with pytest.raises(ProviderNotConfiguredError):
+    with pytest.raises(
+        ProviderNotConfiguredError,
+        match=r"PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are empty",
+    ):
         paypal.access_token()
 
 
