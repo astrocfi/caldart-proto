@@ -365,9 +365,16 @@ def test_expiring_within_follows_a_renewal(
     ],
 )
 def test_search_covers_name_email_phone_and_certificate_number(
-    account_admin_client: APIClient, population: dict[str, User], term: str, expected: str
+    account_admin_client: APIClient,
+    fixed_name_population: dict[str, User],
+    term: str,
+    expected: str,
 ) -> None:
-    """A search matches name, email, phone or certificate number."""
+    """A search matches name, email, phone or certificate number.
+
+    The signed-in administrator is in the list too, so their name is pinned: a
+    Faker-drawn name containing ``ana`` would otherwise match the search as well.
+    """
     response = account_admin_client.get(LIST_URL, {"search": term})
     assert emails(response) == {expected}
 
@@ -422,11 +429,12 @@ def test_filters_combine(
 
 
 @pytest.fixture
-def ordering_population(population: dict[str, User], account_admin: User) -> dict[str, User]:
+def fixed_name_population(population: dict[str, User], account_admin: User) -> dict[str, User]:
     """``population`` with the signed-in admin given a fixed name too.
 
     ``account_admin`` otherwise carries a Faker-generated name, which would make
-    an ordering assertion depend on whichever name Faker drew for this run.
+    an ordering or search assertion depend on whichever name Faker drew for
+    this run.
     """
     account_admin.first_name, account_admin.last_name = "Zoe", "Yeager"
     account_admin.save(update_fields=["first_name", "last_name"])
@@ -434,7 +442,7 @@ def ordering_population(population: dict[str, User], account_admin: User) -> dic
 
 
 def test_ordering_by_name_is_the_default(
-    account_admin_client: APIClient, ordering_population: dict[str, User]
+    account_admin_client: APIClient, fixed_name_population: dict[str, User]
 ) -> None:
     """With no ordering given, the list sorts by last name."""
     names = [row["name"] for row in rows(account_admin_client.get(LIST_URL, {"page_size": 200}))]
