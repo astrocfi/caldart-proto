@@ -39,6 +39,24 @@ test('a member signs in, edits their profile and reads members-only content', as
   await expect(page.getByRole('link', { name: 'Renew my membership' })).toHaveCount(0);
 });
 
+test('signing out takes a button, and no address can do it', async ({ page }) => {
+  await signIn(page, DEMO.member);
+
+  // Opening the old sign-out address is just an unknown path, and the session
+  // survives it: the dashboard still knows who is here.
+  await page.goto('/portal/logout');
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+  await page.goto('/portal/');
+  await expect(page.getByRole('heading', { name: /^Welcome, / })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/portal\/login/);
+
+  // The session really ended: a guarded screen asks for a sign-in again.
+  await page.goto('/portal/profile');
+  await expect(page).toHaveURL(/\/portal\/login\?next=%2Fprofile/);
+});
+
 test('an expired member is walled out and offered a renewal', async ({ page }) => {
   await signIn(page, DEMO.expired);
 
