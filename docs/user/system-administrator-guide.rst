@@ -128,7 +128,8 @@ membership per kind, and the log below the button is what enforces that.
 The table shows the twenty most recent reminders — when, which kind, which
 member, which address — with a filter by kind.  Use it to answer "were they
 told?" when somebody says their membership lapsed without warning.  Account
-administrators can see this log too.
+administrators read the same log on their own **Reminders** screen, without
+the run controls (:doc:`account-administrator-guide`).
 
 The wording of the emails and the 07:00 schedule are in
 :doc:`/developer/reminders`.
