@@ -613,6 +613,40 @@ chromium`` (on a bare machine add ``npx playwright install-deps chromium``,
 which needs ``sudo``).  The specs are single-worker on purpose: three of the
 flows write to the shared database.
 
+``failOnFlakyTests`` is on in ``playwright.config.ts``.  CI retries a failing
+spec once so the failure is easy to read, but a spec that fails and then passes
+still fails the run: a flaky end-to-end spec is a race somewhere real.
+
+Writing a spec
+--------------
+
+**Locate by role and by label, never by CSS class.**  A class is styling, and a
+styling change should not break a test.  Every screen the specs touch gives
+them something better: the status cards are ``<section>`` elements with an
+``aria-label`` (``getByRole("region", {name: "Status for Owen Delgado"})``), the
+by-period report is labeled by its own heading, tables expose ``row``,
+``rowgroup``, ``columnheader`` and ``term``, and every control has an accessible
+name.
+
+**Wait for what you are about to assert, never for the network.**
+``waitForLoadState("networkidle")`` guesses that quiet means finished, which a
+long poll or a late asset makes wrong.  ``await expect(locator).toBeVisible()``
+waits for the thing itself, and says what went wrong when it never appears.
+
+**Take the seed's own values from** ``frontend/e2e/seed-facts.json``.  ``make
+e2e`` writes it with ``manage.py seed_facts`` straight after seeding the
+database, and ``e2e/helpers.ts`` reads it once per run and exports
+``DEMO_PASSWORD``, ``DEMO`` (the demo key to address map) and ``SEED``
+(``planPricesCents`` among them).  A spec that hard-codes ``caldart-demo`` or
+``$45.00`` is a copy of ``apps/*/seed.py`` that will one day disagree with it.
+Running Playwright against a server you started yourself means writing the file
+yourself first, with the same command.
+
+**Derive a row count rather than asserting "more than none".**  The payments
+report counts its rows against the CSV export downloaded in the same test: two
+endpoints over the same payments, so the count is exact and stays right even
+though an earlier spec in the run paid for a membership of its own.
+
 Environment variables
 ----------------------
 

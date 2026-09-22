@@ -1,19 +1,59 @@
 /** Shared plumbing for the end-to-end specs. */
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-/** Every demo account seeded by `seed_demo` shares this password. */
-export const DEMO_PASSWORD = 'caldart-demo';
+/** The keys `seed_demo` gives its named demo accounts. */
+export type DemoAccount =
+  'member' | 'expired' | 'leader' | 'useradmin' | 'accountadmin' | 'webadmin' | 'sysadmin';
 
-export const DEMO = {
-  member: 'member@example.org',
-  expired: 'expired@example.org',
-  leader: 'leader@example.org',
-  userAdmin: 'useradmin@example.org',
-  accountAdmin: 'accountadmin@example.org',
-  webAdmin: 'webadmin@example.org',
-  sysAdmin: 'sysadmin@example.org',
-} as const;
+/** What `manage.py seed_facts` reports about the seeded database. */
+export interface SeedFacts {
+  /** The password every seeded demo account shares. */
+  demoPassword: string;
+  /** Demo key to the address the seed gives that account. */
+  accounts: Record<DemoAccount, string>;
+  /** Membership plan slug to its price in cents. */
+  planPricesCents: Record<string, number>;
+}
+
+const FACTS_PATH = resolve(dirname(fileURLToPath(import.meta.url)), 'seed-facts.json');
+
+function readSeedFacts(): SeedFacts {
+  try {
+    return JSON.parse(readFileSync(FACTS_PATH, 'utf8')) as SeedFacts;
+  } catch (cause) {
+    throw new Error(
+      `${FACTS_PATH} is missing or unreadable. \`make e2e\` writes it with ` +
+        '`manage.py seed_facts` right after it seeds the database; write it by hand with ' +
+        'the same command when you are running Playwright against a server you started ' +
+        'yourself.',
+      { cause },
+    );
+  }
+}
+
+/**
+ * What the seeded database holds, read once per worker process.
+ *
+ * Assert prices and addresses against this rather than a literal copied out of
+ * `apps/*\/seed.py`, so a change to the seed fails the spec honestly instead of
+ * leaving it asserting a stale value.
+ */
+export const SEED: SeedFacts = readSeedFacts();
+
+/** Every demo account seeded by `seed_demo` shares this password. */
+export const DEMO_PASSWORD: string = SEED.demoPassword;
+
+export const DEMO: Record<DemoAccount, string> = SEED.accounts;
+
+/** Format a price in cents the way the portal renders it, e.g. `$45.00`. */
+export function formatCents(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
 
 /** An address nobody else in this run will use. */
 export function uniqueEmail(prefix: string): string {

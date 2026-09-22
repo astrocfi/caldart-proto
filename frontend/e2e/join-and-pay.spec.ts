@@ -9,7 +9,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { uniqueEmail } from './helpers';
+import { SEED, formatCents, uniqueEmail } from './helpers';
 
 /** Follow the public site's Join action, opening the phone menu if need be. */
 async function joinFromPublicSite(page: Page): Promise<void> {
@@ -17,6 +17,7 @@ async function joinFromPublicSite(page: Page): Promise<void> {
   const join = page.getByRole('link', { name: 'Join', exact: true }).first();
   if (!(await join.isVisible())) {
     await page.getByRole('button', { name: 'Menu' }).click();
+    await expect(join).toBeVisible();
   }
   await join.click();
   await expect(page).toHaveURL(/\/portal\/join/);
@@ -48,7 +49,9 @@ test('a visitor joins from the public site and pays their dues', async ({ page }
 
   // Step 3 — pay with the mock provider.
   await page.getByRole('tab', { name: 'Test payment' }).click();
-  await expect(page.getByTestId('checkout-total')).toHaveText('$45.00');
+  await expect(page.getByTestId('checkout-total')).toHaveText(
+    formatCents(SEED.planPricesCents.annual ?? 0),
+  );
   await page.getByRole('button', { name: 'Succeed', exact: true }).click();
 
   // Step 4 — done, and the membership is live.
@@ -59,7 +62,8 @@ test('a visitor joins from the public site and pays their dues', async ({ page }
   await page.getByRole('link', { name: 'Go to my dashboard' }).click();
   await expect(page).toHaveURL(/\/portal\/?$/);
   await expect(page.getByRole('heading', { name: /Welcome, Wilma/ })).toBeVisible();
-  await expect(page.locator('.dashboard__status .chip')).toHaveAttribute('data-tone', 'current');
+  await expect(page.getByRole('heading', { name: 'Your membership is current' })).toBeVisible();
+  await expect(page.getByText('Current', { exact: true })).toBeVisible();
 });
 
 test('a declined payment says so and leaves the visitor able to try again', async ({ page }) => {

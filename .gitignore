@@ -225,6 +225,7 @@ backend/openapi.json
 frontend/src/portal/api/schema.d.ts
 frontend/coverage/
 frontend/dist/
+frontend/e2e/seed-facts.json
 frontend/node_modules/
 node_modules/
 .env

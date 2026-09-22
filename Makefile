@@ -163,6 +163,8 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	@test -n "$(SKIP_CREATEDB)" \
 	  || $(MAKE) --no-print-directory createdb DATABASE_URL="$(E2E_DATABASE_URL)"
 	$(E2E_ENV) $(MANAGE) db_reset --seed --noinput
+	@# The specs read this instead of copying the seed's own values into a spec.
+	$(E2E_ENV) $(MANAGE) seed_facts > frontend/e2e/seed-facts.json
 	cd frontend && $(NPM) run build
 	$(E2E_ENV) $(MANAGE) collectstatic --noinput
 	@set -e; \
