@@ -11,6 +11,8 @@ from typing import Any
 
 from rest_framework import serializers
 
+from apps.cms.models import THEME_SLUGS
+
 #: The two kinds of top-navigation entry: a Wagtail page, or a portal action.
 NAV_KINDS = ("page", "portal")
 
@@ -35,7 +37,7 @@ class SiteConfigSerializer(serializers.Serializer[dict[str, Any]]):
     """``GET /site/config`` — the chrome the portal needs before it has a user."""
 
     org_name = serializers.CharField()
-    theme = serializers.CharField()
+    theme = serializers.ChoiceField(choices=THEME_SLUGS)
     contact_email = serializers.CharField(allow_blank=True)
     nav = NavEntrySerializer(many=True)
     members_pages = MembersPageSerializer(many=True)
