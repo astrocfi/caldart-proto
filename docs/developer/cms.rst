@@ -298,7 +298,7 @@ that page and of every page below it.  The three permissions are what puts
 **Settings → Redirects** in the menu, so an editor can see those rows and fix
 the ones automation cannot.
 
-It runs twice: from the ``cms.0004_website_admin_permissions`` data migration,
+It runs twice: from the ``cms.0003_website_admin_permissions`` data migration,
 so a fresh database is correct after ``migrate`` alone, and again from
 ``seed_content``.  It takes an optional ``apps`` registry so the migration can
 pass historical models, which is why every lookup is written against plain
