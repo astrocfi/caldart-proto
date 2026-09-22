@@ -1045,9 +1045,9 @@ Two migrations do more than create tables and are worth knowing about:
 
 - ``accounts.0002_seed_roles`` runs the same ``seed_roles`` function, so the six
   groups exist in any migrated database;
-- ``cms.0004`` grants the ``website_admin`` group its Wagtail permissions, and
-  ``seed_content`` calls the same function, so the grant is applied whichever
-  route you take.
+- ``cms.0003_website_admin_permissions`` grants the ``website_admin`` group its
+  Wagtail permissions, and ``seed_content`` calls the same function, so the
+  grant is applied whichever route you take.
 
 ``make check`` runs ``manage.py makemigrations --check --dry-run``, and CI runs
 ``make check``, so a model change without its migration fails the build.
