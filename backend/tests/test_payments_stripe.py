@@ -45,6 +45,10 @@ WEBHOOK_SECRET = "whsec_test"  # noqa: S105 - test fixture
 SIGNATURE_TOLERANCE_SECONDS = 300
 
 
+#: What a test is told when it reaches the SDK's real transport.
+LIVE_HTTP_REFUSED = "a test tried to reach Stripe over the network"
+
+
 @pytest.fixture(autouse=True)
 def _stripe_configured(settings: Settings) -> None:
     """Configure fake but well-formed Stripe keys and enable the mock provider."""
@@ -52,6 +56,22 @@ def _stripe_configured(settings: Settings) -> None:
     settings.STRIPE_PUBLISHABLE_KEY = "pk_test_123"
     settings.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET
     settings.PAYMENTS_MOCK_ENABLED = True
+
+
+@pytest.fixture(autouse=True)
+def _no_live_stripe(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Refuse the SDK's real transport, so no test in this module can call Stripe.
+
+    ``respx`` guards the providers that speak ``httpx``; the Stripe SDK brings its own
+    transport instead, and every call it makes is built by the provider's
+    ``http_client``.  Replacing that with a refusal turns a test that forgot
+    ``fake_intents`` into a failure naming this module rather than a live request.
+    """
+
+    def refuse() -> stripe.HTTPClient:
+        raise AssertionError(LIVE_HTTP_REFUSED)
+
+    monkeypatch.setattr(stripe_provider, "http_client", refuse)
 
 
 def intent_payload(payment: Payment, **overrides: Any) -> dict[str, Any]:
@@ -162,6 +182,18 @@ def fake_intents(monkeypatch: pytest.MonkeyPatch) -> FakeIntents:
 
     monkeypatch.setattr(stripe_provider, "stripe_client", client)
     return fake
+
+
+# --------------------------------------------------------------------------
+# live HTTP guard
+# --------------------------------------------------------------------------
+def test_a_call_without_the_fake_client_never_reaches_stripe(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A test that forgets ``fake_intents`` fails outright instead of calling Stripe."""
+    api_client.force_login(member)
+    with pytest.raises(AssertionError, match=LIVE_HTTP_REFUSED):
+        api_client.post(CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"})
 
 
 # --------------------------------------------------------------------------
