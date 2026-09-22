@@ -1,4 +1,4 @@
-/** What the member list does to the table already on screen while it pages. */
+/** What the member list does to the table already on screen while it pages and filters. */
 import { QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
@@ -33,6 +33,16 @@ function servePages(): void {
   );
 }
 
+/** Answer an unfiltered list with `one@example.org` and any search with `two@example.org`. */
+function serveSearches(): void {
+  server.use(
+    http.get(`${API}/admin/members`, ({ request }) => {
+      const search = new URL(request.url).searchParams.get('search');
+      return HttpResponse.json(memberPage(search === null ? 'one@example.org' : 'two@example.org'));
+    }),
+  );
+}
+
 describe('useMembers', () => {
   it('holds the page already fetched on screen while the next one loads', async () => {
     servePages();
@@ -46,6 +56,34 @@ describe('useMembers', () => {
     rerender({ page: 2 });
 
     expect(result.current.data?.results[0]?.email).toBe('one@example.org');
+  });
+
+  it('holds the rows already fetched on screen while a changed filter loads', async () => {
+    serveSearches();
+
+    const { result, rerender } = renderHook(({ search }) => useMembers({ search }), {
+      wrapper: makeWrapper(),
+      initialProps: { search: '' },
+    });
+    await waitFor(() => expect(result.current.data?.results[0]?.email).toBe('one@example.org'));
+
+    rerender({ search: 'two' });
+
+    expect(result.current.data?.results[0]?.email).toBe('one@example.org');
+  });
+
+  it('shows the rows the changed filter asked for once they arrive', async () => {
+    serveSearches();
+
+    const { result, rerender } = renderHook(({ search }) => useMembers({ search }), {
+      wrapper: makeWrapper(),
+      initialProps: { search: '' },
+    });
+    await waitFor(() => expect(result.current.data?.results[0]?.email).toBe('one@example.org'));
+
+    rerender({ search: 'two' });
+
+    await waitFor(() => expect(result.current.data?.results[0]?.email).toBe('two@example.org'));
   });
 
   it('marks the page it is standing in for as placeholder data', async () => {

@@ -560,6 +560,12 @@ How the portal uses this
 Login, registration and logout all call ``queryClient.clear()`` so no screen can
 show the previous user's data.
 
+``useSignOut`` wraps ``useLogout`` for the screens that sign somebody out: it
+runs the mutation and, once the session is gone, navigates to ``/login``.  The
+portal header's **Log out** control and the join wizard's **Use a different
+account** control are both buttons that call it, so a session ends only when a
+person presses one — no address signs anybody out by being opened.
+
 ``src/portal/auth/guards.tsx`` turns a missing session into a redirect to
 ``/login?next=<where they were going>`` and a missing role into the 403 page.
 The guards wait for ``GET /auth/me`` to settle first, so a slow answer never

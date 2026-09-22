@@ -1,4 +1,4 @@
-/** What the aircraft register does to the rows already on screen while it pages. */
+/** What the aircraft register does to the rows already on screen while it pages and filters. */
 import { QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
@@ -33,6 +33,16 @@ function servePages(): void {
   );
 }
 
+/** Answer an unfiltered register with `N12345` and any search with `N54321`. */
+function serveSearches(): void {
+  server.use(
+    http.get(`${API}/aircraft`, ({ request }) => {
+      const search = new URL(request.url).searchParams.get('search');
+      return HttpResponse.json(aircraftPage(search === null ? 'N12345' : 'N54321'));
+    }),
+  );
+}
+
 describe('useAircraftList', () => {
   it('holds the page already fetched on screen while the next one loads', async () => {
     servePages();
@@ -46,6 +56,34 @@ describe('useAircraftList', () => {
     rerender({ page: 2 });
 
     expect(result.current.data?.results[0]?.n_number).toBe('N12345');
+  });
+
+  it('holds the rows already fetched on screen while a changed filter loads', async () => {
+    serveSearches();
+
+    const { result, rerender } = renderHook(({ search }) => useAircraftList({ search }), {
+      wrapper: makeWrapper(),
+      initialProps: { search: '' },
+    });
+    await waitFor(() => expect(result.current.data?.results[0]?.n_number).toBe('N12345'));
+
+    rerender({ search: 'N543' });
+
+    expect(result.current.data?.results[0]?.n_number).toBe('N12345');
+  });
+
+  it('shows the rows the changed filter asked for once they arrive', async () => {
+    serveSearches();
+
+    const { result, rerender } = renderHook(({ search }) => useAircraftList({ search }), {
+      wrapper: makeWrapper(),
+      initialProps: { search: '' },
+    });
+    await waitFor(() => expect(result.current.data?.results[0]?.n_number).toBe('N12345'));
+
+    rerender({ search: 'N543' });
+
+    await waitFor(() => expect(result.current.data?.results[0]?.n_number).toBe('N54321'));
   });
 
   it('marks the page it is standing in for as placeholder data', async () => {
