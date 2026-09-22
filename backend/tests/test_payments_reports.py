@@ -16,7 +16,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
-from tests.conftest import read_csv, role_matrix
+from tests.conftest import Golden, csv_body, read_csv, role_matrix
 from tests.factories import PaymentFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -293,6 +293,25 @@ def test_export_honors_the_filters(
 
     assert len(rows) == 3
     assert [row[7] for row in rows[1:]] == ["paypal", "paypal"]
+
+
+def test_export_matches_the_recorded_document(
+    api_client: APIClient,
+    account_admin: User,
+    member: User,
+    history: list[Payment],
+    golden: Golden,
+) -> None:
+    """The whole export -- header, every row, all eleven columns -- matches its record."""
+    api_client.force_login(account_admin)
+
+    body = csv_body(api_client.get(EXPORT))
+
+    # The fixture's names come from Faker and its references carry row ids, so
+    # both are replaced by fixed stand-ins before the documents are compared.
+    replace = {payment.provider_ref: f"ref-{index}" for index, payment in enumerate(history, 1)}
+    replace[f"{member.first_name} {member.last_name}"] = "Fran Member"
+    golden("payments-export.csv", body, replace=replace)
 
 
 def test_export_formats_money_as_dollars(

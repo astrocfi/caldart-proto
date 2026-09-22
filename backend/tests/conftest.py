@@ -19,7 +19,7 @@ import zlib
 from collections.abc import Callable, Iterator
 from datetime import date, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Protocol, cast
 
 import freezegun
 import pytest
@@ -156,6 +156,22 @@ _missing_manifest_path: Path | None = None
 #: It is what tells ``pytest_runtest_setup`` that a missing frontend build is a
 #: broken job rather than an unbuilt checkout.
 CI_ENV_VAR = "CI"
+
+#: Where the ``golden`` fixture keeps the expected email bodies and CSV exports.
+GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
+
+#: The command-line switch that rewrites a golden file instead of comparing it.
+UPDATE_GOLDEN_OPTION = "--update-golden"
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Register ``--update-golden``, which rewrites golden files rather than checking them."""
+    parser.addoption(
+        UPDATE_GOLDEN_OPTION,
+        action="store_true",
+        default=False,
+        help="Rewrite backend/tests/golden/ from the output the tests render.",
+    )
 
 
 def _reload_vite_loader() -> None:
@@ -644,6 +660,21 @@ def pdf_page_count(pdf: bytes) -> int:
     return len(_PDF_PAGE_RE.findall(pdf))
 
 
+def csv_body(response: HttpResponseBase) -> str:
+    """Return the whole text of a streamed CSV download, separators and all.
+
+    ``response`` must be the ``StreamingHttpResponse`` that ``csv_response`` returns;
+    any other response type fails the assertion rather than an attribute lookup.  The
+    chunks are joined and decoded as UTF-8, so the result carries the exact bytes the
+    browser would save, including the ``\\r\\n`` line endings the ``csv`` module writes.
+    """
+    assert isinstance(response, StreamingHttpResponse)
+    # A synchronous StreamingHttpResponse yields bytes; the async branch of the
+    # declared union cannot occur here.
+    chunks = cast(Iterator[bytes], response.streaming_content)
+    return b"".join(chunks).decode()
+
+
 def read_csv(response: HttpResponseBase) -> list[list[str]]:
     """Return the rows of a streamed CSV download, each a list of string cells.
 
@@ -652,9 +683,44 @@ def read_csv(response: HttpResponseBase) -> list[list[str]]:
     body is parsed with ``csv.reader``, so a quoted cell holding a comma, a newline or
     an embedded quote comes back as the single cell it is, and the header is row 0.
     """
-    assert isinstance(response, StreamingHttpResponse)
-    # A synchronous StreamingHttpResponse yields bytes; the async branch of the
-    # declared union cannot occur here.
-    chunks = cast(Iterator[bytes], response.streaming_content)
-    body = b"".join(chunks).decode()
-    return list(csv.reader(io.StringIO(body)))
+    return list(csv.reader(io.StringIO(csv_body(response))))
+
+
+class Golden(Protocol):
+    """The type of the ``golden`` fixture."""
+
+    def __call__(self, name: str, text: str, *, replace: dict[str, str] | None = None) -> None:
+        """Compare ``text`` with the golden file ``name``, after applying ``replace``."""
+
+
+@pytest.fixture
+def golden(request: pytest.FixtureRequest) -> Golden:
+    """``golden(name, text, replace=...)`` compares ``text`` with ``backend/tests/golden/name``.
+
+    Every substitution in ``replace`` is applied to ``text`` first, each key replaced by
+    its value, so a name, an address or a reference that a factory varies from run to run
+    becomes a fixed placeholder and the rest of the document is still compared character
+    for character.  A mismatch fails with the full diff of the two documents, and a
+    missing golden file fails naming the path and the switch that would write it.
+
+    Running pytest with ``--update-golden`` rewrites the file from ``text`` instead of
+    comparing, and asserts nothing; read the diff before committing the result.
+
+    Line endings are never translated, in either direction, so a CSV export's ``\\r\\n``
+    separators are part of what the comparison covers.
+    """
+
+    def check(name: str, text: str, *, replace: dict[str, str] | None = None) -> None:
+        for literal, placeholder in (replace or {}).items():
+            text = text.replace(literal, placeholder)
+        path = GOLDEN_DIR / name
+        if request.config.getoption(UPDATE_GOLDEN_OPTION):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                handle.write(text)
+            return
+        assert path.is_file(), f"No golden file at {path}; run pytest {UPDATE_GOLDEN_OPTION}"
+        with path.open(encoding="utf-8", newline="") as handle:
+            assert text == handle.read()
+
+    return check

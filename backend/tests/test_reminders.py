@@ -24,6 +24,7 @@ from apps.cms.models import SiteSettings, get_site_settings
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from apps.reminders.services import ReminderRun, build_email, renew_url, send_renewal_reminders
+from tests.conftest import Golden
 from tests.factories import MemberProfileFactory, MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -317,21 +318,48 @@ def test_email_content(
     assert "<!doctype html>" in html
 
 
+@pytest.fixture
+def named_site(settings: Settings, site_settings: SiteSettings) -> None:
+    """Pin the organization name, the contact address and the site URL the emails carry."""
+    settings.SITE_URL = "https://caldart.example.org/"
+    site_settings.org_name = "The California DART Network"
+    site_settings.contact_email = "info@caldart.example.org"
+    site_settings.save()
+
+
 @pytest.mark.parametrize("kind", ALL_KINDS)
-def test_every_kind_renders_both_bodies(
+def test_each_kind_renders_its_recorded_text_body(
+    annual_plan: MembershipPlan,
+    mailoutbox: list[EmailMessage],
+    named_site: None,
+    golden: Golden,
+    kind: str,
+) -> None:
+    """Each kind's plain-text body matches the whole document recorded for it."""
+    user, _membership = make_member(annual_plan, ends_on_for(kind))
+    user.first_name = "Marta"
+    user.save(update_fields=["first_name"])
+
+    send_renewal_reminders(today=TODAY)
+
+    golden(f"reminder-{kind}.txt", mailoutbox[0].body)
+
+
+@pytest.mark.parametrize("kind", ALL_KINDS)
+def test_every_kind_renders_an_html_alternative(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], kind: str
 ) -> None:
-    """Every kind's plain-text and HTML bodies both carry a non-empty renewal link."""
+    """Every kind's HTML alternative is a full document carrying the renewal link."""
     make_member(annual_plan, ends_on_for(kind))
 
     send_renewal_reminders(today=TODAY)
 
     message = mailoutbox[0]
     assert isinstance(message, EmailMultiAlternatives)
-    assert message.body.strip()
-    assert renew_url() in message.body
-    html = message.alternatives[0][0]
+    (html, mime) = message.alternatives[0]
+    assert mime == "text/html"
     assert isinstance(html, str)
+    assert html.startswith("<!doctype html>")
     assert renew_url() in html
 
 
