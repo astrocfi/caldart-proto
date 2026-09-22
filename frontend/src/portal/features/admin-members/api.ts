@@ -5,7 +5,7 @@
  * query rather than a refetch of the same one, and every mutation invalidates
  * the whole `admin-members` tree.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '../../api/client';
@@ -46,7 +46,13 @@ export interface MemberListQuery extends Partial<MemberFilters> {
   page_size?: number;
 }
 
-/** The paginated member list for `/admin/members`, filtered and sorted by `query`. */
+/**
+ * The paginated member list for `/admin/members`, filtered and sorted by `query`.
+ *
+ * A change of page or filter is a different query, so the page already on screen
+ * stands in for the one being fetched: the table holds still instead of collapsing
+ * to a spinner and back.  `isPlaceholderData` says which of the two is showing.
+ */
 export function useMembers(query: MemberListQuery): UseQueryResult<Paginated<MemberRow>> {
   const params = filterParams(query);
   if (query.page && query.page > 1) params.set('page', String(query.page));
@@ -56,6 +62,7 @@ export function useMembers(query: MemberListQuery): UseQueryResult<Paginated<Mem
   return useQuery({
     queryKey: [...MEMBERS_KEY, 'list', search],
     queryFn: () => api.get<Paginated<MemberRow>>(`/admin/members${search ? `?${search}` : ''}`),
+    placeholderData: keepPreviousData,
   });
 }
 

@@ -5,7 +5,7 @@
  * check, so every screen agrees on the query keys and the filter names the
  * API expects.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, ApiError, api } from '../../api/client';
@@ -53,7 +53,14 @@ export function aircraftExportUrl(format: 'csv' | 'pdf', filters: AircraftFilter
   return `${API_BASE}/admin/aircraft/export.${format}${query ? `?${query}` : ''}`;
 }
 
-/** The paginated aircraft list for `/aircraft`, filtered by `filters`. */
+/**
+ * The paginated aircraft list for `/aircraft`, filtered by `filters`.
+ *
+ * A change of page or filter is a different query, so the page already on screen
+ * stands in for the one being fetched: the register holds still instead of
+ * collapsing to a spinner and back.  `isPlaceholderData` says which of the two is
+ * showing.
+ */
 export function useAircraftList(
   filters: AircraftFilters,
   enabled = true,
@@ -63,6 +70,7 @@ export function useAircraftList(
     queryKey: [AIRCRAFT_KEY, 'list', query],
     queryFn: () => api.get<Paginated<Aircraft>>('/aircraft', { query }),
     enabled,
+    placeholderData: keepPreviousData,
   });
 }
 
