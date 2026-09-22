@@ -1,8 +1,12 @@
 /**
- * Queries and mutations behind `/portal/system`.
+ * Queries and mutations behind `/portal/system`, and the reminder log an
+ * account administrator reads at `/admin/reminders`.
  *
- * All four endpoints are `system_admin` only; the route guard keeps anyone
- * else from ever mounting these hooks.
+ * `useReminderLog` is the one hook `account_admin` reaches: its endpoint,
+ * `GET /admin/reminders/log`, is readable by account and system
+ * administrators alike, and both screens mount it. Every other hook here
+ * calls a `system_admin`-only endpoint, and the route guard on
+ * `/portal/system` keeps anyone else from mounting it.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';

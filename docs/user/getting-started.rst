@@ -73,8 +73,9 @@ Role                 What it adds
 ``user_admin``       List accounts, assign roles, activate and
                      deactivate, and trigger password resets.
 ``account_admin``    Create, edit and delete members, grant membership
-                     terms by hand, maintain aircraft and payments, run
-                     reports, and check members like a DART leader.
+                     terms by hand, maintain aircraft and payments, read
+                     the renewal reminder log, run reports, and check
+                     members like a DART leader.
 ``website_admin``    Edit the public site in the Wagtail admin.
 ``system_admin``     Everything above, plus backups, health and
                      reminder runs.
@@ -176,7 +177,7 @@ roles allow it:
    The DART leader's member and aircraft checks.
 
 **Administration**
-   Members, aircraft, payments, and users and roles.
+   Members, aircraft, payments, reminders, and users and roles.
 
 **System**
    Health, backups and reminder runs.

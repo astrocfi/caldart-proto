@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -19,28 +19,15 @@ const ENTRIES: ReminderLogEntry[] = [
     sent_at: '2026-06-15T14:02:00Z',
     to_email: 'marta@example.org',
   },
-  {
-    id: 1,
-    user_id: 8,
-    user_name: 'Owen Delgado',
-    membership_id: 13,
-    kind: 'post30',
-    sent_at: '2026-06-14T14:02:00Z',
-    to_email: 'owen@example.org',
-  },
 ];
 
 function page(rows: ReminderLogEntry[]): Paginated<ReminderLogEntry> {
   return { count: rows.length, next: null, previous: null, results: rows };
 }
 
-/** Log handler that honors the `kind` filter, like the API does. */
-function logHandler(rows: ReminderLogEntry[], seen?: (kind: string | null) => void) {
-  return http.get(`${API}/admin/reminders/log`, ({ request }) => {
-    const kind = new URL(request.url).searchParams.get('kind');
-    seen?.(kind);
-    return HttpResponse.json(page(kind ? rows.filter((row) => row.kind === kind) : rows));
-  });
+/** The log the panel shows under its run controls. */
+function logHandler(rows: ReminderLogEntry[]) {
+  return http.get(`${API}/admin/reminders/log`, () => HttpResponse.json(page(rows)));
 }
 
 describe('runSummary', () => {
@@ -54,37 +41,11 @@ describe('runSummary', () => {
 });
 
 describe('RemindersPanel', () => {
-  it('lists recent reminders', async () => {
+  it('shows the reminder log under the run controls', async () => {
     server.use(logHandler(ENTRIES));
     renderWithProviders(<RemindersPanel />);
 
     expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
-    // Scoped to the table: the kind filter uses the same labels.
-    const table = within(screen.getByRole('table'));
-    expect(table.getByText('30 days before')).toBeInTheDocument();
-    expect(table.getByText('30 days after')).toBeInTheDocument();
-    expect(table.getByText('marta@example.org')).toBeInTheDocument();
-    expect(screen.getByText('2 reminders sent')).toBeInTheDocument();
-  });
-
-  it('shows an empty state when nothing has been sent', async () => {
-    server.use(logHandler([]));
-    renderWithProviders(<RemindersPanel />);
-
-    expect(await screen.findByText('No reminders sent yet')).toBeInTheDocument();
-  });
-
-  it('filters the log by kind', async () => {
-    const kinds: (string | null)[] = [];
-    server.use(logHandler(ENTRIES, (kind) => kinds.push(kind)));
-    renderWithProviders(<RemindersPanel />);
-    await screen.findByText('Marta Reyes');
-
-    await userEvent.selectOptions(screen.getByLabelText('Reminder'), 't30');
-
-    await waitFor(() => expect(screen.queryByText('Owen Delgado')).not.toBeInTheDocument());
-    expect(screen.getByText('Marta Reyes')).toBeInTheDocument();
-    expect(kinds).toEqual([null, 't30']);
   });
 
   it('runs a dry run by default and reports the result', async () => {

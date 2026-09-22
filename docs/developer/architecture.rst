@@ -398,29 +398,30 @@ basename ``/portal`` in the query client and the toast provider.
 ``PortalLayout`` route, so adding a screen touches only its feature's route
 file.  Paths are written without the ``/portal`` prefix:
 
-======================  ======================================================
-File                    Routes, and who may open them
-======================  ======================================================
-``auth.tsx``            ``/login``, ``/forgot-password``,
-                        ``/reset-password``: anyone; ``/change-password``:
-                        signed in.  There is no sign-out address: the **Sign
-                        out** button in the portal bar posts to
-                        ``POST /auth/logout`` and then goes to ``/login``
-``join.tsx``            ``/join``, ``/join/:step``: anyone; ``/renew``: signed
-                        in
-``dashboard.tsx``       ``/``: signed in
-``profile.tsx``         ``/profile``, ``/profile/aircraft``: signed in
-``leader.tsx``          ``/leader``, ``/leader/aircraft``: ``dart_leader`` or
-                        ``account_admin``
-``admin-members.tsx``   ``/admin/members``, ``/admin/members/new``,
-                        ``/admin/members/:id``: ``account_admin``
-``admin-aircraft.tsx``  ``/admin/aircraft``, ``/admin/aircraft/:id``:
-                        ``account_admin``
-``admin-payments.tsx``  ``/admin/payments``: ``account_admin``
-``admin-users.tsx``     ``/admin/users``, ``/admin/users/:id``: ``user_admin``
-``system.tsx``          ``/system``: ``system_admin``
-``not-found.tsx``       any other path
-======================  ======================================================
+========================  ======================================================
+File                      Routes, and who may open them
+========================  ======================================================
+``auth.tsx``              ``/login``, ``/forgot-password``,
+                          ``/reset-password``: anyone; ``/change-password``:
+                          signed in.  There is no sign-out address: the **Sign
+                          out** button in the portal bar posts to
+                          ``POST /auth/logout`` and then goes to ``/login``
+``join.tsx``              ``/join``, ``/join/:step``: anyone; ``/renew``: signed
+                          in
+``dashboard.tsx``         ``/``: signed in
+``profile.tsx``           ``/profile``, ``/profile/aircraft``: signed in
+``leader.tsx``            ``/leader``, ``/leader/aircraft``: ``dart_leader`` or
+                          ``account_admin``
+``admin-members.tsx``     ``/admin/members``, ``/admin/members/new``,
+                          ``/admin/members/:id``: ``account_admin``
+``admin-aircraft.tsx``    ``/admin/aircraft``, ``/admin/aircraft/:id``:
+                          ``account_admin``
+``admin-payments.tsx``    ``/admin/payments``: ``account_admin``
+``admin-reminders.tsx``   ``/admin/reminders``: ``account_admin``
+``admin-users.tsx``       ``/admin/users``, ``/admin/users/:id``: ``user_admin``
+``system.tsx``            ``/system``: ``system_admin``
+``not-found.tsx``         any other path
+========================  ======================================================
 
 **Code splitting.**  A route names its page with React Router's ``lazy``
 property rather than an ``element``, so the page's code is a chunk of its own
@@ -497,7 +498,8 @@ the files they test, and an ``index.ts`` of what the route files use:
 ``aircraft``            the aircraft picker, form, and insurance and service
                         chips that the profile, leader and admin screens reuse
 ``leader``              the DART leader's member check and aircraft check
-``admin-*``             the members, aircraft, payments and users screens
+``admin-*``             the members, aircraft, payments, reminder-log and users
+                        screens
 ``system``              the System page: health, backups and reminders
 ======================  ======================================================
 
