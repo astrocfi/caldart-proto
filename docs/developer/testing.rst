@@ -643,9 +643,12 @@ Running Playwright against a server you started yourself means writing the file
 yourself first, with the same command.
 
 **Derive a row count rather than asserting "more than none".**  The payments
-report counts its rows against the CSV export downloaded in the same test: two
-endpoints over the same payments, so the count is exact and stays right even
-though an earlier spec in the run paid for a membership of its own.
+report counts its rows against the CSV export downloaded in the same test, so
+the count is exact and stays right even though an earlier spec in the run paid
+for a membership of its own.  Derive it from the rows the screen actually
+reports on: the export carries every payment, while the by-period summary counts
+only the succeeded ones, so the spec counts periods over the export's
+``succeeded`` rows and the ledger's caption over all of them.
 
 Environment variables
 ----------------------
