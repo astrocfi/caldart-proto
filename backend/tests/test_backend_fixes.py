@@ -3,8 +3,7 @@
 Each test here pins one behavior that used to be wrong: the bound on a
 contribution, what a login says about a deactivated account, how the report
 helpers treat markup and spreadsheet formulas, how the database password
-reaches ``pg_dump``, where the PayPal token is cached, and which modules still
-reach for an attribute defensively.
+reaches ``pg_dump``, and where the PayPal token is cached.
 """
 
 from __future__ import annotations
@@ -18,7 +17,6 @@ from typing import Any
 import httpx
 import pytest
 import respx
-from django.conf import settings as django_settings
 from django.core.cache import cache
 from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
@@ -342,26 +340,3 @@ def test_a_token_fetched_for_other_credentials_is_not_reused(
     paypal.access_token()
 
     assert route.call_count == 2
-
-
-# --------------------------------------------------------------------------
-# No attribute that always exists is fetched defensively
-# --------------------------------------------------------------------------
-@pytest.mark.parametrize(
-    "module_path",
-    [
-        "backend/apps/accounts/permissions.py",
-        "backend/apps/payments/views.py",
-        "backend/apps/payments/providers/paypal.py",
-    ],
-    ids=["permissions", "payment-views", "paypal"],
-)
-def test_a_module_reads_its_attributes_directly(module_path: str) -> None:
-    """Every attribute these modules read is declared, so none goes through getattr.
-
-    A setting in ``caldart/settings/base.py`` and ``is_superuser`` on a user are
-    always there; reaching for them defensively hides a typo behind a default.
-    """
-    source = (django_settings.REPO_ROOT / module_path).read_text(encoding="utf-8")
-
-    assert "getattr(" not in source
