@@ -5,6 +5,7 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import shlex
 from io import StringIO
 from pathlib import Path
 
@@ -111,3 +112,100 @@ def test_restore_rejects_a_missing_file(backup_dir: Path) -> None:
     """Restoring a backup that does not exist raises ``BackupError``."""
     with pytest.raises(services.BackupError, match="No such backup"):
         services.restore_backup(backup_dir / "nope.sql.gz")
+
+
+# --------------------------------------------------------------- streaming
+#
+# The tools are stood in for by ``sh`` scripts, so these exercise the real
+# pipes and exit codes without a database server.  ``_pg_command`` returns the
+# argv prefix, and the caller appends its own arguments after it, which a
+# ``sh -c`` script ignores.
+
+#: Larger than a pipe buffer, so a dump that was not drained while ``pg_dump``
+#: ran would block forever instead of finishing.
+PIPE_BUFFER_BYTES = 1_000_000
+
+#: Two megabytes of incompressible output, then a report of whether the gzip
+#: file already holds bytes while the tool is still writing.  ``$0`` is the
+#: target path, which a ``sh -c`` script takes as the first argument after it.
+PROBE_SCRIPT = """
+head -c 2000000 /dev/urandom
+for _ in $(seq 20); do
+  if [ -s "$0" ]; then printf streamed; exit 0; fi
+  sleep 0.1
+done
+printf buffered
+"""
+
+
+def test_create_backup_writes_the_dump_while_pg_dump_is_still_running(
+    backup_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The gzip file holds bytes before ``pg_dump`` exits, so nothing is buffered."""
+    target = backup_dir / "caldart-probe.sql.gz"
+    monkeypatch.setattr(
+        services, "_pg_command", lambda tool: ["sh", "-c", PROBE_SCRIPT, str(target)]
+    )
+
+    services.create_backup(target.name)
+
+    with gzip.open(target, "rb") as handle:
+        assert handle.read()[2_000_000:] == b"streamed"
+
+
+def test_create_backup_survives_a_dump_larger_than_a_pipe_buffer(
+    backup_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dump of a million bytes arrives whole, not truncated at the pipe buffer."""
+    script = f"yes x | head -c {PIPE_BUFFER_BYTES}"
+    monkeypatch.setattr(services, "_pg_command", lambda tool: ["sh", "-c", script])
+
+    backup = services.create_backup("caldart-large.sql.gz")
+
+    with gzip.open(backup.path, "rb") as handle:
+        assert handle.read() == b"x\n" * (PIPE_BUFFER_BYTES // 2)
+
+
+def test_create_backup_reports_the_tool_stderr_and_leaves_no_file(
+    backup_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failing ``pg_dump`` raises with its stderr, and no half-written dump remains."""
+    script = "echo 'could not connect to server' >&2; exit 1"
+    monkeypatch.setattr(services, "_pg_command", lambda tool: ["sh", "-c", script])
+
+    with pytest.raises(services.BackupError, match="could not connect to server"):
+        services.create_backup("caldart-failed.sql.gz")
+
+    assert list(backup_dir.iterdir()) == []
+
+
+def test_restore_streams_the_whole_dump_into_the_tool(
+    backup_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every byte of a dump larger than a pipe buffer reaches ``psql``'s stdin."""
+    services.backup_dir()
+    dump = backup_dir / "caldart-restore.sql.gz"
+    body = b"x\n" * (PIPE_BUFFER_BYTES // 2)
+    with gzip.open(dump, "wb") as handle:
+        handle.write(body)
+    received = tmp_path / "received.sql"
+    monkeypatch.setattr(
+        services, "_pg_command", lambda tool: ["sh", "-c", f"cat > {shlex.quote(str(received))}"]
+    )
+
+    services.restore_backup(dump, drop_first=False)
+
+    assert received.read_bytes() == body
+
+
+def test_restore_reports_the_tool_stderr(backup_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failing ``psql`` raises ``BackupError`` carrying the message it printed."""
+    services.backup_dir()
+    dump = backup_dir / "caldart-restore.sql.gz"
+    with gzip.open(dump, "wb") as handle:
+        handle.write(b"-- dump\n")
+    script = "cat >/dev/null; echo 'syntax error at or near' >&2; exit 1"
+    monkeypatch.setattr(services, "_pg_command", lambda tool: ["sh", "-c", script])
+
+    with pytest.raises(services.BackupError, match="syntax error at or near"):
+        services.restore_backup(dump, drop_first=False)

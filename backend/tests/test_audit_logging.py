@@ -12,7 +12,6 @@ from __future__ import annotations
 import ast
 import gzip
 import logging
-import subprocess
 from collections.abc import Iterator
 from datetime import date, timedelta
 from pathlib import Path
@@ -115,11 +114,10 @@ def a_backup(backup_dir: Path) -> Path:
 @pytest.fixture
 def fake_pg(monkeypatch: pytest.MonkeyPatch) -> None:
     """Make the backup helpers run without a ``pg_dump`` or a server."""
-    monkeypatch.setattr(sysadmin_services, "_pg_command", lambda tool: [tool])
     monkeypatch.setattr(
         sysadmin_services,
-        "_run_pg",
-        lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0, b"-- dump\n", b""),
+        "_pg_command",
+        lambda tool: ["sh", "-c", "cat >/dev/null 2>/dev/null; printf '%s\\n' '-- dump'"],
     )
 
 

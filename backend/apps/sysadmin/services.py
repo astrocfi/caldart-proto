@@ -16,7 +16,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from tempfile import TemporaryFile
+from typing import IO, TYPE_CHECKING, Any, cast
 from urllib.parse import quote
 
 from django.conf import settings
@@ -25,7 +26,14 @@ from django.utils import timezone
 
 from caldart import audit
 
+if TYPE_CHECKING:
+    from _typeshed import SupportsRead, SupportsWrite
+
 BACKUP_SUFFIX = ".sql.gz"
+
+#: How much of a dump is held in memory at a time while it moves between a pg
+#: tool and the file on disk.  Peak memory is this, not the size of the dump.
+STREAM_CHUNK_BYTES = 1024 * 1024
 
 #: A backup file name we are willing to open.  No directory separators, no
 #: leading dot, and the suffix we write — which is what makes
@@ -115,25 +123,60 @@ def _pg_command(tool: str) -> list[str] | None:
     return in_container if has_docker else None
 
 
-def _run_pg(argv: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
-    """Run a pg tool from the repository root so compose finds its file.
+def _start_pg(argv: list[str], **kwargs: Any) -> subprocess.Popen[bytes]:
+    """Start a pg tool from the repository root so compose finds its file.
 
     The password goes into the child's ``PGPASSWORD`` rather than into ``argv``.
     An empty password is left out entirely, so a ``.pgpass`` file or a trust
-    connection still works.
+    connection still works.  The caller owns the returned process.
     """
     env = dict(os.environ)
     password = database_password()
     if password:
         env["PGPASSWORD"] = password
-    return subprocess.run(  # noqa: S603 - argv is built from settings, not user input
+    return subprocess.Popen(  # noqa: S603 - argv is built from settings, not user input
         argv,
         cwd=settings.REPO_ROOT,
-        capture_output=True,
-        check=False,
         env=env,
         **kwargs,
     )
+
+
+def _stream_pg(
+    argv: list[str],
+    tool: str,
+    *,
+    source: SupportsRead[bytes] | None = None,
+    target: SupportsWrite[bytes] | None = None,
+) -> None:
+    """Run a pg tool, piping ``source`` into it or its output into ``target``.
+
+    Exactly one of the two is given; ``tool`` names the program for the error
+    message.  The bytes move in ``STREAM_CHUNK_BYTES`` blocks while the tool runs,
+    so peak memory does not grow with the size of the dump, and the tool's stderr
+    goes to a temporary file rather than to a pipe that could fill and deadlock.
+    Raises :class:`BackupError` carrying that stderr, or ``"<tool> failed"`` when
+    the tool printed nothing, as soon as the tool exits non-zero.
+    """
+    with TemporaryFile() as error_log:
+        if source is not None:
+            process = _start_pg(
+                argv, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=error_log
+            )
+            # stdin and stdout below are pipes, so neither is ever None.
+            with cast("IO[bytes]", process.stdin) as stdin:
+                shutil.copyfileobj(source, stdin, STREAM_CHUNK_BYTES)
+        else:
+            process = _start_pg(
+                argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=error_log
+            )
+            with cast("IO[bytes]", process.stdout) as stdout:
+                shutil.copyfileobj(stdout, cast("SupportsWrite[bytes]", target), STREAM_CHUNK_BYTES)
+
+        if process.wait() != 0:
+            error_log.seek(0)
+            message = error_log.read().decode(errors="replace").strip()
+            raise BackupError(message or f"{tool} failed")
 
 
 def _dbname_url_for(argv: list[str]) -> str:
@@ -192,12 +235,13 @@ def create_backup(name: str | None = None) -> BackupFile:
     stamp = timezone.localtime().strftime("%Y%m%d-%H%M%S")
     target = backup_dir() / (name or f"caldart-{stamp}{BACKUP_SUFFIX}")
 
-    result = _run_pg([*argv, "--no-owner", "--no-privileges", "--dbname", _dbname_url_for(argv)])
-    if result.returncode != 0:
-        raise BackupError(result.stderr.decode(errors="replace").strip() or "pg_dump failed")
-
-    with gzip.open(target, "wb") as handle:
-        handle.write(result.stdout)
+    dump = [*argv, "--no-owner", "--no-privileges", "--dbname", _dbname_url_for(argv)]
+    try:
+        with gzip.open(target, "wb") as handle:
+            _stream_pg(dump, "pg_dump", target=handle)
+    except BackupError:
+        target.unlink(missing_ok=True)
+        raise
 
     return _backup_file(target)
 
@@ -219,16 +263,12 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     if argv is None:
         raise BackupError("Neither psql nor docker is available.")
 
-    opener = gzip.open if path.name.endswith(".gz") else open
-    with opener(path, "rb") as handle:
-        sql = handle.read()
-
     if drop_first:
         drop_schema()
 
-    result = _run_pg([*argv, "--quiet", "--dbname", _dbname_url_for(argv)], input=sql)
-    if result.returncode != 0:
-        raise BackupError(result.stderr.decode(errors="replace").strip() or "psql failed")
+    opener = gzip.open if path.name.endswith(".gz") else open
+    with opener(path, "rb") as handle:
+        _stream_pg([*argv, "--quiet", "--dbname", _dbname_url_for(argv)], "psql", source=handle)
 
     audit.record(audit.BACKUP_RESTORE, actor=audit.COMMAND_ACTOR, file=audit.safe_slug(path.name))
 

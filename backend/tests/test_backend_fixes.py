@@ -232,16 +232,16 @@ def test_the_container_url_names_the_container_host(awkward_credentials: dict[st
 def test_a_pg_tool_gets_the_password_in_its_environment(
     awkward_credentials: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """``_run_pg`` puts the password in ``PGPASSWORD`` rather than in the argv."""
+    """``_start_pg`` puts the password in ``PGPASSWORD`` rather than in the argv."""
     seen: dict[str, Any] = {}
 
-    def fake_run(argv: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
+    def fake_popen(argv: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
         seen.update({"argv": argv, "env": kwargs["env"]})
         return subprocess.CompletedProcess(argv, 0, b"", b"")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
 
-    services._run_pg(["pg_dump", "--dbname", services.database_url()])
+    services._start_pg(["pg_dump", "--dbname", services.database_url()])
 
     assert seen["env"]["PGPASSWORD"] == AWKWARD_PASSWORD
     assert AWKWARD_PASSWORD not in " ".join(seen["argv"])

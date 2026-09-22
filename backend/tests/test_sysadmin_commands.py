@@ -8,10 +8,9 @@ from __future__ import annotations
 
 import gzip
 import shutil
-import subprocess
 from io import StringIO
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 import pytest
 from django.core.management import call_command
@@ -36,12 +35,19 @@ def pg_calls(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     """Record every pg invocation instead of running one; returns the list."""
     calls: list[dict[str, Any]] = []
 
-    def fake_run(argv: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
-        calls.append({"argv": argv, "input": kwargs.get("input")})
-        return subprocess.CompletedProcess(argv, 0, b"-- dump body\n", b"")
+    def fake_stream(
+        argv: list[str],
+        tool: str,
+        *,
+        source: IO[bytes] | None = None,
+        target: IO[bytes] | None = None,
+    ) -> None:
+        calls.append({"argv": argv, "input": source.read() if source is not None else None})
+        if target is not None:
+            target.write(b"-- dump body\n")
 
     monkeypatch.setattr(services, "_pg_command", lambda tool: [tool])
-    monkeypatch.setattr(services, "_run_pg", fake_run)
+    monkeypatch.setattr(services, "_stream_pg", fake_stream)
     return calls
 
 
@@ -104,11 +110,10 @@ def test_db_backup_creates_the_directory(
 
 def test_db_backup_reports_a_failure(backup_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A failing ``pg_dump`` raises ``CommandError`` with stderr; nothing is written."""
-    monkeypatch.setattr(services, "_pg_command", lambda tool: [tool])
     monkeypatch.setattr(
         services,
-        "_run_pg",
-        lambda argv, **kw: subprocess.CompletedProcess(argv, 1, b"", b"could not connect"),
+        "_pg_command",
+        lambda tool: ["sh", "-c", "echo 'could not connect' >&2; exit 1"],
     )
 
     with pytest.raises(CommandError, match="could not connect"):
@@ -249,11 +254,10 @@ def test_db_restore_proceeds_when_the_answer_is_yes(
 def test_db_restore_reports_a_psql_failure(a_dump: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A failing ``psql`` raises ``CommandError`` carrying its stderr."""
     monkeypatch.setattr(services, "drop_schema", lambda: None)
-    monkeypatch.setattr(services, "_pg_command", lambda tool: [tool])
     monkeypatch.setattr(
         services,
-        "_run_pg",
-        lambda argv, **kw: subprocess.CompletedProcess(argv, 1, b"", b"syntax error"),
+        "_pg_command",
+        lambda tool: ["sh", "-c", "cat >/dev/null; echo 'syntax error' >&2; exit 1"],
     )
 
     with pytest.raises(CommandError, match="syntax error"):

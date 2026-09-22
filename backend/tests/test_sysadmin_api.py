@@ -7,7 +7,6 @@ off the URL, so every way of pointing it outside ``BACKUP_DIR`` has a test.
 from __future__ import annotations
 
 import gzip
-import subprocess
 import tomllib
 from collections.abc import Iterator
 from pathlib import Path
@@ -59,11 +58,10 @@ def a_backup(backup_dir: Path) -> Path:
 @pytest.fixture
 def fake_pg_dump(monkeypatch: pytest.MonkeyPatch) -> None:
     """Make ``create_backup`` produce a dump without a database server."""
-    monkeypatch.setattr(services, "_pg_command", lambda tool: [tool])
     monkeypatch.setattr(
         services,
-        "_run_pg",
-        lambda argv, **kw: subprocess.CompletedProcess(argv, 0, b"-- generated dump\n", b""),
+        "_pg_command",
+        lambda tool: ["sh", "-c", "printf '%s\\n' '-- generated dump'"],
     )
 
 
