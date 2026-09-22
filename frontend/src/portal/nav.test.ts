@@ -52,6 +52,21 @@ describe('visibleNavItems', () => {
     expect(visible).not.toContain('System');
   });
 
+  it('gives account_admin the reminder log', () => {
+    expect(labels(['member', 'account_admin'])).toContain('Reminders');
+  });
+
+  it('keeps the reminder log away from dart_leader', () => {
+    expect(labels(['member', 'dart_leader'])).not.toContain('Reminders');
+  });
+
+  it('files the reminder log under Administration', () => {
+    const administration = groupedNavItems(['member', 'account_admin']).find(
+      (bucket) => bucket.group === 'Administration',
+    );
+    expect(administration?.items.map((item) => item.to)).toContain('/admin/reminders');
+  });
+
   it('offers the leader checks to account_admin, as the API and guards do', () => {
     const visible = labels(['member', 'account_admin']);
     expect(visible).toContain('Member check');
