@@ -275,14 +275,22 @@ def test_gunicorn_binds_to_loopback_only() -> None:
     assert "multiprocessing.cpu_count()" in config
 
 
-def test_gunicorn_worker_count_is_capped(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize(
+    ("cpus", "expected"),
+    [(4, 9), (16, 12)],
+    ids=["below-the-cap", "at-the-cap"],
+)
+def test_gunicorn_worker_count_is_capped(
+    monkeypatch: pytest.MonkeyPatch, cpus: int, expected: int
+) -> None:
     """Every worker preloads Django, so the 2n+1 heuristic needs a ceiling."""
     monkeypatch.delenv("WEB_CONCURRENCY", raising=False)
+    monkeypatch.setattr(multiprocessing, "cpu_count", lambda: cpus)
 
     config = runpy.run_path(str(DEPLOY_DIR / "gunicorn.conf.py"))
 
     assert config["MAX_WORKERS"] == 12
-    assert config["workers"] == min(multiprocessing.cpu_count() * 2 + 1, 12)
+    assert config["workers"] == expected
 
 
 def test_web_concurrency_overrides_the_worker_heuristic(

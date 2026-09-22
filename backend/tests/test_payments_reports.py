@@ -78,12 +78,22 @@ def history(
             contribution_cents=2_000,
         ),
         make_payment(member, annual_plan, when=paid_at(2026, 2, 2)),
-        # Neither of these is revenue, so the summary must skip both.
+        # Neither of these is revenue, so the summary must skip both.  Their
+        # references are spelled out in full so that no cell of the export can
+        # hold one as a substring: the golden comparison replaces them literally.
         make_payment(
-            other, annual_plan, when=paid_at(2026, 2, 3), status=PaymentStatus.FAILED, ref="dud"
+            other,
+            annual_plan,
+            when=paid_at(2026, 2, 3),
+            status=PaymentStatus.FAILED,
+            ref="ref-dud-0001",
         ),
         make_payment(
-            member, annual_plan, when=paid_at(2026, 2, 4), status=PaymentStatus.PENDING, ref="wip"
+            member,
+            annual_plan,
+            when=paid_at(2026, 2, 4),
+            status=PaymentStatus.PENDING,
+            ref="ref-wip-0001",
         ),
     ]
 
@@ -131,7 +141,7 @@ def test_list_searches_name_email_and_reference(
     api_client.force_login(account_admin)
     assert api_client.get(LIST, {"search": "wilma"}).json()["count"] == 3
     assert api_client.get(LIST, {"search": "member@example.test"}).json()["count"] == 4
-    assert api_client.get(LIST, {"search": "dud"}).json()["count"] == 1
+    assert api_client.get(LIST, {"search": "ref-dud-0001"}).json()["count"] == 1
 
 
 def test_list_orders_by_amount(

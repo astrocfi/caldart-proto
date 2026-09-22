@@ -666,7 +666,7 @@ def csv_body(response: HttpResponseBase) -> str:
     ``response`` must be the ``StreamingHttpResponse`` that ``csv_response`` returns;
     any other response type fails the assertion rather than an attribute lookup.  The
     chunks are joined and decoded as UTF-8, so the result carries the exact bytes the
-    browser would save, including the ``\\r\\n`` line endings the ``csv`` module writes.
+    browser would save, including the ``\r\n`` line endings the ``csv`` module writes.
     """
     assert isinstance(response, StreamingHttpResponse)
     # A synchronous StreamingHttpResponse yields bytes; the async branch of the
@@ -706,7 +706,7 @@ def golden(request: pytest.FixtureRequest) -> Golden:
     Running pytest with ``--update-golden`` rewrites the file from ``text`` instead of
     comparing, and asserts nothing; read the diff before committing the result.
 
-    Line endings are never translated, in either direction, so a CSV export's ``\\r\\n``
+    Line endings are never translated, in either direction, so a CSV export's ``\r\n``
     separators are part of what the comparison covers.
     """
 

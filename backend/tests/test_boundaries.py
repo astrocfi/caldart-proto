@@ -16,7 +16,8 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.aircraft.models import Aircraft, OwnerType
-from apps.aircraft.services import MAX_EXPIRING_WINDOW_DAYS
+from apps.aircraft.services import MAX_EXPIRING_WINDOW_DAYS as MAX_AIRCRAFT_WINDOW_DAYS
+from apps.members.api.admin_filters import MAX_EXPIRING_WINDOW_DAYS as MAX_MEMBER_WINDOW_DAYS
 from apps.members.models import MembershipPlan
 from caldart.pagination import StandardPagination
 from tests.conftest import read_csv
@@ -145,11 +146,11 @@ def test_an_absurd_aircraft_window_is_clamped_to_ten_years(
     """A window wider than a date can hold lists cover inside 3650 days and no more."""
     AircraftFactory(
         n_number="N1INSIDE",
-        insurance_expiration=timezone.localdate() + timedelta(days=MAX_EXPIRING_WINDOW_DAYS),
+        insurance_expiration=timezone.localdate() + timedelta(days=MAX_AIRCRAFT_WINDOW_DAYS),
     )
     AircraftFactory(
         n_number="N2BEYOND",
-        insurance_expiration=timezone.localdate() + timedelta(days=MAX_EXPIRING_WINDOW_DAYS + 1),
+        insurance_expiration=timezone.localdate() + timedelta(days=MAX_AIRCRAFT_WINDOW_DAYS + 1),
     )
     api_client.force_login(member)
 
@@ -176,26 +177,37 @@ def test_an_absurd_membership_window_is_clamped_to_ten_years(
     api_client: APIClient, account_admin: User, annual_plan: MembershipPlan
 ) -> None:
     """The member list answers an impossible window with the members inside 3650 days."""
+    yesterday = timezone.localdate() - timedelta(days=1)
+    edge = UserFactory(email="edge@example.test", first_name="Edge", last_name="Case")
+    MembershipFactory(
+        user=edge,
+        plan=annual_plan,
+        starts_on=yesterday,
+        ends_on=timezone.localdate() + timedelta(days=MAX_MEMBER_WINDOW_DAYS),
+    )
     soon = UserFactory(email="soon@example.test", first_name="Soon", last_name="Lapsing")
     MembershipFactory(
         user=soon,
         plan=annual_plan,
-        starts_on=timezone.localdate() - timedelta(days=1),
+        starts_on=yesterday,
         ends_on=timezone.localdate() + timedelta(days=10),
     )
     far = UserFactory(email="far@example.test", first_name="Far", last_name="Off")
     MembershipFactory(
         user=far,
         plan=annual_plan,
-        starts_on=timezone.localdate() - timedelta(days=1),
-        ends_on=timezone.localdate() + timedelta(days=MAX_EXPIRING_WINDOW_DAYS + 1),
+        starts_on=yesterday,
+        ends_on=timezone.localdate() + timedelta(days=MAX_MEMBER_WINDOW_DAYS + 1),
     )
     api_client.force_login(account_admin)
 
     response = api_client.get(MEMBERS_URL, {"expiring_within": ABSURD_WINDOW})
 
     assert response.status_code == 200
-    assert [row["email"] for row in response.json()["results"]] == ["soon@example.test"]
+    assert [row["email"] for row in response.json()["results"]] == [
+        "edge@example.test",
+        "soon@example.test",
+    ]
 
 
 # --------------------------------------------------------------------------
