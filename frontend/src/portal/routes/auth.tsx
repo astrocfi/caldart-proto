@@ -11,13 +11,11 @@ import {
   ChangePasswordPage,
   ForgotPasswordPage,
   LoginPage,
-  LogoutPage,
   ResetPasswordPage,
 } from '../features/auth';
 
 export const authRoutes: RouteObject[] = [
   { path: 'login', element: <LoginPage /> },
-  { path: 'logout', element: <LogoutPage /> },
   { path: 'forgot-password', element: <ForgotPasswordPage /> },
   { path: 'reset-password', element: <ResetPasswordPage /> },
   {

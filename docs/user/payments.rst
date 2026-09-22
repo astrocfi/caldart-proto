@@ -100,6 +100,14 @@ If something goes wrong
 *The card was declined.*
    Nothing was charged.  Try another card, or the PayPal tab.
 
+*You closed the PayPal window without paying.*
+   Nothing was charged.  A note says **Payment canceled**, and the checkout is
+   exactly as you left it: the same plan, the same contribution, the same tabs.
+
+*PayPal would not open, and a message says why.*
+   The message is CalDART's own — a plan that has closed to new members, say.
+   Nothing was charged.  Fix what it names, or pay from another tab.
+
 *"Your payment is still being processed."*
    Some payment methods settle a few seconds later than the browser does.  It
    is safe to close the page: the membership activates on its own when the

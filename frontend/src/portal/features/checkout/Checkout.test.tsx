@@ -1,12 +1,14 @@
+import { QueryClient } from '@tanstack/react-query';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CheckoutRequest, PaymentsConfig } from '../../api/types';
-import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP } from '../../../test/handlers';
+import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP, makeUser } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
 import { server } from '../../../test/server';
+import { AUTH_ME_KEY } from '../../auth/useAuth';
 import { Checkout } from './Checkout';
 
 /* --------------------------------------------------------- stripe & paypal */
@@ -23,29 +25,44 @@ vi.mock('@stripe/react-stripe-js', () => ({
   useElements: () => ({}),
 }));
 
-const payPalApprove: { run?: () => Promise<void> } = {};
-
 vi.mock('@paypal/react-paypal-js', () => ({
   PayPalScriptProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   PayPalButtons: ({
     createOrder,
     onApprove,
+    onCancel,
+    onError,
   }: {
     createOrder: () => Promise<string>;
     onApprove: (data: { orderID: string }) => Promise<void>;
+    onCancel: () => void;
+    onError: (error: unknown) => void;
   }) => (
-    <button
-      type="button"
-      onClick={() => {
-        void (async () => {
-          const orderId = await createOrder();
-          payPalApprove.run = () => onApprove({ orderID: orderId });
-          await payPalApprove.run();
-        })();
-      }}
-    >
-      Pay with PayPal
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          void (async () => {
+            try {
+              const orderId = await createOrder();
+              await onApprove({ orderID: orderId });
+            } catch (caught) {
+              // The SDK absorbs a `createOrder` rejection and hands it to `onError`,
+              // so the panel's own handler runs right after its catch block.
+              onError(caught);
+            }
+          })();
+        }}
+      >
+        Pay with PayPal
+      </button>
+      <button type="button" onClick={onCancel}>
+        Close the PayPal window
+      </button>
+      <button type="button" onClick={() => onError(new Error('the SDK never loaded'))}>
+        Break the PayPal window
+      </button>
+    </>
   ),
 }));
 
@@ -414,5 +431,115 @@ describe('Checkout · PayPal', () => {
     const panel = await screen.findByRole('tabpanel');
     expect(await within(panel).findByRole('alert')).toHaveTextContent('did not complete');
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('shows the reason the server gave for refusing the order', async () => {
+    const user = userEvent.setup();
+    serveConfig(payPalConfig);
+    server.use(
+      http.post(`${API}/payments/checkout`, () =>
+        HttpResponse.json({ detail: 'That plan is closed to new members.' }, { status: 400 }),
+      ),
+    );
+
+    renderWithProviders(<Checkout mode="join" onSuccess={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Pay with PayPal' }));
+
+    const panel = await screen.findByRole('tabpanel');
+    expect(await within(panel).findByRole('alert')).toHaveTextContent(
+      'That plan is closed to new members.',
+    );
+  });
+
+  it('falls back to its own wording when the failure carries no server message', async () => {
+    const user = userEvent.setup();
+    serveConfig(payPalConfig);
+    // A checkout that comes back without an order id is not an `ApiError`.
+    serveCheckout();
+
+    renderWithProviders(<Checkout mode="join" onSuccess={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Pay with PayPal' }));
+
+    const panel = await screen.findByRole('tabpanel');
+    expect(await within(panel).findByRole('alert')).toHaveTextContent(
+      'That PayPal payment could not be started.',
+    );
+  });
+
+  it('reports an SDK failure that no checkout call caused', async () => {
+    const user = userEvent.setup();
+    serveConfig(payPalConfig);
+    serveCheckout({ order_id: 'ORDER-9' });
+
+    renderWithProviders(<Checkout mode="join" onSuccess={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Break the PayPal window' }));
+
+    const panel = await screen.findByRole('tabpanel');
+    expect(await within(panel).findByRole('alert')).toHaveTextContent(
+      'PayPal could not be reached. Please try again.',
+    );
+  });
+
+  it('says the payment was canceled when the PayPal window is closed', async () => {
+    const user = userEvent.setup();
+    const onSuccess = vi.fn();
+    serveConfig(payPalConfig);
+    serveCheckout({ order_id: 'ORDER-9' });
+
+    renderWithProviders(<Checkout mode="join" onSuccess={onSuccess} />);
+    await user.click(await screen.findByRole('button', { name: 'Close the PayPal window' }));
+
+    expect(await screen.findByText('Payment canceled')).toBeInTheDocument();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('leaves the checkout in place after a cancellation', async () => {
+    const user = userEvent.setup();
+    serveConfig(payPalConfig);
+    serveCheckout({ order_id: 'ORDER-9' });
+
+    renderWithProviders(<Checkout mode="join" onSuccess={vi.fn()} />);
+    await user.click(await screen.findByRole('button', { name: 'Close the PayPal window' }));
+
+    expect(await screen.findByText('Payment canceled')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pay with PayPal' })).toBeInTheDocument();
+    expect(screen.getByTestId('checkout-total')).toHaveTextContent('$45.00');
+  });
+});
+
+/**
+ * A client that keeps a cached query alive without an observer, so the state of
+ * a query nothing is watching can still be read after the payment.
+ */
+function makeRetainingQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, staleTime: 0, gcTime: Infinity },
+      mutations: { retry: false },
+    },
+  });
+}
+
+describe('Checkout · what a payment refreshes', () => {
+  it('leaves every cached query to the flow that hosts it', async () => {
+    const user = userEvent.setup();
+    const onSuccess = vi.fn();
+    serveConfig(config());
+    serveCheckout();
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT_MEMBERSHIP }),
+      ),
+    );
+
+    const { client } = renderWithProviders(<Checkout mode="join" onSuccess={onSuccess} />, {
+      client: makeRetainingQueryClient(),
+    });
+    client.setQueryData(AUTH_ME_KEY, makeUser());
+
+    await user.click(await screen.findByRole('button', { name: 'Succeed' }));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+
+    expect(client.getQueryState(AUTH_ME_KEY)?.isInvalidated).toBe(false);
   });
 });

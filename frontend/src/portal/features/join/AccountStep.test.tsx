@@ -1,10 +1,10 @@
 import { QueryClient } from '@tanstack/react-query';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { API, makeUser } from '../../../test/handlers';
+import { API, makeUser, signedInAs } from '../../../test/handlers';
 import { renderWithProviders } from '../../../test/render';
 import { server } from '../../../test/server';
 import { AUTH_ME_KEY } from '../../auth/useAuth';
@@ -49,5 +49,32 @@ describe('<AccountStep/>', () => {
     expect(onDone).toHaveBeenCalled();
     expect(client.getQueryData(['members', 'roster'])).toBeUndefined();
     expect(client.getQueryData(AUTH_ME_KEY)).toEqual(user);
+  });
+
+  it('offers "Use a different account" as a button rather than a link', async () => {
+    server.use(signedInAs(makeUser()));
+
+    renderWithProviders(<AccountStep onDone={vi.fn()} />);
+
+    expect(
+      await screen.findByRole('button', { name: 'Use a different account' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Use a different account' })).not.toBeInTheDocument();
+  });
+
+  it('ends the session through the logout endpoint when it is pressed', async () => {
+    let logouts = 0;
+    server.use(
+      signedInAs(makeUser()),
+      http.post(`${API}/auth/logout`, () => {
+        logouts += 1;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    renderWithProviders(<AccountStep onDone={vi.fn()} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Use a different account' }));
+
+    await waitFor(() => expect(logouts).toBe(1));
   });
 });

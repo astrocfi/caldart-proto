@@ -3,8 +3,11 @@
  *
  * Choose a plan, optionally add a contribution, then pay with whichever
  * providers this deployment has keys for.
+ *
+ * A finished payment is reported through `onSuccess` and nothing else: the flow
+ * that hosts the widget owns the queries a payment moves, so the refresh happens
+ * once, where the keys are known.
  */
-import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
@@ -28,7 +31,6 @@ export type { CheckoutProps, CheckoutResult } from './types';
 
 /** Choose a plan and a contribution, then pay with the configured providers. */
 export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
-  const queryClient = useQueryClient();
   const { data: config, isPending, error } = usePaymentsConfig();
 
   const [plan, setPlan] = useState<string>(DEFAULT_PLAN);
@@ -75,17 +77,11 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
   const planCents = selectedPlan?.price_cents ?? 0;
   const totalCents = planCents + contributionCents;
 
-  function handleSuccess(result: CheckoutResult) {
-    void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
-    void queryClient.invalidateQueries({ queryKey: ['membership'] });
-    onSuccess(result);
-  }
-
   const panelProps = {
     plan: effectivePlan,
     contributionCents,
     amountCents: totalCents,
-    onSuccess: handleSuccess,
+    onSuccess,
   };
 
   return (
@@ -159,7 +155,10 @@ interface ProviderTabsProps {
 }
 
 function ProviderTabs({ providers, active, onChange, config, panelProps }: ProviderTabsProps) {
-  const current = active ?? providers[0]!;
+  const selected = active ?? providers[0];
+  // `providers` is never empty here: the caller renders the empty state instead.
+  if (selected === undefined) return null;
+  const current: PaymentProvider = selected;
 
   function handleKeyDown(event: React.KeyboardEvent): void {
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;

@@ -4,7 +4,7 @@ import type { FormEvent, JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ApiError } from '../../api/client';
-import { useAuth, useRegister } from '../../auth/useAuth';
+import { useAuth, useRegister, useSignOut } from '../../auth/useAuth';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Field } from '../../components/Field';
@@ -17,6 +17,7 @@ export interface AccountStepProps {
 /** Step 1 of the join wizard: sign in, or register through `useRegister`. */
 export function AccountStep({ onDone }: AccountStepProps): JSX.Element {
   const { user, isAuthenticated } = useAuth();
+  const { signOut, isPending: isSigningOut } = useSignOut();
   const register = useRegister();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -31,7 +32,9 @@ export function AccountStep({ onDone }: AccountStepProps): JSX.Element {
         </p>
         <div className="cluster card__footer">
           <Button onClick={onDone}>Continue</Button>
-          <Link to="/logout">Use a different account</Link>
+          <Button variant="quiet" onClick={signOut} disabled={isSigningOut}>
+            Use a different account
+          </Button>
         </div>
       </Card>
     );
