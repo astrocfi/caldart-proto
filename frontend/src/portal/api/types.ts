@@ -376,14 +376,10 @@ export interface CheckoutRequest {
   provider: PaymentProvider;
 }
 
-export interface CheckoutResponse {
-  payment_id: number;
-  provider: PaymentProvider;
-  client: {
-    client_secret?: string;
-    order_id?: string;
-  };
-}
+export type CheckoutResponse =
+  | { payment_id: number; provider: 'stripe'; client: { client_secret: string } }
+  | { payment_id: number; provider: 'paypal'; client: { order_id: string } }
+  | { payment_id: number; provider: 'mock' };
 
 export interface PaymentResult {
   status: PaymentState;
@@ -487,9 +483,12 @@ export interface MembersPage {
   url: string;
 }
 
+/** A theme slug shipped in `frontend/src/styles/themes/`. */
+export type ThemeSlug = 'sierra' | 'pacific' | 'night';
+
 export interface SiteConfig {
   org_name: string;
-  theme: string;
+  theme: ThemeSlug;
   contact_email: string;
   nav: NavEntry[];
   members_pages: MembersPage[];

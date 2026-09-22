@@ -77,7 +77,8 @@ refused before a payment row is created.
 
    {"payment_id": 412, "provider": "stripe", "client": {"client_secret": "pi_3..._secret_..."}}
 
-``client`` is whatever the browser needs next:
+The body is discriminated on ``provider``: ``client`` carries exactly the fields the
+chosen provider's browser SDK needs, and no others.
 
 ============  ==============================================
 Provider      ``client``

@@ -304,13 +304,6 @@
       "size_bytes"
     ]
   },
-  "CheckoutClient": {
-    "properties": {
-      "client_secret": "string",
-      "order_id": "string"
-    },
-    "required": []
-  },
   "CheckoutRequest": {
     "properties": {
       "contribution_cents": "integer",
@@ -322,15 +315,11 @@
     ]
   },
   "CheckoutResponse": {
-    "properties": {
-      "client": "ref:CheckoutClient",
-      "payment_id": "integer",
-      "provider": "ref:PaymentProviderEnum"
-    },
-    "required": [
-      "client",
-      "payment_id",
-      "provider"
+    "discriminator": "provider",
+    "one_of": [
+      "MockCheckoutResponse",
+      "PayPalCheckoutResponse",
+      "StripeCheckoutResponse"
     ]
   },
   "ContributionTier": {
@@ -657,6 +646,21 @@
       "canceled"
     ]
   },
+  "MockCheckoutResponse": {
+    "properties": {
+      "payment_id": "integer",
+      "provider": "ref:MockCheckoutResponseProviderEnum"
+    },
+    "required": [
+      "payment_id",
+      "provider"
+    ]
+  },
+  "MockCheckoutResponseProviderEnum": {
+    "enum": [
+      "mock"
+    ]
+  },
   "MockCompleteRequest": {
     "properties": {
       "outcome": "ref:OutcomeEnum",
@@ -913,6 +917,31 @@
     },
     "required": [
       "payment_id"
+    ]
+  },
+  "PayPalCheckoutClient": {
+    "properties": {
+      "order_id": "string"
+    },
+    "required": [
+      "order_id"
+    ]
+  },
+  "PayPalCheckoutResponse": {
+    "properties": {
+      "client": "ref:PayPalCheckoutClient",
+      "payment_id": "integer",
+      "provider": "ref:PayPalCheckoutResponseProviderEnum"
+    },
+    "required": [
+      "client",
+      "payment_id",
+      "provider"
+    ]
+  },
+  "PayPalCheckoutResponseProviderEnum": {
+    "enum": [
+      "paypal"
     ]
   },
   "Payment": {
@@ -1243,7 +1272,7 @@
       "members_pages": "array<ref:MembersPage>",
       "nav": "array<ref:NavEntry>",
       "org_name": "string",
-      "theme": "string"
+      "theme": "ref:ThemeEnum"
     },
     "required": [
       "contact_email",
@@ -1260,6 +1289,31 @@
       "seed"
     ]
   },
+  "StripeCheckoutClient": {
+    "properties": {
+      "client_secret": "string"
+    },
+    "required": [
+      "client_secret"
+    ]
+  },
+  "StripeCheckoutResponse": {
+    "properties": {
+      "client": "ref:StripeCheckoutClient",
+      "payment_id": "integer",
+      "provider": "ref:StripeCheckoutResponseProviderEnum"
+    },
+    "required": [
+      "client",
+      "payment_id",
+      "provider"
+    ]
+  },
+  "StripeCheckoutResponseProviderEnum": {
+    "enum": [
+      "stripe"
+    ]
+  },
   "StripeConfirmRequest": {
     "properties": {
       "payment_id": "integer",
@@ -1267,6 +1321,13 @@
     },
     "required": [
       "payment_id"
+    ]
+  },
+  "ThemeEnum": {
+    "enum": [
+      "sierra",
+      "pacific",
+      "night"
     ]
   },
   "User": {

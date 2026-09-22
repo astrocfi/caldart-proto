@@ -40,6 +40,10 @@ class ComponentSummary(TypedDict, total=False):
     properties: dict[str, str]
     required: list[str]
     enum: list[str]
+    #: A polymorphic (``oneOf``) component's member component names, sorted.
+    one_of: list[str]
+    #: A polymorphic component's discriminator property name.
+    discriminator: str
 
 
 def property_type(schema: dict[str, Any]) -> str:
@@ -73,7 +77,11 @@ def component_summaries(schema: dict[str, Any]) -> dict[str, ComponentSummary]:
     """Reduce an OpenAPI document to one summary per component schema.
 
     An enumeration component yields ``{"enum": [...]}`` with its values in declared
-    order.  Every other component yields ``{"properties": {...}, "required": [...]}``,
+    order.  A polymorphic component -- one built from ``PolymorphicProxySerializer``,
+    such as ``CheckoutResponse`` -- carries ``oneOf`` and a ``discriminator`` instead of
+    its own properties, and yields ``{"one_of": [...], "discriminator": "..."}`` with the
+    member component names sorted, so a member gained, dropped or renamed changes the
+    summary.  Every other component yields ``{"properties": {...}, "required": [...]}``,
     where ``properties`` maps each property name to the type :func:`property_type`
     describes and ``required`` is sorted, so the summary is stable against a reordering
     of the serializer's field list but not against a rename or a change of type.  A
@@ -84,6 +92,14 @@ def component_summaries(schema: dict[str, Any]) -> dict[str, ComponentSummary]:
     for name, component in sorted(components.items()):
         if "enum" in component:
             summaries[name] = {"enum": list(component["enum"])}
+        elif "oneOf" in component:
+            summaries[name] = {
+                "one_of": sorted(
+                    member["$ref"].removeprefix(COMPONENT_REF_PREFIX)
+                    for member in component["oneOf"]
+                ),
+                "discriminator": component.get("discriminator", {}).get("propertyName", ""),
+            }
         else:
             summaries[name] = {
                 "properties": {
@@ -266,6 +282,30 @@ def test_component_summaries_record_enum_values_in_order() -> None:
     summaries = component_summaries(document)
 
     assert summaries["SquawkSeverityEnum"] == {"enum": ["low", "high"]}
+
+
+def test_component_summaries_record_a_polymorphic_component() -> None:
+    """A ``oneOf`` component summarizes its member names and its discriminator."""
+    document = {
+        "components": {
+            "schemas": {
+                "CheckoutResponse": {
+                    "oneOf": [
+                        {"$ref": f"{COMPONENT_REF_PREFIX}StripeCheckoutResponse"},
+                        {"$ref": f"{COMPONENT_REF_PREFIX}MockCheckoutResponse"},
+                    ],
+                    "discriminator": {"propertyName": "provider"},
+                }
+            }
+        }
+    }
+
+    summaries = component_summaries(document)
+
+    assert summaries["CheckoutResponse"] == {
+        "one_of": ["MockCheckoutResponse", "StripeCheckoutResponse"],
+        "discriminator": "provider",
+    }
 
 
 def test_a_renamed_field_is_reported_against_the_snapshot() -> None:
