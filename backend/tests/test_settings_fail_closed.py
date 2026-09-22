@@ -20,18 +20,17 @@ import environ
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
+from tests.conftest import DEPLOY_DIR, REPO_ROOT
 from tests.test_sysadmin_settings import (
-    DEPLOY,
     MINIMAL_ENV,
-    REPO_ROOT,
     UNSET,
     apply_production_environment,
     import_prod,
 )
 
 DOTENV_PATH = REPO_ROOT / ".env"
-PRODUCTION_TEMPLATE = DEPLOY / "caldart.env.example"
-WEB_UNIT = DEPLOY / "systemd" / "caldart-web.service"
+PRODUCTION_TEMPLATE = DEPLOY_DIR / "caldart.env.example"
+WEB_UNIT = DEPLOY_DIR / "systemd" / "caldart-web.service"
 
 #: The key ``base.py`` defaults to and ``.env.example`` ships.  It is published
 #: in the repository, so a box still running it can have its sessions and

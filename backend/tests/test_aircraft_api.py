@@ -7,7 +7,6 @@ Exports live in ``test_aircraft_exports.py`` and the leader check in
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -19,15 +18,13 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN
 from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile
+from tests.conftest import RegisterDict
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
 LIST_URL = "/api/v1/aircraft"
 LOOKUP_URL = "/api/v1/aircraft/lookup"
-
-#: An aircraft register keyed by scenario name, built by the ``register`` fixture.
-RegisterDict = dict[str, Aircraft]
 
 
 def detail_url(aircraft: Aircraft) -> str:
@@ -398,47 +395,6 @@ def test_lookup_is_exact_not_a_prefix_match(api_client: APIClient, member: User)
 # --------------------------------------------------------------------------
 # Filters
 # --------------------------------------------------------------------------
-@pytest.fixture
-def register(db: None) -> RegisterDict:
-    """A small register covering every insurance state."""
-    today = timezone.localdate()
-    return {
-        "current": AircraftFactory(
-            n_number="N172SP",
-            make="Cessna",
-            model="172S Skyhawk",
-            owner_name="Palo Alto Flying Club",
-            owner_type="club",
-            insurance_expiration=today + timedelta(days=200),
-        ),
-        "expiring": AircraftFactory(
-            n_number="N9021K",
-            make="Piper",
-            model="PA-28-181 Archer",
-            owner_name="Marta Reyes",
-            owner_type="individual",
-            insurance_expiration=today + timedelta(days=10),
-        ),
-        "expired": AircraftFactory(
-            n_number="N33MM",
-            make="Mooney",
-            model="M20J",
-            owner_name="Owen Delgado",
-            owner_type="individual",
-            insurance_expiration=today - timedelta(days=5),
-        ),
-        "missing": AircraftFactory(
-            n_number="N44BE",
-            make="Beechcraft",
-            model="A36 Bonanza",
-            owner_name="Hayward Aviation Services",
-            owner_type="fbo",
-            insurance_expiration=None,
-            insurance_carrier="",
-        ),
-    }
-
-
 def numbers(response: Response) -> list[str]:
     """Extract the ``n_number`` of each row in a paginated list response, in order."""
     return [row["n_number"] for row in response.data["results"]]

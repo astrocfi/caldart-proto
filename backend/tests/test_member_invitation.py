@@ -50,13 +50,6 @@ def _html_alternative(message: EmailMultiAlternatives) -> str:
 
 
 @pytest.fixture
-def admin_client(api_client: APIClient, account_admin: User) -> APIClient:
-    """An API client signed in as an account administrator."""
-    api_client.force_login(account_admin)
-    return api_client
-
-
-@pytest.fixture
 def invitee(db: None) -> User:
     """An account created without a password, waiting to be invited."""
     user = UserFactory(email="invited@example.test", first_name="Nova", last_name="Ito")
@@ -228,24 +221,24 @@ def test_the_mailed_link_sets_the_password(
 # When it is sent
 # --------------------------------------------------------------------------
 def test_creating_a_member_without_a_password_sends_the_invitation(
-    admin_client: APIClient,
+    account_admin_client: APIClient,
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
     """Creating a member with no password mails an invitation once the commit fires."""
     with django_capture_on_commit_callbacks(execute=True):
-        admin_client.post(MEMBERS_URL, {"email": "newbie@example.test"}, format="json")
+        account_admin_client.post(MEMBERS_URL, {"email": "newbie@example.test"}, format="json")
     assert mail.outbox[0].subject == f"{ORG_NAME}: set your password"
 
 
 def test_creating_a_member_with_a_password_sends_nothing(
-    admin_client: APIClient,
+    account_admin_client: APIClient,
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
     """Creating a member with a password given sends no invitation email."""
     with django_capture_on_commit_callbacks(execute=True):
-        admin_client.post(
+        account_admin_client.post(
             MEMBERS_URL,
             {"email": "newbie@example.test", "password": GOOD_PASSWORD},
             format="json",

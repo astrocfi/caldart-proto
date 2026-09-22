@@ -30,13 +30,6 @@ LIST_URL = "/api/v1/admin/members"
 
 
 @pytest.fixture
-def admin_client(api_client: APIClient, account_admin: User) -> APIClient:
-    """A DRF client logged in as an account admin, who may list members."""
-    api_client.force_login(account_admin)
-    return api_client
-
-
-@pytest.fixture
 def expiring_member(annual_plan: MembershipPlan, today: date) -> User:
     """A current member whose coverage ends 30 days out."""
     assert annual_plan.duration_days is not None
@@ -69,48 +62,50 @@ def emails(response: ApiResponse) -> set[str]:
 
 @pytest.mark.parametrize("window", ["999999999", "1e11"])
 def test_expiring_within_survives_an_absurd_window(
-    admin_client: APIClient, expiring_member: User, window: str
+    account_admin_client: APIClient, expiring_member: User, window: str
 ) -> None:
     """An overflowing timedelta would be a 500, not a filter."""
-    response = admin_client.get(LIST_URL, {"expiring_within": window})
+    response = account_admin_client.get(LIST_URL, {"expiring_within": window})
     assert response.status_code == 200
 
 
 def test_expiring_within_huge_value_is_clamped_to_the_limit(
-    admin_client: APIClient, expiring_member: User
+    account_admin_client: APIClient, expiring_member: User
 ) -> None:
     """A window far past the limit returns the same results as the limit itself."""
-    huge = emails(admin_client.get(LIST_URL, {"expiring_within": "3000000"}))
-    limit = emails(admin_client.get(LIST_URL, {"expiring_within": MAX_EXPIRING_WINDOW_DAYS}))
+    huge = emails(account_admin_client.get(LIST_URL, {"expiring_within": "3000000"}))
+    limit = emails(
+        account_admin_client.get(LIST_URL, {"expiring_within": MAX_EXPIRING_WINDOW_DAYS})
+    )
     assert huge == limit
     assert expiring_member.email in huge
 
 
 def test_expiring_within_negative_value_is_clamped_to_zero(
-    admin_client: APIClient, expiring_member: User, last_day_member: User
+    account_admin_client: APIClient, expiring_member: User, last_day_member: User
 ) -> None:
     """A window of ``-5`` days keeps today's expiries, which a shifted cutoff drops."""
-    negative = emails(admin_client.get(LIST_URL, {"expiring_within": "-5"}))
-    zero = emails(admin_client.get(LIST_URL, {"expiring_within": "0"}))
+    negative = emails(account_admin_client.get(LIST_URL, {"expiring_within": "-5"}))
+    zero = emails(account_admin_client.get(LIST_URL, {"expiring_within": "0"}))
     assert negative == zero
     assert last_day_member.email in negative
     assert expiring_member.email not in negative
 
 
 def test_expiring_within_fraction_truncates_towards_zero(
-    admin_client: APIClient, expiring_member: User
+    account_admin_client: APIClient, expiring_member: User
 ) -> None:
     """A fractional day narrows the window the same way ``int()`` would."""
-    fraction = admin_client.get(LIST_URL, {"expiring_within": "29.9"})
+    fraction = account_admin_client.get(LIST_URL, {"expiring_within": "29.9"})
     assert expiring_member.email not in emails(fraction)
-    whole = admin_client.get(LIST_URL, {"expiring_within": "30"})
+    whole = account_admin_client.get(LIST_URL, {"expiring_within": "30"})
     assert expiring_member.email in emails(whole)
 
 
 def test_expiring_within_at_the_limit_still_finds_a_match(
-    admin_client: APIClient, expiring_member: User
+    account_admin_client: APIClient, expiring_member: User
 ) -> None:
     """A window equal to the limit still returns a member whose coverage ends there."""
-    response = admin_client.get(LIST_URL, {"expiring_within": MAX_EXPIRING_WINDOW_DAYS})
+    response = account_admin_client.get(LIST_URL, {"expiring_within": MAX_EXPIRING_WINDOW_DAYS})
     assert response.status_code == 200
     assert expiring_member.email in emails(response)

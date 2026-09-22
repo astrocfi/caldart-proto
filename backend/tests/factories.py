@@ -11,9 +11,20 @@ from django.contrib.auth.models import Group
 from django.db.models import Model
 from django.utils import timezone
 from factory.django import DjangoModelFactory
+from wagtail.models import Page, Site
 
 from apps.accounts.roles import MEMBER
 from apps.aircraft.models import Aircraft, OwnerType
+from apps.cms.models import (
+    ContactPage,
+    DartIndexPage,
+    DartPage,
+    HomePage,
+    NewsIndexPage,
+    NewsPage,
+    SiteSettings,
+    StandardPage,
+)
 from apps.members.models import (
     Dart,
     IfrRated,
@@ -30,7 +41,6 @@ from apps.reminders.models import ReminderKind, ReminderLog
 
 if TYPE_CHECKING:
     from apps.accounts.models import User as UserModel
-    from apps.cms.models import HomePage, SiteSettings
 
 User = get_user_model()
 
@@ -247,45 +257,108 @@ class ReminderLogFactory(ModelFactory[ReminderLog]):
     to_email = factory.LazyAttribute(lambda o: o.user.email)
 
 
-def make_home_page(title: str = "Home") -> HomePage:
-    """Return the site's Wagtail ``HomePage``, creating it under the tree root if needed.
+def make_home_page() -> HomePage:
+    """Return the site's Wagtail ``HomePage``, the one the CMS migrations publish.
 
-    If a ``HomePage`` already exists, returns it unchanged and ignores ``title``.
+    The migration that makes a ``HomePage`` the Wagtail site root gives it the slug
+    ``home``, so every test database already has exactly one.
     """
-    from wagtail.models import Page
-
-    from apps.cms.models import HomePage
-
-    existing = HomePage.objects.first()
-    if existing is not None:
-        # Wagtail's Page base class is untyped, so its queryset methods return Any.
-        return cast("HomePage", existing)
-    root = Page.get_first_root_node()
-    home = HomePage(title=title, slug="home")
-    root.add_child(instance=home)
-    home.save_revision().publish()
-    return home
+    # Wagtail's Page base class is untyped, so its queryset methods return Any.
+    return cast("HomePage", HomePage.objects.get(slug="home"))
 
 
 def make_site_settings(**kwargs: Any) -> SiteSettings:
-    """Return the default site's ``SiteSettings`` row, creating it if needed.
+    """Return the default site's ``SiteSettings`` row, with ``kwargs`` applied to it.
 
-    Creates the default ``Site`` (rooted at ``make_home_page()``) when none exists, then
-    creates or updates its ``SiteSettings`` row with the field values in ``kwargs``.
+    The CMS migrations create the default ``Site``; this creates or updates the
+    ``SiteSettings`` row attached to it with the field values in ``kwargs``.
     """
-    from wagtail.models import Site
-
-    from apps.cms.models import SiteSettings
-
-    site = Site.objects.filter(is_default_site=True).first()
-    if site is None:
-        site = Site.objects.create(
-            hostname="localhost",
-            port=80,
-            site_name="CalDART",
-            root_page=make_home_page(),
-            is_default_site=True,
-        )
+    site = Site.objects.get(is_default_site=True)
     obj, _ = SiteSettings.objects.update_or_create(site=site, defaults=kwargs)
     # Wagtail's Site model is untyped, so update_or_create's return is Any.
     return cast("SiteSettings", obj)
+
+
+# -- Wagtail page builders -------------------------------------------------
+def publish[P: Page](parent: Page, page: P) -> P:
+    """Add ``page`` under ``parent``, publish it, and return it fresh from the database.
+
+    The returned page is re-read through the concrete page class, so its own fields are
+    populated rather than only the base ``Page`` ones.
+    """
+    parent.add_child(instance=page)
+    page.save_revision().publish()
+    # Wagtail's PageManager is untyped, so `.get()` returns Any; the caller always
+    # passes an instance of the page's own concrete class.
+    return cast(P, type(page).objects.get(pk=page.pk))
+
+
+def make_standard_page(
+    parent: Page, slug: str = "a-page", title: str = "A page", **fields: Any
+) -> StandardPage:
+    """Publish a ``StandardPage`` named ``title`` under ``parent`` and return it."""
+    return publish(parent, StandardPage(title=title, slug=slug, **fields))
+
+
+def make_news_index(
+    parent: Page, slug: str = "news", title: str = "News", **fields: Any
+) -> NewsIndexPage:
+    """Publish a ``NewsIndexPage`` named ``title`` under ``parent`` and return it."""
+    return publish(parent, NewsIndexPage(title=title, slug=slug, **fields))
+
+
+def make_news_page(
+    parent: Page, slug: str, title: str, *, days_ago: int = 0, **fields: Any
+) -> NewsPage:
+    """Publish a ``NewsPage`` dated ``days_ago`` days before today and return it."""
+    fields.setdefault("date", timezone.localdate() - timedelta(days=days_ago))
+    return publish(parent, NewsPage(title=title, slug=slug, **fields))
+
+
+def make_dart_index(
+    parent: Page, slug: str = "darts", title: str = "DARTs", **fields: Any
+) -> DartIndexPage:
+    """Publish a ``DartIndexPage`` named ``title`` under ``parent`` and return it."""
+    return publish(parent, DartIndexPage(title=title, slug=slug, **fields))
+
+
+def make_dart_page(parent: Page, dart: Dart, **fields: Any) -> DartPage:
+    """Publish a ``DartPage`` for ``dart`` under ``parent`` and return it.
+
+    The leader's name and contact default to a fictional volunteer unless ``fields``
+    supplies them, and the slug is the DART's airport identifier in lower case.
+    """
+    fields.setdefault("leader_name", "Helen Marchetti")
+    fields.setdefault("leader_contact", "helen@example.org")
+    slug = dart.airport_identifier.lower() or "team"
+    return publish(parent, DartPage(title=dart.name, slug=slug, dart=dart, **fields))
+
+
+def make_contact_page(
+    parent: Page, slug: str = "contact", title: str = "Contact Us", **fields: Any
+) -> ContactPage:
+    """Publish a ``ContactPage`` named ``title`` under ``parent`` and return it."""
+    return publish(parent, ContactPage(title=title, slug=slug, **fields))
+
+
+def grant_membership(user: UserModel, plan: MembershipPlan, *, days_left: int = 200) -> Membership:
+    """Give ``user`` a term on ``plan`` that stays current for ``days_left`` more days."""
+    today = timezone.localdate()
+    return MembershipFactory(
+        user=user,
+        plan=plan,
+        starts_on=today - timedelta(days=30),
+        ends_on=today + timedelta(days=days_left),
+    )
+
+
+def expire_membership(user: UserModel, plan: MembershipPlan, *, days_ago: int = 30) -> Membership:
+    """Give ``user`` a term on ``plan`` that lapsed ``days_ago`` days ago."""
+    today = timezone.localdate()
+    return MembershipFactory(
+        user=user,
+        plan=plan,
+        starts_on=today - timedelta(days=days_ago + 365),
+        ends_on=today - timedelta(days=days_ago),
+        status=MembershipStatusChoices.EXPIRED,
+    )

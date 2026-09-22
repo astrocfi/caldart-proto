@@ -7,10 +7,8 @@ and the arithmetic over a fixture spanning three months and two years.
 from __future__ import annotations
 
 import datetime as dt
-from typing import cast
 
 import pytest
-from django.http import StreamingHttpResponse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -18,6 +16,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
+from tests.conftest import read_csv
 from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -271,13 +270,6 @@ def test_summary_of_nothing_is_an_empty_list(api_client: APIClient, account_admi
 # --------------------------------------------------------------------------
 # GET /admin/payments/export.csv
 # --------------------------------------------------------------------------
-def read_csv(response: StreamingHttpResponse) -> list[list[str]]:
-    """Decode a streamed CSV download into a list of comma-split rows."""
-    # Django's stubs type streaming_content as sync-or-async; csv_response is always sync.
-    text = b"".join(response.streaming_content).decode()  # type: ignore[arg-type]
-    return [line.split(",") for line in text.strip().splitlines()]
-
-
 def test_export_returns_a_csv_download(
     api_client: APIClient, account_admin: User, history: list[Payment]
 ) -> None:
@@ -290,9 +282,7 @@ def test_export_returns_a_csv_download(
     assert "attachment" in response["Content-Disposition"]
     assert "caldart-payments.csv" in response["Content-Disposition"]
 
-    # csv_response returns a StreamingHttpResponse; the stubs type api_client.get()
-    # as the more general HttpResponseBase.
-    rows = read_csv(cast(StreamingHttpResponse, response))
+    rows = read_csv(response)
     assert rows[0][:4] == ["paid_on", "name", "email", "plan"]
     assert len(rows) == 8  # header + 7 payments
 
@@ -303,10 +293,10 @@ def test_export_honors_the_filters(
     """The export applies the same provider and status filters as the list."""
     api_client.force_login(account_admin)
     response = api_client.get(EXPORT, {"provider": "paypal", "status": "succeeded"})
-    rows = read_csv(cast(StreamingHttpResponse, response))
+    rows = read_csv(response)
 
     assert len(rows) == 3
-    assert all(row[7] == "paypal" for row in rows[1:])
+    assert [row[7] for row in rows[1:]] == ["paypal", "paypal"]
 
 
 def test_export_formats_money_as_dollars(
@@ -315,7 +305,7 @@ def test_export_formats_money_as_dollars(
     """The export formats cent amounts as two-decimal dollar strings."""
     make_payment(member, annual_plan, when=paid_at(2026, 3, 9), contribution_cents=10_000)
     api_client.force_login(account_admin)
-    row = read_csv(cast(StreamingHttpResponse, api_client.get(EXPORT)))[1]
+    row = read_csv(api_client.get(EXPORT))[1]
 
     assert row[0] == "2026-03-09"
     assert row[4] == "45.00"  # plan_amount

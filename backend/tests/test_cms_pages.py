@@ -1,111 +1,30 @@
 """Wagtail page types, blocks, navigation and the members-only wall.
 
-The helpers at the top build small page trees; the other ``test_cms_*`` modules
-import them rather than repeating the boilerplate.
+The page builders live in ``tests.factories`` so every ``test_cms_*`` module can
+reach them without depending on another test module.
 """
 
 from __future__ import annotations
 
-from datetime import timedelta
-from typing import Any, cast
-
 import pytest
 from django.template.loader import render_to_string
 from django.test import Client
-from django.utils import timezone
-from wagtail.models import Page
 
 from apps.accounts.models import User
-from apps.cms.models import (
-    ContactPage,
-    DartIndexPage,
-    DartPage,
-    NewsIndexPage,
-    NewsPage,
-    SiteSettings,
-    StandardPage,
+from apps.cms.models import SiteSettings, StandardPage
+from apps.members.models import Dart, MembershipPlan
+from tests.factories import (
+    expire_membership,
+    grant_membership,
+    make_contact_page,
+    make_dart_index,
+    make_dart_page,
+    make_news_index,
+    make_news_page,
+    make_standard_page,
 )
-from apps.members.models import Dart, Membership, MembershipPlan, MembershipStatusChoices
-from tests.factories import MembershipFactory
 
 pytestmark = pytest.mark.django_db
-
-
-# ---------------------------------------------------------------- helpers
-def publish[P: Page](parent: Page, page: P) -> P:
-    """Add ``page`` under ``parent``, publish it, and return it fresh."""
-    parent.add_child(instance=page)
-    page.save_revision().publish()
-    # Wagtail's PageManager is untyped, so `.get()` returns Any; the caller always
-    # passes an instance of the page's own concrete class.
-    return cast(P, type(page).objects.get(pk=page.pk))
-
-
-def make_standard_page(
-    parent: Page, slug: str = "a-page", title: str = "A page", **fields: Any
-) -> StandardPage:
-    """Publish a ``StandardPage`` named ``title`` under ``parent`` and return it."""
-    return publish(parent, StandardPage(title=title, slug=slug, **fields))
-
-
-def make_news_index(
-    parent: Page, slug: str = "news", title: str = "News", **fields: Any
-) -> NewsIndexPage:
-    """Publish a ``NewsIndexPage`` named ``title`` under ``parent`` and return it."""
-    return publish(parent, NewsIndexPage(title=title, slug=slug, **fields))
-
-
-def make_news_page(
-    parent: Page, slug: str, title: str, *, days_ago: int = 0, **fields: Any
-) -> NewsPage:
-    """Publish a ``NewsPage`` dated ``days_ago`` days before today and return it."""
-    fields.setdefault("date", timezone.localdate() - timedelta(days=days_ago))
-    return publish(parent, NewsPage(title=title, slug=slug, **fields))
-
-
-def make_dart_index(
-    parent: Page, slug: str = "darts", title: str = "DARTs", **fields: Any
-) -> DartIndexPage:
-    """Publish a ``DartIndexPage`` named ``title`` under ``parent`` and return it."""
-    return publish(parent, DartIndexPage(title=title, slug=slug, **fields))
-
-
-def make_dart_page(parent: Page, dart: Dart, **fields: Any) -> DartPage:
-    """Publish a ``DartPage`` for ``dart`` under ``parent`` and return it."""
-    fields.setdefault("leader_name", "Helen Marchetti")
-    fields.setdefault("leader_contact", "helen@example.org")
-    slug = dart.airport_identifier.lower() or "team"
-    return publish(parent, DartPage(title=dart.name, slug=slug, dart=dart, **fields))
-
-
-def make_contact_page(
-    parent: Page, slug: str = "contact", title: str = "Contact Us", **fields: Any
-) -> ContactPage:
-    """Publish a ``ContactPage`` named ``title`` under ``parent`` and return it."""
-    return publish(parent, ContactPage(title=title, slug=slug, **fields))
-
-
-def grant_membership(user: User, plan: MembershipPlan, *, days_left: int = 200) -> Membership:
-    """Give ``user`` a term that is current for ``days_left`` more days."""
-    today = timezone.localdate()
-    return MembershipFactory(
-        user=user,
-        plan=plan,
-        starts_on=today - timedelta(days=30),
-        ends_on=today + timedelta(days=days_left),
-    )
-
-
-def expire_membership(user: User, plan: MembershipPlan, *, days_ago: int = 30) -> Membership:
-    """Give ``user`` a term that lapsed ``days_ago`` days ago."""
-    today = timezone.localdate()
-    return MembershipFactory(
-        user=user,
-        plan=plan,
-        starts_on=today - timedelta(days=days_ago + 365),
-        ends_on=today - timedelta(days=days_ago),
-        status=MembershipStatusChoices.EXPIRED,
-    )
 
 
 ALL_BLOCKS = [
@@ -457,11 +376,11 @@ def test_current_member_reads_the_page(
 
 
 def test_dart_leader_without_a_membership_reads_the_page(
-    client: Client, walled_page: StandardPage, leader: User
+    client: Client, walled_page: StandardPage, dart_leader: User
 ) -> None:
     """A DART leader with no membership of their own still reads the walled page."""
-    assert leader.membership_status["status"] == "none"
-    client.force_login(leader)
+    assert dart_leader.membership_status["status"] == "none"
+    client.force_login(dart_leader)
 
     response = client.get(walled_page.url)
     assert response.status_code == 200

@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 import pytest
 from django.test import override_settings
 
-from tests.test_sysadmin_settings import DEPLOY
+from tests.conftest import DEPLOY_DIR
 
 if TYPE_CHECKING:
     from django.test import Client
@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 
     from apps.cms.models import SiteSettings
 
-APACHE = DEPLOY / "apache" / "caldart.conf"
-NGINX = DEPLOY / "nginx" / "caldart.conf"
+APACHE = DEPLOY_DIR / "apache" / "caldart.conf"
+NGINX = DEPLOY_DIR / "nginx" / "caldart.conf"
 PROXY_CONFIGS = {"apache": APACHE, "nginx": NGINX}
 
 HSTS_HEADER = "Strict-Transport-Security"

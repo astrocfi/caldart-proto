@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import base64
 import copy
+import csv
+import io
 import json
 import os
 import re
@@ -17,22 +19,29 @@ import zlib
 from collections.abc import Callable, Iterator
 from datetime import date, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import freezegun
 import pytest
 import respx
+from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
+from django.http import HttpResponseBase, StreamingHttpResponse
+from django.utils import timezone
+from django_vite.core.asset_loader import DjangoViteAssetLoader
+from pytest_django import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
     MEMBER,
+    ROLE_SLUGS,
     SYSTEM_ADMIN,
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
+from apps.sysadmin import services
 from caldart.settings.test import STATIC_ROOT_PREFIX
 from tests.factories import (
     DEFAULT_PASSWORD,
@@ -40,10 +49,8 @@ from tests.factories import (
     DartFactory,
     LifetimePlanFactory,
     MemberProfileFactory,
-    MembershipFactory,
     MembershipPlanFactory,
     PaymentFactory,
-    ReminderLogFactory,
     UserFactory,
     make_home_page,
     make_site_settings,
@@ -89,6 +96,9 @@ CSRF_URL = "/api/v1/auth/csrf"
 # --------------------------------------------------------------------------
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+#: The deployment templates the packaging tests read: gunicorn, systemd, Apache, nginx.
+DEPLOY_DIR = REPO_ROOT / "deploy"
+
 STUB_MANIFEST = {
     "src/site/main.ts": {
         "file": "assets/site-stub.js",
@@ -128,8 +138,6 @@ def _reload_vite_loader() -> None:
     during ``django.setup()``, before this hook runs, so an override made here
     would otherwise be ignored.
     """
-    from django_vite.core.asset_loader import DjangoViteAssetLoader
-
     DjangoViteAssetLoader._instance = None
     DjangoViteAssetLoader.instance()
 
@@ -137,18 +145,16 @@ def _reload_vite_loader() -> None:
 def pytest_configure(config: pytest.Config) -> None:
     """Fall back to a stub Vite manifest when no real one is configured."""
     global _stub_manifest_dir, _stub_manifest_path, _missing_manifest_path
-    from django.conf import settings
-
-    configured = Path(settings.DJANGO_VITE["default"]["manifest_path"])
+    configured = Path(django_settings.DJANGO_VITE["default"]["manifest_path"])
     if configured.is_file():
         return
     _missing_manifest_path = configured
     _stub_manifest_dir = Path(tempfile.mkdtemp(prefix="caldart-vite-manifest-"))
     _stub_manifest_path = _stub_manifest_dir / "manifest.json"
     _stub_manifest_path.write_text(json.dumps(STUB_MANIFEST, indent=2))
-    overridden = copy.deepcopy(settings.DJANGO_VITE)
+    overridden = copy.deepcopy(django_settings.DJANGO_VITE)
     overridden["default"]["manifest_path"] = _stub_manifest_path
-    settings.DJANGO_VITE = overridden
+    django_settings.DJANGO_VITE = overridden
     _reload_vite_loader()
 
 
@@ -161,11 +167,9 @@ def pytest_unconfigure(config: pytest.Config) -> None:
     whose name does not carry that module's prefix is left alone, so a run under
     other settings cannot delete a real one.
     """
-    from django.conf import settings
-
     if _stub_manifest_dir is not None:
         shutil.rmtree(_stub_manifest_dir, ignore_errors=True)
-    static_root = Path(settings.STATIC_ROOT)
+    static_root = Path(django_settings.STATIC_ROOT)
     if static_root.name.startswith(STATIC_ROOT_PREFIX):
         shutil.rmtree(static_root, ignore_errors=True)
 
@@ -187,14 +191,6 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     if os.environ.get(CI_ENV_VAR, "") != "":
         pytest.fail(reason, pytrace=False)
     pytest.skip(reason)
-
-
-@pytest.fixture(autouse=True)
-def _roles(db: None) -> None:
-    """Every test gets the role groups, exactly as ``migrate`` leaves them."""
-    from apps.accounts.management.commands.seed_roles import seed_roles
-
-    seed_roles()
 
 
 # --------------------------------------------------------------------------
@@ -302,17 +298,30 @@ system_admin = _role_fixture(SYSTEM_ADMIN, "sysadmin@example.test")
 
 
 @pytest.fixture
-def leader(dart_leader: UserModel) -> UserModel:
-    """Return ``dart_leader``, under the name used in most tests."""
-    return dart_leader
-
-
-@pytest.fixture
 def superuser(db: None) -> UserModel:
     """Return a Django superuser holding the system-admin role."""
     return UserFactory(
         email="root@example.test", roles=[SYSTEM_ADMIN], is_superuser=True, is_staff=True
     )
+
+
+#: The roles an allow/deny matrix covers: every role slug, least privileged first.
+#: ``role_matrix`` turns it into one parametrized case per role.
+ROLE_MATRIX: tuple[str, ...] = ROLE_SLUGS
+
+
+def role_matrix(*allowed: str) -> list[tuple[str, bool]]:
+    """Return ``(slug, allowed)`` for every role, for an allow/deny parametrization.
+
+    ``allowed`` names the role slugs the endpoint under test admits; every other slug
+    in ``ROLE_MATRIX`` is paired with ``False``.  The cases come back in privilege
+    order, so ``role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN)`` is
+    ``[("member", False), ("dart_leader", False), ("user_admin", False),
+    ("account_admin", True), ("website_admin", False), ("system_admin", True)]``
+    and collects as ``[member-False]`` ... ``[system_admin-True]``.  Pair it with the
+    ``all_role_users`` fixture to sign the matching user in.
+    """
+    return [(slug, slug in allowed) for slug in ROLE_MATRIX]
 
 
 @pytest.fixture
@@ -333,6 +342,17 @@ def all_role_users(
         WEBSITE_ADMIN: website_admin,
         SYSTEM_ADMIN: system_admin,
     }
+
+
+@pytest.fixture
+def account_admin_client(api_client: APIClient, account_admin: UserModel) -> APIClient:
+    """Return a DRF client already signed in as an account administrator.
+
+    The name says which administrator: pytest-django's own ``admin_client`` is a plain
+    Django client signed in as a superuser, which is a different caller entirely.
+    """
+    api_client.force_login(account_admin)
+    return api_client
 
 
 # -- domain fixtures -------------------------------------------------------
@@ -366,28 +386,83 @@ def aircraft(db: None) -> Aircraft:
     return AircraftFactory()
 
 
+#: An aircraft register keyed by insurance scenario, as ``register`` builds it.
+RegisterDict = dict[str, "Aircraft"]
+
+
+@pytest.fixture
+def register(db: None) -> RegisterDict:
+    """Return a four-aircraft register covering every insurance state.
+
+    ``current`` is N172SP, a Cessna 172S owned by a flying club, insured by Avemco for
+    $1,000,000 per occurrence, $100,000 per person and a $145,000 hull, expiring in 200
+    days.  ``expiring`` is N9021K, a Piper Archer owned by Marta Reyes, whose cover
+    expires in 10 days.  ``expired`` is N33MM, a Mooney M20J owned by Owen Delgado,
+    whose cover expired 5 days ago.  ``missing`` is N44BE, a Beechcraft Bonanza owned by
+    an FBO, with no carrier, no amounts and no expiration on file.  ``expiring`` and
+    ``expired`` carry the factory's default carrier and amounts.
+    """
+    today = timezone.localdate()
+    return {
+        "current": AircraftFactory(
+            n_number="N172SP",
+            make="Cessna",
+            model="172S Skyhawk",
+            owner_name="Palo Alto Flying Club",
+            owner_type="club",
+            insurance_carrier="Avemco",
+            insurance_liability_per_occurrence_cents=100_000_000,
+            insurance_liability_per_person_cents=10_000_000,
+            insurance_hull_cents=14_500_000,
+            insurance_expiration=today + timedelta(days=200),
+        ),
+        "expiring": AircraftFactory(
+            n_number="N9021K",
+            make="Piper",
+            model="PA-28-181 Archer",
+            owner_name="Marta Reyes",
+            owner_type="individual",
+            insurance_expiration=today + timedelta(days=10),
+        ),
+        "expired": AircraftFactory(
+            n_number="N33MM",
+            make="Mooney",
+            model="M20J",
+            owner_name="Owen Delgado",
+            owner_type="individual",
+            insurance_expiration=today - timedelta(days=5),
+        ),
+        "missing": AircraftFactory(
+            n_number="N44BE",
+            make="Beechcraft",
+            model="A36 Bonanza",
+            owner_name="Hayward Aviation Services",
+            owner_type="fbo",
+            insurance_carrier="",
+            insurance_liability_per_occurrence_cents=0,
+            insurance_liability_per_person_cents=0,
+            insurance_hull_cents=None,
+            insurance_expiration=None,
+        ),
+    }
+
+
+@pytest.fixture
+def backup_dir(tmp_path: Path, settings: Settings) -> Path:
+    """Point ``BACKUP_DIR`` at a throwaway directory under ``tmp_path`` and create it.
+
+    Returns the directory itself, so a test can write a dump into it or read back what
+    the backup services left there.  Nothing ever touches the repository's own
+    ``BACKUP_DIR``.
+    """
+    settings.BACKUP_DIR = tmp_path / "backups"
+    return services.backup_dir()
+
+
 @pytest.fixture
 def payment_factory() -> type[PaymentFactory]:
     """Return the ``PaymentFactory`` class, for tests that need many payments."""
     return PaymentFactory
-
-
-@pytest.fixture
-def membership_factory() -> type[MembershipFactory]:
-    """Return the ``MembershipFactory`` class, for tests that need many memberships."""
-    return MembershipFactory
-
-
-@pytest.fixture
-def reminder_log_factory() -> type[ReminderLogFactory]:
-    """Return the ``ReminderLogFactory`` class, for tests that need many reminder logs."""
-    return ReminderLogFactory
-
-
-@pytest.fixture
-def aircraft_factory() -> type[AircraftFactory]:
-    """Return the ``AircraftFactory`` class, for tests that need many aircraft."""
-    return AircraftFactory
 
 
 @pytest.fixture
@@ -416,8 +491,6 @@ def today() -> Iterator[date]:
     clock that cannot advance mid-test, rather than reading
     ``timezone.localdate()`` again at an arbitrary moment later in the run.
     """
-    from django.utils import timezone
-
     # Freezing a bare date freezes midnight UTC, which ``timezone.localdate()``
     # reads back as the day before in a negative-offset timezone; freezing the
     # exact current instant keeps the local date the fixture already returns.
@@ -523,7 +596,36 @@ def pdf_page_text(pdf: bytes) -> list[list[str]]:
     return pages
 
 
+#: The type of the ``pdf_text`` fixture: body bytes in, one list of strings per page out.
+PdfText = Callable[[bytes], list[list[str]]]
+
+
 @pytest.fixture
-def pdf_text() -> Callable[[bytes], list[list[str]]]:
+def pdf_text() -> PdfText:
     """``pdf_text(body)`` -> the strings a rendered PDF draws, one list per page."""
     return pdf_page_text
+
+
+#: One ``/Type /Page`` object, which the ``/Pages`` catalog entry must not match.
+_PDF_PAGE_RE = re.compile(rb"/Type\s*/Page[^s]")
+
+
+def pdf_page_count(pdf: bytes) -> int:
+    """Return the number of pages in a rendered PDF, from its ``/Type /Page`` objects."""
+    return len(_PDF_PAGE_RE.findall(pdf))
+
+
+def read_csv(response: HttpResponseBase) -> list[list[str]]:
+    """Return the rows of a streamed CSV download, each a list of string cells.
+
+    ``response`` must be the ``StreamingHttpResponse`` that ``csv_response`` returns;
+    any other response type fails the assertion rather than an attribute lookup.  The
+    body is parsed with ``csv.reader``, so a quoted cell holding a comma, a newline or
+    an embedded quote comes back as the single cell it is, and the header is row 0.
+    """
+    assert isinstance(response, StreamingHttpResponse)
+    # A synchronous StreamingHttpResponse yields bytes; the async branch of the
+    # declared union cannot occur here.
+    chunks = cast(Iterator[bytes], response.streaming_content)
+    body = b"".join(chunks).decode()
+    return list(csv.reader(io.StringIO(body)))

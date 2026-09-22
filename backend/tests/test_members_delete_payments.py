@@ -76,13 +76,6 @@ def payer(db: None, annual_plan: MembershipPlan) -> User:
 
 
 @pytest.fixture
-def admin_client(api_client: APIClient, account_admin: User) -> APIClient:
-    """An API client signed in as an account administrator."""
-    api_client.force_login(account_admin)
-    return api_client
-
-
-@pytest.fixture
 def wagtail_client(client: Client, superuser: User) -> Client:
     """The Wagtail admin as a superuser, the only role that may delete a user there."""
     client.force_login(superuser)
@@ -105,12 +98,12 @@ def crowded_batch(db: None, annual_plan: MembershipPlan) -> list[User]:
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("status_value", PaymentStatus.values)
 def test_delete_is_refused_whatever_the_payment_status(
-    admin_client: APIClient, payer: User, annual_plan: MembershipPlan, status_value: str
+    account_admin_client: APIClient, payer: User, annual_plan: MembershipPlan, status_value: str
 ) -> None:
     """A single payment blocks the delete, pending or failed rows included."""
     payment = PaymentFactory(user=payer, plan=annual_plan, status=status_value)
 
-    response = admin_client.delete(detail_url(payer))
+    response = account_admin_client.delete(detail_url(payer))
 
     assert response.status_code == 403
     assert response.json()["detail"] == REFUSAL_ONE_PAYMENT
@@ -119,24 +112,24 @@ def test_delete_is_refused_whatever_the_payment_status(
 
 
 def test_the_refusal_counts_every_payment(
-    admin_client: APIClient, payer: User, annual_plan: MembershipPlan
+    account_admin_client: APIClient, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """The message names the number of rows, pluralized."""
     for index in range(3):
         PaymentFactory(user=payer, plan=annual_plan, provider_ref=f"ref-{index}")
 
-    response = admin_client.delete(detail_url(payer))
+    response = account_admin_client.delete(detail_url(payer))
 
     assert response.json()["detail"] == REFUSAL_THREE_PAYMENTS
 
 
 def test_the_refusal_keeps_the_profile_and_the_membership_terms(
-    admin_client: APIClient, payer: User, annual_plan: MembershipPlan
+    account_admin_client: APIClient, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """A refused delete leaves the profile and every membership term in place."""
     PaymentFactory(user=payer, plan=annual_plan)
 
-    assert admin_client.delete(detail_url(payer)).status_code == 403
+    assert account_admin_client.delete(detail_url(payer)).status_code == 403
     assert MemberProfile.objects.filter(user_id=payer.pk).exists()
     assert Membership.objects.filter(user_id=payer.pk).count() == 1
 
@@ -176,7 +169,7 @@ def test_the_self_delete_guard_still_comes_first(
 # The reports are untouched
 # --------------------------------------------------------------------------
 def test_the_payment_summary_is_unchanged_after_a_refusal(
-    admin_client: APIClient, payer: User, annual_plan: MembershipPlan
+    account_admin_client: APIClient, payer: User, annual_plan: MembershipPlan
 ) -> None:
     """A refused delete leaves the accounts reading exactly as they did."""
     PaymentFactory(
@@ -187,11 +180,11 @@ def test_the_payment_summary_is_unchanged_after_a_refusal(
         contribution_cents=2_000,
         status=PaymentStatus.SUCCEEDED,
     )
-    before = admin_client.get(SUMMARY_URL).json()
+    before = account_admin_client.get(SUMMARY_URL).json()
 
-    assert admin_client.delete(detail_url(payer)).status_code == 403
+    assert account_admin_client.delete(detail_url(payer)).status_code == 403
 
-    after = admin_client.get(SUMMARY_URL).json()
+    after = account_admin_client.get(SUMMARY_URL).json()
     assert after == before
     assert len(after) == 1
     assert after[0]["total_cents"] == 6_500
@@ -202,12 +195,12 @@ def test_the_payment_summary_is_unchanged_after_a_refusal(
 # A member who never paid
 # --------------------------------------------------------------------------
 def test_a_member_without_payments_is_deleted_with_the_profile_and_terms(
-    admin_client: APIClient, payer: User
+    account_admin_client: APIClient, payer: User
 ) -> None:
     """An account with no payments is hard-deleted, along with its profile and terms."""
     pk = payer.pk
 
-    assert admin_client.delete(detail_url(payer)).status_code == 204
+    assert account_admin_client.delete(detail_url(payer)).status_code == 204
     assert not User.objects.filter(pk=pk).exists()
     assert not MemberProfile.objects.filter(user_id=pk).exists()
     assert not Membership.objects.filter(user_id=pk).exists()

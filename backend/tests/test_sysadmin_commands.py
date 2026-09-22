@@ -24,13 +24,6 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def backup_dir(tmp_path: Path, settings: Settings) -> Path:
-    """Point ``BACKUP_DIR`` at a throwaway directory under ``tmp_path``."""
-    settings.BACKUP_DIR = tmp_path / "backups"
-    return services.backup_dir()
-
-
-@pytest.fixture
 def pg_calls(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     """Record every pg invocation instead of running one; returns the list."""
     calls: list[dict[str, Any]] = []

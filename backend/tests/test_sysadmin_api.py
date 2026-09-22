@@ -40,13 +40,6 @@ def download_url(name: str) -> str:
 
 
 @pytest.fixture
-def backup_dir(tmp_path: Path, settings: Settings) -> Path:
-    """A throwaway ``BACKUP_DIR`` so tests never touch the repository's."""
-    settings.BACKUP_DIR = tmp_path / "backups"
-    return services.backup_dir()
-
-
-@pytest.fixture
 def a_backup(backup_dir: Path) -> Path:
     """One dump on disk, with known contents."""
     path = backup_dir / "caldart-20260601-090000.sql.gz"

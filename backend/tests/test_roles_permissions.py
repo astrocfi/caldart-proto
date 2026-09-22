@@ -32,7 +32,7 @@ from tests.factories import MembershipFactory, UserFactory
 pytestmark = pytest.mark.django_db
 
 
-def test_role_slugs_are_the_six_from_the_plan() -> None:
+def test_role_slugs_are_the_six_documented_roles() -> None:
     """``ROLE_SLUGS`` lists the six roles in order, and staff excludes member."""
     assert ROLE_SLUGS == (
         MEMBER,
