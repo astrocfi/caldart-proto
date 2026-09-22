@@ -352,6 +352,24 @@ describe('CSRF bootstrap recovery', () => {
     expect(posts).toBe(1);
   });
 
+  it('hands a permission 403 back with the message the server sent', async () => {
+    server.use(
+      http.get(`${API}/auth/csrf`, () => csrfCookie('good')),
+      http.post(`${API}/thing`, () =>
+        HttpResponse.json(
+          { detail: 'You do not have permission to perform this action.' },
+          { status: 403 },
+        ),
+      ),
+    );
+
+    await expect(api.post('/thing')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 403,
+      message: 'You do not have permission to perform this action.',
+    });
+  });
+
   it('does not retry a CSRF failure on a safe method', async () => {
     let gets = 0;
     server.use(
@@ -366,6 +384,83 @@ describe('CSRF bootstrap recovery', () => {
 
     await expect(api.get('/thing')).rejects.toBeInstanceOf(ApiError);
     expect(gets).toBe(1);
+  });
+});
+
+describe('the origins the client will talk to', () => {
+  beforeEach(() => resetCsrfBootstrap());
+
+  it('takes a bare path relative to the API base', async () => {
+    let path = '';
+    server.use(
+      http.get(`${API}/thing`, ({ request: req }) => {
+        path = new URL(req.url).pathname;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    await request('/thing');
+    expect(path).toBe('/api/v1/thing');
+  });
+
+  it('leaves a path that already carries the API base alone', async () => {
+    let path = '';
+    server.use(
+      http.get(`${API}/thing`, ({ request: req }) => {
+        path = new URL(req.url).pathname;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    await request(`${API}/thing`);
+    expect(path).toBe('/api/v1/thing');
+  });
+
+  it("accepts an absolute URL on the page's own origin", async () => {
+    server.use(http.get(`${API}/thing`, () => HttpResponse.json({ ok: true })));
+    await expect(request(`${window.location.origin}${API}/thing`)).resolves.toEqual({ ok: true });
+  });
+
+  it('refuses an absolute URL on another origin', async () => {
+    await expect(request('https://evil.test/api/v1/thing')).rejects.toThrow(
+      new TypeError(
+        'Refusing to request https://evil.test/api/v1/thing: ' +
+          'the API client only calls its own origin.',
+      ),
+    );
+  });
+
+  it('refuses a protocol-relative URL', async () => {
+    await expect(api.post('//evil.test/api/v1/thing')).rejects.toThrow(
+      new TypeError(
+        'Refusing to request //evil.test/api/v1/thing: the API client only calls its own origin.',
+      ),
+    );
+  });
+
+  it('refuses a scheme that is not http at all', async () => {
+    await expect(request('javascript:alert(1)')).rejects.toThrow(
+      new TypeError(
+        'Refusing to request javascript:alert(1): the API client only calls its own origin.',
+      ),
+    );
+  });
+
+  it('refuses a string that is not a URL once it looks absolute', async () => {
+    await expect(request('http://')).rejects.toThrow(
+      new TypeError('Refusing to request http://: it is not a usable URL.'),
+    );
+  });
+
+  it('refuses the cross-origin request before any CSRF token is fetched', async () => {
+    let csrfCalls = 0;
+    server.use(
+      http.get(`${API}/auth/csrf`, () => {
+        csrfCalls += 1;
+        return csrfCookie('leaked');
+      }),
+    );
+
+    await expect(api.post('https://evil.test/collect', { a: 1 })).rejects.toBeInstanceOf(TypeError);
+    expect(csrfCalls).toBe(0);
   });
 });
 
