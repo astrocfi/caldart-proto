@@ -17,6 +17,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '../../api/client';
+import type { CheckoutRequest } from '../../api/types';
 import { Button } from '../../components/Button';
 import { formatCents } from '../../components/Money';
 import { useDebounced } from '../../components/useDebounced';
@@ -27,7 +28,7 @@ import type { ProviderPanelProps } from './types';
 const stripeByKey = new Map<string, Promise<Stripe | null>>();
 
 /** The shared Stripe.js instance for `publishableKey`, loaded at most once. */
-export function stripeFor(publishableKey: string): Promise<Stripe | null> {
+function stripeFor(publishableKey: string): Promise<Stripe | null> {
   const existing = stripeByKey.get(publishableKey);
   if (existing) return existing;
   const created = loadStripe(publishableKey);
@@ -42,7 +43,7 @@ function cssToken(name: string, fallback: string): string {
 }
 
 /** Dress the Payment Element in our own tokens rather than Stripe's defaults. */
-export function appearanceFromTokens(): Appearance {
+function appearanceFromTokens(): Appearance {
   return {
     theme: 'stripe',
     variables: {
@@ -75,13 +76,32 @@ export function appearanceFromTokens(): Appearance {
 }
 
 /** Where Stripe sends the browser back for redirect-based methods. */
-export function returnUrl(paymentId: number): string {
+function returnUrl(paymentId: number): string {
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
   return `${origin}/portal/join/done?payment_id=${paymentId}`;
 }
 
 /** Wait for the member to stop changing the amount before re-creating an intent. */
 const AMOUNT_DEBOUNCE_MS = 500;
+
+/**
+ * The checkout request for the current selection, once that selection has held still.
+ *
+ * The request travels through `useDebounced` as its own JSON, so a selection that
+ * wanders and comes back to where it started settles on a value the panel already
+ * holds and asks for no second PaymentIntent.  The object handed back keeps its
+ * identity for as long as the JSON does, which is what lets the caller depend on it
+ * and nothing else.
+ */
+function useSettledCheckout(plan: string | null, contributionCents: number): CheckoutRequest {
+  const wanted = JSON.stringify({
+    plan,
+    contribution_cents: contributionCents,
+    provider: 'stripe',
+  } satisfies CheckoutRequest);
+  const settled = useDebounced(wanted, AMOUNT_DEBOUNCE_MS);
+  return useMemo(() => JSON.parse(settled) as CheckoutRequest, [settled]);
+}
 
 interface Intent {
   paymentId: number;
@@ -102,7 +122,7 @@ export function StripePanel({
 }: StripePanelProps): JSX.Element {
   const [intent, setIntent] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const settled = useDebounced(`${plan ?? ''}:${contributionCents}`, AMOUNT_DEBOUNCE_MS);
+  const settled = useSettledCheckout(plan, contributionCents);
 
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const appearance = useMemo(() => appearanceFromTokens(), []);
@@ -112,10 +132,7 @@ export function StripePanel({
     setIntent(null);
     setError(null);
 
-    createCheckout(
-      { plan, contribution_cents: contributionCents, provider: 'stripe' },
-      controller.signal,
-    )
+    createCheckout(settled, controller.signal)
       .then((checkout) => {
         if (controller.signal.aborted) return;
         const clientSecret = checkout.client.client_secret;
@@ -137,9 +154,6 @@ export function StripePanel({
     return () => {
       controller.abort();
     };
-    // `settled` carries the debounced plan + contribution; the raw values are
-    // read inside so the request always uses the current selection.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settled]);
 
   if (error) {
@@ -182,7 +196,7 @@ interface StripeFormProps {
 }
 
 /** The Payment Element plus its submit button, confirming the intent on submit. */
-export function StripeForm({ paymentId, amountCents, onSuccess }: StripeFormProps): JSX.Element {
+function StripeForm({ paymentId, amountCents, onSuccess }: StripeFormProps): JSX.Element {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
