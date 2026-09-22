@@ -38,9 +38,28 @@ follow `javascript_typescript_best_practices`.
 - Name test files `backend/tests/test_<feature>.py` and test functions `test_*`, and keep one
   focused area of behavior per file, so parallel branches never touch the same test file.
 - Shared fixtures (`api_client`, `user_factory`, one fixture per role, plan/dart/aircraft
-  fixtures) live in `backend/tests/conftest.py`, and the factory_boy factories in
-  `backend/tests/factories.py`. Reuse and extend them; do not copy near-identical setup into
-  every file.
+  fixtures) live in `backend/tests/conftest.py`, and the factory_boy factories and page
+  builders in `backend/tests/factories.py`. Reuse and extend them; do not copy near-identical
+  setup into every file. A test module does NOT import a fixture or a model builder from
+  another test module: those belong in `conftest.py` and `factories.py`.
+  `test_lint_config.py` records the few sibling imports that remain, each a stand-in for a
+  third-party SDK or for the production settings module, and fails when the list grows.
+- Name a test for the behavior it asserts, as a sentence: `test_a_lapsed_term_reads_as_expired`,
+  not `test_current_term`. A name that promises more than the body checks is a defect.
+- Never name a plan from `plans/` in a test name, docstring or comment; the docs are the
+  specification, so cite the docs page or state the rule.
+- Read an API response with `.json()`, which tests the rendered contract, rather than DRF's
+  `.data`. The one exception is a `Response` the code returned without rendering it, such as
+  the one the exception handler builds.
+- Override a Django setting with pytest-django's `settings` fixture, never with
+  `override_settings`; when several tests want the same overrides, wrap them in a fixture that
+  sets them.
+- Compare a download's `Content-Disposition` to the exact filename, not to a substring of it.
+- Parametrize a role allow/deny matrix from `conftest.py`'s `role_matrix(*allowed)` rather than
+  looping over `all_role_users` inside one test: a loop stops at the first failure and reports
+  one case.
+- Declare a module's database use with `pytestmark = pytest.mark.django_db` rather than
+  inheriting it from whichever fixture happens to request `db`.
 
 ## 4. Configuration (`pyproject.toml`)
 

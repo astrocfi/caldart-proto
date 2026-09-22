@@ -17,7 +17,7 @@ from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from tests.conftest import read_csv, role_matrix
-from tests.factories import UserFactory
+from tests.factories import PaymentFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -43,22 +43,19 @@ def make_payment(
     ref: str = "",
 ) -> Payment:
     """Create a completed (or not) payment backdated to ``when``."""
-    payment = Payment.objects.create(
+    return PaymentFactory(
         user=user,
         plan=plan,
         amount_cents=plan_cents + contribution_cents,
         plan_amount_cents=plan_cents,
         contribution_cents=contribution_cents,
-        currency="usd",
         provider=provider,
         wallet=PaymentWallet.CARD,
         provider_ref=ref or f"ref-{user.pk}-{when:%Y%m%d}-{provider}",
         status=status,
         completed_at=when if status == PaymentStatus.SUCCEEDED else None,
+        created_at=when,
     )
-    Payment.objects.filter(pk=payment.pk).update(created_at=when)
-    payment.refresh_from_db()
-    return payment
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import factory
@@ -202,10 +202,15 @@ class LifetimePlanFactory(MembershipPlanFactory):
 
 
 class PaymentFactory(ModelFactory[Payment]):
-    """Builds a pending mock ``Payment`` of 4,500 cents, whatever plan it names."""
+    """Builds a pending mock ``Payment`` of 4,500 cents, whatever plan it names.
+
+    ``created_at=<datetime>`` backdates the row after the insert, which is the only
+    way to place a payment in a past month: the field is ``auto_now_add``.
+    """
 
     class Meta:
         model = Payment
+        skip_postgeneration_save = True
 
     user = factory.SubFactory(UserFactory)
     plan = factory.SubFactory(MembershipPlanFactory)
@@ -217,6 +222,16 @@ class PaymentFactory(ModelFactory[Payment]):
     wallet = PaymentWallet.MOCK
     provider_ref = factory.Sequence(lambda n: f"test_ref_{n}")
     status = PaymentStatus.PENDING
+
+    # factory.post_generation is untyped (a factory_boy stub gap), which otherwise
+    # makes the decorated function untyped too under strict mode.
+    @factory.post_generation  # type: ignore[untyped-decorator]
+    def created_at(self: Payment, create: bool, extracted: datetime | None, **kwargs: Any) -> None:
+        """Backdate ``created_at`` to ``extracted``, leaving it at now when omitted."""
+        if not create or extracted is None:
+            return
+        Payment.objects.filter(pk=self.pk).update(created_at=extracted)
+        self.refresh_from_db(fields=["created_at"])
 
 
 class MembershipFactory(ModelFactory[Membership]):
