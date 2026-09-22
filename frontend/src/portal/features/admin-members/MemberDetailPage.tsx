@@ -9,14 +9,19 @@ import { useRef } from 'react';
 import type { JSX } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
-import { ButtonLink, Card, DateText, EmptyState, MembershipChip, Page } from '../../components';
+import type { MemberDetail } from '@/portal/api/types';
+import { ButtonLink } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { DateText } from '@/portal/components/DateText';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { Page } from '@/portal/components/Page';
+import { MembershipChip } from '@/portal/components/StatusChip';
 import { MemberDangerZone } from './MemberDangerZone';
 import { MemberMembershipsTab } from './MemberMembershipsTab';
 import { MemberPaymentsTab } from './MemberPaymentsTab';
 import { MemberProfileTab } from './MemberProfileTab';
 import { useMember } from './api';
 import { roleLabel } from './choices';
-import type { MemberDetail } from '../../api/types';
 
 const TABS = [
   { id: 'profile', label: 'Profile' },
@@ -50,7 +55,7 @@ function Tabs({ active, onSelect }: TabsProps) {
     refs.current[id]?.focus();
   };
 
-  const onKeyDown = (event: React.KeyboardEvent) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     const index = TABS.findIndex((tab) => tab.id === active);
     if (event.key === 'ArrowRight') go(tabAt(index + 1));
     else if (event.key === 'ArrowLeft') go(tabAt(index - 1));
@@ -76,7 +81,7 @@ function Tabs({ active, onSelect }: TabsProps) {
           tabIndex={active === tab.id ? 0 : -1}
           className={`button button--small ${active === tab.id ? 'button--secondary' : 'button--quiet'}`}
           onClick={() => onSelect(tab.id)}
-          onKeyDown={onKeyDown}
+          onKeyDown={handleKeyDown}
         >
           {tab.label}
         </button>
@@ -142,7 +147,7 @@ export function MemberDetailPage(): JSX.Element {
 
   const member = useMember(Number.isFinite(memberId) ? memberId : null);
 
-  const selectTab = (tab: TabId) => {
+  const handleSelectTab = (tab: TabId) => {
     const next = new URLSearchParams(params);
     if (tab === 'profile') next.delete('tab');
     else next.set('tab', tab);
@@ -182,7 +187,7 @@ export function MemberDetailPage(): JSX.Element {
       }
     >
       <MemberHeader member={record} />
-      <Tabs active={active} onSelect={selectTab} />
+      <Tabs active={active} onSelect={handleSelectTab} />
 
       <TabPanel id="profile" active={active}>
         <MemberProfileTab member={record} key={`profile-${record.id}`} />

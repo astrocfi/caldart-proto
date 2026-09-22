@@ -8,7 +8,11 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Button, ButtonLink, Card, Page, useToast } from '../../components';
+import { useDarts } from '@/portal/api/queries';
+import { Button, ButtonLink } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { Page } from '@/portal/components/Page';
+import { useToast } from '@/portal/components/Toast';
 import { ProfileFieldsets } from '../profile/ProfileFieldsets';
 import { EMPTY_PROFILE_FORM, formToPatch } from '../profile/form';
 import {
@@ -18,7 +22,7 @@ import {
   adminProfilePayload,
   emptyAccountDraft,
 } from './MemberFormFields';
-import { useCreateMember, useDarts } from './api';
+import { useCreateMember } from './api';
 import { splitErrors } from './errors';
 
 /** `/admin/members/new` page: create a member account and profile in one request. */
@@ -34,7 +38,7 @@ export function MemberCreatePage(): JSX.Element {
 
   const errors = splitErrors(create.error);
 
-  const submit = (event: React.FormEvent) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     create.mutate(
       {
@@ -70,7 +74,7 @@ export function MemberCreatePage(): JSX.Element {
       }
     >
       <Card>
-        <form onSubmit={submit} noValidate>
+        <form onSubmit={handleSubmit} noValidate>
           {errors.detail ? (
             <p role="alert" className="field__error">
               {errors.detail}
@@ -79,18 +83,22 @@ export function MemberCreatePage(): JSX.Element {
 
           <AccountFields
             value={account}
-            onChange={setAccount}
+            onChange={(next) => setAccount(next)}
             errors={errors.account}
             withPassword
           />
           <ProfileFieldsets
             value={profile}
-            onChange={setProfile}
+            onChange={(next) => setProfile(next)}
             errors={errors.profile}
             darts={darts.data ?? []}
             dartsLoading={darts.isPending}
           />
-          <AdminOnlyFields value={adminOnly} onChange={setAdminOnly} errors={errors.profile} />
+          <AdminOnlyFields
+            value={adminOnly}
+            onChange={(next) => setAdminOnly(next)}
+            errors={errors.profile}
+          />
 
           <div className="cluster">
             <Button type="submit" disabled={create.isPending}>

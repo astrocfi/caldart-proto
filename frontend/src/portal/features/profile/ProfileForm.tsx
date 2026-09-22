@@ -9,9 +9,9 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, JSX, ReactNode } from 'react';
 
-import type { ProfilePatch } from '../../api/types';
-import { Button } from '../../components/Button';
-import { useDarts } from './api';
+import { useDarts } from '@/portal/api/queries';
+import type { ProfilePatch } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
 import { ProfileFieldsets } from './ProfileFieldsets';
 import { formToPatch, validateProfileForm } from './form';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
@@ -66,7 +66,7 @@ export function ProfileForm({
     <form onSubmit={handleSubmit} noValidate className="profile-form">
       <ProfileFieldsets
         value={values}
-        onChange={setValues}
+        onChange={(next) => setValues(next)}
         errors={shownErrors}
         darts={darts.data ?? []}
         dartsLoading={darts.isPending}

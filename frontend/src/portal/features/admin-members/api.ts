@@ -8,7 +8,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, api } from '../../api/client';
+import { API_BASE, api } from '@/portal/api/client';
 import type {
   GrantTermPayload,
   MemberCreatePayload,
@@ -18,7 +18,7 @@ import type {
   MemberUpdatePayload,
   Paginated,
   TermUpdatePayload,
-} from '../../api/types';
+} from '@/portal/api/types';
 import type { MemberFilters } from './types';
 import { FILTER_KEYS } from './types';
 
@@ -74,10 +74,6 @@ export function useMember(id: number | null): UseQueryResult<MemberDetail> {
     enabled: id !== null && Number.isFinite(id),
   });
 }
-
-// The DART and plan catalogs belong to the profile feature;
-// re-exported so the admin screens use exactly one query key for each.
-export { useDarts, usePlans } from '../profile/api';
 
 function useInvalidateMembers(): () => Promise<void> {
   const queryClient = useQueryClient();

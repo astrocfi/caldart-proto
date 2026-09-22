@@ -1,12 +1,13 @@
 /** Step 4 — you are in: status card and the two places to go next. */
 import type { JSX } from 'react';
 
-import { ButtonLink } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { DateText } from '../../components/DateText';
-import { EmptyState } from '../../components/EmptyState';
-import { MembershipChip } from '../../components/StatusChip';
-import { useMembership, useSiteConfig } from '../profile/api';
+import { useSiteConfig } from '@/portal/api/queries';
+import { ButtonLink } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { DateText } from '@/portal/components/DateText';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { MembershipChip } from '@/portal/components/StatusChip';
+import { useMembership } from '../profile/api';
 import './join.css';
 
 /** Step 4 of the join wizard: membership status and links to members-only pages. */

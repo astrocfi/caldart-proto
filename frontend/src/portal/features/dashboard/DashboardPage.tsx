@@ -1,16 +1,17 @@
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useAuth } from '../../auth/useAuth';
-import { ButtonLink } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { DateText } from '../../components/DateText';
-import { EmptyState } from '../../components/EmptyState';
-import { Money } from '../../components/Money';
-import { Page } from '../../components/Page';
-import { MembershipChip, PaymentChip, membershipTone } from '../../components/StatusChip';
-import { groupedNavItems } from '../../nav';
-import { useMembership, useMyPayments, useSiteConfig } from '../profile/api';
+import { useSiteConfig } from '@/portal/api/queries';
+import { useAuth } from '@/portal/auth/useAuth';
+import { ButtonLink } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { DateText } from '@/portal/components/DateText';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { Money } from '@/portal/components/Money';
+import { Page } from '@/portal/components/Page';
+import { MembershipChip, PaymentChip, membershipTone } from '@/portal/components/StatusChip';
+import { groupedNavItems } from '@/portal/nav';
+import { useMembership, useMyPayments } from '../profile/api';
 import './dashboard.css';
 
 /** How many payments the dashboard shows before sending you elsewhere. */

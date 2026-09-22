@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import jsdoc from 'eslint-plugin-jsdoc';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
+import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
@@ -37,12 +38,48 @@ export default tseslint.config(
       },
     },
     plugins: {
+      react,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
       jsdoc,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Every local event handler is named `handle*`; a prop that hands one
+      // down to a child is named `on*`. Keeps the two roles visually distinct
+      // at a glance across the whole portal.
+      'react/jsx-handler-names': [
+        'error',
+        { eventHandlerPrefix: 'handle', checkLocalVariables: true },
+      ],
+      // The component barrel is gone: every import names the file it needs.
+      // Cross-feature code (anything outside the importing feature directory)
+      // is reached through the `@/` alias, never by climbing out with `../..`.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/portal/components',
+              message: 'Import the component file directly, not the barrel.',
+            },
+            {
+              name: './components',
+              message: 'Import the component file directly, not the barrel.',
+            },
+            {
+              name: '../components',
+              message: 'Import the component file directly, not the barrel.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['../../*'],
+              message: "Use the '@/' alias to import outside the current feature.",
+            },
+          ],
+        },
+      ],
       // The design system deliberately co-locates a component with the pure
       // helper that computes its input (`membershipTone` beside `StatusChip`,
       // `formatCents` beside `Money`), which this rule cannot express.  Losing

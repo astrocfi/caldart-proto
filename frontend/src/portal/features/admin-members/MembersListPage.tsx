@@ -13,20 +13,17 @@ import { useMemo } from 'react';
 import type { JSX } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import {
-  ButtonLink,
-  Button,
-  Card,
-  DataTable,
-  DateText,
-  MembershipChip,
-  Page,
-  StatusChip,
-} from '../../components';
-import type { Column, SortDirection } from '../../components';
-import type { MemberRow } from '../../api/types';
+import { useDarts } from '@/portal/api/queries';
+import type { MemberRow } from '@/portal/api/types';
+import { Button, ButtonLink } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import type { Column, SortDirection } from '@/portal/components/DataTable';
+import { DataTable } from '@/portal/components/DataTable';
+import { DateText } from '@/portal/components/DateText';
+import { Page } from '@/portal/components/Page';
+import { MembershipChip, StatusChip } from '@/portal/components/StatusChip';
 import { MembersFilterBar } from './MembersFilterBar';
-import { exportUrl, useDarts, useMembers } from './api';
+import { exportUrl, useMembers } from './api';
 import { certificateLabel, medicalLabel } from './choices';
 import type { MemberFilters } from './types';
 import { EMPTY_FILTERS, FILTER_KEYS } from './types';
@@ -145,7 +142,11 @@ export function MembersListPage(): JSX.Element {
               : `${count} member${count === 1 ? '' : 's'} match these filters`
           }
           filters={
-            <MembersFilterBar value={filters} onChange={setFilters} darts={darts.data ?? []} />
+            <MembersFilterBar
+              value={filters}
+              onChange={(next) => setFilters(next)}
+              darts={darts.data ?? []}
+            />
           }
           exportCsvUrl={exportUrl('csv', filters)}
           exportPdfUrl={exportUrl('pdf', filters)}
