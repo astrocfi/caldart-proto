@@ -137,5 +137,5 @@ def test_checkout_sends_an_idempotency_key_derived_from_the_payment(
     assert response.status_code == 201
     assert (
         intents.create_options["idempotency_key"]
-        == f"caldart-payment-{response.data['payment_id']}-start"
+        == f"caldart-payment-{response.json()['payment_id']}-start"
     )

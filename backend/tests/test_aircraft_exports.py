@@ -2,25 +2,18 @@
 
 from __future__ import annotations
 
-import csv
-import io
-import re
-from collections.abc import Callable, Iterator
-from datetime import timedelta
-from typing import cast
+from datetime import date
 
 import pytest
-from django.http import HttpResponseBase, StreamingHttpResponse
-from django.utils import timezone
-from rest_framework.test import APIClient
+from rest_framework.request import Request
+from rest_framework.test import APIClient, APIRequestFactory
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
-from apps.aircraft.models import Aircraft
+from apps.aircraft.api.views import AircraftExportPdfView
+from apps.aircraft.reports import aircraft_row
+from tests.conftest import PdfText, RegisterDict, pdf_page_count, read_csv, role_matrix
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
-
-#: Aircraft register fixture, keyed by scenario name.
-RegisterDict = dict[str, Aircraft]
 
 pytestmark = pytest.mark.django_db
 
@@ -42,73 +35,12 @@ EXPECTED_HEADER = [
     "pilots",
 ]
 
-#: ``pdf_text(body)`` -> the strings each page of a rendered PDF draws.
-PdfText = Callable[[bytes], list[list[str]]]
-
 #: Index of the first data row on a rendered page: the title, the subtitle and
 #: the twelve column headings come first, two of which wrap onto a second line.
 PDF_FIRST_ROW = 16
 
 #: The footer draws two more strings after the last row of the page.
 PDF_FOOTER = -2
-
-
-@pytest.fixture
-def register(db: None) -> RegisterDict:
-    """Three aircraft: current insurance, expired insurance, and nothing on file."""
-    today = timezone.localdate()
-    current = AircraftFactory(
-        n_number="N172SP",
-        make="Cessna",
-        model="172S Skyhawk",
-        owner_name="Palo Alto Flying Club",
-        owner_type="club",
-        insurance_carrier="Avemco",
-        insurance_liability_per_occurrence_cents=100_000_000,
-        insurance_liability_per_person_cents=10_000_000,
-        insurance_hull_cents=14_500_000,
-        insurance_expiration=today + timedelta(days=200),
-    )
-    expired = AircraftFactory(
-        n_number="N33MM",
-        make="Mooney",
-        model="M20J",
-        owner_name="Owen Delgado",
-        owner_type="individual",
-        insurance_expiration=today - timedelta(days=5),
-    )
-    missing = AircraftFactory(
-        n_number="N44BE",
-        make="Beechcraft",
-        model="A36 Bonanza",
-        owner_name="Hayward Aviation Services",
-        owner_type="fbo",
-        insurance_carrier="",
-        insurance_liability_per_occurrence_cents=0,
-        insurance_liability_per_person_cents=0,
-        insurance_hull_cents=None,
-        insurance_expiration=None,
-    )
-    return {"current": current, "expired": expired, "missing": missing}
-
-
-def read_csv(response: HttpResponseBase) -> list[list[str]]:
-    """Decode a streamed CSV response into rows of string cells.
-
-    The CSV export streams, so the response must be a ``StreamingHttpResponse``; any
-    other response type fails the assertion rather than the attribute lookup.
-    """
-    assert isinstance(response, StreamingHttpResponse)
-    # A synchronous StreamingHttpResponse yields bytes; the async branch of the
-    # declared union cannot occur here.
-    chunks = cast(Iterator[bytes], response.streaming_content)
-    body = b"".join(chunks).decode()
-    return list(csv.reader(io.StringIO(body)))
-
-
-def page_count(pdf: bytes) -> int:
-    """Count the ``/Type /Page`` objects in a raw PDF document."""
-    return len(re.findall(rb"/Type\s*/Page[^s]", pdf))
 
 
 # --------------------------------------------------------------------------
@@ -121,35 +53,37 @@ def test_exports_require_authentication(api_client: APIClient, url: str) -> None
 
 
 @pytest.mark.parametrize("url", [CSV_URL, PDF_URL])
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_export_role_matrix(
-    api_client: APIClient, all_role_users: dict[str, User], register: RegisterDict, url: str
+    api_client: APIClient,
+    all_role_users: dict[str, User],
+    register: RegisterDict,
+    url: str,
+    slug: str,
+    allowed: bool,
 ) -> None:
     """Only account and system admins get 200 from either export; others get 403."""
-    allowed = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
-    for slug, user in all_role_users.items():
-        api_client.force_login(user)
-        response = api_client.get(url)
-        expected = 200 if slug in allowed else 403
-        assert response.status_code == expected, f"{slug} got {response.status_code}"
-        api_client.logout()
+    api_client.force_login(all_role_users[slug])
+    assert api_client.get(url).status_code == (200 if allowed else 403)
 
 
 # --------------------------------------------------------------------------
 # CSV
 # --------------------------------------------------------------------------
 def test_csv_headers_and_filename(
-    api_client: APIClient, account_admin: User, register: RegisterDict
+    api_client: APIClient, account_admin: User, register: RegisterDict, today: date
 ) -> None:
-    """The CSV export sets a ``text/csv`` type and an attachment filename."""
+    """The CSV export sets a ``text/csv`` type and a dated attachment filename."""
     api_client.force_login(account_admin)
     response = api_client.get(CSV_URL)
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/csv")
-    assert "attachment; filename=" in response["Content-Disposition"]
-    assert "caldart-aircraft-" in response["Content-Disposition"]
+    assert response["Content-Disposition"] == (
+        f'attachment; filename="caldart-aircraft-{today.isoformat()}.csv"'
+    )
 
 
-def test_csv_columns_are_the_ones_the_plan_names(
+def test_csv_columns_are_in_the_documented_order(
     api_client: APIClient, account_admin: User, register: RegisterDict
 ) -> None:
     """The CSV header row matches the documented column order exactly."""
@@ -201,19 +135,26 @@ def test_csv_pilots_column_lists_attached_members(
     assert pilots["N33MM"] == ""
 
 
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ({"insurance": "expired"}, ["N33MM"]),
+        ({"search": "cessna"}, ["N172SP"]),
+        ({"owner_type": "fbo"}, ["N44BE"]),
+    ],
+    ids=["insurance", "search", "owner_type"],
+)
 def test_csv_honors_the_same_filters_as_the_list(
-    api_client: APIClient, account_admin: User, register: RegisterDict
+    api_client: APIClient,
+    account_admin: User,
+    register: RegisterDict,
+    query: dict[str, str],
+    expected: list[str],
 ) -> None:
     """The CSV export applies the ``insurance``, ``search`` and ``owner_type`` filters."""
     api_client.force_login(account_admin)
-    rows = read_csv(api_client.get(CSV_URL, {"insurance": "expired"}))
-    assert [row[0] for row in rows[1:]] == ["N33MM"]
-
-    rows = read_csv(api_client.get(CSV_URL, {"search": "cessna"}))
-    assert [row[0] for row in rows[1:]] == ["N172SP"]
-
-    rows = read_csv(api_client.get(CSV_URL, {"owner_type": "fbo"}))
-    assert [row[0] for row in rows[1:]] == ["N44BE"]
+    rows = read_csv(api_client.get(CSV_URL, query))
+    assert [row[0] for row in rows[1:]] == expected
 
 
 def test_csv_honors_ordering(
@@ -222,7 +163,7 @@ def test_csv_honors_ordering(
     """The CSV export honors the ``ordering`` parameter, descending N-number here."""
     api_client.force_login(account_admin)
     rows = read_csv(api_client.get(CSV_URL, {"ordering": "-n_number"}))
-    assert [row[0] for row in rows[1:]] == ["N44BE", "N33MM", "N172SP"]
+    assert [row[0] for row in rows[1:]] == ["N9021K", "N44BE", "N33MM", "N172SP"]
 
 
 def test_csv_is_not_paginated(api_client: APIClient, account_admin: User) -> None:
@@ -238,18 +179,20 @@ def test_csv_is_not_paginated(api_client: APIClient, account_admin: User) -> Non
 # PDF
 # --------------------------------------------------------------------------
 def test_pdf_is_a_valid_document(
-    api_client: APIClient, account_admin: User, register: RegisterDict
+    api_client: APIClient, account_admin: User, register: RegisterDict, today: date
 ) -> None:
-    """The PDF export is a one-page, well-formed PDF with the standard filename prefix."""
+    """The PDF export is a one-page, well-formed PDF with a dated attachment filename."""
     api_client.force_login(account_admin)
     response = api_client.get(PDF_URL)
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
-    assert "caldart-aircraft-" in response["Content-Disposition"]
+    assert response["Content-Disposition"] == (
+        f'attachment; filename="caldart-aircraft-{today.isoformat()}.pdf"'
+    )
     body = response.content
     assert body.startswith(b"%PDF-")
     assert body.rstrip().endswith(b"%%EOF")
-    assert page_count(body) == 1
+    assert pdf_page_count(body) == 1
 
 
 def test_pdf_is_filtered_like_the_list(
@@ -281,7 +224,7 @@ def test_pdf_paginates_a_large_register(api_client: APIClient, account_admin: Us
         AircraftFactory(n_number=f"N{3000 + index}PD")
     api_client.force_login(account_admin)
     body = api_client.get(PDF_URL).content
-    assert page_count(body) > 1
+    assert pdf_page_count(body) > 1
 
 
 def test_pdf_survives_an_empty_result_set(
@@ -316,8 +259,6 @@ def test_pdf_says_when_it_was_run_with_no_filters(
 
 def test_money_is_formatted_for_people_in_the_pdf_rows(register: RegisterDict) -> None:
     """``aircraft_row`` formats cents as dollar amounts only when ``currency`` is set."""
-    from apps.aircraft.reports import aircraft_row
-
     row = aircraft_row(register["current"], currency=True)
     assert row[6:9] == ["$1,000,000", "$100,000", "$145,000"]
     plain = aircraft_row(register["current"])
@@ -326,7 +267,25 @@ def test_money_is_formatted_for_people_in_the_pdf_rows(register: RegisterDict) -
 
 def test_odd_cent_amounts_keep_their_cents(register: RegisterDict) -> None:
     """``aircraft_row``'s currency format keeps non-round cent amounts precise."""
-    from apps.aircraft.reports import aircraft_row
-
     register["current"].insurance_hull_cents = 12_345
     assert aircraft_row(register["current"], currency=True)[8] == "$123.45"
+
+
+def test_the_export_subtitle_covers_every_filter_the_list_applies() -> None:
+    """``applied_filters`` reports every filter the register list supports."""
+    view = AircraftExportPdfView()
+    view.request = Request(APIRequestFactory().get("/", {"is_active": "true", "search": "N1"}))
+
+    filters = view.applied_filters()
+
+    assert filters["is_active"] == "true"
+    assert filters["search"] == "N1"
+    assert set(filters) == {
+        "search",
+        "make",
+        "owner_type",
+        "insurance",
+        "expiring_within",
+        "is_active",
+        "ordering",
+    }

@@ -178,7 +178,7 @@ def test_a_stripe_failure_at_checkout_is_a_400(
     )
 
     assert response.status_code == 400
-    assert response.data["detail"] == "Stripe could not be reached. Please try again."
+    assert response.json()["detail"] == "Stripe could not be reached. Please try again."
 
 
 @pytest.mark.parametrize("error", STRIPE_ERRORS, ids=STRIPE_ERROR_IDS)
@@ -229,7 +229,7 @@ def test_a_stripe_failure_at_confirm_is_a_400(
     response = api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_out"})
 
     assert response.status_code == 400
-    assert response.data["detail"] == "Stripe could not be reached. Please try again."
+    assert response.json()["detail"] == "Stripe could not be reached. Please try again."
 
 
 def test_a_stripe_failure_at_confirm_leaves_the_payment_pending(
@@ -284,7 +284,7 @@ def test_a_paypal_token_timeout_at_checkout_is_a_400(
     )
 
     assert response.status_code == 400
-    assert response.data["detail"] == "PayPal could not be reached. Please try again."
+    assert response.json()["detail"] == "PayPal could not be reached. Please try again."
 
 
 @respx.mock
@@ -315,7 +315,7 @@ def test_a_token_response_that_is_not_json_is_a_400(
     )
 
     assert response.status_code == 400
-    assert response.data["detail"] == "PayPal could not be reached. Please try again."
+    assert response.json()["detail"] == "PayPal could not be reached. Please try again."
 
 
 @respx.mock
@@ -332,7 +332,7 @@ def test_an_order_connection_error_at_checkout_is_a_400(
     )
 
     assert response.status_code == 400
-    assert response.data["detail"] == "PayPal could not be reached. Please try again."
+    assert response.json()["detail"] == "PayPal could not be reached. Please try again."
 
 
 @respx.mock
@@ -365,7 +365,7 @@ def test_a_capture_timeout_is_a_400(
     response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
 
     assert response.status_code == 400
-    assert response.data["detail"] == "PayPal could not be reached. Please try again."
+    assert response.json()["detail"] == "PayPal could not be reached. Please try again."
 
 
 @respx.mock

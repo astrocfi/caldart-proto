@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from io import StringIO
 
 import pytest
 from django.core.management import call_command
 from django.test import Client
+from django.utils import timezone
+from rest_framework.test import APIClient
 from wagtail.models import Page
 
 from apps.cms.management.commands import seed_content_data as content
+
+#: Every test here runs `seed_content`, which builds the whole example site.
 from apps.cms.models import (
     ContactPage,
     DartIndexPage,
@@ -18,21 +23,17 @@ from apps.cms.models import (
     NewsIndexPage,
     NewsPage,
     StandardPage,
+    get_site_settings,
 )
 from apps.members.models import Dart
+from tests.factories import MemberProfileFactory, MembershipFactory
 
-#: Every test here runs `seed_content`, which builds the whole example site.
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
 
 
 def seed() -> None:
     """Run the ``seed_content`` management command, discarding its stdout."""
     call_command("seed_content", stdout=StringIO())
-
-
-def page_map() -> dict[str, Page]:
-    """Every live page keyed by its URL path, for assertions on the tree."""
-    return {page.url_path: page for page in Page.objects.live()}
 
 
 def test_seed_content_builds_the_documented_tree() -> None:
@@ -73,7 +74,8 @@ def test_seed_content_creates_one_page_per_dart() -> None:
     assert Dart.objects.count() == 16
     assert pages.count() == 16
     assert {p.dart_id for p in pages} == set(Dart.objects.values_list("pk", flat=True))
-    assert all(p.leader_name and p.leader_contact for p in pages)
+    assert [p.slug for p in pages if p.leader_name == ""] == []
+    assert [p.slug for p in pages if p.leader_contact == ""] == []
 
     # Airport identifiers make the slugs, and appear on the index table.
     palo_alto = pages.get(dart__name="Palo Alto")
@@ -87,7 +89,8 @@ def test_seed_content_creates_three_news_posts() -> None:
     index = NewsIndexPage.objects.get(slug="news")
     posts = NewsPage.objects.child_of(index).order_by("-date")
     assert posts.count() == 3
-    assert all(post.live and post.intro for post in posts)
+    assert [post.slug for post in posts if not post.live] == []
+    assert [post.slug for post in posts if post.intro == ""] == []
     dates = [post.date for post in posts]
     assert dates == sorted(dates, reverse=True)
     assert len(set(dates)) == 3
@@ -146,8 +149,6 @@ def test_history_page_covers_2011_to_2022(client: Client) -> None:
 def test_seed_content_fills_in_the_site_settings() -> None:
     """``seed_content`` fills in the EIN, mailing address, phone and theme."""
     seed()
-    from apps.cms.models import get_site_settings
-
     settings_obj = get_site_settings()
     assert settings_obj is not None
     assert settings_obj.ein
@@ -159,8 +160,6 @@ def test_seed_content_fills_in_the_site_settings() -> None:
 def test_seed_content_does_not_overwrite_edited_settings() -> None:
     """Running ``seed_content`` again leaves a manually edited setting untouched."""
     seed()
-    from apps.cms.models import get_site_settings
-
     settings_obj = get_site_settings()
     assert settings_obj is not None
     settings_obj.contact_phone = "(415) 555-0100"
@@ -267,3 +266,22 @@ def test_definition_list_renders_one_bold_item_per_row() -> None:
 def test_definition_list_of_no_rows_is_an_empty_list() -> None:
     """No rows give an empty ``<ul>`` rather than any item markup."""
     assert content.definition_list([]) == "<ul></ul>"
+
+
+def test_seed_content_publishes_members_only_pages(api_client: APIClient) -> None:
+    """Once the seed has run, a member's site config names at least one members-only page.
+
+    The same config carries the organization name the seed sets, so a member reads back
+    a configured site rather than an empty one.
+    """
+    call_command("seed_content", stdout=StringIO(), verbosity=0)
+
+    member = MemberProfileFactory().user
+    MembershipFactory(user=member, ends_on=timezone.localdate() + timedelta(days=30))
+    api_client.force_login(member)
+
+    config = api_client.get("/api/v1/site/config")
+
+    assert config.status_code == 200
+    assert config.json()["org_name"] != ""
+    assert len(config.json()["members_pages"]) > 0

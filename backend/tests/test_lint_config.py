@@ -10,17 +10,46 @@ that a failure.
 The source is also ASCII, so a smart quote, em-dash or arrow pasted from a document
 cannot reach a ``.py`` file.  A character a reader is meant to see is written as an
 escape, which keeps the output and the file's bytes both correct.
+
+Finally, the list of test modules that import a sibling test module cannot grow.  A
+fixture or model builder two modules want belongs in ``conftest.py`` or
+``factories.py``; the few pairs recorded below share a stand-in for a third-party
+SDK or for the production settings module, which only the module that owns the
+subject can sensibly define.
 """
 
 from __future__ import annotations
 
+import ast
 import tomllib
 from pathlib import Path
+
+import pytest
 
 PYPROJECT = Path(__file__).resolve().parents[2] / "pyproject.toml"
 
 #: The backend tree the ASCII rule covers.
 BACKEND = Path(__file__).resolve().parents[1]
+
+#: The test package itself, whose modules may not import one another.
+TESTS = Path(__file__).resolve().parent
+
+#: The dotted name of that package, which a relative import resolves against.
+TESTS_PACKAGE = "tests"
+
+#: The two modules every test module may import from.
+SHARED_TEST_MODULES = frozenset({"tests.conftest", "tests.factories"})
+
+#: The sibling imports that remain, each a stand-in the subject's own module owns:
+#: the Stripe SDK client fake, the reminder cohort helpers, and the machinery that
+#: imports ``prod.py`` under a controlled environment.  Add nothing here -- put a
+#: shared fixture in ``conftest.py`` and a shared model builder in ``factories.py``.
+ALLOWED_SIBLING_IMPORTS = {
+    "test_payments_provider_errors.py": ["tests.test_payments_stripe"],
+    "test_payments_stripe_client.py": ["tests.test_payments_stripe"],
+    "test_reminders_resilience.py": ["tests.test_reminders"],
+    "test_settings_fail_closed.py": ["tests.test_sysadmin_settings"],
+}
 
 #: The rule sets the ratchet used to suspend; neither may be ignored anywhere.
 RATCHETED_RULES = frozenset({"ANN", "D"})
@@ -77,3 +106,81 @@ def test_no_backend_module_holds_a_non_ascii_character() -> None:
         if numbers
     }
     assert offenders == {}
+
+
+def _import_from_names(node: ast.ImportFrom) -> list[str]:
+    """The absolute module names a ``from ... import ...`` statement reaches for.
+
+    An absolute statement is reported as written.  A single-dot relative statement is
+    resolved against the ``tests`` package the modules live in, so
+    ``from .test_x import y`` and ``from . import test_x`` both report
+    ``tests.test_x`` and cannot slip past the sibling check on spelling alone.  A
+    deeper relative statement climbs out of the package and so names nothing under
+    ``tests.``.
+    """
+    if node.level == 0:
+        return [] if node.module is None else [node.module]
+    if node.level > 1:
+        return []
+    if node.module is not None:
+        return [f"{TESTS_PACKAGE}.{node.module}"]
+    return [f"{TESTS_PACKAGE}.{alias.name}" for alias in node.names]
+
+
+def _test_module_imports(path: Path) -> list[str]:
+    """The ``tests.<module>`` names ``path`` imports, excluding the shared two.
+
+    ``import tests.x``, ``from tests.x import y``, ``from .x import y`` and
+    ``from . import x`` are all reported, by the absolute dotted module name in each
+    case.
+    """
+    tree = ast.parse(path.read_text(), filename=str(path))
+    names: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            names.extend(_import_from_names(node))
+        elif isinstance(node, ast.Import):
+            names.extend(alias.name for alias in node.names)
+    return [name for name in names if name.startswith("tests.") and name not in SHARED_TEST_MODULES]
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("import tests.test_reminders", ["tests.test_reminders"]),
+        ("from tests.test_reminders import cohort", ["tests.test_reminders"]),
+        ("from .test_reminders import cohort", ["tests.test_reminders"]),
+        ("from . import test_reminders", ["tests.test_reminders"]),
+        ("from tests.factories import DartFactory", []),
+        ("from .factories import DartFactory", []),
+        ("from apps.reminders.models import ReminderLog", []),
+    ],
+    ids=[
+        "absolute-import",
+        "absolute-from",
+        "relative-from",
+        "relative-bare",
+        "shared-absolute",
+        "shared-relative",
+        "unrelated",
+    ],
+)
+def test_module_imports_reports_a_sibling_however_it_is_spelled(
+    tmp_path: Path, source: str, expected: list[str]
+) -> None:
+    """A relative sibling import is resolved to its ``tests.`` name and counted."""
+    module = tmp_path / "test_sample.py"
+    module.write_text(f'"""A sample module."""\n\n{source}\n')
+
+    assert _test_module_imports(module) == expected
+
+
+def test_no_new_test_module_imports_a_sibling_test_module() -> None:
+    """The sibling imports are exactly the recorded ones, and no others."""
+    found = {
+        path.name: imported
+        for path in sorted(TESTS.glob("test_*.py"))
+        for imported in [_test_module_imports(path)]
+        if imported
+    }
+    assert found == ALLOWED_SIBLING_IMPORTS

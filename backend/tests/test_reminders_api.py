@@ -16,14 +16,11 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
-    DART_LEADER,
-    MEMBER,
     SYSTEM_ADMIN,
-    USER_ADMIN,
-    WEBSITE_ADMIN,
 )
 from apps.members.models import MembershipPlan
 from apps.reminders.models import ReminderKind, ReminderLog
+from tests.conftest import role_matrix
 from tests.factories import MembershipFactory, ReminderLogFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -51,17 +48,7 @@ def log_entries(db: None, annual_plan: MembershipPlan) -> list[ReminderLog]:
 
 
 # ---------------------------------------------------------------- role matrix
-@pytest.mark.parametrize(
-    ("role", "allowed"),
-    [
-        (MEMBER, False),
-        (DART_LEADER, False),
-        (USER_ADMIN, False),
-        (ACCOUNT_ADMIN, True),
-        (WEBSITE_ADMIN, False),
-        (SYSTEM_ADMIN, True),
-    ],
-)
+@pytest.mark.parametrize(("role", "allowed"), role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_log_role_matrix(
     api_client: APIClient,
     all_role_users: dict[str, User],
@@ -80,17 +67,7 @@ def test_log_requires_a_session(api_client: APIClient) -> None:
     assert api_client.get(LOG_URL).status_code == 401
 
 
-@pytest.mark.parametrize(
-    ("role", "allowed"),
-    [
-        (MEMBER, False),
-        (DART_LEADER, False),
-        (USER_ADMIN, False),
-        (ACCOUNT_ADMIN, False),
-        (WEBSITE_ADMIN, False),
-        (SYSTEM_ADMIN, True),
-    ],
-)
+@pytest.mark.parametrize(("role", "allowed"), role_matrix(SYSTEM_ADMIN))
 def test_run_role_matrix(
     api_client: APIClient, all_role_users: dict[str, User], role: str, allowed: bool
 ) -> None:

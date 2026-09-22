@@ -24,13 +24,6 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def backup_dir(tmp_path: Path, settings: Settings) -> Path:
-    """Point ``BACKUP_DIR`` at a throwaway directory under ``tmp_path``."""
-    settings.BACKUP_DIR = tmp_path / "backups"
-    return services.backup_dir()
-
-
-@pytest.fixture
 def pg_calls(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     """Record every pg invocation instead of running one; returns the list."""
     calls: list[dict[str, Any]] = []
@@ -332,3 +325,24 @@ def test_db_reset_names_the_database_it_will_destroy(
     call_command("db_reset", stdout=StringIO())
 
     assert settings.DATABASES["default"]["NAME"] in prompts[0]
+
+
+def test_db_reset_seed_propagates_a_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failure in the content seed step propagates out of ``db_reset --seed``.
+
+    The preceding steps still run, so the recorded call order shows where it stopped.
+    """
+    calls: list[str] = []
+
+    def fake_call_command(name: str, *args: Any, **kwargs: Any) -> None:
+        calls.append(name)
+        if name == "seed_content":
+            raise RuntimeError("the example site could not be built")
+
+    monkeypatch.setattr(db_reset_command, "drop_schema", lambda: calls.append("drop_schema"))
+    monkeypatch.setattr(db_reset_command, "call_command", fake_call_command)
+
+    with pytest.raises(RuntimeError, match="example site"):
+        call_command("db_reset", "--noinput", "--seed", stdout=StringIO())
+
+    assert calls == ["drop_schema", "migrate", "seed_roles", "seed_demo", "seed_content"]

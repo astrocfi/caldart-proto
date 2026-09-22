@@ -101,5 +101,5 @@ def test_a_real_date_range_still_filters(
 ) -> None:
     """A well-formed bound narrows the report rather than being accepted and ignored."""
     payment_factory(user=member)
-    assert report_client.get(LIST, {"from": "2026-01-01"}).data["count"] == 1
-    assert report_client.get(LIST, {"from": "2100-01-01"}).data["count"] == 0
+    assert report_client.get(LIST, {"from": "2026-01-01"}).json()["count"] == 1
+    assert report_client.get(LIST, {"from": "2100-01-01"}).json()["count"] == 0

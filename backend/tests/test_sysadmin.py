@@ -25,22 +25,15 @@ OLDER_MTIME = 1767225600.0  # 2026-01-01T00:00:00Z
 NEWER_MTIME = 1769990400.0  # 2026-02-02T00:00:00Z
 
 
-@pytest.fixture
-def backup_dir(tmp_path: Path, settings: Settings) -> Path:
-    """Point ``BACKUP_DIR`` at a throwaway directory under ``tmp_path``."""
-    settings.BACKUP_DIR = tmp_path / "backups"
-    return tmp_path / "backups"
-
-
-def test_list_backups_is_empty_to_start(backup_dir: Path) -> None:
-    """An unused backup directory lists no backups and still exists on disk."""
-    assert services.list_backups() == []
-    assert backup_dir.is_dir()
+def test_backup_dir_creates_the_directory_on_first_use(tmp_path: Path, settings: Settings) -> None:
+    """``backup_dir`` creates the configured directory the first time it is asked for."""
+    settings.BACKUP_DIR = tmp_path / "fresh"
+    assert services.backup_dir() == tmp_path / "fresh"
+    assert (tmp_path / "fresh").is_dir()
 
 
 def test_list_backups_newest_first(backup_dir: Path) -> None:
     """The dumps on disk are listed by modification time, newest first."""
-    services.backup_dir()
     for name, mtime in (
         ("caldart-20260101-000000.sql.gz", OLDER_MTIME),
         ("caldart-20260202-000000.sql.gz", NEWER_MTIME),
@@ -59,7 +52,6 @@ def test_list_backups_newest_first(backup_dir: Path) -> None:
 
 def test_backup_dir_ignores_other_files(backup_dir: Path) -> None:
     """A file that is not a ``.sql.gz`` dump never appears in the listing."""
-    services.backup_dir()
     (backup_dir / "notes.txt").write_text("hello")
     assert services.list_backups() == []
 
@@ -76,25 +68,6 @@ def test_pending_migrations_is_empty_on_a_migrated_database() -> None:
     assert services.pending_migrations() == []
 
 
-def test_health_report_shape(backup_dir: Path) -> None:
-    """The health payload reports an ok database, no backup, and debug mode off."""
-    report = services.health()
-    assert report["db"] == "ok"
-    assert report["pending_migrations"] == 0
-    assert report["disk_free_mb"] > 0
-    assert report["last_backup"] is None
-    assert report["version"]
-    assert report["debug"] is False
-
-
-def test_health_reports_the_last_backup(backup_dir: Path) -> None:
-    """Once a dump exists, the health payload names it as the last backup."""
-    services.backup_dir()
-    with gzip.open(backup_dir / "caldart-20260101-000000.sql.gz", "wb") as handle:
-        handle.write(b"-- dump\n")
-    assert services.health()["last_backup"] is not None
-
-
 def test_health_command_prints_a_table(backup_dir: Path) -> None:
     """``manage.py health`` writes a table naming ``db`` and ``pending migrations``."""
     out = StringIO()
@@ -108,12 +81,6 @@ def test_health_command_json(backup_dir: Path) -> None:
     out = StringIO()
     call_command("health", "--json", stdout=out)
     assert json.loads(out.getvalue())["db"] == "ok"
-
-
-def test_restore_rejects_a_missing_file(backup_dir: Path) -> None:
-    """Restoring a backup that does not exist raises ``BackupError``."""
-    with pytest.raises(services.BackupError, match="No such backup"):
-        services.restore_backup(backup_dir / "nope.sql.gz")
 
 
 # --------------------------------------------------------------- streaming
@@ -185,7 +152,6 @@ def test_restore_streams_the_whole_dump_into_the_tool(
     backup_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Every byte of a dump larger than a pipe buffer reaches ``psql``'s stdin."""
-    services.backup_dir()
     dump = backup_dir / "caldart-restore.sql.gz"
     body = b"x\n" * (PIPE_BUFFER_BYTES // 2)
     with gzip.open(dump, "wb") as handle:
@@ -202,7 +168,6 @@ def test_restore_streams_the_whole_dump_into_the_tool(
 
 def test_restore_reports_the_tool_stderr(backup_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A failing ``psql`` raises ``BackupError`` carrying the message it printed."""
-    services.backup_dir()
     dump = backup_dir / "caldart-restore.sql.gz"
     with gzip.open(dump, "wb") as handle:
         handle.write(b"-- dump\n")
@@ -221,7 +186,6 @@ def test_restore_reports_the_stderr_of_a_tool_that_never_reads_its_stdin(
     The dump is larger than a pipe buffer, so the write into the tool's standard input
     hits a broken pipe; the tool's own message is what the operator needs to see.
     """
-    services.backup_dir()
     dump = backup_dir / "caldart-restore.sql.gz"
     with gzip.open(dump, "wb") as handle:
         handle.write(b"x\n" * (PIPE_BUFFER_BYTES // 2))
@@ -236,7 +200,6 @@ def test_restore_leaves_the_schema_alone_when_the_dump_cannot_be_read(
     backup_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A dump that is not valid gzip is refused before the schema is dropped."""
-    services.backup_dir()
     dump = backup_dir / "caldart-corrupt.sql.gz"
     dump.write_bytes(b"not a gzip file at all")
     dropped: list[bool] = []

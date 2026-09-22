@@ -19,14 +19,10 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import (
-    ACCOUNT_ADMIN,
-    DART_LEADER,
-    MEMBER,
     SYSTEM_ADMIN,
-    USER_ADMIN,
-    WEBSITE_ADMIN,
 )
 from apps.sysadmin import services
+from tests.conftest import role_matrix
 
 pytestmark = pytest.mark.django_db
 
@@ -37,13 +33,6 @@ BACKUPS_URL = "/api/v1/system/backups"
 def download_url(name: str) -> str:
     """The download URL for the backup file called ``name``."""
     return f"{BACKUPS_URL}/{name}/download"
-
-
-@pytest.fixture
-def backup_dir(tmp_path: Path, settings: Settings) -> Path:
-    """A throwaway ``BACKUP_DIR`` so tests never touch the repository's."""
-    settings.BACKUP_DIR = tmp_path / "backups"
-    return services.backup_dir()
 
 
 @pytest.fixture
@@ -65,18 +54,12 @@ def fake_pg_dump(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-ROLE_MATRIX = [
-    (MEMBER, False),
-    (DART_LEADER, False),
-    (USER_ADMIN, False),
-    (ACCOUNT_ADMIN, False),
-    (WEBSITE_ADMIN, False),
-    (SYSTEM_ADMIN, True),
-]
+#: (role slug, may use the system-administration API).
+SYSTEM_ADMIN_MATRIX = role_matrix(SYSTEM_ADMIN)
 
 
 # ---------------------------------------------------------------- role matrix
-@pytest.mark.parametrize(("role", "allowed"), ROLE_MATRIX)
+@pytest.mark.parametrize(("role", "allowed"), SYSTEM_ADMIN_MATRIX)
 def test_health_role_matrix(
     api_client: APIClient,
     all_role_users: dict[str, User],
@@ -89,7 +72,7 @@ def test_health_role_matrix(
     assert api_client.get(HEALTH_URL).status_code == (200 if allowed else 403)
 
 
-@pytest.mark.parametrize(("role", "allowed"), ROLE_MATRIX)
+@pytest.mark.parametrize(("role", "allowed"), SYSTEM_ADMIN_MATRIX)
 def test_backup_list_role_matrix(
     api_client: APIClient,
     all_role_users: dict[str, User],
@@ -102,7 +85,7 @@ def test_backup_list_role_matrix(
     assert api_client.get(BACKUPS_URL).status_code == (200 if allowed else 403)
 
 
-@pytest.mark.parametrize(("role", "allowed"), ROLE_MATRIX)
+@pytest.mark.parametrize(("role", "allowed"), SYSTEM_ADMIN_MATRIX)
 def test_backup_create_role_matrix(
     api_client: APIClient,
     all_role_users: dict[str, User],
@@ -116,7 +99,7 @@ def test_backup_create_role_matrix(
     assert api_client.post(BACKUPS_URL).status_code == (201 if allowed else 403)
 
 
-@pytest.mark.parametrize(("role", "allowed"), ROLE_MATRIX)
+@pytest.mark.parametrize(("role", "allowed"), SYSTEM_ADMIN_MATRIX)
 def test_backup_download_role_matrix(
     api_client: APIClient, all_role_users: dict[str, User], a_backup: Path, role: str, allowed: bool
 ) -> None:

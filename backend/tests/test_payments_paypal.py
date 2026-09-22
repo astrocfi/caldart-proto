@@ -214,9 +214,9 @@ def test_checkout_creates_a_paypal_order(
     )
 
     assert response.status_code == 201
-    assert response.data["client"] == {"order_id": "ORDER-XYZ"}
+    assert response.json()["client"] == {"order_id": "ORDER-XYZ"}
 
-    payment = Payment.objects.get(pk=response.data["payment_id"])
+    payment = Payment.objects.get(pk=response.json()["payment_id"])
     assert payment.provider_ref == "ORDER-XYZ"
 
     body = json.loads(route.calls[0].request.content)
@@ -244,7 +244,7 @@ def test_a_rejected_order_leaves_no_payment_behind(
     )
 
     assert response.status_code == 400
-    assert "AMOUNT_MISMATCH" in str(response.data)
+    assert "AMOUNT_MISMATCH" in str(response.json())
     assert Payment.objects.count() == 0
 
 
@@ -274,8 +274,8 @@ def test_capture_activates_the_membership(
     response = api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
 
     assert response.status_code == 200
-    assert response.data["status"] == "succeeded"
-    assert response.data["membership"]["status"] == "current"
+    assert response.json()["status"] == "succeeded"
+    assert response.json()["membership"]["status"] == "current"
     assert route.call_count == 1
 
     payment.refresh_from_db()

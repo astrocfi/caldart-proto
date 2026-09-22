@@ -89,13 +89,6 @@ def first_membership(user: User) -> Membership:
 # Fixtures
 # --------------------------------------------------------------------------
 @pytest.fixture
-def admin_client(api_client: APIClient, account_admin: User) -> APIClient:
-    """An API client signed in as an account administrator."""
-    api_client.force_login(account_admin)
-    return api_client
-
-
-@pytest.fixture
 def population(
     annual_plan: MembershipPlan, life_plan: MembershipPlan, today: date, dart: Dart
 ) -> dict[str, User]:
@@ -261,10 +254,10 @@ def test_account_and_system_admins_may_read(
 # List: shape, pagination, filters, ordering
 # --------------------------------------------------------------------------
 def test_row_shape_matches_the_portal_member_row(
-    admin_client: APIClient, population: dict[str, User], today: date
+    account_admin_client: APIClient, population: dict[str, User], today: date
 ) -> None:
     """A list row carries exactly the fields the portal's member row needs."""
-    response = admin_client.get(LIST_URL, {"search": "current@example.test"})
+    response = account_admin_client.get(LIST_URL, {"search": "current@example.test"})
     assert response.status_code == 200
     (row,) = rows(response)
     assert set(row) == {
@@ -291,9 +284,9 @@ def test_row_shape_matches_the_portal_member_row(
     assert row["joined_on"] == (today - timedelta(days=100)).isoformat()
 
 
-def test_list_is_paginated(admin_client: APIClient, population: dict[str, User]) -> None:
+def test_list_is_paginated(account_admin_client: APIClient, population: dict[str, User]) -> None:
     """The list is paginated to the requested page size, with a next link."""
-    response = admin_client.get(LIST_URL, {"page_size": 2})
+    response = account_admin_client.get(LIST_URL, {"page_size": 2})
     body = response.json()
     assert body["count"] == User.objects.count()
     assert len(body["results"]) == 2
@@ -308,39 +301,45 @@ def test_list_is_paginated(admin_client: APIClient, population: dict[str, User])
         ("none", {"never@example.test"}),
     ],
 )
-def test_status_filter(
-    admin_client: APIClient, population: dict[str, User], status_value: str, expected: set[str]
+def test_status_filter_puts_each_member_in_one_bucket(
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    status_value: str,
+    expected: set[str],
 ) -> None:
     """Each of the five fixture members lands in exactly one status bucket."""
-    response = admin_client.get(LIST_URL, {"status": status_value, "page_size": "200"})
+    response = account_admin_client.get(LIST_URL, {"status": status_value, "page_size": "200"})
     assert emails(response) & POPULATION_EMAILS == expected
 
 
 def test_status_filter_partitions_the_table(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """The current, expired and none status buckets add up to the whole table."""
-    total = admin_client.get(LIST_URL).json()["count"]
+    total = account_admin_client.get(LIST_URL).json()["count"]
     counts = [
-        admin_client.get(LIST_URL, {"status": value}).json()["count"]
+        account_admin_client.get(LIST_URL, {"status": value}).json()["count"]
         for value in ("current", "expired", "none")
     ]
     assert sum(counts) == total
 
 
 def test_expiring_within_uses_the_computed_expiry(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """The ``expiring_within`` filter matches on the computed coverage end."""
-    response = admin_client.get(LIST_URL, {"expiring_within": 30})
+    response = account_admin_client.get(LIST_URL, {"expiring_within": 30})
     assert emails(response) == {"expiring@example.test"}
     # A lifetime member never turns up in an expiry window.
     assert "lifetime@example.test" not in emails(response)
-    assert admin_client.get(LIST_URL, {"expiring_within": 400}).json()["count"] == 2
+    assert account_admin_client.get(LIST_URL, {"expiring_within": 400}).json()["count"] == 2
 
 
 def test_expiring_within_follows_a_renewal(
-    admin_client: APIClient, population: dict[str, User], annual_plan: MembershipPlan, today: date
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    annual_plan: MembershipPlan,
+    today: date,
 ) -> None:
     """Renewing early moves the member out of the expiring window at once."""
     expiring = population["expiring"]
@@ -350,7 +349,7 @@ def test_expiring_within_follows_a_renewal(
         starts_on=today + timedelta(days=15),
         ends_on=today + timedelta(days=379),
     )
-    response = admin_client.get(LIST_URL, {"expiring_within": 30})
+    response = account_admin_client.get(LIST_URL, {"expiring_within": 30})
     assert "expiring@example.test" not in emails(response)
 
 
@@ -366,53 +365,59 @@ def test_expiring_within_follows_a_renewal(
     ],
 )
 def test_search_covers_name_email_phone_and_certificate_number(
-    admin_client: APIClient, population: dict[str, User], term: str, expected: str
+    account_admin_client: APIClient, population: dict[str, User], term: str, expected: str
 ) -> None:
     """A search matches name, email, phone or certificate number."""
-    response = admin_client.get(LIST_URL, {"search": term})
+    response = account_admin_client.get(LIST_URL, {"search": term})
     assert emails(response) == {expected}
 
 
 def test_certificate_and_medical_filters(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """The certificate and medical filters narrow the list independently."""
-    response = admin_client.get(LIST_URL, {"certificate": PilotCertificateType.COMMERCIAL})
+    response = account_admin_client.get(LIST_URL, {"certificate": PilotCertificateType.COMMERCIAL})
     assert emails(response) == {"expiring@example.test"}
-    response = admin_client.get(LIST_URL, {"medical": MedicalType.BASICMED})
+    response = account_admin_client.get(LIST_URL, {"medical": MedicalType.BASICMED})
     assert emails(response) == {"expiring@example.test"}
 
 
 def test_dart_filter_accepts_an_id_or_a_name(
-    admin_client: APIClient, population: dict[str, User], dart: Dart
+    account_admin_client: APIClient, population: dict[str, User], dart: Dart
 ) -> None:
     """The ``dart`` filter matches by numeric id or by name."""
-    by_id = admin_client.get(LIST_URL, {"dart": dart.pk})
+    by_id = account_admin_client.get(LIST_URL, {"dart": dart.pk})
     assert emails(by_id) == {"current@example.test", "expired@example.test"}
-    by_name = admin_client.get(LIST_URL, {"dart": "Livermore"})
+    by_name = account_admin_client.get(LIST_URL, {"dart": "Livermore"})
     assert emails(by_name) == {"expiring@example.test", "lifetime@example.test"}
 
 
 def test_role_filter(
-    admin_client: APIClient, population: dict[str, User], account_admin: User
+    account_admin_client: APIClient, population: dict[str, User], account_admin: User
 ) -> None:
     """The role filter matches an account holding that role."""
-    response = admin_client.get(LIST_URL, {"role": ACCOUNT_ADMIN})
+    response = account_admin_client.get(LIST_URL, {"role": ACCOUNT_ADMIN})
     assert emails(response) == {account_admin.email}
 
 
-def test_is_active_filter(admin_client: APIClient, population: dict[str, User]) -> None:
+def test_is_active_filter(account_admin_client: APIClient, population: dict[str, User]) -> None:
     """The ``is_active`` filter separates active from deactivated accounts."""
     never = population["never"]
     never.is_active = False
     never.save(update_fields=["is_active"])
-    assert "never@example.test" in emails(admin_client.get(LIST_URL, {"is_active": "false"}))
-    assert "never@example.test" not in emails(admin_client.get(LIST_URL, {"is_active": "true"}))
+    assert "never@example.test" in emails(
+        account_admin_client.get(LIST_URL, {"is_active": "false"})
+    )
+    assert "never@example.test" not in emails(
+        account_admin_client.get(LIST_URL, {"is_active": "true"})
+    )
 
 
-def test_filters_combine(admin_client: APIClient, population: dict[str, User], dart: Dart) -> None:
+def test_filters_combine(
+    account_admin_client: APIClient, population: dict[str, User], dart: Dart
+) -> None:
     """Two filters combine with AND, not OR."""
-    response = admin_client.get(LIST_URL, {"status": "current", "dart": str(dart.pk)})
+    response = account_admin_client.get(LIST_URL, {"status": "current", "dart": str(dart.pk)})
     assert emails(response) == {"current@example.test"}
 
 
@@ -429,27 +434,29 @@ def ordering_population(population: dict[str, User], account_admin: User) -> dic
 
 
 def test_ordering_by_name_is_the_default(
-    admin_client: APIClient, ordering_population: dict[str, User]
+    account_admin_client: APIClient, ordering_population: dict[str, User]
 ) -> None:
     """With no ordering given, the list sorts by last name."""
-    names = [row["name"] for row in rows(admin_client.get(LIST_URL, {"page_size": 200}))]
+    names = [row["name"] for row in rows(account_admin_client.get(LIST_URL, {"page_size": 200}))]
     assert names == sorted(names, key=lambda value: value.split()[-1])
 
 
 @pytest.mark.parametrize("field", ["name", "email", "expires_on", "joined"])
 def test_ordering_accepts_every_documented_field(
-    admin_client: APIClient, population: dict[str, User], field: str
+    account_admin_client: APIClient, population: dict[str, User], field: str
 ) -> None:
     """Every documented ordering field, ascending and descending, is accepted."""
-    assert admin_client.get(LIST_URL, {"ordering": field}).status_code == 200
-    assert admin_client.get(LIST_URL, {"ordering": f"-{field}"}).status_code == 200
+    assert account_admin_client.get(LIST_URL, {"ordering": field}).status_code == 200
+    assert account_admin_client.get(LIST_URL, {"ordering": f"-{field}"}).status_code == 200
 
 
 def test_ordering_by_expires_on_puts_lifetime_last(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """Ordering by expiry sorts dated expiries and puts lifetime members last."""
-    ordered = rows(admin_client.get(LIST_URL, {"status": "current", "ordering": "expires_on"}))
+    ordered = rows(
+        account_admin_client.get(LIST_URL, {"status": "current", "ordering": "expires_on"})
+    )
     expiries = [row["membership"]["expires_on"] for row in ordered]
     assert expiries[0] is not None
     assert expiries[-1] is None
@@ -457,15 +464,15 @@ def test_ordering_by_expires_on_puts_lifetime_last(
     assert dated == sorted(dated)
 
 
-def test_ordering_by_joined(admin_client: APIClient, population: dict[str, User]) -> None:
+def test_ordering_by_joined(account_admin_client: APIClient, population: dict[str, User]) -> None:
     """Ordering by ``joined`` sorts members by their join date."""
-    ordered = rows(admin_client.get(LIST_URL, {"ordering": "joined", "page_size": "200"}))
+    ordered = rows(account_admin_client.get(LIST_URL, {"ordering": "joined", "page_size": "200"}))
     joined = [row["joined_on"] for row in ordered if row["joined_on"]]
     assert joined == sorted(joined)
 
 
 def test_the_list_does_not_scale_its_query_count_with_the_page(
-    admin_client: APIClient,
+    account_admin_client: APIClient,
     population: dict[str, User],
     django_assert_max_num_queries: DjangoAssertNumQueries,
 ) -> None:
@@ -473,14 +480,14 @@ def test_the_list_does_not_scale_its_query_count_with_the_page(
     for index in range(30):
         MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
     with django_assert_max_num_queries(8):
-        assert admin_client.get(LIST_URL, {"page_size": 50}).status_code == 200
+        assert account_admin_client.get(LIST_URL, {"page_size": 50}).status_code == 200
 
 
 # --------------------------------------------------------------------------
 # Retrieve
 # --------------------------------------------------------------------------
 def test_detail_returns_the_whole_record(
-    admin_client: APIClient, population: dict[str, User], annual_plan: MembershipPlan
+    account_admin_client: APIClient, population: dict[str, User], annual_plan: MembershipPlan
 ) -> None:
     """The detail view returns the account, profile, memberships and payments."""
     member = population["current"]
@@ -489,7 +496,7 @@ def test_detail_returns_the_whole_record(
     member.profile.save()
     PaymentFactory(user=member, plan=annual_plan, amount_cents=6_500, contribution_cents=2_000)
 
-    body = admin_client.get(detail_url(member)).json()
+    body = account_admin_client.get(detail_url(member)).json()
     assert set(body) >= {
         "id",
         "email",
@@ -513,15 +520,15 @@ def test_detail_returns_the_whole_record(
     assert body["payments"][0]["contribution_cents"] == 2_000
 
 
-def test_detail_404s_for_an_unknown_id(admin_client: APIClient) -> None:
+def test_detail_404s_for_an_unknown_id(account_admin_client: APIClient) -> None:
     """The detail view returns a 404 for an id on file for no member."""
-    assert admin_client.get(f"{LIST_URL}/999999").status_code == 404
+    assert account_admin_client.get(f"{LIST_URL}/999999").status_code == 404
 
 
 # --------------------------------------------------------------------------
 # Create
 # --------------------------------------------------------------------------
-def test_create_with_a_password(admin_client: APIClient, dart: Dart) -> None:
+def test_create_with_a_password(account_admin_client: APIClient, dart: Dart) -> None:
     """Creating a member with a password given creates the account outright."""
     payload = {
         "email": "newbie@example.test",
@@ -538,7 +545,7 @@ def test_create_with_a_password(admin_client: APIClient, dart: Dart) -> None:
             "notes": "Joined at the Watsonville airshow.",
         },
     }
-    response = admin_client.post(LIST_URL, payload, format="json")
+    response = account_admin_client.post(LIST_URL, payload, format="json")
     assert response.status_code == 201
     body = response.json()
     assert body["email"] == "newbie@example.test"
@@ -556,12 +563,14 @@ def test_create_with_a_password(admin_client: APIClient, dart: Dart) -> None:
 
 
 def test_create_without_a_password_emails_an_invitation(
-    admin_client: APIClient,
+    account_admin_client: APIClient,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
     """Creating a member with no password mails a set-your-password invitation."""
     with django_capture_on_commit_callbacks(execute=True):
-        response = admin_client.post(LIST_URL, {"email": "invited@example.test"}, format="json")
+        response = account_admin_client.post(
+            LIST_URL, {"email": "invited@example.test"}, format="json"
+        )
     assert response.status_code == 201
 
     user = User.objects.get(email="invited@example.test")
@@ -574,17 +583,17 @@ def test_create_without_a_password_emails_an_invitation(
 
 
 def test_create_rejects_a_duplicate_email(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """Creating a member with an email already on file, in any case, is a 400."""
-    response = admin_client.post(LIST_URL, {"email": "CURRENT@example.test"}, format="json")
+    response = account_admin_client.post(LIST_URL, {"email": "CURRENT@example.test"}, format="json")
     assert response.status_code == 400
     assert "email" in response.json()
 
 
-def test_create_rejects_a_weak_password(admin_client: APIClient) -> None:
+def test_create_rejects_a_weak_password(account_admin_client: APIClient) -> None:
     """Creating a member with a weak password is refused and creates nothing."""
-    response = admin_client.post(
+    response = account_admin_client.post(
         LIST_URL, {"email": "weak@example.test", "password": "123"}, format="json"
     )
     assert response.status_code == 400
@@ -592,9 +601,11 @@ def test_create_rejects_a_weak_password(admin_client: APIClient) -> None:
     assert not User.objects.filter(email="weak@example.test").exists()
 
 
-def test_create_applies_the_same_profile_rules_as_the_member_form(admin_client: APIClient) -> None:
+def test_create_applies_the_same_profile_rules_as_the_member_form(
+    account_admin_client: APIClient,
+) -> None:
     """The admin serializer extends `/me/profile`'s, so its rules hold here too."""
-    response = admin_client.post(
+    response = account_admin_client.post(
         LIST_URL,
         {"email": "sloppy@example.test", "profile": {"state": "California", "postal_code": "9"}},
         format="json",
@@ -602,7 +613,7 @@ def test_create_applies_the_same_profile_rules_as_the_member_form(admin_client: 
     assert response.status_code == 400
     assert set(response.json()["profile"]) == {"state", "postal_code"}
 
-    response = admin_client.post(
+    response = account_admin_client.post(
         LIST_URL,
         {"email": "sloppy@example.test", "profile": {"medical_type": MedicalType.THIRD}},
         format="json",
@@ -611,28 +622,28 @@ def test_create_applies_the_same_profile_rules_as_the_member_form(admin_client: 
     assert "medical_expiration" in response.json()["profile"]
 
 
-def test_create_needs_nothing_but_an_email(admin_client: APIClient) -> None:
+def test_create_needs_nothing_but_an_email(account_admin_client: APIClient) -> None:
     """An administrator records what they were told, which may be very little."""
-    response = admin_client.post(LIST_URL, {"email": "sparse@example.test"}, format="json")
+    response = account_admin_client.post(LIST_URL, {"email": "sparse@example.test"}, format="json")
     assert response.status_code == 201
     assert response.json()["profile"]["phone"] == ""
 
 
 def test_a_partial_profile_patch_is_judged_against_the_stored_row(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """Sending one field must not trip a rule the rest of the profile satisfies."""
     member = population["current"]
-    response = admin_client.patch(
+    response = account_admin_client.patch(
         detail_url(member), {"profile": {"medical_type": MedicalType.FIRST}}, format="json"
     )
     assert response.status_code == 200
     assert response.json()["profile"]["medical_type"] == MedicalType.FIRST
 
 
-def test_create_rejects_an_unknown_rating(admin_client: APIClient) -> None:
+def test_create_rejects_an_unknown_rating(account_admin_client: APIClient) -> None:
     """Creating a member with an unknown certificate rating is a 400."""
-    response = admin_client.post(
+    response = account_admin_client.post(
         LIST_URL,
         {"email": "rating@example.test", "profile": {"ratings": ["rocket"]}},
         format="json",
@@ -644,11 +655,11 @@ def test_create_rejects_an_unknown_rating(admin_client: APIClient) -> None:
 # Update
 # --------------------------------------------------------------------------
 def test_patch_updates_the_user_and_the_nested_profile(
-    admin_client: APIClient, population: dict[str, User], dart: Dart
+    account_admin_client: APIClient, population: dict[str, User], dart: Dart
 ) -> None:
     """A patch updates the account fields and the nested profile together."""
     member = population["expired"]
-    response = admin_client.patch(
+    response = account_admin_client.patch(
         detail_url(member),
         {
             "first_name": "Cleopatra",
@@ -671,80 +682,84 @@ def test_patch_updates_the_user_and_the_nested_profile(
     assert member.profile.phone == "650-555-9999"
 
 
-def test_patch_can_clear_the_dart(admin_client: APIClient, population: dict[str, User]) -> None:
+def test_patch_can_clear_the_dart(
+    account_admin_client: APIClient, population: dict[str, User]
+) -> None:
     """`dart` reads back nested and is written as `dart_id`, as on /me/profile."""
     member = population["current"]
-    response = admin_client.patch(detail_url(member), {"profile": {"dart_id": None}}, format="json")
+    response = account_admin_client.patch(
+        detail_url(member), {"profile": {"dart_id": None}}, format="json"
+    )
     assert response.status_code == 200
     assert response.json()["profile"]["dart"] is None
 
 
 def test_patch_rejects_an_email_already_in_use(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """A patch that reuses another account's email is refused with a 400."""
-    response = admin_client.patch(
+    response = account_admin_client.patch(
         detail_url(population["current"]), {"email": "expired@example.test"}, format="json"
     )
     assert response.status_code == 400
 
 
-def test_patch_creates_a_profile_when_the_account_has_none(admin_client: APIClient) -> None:
+def test_patch_creates_a_profile_when_the_account_has_none(account_admin_client: APIClient) -> None:
     """A patch creates the profile row when the target account has none."""
     bare = UserFactory(email="bare@example.test", roles=[MEMBER])
-    response = admin_client.patch(
+    response = account_admin_client.patch(
         detail_url(bare), {"profile": {"phone": "916-555-0000"}}, format="json"
     )
     assert response.status_code == 200
     assert response.json()["profile"]["phone"] == "916-555-0000"
 
 
-def test_put_is_not_offered(admin_client: APIClient, population: dict[str, User]) -> None:
+def test_put_is_not_offered(account_admin_client: APIClient, population: dict[str, User]) -> None:
     """The detail endpoint offers no ``PUT``, only ``PATCH``."""
-    assert admin_client.put(detail_url(population["current"]), {}).status_code == 405
+    assert account_admin_client.put(detail_url(population["current"]), {}).status_code == 405
 
 
 # --------------------------------------------------------------------------
 # Delete
 # --------------------------------------------------------------------------
 def test_delete_hard_deletes_and_cascades(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """A member who never paid goes, and the profile and terms go with them."""
     member = population["current"]
     pk = member.pk
 
-    assert admin_client.delete(detail_url(member)).status_code == 204
+    assert account_admin_client.delete(detail_url(member)).status_code == 204
     assert not User.objects.filter(pk=pk).exists()
     assert not MemberProfile.objects.filter(user_id=pk).exists()
     assert not Membership.objects.filter(user_id=pk).exists()
 
 
 def test_delete_is_refused_for_a_member_with_payments(
-    admin_client: APIClient, population: dict[str, User], annual_plan: MembershipPlan
+    account_admin_client: APIClient, population: dict[str, User], annual_plan: MembershipPlan
 ) -> None:
     """Payments are kept, so the account that made them cannot be deleted."""
     member = population["current"]
     payment = PaymentFactory(user=member, plan=annual_plan)
 
-    response = admin_client.delete(detail_url(member))
+    response = account_admin_client.delete(detail_url(member))
 
     assert response.status_code == 403
     assert User.objects.filter(pk=member.pk).exists()
     assert Payment.objects.filter(pk=payment.pk).exists()
 
 
-def test_you_cannot_delete_yourself(admin_client: APIClient, account_admin: User) -> None:
+def test_you_cannot_delete_yourself(account_admin_client: APIClient, account_admin: User) -> None:
     """An account admin cannot delete their own account through this endpoint."""
-    assert admin_client.delete(detail_url(account_admin)).status_code == 403
+    assert account_admin_client.delete(detail_url(account_admin)).status_code == 403
     assert User.objects.filter(pk=account_admin.pk).exists()
 
 
 def test_an_account_admin_cannot_delete_a_system_admin(
-    admin_client: APIClient, system_admin: User
+    account_admin_client: APIClient, system_admin: User
 ) -> None:
     """An account admin cannot delete a system administrator's account."""
-    response = admin_client.delete(detail_url(system_admin))
+    response = account_admin_client.delete(detail_url(system_admin))
     assert response.status_code == 403
     assert User.objects.filter(pk=system_admin.pk).exists()
 
@@ -763,7 +778,7 @@ def test_a_system_admin_can_delete_a_system_admin(
 # Granting and editing terms
 # --------------------------------------------------------------------------
 def test_grant_to_a_current_member_starts_the_day_after_the_expiry(
-    admin_client: APIClient,
+    account_admin_client: APIClient,
     population: dict[str, User],
     annual_plan: MembershipPlan,
     account_admin: User,
@@ -774,7 +789,7 @@ def test_grant_to_a_current_member_starts_the_day_after_the_expiry(
     expiry = first_membership(member).ends_on
     assert expiry is not None
 
-    response = admin_client.post(
+    response = account_admin_client.post(
         grant_url(member), {"plan": annual_plan.slug, "note": "Comped by the board"}, format="json"
     )
     assert response.status_code == 201
@@ -787,27 +802,35 @@ def test_grant_to_a_current_member_starts_the_day_after_the_expiry(
 
 
 def test_grant_to_an_expired_member_starts_today(
-    admin_client: APIClient, population: dict[str, User], annual_plan: MembershipPlan, today: date
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    annual_plan: MembershipPlan,
+    today: date,
 ) -> None:
     """Granting a term to an expired member starts it today."""
     member = population["expired"]
-    response = admin_client.post(grant_url(member), {"plan": annual_plan.slug}, format="json")
+    response = account_admin_client.post(
+        grant_url(member), {"plan": annual_plan.slug}, format="json"
+    )
     assert response.status_code == 201
     assert response.json()["starts_on"] == today.isoformat()
     assert response.json()["ends_on"] == (today + timedelta(days=364)).isoformat()
 
 
 def test_grant_of_a_lifetime_plan_has_no_end_date(
-    admin_client: APIClient, population: dict[str, User], life_plan: MembershipPlan, today: date
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    life_plan: MembershipPlan,
+    today: date,
 ) -> None:
     """Granting a lifetime plan leaves the term with no end date."""
     member = population["never"]
-    response = admin_client.post(grant_url(member), {"plan": life_plan.slug}, format="json")
+    response = account_admin_client.post(grant_url(member), {"plan": life_plan.slug}, format="json")
     assert response.status_code == 201
     assert response.json()["ends_on"] is None
     assert response.json()["starts_on"] == today.isoformat()
 
-    detail = admin_client.get(detail_url(member)).json()
+    detail = account_admin_client.get(detail_url(member)).json()
     assert detail["membership"] == {
         "status": "current",
         "expires_on": None,
@@ -817,12 +840,15 @@ def test_grant_of_a_lifetime_plan_has_no_end_date(
 
 
 def test_grant_honors_an_explicit_start_date(
-    admin_client: APIClient, population: dict[str, User], annual_plan: MembershipPlan, today: date
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    annual_plan: MembershipPlan,
+    today: date,
 ) -> None:
     """Granting a term with an explicit start date honors it."""
     member = population["never"]
     start = today - timedelta(days=10)
-    response = admin_client.post(
+    response = account_admin_client.post(
         grant_url(member), {"plan": annual_plan.slug, "starts_on": start.isoformat()}, format="json"
     )
     assert response.status_code == 201
@@ -831,32 +857,32 @@ def test_grant_honors_an_explicit_start_date(
 
 
 def test_grant_rejects_an_unknown_plan(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """Granting a term for an unknown plan slug is refused with a 400."""
-    response = admin_client.post(
+    response = account_admin_client.post(
         grant_url(population["never"]), {"plan": "platinum"}, format="json"
     )
     assert response.status_code == 400
 
 
 def test_grant_404s_for_an_unknown_member(
-    admin_client: APIClient, annual_plan: MembershipPlan
+    account_admin_client: APIClient, annual_plan: MembershipPlan
 ) -> None:
     """Granting a term to an unknown member id returns a 404."""
-    response = admin_client.post(
+    response = account_admin_client.post(
         f"{LIST_URL}/999999/memberships", {"plan": annual_plan.slug}, format="json"
     )
     assert response.status_code == 404
 
 
 def test_patch_a_term_changes_its_end_date_status_and_note(
-    admin_client: APIClient, population: dict[str, User], today: date
+    account_admin_client: APIClient, population: dict[str, User], today: date
 ) -> None:
     """A patch to a term changes its end date, status and note."""
     term = first_membership(population["current"])
     new_end = today + timedelta(days=5)
-    response = admin_client.patch(
+    response = account_admin_client.patch(
         membership_url(term),
         {"ends_on": new_end.isoformat(), "note": "Shortened after a refund"},
         format="json",
@@ -866,29 +892,35 @@ def test_patch_a_term_changes_its_end_date_status_and_note(
     assert term.ends_on == new_end
     assert term.note == "Shortened after a refund"
 
-    listed = admin_client.get(LIST_URL, {"search": "current@example.test"}).json()["results"][0]
+    listed = account_admin_client.get(LIST_URL, {"search": "current@example.test"}).json()[
+        "results"
+    ][0]
     assert listed["membership"]["expires_on"] == new_end.isoformat()
 
 
 def test_patch_a_term_to_canceled_drops_the_membership(
-    admin_client: APIClient, population: dict[str, User]
+    account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
     """Patching a term's status to canceled drops it from the reported membership."""
     term = first_membership(population["current"])
-    response = admin_client.patch(membership_url(term), {"status": "canceled"}, format="json")
+    response = account_admin_client.patch(
+        membership_url(term), {"status": "canceled"}, format="json"
+    )
     assert response.status_code == 200
     term.refresh_from_db()
     assert term.status == MembershipStatusChoices.CANCELED
-    listed = admin_client.get(LIST_URL, {"search": "current@example.test"}).json()["results"][0]
+    listed = account_admin_client.get(LIST_URL, {"search": "current@example.test"}).json()[
+        "results"
+    ][0]
     assert listed["membership"]["status"] == "none"
 
 
 def test_patch_a_term_rejects_an_end_before_the_start(
-    admin_client: APIClient, population: dict[str, User], today: date
+    account_admin_client: APIClient, population: dict[str, User], today: date
 ) -> None:
     """A patch that would end a term before it starts is refused with a 400."""
     term = first_membership(population["current"])
-    response = admin_client.patch(
+    response = account_admin_client.patch(
         membership_url(term),
         {"ends_on": (term.starts_on - timedelta(days=1)).isoformat()},
         format="json",
@@ -898,12 +930,15 @@ def test_patch_a_term_rejects_an_end_before_the_start(
 
 
 def test_patch_a_term_cannot_move_its_plan_or_start(
-    admin_client: APIClient, population: dict[str, User], life_plan: MembershipPlan, today: date
+    account_admin_client: APIClient,
+    population: dict[str, User],
+    life_plan: MembershipPlan,
+    today: date,
 ) -> None:
     """A patch to a term cannot change its plan or its start date."""
     term = first_membership(population["current"])
     original_start = term.starts_on
-    response = admin_client.patch(
+    response = account_admin_client.patch(
         membership_url(term),
         {"starts_on": today.isoformat(), "plan": life_plan.slug},
         format="json",

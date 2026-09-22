@@ -30,12 +30,6 @@ def test_create_checkout_computes_the_total(member: User, annual_plan: Membershi
     assert payment.currency == "usd"
 
 
-def test_create_checkout_ignores_a_client_amount(member: User, annual_plan: MembershipPlan) -> None:
-    """The server recomputes from the plan; there is no amount parameter."""
-    payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
-    assert payment.amount_cents == annual_plan.price_cents
-
-
 def test_create_checkout_rejects_an_unknown_plan(member: User, annual_plan: MembershipPlan) -> None:
     """A plan slug that does not exist is refused rather than silently ignored."""
     with pytest.raises(

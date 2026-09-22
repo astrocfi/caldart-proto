@@ -186,18 +186,26 @@ for constantly:
    * - ``member``, ``dart_leader``, ``user_admin``, ``account_admin``,
        ``website_admin``, ``system_admin``
      - one ``User`` per role, each also holding ``member``
-   * - ``leader``
-     - an alias for ``dart_leader``, the name most tests use
    * - ``superuser``
      - ``is_superuser=True`` as well as the ``system_admin`` role
-   * - ``anonymous_user``
+   * - ``no_role_user``
      - a signed-up user with **no** roles at all
    * - ``all_role_users``
      - a ``{slug: user}`` dict, for allow/deny matrix tests
+   * - ``account_admin_client``
+     - an ``APIClient`` already signed in as an account administrator; the name
+       says which administrator, because pytest-django's own ``admin_client``
+       is a plain Django client signed in as a superuser
    * - ``annual_plan``, ``life_plan``
      - the two seeded plans
    * - ``dart``, ``profile``, ``aircraft``
      - a Palo Alto DART, a profile for ``member``, one insured airplane
+   * - ``register``
+     - a four-aircraft register covering every insurance state: current,
+       expiring inside 30 days, expired, and nothing on file
+   * - ``backup_dir``
+     - ``BACKUP_DIR`` pointed at a throwaway directory under ``tmp_path`` and
+       created, so no test touches the repository's own
    * - ``home_page``, ``site_settings``
      - a Wagtail tree with a home page, and the settings row
    * - ``today``, ``days``
@@ -209,11 +217,42 @@ for constantly:
        one list per page, so an export test asserts on the words the document
        shows
 
-An autouse ``_roles`` fixture runs ``seed_roles()`` for every test, so the six
-groups always exist exactly as ``migrate`` leaves them.  The factory classes
-themselves are also exposed as fixtures — ``user_factory``,
-``payment_factory``, ``membership_factory``, ``aircraft_factory``,
-``profile_factory``, ``reminder_log_factory`` — for tests that need many rows.
+The six role groups exist in every test database already: the accounts data
+migration creates one ``Group`` per role slug, so nothing has to seed them.  A
+test that needs the database says so with ``pytestmark = pytest.mark.django_db``
+or by taking a fixture that opens it; a module that declares neither runs
+without a database, which is what keeps the pure-logic tests fast.
+
+The factory classes themselves are also exposed as fixtures — ``user_factory``,
+``payment_factory``, ``profile_factory`` — for tests that need many rows.
+
+``conftest.py`` also holds the helpers that are not fixtures, which a test
+module imports by name from ``tests.conftest``:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Helper
+     - What it does
+   * - ``ROLE_MATRIX``, ``role_matrix(*allowed)``
+     - ``ROLE_MATRIX`` is every role slug in privilege order;
+       ``role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN)`` turns it into the
+       ``(slug, allowed)`` pairs an allow/deny parametrization needs, one case
+       per role
+   * - ``read_csv(response)``
+     - the rows of a streamed CSV download, parsed with ``csv.reader`` so a
+       quoted cell keeps its commas, header first
+   * - ``pdf_page_count(body)``
+     - the number of pages in a rendered PDF
+   * - ``LOGIN_URL``, ``REGISTER_URL``, ``ME_URL``, ``CHANGE_URL``,
+       ``RESET_URL``, ``RESET_CONFIRM_URL``
+     - the auth endpoints, named once
+   * - ``GOOD_PASSWORD``, ``register_payload(**overrides)``
+     - a password that passes every validator, and a valid registration body
+   * - ``REPO_ROOT``, ``DEPLOY_DIR``
+     - the checkout root and ``deploy/``, for the tests that read the
+       deployment templates
 
 Writing tests with the factories
 --------------------------------
@@ -254,11 +293,21 @@ Things worth knowing about the factories:
 - ``PaymentFactory`` defaults to the ``mock`` provider with status
   ``pending``; drive it through ``payments.services.mark_succeeded`` rather
   than setting ``status`` by hand, or you will not get the membership term.
+  ``created_at=<datetime>`` backdates the row after the insert, which is the
+  only way to place a payment in a past month, since the column is
+  ``auto_now_add``.
 - ``ReminderLogFactory`` gives ``user`` and ``membership`` independent
   defaults, and addresses the log to its own ``user``.  Pass both when the log
   has to be about that member's own membership.
-- ``make_home_page()`` and ``make_site_settings(**kwargs)`` build the minimum
-  Wagtail tree, which several CMS tests need.
+- ``make_home_page()`` returns the ``HomePage`` the CMS migrations publish and
+  ``make_site_settings(**kwargs)`` the settings row of the default site they
+  create, with ``kwargs`` applied to it.
+- ``publish()``, ``make_standard_page()``, ``make_news_index()``,
+  ``make_news_page()``, ``make_dart_index()``, ``make_dart_page()`` and
+  ``make_contact_page()`` publish a page of each type under a parent, and
+  ``grant_membership()`` / ``expire_membership()`` give a user a term that is
+  current or lapsed.  They live here rather than in a test module so no test
+  module has to import another.
 
 Conventions
 -----------
@@ -333,8 +382,10 @@ What the backend suite covers
      - the ``user_admin`` endpoints, role edits and their guards
    * - ``test_membership_services.py``
      - status math: edge dates, lifetime, the renewal start-day rule
-   * - ``test_profile_api.py``, ``test_profile_aircraft_api.py``
-     - ``/me/profile``, ``PUT`` versus ``PATCH``, attach and detach
+   * - ``test_profile_api.py``, ``test_profile_aircraft_api.py``,
+       ``test_profile_completeness.py``
+     - ``/me/profile``, ``PUT`` versus ``PATCH``, attach and detach, and the
+       one rule that decides ``profile_complete``
    * - ``test_members_admin.py``, ``test_members_admin_status.py``
      - the admin list, its filters, and SQL-versus-service agreement
    * - ``test_members_reports.py``, ``test_aircraft_exports.py``,

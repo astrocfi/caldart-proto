@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import csv
-import io
-import re
-from collections.abc import Callable, Iterator
-from typing import cast
+from collections.abc import Iterator
 
 import pytest
 from django.http import StreamingHttpResponse
 
 from caldart.reports import csv_response, csv_rows, filter_summary, pdf_table_response
+from tests.conftest import PdfText, pdf_page_count, read_csv
 
 HEADER: list[str] = ["name", "email", "n_number", "expires_on"]
 ROWS: list[list[str | None]] = [
@@ -22,9 +19,6 @@ ROWS: list[list[str | None]] = [
 
 #: The subtitle line under the title, with the middle dot the summary joins on.
 SUBTITLE = "status: current \u00b7 dart: Palo Alto"
-
-#: ``pdf_text(body)`` -> the strings each page of a rendered PDF draws.
-PdfText = Callable[[bytes], list[list[str]]]
 
 
 def test_csv_response_is_streaming_and_has_a_download_header() -> None:
@@ -37,11 +31,7 @@ def test_csv_response_is_streaming_and_has_a_download_header() -> None:
 
 def test_csv_response_content() -> None:
     """The streamed body is well-formed CSV matching the header and rows given."""
-    response = csv_response("members.csv", HEADER, iter(ROWS))
-    # django-stubs types streaming_content for ASGI too; this response is sync-only.
-    streaming_content = cast("Iterator[bytes]", response.streaming_content)
-    body = b"".join(streaming_content).decode()
-    parsed = list(csv.reader(io.StringIO(body)))
+    parsed = read_csv(csv_response("members.csv", HEADER, iter(ROWS)))
     assert parsed[0] == HEADER
     assert parsed[1] == ["Marta Reyes", "marta@example.org", "N172SP", "2027-01-31"]
     # None becomes an empty cell, quoting is handled by the csv module.
@@ -66,11 +56,6 @@ def test_csv_rows_is_lazy() -> None:
     assert consumed == ["Marta Reyes"]
 
 
-def _page_count(pdf: bytes) -> int:
-    """Return the number of ``/Type /Page`` objects in a rendered PDF's bytes."""
-    return len(re.findall(rb"/Type\s*/Page[^s]", pdf))
-
-
 def test_pdf_table_response_is_a_valid_pdf() -> None:
     """``pdf_table_response`` returns a one-page PDF with the right download headers."""
     response = pdf_table_response(
@@ -85,7 +70,7 @@ def test_pdf_table_response_is_a_valid_pdf() -> None:
     body = response.content
     assert body.startswith(b"%PDF-")
     assert body.rstrip().endswith(b"%%EOF")
-    assert _page_count(body) == 1
+    assert pdf_page_count(body) == 1
 
 
 def test_pdf_draws_the_title_the_subtitle_and_every_cell(pdf_text: PdfText) -> None:
@@ -161,9 +146,13 @@ def test_pdf_escapes_markup_in_cells(pdf_text: PdfText) -> None:
     assert "".join(page[2:-2]) == "<b>not bold</b> & co"
 
 
-def test_filter_summary() -> None:
-    """``filter_summary`` joins active filters and reports when none are active."""
+def test_filter_summary_joins_the_active_filters_and_skips_the_empty_ones() -> None:
+    """Active filters join with a middle dot; a filter with an empty value is dropped."""
     assert filter_summary({"status": "current", "dart": "", "expiring_within": 30}) == (
         "status: current \u00b7 expiring within: 30"
     )
+
+
+def test_filter_summary_says_so_when_no_filter_is_active() -> None:
+    """An empty filter mapping summarizes as "No filters applied"."""
     assert filter_summary({}) == "No filters applied"

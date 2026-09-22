@@ -13,7 +13,7 @@ from typing import cast
 import pytest
 from django.core import mail
 from django.core.mail import EmailMultiAlternatives
-from django.test import override_settings
+from pytest_django import Settings
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from rest_framework.test import APIClient
 
@@ -50,13 +50,6 @@ def _html_alternative(message: EmailMultiAlternatives) -> str:
 
 
 @pytest.fixture
-def admin_client(api_client: APIClient, account_admin: User) -> APIClient:
-    """An API client signed in as an account administrator."""
-    api_client.force_login(account_admin)
-    return api_client
-
-
-@pytest.fixture
 def invitee(db: None) -> User:
     """An account created without a password, waiting to be invited."""
     user = UserFactory(email="invited@example.test", first_name="Nova", last_name="Ito")
@@ -83,27 +76,29 @@ def uid_and_token() -> tuple[str, str]:
 # --------------------------------------------------------------------------
 # The link
 # --------------------------------------------------------------------------
-@override_settings(SITE_URL="https://caldart.example.org")
-def test_the_link_is_built_from_site_url(invitee: User, site_settings: SiteSettings) -> None:
+def test_the_link_is_built_from_site_url(
+    invitee: User, site_settings: SiteSettings, settings: Settings
+) -> None:
     """The mailed link is built from the ``SITE_URL`` setting."""
+    settings.SITE_URL = "https://caldart.example.org"
     send_password_invitation(invitee)
     assert invitation_link().startswith("https://caldart.example.org/portal/reset-password?uid=")
 
 
-@override_settings(SITE_URL="https://caldart.example.org/")
 def test_a_trailing_slash_on_site_url_gives_no_double_slash(
-    invitee: User, site_settings: SiteSettings
+    invitee: User, site_settings: SiteSettings, settings: Settings
 ) -> None:
     """A ``SITE_URL`` ending in a slash does not produce a doubled slash in the link."""
+    settings.SITE_URL = "https://caldart.example.org/"
     send_password_invitation(invitee)
     assert invitation_link().startswith("https://caldart.example.org/portal/reset-password?uid=")
 
 
-@override_settings(SITE_URL="https://caldart.example.org/")
 def test_the_html_link_drops_the_trailing_slash_too(
-    invitee: User, site_settings: SiteSettings
+    invitee: User, site_settings: SiteSettings, settings: Settings
 ) -> None:
     """The HTML alternative's link also avoids a doubled slash."""
+    settings.SITE_URL = "https://caldart.example.org/"
     send_password_invitation(invitee)
     assert "https://caldart.example.org//portal" not in _html_alternative(_sent(0))
 
@@ -228,24 +223,24 @@ def test_the_mailed_link_sets_the_password(
 # When it is sent
 # --------------------------------------------------------------------------
 def test_creating_a_member_without_a_password_sends_the_invitation(
-    admin_client: APIClient,
+    account_admin_client: APIClient,
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
     """Creating a member with no password mails an invitation once the commit fires."""
     with django_capture_on_commit_callbacks(execute=True):
-        admin_client.post(MEMBERS_URL, {"email": "newbie@example.test"}, format="json")
+        account_admin_client.post(MEMBERS_URL, {"email": "newbie@example.test"}, format="json")
     assert mail.outbox[0].subject == f"{ORG_NAME}: set your password"
 
 
 def test_creating_a_member_with_a_password_sends_nothing(
-    admin_client: APIClient,
+    account_admin_client: APIClient,
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
     """Creating a member with a password given sends no invitation email."""
     with django_capture_on_commit_callbacks(execute=True):
-        admin_client.post(
+        account_admin_client.post(
             MEMBERS_URL,
             {"email": "newbie@example.test", "password": GOOD_PASSWORD},
             format="json",

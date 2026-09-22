@@ -21,8 +21,9 @@ import pytest
 from django.core.exceptions import ImproperlyConfigured
 from pytest_django import Settings
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DEPLOY = REPO_ROOT / "deploy"
+from caldart.settings import base
+from tests.conftest import DEPLOY_DIR, REPO_ROOT
+
 PROD_SETTINGS = REPO_ROOT / "backend" / "caldart" / "settings" / "prod.py"
 
 #: The smallest environment a production box can boot with.
@@ -196,8 +197,6 @@ def test_one_proxy_sits_in_front_so_throttles_key_on_the_client_address(prod: Mo
 
 def test_the_base_rest_framework_settings_are_not_mutated(prod: ModuleType) -> None:
     """``prod.py`` adds ``NUM_PROXIES`` to its own copy, leaving base's dict untouched."""
-    from caldart.settings import base
-
     assert "NUM_PROXIES" not in base.REST_FRAMEWORK
 
 
@@ -256,8 +255,6 @@ def test_importing_prod_does_not_disturb_the_running_settings(
     prod: ModuleType, settings: Settings
 ) -> None:
     """``prod.py`` copies the dicts it edits rather than mutating base's."""
-    from caldart.settings import base
-
     # Django itself fills CONN_MAX_AGE in with its 0 default; what must not
     # happen is prod's 60 leaking back into the settings the suite runs under.
     assert base.DATABASES["default"].get("CONN_MAX_AGE") != 60
@@ -270,7 +267,7 @@ def test_importing_prod_does_not_disturb_the_running_settings(
 # ------------------------------------------------------------------- deploy
 def test_gunicorn_binds_to_loopback_only() -> None:
     """Gunicorn binds to loopback, trusts the proxy, and sizes workers to the CPU."""
-    config = (DEPLOY / "gunicorn.conf.py").read_text()
+    config = (DEPLOY_DIR / "gunicorn.conf.py").read_text()
 
     assert 'bind = "127.0.0.1:8001"' in config
     assert 'forwarded_allow_ips = "127.0.0.1"' in config
@@ -280,16 +277,25 @@ def test_gunicorn_binds_to_loopback_only() -> None:
 def test_gunicorn_worker_count_is_capped(monkeypatch: pytest.MonkeyPatch) -> None:
     """Every worker preloads Django, so the 2n+1 heuristic needs a ceiling."""
     monkeypatch.delenv("WEB_CONCURRENCY", raising=False)
-    config = runpy.run_path(str(DEPLOY / "gunicorn.conf.py"))
-    assert 1 <= config["workers"] <= config["MAX_WORKERS"]
 
+    config = runpy.run_path(str(DEPLOY_DIR / "gunicorn.conf.py"))
+
+    assert config["workers"] >= 1
+    assert config["workers"] <= config["MAX_WORKERS"]
+
+
+def test_web_concurrency_overrides_the_worker_heuristic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``WEB_CONCURRENCY`` sets the worker count outright, cap and heuristic aside."""
     monkeypatch.setenv("WEB_CONCURRENCY", "3")
-    assert runpy.run_path(str(DEPLOY / "gunicorn.conf.py"))["workers"] == 3
+
+    assert runpy.run_path(str(DEPLOY_DIR / "gunicorn.conf.py"))["workers"] == 3
 
 
 def test_apache_proxies_to_gunicorn_and_sets_the_scheme_header() -> None:
     """The Apache vhost proxies to gunicorn, forwards HTTPS, and serves media, certbot."""
-    config = (DEPLOY / "apache" / "caldart.conf").read_text()
+    config = (DEPLOY_DIR / "apache" / "caldart.conf").read_text()
     # Apache directives are free-form whitespace; collapse runs of spaces and tabs
     # so the assertion below survives realignment of the config's columns.
     normalized = re.sub(r"[ \t]+", " ", config)
@@ -302,7 +308,7 @@ def test_apache_proxies_to_gunicorn_and_sets_the_scheme_header() -> None:
 
 def test_nginx_is_shipped_as_the_alternative() -> None:
     """The nginx config proxies to gunicorn and forwards the original scheme."""
-    config = (DEPLOY / "nginx" / "caldart.conf").read_text()
+    config = (DEPLOY_DIR / "nginx" / "caldart.conf").read_text()
 
     assert "proxy_pass http://127.0.0.1:8001;" in config
     assert "proxy_set_header X-Forwarded-Proto $scheme;" in config
@@ -310,7 +316,7 @@ def test_nginx_is_shipped_as_the_alternative() -> None:
 
 def test_the_web_unit_runs_gunicorn_from_the_venv() -> None:
     """The systemd web unit runs gunicorn from the venv, under the ``caldart`` user."""
-    unit = (DEPLOY / "systemd" / "caldart-web.service").read_text()
+    unit = (DEPLOY_DIR / "systemd" / "caldart-web.service").read_text()
 
     assert "EnvironmentFile=/etc/caldart/caldart.env" in unit
     assert "ExecStart=/srv/caldart/.venv/bin/gunicorn" in unit
@@ -320,8 +326,8 @@ def test_the_web_unit_runs_gunicorn_from_the_venv() -> None:
 
 def test_the_reminder_timer_runs_daily_at_seven() -> None:
     """The reminder timer fires the daily service at 07:00 and survives a reboot."""
-    service = (DEPLOY / "systemd" / "caldart-reminders.service").read_text()
-    timer = (DEPLOY / "systemd" / "caldart-reminders.timer").read_text()
+    service = (DEPLOY_DIR / "systemd" / "caldart-reminders.service").read_text()
+    timer = (DEPLOY_DIR / "systemd" / "caldart-reminders.timer").read_text()
 
     assert "manage.py send_renewal_reminders" in service
     assert "Type=oneshot" in service

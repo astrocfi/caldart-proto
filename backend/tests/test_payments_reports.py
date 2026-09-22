@@ -7,10 +7,8 @@ and the arithmetic over a fixture spanning three months and two years.
 from __future__ import annotations
 
 import datetime as dt
-from typing import cast
 
 import pytest
-from django.http import StreamingHttpResponse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -18,7 +16,8 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
-from tests.factories import UserFactory
+from tests.conftest import read_csv, role_matrix
+from tests.factories import PaymentFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -44,22 +43,19 @@ def make_payment(
     ref: str = "",
 ) -> Payment:
     """Create a completed (or not) payment backdated to ``when``."""
-    payment = Payment.objects.create(
+    return PaymentFactory(
         user=user,
         plan=plan,
         amount_cents=plan_cents + contribution_cents,
         plan_amount_cents=plan_cents,
         contribution_cents=contribution_cents,
-        currency="usd",
         provider=provider,
         wallet=PaymentWallet.CARD,
         provider_ref=ref or f"ref-{user.pk}-{when:%Y%m%d}-{provider}",
         status=status,
         completed_at=when if status == PaymentStatus.SUCCEEDED else None,
+        created_at=when,
     )
-    Payment.objects.filter(pk=payment.pk).update(created_at=when)
-    payment.refresh_from_db()
-    return payment
 
 
 @pytest.fixture
@@ -100,7 +96,7 @@ def test_list_is_paginated_and_newest_first(
 ) -> None:
     """The payments list paginates and sorts newest first."""
     api_client.force_login(account_admin)
-    body = api_client.get(LIST).data
+    body = api_client.get(LIST).json()
 
     assert body["count"] == 7
     periods = [row["created_at"][:7] for row in body["results"]]
@@ -114,7 +110,7 @@ def test_list_filters_by_date_range(
 ) -> None:
     """The list filters to payments created within the given date range."""
     api_client.force_login(account_admin)
-    body = api_client.get(LIST, {"from": "2026-01-01", "to": "2026-01-31"}).data
+    body = api_client.get(LIST, {"from": "2026-01-01", "to": "2026-01-31"}).json()
     assert body["count"] == 2
 
 
@@ -123,9 +119,9 @@ def test_list_filters_by_provider_and_status(
 ) -> None:
     """The list filters independently by provider and by status."""
     api_client.force_login(account_admin)
-    assert api_client.get(LIST, {"provider": "paypal"}).data["count"] == 2
-    assert api_client.get(LIST, {"status": "failed"}).data["count"] == 1
-    assert api_client.get(LIST, {"provider": "stripe", "status": "succeeded"}).data["count"] == 3
+    assert api_client.get(LIST, {"provider": "paypal"}).json()["count"] == 2
+    assert api_client.get(LIST, {"status": "failed"}).json()["count"] == 1
+    assert api_client.get(LIST, {"provider": "stripe", "status": "succeeded"}).json()["count"] == 3
 
 
 def test_list_searches_name_email_and_reference(
@@ -133,9 +129,9 @@ def test_list_searches_name_email_and_reference(
 ) -> None:
     """The search parameter matches on name, email, or provider reference."""
     api_client.force_login(account_admin)
-    assert api_client.get(LIST, {"search": "wilma"}).data["count"] == 3
-    assert api_client.get(LIST, {"search": "member@example.test"}).data["count"] == 4
-    assert api_client.get(LIST, {"search": "dud"}).data["count"] == 1
+    assert api_client.get(LIST, {"search": "wilma"}).json()["count"] == 3
+    assert api_client.get(LIST, {"search": "member@example.test"}).json()["count"] == 4
+    assert api_client.get(LIST, {"search": "dud"}).json()["count"] == 1
 
 
 def test_list_orders_by_amount(
@@ -145,7 +141,7 @@ def test_list_orders_by_amount(
     api_client.force_login(account_admin)
     amounts = [
         row["amount_cents"]
-        for row in api_client.get(LIST, {"ordering": "-amount_cents"}).data["results"]
+        for row in api_client.get(LIST, {"ordering": "-amount_cents"}).json()["results"]
     ]
     assert amounts == sorted(amounts, reverse=True)
 
@@ -177,7 +173,7 @@ def test_list_rejects_an_unknown_provider(
 def test_list_page_size(api_client: APIClient, account_admin: User, history: list[Payment]) -> None:
     """The page_size parameter controls how many results come back per page."""
     api_client.force_login(account_admin)
-    body = api_client.get(LIST, {"page_size": 2}).data
+    body = api_client.get(LIST, {"page_size": 2}).json()
     assert len(body["results"]) == 2
     assert body["next"] is not None
 
@@ -190,7 +186,7 @@ def test_summary_by_month(
 ) -> None:
     """The month summary groups payments by month, with correct totals per provider."""
     api_client.force_login(account_admin)
-    rows = api_client.get(SUMMARY, {"group": "month"}).data
+    rows = api_client.get(SUMMARY, {"group": "month"}).json()
 
     assert [row["period"] for row in rows] == ["2025-11", "2026-01", "2026-02"]
 
@@ -217,7 +213,7 @@ def test_summary_by_year(
 ) -> None:
     """The year summary groups payments by year, with correct totals per provider."""
     api_client.force_login(account_admin)
-    rows = api_client.get(SUMMARY, {"group": "year"}).data
+    rows = api_client.get(SUMMARY, {"group": "year"}).json()
 
     assert [row["period"] for row in rows] == ["2025", "2026"]
     assert rows[0]["total_cents"] == 9_000
@@ -232,7 +228,7 @@ def test_summary_defaults_to_month(
 ) -> None:
     """With no group parameter the summary groups by month."""
     api_client.force_login(account_admin)
-    assert api_client.get(SUMMARY).data[0]["period"] == "2025-11"
+    assert api_client.get(SUMMARY).json()[0]["period"] == "2025-11"
 
 
 def test_summary_honors_the_date_filter(
@@ -240,7 +236,7 @@ def test_summary_honors_the_date_filter(
 ) -> None:
     """The summary applies the same date filter as the list."""
     api_client.force_login(account_admin)
-    rows = api_client.get(SUMMARY, {"from": "2026-01-01"}).data
+    rows = api_client.get(SUMMARY, {"from": "2026-01-01"}).json()
     assert [row["period"] for row in rows] == ["2026-01", "2026-02"]
 
 
@@ -249,7 +245,7 @@ def test_summary_honors_the_provider_filter(
 ) -> None:
     """The summary applies the provider filter to every grouped row."""
     api_client.force_login(account_admin)
-    rows = api_client.get(SUMMARY, {"provider": "paypal"}).data
+    rows = api_client.get(SUMMARY, {"provider": "paypal"}).json()
     assert [row["period"] for row in rows] == ["2025-11", "2026-01"]
     assert all(set(row["by_provider"]) == {"paypal"} for row in rows)
 
@@ -265,19 +261,12 @@ def test_summary_rejects_an_unknown_grouping(
 def test_summary_of_nothing_is_an_empty_list(api_client: APIClient, account_admin: User) -> None:
     """With no payments at all the summary is an empty list."""
     api_client.force_login(account_admin)
-    assert api_client.get(SUMMARY).data == []
+    assert api_client.get(SUMMARY).json() == []
 
 
 # --------------------------------------------------------------------------
 # GET /admin/payments/export.csv
 # --------------------------------------------------------------------------
-def read_csv(response: StreamingHttpResponse) -> list[list[str]]:
-    """Decode a streamed CSV download into a list of comma-split rows."""
-    # Django's stubs type streaming_content as sync-or-async; csv_response is always sync.
-    text = b"".join(response.streaming_content).decode()  # type: ignore[arg-type]
-    return [line.split(",") for line in text.strip().splitlines()]
-
-
 def test_export_returns_a_csv_download(
     api_client: APIClient, account_admin: User, history: list[Payment]
 ) -> None:
@@ -287,12 +276,9 @@ def test_export_returns_a_csv_download(
 
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/csv")
-    assert "attachment" in response["Content-Disposition"]
-    assert "caldart-payments.csv" in response["Content-Disposition"]
+    assert response["Content-Disposition"] == 'attachment; filename="caldart-payments.csv"'
 
-    # csv_response returns a StreamingHttpResponse; the stubs type api_client.get()
-    # as the more general HttpResponseBase.
-    rows = read_csv(cast(StreamingHttpResponse, response))
+    rows = read_csv(response)
     assert rows[0][:4] == ["paid_on", "name", "email", "plan"]
     assert len(rows) == 8  # header + 7 payments
 
@@ -303,10 +289,10 @@ def test_export_honors_the_filters(
     """The export applies the same provider and status filters as the list."""
     api_client.force_login(account_admin)
     response = api_client.get(EXPORT, {"provider": "paypal", "status": "succeeded"})
-    rows = read_csv(cast(StreamingHttpResponse, response))
+    rows = read_csv(response)
 
     assert len(rows) == 3
-    assert all(row[7] == "paypal" for row in rows[1:])
+    assert [row[7] for row in rows[1:]] == ["paypal", "paypal"]
 
 
 def test_export_formats_money_as_dollars(
@@ -315,7 +301,7 @@ def test_export_formats_money_as_dollars(
     """The export formats cent amounts as two-decimal dollar strings."""
     make_payment(member, annual_plan, when=paid_at(2026, 3, 9), contribution_cents=10_000)
     api_client.force_login(account_admin)
-    row = read_csv(cast(StreamingHttpResponse, api_client.get(EXPORT)))[1]
+    row = read_csv(api_client.get(EXPORT))[1]
 
     assert row[0] == "2026-03-09"
     assert row[4] == "45.00"  # plan_amount
@@ -327,15 +313,18 @@ def test_export_formats_money_as_dollars(
 # Role matrix
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("url", [LIST, SUMMARY, EXPORT])
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_reports_are_account_admin_only(
-    api_client: APIClient, all_role_users: dict[str, User], history: list[Payment], url: str
+    api_client: APIClient,
+    all_role_users: dict[str, User],
+    history: list[Payment],
+    url: str,
+    slug: str,
+    allowed: bool,
 ) -> None:
     """Only account admins and system admins may view any of the three reports."""
-    allowed = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
-    for slug, user in all_role_users.items():
-        api_client.force_login(user)
-        expected = 200 if slug in allowed else 403
-        assert api_client.get(url).status_code == expected, f"{slug} on {url}"
+    api_client.force_login(all_role_users[slug])
+    assert api_client.get(url).status_code == (200 if allowed else 403)
 
 
 @pytest.mark.parametrize("url", [LIST, SUMMARY, EXPORT])
