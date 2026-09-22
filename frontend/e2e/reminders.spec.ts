@@ -15,7 +15,7 @@ test('an account administrator reads the reminder log and filters it by kind', a
     .getByRole('link', { name: 'Reminders' })
     .click();
   await expect(page).toHaveURL(/\/portal\/admin\/reminders/);
-  await expect(page.getByRole('heading', { name: 'Reminders' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Reminders', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Renewal reminders' })).toBeVisible();
 
   // Picking a kind sends the filter to the API rather than trimming the page.
