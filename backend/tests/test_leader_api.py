@@ -1,8 +1,8 @@
 """The DART leader check: search, status card, aircraft card.
 
-The status card answers the question a leader asks before a flight —
+The status card answers the question a leader asks before a flight --
 "membership current? medical current? insurance current on the plane they are
-flying?" — so the truth table below is the most important test in this app.
+flying?" -- so the truth table below is the most important test in this app.
 """
 
 from __future__ import annotations

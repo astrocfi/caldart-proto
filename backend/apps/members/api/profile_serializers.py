@@ -34,7 +34,7 @@ POSTAL_RE = re.compile(r"^\d{5}(-\d{4})?$")
 
 
 class DartSerializer(serializers.ModelSerializer[Dart]):
-    """``GET /darts`` — the public DART catalog."""
+    """``GET /darts`` -- the public DART catalog."""
 
     class Meta:
         model = Dart
@@ -63,7 +63,7 @@ class MembershipTermSerializer(serializers.ModelSerializer[Membership]):
 
 
 class MembershipDetailSerializer(MembershipStatusSerializer):
-    """``GET /me/membership`` — the status summary plus every term, newest first."""
+    """``GET /me/membership`` -- the status summary plus every term, newest first."""
 
     history = MembershipTermSerializer(many=True, read_only=True)
 

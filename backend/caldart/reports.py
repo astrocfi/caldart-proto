@@ -239,7 +239,7 @@ def build_pdf_table(
     """Render the report into ``buffer`` (any writable binary stream)."""
     pagesize = landscape_size(letter) if landscape else letter
     generated_at = generated_at or timezone.localtime()
-    footer_left = f"CalDART · generated {generated_at:%Y-%m-%d %H:%M %Z}".strip()
+    footer_left = f"CalDART \u00b7 generated {generated_at:%Y-%m-%d %H:%M %Z}".strip()
 
     doc = BaseDocTemplate(
         buffer,
@@ -325,4 +325,4 @@ def pdf_table_response(
 def filter_summary(filters: dict[str, Any]) -> str:
     """Render applied filters for the PDF subtitle line."""
     parts = [f"{key.replace('_', ' ')}: {value}" for key, value in filters.items() if value]
-    return " · ".join(parts) if parts else "No filters applied"
+    return " \u00b7 ".join(parts) if parts else "No filters applied"

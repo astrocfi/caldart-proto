@@ -60,7 +60,7 @@ def aircraft_serializer_for(request: Request) -> type[AircraftSerializer]:
     """The register record, with ``pilots`` only for callers entitled to it.
 
     ``pilots`` carries other members' email addresses, membership state and
-    medical currency — exactly what the leader check gates behind ``dart_leader``.
+    medical currency -- exactly what the leader check gates behind ``dart_leader``.
     Returning it from the register to every signed-in member would walk
     straight around that gate, so plain members get the aircraft alone.
     """
@@ -107,7 +107,7 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
 
 
 class AircraftLookupView(APIView):
-    """``GET /aircraft/lookup?n_number=`` — exact match after normalization."""
+    """``GET /aircraft/lookup?n_number=`` -- exact match after normalization."""
 
     permission_classes = [IsAuthenticated]
 
@@ -127,7 +127,7 @@ class AircraftLookupView(APIView):
 
 
 # --------------------------------------------------------------------------
-# Exports — account_admin
+# Exports -- account_admin
 # --------------------------------------------------------------------------
 class AircraftExportMixin(AircraftQuerysetMixin):
     """Shared plumbing: same filters as the list, account_admin only."""
@@ -173,7 +173,7 @@ class AircraftExportCsvView(AircraftExportMixin, generics.GenericAPIView[Aircraf
 
 
 class AircraftExportPdfView(AircraftExportMixin, generics.GenericAPIView[Aircraft]):
-    """``GET /admin/aircraft/export.pdf?<filters>`` — landscape letter."""
+    """``GET /admin/aircraft/export.pdf?<filters>`` -- landscape letter."""
 
     @extend_schema(
         responses=download_responses(PDF_MEDIA_TYPE, "The aircraft register as a PDF file.")
@@ -190,10 +190,10 @@ class AircraftExportPdfView(AircraftExportMixin, generics.GenericAPIView[Aircraf
 
 
 # --------------------------------------------------------------------------
-# Leader check — dart_leader
+# Leader check -- dart_leader
 # --------------------------------------------------------------------------
 class LeaderSearchView(APIView):
-    """``GET /leader/search?q=<name|email|n-number>`` — at most 20 people."""
+    """``GET /leader/search?q=<name|email|n-number>`` -- at most 20 people."""
 
     permission_classes = [IsLeader]
 
@@ -206,7 +206,7 @@ class LeaderSearchView(APIView):
 
 
 class LeaderMemberStatusView(APIView):
-    """``GET /leader/members/{user_id}/status`` — the pre-flight status card."""
+    """``GET /leader/members/{user_id}/status`` -- the pre-flight status card."""
 
     permission_classes = [IsLeader]
 
@@ -223,7 +223,7 @@ class LeaderMemberStatusView(APIView):
 
 
 class LeaderAircraftView(APIView):
-    """``GET /leader/aircraft?n_number=`` — the insurance card for one plane."""
+    """``GET /leader/aircraft?n_number=`` -- the insurance card for one plane."""
 
     permission_classes = [IsLeader]
 

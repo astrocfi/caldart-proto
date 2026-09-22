@@ -170,7 +170,7 @@ def insurance_queryset(queryset: QuerySet[Aircraft], state: str) -> QuerySet[Air
 
 #: Longest "expiring within" window we will answer.  Ten years is far beyond
 #: any useful query, and clamping keeps ``today + timedelta(days=n)`` from
-#: raising ``OverflowError`` — a 500 — on an absurd query string.
+#: raising ``OverflowError`` -- a 500 -- on an absurd query string.
 MAX_EXPIRING_WINDOW_DAYS = 3650
 
 

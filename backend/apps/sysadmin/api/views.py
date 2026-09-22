@@ -1,4 +1,4 @@
-"""Health and backup endpoints — ``system_admin`` only.
+"""Health and backup endpoints -- ``system_admin`` only.
 
 These are the screens behind ``/portal/system``: is the box healthy, take a
 dump, download one.  Everything destructive (restore, reset) stays on the
@@ -42,7 +42,7 @@ def _actor(request: Request) -> User:
 
 
 class HealthView(APIView):
-    """``GET /system/health`` — database, migrations, disk, last backup."""
+    """``GET /system/health`` -- database, migrations, disk, last backup."""
 
     permission_classes = [IsSystemAdmin]
 
@@ -104,7 +104,7 @@ class BackupListCreateView(APIView):
 
 
 class BackupDownloadView(APIView):
-    """``GET /system/backups/{name}/download`` — streams the gzipped dump.
+    """``GET /system/backups/{name}/download`` -- streams the gzipped dump.
 
     ``name`` is checked by :func:`apps.sysadmin.services.resolve_backup`, which
     only accepts a plain ``*.sql.gz`` file name resolving inside ``BACKUP_DIR``.

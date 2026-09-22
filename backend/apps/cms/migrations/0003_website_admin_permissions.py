@@ -27,7 +27,7 @@ def revoke(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("cms", "0003_page_types"),
+        ("cms", "0002_site_root"),
         ("accounts", "0002_seed_roles"),
         ("wagtailcore", "0098_apitoken"),
         ("wagtailimages", "0027_image_description"),

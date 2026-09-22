@@ -12,8 +12,9 @@ through the endpoints listed under :ref:`api-reminders-system`.
 How a dump is taken
 ===================
 
-``manage.py db_backup`` runs ``pg_dump`` with ``--no-owner --no-privileges``,
-gzips the output, and writes it to ``BACKUP_DIR`` as
+``manage.py db_backup`` runs ``pg_dump`` with ``--no-owner --no-privileges``
+and gzips its output as it arrives (:ref:`backup-streaming`) into
+``BACKUP_DIR`` as
 ``caldart-<YYYYMMDD-HHMMSS>.sql.gz``.  ``--name`` overrides that file name, for
 a dump you want to find again by hand::
 
@@ -52,6 +53,35 @@ connection still works.
 The user name and the database name are percent-encoded into the URL, so an
 awkward account such as ``ann marie@caldart`` still produces a URL libpq can
 parse.
+
+.. _backup-streaming:
+
+How the bytes move
+------------------
+
+A dump is never held in memory.  ``pg_dump`` writes to a pipe, and the backup
+reads that pipe a megabyte at a time and compresses each block straight into
+the ``.sql.gz`` file while the tool is still running; a restore reads the file
+the same way and writes into ``psql``'s standard input.  Peak memory is
+therefore a single block, whatever the size of the database, and the file on
+disk grows throughout the dump rather than appearing at the end.
+
+Each tool's standard error goes to a temporary file rather than to a second
+pipe, so a tool that prints more than a pipe will hold cannot stall waiting for
+someone to read it.  A non-zero exit raises ``BackupError`` carrying that
+output, and a backup that fails part way through deletes the partial file it
+had started.  A ``psql`` that exits before it has read the whole dump -- a
+connection or authentication failure, say -- is reported the same way: the
+broken pipe its early exit leaves behind is swallowed so that the message the
+tool printed is what reaches the operator.  If the copy itself fails instead --
+a dump that cannot be read, a disk that fills -- the tool is killed and waited
+for before the error propagates, so no ``pg_dump`` or ``psql`` is left blocked
+on a pipe nobody is moving.
+
+A restore reads the dump through once, a block at a time, before it drops
+anything.  A corrupt, truncated or non-gzip file therefore fails with
+``BackupError`` naming the file and leaves the database that is already there
+untouched, and the extra pass costs no memory.
 
 ``BACKUP_DIR`` defaults to ``backups/`` at the repository root, which is
 gitignored.  A relative value is resolved against the repository root; an

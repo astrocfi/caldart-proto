@@ -25,7 +25,7 @@ from apps.cms.models import (
 
 
 class SiteConfigView(APIView):
-    """``GET /site/config`` — the chrome the SPA needs before it has a user."""
+    """``GET /site/config`` -- the chrome the SPA needs before it has a user."""
 
     permission_classes = [AllowAny]
 

@@ -1,8 +1,8 @@
 """The renewal reminder scanner.
 
 Every kind fires on its own offset, nothing fires early, a second run sends
-nothing, a dry run writes nothing, and members who have already renewed —
-including lifetime members — are left alone.  Late runs and failed sends are
+nothing, a dry run writes nothing, and members who have already renewed --
+including lifetime members -- are left alone.  Late runs and failed sends are
 covered by ``test_reminders_resilience.py``.
 """
 

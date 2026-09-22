@@ -470,7 +470,9 @@ supply.
    and use the semantic tokens rather than introducing colors
    (:doc:`theming`).
 #. ``manage.py makemigrations cms``.
-#. Extend ``seed_content`` if the example site should carry one.
+#. Extend ``seed_content`` if the example site should carry one, adding the
+   page's copy to ``seed_content_data.py``
+   (:ref:`the copy module <cms-seed-data>`).
 #. Cover it in ``backend/tests/test_cms_pages.py``: that it renders, and that
    its access rules behave.
 

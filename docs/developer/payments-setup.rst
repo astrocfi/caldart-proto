@@ -643,6 +643,11 @@ subclasses ``Provider`` from ``providers/base.py``:
 ``slug``
     The name stored in ``Payment.provider`` and sent by the checkout:
     ``stripe``, ``paypal`` or ``mock``.
+``is_configured() -> bool``
+    A classmethod, answering whether the settings this provider needs are
+    present: both Stripe keys, both PayPal credentials, or
+    ``PAYMENTS_MOCK_ENABLED`` for the mock.  ``available_providers()`` asks
+    every registered class, without instantiating it.
 ``start(payment) -> dict``
     Called by ``POST /payments/checkout`` once the pending payment exists.
     Returns what the browser needs to show the payment UI:
@@ -660,8 +665,10 @@ subclasses ``Provider`` from ``providers/base.py``:
 ``@register`` files a class under its ``slug``, and ``providers/__init__.py``
 imports every provider module, so importing the package registers them all.
 ``get_provider(slug)`` returns an instance (``ValueError`` for an unknown
-slug), and ``available_providers()`` lists the slugs whose settings are
-present, which is what ``GET /payments/config`` offers the checkout.  A
+slug), and ``available_providers()`` asks each registered class its
+``is_configured()`` and lists the slugs that answer yes, in the order the
+``Payment.provider`` choices declare, which is what ``GET /payments/config``
+offers the checkout.  A
 provider signals trouble by raising ``PaymentError``, which the API answers
 with HTTP 400.  It has three subclasses: ``ProviderNotConfiguredError``
 (missing keys), ``PaymentVerificationError`` (the provider's record disagrees
@@ -672,10 +679,9 @@ and its transport's own exceptions into one of these, so that an outage is a
 then deleted, and at confirmation it is left ``pending`` for another attempt.
 
 Adding a provider therefore means a registered subclass in a module of its
-own, an import in ``providers/__init__.py``, a branch in
-``available_providers()`` for its settings, a value in the ``Payment.provider``
-choices (and its migration), and a panel in
-``frontend/src/portal/features/checkout/``.
+own, an import in ``providers/__init__.py``, an ``is_configured()`` that names
+its settings, a value in the ``Payment.provider`` choices (and its migration),
+and a panel in ``frontend/src/portal/features/checkout/``.
 
 
 Going live: checklist
@@ -717,8 +723,8 @@ Troubleshooting
   Check ``.env`` and restart Django.
 
 **"'stripe' is not configured." on checkout.**
-  One of the two Stripe keys is empty.  ``available_providers()`` needs both
-  ``STRIPE_SECRET_KEY`` and ``STRIPE_PUBLISHABLE_KEY``, and the checkout
+  One of the two Stripe keys is empty.  ``StripeProvider.is_configured()``
+  needs both ``STRIPE_SECRET_KEY`` and ``STRIPE_PUBLISHABLE_KEY``, and the checkout
   endpoint rejects an unconfigured provider with a 400 before it ever reaches
   the provider class — deliberately, so a half-configured deployment fails
   with a sentence rather than a traceback.

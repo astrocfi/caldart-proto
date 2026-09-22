@@ -349,7 +349,7 @@ def test_dart_page_renders_its_facts(
     body = client.get(page.url).content.decode()
     assert "We meet monthly." in body
     assert "mailto:helen@example.org" in body
-    assert "← All DARTs" in body
+    assert "\u2190 All DARTs" in body
 
 
 def test_dart_page_leader_href_handles_a_phone_number(

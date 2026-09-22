@@ -48,7 +48,7 @@ else:
 class AdminProfileSerializer(ProfileSerializer):
     """The profile as an administrator sees it.
 
-    Everything ``/me/profile`` offers — the same fields, the same validation —
+    Everything ``/me/profile`` offers -- the same fields, the same validation --
     plus the admin-only ``notes`` and ``how_heard``, and nothing mandatory: an
     administrator records what they have been told, which on the day somebody
     joins at an airshow may be no more than a name.
@@ -73,7 +73,7 @@ class AdminMembershipSerializer(MembershipTermSerializer):
     """A term in the history, and the target of ``PATCH /admin/memberships/{id}``.
 
     The member's own view of a term plus the fields only an administrator needs.
-    ``ends_on``, ``status`` and ``note`` are writable — the plan, the start date,
+    ``ends_on``, ``status`` and ``note`` are writable -- the plan, the start date,
     the source and the payment link are not, because rewriting those would
     falsify the history rather than correct it.
     """
@@ -124,7 +124,7 @@ class AdminMembershipSerializer(MembershipTermSerializer):
 
 
 class MembershipGrantSerializer(serializers.Serializer[Any]):
-    """``POST /admin/members/{id}/memberships`` — grant a term by hand."""
+    """``POST /admin/members/{id}/memberships`` -- grant a term by hand."""
 
     plan = serializers.SlugRelatedField(
         slug_field="slug", queryset=MembershipPlan.objects.filter(is_active=True)
@@ -238,7 +238,7 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
 
 
 class MemberDetailSerializer(serializers.Serializer[User]):
-    """``GET /admin/members/{id}`` — user, profile, memberships and payments."""
+    """``GET /admin/members/{id}`` -- user, profile, memberships and payments."""
 
     id = serializers.IntegerField(read_only=True)
     email = serializers.EmailField(read_only=True)
@@ -299,7 +299,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
 # Write serializers
 # --------------------------------------------------------------------------
 class MemberCreateSerializer(serializers.Serializer[User]):
-    """``POST /admin/members`` — account plus nested profile."""
+    """``POST /admin/members`` -- account plus nested profile."""
 
     email = serializers.EmailField()
     first_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
@@ -348,7 +348,7 @@ class MemberCreateSerializer(serializers.Serializer[User]):
 
 
 class MemberUpdateSerializer(serializers.Serializer[User]):
-    """``PATCH /admin/members/{id}`` — account fields and nested profile.
+    """``PATCH /admin/members/{id}`` -- account fields and nested profile.
 
     The account half goes through the same service as ``/admin/users/{id}``, so it
     obeys the same edit guard: changing the email address or the active flag of an

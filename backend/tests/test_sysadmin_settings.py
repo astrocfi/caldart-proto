@@ -2,7 +2,7 @@
 
 ``caldart.settings.prod`` is never exercised by the rest of the suite, so this
 module imports it against a minimal environment and checks the security
-posture it promises — and that the four variables with no default really do
+posture it promises -- and that the four variables with no default really do
 fail loudly when they are missing.
 """
 

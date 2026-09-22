@@ -25,6 +25,7 @@ Layout
     seed.py              site root + settings row (called by seed_demo)
     api/views.py         GET /api/v1/site/config
     management/commands/seed_content.py    the example site
+    management/commands/seed_content_data.py  its copy, as page specs
   backend/templates/
     base.html            the public shell: header, nav, footer
     404.html, 500.html
@@ -297,7 +298,7 @@ that page and of every page below it.  The three permissions are what puts
 **Settings → Redirects** in the menu, so an editor can see those rows and fix
 the ones automation cannot.
 
-It runs twice: from the ``cms.0004_website_admin_permissions`` data migration,
+It runs twice: from the ``cms.0003_website_admin_permissions`` data migration,
 so a fresh database is correct after ``migrate`` alone, and again from
 ``seed_content``.  It takes an optional ``apps`` registry so the migration can
 pass historical models, which is why every lookup is written against plain
@@ -331,6 +332,16 @@ Builds the example site, and is safe to run repeatedly::
 ``upsert_page`` looks each page up by slug under its parent, updates it in
 place and publishes a revision, and the DART section deletes any page whose
 team has gone.  ``make seed`` runs it after ``seed_demo``.
+
+.. _cms-seed-data:
+
+Every word of the copy lives in ``seed_content_data.py``, which holds no logic:
+each page is a frozen ``PageSpec`` naming its slug, title, intro, menu and
+members-only flags and a tuple of ``BlockSpec`` body blocks, built by the
+``rich``, ``heading``, ``quote`` and ``cta`` helpers; a news post pairs a
+``PageSpec`` with how many days ago it was posted.  The command reads the specs
+and writes the pages, so changing a sentence never touches the code that builds
+the tree.  Site settings come from the same module's ``SITE_SETTINGS``.
 
 It also calls ``ensure_members_only_collection``, so the ``Members only``
 document collection exists on a fresh site and the members-area copy can tell

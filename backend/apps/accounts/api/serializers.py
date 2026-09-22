@@ -171,13 +171,13 @@ class PasswordChangeSerializer(serializers.Serializer[None]):
 
 
 class PasswordResetSerializer(serializers.Serializer[None]):
-    """``POST /auth/password/reset`` — the request half: the address to mail."""
+    """``POST /auth/password/reset`` -- the request half: the address to mail."""
 
     email = serializers.EmailField()
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer[None]):
-    """``POST /auth/password/reset/confirm`` — the token half: the link and password."""
+    """``POST /auth/password/reset/confirm`` -- the token half: the link and password."""
 
     uid = serializers.CharField()
     token = serializers.CharField()
@@ -224,8 +224,8 @@ class SendPasswordResetResultSerializer(serializers.Serializer[dict[str, str]]):
 class AdminUserSerializer(UserSerializer):
     """``/admin/users``: the ``user`` shape, partly writable.
 
-    The serializer validates the input — the field formats, the role slugs against
-    ``accounts.roles``, and that the address is free — and ``accounts.services``
+    The serializer validates the input -- the field formats, the role slugs against
+    ``accounts.roles``, and that the address is free -- and ``accounts.services``
     owns the rules that need both the caller and the target: only a ``system_admin``
     may move ``system_admin``, and the email address and active flag of an account
     holding roles the caller lacks are untouchable.
