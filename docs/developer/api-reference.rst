@@ -158,9 +158,10 @@ Four deliberate departures are worth knowing:
   carries no token is answered this way rather than with 401.  Fetch a token
   again and resend the request once (see :ref:`api-csrf-bootstrap`).
 - ``POST /auth/login`` answers **400** for wrong credentials (``{"detail":
-  "Incorrect email address or password."}``) and **403** for a known but
-  deactivated account.  It is an authentication endpoint; a 401 from it would
-  be ambiguous with "your session expired".
+  "Incorrect email address or password."}``) and **403** for a deactivated
+  account whose password was correct; a deactivated account given a wrong
+  password gets the same 400 as anybody else.  It is an authentication
+  endpoint; a 401 from it would be ambiguous with "your session expired".
 - ``POST /payments/stripe/confirm``, ``/payments/paypal/capture`` and
   ``/payments/mock/complete`` answer **404** for a payment that is not yours.
   They look the payment up filtered by ``user=request.user``, so somebody

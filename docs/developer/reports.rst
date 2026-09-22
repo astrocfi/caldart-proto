@@ -49,7 +49,12 @@ it:
    A ``StreamingHttpResponse``, ``text/csv; charset=utf-8``, with a download
    disposition.  Rows are consumed lazily — pass a generator or a queryset
    iterator and the whole table never sits in memory at once.  ``None`` is
-   written as an empty cell; quoting is the ``csv`` module's problem.
+   written as an empty cell; quoting is the ``csv`` module's problem.  Each
+   cell first passes through ``csv_cell``, which applies the formula policy
+   below.
+``csv_cell(value)``
+   One value as a CSV cell: ``None`` as an empty string, a formula-looking
+   string with a leading apostrophe, everything else unchanged.
 ``pdf_table_response(filename, *, title, subtitle, header, rows, landscape)``
    A reportlab table in the CalDART palette: hairline rules instead of boxes,
    zebra rows, the header repeated on every page, and a footer carrying
@@ -69,6 +74,37 @@ it:
 Fraunces and IBM Plex are web fonts and are not embedded in the PDFs; the
 built-in Times and Helvetica families carry the same serif-display,
 sans-supporting-text contrast.
+
+
+.. _reports-untrusted-values:
+
+Values a member typed
+=====================
+
+Most cells in an export — a name, a city, a certificate number, the search
+term a filter carried — are text somebody typed into the portal.  Two rules
+keep that text from being read as something other than text.
+
+**CSV: no cell can become a formula.**  A spreadsheet treats a cell opening
+with ``=``, ``+``, ``-``, ``@``, a tab or a carriage return as a formula, so a
+member whose first name is ``=HYPERLINK("http://evil.test","click")`` would run
+code on the administrator's machine.  ``csv_cell`` prefixes such a string with
+a single apostrophe, the OWASP treatment: every spreadsheet strips it on
+import, and the cell reads as the text it always was.  Only strings are
+treated this way; a number or a date passes through untouched.
+
+The money columns are strings — each report formats its cents into dollars
+itself — and they still never pick up an apostrophe, because the fields behind
+them (``amount_cents``, ``contribution_cents``, the insurance amounts) are
+positive integer fields, so a formatted amount never opens with a sign and
+always sums correctly in the spreadsheet.  A value a member typed is the case
+the policy is for: a phone number entered as ``+1 707 555 0134`` opens with
+``+``, so it exports with an apostrophe in front and reads as the text it is.
+
+**PDF: no heading or cell can become markup.**  reportlab parses a paragraph's
+text as XML, so ``<b`` in a name or in a filter would abort the export with a
+parse error.  ``escape_markup`` turns ``&``, ``<`` and ``>`` into entities, and
+``build_pdf_table`` runs the title, the subtitle and every cell through it.
 
 
 The membership report

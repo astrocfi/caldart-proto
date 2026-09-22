@@ -20,6 +20,7 @@ import httpx
 import pytest
 import respx
 import stripe
+from django.core.cache import cache
 from pytest_django.fixtures import Settings
 from rest_framework.response import Response
 from rest_framework.test import APIClient
@@ -75,9 +76,9 @@ def _providers_configured(settings: Settings) -> Iterator[None]:
     settings.PAYPAL_ENV = "sandbox"
     settings.PAYPAL_WEBHOOK_ID = ""
     settings.PAYMENTS_MOCK_ENABLED = True
-    paypal.reset_token_cache()
+    cache.clear()
     yield
-    paypal.reset_token_cache()
+    cache.clear()
 
 
 class FailingIntents:

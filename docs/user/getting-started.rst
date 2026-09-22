@@ -99,8 +99,10 @@ signed in.  Enter your email address and password.
   which of the two was wrong.  This is deliberate: it stops a stranger using the
   sign-in form to find out who has an account.
 * **This account has been deactivated** means an administrator has switched the
-  account off.  Nothing you can type will get you in; ask a user administrator
-  to reactivate it.
+  account off.  It appears only once you have typed the right password, so a
+  deactivated account looks no different from an unregistered one to a stranger
+  guessing.  Nothing you can type will get you in; ask a user administrator to
+  reactivate it.
 
 You stay signed in on that browser until you sign out or the session expires.
 **Sign out** is in the top bar of the portal, next to your email address; it

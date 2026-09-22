@@ -15,6 +15,11 @@ from apps.payments.reports import DEFAULT_GROUP, GROUPS, PaymentFilters, PeriodS
 DATE_FORMAT_MESSAGE = "Expected a date as YYYY-MM-DD."
 GROUP_MESSAGE = "Expected 'month' or 'year'."
 
+#: The largest contribution a checkout accepts, in cents: ten million dollars.
+#: Anything larger is a typo or an attack, and is refused at the boundary rather
+#: than stored and handed to a provider.
+MAX_CONTRIBUTION_CENTS = 1_000_000_000
+
 
 class ContributionTierSerializer(serializers.Serializer[dict[str, Any]]):
     """One preset contribution button of ``GET /payments/config``."""
@@ -41,11 +46,14 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /payments/checkout``.
 
     There is deliberately no amount field: the server recomputes the total from
-    the plan price plus the contribution.
+    the plan price plus the contribution.  A contribution outside
+    ``0..MAX_CONTRIBUTION_CENTS`` is a 400 naming ``contribution_cents``.
     """
 
     plan = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
-    contribution_cents = serializers.IntegerField(required=False, min_value=0, default=0)
+    contribution_cents = serializers.IntegerField(
+        required=False, min_value=0, max_value=MAX_CONTRIBUTION_CENTS, default=0
+    )
     provider = serializers.ChoiceField(choices=PaymentProvider.choices)
 
 
