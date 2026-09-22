@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Paginated, ReminderLogEntry } from '../../api/types';
+import type { Paginated, ReminderLogEntry } from '@/portal/api/types';
 import { RemindersPanel, runSummary } from './RemindersPanel';
 
 const ENTRIES: ReminderLogEntry[] = [

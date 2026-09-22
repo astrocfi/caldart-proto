@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { RequireRole } from '../../auth/guards';
+import { RequireRole } from '@/portal/auth/guards';
 import { SystemPage } from './SystemPage';
 
 const NOW = new Date('2026-06-15T12:00:00Z');

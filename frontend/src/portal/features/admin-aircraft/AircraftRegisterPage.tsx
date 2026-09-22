@@ -6,17 +6,17 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { ApiError } from '../../api/client';
-import type { Aircraft, AircraftPatch } from '../../api/types';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { DataTable } from '../../components/DataTable';
-import type { Column, SortDirection } from '../../components/DataTable';
-import { DateText } from '../../components/DateText';
-import { Field } from '../../components/Field';
-import { Page } from '../../components/Page';
-import { useToast } from '../../components/Toast';
-import { useDebounced } from '../../components/useDebounced';
+import { ApiError } from '@/portal/api/client';
+import type { Aircraft, AircraftPatch } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { DataTable } from '@/portal/components/DataTable';
+import type { Column, SortDirection } from '@/portal/components/DataTable';
+import { DateText } from '@/portal/components/DateText';
+import { Field } from '@/portal/components/Field';
+import { Page } from '@/portal/components/Page';
+import { useToast } from '@/portal/components/Toast';
+import { useDebounced } from '@/portal/components/useDebounced';
 import { InsuranceChip } from '../aircraft/InsuranceChip';
 import { ServiceChip } from '../aircraft/ServiceChip';
 import '../aircraft/aircraft.css';
@@ -122,7 +122,7 @@ export function AircraftRegisterPage(): JSX.Element {
     },
   ];
 
-  const submitNew = (payload: AircraftPatch): void => {
+  const handleSubmit = (payload: AircraftPatch): void => {
     create.mutate(payload, {
       onSuccess: (aircraft) => {
         setAdding(false);
@@ -158,7 +158,7 @@ export function AircraftRegisterPage(): JSX.Element {
             submitLabel="Add aircraft"
             pending={create.isPending}
             serverErrors={serverErrors}
-            onSubmit={submitNew}
+            onSubmit={handleSubmit}
             onCancel={() => setAdding(false)}
             withAdminFields
           />

@@ -11,4 +11,4 @@ export {
   MEDICAL_LABELS,
   RATING_LABELS,
   ratingLabels,
-} from '../../choices';
+} from '@/portal/choices';

@@ -5,9 +5,9 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 
-import type { AircraftPatch } from '../../api/types';
-import { Button } from '../../components/Button';
-import { Field } from '../../components/Field';
+import type { AircraftPatch } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Field } from '@/portal/components/Field';
 import './aircraft.css';
 import type { AircraftFormValues } from './form';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, aircraftPayload, validateAircraft } from './form';
@@ -31,7 +31,7 @@ export function AircraftForm({
   pending = false,
   serverErrors,
   onSubmit,
-  onCancel,
+  onCancel: handleCancel,
   withAdminFields = false,
 }: AircraftFormProps): JSX.Element {
   const [values, setValues] = useState<AircraftFormValues>(initial);
@@ -43,7 +43,7 @@ export function AircraftForm({
     setValues((current) => ({ ...current, [key]: value }));
   };
 
-  const submit = (event: React.FormEvent): void => {
+  const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     const found = validateAircraft(values);
     setErrors(found);
@@ -52,7 +52,7 @@ export function AircraftForm({
   };
 
   return (
-    <form onSubmit={submit} noValidate>
+    <form onSubmit={handleSubmit} noValidate>
       <fieldset className="aircraft-form__section">
         <legend className="aircraft-form__legend">Aircraft</legend>
         <div className="aircraft-form__grid">
@@ -255,8 +255,8 @@ export function AircraftForm({
         <Button type="submit" disabled={pending}>
           {pending ? 'Saving…' : submitLabel}
         </Button>
-        {onCancel ? (
-          <Button variant="quiet" onClick={onCancel}>
+        {handleCancel ? (
+          <Button variant="quiet" onClick={handleCancel}>
             Cancel
           </Button>
         ) : null}

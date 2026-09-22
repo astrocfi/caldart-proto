@@ -3,11 +3,11 @@ import { useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import { ApiError } from '../../api/client';
-import { useAuth, useRegister, useSignOut } from '../../auth/useAuth';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { Field } from '../../components/Field';
+import { ApiError } from '@/portal/api/client';
+import { useAuth, useRegister, useSignOut } from '@/portal/auth/useAuth';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { Field } from '@/portal/components/Field';
 import './join.css';
 
 export interface AccountStepProps {
@@ -15,7 +15,7 @@ export interface AccountStepProps {
 }
 
 /** Step 1 of the join wizard: sign in, or register through `useRegister`. */
-export function AccountStep({ onDone }: AccountStepProps): JSX.Element {
+export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Element {
   const { user, isAuthenticated } = useAuth();
   const { signOut, isPending: isSigningOut } = useSignOut();
   const register = useRegister();
@@ -31,8 +31,8 @@ export function AccountStep({ onDone }: AccountStepProps): JSX.Element {
           You are signed in as <strong>{user.email}</strong>.
         </p>
         <div className="cluster card__footer">
-          <Button onClick={onDone}>Continue</Button>
-          <Button variant="quiet" onClick={signOut} disabled={isSigningOut}>
+          <Button onClick={handleDone}>Continue</Button>
+          <Button variant="quiet" onClick={() => signOut()} disabled={isSigningOut}>
             Use a different account
           </Button>
         </div>
@@ -52,7 +52,7 @@ export function AccountStep({ onDone }: AccountStepProps): JSX.Element {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
       },
-      { onSuccess: onDone },
+      { onSuccess: handleDone },
     );
   }
 

@@ -1,9 +1,9 @@
 /** The payment report's filter bar. */
 import type { JSX } from 'react';
 
-import { Button } from '../../components/Button';
-import { Field } from '../../components/Field';
-import type { PaymentProvider, PaymentState } from '../../api/types';
+import { Button } from '@/portal/components/Button';
+import { Field } from '@/portal/components/Field';
+import type { PaymentProvider, PaymentState } from '@/portal/api/types';
 import { EMPTY_FILTERS } from './api';
 import type { PaymentFilterState } from './api';
 import { PROVIDER_LABELS, STATUS_LABELS } from './labels';

@@ -13,8 +13,8 @@ import { useEffect, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { ApiError } from '../../api/client';
-import { EmptyState } from '../../components/EmptyState';
+import { ApiError } from '@/portal/api/client';
+import { EmptyState } from '@/portal/components/EmptyState';
 import { confirmStripePayment, fetchPayment } from './api';
 import type { CheckoutResult } from './types';
 

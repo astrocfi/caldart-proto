@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { AUTH_ME_KEY } from '../../auth/useAuth';
+import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 import { AccountStep } from './AccountStep';
 
 async function fillAndSubmit(): Promise<void> {
@@ -38,15 +38,15 @@ describe('<AccountStep/>', () => {
     const user = makeUser();
     server.use(http.post(`${API}/auth/register`, () => HttpResponse.json(user, { status: 201 })));
 
-    const onDone = vi.fn();
-    const { client } = renderWithProviders(<AccountStep onDone={onDone} />, {
+    const handleDone = vi.fn();
+    const { client } = renderWithProviders(<AccountStep onDone={handleDone} />, {
       client: makeRetainingQueryClient(),
     });
     client.setQueryData(['members', 'roster'], ['someone else was here']);
 
     await fillAndSubmit();
 
-    expect(onDone).toHaveBeenCalled();
+    expect(handleDone).toHaveBeenCalled();
     expect(client.getQueryData(['members', 'roster'])).toBeUndefined();
     expect(client.getQueryData(AUTH_ME_KEY)).toEqual(user);
   });
@@ -54,7 +54,7 @@ describe('<AccountStep/>', () => {
   it('offers "Use a different account" as a button rather than a link', async () => {
     server.use(signedInAs(makeUser()));
 
-    renderWithProviders(<AccountStep onDone={vi.fn()} />);
+    renderWithProviders(<AccountStep onDone={() => {}} />);
 
     expect(
       await screen.findByRole('button', { name: 'Use a different account' }),
@@ -72,7 +72,7 @@ describe('<AccountStep/>', () => {
       }),
     );
 
-    renderWithProviders(<AccountStep onDone={vi.fn()} />);
+    renderWithProviders(<AccountStep onDone={() => {}} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Use a different account' }));
 
     await waitFor(() => expect(logouts).toBe(1));

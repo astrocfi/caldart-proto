@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { API } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
-import type { Paginated, ReminderLogEntry } from '../../api/types';
+import { API } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
+import type { Paginated, ReminderLogEntry } from '@/portal/api/types';
 import { AdminRemindersPage } from './AdminRemindersPage';
 
 const ENTRIES: ReminderLogEntry[] = [

@@ -16,8 +16,8 @@
 import { useId } from 'react';
 import type { JSX } from 'react';
 
-import type { Dart, Rating } from '../../api/types';
-import { Field } from '../../components/Field';
+import type { Dart, Rating } from '@/portal/api/types';
+import { Field } from '@/portal/components/Field';
 import {
   CA_COUNTIES,
   CERTIFICATE_TYPES,

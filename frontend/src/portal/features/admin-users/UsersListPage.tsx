@@ -3,15 +3,15 @@ import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import type { RoleSlug, User } from '../../api/types';
-import { useRoles } from '../../auth/useAuth';
-import { Button } from '../../components/Button';
-import type { Column } from '../../components/DataTable';
-import { DataTable } from '../../components/DataTable';
-import { Field } from '../../components/Field';
-import { MembershipChip, StatusChip } from '../../components/StatusChip';
-import { Page } from '../../components/Page';
-import { useDebounced } from '../../components/useDebounced';
+import type { RoleSlug, User } from '@/portal/api/types';
+import { useRoles } from '@/portal/auth/useAuth';
+import { Button } from '@/portal/components/Button';
+import type { Column } from '@/portal/components/DataTable';
+import { DataTable } from '@/portal/components/DataTable';
+import { Field } from '@/portal/components/Field';
+import { MembershipChip, StatusChip } from '@/portal/components/StatusChip';
+import { Page } from '@/portal/components/Page';
+import { useDebounced } from '@/portal/components/useDebounced';
 import { useAdminUsers } from './api';
 
 const PAGE_SIZE = 25;

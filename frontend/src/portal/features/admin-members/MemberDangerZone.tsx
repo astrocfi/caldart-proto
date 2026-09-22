@@ -14,10 +14,13 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, Field, useToast } from '../../components';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { Field } from '@/portal/components/Field';
+import { useToast } from '@/portal/components/Toast';
 import { useDeleteMember } from './api';
 import { splitErrors } from './errors';
-import type { MemberDetail } from '../../api/types';
+import type { MemberDetail } from '@/portal/api/types';
 
 function PaymentsKept({ member }: { member: MemberDetail }) {
   const count = member.payments.length;
@@ -45,7 +48,7 @@ export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Elem
   const confirmed = confirmation.trim().toLowerCase() === member.email.toLowerCase();
   const errors = splitErrors(remove.error);
 
-  const submit = (event: React.FormEvent) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!confirmed) return;
     remove.mutate(undefined, {
@@ -65,7 +68,7 @@ export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Elem
         {member.memberships.length} membership term
         {member.memberships.length === 1 ? '' : 's'}. This cannot be undone.
       </p>
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={handleSubmit} noValidate>
         {errors.detail ? (
           <p role="alert" className="field__error">
             {errors.detail}

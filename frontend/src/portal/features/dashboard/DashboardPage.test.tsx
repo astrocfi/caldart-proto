@@ -11,8 +11,8 @@ import type {
   PaymentSummary,
   SiteConfig,
   User,
-} from '../../api/types';
-import { EXPIRING_WINDOW_DAYS } from '../../components/StatusChip';
+} from '@/portal/api/types';
+import { EXPIRING_WINDOW_DAYS } from '@/portal/components/StatusChip';
 import { DashboardPage } from './DashboardPage';
 
 const NOW = new Date('2026-06-15T12:00:00Z');

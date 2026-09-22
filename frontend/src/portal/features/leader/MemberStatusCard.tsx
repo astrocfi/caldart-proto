@@ -7,10 +7,10 @@
  */
 import type { JSX } from 'react';
 
-import type { LeaderStatus, MembershipState } from '../../api/types';
-import { DateText } from '../../components/DateText';
-import { StatusChip } from '../../components/StatusChip';
-import type { StatusTone } from '../../components/StatusChip';
+import type { LeaderStatus, MembershipState } from '@/portal/api/types';
+import { DateText } from '@/portal/components/DateText';
+import { StatusChip } from '@/portal/components/StatusChip';
+import type { StatusTone } from '@/portal/components/StatusChip';
 import { InsuranceChip } from '../aircraft/InsuranceChip';
 import { CERTIFICATE_LABELS, IFR_LABELS, MEDICAL_LABELS, ratingLabels } from './labels';
 import './leader.css';

@@ -121,23 +121,23 @@ describe('ToastProvider', () => {
 
 describe('ToastViewport', () => {
   it('renders nothing for an empty queue', () => {
-    const { container } = render(<ToastViewport toasts={[]} onDismiss={vi.fn()} />);
+    const { container } = render(<ToastViewport toasts={[]} onDismiss={() => {}} />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('hands the dismissed toast id back to its caller', async () => {
     const user = userEvent.setup();
-    const onDismiss = vi.fn();
+    const handleDismiss = vi.fn();
     render(
       <ToastViewport
         toasts={[{ id: 9, message: 'Sent.', tone: 'success' }]}
-        onDismiss={onDismiss}
+        onDismiss={handleDismiss}
       />,
     );
 
     await user.click(screen.getByRole('button', { name: 'Dismiss' }));
 
-    expect(onDismiss).toHaveBeenCalledWith(9);
+    expect(handleDismiss).toHaveBeenCalledWith(9);
   });
 });
 

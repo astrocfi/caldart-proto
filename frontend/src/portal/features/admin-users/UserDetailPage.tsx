@@ -3,15 +3,15 @@ import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import type { RoleSlug, User } from '../../api/types';
-import { useAuth, useRoles } from '../../auth/useAuth';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { Field } from '../../components/Field';
-import { MembershipChip } from '../../components/StatusChip';
-import { Page } from '../../components/Page';
-import { useToast } from '../../components/Toast';
+import type { RoleSlug, User } from '@/portal/api/types';
+import { useAuth, useRoles } from '@/portal/auth/useAuth';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { Field } from '@/portal/components/Field';
+import { MembershipChip } from '@/portal/components/StatusChip';
+import { Page } from '@/portal/components/Page';
+import { useToast } from '@/portal/components/Toast';
 import { FormAlert, fieldError } from '../auth/form';
 import { useAdminUser, useSendPasswordReset, useUpdateAdminUser } from './api';
 

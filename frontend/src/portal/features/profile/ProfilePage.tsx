@@ -2,12 +2,12 @@
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import { ApiError } from '../../api/client';
-import { ButtonLink } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { Page } from '../../components/Page';
-import { useToast } from '../../components/Toast';
+import { ApiError } from '@/portal/api/client';
+import { ButtonLink } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { Page } from '@/portal/components/Page';
+import { useToast } from '@/portal/components/Toast';
 import { ProfileForm } from './ProfileForm';
 import { useProfile, useSaveProfile } from './api';
 import { profileToForm, saveErrorMessage } from './form';

@@ -3,9 +3,9 @@
  * check: N-number normalization (the same rule as the server) and the
  * insurance state every screen colors its chips by.
  */
-import type { AircraftSummary } from '../../api/types';
-import { EXPIRING_WINDOW_DAYS, daysUntil } from '../../components/StatusChip';
-import type { StatusTone } from '../../components/StatusChip';
+import type { AircraftSummary } from '@/portal/api/types';
+import { EXPIRING_WINDOW_DAYS, daysUntil } from '@/portal/components/StatusChip';
+import type { StatusTone } from '@/portal/components/StatusChip';
 
 const PUNCTUATION = /[^A-Za-z0-9]/g;
 

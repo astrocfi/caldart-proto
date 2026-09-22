@@ -56,16 +56,16 @@ const VOLUNTEER_LABELS = [
 ];
 
 function renderFieldsets(overrides: Partial<ProfileFieldsetsProps> = {}) {
-  const onChange = vi.fn();
+  const handleChange = vi.fn();
   renderWithProviders(
     <ProfileFieldsets
       value={EMPTY_PROFILE_FORM}
-      onChange={onChange}
+      onChange={handleChange}
       darts={TEST_DARTS}
       {...overrides}
     />,
   );
-  return onChange;
+  return handleChange;
 }
 
 describe('<ProfileFieldsets/>', () => {

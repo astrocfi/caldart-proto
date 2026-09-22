@@ -18,8 +18,8 @@ import type { JSX } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useAuth } from '../../auth/useAuth';
-import { Page } from '../../components/Page';
+import { useAuth } from '@/portal/auth/useAuth';
+import { Page } from '@/portal/components/Page';
 import { AccountStep } from './AccountStep';
 import { DoneStep } from './DoneStep';
 import { PayStep } from './PayStep';

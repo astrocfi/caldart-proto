@@ -1,10 +1,10 @@
 /** Step 2 — the same profile form `/profile` uses. */
 import type { JSX } from 'react';
 
-import { ApiError } from '../../api/client';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { useToast } from '../../components/Toast';
+import { ApiError } from '@/portal/api/client';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { useToast } from '@/portal/components/Toast';
 import { ProfileForm } from '../profile/ProfileForm';
 import { useProfile, useSaveProfile } from '../profile/api';
 import { EMPTY_PROFILE_FORM, profileToForm, saveErrorMessage } from '../profile/form';

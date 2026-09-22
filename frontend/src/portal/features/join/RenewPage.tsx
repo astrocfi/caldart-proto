@@ -11,11 +11,11 @@ import { useNavigate } from 'react-router-dom';
 
 import { Checkout } from '@/portal/features/checkout';
 
-import { Card } from '../../components/Card';
-import { DateText } from '../../components/DateText';
-import { Page } from '../../components/Page';
-import { MembershipChip, daysUntil } from '../../components/StatusChip';
-import { useToast } from '../../components/Toast';
+import { Card } from '@/portal/components/Card';
+import { DateText } from '@/portal/components/DateText';
+import { Page } from '@/portal/components/Page';
+import { MembershipChip, daysUntil } from '@/portal/components/StatusChip';
+import { useToast } from '@/portal/components/Toast';
 import { useMembership } from '../profile/api';
 import { refreshAfterPayment } from './refresh';
 import './join.css';

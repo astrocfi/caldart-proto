@@ -51,7 +51,7 @@ export function PortalLayout(): JSX.Element {
             {isAuthenticated && user ? (
               <>
                 <span className="muted portal__email">{user.email}</span>
-                <Button variant="quiet" small onClick={signOut} disabled={isSigningOut}>
+                <Button variant="quiet" small onClick={() => signOut()} disabled={isSigningOut}>
                   Sign out
                 </Button>
               </>

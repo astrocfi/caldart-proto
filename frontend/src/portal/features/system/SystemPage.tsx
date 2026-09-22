@@ -1,7 +1,7 @@
 /** `/portal/system` — health, backups and reminders. */
 import type { JSX } from 'react';
 
-import { Page } from '../../components/Page';
+import { Page } from '@/portal/components/Page';
 import { BackupsPanel } from './BackupsPanel';
 import { HealthPanel } from './HealthPanel';
 import { RemindersPanel } from './RemindersPanel';

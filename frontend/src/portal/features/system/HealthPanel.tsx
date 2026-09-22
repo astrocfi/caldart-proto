@@ -6,12 +6,12 @@
  */
 import type { JSX } from 'react';
 
-import type { Health } from '../../api/types';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { formatDateTime } from '../../components/DateText';
-import { StatusChip } from '../../components/StatusChip';
-import type { StatusTone } from '../../components/StatusChip';
+import type { Health } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { formatDateTime } from '@/portal/components/DateText';
+import { StatusChip } from '@/portal/components/StatusChip';
+import type { StatusTone } from '@/portal/components/StatusChip';
 import { useHealth } from './api';
 
 export type CheckVerdict = 'ok' | 'warn' | 'bad';

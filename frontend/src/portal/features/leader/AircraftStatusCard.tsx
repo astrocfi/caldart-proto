@@ -4,13 +4,13 @@
  */
 import type { JSX } from 'react';
 
-import { DateText } from '../../components/DateText';
-import { Money } from '../../components/Money';
-import { StatusChip } from '../../components/StatusChip';
-import type { StatusTone } from '../../components/StatusChip';
+import { DateText } from '@/portal/components/DateText';
+import { Money } from '@/portal/components/Money';
+import { StatusChip } from '@/portal/components/StatusChip';
+import type { StatusTone } from '@/portal/components/StatusChip';
 import { InsuranceChip } from '../aircraft/InsuranceChip';
 import { ServiceChip } from '../aircraft/ServiceChip';
-import type { AircraftDetail } from '../../api/types';
+import type { AircraftDetail } from '@/portal/api/types';
 import { OWNER_TYPE_LABELS } from '../aircraft/form';
 import { insuranceTone } from '../aircraft/insurance';
 import './leader.css';

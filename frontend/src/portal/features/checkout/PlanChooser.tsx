@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 
-import type { Plan } from '../../api/types';
-import { formatCents } from '../../components/Money';
+import type { Plan } from '@/portal/api/types';
+import { formatCents } from '@/portal/components/Money';
 
 export interface PlanChooserProps {
   plans: Plan[];

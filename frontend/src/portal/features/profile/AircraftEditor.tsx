@@ -11,12 +11,12 @@ import { AircraftForm } from '@/portal/features/aircraft';
 import { aircraftToValues } from '@/portal/features/aircraft';
 import type { JSX } from 'react';
 
-import { ApiError } from '../../api/client';
-import type { AircraftPatch } from '../../api/types';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { EmptyState } from '../../components/EmptyState';
-import { useToast } from '../../components/Toast';
+import { ApiError } from '@/portal/api/client';
+import type { AircraftPatch } from '@/portal/api/types';
+import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
+import { EmptyState } from '@/portal/components/EmptyState';
+import { useToast } from '@/portal/components/Toast';
 
 export interface AircraftEditorProps {
   aircraftId: number;
@@ -30,7 +30,7 @@ export interface AircraftEditorProps {
 export function AircraftEditor({
   aircraftId,
   userId,
-  onClose,
+  onClose: handleClose,
   onSaved,
 }: AircraftEditorProps): JSX.Element {
   const aircraft = useAircraft(aircraftId);
@@ -57,7 +57,7 @@ export function AircraftEditor({
               ? aircraft.error.message
               : 'Something went wrong. Try again in a moment.'
           }
-          action={<Button onClick={onClose}>Close</Button>}
+          action={<Button onClick={handleClose}>Close</Button>}
         />
       </Card>
     );
@@ -72,7 +72,7 @@ export function AircraftEditor({
         <EmptyState
           title="Someone else added this aircraft"
           description="Ask a CalDART account administrator to correct it — they can edit any record in the register."
-          action={<Button onClick={onClose}>Close</Button>}
+          action={<Button onClick={handleClose}>Close</Button>}
         />
       </Card>
     );
@@ -87,7 +87,7 @@ export function AircraftEditor({
         submitLabel="Save aircraft"
         pending={update.isPending}
         serverErrors={serverErrors}
-        onCancel={onClose}
+        onCancel={handleClose}
         onSubmit={(payload: AircraftPatch) =>
           update.mutate(payload, {
             onSuccess: () => {
