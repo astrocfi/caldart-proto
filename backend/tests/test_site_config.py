@@ -12,9 +12,9 @@ from rest_framework.test import APIClient
 from wagtail.models import Page
 
 from apps.accounts.models import User
-from apps.cms.models import SiteSettings
+from apps.cms.models import SiteSettings, StandardPage
 from apps.members.models import MembershipPlan
-from tests.test_cms_pages import (
+from tests.factories import (
     expire_membership,
     grant_membership,
     make_news_index,
@@ -110,11 +110,11 @@ def test_a_member_who_never_paid_gets_no_members_pages(
 
 
 def test_a_dart_leader_without_a_membership_gets_the_members_pages(
-    api_client: APIClient, site_tree: Page, leader: User
+    api_client: APIClient, site_tree: Page, dart_leader: User
 ) -> None:
     """A DART leader with no membership of their own still gets the members pages."""
-    assert leader.membership_status["status"] == "none"
-    api_client.force_login(leader)
+    assert dart_leader.membership_status["status"] == "none"
+    api_client.force_login(dart_leader)
     assert api_client.get(URL).json()["members_pages"]
 
 
@@ -127,13 +127,11 @@ def test_a_superuser_gets_the_members_pages(
 
 
 def test_unpublished_members_pages_are_not_listed(
-    api_client: APIClient, site_tree: Page, leader: User
+    api_client: APIClient, site_tree: Page, dart_leader: User
 ) -> None:
     """An unpublished members-only page is left out of the members-pages list."""
-    from apps.cms.models import StandardPage
-
     StandardPage.objects.get(slug="docs-and-links").unpublish()
-    api_client.force_login(leader)
+    api_client.force_login(dart_leader)
 
     titles = {p["title"] for p in api_client.get(URL).json()["members_pages"]}
     assert "Documents and Links" not in titles
@@ -143,8 +141,6 @@ def test_config_falls_back_when_there_is_no_site_settings_row(
     api_client: APIClient, db: None
 ) -> None:
     """The endpoint must answer before ``seed`` has run."""
-    from apps.cms.models import SiteSettings
-
     SiteSettings.objects.all().delete()
 
     data = api_client.get(URL).json()

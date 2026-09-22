@@ -15,6 +15,8 @@ from rest_framework.test import APIRequestFactory
 from apps.accounts.models import User
 from apps.members.api.actors import acting_user
 
+pytestmark = pytest.mark.django_db
+
 
 def test_it_returns_the_signed_in_account(member: User) -> None:
     """A request an authentication class resolved hands back that account."""

@@ -25,34 +25,30 @@ from apps.accounts.models import User
 from apps.members.models import MembershipPlan
 from apps.payments.models import PaymentProvider
 from apps.payments.services import create_checkout
+from tests.conftest import (
+    GOOD_PASSWORD,
+    LOGIN_URL,
+    ME_URL,
+    REGISTER_URL,
+    RESET_CONFIRM_URL,
+    RESET_URL,
+    register_payload,
+)
 
 pytestmark = pytest.mark.django_db
 
 CSRF = "/api/v1/auth/csrf"
-REGISTER = "/api/v1/auth/register"
-LOGIN = "/api/v1/auth/login"
+
+
 LOGOUT = "/api/v1/auth/logout"
-ME = "/api/v1/auth/me"
-RESET = "/api/v1/auth/password/reset"
-RESET_CONFIRM = "/api/v1/auth/password/reset/confirm"
+
+
 CHECKOUT = "/api/v1/payments/checkout"
 STRIPE_WEBHOOK = "/api/v1/payments/stripe/webhook"
 PAYPAL_WEBHOOK = "/api/v1/payments/paypal/webhook"
 
-GOOD_PASSWORD = "Sierra-Foothills-2027"  # noqa: S105 - test fixture
+
 ATTACKER_EMAIL = "attacker@evil.test"
-
-
-def register_payload(**overrides: str) -> dict[str, str]:
-    """A valid ``POST /auth/register`` body, with ``overrides`` replacing fields."""
-    payload = {
-        "email": "new.member@example.test",
-        "password": GOOD_PASSWORD,
-        "first_name": "Nora",
-        "last_name": "Bright",
-    }
-    payload.update(overrides)
-    return payload
 
 
 def reset_credentials(user: User) -> dict[str, str]:
@@ -74,12 +70,14 @@ def bootstrapped_token(
 # Anonymous unsafe methods are refused without a token
 # --------------------------------------------------------------------------
 ANONYMOUS_POSTS = [
-    pytest.param(REGISTER, register_payload(), id="register"),
-    pytest.param(LOGIN, {"email": "member@example.test", "password": GOOD_PASSWORD}, id="login"),
-    pytest.param(LOGOUT, {}, id="logout"),
-    pytest.param(RESET, {"email": "member@example.test"}, id="password-reset"),
+    pytest.param(REGISTER_URL, register_payload(), id="register"),
     pytest.param(
-        RESET_CONFIRM,
+        LOGIN_URL, {"email": "member@example.test", "password": GOOD_PASSWORD}, id="login"
+    ),
+    pytest.param(LOGOUT, {}, id="logout"),
+    pytest.param(RESET_URL, {"email": "member@example.test"}, id="password-reset"),
+    pytest.param(
+        RESET_CONFIRM_URL,
         {"uid": "x", "token": "y", "new_password": GOOD_PASSWORD},
         id="password-reset-confirm",
     ),
@@ -119,21 +117,21 @@ def test_a_refused_login_sets_no_session_cookie(
     csrf_client: APIClient, member: User, password: str
 ) -> None:
     """A login refused for a missing token leaves no session cookie behind."""
-    csrf_client.post(LOGIN, {"email": member.email, "password": password}, format="multipart")
+    csrf_client.post(LOGIN_URL, {"email": member.email, "password": password}, format="multipart")
 
     assert "sessionid" not in csrf_client.cookies
 
 
 def test_a_refused_registration_creates_no_user(csrf_client: APIClient) -> None:
     """A registration refused for a missing token creates no account."""
-    csrf_client.post(REGISTER, register_payload(email=ATTACKER_EMAIL), format="multipart")
+    csrf_client.post(REGISTER_URL, register_payload(email=ATTACKER_EMAIL), format="multipart")
 
     assert User.objects.filter(email=ATTACKER_EMAIL).exists() is False
 
 
 def test_a_refused_password_reset_sends_no_email(csrf_client: APIClient, member: User) -> None:
     """A reset request refused for a missing token sends no email."""
-    csrf_client.post(RESET, {"email": member.email})
+    csrf_client.post(RESET_URL, {"email": member.email})
 
     assert len(mail.outbox) == 0
 
@@ -152,7 +150,7 @@ def test_registration_succeeds_with_the_bootstrapped_token(
     """Registration succeeds once the bootstrapped token is sent back as a header."""
     token = bootstrapped_token(csrf_headers, csrf_client)
 
-    response = csrf_client.post(REGISTER, register_payload(), HTTP_X_CSRFTOKEN=token)
+    response = csrf_client.post(REGISTER_URL, register_payload(), HTTP_X_CSRFTOKEN=token)
 
     assert response.status_code == 201
 
@@ -167,7 +165,7 @@ def test_login_succeeds_with_the_bootstrapped_token(
     token = bootstrapped_token(csrf_headers, csrf_client)
 
     response = csrf_client.post(
-        LOGIN, {"email": member.email, "password": password}, HTTP_X_CSRFTOKEN=token
+        LOGIN_URL, {"email": member.email, "password": password}, HTTP_X_CSRFTOKEN=token
     )
 
     assert response.status_code == 200
@@ -190,7 +188,8 @@ def test_a_password_reset_succeeds_with_the_bootstrapped_token(
     token = bootstrapped_token(csrf_headers, csrf_client)
 
     assert (
-        csrf_client.post(RESET, {"email": member.email}, HTTP_X_CSRFTOKEN=token).status_code == 204
+        csrf_client.post(RESET_URL, {"email": member.email}, HTTP_X_CSRFTOKEN=token).status_code
+        == 204
     )
 
 
@@ -201,7 +200,7 @@ def test_a_reset_confirm_succeeds_with_the_bootstrapped_token(
     token = bootstrapped_token(csrf_headers, csrf_client)
     payload = reset_credentials(member) | {"new_password": GOOD_PASSWORD}
 
-    assert csrf_client.post(RESET_CONFIRM, payload, HTTP_X_CSRFTOKEN=token).status_code == 204
+    assert csrf_client.post(RESET_CONFIRM_URL, payload, HTTP_X_CSRFTOKEN=token).status_code == 204
 
 
 # --------------------------------------------------------------------------
@@ -241,7 +240,7 @@ def test_a_safe_method_needs_no_token(csrf_client: APIClient, member: User) -> N
     """A ``GET`` needs no CSRF token even under enforcement."""
     csrf_client.force_login(member)
 
-    assert csrf_client.get(ME).status_code == 200
+    assert csrf_client.get(ME_URL).status_code == 200
 
 
 def test_the_stripe_webhook_needs_no_token(csrf_client: APIClient, settings: Settings) -> None:

@@ -11,6 +11,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.aircraft.models import Aircraft
 from apps.members.models import Dart, MemberProfile, MembershipPlan
+from tests.conftest import ROLE_MATRIX
 from tests.factories import (
     AircraftFactory,
     DartFactory,
@@ -54,16 +55,14 @@ def test_me_endpoints_are_401_when_anonymous(api_client: APIClient, method: str,
     assert response.status_code == 401
 
 
+@pytest.mark.parametrize("url", [PROFILE_URL, MEMBERSHIP_URL, PAYMENTS_URL])
+@pytest.mark.parametrize("slug", ROLE_MATRIX)
 def test_every_role_reads_its_own_profile(
-    api_client: APIClient, all_role_users: dict[str, User]
+    api_client: APIClient, all_role_users: dict[str, User], url: str, slug: str
 ) -> None:
     """Every role, not just member, can read its own profile, membership and payments."""
-    for user in all_role_users.values():
-        api_client.force_login(user)
-        assert api_client.get(PROFILE_URL).status_code == 200
-        assert api_client.get(MEMBERSHIP_URL).status_code == 200
-        assert api_client.get(PAYMENTS_URL).status_code == 200
-        api_client.logout()
+    api_client.force_login(all_role_users[slug])
+    assert api_client.get(url).status_code == 200
 
 
 def test_catalogs_are_public(

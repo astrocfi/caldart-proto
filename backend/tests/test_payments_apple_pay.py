@@ -28,7 +28,7 @@ def association_file(tmp_path: Path, settings: Settings) -> Path:
 
 
 def test_the_file_is_served_as_plain_text(client: Client, association_file: Path) -> None:
-    """The endpoint returns the file's bytes with a ``text/plain`` content type."""
+    """The endpoint returns the file's bytes as ``text/plain`` to an anonymous client."""
     response = client.get(URL)
     assert response.status_code == 200
     assert response["Content-Type"] == "text/plain"
@@ -56,12 +56,11 @@ def test_it_is_404_when_the_file_is_missing(
     assert client.get(URL).status_code == 404
 
 
-def test_it_needs_no_session(client: Client, association_file: Path) -> None:
-    """Stripe fetches it anonymously."""
-    assert client.get(URL).status_code == 200
-
-
-def test_head_works_and_post_does_not(client: Client, association_file: Path) -> None:
-    """HEAD succeeds like GET; POST is refused with a 405."""
+def test_head_works_like_get(client: Client, association_file: Path) -> None:
+    """A HEAD request succeeds, so a checker that only probes headers is answered."""
     assert client.head(URL).status_code == 200
+
+
+def test_post_is_refused(client: Client, association_file: Path) -> None:
+    """The endpoint is read-only: a POST is refused with a 405."""
     assert client.post(URL).status_code == 405

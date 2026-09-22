@@ -7,27 +7,29 @@ Exports live in ``test_aircraft_exports.py`` and the leader check in
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from django.utils import timezone
-from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN
 from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile
+from tests.conftest import RegisterDict, role_matrix
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
+
+if TYPE_CHECKING:
+    # rest_framework.test.APIClient.get() is typed to return this class, but it
+    # exists only in the stub: rest_framework monkey-patches Django's test response
+    # at runtime rather than defining a real subclass.
+    from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
 
 pytestmark = pytest.mark.django_db
 
 LIST_URL = "/api/v1/aircraft"
 LOOKUP_URL = "/api/v1/aircraft/lookup"
-
-#: An aircraft register keyed by scenario name, built by the ``register`` fixture.
-RegisterDict = dict[str, Aircraft]
 
 
 def detail_url(aircraft: Aircraft) -> str:
@@ -82,8 +84,8 @@ def test_any_member_may_list_the_register(
     api_client.force_login(member)
     response = api_client.get(LIST_URL)
     assert response.status_code == 200
-    assert response.data["count"] == 1
-    row = response.data["results"][0]
+    assert response.json()["count"] == 1
+    row = response.json()["results"][0]
     assert row["n_number"] == aircraft.n_number
     assert row["insurance_is_current"] is True
     assert "insurance_summary" in row
@@ -97,8 +99,8 @@ def test_detail_shows_the_attached_pilots_to_a_leader(
     api_client.force_login(dart_leader)
     response = api_client.get(detail_url(aircraft))
     assert response.status_code == 200
-    assert [pilot["user_id"] for pilot in response.data["pilots"]] == [profile.user_id]
-    assert response.data["pilots"][0]["medical_is_current"] is True
+    assert [pilot["user_id"] for pilot in response.json()["pilots"]] == [profile.user_id]
+    assert response.json()["pilots"][0]["medical_is_current"] is True
 
 
 def test_detail_shows_the_attached_pilots_to_an_account_admin(
@@ -108,7 +110,7 @@ def test_detail_shows_the_attached_pilots_to_an_account_admin(
     profile.aircraft.add(aircraft)
     api_client.force_login(account_admin)
     response = api_client.get(detail_url(aircraft))
-    assert [pilot["user_id"] for pilot in response.data["pilots"]] == [profile.user_id]
+    assert [pilot["user_id"] for pilot in response.json()["pilots"]] == [profile.user_id]
 
 
 @pytest.mark.parametrize("url_for", [detail_url, lambda a: f"{LOOKUP_URL}?n_number={a.n_number}"])
@@ -125,8 +127,8 @@ def test_a_plain_member_never_learns_who_else_flies_an_aircraft(
     api_client.force_login(other)
     response = api_client.get(url_for(aircraft))
     assert response.status_code == 200
-    assert "pilots" not in response.data
-    assert response.data["n_number"] == aircraft.n_number
+    assert "pilots" not in response.json()
+    assert response.json()["n_number"] == aircraft.n_number
 
 
 def test_lookup_shows_the_pilots_to_a_leader(
@@ -136,7 +138,7 @@ def test_lookup_shows_the_pilots_to_a_leader(
     profile.aircraft.add(aircraft)
     api_client.force_login(dart_leader)
     response = api_client.get(LOOKUP_URL, {"n_number": aircraft.n_number})
-    assert [pilot["user_id"] for pilot in response.data["pilots"]] == [profile.user_id]
+    assert [pilot["user_id"] for pilot in response.json()["pilots"]] == [profile.user_id]
 
 
 def test_list_is_paginated_and_ordered_by_n_number(api_client: APIClient, member: User) -> None:
@@ -145,8 +147,8 @@ def test_list_is_paginated_and_ordered_by_n_number(api_client: APIClient, member
     AircraftFactory(n_number="N100AA")
     api_client.force_login(member)
     response = api_client.get(LIST_URL)
-    assert [row["n_number"] for row in response.data["results"]] == ["N100AA", "N900ZZ"]
-    assert set(response.data) == {"count", "next", "previous", "results"}
+    assert [row["n_number"] for row in response.json()["results"]] == ["N100AA", "N900ZZ"]
+    assert set(response.json()) == {"count", "next", "previous", "results"}
 
 
 # --------------------------------------------------------------------------
@@ -159,9 +161,9 @@ def test_member_can_add_an_aircraft_and_becomes_its_creator(
     api_client.force_login(member)
     response = api_client.post(LIST_URL, valid_payload())
     assert response.status_code == 201
-    aircraft = Aircraft.objects.get(pk=response.data["id"])
+    aircraft = Aircraft.objects.get(pk=response.json()["id"])
     assert aircraft.created_by == member
-    assert response.data["created_by"] == member.pk
+    assert response.json()["created_by"] == member.pk
 
 
 @pytest.mark.parametrize(
@@ -180,8 +182,8 @@ def test_n_number_is_normalized_on_write(
     """Creating an aircraft normalizes the N-number the same way as the model."""
     api_client.force_login(member)
     response = api_client.post(LIST_URL, valid_payload(n_number=typed))
-    assert response.status_code == 201, response.data
-    assert response.data["n_number"] == stored
+    assert response.status_code == 201, response.json()
+    assert response.json()["n_number"] == stored
     assert Aircraft.objects.filter(n_number=stored).exists()
 
 
@@ -193,7 +195,7 @@ def test_duplicate_n_number_is_rejected_after_normalization(
     api_client.force_login(member)
     response = api_client.post(LIST_URL, valid_payload(n_number="n-12345"))
     assert response.status_code == 400
-    assert "already on file" in str(response.data["n_number"][0])
+    assert "already on file" in str(response.json()["n_number"][0])
 
 
 @pytest.mark.parametrize("blank", ["", "   ", "---"])
@@ -202,7 +204,7 @@ def test_blank_n_number_is_rejected(api_client: APIClient, member: User, blank: 
     api_client.force_login(member)
     response = api_client.post(LIST_URL, valid_payload(n_number=blank))
     assert response.status_code == 400
-    assert "n_number" in response.data
+    assert "n_number" in response.json()
 
 
 @pytest.mark.parametrize("field", ["make", "model"])
@@ -216,7 +218,7 @@ def test_make_and_model_are_required(api_client: APIClient, member: User, field:
     payload = valid_payload(**{field: ""})
     response = api_client.post(LIST_URL, payload)
     assert response.status_code == 400
-    assert field in response.data
+    assert field in response.json()
 
 
 @pytest.mark.parametrize(
@@ -232,7 +234,7 @@ def test_money_fields_must_not_be_negative(api_client: APIClient, member: User, 
     api_client.force_login(member)
     response = api_client.post(LIST_URL, valid_payload(**{field: -1}))
     assert response.status_code == 400
-    assert "$0 or more" in str(response.data[field][0])
+    assert "$0 or more" in str(response.json()[field][0])
 
 
 def test_created_by_cannot_be_spoofed(
@@ -242,7 +244,7 @@ def test_created_by_cannot_be_spoofed(
     api_client.force_login(member)
     response = api_client.post(LIST_URL, valid_payload(created_by=account_admin.pk))
     assert response.status_code == 201
-    assert Aircraft.objects.get(pk=response.data["id"]).created_by == member
+    assert Aircraft.objects.get(pk=response.json()["id"]).created_by == member
 
 
 # --------------------------------------------------------------------------
@@ -316,7 +318,7 @@ def test_update_keeping_the_same_n_number_is_not_a_duplicate(
     aircraft = AircraftFactory(n_number="N62CR")
     api_client.force_login(account_admin)
     response = api_client.patch(detail_url(aircraft), {"n_number": "62cr", "make": "Piper"})
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.json()
     aircraft.refresh_from_db()
     assert (aircraft.n_number, aircraft.make) == ("N62CR", "Piper")
 
@@ -347,16 +349,15 @@ def test_account_admin_may_delete_an_aircraft(api_client: APIClient, account_adm
     assert not Aircraft.objects.filter(pk=aircraft.pk).exists()
 
 
-def test_role_matrix_for_delete(api_client: APIClient, all_role_users: dict[str, User]) -> None:
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN))
+def test_role_matrix_for_delete(
+    api_client: APIClient, all_role_users: dict[str, User], slug: str, allowed: bool
+) -> None:
     """Only account and system admins get 204 deleting; every other role gets 403."""
-    allowed = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
-    for index, (slug, user) in enumerate(all_role_users.items()):
-        aircraft = AircraftFactory(n_number=f"N{800 + index}RM")
-        api_client.force_login(user)
-        response = api_client.delete(detail_url(aircraft))
-        expected = 204 if slug in allowed else 403
-        assert response.status_code == expected, f"{slug} got {response.status_code}"
-        api_client.logout()
+    aircraft = AircraftFactory(n_number="N800RM")
+    api_client.force_login(all_role_users[slug])
+    response = api_client.delete(detail_url(aircraft))
+    assert response.status_code == (204 if allowed else 403)
 
 
 # --------------------------------------------------------------------------
@@ -371,7 +372,7 @@ def test_lookup_finds_an_aircraft_however_the_n_number_is_typed(
     api_client.force_login(member)
     response = api_client.get(LOOKUP_URL, {"n_number": typed})
     assert response.status_code == 200
-    assert response.data["n_number"] == "N172SP"
+    assert response.json()["n_number"] == "N172SP"
 
 
 def test_lookup_404s_for_an_unknown_n_number(api_client: APIClient, member: User) -> None:
@@ -385,7 +386,7 @@ def test_lookup_without_an_n_number_is_a_400(api_client: APIClient, member: User
     api_client.force_login(member)
     response = api_client.get(LOOKUP_URL)
     assert response.status_code == 400
-    assert "n_number" in response.data
+    assert "n_number" in response.json()
 
 
 def test_lookup_is_exact_not_a_prefix_match(api_client: APIClient, member: User) -> None:
@@ -398,50 +399,9 @@ def test_lookup_is_exact_not_a_prefix_match(api_client: APIClient, member: User)
 # --------------------------------------------------------------------------
 # Filters
 # --------------------------------------------------------------------------
-@pytest.fixture
-def register(db: None) -> RegisterDict:
-    """A small register covering every insurance state."""
-    today = timezone.localdate()
-    return {
-        "current": AircraftFactory(
-            n_number="N172SP",
-            make="Cessna",
-            model="172S Skyhawk",
-            owner_name="Palo Alto Flying Club",
-            owner_type="club",
-            insurance_expiration=today + timedelta(days=200),
-        ),
-        "expiring": AircraftFactory(
-            n_number="N9021K",
-            make="Piper",
-            model="PA-28-181 Archer",
-            owner_name="Marta Reyes",
-            owner_type="individual",
-            insurance_expiration=today + timedelta(days=10),
-        ),
-        "expired": AircraftFactory(
-            n_number="N33MM",
-            make="Mooney",
-            model="M20J",
-            owner_name="Owen Delgado",
-            owner_type="individual",
-            insurance_expiration=today - timedelta(days=5),
-        ),
-        "missing": AircraftFactory(
-            n_number="N44BE",
-            make="Beechcraft",
-            model="A36 Bonanza",
-            owner_name="Hayward Aviation Services",
-            owner_type="fbo",
-            insurance_expiration=None,
-            insurance_carrier="",
-        ),
-    }
-
-
-def numbers(response: Response) -> list[str]:
+def numbers(response: ApiResponse) -> list[str]:
     """Extract the ``n_number`` of each row in a paginated list response, in order."""
-    return [row["n_number"] for row in response.data["results"]]
+    return [row["n_number"] for row in response.json()["results"]]
 
 
 @pytest.mark.parametrize(
@@ -456,7 +416,7 @@ def numbers(response: Response) -> list[str]:
         ("flying club", ["N172SP"]),
     ],
 )
-def test_search_filter(
+def test_search_filter_matches_every_searchable_column(
     api_client: APIClient, member: User, register: RegisterDict, query: str, expected: list[str]
 ) -> None:
     """The ``search`` filter matches N-number, make, model, owner name and free text."""
@@ -464,7 +424,9 @@ def test_search_filter(
     assert numbers(api_client.get(LIST_URL, {"search": query})) == expected
 
 
-def test_make_filter(api_client: APIClient, member: User, register: RegisterDict) -> None:
+def test_make_filter_matches_case_insensitively(
+    api_client: APIClient, member: User, register: RegisterDict
+) -> None:
     """The ``make`` filter matches case-insensitively on the aircraft's make."""
     api_client.force_login(member)
     assert numbers(api_client.get(LIST_URL, {"make": "cessna"})) == ["N172SP"]
@@ -587,7 +549,7 @@ def test_filters_combine(api_client: APIClient, member: User, register: Register
         ("-insurance_expiration", "N172SP"),
     ],
 )
-def test_ordering(
+def test_ordering_puts_the_expected_aircraft_first(
     api_client: APIClient, member: User, register: RegisterDict, ordering: str, first: str
 ) -> None:
     """Each supported ``ordering`` value puts the expected aircraft first."""

@@ -36,8 +36,8 @@ from apps.cms.models import (
     ensure_members_only_collection,
 )
 from apps.members.models import MembershipPlan
-from tests.test_cms_pages import expire_membership, grant_membership
-from tests.test_sysadmin_settings import DEPLOY
+from tests.conftest import DEPLOY_DIR
+from tests.factories import expire_membership, grant_membership
 
 pytestmark = pytest.mark.django_db
 
@@ -46,8 +46,8 @@ Document = get_document_model()
 #: The bytes of the guarded file; no refusal may contain them.
 SECRET = b"%PDF-1.4 the member roster"
 
-APACHE = DEPLOY / "apache" / "caldart.conf"
-NGINX = DEPLOY / "nginx" / "caldart.conf"
+APACHE = DEPLOY_DIR / "apache" / "caldart.conf"
+NGINX = DEPLOY_DIR / "nginx" / "caldart.conf"
 
 
 def make_document(collection: Collection, *, title: str = "Member roster") -> WagtailDocument:
@@ -186,11 +186,14 @@ def test_a_current_member_is_served_the_file(
 
 
 def test_a_dart_leader_without_a_membership_is_served_the_file(
-    client: Client, site_settings: SiteSettings, members_document: WagtailDocument, leader: User
+    client: Client,
+    site_settings: SiteSettings,
+    members_document: WagtailDocument,
+    dart_leader: User,
 ) -> None:
     """A DART leader with no membership of their own still downloads the file."""
-    assert leader.membership_status["status"] == "none"
-    client.force_login(leader)
+    assert dart_leader.membership_status["status"] == "none"
+    client.force_login(dart_leader)
 
     assert body_of(client.get(members_document.url)) == SECRET
 

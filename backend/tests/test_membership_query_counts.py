@@ -189,14 +189,14 @@ def test_admin_members_costs_a_fixed_number_of_queries(
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_leader_search_costs_a_fixed_number_of_queries(
     api_client: APIClient,
-    leader: User,
+    dart_leader: User,
     population: Callable[[int], list[User]],
     django_assert_num_queries: DjangoAssertNumQueries,
     size: int,
 ) -> None:
     """A leader search costs a fixed number of queries at three and twenty matches."""
     population(size)
-    api_client.force_login(leader)
+    api_client.force_login(dart_leader)
     with django_assert_num_queries(LEADER_SEARCH_QUERIES):
         response = api_client.get(LEADER_SEARCH, {"q": SEARCH_TERM})
     assert len(response.json()) == size
@@ -205,7 +205,7 @@ def test_leader_search_costs_a_fixed_number_of_queries(
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_aircraft_detail_costs_a_fixed_number_of_queries(
     api_client: APIClient,
-    leader: User,
+    dart_leader: User,
     aircraft: Aircraft,
     population: Callable[[int], list[User]],
     django_assert_num_queries: DjangoAssertNumQueries,
@@ -213,7 +213,7 @@ def test_aircraft_detail_costs_a_fixed_number_of_queries(
 ) -> None:
     """The aircraft detail card costs a fixed query count at three or twenty pilots."""
     population(size)
-    api_client.force_login(leader)
+    api_client.force_login(dart_leader)
     with django_assert_num_queries(AIRCRAFT_DETAIL_QUERIES):
         response = api_client.get(f"/api/v1/aircraft/{aircraft.pk}")
     assert len(response.json()["pilots"]) == size
@@ -222,7 +222,7 @@ def test_aircraft_detail_costs_a_fixed_number_of_queries(
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_aircraft_lookup_costs_a_fixed_number_of_queries(
     api_client: APIClient,
-    leader: User,
+    dart_leader: User,
     aircraft: Aircraft,
     population: Callable[[int], list[User]],
     django_assert_num_queries: DjangoAssertNumQueries,
@@ -230,7 +230,7 @@ def test_aircraft_lookup_costs_a_fixed_number_of_queries(
 ) -> None:
     """The aircraft lookup costs a fixed number of queries at three and twenty pilots."""
     population(size)
-    api_client.force_login(leader)
+    api_client.force_login(dart_leader)
     with django_assert_num_queries(AIRCRAFT_LOOKUP_QUERIES):
         response = api_client.get(AIRCRAFT_LOOKUP, {"n_number": aircraft.n_number})
     assert len(response.json()["pilots"]) == size
@@ -239,7 +239,7 @@ def test_aircraft_lookup_costs_a_fixed_number_of_queries(
 @pytest.mark.parametrize("size", PAGE_SIZES)
 def test_leader_aircraft_costs_a_fixed_number_of_queries(
     api_client: APIClient,
-    leader: User,
+    dart_leader: User,
     aircraft: Aircraft,
     population: Callable[[int], list[User]],
     django_assert_num_queries: DjangoAssertNumQueries,
@@ -247,7 +247,7 @@ def test_leader_aircraft_costs_a_fixed_number_of_queries(
 ) -> None:
     """The leader aircraft card costs a fixed query count at three or twenty pilots."""
     population(size)
-    api_client.force_login(leader)
+    api_client.force_login(dart_leader)
     with django_assert_num_queries(LEADER_AIRCRAFT_QUERIES):
         response = api_client.get(LEADER_AIRCRAFT, {"n_number": aircraft.n_number})
     assert len(response.json()["pilots"]) == size
@@ -280,11 +280,11 @@ def test_admin_members_membership_matches_the_service(
 
 @pytest.mark.parametrize("kind", HISTORIES)
 def test_leader_search_membership_matches_the_service(
-    api_client: APIClient, leader: User, members: dict[str, User], kind: str
+    api_client: APIClient, dart_leader: User, members: dict[str, User], kind: str
 ) -> None:
     """A leader search reports the same status the service computes."""
     user = members[kind]
-    api_client.force_login(leader)
+    api_client.force_login(dart_leader)
     response = api_client.get(LEADER_SEARCH, {"q": SEARCH_TERM})
     row = _by_id(response, "user_id")[user.pk]
     assert row["membership_status"] == membership_status(user)["status"]
@@ -292,11 +292,15 @@ def test_leader_search_membership_matches_the_service(
 
 @pytest.mark.parametrize("kind", HISTORIES)
 def test_aircraft_pilots_membership_matches_the_service(
-    api_client: APIClient, leader: User, aircraft: Aircraft, members: dict[str, User], kind: str
+    api_client: APIClient,
+    dart_leader: User,
+    aircraft: Aircraft,
+    members: dict[str, User],
+    kind: str,
 ) -> None:
     """An aircraft's pilot list reports the same status the service computes."""
     user = members[kind]
-    api_client.force_login(leader)
+    api_client.force_login(dart_leader)
     response = api_client.get(f"/api/v1/aircraft/{aircraft.pk}")
     pilots = {row["user_id"]: row for row in response.json()["pilots"]}
     assert pilots[user.pk]["membership_status"] == membership_status(user)["status"]

@@ -21,6 +21,7 @@ from apps.members.models import (
     MembershipPlan,
     MembershipStatusChoices,
 )
+from tests.conftest import role_matrix
 from tests.factories import (
     AircraftFactory,
     MemberProfileFactory,
@@ -76,18 +77,29 @@ def test_status_requires_authentication(api_client: APIClient, pilot: User) -> N
     assert api_client.get(status_url(pilot)).status_code == 401
 
 
+@pytest.mark.parametrize(
+    ("endpoint", "query"),
+    [
+        ("search", {"q": "Reyes"}),
+        ("status", None),
+        ("aircraft", {"n_number": "N172SP"}),
+    ],
+    ids=["search", "status", "aircraft"],
+)
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(DART_LEADER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_leader_role_matrix(
-    api_client: APIClient, all_role_users: dict[str, User], pilot: User
+    api_client: APIClient,
+    all_role_users: dict[str, User],
+    pilot: User,
+    endpoint: str,
+    query: dict[str, str] | None,
+    slug: str,
+    allowed: bool,
 ) -> None:
     """Only a DART leader, account admin or system admin may use the leader endpoints."""
-    allowed = {DART_LEADER, ACCOUNT_ADMIN, SYSTEM_ADMIN}
-    for slug, user in all_role_users.items():
-        api_client.force_login(user)
-        expected = 200 if slug in allowed else 403
-        assert api_client.get(SEARCH_URL, {"q": "Reyes"}).status_code == expected, slug
-        assert api_client.get(status_url(pilot)).status_code == expected, slug
-        assert api_client.get(AIRCRAFT_URL, {"n_number": "N172SP"}).status_code == expected, slug
-        api_client.logout()
+    url = {"search": SEARCH_URL, "status": status_url(pilot), "aircraft": AIRCRAFT_URL}[endpoint]
+    api_client.force_login(all_role_users[slug])
+    assert api_client.get(url, query).status_code == (200 if allowed else 403)
 
 
 def test_a_plain_member_cannot_check_another_member(
@@ -107,20 +119,20 @@ def test_search_by_name(api_client: APIClient, dart_leader: User, pilot: User, q
     api_client.force_login(dart_leader)
     response = api_client.get(SEARCH_URL, {"q": query})
     assert response.status_code == 200
-    assert [row["user_id"] for row in response.data] == [pilot.pk]
+    assert [row["user_id"] for row in response.json()] == [pilot.pk]
 
 
 def test_search_by_email(api_client: APIClient, dart_leader: User, pilot: User) -> None:
     """A search matches a full email address."""
     api_client.force_login(dart_leader)
     response = api_client.get(SEARCH_URL, {"q": "marta@example.test"})
-    assert [row["user_id"] for row in response.data] == [pilot.pk]
+    assert [row["user_id"] for row in response.json()] == [pilot.pk]
 
 
 def test_search_by_partial_email(api_client: APIClient, dart_leader: User, pilot: User) -> None:
     """A search matches a partial email address."""
     api_client.force_login(dart_leader)
-    assert [row["user_id"] for row in api_client.get(SEARCH_URL, {"q": "marta@"}).data] == [
+    assert [row["user_id"] for row in api_client.get(SEARCH_URL, {"q": "marta@"}).json()] == [
         pilot.pk
     ]
 
@@ -132,7 +144,7 @@ def test_search_by_n_number_finds_the_members_who_fly_it(
     """A search normalizes the N-number regardless of case, dashes, or a missing ``N``."""
     api_client.force_login(dart_leader)
     response = api_client.get(SEARCH_URL, {"q": query})
-    assert [row["user_id"] for row in response.data] == [pilot.pk]
+    assert [row["user_id"] for row in response.json()] == [pilot.pk]
 
 
 def test_search_by_n_number_returns_every_pilot_of_that_aircraft(
@@ -145,7 +157,7 @@ def test_search_by_n_number_returns_every_pilot_of_that_aircraft(
 
     api_client.force_login(dart_leader)
     response = api_client.get(SEARCH_URL, {"q": "N172SP"})
-    assert {row["user_id"] for row in response.data} == {pilot.pk, second.pk}
+    assert {row["user_id"] for row in response.json()} == {pilot.pk, second.pk}
 
 
 def test_search_does_not_treat_a_name_as_a_registration(
@@ -157,7 +169,7 @@ def test_search_does_not_treat_a_name_as_a_registration(
 
     api_client.force_login(dart_leader)
     response = api_client.get(SEARCH_URL, {"q": "Nate"})
-    assert [row["user_id"] for row in response.data] == [nate.pk]
+    assert [row["user_id"] for row in response.json()] == [nate.pk]
 
 
 def test_search_result_shape(
@@ -165,7 +177,7 @@ def test_search_result_shape(
 ) -> None:
     """A search result row carries the member's id, name, email, dart, and status."""
     api_client.force_login(dart_leader)
-    row = api_client.get(SEARCH_URL, {"q": "Reyes"}).data[0]
+    row = api_client.get(SEARCH_URL, {"q": "Reyes"}).json()[0]
     assert row == {
         "user_id": pilot.pk,
         "name": "Marta Reyes",
@@ -190,7 +202,7 @@ def test_search_reports_an_expired_membership(
         status=MembershipStatusChoices.EXPIRED,
     )
     api_client.force_login(dart_leader)
-    assert api_client.get(SEARCH_URL, {"q": "Past"}).data[0]["membership_status"] == "expired"
+    assert api_client.get(SEARCH_URL, {"q": "Past"}).json()[0]["membership_status"] == "expired"
 
 
 def test_search_with_no_query_returns_nothing(
@@ -198,8 +210,8 @@ def test_search_with_no_query_returns_nothing(
 ) -> None:
     """A missing or blank query returns no results rather than everyone."""
     api_client.force_login(dart_leader)
-    assert api_client.get(SEARCH_URL).data == []
-    assert api_client.get(SEARCH_URL, {"q": "   "}).data == []
+    assert api_client.get(SEARCH_URL).json() == []
+    assert api_client.get(SEARCH_URL, {"q": "   "}).json() == []
 
 
 def test_search_finds_nothing_for_an_unknown_name(
@@ -207,7 +219,7 @@ def test_search_finds_nothing_for_an_unknown_name(
 ) -> None:
     """A query that matches nobody returns an empty list, not an error."""
     api_client.force_login(dart_leader)
-    assert api_client.get(SEARCH_URL, {"q": "Nobody At All"}).data == []
+    assert api_client.get(SEARCH_URL, {"q": "Nobody At All"}).json() == []
 
 
 def test_search_is_capped_at_twenty_results(api_client: APIClient, dart_leader: User) -> None:
@@ -215,7 +227,7 @@ def test_search_is_capped_at_twenty_results(api_client: APIClient, dart_leader: 
     for index in range(25):
         UserFactory(email=f"cap{index}@example.test", first_name="Cap", last_name=f"Test{index}")
     api_client.force_login(dart_leader)
-    assert len(api_client.get(SEARCH_URL, {"q": "Cap"}).data) == 20
+    assert len(api_client.get(SEARCH_URL, {"q": "Cap"}).json()) == 20
 
 
 def test_search_does_not_repeat_a_member_who_flies_two_aircraft(
@@ -224,7 +236,7 @@ def test_search_does_not_repeat_a_member_who_flies_two_aircraft(
     """A member who flies two matching aircraft appears once in the results."""
     pilot.profile.aircraft.add(AircraftFactory(n_number="N1720P"))
     api_client.force_login(dart_leader)
-    assert len(api_client.get(SEARCH_URL, {"q": "172"}).data) == 1
+    assert len(api_client.get(SEARCH_URL, {"q": "172"}).json()) == 1
 
 
 # --------------------------------------------------------------------------
@@ -235,7 +247,7 @@ def test_status_card_shape(
 ) -> None:
     """The status card reports the member's profile, certificate, medical and go/no-go."""
     api_client.force_login(dart_leader)
-    data = api_client.get(status_url(pilot)).data
+    data = api_client.get(status_url(pilot)).json()
 
     assert data["name"] == "Marta Reyes"
     assert data["email"] == "marta@example.test"
@@ -304,15 +316,12 @@ def test_status_truth_table(
         )
 
     api_client.force_login(dart_leader)
-    data = api_client.get(status_url(user)).data
+    data = api_client.get(status_url(user)).json()
 
     assert data["go_no_go"]["membership"] is membership_current
     assert data["go_no_go"]["medical"] is medical_current
     assert data["medical"]["is_current"] is medical_current
     assert data["aircraft"][0]["insurance_is_current"] is insurance_current
-    # The overall verdict the leader reads: membership AND medical.
-    go = data["go_no_go"]["membership"] and data["go_no_go"]["medical"]
-    assert go is (membership_current and medical_current)
 
 
 def test_a_medical_expiring_today_is_still_current(
@@ -323,7 +332,7 @@ def test_a_medical_expiring_today_is_still_current(
     user = UserFactory(email="edge@example.test", first_name="Edge", last_name="Case")
     MemberProfileFactory(user=user, medical_type=MedicalType.THIRD, medical_expiration=today)
     api_client.force_login(dart_leader)
-    assert api_client.get(status_url(user)).data["medical"]["is_current"] is True
+    assert api_client.get(status_url(user)).json()["medical"]["is_current"] is True
 
 
 def test_no_medical_on_file_is_never_current(api_client: APIClient, dart_leader: User) -> None:
@@ -331,7 +340,7 @@ def test_no_medical_on_file_is_never_current(api_client: APIClient, dart_leader:
     user = UserFactory(email="nomed@example.test", first_name="No", last_name="Medical")
     MemberProfileFactory(user=user, medical_type=MedicalType.NONE, medical_expiration=None)
     api_client.force_login(dart_leader)
-    data = api_client.get(status_url(user)).data
+    data = api_client.get(status_url(user)).json()
     assert data["medical"] == {"type": "none", "expiration": None, "is_current": False}
     assert data["go_no_go"]["medical"] is False
 
@@ -343,7 +352,7 @@ def test_a_member_with_no_membership_at_all_is_a_no_go(
     user = UserFactory(email="never@example.test", first_name="Never", last_name="Joined")
     MemberProfileFactory(user=user)
     api_client.force_login(dart_leader)
-    data = api_client.get(status_url(user)).data
+    data = api_client.get(status_url(user)).json()
     assert data["membership"] == {"status": "none", "expires_on": None, "plan": None}
     assert data["go_no_go"]["membership"] is False
 
@@ -356,7 +365,7 @@ def test_a_lifetime_member_is_current_without_an_expiry(
     MemberProfileFactory(user=user)
     MembershipFactory(user=user, plan=life_plan, ends_on=None)
     api_client.force_login(dart_leader)
-    data = api_client.get(status_url(user)).data
+    data = api_client.get(status_url(user)).json()
     assert data["membership"] == {
         "status": "current",
         "expires_on": None,
@@ -378,7 +387,7 @@ def test_status_card_lists_every_attached_aircraft(
         )
     )
     api_client.force_login(dart_leader)
-    data = api_client.get(status_url(pilot)).data
+    data = api_client.get(status_url(pilot)).json()
     by_number = {row["n_number"]: row for row in data["aircraft"]}
     assert set(by_number) == {"N172SP", "N9021K"}
     assert by_number["N9021K"]["insurance_is_current"] is False
@@ -391,14 +400,14 @@ def test_status_card_for_a_member_with_no_aircraft(
     """The status card reports an empty aircraft list for a member who flies none."""
     MemberProfileFactory(user=member)
     api_client.force_login(dart_leader)
-    assert api_client.get(status_url(member)).data["aircraft"] == []
+    assert api_client.get(status_url(member)).json()["aircraft"] == []
 
 
 def test_status_card_for_a_user_without_a_profile(api_client: APIClient, dart_leader: User) -> None:
     """A user_admin can create an account before the member fills anything in."""
     bare = UserFactory(email="bare@example.test", first_name="Bare", last_name="Account")
     api_client.force_login(dart_leader)
-    data = api_client.get(status_url(bare)).data
+    data = api_client.get(status_url(bare)).json()
     assert data["phone"] == ""
     assert data["dart"] is None
     assert data["certificate"]["type"] == "none"
@@ -416,8 +425,8 @@ def test_aircraft_card_normalizes_the_n_number(
     api_client.force_login(dart_leader)
     response = api_client.get(AIRCRAFT_URL, {"n_number": typed})
     assert response.status_code == 200
-    assert response.data["n_number"] == "N172SP"
-    assert response.data["insurance_is_current"] is True
+    assert response.json()["n_number"] == "N172SP"
+    assert response.json()["insurance_is_current"] is True
 
 
 def test_aircraft_card_lists_the_pilots_who_fly_it(
@@ -425,7 +434,7 @@ def test_aircraft_card_lists_the_pilots_who_fly_it(
 ) -> None:
     """The aircraft card lists every pilot who flies that airplane."""
     api_client.force_login(dart_leader)
-    data = api_client.get(AIRCRAFT_URL, {"n_number": "N172SP"}).data
+    data = api_client.get(AIRCRAFT_URL, {"n_number": "N172SP"}).json()
     assert data["pilots"] == [
         {
             "user_id": pilot.pk,
@@ -452,7 +461,7 @@ def test_aircraft_card_without_an_n_number_is_a_400(
     api_client.force_login(dart_leader)
     response = api_client.get(AIRCRAFT_URL)
     assert response.status_code == 400
-    assert "n_number" in response.data
+    assert "n_number" in response.json()
 
 
 def test_aircraft_card_shows_expired_cover(api_client: APIClient, dart_leader: User) -> None:
@@ -462,6 +471,6 @@ def test_aircraft_card_shows_expired_cover(api_client: APIClient, dart_leader: U
         insurance_expiration=timezone.localdate() - timedelta(days=1),
     )
     api_client.force_login(dart_leader)
-    data = api_client.get(AIRCRAFT_URL, {"n_number": "N33MM"}).data
+    data = api_client.get(AIRCRAFT_URL, {"n_number": "N33MM"}).json()
     assert data["insurance_is_current"] is False
     assert data["pilots"] == []

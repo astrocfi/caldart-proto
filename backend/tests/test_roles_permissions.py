@@ -6,7 +6,8 @@ from collections.abc import Callable
 from datetime import date, timedelta
 
 import pytest
-from django.contrib.auth.models import Group
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.models import AnonymousUser, Group
 from django.utils import timezone
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.request import Request
@@ -14,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory
 from rest_framework.views import APIView
 
+from apps.accounts.management.commands.seed_roles import seed_roles
 from apps.accounts.models import User
 from apps.accounts.permissions import HasAnyRole, HasRole, user_has_any_role
 from apps.accounts.roles import (
@@ -32,8 +34,8 @@ from tests.factories import MembershipFactory, UserFactory
 pytestmark = pytest.mark.django_db
 
 
-def test_role_slugs_are_the_six_from_the_plan() -> None:
-    """``ROLE_SLUGS`` lists the six roles in order, and staff excludes member."""
+def test_role_slugs_are_the_six_documented_roles() -> None:
+    """``ROLE_SLUGS`` lists the six roles least privileged first."""
     assert ROLE_SLUGS == (
         MEMBER,
         DART_LEADER,
@@ -42,14 +44,15 @@ def test_role_slugs_are_the_six_from_the_plan() -> None:
         WEBSITE_ADMIN,
         SYSTEM_ADMIN,
     )
-    assert MEMBER not in STAFF_ROLE_SLUGS
+
+
+def test_staff_roles_are_every_role_but_member() -> None:
+    """``STAFF_ROLE_SLUGS`` is ``ROLE_SLUGS`` with ``member`` removed."""
     assert set(STAFF_ROLE_SLUGS) == set(ROLE_SLUGS) - {MEMBER}
 
 
 def test_seed_roles_is_idempotent() -> None:
     """Running ``seed_roles`` twice still leaves exactly one group per role."""
-    from apps.accounts.management.commands.seed_roles import seed_roles
-
     seed_roles()
     seed_roles()
     assert Group.objects.filter(name__in=ROLE_SLUGS).count() == len(ROLE_SLUGS)
@@ -84,7 +87,7 @@ def test_set_roles_replaces_only_role_groups(member: User) -> None:
     assert other in member.groups.all()
 
 
-def test_remove_role(member: User) -> None:
+def test_remove_role_drops_only_the_named_role(member: User) -> None:
     """``remove_role`` drops exactly the named role."""
     member.add_role(DART_LEADER)
     member.remove_role(DART_LEADER)
@@ -120,35 +123,34 @@ def test_member_with_expired_membership_cannot_access_members_content(
     assert member.can_access_members_content is False
 
 
-def test_str_and_display_name(member: User) -> None:
-    """``str(user)`` and ``display_name`` are the full name, falling back to the email."""
+def test_a_user_is_named_by_their_full_name(member: User) -> None:
+    """``str(user)`` and ``display_name`` are both the account's full name."""
     member.first_name = "Ada"
     member.last_name = "Lovelace"
     assert str(member) == "Ada Lovelace"
     assert member.display_name == "Ada Lovelace"
-    member.first_name = member.last_name = ""
+
+
+def test_a_user_with_no_name_is_named_by_their_email(member: User) -> None:
+    """With neither name filled in, ``str(user)`` falls back to the email address."""
+    member.first_name = ""
+    member.last_name = ""
     assert str(member) == member.email
 
 
 def test_email_login_is_case_insensitive(member: User, password: str) -> None:
     """``authenticate`` accepts the email in any case."""
-    from django.contrib.auth import authenticate
-
     assert authenticate(username=member.email.upper(), password=password) == member
 
 
 def test_user_manager_requires_email() -> None:
     """``create_user`` with a blank email raises ``ValueError``."""
-    from django.contrib.auth import get_user_model
-
     with pytest.raises(ValueError, match="email"):
         get_user_model().objects.create_user(email="", password="x")  # noqa: S106 - test fixture
 
 
 def test_create_superuser_sets_flags() -> None:
     """``create_superuser`` sets both ``is_superuser`` and ``is_staff``."""
-    from django.contrib.auth import get_user_model
-
     user = get_user_model().objects.create_superuser(
         email="su@example.test",
         password="pw",  # noqa: S106 - test fixture
@@ -211,8 +213,6 @@ def test_has_any_role_matrix(slug: str, allowed: bool, all_role_users: dict[str,
 
 def test_permission_denies_anonymous() -> None:
     """An anonymous request is refused with 401 or 403, never let through."""
-    from django.contrib.auth.models import AnonymousUser
-
     view = _view_for(HasRole(MEMBER))
     request = APIRequestFactory().get("/")
     request.user = AnonymousUser()
@@ -227,8 +227,6 @@ def test_has_any_role_requires_at_least_one_slug() -> None:
 
 def test_user_has_any_role_helper(member: User, superuser: User) -> None:
     """``user_has_any_role`` checks membership; true for a superuser, false for None."""
-    from django.contrib.auth.models import AnonymousUser
-
     assert user_has_any_role(member, (MEMBER,)) is True
     assert user_has_any_role(member, (ACCOUNT_ADMIN,)) is False
     assert user_has_any_role(superuser, (ACCOUNT_ADMIN,)) is True
@@ -239,8 +237,6 @@ def test_user_has_any_role_helper(member: User, superuser: User) -> None:
 def test_allow_any_still_works() -> None:
     """``AllowAny`` still admits an anonymous request."""
     view = _view_for(AllowAny)
-    from django.contrib.auth.models import AnonymousUser
-
     request = APIRequestFactory().get("/")
     request.user = AnonymousUser()
     assert view(request).status_code == 200
