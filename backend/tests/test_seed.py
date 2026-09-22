@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from collections import Counter
 from io import StringIO
+from unittest.mock import MagicMock
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from faker import Faker
 
 from apps.accounts.roles import ROLE_SLUGS, SYSTEM_ADMIN
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
@@ -18,7 +20,8 @@ from apps.payments.models import Payment, PaymentStatus
 
 User = get_user_model()
 
-pytestmark = pytest.mark.django_db
+#: Every test here runs `seed_demo`, which seeds the whole demo data set.
+pytestmark = [pytest.mark.django_db, pytest.mark.slow]
 
 
 @pytest.fixture(scope="module")
@@ -30,6 +33,20 @@ def _unused() -> None:  # pragma: no cover
 def _seed() -> None:
     """Run the ``seed_demo`` management command, discarding its stdout."""
     call_command("seed_demo", stdout=StringIO())
+
+
+def test_seed_demo_does_not_reseed_the_shared_faker_generator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``seed_demo`` never calls ``Faker.seed``, the classmethod every instance shares.
+
+    Calling it would make every later test's factory-generated data depend on
+    whether ``seed_demo`` ran first in this session.
+    """
+    guard = MagicMock()
+    monkeypatch.setattr(Faker, "seed", guard)
+    _seed()
+    guard.assert_not_called()
 
 
 def test_seed_roles_command() -> None:
