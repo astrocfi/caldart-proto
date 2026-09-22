@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ast
 import importlib
+import re
 import runpy
 import sys
 from collections.abc import Generator
@@ -289,8 +290,11 @@ def test_gunicorn_worker_count_is_capped(monkeypatch: pytest.MonkeyPatch) -> Non
 def test_apache_proxies_to_gunicorn_and_sets_the_scheme_header() -> None:
     """The Apache vhost proxies to gunicorn, forwards HTTPS, and serves media, certbot."""
     config = (DEPLOY / "apache" / "caldart.conf").read_text()
+    # Apache directives are free-form whitespace; collapse runs of spaces and tabs
+    # so the assertion below survives realignment of the config's columns.
+    normalized = re.sub(r"[ \t]+", " ", config)
 
-    assert "ProxyPass        / http://127.0.0.1:8001/" in config
+    assert "ProxyPass / http://127.0.0.1:8001/" in normalized
     assert 'RequestHeader set X-Forwarded-Proto "https"' in config
     assert "Alias /media/ /srv/caldart/backend/media/" in config
     assert "certbot" in config
