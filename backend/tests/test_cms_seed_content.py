@@ -259,8 +259,8 @@ def test_definition_list_renders_one_bold_item_per_row() -> None:
     rows = [("2011", "The first exercise."), ("2013", "Two more airports.")]
 
     assert content.definition_list(rows) == (
-        "<ul><li><b>2011</b> -- The first exercise.</li>"
-        "<li><b>2013</b> -- Two more airports.</li></ul>"
+        "<ul><li><b>2011</b> \u2014 The first exercise.</li>"
+        "<li><b>2013</b> \u2014 Two more airports.</li></ul>"
     )
 
 

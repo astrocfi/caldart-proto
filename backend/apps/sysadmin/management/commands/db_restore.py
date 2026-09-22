@@ -53,7 +53,7 @@ class Command(BaseCommand):
             if answer.strip().lower() != "yes":
                 raise CommandError("Aborted.")
 
-        self.stdout.write(f"Dropping the public schema in '{name}'...")
+        self.stdout.write(f"Dropping the public schema in '{name}'\u2026")
         try:
             restore_backup(path)
         except BackupError as exc:

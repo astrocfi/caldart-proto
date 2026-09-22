@@ -78,11 +78,12 @@ def cta(label: str, url: str, style: str = "primary", note: str = "") -> BlockSp
 def definition_list(rows: Sequence[tuple[str, str]]) -> str:
     """Rich-text markup for a term/description list, which the blocks allow.
 
-    Each ``(term, text)`` pair becomes one list item with the term in bold, in the
-    order given; no rows give an empty list.  The strings are not escaped, so they
-    are example copy and editor input, never anything a visitor supplied.
+    Each ``(term, text)`` pair becomes one list item with the term in bold and an em
+    dash before the text, in the order given; no rows give an empty list.  The
+    strings are not escaped, so they are example copy and editor input, never
+    anything a visitor supplied.
     """
-    items = "".join(f"<li><b>{term}</b> -- {text}</li>" for term, text in rows)
+    items = "".join(f"<li><b>{term}</b> \u2014 {text}</li>" for term, text in rows)
     return f"<ul>{items}</ul>"
 
 
@@ -103,7 +104,7 @@ SECONDARY_CTA_LABEL = "How we operate"
 
 MISSION = (
     "<p>CalDART exists to give California's emergency managers a trained, insured and "
-    "practiced volunteer air transportation capability -- organized before the disaster, "
+    "practiced volunteer air transportation capability \u2014 organized before the disaster, "
     "not improvised during it.</p>"
 )
 
@@ -112,13 +113,13 @@ CONCEPT_HEADING = "Organized before the emergency, not during it"
 CONCEPT_STEPS: tuple[tuple[str, str], ...] = (
     (
         "Local teams form around an airport",
-        "A DART -- Disaster Airlift Response Team -- is a group of pilots, aircraft owners "
+        "A DART \u2014 Disaster Airlift Response Team \u2014 is a group of pilots, aircraft owners "
         "and ground volunteers based at one general aviation airport. The airport is the "
         "unit of organization because that is where the aircraft, fuel and ramp space are.",
     ),
     (
         "Members stay current, all year",
-        "Membership means keeping a certificate, a medical and -- for aircraft owners -- "
+        "Membership means keeping a certificate, a medical and \u2014 for aircraft owners \u2014 "
         "liability insurance current, and keeping that information where a DART leader can "
         "check it in seconds.",
     ),
@@ -136,7 +137,7 @@ CONCEPT_STEPS: tuple[tuple[str, str], ...] = (
     (
         "Small aircraft move small, urgent loads",
         "Blood products, medications, radios, damage-assessment teams and communications "
-        "volunteers -- the loads that are too small for a military airlift and too urgent "
+        "volunteers \u2014 the loads that are too small for a military airlift and too urgent "
         "for a closed highway.",
     ),
 )
@@ -256,7 +257,7 @@ HISTORY = PageSpec(
         heading("How CalDART began"),
         rich(
             "<p>The idea is older than the organization. Pilots have flown relief loads "
-            "after California disasters for decades -- ad hoc, uninsured and usually "
+            "after California disasters for decades \u2014 ad hoc, uninsured and usually "
             "unwelcome, because no county emergency manager wants unvetted aircraft "
             "arriving at a damaged airport. The DART model answered that objection: "
             "organize first, train with the agency, and show up with the paperwork "
@@ -345,13 +346,16 @@ DART_PAGE_BODY: tuple[BlockSpec, ...] = (
 )
 
 DIRECTORS_ROWS: tuple[tuple[str, str], ...] = (
-    ("President", "Helen Marchetti -- Napa DART, commercial pilot and former county OES planner"),
-    ("Vice President", "Samuel Oyelaran -- Hayward DART, CFII and exercise coordinator"),
-    ("Secretary", "Teresa Lindqvist -- Santa Rosa DART, aircraft owner and CERT instructor"),
-    ("Treasurer", "Marcus Delgado -- Reid-Hillview DART, CPA and private pilot"),
-    ("Director at large", "Aiko Tanaka -- Monterey DART, ground team lead"),
-    ("Director at large", "Gordon Achebe -- San Carlos DART, ATP and safety officer"),
-    ("Director at large", "Rosa Villanueva -- Livermore DART, communications lead"),
+    (
+        "President",
+        "Helen Marchetti \u2014 Napa DART, commercial pilot and former county OES planner",
+    ),
+    ("Vice President", "Samuel Oyelaran \u2014 Hayward DART, CFII and exercise coordinator"),
+    ("Secretary", "Teresa Lindqvist \u2014 Santa Rosa DART, aircraft owner and CERT instructor"),
+    ("Treasurer", "Marcus Delgado \u2014 Reid-Hillview DART, CPA and private pilot"),
+    ("Director at large", "Aiko Tanaka \u2014 Monterey DART, ground team lead"),
+    ("Director at large", "Gordon Achebe \u2014 San Carlos DART, ATP and safety officer"),
+    ("Director at large", "Rosa Villanueva \u2014 Livermore DART, communications lead"),
 )
 
 DIRECTORS = PageSpec(
@@ -398,7 +402,8 @@ NEWS_POSTS: tuple[NewsPostSpec, ...] = (
             body=(
                 rich(
                     "<p>Nine DARTs flew a coordinated exercise on Saturday, moving palletized "
-                    '"relief supplies" -- in practice, sandbags and marked cartons -- between '
+                    "\u201crelief supplies\u201d \u2014 in practice, sandbags and marked "
+                    "cartons \u2014 between "
                     "airports on a schedule set by a simulated county emergency operations "
                     "center.</p>"
                     "<p>The scenario assumed a magnitude 6.8 earthquake had closed two state "
@@ -471,18 +476,18 @@ JOIN = PageSpec(
     title="Join CalDART",
     show_in_menus=True,
     intro=(
-        "Membership is open to anyone willing to help -- you do not need to be a pilot, and you "
-        "do not need to own an aircraft."
+        "Membership is open to anyone willing to help \u2014 you do not need to be a pilot, "
+        "and you do not need to own an aircraft."
     ),
     body=(
         heading("Dues"),
         rich(
             "<ul>"
-            "<li><b>Annual membership -- $45</b>, good for one year from the day it is "
+            "<li><b>Annual membership \u2014 $45</b>, good for one year from the day it is "
             "paid.</li>"
-            "<li><b>Life membership -- $650</b>, paid once, never renewed.</li>"
+            "<li><b>Life membership \u2014 $650</b>, paid once, never renewed.</li>"
             "</ul>"
-            "<p>Dues are tax deductible. If the fee is a hardship, say so when you apply -- "
+            "<p>Dues are tax deductible. If the fee is a hardship, say so when you apply \u2014 "
             "we have never turned away a willing volunteer over $45.</p>"
         ),
         heading("Who is eligible"),
@@ -497,7 +502,7 @@ JOIN = PageSpec(
             "<li><b>Aircraft owners</b> carry liability insurance and record the carrier, "
             "limits and expiry date. Aircraft without current insurance are not "
             "dispatched.</li>"
-            "<li><b>Ground volunteers</b> need no certificate at all -- only the "
+            "<li><b>Ground volunteers</b> need no certificate at all \u2014 only the "
             "willingness to turn up.</li>"
             "</ul>"
         ),
@@ -505,25 +510,25 @@ JOIN = PageSpec(
         rich(
             "<p>You create an account, fill in your profile, and pay by card, Apple Pay, "
             "Google Pay or PayPal. Your membership is active the moment the payment "
-            "clears -- there is no waiting period and no approval queue. A DART leader "
+            "clears \u2014 there is no waiting period and no approval queue. A DART leader "
             "near you will be in touch about the next meeting.</p>"
         ),
         cta(
             "Start your membership",
             "/portal/join",
             "primary",
-            "$45 annual or $650 life, by card, Apple Pay, Google Pay or PayPal",
+            "$45 annual or $650 life \u00b7 card, Apple Pay, Google Pay or PayPal",
         ),
     ),
 )
 
 CONTRIBUTION_TIERS: tuple[tuple[str, str], ...] = (
-    ("$20 -- Participating", "Covers a member's share of exercise materials for a year."),
-    ("$100 -- Bronze", "Buys handheld radio batteries and cargo restraint for one team."),
-    ("$300 -- Silver", "Funds a tabletop exercise with a county emergency operations center."),
-    ("$1,000 -- Gold", "Underwrites a full multi-airport airlift exercise."),
-    ("$3,000 -- Diamond", "Equips a new DART with its ground team kit from scratch."),
-    ("$10,000 -- Platinum", "Sponsors a season of statewide training and outreach."),
+    ("$20 \u2014 Participating", "Covers a member's share of exercise materials for a year."),
+    ("$100 \u2014 Bronze", "Buys handheld radio batteries and cargo restraint for one team."),
+    ("$300 \u2014 Silver", "Funds a tabletop exercise with a county emergency operations center."),
+    ("$1,000 \u2014 Gold", "Underwrites a full multi-airport airlift exercise."),
+    ("$3,000 \u2014 Diamond", "Equips a new DART with its ground team kit from scratch."),
+    ("$10,000 \u2014 Platinum", "Sponsors a season of statewide training and outreach."),
 )
 
 DONATE = PageSpec(
@@ -539,16 +544,16 @@ DONATE = PageSpec(
         rich(definition_list(CONTRIBUTION_TIERS)),
         rich(
             "<p>Any amount helps, and you can add a contribution to your dues when you "
-            "join or renew -- one payment, one receipt.</p>"
+            "join or renew \u2014 one payment, one receipt.</p>"
         ),
         heading("Other ways to give"),
         rich(
             "<ul>"
-            "<li><b>Employer matching</b> -- many California employers match charitable "
+            "<li><b>Employer matching</b> \u2014 many California employers match charitable "
             "gifts. Ask us for our EIN and determination letter.</li>"
-            "<li><b>In kind</b> -- fuel, hangar space, radios, cargo restraint and "
+            "<li><b>In kind</b> \u2014 fuel, hangar space, radios, cargo restraint and "
             "avionics work are all as useful as cash.</li>"
-            "<li><b>Sponsorship</b> -- businesses that support a season of training are "
+            "<li><b>Sponsorship</b> \u2014 businesses that support a season of training are "
             "listed on our sponsors page.</li>"
             "</ul>"
         ),
@@ -557,14 +562,20 @@ DONATE = PageSpec(
 )
 
 SPONSOR_ROWS: tuple[tuple[str, str], ...] = (
-    ("Bay Meridian Aviation", "Fixed-base operator -- donated ramp space and fuel for exercises."),
+    (
+        "Bay Meridian Aviation",
+        "Fixed-base operator \u2014 donated ramp space and fuel for exercises.",
+    ),
     (
         "Sierra Avionics Works",
-        "Avionics shop -- discounted ADS-B and radio installations for members.",
+        "Avionics shop \u2014 discounted ADS-B and radio installations for members.",
     ),
-    ("Golden Poppy Flying Club", "Flying club -- aircraft made available for training weekends."),
-    ("Coast Range Insurance Brokers", "Broker -- guidance on volunteer liability cover."),
-    ("Delta Fuel & Line Service", "Line service -- fuel discounts on exercise days."),
+    (
+        "Golden Poppy Flying Club",
+        "Flying club \u2014 aircraft made available for training weekends.",
+    ),
+    ("Coast Range Insurance Brokers", "Broker \u2014 guidance on volunteer liability cover."),
+    ("Delta Fuel & Line Service", "Line service \u2014 fuel discounts on exercise days."),
 )
 
 SPONSORS = PageSpec(
@@ -595,7 +606,7 @@ CONTACT = PageSpec(
     show_in_menus=True,
     intro=(
         "<p>The fastest way to reach us is email. Messages go to the board and are usually "
-        "answered within a few days by a volunteer -- please be patient, nobody here is "
+        "answered within a few days by a volunteer \u2014 please be patient, nobody here is "
         "paid.</p>"
         "<p>If you want to join a specific team, say which airport you fly from and we will put "
         "you in touch with that DART's leader directly.</p>"
@@ -608,7 +619,7 @@ CONTACT = PageSpec(
         ),
         heading("Already a member?"),
         rich(
-            "<p>Membership questions -- renewals, receipts, a change of address -- are "
+            "<p>Membership questions \u2014 renewals, receipts, a change of address \u2014 are "
             "fastest through the member portal.</p>"
         ),
         cta("Open the member portal", "/portal/", "quiet"),
@@ -656,8 +667,8 @@ MEMBERS_ONLY = PageSpec(
         ),
         heading("Keep your record current"),
         rich(
-            "<p>Check your medical and flight review dates in the portal, and -- if you "
-            "own the aircraft you fly -- your insurance expiry. A DART leader checks "
+            "<p>Check your medical and flight review dates in the portal, and \u2014 if you "
+            "own the aircraft you fly \u2014 your insurance expiry. A DART leader checks "
             "these before dispatching you, and a lapsed date is the most common reason a "
             "willing member sits out a mission.</p>"
         ),
@@ -690,7 +701,7 @@ DOCS_AND_LINKS = PageSpec(
         rich(
             "<ul>"
             "<li>California Governor's Office of Emergency Services</li>"
-            "<li>Air Care Alliance -- volunteer pilot organizations</li>"
+            "<li>Air Care Alliance \u2014 volunteer pilot organizations</li>"
             "<li>FAA emergency operations and TFR information</li>"
             "<li>Your county's office of emergency services</li>"
             "</ul>"

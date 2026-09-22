@@ -51,4 +51,4 @@ class UserAdmin(DjangoUserAdmin):  # type: ignore[type-arg]
     @admin.display(description="roles")
     def role_list(self, obj: User) -> str:
         """The account's role slugs, comma separated, or a dash when it holds none."""
-        return ", ".join(obj.roles) or "--"
+        return ", ".join(obj.roles) or "\u2014"
