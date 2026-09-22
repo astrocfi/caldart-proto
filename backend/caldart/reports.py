@@ -95,6 +95,11 @@ HEADER_CELL_STYLE = ParagraphStyle(
 # --------------------------------------------------------------------------
 # CSV
 # --------------------------------------------------------------------------
+#: First characters a spreadsheet reads as the start of a formula rather than as
+#: text.  Excel, LibreOffice and Google Sheets all agree on these six.
+FORMULA_PREFIXES = frozenset({"=", "+", "-", "@", "\t", "\r"})
+
+
 class _Echo:
     """A file-like object whose ``write`` simply returns the line."""
 
@@ -102,12 +107,33 @@ class _Echo:
         return value
 
 
+def csv_cell(value: Any) -> Any:
+    """One value as the CSV should carry it.
+
+    ``None`` becomes an empty cell.  A string that opens with one of
+    :data:`FORMULA_PREFIXES` gains a leading apostrophe, which every spreadsheet
+    strips on import and which stops the cell being evaluated as a formula.
+    Everything else -- a number, a date, a decimal -- is handed to the ``csv``
+    module untouched, so a negative amount stays a number a spreadsheet can add
+    up.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, str) and value[:1] in FORMULA_PREFIXES:
+        return f"'{value}"
+    return value
+
+
 def csv_rows(header: Sequence[str], rows: Iterable[Sequence[Any]]) -> Iterator[str]:
-    """Yield the report as CSV text, one line at a time."""
+    """Yield the report as CSV text, one line at a time.
+
+    Every cell goes through :func:`csv_cell`, so no exported value can be read
+    back as a spreadsheet formula.
+    """
     writer = csv.writer(_Echo())
     yield writer.writerow(list(header))
     for row in rows:
-        yield writer.writerow(["" if value is None else value for value in row])
+        yield writer.writerow([csv_cell(value) for value in row])
 
 
 def csv_response(
@@ -182,13 +208,22 @@ class _NumberedCanvas(pdf_canvas.Canvas):
         self.restoreState()
 
 
+def escape_markup(text: str) -> str:
+    """Escape ``&``, ``<`` and ``>`` for reportlab's paragraph mini-markup.
+
+    Every string that reaches a ``Paragraph`` goes through this first.  reportlab
+    parses a paragraph as XML, so an unbalanced tag in a member's name or in a
+    filter a caller chose -- ``<b``, say -- would otherwise abort the whole
+    export with a parse error.  ``&`` is replaced first, so an escape sequence is
+    never escaped twice.
+    """
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _as_cells(values: Sequence[Any], style: ParagraphStyle) -> list[Paragraph]:
-    cells = []
-    for value in values:
-        text = "" if value is None else str(value)
-        text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        cells.append(Paragraph(text, style))
-    return cells
+    return [
+        Paragraph(escape_markup("" if value is None else str(value)), style) for value in values
+    ]
 
 
 def build_pdf_table(
@@ -252,9 +287,9 @@ def build_pdf_table(
     table = LongTable(data, colWidths=[col_width] * columns, repeatRows=1)
     table.setStyle(style)
 
-    story: list[Flowable] = [Paragraph(title, TITLE_STYLE)]
+    story: list[Flowable] = [Paragraph(escape_markup(title), TITLE_STYLE)]
     if subtitle:
-        story.append(Paragraph(subtitle, SUBTITLE_STYLE))
+        story.append(Paragraph(escape_markup(subtitle), SUBTITLE_STYLE))
     story.append(Spacer(1, 10))
     story.append(table)
 
