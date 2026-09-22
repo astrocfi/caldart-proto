@@ -107,6 +107,11 @@ STUB_MANIFEST = {
 _stub_manifest_dir: Path | None = None
 _stub_manifest_path: Path | None = None
 
+#: The manifest ``pytest_configure`` looked for before falling back, named in
+#: the skip reason: ``DJANGO_VITE_MANIFEST_PATH`` can point it somewhere other
+#: than ``frontend/dist``, and then "not built" alone would mislead.
+_missing_manifest_path: Path | None = None
+
 
 def _reload_vite_loader() -> None:
     """Make django-vite re-read the manifest.
@@ -123,12 +128,13 @@ def _reload_vite_loader() -> None:
 
 def pytest_configure(config: pytest.Config) -> None:
     """Fall back to a stub Vite manifest when no real one is configured."""
-    global _stub_manifest_dir, _stub_manifest_path
+    global _stub_manifest_dir, _stub_manifest_path, _missing_manifest_path
     from django.conf import settings
 
     configured = Path(settings.DJANGO_VITE["default"]["manifest_path"])
     if configured.is_file():
         return
+    _missing_manifest_path = configured
     _stub_manifest_dir = Path(tempfile.mkdtemp(prefix="caldart-vite-manifest-"))
     _stub_manifest_path = _stub_manifest_dir / "manifest.json"
     _stub_manifest_path.write_text(json.dumps(STUB_MANIFEST, indent=2))
@@ -152,7 +158,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     """
     if _stub_manifest_path is None:
         return
-    skip_reason = pytest.mark.skip(reason="frontend/dist not built (run `make build`)")
+    skip_reason = pytest.mark.skip(
+        reason=f"no Vite build at {_missing_manifest_path} (run `make build`)"
+    )
     for item in items:
         if item.get_closest_marker("needs_frontend_build") is not None:
             item.add_marker(skip_reason)

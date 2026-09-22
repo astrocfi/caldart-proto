@@ -134,9 +134,12 @@ stub manifest in a directory outside the checkout and overrides the
 already-loaded setting to point there instead, forcing django-vite to re-read
 it.  Nothing is written under ``frontend/dist``.
 
+The test settings load ``.env``, so a ``DJANGO_VITE_MANIFEST_PATH`` set there
+decides which manifest the suite reads (:doc:`configuration`).
+
 A test that genuinely needs the real bundle carries
 ``@pytest.mark.needs_frontend_build``; a collection hook in ``conftest.py``
-skips it whenever that fallback fired.
+skips it whenever that fallback fired, naming the manifest that was missing.
 
 .. code-block:: console
 
