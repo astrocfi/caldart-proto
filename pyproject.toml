@@ -26,6 +26,8 @@ dependencies = [
 dev = [
     "pytest>=8.3",
     "pytest-django>=4.9",
+    "pytest-cov>=6.0",
+    "pytest-randomly>=3.15",
     "factory-boy>=3.3",
     "freezegun>=1.5",
     "respx>=0.21",
@@ -48,14 +50,19 @@ python_files = ["test_*.py", "*_test.py"]
 pythonpath = ["backend"]
 testpaths = ["backend/tests"]
 addopts = "-ra --strict-markers --strict-config"
-filterwarnings = [
-    "error",
-    # WhiteNoise warns when STATIC_ROOT (backend/staticfiles/) has not been collected.
-    # The suite never runs collectstatic, so the warning describes the checkout, not
-    # the code.  WhiteNoise attributes it to its caller (stacklevel=3), so the filter
-    # matches the message rather than a module.
-    "ignore:No directory at:UserWarning",
+filterwarnings = ["error"]
+markers = [
+    "slow: seeds the whole demo data set; excluded by `-m \"not slow\"`",
+    "needs_frontend_build: skipped unless frontend/dist carries a real Vite build",
 ]
+
+[tool.coverage.run]
+branch = true
+source = ["backend/apps", "backend/caldart"]
+omit = ["*/migrations/*", "backend/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover"]
 
 [tool.codespell]
 # `en-GB_to_en-US` enforces the American spelling rule; `clear,rare` catch typos.
@@ -69,8 +76,8 @@ dictionary = ".codespell-dictionary.txt,-"
 # build output and its own copy of `plans/`; none of it belongs to this tree's sources.
 # `backend/openapi.json` and `frontend/src/portal/api/schema.d.ts` are generated into
 # trees this lint scans, so skipping them keeps the result the same whether or not a
-# build step has run.
-skip = "*.lock,package-lock.json,*.svg,*.png,*.woff2,node_modules,.venv,docs/_build,frontend/dist,backend/staticfiles,.claude/worktrees,backend/openapi.json,frontend/src/portal/api/schema.d.ts"
+# build step has run.  `backend/htmlcov` is `make coverage-backend`'s report.
+skip = "*.lock,package-lock.json,*.svg,*.png,*.woff2,node_modules,.venv,docs/_build,frontend/dist,backend/staticfiles,backend/htmlcov,.claude/worktrees,backend/openapi.json,frontend/src/portal/api/schema.d.ts"
 # nnumber: the nNumber identifier, which spells the FAA N-number in camelCase.
 # unparseable: a valid American spelling that the `rare` dictionary flags.
 # Anything else stays reportable: silence a single line with a trailing
