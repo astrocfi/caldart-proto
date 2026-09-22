@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from drf_spectacular.utils import PolymorphicProxySerializer
+from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
 from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
@@ -70,6 +70,10 @@ class PayPalCheckoutClientSerializer(serializers.Serializer[dict[str, str]]):
     order_id = serializers.CharField()
 
 
+# A serializer with no fields renders as nothing at all, which would drop `client`
+# from the mock response the view does send.  The explicit schema keeps the empty
+# object in the document.
+@extend_schema_field({"type": "object"})
 class MockCheckoutClientSerializer(serializers.Serializer[dict[str, Any]]):
     """The mock provider needs nothing from the browser to proceed."""
 
@@ -102,13 +106,15 @@ class MockCheckoutResponseSerializer(serializers.Serializer[dict[str, Any]]):
 #: serializer, it only documents the shape ``get_provider(...).start()`` already produces.
 #: ``client`` carries what the chosen provider's browser SDK needs, discriminated by
 #: ``provider`` -- ``client_secret`` for Stripe, ``order_id`` for PayPal, nothing for the
-#: mock provider.
+#: mock provider.  The keys are the plain ``str`` values, not the ``TextChoices``
+#: members: they become mapping keys in the document, and the YAML renderer
+#: ``manage.py spectacular`` defaults to refuses a ``str`` subclass.
 CheckoutResponseSerializer = PolymorphicProxySerializer(
     component_name="CheckoutResponse",
     serializers={
-        PaymentProvider.STRIPE: StripeCheckoutResponseSerializer,
-        PaymentProvider.PAYPAL: PayPalCheckoutResponseSerializer,
-        PaymentProvider.MOCK: MockCheckoutResponseSerializer,
+        PaymentProvider.STRIPE.value: StripeCheckoutResponseSerializer,
+        PaymentProvider.PAYPAL.value: PayPalCheckoutResponseSerializer,
+        PaymentProvider.MOCK.value: MockCheckoutResponseSerializer,
     },
     resource_type_field_name="provider",
 )

@@ -379,7 +379,7 @@ export interface CheckoutRequest {
 export type CheckoutResponse =
   | { payment_id: number; provider: 'stripe'; client: { client_secret: string } }
   | { payment_id: number; provider: 'paypal'; client: { order_id: string } }
-  | { payment_id: number; provider: 'mock' };
+  | { payment_id: number; provider: 'mock'; client: Record<string, never> };
 
 export interface PaymentResult {
   status: PaymentState;

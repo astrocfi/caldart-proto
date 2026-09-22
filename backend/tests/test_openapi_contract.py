@@ -19,6 +19,7 @@ from typing import Any, TypedDict
 
 import pytest
 from drf_spectacular.generators import SchemaGenerator
+from drf_spectacular.renderers import OpenApiYamlRenderer
 
 from caldart.api_urls import API_PATH_PREFIX
 
@@ -190,6 +191,37 @@ def test_every_operation_describes_a_response(openapi_schema: dict[str, Any]) ->
         if not operation.get("responses")
     ]
     assert undescribed == []
+
+
+def test_schema_renders_as_yaml(openapi_schema: dict[str, Any]) -> None:
+    """The document survives the YAML renderer ``manage.py spectacular`` defaults to.
+
+    Every key and value has to be a plain built-in type.  A Django ``TextChoices``
+    member used as a key -- a ``str`` subclass -- is one PyYAML's safe dumper refuses,
+    and the JSON format the contract check runs would never notice.
+    """
+    # The renderer carries no annotations, like the generator above; it answers bytes.
+    rendered: bytes = OpenApiYamlRenderer().render(openapi_schema)  # type: ignore[no-untyped-call]
+    assert b"CheckoutResponse" in rendered
+
+
+def test_mock_checkout_response_documents_its_client(
+    generated_summaries: dict[str, ComponentSummary],
+) -> None:
+    """The mock 201 body documents ``client``, the empty object the view always sends.
+
+    The mock provider's ``start`` returns ``{}`` and the view puts it under ``client``
+    like every other provider's, so the component carries the property even though it
+    has no fields of its own.
+    """
+    assert generated_summaries["MockCheckoutResponse"]["properties"]["client"] == "object"
+
+
+def test_mock_checkout_response_requires_its_client(
+    generated_summaries: dict[str, ComponentSummary],
+) -> None:
+    """``client`` is always present in the mock 201 body, never optional."""
+    assert "client" in generated_summaries["MockCheckoutResponse"]["required"]
 
 
 def test_schema_components_match_the_snapshot(

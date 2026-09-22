@@ -648,10 +648,12 @@
   },
   "MockCheckoutResponse": {
     "properties": {
+      "client": "object",
       "payment_id": "integer",
       "provider": "ref:MockCheckoutResponseProviderEnum"
     },
     "required": [
+      "client",
       "payment_id",
       "provider"
     ]
