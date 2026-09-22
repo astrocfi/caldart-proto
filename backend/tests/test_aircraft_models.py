@@ -45,7 +45,7 @@ def test_save_normalizes_the_n_number() -> None:
 def test_n_number_is_unique_after_normalization() -> None:
     """Creating an aircraft with a colliding normalized N-number raises an error."""
     AircraftFactory(n_number="N999ZZ")
-    with pytest.raises(IntegrityError):
+    with pytest.raises(IntegrityError, match="aircraft_aircraft_n_number_key"):
         Aircraft.objects.create(n_number="999zz")
 
 

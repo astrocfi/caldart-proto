@@ -92,7 +92,7 @@ def history(
 # GET /admin/payments
 # --------------------------------------------------------------------------
 def test_list_is_paginated_and_newest_first(
-    api_client: APIClient, account_admin: User, history: list[Payment]
+    api_client: APIClient, account_admin: User, member: User, history: list[Payment]
 ) -> None:
     """The payments list paginates and sorts newest first."""
     api_client.force_login(account_admin)
@@ -100,8 +100,8 @@ def test_list_is_paginated_and_newest_first(
 
     assert body["count"] == 7
     periods = [row["created_at"][:7] for row in body["results"]]
-    assert periods == sorted(periods, reverse=True)
-    assert body["results"][0]["user_name"]
+    assert periods == ["2026-02", "2026-02", "2026-02", "2026-01", "2026-01", "2025-11", "2025-11"]
+    assert body["results"][0]["user_name"] == f"{member.first_name} {member.last_name}"
     assert body["results"][0]["plan"] == "Annual"
 
 

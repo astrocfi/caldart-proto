@@ -254,9 +254,16 @@ def test_a_phone_of_exactly_thirty_two_characters_is_stored(
 # --------------------------------------------------------------------------
 # Names outside ASCII
 # --------------------------------------------------------------------------
-#: A name carrying diacritics and a non-Latin script, to catch a narrow
-#: encoding anywhere between the database and the download.
-NON_ASCII_NAME = "Ana Sof\u00eda N\u00fa\u00f1ez-\u5c0f\u6797"
+#: A name carrying diacritics and a non-Latin script, to catch a narrow encoding
+#: anywhere between the database and the download.  Written as escapes because
+#: every ``.py`` file in the backend stays ASCII.
+NON_ASCII_FIRST_NAME = "Ana Sof\u00eda"
+
+#: The surname, whose first five characters are the accented spelling the search
+#: test looks the member up by.
+NON_ASCII_LAST_NAME = "N\u00fa\u00f1ez-\u5c0f\u6797"
+
+NON_ASCII_NAME = f"{NON_ASCII_FIRST_NAME} {NON_ASCII_LAST_NAME}"
 
 
 @pytest.fixture
@@ -264,8 +271,8 @@ def non_ascii_member(annual_plan: MembershipPlan) -> User:
     """A current member whose name is written with diacritics and a non-Latin script."""
     user = UserFactory(
         email="sofia@example.test",
-        first_name="Ana Sofía",
-        last_name="Núñez-小林",
+        first_name=NON_ASCII_FIRST_NAME,
+        last_name=NON_ASCII_LAST_NAME,
     )
     MemberProfileFactory(user=user, phone="+34 600 000 000")
     MembershipFactory(
@@ -285,7 +292,7 @@ def test_a_non_ascii_name_is_served_unchanged(
 
     body = api_client.get(MEMBERS_URL, {"search": "sofia@example.test"}).json()
 
-    assert body["results"][0]["name"] == "Ana Sofía Núñez-小林"
+    assert body["results"][0]["name"] == NON_ASCII_NAME
 
 
 def test_a_non_ascii_name_survives_the_csv_export(
@@ -296,7 +303,7 @@ def test_a_non_ascii_name_survives_the_csv_export(
 
     rows = read_csv(api_client.get(MEMBERS_CSV_URL, {"search": "sofia@example.test"}))
 
-    assert rows[1][0] == "Ana Sofía Núñez-小林"
+    assert rows[1][0] == NON_ASCII_NAME
 
 
 def test_a_non_ascii_name_is_found_by_its_accented_spelling(
@@ -305,6 +312,6 @@ def test_a_non_ascii_name_is_found_by_its_accented_spelling(
     """Searching the accented surname finds the member it belongs to."""
     api_client.force_login(account_admin)
 
-    body = api_client.get(MEMBERS_URL, {"search": "Núñez"}).json()
+    body = api_client.get(MEMBERS_URL, {"search": NON_ASCII_LAST_NAME[:5]}).json()
 
     assert [row["email"] for row in body["results"]] == ["sofia@example.test"]

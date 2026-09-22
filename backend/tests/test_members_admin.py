@@ -290,7 +290,7 @@ def test_list_is_paginated(account_admin_client: APIClient, population: dict[str
     body = response.json()
     assert body["count"] == User.objects.count()
     assert len(body["results"]) == 2
-    assert body["next"]
+    assert body["next"] == f"http://testserver{LIST_URL}?page=2&page_size=2"
 
 
 @pytest.mark.parametrize(
@@ -505,8 +505,9 @@ def test_detail_returns_the_whole_record(
     PaymentFactory(user=member, plan=annual_plan, amount_cents=6_500, contribution_cents=2_000)
 
     body = account_admin_client.get(detail_url(member)).json()
-    assert set(body) >= {
+    assert set(body) == {
         "id",
+        "created_at",
         "email",
         "first_name",
         "last_name",

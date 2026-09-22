@@ -89,7 +89,11 @@ def test_a_current_member_gets_the_members_pages(
         "Documents and Links",
         "Members briefing",
     }
-    assert {p["url"] for p in data["members_pages"]} >= {"/members/", "/members/docs-and-links/"}
+    assert {p["url"] for p in data["members_pages"]} == {
+        "/members/",
+        "/members/docs-and-links/",
+        "/news/briefing/",
+    }
 
 
 def test_an_expired_member_gets_no_members_pages(

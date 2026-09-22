@@ -146,7 +146,7 @@ def test_register_rolls_back_when_the_profile_cannot_be_created(
         raise RuntimeError("profile exploded")
 
     monkeypatch.setattr(MemberProfile.objects, "get_or_create", boom)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="profile exploded"):
         api_client.post(REGISTER_URL, register_payload())
     assert not User.objects.filter(email="new.member@example.test").exists()
 

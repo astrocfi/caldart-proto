@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ast
 import importlib
+import multiprocessing
 import re
 import runpy
 import sys
@@ -280,8 +281,8 @@ def test_gunicorn_worker_count_is_capped(monkeypatch: pytest.MonkeyPatch) -> Non
 
     config = runpy.run_path(str(DEPLOY_DIR / "gunicorn.conf.py"))
 
-    assert config["workers"] >= 1
-    assert config["workers"] <= config["MAX_WORKERS"]
+    assert config["MAX_WORKERS"] == 12
+    assert config["workers"] == min(multiprocessing.cpu_count() * 2 + 1, 12)
 
 
 def test_web_concurrency_overrides_the_worker_heuristic(
