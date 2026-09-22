@@ -8,7 +8,7 @@ import { expect, test } from '@playwright/test';
 import { DEMO, signIn } from './helpers';
 
 test('an account administrator reads the reminder log and filters it by kind', async ({ page }) => {
-  await signIn(page, DEMO.accountAdmin);
+  await signIn(page, DEMO.accountadmin);
 
   await page
     .getByRole('navigation', { name: 'Portal sections' })
@@ -32,7 +32,7 @@ test('an account administrator reads the reminder log and filters it by kind', a
 });
 
 test('the account administrator has no way to start a scan', async ({ page }) => {
-  await signIn(page, DEMO.accountAdmin);
+  await signIn(page, DEMO.accountadmin);
   await page.goto('/portal/admin/reminders');
   await expect(page.getByRole('heading', { name: 'Renewal reminders' })).toBeVisible();
 
@@ -53,7 +53,7 @@ test('a DART leader cannot reach the reminder log', async ({ page }) => {
 });
 
 test('a system administrator keeps the run controls on the System page', async ({ page }) => {
-  await signIn(page, DEMO.sysAdmin);
+  await signIn(page, DEMO.sysadmin);
   await page.goto('/portal/system');
 
   await expect(page.getByRole('heading', { name: 'Renewal reminders' })).toBeVisible();

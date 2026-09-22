@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API, TEST_CSRF_TOKEN, makeUser, signedInAs } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API, TEST_CSRF_TOKEN, makeUser, signedInAs } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { ProfilePage } from './ProfilePage';
-import { TEST_DARTS, makeProfile } from './fixtures';
+import { TEST_DARTS, makeProfile } from '@test/fixtures/profile';
 
 function label(text: string): RegExp {
   // `<Field>` appends an aria-hidden "*" to required labels.

@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import { API, makeUser, signedInAs } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API, makeUser, signedInAs } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { AUTH_ME_KEY } from '../../auth/useAuth';
 import { AccountStep } from './AccountStep';
 

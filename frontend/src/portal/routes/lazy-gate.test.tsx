@@ -13,9 +13,9 @@
 import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { makeUser, signedInAs } from '../../test/handlers';
-import { renderRoutes } from '../../test/render';
-import { server } from '../../test/server';
+import { makeUser, signedInAs } from '@test/handlers';
+import { renderRoutes } from '@test/render';
+import { server } from '@test/server';
 import { routes } from './index';
 
 const { systemPageLoads } = vi.hoisted(() => ({ systemPageLoads: { count: 0 } }));

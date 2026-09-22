@@ -377,6 +377,9 @@ Beyond Django's and Wagtail's own, this project adds:
      - the demo data set; ``--seed`` is the *random* seed, default ``20260904``
    * - ``seed_content``
      - the example Wagtail site, and the ``website_admin`` permission grant
+   * - ``seed_facts``
+     - print the demo password, accounts and plan prices as JSON, which
+       ``make e2e`` saves for the end-to-end specs (:doc:`testing`)
    * - ``db_backup``
      - write ``backups/caldart-<timestamp>.sql.gz``
    * - ``db_restore <file> [--yes]``

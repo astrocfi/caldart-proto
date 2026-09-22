@@ -297,12 +297,31 @@ Running the frontend suite
 .. code-block:: console
 
    $ make test-frontend                 # vitest run, once
+   $ make coverage-frontend             # the same run, with a coverage report
    $ cd frontend && npm run test:watch  # watch mode
    $ cd frontend && npx vitest run src/portal/features/join
 
 Configuration is the ``test`` key in ``frontend/vite.config.ts``: the ``jsdom``
 environment, globals off, ``src/test/setup.ts`` as the setup file, CSS
 processing off, and ``src/**/*.{test,spec}.{ts,tsx}`` as the include pattern.
+Three settings keep the suite honest:
+
+``allowOnly: false``
+    A committed ``.only`` would narrow the run to one test and still report
+    green.  vitest refuses it, exactly as Playwright's ``forbidOnly`` refuses
+    ``test.only`` in CI.
+
+``restoreMocks: true``
+    Every spy is restored before the next test, so a file that patches a module
+    member cannot leak it into the file that runs after it.  A spy therefore has
+    to be installed per test (or in a ``beforeEach``), never once in a
+    ``beforeAll``.
+
+``sequence.shuffle: true``
+    The files, and the tests inside each file, run in a random order — the
+    frontend's counterpart to ``pytest-randomly``.  A test that only passes
+    after another has run fails sooner or later, rather than the day someone
+    reorders a file.
 
 **Every test file imports what it uses.**  ``globals: false`` means the runner
 injects nothing, and ``tsconfig.json``'s ``types`` lists only ``vite/client``,
@@ -328,7 +347,28 @@ in the cleanup — abort the request with an ``AbortController``, clear the time
 setup does nothing while the first one's cleanup has already canceled its
 work.
 
-Two helpers do the heavy lifting:
+**The console is a gate.**  ``src/test/console.ts`` replaces ``console.error``
+and ``console.warn`` with capturing spies before every test and fails the test
+afterwards if it wrote a message — React's complaint about a missing ``key``, a
+library's deprecation notice, msw's report of a request nobody stubbed.  It is
+the frontend's counterpart to pytest's ``filterwarnings = error``.  A test whose
+subject *is* the message declares it first:
+
+.. code-block:: ts
+
+   import { expectConsoleMessage } from '@test/console';
+
+   it('warns about an unknown tone', () => {
+     expectConsoleMessage(/unknown tone/i);
+     // …
+   });
+
+The declaration covers the current test only, and every message it does not
+match still fails.  It runs in both directions: a declaration nothing matched
+fails the test too, so a test whose subject is the warning cannot keep passing
+once the warning stops being written.
+
+Three helpers do the heavy lifting:
 
 ``src/test/render.tsx``
     ``renderWithProviders(ui, {route})`` wraps a component in the providers the
@@ -357,6 +397,18 @@ Two helpers do the heavy lifting:
     which means a mutation genuinely carries ``X-CSRFToken`` and a test can
     assert on it.
 
+``src/test/fixtures/``
+    The object factories that more than one file wants: ``profile.ts`` for the
+    profile, join and dashboard suites, ``members.ts`` for the members-admin
+    screens.  Test data lives here rather than beside the component, so nothing
+    test-only ships in the portal bundle.
+
+**Reach the helpers through the ``@test/`` alias** — ``@test/render``,
+``@test/server``, ``@test/handlers``, ``@test/console``,
+``@test/fixtures/profile`` — rather than counting ``../``s.  It is a path
+mapping in ``frontend/tsconfig.json`` mirrored by a ``resolve.alias`` entry in
+``frontend/vite.config.ts``, alongside the ``@/`` alias for ``src``.
+
 **Time.**  A test never waits out a real debounce, poll or delay, and never
 builds a fixture date from the real clock.  Pin the system clock with
 ``vi.useFakeTimers()`` and ``vi.setSystemTime(...)`` (add
@@ -376,8 +428,8 @@ inside an msw handler uses msw's own ``delay(ms)`` rather than a raw
    import { http, HttpResponse } from 'msw';
    import { screen } from '@testing-library/react';
 
-   import { renderWithProviders } from '../../../test/render';
-   import { server } from '../../../test/server';
+   import { renderWithProviders } from '@test/render';
+   import { server } from '@test/server';
    import { DashboardPage } from './DashboardPage';
 
    it('nudges a member whose profile is incomplete', async () => {
@@ -395,10 +447,28 @@ Query by role and by accessible name wherever you can
 keyboard and screen-reader use, and a test that goes through the accessibility
 tree keeps it that way.
 
+Measuring frontend coverage
+---------------------------
+
+``make coverage-frontend`` runs the same suite through ``@vitest/coverage-v8``
+and writes a text summary to the terminal and an HTML report to
+``frontend/coverage/`` (git-ignored; open ``frontend/coverage/index.html``).
+The measurement covers production code only: ``src/**/*.{ts,tsx}`` minus
+``src/test/``, the test files themselves and the generated
+``src/portal/api/schema.d.ts``.
+
+No threshold fails the run, and CI does not gate on the number.  The report is
+there to find the module nothing exercises, not to be argued with.
+
 What the frontend suite covers
 ------------------------------
 
-The API client and its error mapping; the route guards, and the real route
+The query client's retry policy, which gives up on a 4xx and tries a 5xx three
+times in all; the portal chrome — the skip link, the role-filtered rail, the
+identity area and the mobile drawer that closes on navigation; the toast queue,
+including the timeout that drops a toast on its own; the cache that sign-in
+empties before seeding it with whoever just signed in;
+the API client and its error mapping; the route guards, and the real route
 table opened at every guarded path by an anonymous visitor and by a user
 holding each role, so a guard that loses a role fails a case, plus the order a
 guard and an on-demand page resolve in; the shared
@@ -544,6 +614,43 @@ on a machine needs the browser: ``cd frontend && npx playwright install
 chromium`` (on a bare machine add ``npx playwright install-deps chromium``,
 which needs ``sudo``).  The specs are single-worker on purpose: three of the
 flows write to the shared database.
+
+``failOnFlakyTests`` is on in ``playwright.config.ts``.  CI retries a failing
+spec once so the failure is easy to read, but a spec that fails and then passes
+still fails the run: a flaky end-to-end spec is a race somewhere real.
+
+Writing a spec
+--------------
+
+**Locate by role and by label, never by CSS class.**  A class is styling, and a
+styling change should not break a test.  Every screen the specs touch gives
+them something better: the status cards are ``<section>`` elements with an
+``aria-label`` (``getByRole("region", {name: "Status for Owen Delgado"})``), the
+by-period report is labeled by its own heading, tables expose ``row``,
+``rowgroup``, ``columnheader`` and ``term``, and every control has an accessible
+name.
+
+**Wait for what you are about to assert, never for the network.**
+``waitForLoadState("networkidle")`` guesses that quiet means finished, which a
+long poll or a late asset makes wrong.  ``await expect(locator).toBeVisible()``
+waits for the thing itself, and says what went wrong when it never appears.
+
+**Take the seed's own values from** ``frontend/e2e/seed-facts.json``.  ``make
+e2e`` writes it with ``manage.py seed_facts`` straight after seeding the
+database, and ``e2e/helpers.ts`` reads it once per run and exports
+``DEMO_PASSWORD``, ``DEMO`` (the demo key to address map) and ``SEED``
+(``planPricesCents`` among them).  A spec that hard-codes ``caldart-demo`` or
+``$45.00`` is a copy of ``apps/*/seed.py`` that will one day disagree with it.
+Running Playwright against a server you started yourself means writing the file
+yourself first, with the same command.
+
+**Derive a row count rather than asserting "more than none".**  The payments
+report counts its rows against the CSV export downloaded in the same test, so
+the count is exact and stays right even though an earlier spec in the run paid
+for a membership of its own.  Derive it from the rows the screen actually
+reports on: the export carries every payment, while the by-period summary counts
+only the succeeded ones, so the spec counts periods over the export's
+``succeeded`` rows and the ledger's caption over all of them.
 
 Environment variables
 ----------------------

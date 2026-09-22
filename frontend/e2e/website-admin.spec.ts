@@ -16,17 +16,23 @@ const TITLE = `Exercise notice ${stamp}`;
 const EDITED = `${TITLE} updated`;
 const SLUG = `exercise-notice-${stamp}`;
 
-/** Wagtail keeps Publish in the editor's "More actions" dropdown. */
+/**
+ * Wagtail keeps Publish in the editor's "More actions" dropdown.
+ *
+ * The wait is for the message Wagtail renders once the save has landed, not for
+ * the network to fall quiet: an idle network is a guess, and a long-polling
+ * request or a late asset makes it the wrong one.
+ */
 async function publish(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'More actions' }).click();
   const button = page.getByRole('button', { name: 'Publish', exact: true });
   await expect(button).toBeVisible();
   await button.click();
-  await page.waitForLoadState('networkidle');
+  await expect(page.getByText(/published/i).first()).toBeVisible();
 }
 
 test('a website administrator creates, edits and deletes a page', async ({ page }) => {
-  await signInToWagtail(page, DEMO.webAdmin);
+  await signInToWagtail(page, DEMO.webadmin);
 
   // Into the page tree, and add a child of Home.  In the explorer a page's
   // title links to its editor, so take the id from there and open the
@@ -72,7 +78,7 @@ test('a website administrator creates, edits and deletes a page', async ({ page 
   // Delete it.
   await page.goto(`/admin/pages/${pageId}/delete/`);
   await page.getByRole('button', { name: /^Yes, delete it$/ }).click();
-  await page.waitForLoadState('networkidle');
+  await expect(page.getByText(/deleted/i).first()).toBeVisible();
 
   const gone = await page.goto(`/${SLUG}/`);
   expect(gone?.status()).toBe(404);

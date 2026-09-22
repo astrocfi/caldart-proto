@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, delay, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { API } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import type { Backup } from '../../api/types';
 import { BackupsPanel, formatBytes } from './BackupsPanel';
 

@@ -4,9 +4,9 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 
-import { API } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import type { AircraftDetail } from '../../api/types';
 import { AircraftRecordPage } from './AircraftRecordPage';
 

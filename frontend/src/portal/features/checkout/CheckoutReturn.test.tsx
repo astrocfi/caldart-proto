@@ -2,9 +2,9 @@ import { act, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { CheckoutReturn, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from './CheckoutReturn';
 
 const RETURN_URL = '/join/done?payment_id=42&payment_intent=pi_42';
@@ -50,7 +50,7 @@ describe('CheckoutReturn', () => {
 
     renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
 
-    expect(screen.getByRole('status')).toHaveTextContent('Confirming your payment');
+    expect(screen.getByRole('status')).toHaveTextContent('Confirming your payment…');
     await waitFor(() =>
       expect(onSuccess).toHaveBeenCalledWith({ paymentId: 42, membership: CURRENT_MEMBERSHIP }),
     );
@@ -73,6 +73,23 @@ describe('CheckoutReturn', () => {
     expect(calls.count).toBe(2);
   });
 
+  it('stops asking as soon as the payment succeeds', async () => {
+    const onSuccess = vi.fn();
+    serveConfirm(200, { status: 'pending', membership: NO_MEMBERSHIP });
+    const calls = servePayment([
+      { status: 'pending', membership: NO_MEMBERSHIP },
+      { status: 'succeeded', membership: CURRENT_MEMBERSHIP },
+    ]);
+
+    renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
+
+    await waitFor(() => expect(calls.count).toBe(1));
+    await act(() => vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 5));
+
+    expect(calls.count).toBe(2);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+
   it('gives up and says the payment is still being processed after the timeout', async () => {
     const onSuccess = vi.fn();
     serveConfirm(200, { status: 'pending', membership: NO_MEMBERSHIP });
@@ -83,7 +100,12 @@ describe('CheckoutReturn', () => {
     await act(() => vi.advanceTimersByTimeAsync(POLL_TIMEOUT_MS + POLL_INTERVAL_MS));
 
     expect(await screen.findByText('Payment not confirmed')).toBeInTheDocument();
-    expect(screen.getByText(/still being processed/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Your payment is still being processed. It is safe to close this page — we will ' +
+          'email you when it clears, and your membership page will update on its own.',
+      ),
+    ).toBeInTheDocument();
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
@@ -94,7 +116,37 @@ describe('CheckoutReturn', () => {
 
     renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
 
-    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(onSuccess).toHaveBeenCalledWith({ paymentId: 42, membership: CURRENT_MEMBERSHIP }),
+    );
+  });
+
+  it('shows what the server said when the payment lookup is refused', async () => {
+    const onSuccess = vi.fn();
+    serveConfirm(200, { status: 'pending', membership: NO_MEMBERSHIP });
+    server.use(
+      http.get(`${API}/payments/42`, () =>
+        HttpResponse.json({ detail: 'That payment is not yours.' }, { status: 403 }),
+      ),
+    );
+
+    renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
+
+    expect(await screen.findByText('Payment not confirmed')).toBeInTheDocument();
+    expect(screen.getByText('That payment is not yours.')).toBeInTheDocument();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('falls back to its own wording when the payment lookup fails outright', async () => {
+    const onSuccess = vi.fn();
+    serveConfirm(200, { status: 'pending', membership: NO_MEMBERSHIP });
+    server.use(http.get(`${API}/payments/42`, () => HttpResponse.error()));
+
+    renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
+
+    expect(await screen.findByText('Payment not confirmed')).toBeInTheDocument();
+    expect(screen.getByText('We could not check that payment.')).toBeInTheDocument();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it('reports a declined payment', async () => {
@@ -105,7 +157,7 @@ describe('CheckoutReturn', () => {
     renderWithProviders(<CheckoutReturn onSuccess={onSuccess} />, { route: RETURN_URL });
 
     expect(await screen.findByText('Payment not confirmed')).toBeInTheDocument();
-    expect(screen.getByText(/declined/)).toBeInTheDocument();
+    expect(screen.getByText('That payment was declined. Nothing was charged.')).toBeInTheDocument();
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
@@ -125,6 +177,6 @@ describe('CheckoutReturn', () => {
   it('complains about a link with no payment reference', async () => {
     renderWithProviders(<CheckoutReturn onSuccess={vi.fn()} />, { route: '/join/done' });
     expect(await screen.findByText('Payment not confirmed')).toBeInTheDocument();
-    expect(screen.getByText(/missing a payment reference/)).toBeInTheDocument();
+    expect(screen.getByText('That link is missing a payment reference.')).toBeInTheDocument();
   });
 });

@@ -1,8 +1,8 @@
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { API } from '../../test/handlers';
-import { server } from '../../test/server';
+import { API } from '@test/handlers';
+import { server } from '@test/server';
 import {
   ApiError,
   UnexpectedResponseError,
@@ -160,33 +160,24 @@ describe('request', () => {
     expect(parsed.searchParams.has('status')).toBe(false);
   });
 
-  it('supports every verb through the api helper', async () => {
+  it.each([
+    ['GET', () => api.get('/verb')],
+    ['POST', () => api.post('/verb', {})],
+    ['PUT', () => api.put('/verb', {})],
+    ['PATCH', () => api.patch('/verb', {})],
+    ['DELETE', () => api.delete('/verb')],
+  ])('sends %s through the api helper', async (method, call) => {
     const seen: string[] = [];
-    for (const method of ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']) {
-      server.use(
-        http.all(`${API}/verb`, ({ request: req }) => {
-          seen.push(req.method);
-          return HttpResponse.json({});
-        }),
-      );
-      switch (method) {
-        case 'GET':
-          await api.get('/verb');
-          break;
-        case 'POST':
-          await api.post('/verb', {});
-          break;
-        case 'PUT':
-          await api.put('/verb', {});
-          break;
-        case 'PATCH':
-          await api.patch('/verb', {});
-          break;
-        default:
-          await api.delete('/verb');
-      }
-    }
-    expect(seen).toEqual(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+    server.use(
+      http.all(`${API}/verb`, ({ request: req }) => {
+        seen.push(req.method);
+        return HttpResponse.json({});
+      }),
+    );
+
+    await call();
+
+    expect(seen).toEqual([method]);
   });
 });
 

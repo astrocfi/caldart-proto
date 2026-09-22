@@ -19,6 +19,10 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  // A spec that failed and then passed on the retry is a flaky spec, and a
+  // flaky end-to-end spec hides a real race. Retrying still makes the failure
+  // easy to read; it just does not turn the run green.
+  failOnFlakyTests: true,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   timeout: 60_000,
   expect: { timeout: 10_000 },
