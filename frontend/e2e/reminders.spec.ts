@@ -18,14 +18,17 @@ test('an account administrator reads the reminder log and filters it by kind', a
   await expect(page.getByRole('heading', { name: 'Reminders', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Renewal reminders' })).toBeVisible();
 
-  // Picking a kind sends the filter to the API rather than trimming the page.
-  const filtered = page.waitForRequest(
-    (request) =>
-      request.url().includes('/admin/reminders/log') && request.url().includes('kind=t30'),
+  // Picking a kind sends the filter to the API rather than trimming the page,
+  // and the log renders the answer: a 403 would leave the same empty table, so
+  // the response status is what proves the account admin may read the log.
+  const filtered = page.waitForResponse(
+    (response) =>
+      response.url().includes('/admin/reminders/log') && response.url().includes('kind=t30'),
   );
   await page.getByLabel('Reminder').selectOption('t30');
-  await filtered;
+  expect((await filtered).status()).toBe(200);
   await expect(page.getByLabel('Reminder')).toHaveValue('t30');
+  await expect(page.getByText('No reminders sent yet')).toBeVisible();
 });
 
 test('the account administrator has no way to start a scan', async ({ page }) => {
