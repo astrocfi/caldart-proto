@@ -25,8 +25,9 @@ export function FormAlert({ error, handled = [] }: FormAlertProps): JSX.Element 
 
   const fields = error.fieldErrors;
   const leftover = Object.entries(fields).filter(([name]) => !handled.includes(name));
+  const first = leftover[0];
   const message =
-    leftover.length > 0 ? leftover[0]![1] : Object.keys(fields).length === 0 ? error.message : null;
+    first !== undefined ? first[1] : Object.keys(fields).length === 0 ? error.message : null;
 
   if (!message) return null;
   return (

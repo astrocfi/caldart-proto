@@ -6,12 +6,14 @@ import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import { useAuth } from '../auth/useAuth';
+import { useAuth, useSignOut } from '../auth/useAuth';
+import { Button } from '../components/Button';
 import { groupedNavItems } from '../nav';
 
 /** The portal chrome: header, role-filtered navigation, and the routed page outlet. */
 export function PortalLayout(): JSX.Element {
   const { user, roles, isAuthenticated } = useAuth();
+  const { signOut, isPending: isSigningOut } = useSignOut();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -49,9 +51,9 @@ export function PortalLayout(): JSX.Element {
             {isAuthenticated && user ? (
               <>
                 <span className="muted portal__email">{user.email}</span>
-                <Link to="/logout" className="button button--quiet button--small">
+                <Button variant="quiet" small onClick={signOut} disabled={isSigningOut}>
                   Sign out
-                </Link>
+                </Button>
               </>
             ) : (
               <Link to="/login" className="button button--small">

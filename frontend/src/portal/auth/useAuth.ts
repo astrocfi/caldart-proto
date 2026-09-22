@@ -7,6 +7,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 import { ApiError, api } from '../api/client';
 import type {
@@ -129,6 +130,37 @@ export function useLogout(): UseMutationResult<null, Error, void> {
       queryClient.setQueryData(AUTH_ME_KEY, null);
     },
   });
+}
+
+export interface SignOut {
+  /** End the session, then go to the sign-in page. */
+  signOut: () => void;
+  /** The `POST /auth/logout` call is in flight. */
+  isPending: boolean;
+}
+
+/**
+ * The portal's sign-out control: end the session, then land on `/login`.
+ *
+ * Signing out is a `POST` a person presses, so no address ends a session by being
+ * opened.  `useLogout` empties the query cache before the navigation runs, so the
+ * sign-in page renders with nothing of the old session left behind.  A call the
+ * server refuses leaves the member where they were, with the control usable again.
+ */
+export function useSignOut(): SignOut {
+  const logout = useLogout();
+  const navigate = useNavigate();
+
+  return {
+    signOut: () => {
+      logout.mutate(undefined, {
+        onSuccess: () => {
+          void navigate('/login', { replace: true });
+        },
+      });
+    },
+    isPending: logout.isPending,
+  };
 }
 
 /** Changes the signed-in user's password through `POST /auth/password/change`. */

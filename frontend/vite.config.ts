@@ -30,11 +30,13 @@ export default defineConfig({
       },
     },
   },
+  // The dev server keeps Vite's own CORS default, which answers the loopback
+  // origins the Django dev server runs on and refuses every other site. Django
+  // in dev-mode points its module tags at `origin`, so that is all it needs.
   server: {
     port: 5173,
     strictPort: true,
     origin: 'http://localhost:5173',
-    cors: true,
   },
   test: {
     environment: 'jsdom',

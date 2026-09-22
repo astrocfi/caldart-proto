@@ -7,6 +7,7 @@ import type { JSX } from 'react';
 import { DateText } from '../../components/DateText';
 import { Money } from '../../components/Money';
 import { StatusChip } from '../../components/StatusChip';
+import type { StatusTone } from '../../components/StatusChip';
 import { InsuranceChip } from '../aircraft/InsuranceChip';
 import { ServiceChip } from '../aircraft/ServiceChip';
 import type { AircraftDetail } from '../../api/types';
@@ -14,7 +15,13 @@ import { OWNER_TYPE_LABELS } from '../aircraft/form';
 import { insuranceTone } from '../aircraft/insurance';
 import './leader.css';
 
-const VERDICT: Record<string, { word: string; why: string; go: boolean }> = {
+interface Verdict {
+  word: string;
+  why: string;
+  go: boolean;
+}
+
+const VERDICT: Record<StatusTone, Verdict> = {
   current: { word: 'INSURED', why: 'Cover is current', go: true },
   expiring: { word: 'INSURED', why: 'Cover expires soon', go: true },
   expired: { word: 'NOT INSURED', why: 'Cover has expired', go: false },
@@ -29,7 +36,7 @@ export interface AircraftStatusCardProps {
 /** The aircraft half of the leader check: insurance status and the pilots who fly it. */
 export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps): JSX.Element {
   const tone = insuranceTone(aircraft, today);
-  const verdict = VERDICT[tone] ?? VERDICT.none!;
+  const verdict = VERDICT[tone];
   // Only a leader or administrator is sent the pilot list.
   const pilots = aircraft.pilots ?? [];
 

@@ -40,7 +40,12 @@ served from the same origin as the API.
 Signing in with ``POST /auth/login`` sets the session cookie; the browser sends
 it automatically thereafter.  The portal's fetch wrapper
 (``frontend/src/portal/api/client.ts``) sets ``credentials: "same-origin"`` on
-every request for the same reason.
+every request for the same reason.  It also resolves the request URL before
+anything else happens: a path is read relative to ``/api/v1``, an absolute URL
+is accepted only when its origin equals the page's own, and anything else
+raises a ``TypeError`` before a CSRF token is fetched or a cookie is sent.  No
+caller can hand the session cookie or the ``X-CSRFToken`` header to another
+site.
 
 ``DEFAULT_PERMISSION_CLASSES`` is ``IsAuthenticated``, but every view in the
 project declares its own ``permission_classes``, so the default is never

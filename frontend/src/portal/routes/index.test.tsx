@@ -28,7 +28,6 @@ vi.mock('../features/auth', () => ({
   ChangePasswordPage: pageStub('Change password'),
   ForgotPasswordPage: pageStub('Forgot password'),
   LoginPage: pageStub('Sign in'),
-  LogoutPage: pageStub('Sign out'),
   ResetPasswordPage: pageStub('Reset password'),
 }));
 vi.mock('../features/dashboard/DashboardPage', () => ({
@@ -216,6 +215,14 @@ describe('the paths outside the session', () => {
 
   it('renders the not-found page for an unknown path', async () => {
     renderRoutes(routes, { route: '/no-such-screen' });
+
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+  });
+
+  it('has no address that ends a session: /logout is not a route', async () => {
+    server.use(signedInAs(makeUser()));
+
+    renderRoutes(routes, { route: '/logout' });
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
   });

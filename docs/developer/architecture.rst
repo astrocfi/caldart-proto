@@ -401,9 +401,11 @@ file.  Paths are written without the ``/portal`` prefix:
 ======================  ======================================================
 File                    Routes, and who may open them
 ======================  ======================================================
-``auth.tsx``            ``/login``, ``/logout``, ``/forgot-password``,
+``auth.tsx``            ``/login``, ``/forgot-password``,
                         ``/reset-password``: anyone; ``/change-password``:
-                        signed in
+                        signed in.  There is no sign-out address: the **Sign
+                        out** button in the portal bar posts to
+                        ``POST /auth/logout`` and then goes to ``/login``
 ``join.tsx``            ``/join``, ``/join/:step``: anyone; ``/renew``: signed
                         in
 ``dashboard.tsx``       ``/``: signed in

@@ -205,6 +205,14 @@ also at ``/portal/change-password``).
 If your account has been deactivated, signing in with the right password tells
 you so; contact CalDART to have it reopened.
 
+To sign out, press **Sign out** in the portal's top bar, beside your email
+address.  It ends the session and empties everything the portal had cached
+about you, which is what you want on a shared or borrowed computer.  It is a
+button rather than an address, so no link and no bookmark can sign you out by
+being opened.  If you are partway through joining and the wizard says you are
+signed in as somebody else, **Use a different account** on the account step
+does the same thing and returns you to the sign-in page.
+
 
 When something goes wrong
 =========================

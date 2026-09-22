@@ -1,7 +1,8 @@
 /**
  * The single fetch wrapper the portal talks to Django through.
  *
- * - same-origin session cookies, so there is no token to store;
+ * - same-origin session cookies, so there is no token to store; a request for any other
+ *   origin is refused with a `TypeError` before it is sent;
  * - CSRF fetched from `GET /api/v1/auth/csrf` whenever the `csrftoken` cookie is
  *   missing, then sent as `X-CSRFToken` on every unsafe method; a request the
  *   server refuses with a `CSRF Failed` 403 is retried once with a fresh token;
@@ -144,8 +145,39 @@ export interface RequestOptions {
   headers?: Record<string, string>;
 }
 
+/** A leading scheme, or the `//host` form, is what makes a string an absolute URL. */
+const ABSOLUTE_URL = /^[a-z][a-z\d+\-.]*:|^\/\//i;
+
+/**
+ * Resolve `path` to a URL on the page's own origin.
+ *
+ * A path is read relative to `API_BASE` unless it already starts with it. An absolute
+ * URL is accepted only when its origin is the page's own, because every request carries
+ * the session cookie and, on an unsafe method, the `X-CSRFToken` header: neither may
+ * ever be handed to another site.
+ *
+ * @throws TypeError when `path` looks absolute but is not a usable URL, or names an
+ * origin other than the page's own.
+ */
+function resolveUrl(path: string): string {
+  if (!ABSOLUTE_URL.test(path)) {
+    return path.startsWith(API_BASE) ? path : `${API_BASE}${path}`;
+  }
+
+  let origin: string;
+  try {
+    origin = new URL(path, window.location.origin).origin;
+  } catch {
+    throw new TypeError(`Refusing to request ${path}: it is not a usable URL.`);
+  }
+  if (origin !== window.location.origin) {
+    throw new TypeError(`Refusing to request ${path}: the API client only calls its own origin.`);
+  }
+  return path;
+}
+
 function buildUrl(path: string, query?: RequestOptions['query']): string {
-  const url = path.startsWith('http') || path.startsWith(API_BASE) ? path : `${API_BASE}${path}`;
+  const url = resolveUrl(path);
   if (!query) return url;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
@@ -208,7 +240,7 @@ function isCsrfFailure(status: number, body: unknown): boolean {
   return typeof detail === 'string' && detail.startsWith(CSRF_FAILURE_PREFIX);
 }
 
-function send(path: string, method: string, options: RequestOptions): Promise<Response> {
+function send(url: string, method: string, options: RequestOptions): Promise<Response> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...options.headers,
@@ -237,7 +269,7 @@ function send(path: string, method: string, options: RequestOptions): Promise<Re
   if (payload !== undefined) init.body = payload;
   if (options.signal) init.signal = options.signal;
 
-  return fetch(buildUrl(path, options.query), init);
+  return fetch(url, init);
 }
 
 /**
@@ -247,15 +279,20 @@ function send(path: string, method: string, options: RequestOptions): Promise<Re
  * exactly once against a freshly fetched token: the server rejected the request before
  * the view ran, so repeating it changes nothing else.
  *
+ * The URL is resolved before anything else happens, so a caller that names another
+ * origin is refused before a CSRF token is fetched or a cookie is sent.
+ *
+ * @throws TypeError when `path` names an origin other than the page's own.
  * @throws ApiError for any non-2xx response, carrying the status and the parsed body.
  * @throws UnexpectedResponseError for a 2xx body that is neither empty nor JSON.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = (options.method ?? 'GET').toUpperCase();
   const isUnsafe = !SAFE_METHODS.has(method);
+  const url = buildUrl(path, options.query);
   if (isUnsafe) await ensureCsrfToken();
 
-  const response = await send(path, method, options);
+  const response = await send(url, method, options);
   if (response.ok) return (await parseSuccessBody(response)) as T;
 
   const body = await parseErrorBody(response);
@@ -264,7 +301,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   await ensureCsrfToken({ force: true });
-  const retried = await send(path, method, options);
+  const retried = await send(url, method, options);
   if (retried.ok) return (await parseSuccessBody(retried)) as T;
   throw new ApiError(retried.status, await parseErrorBody(retried));
 }
