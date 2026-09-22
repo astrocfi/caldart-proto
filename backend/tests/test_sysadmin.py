@@ -6,8 +6,10 @@ import gzip
 import json
 import os
 import shlex
+import subprocess
 from io import StringIO
 from pathlib import Path
+from typing import Any
 
 import pytest
 from django.core.management import call_command
@@ -245,3 +247,37 @@ def test_restore_leaves_the_schema_alone_when_the_dump_cannot_be_read(
         services.restore_backup(dump)
 
     assert dropped == []
+
+
+class FailingSource:
+    """A dump whose read fails part way through, the way a dying disk would."""
+
+    def read(self, size: int = -1) -> bytes:
+        """Raise instead of returning the next block."""
+        raise OSError("the dump went away")
+
+
+def test_a_dump_that_cannot_be_read_leaves_no_unreaped_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A read error while feeding the tool kills it and waits for it before raising.
+
+    The stand-in blocks rather than exiting, so a tool that was neither killed nor
+    waited for would still be running when the error reaches the caller, and the
+    ``Popen`` left behind would raise a ``ResourceWarning`` when it was collected --
+    a failure in whichever unrelated test happened to be running by then.
+    """
+    started: list[subprocess.Popen[bytes]] = []
+    start_pg = services._start_pg
+
+    def record(argv: list[str], **kwargs: Any) -> subprocess.Popen[bytes]:
+        process = start_pg(argv, **kwargs)
+        started.append(process)
+        return process
+
+    monkeypatch.setattr(services, "_start_pg", record)
+
+    with pytest.raises(OSError, match="the dump went away"):
+        services._stream_pg(["sh", "-c", "sleep 10"], "psql", source=FailingSource())
+
+    assert started[0].returncode is not None

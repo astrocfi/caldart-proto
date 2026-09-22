@@ -142,6 +142,17 @@ def _start_pg(argv: list[str], **kwargs: Any) -> subprocess.Popen[bytes]:
     )
 
 
+def _kill_pg(process: subprocess.Popen[bytes]) -> None:
+    """Kill a pg tool that is no longer being fed or drained, and reap it.
+
+    A tool whose pipe stopped moving may block forever on the pipe instead of
+    exiting, so it is killed rather than merely waited for.  Returns once the
+    child is gone.
+    """
+    process.kill()
+    process.wait()
+
+
 def _stream_pg(
     argv: list[str],
     tool: str,
@@ -160,6 +171,10 @@ def _stream_pg(
     exits before draining its standard input is reported the same way rather than
     as the broken pipe its early exit leaves behind; if it somehow exited cleanly
     without reading the whole dump, the error says so.
+
+    Any other failure of the copy itself, such as a dump that cannot be read or a
+    disk that fills, kills the tool and waits for it before propagating, so no
+    child of ours is left running or unreaped.
     """
     stopped_early = False
     with TemporaryFile() as error_log:
@@ -175,12 +190,21 @@ def _stream_pg(
                 # The tool is already gone; its exit status and stderr say why, and
                 # a broken pipe on its own would tell the operator nothing.
                 stopped_early = True
+            except BaseException:
+                _kill_pg(process)
+                raise
         else:
             process = _start_pg(
                 argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=error_log
             )
-            with cast("IO[bytes]", process.stdout) as stdout:
-                shutil.copyfileobj(stdout, cast("SupportsWrite[bytes]", target), STREAM_CHUNK_BYTES)
+            try:
+                with cast("IO[bytes]", process.stdout) as stdout:
+                    shutil.copyfileobj(
+                        stdout, cast("SupportsWrite[bytes]", target), STREAM_CHUNK_BYTES
+                    )
+            except BaseException:
+                _kill_pg(process)
+                raise
 
         if process.wait() != 0:
             error_log.seek(0)

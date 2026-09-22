@@ -73,7 +73,10 @@ output, and a backup that fails part way through deletes the partial file it
 had started.  A ``psql`` that exits before it has read the whole dump -- a
 connection or authentication failure, say -- is reported the same way: the
 broken pipe its early exit leaves behind is swallowed so that the message the
-tool printed is what reaches the operator.
+tool printed is what reaches the operator.  If the copy itself fails instead --
+a dump that cannot be read, a disk that fills -- the tool is killed and waited
+for before the error propagates, so no ``pg_dump`` or ``psql`` is left blocked
+on a pipe nobody is moving.
 
 A restore reads the dump through once, a block at a time, before it drops
 anything.  A corrupt, truncated or non-gzip file therefore fails with
