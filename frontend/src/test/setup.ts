@@ -1,8 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, configure } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll, vi } from 'vitest'; // codespell:ignore afterall
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest'; // codespell:ignore afterall
 
 import { resetCsrfBootstrap } from '../portal/api/client';
+import { assertConsoleClean, installConsoleGuard } from './console';
 import { server } from './server';
 
 // `main.tsx` mounts the portal inside `<StrictMode>`, which runs every effect as
@@ -11,6 +12,10 @@ import { server } from './server';
 configure({ reactStrictMode: true });
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+
+// `restoreMocks` restores every spy before each test, so the guard is installed
+// afterwards rather than once for the whole run.
+beforeEach(() => installConsoleGuard());
 
 afterEach(() => {
   cleanup();
@@ -25,6 +30,8 @@ afterEach(() => {
     if (name) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
   }
   resetCsrfBootstrap();
+  // Last, so a complaint React made while unmounting still fails the test.
+  assertConsoleClean();
 });
 
 afterAll(() => server.close()); // codespell:ignore afterall

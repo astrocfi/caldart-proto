@@ -4,9 +4,9 @@ import { HttpResponse, http } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { API, makeUser, signedInAs } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API, makeUser, signedInAs } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import type {
   MembershipDetail,
   MembershipStatus,
@@ -14,7 +14,7 @@ import type {
   SiteConfig,
   User,
 } from '../../api/types';
-import { TEST_DARTS, makeProfile } from '../profile/fixtures';
+import { TEST_DARTS, makeProfile } from '@test/fixtures/profile';
 import { JoinWizard } from './JoinWizard';
 
 const SITE_CONFIG: SiteConfig = {

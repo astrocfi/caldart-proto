@@ -13,11 +13,15 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   base: '/static/',
   plugins: [react()],
-  // Mirrors the `@/*` path mapping in tsconfig.json so the bundler and the
+  // Mirrors the path mappings in tsconfig.json so the bundler and the
   // type-checker agree; code imports across the portal as `@/portal/...`
-  // rather than counting `../`s.
+  // rather than counting `../`s, and tests reach the shared helpers and
+  // fixtures as `@test/render` and `@test/fixtures/...`.
   resolve: {
-    alias: { '@': resolve(__dirname, 'src') },
+    alias: {
+      '@test': resolve(__dirname, 'src/test'),
+      '@': resolve(__dirname, 'src'),
+    },
   },
   build: {
     manifest: true,
@@ -44,5 +48,28 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // A committed `.only` narrows the run to one test and passes; refusing it
+    // keeps a debugging aid from reaching main.
+    allowOnly: false,
+    // Every spy is restored before the next test, so a file that patches a
+    // module member cannot leak it into the file that runs after it.
+    restoreMocks: true,
+    // Files and the tests inside them run in a random order, which is what
+    // surfaces a test that only passes after another has run.
+    sequence: { shuffle: true },
+    coverage: {
+      provider: 'v8',
+      // Production code only: the test helpers, the tests themselves and the
+      // generated OpenAPI types are not the subject of the measurement.
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/test/**',
+        'src/**/*.{test,spec}.{ts,tsx}',
+        'src/portal/api/schema.d.ts',
+        'src/**/*.d.ts',
+      ],
+      reporter: ['text', 'html'],
+      reportsDirectory: 'coverage',
+    },
   },
 });

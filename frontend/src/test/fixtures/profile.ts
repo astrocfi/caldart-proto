@@ -1,5 +1,5 @@
 /** Test data for the profile, join and dashboard suites.  Not shipped. */
-import type { AircraftSummary, Dart, Profile } from '../../api/types';
+import type { AircraftSummary, Dart, Profile } from '@/portal/api/types';
 
 export const TEST_DARTS: Dart[] = [
   { id: 1, name: 'Palo Alto', airport_identifier: 'PAO', city: 'Palo Alto' },

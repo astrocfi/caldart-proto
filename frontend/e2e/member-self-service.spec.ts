@@ -13,10 +13,7 @@ test('a member signs in, edits their profile and reads members-only content', as
   // The dashboard names them and says where their membership stands.
   await expect(page).toHaveURL(/\/portal\/?$/);
   await expect(page.getByRole('heading', { name: /^Welcome, / })).toBeVisible();
-  await expect(page.locator('.dashboard__status .chip')).toHaveAttribute(
-    'data-tone',
-    /current|expiring/,
-  );
+  await expect(page.getByRole('heading', { name: 'Your membership is current' })).toBeVisible();
 
   // Edit the profile and see it stick.
   await page.goto('/portal/profile');
@@ -30,7 +27,10 @@ test('a member signs in, edits their profile and reads members-only content', as
 
   // The dashboard lists the members-only pages, and one of them opens.
   await page.goto('/portal/');
-  const memberLink = page.locator('.dashboard__links a[href^="/members"]').first();
+  const memberContent = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Member content' }) });
+  const memberLink = memberContent.getByRole('listitem').getByRole('link').first();
   await expect(memberLink).toBeVisible();
   const title = (await memberLink.innerText()).trim();
   await memberLink.click();

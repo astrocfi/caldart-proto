@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { renderWithProviders } from '../../../test/render';
+import { renderWithProviders } from '@test/render';
 import type { AircraftSummary, LeaderStatus } from '../../api/types';
 import { MemberStatusCard, isGo, noGoReasons } from './MemberStatusCard';
 

@@ -17,6 +17,17 @@ const ROWS: Row[] = [
   { id: 3, name: 'Adeyemi, Kofi', hours: null },
 ];
 
+/**
+ * Names that separate `localeCompare` from a byte-wise sort: `ångström` and
+ * `Ávila` collate as `a`, and `zeta` in lower case still follows `Ávila`.
+ */
+const ACCENTED_ROWS: Row[] = [
+  { id: 1, name: 'zeta', hours: 0 },
+  { id: 2, name: 'Ávila', hours: -5 },
+  { id: 3, name: 'ångström', hours: 1_000_000 },
+  { id: 4, name: 'Beaumont', hours: 0 },
+];
+
 const COLUMNS: Column<Row>[] = [
   { key: 'name', header: 'Name', render: (row) => row.name, sortValue: (row) => row.name },
   {
@@ -37,23 +48,31 @@ function bodyNames(): string[] {
 }
 
 describe('sortRows', () => {
-  it('sorts strings case-insensitively', () => {
-    const sorted = sortRows(ROWS, COLUMNS[0], 'asc').map((row) => row.name);
-    expect(sorted).toEqual(['Adeyemi, Kofi', 'Delgado, Owen', 'Reyes, Marta']);
+  it.each<[string, Row[], 'asc' | 'desc', string[]]>([
+    ['ascending', ROWS, 'asc', ['Adeyemi, Kofi', 'Delgado, Owen', 'Reyes, Marta']],
+    ['descending', ROWS, 'desc', ['Reyes, Marta', 'Delgado, Owen', 'Adeyemi, Kofi']],
+    ['accented, ascending', ACCENTED_ROWS, 'asc', ['ångström', 'Ávila', 'Beaumont', 'zeta']],
+    ['accented, descending', ACCENTED_ROWS, 'desc', ['zeta', 'Beaumont', 'Ávila', 'ångström']],
+  ])('sorts names ignoring case and accents (%s)', (_label, rows, direction, expected) => {
+    expect(sortRows(rows, COLUMNS[0], direction).map((row) => row.name)).toEqual(expected);
   });
 
-  it('reverses for descending', () => {
-    const sorted = sortRows(ROWS, COLUMNS[0], 'desc').map((row) => row.name);
-    expect(sorted).toEqual(['Reyes, Marta', 'Delgado, Owen', 'Adeyemi, Kofi']);
-  });
-
-  it('sorts numbers numerically and puts nulls last', () => {
-    const sorted = sortRows(ROWS, COLUMNS[1], 'asc').map((row) => row.hours);
-    expect(sorted).toEqual([90, 1200, null]);
+  it.each<[string, Row[], 'asc' | 'desc', (number | null)[]]>([
+    ['ascending, nulls last', ROWS, 'asc', [90, 1200, null]],
+    ['descending, nulls first', ROWS, 'desc', [null, 1200, 90]],
+    ['negative and zero', ACCENTED_ROWS, 'asc', [-5, 0, 0, 1_000_000]],
+  ])('sorts numbers numerically (%s)', (_label, rows, direction, expected) => {
+    expect(sortRows(rows, COLUMNS[1], direction).map((row) => row.hours)).toEqual(expected);
   });
 
   it('leaves rows alone for an unsortable column', () => {
     expect(sortRows(ROWS, COLUMNS[2], 'asc')).toEqual(ROWS);
+  });
+
+  it('returns a new array rather than sorting the caller’s', () => {
+    const rows = [...ROWS];
+    sortRows(rows, COLUMNS[0], 'asc');
+    expect(rows).toEqual(ROWS);
   });
 });
 

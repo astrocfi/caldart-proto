@@ -4,15 +4,9 @@ import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { User } from '../../api/types';
-import {
-  API,
-  CURRENT_MEMBERSHIP,
-  NO_MEMBERSHIP,
-  makeUser,
-  signedInAs,
-} from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
 import { UsersListPage } from './UsersListPage';
 

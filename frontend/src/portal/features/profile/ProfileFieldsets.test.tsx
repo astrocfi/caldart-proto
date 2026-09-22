@@ -2,10 +2,10 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import { renderWithProviders } from '../../../test/render';
+import { renderWithProviders } from '@test/render';
 import { ProfileFieldsets } from './ProfileFieldsets';
 import type { ProfileFieldsetsProps } from './ProfileFieldsets';
-import { TEST_DARTS } from './fixtures';
+import { TEST_DARTS } from '@test/fixtures/profile';
 import { EMPTY_PROFILE_FORM } from './form';
 
 const CONTACT_LABELS = [

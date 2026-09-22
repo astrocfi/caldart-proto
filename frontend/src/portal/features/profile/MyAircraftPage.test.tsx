@@ -3,14 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API, makeUser, signedInAs } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API, makeUser, signedInAs } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import type { AircraftPickerProps } from '@/portal/features/aircraft';
 
 import type { Aircraft } from '../../api/types';
 import { MyAircraftPage } from './MyAircraftPage';
-import { TEST_AIRCRAFT, makeProfile } from './fixtures';
+import { TEST_AIRCRAFT, makeProfile } from '@test/fixtures/profile';
 
 /**
  * `<AircraftPicker/>` has its own tests, and driving it means a debounced
