@@ -1,0 +1,8 @@
+paid_on,name,email,plan,plan_amount,contribution,total,provider,wallet,status,provider_ref
+2026-02-04,Fran Member,member@example.test,Annual,45.00,0.00,45.00,stripe,card,pending,ref-7
+2026-02-03,Wilma Voss,wilma@example.test,Annual,45.00,0.00,45.00,stripe,card,failed,ref-6
+2026-02-02,Fran Member,member@example.test,Annual,45.00,0.00,45.00,stripe,card,succeeded,ref-5
+2026-01-25,Wilma Voss,wilma@example.test,Annual,45.00,20.00,65.00,paypal,card,succeeded,ref-4
+2026-01-08,Fran Member,member@example.test,Annual,45.00,100.00,145.00,stripe,card,succeeded,ref-3
+2025-11-20,Wilma Voss,wilma@example.test,Annual,45.00,0.00,45.00,paypal,card,succeeded,ref-2
+2025-11-03,Fran Member,member@example.test,Annual,45.00,0.00,45.00,stripe,card,succeeded,ref-1

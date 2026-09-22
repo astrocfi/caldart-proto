@@ -106,7 +106,7 @@ def test_the_self_deactivation_refusal_names_the_is_active_field(system_admin: U
 
 def test_a_refused_self_deactivation_writes_nothing(system_admin: User) -> None:
     """A refused self-deactivation writes none of the fields in the same request."""
-    with pytest.raises(DomainValidationError):
+    with pytest.raises(DomainValidationError, match=re.escape(SELF_DEACTIVATION_REFUSED)):
         update_account(system_admin, system_admin, {"is_active": False, "first_name": "Ada"})
     system_admin.refresh_from_db()
     assert system_admin.is_active is True

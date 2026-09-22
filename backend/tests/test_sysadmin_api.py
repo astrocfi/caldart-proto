@@ -6,6 +6,7 @@ off the URL, so every way of pointing it outside ``BACKUP_DIR`` has a test.
 
 from __future__ import annotations
 
+import datetime as dt
 import gzip
 import tomllib
 from collections.abc import Iterator
@@ -173,7 +174,8 @@ def test_backup_list_entries(api_client: APIClient, system_admin: User, a_backup
 
     assert entry["name"] == a_backup.name
     assert entry["size_bytes"] == a_backup.stat().st_size
-    assert entry["created_at"]
+    created_at = dt.datetime.fromisoformat(entry["created_at"])
+    assert created_at.timestamp() == pytest.approx(a_backup.stat().st_mtime, abs=1)
 
 
 def test_create_backup_writes_a_file_and_returns_its_entry(

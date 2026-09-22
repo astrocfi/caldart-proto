@@ -16,7 +16,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
-from tests.conftest import read_csv, role_matrix
+from tests.conftest import Golden, csv_body, read_csv, role_matrix
 from tests.factories import PaymentFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -78,12 +78,22 @@ def history(
             contribution_cents=2_000,
         ),
         make_payment(member, annual_plan, when=paid_at(2026, 2, 2)),
-        # Neither of these is revenue, so the summary must skip both.
+        # Neither of these is revenue, so the summary must skip both.  Their
+        # references are spelled out in full so that no cell of the export can
+        # hold one as a substring: the golden comparison replaces them literally.
         make_payment(
-            other, annual_plan, when=paid_at(2026, 2, 3), status=PaymentStatus.FAILED, ref="dud"
+            other,
+            annual_plan,
+            when=paid_at(2026, 2, 3),
+            status=PaymentStatus.FAILED,
+            ref="ref-dud-0001",
         ),
         make_payment(
-            member, annual_plan, when=paid_at(2026, 2, 4), status=PaymentStatus.PENDING, ref="wip"
+            member,
+            annual_plan,
+            when=paid_at(2026, 2, 4),
+            status=PaymentStatus.PENDING,
+            ref="ref-wip-0001",
         ),
     ]
 
@@ -92,7 +102,7 @@ def history(
 # GET /admin/payments
 # --------------------------------------------------------------------------
 def test_list_is_paginated_and_newest_first(
-    api_client: APIClient, account_admin: User, history: list[Payment]
+    api_client: APIClient, account_admin: User, member: User, history: list[Payment]
 ) -> None:
     """The payments list paginates and sorts newest first."""
     api_client.force_login(account_admin)
@@ -100,8 +110,8 @@ def test_list_is_paginated_and_newest_first(
 
     assert body["count"] == 7
     periods = [row["created_at"][:7] for row in body["results"]]
-    assert periods == sorted(periods, reverse=True)
-    assert body["results"][0]["user_name"]
+    assert periods == ["2026-02", "2026-02", "2026-02", "2026-01", "2026-01", "2025-11", "2025-11"]
+    assert body["results"][0]["user_name"] == f"{member.first_name} {member.last_name}"
     assert body["results"][0]["plan"] == "Annual"
 
 
@@ -131,7 +141,7 @@ def test_list_searches_name_email_and_reference(
     api_client.force_login(account_admin)
     assert api_client.get(LIST, {"search": "wilma"}).json()["count"] == 3
     assert api_client.get(LIST, {"search": "member@example.test"}).json()["count"] == 4
-    assert api_client.get(LIST, {"search": "dud"}).json()["count"] == 1
+    assert api_client.get(LIST, {"search": "ref-dud-0001"}).json()["count"] == 1
 
 
 def test_list_orders_by_amount(
@@ -293,6 +303,25 @@ def test_export_honors_the_filters(
 
     assert len(rows) == 3
     assert [row[7] for row in rows[1:]] == ["paypal", "paypal"]
+
+
+def test_export_matches_the_recorded_document(
+    api_client: APIClient,
+    account_admin: User,
+    member: User,
+    history: list[Payment],
+    golden: Golden,
+) -> None:
+    """The whole export -- header, every row, all eleven columns -- matches its record."""
+    api_client.force_login(account_admin)
+
+    body = csv_body(api_client.get(EXPORT))
+
+    # The fixture's names come from Faker and its references carry row ids, so
+    # both are replaced by fixed stand-ins before the documents are compared.
+    replace = {payment.provider_ref: f"ref-{index}" for index, payment in enumerate(history, 1)}
+    replace[f"{member.first_name} {member.last_name}"] = "Fran Member"
+    golden("payments-export.csv", body, replace=replace)
 
 
 def test_export_formats_money_as_dollars(

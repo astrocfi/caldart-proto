@@ -10,6 +10,7 @@ import gzip
 import shutil
 from io import StringIO
 from pathlib import Path
+from types import SimpleNamespace
 from typing import IO, Any
 
 import pytest
@@ -346,3 +347,51 @@ def test_db_reset_seed_propagates_a_failure(monkeypatch: pytest.MonkeyPatch) -> 
         call_command("db_reset", "--noinput", "--seed", stdout=StringIO())
 
     assert calls == ["drop_schema", "migrate", "seed_roles", "seed_demo", "seed_content"]
+
+
+# --------------------------------------------------------------- drop_schema
+class RecordingCursor:
+    """A stand-in database cursor that records the SQL it is asked to run."""
+
+    def __init__(self, statements: list[str]) -> None:
+        """Append every statement executed through this cursor to ``statements``."""
+        self.statements = statements
+        self.closed = False
+
+    def __enter__(self) -> RecordingCursor:
+        """Enter the ``with`` block, as a real cursor does."""
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        """Leave the ``with`` block, recording that the cursor was closed."""
+        self.closed = True
+
+    def execute(self, sql: str) -> None:
+        """Record ``sql`` instead of sending it to the database."""
+        self.statements.append(sql)
+
+
+@pytest.fixture
+def recorded_sql(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Capture the statements ``drop_schema`` issues rather than running them."""
+    statements: list[str] = []
+    cursor = RecordingCursor(statements)
+    monkeypatch.setattr(services, "connection", SimpleNamespace(cursor=lambda: cursor))
+    return statements
+
+
+def test_drop_schema_issues_the_two_statements_in_order(recorded_sql: list[str]) -> None:
+    """``drop_schema`` drops the public schema with its contents, then recreates it."""
+    services.drop_schema()
+
+    assert recorded_sql == ["DROP SCHEMA public CASCADE;", "CREATE SCHEMA public;"]
+
+
+def test_drop_schema_closes_its_cursor(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The cursor is used as a context manager, so it is closed when the work is done."""
+    cursor = RecordingCursor([])
+    monkeypatch.setattr(services, "connection", SimpleNamespace(cursor=lambda: cursor))
+
+    services.drop_schema()
+
+    assert cursor.closed is True

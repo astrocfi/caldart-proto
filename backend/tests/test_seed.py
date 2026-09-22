@@ -16,14 +16,19 @@ from faker import Faker
 from wagtail.models import Site
 
 from apps.accounts.roles import ROLE_SLUGS, SYSTEM_ADMIN
-from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
+from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD, GENERATED_MEMBER_COUNT
 from apps.aircraft.models import Aircraft
 from apps.cms.models import SiteSettings
 from apps.members.models import Dart, MemberProfile, Membership, MembershipPlan, MembershipState
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentStatus
+from apps.payments.seed import HISTORY_MONTHS
 
 User = get_user_model()
+
+#: The payments ``seed_demo`` creates from its fixed random seed: one per term,
+#: all succeeded.
+SEEDED_PAYMENTS = 81
 
 #: Every test here runs `seed_demo`, which seeds the whole demo data set.
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
@@ -60,8 +65,8 @@ def test_seed_demo_creates_the_documented_accounts() -> None:
     _seed()
     for _key, email, _first, _last, roles, is_superuser in DEMO_ACCOUNTS:
         user = User.objects.get(email=email)
-        assert user.check_password(DEMO_PASSWORD)
-        assert set(roles) <= set(user.roles)
+        assert user.check_password(DEMO_PASSWORD) is True
+        assert set(user.roles) == set(roles)
         assert user.is_superuser is is_superuser
 
 
@@ -69,9 +74,9 @@ def test_sysadmin_is_a_superuser() -> None:
     """The seeded ``sysadmin@example.org`` account is a Django superuser and staff."""
     _seed()
     user = User.objects.get(email="sysadmin@example.org")
-    assert user.is_superuser
-    assert user.is_staff
-    assert user.has_role(SYSTEM_ADMIN)
+    assert user.is_superuser is True
+    assert user.is_staff is True
+    assert user.has_role(SYSTEM_ADMIN) is True
 
 
 def test_seed_demo_shapes() -> None:
@@ -81,20 +86,21 @@ def test_seed_demo_shapes() -> None:
     assert MembershipPlan.objects.count() == 2
     assert MembershipPlan.objects.get(slug="annual").price_cents == 4_500
     assert MembershipPlan.objects.get(slug="life").duration_days is None
-    assert User.objects.count() >= 47
+    assert User.objects.count() == len(DEMO_ACCOUNTS) + GENERATED_MEMBER_COUNT
     assert MemberProfile.objects.count() == User.objects.count()
     assert Aircraft.objects.count() == 25
-    assert Payment.objects.filter(status=PaymentStatus.SUCCEEDED).count() >= 60
+    assert Payment.objects.filter(status=PaymentStatus.SUCCEEDED).count() == SEEDED_PAYMENTS
 
 
 def test_seed_demo_covers_every_membership_status() -> None:
     """The seed produces users in every membership status, including a lifetime member."""
     _seed()
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
-    assert counts[MembershipState.CURRENT] > 0
-    assert counts[MembershipState.EXPIRED] > 0
-    assert counts[MembershipState.NONE] > 0
-    assert any(membership_status(u)["is_lifetime"] for u in User.objects.all())
+    assert counts[MembershipState.CURRENT] == 34
+    assert counts[MembershipState.EXPIRED] == 9
+    assert counts[MembershipState.NONE] == 4
+    lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
+    assert len(lifetime) == 6
 
 
 def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
@@ -108,22 +114,33 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
         for u in User.objects.all()
         if (e := membership_status(u)["expires_on"]) and today <= e <= soon
     ]
-    assert expiring, "seed should include members expiring within 30 days"
+    assert len(expiring) == 7
 
     profiles = MemberProfile.objects.exclude(medical_type="none")
-    assert any(not p.medical_is_current for p in profiles)
-    assert any(p.medical_is_current for p in profiles)
-    assert len({p.pilot_certificate_type for p in MemberProfile.objects.all()}) > 2
+    assert sum(1 for p in profiles if not p.medical_is_current) == 7
+    assert sum(1 for p in profiles if p.medical_is_current) == 29
+    assert {p.pilot_certificate_type for p in MemberProfile.objects.all()} == {
+        "none",
+        "student",
+        "sport",
+        "recreational",
+        "private",
+        "commercial",
+        "atp",
+    }
 
 
 def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
     """The seed spreads payments across two providers and at least 24 months."""
     _seed()
     providers = set(Payment.objects.values_list("provider", flat=True))
-    assert {"stripe", "paypal"} <= providers
-    assert Payment.objects.filter(contribution_cents__gt=0).exists()
+    assert providers == {"stripe", "paypal"}
+    assert Payment.objects.filter(contribution_cents__gt=0).count() == 27
     months = Payment.objects.dates("created_at", "month")
-    assert len(months) >= 24
+    oldest, newest = min(months), max(months)
+    span = (newest.year - oldest.year) * 12 + newest.month - oldest.month
+    # The history the reports are demonstrated on: at least two years of it.
+    assert span >= HISTORY_MONTHS
 
 
 def test_seed_demo_memberships_come_from_payments() -> None:
@@ -136,9 +153,9 @@ def test_aircraft_insurance_currency_is_varied() -> None:
     """Some seeded aircraft carry current insurance, some do not, and some have none."""
     _seed()
     current = [a for a in Aircraft.objects.all() if a.insurance_is_current]
-    assert current
-    assert len(current) < Aircraft.objects.count()
-    assert Aircraft.objects.filter(insurance_expiration__isnull=True).exists()
+    assert len(current) == 18
+    assert Aircraft.objects.count() == 25
+    assert Aircraft.objects.filter(insurance_expiration__isnull=True).count() == 3
 
 
 def test_seed_demo_runs_twice_cleanly() -> None:

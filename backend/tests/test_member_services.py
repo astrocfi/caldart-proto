@@ -185,7 +185,7 @@ def test_a_refused_account_edit_leaves_the_profile_alone(
 ) -> None:
     """A refused account edit is written together with the profile, or not at all."""
     profile_factory(user=system_admin, phone="530-555-0100")
-    with pytest.raises(DomainValidationError):
+    with pytest.raises(DomainValidationError, match=re.escape(EMAIL_CHANGE_REFUSED)):
         update_member(
             account_admin,
             system_admin,

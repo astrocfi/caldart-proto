@@ -40,7 +40,13 @@ def test_migration_granted_the_website_admin_group_its_permissions() -> None:
     """The website admin group holds the admin-access, page and collection grants."""
     group = Group.objects.get(name=WEBSITE_ADMIN)
     codenames = set(group.permissions.values_list("codename", flat=True))
-    assert {"access_admin", "change_sitesettings"} <= codenames
+    assert codenames == {
+        "access_admin",
+        "change_sitesettings",
+        "add_redirect",
+        "change_redirect",
+        "delete_redirect",
+    }
 
     root_page = Page.objects.filter(depth=1).first()
     page_perms = set(
@@ -48,7 +54,13 @@ def test_migration_granted_the_website_admin_group_its_permissions() -> None:
             "permission__codename", flat=True
         )
     )
-    assert {"add_page", "change_page", "publish_page", "bulk_delete_page"} <= page_perms
+    assert page_perms == {
+        "add_page",
+        "change_page",
+        "publish_page",
+        "bulk_delete_page",
+        "lock_page",
+    }
 
     root_collection = Collection.objects.order_by("path").first()
     collection_perms = set(
@@ -56,7 +68,14 @@ def test_migration_granted_the_website_admin_group_its_permissions() -> None:
             group=group, collection=root_collection
         ).values_list("permission__codename", flat=True)
     )
-    assert {"add_image", "change_image", "add_document", "change_document"} <= collection_perms
+    assert collection_perms == {
+        "add_image",
+        "change_image",
+        "choose_image",
+        "add_document",
+        "change_document",
+        "choose_document",
+    }
 
 
 def test_granting_twice_adds_nothing(db: None) -> None:

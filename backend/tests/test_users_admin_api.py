@@ -208,8 +208,8 @@ def test_list_paginates(api_client: APIClient, user_admin: User) -> None:
 
     body = api_client.get(LIST, {"page_size": 3}).json()
     assert len(body["results"]) == 3
-    assert body["count"] >= 9
-    assert body["next"] is not None
+    assert body["count"] == User.objects.count()
+    assert body["next"] == f"http://testserver{LIST}?page=2&page_size=3"
 
 
 def test_list_can_be_ordered(api_client: APIClient, user_admin: User) -> None:
