@@ -91,8 +91,15 @@ member whose first name is ``=HYPERLINK("http://evil.test","click")`` would run
 code on the administrator's machine.  ``csv_cell`` prefixes such a string with
 a single apostrophe, the OWASP treatment: every spreadsheet strips it on
 import, and the cell reads as the text it always was.  Only strings are
-treated this way.  A number, a date or a decimal the report formatted itself is
-written as it stands, so a negative amount stays a number that sums correctly.
+treated this way; a number or a date passes through untouched.
+
+The money columns are strings — each report formats its cents into dollars
+itself — and they still never pick up an apostrophe, because the fields behind
+them (``amount_cents``, ``contribution_cents``, the insurance amounts) are
+positive integer fields, so a formatted amount never opens with a sign and
+always sums correctly in the spreadsheet.  A value a member typed is the case
+the policy is for: a phone number entered as ``+1 707 555 0134`` opens with
+``+``, so it exports with an apostrophe in front and reads as the text it is.
 
 **PDF: no heading or cell can become markup.**  reportlab parses a paragraph's
 text as XML, so ``<b`` in a name or in a filter would abort the export with a
