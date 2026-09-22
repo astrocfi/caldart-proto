@@ -12,11 +12,13 @@ from __future__ import annotations
 import pytest
 from rest_framework.test import APIClient
 
+from apps.accounts.api.views import DEACTIVATED_MESSAGE, WRONG_CREDENTIALS_MESSAGE
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan
 from apps.payments.api.serializers import MAX_CONTRIBUTION_CENTS
 
 CHECKOUT = "/api/v1/payments/checkout"
+LOGIN = "/api/v1/auth/login"
 
 
 # --------------------------------------------------------------------------
@@ -57,3 +59,45 @@ def test_checkout_accepts_a_contribution_at_the_cap(
     )
 
     assert response.status_code == 201
+
+
+# --------------------------------------------------------------------------
+# A login tells a wrong password nothing about the account
+# --------------------------------------------------------------------------
+@pytest.mark.django_db
+def test_login_with_a_wrong_password_on_an_active_account(
+    api_client: APIClient, member: User
+) -> None:
+    """A wrong password on an active account is the generic 400."""
+    response = api_client.post(LOGIN, {"email": member.email, "password": "wrong-password"})
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": WRONG_CREDENTIALS_MESSAGE}
+
+
+@pytest.mark.django_db
+def test_login_with_a_wrong_password_hides_a_deactivated_account(
+    api_client: APIClient, member: User
+) -> None:
+    """A wrong password on a deactivated account gets the same 400 as any other."""
+    member.is_active = False
+    member.save(update_fields=["is_active"])
+
+    response = api_client.post(LOGIN, {"email": member.email, "password": "wrong-password"})
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": WRONG_CREDENTIALS_MESSAGE}
+
+
+@pytest.mark.django_db
+def test_login_with_the_right_password_names_the_deactivation(
+    api_client: APIClient, member: User, password: str
+) -> None:
+    """Only a correct password is told the account has been deactivated."""
+    member.is_active = False
+    member.save(update_fields=["is_active"])
+
+    response = api_client.post(LOGIN, {"email": member.email, "password": password})
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": DEACTIVATED_MESSAGE}

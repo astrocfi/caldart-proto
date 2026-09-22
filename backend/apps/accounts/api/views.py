@@ -38,6 +38,14 @@ from apps.accounts.throttling import LoginThrottle, PasswordResetThrottle, Regis
 from apps.members.services import register_member, with_membership
 from caldart import audit
 
+#: What every refused login says.  It names neither half of the credentials, and
+#: a deactivated account whose password was wrong is answered with it too, so a
+#: guess can never be used to find out which addresses are registered.
+WRONG_CREDENTIALS_MESSAGE = "Incorrect email address or password."
+
+#: What a deactivated account is told, and only once its password has matched.
+DEACTIVATED_MESSAGE = "This account has been deactivated. Ask a CalDART administrator."
+
 
 def signed_in_user(request: Request) -> User:
     """The account behind ``request``.
@@ -106,29 +114,28 @@ class LoginView(APIView):
         """Sign in by ``email`` and ``password``, answering 200 with the ``user`` payload.
 
         Open to anonymous callers and throttled under the ``auth_login`` scope.  Wrong
-        credentials are a 400 with "Incorrect email address or password."; an address
-        that belongs to a deactivated account is a 403 with "This account has been
-        deactivated. Ask a CalDART administrator."
+        credentials are a 400 with "Incorrect email address or password."  A deactivated
+        account is answered with that same 400 unless the password is correct, in which
+        case it is a 403 with "This account has been deactivated. Ask a CalDART
+        administrator." -- so only somebody who already knows the password learns that
+        the address belongs to a deactivated account.
         """
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = authenticate(
-            request,
-            username=serializer.validated_data["email"],
-            password=serializer.validated_data["password"],
-        )
+        email = serializer.validated_data["email"]
+        password = serializer.validated_data["password"]
+        user = authenticate(request, username=email, password=password)
         if user is None:
-            # `authenticate` also returns None for a deactivated account, so
-            # look one up to tell the two apart for the error message only.
-            if User.objects.filter(
-                email__iexact=serializer.validated_data["email"], is_active=False
-            ).exists():
+            # `authenticate` also returns None for a deactivated account, so look
+            # one up; its password still has to match before we say so.
+            deactivated = User.objects.filter(email__iexact=email, is_active=False).first()
+            if deactivated is not None and deactivated.check_password(password):
                 return Response(
-                    {"detail": "This account has been deactivated. Ask a CalDART administrator."},
+                    {"detail": DEACTIVATED_MESSAGE},
                     status=status.HTTP_403_FORBIDDEN,
                 )
             return Response(
-                {"detail": "Incorrect email address or password."},
+                {"detail": WRONG_CREDENTIALS_MESSAGE},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         login(request, user)

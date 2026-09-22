@@ -157,14 +157,17 @@ case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
     "profile_complete": true}
 
 * **400** ``{"detail": "Incorrect email address or password."}`` — wrong
-  credentials.  The message never says which half was wrong.
+  credentials.  The message never says which half was wrong, and an address
+  that belongs to a deactivated account is answered with exactly this body
+  whenever the password does not match, so a guess cannot be used to find out
+  which addresses are registered.
 * **403** ``{"detail": "This account has been deactivated. Ask a CalDART
-  administrator."}`` — the credentials may well be right, but ``is_active``
-  is false.
+  administrator."}`` — the password matched, but ``is_active`` is false.  Only
+  somebody who already holds the password sees this.
 
 Statuses: **200** with the user payload and a session cookie; **400** for a
-missing field or wrong credentials; **403** for a deactivated account;
-**429** when the ``auth_login`` throttle is exhausted.
+missing field or wrong credentials; **403** for a deactivated account whose
+password was correct; **429** when the ``auth_login`` throttle is exhausted.
 
 ``POST /auth/logout``
 ---------------------
