@@ -4,12 +4,20 @@ Importing ``_dotenv`` first is what loads the repository's ``.env``, so a
 worktree's own ``DATABASE_URL`` reaches the test database name.
 """
 
+import tempfile
+from pathlib import Path
+
 from . import _dotenv  # noqa: F401  (imported for its side effect: it reads .env)
 from .base import *  # noqa: F403
-from .base import AUTH_THROTTLE_RATES, LOGGING, REPO_ROOT
+from .base import AUTH_THROTTLE_RATES, LOGGING, REPO_ROOT, env
 
 DEBUG = False
 ALLOWED_HOSTS = ["*", "testserver"]
+
+# WhiteNoise warns when STATIC_ROOT does not exist on disk, and the suite never
+# runs collectstatic.  Pointing STATIC_ROOT at a directory this import creates
+# keeps that warning from firing at all, rather than silencing it.
+STATIC_ROOT = Path(tempfile.mkdtemp(prefix="caldart-staticfiles-"))
 
 # Throttles are inert under test; the throttling test turns one back on with
 # ``override_settings`` rather than every other test racing a shared counter.
@@ -22,10 +30,16 @@ MAILERS = {"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend
 PAYMENTS_MOCK_ENABLED = True
 
 VITE_DEV_MODE = False
+# ``conftest.py`` points this at a stub manifest it builds outside the
+# checkout unless the environment already names one (CI's backend job sets it
+# to the real build's manifest for the tests marked ``needs_frontend_build``).
 DJANGO_VITE = {
     "default": {
         "dev_mode": False,
-        "manifest_path": REPO_ROOT / "frontend" / "dist" / ".vite" / "manifest.json",
+        "manifest_path": env.path(
+            "DJANGO_VITE_MANIFEST_PATH",
+            default=REPO_ROOT / "frontend" / "dist" / ".vite" / "manifest.json",
+        ),
     }
 }
 
