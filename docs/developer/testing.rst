@@ -35,23 +35,65 @@ Running the backend suite
    $ uv run pytest backend/tests/test_payments_stripe.py # one module
    $ uv run pytest -k "leader and insurance"             # by name
    $ uv run pytest -x --ff                               # stop at the first failure, failures first
+   $ uv run pytest -m "not slow"                         # skip the seed tests (§Markers below)
 
 Configuration lives in ``pyproject.toml`` under ``[tool.pytest.ini_options]``:
 ``DJANGO_SETTINGS_MODULE = "caldart.settings.test"``, ``pythonpath =
 ["backend"]``, ``testpaths = ["backend/tests"]``, ``addopts = "-ra
---strict-markers --strict-config"``, and a ``filterwarnings`` list that starts
-with ``"error"``. You never need to set ``DJANGO_SETTINGS_MODULE`` yourself, an
-undeclared marker or a mistyped setting is an error rather than a silent typo,
-and any warning is a test failure. Fix a warning that comes from our own code.
-Silence one from a third-party package only with a narrow ``ignore:`` entry
-after ``"error"`` and a comment saying why, as the entry for WhiteNoise's
-missing-``STATIC_ROOT`` warning does.
+--strict-markers --strict-config"``, and ``filterwarnings = ["error"]``. You
+never need to set ``DJANGO_SETTINGS_MODULE`` yourself, an undeclared marker or
+a mistyped setting is an error rather than a silent typo, and any warning is a
+test failure. Fix a warning that comes from our own code; silence one from a
+third-party package only with a narrow ``ignore:`` entry after ``"error"`` and
+a comment saying why.
 
 **The tests need Postgres.**  ``make up`` must have run.  Django creates
 ``test_<the database in DATABASE_URL>``, so a worktree using
 ``caldart_payments`` tests against ``test_caldart_payments`` and two branches
 can run ``pytest`` at the same time without colliding.  Add ``--reuse-db`` if
 you are iterating and the schema has not changed.
+
+Markers
+-------
+
+Two custom markers are registered in ``pyproject.toml``:
+
+``slow``
+    The seed-command tests in ``test_seed.py`` and ``test_cms_seed_content.py``,
+    which each run ``seed_demo`` or ``seed_content`` in full.  The default run
+    still runs them; ``uv run pytest -m "not slow"`` skips them for a faster
+    local loop.
+
+``needs_frontend_build``
+    The two ``test_shell_views.py`` tests that assert on the built bundle's
+    filenames.  A collection hook in ``conftest.py`` skips them unless a real
+    Vite manifest is configured (:ref:`testing-vite-manifest`).
+
+Order independence
+-------------------
+
+``pytest-randomly`` shuffles the test order on every run (and reseeds
+``random`` and Faker's shared generator per test), so a test that only passes
+after another one has run fails sooner or later rather than the day someone
+reorders a file.  To reproduce an order-dependent failure, pytest-randomly
+prints the seed it used at the top of every run; rerun with the same one:
+
+.. code-block:: console
+
+   $ uv run pytest --randomly-seed=1234567890  # the exact order that failed
+   $ uv run pytest -p no:randomly              # file order, unshuffled
+
+Coverage
+--------
+
+.. code-block:: console
+
+   $ make coverage-backend  # writes backend/htmlcov/ and a terminal summary
+
+``make coverage-backend`` runs ``pytest-cov`` over ``backend/apps`` and
+``backend/caldart`` only — tests and migrations are excluded
+(``[tool.coverage.run]`` in ``pyproject.toml``).  No threshold gates CI; the
+report is informational until a baseline is established.
 
 What ``caldart.settings.test`` changes
 --------------------------------------
@@ -73,19 +115,33 @@ What ``caldart.settings.test`` changes
   ``tests/test_audit_logging.py`` shows how to capture it: the logger does not
   propagate, so ``caplog.handler`` has to be attached to it.
 
+.. _testing-vite-manifest:
+
 The Vite manifest
 -----------------
 
 ``templates/base.html`` and ``templates/portal.html`` call ``{% vite_asset %}``,
 which raises when the entry is missing from the manifest.  Backend tests must
 not depend on ``npm run build`` having been run — CI runs the two suites in
-separate jobs — so ``conftest.py`` writes a stub manifest in
-``pytest_configure`` when there is no real one, forces django-vite to re-read
-it (its ``AppConfig.ready()`` caches the loader during ``django.setup()``,
-before the hook runs), and removes the stub again in ``pytest_unconfigure``.
+separate jobs.
 
-A test that genuinely needs the real bundle asks for the ``frontend_is_built``
-fixture, which is ``False`` when the manifest is the stub.
+``caldart.settings.test`` resolves ``DJANGO_VITE``'s manifest path from the
+``DJANGO_VITE_MANIFEST_PATH`` environment variable, falling back to the
+default ``frontend/dist/.vite/manifest.json``.  CI's backend job builds the
+frontend first and sets the variable to that real manifest.  A local run with
+nothing built has neither, so ``conftest.py``'s ``pytest_configure`` builds a
+stub manifest in a directory outside the checkout and overrides the
+already-loaded setting to point there instead, forcing django-vite to re-read
+it.  Nothing is written under ``frontend/dist``.
+
+A test that genuinely needs the real bundle carries
+``@pytest.mark.needs_frontend_build``; a collection hook in ``conftest.py``
+skips it whenever that fallback fired.
+
+.. code-block:: console
+
+   $ npm --prefix frontend run build
+   $ DJANGO_VITE_MANIFEST_PATH="$PWD/frontend/dist/.vite/manifest.json" uv run pytest -m needs_frontend_build
 
 Fixtures
 --------
@@ -126,8 +182,9 @@ for constantly:
    * - ``home_page``, ``site_settings``
      - a Wagtail tree with a home page, and the settings row
    * - ``today``, ``days``
-     - ``timezone.localdate()`` and ``days(7) -> timedelta(days=7)``, to keep
-       date arithmetic readable
+     - ``today`` freezes the clock (via ``freezegun``) at the current local date
+       and returns it, so a test's date math cannot shift mid-test; ``days(7)``
+       is ``timedelta(days=7)``, to keep the arithmetic readable
    * - ``pdf_text``
      - ``pdf_text(body)`` reads a rendered PDF back into the strings it draws,
        one list per page, so an export test asserts on the words the document
