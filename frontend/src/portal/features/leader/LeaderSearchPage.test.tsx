@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import type { LeaderSearchResult, LeaderStatus } from '../../api/types';
 import { SEARCH_DEBOUNCE_MS } from '../../components/useDebounced';
 import { LeaderSearchPage } from './LeaderSearchPage';

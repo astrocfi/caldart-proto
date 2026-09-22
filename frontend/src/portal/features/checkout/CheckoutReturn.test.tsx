@@ -2,9 +2,9 @@ import { act, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { CheckoutReturn, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from './CheckoutReturn';
 
 const RETURN_URL = '/join/done?payment_id=42&payment_intent=pi_42';

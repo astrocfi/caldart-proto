@@ -1,8 +1,8 @@
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { API } from '../../test/handlers';
-import { server } from '../../test/server';
+import { API } from '@test/handlers';
+import { server } from '@test/server';
 import {
   ApiError,
   UnexpectedResponseError,

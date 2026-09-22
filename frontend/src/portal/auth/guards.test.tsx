@@ -4,9 +4,9 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { Route, Routes, useSearchParams } from 'react-router-dom';
 
-import { API, makeUser, signedInAs } from '../../test/handlers';
-import { renderWithProviders } from '../../test/render';
-import { server } from '../../test/server';
+import { API, makeUser, signedInAs } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { RequireAuth, RequireRole, loginRedirect } from './guards';
 import { AUTH_ME_KEY } from './useAuth';
 

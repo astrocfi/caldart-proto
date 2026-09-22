@@ -4,11 +4,11 @@ import { HttpResponse, http } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { API } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { MembersListPage } from './MembersListPage';
-import { LIFETIME, makeRow } from './fixtures';
+import { LIFETIME, makeRow } from '@test/fixtures/members';
 
 const DARTS = [
   { id: 3, name: 'Palo Alto', airport_identifier: 'PAO', city: 'Palo Alto' },

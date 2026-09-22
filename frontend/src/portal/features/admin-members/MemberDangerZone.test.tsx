@@ -1,9 +1,9 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { renderWithProviders } from '../../../test/render';
+import { renderWithProviders } from '@test/render';
 import { MemberDangerZone } from './MemberDangerZone';
-import { makeDetail } from './fixtures';
+import { makeDetail } from '@test/fixtures/members';
 import type { MemberPayment } from '../../api/types';
 
 const PAYMENT: MemberPayment = {

@@ -6,9 +6,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { CheckoutProps } from '@/portal/features/checkout';
 
-import { API, makeUser, signedInAs } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API, makeUser, signedInAs } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import type { MembershipDetail } from '../../api/types';
 import { RenewPage } from './RenewPage';
 

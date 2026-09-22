@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { makeUser } from '../../../test/handlers';
+import { makeUser } from '@test/handlers';
 import type { MembershipStatus } from '../../api/types';
 import {
   clampJoinStep,

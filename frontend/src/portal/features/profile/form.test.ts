@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { makeProfile } from './fixtures';
+import { makeProfile } from '@test/fixtures/profile';
 import {
   EMPTY_PROFILE_FORM,
   REQUIRED_PROFILE_FIELDS,
