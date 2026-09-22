@@ -1,4 +1,4 @@
-"""``manage.py seed_content`` — the example CalDART site.
+"""``manage.py seed_content`` -- the example CalDART site.
 
 Builds this page tree::
 
@@ -20,16 +20,15 @@ It also creates the ``Members only`` document collection, which the members-area
 copy tells editors to upload handbooks and forms into.
 
 Idempotent: every page is looked up by slug under its parent and updated in
-place, so running the command twice leaves exactly the same tree.  All copy is
-*example content* — paraphrased from the public CalDART site, not lifted from
-it — and any website administrator can replace it from ``/admin/``.
+place, so running the command twice leaves exactly the same tree.  Every word of
+copy comes from ``seed_content_data``; this module only builds the tree.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Any
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -37,8 +36,9 @@ from django.utils import timezone
 from django.utils.text import slugify
 from wagtail.models import Page, Site
 
+from apps.cms.management.commands import seed_content_data as content
+from apps.cms.management.commands.seed_content_data import BlockSpec, PageSpec
 from apps.cms.models import (
-    MEMBERS_ONLY_COLLECTION_NAME,
     ContactPage,
     DartIndexPage,
     DartPage,
@@ -55,286 +55,7 @@ from apps.members.seed import seed_darts
 
 #: One entry of a page body: the block type, then either rich text or the block's
 #: own field values.
-type StreamItem = tuple[str, str] | tuple[str, dict[str, str]]
-
-
-class NewsPostSpec(TypedDict):
-    """The example copy one seeded news post is built from."""
-
-    slug: str
-    title: str
-    days_ago: int
-    intro: str
-    body: str
-    quote: NotRequired[tuple[str, str]]
-
-
-# ---------------------------------------------------------------------------
-# Copy
-# ---------------------------------------------------------------------------
-
-HERO_HEADING = "Volunteer air transportation when California needs it"
-HERO_LEDE = (
-    "CalDART organizes pilots, aircraft owners and ground crews into local teams so that "
-    "when an earthquake, wildfire or flood cuts a community off, relief supplies, people "
-    "and information keep moving."
-)
-
-MISSION = (
-    "<p>CalDART exists to give California's emergency managers a trained, insured and "
-    "practiced volunteer air transportation capability — organized before the disaster, "
-    "not improvised during it.</p>"
-)
-
-CONCEPT_STEPS: tuple[tuple[str, str], ...] = (
-    (
-        "Local teams form around an airport",
-        "A DART — Disaster Airlift Response Team — is a group of pilots, aircraft owners "
-        "and ground volunteers based at one general aviation airport. The airport is the "
-        "unit of organization because that is where the aircraft, fuel and ramp space are.",
-    ),
-    (
-        "Members stay current, all year",
-        "Membership means keeping a certificate, a medical and — for aircraft owners — "
-        "liability insurance current, and keeping that information where a DART leader can "
-        "check it in seconds.",
-    ),
-    (
-        "We train with the agencies we will fly for",
-        "Teams run exercises with county offices of emergency services, CERT groups and "
-        "other volunteer organizations, so the paperwork, radios and load plans are "
-        "familiar before they matter.",
-    ),
-    (
-        "A county activates its DART",
-        "Requests come through the county emergency operations center. The DART leader "
-        "calls out the members whose aircraft, currency and availability fit the mission.",
-    ),
-    (
-        "Small aircraft move small, urgent loads",
-        "Blood products, medications, radios, damage-assessment teams and communications "
-        "volunteers — the loads that are too small for a military airlift and too urgent "
-        "for a closed highway.",
-    ),
-)
-
-TAX_STATUS = (
-    "<p>CalDART is a California non-profit corporation and a 501(c)(3) public charity. "
-    "Membership dues and contributions are tax deductible to the extent allowed by law. "
-    "Members fly at their own expense as volunteers.</p>"
-)
-
-ABOUT_INTRO = (
-    "CalDART is a statewide network of local Disaster Airlift Response Teams. We recruit, "
-    "organize and train general aviation volunteers so California counties have an air "
-    "transportation option that does not have to be invented on the day of the disaster."
-)
-
-HISTORY_INTRO = (
-    "CalDART grew out of a single Bay Area airport exercise into a statewide network. "
-    "These are the milestones that got us here."
-)
-
-HISTORY_MILESTONES: tuple[tuple[str, str], ...] = (
-    (
-        "2011",
-        "Volunteers at a Bay Area general aviation airport run the first Disaster Airlift "
-        "Response Team exercise, flying simulated relief loads between two fields.",
-    ),
-    (
-        "2013",
-        "A second and third airport stand up teams of their own. The founding volunteers "
-        "publish the first DART organizing handbook so a new airport does not have to "
-        "start from a blank page.",
-    ),
-    (
-        "2015",
-        "CalDART incorporates as a California non-profit to hold the network together, "
-        "share training material and speak to counties with one voice.",
-    ),
-    (
-        "2016",
-        "The IRS recognizes CalDART as a 501(c)(3) public charity. Dues and contributions "
-        "become tax deductible.",
-    ),
-    (
-        "2017",
-        "The North Bay fires make the case in the worst possible way. Teams fly "
-        "damage-assessment and communications volunteers, and the network doubles in the "
-        "twelve months that follow.",
-    ),
-    (
-        "2019",
-        "Public safety power shut-offs prompt joint exercises with county offices of "
-        "emergency services and amateur radio groups across Northern California.",
-    ),
-    (
-        "2020",
-        "Exercises move online and onto individual airports. Members fly medical supply "
-        "runs for county public health departments through the pandemic year.",
-    ),
-    (
-        "2021",
-        "The network reaches Southern and Central California with new teams on the coast "
-        "and in the Los Angeles basin.",
-    ),
-    (
-        "2022",
-        "Sixteen DARTs are organized across the state, and the member roster, aircraft "
-        "insurance records and training history move into one shared system.",
-    ),
-)
-
-DARTS_INTRO = (
-    "Every DART is built around a general aviation airport and led by volunteers who fly "
-    "from it. Find the team nearest you, or join as unaffiliated and we will introduce you "
-    "to the closest leader."
-)
-
-#: Leader names for the example DART pages — invented, not real people.
-DART_LEADERS: tuple[str, ...] = (
-    "Helen Marchetti",
-    "Victor Ocampo",
-    "Dana Whitfield",
-    "Samuel Oyelaran",
-    "Rosa Villanueva",
-    "Keith Brannigan",
-    "Aiko Tanaka",
-    "Miles Gutierrez",
-    "Priya Raman",
-    "Elena Sokolov",
-    "Gordon Achebe",
-    "Teresa Lindqvist",
-    "Marcus Delgado",
-    "Nadia Farouk",
-    "Owen Castellanos",
-    "Joan Petrakis",
-)
-
-DIRECTORS_INTRO = (
-    "CalDART is run by a volunteer board elected by the membership. Directors serve "
-    "two-year terms; officers are elected by the board each January."
-)
-
-DIRECTORS: tuple[tuple[str, str], ...] = (
-    ("President", "Helen Marchetti — Napa DART, commercial pilot and former county OES planner"),
-    ("Vice President", "Samuel Oyelaran — Hayward DART, CFII and exercise coordinator"),
-    ("Secretary", "Teresa Lindqvist — Santa Rosa DART, aircraft owner and CERT instructor"),
-    ("Treasurer", "Marcus Delgado — Reid-Hillview DART, CPA and private pilot"),
-    ("Director at large", "Aiko Tanaka — Monterey DART, ground team lead"),
-    ("Director at large", "Gordon Achebe — San Carlos DART, ATP and safety officer"),
-    ("Director at large", "Rosa Villanueva — Livermore DART, communications lead"),
-)
-
-NEWS_POSTS: tuple[NewsPostSpec, ...] = (
-    {
-        "slug": "statewide-exercise-moves-simulated-relief-loads",
-        "title": "Statewide exercise moves simulated relief loads between nine airports",
-        "days_ago": 12,
-        "intro": (
-            "Twenty-eight aircraft and more than sixty ground volunteers took part in this "
-            "year's multi-county exercise."
-        ),
-        "body": (
-            "<p>Nine DARTs flew a coordinated exercise on Saturday, moving palletized "
-            "“relief supplies” — in practice, sandbags and marked cartons — between airports "
-            "on a schedule set by a simulated county emergency operations center.</p>"
-            "<p>The scenario assumed a magnitude 6.8 earthquake had closed two state "
-            "highways. Ground teams handled manifests, weight and balance checks and "
-            "hand-offs to CERT volunteers at the receiving fields, while amateur radio "
-            "operators passed traffic between the airports and the exercise EOC.</p>"
-            "<p>Debrief notes and the load-planning worksheets are in the members' area.</p>"
-        ),
-        "quote": (
-            "The point of the exercise is the paperwork and the radios, not the flying. "
-            "The flying is the easy part.",
-            "Exercise coordinator, CalDART",
-        ),
-    },
-    {
-        "slug": "two-new-darts-in-the-central-valley",
-        "title": "Two new teams stand up in the Central Valley",
-        "days_ago": 41,
-        "intro": (
-            "Pilots at two inland airports have completed the organizing checklist and are "
-            "recruiting members."
-        ),
-        "body": (
-            "<p>Both airports ran their first tabletop exercise with county emergency "
-            "management last month and have started signing up pilots, aircraft owners and "
-            "ground volunteers.</p>"
-            "<p>Standing up a DART takes a core of four or five committed volunteers, a "
-            "conversation with the airport manager and a county contact willing to take the "
-            "call. If that sounds like your field, the organizing handbook is in the "
-            "members' area and a board member will walk you through it.</p>"
-        ),
-    },
-    {
-        "slug": "insurance-and-currency-records-move-online",
-        "title": "Membership, medical and insurance records move online",
-        "days_ago": 96,
-        "intro": (
-            "DART leaders can now check a member's currency from a phone on the ramp, "
-            "instead of a spreadsheet emailed once a quarter."
-        ),
-        "body": (
-            "<p>Members keep their own profile up to date: contact details, certificate and "
-            "medical, the aircraft they commonly fly, and the volunteer roles they are "
-            "willing to take on. Aircraft owners record their liability limits and policy "
-            "expiry once, and every pilot attached to that aircraft benefits.</p>"
-            "<p>Renewal reminders go out at sixty, thirty and seven days. Nobody has to "
-            "chase a lapsed medical by hand any more.</p>"
-        ),
-    },
-)
-
-JOIN_INTRO = (
-    "Membership is open to anyone willing to help — you do not need to be a pilot, and you "
-    "do not need to own an aircraft."
-)
-
-DONATE_INTRO = (
-    "Dues cover the basics. Contributions pay for the exercises, radios, training material "
-    "and insurance that make a DART useful to a county on the worst day of its year."
-)
-
-CONTRIBUTION_TIERS: tuple[tuple[str, str], ...] = (
-    ("$20 — Participating", "Covers a member's share of exercise materials for a year."),
-    ("$100 — Bronze", "Buys handheld radio batteries and cargo restraint for one team."),
-    ("$300 — Silver", "Funds a tabletop exercise with a county emergency operations center."),
-    ("$1,000 — Gold", "Underwrites a full multi-airport airlift exercise."),
-    ("$3,000 — Diamond", "Equips a new DART with its ground team kit from scratch."),
-    ("$10,000 — Platinum", "Sponsors a season of statewide training and outreach."),
-)
-
-SPONSORS_INTRO = (
-    "CalDART's work is supported by flying clubs, fixed-base operators, avionics shops and "
-    "businesses across California. Sponsors are listed here with their permission; nothing "
-    "on this page is a paid endorsement."
-)
-
-SPONSOR_ROWS: tuple[tuple[str, str], ...] = (
-    ("Bay Meridian Aviation", "Fixed-base operator — donated ramp space and fuel for exercises."),
-    (
-        "Sierra Avionics Works",
-        "Avionics shop — discounted ADS-B and radio installations for members.",
-    ),
-    ("Golden Poppy Flying Club", "Flying club — aircraft made available for training weekends."),
-    ("Coast Range Insurance Brokers", "Broker — guidance on volunteer liability cover."),
-    ("Delta Fuel & Line Service", "Line service — fuel discounts on exercise days."),
-)
-
-CONTACT_INTRO = (
-    "<p>The fastest way to reach us is email. Messages go to the board and are usually "
-    "answered within a few days by a volunteer — please be patient, nobody here is paid.</p>"
-    "<p>If you want to join a specific team, say which airport you fly from and we will put "
-    "you in touch with that DART's leader directly.</p>"
-)
-
-MEMBERS_INTRO = (
-    "Handbooks, exercise material, forms and the current roster. This area is open to "
-    "members with a current membership, and to DART leaders and administrators."
-)
+type StreamItem = tuple[str, str | dict[str, str]]
 
 
 # ---------------------------------------------------------------------------
@@ -342,35 +63,9 @@ MEMBERS_INTRO = (
 # ---------------------------------------------------------------------------
 
 
-def rich(html: str) -> tuple[str, str]:
-    """A ``paragraph`` body block holding ``html`` as rich text."""
-    return ("paragraph", html)
-
-
-def heading(text: str, level: str = "h2") -> tuple[str, dict[str, str]]:
-    """A ``heading`` body block, at H2 unless ``level`` says otherwise."""
-    return ("heading", {"text": text, "level": level})
-
-
-def quote(text: str, attribution: str = "") -> tuple[str, dict[str, str]]:
-    """A ``quote`` body block, unattributed unless ``attribution`` is given."""
-    return ("quote", {"quote": text, "attribution": attribution})
-
-
-def cta(label: str, url: str, style: str = "primary", note: str = "") -> tuple[str, dict[str, str]]:
-    """A ``cta`` body block: a primary button unless another ``style`` is given."""
-    return ("cta", {"label": label, "url": url, "style": style, "note": note})
-
-
-def definition_list(rows: Sequence[tuple[str, str]]) -> str:
-    """Rich-text markup for a term/description list, which the blocks allow.
-
-    Each ``(term, text)`` pair becomes one list item with the term in bold, in the
-    order given; no rows give an empty list.  The strings are not escaped, so they
-    are example copy and editor input, never anything a visitor supplied.
-    """
-    items = "".join(f"<li><b>{term}</b> — {text}</li>" for term, text in rows)
-    return f"<ul>{items}</ul>"
+def stream(body: Sequence[BlockSpec]) -> list[StreamItem]:
+    """The block specs of a page body as the value a ``StreamField`` takes."""
+    return [(block.block_type, block.value) for block in body]
 
 
 def upsert_page[PageT: Page](
@@ -407,6 +102,33 @@ def upsert_page[PageT: Page](
     return saved
 
 
+def upsert_spec[PageT: Page](
+    parent: Page,
+    model: type[PageT],
+    spec: PageSpec,
+    **fields: Any,
+) -> PageT:
+    """Create or update the page ``spec`` describes below ``parent``.
+
+    The spec's intro, body and menu flag are written, and any further keyword goes
+    through to :func:`upsert_page` for the fields only that page model has.
+    ``members_only`` is written only where the spec sets it, because only the page
+    models that carry the wall have the field.  Returns the published page.
+    """
+    wall: dict[str, Any] = {"members_only": True} if spec.members_only else {}
+    return upsert_page(
+        parent,
+        model,
+        spec.slug,
+        title=spec.title,
+        show_in_menus=spec.show_in_menus,
+        intro=spec.intro,
+        body=stream(spec.body),
+        **wall,
+        **fields,
+    )
+
+
 # ---------------------------------------------------------------------------
 # The tree
 # ---------------------------------------------------------------------------
@@ -419,18 +141,18 @@ def seed_home(home: HomePage, about_url: str = "/about/") -> HomePage:
     reloaded from the database.  ``about_url`` is where the secondary call to
     action points.
     """
-    home.hero_heading = HERO_HEADING
-    home.hero_lede = HERO_LEDE
-    home.primary_cta_label = "Join CalDART"
-    home.primary_cta_url = "/portal/join"
-    home.secondary_cta_label = "How we operate"
+    home.hero_heading = content.HERO_HEADING
+    home.hero_lede = content.HERO_LEDE
+    home.primary_cta_label = content.PRIMARY_CTA_LABEL
+    home.primary_cta_url = content.PRIMARY_CTA_URL
+    home.secondary_cta_label = content.SECONDARY_CTA_LABEL
     home.secondary_cta_url = about_url
-    home.mission_statement = MISSION
-    home.concept_heading = "Organized before the emergency, not during it"
+    home.mission_statement = content.MISSION
+    home.concept_heading = content.CONCEPT_HEADING
     home.concept_of_operations = [
-        ("step", {"title": title, "text": text}) for title, text in CONCEPT_STEPS
+        ("step", {"title": title, "text": text}) for title, text in content.CONCEPT_STEPS
     ]
-    home.tax_status = TAX_STATUS
+    home.tax_status = content.TAX_STATUS
     home.save()
     home.save_revision().publish()
     saved: HomePage = HomePage.objects.get(pk=home.pk)
@@ -439,78 +161,29 @@ def seed_home(home: HomePage, about_url: str = "/about/") -> HomePage:
 
 def seed_about(home: HomePage) -> StandardPage:
     """Create or update ``/about/``, the About Us page, in the menu."""
-    return upsert_page(
-        home,
-        StandardPage,
-        "about",
-        title="About Us",
-        show_in_menus=True,
-        intro=ABOUT_INTRO,
-        body=[
-            heading("What a DART is"),
-            rich(
-                "<p>A Disaster Airlift Response Team is a group of general aviation "
-                "volunteers organized around one airport. Pilots fly. Aircraft owners "
-                "provide the aircraft and keep the insurance current. Ground volunteers "
-                "handle manifests, loading, radios and the hand-off at each end. Nobody is "
-                "paid, and no member is ever obliged to fly a mission they judge unsafe.</p>"
-            ),
-            heading("What we are not"),
-            rich(
-                "<p>CalDART is not a first-responder agency and does not self-deploy. Teams "
-                "fly when a county emergency manager asks for them, under that county's "
-                "incident command. We are not a substitute for military airlift, air "
-                "ambulance or firefighting aircraft; we carry the small, urgent loads those "
-                "resources are not sized for.</p>"
-            ),
-            quote(
-                "A Cessna with two hundred pounds of blood products on board is not "
-                "glamorous. On day two of a closed highway it is the whole logistics chain.",
-                "CalDART founding volunteer",
-            ),
-            heading("How the network is organized"),
-            rich(
-                "<p>Each DART runs its own recruiting, training and call-out list. CalDART "
-                "holds the network together: shared handbooks and checklists, statewide "
-                "exercises, one membership and insurance record system, and a single point "
-                "of contact for agencies that want to work with general aviation "
-                "volunteers.</p>"
-            ),
-            cta("Find your DART", "/about/darts/", "secondary"),
-        ],
-    )
+    return upsert_spec(home, StandardPage, content.ABOUT)
 
 
 def seed_history(about: StandardPage) -> StandardPage:
     """Create or update ``/about/history/``, which is not in the menu."""
-    return upsert_page(
-        about,
-        StandardPage,
-        "history",
-        title="History",
-        intro=HISTORY_INTRO,
-        body=[
-            heading("How CalDART began"),
-            rich(
-                "<p>The idea is older than the organization. Pilots have flown relief loads "
-                "after California disasters for decades — ad hoc, uninsured and usually "
-                "unwelcome, because no county emergency manager wants unvetted aircraft "
-                "arriving at a damaged airport. The DART model answered that objection: "
-                "organize first, train with the agency, and show up with the paperwork "
-                "already done.</p>"
-            ),
-            heading("Milestones"),
-            rich(definition_list(HISTORY_MILESTONES)),
-            heading("Where we are now"),
-            rich(
-                "<p>Sixteen teams, several hundred members, and a standing invitation to any "
-                "California airport that wants to organize one. The bottleneck has never "
-                "been aircraft; it is volunteers willing to do the unglamorous organizing "
-                "work between disasters.</p>"
-            ),
-            cta("Join CalDART", "/portal/join", "primary", "Annual membership is $45."),
-        ],
-    )
+    return upsert_spec(about, StandardPage, content.HISTORY)
+
+
+def dart_page_body(dart: Dart) -> list[StreamItem]:
+    """The body of one DART's page: its own summary, then the shared blocks.
+
+    A team with a home airport is described by where it flies from and which
+    county it trains with; a team without one gets the unaffiliated copy instead.
+    """
+    if dart.airport_identifier:
+        summary = content.DART_SUMMARY.format(
+            name=dart.name,
+            where=f"{dart.city} ({dart.airport_identifier})",
+            county=dart.city or "their",
+        )
+    else:
+        summary = content.UNAFFILIATED_SUMMARY
+    return [*stream([content.rich(summary)]), *stream(content.DART_PAGE_BODY)]
 
 
 def seed_darts_section(about: StandardPage) -> DartIndexPage:
@@ -521,45 +194,13 @@ def seed_darts_section(about: StandardPage) -> DartIndexPage:
     A page whose team no longer exists is deleted, so re-seeding converges on
     exactly one page per DART.  Returns the index page.
     """
-    index = upsert_page(
-        about,
-        DartIndexPage,
-        "darts",
-        title="DARTs",
-        intro=DARTS_INTRO,
-        body=[
-            heading("Starting a new team"),
-            rich(
-                "<p>If your airport has no DART, it takes four or five committed volunteers "
-                "to start one. Get in touch and a board member will send you the organizing "
-                "handbook and introduce you to a nearby leader who has done it.</p>"
-            ),
-            cta("Contact us", "/contact/", "secondary"),
-        ],
-    )
+    index = upsert_spec(about, DartIndexPage, content.DART_INDEX)
 
     darts = list(Dart.objects.order_by("sort_order", "name"))
     wanted: set[str] = set()
     for position, dart in enumerate(darts):
-        leader = DART_LEADERS[position % len(DART_LEADERS)]
-        contact = "{}@caldart.example.org".format(leader.lower().replace(" ", ".").replace("'", ""))
-        where = (
-            f"{dart.city} ({dart.airport_identifier})"
-            if dart.airport_identifier
-            else "no fixed home airport"
-        )
-        if dart.airport_identifier:
-            summary = (
-                f"<p>The {dart.name} DART flies from {where}. Members meet monthly, train "
-                f"with {dart.city or 'their'} county emergency services, and take part in "
-                "the statewide airlift exercise each year.</p>"
-            )
-        else:
-            summary = (
-                "<p>Not every member lives within reach of an organized team. Unaffiliated "
-                "members carry a full CalDART membership, receive the same training material "
-                "and are called on by the nearest DART when a mission fits.</p>"
-            )
+        leader = content.DART_LEADERS[position % len(content.DART_LEADERS)]
+        mailbox = leader.lower().replace(" ", ".").replace("'", "")
         slug = dart.airport_identifier.lower() if dart.airport_identifier else slugify(dart.name)
         wanted.add(slug)
         upsert_page(
@@ -569,18 +210,8 @@ def seed_darts_section(about: StandardPage) -> DartIndexPage:
             title=dart.name,
             dart=dart,
             leader_name=leader,
-            leader_contact=contact,
-            body=[
-                rich(summary),
-                heading("Who we need"),
-                rich(
-                    "<ul><li>Pilots with a current certificate and medical</li>"
-                    "<li>Aircraft owners willing to make an aircraft available</li>"
-                    "<li>Ground volunteers for manifests, loading and radios</li>"
-                    "<li>Amateur radio operators</li></ul>"
-                ),
-                cta("Join this DART", "/portal/join", "primary"),
-            ],
+            leader_contact=f"{mailbox}@{content.DART_CONTACT_DOMAIN}",
+            body=dart_page_body(dart),
         )
 
     # A DART that has been renamed or removed leaves a page behind; drop it so
@@ -593,187 +224,54 @@ def seed_darts_section(about: StandardPage) -> DartIndexPage:
 
 def seed_directors(about: StandardPage) -> StandardPage:
     """Create or update ``/about/directors/``, the board listing."""
-    return upsert_page(
-        about,
-        StandardPage,
-        "directors",
-        title="Directors and Officers",
-        intro=DIRECTORS_INTRO,
-        body=[
-            heading("Board"),
-            rich(definition_list(DIRECTORS)),
-            heading("Meetings"),
-            rich(
-                "<p>The board meets by video call on the second Tuesday of each month. "
-                "Members are welcome; ask the secretary for the link. Minutes are posted in "
-                "the members' area.</p>"
-            ),
-        ],
-    )
+    return upsert_spec(about, StandardPage, content.DIRECTORS)
 
 
 def seed_news(home: HomePage) -> NewsIndexPage:
     """Create or update ``/news/`` and its example posts, and return the index.
 
-    Each post is dated relative to today, so the newest is always recent, and the
-    one that has a pull-quote gets it appended to its body.
+    Each post is dated relative to today, so the newest is always recent.
     """
     index = upsert_page(
         home,
         NewsIndexPage,
-        "news",
-        title="News",
-        show_in_menus=True,
-        intro="Exercises, new teams, and what the network has been doing.",
+        content.NEWS_INDEX.slug,
+        title=content.NEWS_INDEX.title,
+        show_in_menus=content.NEWS_INDEX.show_in_menus,
+        intro=content.NEWS_INDEX.intro,
     )
     today = timezone.localdate()
-    for post in NEWS_POSTS:
-        body: list[StreamItem] = [rich(post["body"])]
-        if "quote" in post:
-            body.append(quote(*post["quote"]))
+    for post in content.NEWS_POSTS:
         upsert_page(
             index,
             NewsPage,
-            post["slug"],
-            title=post["title"],
-            date=today - timedelta(days=post["days_ago"]),
-            intro=post["intro"],
-            body=body,
+            post.page.slug,
+            title=post.page.title,
+            date=today - timedelta(days=post.days_ago),
+            intro=post.page.intro,
+            body=stream(post.page.body),
         )
     return index
 
 
 def seed_join(home: HomePage) -> StandardPage:
     """Create or update ``/join/``, the dues and eligibility page, in the menu."""
-    return upsert_page(
-        home,
-        StandardPage,
-        "join",
-        title="Join CalDART",
-        show_in_menus=True,
-        intro=JOIN_INTRO,
-        body=[
-            heading("Dues"),
-            rich(
-                "<ul>"
-                "<li><b>Annual membership — $45</b>, good for one year from the day it is "
-                "paid.</li>"
-                "<li><b>Life membership — $650</b>, paid once, never renewed.</li>"
-                "</ul>"
-                "<p>Dues are tax deductible. If the fee is a hardship, say so when you apply — "
-                "we have never turned away a willing volunteer over $45.</p>"
-            ),
-            heading("Who is eligible"),
-            rich(
-                "<ul>"
-                "<li>You are 18 or older.</li>"
-                "<li>You live in, or regularly fly in, California.</li>"
-                "<li>You agree to CalDART's safety policy and to flying only within your own "
-                "and your aircraft's limits.</li>"
-                "<li><b>Pilots</b> hold a current FAA certificate and a current medical or "
-                "BasicMed, and record both in their member profile.</li>"
-                "<li><b>Aircraft owners</b> carry liability insurance and record the carrier, "
-                "limits and expiry date. Aircraft without current insurance are not "
-                "dispatched.</li>"
-                "<li><b>Ground volunteers</b> need no certificate at all — only the "
-                "willingness to turn up.</li>"
-                "</ul>"
-            ),
-            heading("What happens next"),
-            rich(
-                "<p>You create an account, fill in your profile, and pay by card, Apple Pay, "
-                "Google Pay or PayPal. Your membership is active the moment the payment "
-                "clears — there is no waiting period and no approval queue. A DART leader "
-                "near you will be in touch about the next meeting.</p>"
-            ),
-            cta(
-                "Start your membership",
-                "/portal/join",
-                "primary",
-                "$45 annual or $650 life · card, Apple Pay, Google Pay or PayPal",
-            ),
-        ],
-    )
+    return upsert_spec(home, StandardPage, content.JOIN)
 
 
 def seed_donate(home: HomePage) -> StandardPage:
-    """Create or update ``/donate/``, which is not in the menu."""
-    return upsert_page(
-        home,
-        StandardPage,
-        "donate",
-        title="Donate",
-        show_in_menus=True,
-        intro=DONATE_INTRO,
-        body=[
-            heading("Contribution levels"),
-            rich(definition_list(CONTRIBUTION_TIERS)),
-            rich(
-                "<p>Any amount helps, and you can add a contribution to your dues when you "
-                "join or renew — one payment, one receipt.</p>"
-            ),
-            heading("Other ways to give"),
-            rich(
-                "<ul>"
-                "<li><b>Employer matching</b> — many California employers match charitable "
-                "gifts. Ask us for our EIN and determination letter.</li>"
-                "<li><b>In kind</b> — fuel, hangar space, radios, cargo restraint and "
-                "avionics work are all as useful as cash.</li>"
-                "<li><b>Sponsorship</b> — businesses that support a season of training are "
-                "listed on our sponsors page.</li>"
-                "</ul>"
-            ),
-            cta("Give with your renewal", "/portal/renew", "secondary"),
-        ],
-    )
+    """Create or update ``/donate/``, the contribution page, in the menu."""
+    return upsert_spec(home, StandardPage, content.DONATE)
 
 
 def seed_sponsors(home: HomePage) -> StandardPage:
     """Create or update ``/sponsors/``, which is not in the menu."""
-    return upsert_page(
-        home,
-        StandardPage,
-        "sponsors",
-        title="Sponsors",
-        intro=SPONSORS_INTRO,
-        body=[
-            heading("This year's supporters"),
-            rich(definition_list(SPONSOR_ROWS)),
-            heading("Becoming a sponsor"),
-            rich(
-                "<p>If your business serves general aviation in California and you would "
-                "like to support a season of exercises, write to us. Sponsorship is "
-                "acknowledged on this page and in the newsletter; it buys no influence over "
-                "who we fly for.</p>"
-            ),
-            cta("Talk to us about sponsorship", "/contact/", "secondary"),
-        ],
-    )
+    return upsert_spec(home, StandardPage, content.SPONSORS)
 
 
 def seed_contact(home: HomePage) -> ContactPage:
     """Create or update ``/contact/``, the contact page, in the menu."""
-    return upsert_page(
-        home,
-        ContactPage,
-        "contact",
-        title="Contact Us",
-        show_in_menus=True,
-        intro=CONTACT_INTRO,
-        body=[
-            heading("Media inquiries"),
-            rich(
-                "<p>Please email rather than calling. A board member will respond, and we "
-                "will happily put you in touch with a DART leader in your area.</p>"
-            ),
-            heading("Already a member?"),
-            rich(
-                "<p>Membership questions — renewals, receipts, a change of address — are "
-                "fastest through the member portal.</p>"
-            ),
-            cta("Open the member portal", "/portal/", "quiet"),
-        ],
-    )
+    return upsert_spec(home, ContactPage, content.CONTACT)
 
 
 def seed_members_area(home: HomePage) -> StandardPage:
@@ -787,86 +285,9 @@ def seed_members_area(home: HomePage) -> StandardPage:
     # so the collection has to exist before anyone reads that instruction.
     ensure_members_only_collection()
 
-    members = upsert_page(
-        home,
-        StandardPage,
-        "members",
-        title="Members",
-        show_in_menus=True,
-        members_only=True,
-        intro=MEMBERS_INTRO,
-        body=[
-            heading("What is in here"),
-            rich(
-                "<ul>"
-                "<li>The DART organizing handbook and exercise playbooks</li>"
-                "<li>Load planning worksheets and manifest forms</li>"
-                "<li>Board minutes and the annual report</li>"
-                "<li>The current roster and DART leader contact list</li>"
-                "</ul>"
-            ),
-        ],
-    )
-
-    upsert_page(
-        members,
-        StandardPage,
-        "members-only",
-        title="Members Only",
-        members_only=True,
-        intro="Notices for current members, posted by the board and by DART leaders.",
-        body=[
-            heading("Next statewide exercise"),
-            rich(
-                "<p>Briefing packets go out four weeks ahead. Tell your DART leader whether "
-                "you are flying, crewing on the ground or unavailable, so the load plan can "
-                "be built against real aircraft.</p>"
-            ),
-            heading("Keep your record current"),
-            rich(
-                "<p>Check your medical and flight review dates in the portal, and — if you "
-                "own the aircraft you fly — your insurance expiry. A DART leader checks "
-                "these before dispatching you, and a lapsed date is the most common reason a "
-                "willing member sits out a mission.</p>"
-            ),
-            cta("Check my profile", "/portal/profile", "secondary"),
-        ],
-    )
-
-    upsert_page(
-        members,
-        StandardPage,
-        "docs-and-links",
-        title="Documents and Links",
-        members_only=True,
-        intro="Handbooks, forms and the outside references worth bookmarking.",
-        body=[
-            heading("CalDART documents"),
-            rich(
-                "<ul>"
-                "<li>DART organizing handbook</li>"
-                "<li>Exercise planning checklist</li>"
-                "<li>Load manifest and weight-and-balance worksheet</li>"
-                "<li>Safety policy and volunteer agreement</li>"
-                "<li>Bylaws and most recent annual report</li>"
-                "</ul>"
-                "<p>A website administrator uploads each file into the "
-                f"<strong>{MEMBERS_ONLY_COLLECTION_NAME}</strong> document collection and "
-                "links it from this page; a document in that collection is served only to "
-                "the people who can read this page. Until the files are up, ask the "
-                "secretary.</p>"
-            ),
-            heading("Outside references"),
-            rich(
-                "<ul>"
-                "<li>California Governor's Office of Emergency Services</li>"
-                "<li>Air Care Alliance — volunteer pilot organizations</li>"
-                "<li>FAA emergency operations and TFR information</li>"
-                "<li>Your county's office of emergency services</li>"
-                "</ul>"
-            ),
-        ],
-    )
+    members = upsert_spec(home, StandardPage, content.MEMBERS)
+    upsert_spec(members, StandardPage, content.MEMBERS_ONLY)
+    upsert_spec(members, StandardPage, content.DOCS_AND_LINKS)
     return members
 
 
@@ -880,17 +301,9 @@ def seed_settings(site: Site) -> None:
     from apps.cms.models import SiteSettings
 
     settings_obj, _ = SiteSettings.objects.get_or_create(site=site)
-    defaults = {
-        "contact_phone": "(650) 555-0143",
-        "mailing_address": "CalDART\nPO Box 1180\nSan Carlos, CA 94070",
-        "ein": "47-0000000",
-        "donate_url": "/donate/",
-        "facebook_url": "https://www.facebook.com/example-caldart",
-        "twitter_url": "https://x.com/example_caldart",
-    }
-    changed = [field for field, value in defaults.items() if not getattr(settings_obj, field)]
+    changed = [field for field in content.SITE_SETTINGS if not getattr(settings_obj, field)]
     for field in changed:
-        setattr(settings_obj, field, defaults[field])
+        setattr(settings_obj, field, content.SITE_SETTINGS[field])
     if changed:
         settings_obj.save(update_fields=changed)
 
