@@ -28,7 +28,7 @@ def user_has_any_role(user: User | AnonymousUser | None, slugs: tuple[str, ...])
     """
     if user is None or not user.is_authenticated:
         return False
-    if getattr(user, "is_superuser", False):
+    if user.is_superuser:
         return True
     held = set(user.roles)
     if SYSTEM_ADMIN in held:

@@ -10,6 +10,7 @@ reach for an attribute defensively.
 from __future__ import annotations
 
 import csv
+import shutil
 import subprocess
 from collections.abc import Iterator
 from typing import Any
@@ -17,6 +18,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
+from django.conf import settings as django_settings
 from django.core.cache import cache
 from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
@@ -199,9 +201,7 @@ AWKWARD_PASSWORD = "p@ss:word/1"  # noqa: S105 - a fake password a test needs li
 
 
 @pytest.fixture
-def awkward_credentials(
-    monkeypatch: pytest.MonkeyPatch, settings: Settings
-) -> Iterator[dict[str, Any]]:
+def awkward_credentials(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> dict[str, Any]:
     """Point the default connection at a user and password full of URL syntax."""
     alias = {
         **settings.DATABASES["default"],
@@ -212,19 +212,23 @@ def awkward_credentials(
         "NAME": "caldart",
     }
     monkeypatch.setitem(settings.DATABASES, "default", alias)
-    yield alias
+    return alias
 
 
 def test_the_database_url_leaves_the_password_out(awkward_credentials: dict[str, Any]) -> None:
     """The URL names the user and the database, and carries no password at all."""
-    assert services.database_url() == "postgres://ann%20marie%40caldart@db.example.test:5433/caldart"
+    assert (
+        services.database_url() == "postgres://ann%20marie%40caldart@db.example.test:5433/caldart"
+    )
 
 
 def test_the_container_url_names_the_container_host(awkward_credentials: dict[str, Any]) -> None:
-    """An in-container run reaches the server on ``localhost``, still without a password."""
+    """An in-container run reaches the server on ``localhost``, without a password."""
     argv = ["docker", "compose", "exec", "-T", "-e", "PGPASSWORD", "db", "pg_dump"]
 
-    assert services._dbname_url_for(argv) == "postgres://ann%20marie%40caldart@localhost:5432/caldart"
+    assert (
+        services._dbname_url_for(argv) == "postgres://ann%20marie%40caldart@localhost:5432/caldart"
+    )
 
 
 def test_a_pg_tool_gets_the_password_in_its_environment(
@@ -237,7 +241,7 @@ def test_a_pg_tool_gets_the_password_in_its_environment(
         seen.update({"argv": argv, "env": kwargs["env"]})
         return subprocess.CompletedProcess(argv, 0, b"", b"")
 
-    monkeypatch.setattr(services.subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "run", fake_run)
 
     services._run_pg(["pg_dump", "--dbname", services.database_url()])
 
@@ -250,7 +254,7 @@ def test_a_container_command_forwards_the_password_by_name(
 ) -> None:
     """The compose form names ``PGPASSWORD`` so its value never enters the argv."""
     settings.DB_BACKUP_VIA_DOCKER = True
-    monkeypatch.setattr(services.shutil, "which", lambda tool: "/usr/bin/docker")
+    monkeypatch.setattr(shutil, "which", lambda tool: "/usr/bin/docker")
 
     assert services._pg_command("pg_dump") == [
         "docker",
@@ -284,9 +288,7 @@ def paypal_configured(settings: Settings) -> Iterator[None]:
 def token_route(mock: respx.MockRouter) -> respx.Route:
     """Answer the OAuth token endpoint with a token good for nine hours."""
     return mock.post(TOKEN_URL).mock(
-        return_value=httpx.Response(
-            200, json={"access_token": "A21AA-token", "expires_in": 32_400}
-        )
+        return_value=httpx.Response(200, json={"access_token": "A21AA-token", "expires_in": 32_400})
     )
 
 
@@ -340,3 +342,26 @@ def test_a_token_fetched_for_other_credentials_is_not_reused(
     paypal.access_token()
 
     assert route.call_count == 2
+
+
+# --------------------------------------------------------------------------
+# No attribute that always exists is fetched defensively
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "module_path",
+    [
+        "backend/apps/accounts/permissions.py",
+        "backend/apps/payments/views.py",
+        "backend/apps/payments/providers/paypal.py",
+    ],
+    ids=["permissions", "payment-views", "paypal"],
+)
+def test_a_module_reads_its_attributes_directly(module_path: str) -> None:
+    """Every attribute these modules read is declared, so none goes through getattr.
+
+    A setting in ``caldart/settings/base.py`` and ``is_superuser`` on a user are
+    always there; reaching for them defensively hides a typo behind a default.
+    """
+    source = (django_settings.REPO_ROOT / module_path).read_text(encoding="utf-8")
+
+    assert "getattr(" not in source

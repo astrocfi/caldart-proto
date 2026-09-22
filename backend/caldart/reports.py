@@ -107,7 +107,7 @@ class _Echo:
         return value
 
 
-def csv_cell(value: Any) -> Any:
+def csv_cell(value: object) -> object:
     """One value as the CSV should carry it.
 
     ``None`` becomes an empty cell.  A string that opens with one of

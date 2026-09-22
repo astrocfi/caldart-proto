@@ -22,7 +22,6 @@ import httpx
 from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonResponse
-from django.utils import timezone
 
 from apps.payments.models import Payment, PaymentProvider, PaymentWallet
 from apps.payments.providers.base import (
@@ -54,7 +53,7 @@ TOKEN_SKEW_SECONDS = 60
 MINIMUM_TOKEN_SECONDS = 30
 
 #: Where the client-credentials token sits in Django's default cache.
-TOKEN_CACHE_KEY = "paypal:access_token"
+TOKEN_CACHE_KEY = "paypal:access_token"  # noqa: S105 - a cache key, not a secret
 
 TIMEOUT_SECONDS = 20.0
 
@@ -423,7 +422,7 @@ class PayPalProvider(Provider):
         unset, and ``False`` when the verification call itself fails, so an
         unverifiable notification is only ever recorded.
         """
-        webhook_id = getattr(settings, "PAYPAL_WEBHOOK_ID", "")
+        webhook_id = settings.PAYPAL_WEBHOOK_ID
         if not webhook_id:
             return False
         headers = request.headers
