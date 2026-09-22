@@ -10,12 +10,13 @@ import base64
 import json
 import re
 import zlib
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import date, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+import respx
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
@@ -134,6 +135,35 @@ def _roles(db: None) -> None:
     from apps.accounts.management.commands.seed_roles import seed_roles
 
     seed_roles()
+
+
+# --------------------------------------------------------------------------
+# Live HTTP guard
+#
+# The payment providers are the only code that talks to a third party, so the
+# payment test modules are the only ones that can leave the machine.  Arming a
+# respx router around each of their tests turns a call no route matches into an
+# ``AllMockedAssertionError`` instead of a request: a test that forgets a mock
+# fails loudly rather than depending on the network.
+# --------------------------------------------------------------------------
+#: Filename prefix of the test modules the guard covers.
+PAYMENT_MODULE_PREFIX = "test_payments"
+
+
+@pytest.fixture(autouse=True)
+def _no_live_http(request: pytest.FixtureRequest) -> Iterator[None]:
+    """Refuse any unmocked ``httpx`` call made by a payment test module.
+
+    Tests outside those modules run untouched.  The router asserts nothing about
+    which routes were used, so a test may register more routes than it exercises,
+    and it nests inside the ``respx.mock`` router an individual test starts, so
+    routes that test registers still answer.
+    """
+    if not request.path.name.startswith(PAYMENT_MODULE_PREFIX):
+        yield
+        return
+    with respx.mock(assert_all_mocked=True, assert_all_called=False):
+        yield
 
 
 @pytest.fixture
