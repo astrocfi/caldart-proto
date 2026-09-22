@@ -1,6 +1,6 @@
 """Member self-service endpoints, including attaching and detaching aircraft.
 
-Every ``/me/...`` view works on ``request.user`` alone — there is no object id
+Every ``/me/...`` view works on ``request.user`` alone -- there is no object id
 to tamper with, so the only permission check needed is "is anybody signed in".
 ``/darts`` and ``/plans`` are the two public catalogs the join wizard reads
 before the visitor has an account.
@@ -60,7 +60,7 @@ class MyProfileView(RetrieveUpdateAPIView[MemberProfile]):
 
 
 class MyMembershipView(APIView):
-    """``GET /me/membership`` — the status dict plus every term, newest first."""
+    """``GET /me/membership`` -- the status dict plus every term, newest first."""
 
     permission_classes = [IsAuthenticated]
 
@@ -80,7 +80,7 @@ class MyMembershipView(APIView):
 
 
 class MyPaymentsView(APIView):
-    """``GET /me/payments`` — the caller's payments, newest first."""
+    """``GET /me/payments`` -- the caller's payments, newest first."""
 
     permission_classes = [IsAuthenticated]
 
@@ -94,7 +94,7 @@ class MyPaymentsView(APIView):
 
 
 class MyProfileAircraftView(APIView):
-    """``POST /me/profile/aircraft`` — attach an aircraft to the caller."""
+    """``POST /me/profile/aircraft`` -- attach an aircraft to the caller."""
 
     permission_classes = [IsAuthenticated]
 
@@ -117,7 +117,7 @@ class MyProfileAircraftView(APIView):
 
 
 class MyProfileAircraftDetailView(APIView):
-    """``DELETE /me/profile/aircraft/{aircraft_id}`` — detach it again."""
+    """``DELETE /me/profile/aircraft/{aircraft_id}`` -- detach it again."""
 
     permission_classes = [IsAuthenticated]
 
@@ -143,7 +143,7 @@ def _attached(profile: MemberProfile) -> dict[str, Any]:
 
 
 class DartListView(ListAPIView[Dart]):
-    """``GET /darts`` — public, active DARTs in their configured order."""
+    """``GET /darts`` -- public, active DARTs in their configured order."""
 
     serializer_class = DartSerializer
     permission_classes = [AllowAny]
@@ -152,7 +152,7 @@ class DartListView(ListAPIView[Dart]):
 
 
 class PlanListView(ListAPIView[MembershipPlan]):
-    """``GET /plans`` — public, active membership plans in their order."""
+    """``GET /plans`` -- public, active membership plans in their order."""
 
     serializer_class = PlanSerializer
     permission_classes = [AllowAny]

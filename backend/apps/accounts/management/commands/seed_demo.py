@@ -1,4 +1,4 @@
-"""``manage.py seed_demo`` — idempotent demo data.
+"""``manage.py seed_demo`` -- idempotent demo data.
 
 Each app owns ``apps/<app>/seed.py`` exposing ``run(ctx, stdout=None) -> ctx``.
 They run in the order below and share one ``ctx`` dict, so a later app can use

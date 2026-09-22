@@ -78,7 +78,7 @@ def test_insurance_summary_format() -> None:
         insurance_expiration=timezone.localdate().replace(month=3, day=1),
     )
     summary = aircraft.insurance_summary
-    assert summary.startswith("$1,000,000 / $100,000 · exp ")
+    assert summary.startswith("$1,000,000 / $100,000 \u00b7 exp ")
 
 
 def test_insurance_summary_when_nothing_on_file() -> None:
@@ -96,7 +96,7 @@ def test_str_and_display_name() -> None:
     """``str()`` and ``display_name`` both include the make and model when set."""
     aircraft = AircraftFactory(n_number="N6AA", make="Piper", model="Archer")
     assert str(aircraft) == "N6AA (Piper Archer)"
-    assert aircraft.display_name == "N6AA — Piper Archer"
+    assert aircraft.display_name == "N6AA \u2014 Piper Archer"
 
 
 def test_str_without_make_or_model() -> None:

@@ -1,4 +1,4 @@
-"""``manage.py health`` — DB connectivity, pending migrations, disk, backups."""
+"""``manage.py health`` -- DB connectivity, pending migrations, disk, backups."""
 
 import json
 from typing import Any
@@ -21,7 +21,7 @@ class Command(BaseCommand):
         """Print the health report from :func:`apps.sysadmin.services.health`.
 
         With ``--json``, writes indented JSON; otherwise writes one
-        ``label   value`` line per field, with a missing value shown as ``—``.
+        ``label   value`` line per field, with a missing value shown as ``--``.
         """
         report = health()
         if options["json"]:
@@ -29,4 +29,4 @@ class Command(BaseCommand):
             return
         for key, value in report.items():
             label = key.replace("_", " ")
-            self.stdout.write(f"{label:<20} {value if value is not None else '—'}")
+            self.stdout.write(f"{label:<20} {value if value is not None else '--'}")

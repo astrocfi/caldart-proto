@@ -1,6 +1,6 @@
 """Payment reporting: filters, the period summary and the CSV export.
 
-Everything here works off one annotation, ``paid_at`` — the moment the money
+Everything here works off one annotation, ``paid_at`` -- the moment the money
 arrived, which is ``completed_at`` for a settled payment and ``created_at`` for
 one that never got that far.  Using it for both the date filter and the
 grouping keeps the list, the summary and the export answering the same

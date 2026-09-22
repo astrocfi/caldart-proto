@@ -1,7 +1,7 @@
 """The membership report exports.
 
 CSV and PDF share one column list and one filtered queryset, so most of these
-assertions are about the CSV — it is the readable one — with the PDF checked
+assertions are about the CSV -- it is the readable one -- with the PDF checked
 for validity, page geometry and the filter summary it prints as a subtitle.
 """
 

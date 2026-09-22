@@ -34,7 +34,7 @@ class MembersPageSerializer(serializers.Serializer[dict[str, str]]):
 
 
 class SiteConfigSerializer(serializers.Serializer[dict[str, Any]]):
-    """``GET /site/config`` — the chrome the portal needs before it has a user."""
+    """``GET /site/config`` -- the chrome the portal needs before it has a user."""
 
     org_name = serializers.CharField()
     theme = serializers.ChoiceField(choices=THEME_SLUGS)

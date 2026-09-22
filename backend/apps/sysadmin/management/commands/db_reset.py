@@ -1,4 +1,4 @@
-"""``manage.py db_reset`` — drop and rebuild the development database."""
+"""``manage.py db_reset`` -- drop and rebuild the development database."""
 
 from typing import Any
 
@@ -45,15 +45,15 @@ class Command(BaseCommand):
             if answer.strip().lower() != "yes":
                 raise CommandError("Aborted.")
 
-        self.stdout.write(f"Dropping the public schema in '{name}'…")
+        self.stdout.write(f"Dropping the public schema in '{name}'...")
         drop_schema()
 
-        self.stdout.write("Migrating…")
+        self.stdout.write("Migrating...")
         call_command("migrate", verbosity=0)
         call_command("seed_roles", verbosity=0)
 
         if options["seed"]:
-            self.stdout.write("Seeding…")
+            self.stdout.write("Seeding...")
             call_command("seed_demo")
             call_command("seed_content")
 

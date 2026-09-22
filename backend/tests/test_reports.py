@@ -164,6 +164,6 @@ def test_pdf_escapes_markup_in_cells(pdf_text: PdfText) -> None:
 def test_filter_summary() -> None:
     """``filter_summary`` joins active filters and reports when none are active."""
     assert filter_summary({"status": "current", "dart": "", "expiring_within": 30}) == (
-        "status: current · expiring within: 30"
+        "status: current \u00b7 expiring within: 30"
     )
     assert filter_summary({}) == "No filters applied"

@@ -211,7 +211,7 @@ class StripeProvider(Provider):
                     "amount": payment.amount_cents,
                     "currency": payment.currency,
                     "automatic_payment_methods": {"enabled": True},
-                    "description": f"CalDART · {payment.description}",
+                    "description": f"CalDART \u00b7 {payment.description}",
                     # stripe's params type the field as a string, but its API
                     # takes null for "send no receipt".
                     "receipt_email": payment.user.email or None,  # type: ignore[typeddict-item]

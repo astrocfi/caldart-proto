@@ -139,7 +139,7 @@ class MemberAdminDetailView(
 
 
 class MemberMembershipGrantView(APIView):
-    """``POST /admin/members/{user_id}/memberships`` — grant a term by hand."""
+    """``POST /admin/members/{user_id}/memberships`` -- grant a term by hand."""
 
     permission_classes = [IsAccountAdmin]
 
@@ -175,7 +175,7 @@ class MemberMembershipGrantView(APIView):
 
 
 class MembershipAdminDetailView(generics.UpdateAPIView[Membership]):
-    """``PATCH /admin/memberships/{id}`` — correct a term's end date or status."""
+    """``PATCH /admin/memberships/{id}`` -- correct a term's end date or status."""
 
     permission_classes = [IsAccountAdmin]
     serializer_class = AdminMembershipSerializer
@@ -237,7 +237,7 @@ class MemberExportCsvView(MemberExportBaseView):
 
 
 class MemberExportPdfView(MemberExportBaseView):
-    """``GET /admin/members/export.pdf`` — landscape letter."""
+    """``GET /admin/members/export.pdf`` -- landscape letter."""
 
     @extend_schema(responses=download_responses(PDF_MEDIA_TYPE, "The member list as a PDF file."))
     def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:

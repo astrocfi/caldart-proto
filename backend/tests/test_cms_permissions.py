@@ -1,7 +1,7 @@
 """Wagtail editing rights for the ``website_admin`` role.
 
 The grant is applied by the ``cms.0004_website_admin_permissions`` data
-migration, so it is already in place for every test — these check that it
+migration, so it is already in place for every test -- these check that it
 actually lets a website administrator work, and that nobody else gets in.
 """
 

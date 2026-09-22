@@ -1,4 +1,4 @@
-"""``manage.py db_restore <file>`` — restore a gzipped dump.
+"""``manage.py db_restore <file>`` -- restore a gzipped dump.
 
 Destructive: the ``public`` schema is dropped and recreated before the dump is
 replayed, because ``pg_dump`` writes ``CREATE TABLE`` without ``DROP``.
@@ -53,7 +53,7 @@ class Command(BaseCommand):
             if answer.strip().lower() != "yes":
                 raise CommandError("Aborted.")
 
-        self.stdout.write(f"Dropping the public schema in '{name}'…")
+        self.stdout.write(f"Dropping the public schema in '{name}'...")
         try:
             restore_backup(path)
         except BackupError as exc:

@@ -36,7 +36,7 @@ BACKUP_SUFFIX = ".sql.gz"
 STREAM_CHUNK_BYTES = 1024 * 1024
 
 #: A backup file name we are willing to open.  No directory separators, no
-#: leading dot, and the suffix we write — which is what makes
+#: leading dot, and the suffix we write -- which is what makes
 #: ``GET /system/backups/<name>/download`` safe against path traversal.
 BACKUP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$")
 

@@ -2,7 +2,7 @@
 
 Two rules run through every view here:
 
-* the server never trusts a client-supplied amount — totals are recomputed
+* the server never trusts a client-supplied amount -- totals are recomputed
   from the plan price plus the contribution in
   :func:`apps.payments.services.create_checkout`; and
 * a membership is only activated after the *provider* has confirmed the money,
@@ -109,7 +109,7 @@ class IsPaymentOwnerOrAccountAdmin(BasePermission):
 # Checkout
 # --------------------------------------------------------------------------
 class PaymentsConfigView(APIView):
-    """``GET /payments/config`` — what the checkout UI can offer."""
+    """``GET /payments/config`` -- what the checkout UI can offer."""
 
     permission_classes = [IsAuthenticated]
 
@@ -132,7 +132,7 @@ class PaymentsConfigView(APIView):
 
 
 class CheckoutView(APIView):
-    """``POST /payments/checkout`` — create the pending payment and start it."""
+    """``POST /payments/checkout`` -- create the pending payment and start it."""
 
     permission_classes = [IsAuthenticated]
 
@@ -171,7 +171,7 @@ class CheckoutView(APIView):
 
 
 class StripeConfirmView(APIView):
-    """``POST /payments/stripe/confirm`` — verify with Stripe, then activate."""
+    """``POST /payments/stripe/confirm`` -- verify with Stripe, then activate."""
 
     permission_classes = [IsAuthenticated]
 
@@ -204,7 +204,7 @@ class StripeConfirmView(APIView):
 
 
 class PayPalCaptureView(APIView):
-    """``POST /payments/paypal/capture`` — capture the order, then activate."""
+    """``POST /payments/paypal/capture`` -- capture the order, then activate."""
 
     permission_classes = [IsAuthenticated]
 
@@ -236,7 +236,7 @@ class PayPalCaptureView(APIView):
 
 
 class MockCompleteView(APIView):
-    """``POST /payments/mock/complete`` — dev and e2e only.
+    """``POST /payments/mock/complete`` -- dev and e2e only.
 
     The route answers 404 when ``PAYMENTS_MOCK_ENABLED`` is off, so production
     does not advertise a way to grant itself a membership.
@@ -271,7 +271,7 @@ class MockCompleteView(APIView):
 
 
 class PaymentDetailView(RetrieveAPIView[Payment]):
-    """``GET /payments/{id}`` — the owner, or an account admin."""
+    """``GET /payments/{id}`` -- the owner, or an account admin."""
 
     permission_classes = [IsAuthenticated, IsPaymentOwnerOrAccountAdmin]
     # The view answers with the result body rather than the payment row, so this
@@ -293,7 +293,7 @@ class PaymentDetailView(RetrieveAPIView[Payment]):
 # --------------------------------------------------------------------------
 @method_decorator(csrf_exempt, name="dispatch")
 class StripeWebhookView(APIView):
-    """``POST /payments/stripe/webhook`` — safety net for redirect methods."""
+    """``POST /payments/stripe/webhook`` -- safety net for redirect methods."""
 
     authentication_classes = []
     permission_classes = []
@@ -313,7 +313,7 @@ class StripeWebhookView(APIView):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class PayPalWebhookView(APIView):
-    """``POST /payments/paypal/webhook`` — recorder; capture is authoritative."""
+    """``POST /payments/paypal/webhook`` -- recorder; capture is authoritative."""
 
     authentication_classes = []
     permission_classes = []
@@ -333,7 +333,7 @@ class PayPalWebhookView(APIView):
 
 
 # --------------------------------------------------------------------------
-# Reports — account_admin
+# Reports -- account_admin
 # --------------------------------------------------------------------------
 def report_query(request: Request) -> PaymentReportQuerySerializer:
     """The validated report parameters of ``request``.
@@ -347,7 +347,7 @@ def report_query(request: Request) -> PaymentReportQuerySerializer:
 
 
 class AdminPaymentListView(ListAPIView[Payment]):
-    """``GET /admin/payments`` — filtered, searchable, ordered, paginated."""
+    """``GET /admin/payments`` -- filtered, searchable, ordered, paginated."""
 
     permission_classes = [IsAuthenticated, IsAccountAdmin]
     serializer_class = PaymentSerializer
@@ -383,7 +383,7 @@ class AdminPaymentListView(ListAPIView[Payment]):
 
 
 class AdminPaymentSummaryView(APIView):
-    """``GET /admin/payments/summary?group=month|year`` — money per period."""
+    """``GET /admin/payments/summary?group=month|year`` -- money per period."""
 
     permission_classes = [IsAuthenticated, IsAccountAdmin]
 
@@ -404,7 +404,7 @@ class AdminPaymentSummaryView(APIView):
 
 
 class AdminPaymentExportView(APIView):
-    """``GET /admin/payments/export.csv`` — the filtered list as a download."""
+    """``GET /admin/payments/export.csv`` -- the filtered list as a download."""
 
     permission_classes = [IsAuthenticated, IsAccountAdmin]
 
