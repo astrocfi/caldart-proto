@@ -156,16 +156,25 @@ def _stream_pg(
     so peak memory does not grow with the size of the dump, and the tool's stderr
     goes to a temporary file rather than to a pipe that could fill and deadlock.
     Raises :class:`BackupError` carrying that stderr, or ``"<tool> failed"`` when
-    the tool printed nothing, as soon as the tool exits non-zero.
+    the tool printed nothing, as soon as the tool exits non-zero.  A tool that
+    exits before draining its standard input is reported the same way rather than
+    as the broken pipe its early exit leaves behind; if it somehow exited cleanly
+    without reading the whole dump, the error says so.
     """
+    stopped_early = False
     with TemporaryFile() as error_log:
         if source is not None:
             process = _start_pg(
                 argv, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=error_log
             )
             # stdin and stdout below are pipes, so neither is ever None.
-            with cast("IO[bytes]", process.stdin) as stdin:
-                shutil.copyfileobj(source, stdin, STREAM_CHUNK_BYTES)
+            try:
+                with cast("IO[bytes]", process.stdin) as stdin:
+                    shutil.copyfileobj(source, stdin, STREAM_CHUNK_BYTES)
+            except BrokenPipeError:
+                # The tool is already gone; its exit status and stderr say why, and
+                # a broken pipe on its own would tell the operator nothing.
+                stopped_early = True
         else:
             process = _start_pg(
                 argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=error_log
@@ -177,6 +186,8 @@ def _stream_pg(
             error_log.seek(0)
             message = error_log.read().decode(errors="replace").strip()
             raise BackupError(message or f"{tool} failed")
+        if stopped_early:
+            raise BackupError(f"{tool} stopped reading before the end of the dump")
 
 
 def _dbname_url_for(argv: list[str]) -> str:
@@ -253,6 +264,10 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     go first or every statement collides with what is already there.
     ``drop_first=False`` is for restoring into an empty database.
 
+    The dump is read through before anything is dropped, so a corrupt, truncated
+    or non-gzip file raises :class:`BackupError` naming it and leaves the database
+    that is already there untouched.
+
     A restore only ever runs from the command line, so the audit record it
     writes on success names ``command`` as the actor and the dump's file name.
     """
@@ -263,10 +278,17 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     if argv is None:
         raise BackupError("Neither psql nor docker is available.")
 
+    opener = gzip.open if path.name.endswith(".gz") else open
+    try:
+        with opener(path, "rb") as handle:
+            while handle.read(STREAM_CHUNK_BYTES):
+                pass
+    except (OSError, EOFError) as exc:
+        raise BackupError(f"Could not read the dump {path.name}: {exc}") from exc
+
     if drop_first:
         drop_schema()
 
-    opener = gzip.open if path.name.endswith(".gz") else open
     with opener(path, "rb") as handle:
         _stream_pg([*argv, "--quiet", "--dbname", _dbname_url_for(argv)], "psql", source=handle)
 

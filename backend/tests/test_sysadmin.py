@@ -209,3 +209,39 @@ def test_restore_reports_the_tool_stderr(backup_dir: Path, monkeypatch: pytest.M
 
     with pytest.raises(services.BackupError, match="syntax error at or near"):
         services.restore_backup(dump, drop_first=False)
+
+
+def test_restore_reports_the_stderr_of_a_tool_that_never_reads_its_stdin(
+    backup_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A ``psql`` that fails before draining a large dump still raises with its stderr.
+
+    The dump is larger than a pipe buffer, so the write into the tool's standard input
+    hits a broken pipe; the tool's own message is what the operator needs to see.
+    """
+    services.backup_dir()
+    dump = backup_dir / "caldart-restore.sql.gz"
+    with gzip.open(dump, "wb") as handle:
+        handle.write(b"x\n" * (PIPE_BUFFER_BYTES // 2))
+    script = "echo 'connection to server failed' >&2; exit 2"
+    monkeypatch.setattr(services, "_pg_command", lambda tool: ["sh", "-c", script])
+
+    with pytest.raises(services.BackupError, match="connection to server failed"):
+        services.restore_backup(dump, drop_first=False)
+
+
+def test_restore_leaves_the_schema_alone_when_the_dump_cannot_be_read(
+    backup_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dump that is not valid gzip is refused before the schema is dropped."""
+    services.backup_dir()
+    dump = backup_dir / "caldart-corrupt.sql.gz"
+    dump.write_bytes(b"not a gzip file at all")
+    dropped: list[bool] = []
+    monkeypatch.setattr(services, "drop_schema", lambda: dropped.append(True))
+    monkeypatch.setattr(services, "_pg_command", lambda tool: ["sh", "-c", "cat >/dev/null"])
+
+    with pytest.raises(services.BackupError, match=r"caldart-corrupt\.sql\.gz"):
+        services.restore_backup(dump)
+
+    assert dropped == []

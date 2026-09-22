@@ -70,7 +70,15 @@ Each tool's standard error goes to a temporary file rather than to a second
 pipe, so a tool that prints more than a pipe will hold cannot stall waiting for
 someone to read it.  A non-zero exit raises ``BackupError`` carrying that
 output, and a backup that fails part way through deletes the partial file it
-had started.
+had started.  A ``psql`` that exits before it has read the whole dump -- a
+connection or authentication failure, say -- is reported the same way: the
+broken pipe its early exit leaves behind is swallowed so that the message the
+tool printed is what reaches the operator.
+
+A restore reads the dump through once, a block at a time, before it drops
+anything.  A corrupt, truncated or non-gzip file therefore fails with
+``BackupError`` naming the file and leaves the database that is already there
+untouched, and the extra pass costs no memory.
 
 ``BACKUP_DIR`` defaults to ``backups/`` at the repository root, which is
 gitignored.  A relative value is resolved against the repository root; an
