@@ -5,9 +5,9 @@ import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CheckoutRequest, PaymentsConfig } from '../../api/types';
-import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP, makeUser } from '../../../test/handlers';
-import { renderWithProviders } from '../../../test/render';
-import { server } from '../../../test/server';
+import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP, makeUser } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { AUTH_ME_KEY } from '../../auth/useAuth';
 import { Checkout } from './Checkout';
 
@@ -146,6 +146,11 @@ describe('Checkout', () => {
     const user = userEvent.setup();
     serveConfig(config({ plans: [PLANS[1]!] }));
     const requests = serveCheckout();
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT_MEMBERSHIP }),
+      ),
+    );
 
     renderWithProviders(<Checkout mode="join" onSuccess={vi.fn()} />);
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
