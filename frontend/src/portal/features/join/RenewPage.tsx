@@ -16,7 +16,7 @@ import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { MembershipChip, daysUntil } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
-import { useMembership } from '../profile/api';
+import { useMembership } from '@/portal/features/profile/api';
 import { refreshAfterPayment } from './refresh';
 import './join.css';
 

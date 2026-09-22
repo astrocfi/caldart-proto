@@ -13,12 +13,12 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
-import { InsuranceChip } from '../aircraft/InsuranceChip';
-import { ServiceChip } from '../aircraft/ServiceChip';
-import '../aircraft/aircraft.css';
-import { useAircraft, useDeleteAircraft, useUpdateAircraft } from '../aircraft/api';
-import { aircraftToValues } from '../aircraft/form';
-import { AircraftForm } from '../aircraft/AircraftForm';
+import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
+import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
+import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
+import { useAircraft, useDeleteAircraft, useUpdateAircraft } from '@/portal/features/aircraft/api';
+import { aircraftToValues } from '@/portal/features/aircraft/form';
+import '@/portal/features/aircraft/aircraft.css';
 
 /** `/admin/aircraft/:id` page: edit, view pilots, and delete an aircraft record. */
 export function AircraftRecordPage(): JSX.Element {

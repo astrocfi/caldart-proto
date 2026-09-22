@@ -14,7 +14,7 @@ import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
-import { normalizeNNumber } from '../aircraft/insurance';
+import { normalizeNNumber } from '@/portal/features/aircraft/insurance';
 import { AircraftStatusCard } from './AircraftStatusCard';
 import { useLeaderAircraft } from './api';
 import './leader.css';

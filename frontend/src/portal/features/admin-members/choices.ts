@@ -9,7 +9,7 @@
 import type { RoleSlug } from '@/portal/api/types';
 import { labelFor } from '@/portal/choices';
 import type { Choice } from '@/portal/choices';
-import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '../profile/constants';
+import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '@/portal/features/profile/constants';
 
 export { CERTIFICATE_TYPES, MEDICAL_TYPES };
 export { certificateLabel, medicalLabel } from '@/portal/choices';

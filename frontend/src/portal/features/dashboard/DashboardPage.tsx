@@ -10,8 +10,8 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { MembershipChip, PaymentChip, membershipTone } from '@/portal/components/StatusChip';
+import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { groupedNavItems } from '@/portal/nav';
-import { useMembership, useMyPayments } from '../profile/api';
 import './dashboard.css';
 
 /** How many payments the dashboard shows before sending you elsewhere. */

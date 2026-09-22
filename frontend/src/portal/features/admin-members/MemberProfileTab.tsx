@@ -10,8 +10,8 @@ import type { MemberDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { useToast } from '@/portal/components/Toast';
-import { ProfileFieldsets } from '../profile/ProfileFieldsets';
-import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '../profile/form';
+import { ProfileFieldsets } from '@/portal/features/profile/ProfileFieldsets';
+import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '@/portal/features/profile/form';
 import {
   AccountFields,
   AdminOnlyFields,

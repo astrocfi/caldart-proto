@@ -17,13 +17,21 @@ import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
 import { useDebounced } from '@/portal/components/useDebounced';
-import { InsuranceChip } from '../aircraft/InsuranceChip';
-import { ServiceChip } from '../aircraft/ServiceChip';
-import '../aircraft/aircraft.css';
-import type { AircraftFilters } from '../aircraft/api';
-import { aircraftExportUrl, useAircraftList, useCreateAircraft } from '../aircraft/api';
-import { OWNER_TYPES, OWNER_TYPE_LABELS, emptyAircraftValues } from '../aircraft/form';
-import { AircraftForm } from '../aircraft/AircraftForm';
+import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
+import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
+import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
+import type { AircraftFilters } from '@/portal/features/aircraft/api';
+import {
+  aircraftExportUrl,
+  useAircraftList,
+  useCreateAircraft,
+} from '@/portal/features/aircraft/api';
+import {
+  OWNER_TYPES,
+  OWNER_TYPE_LABELS,
+  emptyAircraftValues,
+} from '@/portal/features/aircraft/form';
+import '@/portal/features/aircraft/aircraft.css';
 
 const PAGE_SIZE = 25;
 

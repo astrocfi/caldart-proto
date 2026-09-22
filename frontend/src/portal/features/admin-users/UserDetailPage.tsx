@@ -12,7 +12,7 @@ import { Field } from '@/portal/components/Field';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
-import { FormAlert, fieldError } from '../auth/form';
+import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { useAdminUser, useSendPasswordReset, useUpdateAdminUser } from './api';
 
 interface FormState {

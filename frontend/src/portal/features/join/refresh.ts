@@ -9,7 +9,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
-import { MEMBERSHIP_KEY, PAYMENTS_KEY } from '../profile/api';
+import { MEMBERSHIP_KEY, PAYMENTS_KEY } from '@/portal/features/profile/api';
 
 /** Invalidates the auth, membership and payment-history queries a payment moves. */
 export function refreshAfterPayment(queryClient: QueryClient): void {

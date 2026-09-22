@@ -11,7 +11,7 @@ import type { LeaderStatus, MembershipState } from '@/portal/api/types';
 import { DateText } from '@/portal/components/DateText';
 import { StatusChip } from '@/portal/components/StatusChip';
 import type { StatusTone } from '@/portal/components/StatusChip';
-import { InsuranceChip } from '../aircraft/InsuranceChip';
+import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { CERTIFICATE_LABELS, IFR_LABELS, MEDICAL_LABELS, ratingLabels } from './labels';
 import './leader.css';
 

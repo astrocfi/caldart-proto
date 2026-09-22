@@ -7,7 +7,7 @@ import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { MembershipChip } from '@/portal/components/StatusChip';
-import { useMembership } from '../profile/api';
+import { useMembership } from '@/portal/features/profile/api';
 import './join.css';
 
 /** Step 4 of the join wizard: membership status and links to members-only pages. */

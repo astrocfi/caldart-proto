@@ -13,8 +13,8 @@ import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
-import { ProfileFieldsets } from '../profile/ProfileFieldsets';
-import { EMPTY_PROFILE_FORM, formToPatch } from '../profile/form';
+import { ProfileFieldsets } from '@/portal/features/profile/ProfileFieldsets';
+import { EMPTY_PROFILE_FORM, formToPatch } from '@/portal/features/profile/form';
 import {
   AccountFields,
   AdminOnlyFields,

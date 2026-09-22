@@ -7,6 +7,22 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+// The component barrel is gone: every import names the file it defines.
+const barrelPaths = [
+  {
+    name: '@/portal/components',
+    message: 'Import the component file directly, not the barrel.',
+  },
+  {
+    name: './components',
+    message: 'Import the component file directly, not the barrel.',
+  },
+  {
+    name: '../components',
+    message: 'Import the component file directly, not the barrel.',
+  },
+];
+
 export default tseslint.config(
   {
     ignores: [
@@ -52,30 +68,18 @@ export default tseslint.config(
         'error',
         { eventHandlerPrefix: 'handle', checkLocalVariables: true },
       ],
-      // The component barrel is gone: every import names the file it needs.
-      // Cross-feature code (anything outside the importing feature directory)
-      // is reached through the `@/` alias, never by climbing out with `../..`.
+      // Outside `src/portal/features/`, a relative import may reach its own
+      // parent (`../components/Button` from `src/portal/routes/`) but never
+      // climb further: two levels up is another part of the tree, and the
+      // `@/` alias names it plainly.
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            {
-              name: '@/portal/components',
-              message: 'Import the component file directly, not the barrel.',
-            },
-            {
-              name: './components',
-              message: 'Import the component file directly, not the barrel.',
-            },
-            {
-              name: '../components',
-              message: 'Import the component file directly, not the barrel.',
-            },
-          ],
+          paths: barrelPaths,
           patterns: [
             {
-              group: ['../../*'],
-              message: "Use the '@/' alias to import outside the current feature.",
+              group: ['../../*', '../../**'],
+              message: "Use the '@/' alias rather than climbing out with '../..'.",
             },
           ],
         },
@@ -112,6 +116,31 @@ export default tseslint.config(
       // its markers are gone.  The attribute is what keeps the semantics, so it
       // is not redundant here.
       'jsx-a11y/no-redundant-roles': ['error', { ul: ['list'], ol: ['list'] }],
+    },
+  },
+  {
+    // A feature directory is the unit of relative addressing: inside
+    // `src/portal/features/<feature>/` a relative import must stay in the
+    // feature, so any specifier starting with `../` is refused -- one level up
+    // is already a sibling feature. Every feature is a flat directory; a
+    // feature that grows a subdirectory adds a `files` entry here exempting
+    // `src/portal/features/<feature>/<subdir>/**` so its files can still reach
+    // their own feature root with `../`.
+    files: ['src/portal/features/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: barrelPaths,
+          patterns: [
+            {
+              group: ['../*', '../**'],
+              message:
+                "Use the '@/' alias to import outside the feature; relative paths stay inside it.",
+            },
+          ],
+        },
+      ],
     },
   },
 );

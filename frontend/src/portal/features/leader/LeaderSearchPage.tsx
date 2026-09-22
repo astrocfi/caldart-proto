@@ -16,7 +16,7 @@ import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useDebounced } from '@/portal/components/useDebounced';
-import { looksLikeRegistration, normalizeNNumber } from '../aircraft/insurance';
+import { looksLikeRegistration, normalizeNNumber } from '@/portal/features/aircraft/insurance';
 import { MemberStatusCard } from './MemberStatusCard';
 import { useLeaderSearch, useMemberStatus } from './api';
 import './leader.css';
