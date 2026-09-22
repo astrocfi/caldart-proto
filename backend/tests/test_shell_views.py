@@ -2,7 +2,7 @@
 
 These run whether or not the frontend has been built — ``conftest.py`` stubs
 the Vite manifest when there is no real build, and the two tests that assert on
-the actual bundle skip unless ``frontend_is_built``.
+the actual bundle carry ``needs_frontend_build`` and skip unless one is present.
 """
 
 from __future__ import annotations
@@ -14,19 +14,24 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from django.conf import settings as django_settings
 from django.test import Client
 from django_vite.core.asset_loader import DjangoViteAssetLoader
 from pytest_django.fixtures import Settings
 
 from apps.cms.models import HomePage, SiteSettings
-from tests.conftest import VITE_MANIFEST
 
 pytestmark = pytest.mark.django_db
 
 
 def manifest_entry(source: str) -> dict[str, Any]:
-    """The Vite manifest entry for ``source`` (a build entry point)."""
-    manifest: dict[str, dict[str, Any]] = json.loads(VITE_MANIFEST.read_text())
+    """The Vite manifest entry for ``source`` (a build entry point).
+
+    Reads whichever manifest ``DJANGO_VITE`` is configured with, real or the
+    ``needs_frontend_build`` skip guard would not have let the test reach here.
+    """
+    manifest_path = Path(django_settings.DJANGO_VITE["default"]["manifest_path"])
+    manifest: dict[str, dict[str, Any]] = json.loads(manifest_path.read_text())
     return manifest[source]
 
 
@@ -70,12 +75,11 @@ def test_portal_theme_follows_site_settings(client: Client, site_settings: SiteS
     assert 'data-theme="night"' in client.get("/portal/").content.decode()
 
 
+@pytest.mark.needs_frontend_build
 def test_portal_shell_includes_the_portal_bundle(
-    client: Client, site_settings: SiteSettings, frontend_is_built: bool
+    client: Client, site_settings: SiteSettings
 ) -> None:
     """The built shell references the portal bundle's script and stylesheet files."""
-    if not frontend_is_built:
-        pytest.skip("frontend/dist not built (run `make build`)")
     body = client.get("/portal/").content.decode()
     entry = manifest_entry("src/portal/main.tsx")
     assert entry["file"] in body
@@ -122,12 +126,11 @@ def test_home_page_nav_comes_from_the_context_processor(
     assert 'href="/portal/login"' in body
 
 
+@pytest.mark.needs_frontend_build
 def test_home_page_includes_the_site_bundle(
-    client: Client, home_page: HomePage, site_settings: SiteSettings, frontend_is_built: bool
+    client: Client, home_page: HomePage, site_settings: SiteSettings
 ) -> None:
     """The built home page references the site bundle's script file."""
-    if not frontend_is_built:
-        pytest.skip("frontend/dist not built (run `make build`)")
     body = client.get("/").content.decode()
     assert manifest_entry("src/site/main.ts")["file"] in body
 

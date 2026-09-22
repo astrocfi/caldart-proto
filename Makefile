@@ -59,7 +59,8 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            AUTH_THROTTLE_LOGIN=1000/min
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
-        dev-frontend build test test-backend test-frontend coverage-frontend e2e \
+        dev-frontend build test test-backend test-frontend coverage coverage-backend \
+        coverage-frontend e2e \
         lint lint-backend \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
         audit audit-backend audit-frontend backup restore reminders docs shell superuser \
@@ -154,6 +155,12 @@ test-backend: ## pytest (Postgres)
 
 test-frontend: ## vitest
 	cd frontend && $(NPM) run test
+
+coverage: coverage-backend coverage-frontend ## Backend + frontend coverage reports
+
+coverage-backend: ## pytest-cov over production code only; writes backend/htmlcov/
+	$(UV) run pytest --cov=backend/apps --cov=backend/caldart \
+	  --cov-report=term-missing --cov-report=html:backend/htmlcov
 
 coverage-frontend: ## vitest with coverage; writes frontend/coverage/
 	cd frontend && $(NPM) run coverage

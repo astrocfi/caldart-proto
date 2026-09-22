@@ -304,10 +304,21 @@ Frontend assets
    :Development: ``false`` normally; ``true`` while doing frontend work.
    :Production: ``false``.  ``prod.py`` forces it off.
 
-``DJANGO_VITE_MANIFEST_PATH`` *(prod only)*
+``DJANGO_VITE_MANIFEST_PATH`` *(production and test only)*
    Override the manifest location.  Defaults to
    ``frontend/dist/.vite/manifest.json`` under the repository root, which is
-   right for the standard deploy layout.
+   right for the standard deploy layout.  ``dev.py`` ignores it.
+
+   ``test.py`` reads it as well, and the test settings load ``.env``, so a
+   value set there applies to ``uv run pytest`` too: it names the bundle the
+   tests marked ``needs_frontend_build`` assert against, which is how CI's
+   backend job runs them against a real build.  When it names a file that does
+   not exist, the suite falls back to the stub manifest it builds outside the
+   checkout and skips those tests, naming the missing path in the skip reason
+   (:ref:`testing-vite-manifest`).
+
+   :Development: unset.
+   :Production: unset unless the deploy puts the bundle elsewhere.
 
 
 Backups

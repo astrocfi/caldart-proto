@@ -7,14 +7,19 @@ duplicating them.
 from __future__ import annotations
 
 import base64
+import copy
 import json
+import os
 import re
+import shutil
+import tempfile
 import zlib
 from collections.abc import Callable, Iterator
 from datetime import date, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import freezegun
 import pytest
 import respx
 from django.contrib.auth import get_user_model
@@ -28,6 +33,7 @@ from apps.accounts.roles import (
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
+from caldart.settings.test import STATIC_ROOT_PREFIX
 from tests.factories import (
     DEFAULT_PASSWORD,
     AircraftFactory,
@@ -51,6 +57,12 @@ if TYPE_CHECKING:
 
 User = get_user_model()
 
+# freezegun patches every call to the standard library's clock, which would
+# otherwise also freeze pytest's own timing (durations, `--durations`, and
+# similar instrumentation) for the rest of a test session that ever freezes
+# time. Excluding pytest's own modules keeps the clock real for pytest itself.
+freezegun.configure(extend_ignore_list=["_pytest", "pluggy"])
+
 #: The endpoint that issues the ``csrftoken`` cookie, used by ``csrf_headers``.
 CSRF_URL = "/api/v1/auth/csrf"
 
@@ -59,13 +71,23 @@ CSRF_URL = "/api/v1/auth/csrf"
 # Vite manifest
 #
 # `templates/base.html` and `templates/portal.html` call `{% vite_asset %}`,
-# which raises when the entry is missing from `frontend/dist/.vite/manifest.json`.
-# Backend tests must not depend on `npm run build` having been run — CI runs the
-# two suites in separate jobs — so stub the manifest when there is no real build
-# and remember that we did, for the tests that assert on the real bundle.
+# which raises when the entry is missing from the manifest django-vite loads.
+# Backend tests must not depend on `npm run build` having been run — CI runs
+# the two suites in separate jobs.
+#
+# `caldart.settings.test` resolves `DJANGO_VITE`'s manifest_path from the
+# `DJANGO_VITE_MANIFEST_PATH` environment variable, which CI's backend job
+# points at a real build before running pytest (docs/developer/testing.rst).
+# That resolution happens while Django starts up, before this module is even
+# imported -- pytest-django sets Django up in its own `pytest_load_initial_
+# conftests` hook, which runs before any conftest.py is collected -- so a
+# local run with nothing built falls through to `pytest_configure` below,
+# which builds a stub manifest outside the checkout, overrides the already-
+# loaded `DJANGO_VITE` setting to point there, and forces django-vite to
+# re-read it (its `AppConfig.ready()` cached the -- then empty -- loader
+# during `django.setup()`).  Nothing is written under `frontend/dist`.
 # --------------------------------------------------------------------------
 REPO_ROOT = Path(__file__).resolve().parents[2]
-VITE_MANIFEST = REPO_ROOT / "frontend" / "dist" / ".vite" / "manifest.json"
 
 STUB_MANIFEST = {
     "src/site/main.ts": {
@@ -82,15 +104,29 @@ STUB_MANIFEST = {
     },
 }
 
-_stubbed_manifest = False
+#: Set by ``pytest_configure`` when it falls back to the stub manifest, so
+#: ``pytest_unconfigure`` and the ``needs_frontend_build`` guard know.
+_stub_manifest_dir: Path | None = None
+_stub_manifest_path: Path | None = None
+
+#: The manifest ``pytest_configure`` looked for before falling back, named in
+#: the skip or failure reason: ``DJANGO_VITE_MANIFEST_PATH`` can point it
+#: somewhere other than ``frontend/dist``, and then "not built" alone would
+#: mislead.
+_missing_manifest_path: Path | None = None
+
+#: Set to a non-empty value by the CI runner (GitHub Actions sets ``CI=true``).
+#: It is what tells ``pytest_runtest_setup`` that a missing frontend build is a
+#: broken job rather than an unbuilt checkout.
+CI_ENV_VAR = "CI"
 
 
 def _reload_vite_loader() -> None:
     """Make django-vite re-read the manifest.
 
-    Its ``AppConfig.ready()`` parses the manifest once and caches the loader,
-    and that ran during ``django.setup()`` — before this hook — so a manifest
-    written here would otherwise be ignored.
+    Its ``AppConfig.ready()`` parses the manifest once and caches the loader
+    during ``django.setup()``, before this hook runs, so an override made here
+    would otherwise be ignored.
     """
     from django_vite.core.asset_loader import DjangoViteAssetLoader
 
@@ -99,34 +135,58 @@ def _reload_vite_loader() -> None:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Write the stub Vite manifest when no real frontend build is present.
+    """Fall back to a stub Vite manifest when no real one is configured."""
+    global _stub_manifest_dir, _stub_manifest_path, _missing_manifest_path
+    from django.conf import settings
 
-    Sets the module-level ``_stubbed_manifest`` flag so ``pytest_unconfigure`` knows
-    whether to remove the file it wrote, and reloads django-vite's cached loader so it
-    picks up the manifest this hook just wrote or found.
-    """
-    global _stubbed_manifest
-    if not VITE_MANIFEST.is_file():
-        VITE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-        VITE_MANIFEST.write_text(json.dumps(STUB_MANIFEST, indent=2))
-        _stubbed_manifest = True
+    configured = Path(settings.DJANGO_VITE["default"]["manifest_path"])
+    if configured.is_file():
+        return
+    _missing_manifest_path = configured
+    _stub_manifest_dir = Path(tempfile.mkdtemp(prefix="caldart-vite-manifest-"))
+    _stub_manifest_path = _stub_manifest_dir / "manifest.json"
+    _stub_manifest_path.write_text(json.dumps(STUB_MANIFEST, indent=2))
+    overridden = copy.deepcopy(settings.DJANGO_VITE)
+    overridden["default"]["manifest_path"] = _stub_manifest_path
+    settings.DJANGO_VITE = overridden
     _reload_vite_loader()
 
 
 def pytest_unconfigure(config: pytest.Config) -> None:
-    """Leave the tree as we found it."""
-    if not _stubbed_manifest:
+    """Remove the temporary directories the session leaves behind.
+
+    Those are the stub manifest directory ``pytest_configure`` created, when it
+    created one, and the ``STATIC_ROOT`` that ``caldart.settings.test`` makes on
+    import so WhiteNoise never warns about a missing directory.  A ``STATIC_ROOT``
+    whose name does not carry that module's prefix is left alone, so a run under
+    other settings cannot delete a real one.
+    """
+    from django.conf import settings
+
+    if _stub_manifest_dir is not None:
+        shutil.rmtree(_stub_manifest_dir, ignore_errors=True)
+    static_root = Path(settings.STATIC_ROOT)
+    if static_root.name.startswith(STATIC_ROOT_PREFIX):
+        shutil.rmtree(static_root, ignore_errors=True)
+
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """Skip a ``needs_frontend_build`` test with no real bundle, or fail it in CI.
+
+    The marker states the requirement declaratively and this hook enforces it.
+    A developer who has not run ``make build`` gets a skip naming the manifest
+    that was missing.  CI builds the frontend as part of the backend job, so
+    there a missing manifest means the job is silently not running these tests
+    at all: fail them instead, naming the same path.
+    """
+    if item.get_closest_marker("needs_frontend_build") is None:
         return
-    VITE_MANIFEST.unlink(missing_ok=True)
-    for directory in (VITE_MANIFEST.parent, VITE_MANIFEST.parent.parent):
-        if directory.is_dir() and not any(directory.iterdir()):
-            directory.rmdir()
-
-
-@pytest.fixture(scope="session")
-def frontend_is_built() -> bool:
-    """Return ``False`` when the manifest is the stub above rather than a real build."""
-    return not _stubbed_manifest
+    if _stub_manifest_path is None:
+        return
+    reason = f"no Vite build at {_missing_manifest_path} (run `make build`)"
+    if os.environ.get(CI_ENV_VAR, "") != "":
+        pytest.fail(reason, pytrace=False)
+    pytest.skip(reason)
 
 
 @pytest.fixture(autouse=True)
@@ -349,11 +409,21 @@ def site_settings(db: None) -> SiteSettings:
 
 
 @pytest.fixture
-def today() -> date:
-    """Return the current local date."""
+def today() -> Iterator[date]:
+    """Freeze the clock at the current local date, and return that date.
+
+    A test that requests this fixture computes its expected dates against a
+    clock that cannot advance mid-test, rather than reading
+    ``timezone.localdate()`` again at an arbitrary moment later in the run.
+    """
     from django.utils import timezone
 
-    return timezone.localdate()
+    # Freezing a bare date freezes midnight UTC, which ``timezone.localdate()``
+    # reads back as the day before in a negative-offset timezone; freezing the
+    # exact current instant keeps the local date the fixture already returns.
+    now = timezone.now()
+    with freezegun.freeze_time(now):
+        yield timezone.localdate()
 
 
 @pytest.fixture

@@ -20,7 +20,8 @@ from apps.cms.models import (
 )
 from apps.members.models import Dart
 
-pytestmark = pytest.mark.django_db
+#: Every test here runs `seed_content`, which builds the whole example site.
+pytestmark = [pytest.mark.django_db, pytest.mark.slow]
 
 
 def seed() -> None:
