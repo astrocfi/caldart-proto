@@ -114,11 +114,6 @@ class Payment(TimestampedModel):
         return f"{self.get_provider_display()} ${self.amount_cents / 100:,.2f} ({self.status})"
 
     @property
-    def amount_dollars(self) -> float:
-        """``amount_cents`` as dollars, so 4500 cents reads as ``45.0``."""
-        return self.amount_cents / 100
-
-    @property
     def is_succeeded(self) -> bool:
         """Whether the money arrived.  A pending or failed attempt is ``False``."""
         return self.status == PaymentStatus.SUCCEEDED

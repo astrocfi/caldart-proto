@@ -166,24 +166,6 @@ class MemberProfile(TimestampedModel):
             return False
         return self.medical_expiration >= timezone.localdate()
 
-    @property
-    def volunteer_interests(self) -> list[str]:
-        """The volunteer areas ticked, as slugs without the ``vol_`` prefix.
-
-        Empty when the member has volunteered for nothing, and in the order the
-        interests are declared on the model rather than the order they were
-        ticked.
-        """
-        fields = [
-            "vol_ground_team",
-            "vol_exercise_training",
-            "vol_member_support",
-            "vol_fundraising",
-            "vol_social_media",
-            "vol_newsletter",
-        ]
-        return [f.removeprefix("vol_") for f in fields if getattr(self, f)]
-
     #: The fields ``profile_complete`` requires.  One list, used by
     #: :py:meth:`is_complete`, by the ``user`` payload the API returns, and —
     #: mirrored — by the portal's profile form, so the join wizard can never

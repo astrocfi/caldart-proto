@@ -526,8 +526,6 @@ that the message a person reads can be specific:
     is ``NULL``; otherwise ``medical_expiration >= today``.  BasicMed and class
     medicals both use the same stored date — the model does not try to compute
     a BasicMed expiry from the exam date.
-``volunteer_interests``
-    The ``vol_`` booleans that are set, as a list of bare names.
 ``is_complete``
     ``True`` when every field in ``MemberProfile.COMPLETE_FIELDS`` has a
     value: ``phone``, ``address_line1``, ``city``, ``postal_code`` and
