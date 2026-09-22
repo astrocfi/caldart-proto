@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile
+from tests.conftest import ROLE_MATRIX
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -157,15 +158,21 @@ def test_several_aircraft_can_be_attached(
     assert {row["n_number"] for row in response.json()["aircraft"]} == {"N111AA", "N222BB"}
 
 
-def test_every_role_may_manage_their_own_aircraft(
-    api_client: APIClient, all_role_users: dict[str, User], aircraft: Aircraft
+@pytest.mark.parametrize("slug", ROLE_MATRIX)
+def test_every_role_may_attach_their_own_aircraft(
+    api_client: APIClient, all_role_users: dict[str, User], aircraft: Aircraft, slug: str
 ) -> None:
-    """Every role can attach and detach its own aircraft without a permission error."""
-    for user in all_role_users.values():
-        api_client.force_login(user)
-        assert (
-            api_client.post(ATTACH_URL, {"aircraft_id": aircraft.id}, format="json").status_code
-            == 200
-        )
-        assert api_client.delete(detach_url(aircraft.id)).status_code == 204
-        api_client.logout()
+    """Every role can attach an aircraft to its own profile without a permission error."""
+    api_client.force_login(all_role_users[slug])
+    response = api_client.post(ATTACH_URL, {"aircraft_id": aircraft.id}, format="json")
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize("slug", ROLE_MATRIX)
+def test_every_role_may_detach_their_own_aircraft(
+    api_client: APIClient, all_role_users: dict[str, User], aircraft: Aircraft, slug: str
+) -> None:
+    """Every role can detach an aircraft from its own profile again."""
+    api_client.force_login(all_role_users[slug])
+    api_client.post(ATTACH_URL, {"aircraft_id": aircraft.id}, format="json")
+    assert api_client.delete(detach_url(aircraft.id)).status_code == 204

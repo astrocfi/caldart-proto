@@ -18,6 +18,7 @@ from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN
 from apps.members.models import Membership, MembershipPlan
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
+from tests.conftest import ROLE_MATRIX, role_matrix
 from tests.factories import PaymentFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -227,16 +228,19 @@ def test_checkout_requires_a_session(api_client: APIClient, annual_plan: Members
     assert Payment.objects.count() == 0
 
 
+@pytest.mark.parametrize("slug", ROLE_MATRIX)
 def test_every_signed_in_role_may_start_a_checkout(
-    api_client: APIClient, all_role_users: dict[str, User], annual_plan: MembershipPlan
+    api_client: APIClient,
+    all_role_users: dict[str, User],
+    annual_plan: MembershipPlan,
+    slug: str,
 ) -> None:
     """Every signed-in role, not only members, may start a checkout."""
-    for slug, user in all_role_users.items():
-        api_client.force_login(user)
-        response = api_client.post(
-            CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "mock"}
-        )
-        assert response.status_code == 201, f"{slug} could not start a checkout"
+    api_client.force_login(all_role_users[slug])
+    response = api_client.post(
+        CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "mock"}
+    )
+    assert response.status_code == 201
 
 
 # --------------------------------------------------------------------------
@@ -434,22 +438,22 @@ def test_anonymous_may_not_read_a_payment(
     assert api_client.get(f"/api/v1/payments/{payment.pk}").status_code == 401
 
 
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(MEMBER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_payment_detail_role_matrix(
     api_client: APIClient,
     all_role_users: dict[str, User],
     annual_plan: MembershipPlan,
     payment_factory: type[PaymentFactory],
+    slug: str,
+    allowed: bool,
 ) -> None:
     """Only the owner and an account admin (or system admin) may look."""
     owner = all_role_users[MEMBER]
     payment = payment_factory(user=owner, plan=annual_plan, provider=PaymentProvider.MOCK)
     url = f"/api/v1/payments/{payment.pk}"
 
-    allowed = {MEMBER, ACCOUNT_ADMIN, SYSTEM_ADMIN}
-    for slug, user in all_role_users.items():
-        api_client.force_login(user)
-        expected = 200 if slug in allowed else 403
-        assert api_client.get(url).status_code == expected, slug
+    api_client.force_login(all_role_users[slug])
+    assert api_client.get(url).status_code == (200 if allowed else 403)
 
 
 def test_unknown_payment_is_404(api_client: APIClient, member: User) -> None:

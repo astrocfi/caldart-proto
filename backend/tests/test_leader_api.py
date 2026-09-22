@@ -21,6 +21,7 @@ from apps.members.models import (
     MembershipPlan,
     MembershipStatusChoices,
 )
+from tests.conftest import role_matrix
 from tests.factories import (
     AircraftFactory,
     MemberProfileFactory,
@@ -76,18 +77,29 @@ def test_status_requires_authentication(api_client: APIClient, pilot: User) -> N
     assert api_client.get(status_url(pilot)).status_code == 401
 
 
+@pytest.mark.parametrize(
+    ("endpoint", "query"),
+    [
+        ("search", {"q": "Reyes"}),
+        ("status", None),
+        ("aircraft", {"n_number": "N172SP"}),
+    ],
+    ids=["search", "status", "aircraft"],
+)
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(DART_LEADER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_leader_role_matrix(
-    api_client: APIClient, all_role_users: dict[str, User], pilot: User
+    api_client: APIClient,
+    all_role_users: dict[str, User],
+    pilot: User,
+    endpoint: str,
+    query: dict[str, str] | None,
+    slug: str,
+    allowed: bool,
 ) -> None:
     """Only a DART leader, account admin or system admin may use the leader endpoints."""
-    allowed = {DART_LEADER, ACCOUNT_ADMIN, SYSTEM_ADMIN}
-    for slug, user in all_role_users.items():
-        api_client.force_login(user)
-        expected = 200 if slug in allowed else 403
-        assert api_client.get(SEARCH_URL, {"q": "Reyes"}).status_code == expected, slug
-        assert api_client.get(status_url(pilot)).status_code == expected, slug
-        assert api_client.get(AIRCRAFT_URL, {"n_number": "N172SP"}).status_code == expected, slug
-        api_client.logout()
+    url = {"search": SEARCH_URL, "status": status_url(pilot), "aircraft": AIRCRAFT_URL}[endpoint]
+    api_client.force_login(all_role_users[slug])
+    assert api_client.get(url, query).status_code == (200 if allowed else 403)
 
 
 def test_a_plain_member_cannot_check_another_member(

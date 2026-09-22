@@ -16,7 +16,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
-from tests.conftest import read_csv
+from tests.conftest import read_csv, role_matrix
 from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -317,15 +317,18 @@ def test_export_formats_money_as_dollars(
 # Role matrix
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("url", [LIST, SUMMARY, EXPORT])
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_reports_are_account_admin_only(
-    api_client: APIClient, all_role_users: dict[str, User], history: list[Payment], url: str
+    api_client: APIClient,
+    all_role_users: dict[str, User],
+    history: list[Payment],
+    url: str,
+    slug: str,
+    allowed: bool,
 ) -> None:
     """Only account admins and system admins may view any of the three reports."""
-    allowed = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
-    for slug, user in all_role_users.items():
-        api_client.force_login(user)
-        expected = 200 if slug in allowed else 403
-        assert api_client.get(url).status_code == expected, f"{slug} on {url}"
+    api_client.force_login(all_role_users[slug])
+    assert api_client.get(url).status_code == (200 if allowed else 403)
 
 
 @pytest.mark.parametrize("url", [LIST, SUMMARY, EXPORT])

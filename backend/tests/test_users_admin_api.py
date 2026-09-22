@@ -24,6 +24,7 @@ from apps.accounts.roles import (
     WEBSITE_ADMIN,
 )
 from apps.members.models import MembershipPlan
+from tests.conftest import role_matrix
 from tests.factories import MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -43,20 +44,13 @@ def send_reset(user: User) -> str:
 
 
 #: (role slug, may use the users-admin API).
-ROLE_MATRIX = [
-    (MEMBER, False),
-    (DART_LEADER, False),
-    (USER_ADMIN, True),
-    (ACCOUNT_ADMIN, False),
-    (WEBSITE_ADMIN, False),
-    (SYSTEM_ADMIN, True),
-]
+USERS_ADMIN_MATRIX = role_matrix(USER_ADMIN, SYSTEM_ADMIN)
 
 
 # --------------------------------------------------------------------------
 # Role matrix
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize(("slug", "allowed"), ROLE_MATRIX)
+@pytest.mark.parametrize(("slug", "allowed"), USERS_ADMIN_MATRIX)
 def test_list_role_matrix(
     api_client: APIClient, all_role_users: dict[str, User], slug: str, allowed: bool
 ) -> None:
@@ -65,7 +59,7 @@ def test_list_role_matrix(
     assert (api_client.get(LIST).status_code == 200) is allowed
 
 
-@pytest.mark.parametrize(("slug", "allowed"), ROLE_MATRIX)
+@pytest.mark.parametrize(("slug", "allowed"), USERS_ADMIN_MATRIX)
 def test_retrieve_role_matrix(
     api_client: APIClient, all_role_users: dict[str, User], slug: str, allowed: bool, member: User
 ) -> None:
@@ -74,7 +68,7 @@ def test_retrieve_role_matrix(
     assert (api_client.get(detail(member)).status_code == 200) is allowed
 
 
-@pytest.mark.parametrize(("slug", "allowed"), ROLE_MATRIX)
+@pytest.mark.parametrize(("slug", "allowed"), USERS_ADMIN_MATRIX)
 def test_patch_role_matrix(
     api_client: APIClient, all_role_users: dict[str, User], slug: str, allowed: bool, member: User
 ) -> None:
@@ -84,7 +78,7 @@ def test_patch_role_matrix(
     assert (response.status_code == 200) is allowed
 
 
-@pytest.mark.parametrize(("slug", "allowed"), ROLE_MATRIX)
+@pytest.mark.parametrize(("slug", "allowed"), USERS_ADMIN_MATRIX)
 def test_send_password_reset_role_matrix(
     api_client: APIClient, all_role_users: dict[str, User], slug: str, allowed: bool, member: User
 ) -> None:

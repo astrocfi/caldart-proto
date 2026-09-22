@@ -18,7 +18,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN
 from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile
-from tests.conftest import RegisterDict
+from tests.conftest import RegisterDict, role_matrix
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -344,16 +344,15 @@ def test_account_admin_may_delete_an_aircraft(api_client: APIClient, account_adm
     assert not Aircraft.objects.filter(pk=aircraft.pk).exists()
 
 
-def test_role_matrix_for_delete(api_client: APIClient, all_role_users: dict[str, User]) -> None:
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN))
+def test_role_matrix_for_delete(
+    api_client: APIClient, all_role_users: dict[str, User], slug: str, allowed: bool
+) -> None:
     """Only account and system admins get 204 deleting; every other role gets 403."""
-    allowed = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
-    for index, (slug, user) in enumerate(all_role_users.items()):
-        aircraft = AircraftFactory(n_number=f"N{800 + index}RM")
-        api_client.force_login(user)
-        response = api_client.delete(detail_url(aircraft))
-        expected = 204 if slug in allowed else 403
-        assert response.status_code == expected, f"{slug} got {response.status_code}"
-        api_client.logout()
+    aircraft = AircraftFactory(n_number="N800RM")
+    api_client.force_login(all_role_users[slug])
+    response = api_client.delete(detail_url(aircraft))
+    assert response.status_code == (204 if allowed else 403)
 
 
 # --------------------------------------------------------------------------
