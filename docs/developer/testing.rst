@@ -96,6 +96,40 @@ Coverage
 (``[tool.coverage.run]`` in ``pyproject.toml``).  No threshold gates CI; the
 report is informational until a baseline is established.
 
+.. _testing-golden-files:
+
+Golden files
+------------
+
+``backend/tests/golden/`` holds whole documents the code renders — the five
+renewal-reminder emails and the payment CSV export — one file each.  A test
+gets the ``golden`` fixture and hands it the file name and the text it
+rendered:
+
+.. code-block:: python
+
+   def test_export_matches_the_recorded_document(golden, api_client, history):
+       body = csv_body(api_client.get("/api/v1/admin/payments/export.csv"))
+       golden("payments-export.csv", body, replace={history[0].provider_ref: "ref-1"})
+
+The comparison is character for character, line endings included, so a stray
+blank line or a changed CSV separator fails.  ``replace`` maps a literal to the
+placeholder that stands in for it, which is how a name Faker invented or a
+reference carrying a row id stops varying between runs; everything else is
+compared as rendered.
+
+When a template or a column legitimately changes, rewrite the files from the
+output instead of editing them by hand, then read the diff before committing
+it:
+
+.. code-block:: console
+
+   $ uv run pytest backend/tests/test_reminders.py --update-golden
+   $ git diff backend/tests/golden
+
+``--update-golden`` rewrites every golden file the selected tests touch and
+asserts nothing, so a run with it passes whatever the code produced.
+
 What ``caldart.settings.test`` changes
 --------------------------------------
 
@@ -216,6 +250,9 @@ for constantly:
      - ``pdf_text(body)`` reads a rendered PDF back into the strings it draws,
        one list per page, so an export test asserts on the words the document
        shows
+   * - ``golden``
+     - ``golden(name, text)`` compares a whole rendered document with
+       ``backend/tests/golden/name`` (:ref:`testing-golden-files`)
 
 The six role groups exist in every test database already: the accounts data
 migration creates one ``Group`` per role slug, so nothing has to seed them.  A
@@ -243,6 +280,9 @@ module imports by name from ``tests.conftest``:
    * - ``read_csv(response)``
      - the rows of a streamed CSV download, parsed with ``csv.reader`` so a
        quoted cell keeps its commas, header first
+   * - ``csv_body(response)``
+     - the same download as one string, separators and line endings intact, for
+       a comparison against a golden file
    * - ``pdf_page_count(body)``
      - the number of pages in a rendered PDF
    * - ``LOGIN_URL``, ``REGISTER_URL``, ``ME_URL``, ``CHANGE_URL``,
@@ -417,6 +457,13 @@ What the backend suite covers
        the snapshot records (:ref:`testing-api-contract`)
    * - ``test_seed.py``, ``test_shell_views.py``
      - the seed commands run twice cleanly; the portal and public shells
+   * - ``test_boundaries.py``
+     - the edges: page sizes at 25 and 200, an ``expiring_within`` window
+       clamped to ten years, a string one character over its column, and names
+       written outside ASCII
+   * - ``test_membership_transitions.py``, ``test_payments_race.py``
+     - a failed payment that later succeeds, a canceled term that is bought
+       again, and two threads confirming one payment at once
 
 Running the frontend suite
 ==========================

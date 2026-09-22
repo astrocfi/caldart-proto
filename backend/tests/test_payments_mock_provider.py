@@ -188,8 +188,9 @@ def test_mock_provider_respects_the_kill_switch(
     """Confirming through the mock provider while it is disabled raises."""
     settings.PAYMENTS_MOCK_ENABLED = False
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
-    with pytest.raises(MockPaymentsDisabledError):
+    with pytest.raises(MockPaymentsDisabledError) as refusal:
         get_provider("mock").confirm(payment)
+    assert str(refusal.value) == "The mock payment provider is disabled."
 
 
 def test_available_providers_reflects_configuration(settings: Settings) -> None:
@@ -212,11 +213,18 @@ def test_unknown_provider_slug() -> None:
         get_provider("not-a-provider")
 
 
+#: What each real provider says when the keys it needs are missing.
+NOT_CONFIGURED_MESSAGES = {
+    "stripe": "Stripe is not configured (STRIPE_SECRET_KEY is empty).",
+    "paypal": ("PayPal is not configured (PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are empty)."),
+}
+
+
 @pytest.mark.parametrize("slug", ["stripe", "paypal"])
 def test_real_providers_refuse_to_start_without_keys(
     slug: str, member: User, annual_plan: MembershipPlan, settings: Settings
 ) -> None:
-    """Missing keys are a configuration error, not a 500."""
+    """Missing keys are a configuration error naming the settings, not a 500."""
     settings.STRIPE_SECRET_KEY = ""
     settings.PAYPAL_CLIENT_ID = ""
     settings.PAYPAL_CLIENT_SECRET = ""
@@ -224,5 +232,6 @@ def test_real_providers_refuse_to_start_without_keys(
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
     provider = get_provider(slug)
     assert provider.slug == slug
-    with pytest.raises(ProviderNotConfiguredError):
+    with pytest.raises(ProviderNotConfiguredError) as refusal:
         provider.start(payment)
+    assert str(refusal.value) == NOT_CONFIGURED_MESSAGES[slug]

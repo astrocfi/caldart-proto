@@ -220,7 +220,7 @@ def test_csv_is_not_paginated(account_admin_client: APIClient, reportable: dict[
     for index in range(30):
         MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
     table = read_csv(account_admin_client.get(CSV_URL))
-    assert len(table) - 1 >= 33
+    assert len(table) - 1 == User.objects.count()
 
 
 def test_csv_with_no_matches_is_a_header_only(
@@ -295,8 +295,9 @@ def test_pdf_subtitle_when_nothing_is_filtered(account_admin: User) -> None:
 def test_pdf_paginates_a_long_report(
     account_admin_client: APIClient, reportable: dict[str, User]
 ) -> None:
-    """A report long enough to overflow one page spans more than one."""
+    """A report of 124 members is drawn across the seven pages they fill."""
     for index in range(120):
         MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
     body = account_admin_client.get(PDF_URL).content
-    assert pdf_page_count(body) >= 2
+    assert User.objects.count() == 124
+    assert pdf_page_count(body) == 7

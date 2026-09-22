@@ -107,10 +107,12 @@ def test_seed_content_home_page_carries_the_concept_of_operations() -> None:
     """``seed_content`` fills in the home page's hero, mission and concept steps."""
     seed()
     home = HomePage.objects.get()
-    assert home.hero_heading
-    assert home.mission_statement
-    assert len(home.concept_of_operations) >= 4
-    assert all(block.block_type == "step" for block in home.concept_of_operations)
+    assert home.hero_heading == content.HERO_HEADING
+    assert home.mission_statement == content.MISSION
+    assert len(home.concept_of_operations) == len(content.CONCEPT_STEPS)
+    assert [block.block_type for block in home.concept_of_operations] == [
+        "step" for _step in content.CONCEPT_STEPS
+    ]
     assert "501(c)(3)" in home.tax_status
     assert home.primary_cta_url == "/portal/join"
 

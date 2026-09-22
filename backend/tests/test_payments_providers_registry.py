@@ -31,9 +31,10 @@ def unconfigured(settings: Settings) -> Settings:
 
 
 def test_the_base_provider_leaves_is_configured_to_its_subclasses() -> None:
-    """``Provider.is_configured`` raises ``NotImplementedError``."""
-    with pytest.raises(NotImplementedError):
+    """``Provider.is_configured`` raises a bare ``NotImplementedError``."""
+    with pytest.raises(NotImplementedError) as refusal:
         Provider.is_configured()
+    assert str(refusal.value) == ""
 
 
 def test_stripe_is_configured_only_with_both_keys(unconfigured: Settings) -> None:
