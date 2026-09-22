@@ -418,8 +418,11 @@ RegisterDict = dict[str, "Aircraft"]
 
 
 @pytest.fixture
-def register(db: None) -> RegisterDict:
+def register(db: None, today: date) -> RegisterDict:
     """Return a four-aircraft register covering every insurance state.
+
+    Every expiration is counted from the ``today`` fixture's frozen date, so a test
+    that reads that fixture compares against the same day the register was built on.
 
     ``current`` is N172SP, a Cessna 172S owned by a flying club, insured by Avemco for
     $1,000,000 per occurrence, $100,000 per person and a $145,000 hull, expiring in 200
@@ -429,7 +432,6 @@ def register(db: None) -> RegisterDict:
     an FBO, with no carrier, no amounts and no expiration on file.  ``expiring`` and
     ``expired`` carry the factory's default carrier and amounts.
     """
-    today = timezone.localdate()
     return {
         "current": AircraftFactory(
             n_number="N172SP",

@@ -24,6 +24,8 @@ import ast
 import tomllib
 from pathlib import Path
 
+import pytest
+
 PYPROJECT = Path(__file__).resolve().parents[2] / "pyproject.toml"
 
 #: The backend tree the ASCII rule covers.
@@ -31,6 +33,9 @@ BACKEND = Path(__file__).resolve().parents[1]
 
 #: The test package itself, whose modules may not import one another.
 TESTS = Path(__file__).resolve().parent
+
+#: The dotted name of that package, which a relative import resolves against.
+TESTS_PACKAGE = "tests"
 
 #: The two modules every test module may import from.
 SHARED_TEST_MODULES = frozenset({"tests.conftest", "tests.factories"})
@@ -103,20 +108,71 @@ def test_no_backend_module_holds_a_non_ascii_character() -> None:
     assert offenders == {}
 
 
+def _import_from_names(node: ast.ImportFrom) -> list[str]:
+    """The absolute module names a ``from ... import ...`` statement reaches for.
+
+    An absolute statement is reported as written.  A single-dot relative statement is
+    resolved against the ``tests`` package the modules live in, so
+    ``from .test_x import y`` and ``from . import test_x`` both report
+    ``tests.test_x`` and cannot slip past the sibling check on spelling alone.  A
+    deeper relative statement climbs out of the package and so names nothing under
+    ``tests.``.
+    """
+    if node.level == 0:
+        return [] if node.module is None else [node.module]
+    if node.level > 1:
+        return []
+    if node.module is not None:
+        return [f"{TESTS_PACKAGE}.{node.module}"]
+    return [f"{TESTS_PACKAGE}.{alias.name}" for alias in node.names]
+
+
 def _test_module_imports(path: Path) -> list[str]:
     """The ``tests.<module>`` names ``path`` imports, excluding the shared two.
 
-    Both ``import tests.x`` and ``from tests.x import y`` are reported, by the
-    dotted module name in each case.
+    ``import tests.x``, ``from tests.x import y``, ``from .x import y`` and
+    ``from . import x`` are all reported, by the absolute dotted module name in each
+    case.
     """
     tree = ast.parse(path.read_text(), filename=str(path))
     names: list[str] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.module is not None:
-            names.append(node.module)
+        if isinstance(node, ast.ImportFrom):
+            names.extend(_import_from_names(node))
         elif isinstance(node, ast.Import):
             names.extend(alias.name for alias in node.names)
     return [name for name in names if name.startswith("tests.") and name not in SHARED_TEST_MODULES]
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("import tests.test_reminders", ["tests.test_reminders"]),
+        ("from tests.test_reminders import cohort", ["tests.test_reminders"]),
+        ("from .test_reminders import cohort", ["tests.test_reminders"]),
+        ("from . import test_reminders", ["tests.test_reminders"]),
+        ("from tests.factories import DartFactory", []),
+        ("from .factories import DartFactory", []),
+        ("from apps.reminders.models import ReminderLog", []),
+    ],
+    ids=[
+        "absolute-import",
+        "absolute-from",
+        "relative-from",
+        "relative-bare",
+        "shared-absolute",
+        "shared-relative",
+        "unrelated",
+    ],
+)
+def test_module_imports_reports_a_sibling_however_it_is_spelled(
+    tmp_path: Path, source: str, expected: list[str]
+) -> None:
+    """A relative sibling import is resolved to its ``tests.`` name and counted."""
+    module = tmp_path / "test_sample.py"
+    module.write_text(f'"""A sample module."""\n\n{source}\n')
+
+    assert _test_module_imports(module) == expected
 
 
 def test_no_new_test_module_imports_a_sibling_test_module() -> None:

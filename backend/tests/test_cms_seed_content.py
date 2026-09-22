@@ -269,7 +269,11 @@ def test_definition_list_of_no_rows_is_an_empty_list() -> None:
 
 
 def test_seed_content_publishes_members_only_pages(api_client: APIClient) -> None:
-    """The dashboard's members-only list is empty until ``seed_content`` has run."""
+    """Once the seed has run, a member's site config names at least one members-only page.
+
+    The same config carries the organization name the seed sets, so a member reads back
+    a configured site rather than an empty one.
+    """
     call_command("seed_content", stdout=StringIO(), verbosity=0)
 
     member = MemberProfileFactory().user
