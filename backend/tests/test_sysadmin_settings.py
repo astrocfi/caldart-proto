@@ -21,6 +21,7 @@ import pytest
 from django.core.exceptions import ImproperlyConfigured
 from pytest_django import Settings
 
+from caldart.settings import base
 from tests.conftest import DEPLOY_DIR, REPO_ROOT
 
 PROD_SETTINGS = REPO_ROOT / "backend" / "caldart" / "settings" / "prod.py"
@@ -196,8 +197,6 @@ def test_one_proxy_sits_in_front_so_throttles_key_on_the_client_address(prod: Mo
 
 def test_the_base_rest_framework_settings_are_not_mutated(prod: ModuleType) -> None:
     """``prod.py`` adds ``NUM_PROXIES`` to its own copy, leaving base's dict untouched."""
-    from caldart.settings import base
-
     assert "NUM_PROXIES" not in base.REST_FRAMEWORK
 
 
@@ -256,8 +255,6 @@ def test_importing_prod_does_not_disturb_the_running_settings(
     prod: ModuleType, settings: Settings
 ) -> None:
     """``prod.py`` copies the dicts it edits rather than mutating base's."""
-    from caldart.settings import base
-
     # Django itself fills CONN_MAX_AGE in with its 0 default; what must not
     # happen is prod's 60 leaking back into the settings the suite runs under.
     assert base.DATABASES["default"].get("CONN_MAX_AGE") != 60
@@ -280,10 +277,19 @@ def test_gunicorn_binds_to_loopback_only() -> None:
 def test_gunicorn_worker_count_is_capped(monkeypatch: pytest.MonkeyPatch) -> None:
     """Every worker preloads Django, so the 2n+1 heuristic needs a ceiling."""
     monkeypatch.delenv("WEB_CONCURRENCY", raising=False)
-    config = runpy.run_path(str(DEPLOY_DIR / "gunicorn.conf.py"))
-    assert 1 <= config["workers"] <= config["MAX_WORKERS"]
 
+    config = runpy.run_path(str(DEPLOY_DIR / "gunicorn.conf.py"))
+
+    assert config["workers"] >= 1
+    assert config["workers"] <= config["MAX_WORKERS"]
+
+
+def test_web_concurrency_overrides_the_worker_heuristic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``WEB_CONCURRENCY`` sets the worker count outright, cap and heuristic aside."""
     monkeypatch.setenv("WEB_CONCURRENCY", "3")
+
     assert runpy.run_path(str(DEPLOY_DIR / "gunicorn.conf.py"))["workers"] == 3
 
 

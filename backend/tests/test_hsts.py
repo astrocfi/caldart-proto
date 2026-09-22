@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from django.test import override_settings
+from pytest_django import Settings
 
 from tests.conftest import DEPLOY_DIR
 
@@ -39,6 +39,13 @@ PRODUCTION_HSTS = {
 pytestmark = pytest.mark.django_db
 
 
+@pytest.fixture
+def production_hsts(settings: Settings) -> None:
+    """Apply the HSTS settings ``prod.py`` defaults to, for the length of one test."""
+    for name, value in PRODUCTION_HSTS.items():
+        setattr(settings, name, value)
+
+
 def secure_response(client: Client) -> _MonkeyPatchedWSGIResponse:
     """Return the portal shell fetched over TLS, as a browser would fetch it."""
     return client.get("/portal/", secure=True)
@@ -58,33 +65,34 @@ def nginx_media_block() -> str:
 
 
 # ------------------------------------------------------- what Django sends
-@override_settings(**PRODUCTION_HSTS)
 def test_a_secure_request_carries_the_hsts_header(
-    client: Client, site_settings: SiteSettings
+    client: Client, site_settings: SiteSettings, production_hsts: None
 ) -> None:
     """A TLS request to the portal shell carries the configured HSTS header value."""
     assert secure_response(client)[HSTS_HEADER] == "max-age=31536000; includeSubDomains"
 
 
-@override_settings(**PRODUCTION_HSTS)
-def test_the_hsts_header_is_sent_exactly_once(client: Client, site_settings: SiteSettings) -> None:
+def test_the_hsts_header_is_sent_exactly_once(
+    client: Client, site_settings: SiteSettings, production_hsts: None
+) -> None:
     """Two copies is what a proxy adding its own would produce."""
     headers = secure_response(client).serialize_headers()
 
     assert headers.count(HSTS_HEADER.encode()) == 1
 
 
-@override_settings(**PRODUCTION_HSTS)
 def test_the_hsts_header_does_not_consent_to_preloading(
-    client: Client, site_settings: SiteSettings
+    client: Client, site_settings: SiteSettings, production_hsts: None
 ) -> None:
     """Submitting the domain to the browser preload list is very hard to undo."""
     assert "preload" not in secure_response(client)[HSTS_HEADER]
 
 
-@override_settings(SECURE_HSTS_SECONDS=0)
-def test_no_hsts_header_on_a_first_deploy(client: Client, site_settings: SiteSettings) -> None:
+def test_no_hsts_header_on_a_first_deploy(
+    client: Client, site_settings: SiteSettings, settings: Settings
+) -> None:
     """``SECURE_HSTS_SECONDS=0`` has to reach the browser, or it means nothing."""
+    settings.SECURE_HSTS_SECONDS = 0
     assert HSTS_HEADER not in secure_response(client).headers
 
 

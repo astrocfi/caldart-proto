@@ -11,6 +11,7 @@ from django.template.loader import render_to_string
 from django.test import Client
 
 from apps.accounts.models import User
+from apps.cms.context_processors import build_nav
 from apps.cms.models import SiteSettings, StandardPage
 from apps.members.models import Dart, MembershipPlan
 from tests.factories import (
@@ -425,8 +426,6 @@ def test_nav_lists_menu_pages_then_the_portal_actions(
     home = site_settings.site.root_page.specific
     make_standard_page(home, "about", "About Us", show_in_menus=True)
     make_standard_page(home, "hidden", "Hidden", show_in_menus=False)
-
-    from apps.cms.context_processors import build_nav
 
     request = client.get("/").wsgi_request
     entries = build_nav(request)

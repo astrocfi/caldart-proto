@@ -3,17 +3,22 @@
 from __future__ import annotations
 
 from collections import Counter
+from datetime import timedelta
 from io import StringIO
 from unittest.mock import MagicMock
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management import call_command
+from django.utils import timezone
 from faker import Faker
+from wagtail.models import Site
 
 from apps.accounts.roles import ROLE_SLUGS, SYSTEM_ADMIN
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
 from apps.aircraft.models import Aircraft
+from apps.cms.models import SiteSettings
 from apps.members.models import Dart, MemberProfile, Membership, MembershipPlan, MembershipState
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentStatus
@@ -22,12 +27,6 @@ User = get_user_model()
 
 #: Every test here runs `seed_demo`, which seeds the whole demo data set.
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
-
-
-@pytest.fixture(scope="module")
-def _unused() -> None:  # pragma: no cover
-    """Declare a fixture with no import-time side effects; no test requests it."""
-    return
 
 
 def _seed() -> None:
@@ -52,7 +51,6 @@ def test_seed_demo_does_not_reseed_the_shared_faker_generator(
 def test_seed_roles_command() -> None:
     """``seed_roles`` creates exactly one group per role slug."""
     call_command("seed_roles", stdout=StringIO())
-    from django.contrib.auth.models import Group
 
     assert Group.objects.filter(name__in=ROLE_SLUGS).count() == len(ROLE_SLUGS)
 
@@ -102,9 +100,6 @@ def test_seed_demo_covers_every_membership_status() -> None:
 def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
     """The seed includes a member expiring within 30 days and mixed medical currency."""
     _seed()
-    from datetime import timedelta
-
-    from django.utils import timezone
 
     today = timezone.localdate()
     soon = today + timedelta(days=30)
@@ -174,9 +169,6 @@ def test_seed_demo_runs_twice_cleanly() -> None:
 def test_seed_demo_creates_the_wagtail_site_root() -> None:
     """The seed creates the default Wagtail site, rooted at a ``HomePage``."""
     _seed()
-    from wagtail.models import Site
-
-    from apps.cms.models import SiteSettings
 
     site = Site.objects.get(is_default_site=True)
     assert site.root_page.specific_class.__name__ == "HomePage"

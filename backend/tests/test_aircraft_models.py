@@ -92,7 +92,7 @@ def test_insurance_summary_when_nothing_on_file() -> None:
     assert aircraft.insurance_summary == "No insurance on file"
 
 
-def test_str_and_display_name() -> None:
+def test_an_aircraft_is_named_by_its_n_number_make_and_model() -> None:
     """``str()`` and ``display_name`` both include the make and model when set."""
     aircraft = AircraftFactory(n_number="N6AA", make="Piper", model="Archer")
     assert str(aircraft) == "N6AA (Piper Archer)"

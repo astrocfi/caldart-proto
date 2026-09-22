@@ -12,7 +12,7 @@ from rest_framework.test import APIClient
 from wagtail.models import Page
 
 from apps.accounts.models import User
-from apps.cms.models import SiteSettings
+from apps.cms.models import SiteSettings, StandardPage
 from apps.members.models import MembershipPlan
 from tests.factories import (
     expire_membership,
@@ -130,8 +130,6 @@ def test_unpublished_members_pages_are_not_listed(
     api_client: APIClient, site_tree: Page, dart_leader: User
 ) -> None:
     """An unpublished members-only page is left out of the members-pages list."""
-    from apps.cms.models import StandardPage
-
     StandardPage.objects.get(slug="docs-and-links").unpublish()
     api_client.force_login(dart_leader)
 
@@ -143,8 +141,6 @@ def test_config_falls_back_when_there_is_no_site_settings_row(
     api_client: APIClient, db: None
 ) -> None:
     """The endpoint must answer before ``seed`` has run."""
-    from apps.cms.models import SiteSettings
-
     SiteSettings.objects.all().delete()
 
     data = api_client.get(URL).json()

@@ -23,6 +23,7 @@ from rest_framework.test import APIClient
 from apps.accounts.roles import MEMBER, SYSTEM_ADMIN
 from apps.members.models import MemberProfile, MembershipSource, MembershipStatusChoices
 from apps.payments.models import Payment, PaymentStatus
+from tests.conftest import GOOD_PASSWORD, REGISTER_URL
 from tests.factories import PaymentFactory, UserFactory
 
 if TYPE_CHECKING:
@@ -31,17 +32,17 @@ if TYPE_CHECKING:
     from apps.accounts.models import User as UserModel
     from apps.members.models import MembershipPlan
 
+
 pytestmark = pytest.mark.django_db
 
 User = get_user_model()
 
-REGISTER = "/api/v1/auth/register"
+
 MEMBERS = "/api/v1/admin/members"
 USERS = "/api/v1/admin/users"
 PROFILE = "/api/v1/me/profile"
 CHECKOUT = "/api/v1/payments/checkout"
 
-GOOD_PASSWORD = "Sierra-Foothills-2027"  # noqa: S105 - test fixture
 
 #: The keys an attacker would add to an account body to escalate privilege.
 ESCALATION_FIELDS: dict[str, object] = {
@@ -69,7 +70,7 @@ def other_member(db: None) -> UserModel:
 def test_registration_ignores_roles_and_the_django_flags(api_client: APIClient) -> None:
     """A visitor cannot sign themselves up as a system administrator."""
     response = api_client.post(
-        REGISTER,
+        REGISTER_URL,
         {
             "email": "new.member@example.test",
             "password": GOOD_PASSWORD,
@@ -224,7 +225,7 @@ def test_checkout_ignores_the_owner_status_and_amount(
     )
     assert response.status_code == 201
 
-    payment = Payment.objects.get(pk=response.data["payment_id"])
+    payment = Payment.objects.get(pk=response.json()["payment_id"])
     assert payment.user == member
     assert payment.status == PaymentStatus.PENDING
     assert payment.amount_cents == annual_plan.price_cents

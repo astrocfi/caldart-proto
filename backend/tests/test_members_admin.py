@@ -301,7 +301,7 @@ def test_list_is_paginated(account_admin_client: APIClient, population: dict[str
         ("none", {"never@example.test"}),
     ],
 )
-def test_status_filter(
+def test_status_filter_puts_each_member_in_one_bucket(
     account_admin_client: APIClient,
     population: dict[str, User],
     status_value: str,

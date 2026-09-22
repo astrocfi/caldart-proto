@@ -73,6 +73,33 @@ freezegun.configure(extend_ignore_list=["_pytest", "pluggy"])
 #: The endpoint that issues the ``csrftoken`` cookie, used by ``csrf_headers``.
 CSRF_URL = "/api/v1/auth/csrf"
 
+# -- the auth endpoints, named once ----------------------------------------
+REGISTER_URL = "/api/v1/auth/register"
+LOGIN_URL = "/api/v1/auth/login"
+ME_URL = "/api/v1/auth/me"
+CHANGE_URL = "/api/v1/auth/password/change"
+RESET_URL = "/api/v1/auth/password/reset"
+RESET_CONFIRM_URL = "/api/v1/auth/password/reset/confirm"
+
+#: A password that satisfies every configured validator, for a registration or a
+#: reset that is meant to succeed.  It is a throwaway literal, never a real secret.
+GOOD_PASSWORD = "Sierra-Foothills-2027"  # noqa: S105 - test fixture
+
+
+def register_payload(**overrides: str) -> dict[str, str]:
+    """Return a valid ``POST /auth/register`` body, with ``overrides`` replacing fields.
+
+    The default applicant is Nora Bright at ``new.member@example.test``, with
+    ``GOOD_PASSWORD`` as her password.
+    """
+    return {
+        "email": "new.member@example.test",
+        "password": GOOD_PASSWORD,
+        "first_name": "Nora",
+        "last_name": "Bright",
+        **overrides,
+    }
+
 
 # --------------------------------------------------------------------------
 # Vite manifest

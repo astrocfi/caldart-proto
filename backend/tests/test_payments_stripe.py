@@ -209,10 +209,10 @@ def test_checkout_creates_a_payment_intent(
 
     assert response.status_code == 201
     expected_secret = "pi_test_created_secret_abc"  # noqa: S105 - test fixture
-    assert response.data["client"]["client_secret"] == expected_secret
+    assert response.json()["client"]["client_secret"] == expected_secret
 
     created = fake_intents.created
-    payment = Payment.objects.get(pk=response.data["payment_id"])
+    payment = Payment.objects.get(pk=response.json()["payment_id"])
     assert created["amount"] == 14_500 == payment.amount_cents
     assert created["currency"] == "usd"
     assert created["automatic_payment_methods"] == {"enabled": True}
@@ -235,7 +235,7 @@ def test_start_stores_the_intent_as_a_dict(
         CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"}
     )
 
-    payment = Payment.objects.get(pk=response.data["payment_id"])
+    payment = Payment.objects.get(pk=response.json()["payment_id"])
     assert isinstance(payment.raw, dict)
     assert payment.raw["id"] == "pi_test_created"
 
@@ -272,8 +272,8 @@ def test_confirm_activates_the_membership(
     )
 
     assert response.status_code == 200
-    assert response.data["status"] == "succeeded"
-    assert response.data["membership"]["status"] == "current"
+    assert response.json()["status"] == "succeeded"
+    assert response.json()["membership"]["status"] == "current"
     assert fake_intents.retrieved["expand"] == ["latest_charge"]
 
     payment.refresh_from_db()
@@ -350,7 +350,7 @@ def test_confirm_rejects_an_amount_mismatch(
     response = api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_cheap"})
 
     assert response.status_code == 400
-    assert "amount" in str(response.data).lower()
+    assert "amount" in str(response.json()).lower()
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.PENDING
     assert Membership.objects.count() == 0
@@ -400,7 +400,7 @@ def test_confirm_marks_a_canceled_intent_failed(
     response = api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_dead"})
 
     assert response.status_code == 200
-    assert response.data["status"] == "failed"
+    assert response.json()["status"] == "failed"
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.FAILED
     assert Membership.objects.count() == 0

@@ -37,6 +37,8 @@ if TYPE_CHECKING:
     # rather than defining a real subclass.
     from django.test.client import _MonkeyPatchedWSGIResponse as DjangoResponse
 
+pytestmark = pytest.mark.django_db
+
 LIST_URL = "/api/v1/admin/members"
 SUMMARY_URL = "/api/v1/admin/payments/summary"
 WAGTAIL_DELETE_URL = "/admin/users/delete/{pk}/"

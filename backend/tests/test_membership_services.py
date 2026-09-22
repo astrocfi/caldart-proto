@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from datetime import date, timedelta
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from freezegun import freeze_time
 
 from apps.accounts.models import User
@@ -46,12 +47,12 @@ def test_no_memberships_is_none(member: User, frozen: date) -> None:
 
 def test_anonymous_user_is_none() -> None:
     """An anonymous caller reports status ``none``."""
-    from django.contrib.auth.models import AnonymousUser
-
     assert membership_status(AnonymousUser())["status"] == "none"
 
 
-def test_current_term(member: User, annual_plan: MembershipPlan, frozen: date) -> None:
+def test_a_term_covering_today_reports_current(
+    member: User, annual_plan: MembershipPlan, frozen: date
+) -> None:
     """A term covering today reports current, with its expiry and plan name."""
     MembershipFactory(
         user=member,
@@ -112,7 +113,9 @@ def test_term_starting_today_is_current(
     assert membership_status(member)["status"] == "current"
 
 
-def test_lifetime_membership(member: User, life_plan: MembershipPlan, frozen: date) -> None:
+def test_a_lifetime_term_reports_current_with_no_expiry(
+    member: User, life_plan: MembershipPlan, frozen: date
+) -> None:
     """A lifetime term reports current with no expiry date."""
     MembershipFactory(
         user=member, plan=life_plan, starts_on=TODAY - timedelta(days=900), ends_on=None
@@ -306,7 +309,9 @@ def test_expire_lapsed_memberships(member: User, annual_plan: MembershipPlan, fr
     assert live.status == MembershipStatusChoices.ACTIVE
 
 
-def test_membership_covers(member: User, annual_plan: MembershipPlan, frozen: date) -> None:
+def test_covers_is_true_across_the_whole_term(
+    member: User, annual_plan: MembershipPlan, frozen: date
+) -> None:
     """``Membership.covers`` is true exactly across the term's start and end dates."""
     term = MembershipFactory(
         user=member, plan=annual_plan, starts_on=TODAY, ends_on=TODAY + timedelta(days=9)

@@ -45,8 +45,8 @@ def start_mock_checkout(
     response = api_client.post(
         CHECKOUT, {"plan": plan, "contribution_cents": contribution, "provider": "mock"}
     )
-    assert response.status_code == 201, response.data
-    body: dict[str, Any] = response.data
+    assert response.status_code == 201, response.json()
+    body: dict[str, Any] = response.json()
     return body
 
 
@@ -58,7 +58,7 @@ def test_config_lists_the_configured_providers(
 ) -> None:
     """With nothing else configured, only the mock provider and the plans are listed."""
     api_client.force_login(member)
-    body = api_client.get(CONFIG).data
+    body = api_client.get(CONFIG).json()
 
     assert body["providers"] == ["mock"]
     assert body["stripe_publishable_key"] == ""
@@ -77,7 +77,7 @@ def test_config_includes_stripe_and_paypal_when_keys_are_set(
     settings.PAYPAL_CLIENT_SECRET = "paypal-secret"  # noqa: S105 - test fixture
 
     api_client.force_login(member)
-    body = api_client.get(CONFIG).data
+    body = api_client.get(CONFIG).json()
 
     assert body["providers"] == ["stripe", "paypal", "mock"]
     assert body["stripe_publishable_key"] == "pk_test_x"
@@ -90,7 +90,7 @@ def test_config_hides_the_mock_provider_in_production(
     """Disabling PAYMENTS_MOCK_ENABLED drops the mock provider from the list."""
     settings.PAYMENTS_MOCK_ENABLED = False
     api_client.force_login(member)
-    assert api_client.get(CONFIG).data["providers"] == []
+    assert api_client.get(CONFIG).json()["providers"] == []
 
 
 def test_config_offers_the_contribution_tiers(
@@ -98,7 +98,7 @@ def test_config_offers_the_contribution_tiers(
 ) -> None:
     """The config lists the fixed contribution tiers with their labels."""
     api_client.force_login(member)
-    tiers = api_client.get(CONFIG).data["contribution_tiers"]
+    tiers = api_client.get(CONFIG).json()["contribution_tiers"]
     assert [tier["cents"] for tier in tiers] == [
         0,
         2_000,
@@ -118,7 +118,7 @@ def test_config_omits_inactive_plans(
     life_plan.is_active = False
     life_plan.save(update_fields=["is_active"])
     api_client.force_login(member)
-    assert [p["slug"] for p in api_client.get(CONFIG).data["plans"]] == ["annual"]
+    assert [p["slug"] for p in api_client.get(CONFIG).json()["plans"]] == ["annual"]
 
 
 def test_config_requires_a_session(api_client: APIClient, annual_plan: MembershipPlan) -> None:
@@ -156,7 +156,7 @@ def test_checkout_ignores_an_amount_sent_by_the_client(
         {"plan": "annual", "contribution_cents": 0, "provider": "mock", "amount_cents": 1},
     )
     assert response.status_code == 201
-    assert Payment.objects.get(pk=response.data["payment_id"]).amount_cents == 4_500
+    assert Payment.objects.get(pk=response.json()["payment_id"]).amount_cents == 4_500
 
 
 def test_checkout_accepts_a_donation_without_a_plan(
@@ -168,7 +168,7 @@ def test_checkout_accepts_a_donation_without_a_plan(
         CHECKOUT, {"plan": None, "contribution_cents": 5_000, "provider": "mock"}
     )
     assert response.status_code == 201
-    payment = Payment.objects.get(pk=response.data["payment_id"])
+    payment = Payment.objects.get(pk=response.json()["payment_id"])
     assert payment.plan is None
     assert payment.amount_cents == 5_000
 
@@ -182,7 +182,7 @@ def test_checkout_rejects_an_unknown_plan(
         CHECKOUT, {"plan": "platinum", "contribution_cents": 0, "provider": "mock"}
     )
     assert response.status_code == 400
-    assert "plan" in response.data
+    assert "plan" in response.json()
 
 
 def test_checkout_rejects_a_negative_contribution(
@@ -205,7 +205,7 @@ def test_checkout_rejects_an_unconfigured_provider(
         CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "stripe"}
     )
     assert response.status_code == 400
-    assert "provider" in response.data
+    assert "provider" in response.json()
 
 
 def test_checkout_rejects_an_unknown_provider(
@@ -257,9 +257,9 @@ def test_mock_complete_activates_the_membership(
         MOCK_COMPLETE, {"payment_id": checkout["payment_id"], "outcome": "succeed"}
     )
     assert response.status_code == 200
-    assert response.data["status"] == "succeeded"
-    assert response.data["membership"]["status"] == "current"
-    assert response.data["membership"]["plan"] == "Annual"
+    assert response.json()["status"] == "succeeded"
+    assert response.json()["membership"]["status"] == "current"
+    assert response.json()["membership"]["plan"] == "Annual"
 
     payment = Payment.objects.get(pk=checkout["payment_id"])
     assert payment.wallet == PaymentWallet.MOCK
@@ -278,8 +278,8 @@ def test_mock_complete_failure_grants_nothing(
         MOCK_COMPLETE, {"payment_id": checkout["payment_id"], "outcome": "fail"}
     )
     assert response.status_code == 200
-    assert response.data["status"] == "failed"
-    assert response.data["membership"]["status"] == "none"
+    assert response.json()["status"] == "failed"
+    assert response.json()["membership"]["status"] == "none"
     assert Membership.objects.count() == 0
 
 
@@ -366,7 +366,7 @@ def test_renewing_starts_the_day_after_the_current_expiry(
     assert terms[1].starts_on == terms[0].ends_on + timedelta(days=1)
     assert first_expiry is not None
     assert (
-        response.data["membership"]["expires_on"]
+        response.json()["membership"]["expires_on"]
         == (first_expiry + timedelta(days=365)).isoformat()
     )
 
@@ -380,8 +380,8 @@ def test_a_lifetime_plan_never_expires(
     response = api_client.post(
         MOCK_COMPLETE, {"payment_id": checkout["payment_id"], "outcome": "succeed"}
     )
-    assert response.data["membership"]["is_lifetime"] is True
-    assert response.data["membership"]["expires_on"] is None
+    assert response.json()["membership"]["is_lifetime"] is True
+    assert response.json()["membership"]["expires_on"] is None
 
 
 # --------------------------------------------------------------------------
@@ -396,8 +396,8 @@ def test_owner_may_read_their_payment(
 
     response = api_client.get(f"/api/v1/payments/{checkout['payment_id']}")
     assert response.status_code == 200
-    assert response.data["status"] == "pending"
-    assert response.data["membership"]["status"] == "none"
+    assert response.json()["status"] == "pending"
+    assert response.json()["membership"]["status"] == "none"
 
 
 def test_account_admin_may_read_any_payment(

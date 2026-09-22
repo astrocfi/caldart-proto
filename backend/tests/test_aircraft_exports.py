@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 from rest_framework.request import Request
 from rest_framework.test import APIClient, APIRequestFactory
@@ -69,15 +71,16 @@ def test_export_role_matrix(
 # CSV
 # --------------------------------------------------------------------------
 def test_csv_headers_and_filename(
-    api_client: APIClient, account_admin: User, register: RegisterDict
+    api_client: APIClient, account_admin: User, register: RegisterDict, today: date
 ) -> None:
-    """The CSV export sets a ``text/csv`` type and an attachment filename."""
+    """The CSV export sets a ``text/csv`` type and a dated attachment filename."""
     api_client.force_login(account_admin)
     response = api_client.get(CSV_URL)
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/csv")
-    assert "attachment; filename=" in response["Content-Disposition"]
-    assert "caldart-aircraft-" in response["Content-Disposition"]
+    assert response["Content-Disposition"] == (
+        f'attachment; filename="caldart-aircraft-{today.isoformat()}.csv"'
+    )
 
 
 def test_csv_columns_are_in_the_documented_order(
@@ -176,14 +179,16 @@ def test_csv_is_not_paginated(api_client: APIClient, account_admin: User) -> Non
 # PDF
 # --------------------------------------------------------------------------
 def test_pdf_is_a_valid_document(
-    api_client: APIClient, account_admin: User, register: RegisterDict
+    api_client: APIClient, account_admin: User, register: RegisterDict, today: date
 ) -> None:
-    """The PDF export is a one-page, well-formed PDF with the standard filename prefix."""
+    """The PDF export is a one-page, well-formed PDF with a dated attachment filename."""
     api_client.force_login(account_admin)
     response = api_client.get(PDF_URL)
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
-    assert "caldart-aircraft-" in response["Content-Disposition"]
+    assert response["Content-Disposition"] == (
+        f'attachment; filename="caldart-aircraft-{today.isoformat()}.pdf"'
+    )
     body = response.content
     assert body.startswith(b"%PDF-")
     assert body.rstrip().endswith(b"%%EOF")

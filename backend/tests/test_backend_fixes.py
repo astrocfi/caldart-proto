@@ -28,9 +28,9 @@ from apps.payments.api.serializers import MAX_CONTRIBUTION_CENTS
 from apps.payments.providers import paypal
 from apps.sysadmin import services
 from caldart import reports
+from tests.conftest import LOGIN_URL
 
 CHECKOUT = "/api/v1/payments/checkout"
-LOGIN = "/api/v1/auth/login"
 
 
 # --------------------------------------------------------------------------
@@ -81,7 +81,7 @@ def test_login_with_a_wrong_password_on_an_active_account(
     api_client: APIClient, member: User
 ) -> None:
     """A wrong password on an active account is the generic 400."""
-    response = api_client.post(LOGIN, {"email": member.email, "password": "wrong-password"})
+    response = api_client.post(LOGIN_URL, {"email": member.email, "password": "wrong-password"})
 
     assert response.status_code == 400
     assert response.json() == {"detail": WRONG_CREDENTIALS_MESSAGE}
@@ -95,7 +95,7 @@ def test_login_with_a_wrong_password_hides_a_deactivated_account(
     member.is_active = False
     member.save(update_fields=["is_active"])
 
-    response = api_client.post(LOGIN, {"email": member.email, "password": "wrong-password"})
+    response = api_client.post(LOGIN_URL, {"email": member.email, "password": "wrong-password"})
 
     assert response.status_code == 400
     assert response.json() == {"detail": WRONG_CREDENTIALS_MESSAGE}
@@ -109,7 +109,7 @@ def test_login_with_the_right_password_names_the_deactivation(
     member.is_active = False
     member.save(update_fields=["is_active"])
 
-    response = api_client.post(LOGIN, {"email": member.email, "password": password})
+    response = api_client.post(LOGIN_URL, {"email": member.email, "password": password})
 
     assert response.status_code == 403
     assert response.json() == {"detail": DEACTIVATED_MESSAGE}

@@ -99,7 +99,7 @@ def test_list_is_paginated_and_newest_first(
 ) -> None:
     """The payments list paginates and sorts newest first."""
     api_client.force_login(account_admin)
-    body = api_client.get(LIST).data
+    body = api_client.get(LIST).json()
 
     assert body["count"] == 7
     periods = [row["created_at"][:7] for row in body["results"]]
@@ -113,7 +113,7 @@ def test_list_filters_by_date_range(
 ) -> None:
     """The list filters to payments created within the given date range."""
     api_client.force_login(account_admin)
-    body = api_client.get(LIST, {"from": "2026-01-01", "to": "2026-01-31"}).data
+    body = api_client.get(LIST, {"from": "2026-01-01", "to": "2026-01-31"}).json()
     assert body["count"] == 2
 
 
@@ -122,9 +122,9 @@ def test_list_filters_by_provider_and_status(
 ) -> None:
     """The list filters independently by provider and by status."""
     api_client.force_login(account_admin)
-    assert api_client.get(LIST, {"provider": "paypal"}).data["count"] == 2
-    assert api_client.get(LIST, {"status": "failed"}).data["count"] == 1
-    assert api_client.get(LIST, {"provider": "stripe", "status": "succeeded"}).data["count"] == 3
+    assert api_client.get(LIST, {"provider": "paypal"}).json()["count"] == 2
+    assert api_client.get(LIST, {"status": "failed"}).json()["count"] == 1
+    assert api_client.get(LIST, {"provider": "stripe", "status": "succeeded"}).json()["count"] == 3
 
 
 def test_list_searches_name_email_and_reference(
@@ -132,9 +132,9 @@ def test_list_searches_name_email_and_reference(
 ) -> None:
     """The search parameter matches on name, email, or provider reference."""
     api_client.force_login(account_admin)
-    assert api_client.get(LIST, {"search": "wilma"}).data["count"] == 3
-    assert api_client.get(LIST, {"search": "member@example.test"}).data["count"] == 4
-    assert api_client.get(LIST, {"search": "dud"}).data["count"] == 1
+    assert api_client.get(LIST, {"search": "wilma"}).json()["count"] == 3
+    assert api_client.get(LIST, {"search": "member@example.test"}).json()["count"] == 4
+    assert api_client.get(LIST, {"search": "dud"}).json()["count"] == 1
 
 
 def test_list_orders_by_amount(
@@ -144,7 +144,7 @@ def test_list_orders_by_amount(
     api_client.force_login(account_admin)
     amounts = [
         row["amount_cents"]
-        for row in api_client.get(LIST, {"ordering": "-amount_cents"}).data["results"]
+        for row in api_client.get(LIST, {"ordering": "-amount_cents"}).json()["results"]
     ]
     assert amounts == sorted(amounts, reverse=True)
 
@@ -176,7 +176,7 @@ def test_list_rejects_an_unknown_provider(
 def test_list_page_size(api_client: APIClient, account_admin: User, history: list[Payment]) -> None:
     """The page_size parameter controls how many results come back per page."""
     api_client.force_login(account_admin)
-    body = api_client.get(LIST, {"page_size": 2}).data
+    body = api_client.get(LIST, {"page_size": 2}).json()
     assert len(body["results"]) == 2
     assert body["next"] is not None
 
@@ -189,7 +189,7 @@ def test_summary_by_month(
 ) -> None:
     """The month summary groups payments by month, with correct totals per provider."""
     api_client.force_login(account_admin)
-    rows = api_client.get(SUMMARY, {"group": "month"}).data
+    rows = api_client.get(SUMMARY, {"group": "month"}).json()
 
     assert [row["period"] for row in rows] == ["2025-11", "2026-01", "2026-02"]
 
@@ -216,7 +216,7 @@ def test_summary_by_year(
 ) -> None:
     """The year summary groups payments by year, with correct totals per provider."""
     api_client.force_login(account_admin)
-    rows = api_client.get(SUMMARY, {"group": "year"}).data
+    rows = api_client.get(SUMMARY, {"group": "year"}).json()
 
     assert [row["period"] for row in rows] == ["2025", "2026"]
     assert rows[0]["total_cents"] == 9_000
@@ -231,7 +231,7 @@ def test_summary_defaults_to_month(
 ) -> None:
     """With no group parameter the summary groups by month."""
     api_client.force_login(account_admin)
-    assert api_client.get(SUMMARY).data[0]["period"] == "2025-11"
+    assert api_client.get(SUMMARY).json()[0]["period"] == "2025-11"
 
 
 def test_summary_honors_the_date_filter(
@@ -239,7 +239,7 @@ def test_summary_honors_the_date_filter(
 ) -> None:
     """The summary applies the same date filter as the list."""
     api_client.force_login(account_admin)
-    rows = api_client.get(SUMMARY, {"from": "2026-01-01"}).data
+    rows = api_client.get(SUMMARY, {"from": "2026-01-01"}).json()
     assert [row["period"] for row in rows] == ["2026-01", "2026-02"]
 
 
@@ -248,7 +248,7 @@ def test_summary_honors_the_provider_filter(
 ) -> None:
     """The summary applies the provider filter to every grouped row."""
     api_client.force_login(account_admin)
-    rows = api_client.get(SUMMARY, {"provider": "paypal"}).data
+    rows = api_client.get(SUMMARY, {"provider": "paypal"}).json()
     assert [row["period"] for row in rows] == ["2025-11", "2026-01"]
     assert all(set(row["by_provider"]) == {"paypal"} for row in rows)
 
@@ -264,7 +264,7 @@ def test_summary_rejects_an_unknown_grouping(
 def test_summary_of_nothing_is_an_empty_list(api_client: APIClient, account_admin: User) -> None:
     """With no payments at all the summary is an empty list."""
     api_client.force_login(account_admin)
-    assert api_client.get(SUMMARY).data == []
+    assert api_client.get(SUMMARY).json() == []
 
 
 # --------------------------------------------------------------------------
@@ -279,8 +279,7 @@ def test_export_returns_a_csv_download(
 
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/csv")
-    assert "attachment" in response["Content-Disposition"]
-    assert "caldart-payments.csv" in response["Content-Disposition"]
+    assert response["Content-Disposition"] == 'attachment; filename="caldart-payments.csv"'
 
     rows = read_csv(response)
     assert rows[0][:4] == ["paid_on", "name", "email", "plan"]

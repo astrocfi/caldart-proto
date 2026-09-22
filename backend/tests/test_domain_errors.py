@@ -16,10 +16,10 @@ from caldart.exceptions import (
     DomainValidationError,
     caldart_exception_handler,
 )
+from tests.conftest import ME_URL
 
 pytestmark = pytest.mark.django_db
 
-ME = "/api/v1/auth/me"
 
 UNKNOWN_PLAN = "Unknown membership plan 'platinum'."
 SELF_DELETE = "You cannot delete your own account."
@@ -52,6 +52,7 @@ def test_a_validation_error_body_lists_the_message_under_the_field() -> None:
     """The 400 body maps the error's field name to a list holding its message."""
     response = caldart_exception_handler(DomainValidationError("plan", UNKNOWN_PLAN), {})
     assert response is not None
+    # The handler returns an unrendered DRF ``Response``, so read ``data`` directly.
     assert response.data == {"plan": [UNKNOWN_PLAN]}
 
 
@@ -76,4 +77,4 @@ def test_an_exception_the_handler_does_not_know_is_left_to_django() -> None:
 
 def test_an_unauthenticated_request_is_still_401(api_client: APIClient) -> None:
     """A request with no session cookie gets a 401 from the ``me`` endpoint."""
-    assert api_client.get(ME).status_code == 401
+    assert api_client.get(ME_URL).status_code == 401

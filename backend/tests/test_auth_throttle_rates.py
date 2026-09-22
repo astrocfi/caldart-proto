@@ -13,15 +13,15 @@ from types import ModuleType
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
-from django.test import override_settings
+from pytest_django import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.throttling import LOGIN_SCOPE, LoginThrottle
+from tests.conftest import LOGIN_URL
 
 pytestmark = pytest.mark.django_db
 
-LOGIN = "/api/v1/auth/login"
 
 BASE_SETTINGS = Path(__file__).resolve().parents[1] / "caldart" / "settings" / "base.py"
 
@@ -113,17 +113,19 @@ def test_a_malformed_rate_stops_start_up(
     assert repr(rate) in str(excinfo.value)
 
 
-@override_settings(AUTH_THROTTLE_RATES={LOGIN_SCOPE: ""})
-def test_an_empty_rate_makes_the_throttle_inert() -> None:
+def test_an_empty_rate_makes_the_throttle_inert(settings: Settings) -> None:
     """An empty configured rate makes ``get_rate`` return ``None``."""
+    settings.AUTH_THROTTLE_RATES = {LOGIN_SCOPE: ""}
     assert LoginThrottle().get_rate() is None
 
 
-@override_settings(AUTH_THROTTLE_RATES={LOGIN_SCOPE: ""})
-def test_an_empty_rate_leaves_login_unlimited(api_client: APIClient, member: User) -> None:
-    """An empty override is off, not a 500 from an unparseable rate."""
+def test_an_empty_rate_leaves_login_unlimited(
+    api_client: APIClient, member: User, settings: Settings
+) -> None:
+    """An empty configured rate is off, not a 500 from an unparseable rate."""
+    settings.AUTH_THROTTLE_RATES = {LOGIN_SCOPE: ""}
     statuses = {
-        api_client.post(LOGIN, {"email": member.email, "password": "wrong"}).status_code
+        api_client.post(LOGIN_URL, {"email": member.email, "password": "wrong"}).status_code
         for _ in range(25)
     }
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from django.contrib.auth.models import Group
 from django.core import mail
 from rest_framework.test import APIClient
 
@@ -365,8 +366,6 @@ def test_patch_leaves_non_role_groups_alone(
     api_client: APIClient, user_admin: User, member: User
 ) -> None:
     """A ``roles`` write leaves a non-role Django group on the account untouched."""
-    from django.contrib.auth.models import Group
-
     editors = Group.objects.create(name="wagtail-editors")
     member.groups.add(editors)
     api_client.force_login(user_admin)
