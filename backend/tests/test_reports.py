@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import cast
 
 import pytest
@@ -19,6 +19,12 @@ ROWS: list[list[str | None]] = [
     ["Owen Delgado", "owen@example.org", "N9021K", None],
     ['Quote "Q" & Co', "q@example.org", "N1", "2026-12-01"],
 ]
+
+#: The subtitle line under the title, with the middle dot the summary joins on.
+SUBTITLE = "status: current \u00b7 dart: Palo Alto"
+
+#: ``pdf_text(body)`` -> the strings each page of a rendered PDF draws.
+PdfText = Callable[[bytes], list[list[str]]]
 
 
 def test_csv_response_is_streaming_and_has_a_download_header() -> None:
@@ -70,7 +76,7 @@ def test_pdf_table_response_is_a_valid_pdf() -> None:
     response = pdf_table_response(
         "members.pdf",
         title="Membership report",
-        subtitle="status: current · dart: Palo Alto",
+        subtitle=SUBTITLE,
         header=HEADER,
         rows=ROWS,
     )
@@ -82,9 +88,41 @@ def test_pdf_table_response_is_a_valid_pdf() -> None:
     assert _page_count(body) == 1
 
 
-@pytest.mark.parametrize("landscape", [True, False])
-def test_pdf_paginates_100_rows_with_a_repeated_header(landscape: bool) -> None:
-    """A 100-row table spans two to six pages, however it is oriented."""
+def test_pdf_draws_the_title_the_subtitle_and_every_cell(pdf_text: PdfText) -> None:
+    """The page shows the title, the subtitle, the header and every non-empty cell."""
+    response = pdf_table_response(
+        "members.pdf",
+        title="Membership report",
+        subtitle=SUBTITLE,
+        header=HEADER,
+        rows=ROWS,
+    )
+    page = pdf_text(response.content)[0]
+    assert page[:2] == ["Membership report", SUBTITLE]
+    assert page[2:6] == HEADER
+    # The ``None`` cell of the second row draws nothing at all.
+    assert page[6:17] == [
+        "Marta Reyes",
+        "marta@example.org",
+        "N172SP",
+        "2027-01-31",
+        "Owen Delgado",
+        "owen@example.org",
+        "N9021K",
+        'Quote "Q" & Co',
+        "q@example.org",
+        "N1",
+        "2026-12-01",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("landscape", "expected_pages"), [(True, 4), (False, 3)], ids=["landscape", "portrait"]
+)
+def test_pdf_paginates_100_rows_with_a_repeated_header(
+    landscape: bool, expected_pages: int, pdf_text: PdfText
+) -> None:
+    """A 100-row table spans several pages, each continuation repeating the header."""
     rows = [[f"Member {i}", f"m{i}@example.org", f"N{i:04d}A", "2027-01-31"] for i in range(100)]
     response = pdf_table_response(
         "members.pdf",
@@ -93,30 +131,34 @@ def test_pdf_paginates_100_rows_with_a_repeated_header(landscape: bool) -> None:
         rows=rows,
         landscape=landscape,
     )
-    body = response.content
-    pages = _page_count(body)
-    # 100 rows never fit on one page and never need more than half a dozen.
-    assert 2 <= pages <= 6
-    # Portrait is taller, so it fits at least as many pages' worth of rows.
-    assert body.startswith(b"%PDF-")
+    pages = pdf_text(response.content)
+    assert len(pages) == expected_pages
+    # The title opens the first page; every later page opens with the header.
+    assert pages[0][:5] == ["Membership report", *HEADER]
+    assert [page[:4] for page in pages[1:]] == [HEADER] * (expected_pages - 1)
+    assert "Member 0" in pages[0]
+    assert "Member 99" in pages[-1]
 
 
-def test_pdf_handles_an_empty_result_set() -> None:
-    """A table with no rows still renders as a valid single-page PDF."""
+def test_pdf_handles_an_empty_result_set(pdf_text: PdfText) -> None:
+    """A table with no rows renders one page carrying the title and header alone."""
     response = pdf_table_response("members.pdf", title="Membership report", header=HEADER, rows=[])
-    assert response.content.startswith(b"%PDF-")
-    assert _page_count(response.content) == 1
+    pages = pdf_text(response.content)
+    assert len(pages) == 1
+    assert pages[0][:5] == ["Membership report", *HEADER]
 
 
-def test_pdf_escapes_markup_in_cells() -> None:
-    """A cell containing HTML-like markup renders without breaking the PDF."""
+def test_pdf_escapes_markup_in_cells(pdf_text: PdfText) -> None:
+    """A cell containing HTML-like markup is drawn as the literal text it holds."""
     response = pdf_table_response(
         "x.pdf",
         title="Report",
         header=["value"],
         rows=[["<b>not bold</b> & co"]],
     )
-    assert response.content.startswith(b"%PDF-")
+    page = pdf_text(response.content)[0]
+    # The paragraph splits at each angle bracket, so read the cell as one string.
+    assert "".join(page[2:-2]) == "<b>not bold</b> & co"
 
 
 def test_filter_summary() -> None:

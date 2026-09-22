@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from datetime import timedelta
 from typing import cast
 
@@ -41,6 +41,16 @@ EXPECTED_HEADER = [
     "insurance_current",
     "pilots",
 ]
+
+#: ``pdf_text(body)`` -> the strings each page of a rendered PDF draws.
+PdfText = Callable[[bytes], list[list[str]]]
+
+#: Index of the first data row on a rendered page: the title, the subtitle and
+#: the twelve column headings come first, two of which wrap onto a second line.
+PDF_FIRST_ROW = 16
+
+#: The footer draws two more strings after the last row of the page.
+PDF_FOOTER = -2
 
 
 @pytest.fixture
@@ -243,15 +253,26 @@ def test_pdf_is_a_valid_document(
 
 
 def test_pdf_is_filtered_like_the_list(
-    api_client: APIClient, account_admin: User, register: RegisterDict
+    api_client: APIClient, account_admin: User, register: RegisterDict, pdf_text: PdfText
 ) -> None:
-    """A filtered PDF export is smaller than the unfiltered one, and still valid."""
+    """A filtered PDF draws exactly the rows the same filter leaves in the list."""
     api_client.force_login(account_admin)
-    everything = api_client.get(PDF_URL).content
-    filtered = api_client.get(PDF_URL, {"insurance": "expired"}).content
-    assert filtered.startswith(b"%PDF-")
-    # Three rows compress to a bigger document than one.
-    assert len(filtered) < len(everything)
+    page = pdf_text(api_client.get(PDF_URL, {"insurance": "expired"}).content)[0]
+    expires_on = register["expired"].insurance_expiration
+    assert expires_on is not None
+    assert page[PDF_FIRST_ROW:PDF_FOOTER] == [
+        "N33MM",
+        "Mooney",
+        "M20J",
+        "Owen Delgado",
+        "Individual",
+        "Avemco",
+        "$1,000,000",
+        "$100,000",
+        "$200,000",
+        expires_on.isoformat(),
+        "no",
+    ]
 
 
 def test_pdf_paginates_a_large_register(api_client: APIClient, account_admin: User) -> None:
@@ -264,25 +285,33 @@ def test_pdf_paginates_a_large_register(api_client: APIClient, account_admin: Us
 
 
 def test_pdf_survives_an_empty_result_set(
-    api_client: APIClient, account_admin: User, register: RegisterDict
+    api_client: APIClient, account_admin: User, register: RegisterDict, pdf_text: PdfText
 ) -> None:
-    """A filter that matches nothing still returns a valid, empty-of-rows PDF."""
+    """A filter that matches nothing returns a PDF with a header and no rows."""
     api_client.force_login(account_admin)
     response = api_client.get(PDF_URL, {"search": "no-such-aircraft"})
     assert response.status_code == 200
-    assert response.content.startswith(b"%PDF-")
+    page = pdf_text(response.content)[0]
+    assert page[:2] == ["CalDART aircraft register", "search: no-such-aircraft"]
+    assert page[PDF_FIRST_ROW:PDF_FOOTER] == []
 
 
 def test_pdf_states_the_filters_it_was_run_with(
-    api_client: APIClient, account_admin: User, register: RegisterDict
+    api_client: APIClient, account_admin: User, register: RegisterDict, pdf_text: PdfText
 ) -> None:
-    """A filtered PDF export is still a valid single-page document."""
+    """The subtitle under the title names the filter the export was run with."""
     api_client.force_login(account_admin)
-    body = api_client.get(PDF_URL, {"insurance": "expired"}).content
-    # reportlab writes the subtitle into the content stream, compressed; the
-    # PDF is valid and the row count matches the filter, which is what counts.
-    assert body.startswith(b"%PDF-")
-    assert page_count(body) == 1
+    page = pdf_text(api_client.get(PDF_URL, {"insurance": "expired"}).content)[0]
+    assert page[1] == "insurance: expired"
+
+
+def test_pdf_says_when_it_was_run_with_no_filters(
+    api_client: APIClient, account_admin: User, register: RegisterDict, pdf_text: PdfText
+) -> None:
+    """An unfiltered export says so in the same subtitle line."""
+    api_client.force_login(account_admin)
+    page = pdf_text(api_client.get(PDF_URL).content)[0]
+    assert page[1] == "No filters applied"
 
 
 def test_money_is_formatted_for_people_in_the_pdf_rows(register: RegisterDict) -> None:

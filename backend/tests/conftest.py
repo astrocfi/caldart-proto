@@ -6,13 +6,17 @@ duplicating them.
 
 from __future__ import annotations
 
+import base64
 import json
-from collections.abc import Callable
+import re
+import zlib
+from collections.abc import Callable, Iterator
 from datetime import date, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+import respx
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
@@ -131,6 +135,35 @@ def _roles(db: None) -> None:
     from apps.accounts.management.commands.seed_roles import seed_roles
 
     seed_roles()
+
+
+# --------------------------------------------------------------------------
+# Live HTTP guard
+#
+# The payment providers are the only code that talks to a third party, so the
+# payment test modules are the only ones that can leave the machine.  Arming a
+# respx router around each of their tests turns a call no route matches into an
+# ``AllMockedAssertionError`` instead of a request: a test that forgets a mock
+# fails loudly rather than depending on the network.
+# --------------------------------------------------------------------------
+#: Filename prefix of the test modules the guard covers.
+PAYMENT_MODULE_PREFIX = "test_payments"
+
+
+@pytest.fixture(autouse=True)
+def _no_live_http(request: pytest.FixtureRequest) -> Iterator[None]:
+    """Refuse any unmocked ``httpx`` call made by a payment test module.
+
+    Tests outside those modules run untouched.  The router asserts nothing about
+    which routes were used, so a test may register more routes than it exercises,
+    and it nests inside the ``respx.mock`` router an individual test starts, so
+    routes that test registers still answer.
+    """
+    if not request.path.name.startswith(PAYMENT_MODULE_PREFIX):
+        yield
+        return
+    with respx.mock(assert_all_mocked=True, assert_all_called=False):
+        yield
 
 
 @pytest.fixture
@@ -327,3 +360,100 @@ def today() -> date:
 def days() -> Callable[[int], timedelta]:
     """``days(7)`` -> ``timedelta(days=7)``, to keep date math readable."""
     return lambda n: timedelta(days=n)
+
+
+# --------------------------------------------------------------------------
+# PDF text
+#
+# The reports are drawn by reportlab, which writes one compressed content
+# stream per page.  Reading the strings back out of those streams costs nothing
+# but ``zlib`` and ``base64``, and it lets a PDF test assert on the words the
+# document actually shows instead of on its length.
+# --------------------------------------------------------------------------
+#: A content stream together with the ``/Filter`` entry that describes it.
+_PDF_STREAM_RE = re.compile(
+    rb"/Filter\s*(?P<filters>/\w+|\[[^\]]*\]).{0,400}?stream\r?\n(?P<data>.*?)\s*endstream",
+    re.DOTALL,
+)
+
+#: One literal string shown by ``Tj``, or a whole ``TJ`` array of them.
+_PDF_SHOW_RE = re.compile(
+    rb"(?P<single>\((?:\\.|[^\\()])*\))\s*Tj"
+    rb"|\[(?P<array>(?:\((?:\\.|[^\\()])*\)|[^\[\]])*)\]\s*TJ",
+    re.DOTALL,
+)
+
+#: One literal string anywhere, used to pull the pieces out of a ``TJ`` array.
+_PDF_STRING_RE = re.compile(rb"\((?P<body>(?:\\.|[^\\()])*)\)", re.DOTALL)
+
+#: The escapes a PDF literal string may carry, besides ``\\ooo`` octal.
+_PDF_ESCAPES = {
+    b"n": b"\n",
+    b"r": b"\r",
+    b"t": b"\t",
+    b"b": b"\b",
+    b"f": b"\f",
+    b"(": b"(",
+    b")": b")",
+    b"\\": b"\\",
+}
+
+_PDF_ESCAPE_RE = re.compile(rb"\\(?P<octal>[0-7]{1,3})|\\(?P<char>.)", re.DOTALL)
+
+
+def _unescape_pdf_string(body: bytes) -> str:
+    r"""Decode the body of one PDF literal string into text.
+
+    Resolves the ``\n``-style escapes and ``\ooo`` octal escapes, then reads the
+    result as Latin-1, which is what the fonts' WinAnsi encoding uses for every
+    character the reports draw -- ``\267``, for instance, is the middle dot that
+    separates the parts of a subtitle.
+    """
+
+    def replace(match: re.Match[bytes]) -> bytes:
+        octal = match.group("octal")
+        if octal is not None:
+            return bytes([int(octal, 8)])
+        char = match.group("char")
+        return _PDF_ESCAPES.get(char, char)
+
+    return _PDF_ESCAPE_RE.sub(replace, body).decode("latin-1")
+
+
+def pdf_page_text(pdf: bytes) -> list[list[str]]:
+    """Return every string a rendered PDF draws, one list per page.
+
+    ``pdf`` is the document's raw bytes.  Each ``FlateDecode`` content stream is
+    inflated (through an ``ASCII85Decode`` prefilter when one is declared) and
+    scanned for the strings its ``Tj`` and ``TJ`` text operators show, in the order
+    they are drawn; a ``TJ`` array joins into the single string it renders.
+    reportlab writes one content stream per page in page order, so the outer list
+    is the document's pages: ``pdf_page_text(body)[0]`` is the first page, and
+    ``len(pdf_page_text(body))`` its page count.  Streams carrying any other filter
+    are skipped, since they hold no text.
+    """
+    pages: list[list[str]] = []
+    for stream in _PDF_STREAM_RE.finditer(pdf):
+        filters = stream.group("filters")
+        if b"FlateDecode" not in filters:
+            continue
+        data = stream.group("data")
+        if b"ASCII85Decode" in filters:
+            data = base64.a85decode(data, adobe=True)
+        content = zlib.decompress(data)
+        strings: list[str] = []
+        for shown in _PDF_SHOW_RE.finditer(content):
+            single = shown.group("single")
+            if single is not None:
+                strings.append(_unescape_pdf_string(single[1:-1]))
+                continue
+            pieces = _PDF_STRING_RE.finditer(shown.group("array"))
+            strings.append("".join(_unescape_pdf_string(p.group("body")) for p in pieces))
+        pages.append(strings)
+    return pages
+
+
+@pytest.fixture
+def pdf_text() -> Callable[[bytes], list[list[str]]]:
+    """``pdf_text(body)`` -> the strings a rendered PDF draws, one list per page."""
+    return pdf_page_text
