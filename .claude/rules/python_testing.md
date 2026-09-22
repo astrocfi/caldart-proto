@@ -54,9 +54,10 @@ pytest is configured under `[tool.pytest.ini_options]`; do not add separate `pyt
   code. Add a narrowly-scoped `ignore::` / `default::` entry after `"error"` ONLY for a warning
   from third-party code you cannot fix, with a comment explaining why.
 - Separate slow or environment-dependent tests (those needing network, external data, or
-  special services) behind a marker and exclude them from the default run via `addopts` (e.g.
-  `-m "not <marker>"`), so the default suite stays fast and hermetic and the heavy tier is
-  opt-in.
+  special services) behind a marker, such as the registered `slow` and `needs_frontend_build`
+  markers. The default run still runs every test; pass `-m "not <marker>"` (e.g.
+  `-m "not slow"`, documented in `testing.rst` as the quick local loop) to skip a marked group
+  deliberately.
 
 ## 5. Fixtures and Isolation
 

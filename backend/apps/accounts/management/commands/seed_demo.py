@@ -56,7 +56,12 @@ class Command(BaseCommand):
         """
         seed = options["seed"]
         faker = Faker("en_US")
-        Faker.seed(seed)
+        # `seed_instance` reseeds only this generator's own random source.
+        # `Faker.seed()` is a classmethod that reseeds the shared generator every
+        # `Faker()` instance draws from by default, factory_boy's included, which
+        # would make every later test's factory-generated data depend on whether
+        # this command ran first.
+        faker.seed_instance(seed)
 
         ctx: dict[str, Any] = {
             "rng": random.Random(seed),  # noqa: S311 - demo data, not security-sensitive

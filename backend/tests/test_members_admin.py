@@ -416,8 +416,20 @@ def test_filters_combine(admin_client: APIClient, population: dict[str, User], d
     assert emails(response) == {"current@example.test"}
 
 
+@pytest.fixture
+def ordering_population(population: dict[str, User], account_admin: User) -> dict[str, User]:
+    """``population`` with the signed-in admin given a fixed name too.
+
+    ``account_admin`` otherwise carries a Faker-generated name, which would make
+    an ordering assertion depend on whichever name Faker drew for this run.
+    """
+    account_admin.first_name, account_admin.last_name = "Zoe", "Yeager"
+    account_admin.save(update_fields=["first_name", "last_name"])
+    return population
+
+
 def test_ordering_by_name_is_the_default(
-    admin_client: APIClient, population: dict[str, User]
+    admin_client: APIClient, ordering_population: dict[str, User]
 ) -> None:
     """With no ordering given, the list sorts by last name."""
     names = [row["name"] for row in rows(admin_client.get(LIST_URL, {"page_size": 200}))]
