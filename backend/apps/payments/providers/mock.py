@@ -27,6 +27,11 @@ class MockProvider(Provider):
 
     slug = "mock"
 
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Whether ``PAYMENTS_MOCK_ENABLED`` is on.  The provider needs no keys."""
+        return bool(settings.PAYMENTS_MOCK_ENABLED)
+
     def _check_enabled(self) -> None:
         if not settings.PAYMENTS_MOCK_ENABLED:
             raise MockPaymentsDisabledError("The mock payment provider is disabled.")

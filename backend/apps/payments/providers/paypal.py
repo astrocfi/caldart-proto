@@ -248,6 +248,15 @@ class PayPalProvider(Provider):
 
     slug = "paypal"
 
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Whether both ``PAYPAL_CLIENT_ID`` and ``PAYPAL_CLIENT_SECRET`` are set.
+
+        The buttons need the client id in the browser and the server needs both to
+        fetch an access token, so one without the other is not usable.
+        """
+        return bool(settings.PAYPAL_CLIENT_ID and settings.PAYPAL_CLIENT_SECRET)
+
     # ----------------------------------------------------------------- start
     def start(self, payment: Payment) -> dict[str, Any]:
         """Create an ``intent=CAPTURE`` order and return its id for the buttons.

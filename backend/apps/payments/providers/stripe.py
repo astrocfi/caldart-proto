@@ -185,6 +185,15 @@ class StripeProvider(Provider):
 
     slug = "stripe"
 
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Whether both ``STRIPE_SECRET_KEY`` and ``STRIPE_PUBLISHABLE_KEY`` are set.
+
+        The Payment Element needs the publishable key in the browser as much as the
+        server needs the secret key, so one without the other is not usable.
+        """
+        return bool(settings.STRIPE_SECRET_KEY and settings.STRIPE_PUBLISHABLE_KEY)
+
     # ----------------------------------------------------------------- start
     def start(self, payment: Payment) -> dict[str, Any]:
         """Create the PaymentIntent and hand the client its ``client_secret``.
