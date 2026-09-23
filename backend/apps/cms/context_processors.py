@@ -43,7 +43,7 @@ def site_chrome(request: HttpRequest) -> SiteChrome:
     """The chrome context for ``request``.
 
     ``site_settings`` is the settings row, or ``None`` before ``migrate`` has
-    created the site.  ``theme`` falls back to ``sierra`` when the row is missing
+    created the site.  ``theme`` falls back to ``duty`` when the row is missing
     or its theme is blank.  ``nav`` is the same list ``build_nav`` returns, and
     ``can_preview_theme`` says whether the reader may override the theme with
     ``?theme=``.

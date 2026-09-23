@@ -28,12 +28,15 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import timedelta
+from pathlib import Path
 from typing import Any
 
+from django.core.files.images import ImageFile
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
+from wagtail.images.models import Image
 from wagtail.models import Page, Site
 
 from apps.cms.management.commands import seed_content_data as content
@@ -134,23 +137,62 @@ def upsert_spec[PageT: Page](
 # ---------------------------------------------------------------------------
 
 
-def seed_home(home: HomePage, about_url: str = "/about/") -> HomePage:
-    """Fill in the home page: hero, mission, concept of operations and tax status.
+#: The example photograph the home page opens with, kept beside the code so the
+#: seeded site has a picture without an editor uploading one.
+HERO_IMAGE_PATH = Path(__file__).resolve().parent.parent.parent / "seed_assets" / "airlift-krhv.jpg"
+HERO_IMAGE_TITLE = "Food aid at Reid-Hillview"
 
-    Overwrites those fields every time, publishes a revision, and returns the page
-    reloaded from the database.  ``about_url`` is where the secondary call to
-    action points.
+
+def seed_hero_image() -> Image:
+    """Return the home page's photograph, uploading it on first use.
+
+    Looked up by title, so re-seeding reuses the image already in the library
+    rather than filling it with copies.
+    """
+    existing = Image.objects.filter(title=HERO_IMAGE_TITLE).first()
+    if existing is not None:
+        return existing
+    with HERO_IMAGE_PATH.open("rb") as handle:
+        return Image.objects.create(
+            title=HERO_IMAGE_TITLE,
+            file=ImageFile(handle, name=HERO_IMAGE_PATH.name),
+        )
+
+
+def seed_home(
+    home: HomePage,
+    *,
+    darts_url: str = "/about/darts/",
+    contact_url: str = "/contact-us/",
+) -> HomePage:
+    """Fill in the home page: welcome, mission, events, missions flown, tax note.
+
+    Overwrites those fields every time, attaches the example photograph, dates the
+    events from the day it runs so they are always still ahead, publishes a
+    revision, and returns the page reloaded from the database.  ``darts_url`` is
+    where the "find your DART" button points and ``contact_url`` where the request
+    for air support does.
     """
     home.hero_heading = content.HERO_HEADING
     home.hero_lede = content.HERO_LEDE
+    home.hero_image = seed_hero_image()
+    home.hero_image_caption = content.HERO_IMAGE_CAPTION
+    home.urgent_cta_label = content.URGENT_CTA_LABEL
+    home.urgent_cta_url = contact_url
     home.primary_cta_label = content.PRIMARY_CTA_LABEL
     home.primary_cta_url = content.PRIMARY_CTA_URL
     home.secondary_cta_label = content.SECONDARY_CTA_LABEL
-    home.secondary_cta_url = about_url
+    home.secondary_cta_url = darts_url
     home.mission_statement = content.MISSION
-    home.concept_heading = content.CONCEPT_HEADING
-    home.concept_of_operations = [
-        ("step", {"title": title, "text": text}) for title, text in content.CONCEPT_STEPS
+    home.welcome_body = content.WELCOME_BODY
+    today = timezone.localdate()
+    home.upcoming_events = [
+        ("event", {"date": today + timedelta(days=days), "title": title, "where": where})
+        for days, title, where in content.UPCOMING_EVENTS
+    ]
+    home.missions_heading = content.MISSIONS_HEADING
+    home.missions_flown = [
+        ("mission", {"year": year, "text": text}) for year, text in content.MISSIONS_FLOWN
     ]
     home.tax_status = content.TAX_STATUS
     home.save()
@@ -294,9 +336,9 @@ def seed_members_area(home: HomePage) -> StandardPage:
 def seed_settings(site: Site) -> None:
     """Fill in the site settings the example content refers to.
 
-    The contact phone, mailing address, EIN, donate URL and the two social links
-    are written only where the field is empty, so anything an administrator has
-    already changed survives.  The settings row is created if it is missing.
+    The duty officer number, mailing address, EIN, donate URL and the two social
+    links are written only where the field is empty, so anything an administrator
+    has already changed survives.  The settings row is created if it is missing.
     """
     from apps.cms.models import SiteSettings
 
@@ -331,15 +373,19 @@ class Command(BaseCommand):
 
         about = seed_about(home)
         seed_history(about)
-        seed_darts_section(about)
+        darts = seed_darts_section(about)
         seed_directors(about)
         seed_news(home)
         seed_join(home)
         seed_donate(home)
         seed_sponsors(home)
-        seed_contact(home)
+        contact = seed_contact(home)
         seed_members_area(home)
-        seed_home(home, about_url=about.url or "/about/")
+        seed_home(
+            home,
+            darts_url=darts.url or "/about/darts/",
+            contact_url=contact.url or "/contact-us/",
+        )
         seed_settings(site)
 
         grant_website_admin_permissions(stdout=self.stdout)

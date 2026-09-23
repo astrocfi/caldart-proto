@@ -1,17 +1,18 @@
 {% load static wagtailcore_tags django_vite %}<!doctype html>
 {% comment %}
-  The public-site shell.
+  The public-site shell: one bordered page panel holding the masthead, the
+  navigation bar, the content and the footer.
 
   `nav`, `theme`, `site_settings` and `can_preview_theme` come from
   `apps.cms.context_processors.site_chrome`, so page templates never build the
-  menu.  Nav entries carry a `kind`: content pages render as links, the two
-  portal entries render as actions on the right.
+  menu.  Nav entries carry a `kind`: content pages render as bar links, the two
+  portal entries render as the right-hand pair.
 
   Rendered without a request (Django's 500 handler) this degrades to the
   wordmark, an empty menu and the default theme — which is exactly what an
   error page needs.
 {% endcomment %}
-<html lang="en" data-theme="{{ theme|default:'sierra' }}"{% if can_preview_theme %} data-theme-preview="allowed"{% endif %}>
+<html lang="en" data-theme="{{ theme|default:'duty' }}"{% if can_preview_theme %} data-theme-preview="allowed"{% endif %}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -32,15 +33,30 @@
   <body class="site {% block body_class %}{% endblock %}">
     <a class="skip-link" href="#main">Skip to content</a>
 
-    <header class="site-header">
-      <div class="shell site-header__inner">
-        <div class="site-brand">
-          <a class="wordmark" href="/">
-            {% include "cms/includes/wordmark.html" %}
-            <span class="wordmark__text">Cal<span>DART</span></span>
-          </a>
-          <span class="wordmark__sub">{% firstof site_settings.tagline "California DART Network" %}</span>
-        </div>
+    <div class="panel">
+      <header class="masthead">
+        <a class="masthead__brand" href="/">
+          <img
+            class="masthead__logo"
+            src="{% static 'img/caldart-logo.png' %}"
+            width="330"
+            height="83"
+            alt="{% firstof site_settings.org_name 'CalDART' %}"
+          />
+          <span class="masthead__tagline">{% firstof site_settings.tagline "California DART Network" %}</span>
+        </a>
+
+        {% if site_settings.duty_phone or site_settings.mailing_address %}
+          <div class="masthead__duty">
+            {% if site_settings.duty_phone %}
+              <p class="masthead__duty-number">
+                Duty Officer: <a href="tel:{{ site_settings.duty_phone }}">{{ site_settings.duty_phone }}</a>
+              </p>
+              {% if site_settings.duty_phone_note %}<p>{{ site_settings.duty_phone_note }}</p>{% endif %}
+            {% endif %}
+            {% if site_settings.mailing_address %}<p>{{ site_settings.mailing_address|linebreaksbr }}</p>{% endif %}
+          </div>
+        {% endif %}
 
         <button
           type="button"
@@ -51,70 +67,69 @@
         >
           Menu
         </button>
+      </header>
 
-        <nav class="site-nav" id="site-nav" data-site-nav aria-label="Main">
-          <ul class="site-nav__pages">
-            {% for item in nav %}{% if item.kind != "portal" %}
-              <li>
-                <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
-              </li>
-            {% endif %}{% endfor %}
-          </ul>
-          <ul class="site-nav__actions">
-            {% for item in nav %}{% if item.kind == "portal" %}
-              <li>
-                {# The last portal entry is always Log in / Members: an action, not the action. #}
-                <a
-                  class="button{% if forloop.last %} button--quiet{% endif %}"
-                  href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}
-                >{{ item.title }}</a>
-              </li>
-            {% endif %}{% endfor %}
-          </ul>
-        </nav>
-      </div>
-    </header>
+      <nav class="navbar" id="site-nav" data-site-nav aria-label="Main">
+        <ul class="navbar__pages">
+          {% for item in nav %}{% if item.kind != "portal" %}
+            <li>
+              <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
+            </li>
+          {% endif %}{% endfor %}
+        </ul>
+        <ul class="navbar__actions">
+          {% for item in nav %}{% if item.kind == "portal" %}
+            <li>
+              <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
+            </li>
+          {% endif %}{% endfor %}
+        </ul>
+      </nav>
 
-    <main id="main" class="shell">
-      {% block content %}{% endblock %}
-    </main>
-
-    <footer class="site-footer">
-      <div class="shell site-footer__inner">
-        <div class="stack-tight">
-          <p class="eyebrow">{% firstof site_settings.org_name "The California DART Network" %}</p>
-          <p>{% firstof site_settings.footer_text "CalDART is a 501(c)(3) non-profit. Contributions are tax deductible." %}</p>
-          {% if site_settings.ein %}<p class="mono">EIN {{ site_settings.ein }}</p>{% endif %}
-        </div>
-
-        <div class="stack-tight">
-          <p class="eyebrow">Contact</p>
-          {% if site_settings.contact_email %}
-            <p><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></p>
-          {% endif %}
-          {% if site_settings.contact_phone %}<p class="mono">{{ site_settings.contact_phone }}</p>{% endif %}
-          {% if site_settings.mailing_address %}<p>{{ site_settings.mailing_address|linebreaksbr }}</p>{% endif %}
-        </div>
-
-        <div class="stack-tight">
-          <p class="eyebrow">Elsewhere</p>
-          <ul class="site-footer__links">
-            <li><a href="/portal/">Member portal</a></li>
-            <li><a href="/portal/join">Join or renew</a></li>
-            {% if site_settings.donate_url %}<li><a href="{{ site_settings.donate_url }}">Donate</a></li>{% endif %}
-            {% if site_settings.facebook_url %}<li><a href="{{ site_settings.facebook_url }}" rel="me noopener">Facebook</a></li>{% endif %}
-            {% if site_settings.twitter_url %}<li><a href="{{ site_settings.twitter_url }}" rel="me noopener">X / Twitter</a></li>{% endif %}
-          </ul>
-        </div>
+      <div class="panel__body">
+        <main id="main" class="panel__main">
+          {% block content %}{% endblock %}
+        </main>
+        {% block sidebar %}{% endblock %}
       </div>
 
-      <div class="shell site-footer__fine">
-        <p>
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <div>
+            <p><b>{% firstof site_settings.org_name "The California DART Network" %}</b></p>
+            {% if site_settings.mailing_address %}<p>{{ site_settings.mailing_address|linebreaksbr }}</p>{% endif %}
+          </div>
+
+          <div>
+            {% if site_settings.duty_phone %}<p class="mono">Duty Officer: {{ site_settings.duty_phone }}</p>{% endif %}
+            {% if site_settings.contact_email %}
+              <p><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></p>
+            {% endif %}
+            {% if site_settings.contact_phone %}<p class="mono">{{ site_settings.contact_phone }}</p>{% endif %}
+          </div>
+
+          <div>
+            {% if site_settings.ein %}<p class="mono">EIN {{ site_settings.ein }}</p>{% endif %}
+            <p>{% firstof site_settings.footer_text "CalDART is a 501(c)(3) non-profit. Contributions are tax deductible." %}</p>
+          </div>
+
+          <div>
+            <ul class="site-footer__links">
+              <li><a href="/portal/">Member portal</a></li>
+              <li><a href="/portal/join">Join or renew</a></li>
+              {% if site_settings.donate_url %}<li><a href="{{ site_settings.donate_url }}">Donate</a></li>{% endif %}
+              {% if site_settings.facebook_url %}<li><a href="{{ site_settings.facebook_url }}" rel="me noopener">Facebook</a></li>{% endif %}
+              {% if site_settings.twitter_url %}<li><a href="{{ site_settings.twitter_url }}" rel="me noopener">X / Twitter</a></li>{% endif %}
+            </ul>
+          </div>
+        </div>
+
+        <p class="site-footer__fine">
           Example content for a prototype. Volunteers fly at their own expense and at their own
-          discretion; CalDART does not self-deploy.
+          discretion, and CalDART does not self-deploy.
         </p>
-      </div>
-    </footer>
+      </footer>
+    </div>
 
     {% block extra_body %}{% endblock %}
   </body>

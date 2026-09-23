@@ -36,7 +36,7 @@ Features
 - **Reports.** Membership and aircraft exports as CSV and PDF, payment
   exports as CSV, all with the same filters as the screen you exported them
   from.
-- **Content.** Wagtail page types, StreamField blocks, three themes, and a
+- **Content.** Wagtail page types, StreamField blocks, four themes, and a
   members-only wall that only current members and staff get past.
 - **Operations.** Health checks, database backups, restore and reset, from
   the command line or the portal.

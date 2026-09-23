@@ -27,15 +27,16 @@ Layout
     management/commands/seed_content.py    the example site
     management/commands/seed_content_data.py  its copy, as page specs
   backend/templates/
-    base.html            the public shell: header, nav, footer
+    base.html            the public shell: panel, masthead, nav bar, footer
     404.html, 500.html
     cms/<page_type>.html one per page model
     cms/blocks/*.html    one per block
-    cms/includes/        wordmark, page header, section nav
+    cms/includes/        page header, section nav
   frontend/src/
     site/main.ts         nav toggle, current page, theme preview
     site/nav.ts          the pure helpers those use
     styles/site.css      public-site styles (imports styles/index.css)
+  backend/static/img/caldart-logo.png   the masthead logo
 
 
 Page models
@@ -48,11 +49,16 @@ Every page type subclasses ``BasePage``, which supplies two things: the
 ===================  ========================================================
 Model                Notes
 ===================  ========================================================
-``HomePage``         The site root.  Hero, ``mission_statement``,
-                     ``concept_of_operations`` (a stream of ``step`` blocks)
-                     and ``tax_status``.  ``featured_news`` returns the three
-                     most recent live, public news posts, members-only ones
-                     excluded whoever is looking.
+``HomePage``         The site root.  The welcome box (``hero_heading``,
+                     ``hero_lede``, ``hero_image``, ``mission_statement``,
+                     ``welcome_body`` and three calls to action, the first of
+                     them ``urgent_cta_*``), ``missions_flown`` (a stream of
+                     ``mission`` blocks) and ``tax_status``.
+                     ``featured_news`` returns the three most recent live,
+                     public news posts, members-only ones excluded whoever is
+                     looking; ``events_soon`` returns the three soonest events
+                     still ahead of today, in date order; ``darts`` and
+                     ``plans`` fill the sidebar's team finder and price list.
 ``StandardPage``     ``intro`` + ``body``; carries ``MembersOnlyMixin``.
 ``NewsIndexPage``    Paginates its child posts, ``NEWS_PAGE_SIZE`` at a time,
                      and hides members-only posts from visitors who could not
@@ -171,7 +177,12 @@ Blocks
 ``blocks.ContentStreamBlock`` is the body offered on every editable page:
 ``heading``, ``paragraph``, ``image``, ``quote``, ``cta``, ``document``,
 ``two_columns``, ``embed`` and ``raw_html``.  ``ColumnStreamBlock`` is the
-reduced set allowed inside a two-column block, so columns cannot nest.
+reduced set allowed inside a two-column block, so columns cannot nest, and
+The home page has two streams of its own: ``MissionStreamBlock``, whose
+``mission`` blocks pair a ``year`` with the text of what was flown and render
+as the rows of one table, and ``EventStreamBlock``, whose ``event`` blocks
+carry a ``date``, a ``title``, an optional ``where`` and an optional page to
+link to.
 
 ``cta`` (``CTABlock``) is the call to action: a ``label``; a target that is
 either a ``page`` from the tree or a ``url`` (an external address, or a path
@@ -229,7 +240,7 @@ supplies four names:
     GET.
 
 ``theme``
-    The theme slug, defaulting to ``sierra``.  ``base.html`` and
+    The theme slug, defaulting to ``duty``.  ``base.html`` and
     ``portal.html`` put it on ``<html data-theme="...">``.
 
 ``nav``
@@ -237,7 +248,8 @@ supplies four names:
     as ``kind="page"``, then two ``kind="portal"`` entries — always ``Join`` →
     ``/portal/join``, followed by ``Members`` → ``/portal/`` for a signed-in
     visitor or ``Log in`` → ``/portal/login`` for an anonymous one.
-    ``base.html`` renders the first group as links and the second as buttons.
+    ``base.html`` renders the first group as the navigation bar's links and
+    the second at its right-hand end.
     An entry is marked ``active`` when the request path starts with its URL.
 
 ``can_preview_theme``
@@ -265,7 +277,7 @@ The one endpoint the portal calls before it has a user, so it is ``AllowAny``:
 
    {
      "org_name": "The California DART Network",
-     "theme": "sierra",
+     "theme": "duty",
      "contact_email": "info@caldart.example.org",
      "nav": [{"title": "About Us", "url": "/about/", "active": false, "kind": "page"}],
      "members_pages": [{"title": "Members", "url": "/members/"}]

@@ -47,29 +47,29 @@ function appearanceFromTokens(): Appearance {
   return {
     theme: 'stripe',
     variables: {
-      colorPrimary: cssToken('--color-primary', '#1f4d3a'),
-      colorBackground: cssToken('--color-bg-raised', '#fbfaf6'),
-      colorText: cssToken('--color-fg', '#1b1f24'),
-      colorTextSecondary: cssToken('--color-muted', '#6b6f76'),
-      colorDanger: cssToken('--color-bad', '#b23a2b'),
+      colorPrimary: cssToken('--color-primary', '#1f4e79'),
+      colorBackground: cssToken('--color-bg-raised', '#ffffff'),
+      colorText: cssToken('--color-fg', '#1d2530'),
+      colorTextSecondary: cssToken('--color-muted', '#55606d'),
+      colorDanger: cssToken('--color-bad', '#b3261e'),
       fontFamily: cssToken('--font-body', 'IBM Plex Sans, system-ui, sans-serif'),
       fontSizeBase: '1rem',
-      borderRadius: cssToken('--radius', '2px'),
+      borderRadius: cssToken('--radius', '6px'),
       spacingUnit: '4px',
     },
     rules: {
       '.Input': {
-        border: `1px solid ${cssToken('--color-rule-strong', '#b9b1a0')}`,
+        border: `1px solid ${cssToken('--color-rule-strong', '#8c97a5')}`,
         boxShadow: 'none',
       },
       '.Input:focus': {
-        border: `1px solid ${cssToken('--color-primary', '#1f4d3a')}`,
+        border: `1px solid ${cssToken('--color-primary', '#1f4e79')}`,
         boxShadow: 'none',
-        outline: `2px solid ${cssToken('--color-focus', '#1f4d3a')}`,
+        outline: `2px solid ${cssToken('--color-focus', '#1f4e79')}`,
       },
       '.Label': {
         fontWeight: '500',
-        color: cssToken('--color-fg', '#1b1f24'),
+        color: cssToken('--color-fg', '#1d2530'),
       },
     },
   };

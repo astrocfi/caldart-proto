@@ -149,5 +149,5 @@ def test_config_falls_back_when_there_is_no_site_settings_row(
 
     data = api_client.get(URL).json()
     assert data["org_name"] == "CalDART"
-    assert data["theme"] == "sierra"
+    assert data["theme"] == "duty"
     assert data["contact_email"] == ""

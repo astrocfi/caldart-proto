@@ -1,0 +1,29 @@
+/* Duty — the default theme: navy blue chrome, a red call for help, blue-gray paper. */
+
+:root[data-theme='duty'] {
+  --color-bg: #ccd3dc;
+  --color-bg-raised: #ffffff;
+  --color-bg-sunken: #eef2f7;
+  --color-fg: #1d2530;
+  --color-primary: #1f4e79;
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: #17405f;
+  --color-accent: #b3261e;
+  --color-secondary: #3f7fb0;
+  --color-rule: #ccd6e1;
+  --color-rule-strong: #8c97a5;
+  --color-muted: #55606d;
+  --color-selection: #3f7fb033;
+
+  --color-ok: #1f7a4d;
+  --color-warn: #a86b00;
+  --color-bad: #b3261e;
+  --color-ok-bg: #1f7a4d1f;
+  --color-warn-bg: #a86b001f;
+  --color-bad-bg: #b3261e1f;
+  --color-neutral-bg: #55606d17;
+
+  --color-focus: #1f4e79;
+
+  color-scheme: light;
+}

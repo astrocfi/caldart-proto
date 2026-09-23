@@ -6,9 +6,12 @@ reach them without depending on another test module.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 from django.template.loader import render_to_string
 from django.test import Client
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.cms.context_processors import build_nav
@@ -48,32 +51,114 @@ ALL_BLOCKS = [
 
 
 # ------------------------------------------------------------- home page
-def test_home_page_renders_the_editorial_layout(
-    client: Client, site_settings: SiteSettings
-) -> None:
-    """The home page renders its hero, mission, concept steps and tax status copy."""
+def test_home_page_renders_the_welcome_box(client: Client, site_settings: SiteSettings) -> None:
+    """The home page renders its welcome box: lede, mission and tax status copy."""
     home = site_settings.site.root_page.specific
-    home.hero_heading = "Volunteer air transportation"
+    home.hero_heading = "Welcome to CalDART"
     home.hero_lede = "Relief supplies keep moving."
     home.mission_statement = "<p>Our mission is preparation.</p>"
-    home.concept_heading = "How an activation works"
-    home.concept_of_operations = [
-        ("step", {"title": "Teams form", "text": "Around an airport."}),
-        ("step", {"title": "Members stay current", "text": "All year round."}),
-    ]
+    home.welcome_body = "<p>Twelve teams around the state.</p>"
     home.tax_status = "<p>CalDART is a 501(c)(3).</p>"
+    home.save()
+    home.save_revision().publish()
+    MembershipPlan.objects.create(name="Annual", slug="annual", price_cents=4500)
+
+    body = client.get("/").content.decode()
+    assert "Welcome to CalDART" in body
+    assert "Relief supplies keep moving." in body
+    assert "Our mission is preparation." in body
+    assert "Twelve teams around the state." in body
+    assert "CalDART is a 501(c)(3)." in body
+    assert 'class="skip-link"' in body
+    assert "data-site-nav" in body
+
+
+def test_home_page_lists_the_missions_flown(client: Client, site_settings: SiteSettings) -> None:
+    """Each mission block renders as a row of year and description."""
+    home = site_settings.site.root_page.specific
+    home.missions_flown = [
+        ("mission", {"year": "2023", "text": "Food and medicine to the mountains."}),
+        ("mission", {"year": "2021", "text": "Masks to firefighters in Oregon."}),
+    ]
     home.save()
     home.save_revision().publish()
 
     body = client.get("/").content.decode()
-    assert "Volunteer air transportation" in body
-    assert "Relief supplies keep moving." in body
-    assert "Our mission is preparation." in body
-    assert 'class="steps"' in body
-    assert "Teams form" in body
-    assert "CalDART is a 501(c)(3)." in body
-    assert 'class="skip-link"' in body
-    assert "data-site-nav" in body
+    assert 'class="flown"' in body
+    assert "2023" in body
+    assert "Food and medicine to the mountains." in body
+    assert "Masks to firefighters in Oregon." in body
+
+
+def test_home_page_sidebar_lists_the_next_three_events(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The events box shows the three soonest events still ahead, in date order."""
+    home = site_settings.site.root_page.specific
+    today = timezone.localdate()
+    home.upcoming_events = [
+        ("event", {"date": today + timedelta(days=60), "title": "Leaders meeting"}),
+        ("event", {"date": today - timedelta(days=1), "title": "Yesterday's drill"}),
+        ("event", {"date": today + timedelta(days=5), "title": "Ground crew workshop"}),
+        ("event", {"date": today + timedelta(days=30), "title": "Radio drill"}),
+        ("event", {"date": today + timedelta(days=90), "title": "Spring exercise"}),
+    ]
+    home.save()
+    home.save_revision().publish()
+
+    assert [block.value["title"] for block in home.events_soon] == [
+        "Ground crew workshop",
+        "Radio drill",
+        "Leaders meeting",
+    ]
+
+    body = client.get("/").content.decode()
+    assert "Upcoming events" in body
+    assert "Ground crew workshop" in body
+    assert "Yesterday's drill" not in body
+    assert "Spring exercise" not in body
+
+
+def test_home_page_hides_the_events_box_when_every_event_has_passed(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """With nothing ahead the box disappears rather than standing empty."""
+    home = site_settings.site.root_page.specific
+    yesterday = timezone.localdate() - timedelta(days=1)
+    home.upcoming_events = [("event", {"date": yesterday, "title": "Last year's drill"})]
+    home.save()
+    home.save_revision().publish()
+
+    assert home.events_soon == []
+    assert "Upcoming events" not in client.get("/").content.decode()
+
+
+def test_home_page_sidebar_prices_every_active_plan(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The membership box lists the active plans and offers the join button."""
+    MembershipPlan.objects.create(name="Annual", slug="annual", price_cents=4500)
+    MembershipPlan.objects.create(name="Life", slug="life", price_cents=65000)
+    MembershipPlan.objects.create(name="Retired", slug="retired", price_cents=100, is_active=False)
+
+    body = client.get("/").content.decode()
+    assert "$45.00" in body
+    assert "$650.00" in body
+    assert "Retired" not in body
+    assert 'href="/portal/join"' in body
+
+
+def test_home_page_sidebar_offers_every_active_dart(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The team finder offers the active DARTs and posts to the lookup route."""
+    Dart.objects.create(name="Reid-Hillview DART", airport_identifier="KRHV")
+    Dart.objects.create(name="Retired DART", airport_identifier="XXX", is_active=False)
+
+    body = client.get("/").content.decode()
+    assert 'action="/find-dart/"' in body
+    assert "Reid-Hillview DART (KRHV)" in body
+    assert "Retired DART" not in body
 
 
 def test_home_page_features_the_three_latest_news_posts(
@@ -269,7 +354,7 @@ def test_dart_page_renders_its_facts(
     body = client.get(page.url).content.decode()
     assert "We meet monthly." in body
     assert "mailto:helen@example.org" in body
-    assert "\u2190 All DARTs" in body
+    assert "\u00ab All DARTs" in body
 
 
 def test_dart_page_leader_href_handles_a_phone_number(

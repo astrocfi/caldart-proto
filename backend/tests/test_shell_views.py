@@ -57,7 +57,7 @@ def test_portal_shell_renders(client: Client, site_settings: SiteSettings) -> No
     assert response.status_code == 200
     body = response.content.decode()
     assert 'id="portal-root"' in body
-    assert 'data-theme="sierra"' in body
+    assert 'data-theme="duty"' in body
 
 
 @pytest.mark.parametrize(

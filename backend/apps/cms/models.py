@@ -22,7 +22,9 @@ from django.db import models
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
+from django.utils import timezone
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.blocks.stream_block import StreamValue
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.fields import RichTextField, StreamField
 from wagtail.models import Collection, Page, PageManager
@@ -31,12 +33,13 @@ from wagtail.search import index
 from apps.accounts.models import User
 from apps.cms.blocks import (
     RICH_TEXT_FEATURES,
-    ConceptStreamBlock,
     ContentStreamBlock,
+    EventStreamBlock,
+    MissionStreamBlock,
     stream_headings,
 )
 from apps.cms.forms import RestrictedBlocksPageForm
-from apps.members.models import MembershipState
+from apps.members.models import Dart, MembershipPlan, MembershipState
 from apps.members.services import MembershipStatusDict
 
 if TYPE_CHECKING:
@@ -48,17 +51,21 @@ if TYPE_CHECKING:
 
 #: Themes shipped in ``frontend/src/styles/themes/``.
 THEME_CHOICES: tuple[tuple[str, str], ...] = (
-    ("sierra", "Sierra (default, warm paper)"),
+    ("duty", "Duty (default, blue and red)"),
+    ("sierra", "Sierra (warm paper)"),
     ("pacific", "Pacific (cool paper)"),
     ("night", "Night (dark)"),
 )
-DEFAULT_THEME = "sierra"
+DEFAULT_THEME = "duty"
 
 #: Theme slugs, for validating ``?theme=`` previews and the settings choice.
 THEME_SLUGS: tuple[str, ...] = tuple(slug for slug, _ in THEME_CHOICES)
 
 #: How many news posts the home page features.
 FEATURED_NEWS_COUNT = 3
+
+#: How many upcoming events the home page's sidebar lists.
+UPCOMING_EVENTS_COUNT = 3
 
 #: How many posts a news index page shows before paginating.
 NEWS_PAGE_SIZE = 8
@@ -240,7 +247,7 @@ class MembersOnlyMixin(_MembersOnlyBase):
 
 
 class HomePage(BasePage):
-    """The site root: hero, mission, concept of operations, tax status, news."""
+    """The site root: welcome box, featured news, missions flown, and the sidebar."""
 
     hero_heading = models.CharField(max_length=200, blank=True)
     hero_lede = models.TextField(blank=True)
@@ -252,6 +259,13 @@ class HomePage(BasePage):
         related_name="+",
     )
     hero_image_caption = models.CharField(max_length=200, blank=True)
+    urgent_cta_label = models.CharField(
+        max_length=60,
+        blank=True,
+        default="Request air support",
+        help_text="The first button, shown in the alert color.",
+    )
+    urgent_cta_url = models.CharField(max_length=200, blank=True)
     primary_cta_label = models.CharField(max_length=60, blank=True, default="Join CalDART")
     primary_cta_url = models.CharField(max_length=200, blank=True, default="/portal/join")
     secondary_cta_label = models.CharField(max_length=60, blank=True)
@@ -260,20 +274,28 @@ class HomePage(BasePage):
     mission_statement = RichTextField(
         blank=True,
         features=RICH_TEXT_FEATURES,
-        help_text="Shown as a pull-quote directly under the hero.",
+        help_text="The mission statement, set off inside the welcome box.",
     )
-    concept_heading = models.CharField(
-        max_length=200, blank=True, default="How an activation works"
-    )
-    concept_of_operations = StreamField(
-        ConceptStreamBlock(),
+    welcome_body = RichTextField(
         blank=True,
-        help_text="Numbered steps describing how CalDART operates.",
+        features=RICH_TEXT_FEATURES,
+        help_text="The paragraphs under the mission statement.",
+    )
+    upcoming_events = StreamField(
+        EventStreamBlock(),
+        blank=True,
+        help_text="Dated events for the sidebar.  One that has passed stops showing.",
+    )
+    missions_heading = models.CharField(max_length=200, blank=True, default="Missions flown")
+    missions_flown = StreamField(
+        MissionStreamBlock(),
+        blank=True,
+        help_text="What CalDART has carried, newest first.",
     )
     tax_status = RichTextField(
         blank=True,
         features=["bold", "italic", "link"],
-        help_text="The 501(c)(3) note shown beside the concept of operations.",
+        help_text="The 501(c)(3) note shown in the membership box.",
     )
 
     content_panels = [
@@ -284,6 +306,8 @@ class HomePage(BasePage):
                 FieldPanel("hero_lede"),
                 FieldPanel("hero_image"),
                 FieldPanel("hero_image_caption"),
+                FieldPanel("urgent_cta_label"),
+                FieldPanel("urgent_cta_url"),
                 FieldPanel("primary_cta_label"),
                 FieldPanel("primary_cta_url"),
                 FieldPanel("secondary_cta_label"),
@@ -292,9 +316,11 @@ class HomePage(BasePage):
             heading="Hero",
         ),
         FieldPanel("mission_statement"),
+        FieldPanel("welcome_body"),
+        FieldPanel("upcoming_events"),
         MultiFieldPanel(
-            [FieldPanel("concept_heading"), FieldPanel("concept_of_operations")],
-            heading="Concept of operations",
+            [FieldPanel("missions_heading"), FieldPanel("missions_flown")],
+            heading="Missions flown",
         ),
         FieldPanel("tax_status"),
     ]
@@ -336,11 +362,45 @@ class HomePage(BasePage):
         index_page: NewsIndexPage | None = NewsIndexPage.objects.live().first()
         return index_page
 
+    @property
+    def events_soon(self) -> list[StreamValue.StreamChild]:
+        """The next few events that have not happened yet, soonest first.
+
+        Reads ``upcoming_events`` in whatever order the editor left it, drops every
+        event dated before today, sorts what is left by date and returns at most
+        ``UPCOMING_EVENTS_COUNT`` of them.  An empty stream gives an empty list, so
+        the sidebar box disappears rather than standing empty.
+        """
+        today = timezone.localdate()
+        ahead = [block for block in self.upcoming_events if block.value["date"] >= today]
+        ahead.sort(key=lambda block: block.value["date"])
+        return ahead[:UPCOMING_EVENTS_COUNT]
+
+    @property
+    def dart_index(self) -> DartIndexPage | None:
+        """The live DART directory the sidebar's team finder posts to, or ``None``."""
+        index_page: DartIndexPage | None = DartIndexPage.objects.live().first()
+        return index_page
+
+    @property
+    def darts(self) -> list[Dart]:
+        """Active DARTs in display order, for the sidebar's team finder."""
+        return list(Dart.objects.filter(is_active=True))
+
+    @property
+    def plans(self) -> list[MembershipPlan]:
+        """Active membership plans in display order, for the sidebar's price list."""
+        return list(MembershipPlan.objects.filter(is_active=True))
+
     def get_context(self, request: HttpRequest, *args: Any, **kwargs: Any) -> dict[str, Any]:
-        """Wagtail's page context plus ``featured_news`` and ``news_index``."""
+        """Wagtail's page context plus the news, DART and membership the sidebar reads."""
         context: dict[str, Any] = super().get_context(request, *args, **kwargs)
         context["featured_news"] = self.featured_news
+        context["events_soon"] = self.events_soon
         context["news_index"] = self.news_index
+        context["dart_index"] = self.dart_index
+        context["darts"] = self.darts
+        context["plans"] = self.plans
         return context
 
 
@@ -609,6 +669,18 @@ class SiteSettings(BaseSiteSetting):
     )
     contact_email = models.EmailField(blank=True, default="info@caldart.example.org")
     contact_phone = models.CharField(max_length=32, blank=True)
+    duty_phone = models.CharField(
+        "duty officer phone",
+        max_length=32,
+        blank=True,
+        help_text="Shown in the masthead as the number to call about a mission.",
+    )
+    duty_phone_note = models.CharField(
+        max_length=120,
+        blank=True,
+        default="Answered by the CalDART member on watch",
+        help_text="One line under the duty officer number.",
+    )
     mailing_address = models.TextField(blank=True)
     ein = models.CharField("EIN", max_length=20, blank=True)
     donate_url = models.CharField(max_length=200, blank=True)
@@ -633,6 +705,8 @@ class SiteSettings(BaseSiteSetting):
             [
                 FieldPanel("contact_email"),
                 FieldPanel("contact_phone"),
+                FieldPanel("duty_phone"),
+                FieldPanel("duty_phone_note"),
                 FieldPanel("mailing_address"),
             ],
             heading="Contact",
@@ -665,7 +739,7 @@ class SiteSettings(BaseSiteSetting):
     def get_theme(cls, request: RequestLike | None = None) -> str:
         """The active theme slug for ``request``'s site, one of ``THEME_SLUGS``.
 
-        Falls back to ``sierra`` when the theme is blank and when there is no
+        Falls back to ``duty`` when the theme is blank and when there is no
         settings row yet.  Without a request, the default site's theme is used.
         """
         settings_obj = get_site_settings(request)

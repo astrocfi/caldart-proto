@@ -103,18 +103,36 @@ def test_seed_content_flags_the_members_area() -> None:
     assert {p.slug for p in walled} == {"members", "members-only", "docs-and-links"}
 
 
-def test_seed_content_home_page_carries_the_concept_of_operations() -> None:
-    """``seed_content`` fills in the home page's hero, mission and concept steps."""
+def test_seed_content_home_page_carries_the_missions_flown() -> None:
+    """``seed_content`` fills in the home page's welcome, mission and flown missions."""
     seed()
     home = HomePage.objects.get()
     assert home.hero_heading == content.HERO_HEADING
     assert home.mission_statement == content.MISSION
-    assert len(home.concept_of_operations) == len(content.CONCEPT_STEPS)
-    assert [block.block_type for block in home.concept_of_operations] == [
-        "step" for _step in content.CONCEPT_STEPS
+    assert len(home.missions_flown) == len(content.MISSIONS_FLOWN)
+    assert [block.block_type for block in home.missions_flown] == [
+        "mission" for _mission in content.MISSIONS_FLOWN
     ]
     assert "501(c)(3)" in home.tax_status
     assert home.primary_cta_url == "/portal/join"
+
+
+def test_seed_content_dates_every_event_ahead_of_today() -> None:
+    """``seed_content`` seeds the calendar so nothing in it has already happened."""
+    seed()
+    home = HomePage.objects.get()
+    today = timezone.localdate()
+
+    assert len(home.upcoming_events) == len(content.UPCOMING_EVENTS)
+    assert all(block.value["date"] > today for block in home.upcoming_events)
+
+
+def test_seed_content_gives_the_home_page_its_photograph() -> None:
+    """``seed_content`` attaches the example photograph and its caption."""
+    seed()
+    home = HomePage.objects.get()
+    assert home.hero_image is not None
+    assert home.hero_image_caption == content.HERO_IMAGE_CAPTION
 
 
 def test_join_page_states_the_dues_and_eligibility_rules(client: Client) -> None:
@@ -149,14 +167,14 @@ def test_history_page_covers_2011_to_2022(client: Client) -> None:
 
 
 def test_seed_content_fills_in_the_site_settings() -> None:
-    """``seed_content`` fills in the EIN, mailing address, phone and theme."""
+    """``seed_content`` fills in the EIN, mailing address, duty phone and theme."""
     seed()
     settings_obj = get_site_settings()
     assert settings_obj is not None
     assert settings_obj.ein
     assert settings_obj.mailing_address
-    assert settings_obj.contact_phone
-    assert settings_obj.theme == "sierra"
+    assert settings_obj.duty_phone
+    assert settings_obj.theme == "duty"
 
 
 def test_seed_content_does_not_overwrite_edited_settings() -> None:
@@ -164,13 +182,13 @@ def test_seed_content_does_not_overwrite_edited_settings() -> None:
     seed()
     settings_obj = get_site_settings()
     assert settings_obj is not None
-    settings_obj.contact_phone = "(415) 555-0100"
-    settings_obj.save(update_fields=["contact_phone"])
+    settings_obj.duty_phone = "(415) 555-0100"
+    settings_obj.save(update_fields=["duty_phone"])
 
     seed()
     reloaded = get_site_settings()
     assert reloaded is not None
-    assert reloaded.contact_phone == "(415) 555-0100"
+    assert reloaded.duty_phone == "(415) 555-0100"
 
 
 def test_every_seeded_page_renders(client: Client) -> None:

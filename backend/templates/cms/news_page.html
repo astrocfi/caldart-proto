@@ -1,30 +1,30 @@
 {% extends "base.html" %}
 {% load wagtailcore_tags wagtailimages_tags %}
 
-{% comment %}A single news post: date eyebrow, title, lede, optional image, body.{% endcomment %}
+{% comment %}A single news post: the date, the title, the lede, an optional image, the body.{% endcomment %}
 
 {% block body_class %}news-post{% endblock %}
 
 {% block content %}
-  <header class="section page-header">
-    <p class="eyebrow page-header__parent">
-      <a href="{{ page.get_parent.url }}">{{ page.get_parent.title }}</a>
-      <time class="mono" datetime="{{ page.date|date:'Y-m-d' }}">{{ page.date|date:"j F Y" }}</time>
-    </p>
-    <h1>{{ page.title }}</h1>
-    {% if page.intro %}<p class="lede">{{ page.intro }}</p>{% endif %}
-  </header>
-
-  {% if page.image %}
-    <figure class="section figure figure--wide">
-      {% image page.image width-1400 alt=page.title %}
-    </figure>
-  {% endif %}
-
-  <div class="section grid">
-    <div class="col-text stack prose">
-      {% for block in page.body %}{% include_block block %}{% endfor %}
-      <p class="post-back"><a href="{{ page.get_parent.url }}">← All news</a></p>
+  <article class="box">
+    <div class="box__head box__head--titled">
+      <p class="box__parent">
+        <a href="{{ page.get_parent.url }}">{{ page.get_parent.title }}</a>
+        <time datetime="{{ page.date|date:'Y-m-d' }}">{{ page.date|date:"j F Y" }}</time>
+      </p>
+      <h1>{{ page.title }}</h1>
     </div>
-  </div>
+
+    <div class="box__body">
+      {% if page.image %}
+        <figure class="photo">{% image page.image width-1200 alt=page.title %}</figure>
+      {% endif %}
+      {% if page.intro %}<p class="lede">{{ page.intro }}</p>{% endif %}
+      <div class="prose">
+        {% for block in page.body %}{% include_block block %}{% endfor %}
+      </div>
+    </div>
+
+    <p class="box__more"><a href="{{ page.get_parent.url }}">« All news</a></p>
+  </article>
 {% endblock %}

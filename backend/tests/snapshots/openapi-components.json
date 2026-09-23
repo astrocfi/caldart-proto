@@ -1327,6 +1327,7 @@
   },
   "ThemeEnum": {
     "enum": [
+      "duty",
       "sierra",
       "pacific",
       "night"

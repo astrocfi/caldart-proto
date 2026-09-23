@@ -16,14 +16,16 @@ Where the files are
 
   frontend/src/styles/
     index.css            the entry point: fonts, then tokens, base, themes
-    tokens.css           every semantic token, with the sierra values
+    tokens.css           every semantic token, with the duty values
     base.css             reset, type scale, grid, forms, buttons, tables,
-                         chips, cards, site header and footer
-    themes/sierra.css    (the defaults live in tokens.css; this file is the
-                         explicit `[data-theme="sierra"]` block)
+                         chips, cards
+    themes/duty.css      (the defaults live in tokens.css; this file is the
+                         explicit `[data-theme="duty"]` block)
+    themes/sierra.css
     themes/pacific.css
     themes/night.css
-    site.css             public-site-only styles; imports index.css
+    site.css             the public site's own shape -- panel, masthead,
+                         navigation bar, boxes, sidebar; imports index.css
   frontend/src/portal/portal.css   portal-only styles
 
 ``site/main.ts`` imports ``styles/site.css``, and ``portal/main.tsx`` imports
@@ -52,9 +54,9 @@ Components only ever reference **semantic** tokens.  Nothing outside
    Element renders in an iframe, which cannot read the page's CSS custom
    properties, so ``appearanceFromTokens()`` resolves each token with
    ``getComputedStyle`` and hands Stripe the computed value.  Every color
-   lookup carries the sierra hex as a fallback, for the case where the property
+   lookup carries the duty hex as a fallback, for the case where the property
    resolves to nothing; the two lookups that are not colors, ``--font-body``
-   and ``--radius``, fall back to a plain literal.  Change a sierra color and
+   and ``--radius``, fall back to a plain literal.  Change a duty color and
    change the matching fallback with it.
 
 Color
@@ -67,12 +69,16 @@ Token                      Meaning
 ``--color-bg-raised``      Cards, table stripes, input fields
 ``--color-bg-sunken``      Wells, code, disabled controls
 ``--color-fg``             Body text ("ink")
-``--color-primary``        Primary action, links, wordmark mark
+``--color-primary``        Primary action, links, the masthead rule, the
+                           navigation bar and a box's title bar
 ``--color-primary-fg``     Text on a primary fill
 ``--color-primary-hover``  Primary hover fill
-``--color-accent``         The one loud color: hover, rules that matter,
-                           the step numbers, the pull-quote rule
-``--color-secondary``      A supporting hue, used sparingly
+``--color-accent``         The one loud color: the request-for-help button,
+                           and a rule that matters
+``--color-secondary``      A supporting hue, used sparingly.  The public
+                           site's sidebar bars do **not** use it: they mix a
+                           lighter cut of ``--color-primary``, because under
+                           some themes this token is a loud accent
 ``--color-rule``           Hairline separators
 ``--color-rule-strong``    Input borders, the strongest hairline
 ``--color-muted``          Secondary text
@@ -88,15 +94,17 @@ Token                      Meaning
 =========================  ==================================================
 
 That is the whole set a theme redefines — twenty-one tokens, listed above in
-the order ``themes/sierra.css`` declares them.
+the order ``themes/duty.css`` declares them.
 
 Type
 ----
 
 ``--font-display``
-    *Fraunces*, a variable serif with optical sizing.  Headings, the wordmark
-    and pull-quotes.  Set ``font-variation-settings`` with ``opsz`` matched to
-    the size, as ``base.css`` does for ``h1``–``h4``.
+    *Fraunces*, a variable serif with optical sizing.  The portal's headings
+    and its wordmark.  Set ``font-variation-settings`` with ``opsz`` matched to
+    the size, as ``base.css`` does for ``h1``–``h4``.  The public site sets its
+    headings in the body face instead: there the panel and its rules carry the
+    structure.
 
 ``--font-body``
     *IBM Plex Sans*.  Everything else.
@@ -107,18 +115,19 @@ Type
 
 Sizes run ``--text-xs`` … ``--text-4xl`` on a 1.25 scale anchored at 16px, with
 ``--leading-tight/snug/normal``, ``--weight-normal/medium/semibold/bold`` and
-``--tracking-eyebrow``.  Headings ``h1``–``h4`` are big and confident:
-display face, semibold, set at ``--leading-tight``.  The ``.eyebrow`` label
-that sits above a heading is extra-small semibold body type in uppercase,
-spaced out by ``--tracking-eyebrow`` and colored ``--color-muted``.
+``--tracking-eyebrow``.  In the portal, headings ``h1``–``h4`` are set in the
+display face, semibold, at ``--leading-tight``, and the ``.eyebrow`` label
+above a heading is extra-small semibold body type in uppercase, spaced out by
+``--tracking-eyebrow`` and colored ``--color-muted``.  The public site uses
+neither: its box title bars name each section instead.
 
 Space, shape and layout
 -----------------------
 
-``--space-1`` … ``--space-8`` (0.25rem → 6rem), ``--radius`` (2px — near-square
-by design), ``--radius-pill``, ``--hairline`` (1px), ``--measure`` (68ch),
-``--page-max``, ``--rail-width``, and ``--duration``, ``--duration-fast`` and
-``--ease`` for motion.
+``--space-1`` … ``--space-8`` (0.25rem → 6rem), ``--radius`` (6px — boxes,
+buttons and inputs are softened, not rounded), ``--radius-pill``,
+``--hairline`` (1px), ``--measure`` (68ch), ``--page-max``, ``--rail-width``,
+and ``--duration``, ``--duration-fast`` and ``--ease`` for motion.
 
 
 How a theme reaches the page
@@ -159,7 +168,13 @@ public site only; the portal always renders the saved theme.
 The shipped themes
 ==================
 
-``sierra`` (default)
+``duty`` (default)
+    Blue-gray ground ``#CCD3DC``, a white panel, ink ``#1D2530``, navy
+    ``#1F4E79``, the wordmark's red ``#B3261E`` for the one urgent action,
+    lighter navy ``#3F7FB0`` for the sidebar, rule ``#CCD6E1``, muted
+    ``#55606D``.
+
+``sierra``
     Warm paper ``#F4F1EA``, ink ``#1B1F24``, deep conifer ``#1F4D3A``, signal
     orange ``#E4572E``, poppy gold ``#F2A900``, rule ``#D9D3C7``, muted
     ``#6B6F76``.
@@ -172,8 +187,8 @@ The shipped themes
     Dark: paper ``#151719``, ink ``#ECE9E1``, primary ``#7FB69B``, accent
     ``#FF7A52``, secondary ``#F2C14E``.
 
-Status colors are shared: ok ``#2E7D4F``, warn ``#C98A00``, bad ``#B23A2B``,
-adjusted per theme where contrast demands it.
+Status colors are close to shared: ok ``#1F7A4D``, warn ``#A86B00``, bad
+``#B3261E`` under ``duty``, adjusted per theme where contrast demands it.
 
 
 Adding a theme
@@ -211,7 +226,7 @@ Adding a theme
 
    That is the complete set: every shipped theme redefines exactly these
    twenty-one tokens, status colors and their translucent fills included.  A
-   token you leave out falls back to the ``sierra`` value in ``tokens.css``,
+   token you leave out falls back to the ``duty`` value in ``tokens.css``,
    which is rarely what you want — and on a dark theme is usually unreadable.
    A dark theme must also set ``color-scheme: dark`` so form controls and
    scrollbars follow.
@@ -221,7 +236,8 @@ Adding a theme
 #. Register the slug in ``apps/cms/models.py``::
 
        THEME_CHOICES = (
-           ("sierra", "Sierra (default, warm paper)"),
+           ("duty", "Duty (default, blue and red)"),
+           ("sierra", "Sierra (warm paper)"),
            ("pacific", "Pacific (cool paper)"),
            ("night", "Night (dark)"),
            ("chaparral", "Chaparral (dry hills)"),
@@ -270,26 +286,28 @@ Nothing else refers to a font by name.
 House rules
 ===========
 
-* **Clean, modern, editorial.**  Type, space and hairlines carry the design,
-  not decoration: no gradients, no glassmorphism or backdrop blur, no hero
-  blobs and no emoji bullets.
+* **Plain and civic.**  Type, rules and the panel carry the design, not
+  decoration: no gradients, no glassmorphism or backdrop blur, no hero blobs
+  and no emoji bullets.
 * **Semantic tokens only** in components.  If you need a color that no token
   names, add the token — do not inline a hex value.  The one exception is
   :ref:`the Stripe panel <theming-stripe-colors>`, which has to hand computed
   values across an iframe boundary.
-* **Hairlines, not boxes.**  Sections are separated by a ``1px``
-  ``--color-rule`` and generous space.  No drop shadows, no background-color
-  bands, no floating rounded cards.
-* **Near-square corners.**  ``--radius`` is 2px and stays that way.
-* **Asymmetry is deliberate.**  From ``min-width: 60rem`` the 12-column grid
-  runs text at 7 columns and the aside at 4, with a column of air between them
-  (``.col-text`` / ``.col-side``); below that both span the full width, which
-  is what makes the layout work on a phone.  ``.col-full`` and ``.col-half``
-  are there for content that wants the whole grid or half of it.
+* **Boxes on the public site, hairlines in the portal.**  A public page is a
+  stack of ``.box`` elements, each with a title bar in ``--color-primary``
+  (``--color-secondary`` in the sidebar) and a bordered body.  The portal
+  separates its sections with a ``1px`` ``--color-rule`` and space instead.
+  Neither uses drop shadows.
+* **Softened corners.**  ``--radius`` is 6px and stays that way.
+* **One panel, two columns.**  The public site centers a ``.panel`` at
+  ``--panel-max`` (62.5rem); inside it ``.panel__main`` takes the space left
+  by a ``.panel__side`` of ``--side-width``, and below ``59.99rem`` the two
+  stack.  The portal keeps the 12-column grid, running text at 7 columns and
+  an aside at 4 from ``min-width: 60rem`` (``.col-text`` / ``.col-side``).
 * **Mobile first.**  Layout breakpoints are ``min-width`` and the narrow
   layout is the base case.  A handful of ``max-width`` queries exist for the
-  opposite job — collapsing the site nav below ``47.99rem`` and the portal
-  rail below ``59.99rem`` — but reach for ``min-width`` unless you are
+  opposite job — collapsing the navigation bar below ``47.99rem`` and the
+  sidebar below ``59.99rem`` — but reach for ``min-width`` unless you are
   genuinely undoing something wide.
 * **Focus rings are never removed**, and ``prefers-reduced-motion`` is
   honored globally in ``base.css``.
