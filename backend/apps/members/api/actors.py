@@ -3,7 +3,7 @@
 Every view in this app is gated by a permission class that already refuses
 anonymous callers, so the account is there by the time a handler runs.
 :func:`acting_user` is how a handler says so: it hands back the ``User``, which
-carries the profile, memberships and payments the handlers reach for, rather
+carries the profile, memberships, and payments the handlers reach for, rather
 than the "a user or an anonymous visitor" the request alone promises.
 """
 

@@ -33,7 +33,7 @@ def ensure_site_root() -> Site:
             hero_heading="Volunteer air transportation when California needs it",
             hero_lede=(
                 "CalDART organizes pilots and ground personnel across the state so "
-                "relief supplies, personnel and information move when roads do not."
+                "relief supplies, personnel, and information move when roads do not."
             ),
             primary_cta_label="Join CalDART",
             primary_cta_url="/portal/join",

@@ -4,7 +4,7 @@ User guide
 
 Everything you can do with CalDART without touching the code: joining and
 renewing, keeping your profile and aircraft current, checking another member
-before a flight, and administering accounts, content and the system itself.
+before a flight, and administering accounts, content, and the system itself.
 
 .. toctree::
    :maxdepth: 1

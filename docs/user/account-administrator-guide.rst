@@ -111,7 +111,7 @@ The member record
 =================
 
 Clicking a name opens that person's record.  A summary strip at the top
-carries their membership chip, plan, expiry and join date; below it are four
+carries their membership chip, plan, expiry, and join date; below it are four
 tabs.  Arrow keys move between the tabs, and the tab you are on is part of the
 address, so you can send a colleague straight to somebody's payment history.
 
@@ -152,7 +152,7 @@ The history table lists every term: plan, start, end, status, where it came
 from (a payment, a manual grant or the demo seed), the note, and who granted
 it.
 
-**Edit** on a row lets you correct that term's end date, status or note — for
+**Edit** on a row lets you correct that term's end date, status, or note — for
 a refund, a goodwill extension, or a term that was entered wrongly.  Setting a
 term to *Canceled* takes it out of the membership calculation entirely; the
 row stays in the history.
@@ -225,8 +225,8 @@ every matching member and not just the page in front of you.
   list of.
 
 Both carry the same sixteen columns: name, email, phone, DART, status, plan,
-expiry, certificate and its number, IFR, medical class and expiry, aircraft,
-city, state and join date.  A lifetime member has no expiry date, so that cell
+expiry, certificate, and its number, IFR, medical class and expiry, aircraft,
+city, state, and join date.  A lifetime member has no expiry date, so that cell
 is empty and the plan column says *Life*.
 
 The columns are listed field by field in the developer documentation under
@@ -259,7 +259,7 @@ Common tasks
 
 **Who is about to lapse?**
    Membership *Current*, Expiring within ``30``.  Export the CSV for the
-   renewal mail-out.  Automatic reminders go out at 60, 30 and 7 days before
+   renewal mail-out.  Automatic reminders go out at 60, 30, and 7 days before
    expiry, on the day itself, and 30 days after.
 
 **Who has lapsed and not come back?**
@@ -297,7 +297,7 @@ When something goes wrong
 
 **"You cannot change the email address of an account that holds roles you do not hold."**
    The record carries a role you do not have — ``dart_leader``,
-   ``website_admin``, ``user_admin`` or ``system_admin``.  Moving an address is
+   ``website_admin``, ``user_admin``, or ``system_admin``.  Moving an address is
    enough to take an account over, so it is reserved for somebody who already
    holds every role that account holds.  Ask a system administrator, or a
    colleague who holds them all.

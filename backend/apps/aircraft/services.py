@@ -157,7 +157,7 @@ def pilot_names(aircraft: Aircraft) -> list[str]:
 
 
 def insurance_queryset(queryset: QuerySet[Aircraft], state: str) -> QuerySet[Aircraft]:
-    """Narrow ``queryset`` to ``current``, ``expired`` or ``missing`` cover."""
+    """Narrow ``queryset`` to ``current``, ``expired``, or ``missing`` cover."""
     today = timezone.localdate()
     if state == "current":
         return queryset.filter(insurance_expiration__gte=today)

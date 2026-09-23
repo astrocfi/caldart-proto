@@ -3,7 +3,7 @@ Developer guide
 ===============
 
 For contributors and operators: how CalDART is built and how to work on it —
-its architecture, a local development setup, configuration and secrets, the
+its architecture, a local development setup, configuration, and secrets, the
 data model and HTTP API, the CMS and the design system, testing, and running
 it in production.  The :doc:`/user/index` instead covers what each role can
 do once the system is running; read that one if you are a member, a DART

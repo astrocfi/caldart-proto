@@ -1,7 +1,7 @@
-"""Backup, restore and health helpers.
+"""Backup, restore, and health helpers.
 
 The ``/system/...`` API wraps these, and so do the ``db_backup``,
-``db_restore``, ``db_reset`` and ``health`` management commands.
+``db_restore``, ``db_reset``, and ``health`` management commands.
 """
 
 from __future__ import annotations
@@ -288,7 +288,7 @@ def restore_backup(path: Path, *, drop_first: bool = True) -> None:
     go first or every statement collides with what is already there.
     ``drop_first=False`` is for restoring into an empty database.
 
-    The dump is read through before anything is dropped, so a corrupt, truncated
+    The dump is read through before anything is dropped, so a corrupt, truncated,
     or non-gzip file raises :class:`BackupError` naming it and leaves the database
     that is already there untouched.
 
@@ -344,7 +344,7 @@ def app_version() -> str:
 
     The deployed tree always has the file next to it, so the version reported by
     ``/system/health`` is the one that was actually installed.  Falls back to
-    ``settings.CALDART_VERSION`` when the file is missing, unreadable or not valid
+    ``settings.CALDART_VERSION`` when the file is missing, unreadable, or not valid
     TOML, when it declares no ``[project] version``, and when that key holds
     anything other than a string.  The result is computed once and cached.
     """

@@ -32,7 +32,7 @@ function PaymentsKept({ member }: { member: MemberDetail }) {
       </p>
       <p>
         Clear Account is active on the Profile tab instead. A deactivated member cannot sign in, and
-        their profile, membership terms and payments stay exactly as they are.
+        their profile, membership terms, and payments stay exactly as they are.
       </p>
     </Card>
   );

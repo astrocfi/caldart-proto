@@ -12,7 +12,7 @@ When does my membership expire?
 -------------------------------
 
 Sign in and look at the dashboard at ``/portal/``.  The status card at the top
-says **Current**, **Expired** or **No membership**, and a current one shows the
+says **Current**, **Expired**, or **No membership**, and a current one shows the
 date it runs out.  ``/portal/profile`` and the **Renew** screen show the same
 date.
 
@@ -118,7 +118,7 @@ Do I get a receipt?
 
 If you paid by card through Stripe, Stripe emails you one.  CalDART does not
 send a receipt of its own.  Your payment history is always at
-``/portal/`` on the dashboard, with the date, plan, amount and method, and an
+``/portal/`` on the dashboard, with the date, plan, amount, and method, and an
 account administrator can confirm any payment for you.
 
 See :doc:`payments`.
@@ -171,12 +171,12 @@ may keep it up to date.  If somebody else added the one you fly, ask an account
 administrator to correct it.  See :doc:`aircraft`.
 
 Somebody else already added the airplane I fly. Should I add another?
-----------------------------------------------------------------------
+---------------------------------------------------------------------
 
 No.  There is one register, shared by everybody, and one record per airframe.
 Attach the existing record to your profile — that is what "planes commonly
 flown" means — and an insurance renewal entered once is then right for all of
-you.  The register normalizes registrations, so ``N12345``, ``n-12345`` and
+you.  The register normalizes registrations, so ``N12345``, ``n-12345``, and
 ``12345`` all find the same airplane and a duplicate cannot be created by
 typing it differently.
 

@@ -128,7 +128,7 @@ export function MembersListPage(): JSX.Element {
     <Page
       title="Members"
       eyebrow="Administration"
-      lede="Everyone with a CalDART account, with their membership, certificate and medical currency."
+      lede="Everyone with a CalDART account, with their membership, certificate, and medical currency."
       actions={<ButtonLink to="/admin/members/new">New member</ButtonLink>}
     >
       <Card>

@@ -228,7 +228,7 @@ class ReportDateField(serializers.DateField):
     """
 
     def __init__(self, **kwargs: Any) -> None:
-        """Build the field, defaulting to optional, unbounded and our own message."""
+        """Build the field, defaulting to optional, unbounded, and our own message."""
         kwargs.setdefault("required", False)
         kwargs.setdefault("default", None)
         kwargs.setdefault("error_messages", {"invalid": DATE_FORMAT_MESSAGE})
@@ -251,9 +251,9 @@ class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     """The query string ``GET /admin/payments``, ``/summary`` and ``/export.csv`` share.
 
     Every parameter is optional and an empty one narrows nothing: ``from`` and ``to``
-    bound the date the money arrived, ``provider`` and ``status`` must name one of
+    bound the date the money arrived, ``provider``, and ``status`` must name one of
     the payment choices, ``search`` matches a name, an email address or a provider
-    reference, and ``group`` is the summary's period, ``month`` or ``year``.  The
+    reference, and ``group`` is the summary's period, ``month``, or ``year``.  The
     three endpoints therefore refuse the same input the same way, with the complaint
     keyed by the parameter it came from.
     """

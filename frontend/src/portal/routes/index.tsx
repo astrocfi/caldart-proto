@@ -10,7 +10,7 @@
  * Most feature routes name their page with `lazy`, so its code arrives only
  * when somebody opens it; the root route's hydrate fallback covers that wait on
  * the first page a visitor asks for, and a later move between screens holds the
- * current one until the next page's chunk arrives.  The sign-in, dashboard and
+ * current one until the next page's chunk arrives.  The sign-in, dashboard, and
  * not-found screens stay eager: they are where a visitor lands, and an extra
  * request there would only delay them.
  */

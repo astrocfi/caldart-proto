@@ -98,7 +98,7 @@ describe('MembershipChip', () => {
 });
 
 describe('CurrencyChip', () => {
-  it('distinguishes current, expired and missing', () => {
+  it('distinguishes current, expired, and missing', () => {
     const { rerender } = render(<CurrencyChip isCurrent />);
     expect(screen.getByText('Current')).toHaveClass('chip--ok');
 

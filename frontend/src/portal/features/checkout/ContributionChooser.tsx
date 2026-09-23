@@ -44,7 +44,7 @@ export function ContributionChooser({
       <legend>Add a contribution</legend>
       <p className="muted checkout__hint">
         CalDART is a 501(c)(3); a contribution on top of your dues is tax deductible and pays for
-        training, fuel and equipment.
+        training, fuel, and equipment.
       </p>
       <div className="tier-grid">
         {tiers.map((tier) => (

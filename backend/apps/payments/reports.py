@@ -76,7 +76,7 @@ def base_queryset() -> QuerySet[Payment]:
 
 @dataclass(frozen=True)
 class PaymentFilters:
-    """The narrowing the list, summary and CSV endpoints share.
+    """The narrowing the list, summary, and CSV endpoints share.
 
     Each field is already validated: the API layer reads the query string, and an
     empty string or ``None`` means "do not narrow on this".

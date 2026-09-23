@@ -48,10 +48,10 @@ class AircraftFilter(django_filters.FilterSet):
     def filter_search(
         self, queryset: QuerySet[Aircraft], name: str, value: str
     ) -> QuerySet[Aircraft]:
-        """N-number, make, model or owner name.
+        """N-number, make, model, or owner name.
 
-        The N-number half searches the normalized form too, so ``n-172sp``,
-        ``172sp`` and ``N172SP`` are all the same query.
+        The N-number half searches the normalized form too, so ``n-172sp``
+        , ``172sp``, and ``N172SP`` are all the same query.
         """
         term = (value or "").strip()
         if not term:
@@ -70,7 +70,7 @@ class AircraftFilter(django_filters.FilterSet):
     def filter_insurance(
         self, queryset: QuerySet[Aircraft], name: str, value: str
     ) -> QuerySet[Aircraft]:
-        """Narrow ``queryset`` to ``current``, ``expired`` or ``missing`` cover."""
+        """Narrow ``queryset`` to ``current``, ``expired``, or ``missing`` cover."""
         return insurance_queryset(queryset, value)
 
     def filter_expiring_within(

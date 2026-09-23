@@ -9,8 +9,8 @@ the alternative and is called out where the two differ.
 
 Every path below assumes the deploy root
 ``/srv/caldart``.  If you use another, change it in all six files that name it:
-``deploy/gunicorn.conf.py``, ``deploy/apache/caldart.conf``,
-``deploy/nginx/caldart.conf`` and all three units under ``deploy/systemd/``.
+``deploy/gunicorn.conf.py``, ``deploy/apache/caldart.conf``
+, ``deploy/nginx/caldart.conf``, and all three units under ``deploy/systemd/``.
 ``grep -rn /srv/caldart deploy/`` finds every occurrence.
 
 
@@ -96,7 +96,7 @@ What you are deploying
            manage.py send_renewal_reminders ----------'
            -> the SMTP server from EMAIL_URL
 
-   Apache, gunicorn, Postgres and the timer run on one Linux server with the
+   Apache, gunicorn, Postgres, and the timer run on one Linux server with the
    deploy root ``/srv/caldart``, and both systemd units read their settings
    from ``/etc/caldart/caldart.env`` (``root:caldart``, mode ``0640``).  Django
    calls out to ``api.stripe.com`` and ``api-m.paypal.com`` during a checkout,
@@ -238,7 +238,7 @@ Uncomment and set every one::
   DATABASE_URL=postgres://caldart:a-long-random-password@localhost:5432/caldart
 
 Four of them have no default at all — ``prod.py`` refuses to start without
-``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` or ``EMAIL_URL``, and refuses
+``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, or ``EMAIL_URL``, and refuses
 the published development ``SECRET_KEY`` as well.  Nothing in the production
 settings reads a ``.env`` file, so a stray one in the checkout cannot fill in a
 variable you missed.
@@ -248,7 +248,7 @@ Generate a secret key with::
   python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 
 Then work down the rest of the template: ``CSRF_TRUSTED_ORIGINS``,
-``DEFAULT_FROM_EMAIL``, the Stripe and PayPal keys, ``BACKUP_DIR`` and
+``DEFAULT_FROM_EMAIL``, the Stripe and PayPal keys, ``BACKUP_DIR``, and
 ``DB_BACKUP_VIA_DOCKER``.  :doc:`configuration` documents every variable, what
 reads it, and its development and production values.  The Stripe and PayPal
 keys are covered in :doc:`payments-setup`.
@@ -315,8 +315,8 @@ through when the output is redirected.
 the settings, and it is not optional: a transient unit otherwise takes
 systemd's system default of ``0022``, and ``caldart_manage db_backup`` would
 write a full dump of the database — member records, password hashes, payment
-history — world-readable at mode 0644.  ``caldart-web.service``,
-``caldart-reminders.service`` and the ``caldart-backup.service`` in
+history — world-readable at mode 0644.  ``caldart-web.service``
+, ``caldart-reminders.service``, and the ``caldart-backup.service`` in
 :doc:`backup-restore` set the same mask, so every path that writes a dump
 writes it readable by the ``caldart`` group and no wider.
 
@@ -388,7 +388,7 @@ environment file to override the count outright.
 
 It is hardened with the usual systemd sandbox — ``ProtectSystem=strict``,
 ``NoNewPrivileges``, an empty capability set — so the only writable paths are
-``media/``, ``staticfiles/`` and ``backups/``.  If you move ``BACKUP_DIR``, add
+``media/``, ``staticfiles/``, and ``backups/``.  If you move ``BACKUP_DIR``, add
 the new path to ``ReadWritePaths`` or backups will fail with a permission
 error.
 
@@ -418,7 +418,7 @@ The vhost:
   document uploads to, with ``Require all denied``.  The deeper ``<Directory>``
   section is applied after the one above it, so it wins;
 * sets **no** security headers of its own on proxied responses.  HSTS,
-  ``X-Content-Type-Options``, ``Referrer-Policy`` and ``X-Frame-Options`` all
+  ``X-Content-Type-Options``, ``Referrer-Policy``, and ``X-Frame-Options`` all
   come from ``prod.py``, where they are configurable per deployment.  A second
   copy from the vhost would both duplicate the header and override the
   settings.  ``/media/`` is the one exception, because Apache serves it without
@@ -455,7 +455,7 @@ Use one or the other, never both on the same host::
   sudo ln -s /etc/nginx/sites-available/caldart /etc/nginx/sites-enabled/
   sudo nginx -t && sudo systemctl reload nginx
 
-It is the same shape: ACME on port 80, TLS and proxying on 443,
+It is the same shape: ACME on port 80, TLS, and proxying on 443,
 ``proxy_set_header X-Forwarded-Proto $scheme``, ``/media/`` from disk,
 ``client_max_body_size 25m``, and the security headers left to Django.  nginx's
 ``add_header`` does not replace what the upstream sent, so a copy here would
@@ -486,7 +486,7 @@ Take one now and schedule them::
 
   caldart_manage db_backup
 
-:doc:`backup-restore` covers the commands, the timer, retention and restoring.
+:doc:`backup-restore` covers the commands, the timer, retention, and restoring.
 
 
 Checking it worked
@@ -516,7 +516,7 @@ Deployment checks
 ``caldart.settings.prod``, so the production settings are audited before every
 change reaches ``main`` and whenever you want to audit them on a checkout.
 ``--deploy`` adds Django's deployment-only checks to the default set, and those
-carry four tags — ``security``, ``caches``, ``async_support`` and ``mail``.
+carry four tags — ``security``, ``caches``, ``async_support``, and ``mail``.
 The recipe names all four, which runs every deployment-only check while leaving
 out the default checks ``make check-backend`` already runs, one of which needs
 a built ``frontend/dist``.
@@ -524,7 +524,7 @@ a built ``frontend/dist``.
 The recipe supplies a throwaway environment inline rather than reading
 ``/etc/caldart/caldart.env``.  That environment carries only what
 ``caldart.settings.prod`` requires outright — a dummy ``SECRET_KEY``,
-``ALLOWED_HOSTS``, ``DATABASE_URL``, ``SITE_URL`` and ``EMAIL_URL`` — and pins
+``ALLOWED_HOSTS``, ``DATABASE_URL``, ``SITE_URL``, and ``EMAIL_URL`` — and pins
 no secure flag, so each one comes from the module's own default and the check
 exercises what a real box gets, without touching a real secret or a real
 database.
@@ -552,8 +552,8 @@ Security headers
 ================
 
 Django sends every security header the site relies on:
-``Strict-Transport-Security``, ``X-Content-Type-Options``, ``Referrer-Policy``,
-``X-Frame-Options`` and ``Content-Security-Policy``.  Every response that
+``Strict-Transport-Security``, ``X-Content-Type-Options``, ``Referrer-Policy``
+, ``X-Frame-Options``, and ``Content-Security-Policy``.  Every response that
 reaches gunicorn — the public site, the portal, the API and the Wagtail admin —
 therefore carries exactly what the settings say, which is why
 :ref:`configuration-csp` is the only place the policy is written down.
@@ -651,11 +651,11 @@ not a line.
 A privileged attempt a rule turns away is logged at WARNING under the same
 action, with a ``reason`` slug saying which rule refused it: ``self_deactivation``,
 ``roles_not_held``, ``system_admin_role``, ``self_delete``,
-``system_admin_target``, ``has_payments``, ``inactive_account`` or
+``system_admin_target``, ``has_payments``, ``inactive_account``, or
 ``no_such_backup``.
 
-A record carries ids, counts, flags and slugs and nothing else.  Email
-addresses, names, passwords, tokens and database contents are not values the
+A record carries ids, counts, flags, and slugs and nothing else.  Email
+addresses, names, passwords, tokens, and database contents are not values the
 helper accepts, so a line can never carry them; reading it back therefore means
 looking the ids up.  A richer trail, held in the database and readable from the
 portal, is the ``AuditEntry`` model in :doc:`roadmap`.

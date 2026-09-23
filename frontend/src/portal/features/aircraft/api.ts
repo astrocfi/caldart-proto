@@ -101,7 +101,7 @@ export interface AircraftSearchResult {
 
 /**
  * The picker's search: try the registration first, then fall back to a
- * fuzzy search over N-number, make, model and owner.
+ * fuzzy search over N-number, make, model, and owner.
  */
 export async function findAircraft(term: string, limit = 8): Promise<AircraftSearchResult> {
   // An exact registration is shown even when it is out of service, so a

@@ -351,7 +351,7 @@ class AdminPaymentListView(ListAPIView[Payment]):
 
     permission_classes = [IsAuthenticated, IsAccountAdmin]
     serializer_class = PaymentSerializer
-    # Filtering, search and ordering are handled here rather than by the
+    # Filtering, search, and ordering are handled here rather than by the
     # project-wide backends: they all key off the ``paid_at`` annotation.
     filter_backends = []
 

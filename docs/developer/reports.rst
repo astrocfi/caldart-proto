@@ -3,7 +3,7 @@ Reports
 =======
 
 CalDART exports data as CSV, for a spreadsheet, and as PDF, for a board pack.
-There are three reports — membership, aircraft and payments — and all three
+There are three reports — membership, aircraft, and payments — and all three
 are built on one set of helpers in ``backend/caldart/reports.py``.
 
 .. list-table::
@@ -123,12 +123,12 @@ name                 Full name, or the email address when no name is on file
 email                Login address
 phone                Primary phone from the profile
 dart                 DART name, blank when unaffiliated
-status               ``current``, ``expired`` or ``none``
+status               ``current``, ``expired``, or ``none``
 plan                 Plan behind that status, e.g. ``Annual`` or ``Life``
 expires_on           End of unbroken coverage; **blank for a lifetime member**
 certificate          Pilot certificate, e.g. ``Private``; blank for none
 certificate_number   Certificate number as entered
-ifr                  ``Yes``, ``No`` or ``Not applicable``
+ifr                  ``Yes``, ``No``, or ``Not applicable``
 medical_type         ``BasicMed``, ``Third class``, …; blank for none
 medical_expiration   Medical expiry date
 aircraft             N-numbers of the planes the member commonly flies, spaced
@@ -233,7 +233,7 @@ have attached the airplane, from ``apps.aircraft.services.pilot_names``.
 
 Both exports take the register's full filter set: ``search``, ``make``,
 ``owner_type``, ``insurance`` (``current`` / ``expired`` / ``missing``),
-``expiring_within``, ``is_active`` and ``ordering``.  The PDF subtitle names
+``expiring_within``, ``is_active``, and ``ordering``.  The PDF subtitle names
 every one of them, through ``AircraftExportMixin.applied_filters``.
 
 
@@ -255,7 +255,7 @@ Columns, from ``CSV_HEADER`` in ``backend/apps/payments/reports.py``:
 ``total``, ``provider``, ``wallet``, ``status``, ``provider_ref``.  Money is a
 plain decimal; ``plan`` is empty for a pure donation.
 
-Filters are ``from``, ``to``, ``provider``, ``status`` and ``search``.  The
+Filters are ``from``, ``to``, ``provider``, ``status``, and ``search``.  The
 export includes **every** status, while ``GET /admin/payments/summary`` counts
 only ``succeeded`` rows — so an export and a period total will differ whenever
 there are failed attempts in the range, which is expected rather than a fault.
@@ -270,7 +270,7 @@ Testing a report
 ================
 
 ``backend/tests/test_reports.py`` covers the shared helpers: streaming,
-laziness, download headers, escaping, pagination and an empty result set.
+laziness, download headers, escaping, pagination, and an empty result set.
 
 ``backend/tests/test_members_reports.py`` covers the membership report and is
 the pattern to copy.  Assertions worth keeping:

@@ -48,7 +48,7 @@ Sign in and choose **System** in the sidebar, or go straight to
 Health
 ------
 
-Six checks, each with an **OK**, **Warning** or **Attention** chip.  **Refresh**
+Six checks, each with an **OK**, **Warning**, or **Attention** chip.  **Refresh**
 re-runs them.
 
 **Database**
@@ -107,7 +107,7 @@ and is a command-line job with the site stopped; see
 Renewal reminders
 -----------------
 
-CalDART emails members five times around their expiry date: 60, 30 and 7 days
+CalDART emails members five times around their expiry date: 60, 30, and 7 days
 before, on the day itself, and 30 days after.  A scheduled job runs every
 morning at 07:00 and sends whatever is due, so in normal operation you never
 touch this panel.

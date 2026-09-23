@@ -1,6 +1,6 @@
 """Rate limits for the unauthenticated auth endpoints.
 
-Login, registration and password-reset requests are the three places where an
+Login, registration, and password-reset requests are the three places where an
 anonymous caller can burn server time or spray an inbox, so each gets its own
 DRF ``AnonRateThrottle`` scope.
 

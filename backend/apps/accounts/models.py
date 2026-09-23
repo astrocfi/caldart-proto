@@ -24,7 +24,7 @@ class UserManager(DjangoUserManager["User"]):
     use_in_migrations = True
 
     def _create_user(self, email: str, password: str | None = None, **extra_fields: Any) -> User:
-        """Create, save and return a user with ``email`` and ``password``.
+        """Create, save, and return a user with ``email`` and ``password``.
 
         The address is normalized and stripped before it is stored.  ``extra_fields``
         are set on the row as given.  Without a password the account holds an unusable
@@ -189,8 +189,8 @@ class User(AbstractUser):
     def membership_status(self) -> MembershipStatusDict:
         """The membership summary for this account, worked out for today.
 
-        Carries ``status`` (``current``, ``expired`` or ``none``), ``expires_on``,
-        ``plan`` and ``is_lifetime``, and costs a query or two each time it is read.
+        Carries ``status`` (``current``, ``expired``, or ``none``), ``expires_on``
+        , ``plan``, and ``is_lifetime``, and costs a query or two each time it is read.
         """
         # Inline: members sits above accounts and apps.members.services imports
         # apps.accounts.services, so a top-level import here would close the cycle.

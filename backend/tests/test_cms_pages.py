@@ -14,7 +14,7 @@ from django.test import Client
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.cms.context_processors import build_nav
+from apps.cms.context_processors import PORTAL_TITLE, build_nav
 from apps.cms.models import SiteSettings, StandardPage
 from apps.members.models import Dart, MembershipPlan
 from tests.factories import (
@@ -524,13 +524,13 @@ def test_nav_lists_menu_pages_then_the_portal_actions(
     assert "Hidden" not in body
 
 
-def test_nav_shows_members_instead_of_log_in_when_signed_in(
+def test_nav_shows_the_portal_instead_of_log_in_when_signed_in(
     client: Client, site_settings: SiteSettings, member: User
 ) -> None:
-    """A signed-in visitor sees a "Members" link in place of "Log in"."""
+    """A signed-in visitor sees the portal link in place of "Log in"."""
     client.force_login(member)
     body = client.get("/").content.decode()
-    assert ">Members</a>" in body
+    assert f">{PORTAL_TITLE}</a>" in body
     assert 'href="/portal/"' in body
     assert ">Log in</a>" not in body
 

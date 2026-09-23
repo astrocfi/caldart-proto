@@ -1,7 +1,7 @@
 """Member and membership services.
 
 A member record is an account plus its profile, and the four functions at the
-top of this module are the only ways one is created, edited or removed.  Each
+top of this module are the only ways one is created, edited, or removed.  Each
 enforces its own rules and refuses with a ``DomainError``, so a management
 command, the Django admin and the API all behave the same way.  The account
 half of every rule belongs to ``accounts.services``.
@@ -9,7 +9,7 @@ half of every rule belongs to ``accounts.services``.
 ``membership_status`` is the single source of truth for "is this person a
 current member"; ``activate_term`` is the single way a term is created.
 
-The same rule is stated twice, because a list has to filter, order and
+The same rule is stated twice, because a list has to filter, order, and
 paginate on it in the database.  ``membership_status`` works one user out in
 Python; :func:`membership_annotations` expresses the identical rule as
 correlated subqueries, :func:`with_membership` hangs them on any ``User``
@@ -34,7 +34,7 @@ The translation, term by term:
     ``membership_status`` reports for an expired member.
 
 ``tests/test_members_admin_status.py`` checks the two implementations agree
-over a deliberately awkward set of histories, including early renewals, gaps
+over a deliberately awkward set of histories, including early renewals, gaps,
 and canceled terms.
 """
 

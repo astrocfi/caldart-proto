@@ -36,7 +36,7 @@ export function adminUserKey(
   return [...ADMIN_USERS_KEY, 'detail', String(id)] as const;
 }
 
-/** The paginated account list for `/admin/users`, filtered and paged. */
+/** The paginated account list for `/admin/users`, filtered, and paged. */
 export function useAdminUsers(filters: AdminUserFilters): UseQueryResult<Paginated<User>> {
   return useQuery({
     queryKey: adminUsersKey(filters),
@@ -62,7 +62,7 @@ export function useAdminUser(id: string | number): UseQueryResult<User> {
 }
 
 /**
- * Patches one account's names, email, roles or status.
+ * Patches one account's names, email, roles, or status.
  *
  * Also invalidates the signed-in caller's own `auth/me` query, since editing
  * your own roles changes what the nav may show.

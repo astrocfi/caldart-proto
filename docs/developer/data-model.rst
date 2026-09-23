@@ -19,8 +19,8 @@ House rules that apply throughout:
 - **Most models carry ``created_at`` and ``updated_at``**, inherited from
   ``caldart.models.TimestampedModel`` (``User`` declares its own pair,
   because it inherits from ``AbstractUser`` instead).  ``cms.BasePage`` does
-  not, because Wagtail's ``Page`` keeps its own dates: ``first_published_at``,
-  ``last_published_at`` and ``latest_revision_created_at``, alongside the
+  not, because Wagtail's ``Page`` keeps its own dates: ``first_published_at``
+  , ``last_published_at``, and ``latest_revision_created_at``, alongside the
   revision history behind them.  ``cms.SiteSettings`` carries no dates either,
   and Wagtail's ``BaseSiteSetting`` adds only the one-to-one to
   ``wagtailcore.Site``, so editing the settings overwrites the single row and
@@ -50,7 +50,7 @@ Domain schema
                 and an **empty arrowhead** points from a subclass to the
                 abstract model it inherits.  ``TimestampedModel`` is drawn
                 once rather than seven times: ``Dart``, ``MemberProfile``,
-                ``MembershipPlan``, ``Membership``, ``Aircraft``, ``Payment``
+                ``MembershipPlan``, ``Membership``, ``Aircraft``, ``Payment``,
                 and ``ReminderLog`` all inherit it.
       :alt: Entity-relationship diagram of the CalDART domain models
 
@@ -101,8 +101,8 @@ Domain schema
 .. only:: not graphviz
 
    Install Graphviz and rebuild for a drawn version of this diagram.  The
-   drawing, the node list and the edge list below carry the same models,
-   fields and relations.
+   drawing, the node list and the edge list below carry the same models
+   , fields, and relations.
 
    .. code-block:: text
 
@@ -110,8 +110,8 @@ Domain schema
       -------------------------------------------------------------------------
       caldart.TimestampedModel   created_at, updated_at
                                  inherited by Dart, MemberProfile,
-                                 MembershipPlan, Membership, Aircraft,
-                                 Payment and ReminderLog
+                                 MembershipPlan, Membership, Aircraft
+                                 , Payment, and ReminderLog
       payments.Provider          start(payment), confirm(payment, **kwargs),
                                  handle_webhook(request)
                                  implemented by StripeProvider (slug stripe),
@@ -238,8 +238,8 @@ CMS page models
 .. only:: not graphviz
 
    Install Graphviz and rebuild for a drawn version of this diagram.  The
-   drawing, the node list and the edge list below carry the same models,
-   fields and relations.
+   drawing, the node list and the edge list below carry the same models
+   , fields, and relations.
 
    .. code-block:: text
 
@@ -249,7 +249,7 @@ CMS page models
                              body_headings, show_on_this_page
                              inherits wagtailcore.Page; inherited by HomePage,
                              StandardPage, NewsIndexPage, NewsPage,
-                             DartIndexPage, DartPage and ContactPage
+                             DartIndexPage, DartPage, and ContactPage
       cms.MembersOnlyMixin   members_only; serve() renders the members-only
                              wall with HTTP 403
                              mixed into StandardPage and NewsPage
@@ -395,18 +395,18 @@ descriptions live in ``apps/accounts/roles.py``:
      - own profile, own payments and membership, join and renew, and
        members-only content while the membership is current
    * - ``dart_leader``
-     - \+ look up any member and see membership, medical, certificate and
+     - \+ look up any member and see membership, medical, certificate, and
        aircraft insurance currency
    * - ``user_admin``
      - \+ list users, assign roles, activate or deactivate accounts, trigger
        password resets
    * - ``account_admin``
-     - \+ create, edit and delete members and profiles, grant or extend
+     - \+ create, edit, and delete members and profiles, grant or extend
        memberships manually, manage aircraft, and run payment, membership and
        aircraft reports
    * - ``website_admin``
-     - \+ the Wagtail admin: create, edit, delete and publish pages, images,
-       documents, redirects and site settings
+     - \+ the Wagtail admin: create, edit, delete, and publish pages, images,
+       documents, redirects, and site settings
    * - ``system_admin``
      - everything above, plus backups, health, reminder runs and Django
        superuser access
@@ -530,7 +530,7 @@ that the message a person reads can be specific:
     a BasicMed expiry from the exam date.
 ``is_complete``
     ``True`` when every field in ``MemberProfile.COMPLETE_FIELDS`` has a
-    value: ``phone``, ``address_line1``, ``city``, ``postal_code`` and
+    value: ``phone``, ``address_line1``, ``city``, ``postal_code``, and
     ``pilot_certificate_type``.  This is the single definition of
     "complete": the accounts ``UserSerializer`` delegates
     to it for the ``profile_complete`` flag that drives the dashboard nudge and
@@ -807,7 +807,7 @@ than copying it, so an insurance renewal entered once is right for everybody.
 **N-number normalization** is the invariant that makes the register usable.
 ``normalize_n_number()`` strips everything that is not a letter or a digit,
 upper-cases what is left, and prefixes ``N`` when the result starts with a
-digit.  ``save()`` applies it, so ``12345``, ``n12345``, ``N-12345`` and
+digit.  ``save()`` applies it, so ``12345``, ``n12345``, ``N-12345``, and
 ``n-12345`` are all stored as ``N12345`` and collide on the unique constraint
 as they should.  A mark that already begins with a letter keeps it, so
 ``c-gabc`` becomes ``CGABC``.
@@ -865,7 +865,7 @@ One attempt to pay for a membership term, make a contribution, or both.
    * - ``provider``
      - ``stripe``, ``paypal``, ``mock``
    * - ``wallet``
-     - how the member paid: ``card``, ``apple_pay``, ``google_pay`` or
+     - how the member paid: ``card``, ``apple_pay``, ``google_pay``, or
        ``link`` from the Stripe charge (:doc:`payments-setup`), ``paypal``
        for PayPal, ``mock`` for the mock provider, and ``unknown`` (the
        default) when the provider does not say
@@ -1001,8 +1001,8 @@ not use it, and the ``body_headings`` used to build the "on this page" rail):
    * - Model
      - Notes
    * - ``HomePage``
-     - the welcome box (heading, lede, captioned image, mission statement,
-       ``welcome_body`` and three CTAs), ``upcoming_events`` and
+     - the welcome box (heading, lede, captioned image, mission statement
+       , ``welcome_body``, and three CTAs), ``upcoming_events`` and
        ``missions_flown`` (StreamFields of ``event`` and ``mission`` blocks),
        tax status, and the three latest news posts.  Only under the tree root.
    * - ``StandardPage``
@@ -1012,8 +1012,8 @@ not use it, and the ``body_headings`` used to build the "on this page" rail):
        live under a ``NewsIndexPage``.  Members-only capable.
    * - ``DartIndexPage`` / ``DartPage``
      - ``DartPage`` has a nullable ``SET_NULL`` FK to ``members.Dart`` —
-       airport identifier and city are read from it — plus ``leader_name``,
-       ``leader_contact`` and a body.
+       airport identifier and city are read from it — plus ``leader_name``
+       , ``leader_contact``, and a body.
    * - ``ContactPage``
      - ``intro`` and ``body``; the contact details come from site settings.
 

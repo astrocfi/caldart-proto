@@ -119,7 +119,7 @@ The server retrieves the PaymentIntent from Stripe (expanding
 
 On success the membership term is created immediately and the wallet is
 recorded from ``latest_charge.payment_method_details`` — ``apple_pay``,
-``google_pay``, ``link`` or ``card``.
+``google_pay``, ``link``, or ``card``.
 
 **200**:
 
@@ -217,7 +217,7 @@ redirect-based payment.
     "membership": {"status": "none", "expires_on": null,
                    "plan": null, "is_lifetime": false}}
 
-``status`` is ``pending``, ``succeeded``, ``failed`` or ``refunded``.
+``status`` is ``pending``, ``succeeded``, ``failed``, or ``refunded``.
 
 Statuses: **200**; **401** when anonymous; **403** for a signed-in caller who
 neither owns the payment nor holds ``account_admin``; **404** for an unknown
@@ -292,8 +292,8 @@ Parameter        Meaning
 ===============  ====================================================
 ``from``         ``YYYY-MM-DD``; payments on or after this date.
 ``to``           ``YYYY-MM-DD``; payments on or before this date.
-``provider``     ``stripe``, ``paypal`` or ``mock``.
-``status``       ``pending``, ``succeeded``, ``failed`` or
+``provider``     ``stripe``, ``paypal``, or ``mock``.
+``status``       ``pending``, ``succeeded``, ``failed``, or
                  ``refunded``.
 ``search``       Member name, email, or the provider's reference.
 ``group``        ``month`` or ``year``; the summary's period.
@@ -314,7 +314,7 @@ empty parameter narrows nothing, and a date the calendar does not have — such 
 Paginated (``?page=&page_size=``, default 25, max 200), newest first.
 ``?ordering=`` accepts ``paid_at``, ``created_at``, ``completed_at``,
 ``amount_cents``, ``contribution_cents``, ``status``, ``provider``,
-``plan__name``, ``user__last_name`` and ``user__email``, each with a ``-``
+``plan__name``, ``user__last_name``, and ``user__email``, each with a ``-``
 prefix for descending; anything else is a **400**.
 
 .. code-block:: json

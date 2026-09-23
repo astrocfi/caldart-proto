@@ -207,8 +207,8 @@ is required there, so an API client may store a partial profile.
 Profile completeness
 --------------------
 
-A profile is complete when ``phone``, ``address_line1``, ``city``,
-``postal_code`` and ``pilot_certificate_type`` all have a value.  That list is
+A profile is complete when ``phone``, ``address_line1``, ``city``
+, ``postal_code``, and ``pilot_certificate_type`` all have a value.  That list is
 ``MemberProfile.COMPLETE_FIELDS``.  The certificate box always holds a value,
 and *Not a pilot* counts.  ``state`` is not part of the rule.
 
@@ -294,7 +294,7 @@ full term history, newest first.
      ]
    }
 
-``status`` is ``current``, ``expired`` or ``none``.  ``expires_on`` is the
+``status`` is ``current``, ``expired``, or ``none``.  ``expires_on`` is the
 end of the member's *unbroken* coverage, so a renewal bought today shows
 next year's date immediately; it is ``null`` for a lifetime membership.  A
 member who has never held a term gets ``status: "none"`` and an empty

@@ -75,7 +75,7 @@ export function MembersFilterBar({ value, onChange, darts }: MembersFilterBarPro
           <input
             {...props}
             type="search"
-            placeholder="Name, email, phone or certificate"
+            placeholder="Name, email, phone, or certificate"
             value={draft.search}
             onChange={(event) => setDraft({ ...draft, search: event.target.value })}
           />

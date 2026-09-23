@@ -103,8 +103,8 @@ member list would want to filter by tier.
 Multi-factor authentication
 ---------------------------
 
-Sign-in is email and password, with rate limiting on login, registration and
-password reset.  Account, user and system administrators can see and change
+Sign-in is email and password, with rate limiting on login, registration, and
+password reset.  Account, user, and system administrators can see and change
 every member's details, and MFA on those roles is the obvious hardening step.
 
 ``django-otp`` with TOTP is the conventional route; it needs an enrollment
@@ -119,7 +119,7 @@ Audit log
 Every privileged action writes one line to the ``caldart.audit`` logger: an
 account edit by field name, a role change by slug, an activation, a member
 creation or hard delete, a manual grant or term correction, an
-administrator-triggered password reset, a backup created, downloaded or
+administrator-triggered password reset, a backup created, downloaded, or
 restored, a database reset, and each reminder run with its counts.  A refused
 attempt is logged at WARNING with a reason.  :ref:`deploy-audit-log` lists the
 actions and how to read them out of the journal.
@@ -170,7 +170,7 @@ but it touches every file that contains a sentence.
 Operational
 ===========
 
-**Restore from the portal.**  ``/portal/system`` can list, create and download
+**Restore from the portal.**  ``/portal/system`` can list, create, and download
 backups but cannot restore one — deliberately, because wiping the database is
 not a browser-tab action.  If it is ever added it needs a confirmation flow
 worth the name, and probably a maintenance mode.

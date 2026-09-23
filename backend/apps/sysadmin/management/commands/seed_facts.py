@@ -22,7 +22,7 @@ def seed_facts() -> dict[str, Any]:
     """Return the demo data set's facts, ready to serialize as JSON.
 
     ``demoPassword`` is the password every seeded demo account shares, and
-    ``accounts`` maps each demo key (``member``, ``leader``, ``sysadmin`` and the
+    ``accounts`` maps each demo key (``member``, ``leader``, ``sysadmin``, and the
     rest) to that account's address. ``planPricesCents`` maps each membership
     plan's slug to its price in cents, read from the database so it reflects the
     plans that are actually there.
@@ -42,5 +42,5 @@ class Command(BaseCommand):
     help = "Print the demo data set's facts as JSON, for the end-to-end specs."
 
     def handle(self, *args: Any, **options: Any) -> None:
-        """Write the facts to stdout as a JSON object, sorted and indented."""
+        """Write the facts to stdout as a JSON object, sorted, and indented."""
         self.stdout.write(json.dumps(seed_facts(), indent=2, sort_keys=True))

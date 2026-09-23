@@ -17,6 +17,10 @@ from wagtail.models import Page, Site
 from apps.accounts.models import User
 from apps.accounts.roles import SYSTEM_ADMIN, WEBSITE_ADMIN
 
+#: What the signed-in reader's portal link is called.  Not "Members": a site
+#: whose members area is a content page would then carry that word twice.
+PORTAL_TITLE = "Member portal"
+
 if TYPE_CHECKING:
     from apps.cms.models import SiteSettings
 
@@ -77,7 +81,7 @@ def menu_pages(request: HttpRequest) -> QuerySet[Page]:
     """Live top-level pages flagged *show in menus*, in tree order.
 
     Only the children of the site's root page are listed, and only those that are
-    live, public and flagged for menus.  An empty queryset comes back when
+    live, public, and flagged for menus.  An empty queryset comes back when
     ``request`` matches no Wagtail site; every site has a root page.
     """
     site = Site.find_for_request(request)
@@ -95,8 +99,8 @@ def build_nav(request: HttpRequest) -> list[NavEntry]:
 
     Wagtail pages come first as ``kind="page"``; the portal links follow as
     ``kind="portal"`` so the template can set them apart as actions.  Join is
-    always offered; the second portal link is Members for a signed-in reader and
-    Log in for everybody else.  An entry is ``active`` when the request path
+    always offered; the second portal link is ``PORTAL_TITLE`` for a signed-in
+    reader and Log in for everybody else.  An entry is ``active`` when the request path
     starts with its URL, which never marks the home page's own ``/``.
     """
     entries: list[NavEntry] = [
@@ -107,7 +111,9 @@ def build_nav(request: HttpRequest) -> list[NavEntry]:
     entries.append({"title": "Join", "url": "/portal/join", "active": False, "kind": "portal"})
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:
-        entries.append({"title": "Members", "url": "/portal/", "active": False, "kind": "portal"})
+        entries.append(
+            {"title": PORTAL_TITLE, "url": "/portal/", "active": False, "kind": "portal"}
+        )
     else:
         entries.append(
             {"title": "Log in", "url": "/portal/login", "active": False, "kind": "portal"}

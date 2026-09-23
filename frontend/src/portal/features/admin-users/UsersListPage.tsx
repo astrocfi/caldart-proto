@@ -117,7 +117,7 @@ export function UsersListPage(): JSX.Element {
     <Page
       title="Users and roles"
       eyebrow="Administration"
-      lede="Search accounts, grant or remove roles, and send a password reset."
+      lede="Search accounts, grant, or remove roles, and send a password reset."
     >
       <fieldset>
         <legend>Filter by role</legend>

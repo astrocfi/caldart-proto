@@ -98,17 +98,17 @@ class ReminderRun:
     failed_by_kind: dict[str, int] = field(default_factory=dict)
 
     def record_sent(self, kind: str) -> None:
-        """Count one more reminder of ``kind`` sent, overall and per kind."""
+        """Count one more reminder of ``kind`` sent, overall, and per kind."""
         self.sent += 1
         self.sent_by_kind[kind] = self.sent_by_kind.get(kind, 0) + 1
 
     def record_skipped(self, reason: str) -> None:
-        """Count one more candidate skipped for ``reason``, overall and per reason."""
+        """Count one more candidate skipped for ``reason``, overall, and per reason."""
         self.skipped += 1
         self.skipped_by_reason[reason] = self.skipped_by_reason.get(reason, 0) + 1
 
     def record_failed(self, kind: str) -> None:
-        """Count one more failed send of ``kind``, overall and per kind."""
+        """Count one more failed send of ``kind``, overall, and per kind."""
         self.failed += 1
         self.failed_by_kind[kind] = self.failed_by_kind.get(kind, 0) + 1
 

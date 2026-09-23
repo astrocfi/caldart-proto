@@ -1,8 +1,8 @@
 .. _api-reminders-system:
 
-===============================
-API: reminders, system and site
-===============================
+================================
+API: reminders, system, and site
+================================
 
 The endpoints that keep the installation running and the one the portal calls
 before it has a user: ``GET /admin/reminders/log`` and
@@ -22,7 +22,7 @@ Reminders
 ``GET /admin/reminders/log``
 ----------------------------
 
-The reminder emails that have gone out, paginated and newest first.
+The reminder emails that have gone out, paginated, and newest first.
 ``account_admin`` and ``system_admin`` both reach it: the question it answers
 is "was this member ever told?", which is membership work as much as
 operations.  The rows are the log the scan writes, so a row exists only for a

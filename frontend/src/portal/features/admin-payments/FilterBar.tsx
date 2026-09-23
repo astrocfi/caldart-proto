@@ -16,7 +16,7 @@ export interface FilterBarProps {
 const PROVIDERS: PaymentProvider[] = ['stripe', 'paypal', 'mock'];
 const STATUSES: PaymentState[] = ['succeeded', 'pending', 'failed', 'refunded'];
 
-/** The payment report's filter bar: date range, provider, status and search. */
+/** The payment report's filter bar: date range, provider, status, and search. */
 export function FilterBar({ value, onChange }: FilterBarProps): JSX.Element {
   function set<K extends keyof PaymentFilterState>(key: K, next: PaymentFilterState[K]) {
     onChange({ ...value, [key]: next });
@@ -78,7 +78,7 @@ export function FilterBar({ value, onChange }: FilterBarProps): JSX.Element {
           </select>
         )}
       </Field>
-      <Field label="Search" hint="Name, email or provider reference">
+      <Field label="Search" hint="Name, email, or provider reference">
         {(props) => (
           <input
             {...props}

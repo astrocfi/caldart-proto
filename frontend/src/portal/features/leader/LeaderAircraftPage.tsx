@@ -49,7 +49,7 @@ export function LeaderAircraftPage(): JSX.Element {
     >
       <Card>
         <form onSubmit={handleSubmit}>
-          <Field label="N-number" hint="12345, n12345 and N-12345 all find the same aircraft.">
+          <Field label="N-number" hint="12345, n12345, and N-12345 all find the same aircraft.">
             {(field) => (
               <input
                 {...field}

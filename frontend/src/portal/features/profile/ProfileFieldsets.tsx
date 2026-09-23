@@ -10,7 +10,7 @@
  * administrator's screens leave it off, because a half-known record is a
  * normal thing for them to save.
  *
- * Validation, submission and the administrator-only fields belong to the
+ * Validation, submission, and the administrator-only fields belong to the
  * caller.
  */
 import { useId } from 'react';
