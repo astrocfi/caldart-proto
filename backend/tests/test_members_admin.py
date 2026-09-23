@@ -55,6 +55,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.django_db
 
+ONE_DAY = timedelta(days=1)
 LIST_URL = "/api/v1/admin/members"
 CSV_URL = "/api/v1/admin/members/export.csv"
 PDF_URL = "/api/v1/admin/members/export.pdf"
@@ -323,6 +324,45 @@ def test_status_filter_partitions_the_table(
         for value in ("current", "new", "expired", "none")
     ]
     assert sum(counts) == total
+
+
+def test_ordering_by_dart_sorts_on_the_team_name(
+    account_admin_client: APIClient, population: dict[str, User]
+) -> None:
+    """``?ordering=dart`` sorts by team, keeping the unaffiliated at the end."""
+    response = account_admin_client.get(LIST_URL, {"ordering": "dart", "page_size": "200"})
+    darts = [row["dart"] for row in response.json()["results"]]
+
+    named = [dart for dart in darts if dart]
+    assert named == sorted(named)
+    assert all(dart is None for dart in darts[len(named) :])
+
+
+def test_ordering_by_pilot_ranks_current_medicals_first(
+    account_admin_client: APIClient,
+    annual_plan: MembershipPlan,
+    user_factory: type[UserFactory],
+) -> None:
+    """``?ordering=pilot`` reads in the order the column's marks do."""
+    today = timezone.localdate()
+    for email, certificate, medical, expiration in (
+        ("lapsed@example.test", PilotCertificateType.PRIVATE, MedicalType.THIRD, today - ONE_DAY),
+        ("nonpilot@example.test", PilotCertificateType.NONE, MedicalType.NONE, None),
+        ("current@example.test", PilotCertificateType.PRIVATE, MedicalType.THIRD, today + ONE_DAY),
+    ):
+        owner = user_factory(email=email, roles=["member"])
+        MemberProfileFactory(
+            user=owner,
+            pilot_certificate_type=certificate,
+            medical_type=medical,
+            medical_expiration=expiration,
+        )
+
+    response = account_admin_client.get(LIST_URL, {"ordering": "pilot", "page_size": "200"})
+    order = [row["email"] for row in response.json()["results"]]
+
+    assert order.index("current@example.test") < order.index("lapsed@example.test")
+    assert order.index("lapsed@example.test") < order.index("nonpilot@example.test")
 
 
 def test_an_unpaid_term_reads_as_new_and_not_as_expired(

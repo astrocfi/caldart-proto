@@ -151,10 +151,13 @@ Filters
 Ordering
 --------
 
-``?ordering=`` takes ``name``, ``email``, ``expires_on``, or ``joined``, each
-optionally prefixed with ``-``.  ``name`` expands to surname, forename, email.
-The two date sorts keep rows with no date at the end in both directions, so
-lifetime members do not crowd out the answer to "who expires next".  Anything
+``?ordering=`` takes ``pilot``, ``name``, ``email``, ``dart``, ``expires_on``
+or ``joined``, each optionally prefixed with ``-``.  ``name`` expands to
+surname, forename, email; ``pilot`` ranks a current medical ahead of a lapsed
+one ahead of a non-pilot, which is the order the list's Pilot column reads in.
+The two date sorts, and ``dart``, keep rows with no value at the end in both
+directions, so lifetime members do not crowd out the answer to "who expires
+next".  Anything
 else falls back to ``name`` rather than being refused.
 
 

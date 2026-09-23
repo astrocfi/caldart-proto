@@ -53,10 +53,10 @@ renews in March for a term that starts in July already shows next July's date,
 because their cover runs without a break — you never have to add the terms up
 yourself.
 
-Click **Name**, **Membership Exp.** or **Email** to sort by that column; click
-again to reverse the order.  **Pilot** and **DART** do not sort, because the
-server has no ordering for them.  The sort, like the filters, is part of the
-page's address, so a sorted and filtered list is a link you can bookmark or
+Click any column heading to sort by it; click again to reverse the order.
+**Pilot** sorts the way its marks read: a current medical first, then a lapsed
+one, then everybody who is not a pilot.  The sort, like the filters, is part of
+the page's address, so a sorted and filtered list is a link you can bookmark or
 send to somebody else.
 
 The export still carries every field, including the ones the table leaves out:
