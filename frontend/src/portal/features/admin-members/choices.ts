@@ -23,13 +23,15 @@ export const ROLE_CHOICES: Choice<RoleSlug>[] = [
   { value: 'system_admin', label: 'System administrator' },
 ];
 
-export const STATUS_CHOICES: Choice<'current' | 'expired' | 'none'>[] = [
+export const STATUS_CHOICES: Choice<'current' | 'new' | 'expired' | 'none'>[] = [
   { value: 'current', label: 'Current' },
+  { value: 'new', label: 'Joined, not yet paid' },
   { value: 'expired', label: 'Expired' },
   { value: 'none', label: 'Never a member' },
 ];
 
-export const TERM_STATUS_CHOICES: Choice<'active' | 'expired' | 'canceled'>[] = [
+export const TERM_STATUS_CHOICES: Choice<'new' | 'active' | 'expired' | 'canceled'>[] = [
+  { value: 'new', label: 'New' },
   { value: 'active', label: 'Active' },
   { value: 'expired', label: 'Expired' },
   { value: 'canceled', label: 'Canceled' },

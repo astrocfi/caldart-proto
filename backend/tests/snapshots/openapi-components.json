@@ -603,6 +603,7 @@
   "MembershipStateEnum": {
     "enum": [
       "current",
+      "new",
       "expired",
       "none"
     ]
@@ -641,6 +642,7 @@
   },
   "MembershipTermStatusEnum": {
     "enum": [
+      "new",
       "active",
       "expired",
       "canceled"
@@ -672,15 +674,27 @@
       "payment_id"
     ]
   },
+  "NavChild": {
+    "properties": {
+      "title": "string",
+      "url": "string"
+    },
+    "required": [
+      "title",
+      "url"
+    ]
+  },
   "NavEntry": {
     "properties": {
       "active": "boolean",
+      "children": "array<ref:NavChild>",
       "kind": "ref:NavKindEnum",
       "title": "string",
       "url": "string"
     },
     "required": [
       "active",
+      "children",
       "kind",
       "title",
       "url"

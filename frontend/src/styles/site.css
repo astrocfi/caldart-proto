@@ -137,7 +137,9 @@
   padding: 0;
 }
 
-.navbar__actions {
+/* `.navbar ul` also sets a margin and is the more specific selector, so the
+ * auto margin that pushes this group to the right has to match it. */
+.navbar .navbar__actions {
   margin-left: auto;
   background: var(--color-primary-hover);
 }
@@ -165,6 +167,46 @@
 .navbar__actions a:hover,
 .navbar__actions a[aria-current='page'] {
   background: var(--color-primary);
+}
+
+/* The drop-down opens on hover and on keyboard focus, and needs no script:
+ * the parent link still goes to the section's own page, so nothing is reachable
+ * only by hovering. */
+.navbar__has-menu {
+  position: relative;
+}
+
+.navbar__menu {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  display: none;
+  flex-direction: column;
+  min-width: 12rem;
+  background: var(--color-primary-hover);
+  border: var(--hairline) solid var(--color-primary);
+  border-top: 0;
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+.navbar__has-menu:hover .navbar__menu,
+.navbar__has-menu:focus-within .navbar__menu {
+  display: flex;
+}
+
+.navbar__menu a {
+  border-right: 0;
+  font-weight: var(--weight-normal);
+  white-space: nowrap;
+}
+
+.navbar__greeting {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-primary-fg);
+  opacity: 0.85;
 }
 
 .nav-toggle {
@@ -734,12 +776,23 @@
     flex-direction: column;
   }
 
-  .navbar__actions {
+  .navbar .navbar__actions {
     margin-left: 0;
   }
 
   .navbar a {
     border-right: 0;
     border-top: var(--hairline) solid var(--color-primary-hover);
+  }
+
+  /* No hover on a phone: the children are simply listed under their parent. */
+  .navbar__menu {
+    position: static;
+    display: flex;
+    border: 0;
+  }
+
+  .navbar__menu a {
+    padding-left: var(--space-6);
   }
 }

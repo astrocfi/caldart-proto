@@ -125,7 +125,8 @@ Filters
    phone number, or the pilot certificate number.  The full name is matched as
    one string, so ``Ana Bracco`` works.
 ``status``
-   ``current`` | ``expired`` | ``none``.  The three partition the table.
+   ``current`` | ``new`` | ``expired`` | ``none``.  The four partition the
+   table.  ``new`` is a member whose only term is unpaid.
 ``certificate``
    A ``pilot_certificate_type`` value: ``none``, ``student``, ``sport``,
    ``recreational``, ``private``, ``commercial``, ``atp``.
@@ -174,9 +175,13 @@ states the same rules as correlated subqueries on the user queryset:
    ``EXISTS`` an active term with ``starts_on <= today`` and ``ends_on``
    either null or ``>= today``.  This is what ``?status=current`` filters on.
 ``has_started_term``
-   ``EXISTS`` a non-canceled term with ``starts_on <= today``.  Paired with
-   ``covers_today`` it separates the other two statuses: not covering but
-   started is ``expired``, neither is ``none``.
+   ``EXISTS`` a term with ``starts_on <= today`` that is neither canceled nor
+   ``new``.  Paired with ``covers_today`` it separates the other statuses: not
+   covering but started is ``expired``.
+``has_unpaid_term`` / ``unpaid_end`` / ``unpaid_plan``
+   ``EXISTS`` a term stored as ``new``, and its end date and plan.  A row that
+   covers nothing and has started nothing, but holds one of these, is ``new``:
+   the member joined and has not paid.  With none of them it is ``none``.
 ``coverage_end`` / ``coverage_plan``
    The earliest active term ending on or after today that **no** other active
    term continues — where "continues" means starting no later than

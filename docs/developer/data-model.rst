@@ -212,7 +212,7 @@ CMS page models
           DartIndex [label="cms.DartIndexPage\l  intro, body\l"];
           DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
           Contact [label="cms.ContactPage\l  intro, body\l"];
-          Settings [label="cms.SiteSettings\l  (wagtail BaseSiteSetting)\l  org_name, tagline, contact_*,\l  duty_phone, ein, donate_url,\l  theme, footer_text\l"];
+          Settings [label="cms.SiteSettings\l  (wagtail BaseSiteSetting)\l  org_name, tagline, contact_email,\l  duty_phone, ein, donate_url,\l  theme, footer_text\l"];
 
           Image [label="wagtailimages.Image"];
           Site [label="wagtailcore.Site"];
@@ -290,8 +290,8 @@ CMS page models
       cms.DartIndexPage    intro, body
       cms.DartPage         leader_name, leader_contact, body
       cms.ContactPage      intro, body
-      cms.SiteSettings     org_name, tagline, contact_email, contact_phone,
-                           duty_phone, duty_phone_note, mailing_address, ein,
+      cms.SiteSettings     org_name, tagline, contact_email, duty_phone,
+                           mailing_address, ein,
                            donate_url, facebook_url, twitter_url, theme,
                            footer_text
 
@@ -615,7 +615,7 @@ The service
 ``apps.members.services.membership_status(user, on_date=None)`` returns::
 
     {
-        "status": "current" | "expired" | "none",
+        "status": "current" | "new" | "expired" | "none",
         "expires_on": date | None,     # None for lifetime
         "plan": str | None,
         "is_lifetime": bool,
@@ -624,18 +624,24 @@ The service
 ``current``
     Some active term covers ``on_date``.
 ``expired``
-    No term covers ``on_date``, but at least one non-canceled term has
-    started.  ``expires_on`` and ``plan`` come from the most recent such term.
+    No term covers ``on_date``, but at least one term that is neither canceled
+    nor ``new`` has started.  ``expires_on`` and ``plan`` come from the most
+    recent such term.
+``new``
+    Nothing has ever covered them and nothing paid has started, but a term is
+    on file stored as ``new``: they joined and have not paid.  Somebody who
+    lapsed and has since started an unpaid term stays ``expired``, because the
+    history is what this value distinguishes.
 ``none``
-    Nothing has started.  Everything else is ``None`` / ``False``.
+    Nothing at all.  Everything else is ``None`` / ``False``.
 
-Those three values are ``apps.members.models.MembershipState``, a
+Those four values are ``apps.members.models.MembershipState``, a
 ``TextChoices`` nothing stores: it is the computed answer, as against
 ``MembershipStatusChoices``, which is the state written on a term.  Every
 serializer that offers the status, the ``?status=`` filter on the member list
 and the payload builders take their values from it, so the backend spells them
 in exactly one place.  The portal's ``MembershipState`` union, in
-``frontend/src/portal/api/types.ts``, is the same three values.
+``frontend/src/portal/api/types.ts``, is the same four values.
 
 The subtlety is ``expires_on`` for a current member.  Renewing early creates a
 term that starts the day *after* the present one ends, and the member is
@@ -1024,8 +1030,8 @@ action chosen from the visitor's state — sign in, renew (naming the date), or
 join.
 
 ``SiteSettings`` (a Wagtail ``BaseSiteSetting``) carries ``org_name``,
-``tagline``, ``contact_email``, ``contact_phone``, ``duty_phone``,
-``duty_phone_note``, ``mailing_address``, ``ein``, ``donate_url``,
+``tagline``, ``contact_email``, ``duty_phone``,
+``mailing_address``, ``ein``, ``donate_url``,
 ``facebook_url``, ``twitter_url``, ``theme`` (one of ``duty``, ``sierra``,
 ``pacific``, ``night``; default ``duty``) and ``footer_text``.
 

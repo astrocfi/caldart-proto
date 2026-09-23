@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 
 import type { AircraftSummary } from '@/portal/api/types';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusChip, StatusDot } from '@/portal/components/StatusChip';
 import { insuranceLabel, insuranceTone } from './insurance';
 
 export interface InsuranceChipProps {
@@ -19,4 +19,10 @@ export function InsuranceChip({ aircraft, today }: InsuranceChipProps): JSX.Elem
       title={aircraft.insurance_expiration ?? undefined}
     />
   );
+}
+
+/** The same state as a dot, for a dense table where a chip in every row shouts. */
+export function InsuranceDot({ aircraft, today }: InsuranceChipProps): JSX.Element {
+  const tone = insuranceTone(aircraft, today);
+  return <StatusDot tone={tone} label={insuranceLabel(tone)} />;
 }

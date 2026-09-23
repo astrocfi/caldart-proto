@@ -17,8 +17,13 @@ export function PortalLayout(): JSX.Element {
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Any navigation closes the mobile drawer.
-  useEffect(() => setDrawerOpen(false), [location.pathname]);
+  // Any navigation closes the mobile drawer and puts the page back at the top:
+  // a screen opened from halfway down the last one starts mid-content
+  // otherwise, because the browser keeps the scroll position of the document.
+  useEffect(() => {
+    setDrawerOpen(false);
+    window.scrollTo({ top: 0, left: 0 });
+  }, [location.pathname]);
 
   const groups = isAuthenticated ? groupedNavItems(roles) : [];
 

@@ -374,10 +374,10 @@ def test_dart_page_leader_href_handles_a_phone_number(
 def test_contact_page_pulls_details_from_site_settings(
     client: Client, site_settings: SiteSettings
 ) -> None:
-    """The contact page renders the email, phone, mailing address and EIN in settings."""
+    """The contact page renders the email, duty number, mailing address and EIN."""
     site_settings.contact_email = "info@caldart.example.org"
-    site_settings.contact_phone = "(650) 555-0143"
-    site_settings.mailing_address = "PO Box 1180\nSan Carlos, CA 94070"
+    site_settings.duty_phone = "(408) 713-0646"
+    site_settings.mailing_address = "PO Box 606\nSan Martin, CA 95046"
     site_settings.ein = "47-0000000"
     site_settings.save()
 
@@ -387,8 +387,8 @@ def test_contact_page_pulls_details_from_site_settings(
     body = client.get(page.url).content.decode()
     assert "Email is fastest." in body
     assert "mailto:info@caldart.example.org" in body
-    assert "(650) 555-0143" in body
-    assert "San Carlos, CA 94070" in body
+    assert "(408) 713-0646" in body
+    assert "San Martin, CA 95046" in body
     assert "47-0000000" in body
 
 
@@ -507,21 +507,51 @@ def test_members_only_news_post_is_walled(
 def test_nav_lists_menu_pages_then_the_portal_actions(
     client: Client, site_settings: SiteSettings
 ) -> None:
-    """The nav lists menu pages first, then the anonymous portal actions."""
+    """The nav opens with Home, lists the menu pages, then the portal link."""
     home = site_settings.site.root_page.specific
-    make_standard_page(home, "about", "About Us", show_in_menus=True)
+    about = make_standard_page(home, "about", "About Us", show_in_menus=True)
+    make_standard_page(about, "history", "History", show_in_menus=True)
     make_standard_page(home, "hidden", "Hidden", show_in_menus=False)
 
     request = client.get("/").wsgi_request
     entries = build_nav(request)
 
-    assert [e["title"] for e in entries] == ["About Us", "Join", "Log in"]
-    assert [e["kind"] for e in entries] == ["page", "portal", "portal"]
-    assert entries[1]["url"] == "/portal/join"
+    assert [e["title"] for e in entries] == ["Home", "About Us", "Log in"]
+    assert [e["kind"] for e in entries] == ["page", "page", "portal"]
+    assert entries[0]["url"] == "/"
+    assert [child["title"] for child in entries[1]["children"]] == ["History"]
 
     body = client.get("/").content.decode()
     assert 'href="/about/"' in body
+    assert 'href="/about/history/"' in body
     assert "Hidden" not in body
+
+
+def test_a_members_only_page_sits_beside_the_portal_link(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """A menu page behind the wall is grouped with the portal, not with the sections."""
+    home = site_settings.site.root_page.specific
+    make_standard_page(home, "about", "About Us", show_in_menus=True)
+    make_standard_page(home, "members", "Members Only", show_in_menus=True, members_only=True)
+
+    entries = build_nav(client.get("/").wsgi_request)
+
+    assert [e["title"] for e in entries] == ["Home", "About Us", "Members Only", "Log in"]
+    assert [e["kind"] for e in entries] == ["page", "page", "portal", "portal"]
+
+
+def test_the_nav_greets_a_signed_in_visitor_by_name(
+    client: Client, site_settings: SiteSettings, member: User
+) -> None:
+    """A signed-in reader is greeted in the bar, by first name."""
+    member.first_name = "Marta"
+    member.save(update_fields=["first_name"])
+    client.force_login(member)
+
+    body = client.get("/").content.decode()
+
+    assert "Welcome, Marta" in body
 
 
 def test_nav_shows_the_portal_instead_of_log_in_when_signed_in(

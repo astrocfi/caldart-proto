@@ -37,11 +37,16 @@ people — one row each:
 
 **Membership Exp.**
    A colored dot and the expiry date.  The dot is green while the membership is
-   current, amber in the last 30 days, red once it has run out, and gray for
-   somebody who has never been a member.  A lifetime membership reads "Never".
+   current, amber in the last 30 days, red once it has run out, blue for
+   somebody who has joined but not paid, and gray for somebody who has never
+   been a member.  A lifetime membership reads "Never".
 
 **Email**
    A ``mailto:`` link, so you can write to someone straight from the list.
+
+A member's name opens their record wherever it is listed, and an N-number
+opens the aircraft record: on the payment list, on an aircraft record's list of
+the members who fly it, and among the aircraft on a member's profile.
 
 The expiry date is the end of the member's *unbroken* coverage.  Somebody who
 renews in March for a term that starts in July already shows next July's date,

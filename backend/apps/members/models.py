@@ -225,6 +225,7 @@ class MembershipPlan(TimestampedModel):
 class MembershipStatusChoices(models.TextChoices):
     """The stored state of one ``Membership`` term."""
 
+    NEW = "new", "New"
     ACTIVE = "active", "Active"
     EXPIRED = "expired", "Expired"
     CANCELED = "canceled", "Canceled"
@@ -235,11 +236,13 @@ class MembershipState(models.TextChoices):
 
     Unlike ``MembershipStatusChoices`` this is never stored: it is what
     ``members.services.membership_status`` works out from every term an account
-    holds, and the three values partition the member table.  ``NONE`` means
-    nothing has started, not that a term was canceled.
+    holds, and the four values partition the member table.  ``NEW`` is somebody
+    whose only term is unpaid, so they have joined but never been covered;
+    ``NONE`` means nothing has started at all, not that a term was canceled.
     """
 
     CURRENT = "current", "Current"
+    NEW = "new", "Joined, not yet paid"
     EXPIRED = "expired", "Expired"
     NONE = "none", "Never a member"
 

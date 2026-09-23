@@ -1,8 +1,8 @@
 """Template context shared by every server-rendered page.
 
 ``nav`` is a plain list of dicts so ``templates/base.html`` never has to know
-how the menu is assembled: the live top-level pages flagged *show in menus*,
-then the two portal actions every visitor needs.
+how the menu is assembled: Home, the live top-level pages flagged *show in
+menus* with their children, then the members-only pages and the portal link.
 """
 
 from __future__ import annotations
@@ -25,6 +25,13 @@ if TYPE_CHECKING:
     from apps.cms.models import SiteSettings
 
 
+class NavChild(TypedDict):
+    """One entry of a menu page's drop-down."""
+
+    title: str
+    url: str
+
+
 class NavEntry(TypedDict):
     """One entry of the top navigation."""
 
@@ -32,6 +39,7 @@ class NavEntry(TypedDict):
     url: str
     active: bool
     kind: str
+    children: list[NavChild]
 
 
 class SiteChrome(TypedDict):
@@ -94,30 +102,57 @@ def menu_pages(request: HttpRequest) -> QuerySet[Page]:
     return pages
 
 
+def child_entries(page: Page) -> list[NavChild]:
+    """The live, public, in-menu children of ``page``, in tree order."""
+    return [
+        {"title": child.title, "url": child.url or "#"}
+        for child in page.get_children().live().public().in_menu().order_by("path")
+    ]
+
+
 def build_nav(request: HttpRequest) -> list[NavEntry]:
     """Top navigation entries.
 
-    Wagtail pages come first as ``kind="page"``; the portal links follow as
-    ``kind="portal"`` so the template can set them apart as actions.  Join is
-    always offered; the second portal link is ``PORTAL_TITLE`` for a signed-in
-    reader and Log in for everybody else.  An entry is ``active`` when the request path
-    starts with its URL, which never marks the home page's own ``/``.
+    Home comes first, then the live top-level pages flagged *show in menus* as
+    ``kind="page"``, each carrying its own in-menu children as ``children`` for a
+    drop-down.  A page behind the members-only wall is moved to the end as
+    ``kind="portal"``, beside the portal link itself, which is the member portal
+    for a signed-in reader and Log in for everybody else.  An entry is ``active``
+    when the request path starts with its URL, and the home entry only when the
+    path is exactly ``/``.
     """
-    entries: list[NavEntry] = [
-        {"title": page.title, "url": page.url, "active": False, "kind": "page"}
-        for page in menu_pages(request)
-    ]
+    pages: list[NavEntry] = []
+    members_only: list[NavEntry] = []
+    for page in menu_pages(request):
+        entry: NavEntry = {
+            "title": page.title,
+            "url": page.url or "#",
+            "active": False,
+            "kind": "portal" if getattr(page.specific_deferred, "members_only", False) else "page",
+            "children": child_entries(page),
+        }
+        (members_only if entry["kind"] == "portal" else pages).append(entry)
 
-    entries.append({"title": "Join", "url": "/portal/join", "active": False, "kind": "portal"})
+    home: NavEntry = {
+        "title": "Home",
+        "url": "/",
+        "active": request.path == "/",
+        "kind": "page",
+        "children": [],
+    }
+    entries: list[NavEntry] = [home, *pages, *members_only]
+
     user = getattr(request, "user", None)
-    if user is not None and user.is_authenticated:
-        entries.append(
-            {"title": PORTAL_TITLE, "url": "/portal/", "active": False, "kind": "portal"}
-        )
-    else:
-        entries.append(
-            {"title": "Log in", "url": "/portal/login", "active": False, "kind": "portal"}
-        )
+    signed_in = user is not None and user.is_authenticated
+    entries.append(
+        {
+            "title": PORTAL_TITLE if signed_in else "Log in",
+            "url": "/portal/" if signed_in else "/portal/login",
+            "active": False,
+            "kind": "portal",
+            "children": [],
+        }
+    )
 
     path = request.path
     for entry in entries:

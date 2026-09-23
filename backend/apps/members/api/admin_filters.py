@@ -129,16 +129,21 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     ) -> QuerySet[MemberRow]:
         """Rows whose computed membership status is ``value``.
 
-        ``current`` is a term covering today, ``expired`` a term that has
-        started and run out, and ``none`` an account no term has ever covered.
-        Anything else leaves the queryset alone.
+        ``current`` is a term covering today, ``expired`` a paid term that has
+        started and run out, ``new`` an account whose only term is unpaid, and
+        ``none`` an account with no term at all.  Anything else leaves the
+        queryset alone.
         """
         if value == MembershipState.CURRENT:
             return queryset.filter(covers_today=True)
         if value == MembershipState.EXPIRED:
             return queryset.filter(covers_today=False, has_started_term=True)
+        if value == MembershipState.NEW:
+            return queryset.filter(covers_today=False, has_started_term=False, has_unpaid_term=True)
         if value == MembershipState.NONE:
-            return queryset.filter(covers_today=False, has_started_term=False)
+            return queryset.filter(
+                covers_today=False, has_started_term=False, has_unpaid_term=False
+            )
         return queryset
 
     def filter_dart(

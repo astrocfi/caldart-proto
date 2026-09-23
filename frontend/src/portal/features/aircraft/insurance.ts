@@ -40,6 +40,9 @@ export function insuranceTone(
 const INSURANCE_LABEL: Record<StatusTone, string> = {
   current: 'Insured',
   expiring: 'Expiring soon',
+  // Insurance is never "new": the tone exists for a membership nobody has paid
+  // for yet, and the record either has a policy on it or it does not.
+  new: 'No insurance on file',
   expired: 'Insurance expired',
   none: 'No insurance on file',
 };

@@ -17,12 +17,14 @@ import './leader.css';
 
 const MEMBERSHIP_LABEL: Record<MembershipState, string> = {
   current: 'Current',
+  new: 'Joined, not yet paid',
   expired: 'Expired',
   none: 'Never joined',
 };
 
 const MEMBERSHIP_TONE: Record<MembershipState, StatusTone> = {
   current: 'current',
+  new: 'new',
   expired: 'expired',
   none: 'none',
 };

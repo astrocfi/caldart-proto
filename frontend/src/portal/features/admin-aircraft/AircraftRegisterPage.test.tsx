@@ -88,8 +88,11 @@ describe('AircraftRegisterPage', () => {
       '/admin/aircraft/1',
     );
     const table = within(screen.getByRole('table'));
-    expect(table.getByText('Insured')).toBeInTheDocument();
-    expect(table.getByText('Insurance expired')).toBeInTheDocument();
+    // The state is a dot beside the date rather than a chip: the column
+    // heading already says "Insurance".  The wording survives as the dot's
+    // accessible name, so a screen reader still hears it.
+    expect(table.getByText('Insured')).toHaveClass('visually-hidden');
+    expect(table.getByText('Insurance expired')).toHaveClass('visually-hidden');
     expect(table.getByText(/Flying club/)).toBeInTheDocument();
   });
 

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from django.core import mail
+from django.utils import timezone
 from pytest_django.fixtures import DjangoAssertNumQueries, DjangoCaptureOnCommitCallbacks
 from rest_framework.test import APIClient
 
@@ -315,13 +316,36 @@ def test_status_filter_puts_each_member_in_one_bucket(
 def test_status_filter_partitions_the_table(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """The current, expired and none status buckets add up to the whole table."""
+    """The four status buckets add up to the whole table, with no member in two."""
     total = account_admin_client.get(LIST_URL).json()["count"]
     counts = [
         account_admin_client.get(LIST_URL, {"status": value}).json()["count"]
-        for value in ("current", "expired", "none")
+        for value in ("current", "new", "expired", "none")
     ]
     assert sum(counts) == total
+
+
+def test_an_unpaid_term_reads_as_new_and_not_as_expired(
+    account_admin_client: APIClient, annual_plan: MembershipPlan, user_factory: type[UserFactory]
+) -> None:
+    """Somebody who joined but has not paid is ``new``, whatever the term's dates."""
+    joiner = user_factory(email="unpaid@example.test", roles=["member"])
+    today = timezone.localdate()
+    MembershipFactory(
+        user=joiner,
+        plan=annual_plan,
+        starts_on=today - timedelta(days=2),
+        ends_on=today + timedelta(days=363),
+        status=MembershipStatusChoices.NEW,
+    )
+
+    rows = account_admin_client.get(LIST_URL, {"status": "new", "page_size": "200"}).json()
+    assert [row["email"] for row in rows["results"]] == ["unpaid@example.test"]
+    assert rows["results"][0]["membership"]["status"] == "new"
+
+    for other in ("current", "expired", "none"):
+        emails_in_bucket = emails(account_admin_client.get(LIST_URL, {"status": other}))
+        assert "unpaid@example.test" not in emails_in_bucket
 
 
 def test_expiring_within_uses_the_computed_expiry(

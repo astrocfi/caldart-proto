@@ -18,7 +18,7 @@ import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
 import { useDebounced } from '@/portal/components/useDebounced';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
-import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
+import { InsuranceDot } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
 import type { AircraftFilters } from '@/portal/features/aircraft/api';
 import {
@@ -37,7 +37,7 @@ const PAGE_SIZE = 25;
 
 const INSURANCE_OPTIONS = [
   { value: '', label: 'Any insurance state' },
-  { value: 'current', label: 'Insured' },
+  { value: 'current', label: 'Current' },
   { value: 'expired', label: 'Expired' },
   { value: 'missing', label: 'Not on file' },
 ] as const;
@@ -97,17 +97,18 @@ export function AircraftRegisterPage(): JSX.Element {
     {
       key: 'n_number',
       header: 'N-number',
+      width: '9rem',
       render: (row) => (
-        <span className="cluster">
+        <>
           <Link className="mono" to={`/admin/aircraft/${row.id}`}>
             {row.n_number}
-          </Link>
+          </Link>{' '}
           <ServiceChip aircraft={row} />
-        </span>
+        </>
       ),
     },
-    { key: 'make', header: 'Make', render: (row) => row.make },
-    { key: 'model', header: 'Model', render: (row) => row.model },
+    { key: 'make', header: 'Make', width: '16%', render: (row) => row.make },
+    { key: 'model', header: 'Model', width: '16%', render: (row) => row.model },
     {
       key: 'owner_name',
       header: 'Owner',
@@ -121,11 +122,11 @@ export function AircraftRegisterPage(): JSX.Element {
     {
       key: 'insurance_expiration',
       header: 'Insurance',
+      width: '11rem',
       render: (row) => (
-        <span className="cluster">
-          <InsuranceChip aircraft={row} />
-          <DateText value={row.insurance_expiration} />
-        </span>
+        <>
+          <InsuranceDot aircraft={row} /> <DateText value={row.insurance_expiration} />
+        </>
       ),
     },
   ];
@@ -174,6 +175,7 @@ export function AircraftRegisterPage(): JSX.Element {
       ) : null}
 
       <DataTable
+        singleLine
         columns={columns}
         rows={rows}
         rowKey={(row) => row.id}

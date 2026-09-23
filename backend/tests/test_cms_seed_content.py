@@ -59,7 +59,12 @@ def test_seed_content_builds_the_documented_tree() -> None:
 
     about = StandardPage.objects.get(slug="about")
     assert about.get_parent().specific_class is HomePage
-    assert {p.slug for p in about.get_children()} == {"history", "darts", "directors"}
+    assert {p.slug for p in about.get_children()} == {
+        "history",
+        "darts",
+        "directors",
+        "sponsors",
+    }
 
     members = StandardPage.objects.get(slug="members")
     assert {p.slug for p in members.get_children()} == {"members-only", "docs-and-links"}

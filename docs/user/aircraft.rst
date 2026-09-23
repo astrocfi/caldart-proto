@@ -80,14 +80,21 @@ Search               N-number, make, model, or owner name.  A registration is
                      normalized first, so ``172sp`` finds ``N172SP``
 Make                 Any part of the make, case-insensitively
 Owner type           Individual, FBO, or flying club
-Insurance            ``Insured`` (a policy on file, not yet expired),
+Insurance            ``Current`` (a policy on file, not yet expired),
                      ``Expired``, or ``Not on file``
 Expiring within      30, 60, or 90 days — cover that is still valid but is about
                      to lapse.  Already-expired policies are *not* included
 ===================  ============================================================
 
+The insurance column is a colored dot beside the expiry date: green while the
+cover runs, amber in its last 30 days, red once it has lapsed, and gray when
+no policy is on file.  The column heading already says "Insurance", so the
+rows do not repeat the word; the state is still read out to a screen reader.
+
 The register lists in-service and out-of-service airframes alike, so nothing
-disappears from an administrator's view.
+disappears from an administrator's view.  Each row stays on one line, and
+anything too long for its column is cut with an ellipsis, with the whole value
+shown on hover.
 
 Every column sorts, and sorting happens on the server, so it sorts the whole
 register rather than the page you are looking at.  Airplanes with no

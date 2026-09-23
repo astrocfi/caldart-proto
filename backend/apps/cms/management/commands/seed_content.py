@@ -306,9 +306,9 @@ def seed_donate(home: HomePage) -> StandardPage:
     return upsert_spec(home, StandardPage, content.DONATE)
 
 
-def seed_sponsors(home: HomePage) -> StandardPage:
-    """Create or update ``/sponsors/``, which is not in the menu."""
-    return upsert_spec(home, StandardPage, content.SPONSORS)
+def seed_sponsors(about: StandardPage) -> StandardPage:
+    """Create or update the sponsors page under About Us, in the About menu."""
+    return upsert_spec(about, StandardPage, content.SPONSORS)
 
 
 def seed_contact(home: HomePage) -> ContactPage:
@@ -337,13 +337,20 @@ def seed_settings(site: Site) -> None:
     """Fill in the site settings the example content refers to.
 
     The duty officer number, mailing address, EIN, donate URL and the two social
-    links are written only where the field is empty, so anything an administrator
-    has already changed survives.  The settings row is created if it is missing.
+    links are written where the field is empty, and where it still holds one of
+    the placeholder values an earlier version of the seed wrote, so anything an
+    administrator chose survives but a placeholder nobody chose does not.  The
+    settings row is created if it is missing.
     """
     from apps.cms.models import SiteSettings
 
     settings_obj, _ = SiteSettings.objects.get_or_create(site=site)
-    changed = [field for field in content.SITE_SETTINGS if not getattr(settings_obj, field)]
+    changed = [
+        field
+        for field in content.SITE_SETTINGS
+        if not getattr(settings_obj, field)
+        or getattr(settings_obj, field) in content.SUPERSEDED_SETTINGS.get(field, ())
+    ]
     for field in changed:
         setattr(settings_obj, field, content.SITE_SETTINGS[field])
     if changed:
@@ -378,7 +385,7 @@ class Command(BaseCommand):
         seed_news(home)
         seed_join(home)
         seed_donate(home)
-        seed_sponsors(home)
+        seed_sponsors(about)
         contact = seed_contact(home)
         seed_members_area(home)
         seed_home(

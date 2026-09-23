@@ -668,18 +668,11 @@ class SiteSettings(BaseSiteSetting):
         max_length=200, blank=True, default="Volunteer disaster air transportation for California"
     )
     contact_email = models.EmailField(blank=True, default="info@caldart.example.org")
-    contact_phone = models.CharField(max_length=32, blank=True)
     duty_phone = models.CharField(
         "duty officer phone",
         max_length=32,
         blank=True,
         help_text="Shown in the masthead as the number to call about a mission.",
-    )
-    duty_phone_note = models.CharField(
-        max_length=120,
-        blank=True,
-        default="Answered by the CalDART member on watch",
-        help_text="One line under the duty officer number.",
     )
     mailing_address = models.TextField(blank=True)
     ein = models.CharField("EIN", max_length=20, blank=True)
@@ -704,9 +697,7 @@ class SiteSettings(BaseSiteSetting):
         MultiFieldPanel(
             [
                 FieldPanel("contact_email"),
-                FieldPanel("contact_phone"),
                 FieldPanel("duty_phone"),
-                FieldPanel("duty_phone_note"),
                 FieldPanel("mailing_address"),
             ],
             heading="Contact",

@@ -11,15 +11,26 @@ import type { Page } from '@playwright/test';
 
 import { SEED, formatCents, uniqueEmail } from './helpers';
 
-/** Follow the public site's Join action, opening the phone menu if need be. */
+/**
+ * Walk the public site the way a visitor does: the Join CalDART page from the
+ * navigation bar, then the call to action on it.  On a phone the bar is behind
+ * the Menu button.
+ */
 async function joinFromPublicSite(page: Page): Promise<void> {
   await page.goto('/');
-  const join = page.getByRole('link', { name: 'Join', exact: true }).first();
+  // Scope to the bar: the welcome box carries a "Join CalDART" button of its
+  // own, and on a phone the bar's copy is behind the Menu button.
+  const join = page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Join CalDART', exact: true });
   if (!(await join.isVisible())) {
     await page.getByRole('button', { name: 'Menu' }).click();
     await expect(join).toBeVisible();
   }
   await join.click();
+  await expect(page).toHaveURL(/\/join\/$/);
+
+  await page.getByRole('link', { name: 'Start your membership' }).click();
   await expect(page).toHaveURL(/\/portal\/join/);
 }
 
