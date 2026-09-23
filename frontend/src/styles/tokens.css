@@ -36,6 +36,14 @@
 
   --color-focus: #1f4e79;
 
+  /* Signal colors: the status *dots*, which are small filled shapes rather
+     than text.  The `--color-*` status colors above are tuned for contrast as
+     type, which at 0.6rem leaves amber and red too close to tell apart and
+     green too dark to read as "go".  A theme may override these three. */
+  --color-signal-go: #15a34a;
+  --color-signal-warn: #f0b400;
+  --color-signal-stop: #e02424;
+
   /* -- type ------------------------------------------------------------ */
   --font-display:
     'Fraunces Variable', 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;

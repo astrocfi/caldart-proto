@@ -52,7 +52,7 @@ function memberColumns(): Column<MemberRow>[] {
       key: 'pilot',
       header: 'Pilot',
       sortable: false,
-      width: '4.5rem',
+      width: '3rem',
       render: (row) => (
         <PilotMark
           isPilot={row.pilot_certificate_type !== 'none'}

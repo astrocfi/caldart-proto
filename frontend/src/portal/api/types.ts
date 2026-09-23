@@ -19,7 +19,7 @@ export interface Role {
 }
 
 /* -------------------------------------------------------------- membership */
-export type MembershipState = 'current' | 'expired' | 'none';
+export type MembershipState = 'current' | 'new' | 'expired' | 'none';
 
 export interface MembershipStatus {
   status: MembershipState;
@@ -28,7 +28,7 @@ export interface MembershipStatus {
   is_lifetime: boolean;
 }
 
-export type MembershipTermStatus = 'active' | 'expired' | 'canceled';
+export type MembershipTermStatus = 'new' | 'active' | 'expired' | 'canceled';
 export type MembershipSource = 'payment' | 'manual' | 'seed';
 
 export interface MembershipTerm {
@@ -473,11 +473,18 @@ export interface Backup {
 /** A top-navigation entry is either a Wagtail page or a portal action. */
 export type NavKind = 'page' | 'portal';
 
+/** One entry of a navigation drop-down. */
+export interface NavChild {
+  title: string;
+  url: string;
+}
+
 export interface NavEntry {
   title: string;
   url: string;
   active: boolean;
   kind: NavKind;
+  children: NavChild[];
 }
 
 export interface MembersPage {

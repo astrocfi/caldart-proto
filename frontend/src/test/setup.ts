@@ -14,8 +14,13 @@ configure({ reactStrictMode: true });
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
 // `restoreMocks` restores every spy before each test, so the guard is installed
-// afterwards rather than once for the whole run.
-beforeEach(() => installConsoleGuard());
+// afterwards rather than once for the whole run.  `scrollTo` is stubbed in the
+// same place: jsdom has no layout, so its own implementation only logs "Not
+// implemented", and the portal calls it on every navigation.
+beforeEach(() => {
+  installConsoleGuard();
+  window.scrollTo = vi.fn();
+});
 
 afterEach(() => {
   cleanup();

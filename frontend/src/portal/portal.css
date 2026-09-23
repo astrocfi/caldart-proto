@@ -265,6 +265,14 @@
   display: inline-block;
 }
 
+/* The pilot mark is a glyph, not a word: give it just enough room and let the
+ * name sit next to it rather than across a gap. */
+.data-table--single-line th:first-child,
+.data-table--single-line td:first-child {
+  padding-right: 0;
+  text-align: center;
+}
+
 .data-table__sort {
   display: inline-flex;
   align-items: center;

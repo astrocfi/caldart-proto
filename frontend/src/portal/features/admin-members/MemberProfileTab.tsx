@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import { useDarts } from '@/portal/api/queries';
 import type { MemberDetail } from '@/portal/api/types';
@@ -94,7 +95,15 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
           </Button>
           {member.profile?.aircraft.length ? (
             <p className="muted">
-              Aircraft on file: {member.profile.aircraft.map((one) => one.n_number).join(', ')}
+              Aircraft on file:{' '}
+              {member.profile.aircraft.map((one, index) => (
+                <span key={one.id}>
+                  {index > 0 ? ', ' : ''}
+                  <Link className="mono" to={`/admin/aircraft/${one.id}`}>
+                    {one.n_number}
+                  </Link>
+                </span>
+              ))}
             </p>
           ) : null}
         </div>

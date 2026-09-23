@@ -134,7 +134,10 @@ describe('AdminPaymentsPage', () => {
     renderWithProviders(<AdminPaymentsPage />);
 
     const table = await screen.findByRole('table', { name: /1 payment/ });
-    expect(within(table).getByText('Marta Reyes')).toBeInTheDocument();
+    expect(within(table).getByRole('link', { name: 'Marta Reyes' })).toHaveAttribute(
+      'href',
+      '/admin/members/3',
+    );
     expect(within(table).getByText(/Apple Pay/)).toBeInTheDocument();
     expect(within(table).getByText('Succeeded')).toBeInTheDocument();
     expect(within(table).getByText('$145.00')).toBeInTheDocument();

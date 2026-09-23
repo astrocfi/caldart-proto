@@ -125,6 +125,31 @@ def build_histories(annual: MembershipPlan, life: MembershipPlan, today: date) -
     term(ends_today, annual, today - 364 * day, today)
     histories["ends-today"] = ends_today
 
+    # Joined but never paid: the only term is "new", so nothing has ever
+    # covered them and they are not a lapsed member either.
+    unpaid = user("unpaid")
+    term(unpaid, annual, today - 2 * day, today + 363 * day, MembershipStatusChoices.NEW)
+    histories["joined-unpaid"] = unpaid
+
+    # An unpaid term after a paid one that ran out: still expired, because the
+    # history is what "new" is meant to distinguish.
+    lapsed_then_unpaid = user("lapsedunpaid")
+    term(
+        lapsed_then_unpaid,
+        annual,
+        today - 500 * day,
+        today - 100 * day,
+        MembershipStatusChoices.EXPIRED,
+    )
+    term(
+        lapsed_then_unpaid,
+        annual,
+        today - day,
+        today + 364 * day,
+        MembershipStatusChoices.NEW,
+    )
+    histories["lapsed-then-unpaid"] = lapsed_then_unpaid
+
     return histories
 
 
@@ -162,6 +187,8 @@ def test_annotations_match_the_membership_status_service(histories: dict[str, Us
         ("overlapping", "current", False),
         ("expired-with-a-future-term", "expired", False),
         ("ends-today", "current", False),
+        ("joined-unpaid", "new", False),
+        ("lapsed-then-unpaid", "expired", False),
     ],
 )
 def test_expected_status_per_history(

@@ -139,13 +139,18 @@ delete later if you are unsure.
 Show a page in the top navigation
 ---------------------------------
 
-Only *top-level* pages — the direct children of Home — appear in the main
-menu, and only when **Show in menus** is ticked on the **Promote** tab.  Two
-entries are always present and are not pages: **Join**, which goes to the
-sign-up flow, and **Log in** / **Members**, which goes to the member portal.
+The bar opens with **Home**, which is always there and is not a page you
+edit.  After it come the *top-level* pages — the direct children of Home —
+that have **Show in menus** ticked on their **Promote** tab.  A page with
+in-menu children of its own gets a drop-down listing them, which is how
+About Us offers History, DARTs, Directors and Officers, and Sponsors.
 
-Deeper pages are reached from their parent, which lists its children in the
-"In this section" panel automatically.
+Two things sit at the right-hand end: any menu page behind the members-only
+wall, and **Log in** / **Member portal**, which is not a page either.  A
+signed-in reader is greeted there by first name.
+
+Deeper pages are still reached from their parent, which lists its children in
+the "In this section" panel automatically.
 
 
 .. _blocks:
@@ -269,9 +274,8 @@ Tagline                Under the logo, and as the default page
                        description for search engines
 EIN                    Footer and the contact page
 Contact email          Footer, contact page, the members-only wall
-Contact phone          Footer and contact page
-Duty officer phone     The masthead, the footer and the contact page
-Duty officer note      The line under the masthead's duty number
+Duty officer phone     The masthead, the footer and the contact page.  It is
+                       the only number the site publishes
 Mailing address        Masthead, footer, and contact page
 Donate url             Footer link
 Facebook url           Footer link

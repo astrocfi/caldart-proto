@@ -34,10 +34,6 @@
             <dt>Email</dt>
             <dd><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></dd>
           {% endif %}
-          {% if site_settings.contact_phone %}
-            <dt>Phone</dt>
-            <dd class="mono">{{ site_settings.contact_phone }}</dd>
-          {% endif %}
           {% if site_settings.mailing_address %}
             <dt>Post</dt>
             <dd>{{ site_settings.mailing_address|linebreaksbr }}</dd>

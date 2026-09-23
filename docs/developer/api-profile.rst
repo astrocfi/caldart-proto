@@ -294,7 +294,7 @@ full term history, newest first.
      ]
    }
 
-``status`` is ``current``, ``expired``, or ``none``.  ``expires_on`` is the
+``status`` is ``current``, ``new``, ``expired``, or ``none``.  ``expires_on`` is the
 end of the member's *unbroken* coverage, so a renewal bought today shows
 next year's date immediately; it is ``null`` for a lifetime membership.  A
 member who has never held a term gets ``status: "none"`` and an empty

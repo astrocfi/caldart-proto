@@ -3,11 +3,12 @@ import type { JSX } from 'react';
 import type { MembershipStatus, PaymentState } from '../api/types';
 import { PAYMENT_STATUS_LABELS } from '../choices';
 
-export type StatusTone = 'current' | 'expiring' | 'expired' | 'none';
+export type StatusTone = 'current' | 'expiring' | 'new' | 'expired' | 'none';
 
 const TONE_CLASS: Record<StatusTone, string> = {
   current: 'chip--ok',
   expiring: 'chip--warn',
+  new: 'chip--info',
   expired: 'chip--bad',
   none: 'chip--neutral',
 };
@@ -15,6 +16,7 @@ const TONE_CLASS: Record<StatusTone, string> = {
 const TONE_LABEL: Record<StatusTone, string> = {
   current: 'Current',
   expiring: 'Expiring soon',
+  new: 'Joined, not yet paid',
   expired: 'Expired',
   none: 'No membership',
 };
@@ -37,6 +39,7 @@ export function membershipTone(
   today: Date = new Date(),
 ): StatusTone {
   if (membership.status === 'none') return 'none';
+  if (membership.status === 'new') return 'new';
   if (membership.status === 'expired') return 'expired';
   if (membership.is_lifetime) return 'current';
   const days = daysUntil(membership.expires_on, today);
