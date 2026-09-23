@@ -75,7 +75,10 @@ Token                      Meaning
 ``--color-primary-hover``  Primary hover fill
 ``--color-accent``         The one loud color: the request-for-help button,
                            and a rule that matters
-``--color-secondary``      A supporting hue: the sidebar boxes' title bars
+``--color-secondary``      A supporting hue, used sparingly.  The public
+                           site's sidebar bars do **not** use it: they mix a
+                           lighter cut of ``--color-primary``, because under
+                           some themes this token is a loud accent
 ``--color-rule``           Hairline separators
 ``--color-rule-strong``    Input borders, the strongest hairline
 ``--color-muted``          Secondary text

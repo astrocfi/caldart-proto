@@ -84,8 +84,10 @@ a page:
     below it and three buttons, the first of which is the red one asking for
     air support.  Below that it lists the three most recent news posts
     automatically, then the missions CalDART has flown, which you write as
-    year-and-description blocks.  The tax-status note is shown in the
-    membership box in the sidebar.
+    year-and-description blocks.  The sidebar carries the events you add --
+    each one a date, a title, where it is, and the page with the details --
+    and an event whose date has passed stops showing by itself.  The
+    tax-status note is shown in the membership box below them.
 
 
 Creating, editing and publishing

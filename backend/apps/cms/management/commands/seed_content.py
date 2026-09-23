@@ -165,10 +165,11 @@ def seed_home(
     darts_url: str = "/about/darts/",
     contact_url: str = "/contact-us/",
 ) -> HomePage:
-    """Fill in the home page: welcome, mission, missions flown, and the tax note.
+    """Fill in the home page: welcome, mission, events, missions flown, tax note.
 
-    Overwrites those fields every time, attaches the example photograph, publishes
-    a revision, and returns the page reloaded from the database.  ``darts_url`` is
+    Overwrites those fields every time, attaches the example photograph, dates the
+    events from the day it runs so they are always still ahead, publishes a
+    revision, and returns the page reloaded from the database.  ``darts_url`` is
     where the "find your DART" button points and ``contact_url`` where the request
     for air support does.
     """
@@ -184,6 +185,11 @@ def seed_home(
     home.secondary_cta_url = darts_url
     home.mission_statement = content.MISSION
     home.welcome_body = content.WELCOME_BODY
+    today = timezone.localdate()
+    home.upcoming_events = [
+        ("event", {"date": today + timedelta(days=days), "title": title, "where": where})
+        for days, title, where in content.UPCOMING_EVENTS
+    ]
     home.missions_heading = content.MISSIONS_HEADING
     home.missions_flown = [
         ("mission", {"year": year, "text": text}) for year, text in content.MISSIONS_FLOWN

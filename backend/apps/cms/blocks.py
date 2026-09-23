@@ -262,6 +262,31 @@ class MissionStreamBlock(blocks.StreamBlock):
         required = False
 
 
+class EventBlock(blocks.StructBlock):
+    """One dated event for the home page's sidebar."""
+
+    date = blocks.DateBlock()
+    title = blocks.CharBlock(max_length=120)
+    where = blocks.CharBlock(
+        max_length=120, required=False, help_text="Airport, town and time, or who it is for."
+    )
+    page = blocks.PageChooserBlock(required=False, help_text="The page with the details.")
+
+    class Meta:
+        icon = "date"
+        label = "Event"
+        template = "cms/blocks/event.html"
+
+
+class EventStreamBlock(blocks.StreamBlock):
+    """The home page's calendar: events in any order, shown soonest first."""
+
+    event = EventBlock()
+
+    class Meta:
+        required = False
+
+
 def stream_headings(value: blocks.StreamValue | None) -> list[dict[str, str]]:
     """Top-level H2 ``heading`` blocks of ``value``, for the "on this page" rail.
 

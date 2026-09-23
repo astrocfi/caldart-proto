@@ -119,6 +119,14 @@ WELCOME_BODY = (
     "friends, and from pilots anywhere in the state.</p>"
 )
 
+#: The sidebar's calendar: how many days from today, the event, and where it is.
+UPCOMING_EVENTS: tuple[tuple[int, str, str], ...] = (
+    (25, "Ground crew workshop", "Reid-Hillview (KRHV), 9 am to 1 pm"),
+    (46, "Statewide radio and communications drill", "Every DART"),
+    (74, "DART leaders' meeting", "San Martin (E16), 10 am"),
+    (130, "Spring mobilization exercise", "Statewide"),
+)
+
 MISSIONS_HEADING = "Missions flown"
 
 #: What CalDART has carried, newest first: the year, then the mission.

@@ -22,7 +22,9 @@ from django.db import models
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
+from django.utils import timezone
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.blocks.stream_block import StreamValue
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.fields import RichTextField, StreamField
 from wagtail.models import Collection, Page, PageManager
@@ -32,6 +34,7 @@ from apps.accounts.models import User
 from apps.cms.blocks import (
     RICH_TEXT_FEATURES,
     ContentStreamBlock,
+    EventStreamBlock,
     MissionStreamBlock,
     stream_headings,
 )
@@ -60,6 +63,9 @@ THEME_SLUGS: tuple[str, ...] = tuple(slug for slug, _ in THEME_CHOICES)
 
 #: How many news posts the home page features.
 FEATURED_NEWS_COUNT = 3
+
+#: How many upcoming events the home page's sidebar lists.
+UPCOMING_EVENTS_COUNT = 3
 
 #: How many posts a news index page shows before paginating.
 NEWS_PAGE_SIZE = 8
@@ -275,6 +281,11 @@ class HomePage(BasePage):
         features=RICH_TEXT_FEATURES,
         help_text="The paragraphs under the mission statement.",
     )
+    upcoming_events = StreamField(
+        EventStreamBlock(),
+        blank=True,
+        help_text="Dated events for the sidebar.  One that has passed stops showing.",
+    )
     missions_heading = models.CharField(max_length=200, blank=True, default="Missions flown")
     missions_flown = StreamField(
         MissionStreamBlock(),
@@ -306,6 +317,7 @@ class HomePage(BasePage):
         ),
         FieldPanel("mission_statement"),
         FieldPanel("welcome_body"),
+        FieldPanel("upcoming_events"),
         MultiFieldPanel(
             [FieldPanel("missions_heading"), FieldPanel("missions_flown")],
             heading="Missions flown",
@@ -351,6 +363,20 @@ class HomePage(BasePage):
         return index_page
 
     @property
+    def events_soon(self) -> list[StreamValue.StreamChild]:
+        """The next few events that have not happened yet, soonest first.
+
+        Reads ``upcoming_events`` in whatever order the editor left it, drops every
+        event dated before today, sorts what is left by date and returns at most
+        ``UPCOMING_EVENTS_COUNT`` of them.  An empty stream gives an empty list, so
+        the sidebar box disappears rather than standing empty.
+        """
+        today = timezone.localdate()
+        ahead = [block for block in self.upcoming_events if block.value["date"] >= today]
+        ahead.sort(key=lambda block: block.value["date"])
+        return ahead[:UPCOMING_EVENTS_COUNT]
+
+    @property
     def dart_index(self) -> DartIndexPage | None:
         """The live DART directory the sidebar's team finder posts to, or ``None``."""
         index_page: DartIndexPage | None = DartIndexPage.objects.live().first()
@@ -370,6 +396,7 @@ class HomePage(BasePage):
         """Wagtail's page context plus the news, DART and membership the sidebar reads."""
         context: dict[str, Any] = super().get_context(request, *args, **kwargs)
         context["featured_news"] = self.featured_news
+        context["events_soon"] = self.events_soon
         context["news_index"] = self.news_index
         context["dart_index"] = self.dart_index
         context["darts"] = self.darts

@@ -56,8 +56,9 @@ Model                Notes
                      ``mission`` blocks) and ``tax_status``.
                      ``featured_news`` returns the three most recent live,
                      public news posts, members-only ones excluded whoever is
-                     looking; ``darts`` and ``plans`` fill the sidebar's team
-                     finder and price list.
+                     looking; ``events_soon`` returns the three soonest events
+                     still ahead of today, in date order; ``darts`` and
+                     ``plans`` fill the sidebar's team finder and price list.
 ``StandardPage``     ``intro`` + ``body``; carries ``MembersOnlyMixin``.
 ``NewsIndexPage``    Paginates its child posts, ``NEWS_PAGE_SIZE`` at a time,
                      and hides members-only posts from visitors who could not
@@ -177,8 +178,11 @@ Blocks
 ``heading``, ``paragraph``, ``image``, ``quote``, ``cta``, ``document``,
 ``two_columns``, ``embed`` and ``raw_html``.  ``ColumnStreamBlock`` is the
 reduced set allowed inside a two-column block, so columns cannot nest, and
-``MissionStreamBlock`` is the home page's own stream: ``mission`` blocks of a
-``year`` and the text of what was flown, rendered as the rows of one table.
+The home page has two streams of its own: ``MissionStreamBlock``, whose
+``mission`` blocks pair a ``year`` with the text of what was flown and render
+as the rows of one table, and ``EventStreamBlock``, whose ``event`` blocks
+carry a ``date``, a ``title``, an optional ``where`` and an optional page to
+link to.
 
 ``cta`` (``CTABlock``) is the call to action: a ``label``; a target that is
 either a ``page`` from the tree or a ``url`` (an external address, or a path

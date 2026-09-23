@@ -205,7 +205,7 @@ CMS page models
           BasePage [label="cms.BasePage (abstract)\l  base_form_class =\l    RestrictedBlocksPageForm\l  body_headings\l  show_on_this_page\l", style="rounded,dashed"];
           MembersOnly [label="cms.MembersOnlyMixin (abstract)\l  members_only\l  serve(): members-only wall, 403\l", style="rounded,dashed"];
 
-          Home [label="cms.HomePage\l  hero_heading, hero_lede,\l  hero_image_caption, CTAs,\l  mission, welcome_body,\l  missions_flown, tax status\l"];
+          Home [label="cms.HomePage\l  hero_heading, hero_lede,\l  hero_image_caption, CTAs,\l  mission, welcome_body,\l  upcoming_events, missions_flown,\l  tax status\l"];
           Standard [label="cms.StandardPage\l  intro, body\l"];
           NewsIndex [label="cms.NewsIndexPage\l  intro\l"];
           News [label="cms.NewsPage\l  date, intro, body\l"];
@@ -282,8 +282,8 @@ CMS page models
       --------------------------
       wagtailcore.Page     title, slug, live, path
       cms.HomePage         hero_heading, hero_lede, hero_image_caption, the
-                           three CTAs, mission, welcome_body, missions_flown,
-                           tax status
+                           three CTAs, mission, welcome_body, upcoming_events,
+                           missions_flown, tax status
       cms.StandardPage     intro, body
       cms.NewsIndexPage    intro
       cms.NewsPage         date, intro, body
@@ -1002,9 +1002,9 @@ not use it, and the ``body_headings`` used to build the "on this page" rail):
      - Notes
    * - ``HomePage``
      - the welcome box (heading, lede, captioned image, mission statement,
-       ``welcome_body`` and three CTAs), ``missions_flown`` (a StreamField of
-       ``mission`` blocks), tax status, and the three latest news posts.  Only
-       under the tree root.
+       ``welcome_body`` and three CTAs), ``upcoming_events`` and
+       ``missions_flown`` (StreamFields of ``event`` and ``mission`` blocks),
+       tax status, and the three latest news posts.  Only under the tree root.
    * - ``StandardPage``
      - ``intro`` plus a ``body`` StreamField.  Members-only capable.
    * - ``NewsIndexPage`` / ``NewsPage``

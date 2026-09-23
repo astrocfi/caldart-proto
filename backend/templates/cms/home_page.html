@@ -89,6 +89,17 @@
 
 {% block sidebar %}
   <aside class="panel__side">
+    {% if events_soon %}
+      <section class="box box--side">
+        <h2 class="box__head">Upcoming events</h2>
+        <div class="box__body">
+          <ul class="events" role="list">
+            {% for block in events_soon %}{% include_block block %}{% endfor %}
+          </ul>
+        </div>
+      </section>
+    {% endif %}
+
     <section class="box box--side">
       <h2 class="box__head">Member sign-in</h2>
       <div class="box__body">

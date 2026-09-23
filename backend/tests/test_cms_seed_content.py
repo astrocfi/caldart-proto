@@ -117,6 +117,16 @@ def test_seed_content_home_page_carries_the_missions_flown() -> None:
     assert home.primary_cta_url == "/portal/join"
 
 
+def test_seed_content_dates_every_event_ahead_of_today() -> None:
+    """``seed_content`` seeds the calendar so nothing in it has already happened."""
+    seed()
+    home = HomePage.objects.get()
+    today = timezone.localdate()
+
+    assert len(home.upcoming_events) == len(content.UPCOMING_EVENTS)
+    assert all(block.value["date"] > today for block in home.upcoming_events)
+
+
 def test_seed_content_gives_the_home_page_its_photograph() -> None:
     """``seed_content`` attaches the example photograph and its caption."""
     seed()

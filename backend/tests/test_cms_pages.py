@@ -6,9 +6,12 @@ reach them without depending on another test module.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 from django.template.loader import render_to_string
 from django.test import Client
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.cms.context_processors import build_nav
@@ -85,6 +88,49 @@ def test_home_page_lists_the_missions_flown(client: Client, site_settings: SiteS
     assert "2023" in body
     assert "Food and medicine to the mountains." in body
     assert "Masks to firefighters in Oregon." in body
+
+
+def test_home_page_sidebar_lists_the_next_three_events(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The events box shows the three soonest events still ahead, in date order."""
+    home = site_settings.site.root_page.specific
+    today = timezone.localdate()
+    home.upcoming_events = [
+        ("event", {"date": today + timedelta(days=60), "title": "Leaders meeting"}),
+        ("event", {"date": today - timedelta(days=1), "title": "Yesterday's drill"}),
+        ("event", {"date": today + timedelta(days=5), "title": "Ground crew workshop"}),
+        ("event", {"date": today + timedelta(days=30), "title": "Radio drill"}),
+        ("event", {"date": today + timedelta(days=90), "title": "Spring exercise"}),
+    ]
+    home.save()
+    home.save_revision().publish()
+
+    assert [block.value["title"] for block in home.events_soon] == [
+        "Ground crew workshop",
+        "Radio drill",
+        "Leaders meeting",
+    ]
+
+    body = client.get("/").content.decode()
+    assert "Upcoming events" in body
+    assert "Ground crew workshop" in body
+    assert "Yesterday's drill" not in body
+    assert "Spring exercise" not in body
+
+
+def test_home_page_hides_the_events_box_when_every_event_has_passed(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """With nothing ahead the box disappears rather than standing empty."""
+    home = site_settings.site.root_page.specific
+    yesterday = timezone.localdate() - timedelta(days=1)
+    home.upcoming_events = [("event", {"date": yesterday, "title": "Last year's drill"})]
+    home.save()
+    home.save_revision().publish()
+
+    assert home.events_soon == []
+    assert "Upcoming events" not in client.get("/").content.decode()
 
 
 def test_home_page_sidebar_prices_every_active_plan(
