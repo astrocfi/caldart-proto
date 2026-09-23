@@ -17,6 +17,8 @@ export interface ContributionChooserProps {
   /** Selected amount in cents. */
   value: number;
   onChange: (cents: number) => void;
+  /** The largest amount the server will accept, in cents. */
+  maxCents: number;
   /** True while the member is typing their own amount. */
   isOther: boolean;
   onOther: (isOther: boolean) => void; // codespell:ignore onother
@@ -33,6 +35,7 @@ export function ContributionChooser({
   tiers,
   value,
   onChange,
+  maxCents,
   isOther,
   onOther, // codespell:ignore onother
   disabled = false,
@@ -44,7 +47,7 @@ export function ContributionChooser({
       <legend>Add a contribution</legend>
       <p className="muted checkout__hint">
         CalDART is a 501(c)(3); a contribution on top of your dues is tax deductible and pays for
-        training, fuel and equipment.
+        training, fuel, and equipment.
       </p>
       <div className="tier-grid">
         {tiers.map((tier) => (
@@ -85,6 +88,10 @@ export function ContributionChooser({
           <label className="field__label" htmlFor={otherId}>
             Contribution amount
           </label>
+          <p className="field__hint" id={`${otherId}-hint`}>
+            Up to {formatCents(maxCents, { whole: true })}. For more than that, talk to the
+            treasurer.
+          </p>
           <div className="checkout__other-input">
             <span aria-hidden="true" className="mono">
               $
@@ -93,13 +100,22 @@ export function ContributionChooser({
               id={otherId}
               type="number"
               min={0}
+              max={maxCents / 100}
               step="1"
               inputMode="decimal"
+              aria-describedby={`${otherId}-hint`}
               disabled={disabled}
               value={value === 0 ? '' : String(value / 100)}
               onChange={(event) => {
                 const dollars = Number.parseFloat(event.target.value);
-                onChange(Number.isFinite(dollars) && dollars > 0 ? Math.round(dollars * 100) : 0);
+                if (!Number.isFinite(dollars) || dollars <= 0) {
+                  onChange(0);
+                  return;
+                }
+                // Clamp rather than reject: a typed digit too many should not
+                // discard what the member meant, and the server refuses
+                // anything above this anyway.
+                onChange(Math.min(Math.round(dollars * 100), maxCents));
               }}
             />
           </div>

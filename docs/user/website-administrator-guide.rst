@@ -6,7 +6,7 @@ This guide is for people who hold the ``website_admin`` role: you look after
 the public |org| website — the pages, their words and pictures, the members-only
 area, and the organization details that appear in the header and footer.
 
-You do not need to know anything about the member database, payments or
+You do not need to know anything about the member database, payments, or
 reports.  Those live in the member portal and belong to other roles.
 
 
@@ -90,8 +90,8 @@ a page:
     tax-status note is shown in the membership box below them.
 
 
-Creating, editing and publishing
-================================
+Creating, editing, and publishing
+=================================
 
 Add a page
 ----------
@@ -162,8 +162,8 @@ Block              What it is for
 Heading            A section heading.  H2 headings also become the "on this
                    page" list on long pages, so use them for real sections
                    and H3 for sub-points.
-Paragraph          Rich text: bold, italic, links, bullet and numbered lists,
-                   quotes, horizontal rules, H3 and H4.
+Paragraph          Rich text: bold, italic, links, bullet, and numbered lists,
+                   quotes, horizontal rules, H3, and H4.
 Image              An uploaded image with optional caption and credit.  Fill
                    in the alt text unless the image is purely decorative.
 Quote              A pull-quote, with an optional attribution.
@@ -186,11 +186,11 @@ Images and documents
 ====================
 
 **Images** in the left-hand menu is the image library.  Upload once and reuse
-anywhere; Wagtail generates the sizes each template needs.  JPEG, PNG, WebP,
-GIF and SVG are accepted.
+anywhere; Wagtail generates the sizes each template needs.  JPEG, PNG, WebP
+, GIF, and SVG are accepted.
 
 **Documents** is the same idea for files people download: PDF, DOCX, XLSX,
-PPTX, CSV, TXT, RTF, ODT, Keynote and ZIP.  Link to them with the Document
+PPTX, CSV, TXT, RTF, ODT, Keynote, and ZIP.  Link to them with the Document
 block, or from rich text with the document-link button.
 
 Give every upload a title that describes it — the title is what appears in the
@@ -208,7 +208,7 @@ Standard pages and news posts have a **Members only** switch.  Turn it on and
 the page is served only to:
 
 * signed-in members whose membership is current, and
-* DART leaders, account, user, website and system administrators.
+* DART leaders, account, user, website, and system administrators.
 
 Everyone else gets a wall instead of the content, with the one action that
 would fix it for them: sign in, renew, or join.  Search engines never see the
@@ -242,8 +242,8 @@ closed too.
 
 Files in any other collection — the root collection a document lands in by
 default, a "Press kit" collection, anything else — are public to anyone with
-the link.  Put the handbooks, rosters, bylaws and member forms in **Members
-only**, and leave flyers, logos and public forms outside it.
+the link.  Put the handbooks, rosters, bylaws, and member forms in **Members
+only**, and leave flyers, logos, and public forms outside it.
 
 To move a file that is already uploaded, open it under **Documents**, change
 **Collection** and save; the links to it keep working.
@@ -272,7 +272,7 @@ Contact email          Footer, contact page, the members-only wall
 Contact phone          Footer and contact page
 Duty officer phone     The masthead, the footer and the contact page
 Duty officer note      The line under the masthead's duty number
-Mailing address        Masthead, footer and contact page
+Mailing address        Masthead, footer, and contact page
 Donate url             Footer link
 Facebook url           Footer link
 Twitter url            Footer link
@@ -340,7 +340,7 @@ To add one by hand, press **Add redirect** and fill in:
    Choose a page from the tree, or type an address.  Use one or the other, not
    both.
 
-You may add, change and delete redirects; the role grants all three.  Deleting
+You may add, change, and delete redirects; the role grants all three.  Deleting
 one that Wagtail created restores the 404, so remove a redirect only when you
 want the old address to stop working.
 
@@ -350,8 +350,8 @@ Things worth knowing
 
 * **Changing a slug changes the URL.**  When you publish the change, Wagtail
   adds a redirect from the old address automatically, so existing links keep
-  working.  **Settings → Redirects** lists those redirects, and you can add,
-  change or delete your own there (see :ref:`redirects`).
+  working.  **Settings → Redirects** lists those redirects, and you can add
+  , change, or delete your own there (see :ref:`redirects`).
 * **The home page's news list is automatic.**  Publish a news post and it
   appears; there is nothing to update by hand.
 * **DART pages read the airport and city from the membership database.**  If
@@ -409,8 +409,8 @@ When something goes wrong
    changes on pages you added.
 
 **An image or document will not upload.**
-   The allowed types are fixed: images as GIF, JPEG, PNG, WebP or SVG, and
-   documents as CSV, DOCX, KEY, ODT, PDF, PPTX, RTF, TXT, XLSX or ZIP.  On the
+   The allowed types are fixed: images as GIF, JPEG, PNG, WebP, or SVG, and
+   documents as CSV, DOCX, KEY, ODT, PDF, PPTX, RTF, TXT, XLSX, or ZIP.  On the
    live site there is also a 25 MB size cap.  Photographs straight off a
    camera are usually far larger than a web page needs — resize before
    uploading and the site will be quicker as well.

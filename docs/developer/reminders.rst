@@ -87,7 +87,7 @@ all call it.  In order:
    in the summary, when:
 
    ``already_sent``
-      a ``ReminderLog`` row already exists for this user, membership and kind;
+      a ``ReminderLog`` row already exists for this user, membership, and kind;
    ``inactive_user``
       the account has been deactivated;
    ``no_email``
@@ -199,7 +199,7 @@ Scheduling
 ==========
 
 Production runs it from a systemd timer, not cron, so that the run is a unit
-with logs, status and a catch-up policy:
+with logs, status, and a catch-up policy:
 
 ``deploy/systemd/caldart-reminders.service``
    ``Type=oneshot``, runs ``manage.py send_renewal_reminders`` as the
@@ -262,7 +262,7 @@ Every kind renders two bodies from ``backend/templates/emails/``:
 ``reminder_<kind>.html``
    The HTML alternative.  Extends ``reminder_base.html``, which holds the table
    layout, the inline styles and the footer, and exposes the blocks
-   ``preheader``, ``heading``, ``lede``, ``body`` and ``cta_label``.
+   ``preheader``, ``heading``, ``lede``, ``body``, and ``cta_label``.
 
 The HTML shell uses the ``duty`` palette (:doc:`theming`) with Georgia standing
 in for Fraunces, because webfonts do not load in most mail clients.  Both
@@ -298,7 +298,7 @@ and when, give one link, and stop.
 The log
 =======
 
-``ReminderLog`` records ``user``, ``membership``, ``kind``, ``sent_at`` and
+``ReminderLog`` records ``user``, ``membership``, ``kind``, ``sent_at``, and
 ``to_email``.  It exists to make the scanner idempotent, and it doubles as the
 answer to "was this member ever told?".
 
@@ -354,10 +354,10 @@ Testing
 
 ``backend/tests/test_reminders.py`` covers the scanner: each kind on its own
 offset and silence a day early, dedupe across runs, the expiry flip, the dry
-run writing nothing, lifetime and deactivated members being skipped, early
+run writing nothing, lifetime, and deactivated members being skipped, early
 renewals being skipped, and the rendered content of every template.
-``backend/tests/test_reminders_resilience.py`` covers the edges of the window,
-one and two days late sending and three days late not, ``expired`` never going
+``backend/tests/test_reminders_resilience.py`` covers the edges of the window
+, one and two days late sending and three days late not, ``expired`` never going
 out late, the day count in a late email, and the failure paths: a locmem
 backend that refuses one address, the log line that names ids and no address,
 a log row written under the scan to stand in for a racing run, and a failed

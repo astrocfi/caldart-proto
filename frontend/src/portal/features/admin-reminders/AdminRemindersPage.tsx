@@ -21,7 +21,7 @@ export function AdminRemindersPage(): JSX.Element {
     >
       <Card eyebrow="Membership" title="Renewal reminders">
         <p className="muted">
-          The scan runs every morning at 07:00 and mails a member 60, 30 and 7 days before their
+          The scan runs every morning at 07:00 and mails a member 60, 30, and 7 days before their
           membership ends, on the day it ends, and 30 days after. Each member gets one email per
           membership per kind, so this is the record of what they were told.
         </p>

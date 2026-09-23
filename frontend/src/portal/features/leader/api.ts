@@ -7,7 +7,7 @@ import type { AircraftDetail, LeaderSearchResult, LeaderStatus } from '@/portal/
 
 export const LEADER_KEY = 'leader';
 
-/** Searches members by name, email or N-number via `GET /leader/search`. */
+/** Searches members by name, email, or N-number via `GET /leader/search`. */
 export function useLeaderSearch(query: string): UseQueryResult<LeaderSearchResult[]> {
   const term = query.trim();
   return useQuery({

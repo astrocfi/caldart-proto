@@ -79,8 +79,8 @@ def mark_succeeded(
 ) -> Payment:
     """Mark a payment succeeded and activate the membership term.
 
-    Stamps ``completed_at`` with the current time, stores ``wallet``,
-    ``provider_ref`` and ``raw`` when each is given, and activates a term for the
+    Stamps ``completed_at`` with the current time, stores ``wallet``
+    , ``provider_ref``, and ``raw`` when each is given, and activates a term for the
     payment's plan when it has one.  Returns the row as saved.
 
     Idempotent: a second call is a no-op that returns the same payment, so

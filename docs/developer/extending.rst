@@ -36,7 +36,7 @@ shape of the module and everything that has to be told about it.
    django-stubs types the settings object from the settings module, so
    ``settings.ACME_SECRET_KEY`` fails ``mypy`` until the name exists.
 #. Write ``backend/apps/payments/providers/<slug>.py``: subclass ``Provider``,
-   set ``slug``, implement ``start``, ``confirm`` and ``handle_webhook``, and
+   set ``slug``, implement ``start``, ``confirm``, and ``handle_webhook``, and
    decorate the class with ``@register``.
 #. Import the class in ``providers/__init__.py`` and add it to ``__all__``.
    Importing the package is what registers every provider, so nothing else has
@@ -521,7 +521,7 @@ Blocks live in ``backend/apps/cms/blocks.py``.  ``ContentStreamBlock`` is the
 body offered on every editable page and ``ColumnStreamBlock`` the reduced set
 allowed inside a two-column block.
 
-#. Write the block class, with a ``Meta`` that sets ``icon``, ``label`` and
+#. Write the block class, with a ``Meta`` that sets ``icon``, ``label``, and
    ``template``.
 #. Add it to ``ContentStreamBlock``, and to ``ColumnStreamBlock`` when it makes
    sense inside a column.

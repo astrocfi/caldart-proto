@@ -137,7 +137,7 @@ function MemberHeader({ member }: { member: MemberDetail }) {
   );
 }
 
-/** `/admin/members/:id` page: a member's profile, memberships and payments tabs. */
+/** `/admin/members/:id` page: a member's profile, memberships, and payments tabs. */
 export function MemberDetailPage(): JSX.Element {
   const { id } = useParams();
   const memberId = Number(id);

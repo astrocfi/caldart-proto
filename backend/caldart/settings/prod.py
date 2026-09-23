@@ -6,7 +6,7 @@ Nothing in this chain reads a ``.env`` file: a variable the environment lacks
 is a start-up error, not an invitation to take a development value from a file
 beside the code.  Four variables have no default on purpose, so a
 half-configured box fails at start-up rather than serving with a development
-secret: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` and ``EMAIL_URL``.
+secret: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, and ``EMAIL_URL``.
 ``docs/developer/configuration.rst`` lists every variable and its production
 value.
 """

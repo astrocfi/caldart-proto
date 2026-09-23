@@ -22,39 +22,47 @@ The list shows everyone with a CalDART account — ``member`` is granted the
 moment someone registers, so "accounts" and "members" are the same set of
 people — one row each:
 
-**Member**
-   Their name, which links to the full record, followed by their DART, pilot
-   certificate and, when they hold one, their medical class with a chip saying
-   whether it is still current.  A deactivated account says so here.
+**Pilot**
+   A green tick when the member holds a pilot certificate and their medical is
+   in date, a red cross when the medical has lapsed, and a dash for somebody
+   who is not a pilot.  It answers the question the list is most often opened
+   for: who can fly today.
+
+**Name**
+   Their name, which links to the full record.  A deactivated account says so
+   here.
+
+**DART**
+   Their team, or "Unaffiliated".
+
+**Membership Exp.**
+   A colored dot and the expiry date.  The dot is green while the membership is
+   current, amber in the last 30 days, red once it has run out, and gray for
+   somebody who has never been a member.  A lifetime membership reads "Never".
 
 **Email**
    A ``mailto:`` link, so you can write to someone straight from the list.
-
-**Membership**
-   A status chip and the expiry date behind it.  The chip is green while the
-   membership is current, amber in the last 30 days, red once it has run out
-   and gray for someone who has never been a member.  Lifetime members show
-   "Lifetime member" and no date.
-
-**Joined**
-   The start of their first membership term, which is blank for someone who
-   has never had one.
 
 The expiry date is the end of the member's *unbroken* coverage.  Somebody who
 renews in March for a term that starts in July already shows next July's date,
 because their cover runs without a break — you never have to add the terms up
 yourself.
 
-Click any column heading to sort by it; click again to reverse the order.  The
-sort, like the filters, is part of the page's address, so a sorted and filtered
-list is a link you can bookmark or send to somebody else.
+Click **Name**, **Membership Exp.** or **Email** to sort by that column; click
+again to reverse the order.  **Pilot** and **DART** do not sort, because the
+server has no ordering for them.  The sort, like the filters, is part of the
+page's address, so a sorted and filtered list is a link you can bookmark or
+send to somebody else.
+
+The export still carries every field, including the ones the table leaves out:
+phone, certificate, medical class, aircraft, and the joining date.
 
 
 Filtering
 ---------
 
 The filter bar sits above the table.  The dropdowns apply the moment you change
-them; the **Search** and **Expiring within** boxes apply when you press Enter
+them; the **Search** and **Expiring within (days)** boxes apply when you press Enter
 or the **Apply** button, so a half-typed name never runs a search.  **Clear**
 empties the whole bar.
 
@@ -111,7 +119,7 @@ The member record
 =================
 
 Clicking a name opens that person's record.  A summary strip at the top
-carries their membership chip, plan, expiry and join date; below it are four
+carries their membership chip, plan, expiry, and join date; below it are four
 tabs.  Arrow keys move between the tabs, and the tab you are on is part of the
 address, so you can send a colleague straight to somebody's payment history.
 
@@ -152,7 +160,7 @@ The history table lists every term: plan, start, end, status, where it came
 from (a payment, a manual grant or the demo seed), the note, and who granted
 it.
 
-**Edit** on a row lets you correct that term's end date, status or note — for
+**Edit** on a row lets you correct that term's end date, status, or note — for
 a refund, a goodwill extension, or a term that was entered wrongly.  Setting a
 term to *Canceled* takes it out of the membership calculation entirely; the
 row stays in the history.
@@ -225,8 +233,8 @@ every matching member and not just the page in front of you.
   list of.
 
 Both carry the same sixteen columns: name, email, phone, DART, status, plan,
-expiry, certificate and its number, IFR, medical class and expiry, aircraft,
-city, state and join date.  A lifetime member has no expiry date, so that cell
+expiry, certificate, and its number, IFR, medical class and expiry, aircraft,
+city, state, and join date.  A lifetime member has no expiry date, so that cell
 is empty and the plan column says *Life*.
 
 The columns are listed field by field in the developer documentation under
@@ -259,7 +267,7 @@ Common tasks
 
 **Who is about to lapse?**
    Membership *Current*, Expiring within ``30``.  Export the CSV for the
-   renewal mail-out.  Automatic reminders go out at 60, 30 and 7 days before
+   renewal mail-out.  Automatic reminders go out at 60, 30, and 7 days before
    expiry, on the day itself, and 30 days after.
 
 **Who has lapsed and not come back?**
@@ -297,7 +305,7 @@ When something goes wrong
 
 **"You cannot change the email address of an account that holds roles you do not hold."**
    The record carries a role you do not have — ``dart_leader``,
-   ``website_admin``, ``user_admin`` or ``system_admin``.  Moving an address is
+   ``website_admin``, ``user_admin``, or ``system_admin``.  Moving an address is
    enough to take an account over, so it is reserved for somebody who already
    holds every role that account holds.  Ask a system administrator, or a
    colleague who holds them all.

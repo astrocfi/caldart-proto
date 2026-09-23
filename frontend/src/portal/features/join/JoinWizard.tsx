@@ -34,7 +34,7 @@ import './join.css';
 const LEDE: Record<JoinStep, string> = {
   account: 'Membership is $45 a year, or $650 for life. It takes about three minutes.',
   profile: 'Tell us how to reach you and what you fly.',
-  pay: 'Card, Apple Pay, Google Pay or PayPal. Your membership starts immediately.',
+  pay: 'Card, Apple Pay, Google Pay, or PayPal. Your membership starts immediately.',
   done: 'You are a member of the California DART Network.',
 };
 

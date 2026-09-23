@@ -50,8 +50,8 @@ Every page type subclasses ``BasePage``, which supplies two things: the
 Model                Notes
 ===================  ========================================================
 ``HomePage``         The site root.  The welcome box (``hero_heading``,
-                     ``hero_lede``, ``hero_image``, ``mission_statement``,
-                     ``welcome_body`` and three calls to action, the first of
+                     ``hero_lede``, ``hero_image``, ``mission_statement``
+                     , ``welcome_body``, and three calls to action, the first of
                      them ``urgent_cta_*``), ``missions_flown`` (a stream of
                      ``mission`` blocks) and ``tax_status``.
                      ``featured_news`` returns the three most recent live,
@@ -176,7 +176,7 @@ Blocks
 
 ``blocks.ContentStreamBlock`` is the body offered on every editable page:
 ``heading``, ``paragraph``, ``image``, ``quote``, ``cta``, ``document``,
-``two_columns``, ``embed`` and ``raw_html``.  ``ColumnStreamBlock`` is the
+``two_columns``, ``embed``, and ``raw_html``.  ``ColumnStreamBlock`` is the
 reduced set allowed inside a two-column block, so columns cannot nest, and
 The home page has two streams of its own: ``MissionStreamBlock``, whose
 ``mission`` blocks pair a ``year`` with the text of what was flown and render
@@ -222,7 +222,7 @@ Adding a page type
 ==================
 
 :ref:`extending-page-type` in :doc:`extending` has the recipe and a skeleton:
-the bases to subclass, the panels, search fields, template and tree
+the bases to subclass, the panels, search fields, template, and tree
 constraints to declare, the migration, the ``seed_content`` entry, and the
 tests for rendering and access.
 
@@ -348,9 +348,9 @@ team has gone.  ``make seed`` runs it after ``seed_demo``.
 .. _cms-seed-data:
 
 Every word of the copy lives in ``seed_content_data.py``, which holds no logic:
-each page is a frozen ``PageSpec`` naming its slug, title, intro, menu and
+each page is a frozen ``PageSpec`` naming its slug, title, intro, menu, and
 members-only flags and a tuple of ``BlockSpec`` body blocks, built by the
-``rich``, ``heading``, ``quote`` and ``cta`` helpers; a news post pairs a
+``rich``, ``heading``, ``quote``, and ``cta`` helpers; a news post pairs a
 ``PageSpec`` with how many days ago it was posted.  The command reads the specs
 and writes the pages, so changing a sentence never touches the code that builds
 the tree.  Site settings come from the same module's ``SITE_SETTINGS``.
@@ -376,7 +376,7 @@ Testing
                                  test modules import.
 ``test_cms_seed_content.py``     Tree shape, the copy each page must
                                  carry, and running the command twice.
-``test_cms_permissions.py``      The grant, reaching ``/admin/``, editing
+``test_cms_permissions.py``      The grant, reaching ``/admin/``, editing,
                                  and publishing as ``website_admin``, and
                                  the raw-HTML restriction.
 ``test_site_config.py``          ``/site/config`` for every caller.

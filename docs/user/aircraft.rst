@@ -25,11 +25,11 @@ person adding it happened to type the number.
 
 
 For members: adding an airplane you fly
-========================================
+=======================================
 
 #. Open **My aircraft** in the portal menu.
 #. Search the register in the panel underneath: type the registration, or the
-   make, model or owner if you do not have the number to hand.
+   make, model, or owner if you do not have the number to hand.
 #. Pick the airplane from the results.  It is attached to your profile
    straight away and appears in the list above with its insurance chip.
 
@@ -46,7 +46,7 @@ N-number               Required.  Typed however you like; stored canonically
 Make                   Required, e.g. ``Cessna``
 Model                  Required, e.g. ``172S Skyhawk``
 Year                   Optional, four digits
-Owner                  Optional: the person, club or FBO that owns it
+Owner                  Optional: the person, club, or FBO that owns it
 Insurance carrier      Optional, but a DART leader will look for it
 Insurance expires      Optional, and the single most useful field on the form
 =====================  ==========================================================
@@ -76,13 +76,13 @@ Filtering
 ===================  ============================================================
 Filter               Matches
 ===================  ============================================================
-Search               N-number, make, model or owner name.  A registration is
+Search               N-number, make, model, or owner name.  A registration is
                      normalized first, so ``172sp`` finds ``N172SP``
 Make                 Any part of the make, case-insensitively
-Owner type           Individual, FBO or flying club
+Owner type           Individual, FBO, or flying club
 Insurance            ``Insured`` (a policy on file, not yet expired),
                      ``Expired``, or ``Not on file``
-Expiring within      30, 60 or 90 days — cover that is still valid but is about
+Expiring within      30, 60, or 90 days — cover that is still valid but is about
                      to lapse.  Already-expired policies are *not* included
 ===================  ============================================================
 
@@ -119,7 +119,7 @@ Editing a record
 Click a registration to open the record.  It is in four sections:
 
 - **Aircraft** — registration, year, make, model, seats.
-- **Owner** — individual, FBO or club, with a name and a contact.
+- **Owner** — individual, FBO, or club, with a name and a contact.
 - **Insurance** — carrier, policy number, liability per occurrence and per
   person, hull value, and the expiry date.  Amounts are entered in dollars and
   stored as integer cents; nothing may be negative.
@@ -177,12 +177,12 @@ When something goes wrong
    The register already has it, under whatever spelling somebody first used.
    Search for it and attach the existing record instead of adding a second —
    that is the whole point of one shared register.  Registrations are
-   normalized, so ``N12345``, ``n-12345`` and ``12345`` cannot be entered as
+   normalized, so ``N12345``, ``n-12345``, and ``12345`` cannot be entered as
    three separate airplanes.
 
 **"Enter a registration, for example N12345."**
    The lookup box got something it could not read as a tail number.  Letters
-   and digits are all it needs; punctuation, spaces and case are ignored.
+   and digits are all it needs; punctuation, spaces, and case are ignored.
 
 **The picker finds nothing, but you know the airplane is on file.**
    The fuzzy search leaves out airplanes marked *out of service*.  Type the

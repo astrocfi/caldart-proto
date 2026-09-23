@@ -121,11 +121,11 @@ above a heading is extra-small semibold body type in uppercase, spaced out by
 ``--tracking-eyebrow`` and colored ``--color-muted``.  The public site uses
 neither: its box title bars name each section instead.
 
-Space, shape and layout
------------------------
+Space, shape, and layout
+------------------------
 
-``--space-1`` … ``--space-8`` (0.25rem → 6rem), ``--radius`` (6px — boxes,
-buttons and inputs are softened, not rounded), ``--radius-pill``,
+``--space-1`` … ``--space-8`` (0.25rem → 6rem), ``--radius`` (6px — boxes
+, buttons, and inputs are softened, not rounded), ``--radius-pill``,
 ``--hairline`` (1px), ``--measure`` (68ch), ``--page-max``, ``--rail-width``,
 and ``--duration``, ``--duration-fast`` and ``--ease`` for motion.
 
@@ -274,7 +274,7 @@ no network:
 
 Only the weights actually used are imported; adding one means adding an
 import.  Fraunces uses the ``full`` build because the design system drives its
-``opsz``, ``SOFT`` and ``WONK`` axes.  Every stack in ``tokens.css`` ends in a
+``opsz``, ``SOFT``, and ``WONK`` axes.  Every stack in ``tokens.css`` ends in a
 real system fallback, so a page still reads correctly before the webfonts
 arrive.
 
@@ -286,7 +286,7 @@ Nothing else refers to a font by name.
 House rules
 ===========
 
-* **Plain and civic.**  Type, rules and the panel carry the design, not
+* **Plain and civic.**  Type, rules, and the panel carry the design, not
   decoration: no gradients, no glassmorphism or backdrop blur, no hero blobs
   and no emoji bullets.
 * **Semantic tokens only** in components.  If you need a color that no token

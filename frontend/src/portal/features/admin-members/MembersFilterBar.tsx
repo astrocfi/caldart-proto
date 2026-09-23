@@ -75,7 +75,7 @@ export function MembersFilterBar({ value, onChange, darts }: MembersFilterBarPro
           <input
             {...props}
             type="search"
-            placeholder="Name, email, phone or certificate"
+            placeholder="Name, email, phone, or certificate"
             value={draft.search}
             onChange={(event) => setDraft({ ...draft, search: event.target.value })}
           />
@@ -93,7 +93,10 @@ export function MembersFilterBar({ value, onChange, darts }: MembersFilterBarPro
       )}
       {select('role', 'Role', 'Any role', ROLE_CHOICES)}
 
-      <Field label="Expiring within" hint="days">
+      {/* The unit goes in the label, not in a hint underneath: a hint would
+          make this field taller than its neighbors and lift the input off the
+          row the rest of the bar sits on. */}
+      <Field label="Expiring within (days)">
         {(props) => (
           <input
             {...props}

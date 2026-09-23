@@ -64,20 +64,20 @@ grants the rest.
 ===================  ==================================================
 Role                 What it adds
 ===================  ==================================================
-``member``           Your own profile, payments and membership; renew;
+``member``           Your own profile, payments, and membership; renew;
                      members-only content while your membership is
                      current.
 ``dart_leader``      A Disaster Airlift Response Team (DART) member: look
-                     up any member and check membership, medical,
-                     certificate and aircraft insurance currency.
+                     up any member and check membership, medical
+                     , certificate, and aircraft insurance currency.
 ``user_admin``       List accounts, assign roles, activate and
                      deactivate, and trigger password resets.
-``account_admin``    Create, edit and delete members, grant membership
+``account_admin``    Create, edit, and delete members, grant membership
                      terms by hand, maintain aircraft and payments, read
                      the renewal reminder log, run reports, and check
                      members like a DART leader.
 ``website_admin``    Edit the public site in the Wagtail admin.
-``system_admin``     Everything above, plus backups, health and
+``system_admin``     Everything above, plus backups, health, and
                      reminder runs.
 ===================  ==================================================
 
@@ -157,7 +157,7 @@ one twice.  You stay signed in on the device you changed it from.
 Too many attempts
 -----------------
 
-Signing in, registering and asking for reset links are all rate limited per
+Signing in, registering, and asking for reset links are all rate limited per
 network address.  If you have been hammering the form you may see **Request was
 throttled**; wait a minute (an hour, for registration and reset requests) and
 try again.
@@ -180,7 +180,7 @@ roles allow it:
    Members, aircraft, payments, reminders, and users and roles.
 
 **System**
-   Health, backups and reminder runs.
+   Health, backups, and reminder runs.
 
 On a phone the menu collapses behind the **Menu** button in the top bar.  Every
 screen is keyboard-navigable, and *Skip to content* is the first stop when you
@@ -188,7 +188,7 @@ start tabbing.
 
 Where to go next:
 
-* :doc:`member-guide` — your profile, membership and renewals.
+* :doc:`member-guide` — your profile, membership, and renewals.
 * :doc:`dart-leader-guide` — checking another member before a flight.
 * :doc:`user-administrator` — running accounts and roles.
 * :doc:`faq` — the short answers.

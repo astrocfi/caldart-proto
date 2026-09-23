@@ -69,7 +69,7 @@ describe('UsersListPage', () => {
     vi.useRealTimers();
   });
 
-  it('lists accounts with their roles, membership and status', async () => {
+  it('lists accounts with their roles, membership, and status', async () => {
     stubList();
     renderWithProviders(<UsersListPage />);
 

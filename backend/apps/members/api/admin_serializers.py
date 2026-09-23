@@ -73,7 +73,7 @@ class AdminMembershipSerializer(MembershipTermSerializer):
     """A term in the history, and the target of ``PATCH /admin/memberships/{id}``.
 
     The member's own view of a term plus the fields only an administrator needs.
-    ``ends_on``, ``status`` and ``note`` are writable -- the plan, the start date,
+    ``ends_on``, ``status``, and ``note`` are writable -- the plan, the start date,
     the source and the payment link are not, because rewriting those would
     falsify the history rather than correct it.
     """
@@ -238,7 +238,7 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
 
 
 class MemberDetailSerializer(serializers.Serializer[User]):
-    """``GET /admin/members/{id}`` -- user, profile, memberships and payments."""
+    """``GET /admin/members/{id}`` -- user, profile, memberships, and payments."""
 
     id = serializers.IntegerField(read_only=True)
     email = serializers.EmailField(read_only=True)

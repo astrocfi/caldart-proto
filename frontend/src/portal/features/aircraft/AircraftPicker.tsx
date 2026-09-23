@@ -60,7 +60,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
     <Card eyebrow="Aircraft" title="Find an aircraft">
       <Field
         label="Search the aircraft register"
-        hint="N-number, make, model or owner. Type a registration however you like — 12345, n12345 and N-12345 all match."
+        hint="N-number, make, model, or owner. Type a registration however you like — 12345, n12345, and N-12345 all match."
       >
         {(field) => (
           <input

@@ -83,7 +83,7 @@ def upsert_page[PageT: Page](
     """Create or update ``slug`` under ``parent`` and publish it.
 
     A page of ``model`` with that slug below ``parent`` is updated in place, and
-    one is created when there is none; either way ``title``, ``show_in_menus`` and
+    one is created when there is none; either way ``title``, ``show_in_menus``, and
     every keyword in ``fields`` are written, a revision is saved and published, and
     the page is returned freshly loaded from the database.  Fields the caller does
     not name keep whatever they held.
@@ -113,7 +113,7 @@ def upsert_spec[PageT: Page](
 ) -> PageT:
     """Create or update the page ``spec`` describes below ``parent``.
 
-    The spec's intro, body and menu flag are written, and any further keyword goes
+    The spec's intro, body, and menu flag are written, and any further keyword goes
     through to :func:`upsert_page` for the fields only that page model has.
     ``members_only`` is written only where the spec sets it, because only the page
     models that carry the wall have the field.  Returns the published page.

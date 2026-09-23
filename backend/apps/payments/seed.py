@@ -134,9 +134,9 @@ def _payment_for(
 def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
     """Seed each user's payments and terms, and return the shared seed context.
 
-    ``ctx`` carries the seed run's ``rng``, ``today``, ``plans`` and ``users``, plus
-    the ``membership_targets`` that say which of ``none``, ``current``, ``expiring``,
-    ``expired`` or ``lifetime`` each user should end up in.  One payment is created
+    ``ctx`` carries the seed run's ``rng``, ``today``, ``plans``, and ``users``, plus
+    the ``membership_targets`` that say which of ``none``, ``current``, ``expiring``
+    , ``expired``, or ``lifetime`` each user should end up in.  One payment is created
     per term, every term is activated through the same service a real checkout uses,
     and lapsed terms are then marked expired.  ``ctx["payment_count"]`` is set to the
     number of payments, and a one-line summary is written to ``stdout`` when one is

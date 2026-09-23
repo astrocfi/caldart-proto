@@ -54,7 +54,7 @@ export function orderingFor(key: string, direction: SortDirection): string {
   return direction === 'desc' ? `-${key}` : key;
 }
 
-/** `/admin/aircraft` page: filter, sort, export and add aircraft register records. */
+/** `/admin/aircraft` page: filter, sort, export, and add aircraft register records. */
 export function AircraftRegisterPage(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
@@ -187,7 +187,7 @@ export function AircraftRegisterPage(): JSX.Element {
         emptyDescription="Clear a filter, or add the aircraft to the register."
         filters={
           <div className="aircraft-filters">
-            <Field label="Search" hint="N-number, make, model or owner.">
+            <Field label="Search" hint="N-number, make, model, or owner.">
               {(field) => (
                 <input
                   {...field}

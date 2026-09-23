@@ -1,4 +1,4 @@
-"""Aircraft register, exports and the DART leader check."""
+"""Aircraft register, exports, and the DART leader check."""
 
 from __future__ import annotations
 
@@ -199,7 +199,7 @@ class LeaderSearchView(APIView):
 
     @extend_schema(responses={200: LeaderSearchResultSerializer(many=True)})
     def get(self, request: Request) -> Response:
-        """Return up to 20 members matching ``q`` by name, email or N-number."""
+        """Return up to 20 members matching ``q`` by name, email, or N-number."""
         query = request.query_params.get("q", "")
         results = [services.search_result(user) for user in services.search_members(query)]
         return Response(LeaderSearchResultSerializer(results, many=True).data)

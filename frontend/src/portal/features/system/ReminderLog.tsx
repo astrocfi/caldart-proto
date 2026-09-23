@@ -72,7 +72,7 @@ export function ReminderLog(): JSX.Element {
         log.data ? `${log.data.count} reminder${log.data.count === 1 ? '' : 's'} sent` : undefined
       }
       emptyTitle="No reminders sent yet"
-      emptyDescription="Nothing has matched the 60/30/7-day, expiry or lapsed windows."
+      emptyDescription="Nothing has matched the 60/30/7-day, expiry, or lapsed windows."
       filters={
         <label className="field">
           <span className="field__label">Reminder</span>

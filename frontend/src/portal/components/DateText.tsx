@@ -1,18 +1,22 @@
 import type { JSX } from 'react';
 
-const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
-  year: 'numeric',
-  month: 'short',
-  day: 'numeric',
-});
+/**
+ * Dates read `YYYY/MM/DD` everywhere in the portal, and datetimes add a
+ * 24-hour clock. The portal is an administrative screen: a fixed, sortable,
+ * unambiguous order beats `Jun 16, 2026`, which reads differently on either
+ * side of the Atlantic and lines up in no column.
+ */
+function pad(value: number): string {
+  return String(value).padStart(2, '0');
+}
 
-const DATETIME_FORMAT = new Intl.DateTimeFormat('en-US', {
-  year: 'numeric',
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-});
+function dateParts(value: Date): string {
+  return `${value.getFullYear()}/${pad(value.getMonth() + 1)}/${pad(value.getDate())}`;
+}
+
+function timeParts(value: Date): string {
+  return `${pad(value.getHours())}:${pad(value.getMinutes())}`;
+}
 
 function parse(iso: string): Date | null {
   // A bare `YYYY-MM-DD` parses as UTC midnight, which reads as the previous
@@ -25,14 +29,14 @@ function parse(iso: string): Date | null {
 export function formatDate(iso: string | null | undefined, placeholder = '—'): string {
   if (!iso) return placeholder;
   const value = parse(iso);
-  return value ? DATE_FORMAT.format(value) : placeholder;
+  return value ? dateParts(value) : placeholder;
 }
 
 /** Formats an ISO datetime with the time of day, or `placeholder` when it is unparseable. */
 export function formatDateTime(iso: string | null | undefined, placeholder = '—'): string {
   if (!iso) return placeholder;
   const value = parse(iso);
-  return value ? DATETIME_FORMAT.format(value) : placeholder;
+  return value ? `${dateParts(value)} ${timeParts(value)}` : placeholder;
 }
 
 export interface DateTextProps {

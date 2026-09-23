@@ -1,6 +1,6 @@
 """Shared CSV and PDF report helpers.
 
-The members, aircraft and payments reports build on these, so the house style
+The members, aircraft, and payments reports build on these, so the house style
 lives here rather than in any one app.
 
 Fraunces and IBM Plex are web fonts and are not embedded in the PDFs; the
@@ -96,7 +96,7 @@ HEADER_CELL_STYLE = ParagraphStyle(
 # CSV
 # --------------------------------------------------------------------------
 #: First characters a spreadsheet reads as the start of a formula rather than as
-#: text.  Excel, LibreOffice and Google Sheets all agree on these six.
+#: text.  Excel, LibreOffice, and Google Sheets all agree on these six.
 FORMULA_PREFIXES = frozenset({"=", "+", "-", "@", "\t", "\r"})
 
 

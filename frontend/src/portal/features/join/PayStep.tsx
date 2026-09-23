@@ -24,7 +24,7 @@ export function PayStep({ onDone }: PayStepProps): JSX.Element {
   const queryClient = useQueryClient();
 
   function handleSuccess(_result: CheckoutResult) {
-    // Membership, payment history and `profile_complete`/`membership` on the
+    // Membership, payment history, and `profile_complete`/`membership` on the
     // user payload have all just moved.
     refreshAfterPayment(queryClient);
     onDone();

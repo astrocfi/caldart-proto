@@ -6,7 +6,7 @@ Hello {{ first_name }},
 membership shows as expired to DART leaders, and you will not be counted as
 available when a mission is being staffed.
 
-Renewal takes a card, Apple Pay, Google Pay or PayPal, and takes effect the
+Renewal takes a card, Apple Pay, Google Pay, or PayPal, and takes effect the
 moment the payment clears.
 
 Renew now:

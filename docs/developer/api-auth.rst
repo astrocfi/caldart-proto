@@ -17,11 +17,11 @@ browser's session cookie is the credential; there is no token to store.
 authentication class configured.
 
 **CSRF.**  Every unsafe method needs an ``X-CSRFToken`` header, including the
-anonymous ones on this page: register, login, logout and the two
+anonymous ones on this page: register, login, logout, and the two
 password-reset endpoints all refuse a POST that carries no token.  Call
 ``GET /api/v1/auth/csrf`` whenever you have no ``csrftoken`` cookie to echo;
-the SPA's ``api/client.ts`` does this automatically before every POST, PUT,
-PATCH or DELETE that finds the cookie missing.
+the SPA's ``api/client.ts`` does this automatically before every POST, PUT
+, PATCH, or DELETE that finds the cookie missing.
 
 **401, not 403, for anonymous callers.**  Session authentication has no
 ``WWW-Authenticate`` challenge, so DRF would normally answer 403.
@@ -82,8 +82,8 @@ Every endpoint that returns an account returns the same object:
    the same rule and give the same answer.
 
 ``profile_complete``
-   True when the member profile has ``phone``, ``address_line1``, ``city``,
-   ``postal_code`` and ``pilot_certificate_type`` filled in.  False when there is
+   True when the member profile has ``phone``, ``address_line1``, ``city``
+   , ``postal_code``, and ``pilot_certificate_type`` filled in.  False when there is
    no profile at all.  The portal uses it to decide whether to nag.
 
 The payload is read-only everywhere except ``PATCH /admin/users/{id}``.
@@ -283,7 +283,7 @@ will not be many more.
    [{"slug": "member",
      "description": "Own profile, own payments and membership, join and renew, and members-only content while the membership is current."},
     {"slug": "dart_leader",
-     "description": "Look up any member and see membership, medical, certificate and aircraft insurance currency."}]
+     "description": "Look up any member and see membership, medical, certificate, and aircraft insurance currency."}]
 
 Descriptions live in ``apps.accounts.roles.ROLE_DESCRIPTIONS``, which is also
 what ``manage.py seed_roles`` iterates, so the API, the seed and the portal's
@@ -351,7 +351,7 @@ Statuses: **200**; **401** when anonymous; **403** without ``user_admin``;
 ``PATCH /admin/users/{id}``
 ---------------------------
 
-Accepts any of ``first_name``, ``last_name``, ``email``, ``is_active`` and
+Accepts any of ``first_name``, ``last_name``, ``email``, ``is_active``, and
 ``roles``, and returns the updated payload.  ``PUT`` and ``DELETE`` are 405:
 this API edits accounts, it does not replace or remove them.  Deleting a member
 is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
@@ -524,7 +524,7 @@ An edit that goes through is recorded the same way at INFO.
 Rate limiting
 =============
 
-Login, registration and both password-reset endpoints are throttled by client
+Login, registration, and both password-reset endpoints are throttled by client
 address.  The classes are in ``apps.accounts.throttling``; they subclass
 ``AnonRateThrottle`` but override ``get_cache_key`` so a session does not exempt
 the caller — registration signs the new account in, so every request after the
@@ -555,9 +555,9 @@ How the portal uses this
 
 ``src/portal/auth/useAuth.ts`` wraps the whole surface in TanStack Query hooks:
 ``useMe`` and ``useAuth`` for identity, ``useRoles`` for the catalog, and
-``useLogin``, ``useRegister``, ``useLogout``, ``usePasswordChange``,
-``usePasswordResetRequest`` and ``usePasswordResetConfirm`` for the mutations.
-Login, registration and logout all call ``queryClient.clear()`` so no screen can
+``useLogin``, ``useRegister``, ``useLogout``, ``usePasswordChange``
+, ``usePasswordResetRequest``, and ``usePasswordResetConfirm`` for the mutations.
+Login, registration, and logout all call ``queryClient.clear()`` so no screen can
 show the previous user's data.
 
 ``useSignOut`` wraps ``useLogout`` for the screens that sign somebody out: it

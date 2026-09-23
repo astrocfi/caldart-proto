@@ -91,7 +91,7 @@ class RegisterView(APIView):
     def post(self, request: Request) -> Response:
         """Create a member account from the posted fields, sign it in, and answer 201.
 
-        The body carries ``email``, ``password``, ``first_name`` and ``last_name``; the
+        The body carries ``email``, ``password``, ``first_name``, and ``last_name``; the
         response is the ``user`` payload.  Open to anonymous callers and throttled under
         the ``auth_register`` scope.  A taken address or a password Django's validators
         reject is a 400 naming the field.
@@ -246,7 +246,7 @@ class PasswordResetConfirmView(APIView):
     def post(self, request: Request) -> Response:
         """Set the new password the reset link authorizes, and answer 204.
 
-        The body carries ``uid``, ``token`` and ``new_password``.  Open to anonymous
+        The body carries ``uid``, ``token``, and ``new_password``.  Open to anonymous
         callers and throttled under the ``auth_password_reset`` scope.  An unusable or
         spent link is a 400 under ``token``, and a password Django's validators reject a
         400 under ``new_password``.

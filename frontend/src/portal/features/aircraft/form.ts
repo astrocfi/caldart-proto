@@ -1,5 +1,5 @@
 /**
- * The aircraft form's values, validation and payload, in one place.
+ * The aircraft form's values, validation, and payload, in one place.
  *
  * The picker's inline "add a new aircraft" form and the administrator's full
  * edit form render different subsets of the same fields, so they share the

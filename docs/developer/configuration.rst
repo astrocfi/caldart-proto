@@ -11,7 +11,7 @@ Every runtime setting comes from the environment.  There are two templates:
 ``deploy/caldart.env.example``
    The production template, installed as ``/etc/caldart/caldart.env`` and read
    by the systemd units.  The five variables a deployment must decide for
-   itself — ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, ``EMAIL_URL`` and
+   itself — ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, ``EMAIL_URL``, and
    ``DATABASE_URL`` — are commented out, so an unedited copy refuses to start
    instead of serving with a guessed value.  It also lists the hardening and
    logging variables that only ``prod.py`` reads.
@@ -49,12 +49,12 @@ Where settings are read
    ``manage.py`` reaches for when nothing sets ``DJANGO_SETTINGS_MODULE``.
 
 ``prod.py``
-   ``DEBUG`` off, TLS and cookie hardening, hashed static manifest, logging to
+   ``DEBUG`` off, TLS, and cookie hardening, hashed static manifest, logging to
    stdout, persistent database connections, a database-backed cache.  It reads
    the environment alone — no ``.env`` anywhere in its import chain — so a
    missing variable cannot be filled in from a file that happens to sit beside
    the code.  Four variables have **no default** and a missing one is a
-   start-up error: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL`` and
+   start-up error: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, and
    ``EMAIL_URL``.  A ``SECRET_KEY`` equal to the published development key is a
    start-up error too.  Selected by
    ``Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod`` in both systemd
@@ -133,7 +133,7 @@ Authentication rate limits
 
 Three anonymous endpoints are throttled per client address, counted as
 described below.  Each takes a DRF rate as ``<count>/<period>``, where the
-period is ``second``, ``minute``, ``hour`` or ``day`` (or their initials).
+period is ``second``, ``minute``, ``hour``, or ``day`` (or their initials).
 Setting one to an empty value turns that throttle **off**.  A value that is
 neither empty nor a readable rate — ``AUTH_THROTTLE_LOGIN=lots``, say —
 raises ``ImproperlyConfigured`` naming the variable, so a typo stops start-up
@@ -206,7 +206,7 @@ Email
    instead of sending it, which is what the end-to-end run uses.
 
    The settings modules translate it into the one entry in Django's ``MAILERS``
-   setting, so the host, port and credentials are options of that mailer rather
+   setting, so the host, port, and credentials are options of that mailer rather
    than settings of their own.  ``caldart.settings.mailers`` knows which options
    each backend takes; a URL scheme naming a backend it does not list raises
    ``ImproperlyConfigured`` at startup rather than dropping the connection
@@ -466,7 +466,7 @@ above.  Every other directive stays as it is even inside the admin.
 
 ``caldart.settings.dev`` widens four directives so the pages work against the
 Vite dev server (``make dev-frontend``, ``DJANGO_VITE_DEV_MODE=true``): it adds
-``http://localhost:5173`` to ``default-src``, ``script-src``, ``connect-src``
+``http://localhost:5173`` to ``default-src``, ``script-src``, ``connect-src``,
 and ``img-src``, ``ws://localhost:5173`` to ``connect-src`` for the hot-reload
 socket, and ``'unsafe-inline'`` to ``script-src`` for React Fast Refresh's
 preamble.  It edits a copy, so the policy ``caldart.settings.prod`` serves is

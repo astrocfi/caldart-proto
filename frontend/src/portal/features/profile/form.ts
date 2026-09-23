@@ -1,5 +1,5 @@
 /**
- * The profile form's state, validation and wire format.
+ * The profile form's state, validation, and wire format.
  *
  * Kept apart from the component so the join wizard and `/profile` share one
  * definition of "is this filled in correctly", and so the rules can be tested

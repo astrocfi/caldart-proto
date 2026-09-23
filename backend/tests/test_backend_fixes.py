@@ -24,7 +24,7 @@ from rest_framework.test import APIClient
 from apps.accounts.api.views import DEACTIVATED_MESSAGE, WRONG_CREDENTIALS_MESSAGE
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan
-from apps.payments.api.serializers import MAX_CONTRIBUTION_CENTS
+from apps.payments.models import MAX_CONTRIBUTION_CENTS
 from apps.payments.providers import paypal
 from apps.sysadmin import services
 from caldart import reports
@@ -54,7 +54,9 @@ def test_checkout_rejects_an_oversized_contribution(
 
     assert response.status_code == 400
     assert response.json() == {
-        "contribution_cents": ["Ensure this value is less than or equal to 1000000000."]
+        "contribution_cents": [
+            f"Ensure this value is less than or equal to {MAX_CONTRIBUTION_CENTS}."
+        ]
     }
 
 

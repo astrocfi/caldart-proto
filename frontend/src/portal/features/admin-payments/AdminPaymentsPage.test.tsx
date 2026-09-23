@@ -129,7 +129,7 @@ describe('AdminPaymentsPage', () => {
     expect(screen.getByRole('button', { name: 'Year' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('lists payments with member, method and status', async () => {
+  it('lists payments with member, method, and status', async () => {
     serveDashboard();
     renderWithProviders(<AdminPaymentsPage />);
 

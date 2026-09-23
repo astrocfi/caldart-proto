@@ -49,6 +49,11 @@ class ContributionTier(TypedDict):
 
 #: Contribution tiers offered at checkout, from no contribution up to Platinum.
 #: A member who wants some other amount types it instead of picking a tier.
+#: The largest contribution a checkout accepts, in cents: $99,999.00.  It is
+#: inside every provider's per-charge ceiling, so an amount the form accepts is
+#: an amount the provider will take; anything larger is a typo or an attack.
+MAX_CONTRIBUTION_CENTS = 9_999_900
+
 CONTRIBUTION_TIERS: tuple[ContributionTier, ...] = (
     {"label": "No contribution", "cents": 0},
     {"label": "Participating", "cents": 2_000},

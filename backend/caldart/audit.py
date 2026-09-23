@@ -6,8 +6,8 @@ attempt that a rule turns away writes one through :func:`refuse` at WARNING.
 The logger carries its own level and handler and does not propagate, so
 lowering the root level to quiet ordinary chatter never silences the trail.
 
-A record is ids, counts, flags and slugs -- nothing else.  Email addresses,
-names, passwords, tokens and database contents are not values the renderer
+A record is ids, counts, flags, and slugs -- nothing else.  Email addresses,
+names, passwords, tokens, and database contents are not values the renderer
 accepts, so none of them can reach the log by accident: the call raises
 ``TypeError`` instead.  Where an operator typed the value, such as a backup
 file name or a database name, :func:`safe_slug` reduces it to something the
@@ -93,7 +93,7 @@ def record(
     ``actor`` is the account that acted, or the string ``command``; ``target``
     is the account or record acted on, given as a model instance or an id, and
     renders as ``-`` when there is none.  Each keyword in ``fields`` becomes one
-    ``key=value`` pair, in the order given, after ``action``, ``actor`` and
+    ``key=value`` pair, in the order given, after ``action``, ``actor``, and
     ``target``.
 
     A field value may be an int, a bool (rendered ``true``/``false``), a slug of

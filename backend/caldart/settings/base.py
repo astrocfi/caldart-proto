@@ -281,7 +281,7 @@ def _throttle_rate(variable: str, default: str) -> str | None:
     An unset variable yields ``default``.  A value that is empty or only
     whitespace yields ``None``, which turns that throttle off.  Any other
     value must read ``<count>/<period>`` -- a non-negative whole number, a
-    slash, then a period naming or beginning with second, minute, hour or day
+    slash, then a period naming or beginning with second, minute, hour, or day
     -- and is returned stripped of surrounding whitespace.  A value that DRF
     could not parse raises ``ImproperlyConfigured`` naming the variable, so a
     typo stops start-up instead of turning every request to the throttled
@@ -300,7 +300,7 @@ def _throttle_rate(variable: str, default: str) -> str | None:
     if not is_valid:
         raise ImproperlyConfigured(
             f"{variable} must be a rate such as '20/min' -- a count, a slash, then "
-            f"second, minute, hour or day -- or be empty to turn the throttle off. "
+            f"second, minute, hour, or day -- or be empty to turn the throttle off. "
             f"Got {rate!r}."
         )
     return rate

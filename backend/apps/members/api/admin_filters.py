@@ -2,7 +2,7 @@
 
 The ``status`` and ``expiring_within`` filters and ``ordering=expires_on`` all
 need the *computed* membership status, which ``members.services`` states as
-correlated subqueries so the database can filter, order and paginate on it.
+correlated subqueries so the database can filter, order, and paginate on it.
 :func:`member_admin_queryset` hangs those annotations on the user table with
 ``members.services.with_membership`` and adds the two this list needs on top of
 them, in :func:`derived_annotations`.
@@ -41,7 +41,7 @@ def derived_annotations() -> dict[str, Concat | Case]:
     """What this list needs on top of the membership annotations.
 
     ``full_name`` serves ``?search=``; ``effective_expiry`` is built on
-    ``covers_today``, ``coverage_end`` and ``past_end`` and serves
+    ``covers_today``, ``coverage_end``, and ``past_end`` and serves
     ``?ordering=expires_on``.  Splat the result into ``QuerySet.annotate`` on a
     queryset that already carries the membership annotations.
     """
@@ -64,7 +64,7 @@ def member_admin_queryset(today: date | None = None) -> QuerySet[MemberRow]:
     Everyone in the table is listed: ``member`` is granted at registration, so
     "members" and "accounts" are the same population, and ``?role=`` narrows it.
     The status is worked out for ``today``, defaulting to the current local
-    date, and each row arrives with its profile, DART and aircraft fetched.
+    date, and each row arrives with its profile, DART, and aircraft fetched.
     """
     return with_membership(
         User.objects.select_related("profile", "profile__dart").prefetch_related(
@@ -78,7 +78,7 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     """``GET /admin/members`` query parameters."""
 
     search = django_filters.CharFilter(
-        method="filter_search", label="Name, email, phone or certificate number"
+        method="filter_search", label="Name, email, phone, or certificate number"
     )
     status = django_filters.ChoiceFilter(
         choices=MembershipState.choices, method="filter_status", label="Membership status"
@@ -189,14 +189,14 @@ class MemberAdminFilterSet(django_filters.FilterSet):
 
 
 class MemberOrderingFilter(drf_filters.OrderingFilter):
-    """``?ordering=`` over four sorts: ``name``, ``email``, ``expires_on`` and ``joined``.
+    """``?ordering=`` over ``name``, ``email``, ``expires_on`` and ``joined``.
 
     Each alias expands to real columns, so ``name`` sorts by surname then
     forename, and the two computed dates keep empty values at the end whichever
     direction is asked for (a lifetime member has no expiry to compare).
     """
 
-    ordering_description = "Which field to order by: name, email, expires_on or joined."
+    ordering_description = "Which field to order by: name, email, expires_on, or joined."
 
     aliases: dict[str, tuple[str, ...]] = {
         "name": ("last_name", "first_name", "email"),

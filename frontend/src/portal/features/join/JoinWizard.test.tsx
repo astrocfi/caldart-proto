@@ -56,6 +56,7 @@ const PAYMENTS_CONFIG: PaymentsConfig = {
     },
   ],
   contribution_tiers: [{ label: 'No contribution', cents: 0 }],
+  max_contribution_cents: 9_999_900,
 };
 
 const paymentsConfigHandler = () =>

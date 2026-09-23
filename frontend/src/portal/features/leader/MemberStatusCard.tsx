@@ -56,7 +56,7 @@ export interface MemberStatusCardProps {
   today?: Date;
 }
 
-/** The pre-flight status card: go/no-go verdict plus membership, medical and aircraft. */
+/** The pre-flight status card: go/no-go verdict plus membership, medical, and aircraft. */
 export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.Element {
   const go = isGo(status);
   const reasons = noGoReasons(status);

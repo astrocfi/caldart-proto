@@ -69,7 +69,7 @@ The demo accounts all use the password ``caldart-demo``:
      - ``member``, ``system_admin``, Django superuser; lifetime
 
 Alongside them the seed creates about forty generated members with mixed
-membership, certificate and medical states, twenty-five aircraft with varied
+membership, certificate, and medical states, twenty-five aircraft with varied
 insurance currency, and two years of payment history.  The generated data comes
 from a fixed random seed, so the same names appear on every machine; their
 dates are relative to the day you seeded, so a *"expires in 40 days"* stays
@@ -102,7 +102,7 @@ clears.*
 
    You are now signed in.  The wizard advances to step 2, **Profile**.
 
-4. Fill in the profile.  Phone, street address, city and ZIP code are what the
+4. Fill in the profile.  Phone, street address, city, and ZIP code are what the
    form insists on, along with the certificate box, which always holds a value
    — *Not a pilot* counts.  Everything else — DART, home airport, certificate
    number, medical, ratings, hours, volunteer interests — is optional but is
@@ -167,15 +167,15 @@ membership buys.*
 
 4. Go to **My aircraft**.  Search the register — type ``N419JM``, or any part
    of a make or model such as ``Cirrus``.  The picker looks the exact
-   registration up first and falls back to a fuzzy search, so ``419jm``,
-   ``n-419jm`` and ``N419JM`` all find the same airplane.
+   registration up first and falls back to a fuzzy search, so ``419jm``
+   , ``n-419jm``, and ``N419JM`` all find the same airplane.
 
    Each result carries an insurance chip.  Pick one whose chip says
    **Current** and add it.  It appears in your list with the same chip and a
    *Remove* button.
 
    If the airplane you fly is not in the register, the picker offers a short
-   inline form to add it — make, model and the insurance details — and selects
+   inline form to add it — make, model, and the insurance details — and selects
    it for you.  You may edit an aircraft you added; only an account
    administrator may edit one somebody else added.
 
@@ -212,12 +212,12 @@ airplane for us today?" in one screen.*
 
    Below it, one row each for:
 
-   - **Membership** — current, expired or none, with the expiry date and plan.
+   - **Membership** — current, expired, or none, with the expiry date and plan.
    - **Medical** — the class and expiry, and whether it is current.  BasicMed
      and class medicals both use the stored expiration date.
    - **Certificate** — type, number, IFR rating and any ratings on file.
    - **Aircraft** — a row per airplane attached to the profile, each with its
-     own insurance state, limits and expiry.
+     own insurance state, limits, and expiry.
 
    The verdict is membership **and** medical.  Insurance is shown per
    airplane rather than folded into the verdict, because which airplane the
@@ -251,7 +251,7 @@ Flow D — an account administrator reviews payments by month and year
    and contributions, and a column per provider.  The seed lays down two years
    of history, so both views have something to show.
 5. Under that is every payment, one row each, with a filter bar: a date range,
-   provider, status and a free-text search.  Sorting and paging both go to the
+   provider, status, and a free-text search.  Sorting and paging both go to the
    server, so they are consistent across pages rather than sorting only what
    is on screen.
 6. Press **Export CSV**.  The download carries whatever filters the screen is
@@ -270,8 +270,8 @@ exports.  Both are covered in :doc:`user/account-administrator-guide`.
 
 .. _walkthrough-flow-e:
 
-Flow E — a website administrator adds, edits and deletes a page
-===============================================================
+Flow E — a website administrator adds, edits, and deletes a page
+================================================================
 
 *Goal: change the public site without touching the code.*
 
@@ -312,7 +312,7 @@ Flow E — a website administrator adds, edits and deletes a page
    are allowed to.
 
 **What success looks like.**  You are deliberately *not* a Django superuser.
-You can edit pages, images, documents, redirects and site settings.
+You can edit pages, images, documents, redirects, and site settings.
 ``website_admin`` also sets the Django ``is_staff`` flag, so you can sign in to
 ``/django-admin/`` too — its index comes up empty, because you hold no Django
 model permissions there.  The portal's own system screens stay out of reach:
@@ -368,7 +368,7 @@ Troubleshooting
    members-only content
 
 - *"A phone number is required."*  The portal's form asks for phone, street
-  address, city and ZIP code, plus the certificate box, which always holds a
+  address, city, and ZIP code, plus the certificate box, which always holds a
   value — the same list the server uses for ``profile_complete``.  The API
   itself only insists on phone, so a client that is not the portal may store a
   partial profile.
@@ -383,7 +383,7 @@ Troubleshooting
 
 .. rubric:: Flow C — a DART leader checks a member before a flight
 
-- *"Nobody matches that."*  Search is over name, email and N-number only.  A
+- *"Nobody matches that."*  Search is over name, email, and N-number only.  A
   phone number or a certificate number will not find anybody here — those are
   the account administrator's search fields.
 - *A member with no profile at all.*  You get a well-formed NO-GO card rather
@@ -401,7 +401,7 @@ Troubleshooting
   configured when a payment was taken appear against it; a demo database has
   everything under ``mock``.
 
-.. rubric:: Flow E — a website administrator adds, edits and deletes a page
+.. rubric:: Flow E — a website administrator adds, edits, and deletes a page
 
 - *The raw HTML block is missing from your block picker.*  It is restricted to
   ``website_admin`` and ``system_admin``; the block list is rebuilt per editing
@@ -419,9 +419,9 @@ Related material
 - :doc:`/developer/setup` — bring the application up from a clean checkout.
 - :doc:`/developer/payments-setup` — configure Stripe or PayPal instead of the
   mock provider.
-- :doc:`/user/account-administrator-guide` — the full member, aircraft and
+- :doc:`/user/account-administrator-guide` — the full member, aircraft, and
   payment filters and exports.
 - :doc:`/user/user-administrator` — manage accounts and roles.
-- :doc:`/user/system-administrator-guide` — health, backups and reminders from
+- :doc:`/user/system-administrator-guide` — health, backups, and reminders from
   the portal.
 - :doc:`/developer/reminders` — how the renewal scan decides what to send.

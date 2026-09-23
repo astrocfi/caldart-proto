@@ -1,6 +1,6 @@
 """The example copy ``manage.py seed_content`` builds the CalDART site from.
 
-Every page is a :class:`PageSpec` holding its slug, title, standfirst and body
+Every page is a :class:`PageSpec` holding its slug, title, standfirst, and body
 blocks; ``seed_content`` reads them and writes the pages.  All of it is *example
 content* -- paraphrased from the public CalDART site, not lifted from it -- and
 any website administrator can replace it from ``/admin/``.
@@ -191,7 +191,7 @@ ABOUT = PageSpec(
             "<p>A Disaster Airlift Response Team is a group of general aviation "
             "volunteers organized around one airport. Pilots fly. Aircraft owners "
             "provide the aircraft and keep the insurance current. Ground volunteers "
-            "handle manifests, loading, radios and the hand-off at each end. Nobody is "
+            "handle manifests, loading, radios, and the hand-off at each end. Nobody is "
             "paid, and no member is ever obliged to fly a mission they judge unsafe.</p>"
         ),
         heading("What we are not"),
@@ -209,7 +209,7 @@ ABOUT = PageSpec(
         ),
         heading("How the network is organized"),
         rich(
-            "<p>Each DART runs its own recruiting, training and call-out list. CalDART "
+            "<p>Each DART runs its own recruiting, training, and call-out list. CalDART "
             "holds the network together: shared handbooks and checklists, statewide "
             "exercises, one membership and insurance record system, and a single point "
             "of contact for agencies that want to work with general aviation "
@@ -280,7 +280,7 @@ HISTORY = PageSpec(
         heading("How CalDART began"),
         rich(
             "<p>The idea is older than the organization. Pilots have flown relief loads "
-            "after California disasters for decades \u2014 ad hoc, uninsured and usually "
+            "after California disasters for decades \u2014 ad hoc, uninsured, and usually "
             "unwelcome, because no county emergency manager wants unvetted aircraft "
             "arriving at a damaged airport. The DART model answered that objection: "
             "organize first, train with the agency, and show up with the paperwork "
@@ -362,7 +362,7 @@ DART_PAGE_BODY: tuple[BlockSpec, ...] = (
     rich(
         "<ul><li>Pilots with a current certificate and medical</li>"
         "<li>Aircraft owners willing to make an aircraft available</li>"
-        "<li>Ground volunteers for manifests, loading and radios</li>"
+        "<li>Ground volunteers for manifests, loading, and radios</li>"
         "<li>Amateur radio operators</li></ul>"
     ),
     cta("Join this DART", "/portal/join", "primary"),
@@ -371,13 +371,13 @@ DART_PAGE_BODY: tuple[BlockSpec, ...] = (
 DIRECTORS_ROWS: tuple[tuple[str, str], ...] = (
     (
         "President",
-        "Helen Marchetti \u2014 Napa DART, commercial pilot and former county OES planner",
+        "Helen Marchetti \u2014 Napa DART, commercial pilot, and former county OES planner",
     ),
-    ("Vice President", "Samuel Oyelaran \u2014 Hayward DART, CFII and exercise coordinator"),
-    ("Secretary", "Teresa Lindqvist \u2014 Santa Rosa DART, aircraft owner and CERT instructor"),
-    ("Treasurer", "Marcus Delgado \u2014 Reid-Hillview DART, CPA and private pilot"),
+    ("Vice President", "Samuel Oyelaran \u2014 Hayward DART, CFII, and exercise coordinator"),
+    ("Secretary", "Teresa Lindqvist \u2014 Santa Rosa DART, aircraft owner, and CERT instructor"),
+    ("Treasurer", "Marcus Delgado \u2014 Reid-Hillview DART, CPA, and private pilot"),
     ("Director at large", "Aiko Tanaka \u2014 Monterey DART, ground team lead"),
-    ("Director at large", "Gordon Achebe \u2014 San Carlos DART, ATP and safety officer"),
+    ("Director at large", "Gordon Achebe \u2014 San Carlos DART, ATP, and safety officer"),
     ("Director at large", "Rosa Villanueva \u2014 Livermore DART, communications lead"),
 )
 
@@ -430,7 +430,7 @@ NEWS_POSTS: tuple[NewsPostSpec, ...] = (
                     "airports on a schedule set by a simulated county emergency operations "
                     "center.</p>"
                     "<p>The scenario assumed a magnitude 6.8 earthquake had closed two state "
-                    "highways. Ground teams handled manifests, weight and balance checks and "
+                    "highways. Ground teams handled manifests, weight and balance checks, and "
                     "hand-offs to CERT volunteers at the receiving fields, while amateur radio "
                     "operators passed traffic between the airports and the exercise EOC.</p>"
                     "<p>Debrief notes and the load-planning worksheets are in the members' "
@@ -470,7 +470,7 @@ NEWS_POSTS: tuple[NewsPostSpec, ...] = (
         days_ago=96,
         page=PageSpec(
             slug="insurance-and-currency-records-move-online",
-            title="Membership, medical and insurance records move online",
+            title="Membership, medical, and insurance records move online",
             intro=(
                 "DART leaders can check a member's currency from a phone on the ramp, "
                 "instead of a spreadsheet emailed once a quarter."
@@ -481,7 +481,7 @@ NEWS_POSTS: tuple[NewsPostSpec, ...] = (
                     "and medical, the aircraft they commonly fly, and the volunteer roles they "
                     "are willing to take on. Aircraft owners record their liability limits and "
                     "policy expiry once, and every pilot attached to that aircraft benefits.</p>"
-                    "<p>Renewal reminders go out at sixty, thirty and seven days. Nobody has to "
+                    "<p>Renewal reminders go out at sixty, thirty, and seven days. Nobody has to "
                     "chase a lapsed medical by hand any more.</p>"
                 ),
             ),
@@ -540,7 +540,7 @@ JOIN = PageSpec(
             "Start your membership",
             "/portal/join",
             "primary",
-            "$45 annual or $650 life \u00b7 card, Apple Pay, Google Pay or PayPal",
+            "$45 annual or $650 life \u00b7 card, Apple Pay, Google Pay, or PayPal",
         ),
     ),
 )
@@ -574,7 +574,7 @@ DONATE = PageSpec(
             "<ul>"
             "<li><b>Employer matching</b> \u2014 many California employers match charitable "
             "gifts. Ask us for our EIN and determination letter.</li>"
-            "<li><b>In kind</b> \u2014 fuel, hangar space, radios, cargo restraint and "
+            "<li><b>In kind</b> \u2014 fuel, hangar space, radios, cargo restraint, and "
             "avionics work are all as useful as cash.</li>"
             "<li><b>Sponsorship</b> \u2014 businesses that support a season of training are "
             "listed on our sponsors page.</li>"
@@ -605,7 +605,7 @@ SPONSORS = PageSpec(
     slug="sponsors",
     title="Sponsors",
     intro=(
-        "CalDART's work is supported by flying clubs, fixed-base operators, avionics shops and "
+        "CalDART's work is supported by flying clubs, fixed-base operators, avionics shops, and "
         "businesses across California. Sponsors are listed here with their permission; nothing "
         "on this page is a paid endorsement."
     ),
@@ -660,7 +660,7 @@ MEMBERS = PageSpec(
     show_in_menus=True,
     members_only=True,
     intro=(
-        "Handbooks, exercise material, forms and the current roster. This area is open to "
+        "Handbooks, exercise material, forms, and the current roster. This area is open to "
         "members with a current membership, and to DART leaders and administrators."
     ),
     body=(
@@ -685,7 +685,7 @@ MEMBERS_ONLY = PageSpec(
         heading("Next statewide exercise"),
         rich(
             "<p>Briefing packets go out four weeks ahead. Tell your DART leader whether "
-            "you are flying, crewing on the ground or unavailable, so the load plan can "
+            "you are flying, crewing on the ground, or unavailable, so the load plan can "
             "be built against real aircraft.</p>"
         ),
         heading("Keep your record current"),
@@ -703,7 +703,7 @@ DOCS_AND_LINKS = PageSpec(
     slug="docs-and-links",
     title="Documents and Links",
     members_only=True,
-    intro="Handbooks, forms and the outside references worth bookmarking.",
+    intro="Handbooks, forms, and the outside references worth bookmarking.",
     body=(
         heading("CalDART documents"),
         rich(
