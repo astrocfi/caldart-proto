@@ -129,17 +129,24 @@
   border-bottom: var(--hairline) solid var(--color-primary-hover);
 }
 
-.navbar ul {
-  display: flex;
-  flex-wrap: wrap;
+/* Each list is named rather than reached through `.navbar ul`: a descendant
+ * selector outranks the class on the drop-down, and would win every rule the
+ * drop-down needs to set for itself. */
+.navbar__pages,
+.navbar__actions,
+.navbar__menu {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-/* `.navbar ul` also sets a margin and is the more specific selector, so the
- * auto margin that pushes this group to the right has to match it. */
-.navbar .navbar__actions {
+.navbar__pages,
+.navbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.navbar__actions {
   margin-left: auto;
   background: var(--color-primary-hover);
 }
@@ -169,9 +176,11 @@
   background: var(--color-primary);
 }
 
-/* The drop-down opens on hover and on keyboard focus, and needs no script:
- * the parent link still goes to the section's own page, so nothing is reachable
- * only by hovering. */
+/* The drop-down is hidden until the pointer is over its section, and needs no
+ * script.  Tabbing onto the section's link opens it too -- `:focus-visible`,
+ * not `:focus`, so a mouse click on that link never leaves the menu hanging
+ * open.  Nothing is reachable only this way: the link goes to the section's
+ * own page, which lists the same children in its "In this section" panel. */
 .navbar__has-menu {
   position: relative;
 }
@@ -192,7 +201,8 @@
 }
 
 .navbar__has-menu:hover .navbar__menu,
-.navbar__has-menu:focus-within .navbar__menu {
+.navbar__has-menu > a:focus-visible + .navbar__menu,
+.navbar__menu:focus-within {
   display: flex;
 }
 

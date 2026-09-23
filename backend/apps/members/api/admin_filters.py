@@ -15,7 +15,18 @@ from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any
 
 import django_filters
-from django.db.models import Case, CharField, DateField, F, Model, Q, QuerySet, Value, When
+from django.db.models import (
+    Case,
+    CharField,
+    DateField,
+    F,
+    IntegerField,
+    Model,
+    Q,
+    QuerySet,
+    Value,
+    When,
+)
 from django.db.models.functions import Concat
 from django.utils import timezone
 from rest_framework import filters as drf_filters
@@ -42,9 +53,11 @@ def derived_annotations() -> dict[str, Concat | Case]:
 
     ``full_name`` serves ``?search=``; ``effective_expiry`` is built on
     ``covers_today``, ``coverage_end``, and ``past_end`` and serves
-    ``?ordering=expires_on``.  Splat the result into ``QuerySet.annotate`` on a
+    ``?ordering=expires_on``; ``pilot_rank`` is what the Pilot column shows, as
+    a number to sort on.  Splat the result into ``QuerySet.annotate`` on a
     queryset that already carries the membership annotations.
     """
+    today = timezone.localdate()
     return {
         "full_name": Concat(F("first_name"), Value(" "), F("last_name"), output_field=CharField()),
         # The date the list sorts on: the end of current coverage, else the
@@ -54,6 +67,17 @@ def derived_annotations() -> dict[str, Concat | Case]:
             When(covers_today=True, then=F("coverage_end")),
             default=F("past_end"),
             output_field=DateField(),
+        ),
+        # The Pilot column, as a number: a pilot whose medical is in date, then
+        # one whose medical has lapsed, then somebody who is not a pilot.  The
+        # column shows a tick, a cross and a dash, and this is what sorts them.
+        "pilot_rank": Case(
+            When(profile__pilot_certificate_type=PilotCertificateType.NONE, then=Value(2)),
+            When(profile__medical_type=MedicalType.NONE, then=Value(1)),
+            When(profile__medical_expiration__isnull=True, then=Value(1)),
+            When(profile__medical_expiration__lt=today, then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField(),
         ),
     }
 
@@ -194,18 +218,23 @@ class MemberAdminFilterSet(django_filters.FilterSet):
 
 
 class MemberOrderingFilter(drf_filters.OrderingFilter):
-    """``?ordering=`` over ``name``, ``email``, ``expires_on`` and ``joined``.
+    """``?ordering=`` over pilot, name, email, DART, expiry and joining date.
 
     Each alias expands to real columns, so ``name`` sorts by surname then
-    forename, and the two computed dates keep empty values at the end whichever
-    direction is asked for (a lifetime member has no expiry to compare).
+    forename, and the computed dates and the DART name keep empty values at the
+    end whichever direction is asked for (a lifetime member has no expiry to
+    compare, and an unaffiliated member has no team).
     """
 
-    ordering_description = "Which field to order by: name, email, expires_on, or joined."
+    ordering_description = (
+        "Which field to order by: pilot, name, email, dart, expires_on, or joined."
+    )
 
     aliases: dict[str, tuple[str, ...]] = {
+        "pilot": ("pilot_rank", "last_name", "first_name"),
         "name": ("last_name", "first_name", "email"),
         "email": ("email",),
+        "dart": ("profile__dart__name", "last_name", "first_name"),
         "expires_on": ("effective_expiry",),
         "joined": ("joined_on",),
     }
@@ -216,7 +245,7 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
         view: APIView,
         context: Mapping[str, Any] | None = None,
     ) -> list[tuple[str, str]]:
-        """The four aliases, as DRF's ``(value, label)`` pairs.
+        """The six aliases, as DRF's ``(value, label)`` pairs.
 
         Only these are accepted, so ``?ordering=`` can never reach a column the
         list does not sort on.
