@@ -9,43 +9,46 @@
 {% block body_class %}dart-index{% endblock %}
 
 {% block content %}
-  {% include "cms/includes/page_header.html" with intro=page.intro %}
+  <section class="box">
+    {% include "cms/includes/page_header.html" %}
+    <div class="box__body">
+      {% if page.intro %}<p class="lede">{{ page.intro }}</p>{% endif %}
 
-  <div class="section">
-    {% if dart_pages %}
-      <div class="table-wrap">
-        <table class="dart-table">
-          <caption>{{ dart_pages|length }} teams across California.</caption>
-          <thead>
-            <tr>
-              <th scope="col">DART</th>
-              <th scope="col">Airport</th>
-              <th scope="col">City</th>
-              <th scope="col">Leader</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for dart_page in dart_pages %}
+      {% if dart_pages %}
+        <div class="table-wrap">
+          <table class="dart-table">
+            <caption>{{ dart_pages|length }} teams across California.</caption>
+            <thead>
               <tr>
-                <th scope="row"><a href="{{ dart_page.url }}">{{ dart_page.title }}</a></th>
-                <td class="mono">{{ dart_page.airport_identifier|default:"—" }}</td>
-                <td>{{ dart_page.city|default:"—" }}</td>
-                <td>{{ dart_page.leader_name|default:"—" }}</td>
+                <th scope="col">DART</th>
+                <th scope="col">Airport</th>
+                <th scope="col">City</th>
+                <th scope="col">Leader</th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="muted">No teams listed yet.</p>
-    {% endif %}
-  </div>
+            </thead>
+            <tbody>
+              {% for dart_page in dart_pages %}
+                <tr>
+                  <th scope="row"><a href="{{ dart_page.url }}">{{ dart_page.title }}</a></th>
+                  <td class="mono">{{ dart_page.airport_identifier|default:"—" }}</td>
+                  <td>{{ dart_page.city|default:"—" }}</td>
+                  <td>{{ dart_page.leader_name|default:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="muted">No teams listed yet.</p>
+      {% endif %}
+    </div>
+  </section>
 
   {% if page.body %}
-    <div class="section grid">
-      <div class="col-text stack prose">
+    <section class="box">
+      <div class="box__body prose">
         {% for block in page.body %}{% include_block block %}{% endfor %}
       </div>
-    </div>
+    </section>
   {% endif %}
 {% endblock %}

@@ -484,7 +484,7 @@ export interface MembersPage {
 }
 
 /** A theme slug shipped in `frontend/src/styles/themes/`. */
-export type ThemeSlug = 'sierra' | 'pacific' | 'night';
+export type ThemeSlug = 'duty' | 'sierra' | 'pacific' | 'night';
 
 export interface SiteConfig {
   org_name: string;

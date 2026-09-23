@@ -36,8 +36,8 @@ class SiteConfigView(APIView):
         No authentication is required.  The body carries ``org_name``, ``theme``,
         ``contact_email``, ``nav`` and ``members_pages``.  Before ``migrate`` has
         created the site settings row, ``org_name`` falls back to ``CalDART``,
-        ``theme`` to ``sierra`` and ``contact_email`` to an empty string; an unset
-        theme falls back to ``sierra`` as well.  ``nav`` is the same list of
+        ``theme`` to ``duty`` and ``contact_email`` to an empty string; an unset
+        theme falls back to ``duty`` as well.  ``nav`` is the same list of
         ``{title, url, active, kind}`` entries the server-rendered site shows.
         ``members_pages`` lists ``{title, url}`` for every live members-only page
         when the caller may read members-only content, and is empty otherwise, so

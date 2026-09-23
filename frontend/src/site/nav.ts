@@ -6,7 +6,7 @@
  */
 
 /** The themes shipped in `styles/themes/`, mirroring `THEME_CHOICES` in the CMS. */
-export const THEMES = ['sierra', 'pacific', 'night'] as const;
+export const THEMES = ['duty', 'sierra', 'pacific', 'night'] as const;
 export type Theme = (typeof THEMES)[number];
 
 /** Checks whether `value` is one of the shipped theme names. */

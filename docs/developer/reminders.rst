@@ -264,7 +264,7 @@ Every kind renders two bodies from ``backend/templates/emails/``:
    layout, the inline styles and the footer, and exposes the blocks
    ``preheader``, ``heading``, ``lede``, ``body`` and ``cta_label``.
 
-The HTML shell uses the ``sierra`` palette (:doc:`theming`) with Georgia standing
+The HTML shell uses the ``duty`` palette (:doc:`theming`) with Georgia standing
 in for Fraunces, because webfonts do not load in most mail clients.  Both
 bodies link to ``SITE_URL + /portal/renew``.
 

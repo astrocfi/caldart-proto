@@ -30,6 +30,7 @@
 
 @import './tokens.css';
 @import './base.css';
+@import './themes/duty.css';
 @import './themes/sierra.css';
 @import './themes/pacific.css';
 @import './themes/night.css';

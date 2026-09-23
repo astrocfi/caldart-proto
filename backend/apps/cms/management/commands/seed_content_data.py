@@ -91,61 +91,76 @@ def definition_list(rows: Sequence[tuple[str, str]]) -> str:
 # Home
 # ---------------------------------------------------------------------------
 
-HERO_HEADING = "Volunteer air transportation when California needs it"
-HERO_LEDE = (
-    "CalDART organizes pilots, aircraft owners and ground crews into local teams so that "
-    "when an earthquake, wildfire or flood cuts a community off, relief supplies, people "
-    "and information keep moving."
-)
+HERO_HEADING = "Welcome to CalDART"
+HERO_LEDE = "Volunteer pilots, aircraft, and ground crews for California's disasters."
+HERO_IMAGE_CAPTION = "Food aid meets the ramp at Reid-Hillview (KRHV). Photo: CalDART."
 
+URGENT_CTA_LABEL = "Request air support"
 PRIMARY_CTA_LABEL = "Join CalDART"
 PRIMARY_CTA_URL = "/portal/join"
-SECONDARY_CTA_LABEL = "How we operate"
+SECONDARY_CTA_LABEL = "Find your DART"
 
 MISSION = (
-    "<p>CalDART exists to give California's emergency managers a trained, insured and "
-    "practiced volunteer air transportation capability \u2014 organized before the disaster, "
-    "not improvised during it.</p>"
+    "<p>CalDART organizes California pilots and ground personnel to provide volunteer "
+    "disaster air transportation services to benefit communities experiencing a major "
+    "earthquake, flood, or other disaster.</p>"
 )
 
-CONCEPT_HEADING = "Organized before the emergency, not during it"
+WELCOME_BODY = (
+    "<p>California has some 28,000 aircraft and 54,000 pilots. Most of them would help "
+    "after a disaster if they knew how, and CalDART is the way they do: local Disaster "
+    "Airlift Response Teams, each based at a general aviation airport, each able to fly "
+    "people and supplies between any of the state's roughly 250 public airports under "
+    "Part 91 rules.</p>"
+    "<p>Every DART runs a practice mobilization exercise at least once a year, and invites "
+    "county emergency managers, the local VOAD groups (Volunteer Organizations Active in "
+    "Disaster, the nonprofits that coordinate relief work), and neighboring DARTs to take "
+    "part. A DART can call for mutual aid from other DARTs, from CalDART members and "
+    "friends, and from pilots anywhere in the state.</p>"
+)
 
-CONCEPT_STEPS: tuple[tuple[str, str], ...] = (
+MISSIONS_HEADING = "Missions flown"
+
+#: What CalDART has carried, newest first: the year, then the mission.
+MISSIONS_FLOWN: tuple[tuple[str, str], ...] = (
     (
-        "Local teams form around an airport",
-        "A DART \u2014 Disaster Airlift Response Team \u2014 is a group of pilots, aircraft owners "
-        "and ground volunteers based at one general aviation airport. The airport is the "
-        "unit of organization because that is where the aircraft, fuel and ramp space are.",
+        "2023",
+        "Snowstorms trapped 20,000 people in the San Bernardino Mountains. CalDART used "
+        "helicopters to deliver 21,000 lb of medical supplies and food to several "
+        "locations.",
     ),
     (
-        "Members stay current, all year",
-        "Membership means keeping a certificate, a medical and \u2014 for aircraft owners \u2014 "
-        "liability insurance current, and keeping that information where a DART leader can "
-        "check it in seconds.",
+        "2022",
+        "A magnitude 6.4 earthquake in Humboldt County brought down power lines, damaged "
+        "roads, and cut off towns. CalDART flew emergency supplies to Fortuna for local "
+        "volunteers to distribute.",
     ),
     (
-        "We train with the agencies we will fly for",
-        "Teams run exercises with county offices of emergency services, CERT groups and "
-        "other volunteer organizations, so the paperwork, radios and load plans are "
-        "familiar before they matter.",
+        "2021",
+        "The Dixie Fire left 200 students without back-to-school supplies. CalDART carried "
+        "1,100 lb of them from Chino to Quincy.",
     ),
     (
-        "A county activates its DART",
-        "Requests come through the county emergency operations center. The DART leader "
-        "calls out the members whose aircraft, currency and availability fit the mission.",
+        "2021",
+        "CalDART flew PPE and medical gowns from Santa Barbara to the Yurok Tribe on the "
+        "Klamath River.",
     ),
     (
-        "Small aircraft move small, urgent loads",
-        "Blood products, medications, radios, damage-assessment teams and communications "
-        "volunteers \u2014 the loads that are too small for a military airlift and too urgent "
-        "for a closed highway.",
+        "2021",
+        "Twenty-three aircraft carried 4,800 lb of KN-95 masks, trundle beds, and other "
+        "medical supplies from Santa Barbara to firefighters near Eugene, Oregon.",
+    ),
+    (
+        "2020",
+        "Face shields from Palo Alto to Walla Walla, Washington, and ventilators from San "
+        "Diego to Sacramento.",
     ),
 )
 
 TAX_STATUS = (
-    "<p>CalDART is a California non-profit corporation and a 501(c)(3) public charity. "
-    "Membership dues and contributions are tax deductible to the extent allowed by law. "
-    "Members fly at their own expense as volunteers.</p>"
+    "<p>CalDART has no paid employees. Dues and contributions are tax deductible under "
+    "IRC 501(c)(3) to the extent allowed by law, and members fly at their own expense as "
+    "volunteers.</p>"
 )
 
 
@@ -717,9 +732,10 @@ DOCS_AND_LINKS = PageSpec(
 #: The settings the example content refers to, written only where the field is
 #: still empty so an administrator's own value survives a re-seed.
 SITE_SETTINGS: dict[str, str] = {
-    "contact_phone": "(650) 555-0143",
-    "mailing_address": "CalDART\nPO Box 1180\nSan Carlos, CA 94070",
-    "ein": "47-0000000",
+    "duty_phone": "(408) 713-0646",
+    "duty_phone_note": "Answered by the CalDART member on watch",
+    "mailing_address": "CalDART\nPO Box 606\nSan Martin, CA 95046",
+    "ein": "83-1407209",
     "donate_url": "/donate/",
     "facebook_url": "https://www.facebook.com/example-caldart",
     "twitter_url": "https://x.com/example_caldart",

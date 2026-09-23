@@ -50,7 +50,14 @@ python_files = ["test_*.py", "*_test.py"]
 pythonpath = ["backend"]
 testpaths = ["backend/tests"]
 addopts = "-ra --strict-markers --strict-config"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # Wagtail generates an image rendition through a SpooledTemporaryFile it
+    # never closes explicitly (wagtail/images/models.py), so the file reaches the
+    # garbage collector open.  The warning comes from the library, not from our
+    # code, and only fires on the pages that render an image.
+    "default:Unclosed file:ResourceWarning",
+]
 markers = [
     "slow: seeds the whole demo data set; excluded by `-m \"not slow\"`",
     "needs_frontend_build: skipped unless frontend/dist carries a real Vite build",

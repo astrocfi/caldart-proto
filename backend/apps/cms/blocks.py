@@ -241,22 +241,22 @@ class ContentStreamBlock(blocks.StreamBlock):
         required = False
 
 
-class StepBlock(blocks.StructBlock):
-    """One numbered step of the concept of operations."""
+class MissionBlock(blocks.StructBlock):
+    """One flown mission: when it happened, and what CalDART carried."""
 
-    title = blocks.CharBlock(max_length=120)
-    text = blocks.TextBlock(rows=3)
+    year = blocks.CharBlock(max_length=9, help_text="The year, or a range such as 2020-2021.")
+    text = blocks.TextBlock(rows=3, help_text="What was flown, from where, to whom.")
 
     class Meta:
-        icon = "list-ol"
-        label = "Step"
-        template = "cms/blocks/step.html"
+        icon = "site"
+        label = "Mission"
+        template = "cms/blocks/mission.html"
 
 
-class ConceptStreamBlock(blocks.StreamBlock):
-    """The home page's "concept of operations": an ordered list of steps."""
+class MissionStreamBlock(blocks.StreamBlock):
+    """The home page's record of missions flown, newest first."""
 
-    step = StepBlock()
+    mission = MissionBlock()
 
     class Meta:
         required = False

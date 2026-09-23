@@ -79,9 +79,13 @@ a page:
     the address is only ever maintained in one place.
 
 ``Home page``
-    There is exactly one, and it is the root of the site.  It has a hero, a
-    mission statement, a numbered "concept of operations" and a tax-status
-    note, and it lists the three most recent news posts automatically.
+    There is exactly one, and it is the root of the site.  Its welcome box
+    holds a photograph, a standfirst, the mission statement, the paragraphs
+    below it and three buttons, the first of which is the red one asking for
+    air support.  Below that it lists the three most recent news posts
+    automatically, then the missions CalDART has flown, which you write as
+    year-and-description blocks.  The tax-status note is shown in the
+    membership box in the sidebar.
 
 
 Creating, editing and publishing
@@ -259,12 +263,14 @@ Site settings
 Field                  Where it shows
 =====================  ======================================================
 Org name               Page titles, footer, the member portal
-Tagline                Under the wordmark, and as the default page
+Tagline                Under the logo, and as the default page
                        description for search engines
 EIN                    Footer and the contact page
 Contact email          Footer, contact page, the members-only wall
 Contact phone          Footer and contact page
-Mailing address        Footer and contact page
+Duty officer phone     The masthead, the footer and the contact page
+Duty officer note      The line under the masthead's duty number
+Mailing address        Masthead, footer and contact page
 Donate url             Footer link
 Facebook url           Footer link
 Twitter url            Footer link
@@ -277,8 +283,12 @@ Changing the theme
 
 **Theme** offers the palettes shipped with the site:
 
+``Duty``
+    The default.  A blue-gray ground, a white page panel, navy chrome and the
+    wordmark's red for the one urgent button.
+
 ``Sierra``
-    The default.  Warm paper, deep conifer green, signal orange.
+    Warm paper, deep conifer green, signal orange.
 
 ``Pacific``
     Cooler paper and a deep blue primary.
@@ -294,7 +304,7 @@ while you are signed in as a website or system administrator — for example
 ``https://<your-site>/about/?theme=night``.  The preview is yours alone: it
 changes nothing on the server and nobody else sees it.
 
-Adding a fourth theme is a developer task; see :doc:`/developer/theming`.
+Adding a fifth theme is a developer task; see :doc:`/developer/theming`.
 
 
 .. _redirects:

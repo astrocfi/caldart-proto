@@ -47,12 +47,12 @@ PDF_MEDIA_TYPE = "application/pdf"
 #: An ``@extend_schema`` ``responses`` mapping keyed by status and media type.
 type DownloadResponses = dict[tuple[HTTPStatus, str], OpenApiResponse]
 
-# House palette, matching the ``sierra`` theme.
-INK = colors.HexColor("#1B1F24")
-MUTED = colors.HexColor("#6B6F76")
-RULE = colors.HexColor("#D9D3C7")
-ZEBRA = colors.HexColor("#F4F1EA")
-PRIMARY = colors.HexColor("#1F4D3A")
+# House palette, matching the ``duty`` theme.
+INK = colors.HexColor("#1D2530")
+MUTED = colors.HexColor("#55606D")
+RULE = colors.HexColor("#CCD6E1")
+ZEBRA = colors.HexColor("#EEF2F7")
+PRIMARY = colors.HexColor("#1F4E79")
 
 MARGIN = 0.5 * inch
 BODY_FONT = "Helvetica"

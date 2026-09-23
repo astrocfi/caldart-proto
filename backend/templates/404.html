@@ -6,18 +6,20 @@
 {% block body_class %}error{% endblock %}
 
 {% block content %}
-  <div class="section grid">
-    <div class="col-text stack error-page">
-      <p class="eyebrow">Error 404</p>
+  <section class="box">
+    <div class="box__head box__head--titled">
+      <p class="box__parent">Error 404</p>
       <h1>That page is not here</h1>
+    </div>
+    <div class="box__body">
       <p class="lede">
         The address may have changed, or the page may have been unpublished. Nothing is
         broken — you just took a wrong turn.
       </p>
       <p class="cluster">
         <a class="button" href="/">Back to the home page</a>
-        <a class="button button--quiet" href="/portal/">Member portal</a>
+        <a class="button button--secondary" href="/portal/">Member portal</a>
       </p>
     </div>
-  </div>
+  </section>
 {% endblock %}

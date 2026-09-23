@@ -1,52 +1,50 @@
 {% extends "base.html" %}
 {% load wagtailcore_tags %}
 
-{% comment %}One DART: the facts in a definition grid, then the body copy.{% endcomment %}
+{% comment %}One DART: the body copy in the main box, the facts in the sidebar.{% endcomment %}
 
 {% block body_class %}dart{% endblock %}
 
 {% block content %}
-  {% include "cms/includes/page_header.html" %}
-
-  <div class="section grid">
-    <div class="col-text stack prose">
+  <section class="box">
+    {% include "cms/includes/page_header.html" %}
+    <div class="box__body prose">
       {% for block in page.body %}{% include_block block %}{% endfor %}
     </div>
+    <p class="box__more"><a href="{{ page.get_parent.url }}">« All DARTs</a></p>
+  </section>
+{% endblock %}
 
-    <aside class="col-side page-aside">
-      <div class="page-aside__sticky">
+{% block sidebar %}
+  <aside class="panel__side">
+    <section class="box box--side">
+      <h2 class="box__head">This team</h2>
+      <div class="box__body">
         <dl class="facts">
           {% if page.airport_identifier %}
-            <div class="facts__row">
-              <dt>Airport</dt>
-              <dd class="mono">{{ page.airport_identifier }}</dd>
-            </div>
+            <dt>Airport</dt>
+            <dd class="mono">{{ page.airport_identifier }}</dd>
           {% endif %}
           {% if page.city %}
-            <div class="facts__row">
-              <dt>City</dt>
-              <dd>{{ page.city }}</dd>
-            </div>
+            <dt>City</dt>
+            <dd>{{ page.city }}</dd>
           {% endif %}
           {% if page.leader_name %}
-            <div class="facts__row">
-              <dt>Leader</dt>
-              <dd>
-                {{ page.leader_name }}
-                {% if page.leader_contact %}
-                  <br />
-                  {% if page.leader_href %}
-                    <a href="{{ page.leader_href }}">{{ page.leader_contact }}</a>
-                  {% else %}
-                    {{ page.leader_contact }}
-                  {% endif %}
+            <dt>Leader</dt>
+            <dd>
+              {{ page.leader_name }}
+              {% if page.leader_contact %}
+                <br />
+                {% if page.leader_href %}
+                  <a href="{{ page.leader_href }}">{{ page.leader_contact }}</a>
+                {% else %}
+                  {{ page.leader_contact }}
                 {% endif %}
-              </dd>
-            </div>
+              {% endif %}
+            </dd>
           {% endif %}
         </dl>
-        <p class="page-aside__back"><a href="{{ page.get_parent.url }}">← All DARTs</a></p>
       </div>
-    </aside>
-  </div>
+    </section>
+  </aside>
 {% endblock %}

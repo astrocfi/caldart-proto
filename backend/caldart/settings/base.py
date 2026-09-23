@@ -168,7 +168,9 @@ USE_TZ = True
 # --------------------------------------------------------------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [REPO_ROOT / "frontend" / "dist"]
+# The built frontend, then the handful of files the templates reference
+# directly (the CalDART logo in the masthead).
+STATICFILES_DIRS = [REPO_ROOT / "frontend" / "dist", BASE_DIR / "static"]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 

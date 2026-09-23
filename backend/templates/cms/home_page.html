@@ -2,90 +2,146 @@
 {% load wagtailcore_tags wagtailimages_tags %}
 
 {% comment %}
-  The editorial home page: an asymmetric hero, the mission as a
-  pull-quote, the concept of operations as a numbered list separated by
-  hairlines, three featured news posts, and the tax-status note.
+  The home page: a welcome box carrying the photograph, the mission and the
+  calls to action, then the latest news and the missions CalDART has flown.
+  The sidebar answers the two questions a visitor arrives with — which team is
+  mine, and what does joining cost.
 {% endcomment %}
 
 {% block body_class %}home{% endblock %}
 
 {% block content %}
-  <section class="section hero">
-    <div class="grid hero__grid">
-      <div class="col-text stack hero__lead">
-        <p class="eyebrow">{{ site_settings.org_name|default:"The California DART Network" }}</p>
-        <h1 class="hero__heading">{{ page.hero_heading|default:page.title }}</h1>
-        {% if page.hero_lede %}<p class="lede">{{ page.hero_lede }}</p>{% endif %}
-        <p class="cluster">
-          {% if page.primary_cta_label %}
-            <a class="button" href="{{ page.primary_cta_url|default:'/portal/join' }}">{{ page.primary_cta_label }}</a>
+  <section class="box">
+    <h2 class="box__head">{% firstof page.hero_heading page.title %}</h2>
+    <div class="box__body">
+      {% if page.hero_image %}
+        <figure class="photo">
+          {% image page.hero_image width-1200 alt=page.hero_image_caption %}
+          {% if page.hero_image_caption %}
+            <figcaption>{{ page.hero_image_caption }}</figcaption>
           {% endif %}
-          {% if page.secondary_cta_label %}
-            <a class="button button--secondary" href="{{ page.secondary_cta_url|default:'/' }}">{{ page.secondary_cta_label }}</a>
-          {% endif %}
-        </p>
-      </div>
+        </figure>
+      {% endif %}
 
-      <aside class="col-side hero__aside stack-tight">
-        {% if page.hero_image %}
-          <figure class="figure">
-            {% image page.hero_image width-800 alt=page.hero_image_caption %}
-            {% if page.hero_image_caption %}
-              <figcaption class="figure__caption">{{ page.hero_image_caption }}</figcaption>
-            {% endif %}
-          </figure>
+      {% if page.hero_lede %}<p class="lede">{{ page.hero_lede }}</p>{% endif %}
+
+      {% if page.mission_statement %}
+        <div class="mission">
+          <p class="mission__label">Mission</p>
+          <div class="richtext">{{ page.mission_statement|richtext }}</div>
+        </div>
+      {% endif %}
+
+      {% if page.welcome_body %}<div class="richtext">{{ page.welcome_body|richtext }}</div>{% endif %}
+
+      <p class="cluster">
+        {% if page.urgent_cta_label %}
+          <a class="button button--urgent" href="{{ page.urgent_cta_url|default:'/contact-us/' }}">{{ page.urgent_cta_label }}</a>
         {% endif %}
-        <p class="eyebrow">Already a member?</p>
-        <p>
-          <a href="/portal/">Sign in to the member portal</a> to update your profile, check your
-          medical and insurance dates, or renew.
-        </p>
-      </aside>
+        {% if page.primary_cta_label %}
+          <a class="button" href="{{ page.primary_cta_url|default:'/portal/join' }}">{{ page.primary_cta_label }}</a>
+        {% endif %}
+        {% if page.secondary_cta_label %}
+          <a class="button button--secondary" href="{{ page.secondary_cta_url|default:'/' }}">{{ page.secondary_cta_label }}</a>
+        {% endif %}
+        {% if site_settings.donate_url %}
+          <a class="button button--secondary" href="{{ site_settings.donate_url }}">Donate</a>
+        {% endif %}
+      </p>
     </div>
   </section>
 
-  {% if page.mission_statement %}
-    <section class="section mission">
-      <p class="eyebrow">Our mission</p>
-      <div class="mission__quote richtext">{{ page.mission_statement|richtext }}</div>
-    </section>
-  {% endif %}
-
-  {% if page.concept_of_operations %}
-    <section class="section grid">
-      <div class="col-text stack">
-        <p class="eyebrow">Concept of operations</p>
-        <h2>{% firstof page.concept_heading "How an activation works" %}</h2>
-        <ol class="steps">
-          {% for block in page.concept_of_operations %}{% include_block block %}{% endfor %}
+  {% if featured_news %}
+    <section class="box">
+      <h2 class="box__head">Latest news</h2>
+      <div class="box__body">
+        <ol class="news-list" role="list">
+          {% for post in featured_news %}
+            <li class="news-list__item">
+              <h3 class="news-list__title">
+                <a href="{{ post.url }}">{{ post.title }}</a>
+                <time class="news-list__date" datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:"j F Y" }}</time>
+              </h3>
+              {% if post.intro %}<p class="news-list__intro">{{ post.intro }}</p>{% endif %}
+            </li>
+          {% endfor %}
         </ol>
       </div>
-
-      {% if page.tax_status %}
-        <aside class="col-side stack-tight tax-note">
-          <p class="eyebrow">501(c)(3)</p>
-          <div class="richtext">{{ page.tax_status|richtext }}</div>
-          {% if site_settings.ein %}<p class="mono">EIN {{ site_settings.ein }}</p>{% endif %}
-        </aside>
+      {% if news_index %}
+        <p class="box__more"><a href="{{ news_index.url }}">All news »</a></p>
       {% endif %}
     </section>
   {% endif %}
 
-  {% if featured_news %}
-    <section class="section">
-      <div class="section__head">
-        <p class="eyebrow">Latest news</p>
-        {% if news_index %}<a href="{{ news_index.url }}">All news</a>{% endif %}
+  {% if page.missions_flown %}
+    <section class="box">
+      <h2 class="box__head">{% firstof page.missions_heading "Missions flown" %}</h2>
+      <div class="box__body">
+        <table class="flown">
+          <tbody>
+            {% for block in page.missions_flown %}{% include_block block %}{% endfor %}
+          </tbody>
+        </table>
       </div>
-      <ol class="news-list" role="list">
-        {% for post in featured_news %}
-          <li class="news-list__item">
-            <p class="news-list__date mono">{{ post.date|date:"j F Y" }}</p>
-            <h3 class="news-list__title"><a href="{{ post.url }}">{{ post.title }}</a></h3>
-            {% if post.intro %}<p class="news-list__intro">{{ post.intro }}</p>{% endif %}
-          </li>
-        {% endfor %}
-      </ol>
     </section>
   {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+  <aside class="panel__side">
+    <section class="box box--side">
+      <h2 class="box__head">Member sign-in</h2>
+      <div class="box__body">
+        <p>
+          <a class="button button--small" href="/portal/">Sign in to the member portal</a>
+        </p>
+        <p class="small">
+          Sign in to update your profile, check your medical and insurance dates, or renew.
+        </p>
+      </div>
+    </section>
+
+    {% if darts %}
+      <section class="box box--side">
+        <h2 class="box__head">Find your DART</h2>
+        <div class="box__body">
+          <form class="finder" method="get" action="{% url 'find-dart' %}">
+            <label class="finder__label" for="find-dart-select">Team</label>
+            <select id="find-dart-select" name="dart">
+              {% for dart in darts %}
+                <option value="{{ dart.pk }}">{{ dart }}</option>
+              {% endfor %}
+            </select>
+            <button class="button button--small" type="submit">Go</button>
+          </form>
+          {% if dart_index %}
+            <p class="small">
+              {{ darts|length }} teams at general aviation airports around California.
+              <a href="{{ dart_index.url }}">See them all</a>.
+            </p>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if plans %}
+      <section class="box box--side">
+        <h2 class="box__head">Membership</h2>
+        <div class="box__body">
+          <table class="plans">
+            <tbody>
+              {% for plan in plans %}
+                <tr>
+                  <th scope="row">{{ plan.name }}</th>
+                  <td>{{ plan.price_display }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <p><a class="button button--small" href="/portal/join">Join CalDART</a></p>
+          {% if page.tax_status %}<div class="small richtext">{{ page.tax_status|richtext }}</div>{% endif %}
+        </div>
+      </section>
+    {% endif %}
+  </aside>
 {% endblock %}
