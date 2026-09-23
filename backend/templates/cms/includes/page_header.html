@@ -1,20 +1,15 @@
 {% comment %}
-  The page title block used by every non-home template: a breadcrumb up to the
-  parent (except at the top level, where the parent is the home page) and the
-  title.  Each template renders its own intro underneath, because some are
-  plain text and some are rich text.
+  The head of the main box on every non-home template: the title, with a
+  breadcrumb up to the parent from the third level down.  Each template renders
+  its own intro underneath, because some are plain text and some are rich text.
 {% endcomment %}
-<header class="section page-header">
+<div class="box__head box__head--titled">
   {% comment %}
     Depth 1 is the invisible tree root and depth 2 the home page, so a
     breadcrumb is only worth showing from the third level down.
   {% endcomment %}
   {% if page.depth > 3 %}
-    <p class="eyebrow page-header__parent">
-      <a href="{{ page.get_parent.url }}">{{ page.get_parent.title }}</a>
-    </p>
+    <p class="box__parent"><a href="{{ page.get_parent.url }}">{{ page.get_parent.title }}</a></p>
   {% endif %}
   <h1>{{ page.title }}</h1>
-  {% if intro %}<p class="lede">{{ intro }}</p>{% endif %}
-  {% if rich_intro %}<div class="lede richtext">{{ rich_intro }}</div>{% endif %}
-</header>
+</div>

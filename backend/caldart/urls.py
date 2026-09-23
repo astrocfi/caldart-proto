@@ -12,6 +12,7 @@ from wagtail import urls as wagtail_urls
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail.documents import urls as wagtaildocs_urls
 
+from apps.cms.views import find_dart
 from apps.payments.views import apple_pay_domain_association
 from caldart.views import portal_shell
 
@@ -25,6 +26,7 @@ urlpatterns = [
         apple_pay_domain_association,
         name="apple-pay-domain-association",
     ),
+    path("find-dart/", find_dart, name="find-dart"),
     re_path(r"^portal/(?P<path>.*)$", portal_shell, name="portal"),
 ]
 

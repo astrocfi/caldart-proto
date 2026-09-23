@@ -1,0 +1,14 @@
+<li class="event">
+  <p class="event__date">
+    <span class="event__month">{{ value.date|date:"M" }}</span>
+    <b class="event__day">{{ value.date|date:"j" }}</b>
+  </p>
+  <p class="event__what">
+    {% if value.page %}
+      <a href="{{ value.page.url }}">{{ value.title }}</a>
+    {% else %}
+      {{ value.title }}
+    {% endif %}
+    {% if value.where %}<span class="event__where">{{ value.where }}</span>{% endif %}
+  </p>
+</li>

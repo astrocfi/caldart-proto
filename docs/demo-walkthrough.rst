@@ -89,8 +89,8 @@ without leaving the site, and the membership is live the moment the payment
 clears.*
 
 1. Open http://localhost:8000/ signed out.  You get the public home page:
-   hero, mission, the concept of operations as a numbered list, and the three
-   most recent news posts.
+   the welcome box with its photograph and mission statement, the three most
+   recent news posts, and the missions CalDART has flown.
 2. Follow **Join** in the top navigation — the button on the right-hand side,
    not the *Join CalDART* content page beside it.  You land on
    ``/portal/join`` at step 1 of 4, **Account**.

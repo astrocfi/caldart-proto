@@ -9,42 +9,45 @@
 {% block body_class %}contact{% endblock %}
 
 {% block content %}
-  {% include "cms/includes/page_header.html" with rich_intro=page.intro|richtext %}
-
-  <div class="section grid">
-    <div class="col-text stack prose">
-      {% for block in page.body %}{% include_block block %}{% endfor %}
+  <section class="box">
+    {% include "cms/includes/page_header.html" %}
+    <div class="box__body">
+      {% if page.intro %}<div class="lede richtext">{{ page.intro|richtext }}</div>{% endif %}
+      <div class="prose">
+        {% for block in page.body %}{% include_block block %}{% endfor %}
+      </div>
     </div>
+  </section>
+{% endblock %}
 
-    <aside class="col-side page-aside">
-      <div class="page-aside__sticky">
+{% block sidebar %}
+  <aside class="panel__side">
+    <section class="box box--side">
+      <h2 class="box__head">Reach us</h2>
+      <div class="box__body">
         <dl class="facts">
+          {% if site_settings.duty_phone %}
+            <dt>Duty Officer</dt>
+            <dd class="mono">{{ site_settings.duty_phone }}</dd>
+          {% endif %}
           {% if site_settings.contact_email %}
-            <div class="facts__row">
-              <dt>Email</dt>
-              <dd><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></dd>
-            </div>
+            <dt>Email</dt>
+            <dd><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></dd>
           {% endif %}
           {% if site_settings.contact_phone %}
-            <div class="facts__row">
-              <dt>Phone</dt>
-              <dd class="mono">{{ site_settings.contact_phone }}</dd>
-            </div>
+            <dt>Phone</dt>
+            <dd class="mono">{{ site_settings.contact_phone }}</dd>
           {% endif %}
           {% if site_settings.mailing_address %}
-            <div class="facts__row">
-              <dt>Post</dt>
-              <dd>{{ site_settings.mailing_address|linebreaksbr }}</dd>
-            </div>
+            <dt>Post</dt>
+            <dd>{{ site_settings.mailing_address|linebreaksbr }}</dd>
           {% endif %}
           {% if site_settings.ein %}
-            <div class="facts__row">
-              <dt>EIN</dt>
-              <dd class="mono">{{ site_settings.ein }}</dd>
-            </div>
+            <dt>EIN</dt>
+            <dd class="mono">{{ site_settings.ein }}</dd>
           {% endif %}
         </dl>
       </div>
-    </aside>
-  </div>
+    </section>
+  </aside>
 {% endblock %}

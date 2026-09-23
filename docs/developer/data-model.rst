@@ -205,14 +205,14 @@ CMS page models
           BasePage [label="cms.BasePage (abstract)\l  base_form_class =\l    RestrictedBlocksPageForm\l  body_headings\l  show_on_this_page\l", style="rounded,dashed"];
           MembersOnly [label="cms.MembersOnlyMixin (abstract)\l  members_only\l  serve(): members-only wall, 403\l", style="rounded,dashed"];
 
-          Home [label="cms.HomePage\l  hero_heading, hero_lede,\l  hero_image_caption, CTAs,\l  mission, concept_of_operations,\l  tax status\l"];
+          Home [label="cms.HomePage\l  hero_heading, hero_lede,\l  hero_image_caption, CTAs,\l  mission, welcome_body,\l  upcoming_events, missions_flown,\l  tax status\l"];
           Standard [label="cms.StandardPage\l  intro, body\l"];
           NewsIndex [label="cms.NewsIndexPage\l  intro\l"];
           News [label="cms.NewsPage\l  date, intro, body\l"];
           DartIndex [label="cms.DartIndexPage\l  intro, body\l"];
           DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
           Contact [label="cms.ContactPage\l  intro, body\l"];
-          Settings [label="cms.SiteSettings\l  (wagtail BaseSiteSetting)\l  org_name, tagline, contact_*,\l  ein, donate_url, theme,\l  footer_text\l"];
+          Settings [label="cms.SiteSettings\l  (wagtail BaseSiteSetting)\l  org_name, tagline, contact_*,\l  duty_phone, ein, donate_url,\l  theme, footer_text\l"];
 
           Image [label="wagtailimages.Image"];
           Site [label="wagtailcore.Site"];
@@ -282,7 +282,8 @@ CMS page models
       --------------------------
       wagtailcore.Page     title, slug, live, path
       cms.HomePage         hero_heading, hero_lede, hero_image_caption, the
-                           two CTAs, mission, concept_of_operations, tax status
+                           three CTAs, mission, welcome_body, upcoming_events,
+                           missions_flown, tax status
       cms.StandardPage     intro, body
       cms.NewsIndexPage    intro
       cms.NewsPage         date, intro, body
@@ -290,8 +291,9 @@ CMS page models
       cms.DartPage         leader_name, leader_contact, body
       cms.ContactPage      intro, body
       cms.SiteSettings     org_name, tagline, contact_email, contact_phone,
-                           mailing_address, ein, donate_url, facebook_url,
-                           twitter_url, theme, footer_text
+                           duty_phone, duty_phone_note, mailing_address, ein,
+                           donate_url, facebook_url, twitter_url, theme,
+                           footer_text
 
       Edges
       -----
@@ -999,9 +1001,10 @@ not use it, and the ``body_headings`` used to build the "on this page" rail):
    * - Model
      - Notes
    * - ``HomePage``
-     - hero (heading, lede, image, captioned, two CTAs), mission statement,
-       ``concept_of_operations`` (a StreamField of ``step`` blocks), tax
-       status, and the three latest news posts.  Only under the tree root.
+     - the welcome box (heading, lede, captioned image, mission statement,
+       ``welcome_body`` and three CTAs), ``upcoming_events`` and
+       ``missions_flown`` (StreamFields of ``event`` and ``mission`` blocks),
+       tax status, and the three latest news posts.  Only under the tree root.
    * - ``StandardPage``
      - ``intro`` plus a ``body`` StreamField.  Members-only capable.
    * - ``NewsIndexPage`` / ``NewsPage``
@@ -1021,9 +1024,10 @@ action chosen from the visitor's state — sign in, renew (naming the date), or
 join.
 
 ``SiteSettings`` (a Wagtail ``BaseSiteSetting``) carries ``org_name``,
-``tagline``, ``contact_email``, ``contact_phone``, ``mailing_address``,
-``ein``, ``donate_url``, ``facebook_url``, ``twitter_url``, ``theme`` (one of
-``sierra``, ``pacific``, ``night``; default ``sierra``) and ``footer_text``.
+``tagline``, ``contact_email``, ``contact_phone``, ``duty_phone``,
+``duty_phone_note``, ``mailing_address``, ``ein``, ``donate_url``,
+``facebook_url``, ``twitter_url``, ``theme`` (one of ``duty``, ``sierra``,
+``pacific``, ``night``; default ``duty``) and ``footer_text``.
 
 sysadmin
 ========

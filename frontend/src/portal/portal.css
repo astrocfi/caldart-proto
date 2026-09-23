@@ -7,12 +7,15 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  /* The page ground is the tint the public site uses inside its panel: the
+   * portal is a working surface, not a sheet laid on a desk. */
+  background: var(--color-bg-sunken);
 }
 
 /* ------------------------------------------------------------------- bar */
 .portal__bar {
   border-bottom: var(--hairline) solid var(--color-rule);
-  background: var(--color-bg);
+  background: var(--color-bg-sunken);
   position: sticky;
   top: 0;
   z-index: 20;

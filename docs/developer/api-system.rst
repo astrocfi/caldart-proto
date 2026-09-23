@@ -225,7 +225,7 @@ It is the one API call the SPA makes with no session, so it is ``AllowAny``.
 
    {
      "org_name": "CalDART",
-     "theme": "sierra",
+     "theme": "duty",
      "contact_email": "info@caldart.org",
      "nav": [
        {"title": "About", "url": "/about/", "active": false, "kind": "page"},
@@ -248,8 +248,8 @@ an empty list rather than a 403, so nobody learns which pages exist by asking.
 See :doc:`cms` for that test and for where the settings come from.
 
 Before ``migrate`` has created the site settings row, ``org_name`` falls back
-to ``CalDART``, ``theme`` to ``sierra`` and ``contact_email`` to an empty
-string; a settings row with no theme chosen falls back to ``sierra`` too.
+to ``CalDART``, ``theme`` to ``duty`` and ``contact_email`` to an empty
+string; a settings row with no theme chosen falls back to ``duty`` too.
 
 Statuses: **200**, for anybody.
 

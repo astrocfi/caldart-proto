@@ -4,13 +4,15 @@
 {% endcomment %}
 {% with children=page.get_children.live.public %}
   {% if children %}
-    <nav class="section-nav" aria-labelledby="section-nav-heading">
-      <p class="eyebrow" id="section-nav-heading">In this section</p>
-      <ul class="section-nav__list">
-        {% for child in children %}
-          <li><a href="{{ child.url }}">{{ child.title }}</a></li>
-        {% endfor %}
-      </ul>
+    <nav class="box box--side" aria-labelledby="section-nav-heading">
+      <h2 class="box__head" id="section-nav-heading">In this section</h2>
+      <div class="box__body">
+        <ul class="linklist">
+          {% for child in children %}
+            <li><a href="{{ child.url }}">{{ child.title }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
     </nav>
   {% endif %}
 {% endwith %}

@@ -6,35 +6,35 @@
  * changing the whole look is one file, or one dropdown in Wagtail Site
  * Settings.
  *
- * The default values here are the `sierra` theme, so the site is correct even
+ * The default values here are the `duty` theme, so the site is correct even
  * before a theme attribute is applied.
  */
 
 :root {
   /* -- color ----------------------------------------------------------- */
-  --color-bg: #f4f1ea; /* paper */
-  --color-bg-raised: #fbfaf6; /* cards, table stripes */
-  --color-bg-sunken: #ebe7dd; /* code, wells */
-  --color-fg: #1b1f24; /* ink */
-  --color-primary: #1f4d3a; /* deep conifer */
-  --color-primary-fg: #f7f5ef;
-  --color-primary-hover: #17392b;
-  --color-accent: #e4572e; /* signal orange */
-  --color-secondary: #f2a900; /* poppy gold */
-  --color-rule: #d9d3c7;
-  --color-rule-strong: #b9b1a0;
-  --color-muted: #6b6f76;
-  --color-selection: #f2a90033;
+  --color-bg: #ccd3dc; /* blue-gray ground */
+  --color-bg-raised: #ffffff; /* the page panel, cards, table stripes */
+  --color-bg-sunken: #eef2f7; /* sidebar, code, wells */
+  --color-fg: #1d2530; /* ink */
+  --color-primary: #1f4e79; /* navy */
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: #17405f;
+  --color-accent: #b3261e; /* the red of the wordmark, and of asking for help */
+  --color-secondary: #3f7fb0; /* lighter navy, for the sidebar bars */
+  --color-rule: #ccd6e1;
+  --color-rule-strong: #8c97a5;
+  --color-muted: #55606d;
+  --color-selection: #3f7fb033;
 
-  --color-ok: #2e7d4f;
-  --color-warn: #c98a00;
-  --color-bad: #b23a2b;
-  --color-ok-bg: #2e7d4f1f;
-  --color-warn-bg: #c98a001f;
-  --color-bad-bg: #b23a2b1f;
-  --color-neutral-bg: #6b6f7617;
+  --color-ok: #1f7a4d;
+  --color-warn: #a86b00;
+  --color-bad: #b3261e;
+  --color-ok-bg: #1f7a4d1f;
+  --color-warn-bg: #a86b001f;
+  --color-bad-bg: #b3261e1f;
+  --color-neutral-bg: #55606d17;
 
-  --color-focus: #1f4d3a;
+  --color-focus: #1f4e79;
 
   /* -- type ------------------------------------------------------------ */
   --font-display:
@@ -74,7 +74,7 @@
   --space-8: 6rem;
 
   /* -- shape ----------------------------------------------------------- */
-  --radius: 2px;
+  --radius: 6px;
   --radius-pill: 999px;
   --hairline: 1px;
 

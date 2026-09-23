@@ -209,7 +209,12 @@ class MembershipPlan(TimestampedModel):
 
     def __str__(self) -> str:
         """The plan name and its price in dollars, e.g. ``Annual ($45.00)``."""
-        return f"{self.name} (${self.price_cents / 100:,.2f})"
+        return f"{self.name} ({self.price_display})"
+
+    @property
+    def price_display(self) -> str:
+        """The price in dollars with a leading dollar sign, e.g. ``$45.00``."""
+        return f"${self.price_cents / 100:,.2f}"
 
     @property
     def is_lifetime(self) -> bool:

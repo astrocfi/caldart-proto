@@ -2,35 +2,39 @@
 {% load wagtailcore_tags %}
 
 {% comment %}
-  A general content page: title and intro at a readable measure, the body in
-  the 7-column text track, and a sticky aside carrying "on this page" (when the
-  body has enough headings to need it) and the section's sibling pages.
+  A general content page: the body in the main box, and the sidebar carrying
+  "on this page" (when the body has enough headings to need it) and the
+  section's sibling pages.
 {% endcomment %}
 
 {% block body_class %}standard{% endblock %}
 
 {% block content %}
-  {% include "cms/includes/page_header.html" with intro=page.intro %}
-
-  <div class="section grid">
-    <div class="col-text stack prose">
-      {% for block in page.body %}{% include_block block %}{% endfor %}
-    </div>
-
-    <aside class="col-side page-aside">
-      <div class="page-aside__sticky stack-loose">
-        {% if page.show_on_this_page %}
-          <nav class="toc" aria-labelledby="toc-heading">
-            <p class="eyebrow" id="toc-heading">On this page</p>
-            <ul class="toc__list">
-              {% for item in page.body_headings %}
-                <li><a href="#{{ item.anchor }}">{{ item.text }}</a></li>
-              {% endfor %}
-            </ul>
-          </nav>
-        {% endif %}
-        {% include "cms/includes/section_nav.html" %}
+  <section class="box">
+    {% include "cms/includes/page_header.html" %}
+    <div class="box__body">
+      {% if page.intro %}<p class="lede">{{ page.intro }}</p>{% endif %}
+      <div class="prose">
+        {% for block in page.body %}{% include_block block %}{% endfor %}
       </div>
-    </aside>
-  </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block sidebar %}
+  <aside class="panel__side">
+    {% if page.show_on_this_page %}
+      <nav class="box box--side" aria-labelledby="toc-heading">
+        <h2 class="box__head" id="toc-heading">On this page</h2>
+        <div class="box__body">
+          <ul class="linklist">
+            {% for item in page.body_headings %}
+              <li><a href="#{{ item.anchor }}">{{ item.text }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </nav>
+    {% endif %}
+    {% include "cms/includes/section_nav.html" %}
+  </aside>
 {% endblock %}
