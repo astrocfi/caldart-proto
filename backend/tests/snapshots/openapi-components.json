@@ -1046,6 +1046,7 @@
   "PaymentsConfig": {
     "properties": {
       "contribution_tiers": "array<ref:ContributionTier>",
+      "max_contribution_cents": "integer",
       "paypal_client_id": "string",
       "plans": "array<ref:Plan>",
       "providers": "array<ref:PaymentProviderEnum>",
@@ -1053,6 +1054,7 @@
     },
     "required": [
       "contribution_tiers",
+      "max_contribution_cents",
       "paypal_client_id",
       "plans",
       "providers",

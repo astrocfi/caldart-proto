@@ -9,17 +9,17 @@ from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_fiel
 from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
-from apps.payments.models import Payment, PaymentProvider, PaymentStatus
+from apps.payments.models import (
+    MAX_CONTRIBUTION_CENTS,
+    Payment,
+    PaymentProvider,
+    PaymentStatus,
+)
 from apps.payments.reports import DEFAULT_GROUP, GROUPS, PaymentFilters, PeriodSummary
 
 #: What a report date parameter answers with when it is not a date on the calendar.
 DATE_FORMAT_MESSAGE = "Expected a date as YYYY-MM-DD."
 GROUP_MESSAGE = "Expected 'month' or 'year'."
-
-#: The largest contribution a checkout accepts, in cents: ten million dollars.
-#: Anything larger is a typo or an attack, and is refused at the boundary rather
-#: than stored and handed to a provider.
-MAX_CONTRIBUTION_CENTS = 1_000_000_000
 
 
 class ContributionTierSerializer(serializers.Serializer[dict[str, Any]]):
@@ -41,6 +41,7 @@ class PaymentsConfigSerializer(serializers.Serializer[dict[str, Any]]):
     paypal_client_id = serializers.CharField(allow_blank=True)
     plans = PlanSerializer(many=True)
     contribution_tiers = ContributionTierSerializer(many=True)
+    max_contribution_cents = serializers.IntegerField()
 
 
 class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):

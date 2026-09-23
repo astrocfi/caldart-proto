@@ -22,39 +22,47 @@ The list shows everyone with a CalDART account — ``member`` is granted the
 moment someone registers, so "accounts" and "members" are the same set of
 people — one row each:
 
-**Member**
-   Their name, which links to the full record, followed by their DART, pilot
-   certificate and, when they hold one, their medical class with a chip saying
-   whether it is still current.  A deactivated account says so here.
+**Pilot**
+   A green tick when the member holds a pilot certificate and their medical is
+   in date, a red cross when the medical has lapsed, and a dash for somebody
+   who is not a pilot.  It answers the question the list is most often opened
+   for: who can fly today.
+
+**Name**
+   Their name, which links to the full record.  A deactivated account says so
+   here.
+
+**DART**
+   Their team, or "Unaffiliated".
+
+**Membership Exp.**
+   A colored dot and the expiry date.  The dot is green while the membership is
+   current, amber in the last 30 days, red once it has run out, and gray for
+   somebody who has never been a member.  A lifetime membership reads "Never".
 
 **Email**
    A ``mailto:`` link, so you can write to someone straight from the list.
-
-**Membership**
-   A status chip and the expiry date behind it.  The chip is green while the
-   membership is current, amber in the last 30 days, red once it has run out
-   and gray for someone who has never been a member.  Lifetime members show
-   "Lifetime member" and no date.
-
-**Joined**
-   The start of their first membership term, which is blank for someone who
-   has never had one.
 
 The expiry date is the end of the member's *unbroken* coverage.  Somebody who
 renews in March for a term that starts in July already shows next July's date,
 because their cover runs without a break — you never have to add the terms up
 yourself.
 
-Click any column heading to sort by it; click again to reverse the order.  The
-sort, like the filters, is part of the page's address, so a sorted and filtered
-list is a link you can bookmark or send to somebody else.
+Click **Name**, **Membership Exp.** or **Email** to sort by that column; click
+again to reverse the order.  **Pilot** and **DART** do not sort, because the
+server has no ordering for them.  The sort, like the filters, is part of the
+page's address, so a sorted and filtered list is a link you can bookmark or
+send to somebody else.
+
+The export still carries every field, including the ones the table leaves out:
+phone, certificate, medical class, aircraft, and the joining date.
 
 
 Filtering
 ---------
 
 The filter bar sits above the table.  The dropdowns apply the moment you change
-them; the **Search** and **Expiring within** boxes apply when you press Enter
+them; the **Search** and **Expiring within (days)** boxes apply when you press Enter
 or the **Apply** button, so a half-typed name never runs a search.  **Clear**
 empties the whole bar.
 

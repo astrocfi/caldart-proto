@@ -65,7 +65,9 @@ export function DashboardPage(): JSX.Element {
                     <DateText value={status.expires_on} />
                   </p>
                 ) : null}
-                {status.plan ? <p className="muted">{status.plan} membership</p> : null}
+                {status.plan && !(status.is_lifetime && status.status === 'current') ? (
+                  <p className="muted">{status.plan} membership</p>
+                ) : null}
               </div>
             ) : (
               <p className="muted" role="status">

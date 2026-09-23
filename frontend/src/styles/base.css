@@ -477,6 +477,49 @@ th.numeric {
 }
 
 /* ------------------------------------------------------- status chips */
+/* A dot carries a status where a chip in every row would shout.  The meaning
+ * always rides in the accessible name beside it, never in the color alone. */
+.status-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: var(--radius-pill);
+  border: var(--hairline) solid rgba(0, 0, 0, 0.25);
+  vertical-align: baseline;
+}
+
+.status-dot[data-tone='current'] {
+  background: var(--color-ok);
+}
+
+.status-dot[data-tone='expiring'] {
+  background: var(--color-warn);
+}
+
+.status-dot[data-tone='expired'] {
+  background: var(--color-bad);
+}
+
+.status-dot[data-tone='none'] {
+  background: var(--color-muted);
+}
+
+.pilot-mark {
+  font-weight: var(--weight-bold);
+}
+
+.pilot-mark[data-state='ok'] {
+  color: var(--color-ok);
+}
+
+.pilot-mark[data-state='bad'] {
+  color: var(--color-bad);
+}
+
+.pilot-mark[data-state='none'] {
+  color: var(--color-muted);
+}
+
 .chip {
   display: inline-flex;
   align-items: center;

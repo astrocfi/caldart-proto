@@ -46,7 +46,12 @@ from apps.payments.api.serializers import (
     PayPalCaptureSerializer,
     StripeConfirmSerializer,
 )
-from apps.payments.models import CONTRIBUTION_TIERS, Payment, PaymentProvider
+from apps.payments.models import (
+    CONTRIBUTION_TIERS,
+    MAX_CONTRIBUTION_CENTS,
+    Payment,
+    PaymentProvider,
+)
 from apps.payments.providers import available_providers, get_provider
 from apps.payments.providers.base import PaymentError
 from apps.payments.services import create_checkout
@@ -117,8 +122,9 @@ class PaymentsConfigView(APIView):
     def get(self, request: Request) -> Response:
         """200 with what the checkout screen may offer.
 
-        Names the configured providers, their publishable keys, the active plans
-        and the contribution tiers.  Any signed-in member may ask.
+        Names the configured providers, their publishable keys, the active plans,
+        the contribution tiers and the largest contribution checkout accepts.  Any
+        signed-in member may ask.
         """
         plans = MembershipPlan.objects.filter(is_active=True)
         data = {
@@ -127,6 +133,7 @@ class PaymentsConfigView(APIView):
             "paypal_client_id": settings.PAYPAL_CLIENT_ID,
             "plans": plans,
             "contribution_tiers": CONTRIBUTION_TIERS,
+            "max_contribution_cents": MAX_CONTRIBUTION_CENTS,
         }
         return Response(PaymentsConfigSerializer(data).data)
 

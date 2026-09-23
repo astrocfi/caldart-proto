@@ -81,14 +81,14 @@ describe('StatusChip', () => {
 });
 
 describe('MembershipChip', () => {
-  it('says "Lifetime member" for lifetime members', () => {
+  it('says "Never expires" for lifetime members', () => {
     render(
       <MembershipChip
         membership={membership({ expires_on: null, is_lifetime: true })}
         today={TODAY}
       />,
     );
-    expect(screen.getByText('Lifetime member')).toBeInTheDocument();
+    expect(screen.getByText('Never expires')).toBeInTheDocument();
   });
 
   it('warns when the membership is expiring', () => {

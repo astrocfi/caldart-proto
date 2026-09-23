@@ -111,6 +111,29 @@ def test_config_offers_the_contribution_tiers(
     assert tiers[1]["label"] == "Participating"
 
 
+def test_config_publishes_the_contribution_ceiling(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The config names the largest contribution, so the form can bound its box."""
+    api_client.force_login(member)
+    assert api_client.get(CONFIG).json()["max_contribution_cents"] == 9_999_900
+
+
+def test_a_contribution_above_the_ceiling_is_refused(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """$99,999.01 is one cent too much, and never reaches a provider."""
+    api_client.force_login(member)
+    response = api_client.post(
+        CHECKOUT,
+        {"plan": "annual", "contribution_cents": 9_999_901, "provider": "mock"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "contribution_cents" in response.json()
+
+
 def test_config_omits_inactive_plans(
     api_client: APIClient, member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan
 ) -> None:

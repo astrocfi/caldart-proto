@@ -68,9 +68,71 @@ export interface MembershipChipProps {
 export function MembershipChip({ membership, today }: MembershipChipProps): JSX.Element {
   const tone = membershipTone(membership, today);
   if (membership.is_lifetime && membership.status === 'current') {
-    return <StatusChip tone="current" label="Lifetime member" />;
+    // "Never expires" rather than "Lifetime member": the screens that show this
+    // chip already say the membership is a lifetime one, and the chip's job is
+    // to answer the question the other tones answer -- when does it run out.
+    return <StatusChip tone="current" label="Never expires" />;
   }
   return <StatusChip tone={tone} title={membership.expires_on ?? undefined} />;
+}
+
+export interface StatusDotProps {
+  tone: StatusTone;
+  /** What the dot means, read out and shown on hover. */
+  label: string;
+}
+
+/**
+ * A tone-colored dot for a dense table, where a chip beside every row would
+ * shout. The meaning is carried by the accessible name, never by color alone.
+ */
+export function StatusDot({ tone, label }: StatusDotProps): JSX.Element {
+  return (
+    <span className="status-dot" data-tone={tone} title={label}>
+      <span className="visually-hidden">{label}</span>
+    </span>
+  );
+}
+
+export interface MembershipDotProps {
+  membership: Pick<MembershipStatus, 'status' | 'expires_on' | 'is_lifetime'>;
+  today?: Date;
+}
+
+/** The membership's tone as a dot: green current, amber expiring, red expired. */
+export function MembershipDot({ membership, today }: MembershipDotProps): JSX.Element {
+  const tone = membershipTone(membership, today);
+  const label =
+    membership.is_lifetime && membership.status === 'current' ? 'Never expires' : TONE_LABEL[tone];
+  return <StatusDot tone={tone} label={label} />;
+}
+
+/**
+ * Whether this member may fly for CalDART today: a tick when the medical is in
+ * date, a cross when it has lapsed, and a dash for somebody who holds none.
+ */
+export function PilotMark({
+  isPilot,
+  isCurrent,
+}: {
+  isPilot: boolean;
+  isCurrent: boolean;
+}): JSX.Element {
+  if (!isPilot) {
+    return (
+      <span className="pilot-mark" data-state="none" title="Not a pilot">
+        <span aria-hidden="true">—</span>
+        <span className="visually-hidden">Not a pilot</span>
+      </span>
+    );
+  }
+  const label = isCurrent ? 'Medical current' : 'Medical expired';
+  return (
+    <span className="pilot-mark" data-state={isCurrent ? 'ok' : 'bad'} title={label}>
+      <span aria-hidden="true">{isCurrent ? '✓' : '✗'}</span>
+      <span className="visually-hidden">{label}</span>
+    </span>
+  );
 }
 
 /** Chip for a plain currency flag, such as insurance or medical currency. */

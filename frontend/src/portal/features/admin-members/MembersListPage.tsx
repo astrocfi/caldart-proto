@@ -5,9 +5,10 @@
  * bookmark or send to a colleague, and the export buttons point at the same
  * query the table is showing.
  *
- * Every column header is sortable because every column maps to one of the four
- * `?ordering=` values the API accepts; the details that cannot be sorted on
- * (DART, certificate, medical) ride along inside the member cell.
+ * Five columns, kept narrow enough to scan: whether the member may fly, who
+ * they are, their team, when their membership runs out, and how to reach them.
+ * Name, membership and email map onto the `?ordering=` values the API accepts;
+ * the other two do not sort, because the API cannot order by them.
  */
 import { useMemo } from 'react';
 import type { JSX } from 'react';
@@ -21,10 +22,9 @@ import type { Column, SortDirection } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
-import { MembershipChip, StatusChip } from '@/portal/components/StatusChip';
+import { MembershipDot, PilotMark } from '@/portal/components/StatusChip';
 import { MembersFilterBar } from './MembersFilterBar';
 import { exportUrl, useMembers } from './api';
-import { certificateLabel, medicalLabel } from './choices';
 import type { MemberFilters } from './types';
 import { EMPTY_FILTERS, FILTER_KEYS } from './types';
 
@@ -49,27 +49,43 @@ function ordering(filters: MemberFilters): { key: string; direction: SortDirecti
 function memberColumns(): Column<MemberRow>[] {
   return [
     {
+      key: 'pilot',
+      header: 'Pilot',
+      sortable: false,
+      width: '4.5rem',
+      render: (row) => (
+        <PilotMark
+          isPilot={row.pilot_certificate_type !== 'none'}
+          isCurrent={row.medical_is_current}
+        />
+      ),
+    },
+    {
       key: 'name',
-      header: 'Member',
+      header: 'Name',
+      width: '22%',
       render: (row) => (
         <>
           <Link to={`/admin/members/${row.user_id}`}>{row.name}</Link>
-          <span className="muted"> · {row.dart ?? 'Unaffiliated'}</span>
-          <br />
-          <small className="muted">
-            {certificateLabel(row.pilot_certificate_type)}
-            {row.medical_type === 'none' ? null : (
-              <>
-                {' · '}
-                {medicalLabel(row.medical_type)}{' '}
-                <StatusChip
-                  tone={row.medical_is_current ? 'current' : 'expired'}
-                  label={row.medical_is_current ? 'medical current' : 'medical expired'}
-                />
-              </>
-            )}
-            {row.is_active ? null : <> · account deactivated</>}
-          </small>
+          {row.is_active ? null : <small className="muted"> · account deactivated</small>}
+        </>
+      ),
+    },
+    {
+      key: 'dart',
+      header: 'DART',
+      sortable: false,
+      width: '18%',
+      render: (row) => row.dart ?? 'Unaffiliated',
+    },
+    {
+      key: 'expires_on',
+      header: 'Membership Exp.',
+      width: '11rem',
+      render: (row) => (
+        <>
+          <MembershipDot membership={row.membership} />{' '}
+          {row.membership.is_lifetime ? 'Never' : <DateText value={row.membership.expires_on} />}
         </>
       ),
     },
@@ -78,17 +94,6 @@ function memberColumns(): Column<MemberRow>[] {
       header: 'Email',
       render: (row) => <a href={`mailto:${row.email}`}>{row.email}</a>,
     },
-    {
-      key: 'expires_on',
-      header: 'Membership',
-      render: (row) => (
-        <>
-          <MembershipChip membership={row.membership} />{' '}
-          {row.membership.is_lifetime ? null : <DateText value={row.membership.expires_on} />}
-        </>
-      ),
-    },
-    { key: 'joined', header: 'Joined', render: (row) => <DateText value={row.joined_on} /> },
   ];
 }
 
@@ -133,6 +138,7 @@ export function MembersListPage(): JSX.Element {
     >
       <Card>
         <DataTable
+          singleLine
           columns={columns}
           rows={rows}
           rowKey={(row) => row.user_id}

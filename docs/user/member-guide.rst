@@ -97,7 +97,8 @@ Membership
   A status chip — **Current**, **Expiring soon**, **Expired**, or **No
   membership** — with the date your membership runs to and a **Renew**
   button.  Inside 30 days of expiry, and after it, the card takes an accent
-  edge and the button leads.  Life members are never asked to renew.
+  edge and the button leads.  A life membership reads **Never expires** and is
+  never asked to renew.
 
 Finish your profile
   Shown while your profile is missing one of the details CalDART counts as

@@ -95,6 +95,7 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
       <ContributionChooser
         tiers={config.contribution_tiers}
         value={contributionCents}
+        maxCents={config.max_contribution_cents}
         onChange={(next) => setContributionCents(next)}
         isOther={isOther}
         // codespell:ignore-next-line onother

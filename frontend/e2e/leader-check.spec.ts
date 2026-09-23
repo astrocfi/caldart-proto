@@ -24,7 +24,7 @@ function memberCard(page: Page, name: string): Locator {
 /** Search the member check for `term` and open the result named `name`. */
 async function lookUp(page: Page, term: string, name: string): Promise<Locator> {
   await page.goto('/portal/leader');
-  await page.getByRole('searchbox', { name: 'Name, email or N-number' }).fill(term);
+  await page.getByRole('searchbox', { name: 'Name, email, or N-number' }).fill(term);
   await page.getByRole('button', { name: new RegExp(name) }).click();
   const card = memberCard(page, name);
   await expect(card).toBeVisible();

@@ -67,6 +67,87 @@ beforeEach(() => {
 });
 
 describe('MembersListPage', () => {
+  it('shows five columns: pilot, name, DART, membership expiry, and email', async () => {
+    server.use(...listHandlers());
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    const headers = screen.getAllByRole('columnheader').map((cell) => cell.textContent);
+    expect(headers).toEqual(['Pilot', 'Name', 'DART', 'Membership Exp.', 'Email']);
+  });
+
+  it('ticks a pilot whose medical is in date and crosses one whose is not', async () => {
+    server.use(
+      ...listHandlers([
+        makeRow(),
+        makeRow({ user_id: 2, name: 'Bo Chen', medical_is_current: false }),
+        makeRow({ user_id: 3, name: 'Cal Dunn', pilot_certificate_type: 'none' }),
+      ]),
+    );
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Medical current')).toBeInTheDocument();
+    expect(table.getByText('Medical expired')).toBeInTheDocument();
+    expect(table.getByText('Not a pilot')).toBeInTheDocument();
+  });
+
+  it('marks the membership with a dot rather than a chip', async () => {
+    server.use(
+      ...listHandlers([
+        makeRow(),
+        makeRow({
+          user_id: 2,
+          name: 'Bo Chen',
+          membership: {
+            status: 'expired',
+            expires_on: '2025-01-01',
+            plan: 'Annual',
+            is_lifetime: false,
+          },
+        }),
+      ]),
+    );
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Current')).toBeInTheDocument();
+    expect(table.getByText('Expired')).toBeInTheDocument();
+    expect(table.queryByText('Expiring soon')).not.toBeInTheDocument();
+    // The wordy chip is gone: the dot and the date carry it now.
+    expect(table.queryByText('No membership')).not.toBeInTheDocument();
+  });
+
+  it('keeps every cell on one line and hangs the full value off the cell', async () => {
+    server.use(
+      ...listHandlers([
+        makeRow({ email: 'ana.bracco.with.a.very.long.address@caldart.example.org' }),
+      ]),
+    );
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    const table = screen.getByRole('table');
+    expect(table.closest('.data-table')).toHaveClass('data-table--single-line');
+    expect(within(table).getByRole('cell', { name: 'Palo Alto' })).toHaveAttribute(
+      'title',
+      'Palo Alto',
+    );
+  });
+
+  it('never sorts on a column the API cannot order by', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.click(screen.getByRole('columnheader', { name: 'DART' }));
+
+    expect(screen.getByTestId('location-search')).not.toHaveTextContent('ordering');
+  });
+
   it('renders a row per member with its membership chip', async () => {
     server.use(
       ...listHandlers([
@@ -81,7 +162,7 @@ describe('MembersListPage', () => {
       '/admin/members/1',
     );
     expect(screen.getByRole('link', { name: 'Bo Chen' })).toBeInTheDocument();
-    expect(screen.getByText('Lifetime member')).toBeInTheDocument();
+    expect(screen.getByText('Never expires')).toBeInTheDocument();
     expect(screen.getByText('2 members match these filters')).toBeInTheDocument();
   });
 
@@ -125,7 +206,7 @@ describe('MembersListPage', () => {
 
     await user.selectOptions(screen.getByLabelText('DART'), '5');
     await user.selectOptions(screen.getByLabelText('Certificate'), 'commercial');
-    await user.type(screen.getByLabelText('Expiring within'), '30');
+    await user.type(screen.getByLabelText('Expiring within (days)'), '30');
     await user.click(screen.getByRole('button', { name: 'Apply' }));
 
     await waitFor(() => {

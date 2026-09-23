@@ -45,13 +45,16 @@ Any authenticated user.  What the checkout screen can offer.
        {"label": "Gold", "cents": 100000},
        {"label": "Diamond", "cents": 300000},
        {"label": "Platinum", "cents": 1000000}
-     ]
+     ],
+     "max_contribution_cents": 9999900
    }
 
 ``providers`` lists only providers whose keys are all configured, plus
 ``mock`` when ``PAYMENTS_MOCK_ENABLED`` is on.  The two key fields are
 publishable values, safe in a browser; they are empty strings when unset.
-``plans`` covers active plans only.
+``plans`` covers active plans only, and ``max_contribution_cents`` is the
+largest contribution checkout accepts, which the form uses to bound its
+"other amount" box.
 
 Statuses: **200**; **401** when anonymous.
 
@@ -68,8 +71,9 @@ chosen provider.
 ``plan`` may be ``null`` for a contribution on its own, in which case no
 membership term is created when it succeeds.  There is no amount field; one
 sent anyway is ignored.  ``contribution_cents`` runs from ``0`` to
-``1000000000`` (ten million dollars) inclusive; anything outside that range is
-refused before a payment row is created.
+``9999900`` ($99,999.00) inclusive -- inside every provider's per-charge
+ceiling, so an amount the API accepts is one the provider will take.  Anything
+outside that range is refused before a payment row is created.
 
 **201 Created**:
 
