@@ -1,4 +1,4 @@
-/** Test data for the profile, join and dashboard suites.  Not shipped. */
+/** Test data for the profile, join, and dashboard suites.  Not shipped. */
 import type { AircraftSummary, Dart, Profile } from '@/portal/api/types';
 
 export const TEST_DARTS: Dart[] = [

@@ -1,15 +1,15 @@
 {% load static wagtailcore_tags django_vite %}<!doctype html>
 {% comment %}
   The public-site shell: one bordered page panel holding the masthead, the
-  navigation bar, the content and the footer.
+  navigation bar, the content, and the footer.
 
-  `nav`, `theme`, `site_settings` and `can_preview_theme` come from
+  `nav`, `theme`, `site_settings`, and `can_preview_theme` come from
   `apps.cms.context_processors.site_chrome`, so page templates never build the
   menu.  Nav entries carry a `kind`: content pages render as bar links, the two
   portal entries render as the right-hand pair.
 
   Rendered without a request (Django's 500 handler) this degrades to the
-  wordmark, an empty menu and the default theme — which is exactly what an
+  logo, an empty menu, and the default theme — which is exactly what an
   error page needs.
 {% endcomment %}
 <html lang="en" data-theme="{{ theme|default:'duty' }}"{% if can_preview_theme %} data-theme-preview="allowed"{% endif %}>

@@ -1,7 +1,7 @@
 /**
  * Read-only queries shared by more than one feature.
  *
- * `useDarts`, `usePlans` and `useSiteConfig` back screens across several
+ * `useDarts`, `usePlans`, and `useSiteConfig` back screens across several
  * features (the join wizard, the dashboard, and administration screens), so
  * they live here rather than inside any one feature's `api.ts`.
  */

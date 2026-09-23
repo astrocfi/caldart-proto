@@ -241,6 +241,30 @@
   margin-bottom: 0;
 }
 
+/* A dense list reads better as a grid of one-line rows: a wrapped cell makes
+ * the eye hunt for the next row's start.  Anything too long is cut with an
+ * ellipsis, and the cell keeps the whole value in its `title`. */
+.data-table--single-line table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.data-table--single-line th,
+.data-table--single-line td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-table--single-line td > a,
+.data-table--single-line td > time {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  display: inline-block;
+}
+
 .data-table__sort {
   display: inline-flex;
   align-items: center;

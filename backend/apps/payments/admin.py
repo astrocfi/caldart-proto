@@ -11,8 +11,8 @@ from apps.payments.models import Payment
 class PaymentAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     """Browse the payment ledger: its money and status columns, with a date drill-down.
 
-    ``created_at``, ``updated_at`` and the provider's ``raw`` payload are shown but
-    cannot be edited, and the list is filtered by provider, status, wallet and plan
+    ``created_at``, ``updated_at``, and the provider's ``raw`` payload are shown but
+    cannot be edited, and the list is filtered by provider, status, wallet, and plan
     and searched by the member's name, email address or provider reference.
     """
 

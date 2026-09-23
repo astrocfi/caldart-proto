@@ -62,7 +62,7 @@ if TYPE_CHECKING:
 
 
 class MemberAdminBaseView(generics.GenericAPIView["MemberRow"]):
-    """Shared queryset, permission and filter configuration."""
+    """Shared queryset, permission, and filter configuration."""
 
     permission_classes = [IsAccountAdmin]
     filter_backends = [DjangoFilterBackend, MemberOrderingFilter]

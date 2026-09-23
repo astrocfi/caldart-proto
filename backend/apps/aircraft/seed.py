@@ -68,7 +68,7 @@ def _n_number(rng: random.Random) -> str:
 def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]:
     """Create the aircraft register and attach airframes to pilot profiles.
 
-    Reads ``rng``, ``faker`` and ``today`` from ``ctx``, and ``profiles`` when present.
+    Reads ``rng``, ``faker``, and ``today`` from ``ctx``, and ``profiles`` when present.
     Adds the created ``Aircraft`` list to ``ctx`` under ``aircraft`` and returns
     ``ctx``. Writes a one-line summary to ``stdout`` when given.
     """

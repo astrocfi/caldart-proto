@@ -1,5 +1,5 @@
 /**
- * Data access for the signed-in member's own profile, membership and payments.
+ * Data access for the signed-in member's own profile, membership, and payments.
  *
  * The query keys live here and every mutation invalidates the ones it can
  * have changed — including `['auth','me']`, because saving a profile moves

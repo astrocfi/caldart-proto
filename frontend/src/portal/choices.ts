@@ -1,7 +1,7 @@
 /**
  * The portal's one vocabulary for the coded profile fields.
  *
- * Every screen that shows a certificate, medical, IFR or rating code reads its
+ * Every screen that shows a certificate, medical, IFR, or rating code reads its
  * wording from here: the profile form's `<select>` options, the admin filter
  * bar, the member report screens and the DART leader's status card.  They had
  * drifted apart — "None" against "Not a pilot" against "No certificate on

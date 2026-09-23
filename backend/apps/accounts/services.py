@@ -1,4 +1,4 @@
-"""Account services: account creation, the edit guard, roles and the password email.
+"""Account services: account creation, the edit guard, roles, and the password email.
 
 The API layer validates; everything that changes state lives here so the
 management commands, the Django admin and the tests can reuse it.  A rule the
@@ -149,7 +149,7 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
     """Apply ``changes`` to ``target`` on ``actor``'s behalf, save it and return it.
 
     This is the only way an account is edited, so every rule is enforced once,
-    whichever endpoint, command or admin screen asked.  The rules run in this
+    whichever endpoint, command, or admin screen asked.  The rules run in this
     order, and the first refusal raises ``DomainValidationError`` naming the
     field it belongs on, leaving the account untouched:
 

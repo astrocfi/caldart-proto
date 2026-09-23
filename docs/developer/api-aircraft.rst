@@ -93,7 +93,7 @@ who added the record, or ``null`` for an airframe the seed created.
 ===================  ============================================================
 Parameter            Meaning
 ===================  ============================================================
-``search``           ``icontains`` over ``n_number``, ``make``, ``model`` and
+``search``           ``icontains`` over ``n_number``, ``make``, ``model``, and
                      ``owner_name``, plus the normalized form of the term
                      against ``n_number``
 ``make``             ``icontains`` on ``make``
@@ -161,7 +161,7 @@ must be ``>= 0``, and everything else is optional.
 Statuses:
 
 * **201** — the stored record, in the row shape above.
-* **400** — a missing or blank ``n_number``, ``make`` or ``model``; a
+* **400** — a missing or blank ``n_number``, ``make``, or ``model``; a
   registration that normalizes to nothing, refused with ``{"n_number": ["Enter
   a registration, for example N12345."]}``; a registration already on file,
   refused with ``{"n_number": ["An aircraft with this N-number is already on
@@ -171,8 +171,8 @@ Statuses:
 ``GET /aircraft/{id}``
 ----------------------
 
-One register record, open to any authenticated user.  For a ``dart_leader``,
-``account_admin`` or ``system_admin`` the response also carries ``pilots``:
+One register record, open to any authenticated user.  For a ``dart_leader``
+, ``account_admin``, or ``system_admin`` the response also carries ``pilots``:
 
 .. code-block:: json
 
@@ -229,7 +229,7 @@ Statuses:
 Object rules
 ------------
 
-``PUT``, ``PATCH`` and ``DELETE`` all go through
+``PUT``, ``PATCH``, and ``DELETE`` all go through
 ``apps/aircraft/api/permissions.py``:
 
 ============  ============================================================
@@ -253,7 +253,7 @@ delete.
 ----------------------
 
 Replaces the record.  Every required field must be present: a ``PUT`` without
-``n_number``, ``make`` and ``model`` is refused rather than merged into the
+``n_number``, ``make``, and ``model`` is refused rather than merged into the
 stored row, and the optional fields it leaves out keep the values they have.
 The response is the record in the same shape ``GET /aircraft/{id}`` returns,
 ``pilots`` included when the caller is entitled to it.
@@ -271,7 +271,7 @@ The response is the record in the same shape ``GET /aircraft/{id}`` returns,
 Statuses:
 
 * **200** — the updated record.
-* **400** — a missing ``n_number``, ``make`` or ``model``, or any of the
+* **400** — a missing ``n_number``, ``make``, or ``model``, or any of the
   validation refusals ``POST /aircraft`` lists.  The uniqueness check skips
   the record being edited, so resending its own registration is not a clash.
 * **403** — the caller neither created the record nor holds ``account_admin``.
@@ -367,7 +367,7 @@ Statuses:
 Leader check
 ============
 
-All three endpoints require ``dart_leader``, ``account_admin`` or
+All three endpoints require ``dart_leader``, ``account_admin``, or
 ``system_admin``; a signed-in member without one of those gets **403**.
 
 ``GET /leader/search?q=``

@@ -42,7 +42,7 @@ You type                      What you get
 ============================  ==================================================
 
 Registrations are normalized for you: the leading ``N`` is optional and
-punctuation, spaces and case are ignored.  A search term with no digits in it
+punctuation, spaces, and case are ignored.  A search term with no digits in it
 is never treated as a registration, so looking for "Nate" finds Nate rather
 than every N-numbered airplane on file.
 

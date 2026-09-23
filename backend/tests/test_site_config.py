@@ -12,6 +12,7 @@ from rest_framework.test import APIClient
 from wagtail.models import Page
 
 from apps.accounts.models import User
+from apps.cms.context_processors import PORTAL_TITLE
 from apps.cms.models import SiteSettings, StandardPage
 from apps.members.models import MembershipPlan
 from tests.factories import (
@@ -67,13 +68,22 @@ def test_the_nav_matches_the_server_rendered_site(api_client: APIClient, site_tr
     assert data["nav"][-2]["url"] == "/portal/join"
 
 
-def test_signed_in_callers_see_the_members_entry_in_the_nav(
+def test_signed_in_callers_see_the_portal_entry_in_the_nav(
     api_client: APIClient, site_tree: Page, member: User
 ) -> None:
-    """A signed-in caller's nav ends with a "Members" entry, not "Log in"."""
+    """A signed-in caller's nav ends with the portal entry, not "Log in"."""
     api_client.force_login(member)
     titles = [entry["title"] for entry in api_client.get(URL).json()["nav"]]
-    assert titles[-1] == "Members"
+    assert titles[-1] == PORTAL_TITLE
+
+
+def test_the_portal_entry_never_repeats_a_menu_page_title(
+    api_client: APIClient, site_tree: Page, member: User
+) -> None:
+    """The portal entry reads differently from the members content page beside it."""
+    api_client.force_login(member)
+    titles = [entry["title"] for entry in api_client.get(URL).json()["nav"]]
+    assert len(titles) == len(set(titles))
 
 
 def test_a_current_member_gets_the_members_pages(

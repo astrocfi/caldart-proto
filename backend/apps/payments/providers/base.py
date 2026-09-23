@@ -31,7 +31,7 @@ class ProviderUnavailableError(PaymentError):
 class PaymentVerificationError(PaymentError):
     """The provider's own record of the payment does not match ours.
 
-    Raised when the amount, currency, status or metadata returned by Stripe or
+    Raised when the amount, currency, status, or metadata returned by Stripe or
     PayPal disagrees with the :class:`~apps.payments.models.Payment` row, which
     is the one thing that must never be trusted to the client.
     """

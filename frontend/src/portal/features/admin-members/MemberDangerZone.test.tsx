@@ -54,7 +54,7 @@ describe('MemberDangerZone', () => {
     expect(
       screen.getByText(
         'Clear Account is active on the Profile tab instead. A deactivated member cannot ' +
-          'sign in, and their profile, membership terms and payments stay exactly as they are.',
+          'sign in, and their profile, membership terms, and payments stay exactly as they are.',
       ),
     ).toBeInTheDocument();
   });

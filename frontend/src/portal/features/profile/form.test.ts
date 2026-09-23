@@ -39,7 +39,7 @@ describe('formToPatch', () => {
     expect(patch.vol_ground_team).toBe(false);
   });
 
-  it('nulls the empty date, hour and dart values', () => {
+  it('nulls the empty date, hour, and dart values', () => {
     const patch = formToPatch({ ...EMPTY_PROFILE_FORM, phone: '555-0100' });
     expect(patch.dart_id).toBeNull();
     expect(patch.medical_expiration).toBeNull();

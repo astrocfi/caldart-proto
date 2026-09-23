@@ -3,7 +3,7 @@ import type { JSX, ReactElement, ReactNode } from 'react';
 
 export interface FieldProps {
   label: string;
-  /** Rendered with the field's `id`, `aria-describedby` and `aria-invalid`. */
+  /** Rendered with the field's `id`, `aria-describedby`, and `aria-invalid`. */
   children: (props: {
     id: string;
     'aria-describedby': string | undefined;

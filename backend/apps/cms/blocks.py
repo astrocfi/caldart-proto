@@ -229,7 +229,7 @@ class ContentStreamBlock(blocks.StreamBlock):
         label="Embed",
         icon="media",
         template="cms/blocks/embed.html",
-        help_text="Paste a YouTube, Vimeo or other oEmbed URL.",
+        help_text="Paste a YouTube, Vimeo, or other oEmbed URL.",
     )
     raw_html = blocks.RawHTMLBlock(
         label="Raw HTML",
@@ -268,7 +268,7 @@ class EventBlock(blocks.StructBlock):
     date = blocks.DateBlock()
     title = blocks.CharBlock(max_length=120)
     where = blocks.CharBlock(
-        max_length=120, required=False, help_text="Airport, town and time, or who it is for."
+        max_length=120, required=False, help_text="Airport, town, and time, or who it is for."
     )
     page = blocks.PageChooserBlock(required=False, help_text="The page with the details.")
 

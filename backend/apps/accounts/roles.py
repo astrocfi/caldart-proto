@@ -20,20 +20,20 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
         "members-only content while the membership is current."
     ),
     DART_LEADER: (
-        "Look up any member and see membership, medical, certificate and "
+        "Look up any member and see membership, medical, certificate, and "
         "aircraft insurance currency."
     ),
     USER_ADMIN: (
         "List users, assign roles, activate or deactivate accounts, and trigger password resets."
     ),
     ACCOUNT_ADMIN: (
-        "Create, edit and delete members and profiles, grant or extend "
+        "Create, edit, and delete members and profiles, grant or extend "
         "memberships manually, manage aircraft, and run payment, membership "
         "and aircraft reports."
     ),
     WEBSITE_ADMIN: (
-        "Wagtail admin: create, edit, delete and publish pages, images, "
-        "documents, redirects and site settings."
+        "Wagtail admin: create, edit, delete, and publish pages, images, "
+        "documents, redirects, and site settings."
     ),
     SYSTEM_ADMIN: (
         "Everything above plus backups, health, reminder runs and Django superuser access."

@@ -10,7 +10,7 @@ import type { LeaderSearchResult, LeaderStatus } from '@/portal/api/types';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { LeaderSearchPage } from './LeaderSearchPage';
 
-const SEARCH_LABEL = /Name, email or N-number/i;
+const SEARCH_LABEL = /Name, email, or N-number/i;
 
 /** A userEvent instance whose internal waits advance the fake clock instead of sleeping. */
 function setupUser() {
@@ -116,7 +116,7 @@ describe('LeaderSearchPage', () => {
     expect(await screen.findByText('GO')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Back to search/ }));
-    expect(screen.getByLabelText(/Name, email or N-number/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Name, email, or N-number/i)).toBeInTheDocument();
   });
 
   it('reads the member out of the query string, so a card can be linked', async () => {
@@ -136,7 +136,7 @@ describe('LeaderSearchPage', () => {
     );
 
     renderWithProviders(<LeaderSearchPage />, { route: '/leader?member=abc' });
-    expect(await screen.findByLabelText(/Name, email or N-number/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/Name, email, or N-number/i)).toBeInTheDocument();
     expect(asked).toBe(false);
   });
 

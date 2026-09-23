@@ -45,13 +45,16 @@ Any authenticated user.  What the checkout screen can offer.
        {"label": "Gold", "cents": 100000},
        {"label": "Diamond", "cents": 300000},
        {"label": "Platinum", "cents": 1000000}
-     ]
+     ],
+     "max_contribution_cents": 9999900
    }
 
 ``providers`` lists only providers whose keys are all configured, plus
 ``mock`` when ``PAYMENTS_MOCK_ENABLED`` is on.  The two key fields are
 publishable values, safe in a browser; they are empty strings when unset.
-``plans`` covers active plans only.
+``plans`` covers active plans only, and ``max_contribution_cents`` is the
+largest contribution checkout accepts, which the form uses to bound its
+"other amount" box.
 
 Statuses: **200**; **401** when anonymous.
 
@@ -68,8 +71,9 @@ chosen provider.
 ``plan`` may be ``null`` for a contribution on its own, in which case no
 membership term is created when it succeeds.  There is no amount field; one
 sent anyway is ignored.  ``contribution_cents`` runs from ``0`` to
-``1000000000`` (ten million dollars) inclusive; anything outside that range is
-refused before a payment row is created.
+``9999900`` ($99,999.00) inclusive -- inside every provider's per-charge
+ceiling, so an amount the API accepts is one the provider will take.  Anything
+outside that range is refused before a payment row is created.
 
 **201 Created**:
 
@@ -119,7 +123,7 @@ The server retrieves the PaymentIntent from Stripe (expanding
 
 On success the membership term is created immediately and the wallet is
 recorded from ``latest_charge.payment_method_details`` — ``apple_pay``,
-``google_pay``, ``link`` or ``card``.
+``google_pay``, ``link``, or ``card``.
 
 **200**:
 
@@ -217,7 +221,7 @@ redirect-based payment.
     "membership": {"status": "none", "expires_on": null,
                    "plan": null, "is_lifetime": false}}
 
-``status`` is ``pending``, ``succeeded``, ``failed`` or ``refunded``.
+``status`` is ``pending``, ``succeeded``, ``failed``, or ``refunded``.
 
 Statuses: **200**; **401** when anonymous; **403** for a signed-in caller who
 neither owns the payment nor holds ``account_admin``; **404** for an unknown
@@ -292,8 +296,8 @@ Parameter        Meaning
 ===============  ====================================================
 ``from``         ``YYYY-MM-DD``; payments on or after this date.
 ``to``           ``YYYY-MM-DD``; payments on or before this date.
-``provider``     ``stripe``, ``paypal`` or ``mock``.
-``status``       ``pending``, ``succeeded``, ``failed`` or
+``provider``     ``stripe``, ``paypal``, or ``mock``.
+``status``       ``pending``, ``succeeded``, ``failed``, or
                  ``refunded``.
 ``search``       Member name, email, or the provider's reference.
 ``group``        ``month`` or ``year``; the summary's period.
@@ -314,7 +318,7 @@ empty parameter narrows nothing, and a date the calendar does not have — such 
 Paginated (``?page=&page_size=``, default 25, max 200), newest first.
 ``?ordering=`` accepts ``paid_at``, ``created_at``, ``completed_at``,
 ``amount_cents``, ``contribution_cents``, ``status``, ``provider``,
-``plan__name``, ``user__last_name`` and ``user__email``, each with a ``-``
+``plan__name``, ``user__last_name``, and ``user__email``, each with a ``-``
 prefix for descending; anything else is a **400**.
 
 .. code-block:: json

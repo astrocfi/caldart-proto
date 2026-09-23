@@ -19,7 +19,7 @@ to document each app's endpoints in detail, request body by response body.
 
 Every endpoint the project serves is on one of those six pages, and every one
 of them appears in the :ref:`permission matrix <api-permission-matrix>` below.
-:doc:`api-system` covers the reminder, system and site routes; the subsystem
+:doc:`api-system` covers the reminder, system, and site routes; the subsystem
 chapters behind them are :doc:`reminders`, :doc:`backup-restore` and
 :doc:`cms`.
 
@@ -74,7 +74,7 @@ API offers one endpoint whose only job is to issue it:
    GET /api/v1/auth/csrf   →  204 No Content, Set-Cookie: csrftoken=…
 
 Call it whenever you hold no ``csrftoken`` cookie, then send the cookie's value
-back in the ``X-CSRFToken`` header on every ``POST``, ``PUT``, ``PATCH`` and
+back in the ``X-CSRFToken`` header on every ``POST``, ``PUT``, ``PATCH``, and
 ``DELETE``.  The cookie is the only thing worth caching: a client that treats
 one successful call as permission to stop asking locks itself out of every
 write as soon as the cookie is missing or rotated.  The cookie is deliberately
@@ -204,10 +204,10 @@ return whole objects and arrays for the same reason, as does
 ``GET /admin/payments/summary``.  The CSV and PDF exports stream every matching
 row and ignore ``page`` entirely.
 
-Filtering, search and ordering
-------------------------------
+Filtering, search, and ordering
+-------------------------------
 
-``DEFAULT_FILTER_BACKENDS`` is ``DjangoFilterBackend``, ``OrderingFilter`` and
+``DEFAULT_FILTER_BACKENDS`` is ``DjangoFilterBackend``, ``OrderingFilter``, and
 ``SearchFilter``.  ``GET /admin/users`` and ``GET /admin/reminders/log`` use
 exactly those three with a ``filterset_class``.  Three list endpoints replace
 them, for reasons worth knowing:
@@ -398,8 +398,8 @@ rules govern every gate in the matrix below:
 
 Views declare their gates with the permission classes in
 ``apps/accounts/permissions.py``.  ``HasRole(slug)`` and ``HasAnyRole(*slugs)``
-are factories that return a DRF permission class; ``IsUserAdmin``,
-``IsAccountAdmin`` and ``IsSystemAdmin`` are ready-made ones, and
+are factories that return a DRF permission class; ``IsUserAdmin``
+, ``IsAccountAdmin``, and ``IsSystemAdmin`` are ready-made ones, and
 ``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check.  Every one
 of them runs its test through ``user_has_any_role``, so an anonymous caller
 always fails and the two rules above always hold.  Object-level rules, such
@@ -785,13 +785,13 @@ Reading the matrix:
 
 **Serializer switching on aircraft.**  ``GET /aircraft/{id}`` and
 ``GET /aircraft/lookup`` return the ``pilots`` array — other members' names,
-emails, membership state and medical currency — only to ``dart_leader``,
-``account_admin`` or ``system_admin``.  Plain members get the airplane alone.
+emails, membership state and medical currency — only to ``dart_leader``
+, ``account_admin``, or ``system_admin``.  Plain members get the airplane alone.
 ``GET /aircraft`` (the list) never includes it for anybody.  That is what stops
 the register from being a way around the leader-check gate.
 
 **Restricted methods.**  ``/admin/users/{id}`` accepts ``GET`` and ``PATCH``;
-``/admin/members/{id}`` accepts ``GET``, ``PATCH`` and ``DELETE``;
+``/admin/members/{id}`` accepts ``GET``, ``PATCH``, and ``DELETE``;
 ``/admin/memberships/{id}`` accepts ``PATCH`` only.  Everything else on those
 paths is 405.
 

@@ -79,7 +79,7 @@ for before the error propagates, so no ``pg_dump`` or ``psql`` is left blocked
 on a pipe nobody is moving.
 
 A restore reads the dump through once, a block at a time, before it drops
-anything.  A corrupt, truncated or non-gzip file therefore fails with
+anything.  A corrupt, truncated, or non-gzip file therefore fails with
 ``BackupError`` naming the file and leaves the database that is already there
 untouched, and the extra pass costs no memory.
 
@@ -87,7 +87,7 @@ untouched, and the extra pass costs no memory.
 gitignored.  A relative value is resolved against the repository root; an
 absolute one is used as given.  In production, put it somewhere the systemd
 unit can write: ``caldart-web.service`` mounts the filesystem read-only except
-for ``media/``, ``staticfiles/`` and ``backups/``, so a ``BACKUP_DIR``
+for ``media/``, ``staticfiles/``, and ``backups/``, so a ``BACKUP_DIR``
 elsewhere needs a matching ``ReadWritePaths`` line.
 
 

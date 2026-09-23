@@ -19,21 +19,21 @@ The code lives in ``backend/apps/members/``:
 ``api/admin_views.py``
    The views.
 ``api/admin_serializers.py``
-   Request and response shapes.  The profile, term and payment serializers
+   Request and response shapes.  The profile, term, and payment serializers
    extend the member-facing ones in ``api/profile_serializers.py``, so an
    administrator and a member see one definition of a profile and one set of
    validation rules.
 ``api/serializers.py``
    The two shapes more than one app returns: ``MembershipStatusSerializer``
    over the dict ``services.membership_status`` builds, and ``PlanSerializer``
-   over a ``MembershipPlan``.  The accounts, members and payments APIs all
+   over a ``MembershipPlan``.  The accounts, members, and payments APIs all
    import them from here.
 ``api/admin_filters.py``
    The filter set, the ordering backend, and the queryset the list is served
    from.  The membership annotations it builds on live in ``services.py``.
 ``services.py``
-   The member record itself: ``register_member``, ``create_member``,
-   ``update_member`` and ``delete_member`` own the rules the endpoints below
+   The member record itself: ``register_member``, ``create_member``
+   , ``update_member``, and ``delete_member`` own the rules the endpoints below
    state, and the account half of each goes to ``accounts.services``.  The
    membership status and ``activate_term`` live here too.
 ``api/actors.py``
@@ -68,7 +68,7 @@ are one population, and ``?role=`` narrows it.
 ``GET /admin/members``
 ======================
 
-The member table, filtered, ordered and paginated with the project's standard
+The member table, filtered, ordered, and paginated with the project's standard
 ``?page=&page_size=`` (25 rows by default, 200 at most).
 
 .. code-block:: json
@@ -104,14 +104,14 @@ The member table, filtered, ordered and paginated with the project's standard
 The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.
 ``joined_on`` is the start of the earliest membership term, or ``null`` for
 somebody who has never had one.  An account with no ``MemberProfile`` row still
-appears: ``phone`` is blank, ``dart`` and ``medical_expiration`` are ``null``,
-``pilot_certificate_type`` and ``medical_type`` read ``none``,
+appears: ``phone`` is blank, ``dart``, and ``medical_expiration`` are ``null``
+, ``pilot_certificate_type``, and ``medical_type`` read ``none``,
 ``medical_is_current`` is false and ``aircraft`` is empty.
 
 Statuses:
 
 * **200** — the page of rows, empty ``results`` when nothing matches.
-* **400** — ``status``, ``certificate``, ``medical`` or ``role`` carried a
+* **400** — ``status``, ``certificate``, ``medical``, or ``role`` carried a
   value outside its choice list, or ``expiring_within`` was not a number.  The
   body is keyed on the offending parameter, for example
   ``{"status": ["Select a valid choice. bogus is not one of the available
@@ -150,7 +150,7 @@ Filters
 Ordering
 --------
 
-``?ordering=`` takes ``name``, ``email``, ``expires_on`` or ``joined``, each
+``?ordering=`` takes ``name``, ``email``, ``expires_on``, or ``joined``, each
 optionally prefixed with ``-``.  ``name`` expands to surname, forename, email.
 The two date sorts keep rows with no date at the end in both directions, so
 lifetime members do not crowd out the answer to "who expires next".  Anything
@@ -381,7 +381,7 @@ and every payment newest first.
 ``profile`` is ``null`` for an account that has no ``MemberProfile`` row.
 Datetimes are rendered in the server's configured ``TIME_ZONE``, so they carry
 an offset rather than a trailing ``Z``.
-``source`` is ``payment``, ``manual`` or ``seed``; ``granted_by`` is the
+``source`` is ``payment``, ``manual``, or ``seed``; ``granted_by`` is the
 display name of the administrator behind a manual grant and ``null``
 otherwise; ``payment`` is the id of the payment that bought the term, or
 ``null``.
@@ -406,7 +406,7 @@ however few fields the request carried.
      "profile": {"medical_type": "basicmed", "notes": "Moved to BasicMed."}
    }
 
-The body takes ``email``, ``first_name``, ``last_name``, ``is_active`` and a
+The body takes ``email``, ``first_name``, ``last_name``, ``is_active``, and a
 partial ``profile`` object.  A profile is created if the account somehow has
 none.  ``PUT`` is not offered.
 
@@ -425,7 +425,7 @@ request included.
 
 Deactivation — ``PATCH`` with ``is_active`` false — is the tool for a member
 who has left.  The hard delete below is for accounts that never paid:
-duplicates, spam and test accounts.
+duplicates, spam, and test accounts.
 
 Statuses:
 
@@ -458,7 +458,7 @@ themselves rather than told about their payments.
 
 The payment guard keeps the financial record: a payment is revenue or a
 donation, and the accounts must not change after the fact.  It counts every
-payment, ``pending`` and ``failed`` rows included, and the ``detail`` reads::
+payment, ``pending``, and ``failed`` rows included, and the ``detail`` reads::
 
    Ana Bracco has 3 payment records, which must be kept. Deactivate the account instead.
 
@@ -538,7 +538,7 @@ Statuses:
 ``PATCH /admin/memberships/{id}``
 =================================
 
-Corrects a term that is already on file.  Only ``ends_on``, ``status`` and
+Corrects a term that is already on file.  Only ``ends_on``, ``status``, and
 ``note`` are writable: the plan, the start date, the source and the payment
 link are read-only, because rewriting them would falsify the history rather
 than correct it.
@@ -557,9 +557,9 @@ Statuses:
 * **200** — the corrected term.
 * **400** — ``ends_on`` would fall before ``starts_on``, reported as
   ``{"ends_on": ["The end date cannot be before the start date."]}``, or
-  ``status`` carried a value outside ``active``, ``expired`` and ``canceled``.
+  ``status`` carried a value outside ``active``, ``expired``, and ``canceled``.
 * **404** — no term has that id.
-* **405** — the request used ``PUT``, ``GET`` or ``DELETE``.
+* **405** — the request used ``PUT``, ``GET``, or ``DELETE``.
 
 
 ``GET /admin/members/export.csv``
@@ -569,7 +569,7 @@ The filtered member list as a CSV download, streamed through
 ``caldart.reports.csv_response`` so a report over the entire member table never
 materializes in memory.  It takes **every filter and ordering parameter the
 list takes** and applies them to the whole result set — the export is not
-paginated.  Columns, style and how to add one: :doc:`reports`.
+paginated.  Columns, style, and how to add one: :doc:`reports`.
 
 Statuses:
 
@@ -596,7 +596,7 @@ Tests
 
 ``backend/tests/test_members_admin.py``
    The role matrix on every endpoint (401 anonymous, 403 for ``member``,
-   ``dart_leader``, ``user_admin`` and ``website_admin``, 200 for
+   ``dart_leader``, ``user_admin``, and ``website_admin``, 200 for
    ``account_admin`` and ``system_admin``), every filter against a mixed
    fixture, ordering, creation with and without a password, nested profile
    updates, the delete rules and the grant-term arithmetic.

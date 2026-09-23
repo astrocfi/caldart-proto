@@ -11,7 +11,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 import { MEMBERSHIP_KEY, PAYMENTS_KEY } from '@/portal/features/profile/api';
 
-/** Invalidates the auth, membership and payment-history queries a payment moves. */
+/** Invalidates the auth, membership, and payment-history queries a payment moves. */
 export function refreshAfterPayment(queryClient: QueryClient): void {
   void queryClient.invalidateQueries({ queryKey: AUTH_ME_KEY });
   void queryClient.invalidateQueries({ queryKey: MEMBERSHIP_KEY });

@@ -34,7 +34,7 @@ class SiteConfigView(APIView):
         """Answer ``GET /api/v1/site/config`` with HTTP 200 for any caller.
 
         No authentication is required.  The body carries ``org_name``, ``theme``,
-        ``contact_email``, ``nav`` and ``members_pages``.  Before ``migrate`` has
+        ``contact_email``, ``nav``, and ``members_pages``.  Before ``migrate`` has
         created the site settings row, ``org_name`` falls back to ``CalDART``,
         ``theme`` to ``duty`` and ``contact_email`` to an empty string; an unset
         theme falls back to ``duty`` as well.  ``nav`` is the same list of

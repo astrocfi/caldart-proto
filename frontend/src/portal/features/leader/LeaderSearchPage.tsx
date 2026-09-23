@@ -78,10 +78,13 @@ export function LeaderSearchPage(): JSX.Element {
     <Page
       title="Member check"
       eyebrow="DART leader"
-      lede="Look someone up before a flight: membership, medical, certificate and the insurance on the planes they fly."
+      lede="Look someone up before a flight: membership, medical, certificate, and the insurance on the planes they fly."
     >
       <Card>
-        <Field label="Name, email or N-number" hint="Try “Reyes”, “marta@example.org” or “N172SP”.">
+        <Field
+          label="Name, email, or N-number"
+          hint="Try “Reyes”, “marta@example.org”, or “N172SP”."
+        >
           {(field) => (
             <input
               {...field}

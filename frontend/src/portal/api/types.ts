@@ -368,6 +368,8 @@ export interface PaymentsConfig {
   paypal_client_id: string;
   plans: Plan[];
   contribution_tiers: ContributionTier[];
+  /** The largest contribution checkout accepts, in cents. */
+  max_contribution_cents: number;
 }
 
 export interface CheckoutRequest {

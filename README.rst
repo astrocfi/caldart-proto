@@ -21,24 +21,24 @@ Features
 - **Membership.** Two plans — Annual at $45 for 365 days and Life at $650 —
   bought online and activated the instant the payment clears.
 - **Profiles.** Contact details, DART (Disaster Airlift Response Team)
-  affiliation, pilot certificate, medical, flight review, hours and
+  affiliation, pilot certificate, medical, flight review, hours, and
   volunteer interests.
-- **Aircraft.** One shared register of airframes with insurance carriers,
-  limits and expiry dates, which members attach to their own profiles.
+- **Aircraft.** One shared register of airframes with insurance carriers
+  , limits, and expiry dates, which members attach to their own profiles.
 - **The leader check.** One screen that answers "may this person fly this
-  airplane for us today?" — membership, medical and insurance in a single
+  airplane for us today?" — membership, medical, and insurance in a single
   GO / NO-GO verdict.
 - **Payments.** Stripe (card, Apple Pay, Google Pay, Link) and PayPal, plus a
   mock provider for demonstrations and tests, with optional donations at
   checkout and month-by-month reporting.
-- **Reminders.** Scheduled renewal email at 60, 30 and 7 days before expiry,
+- **Reminders.** Scheduled renewal email at 60, 30, and 7 days before expiry,
   on the day, and 30 days after.
 - **Reports.** Membership and aircraft exports as CSV and PDF, payment
   exports as CSV, all with the same filters as the screen you exported them
   from.
 - **Content.** Wagtail page types, StreamField blocks, four themes, and a
   members-only wall that only current members and staff get past.
-- **Operations.** Health checks, database backups, restore and reset, from
+- **Operations.** Health checks, database backups, restore, and reset, from
   the command line or the portal.
 
 
@@ -59,7 +59,7 @@ Setup
    $ make setup     # uv sync, npm ci, copy .env.example to .env
    $ make up        # start Postgres (:5432) and Mailpit (:8025 / :1025)
    $ make migrate   # create the schema and the role groups
-   $ make seed      # demo accounts, members, aircraft, payments and content
+   $ make seed      # demo accounts, members, aircraft, payments, and content
    $ make build     # build the frontend into frontend/dist
    $ make run       # Django on http://localhost:8000
 
@@ -94,7 +94,7 @@ webadmin@example.org           member, website_admin
 sysadmin@example.org           member, system_admin (superuser)
 =============================  ====================================
 
-Plus about 40 generated members with mixed membership, certificate and
+Plus about 40 generated members with mixed membership, certificate, and
 medical states, 25 aircraft with varied insurance currency, and two years of
 payment history.
 
@@ -135,7 +135,7 @@ Documentation
 builds the Sphinx documentation into ``docs/_build/html/index.html``; there
 is no hosted copy. It covers the user guide (``docs/user/``) for members,
 DART leaders and administrators, and the developer guide
-(``docs/developer/``) for setup, architecture and the API reference.
+(``docs/developer/``) for setup, architecture, and the API reference.
 
 
 Contributing

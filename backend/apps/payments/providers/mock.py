@@ -1,4 +1,4 @@
-"""Mock payment provider used in development, tests and e2e runs."""
+"""Mock payment provider used in development, tests, and e2e runs."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ class MockPaymentsDisabledError(RuntimeError):
 
 @register
 class MockProvider(Provider):
-    """A provider that moves no money, for development, tests and e2e runs.
+    """A provider that moves no money, for development, tests, and e2e runs.
 
     Every entry point raises :class:`MockPaymentsDisabledError` unless
     ``PAYMENTS_MOCK_ENABLED`` is on, so a production deployment cannot use it to

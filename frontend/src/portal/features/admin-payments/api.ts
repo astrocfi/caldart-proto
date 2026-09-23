@@ -64,7 +64,7 @@ export interface ListOptions {
   ordering: string;
 }
 
-/** The paginated payment list for `/admin/payments`, filtered, sorted and paged. */
+/** The paginated payment list for `/admin/payments`, filtered, sorted, and paged. */
 export function useAdminPayments(
   filters: PaymentFilterState,
   options: ListOptions,

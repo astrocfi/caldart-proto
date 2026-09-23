@@ -22,7 +22,7 @@ class WagtailAdminCspMiddleware:
     ``script-src``.  The relaxation follows the path rather than the user, so
     the admin's own login page gets it too, and it reaches no other URL: the
     portal, the API and the public site keep the site policy.  The other
-    directives are left alone, so an admin page still loads images, styles and
+    directives are left alone, so an admin page still loads images, styles, and
     frames only from the sources the site policy names.
 
     The marked response is read by ``csp.middleware.CSPMiddleware``, which must

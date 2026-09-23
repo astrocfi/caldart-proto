@@ -1,6 +1,6 @@
-============================
-Paying, renewing and reports
-============================
+=============================
+Paying, renewing, and reports
+=============================
 
 How money moves through CalDART: what a member sees when they join or renew,
 what happens to their membership the moment a payment clears, and what an
@@ -26,7 +26,7 @@ that third step; the other three are in :doc:`member-guide`.
 Annual is selected for you.
 
 **2. Add a contribution, if you would like to.**  |org| is a 501(c)(3), so
-anything above your dues is tax deductible and goes towards training, fuel and
+anything above your dues is tax deductible and goes towards training, fuel, and
 equipment.  The named tiers are:
 
 ===============  ==========
@@ -153,8 +153,8 @@ The payment list
 The bottom half is every individual payment, with a filter bar:
 
 * **From** / **To** — the date the money arrived;
-* **Provider** — Stripe, PayPal or Test;
-* **Status** — succeeded, pending, failed or refunded;
+* **Provider** — Stripe, PayPal, or Test;
+* **Status** — succeeded, pending, failed, or refunded;
 * **Search** — a member's name or email, or a provider's own reference
   (a Stripe PaymentIntent id or a PayPal order id, useful when someone
   forwards you a receipt).
@@ -163,8 +163,8 @@ Click a column heading to sort by it; sorting and paging apply to the whole
 report, not just the page on screen.
 
 **Export CSV** downloads exactly what the filters describe, one row per
-payment: date, name, email, plan, dues, contribution, total, provider, wallet,
-status and provider reference.  It opens in any spreadsheet, which is the
+payment: date, name, email, plan, dues, contribution, total, provider, wallet
+, status, and provider reference.  It opens in any spreadsheet, which is the
 easiest route to a year-end summary or a treasurer's report.
 
 Refunds

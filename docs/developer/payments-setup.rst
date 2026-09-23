@@ -74,8 +74,8 @@ anything is activated.  Only the provider calls in acts one and three differ.
                 reply, and a **dotted arrow** the webhook that covers a browser
                 that never comes back.  The provider calls named second are
                 PayPal's.  Time runs down the page.
-      :alt: Sequence diagram of a CalDART checkout across browser, API,
-            provider and database
+      :alt: Sequence diagram of a CalDART checkout across browser, API
+            , provider, and database
 
       digraph checkout_sequence {
           rankdir=TB;
@@ -220,7 +220,7 @@ Step by step:
    capture in step 8 is what takes it.
 #. The browser posts the intent or order id back with the payment id.
 #. ``confirm`` retrieves the intent, or captures the order.
-#. The API compares the provider's status, amount, currency and payment id with
+#. The API compares the provider's status, amount, currency, and payment id with
    the ``Payment`` row and refuses to go on when any of them disagrees.  This is
    the step that makes the client-supplied ids harmless.
 #. The payment is marked succeeded and ``activate_term`` creates the membership
@@ -403,7 +403,7 @@ To try it: open the portal in **Safari on macOS or iOS**, signed in to an
 Apple ID with a card in Wallet.  In Stripe test mode Apple Pay uses your real
 card in the Wallet UI but **never charges it** — Stripe substitutes a test
 token.  The Apple Pay button appears in the Payment Element only when all of
-domain registration, HTTPS, Safari and an available card line up.
+domain registration, HTTPS, Safari, and an available card line up.
 
 Google Pay
 ----------
@@ -422,7 +422,7 @@ How the flow works
 #. ``POST /api/v1/payments/checkout`` with ``provider: "stripe"`` creates the
    pending payment, then ``providers/stripe.py`` creates a PaymentIntent for
    the server-computed amount with ``automatic_payment_methods`` enabled.  Its
-   metadata carries ``payment_id``, ``user_id`` and the plan slug (empty for a
+   metadata carries ``payment_id``, ``user_id``, and the plan slug (empty for a
    pure donation), and the response hands the browser the intent's
    ``client_secret``.
 #. The checkout mounts the Payment Element, which offers card, Apple Pay,
@@ -576,7 +576,7 @@ up if you want a belt-and-braces record:
 
 1. **Apps & Credentials → your app → Add Webhook**, URL
    ``https://<your-domain>/api/v1/payments/paypal/webhook``, subscribed to
-   ``PAYMENT.CAPTURE.COMPLETED``, ``PAYMENT.CAPTURE.DENIED`` and
+   ``PAYMENT.CAPTURE.COMPLETED``, ``PAYMENT.CAPTURE.DENIED``, and
    ``PAYMENT.CAPTURE.REVERSED``.
 2. Copy the webhook id PayPal shows into ``PAYPAL_WEBHOOK_ID``.
 
@@ -642,7 +642,7 @@ subclasses ``Provider`` from ``providers/base.py``:
 
 ``slug``
     The name stored in ``Payment.provider`` and sent by the checkout:
-    ``stripe``, ``paypal`` or ``mock``.
+    ``stripe``, ``paypal``, or ``mock``.
 ``is_configured() -> bool``
     A classmethod, answering whether the settings this provider needs are
     present: both Stripe keys, both PayPal credentials, or
@@ -699,7 +699,7 @@ Going live: checklist
        swapped; PAYPAL_ENV=live
    [ ] PAYPAL_WEBHOOK_ID set if the PayPal webhook is in use
    [ ] PAYMENTS_MOCK_ENABLED_IN_PRODUCTION unset, so the mock provider is off
-   [ ] DEBUG=false, HTTPS enforced, SITE_URL and ALLOWED_HOSTS correct
+   [ ] DEBUG=false, HTTPS enforced, SITE_URL, and ALLOWED_HOSTS correct
    [ ] Secrets are in /etc/caldart/caldart.env, not in git
    [ ] systemctl restart caldart-web after the last edit to that file
    [ ] Both webhook paths reachable unauthenticated through the proxy
@@ -738,7 +738,7 @@ Troubleshooting
   current mode, association file not served, no card in Wallet.
 
 **A payment succeeded but the membership did not activate.**
-  Look at the payment row in the Django admin: ``status``, ``completed_at``
+  Look at the payment row in the Django admin: ``status``, ``completed_at``,
   and ``raw`` hold the provider's last payload.  Both the confirm endpoint and
   the webhook call the same idempotent ``mark_succeeded``, so re-delivering
   the webhook from the Stripe dashboard is a safe way to repair it.

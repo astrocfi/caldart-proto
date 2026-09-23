@@ -97,6 +97,7 @@ function config(overrides: Partial<PaymentsConfig> = {}): PaymentsConfig {
     paypal_client_id: '',
     plans: PLANS,
     contribution_tiers: TIERS,
+    max_contribution_cents: 9_999_900,
     ...overrides,
   };
 }
@@ -192,6 +193,28 @@ describe('Checkout', () => {
     await user.click(await screen.findByRole('radio', { name: 'Other amount' }));
     await user.type(screen.getByLabelText('Contribution amount'), '7');
     expect(screen.getByTestId('checkout-total')).toHaveTextContent('$52.00');
+  });
+
+  it("caps a contribution typed above the server's limit", async () => {
+    const user = userEvent.setup();
+    serveConfig(config({ max_contribution_cents: 9_999_900 }));
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+
+    await user.click(await screen.findByRole('radio', { name: 'Other amount' }));
+    const amount = screen.getByLabelText('Contribution amount');
+    await user.type(amount, '123456789');
+
+    expect(amount).toHaveValue(99999);
+    expect(screen.getByTestId('checkout-total')).toHaveTextContent('$100,044.00');
+  });
+
+  it('says how large a contribution may be', async () => {
+    const user = userEvent.setup();
+    serveConfig(config({ max_contribution_cents: 9_999_900 }));
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+
+    await user.click(await screen.findByRole('radio', { name: 'Other amount' }));
+    expect(screen.getByText(/Up to \$99,999/)).toBeInTheDocument();
   });
 
   it('offers "No thank you" for the zero tier', async () => {

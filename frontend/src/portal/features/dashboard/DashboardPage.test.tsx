@@ -167,8 +167,12 @@ describe('<DashboardPage/>', () => {
 
     await screen.findByRole('heading', { name: 'Lifetime member' });
     const status = card('Lifetime member');
+    expect(status.getByText('Never expires')).toBeVisible();
     expect(status.getByText('Nothing to renew — thank you for joining for life.')).toBeVisible();
     expect(status.queryByRole('link', { name: /Renew/ })).not.toBeInTheDocument();
+    // The headline already says it is a life membership; the plan line would
+    // be the third time on one card.
+    expect(status.queryByText(/membership$/)).not.toBeInTheDocument();
   });
 
   it('nudges a member whose profile is incomplete', async () => {

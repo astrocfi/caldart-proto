@@ -28,7 +28,7 @@ class CsrfEnforcingSessionAuthentication(SessionAuthentication):
     a DRF ``403`` with a ``detail`` that starts ``CSRF Failed``, and covers
     endpoints that do not exist yet.  Safe methods are untouched, because the
     check delegates to Django's ``CsrfViewMiddleware``, which exempts ``GET``,
-    ``HEAD``, ``OPTIONS`` and ``TRACE``.  A view that authenticates by
+    ``HEAD``, ``OPTIONS``, and ``TRACE``.  A view that authenticates by
     signature instead -- the payment webhooks -- sets
     ``authentication_classes = []`` and so never reaches this class.
     """

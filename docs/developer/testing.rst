@@ -71,7 +71,7 @@ Two custom markers are registered in ``pyproject.toml``:
     (:ref:`testing-vite-manifest`).
 
 Order independence
--------------------
+------------------
 
 ``pytest-randomly`` shuffles the test order on every run (and reseeds
 ``random`` and Faker's shared generator per test), so a test that only passes
@@ -281,7 +281,7 @@ module imports by name from ``tests.conftest``:
      - the rows of a streamed CSV download, parsed with ``csv.reader`` so a
        quoted cell keeps its commas, header first
    * - ``csv_body(response)``
-     - the same download as one string, separators and line endings intact, for
+     - the same download as one string, separators, and line endings intact, for
        a comparison against a golden file
    * - ``pdf_page_count(body)``
      - the number of pages in a rendered PDF
@@ -424,7 +424,7 @@ What the backend suite covers
      - status math: edge dates, lifetime, the renewal start-day rule
    * - ``test_profile_api.py``, ``test_profile_aircraft_api.py``,
        ``test_profile_completeness.py``
-     - ``/me/profile``, ``PUT`` versus ``PATCH``, attach and detach, and the
+     - ``/me/profile``, ``PUT`` versus ``PATCH``, attach, and detach, and the
        one rule that decides ``profile_complete``
    * - ``test_members_admin.py``, ``test_members_admin_status.py``
      - the admin list, its filters, and SQL-versus-service agreement
@@ -439,8 +439,8 @@ What the backend suite covers
        truth table
    * - ``test_payments_api.py``, ``…_stripe.py``, ``…_paypal.py``,
        ``…_mock_provider.py``, ``…_apple_pay.py``
-     - checkout → confirm → activation for each provider, webhook signatures,
-       amount and currency mismatches, idempotency
+     - checkout → confirm → activation for each provider, webhook signatures
+       , amount, and currency mismatches, idempotency
    * - ``test_reminders.py``, ``test_reminders_resilience.py``,
        ``test_reminders_api.py``
      - each kind on its own offset, the three-day catch-up window, dedupe, dry
@@ -453,7 +453,7 @@ What the backend suite covers
    * - ``test_sysadmin*.py``
      - backup, restore, reset, health, the production settings module
    * - ``test_openapi_contract.py``
-     - the serializers still render the components, properties and enum values
+     - the serializers still render the components, properties, and enum values
        the snapshot records (:ref:`testing-api-contract`)
    * - ``test_seed.py``, ``test_shell_views.py``
      - the seed commands run twice cleanly; the portal and public shells
@@ -499,7 +499,7 @@ Three settings keep the suite honest:
 
 **Every test file imports what it uses.**  ``globals: false`` means the runner
 injects nothing, and ``tsconfig.json``'s ``types`` lists only ``vite/client``,
-so ``describe``, ``it``, ``expect``, ``vi`` and the lifecycle hooks come from a
+so ``describe``, ``it``, ``expect``, ``vi``, and the lifecycle hooks come from a
 single ``import {...} from 'vitest'`` at the top of each file.  The jest-dom
 matchers are typed once for the whole suite by ``src/test/setup.ts``, which
 imports ``@testing-library/jest-dom/vitest``; individual files use
@@ -573,7 +573,7 @@ Three helpers do the heavy lifting:
 
 ``src/test/fixtures/``
     The object factories that more than one file wants: ``profile.ts`` for the
-    profile, join and dashboard suites, ``members.ts`` for the members-admin
+    profile, join, and dashboard suites, ``members.ts`` for the members-admin
     screens.  Test data lives here rather than beside the component, so nothing
     test-only ships in the portal bundle.
 
@@ -583,7 +583,7 @@ Three helpers do the heavy lifting:
 mapping in ``frontend/tsconfig.json`` mirrored by a ``resolve.alias`` entry in
 ``frontend/vite.config.ts``, alongside the ``@/`` alias for ``src``.
 
-**Time.**  A test never waits out a real debounce, poll or delay, and never
+**Time.**  A test never waits out a real debounce, poll, or delay, and never
 builds a fixture date from the real clock.  Pin the system clock with
 ``vi.useFakeTimers()`` and ``vi.setSystemTime(...)`` (add
 ``{shouldAdvanceTime: true}`` when the component under test also renders and
@@ -647,8 +647,8 @@ table opened at every guarded path by an anonymous visitor and by a user
 holding each role, so a guard that loses a role fails a case, plus the order a
 guard and an on-demand page resolve in; the shared
 ``DataTable`` and ``StatusChip``; the auth pages; the join wizard's step
-progression, resume and clamp rules; profile form conversion and validation;
-the aircraft picker's search, exclude and create paths; the leader search and
+progression, resume, and clamp rules; profile form conversion and validation;
+the aircraft picker's search, exclude, and create paths; the leader search and
 status card in each verdict state; every admin screen's filters, paging, export
 links and save paths; the payments summary's headline tiles and its table by
 month and by year; the checkout with the Stripe and PayPal SDKs mocked; and
@@ -741,11 +741,11 @@ residual is short:
   no body, and the two payment webhooks answer **200** with whatever the
   provider's own handler returns.  Each declares that response, but there is no
   object to describe.
-* **Downloads.**  The member, aircraft and payment exports and the backup
+* **Downloads.**  The member, aircraft, and payment exports and the backup
   download answer with a file.  Each names its media type -- ``text/csv``,
   ``application/pdf``, ``application/gzip`` -- and describes the body as opaque
   bytes, so there is no component to compare.
-* **Error bodies.**  A **400** field-keyed error, and the **401**, **403** and
+* **Error bodies.**  A **400** field-keyed error, and the **401**, **403**, and
   **404** bodies, are described in :doc:`api-reference` rather than in the
   schema.
 * **Two type aliases.**  ``IsoDate`` and ``IsoDateTime`` in ``api/types.ts`` name
@@ -772,9 +772,9 @@ same ones the :doc:`/demo-walkthrough` walks a person through:
 
 1. a visitor signs up and pays and is immediately a current member;
 2. a member signs in, edits their profile and reads members-only content;
-3. a DART leader checks a member's membership, medical and aircraft insurance;
+3. a DART leader checks a member's membership, medical, and aircraft insurance;
 4. an account administrator sees payments per month and per year;
-5. a website administrator adds, edits and deletes a page.
+5. a website administrator adds, edits, and deletes a page.
 
 The specs live in ``frontend/e2e/``, alongside ``playwright.config.ts``.  They
 use the **mock** payment provider, so no keys are needed and no money moves;
@@ -801,7 +801,7 @@ styling change should not break a test.  Every screen the specs touch gives
 them something better: the status cards are ``<section>`` elements with an
 ``aria-label`` (``getByRole("region", {name: "Status for Owen Delgado"})``), the
 by-period report is labeled by its own heading, tables expose ``row``,
-``rowgroup``, ``columnheader`` and ``term``, and every control has an accessible
+``rowgroup``, ``columnheader``, and ``term``, and every control has an accessible
 name.
 
 **Wait for what you are about to assert, never for the network.**
@@ -827,7 +827,7 @@ only the succeeded ones, so the spec counts periods over the export's
 ``succeeded`` rows and the ledger's caption over all of them.
 
 Environment variables
-----------------------
+---------------------
 
 ``make e2e`` reads these to isolate itself from your development setup and
 from other end-to-end runs on the same machine:
@@ -877,9 +877,9 @@ Linting and type-checking
 ``ruff`` is configured in ``pyproject.toml``: line length 100, target
 ``py312``, rule sets ``E``, ``F``, ``I``, ``UP``, ``B``, ``DJ``, ``C4``, ``W``,
 ``ANN``, ``D``, ``A``, ``N``, ``RUF``, ``SIM``, ``PT``, ``PTH``, ``RET``,
-``PERF``, ``ERA``, ``T20`` and ``S``, with migrations excluded.  ``ANN``
+``PERF``, ``ERA``, ``T20``, and ``S``, with migrations excluded.  ``ANN``
 requires an annotation on every parameter and every return value, and ``D``
-requires a docstring on every public module, class, function and method and
+requires a docstring on every public module, class, function, and method and
 checks the form of every docstring it finds (a ``_``-prefixed helper's
 docstring is a matter for review); ``max-doc-length = 90`` turns on ``W505``,
 which wraps those docstrings at 90 characters.  A package's ``__init__.py``
@@ -904,10 +904,10 @@ third step of ``make lint-backend``.  ``[tool.mypy]`` in ``pyproject.toml`` sets
 ``strict = true``, the ``mypy_django_plugin`` and ``mypy_drf_plugin`` plugins,
 and ``caldart.settings.test`` as the settings module the Django plugin reads;
 migrations are excluded.  ``disallow_subclassing_any`` is off because Wagtail's
-page, block and settings base classes carry no types, and Wagtail, the four
-libraries it builds on (``django-modelcluster``, ``django-taggit``,
-``django-treebeard`` and ``modelsearch``), ``django-environ``,
-``django-filter``, ``django-vite`` and ``whitenoise`` are declared as untyped
+page, block, and settings base classes carry no types, and Wagtail, the four
+libraries it builds on (``django-modelcluster``, ``django-taggit``
+, ``django-treebeard``, and ``modelsearch``), ``django-environ``,
+``django-filter``, ``django-vite``, and ``whitenoise`` are declared as untyped
 imports for the same reason.  ``factory_boy`` is followed rather than skipped,
 so that a factory's model type reaches its callers, and two settings absorb its
 stub gaps: ``untyped_calls_exclude = ["factory"]`` accepts the unannotated
@@ -956,8 +956,8 @@ The project's own rules apply to every TypeScript file under ``frontend``, its
 configuration files included.
 ``@typescript-eslint/explicit-module-boundary-types`` requires an explicit
 return type on every exported function, and ``eslint-plugin-jsdoc``'s
-``jsdoc/require-jsdoc`` requires a JSDoc comment on every exported function,
-component and class (``jsdoc/no-types`` keeps that comment free of ``{type}``
+``jsdoc/require-jsdoc`` requires a JSDoc comment on every exported function
+, component, and class (``jsdoc/no-types`` keeps that comment free of ``{type}``
 annotations, since the types live in TypeScript).
 ``@typescript-eslint/consistent-type-imports`` requires a separate ``import
 type`` statement for a type-only symbol, and
@@ -970,13 +970,13 @@ deliberately keeps a component beside the pure helper that computes its input.
 
 ``make lint-spelling`` runs ``codespell``, configured under ``[tool.codespell]``
 in ``pyproject.toml``, over ``README.rst``, ``CLAUDE.md``, ``docs``, ``backend``,
-``frontend/src``, ``frontend/e2e``, ``.github``, ``deploy`` and ``.claude``.  The
+``frontend/src``, ``frontend/e2e``, ``.github``, ``deploy``, and ``.claude``.  The
 ``clear`` and ``rare`` dictionaries catch common typos and the ``en-GB_to_en-US``
 dictionary enforces American spelling, so a British spelling anywhere in the
 prose, the code or the tests fails ``make lint``.  ``plans`` stays out — the
 archived plans are frozen, and a live plan may quote the very words a fix
 replaces — and so does ``.claude/worktrees``, which holds nested checkouts of
-this repository.  Two words are ignored repository-wide, ``nnumber`` and
+this repository.  Two words are ignored repository-wide, ``nnumber``, and
 ``unparseable``; to keep any other word the dictionaries flag, end its line with
 a ``codespell:ignore`` comment naming the word rather than widening the list.
 
@@ -1002,12 +1002,12 @@ description ``check-frontend`` then checks the portal against.
 
 ``check-deploy`` runs ``manage.py check --deploy`` against
 ``caldart.settings.prod``, with a throwaway environment set inline in the
-Makefile recipe: a dummy ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``DATABASE_URL``,
-``SITE_URL`` and ``EMAIL_URL``, and no secure flag at all — each of those comes
+Makefile recipe: a dummy ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``DATABASE_URL``
+, ``SITE_URL``, and ``EMAIL_URL``, and no secure flag at all — each of those comes
 from ``caldart.settings.prod``'s own default, so turning one off fails the gate
 rather than being masked by a value the recipe supplies. The recipe names every
-tag Django's deployment-only checks carry — ``security``, ``caches``,
-``async_support`` and ``mail`` — so all of them run, while the default checks
+tag Django's deployment-only checks carry — ``security``, ``caches``
+, ``async_support``, and ``mail`` — so all of them run, while the default checks
 ``check-backend`` already covers stay out, one of which would need a
 ``frontend/dist`` this gate never builds. :doc:`deployment` covers the two
 warnings ``caldart.settings.prod`` silences deliberately.

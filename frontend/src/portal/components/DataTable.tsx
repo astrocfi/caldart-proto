@@ -16,8 +16,16 @@ export interface Column<Row> {
   render: (row: Row) => ReactNode;
   /** Value used for client-side sorting. Omit to make the column unsortable. */
   sortValue?: (row: Row) => string | number | null;
+  /**
+   * Set false to keep a column unsortable under server-side sorting, where
+   * every column is sortable by default. Use it for a column the API has no
+   * `ordering` value for.
+   */
+  sortable?: boolean;
   /** Right-align and use tabular figures. */
   numeric?: boolean;
+  /** Column width, used when the table is in single-line mode. */
+  width?: string;
 }
 
 export interface DataTableProps<Row> {
@@ -33,6 +41,12 @@ export interface DataTableProps<Row> {
   emptyTitle?: string;
   emptyDescription?: ReactNode;
   isLoading?: boolean;
+  /**
+   * Keep every cell on one line, cutting anything too long with an ellipsis.
+   * The full value stays reachable: a cell whose content is plain text also
+   * carries it as a `title`.
+   */
+  singleLine?: boolean;
   /** Take sorting server-side instead: called with key and direction. */
   onSortChange?: (key: string, direction: SortDirection) => void;
   initialSort?: { key: string; direction: SortDirection };
@@ -70,6 +84,7 @@ export function DataTable<Row>({
   emptyTitle = 'Nothing to show',
   emptyDescription,
   isLoading = false,
+  singleLine = false,
   onSortChange,
   initialSort,
 }: DataTableProps<Row>): JSX.Element {
@@ -86,6 +101,7 @@ export function DataTable<Row>({
   }, [rows, columns, sortKey, direction, onSortChange]);
 
   const toggle = (column: Column<Row>): void => {
+    if (column.sortable === false) return;
     if (!column.sortValue && !onSortChange) return;
     const nextDirection: SortDirection =
       sortKey === column.key && direction === 'asc' ? 'desc' : 'asc';
@@ -97,7 +113,7 @@ export function DataTable<Row>({
   const hasExports = Boolean(exportCsvUrl || exportPdfUrl);
 
   return (
-    <div className="data-table">
+    <div className={singleLine ? 'data-table data-table--single-line' : 'data-table'}>
       {filters || hasExports ? (
         <div className="data-table__bar">
           <div className="data-table__filters">{filters}</div>
@@ -127,13 +143,16 @@ export function DataTable<Row>({
             <thead>
               <tr>
                 {columns.map((column) => {
-                  const sortable = Boolean(column.sortValue) || Boolean(onSortChange);
+                  const sortable =
+                    column.sortable !== false &&
+                    (Boolean(column.sortValue) || Boolean(onSortChange));
                   const isSorted = sortKey === column.key;
                   return (
                     <th
                       key={column.key}
                       scope="col"
                       className={column.numeric ? 'numeric' : undefined}
+                      style={singleLine && column.width ? { width: column.width } : undefined}
                       aria-sort={
                         isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'
                       }
@@ -160,11 +179,18 @@ export function DataTable<Row>({
             <tbody>
               {sorted.map((row) => (
                 <tr key={rowKey(row)}>
-                  {columns.map((column) => (
-                    <td key={column.key} className={column.numeric ? 'numeric' : undefined}>
-                      {column.render(row)}
-                    </td>
-                  ))}
+                  {columns.map((column) => {
+                    const content = column.render(row);
+                    return (
+                      <td
+                        key={column.key}
+                        className={column.numeric ? 'numeric' : undefined}
+                        title={typeof content === 'string' ? content : undefined}
+                      >
+                        {content}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>

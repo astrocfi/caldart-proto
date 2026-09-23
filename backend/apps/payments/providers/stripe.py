@@ -7,7 +7,7 @@ The flow:
    account has enabled, and metadata that ties the intent back to our row.
 2. The browser confirms the intent with Stripe.js.
 3. ``confirm`` retrieves the intent again and refuses to activate a membership
-   unless Stripe agrees about the status, amount, currency and payment id.
+   unless Stripe agrees about the status, amount, currency, and payment id.
 4. ``handle_webhook`` is the safety net for redirect-based methods, and is
    idempotent because :func:`~apps.payments.services.mark_succeeded` is.
 
@@ -276,7 +276,7 @@ class StripeProvider(Provider):
     def verify(self, payment: Payment, intent: dict[str, Any]) -> None:
         """Everything about the intent that must match our own row.
 
-        Returns ``None`` when the intent's ``metadata.payment_id``, ``amount`` and
+        Returns ``None`` when the intent's ``metadata.payment_id``, ``amount``, and
         ``currency`` all match the payment.  Raises
         :class:`PaymentVerificationError` naming the first that does not.
         """

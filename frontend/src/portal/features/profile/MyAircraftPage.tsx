@@ -23,7 +23,7 @@ import { AircraftEditor } from './AircraftEditor';
 import { useAttachAircraft, useDetachAircraft, useProfile } from './api';
 import './profile.css';
 
-/** Renders, attaches and detaches the planes on the signed-in member's profile. */
+/** Renders, attaches, and detaches the planes on the signed-in member's profile. */
 export function MyAircraftPage(): JSX.Element {
   const profile = useProfile();
   const attach = useAttachAircraft();

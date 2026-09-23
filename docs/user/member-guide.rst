@@ -50,8 +50,8 @@ Everything else can wait until later.  The form is in three sections:
 
 **Aviation**
   Your home airport, the DART you fly with, your Air Care Alliance number,
-  pilot certificate and number, whether you are IFR rated, ratings,
-  medical and its expiration date, last flight review and total hours.
+  pilot certificate and number, whether you are IFR rated, ratings
+  , medical, and its expiration date, last flight review and total hours.
 
   Two rules are enforced: if you name a pilot certificate you must give its
   number, and if you name a medical (BasicMed or any class) you must give
@@ -94,14 +94,15 @@ Signing in lands you on the dashboard at ``/portal/``.  Reading down the
 page:
 
 Membership
-  A status chip — **Current**, **Expiring soon**, **Expired** or **No
+  A status chip — **Current**, **Expiring soon**, **Expired**, or **No
   membership** — with the date your membership runs to and a **Renew**
   button.  Inside 30 days of expiry, and after it, the card takes an accent
-  edge and the button leads.  Life members are never asked to renew.
+  edge and the button leads.  A life membership reads **Never expires** and is
+  never asked to renew.
 
 Finish your profile
   Shown while your profile is missing one of the details CalDART counts as
-  essential — phone, address line 1, city and ZIP.  It disappears once all of
+  essential — phone, address line 1, city, and ZIP.  It disappears once all of
   them are saved.
 
 Member content
@@ -111,11 +112,11 @@ Member content
   you expected pages, check your membership status first.
 
 Recent payments
-  Your last five payments: date, plan, amount and status.
+  Your last five payments: date, plan, amount, and status.
 
 Quick links
   The rest of the portal, filtered to what your roles allow.  A plain
-  member sees their profile, aircraft and renewal; a DART leader also sees
+  member sees their profile, aircraft, and renewal; a DART leader also sees
   the member and aircraft checks; administrators see their sections too.
 
 
@@ -130,7 +131,7 @@ A renewal **starts the day after your current term ends**, so there is no
 penalty for renewing early: you never lose the days you have already paid
 for.  If your membership has already lapsed, the new term starts today.
 
-CalDART emails you a reminder 60, 30 and 7 days before expiry, on the day
+CalDART emails you a reminder 60, 30, and 7 days before expiry, on the day
 it expires, and once 30 days afterwards.  Every reminder links straight to
 the renewal page.
 
@@ -163,7 +164,7 @@ Your aircraft
 =============
 
 **My aircraft** lists the planes you commonly fly.  Each one shows its
-N-number, make and model, an insurance chip (**Current**, **Expired** or
+N-number, make, and model, an insurance chip (**Current**, **Expired**, or
 **Not on file**) and the liability limits and expiry date on file.
 
 To add one, search for it by N-number in the panel underneath and select it.
@@ -173,7 +174,7 @@ detaches it from you; the aircraft record and anyone else's link to it are
 untouched.
 
 An aircraft's insurance is what a DART leader checks before letting you fly a
-mission in it, so keep the carrier, limits and expiration date accurate.
+mission in it, so keep the carrier, limits, and expiration date accurate.
 Every aircraft here has an **Edit** action.  On one you added, it opens the
 aircraft's details for editing; on one somebody else added, it tells you to
 ask an account administrator.  :doc:`aircraft` covers the shared register in
@@ -189,7 +190,7 @@ the public site's top navigation for everybody — following it while signed out
 or lapsed gets you the wall rather than the page.
 
 If your membership has lapsed, opening one shows a short page explaining
-why, with links to sign in, join or renew.  Renewing restores access
+why, with links to sign in, join, or renew.  Renewing restores access
 immediately.
 
 

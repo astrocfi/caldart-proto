@@ -119,7 +119,7 @@ def seed_darts() -> list[Dart]:
     """Create or update every DART in :data:`DARTS`, and return them in that order.
 
     Each is keyed on its name, so running the seed twice leaves one row per
-    DART with the airport, city and sort order the table gives it.
+    DART with the airport, city, and sort order the table gives it.
     """
     darts = []
     for order, (name, identifier, city) in enumerate(DARTS, start=1):
@@ -140,7 +140,7 @@ def seed_plans() -> list[MembershipPlan]:
     """Create or update every plan in :data:`PLANS`, and return them in that order.
 
     Each is keyed on its slug, so running the seed twice leaves one row per
-    plan with the price, duration and description the table gives it.
+    plan with the price, duration, and description the table gives it.
     """
     plans = []
     for spec in PLANS:
@@ -165,7 +165,7 @@ def _profile_defaults(
     """One plausible profile, drawn from ``rng`` and ``faker``.
 
     The answers hang together: only a pilot carries a medical, a certificate
-    number, ratings, hours and a flight review, and roughly a quarter of pilots
+    number, ratings, hours, and a flight review, and roughly a quarter of pilots
     are given a medical that expired before ``today`` so the leader checks have
     something to fail on.  The DART is drawn from ``darts`` and supplies the
     member's city and home airport.
@@ -273,7 +273,7 @@ def _assign_targets(rng: random.Random, ctx: dict[str, Any]) -> dict[int, str]:
 def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
     """Seed the DARTs, the plans and one profile per user, and return ``ctx``.
 
-    Reads ``rng``, ``faker``, ``today`` and ``users`` from ``ctx`` and adds
+    Reads ``rng``, ``faker``, ``today``, and ``users`` from ``ctx`` and adds
     ``darts``, ``plans`` (keyed by slug), ``profiles`` and ``membership_targets``
     for the seeds that run after this one.  A user who already has a profile has
     it overwritten, so re-seeding leaves one profile per account.  ``stdout``, when

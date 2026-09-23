@@ -343,7 +343,7 @@ list, in full:
    * - ``docs``
      - ``sphinx-build -n -W`` into ``docs/_build/html``
    * - ``clean``
-     - remove ``docs/_build``, ``frontend/dist``, ``backend/staticfiles`` and
+     - remove ``docs/_build``, ``frontend/dist``, ``backend/staticfiles``, and
        ``__pycache__``
 
 Every target runs from the repository root, and every one of them honors
@@ -355,7 +355,7 @@ Switch variables
 ================
 
 ``YES`` on ``make restore`` and ``DRY_RUN`` on ``make reminders`` are switches:
-``1``, ``yes`` or ``true`` turns the option on; ``0``, ``no``, ``false``, an
+``1``, ``yes``, or ``true`` turns the option on; ``0``, ``no``, ``false``, an
 empty value or leaving the variable unset leaves it off; any other value stops
 ``make`` with an error naming the variable, before a single line of the recipe
 runs.  The comparison is case-sensitive, so ``YES=True`` is an error rather
@@ -382,7 +382,7 @@ Beyond Django's and Wagtail's own, this project adds:
    * - ``seed_content``
      - the example Wagtail site, and the ``website_admin`` permission grant
    * - ``seed_facts``
-     - print the demo password, accounts and plan prices as JSON, which
+     - print the demo password, accounts, and plan prices as JSON, which
        ``make e2e`` saves for the end-to-end specs (:doc:`testing`)
    * - ``db_backup``
      - write ``backups/caldart-<timestamp>.sql.gz``

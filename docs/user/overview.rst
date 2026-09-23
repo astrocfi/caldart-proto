@@ -7,8 +7,8 @@ the Disaster Airlift Response Team (DART) directory, the news and the contact
 page — is open to anybody with the address.  The **member portal** at
 ``/portal/`` is where you sign in, and what it shows you depends on the roles
 your account holds: members keep their own details current, DART leaders check
-whether somebody is fit to fly, and administrators look after accounts, money,
-content and the server.
+whether somebody is fit to fly, and administrators look after accounts, money
+, content, and the server.
 
 Almost everything else in this guide is a chapter about one of those jobs.
 This page is the shape of the whole thing: how a membership begins, how it
@@ -28,7 +28,7 @@ does not replace the first term; it adds another one after it.
 
    .. graphviz::
       :caption: The life of a membership.  A **solid box** is one of the three
-                states the site computes for you: ``none``, ``current`` and
+                states the site computes for you: ``none``, ``current``, and
                 ``expired``.  A **dashed box** is not a state of its own —
                 *Expiring soon* is the portal's warning inside *Current*, and
                 *Life member* is a current term with no end date.  The boxes at
@@ -210,9 +210,9 @@ Where to go next
      - :doc:`aircraft`
    * - Check whether a member may fly for us today
      - :doc:`dart-leader-guide`
-   * - Look after accounts, roles and membership terms
+   * - Look after accounts, roles, and membership terms
      - :doc:`user-administrator`, :doc:`account-administrator-guide`
    * - Edit the public site
      - :doc:`website-administrator-guide`
-   * - Back up, restore or check the health of the system
+   * - Back up, restore, or check the health of the system
      - :doc:`system-administrator-guide`

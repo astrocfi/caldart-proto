@@ -209,7 +209,7 @@ When something goes wrong
 
 **"You cannot change the email address of an account that holds roles you do not hold."**
    The account carries a role you do not have — ``dart_leader``,
-   ``website_admin``, ``account_admin`` or ``system_admin`` — and moving an
+   ``website_admin``, ``account_admin``, or ``system_admin`` — and moving an
    address is enough to take an account over, so the server reserves it for
    somebody who already holds every role that account holds.  On the first
    three, grant yourself what is missing: tick the role in the Roles section of
@@ -237,7 +237,7 @@ When something goes wrong
    type, so a middle name or a typo excludes everybody.  Search for one word,
    or for a fragment of the email address.
 
-**You need to change a member's profile, membership or payments.**
+**You need to change a member's profile, membership, or payments.**
    None of that is on this screen.  It belongs to an account administrator —
    see :doc:`account-administrator-guide`.
 
@@ -247,6 +247,6 @@ See also
 
 * :doc:`getting-started` — what members see, including the reset flow from
   their side.
-* :doc:`account-administrator-guide` — profiles, memberships and payments.
+* :doc:`account-administrator-guide` — profiles, memberships, and payments.
 * :doc:`/developer/api-auth` — the endpoints these screens call, for anyone
   scripting against them.

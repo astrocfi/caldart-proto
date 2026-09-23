@@ -47,7 +47,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
     def get_membership(self, obj: User) -> dict[str, Any]:
         """The account's membership summary, as ``MembershipStatusSerializer`` renders it.
 
-        Carries ``status``, ``expires_on``, ``plan`` and ``is_lifetime``, read from the
+        Carries ``status``, ``expires_on``, ``plan``, and ``is_lifetime``, read from the
         annotations when the row came from ``with_membership``.
         """
         membership: dict[str, Any] = MembershipStatusSerializer(membership_of(obj)).data
@@ -67,7 +67,7 @@ class PasswordField(serializers.CharField):
     """A password input that is never trimmed and never echoed back."""
 
     def __init__(self, **kwargs: Any) -> None:
-        """Build the field, defaulting it to write-only, untrimmed and 128 characters.
+        """Build the field, defaulting it to write-only, untrimmed, and 128 characters.
 
         Any of those defaults may be overridden through ``kwargs``, which are otherwise
         passed to ``CharField`` unchanged.
@@ -240,7 +240,7 @@ class AdminUserSerializer(UserSerializer):
     )
 
     class Meta(UserSerializer.Meta):
-        # `membership`, `profile_complete` and `roles` are declared fields, so
+        # `membership`, `profile_complete`, and `roles` are declared fields, so
         # only the model columns need listing here.
         read_only_fields = ["id"]
         extra_kwargs = {
