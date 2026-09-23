@@ -481,23 +481,27 @@ th.numeric {
  * always rides in the accessible name beside it, never in the color alone. */
 .status-dot {
   display: inline-block;
-  width: 0.6rem;
-  height: 0.6rem;
+  width: 0.7rem;
+  height: 0.7rem;
   border-radius: var(--radius-pill);
-  border: var(--hairline) solid rgba(0, 0, 0, 0.25);
+  border: var(--hairline) solid rgba(0, 0, 0, 0.3);
   vertical-align: baseline;
 }
 
 .status-dot[data-tone='current'] {
-  background: var(--color-ok);
+  background: var(--color-signal-go);
 }
 
 .status-dot[data-tone='expiring'] {
-  background: var(--color-warn);
+  background: var(--color-signal-warn);
 }
 
 .status-dot[data-tone='expired'] {
-  background: var(--color-bad);
+  background: var(--color-signal-stop);
+}
+
+.status-dot[data-tone='new'] {
+  background: var(--color-secondary);
 }
 
 .status-dot[data-tone='none'] {
@@ -505,15 +509,17 @@ th.numeric {
 }
 
 .pilot-mark {
+  font-size: 1.25rem;
   font-weight: var(--weight-bold);
+  line-height: 1;
 }
 
 .pilot-mark[data-state='ok'] {
-  color: var(--color-ok);
+  color: var(--color-signal-go);
 }
 
 .pilot-mark[data-state='bad'] {
-  color: var(--color-bad);
+  color: var(--color-signal-stop);
 }
 
 .pilot-mark[data-state='none'] {
@@ -539,6 +545,12 @@ th.numeric {
   height: 0.45em;
   border-radius: var(--radius-pill);
   background: currentColor;
+}
+
+.chip--info {
+  color: var(--color-primary);
+  background: var(--color-neutral-bg);
+  border-color: var(--color-primary);
 }
 
 .chip--ok {

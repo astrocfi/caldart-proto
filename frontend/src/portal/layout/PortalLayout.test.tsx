@@ -10,7 +10,7 @@ import { HttpResponse, http } from 'msw';
 import type { JSX } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderRoutes, renderWithProviders } from '@test/render';
@@ -159,6 +159,22 @@ describe('PortalLayout', () => {
 
     expect(await screen.findByText('profile body')).toBeInTheDocument();
     expect(menu).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('puts the page back at the top when the visitor picks a section', async () => {
+    const user = userEvent.setup();
+    server.use(signedInAs(makeUser()));
+    renderWithProviders(tree(), { route: '/' });
+
+    await screen.findByText('dashboard body');
+    // The first render scrolls too; only what the click does is interesting.
+    const scrollTo = vi.fn();
+    window.scrollTo = scrollTo;
+
+    await user.click(screen.getByRole('link', { name: 'My profile' }));
+
+    expect(await screen.findByText('profile body')).toBeInTheDocument();
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0 });
   });
 
   it('gives an anonymous visitor no drawer toggle', async () => {

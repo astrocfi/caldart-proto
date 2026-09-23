@@ -17,6 +17,13 @@ from apps.cms.models import THEME_SLUGS
 NAV_KINDS = ("page", "portal")
 
 
+class NavChildSerializer(serializers.Serializer[dict[str, str]]):
+    """One entry of a navigation drop-down."""
+
+    title = serializers.CharField()
+    url = serializers.CharField()
+
+
 class NavEntrySerializer(serializers.Serializer[dict[str, Any]]):
     """One top-navigation entry, as the public site and the portal both show it."""
 
@@ -24,6 +31,7 @@ class NavEntrySerializer(serializers.Serializer[dict[str, Any]]):
     url = serializers.CharField()
     active = serializers.BooleanField()
     kind = serializers.ChoiceField(choices=NAV_KINDS)
+    children = NavChildSerializer(many=True)
 
 
 class MembersPageSerializer(serializers.Serializer[dict[str, str]]):

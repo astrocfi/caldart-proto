@@ -244,13 +244,19 @@ supplies four names:
     ``portal.html`` put it on ``<html data-theme="...">``.
 
 ``nav``
-    ``build_nav(request)``: the live top-level pages flagged *show in menus*
-    as ``kind="page"``, then two ``kind="portal"`` entries — always ``Join`` →
-    ``/portal/join``, followed by ``Members`` → ``/portal/`` for a signed-in
-    visitor or ``Log in`` → ``/portal/login`` for an anonymous one.
-    ``base.html`` renders the first group as the navigation bar's links and
-    the second at its right-hand end.
-    An entry is marked ``active`` when the request path starts with its URL.
+    ``build_nav(request)``: ``Home`` -> ``/``, then the live top-level pages
+    flagged *show in menus* as ``kind="page"``, each carrying its own in-menu
+    children as ``children`` for a drop-down.  A menu page behind the
+    members-only wall is moved to the end as ``kind="portal"``, beside the
+    portal link itself -- ``Member portal`` -> ``/portal/`` for a signed-in
+    visitor, ``Log in`` -> ``/portal/login`` for an anonymous one.  That title
+    is ``PORTAL_TITLE``, and it deliberately does not read ``Members``: a site
+    whose members area is a content page would otherwise carry the same word
+    twice in one bar.  ``base.html`` renders the first group as the navigation
+    bar's links and the second at its right-hand end, with a
+    ``Welcome, <first name>`` greeting ahead of it for a signed-in reader.  An
+    entry is marked ``active`` when the request path starts with its URL, and
+    ``Home`` only when the path is exactly ``/``.
 
 ``can_preview_theme``
     True for website and system administrators.  ``base.html`` turns it into

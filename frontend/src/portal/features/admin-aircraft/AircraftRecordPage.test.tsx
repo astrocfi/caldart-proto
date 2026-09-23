@@ -135,7 +135,10 @@ describe('AircraftRecordPage', () => {
     server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));
     renderRecord();
 
-    expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Marta Reyes' })).toHaveAttribute(
+      'href',
+      '/admin/members/7',
+    );
     expect(screen.getByText('Member current')).toBeInTheDocument();
     expect(screen.getByText('Medical not current')).toBeInTheDocument();
   });

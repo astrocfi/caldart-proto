@@ -9,6 +9,7 @@
  */
 import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { Payment } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
@@ -45,7 +46,7 @@ const COLUMNS: Column<Payment>[] = [
   {
     key: 'user__last_name',
     header: 'Member',
-    render: (row) => row.user_name,
+    render: (row) => <Link to={`/admin/members/${row.user_id}`}>{row.user_name}</Link>,
   },
   { key: 'plan__name', header: 'Plan', render: (row) => row.plan ?? 'Contribution only' },
   {

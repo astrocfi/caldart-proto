@@ -102,6 +102,9 @@ class MembershipAnnotations(TypedDict):
 
     covers_today: bool
     has_started_term: bool
+    has_unpaid_term: bool
+    unpaid_end: date | None
+    unpaid_plan: str | None
     coverage_end: date | None
     coverage_plan: str | None
     lifetime_plan: str | None
@@ -329,8 +332,9 @@ def membership_status(
     """Summarize a user's membership, reading the terms out of the database.
 
     Returns ``{"status", "expires_on", "plan", "is_lifetime"}`` where status is
-    ``current`` (a term covers ``on_date``), ``expired`` (a term has started and
-    run out) or ``none`` (nothing has started yet).  ``on_date`` defaults to the
+    ``current`` (a term covers ``on_date``), ``expired`` (a paid term has started
+    and run out), ``new`` (the only term is unpaid, so the member joined but has
+    never been covered) or ``none`` (nothing at all).  ``on_date`` defaults to the
     current local date.  An anonymous caller, or none at all, is answered
     ``none`` with no expiry, no plan and ``is_lifetime`` false, so a signed-out
     visitor is never mistaken for a lapsed member.
@@ -355,19 +359,33 @@ def membership_status(
 
     past = (
         user.memberships.select_related("plan")
-        .exclude(status=MembershipStatusChoices.CANCELED)
+        .exclude(status__in=(MembershipStatusChoices.CANCELED, MembershipStatusChoices.NEW))
         .filter(starts_on__lte=on_date)
         .order_by("-ends_on", "-starts_on")
         .first()
     )
-    if past is None:
-        return _no_membership()
-    return {
-        "status": MembershipState.EXPIRED,
-        "expires_on": past.ends_on,
-        "plan": past.plan.name,
-        "is_lifetime": False,
-    }
+    if past is not None:
+        return {
+            "status": MembershipState.EXPIRED,
+            "expires_on": past.ends_on,
+            "plan": past.plan.name,
+            "is_lifetime": False,
+        }
+
+    unpaid = (
+        user.memberships.select_related("plan")
+        .filter(status=MembershipStatusChoices.NEW)
+        .order_by("-starts_on")
+        .first()
+    )
+    if unpaid is not None:
+        return {
+            "status": MembershipState.NEW,
+            "expires_on": unpaid.ends_on,
+            "plan": unpaid.plan.name,
+            "is_lifetime": False,
+        }
+    return _no_membership()
 
 
 def membership_annotations(today: date | None = None) -> dict[str, Exists | Subquery]:
@@ -397,10 +415,14 @@ def membership_annotations(today: date | None = None) -> dict[str, Exists | Subq
 
     lifetime = active.filter(user=OuterRef("pk"), ends_on__isnull=True).order_by("starts_on")
 
-    started = Membership.objects.exclude(status=MembershipStatusChoices.CANCELED).filter(
-        user=OuterRef("pk"), starts_on__lte=today
-    )
+    started = Membership.objects.exclude(
+        status__in=(MembershipStatusChoices.CANCELED, MembershipStatusChoices.NEW)
+    ).filter(user=OuterRef("pk"), starts_on__lte=today)
     past = started.order_by(F("ends_on").desc(nulls_first=True), "-starts_on")
+
+    unpaid = Membership.objects.filter(
+        user=OuterRef("pk"), status=MembershipStatusChoices.NEW
+    ).order_by("-starts_on")
 
     return {
         "covers_today": Exists(
@@ -409,6 +431,9 @@ def membership_annotations(today: date | None = None) -> dict[str, Exists | Subq
             )
         ),
         "has_started_term": Exists(started),
+        "has_unpaid_term": Exists(unpaid),
+        "unpaid_end": Subquery(unpaid.values("ends_on")[:1], output_field=DateField()),
+        "unpaid_plan": Subquery(unpaid.values("plan__name")[:1], output_field=CharField()),
         "coverage_end": Subquery(boundaries.values("ends_on")[:1], output_field=DateField()),
         "coverage_plan": Subquery(boundaries.values("plan__name")[:1], output_field=CharField()),
         "lifetime_plan": Subquery(lifetime.values("plan__name")[:1], output_field=CharField()),
@@ -457,6 +482,13 @@ def membership_payload(user: MemberRow) -> MembershipStatusDict:
             "status": MembershipState.EXPIRED,
             "expires_on": user.past_end,
             "plan": user.past_plan,
+            "is_lifetime": False,
+        }
+    if user.has_unpaid_term:
+        return {
+            "status": MembershipState.NEW,
+            "expires_on": user.unpaid_end,
+            "plan": user.unpaid_plan,
             "is_lifetime": False,
         }
     return _no_membership()

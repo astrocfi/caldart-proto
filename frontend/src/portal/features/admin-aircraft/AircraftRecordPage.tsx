@@ -120,7 +120,7 @@ export function AircraftRecordPage(): JSX.Element {
           <ul className="aircraft-pilots">
             {pilots.map((pilot) => (
               <li key={pilot.user_id}>
-                <span>{pilot.name}</span>
+                <Link to={`/admin/members/${pilot.user_id}`}>{pilot.name}</Link>
                 <span className="aircraft-pilots__email mono">{pilot.email}</span>
                 <StatusChip
                   tone={pilot.membership_status === 'current' ? 'current' : 'expired'}

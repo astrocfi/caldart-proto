@@ -272,6 +272,7 @@ HISTORY_MILESTONES: tuple[tuple[str, str], ...] = (
 HISTORY = PageSpec(
     slug="history",
     title="History",
+    show_in_menus=True,
     intro=(
         "CalDART grew out of a single Bay Area airport exercise into a statewide network. "
         "These are the milestones that got us here."
@@ -302,6 +303,7 @@ HISTORY = PageSpec(
 DART_INDEX = PageSpec(
     slug="darts",
     title="DARTs",
+    show_in_menus=True,
     intro=(
         "Every DART is built around a general aviation airport and led by volunteers who fly "
         "from it. Find the team nearest you, or join as unaffiliated and we will introduce you "
@@ -384,6 +386,7 @@ DIRECTORS_ROWS: tuple[tuple[str, str], ...] = (
 DIRECTORS = PageSpec(
     slug="directors",
     title="Directors and Officers",
+    show_in_menus=True,
     intro=(
         "CalDART is run by a volunteer board elected by the membership. Directors serve "
         "two-year terms; officers are elected by the board each January."
@@ -584,34 +587,66 @@ DONATE = PageSpec(
     ),
 )
 
-SPONSOR_ROWS: tuple[tuple[str, str], ...] = (
+#: The sponsor tiers as caldart.org lists them: the level, then its supporters.
+SPONSOR_TIERS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Platinum -- $10,000 and above", ("Wolf Aviation Fund", "Chris Malachowsky")),
+    ("Diamond -- $3,000 and above", ("Arkay Foundation",)),
     (
-        "Bay Meridian Aviation",
-        "Fixed-base operator \u2014 donated ramp space and fuel for exercises.",
+        "Gold -- $1,000 and above",
+        (
+            "Paul Marshall",
+            "Gary Robinson / Magnum",
+            "South County Airport Pilot's Association",
+        ),
     ),
     (
-        "Sierra Avionics Works",
-        "Avionics shop \u2014 discounted ADS-B and radio installations for members.",
+        "Silver -- $300 and above",
+        (
+            "Kevin McDonnell",
+            "Pat Belanger",
+            "Carol Munch",
+            "David Stites / Apple",
+            "Scott Cooper",
+        ),
     ),
     (
-        "Golden Poppy Flying Club",
-        "Flying club \u2014 aircraft made available for training weekends.",
+        "Bronze -- $100 and above",
+        (
+            "San Carlos Airport Association",
+            "Larry and Yvonne Russell",
+            "Craig Long",
+            "Marion Harris",
+            "Rotary Club of Dublin",
+            "Lionel Hunt",
+            "Dean McCully",
+            "Mark Mullen",
+            "Collette Armao",
+            "John Oji",
+        ),
     ),
-    ("Coast Range Insurance Brokers", "Broker \u2014 guidance on volunteer liability cover."),
-    ("Delta Fuel & Line Service", "Line service \u2014 fuel discounts on exercise days."),
 )
+
+
+def sponsor_blocks() -> tuple[BlockSpec, ...]:
+    """One heading and one list per sponsor tier, highest first."""
+    blocks: list[BlockSpec] = []
+    for tier, names in SPONSOR_TIERS:
+        blocks.append(heading(tier, level="h3"))
+        blocks.append(rich("<ul>" + "".join(f"<li>{name}</li>" for name in names) + "</ul>"))
+    return tuple(blocks)
+
 
 SPONSORS = PageSpec(
     slug="sponsors",
     title="Sponsors",
+    show_in_menus=True,
     intro=(
-        "CalDART's work is supported by flying clubs, fixed-base operators, avionics shops, and "
-        "businesses across California. Sponsors are listed here with their permission; nothing "
-        "on this page is a paid endorsement."
+        "CalDART thanks the sponsors who donate each year to help meet our expenses: "
+        "insurance, the initial equipment a new DART needs, and office and storage space."
     ),
     body=(
         heading("This year's supporters"),
-        rich(definition_list(SPONSOR_ROWS)),
+        *sponsor_blocks(),
         heading("Becoming a sponsor"),
         rich(
             "<p>If your business serves general aviation in California and you would "
@@ -619,7 +654,7 @@ SPONSORS = PageSpec(
             "acknowledged on this page and in the newsletter; it buys no influence over "
             "who we fly for.</p>"
         ),
-        cta("Talk to us about sponsorship", "/contact/", "secondary"),
+        cta("Talk to us about sponsorship", "/contact-us/", "secondary"),
     ),
 )
 
@@ -656,7 +691,7 @@ CONTACT = PageSpec(
 
 MEMBERS = PageSpec(
     slug="members",
-    title="Members",
+    title="Members Only",
     show_in_menus=True,
     members_only=True,
     intro=(
@@ -739,9 +774,16 @@ DOCS_AND_LINKS = PageSpec(
 
 #: The settings the example content refers to, written only where the field is
 #: still empty so an administrator's own value survives a re-seed.
+#: Values earlier versions of this file seeded, which a site may still carry
+#: because ``seed_settings`` only fills a field that is empty.  A row holding
+#: one of these is holding a placeholder nobody chose, so it is replaced.
+SUPERSEDED_SETTINGS: dict[str, tuple[str, ...]] = {
+    "mailing_address": ("CalDART\nPO Box 1180\nSan Carlos, CA 94070",),
+    "ein": ("47-0000000",),
+}
+
 SITE_SETTINGS: dict[str, str] = {
     "duty_phone": "(408) 713-0646",
-    "duty_phone_note": "Answered by the CalDART member on watch",
     "mailing_address": "CalDART\nPO Box 606\nSan Martin, CA 95046",
     "ein": "83-1407209",
     "donate_url": "/donate/",

@@ -91,10 +91,15 @@ Token                      Meaning
 ``--color-bad-bg``
 ``--color-neutral-bg``     Fill for a chip with no status at all
 ``--color-focus``          Focus ring
+``--color-signal-go``,     The status *dots*: filled shapes rather than type,
+``--color-signal-warn``,   so they are brighter and further apart in hue than
+``--color-signal-stop``    the status colors above
 =========================  ==================================================
 
 That is the whole set a theme redefines — twenty-one tokens, listed above in
-the order ``themes/duty.css`` declares them.
+the order ``themes/duty.css`` declares them.  The three signal colors are
+optional: a theme that leaves them out gets the values in ``tokens.css``, which
+are chosen to read as go, caution and stop on any light ground.
 
 Type
 ----

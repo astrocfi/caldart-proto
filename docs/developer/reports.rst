@@ -123,7 +123,7 @@ name                 Full name, or the email address when no name is on file
 email                Login address
 phone                Primary phone from the profile
 dart                 DART name, blank when unaffiliated
-status               ``current``, ``expired``, or ``none``
+status               ``current``, ``new``, ``expired``, or ``none``
 plan                 Plan behind that status, e.g. ``Annual`` or ``Life``
 expires_on           End of unbroken coverage; **blank for a lifetime member**
 certificate          Pilot certificate, e.g. ``Private``; blank for none
