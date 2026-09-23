@@ -137,15 +137,17 @@ describe('MembersListPage', () => {
     );
   });
 
-  it('never sorts on a column the API cannot order by', async () => {
+  it('sorts on every column, including Pilot and DART', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
     renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    await user.click(screen.getByRole('columnheader', { name: 'DART' }));
+    await user.click(screen.getByRole('button', { name: 'DART' }));
+    await waitFor(() => expect(lastMemberQuery().get('ordering')).toBe('dart'));
 
-    expect(screen.getByTestId('location-search')).not.toHaveTextContent('ordering');
+    await user.click(screen.getByRole('button', { name: 'Pilot' }));
+    await waitFor(() => expect(lastMemberQuery().get('ordering')).toBe('pilot'));
   });
 
   it('renders a row per member with its membership chip', async () => {

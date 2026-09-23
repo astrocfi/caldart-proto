@@ -7,8 +7,9 @@
  *
  * Five columns, kept narrow enough to scan: whether the member may fly, who
  * they are, their team, when their membership runs out, and how to reach them.
- * Name, membership and email map onto the `?ordering=` values the API accepts;
- * the other two do not sort, because the API cannot order by them.
+ * Every column maps onto an `?ordering=` value the API accepts, Pilot included:
+ * the server ranks a current medical ahead of a lapsed one ahead of somebody
+ * who is not a pilot, which is the order the column's marks read in.
  */
 import { useMemo } from 'react';
 import type { JSX } from 'react';
@@ -51,8 +52,7 @@ function memberColumns(): Column<MemberRow>[] {
     {
       key: 'pilot',
       header: 'Pilot',
-      sortable: false,
-      width: '3rem',
+      width: '4.25rem',
       render: (row) => (
         <PilotMark
           isPilot={row.pilot_certificate_type !== 'none'}
@@ -74,7 +74,6 @@ function memberColumns(): Column<MemberRow>[] {
     {
       key: 'dart',
       header: 'DART',
-      sortable: false,
       width: '18%',
       render: (row) => row.dart ?? 'Unaffiliated',
     },
