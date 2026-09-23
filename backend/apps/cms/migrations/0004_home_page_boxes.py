@@ -31,11 +31,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='homepage',
-            name='upcoming_events',
-            field=wagtail.fields.StreamField([('event', 4)], blank=True, block_lookup={0: ('wagtail.blocks.DateBlock', (), {}), 1: ('wagtail.blocks.CharBlock', (), {'max_length': 120}), 2: ('wagtail.blocks.CharBlock', (), {'help_text': 'Airport, town and time, or who it is for.', 'max_length': 120, 'required': False}), 3: ('wagtail.blocks.PageChooserBlock', (), {'help_text': 'The page with the details.', 'required': False}), 4: ('wagtail.blocks.StructBlock', [[('date', 0), ('title', 1), ('where', 2), ('page', 3)]], {})}, help_text='Dated events for the sidebar.  One that has passed stops showing.'),
-        ),
-        migrations.AddField(
-            model_name='homepage',
             name='urgent_cta_label',
             field=models.CharField(blank=True, default='Request air support', help_text='The first button, shown in the alert color.', max_length=60),
         ),
