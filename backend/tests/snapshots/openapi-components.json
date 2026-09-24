@@ -1413,6 +1413,15 @@
       "mei"
     ]
   },
+  "ReasonEnum": {
+    "enum": [
+      "requested_by_member",
+      "duplicate",
+      "error",
+      "fraudulent",
+      "other"
+    ]
+  },
   "ReceiptSend": {
     "properties": {
       "receipt_sent_at": "string(date-time)|null",
@@ -1421,6 +1430,75 @@
     "required": [
       "receipt_sent_at",
       "sent"
+    ]
+  },
+  "Refund": {
+    "properties": {
+      "amount_cents": "integer",
+      "created_at": "string(date-time)",
+      "id": "integer",
+      "note": "string",
+      "payment_id": "integer",
+      "provider_ref": "string",
+      "reason": "ref:ReasonEnum",
+      "refunded_at": "string(date-time)|null",
+      "requested_by_id": "integer|null",
+      "status": "ref:RefundStatusEnum"
+    },
+    "required": [
+      "amount_cents",
+      "created_at",
+      "id",
+      "note",
+      "payment_id",
+      "provider_ref",
+      "reason",
+      "refunded_at",
+      "requested_by_id",
+      "status"
+    ]
+  },
+  "RefundCreateRequest": {
+    "properties": {
+      "amount_cents": "integer",
+      "cancel_term": "boolean",
+      "note": "string",
+      "reason": "ref:ReasonEnum"
+    },
+    "required": [
+      "amount_cents",
+      "reason"
+    ]
+  },
+  "RefundIssued": {
+    "properties": {
+      "payment": "ref:RefundedPayment",
+      "refund": "ref:Refund"
+    },
+    "required": [
+      "payment",
+      "refund"
+    ]
+  },
+  "RefundStatusEnum": {
+    "enum": [
+      "pending",
+      "succeeded",
+      "failed"
+    ]
+  },
+  "RefundedPayment": {
+    "properties": {
+      "amount_cents": "integer",
+      "id": "integer",
+      "refunded_cents": "integer",
+      "status": "ref:PaymentStatusEnum"
+    },
+    "required": [
+      "amount_cents",
+      "id",
+      "refunded_cents",
+      "status"
     ]
   },
   "RegisterRequest": {

@@ -23,13 +23,22 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan
-from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
+from apps.payments.models import (
+    Payment,
+    PaymentProvider,
+    PaymentStatus,
+    PaymentWallet,
+    Refund,
+    RefundReason,
+    RefundStatus,
+)
 from apps.payments.providers import paypal
 from apps.payments.providers.base import (
     PaymentVerificationError,
     ProviderFees,
     ProviderNotConfiguredError,
 )
+from apps.payments.refunds import issue_refund
 from apps.payments.services import create_checkout, fees_are_known
 from tests.factories import UserFactory
 
@@ -723,3 +732,172 @@ def test_fetch_fees_for_a_payment_with_no_order_asks_nothing(
     payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
 
     assert paypal.PayPalProvider().fetch_fees(payment) is None
+
+
+# --------------------------------------------------------------------------
+# refunds
+# --------------------------------------------------------------------------
+def captured_paypal_payment(member: User, capture_id: str = "CAPTURE-1") -> Payment:
+    """A succeeded PayPal payment whose stored capture response names ``capture_id``."""
+    payment = pending_paypal_payment(member)
+    payment.status = PaymentStatus.SUCCEEDED
+    payment.raw = capture_payload(payment)
+    payment.raw["purchase_units"][0]["payments"]["captures"][0]["id"] = capture_id
+    payment.save(update_fields=["status", "raw"])
+    return payment
+
+
+def refund_route(mock: respx.MockRouter, capture_id: str, refund_id: str) -> respx.Route:
+    """Mock the refund of one capture, answering with a completed refund."""
+    return mock.post(f"{SANDBOX}/v2/payments/captures/{capture_id}/refund").mock(
+        return_value=httpx.Response(201, json={"id": refund_id, "status": "COMPLETED"})
+    )
+
+
+@respx.mock
+def test_a_refund_posts_the_amount_against_the_capture(
+    member: User, annual_plan: MembershipPlan, account_admin: User
+) -> None:
+    """PayPal refunds a capture, so the call names the capture id and the dollars."""
+    payment = captured_paypal_payment(member)
+    token_route(respx.mock)
+    route = refund_route(respx.mock, "CAPTURE-1", "REFUND-1")
+
+    issue_refund(payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin)
+
+    body = json.loads(route.calls.last.request.content)
+    assert body["amount"] == {"currency_code": "USD", "value": "15.00"}
+
+
+@respx.mock
+def test_a_refund_keeps_the_paypal_refund_id(
+    member: User, annual_plan: MembershipPlan, account_admin: User
+) -> None:
+    """The provider reference is what a later webhook is recognized by."""
+    payment = captured_paypal_payment(member)
+    token_route(respx.mock)
+    refund_route(respx.mock, "CAPTURE-1", "REFUND-1")
+
+    refund = issue_refund(
+        payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin
+    )
+
+    assert refund.provider_ref == "REFUND-1"
+
+
+@respx.mock
+def test_a_refund_of_a_payment_with_no_capture_is_refused(
+    member: User, annual_plan: MembershipPlan, account_admin: User
+) -> None:
+    """Without a capture id there is nothing to refund against."""
+    payment = pending_paypal_payment(member)
+    payment.status = PaymentStatus.SUCCEEDED
+    payment.save(update_fields=["status"])
+
+    with pytest.raises(PaymentVerificationError, match="no completed PayPal capture"):
+        issue_refund(payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin)
+
+    assert Refund.objects.get().status == RefundStatus.FAILED
+
+
+@respx.mock
+def test_a_refund_paypal_rejects_leaves_the_refund_failed(
+    member: User, annual_plan: MembershipPlan, account_admin: User
+) -> None:
+    """PayPal refusing the refund keeps the attempt on the record."""
+    payment = captured_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{SANDBOX}/v2/payments/captures/CAPTURE-1/refund").mock(
+        return_value=httpx.Response(422, json={"message": "REFUND_CAPTURE_CURRENCY_MISMATCH"})
+    )
+
+    with pytest.raises(PaymentVerificationError, match="REFUND_CAPTURE_CURRENCY_MISMATCH"):
+        issue_refund(payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin)
+
+    assert Refund.objects.get().status == RefundStatus.FAILED
+
+
+# --- PAYMENT.CAPTURE.REFUNDED ---------------------------------------------
+def refund_event(payment: Payment, refund_id: str, amount_cents: int) -> dict[str, Any]:
+    """A ``PAYMENT.CAPTURE.REFUNDED`` payload for ``payment``."""
+    return {
+        "id": "WH-REFUND",
+        "event_type": "PAYMENT.CAPTURE.REFUNDED",
+        "resource": {
+            "id": refund_id,
+            "custom_id": str(payment.pk),
+            "status": "COMPLETED",
+            "amount": {"currency_code": "USD", "value": f"{amount_cents / 100:.2f}"},
+        },
+    }
+
+
+def verification_route(mock: respx.MockRouter, status: str = "SUCCESS") -> respx.Route:
+    """Mock PayPal's webhook-signature verification with ``status``."""
+    return mock.post(f"{SANDBOX}/v1/notifications/verify-webhook-signature").mock(
+        return_value=httpx.Response(200, json={"verification_status": status})
+    )
+
+
+@respx.mock
+def test_a_verified_refund_webhook_records_the_refund(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """Somebody refunding in PayPal's dashboard still lands in the ledger."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = captured_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    response = post_webhook(api_client, refund_event(payment, "REFUND-DASH", 1_000))
+
+    assert json.loads(response.content)["handled"] is True
+    refund = Refund.objects.get()
+    assert refund.amount_cents == 1_000
+    assert refund.provider_ref == "REFUND-DASH"
+
+
+@respx.mock
+def test_a_verified_refund_webhook_updates_the_payment(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """A full refund taken in the dashboard leaves the payment refunded here."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = captured_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+
+    post_webhook(api_client, refund_event(payment, "REFUND-FULL", payment.amount_cents))
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.REFUNDED
+
+
+@respx.mock
+def test_a_second_delivery_of_the_refund_webhook_records_nothing(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """PayPal retries a notification, and the refund id makes that harmless."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = captured_paypal_payment(member)
+    token_route(respx.mock)
+    verification_route(respx.mock)
+    event = refund_event(payment, "REFUND-TWICE", 1_000)
+
+    post_webhook(api_client, event)
+    post_webhook(api_client, event)
+
+    assert Refund.objects.count() == 1
+
+
+@respx.mock
+def test_an_unverified_refund_webhook_records_nothing(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Without a webhook id the notification is filed and acted on by nobody."""
+    payment = captured_paypal_payment(member)
+
+    response = post_webhook(api_client, refund_event(payment, "REFUND-UNVERIFIED", 1_000))
+
+    assert json.loads(response.content)["verified"] is False
+    assert Refund.objects.count() == 0

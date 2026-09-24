@@ -36,8 +36,7 @@ from apps.payments.models import (
     RefundReason,
     RefundStatus,
 )
-from apps.payments.providers import get_provider
-from apps.payments.providers.base import PaymentError, ProviderRefund
+from apps.payments.providers.base import PaymentError, ProviderRefund, get_provider
 from caldart import audit
 from caldart.exceptions import DomainValidationError
 from caldart.mail import contact_email, org_name, send_templated

@@ -23,16 +23,18 @@ from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonResponse
 
-from apps.payments.models import Payment, PaymentProvider, PaymentWallet
+from apps.payments.models import Payment, PaymentProvider, PaymentWallet, Refund
 from apps.payments.providers.base import (
     PaymentError,
     PaymentVerificationError,
     Provider,
     ProviderFees,
     ProviderNotConfiguredError,
+    ProviderRefund,
     ProviderUnavailableError,
     register,
 )
+from apps.payments.refunds import record_dashboard_refund
 from apps.payments.services import mark_failed, mark_succeeded, record_provider_event
 
 log = logging.getLogger(__name__)
@@ -61,6 +63,7 @@ TIMEOUT_SECONDS = 20.0
 #: Webhook events worth acting on when the signature has been verified.
 CAPTURE_COMPLETED = "PAYMENT.CAPTURE.COMPLETED"
 CAPTURE_FAILED = frozenset({"PAYMENT.CAPTURE.DENIED", "PAYMENT.CAPTURE.REVERSED"})
+CAPTURE_REFUNDED = "PAYMENT.CAPTURE.REFUNDED"
 
 
 def api_base() -> str:
@@ -262,6 +265,23 @@ def fees_from_order(order: dict[str, Any]) -> ProviderFees | None:
     return fees_from_capture(captures[0])
 
 
+def capture_id(payment: Payment) -> str:
+    """The id of the capture that took ``payment``'s money, read from its stored order.
+
+    A refund is issued against the capture rather than the order, so this is what
+    the refund call needs.  Raises :class:`PaymentVerificationError` when the
+    stored response holds no completed capture, which is what a payment that was
+    never captured looks like.
+    """
+    captures = completed_captures(payment.raw or {})
+    found = captures[0].get("id") if captures else None
+    if not found:
+        raise PaymentVerificationError(
+            "That payment has no completed PayPal capture to refund against."
+        )
+    return str(found)
+
+
 def log_capture_mismatch(payment: Payment, order: dict[str, Any], reason: str) -> None:
     """Record at ERROR a capture that took money we cannot match to our row.
 
@@ -418,6 +438,32 @@ class PayPalProvider(Provider):
         )
         return True
 
+    # ---------------------------------------------------------------- refund
+    def refund(self, payment: Payment, refund: Refund) -> ProviderRefund:
+        """Refund ``refund.amount_cents`` against the capture that took the money.
+
+        Returns PayPal's refund id and the body it answered with.  Raises
+        :class:`PaymentVerificationError` when the payment holds no completed
+        capture, when PayPal rejects the refund, and when it answers without a
+        refund id, and :class:`ProviderUnavailableError` when PayPal cannot be
+        reached.
+        """
+        answer = call(
+            "POST",
+            f"/v2/payments/captures/{capture_id(payment)}/refund",
+            json_body={
+                "amount": {
+                    "currency_code": payment.currency.upper(),
+                    "value": dollars(refund.amount_cents),
+                },
+                "custom_id": str(payment.pk),
+            },
+        )
+        refund_id = answer.get("id")
+        if not refund_id:
+            raise PaymentVerificationError("PayPal did not return a refund id.")
+        return ProviderRefund(provider_ref=str(refund_id), raw=answer)
+
     # --------------------------------------------------------------- webhook
     def handle_webhook(self, request: HttpRequest) -> HttpResponse:
         """Record the notification; act on it only once it is verified.
@@ -426,6 +472,10 @@ class PayPalProvider(Provider):
         developer dashboard.  Without one we cannot tell a real notification
         from a forged one, so the payload is filed against the payment and
         nothing else happens -- capture (above) is what activates memberships.
+
+        A verified ``PAYMENT.CAPTURE.REFUNDED`` is the one notification that
+        writes a record of its own: it files the refund somebody took in PayPal's
+        dashboard, so the ledger is right whoever issued it.
         """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
@@ -465,6 +515,8 @@ class PayPalProvider(Provider):
             )
         elif event_type in CAPTURE_FAILED:
             mark_failed(payment, payload)
+        elif event_type == CAPTURE_REFUNDED:
+            self.record_refund(payment, resource)
         else:
             return JsonResponse({"received": True, "verified": True, "handled": False})
 
@@ -484,6 +536,24 @@ class PayPalProvider(Provider):
         if not payment.provider_ref:
             return None
         return fees_from_order(call("GET", f"/v2/checkout/orders/{payment.provider_ref}"))
+
+    def record_refund(self, payment: Payment, resource: dict[str, Any]) -> Refund | None:
+        """File a refund taken in PayPal's own dashboard against ``payment``.
+
+        ``resource`` is the notification's refund object.  Returns the row
+        written, or ``None`` when the refund is already on file -- the ordinary
+        answer to a redelivered notification, and to the one for a refund CalDART
+        itself issued -- and when PayPal reports it as anything but ``COMPLETED``,
+        since no money has moved yet.
+        """
+        if resource.get("status") != "COMPLETED":
+            return None
+        return record_dashboard_refund(
+            payment,
+            amount_cents=cents((resource.get("amount") or {}).get("value", 0)),
+            provider_ref=str(resource.get("id") or ""),
+            raw=resource,
+        )
 
     def verify_signature(self, request: HttpRequest, payload: dict[str, Any]) -> bool:
         """Ask PayPal whether the notification really came from them.
