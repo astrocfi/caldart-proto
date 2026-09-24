@@ -85,6 +85,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "apps.accounts",
+    "apps.darts",
     "apps.members",
     "apps.aircraft",
     "apps.payments",

@@ -25,8 +25,8 @@ from apps.cms.models import (
     SiteSettings,
     StandardPage,
 )
+from apps.darts.models import Dart
 from apps.members.models import (
-    Dart,
     IfrRated,
     MedicalType,
     MemberProfile,
@@ -122,10 +122,9 @@ class DartFactory(ModelFactory[Dart]):
         django_get_or_create = ["name"]
 
     name = factory.Sequence(lambda n: f"Test DART {n}")
-    airport_identifier = factory.Sequence(lambda n: f"T{n:02d}")
+    airport_identifiers = factory.Sequence(lambda n: f"T{n:02d}")
     city = factory.Faker("city")
     is_active = True
-    sort_order = factory.Sequence(lambda n: n)
 
 
 class AircraftFactory(ModelFactory[Aircraft]):
@@ -345,7 +344,7 @@ def make_dart_page(parent: Page, dart: Dart, **fields: Any) -> DartPage:
     """
     fields.setdefault("leader_name", "Helen Marchetti")
     fields.setdefault("leader_contact", "helen@example.org")
-    slug = dart.airport_identifier.lower() or "team"
+    slug = dart.airport_identifiers.lower() or "team"
     return publish(parent, DartPage(title=dart.name, slug=slug, dart=dart, **fields))
 
 

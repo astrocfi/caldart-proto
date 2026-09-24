@@ -12,7 +12,7 @@ from typing import NamedTuple
 
 import pytest
 
-from apps.members.models import Dart
+from apps.darts.models import Dart
 from caldart.models import TimestampedModel
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -22,12 +22,15 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 #: and ``payments`` are siblings that cannot reach each other.
 APP_LAYERS: dict[str, int] = {
     "accounts": 1,
-    "members": 2,
-    "aircraft": 3,
-    "payments": 3,
-    "reminders": 4,
-    "cms": 5,
-    "sysadmin": 5,
+    # A DART is named by a member's profile and by a website page, and knows
+    # about neither, so it sits below the app that points at it.
+    "darts": 2,
+    "members": 3,
+    "aircraft": 4,
+    "payments": 4,
+    "reminders": 5,
+    "cms": 6,
+    "sysadmin": 6,
 }
 
 #: Directories that are composition points: they may import any app.  ``migrations``

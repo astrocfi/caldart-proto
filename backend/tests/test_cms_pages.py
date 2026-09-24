@@ -16,7 +16,8 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.cms.context_processors import PORTAL_TITLE, build_nav
 from apps.cms.models import SiteSettings, StandardPage
-from apps.members.models import Dart, MembershipPlan
+from apps.darts.models import Dart
+from apps.members.models import MembershipPlan
 from tests.factories import (
     expire_membership,
     grant_membership,
@@ -152,12 +153,13 @@ def test_home_page_sidebar_offers_every_active_dart(
     client: Client, site_settings: SiteSettings
 ) -> None:
     """The team finder offers the active DARTs and posts to the lookup route."""
-    Dart.objects.create(name="Reid-Hillview DART", airport_identifier="KRHV")
-    Dart.objects.create(name="Retired DART", airport_identifier="XXX", is_active=False)
+    # ``KRHV`` is the ICAO spelling; the model stores the three-character form.
+    Dart.objects.create(name="Reid-Hillview DART", airport_identifiers="KRHV")
+    Dart.objects.create(name="Retired DART", airport_identifiers="XXX", is_active=False)
 
     body = client.get("/").content.decode()
     assert 'action="/find-dart/"' in body
-    assert "Reid-Hillview DART (KRHV)" in body
+    assert "Reid-Hillview DART (RHV)" in body
     assert "Retired DART" not in body
 
 
@@ -347,7 +349,7 @@ def test_dart_page_renders_its_facts(
     index = make_dart_index(about)
     page = make_dart_page(index, dart, body=[("paragraph", "<p>We meet monthly.</p>")])
 
-    assert page.airport_identifier == "PAO"
+    assert page.airport_identifiers == "PAO"
     assert page.city == "Palo Alto"
     assert page.leader_href == "mailto:helen@example.org"
 

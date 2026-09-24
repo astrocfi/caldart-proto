@@ -632,6 +632,9 @@ Action                        Fields beyond actor and target
 ``account.deactivate``        --
 ``member.create``             ``invited`` -- whether an invitation was mailed
 ``member.delete``             --
+``dart.create``               --
+``dart.update``               --
+``dart.delete``               --
 ``membership.grant``          ``plan``, ``term``
 ``membership.correct``        ``term``, ``fields``
 ``password_reset.admin_sent`` --

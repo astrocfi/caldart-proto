@@ -14,10 +14,10 @@ import pytest
 from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
 from apps.accounts.models import User
+from apps.darts.models import Dart
 from apps.members.api.admin_filters import applied_filters
 from apps.members.api.admin_views import MemberExportPdfView
 from apps.members.models import (
-    Dart,
     MedicalType,
     MembershipPlan,
     MembershipStatusChoices,
@@ -67,7 +67,7 @@ def reportable(
 ) -> dict[str, User]:
     """Three members whose report rows exercise every kind of cell."""
     day = timedelta(days=1)
-    napa = DartFactory(name="Napa", airport_identifier="APC", city="Napa")
+    napa = DartFactory(name="Napa", airport_identifiers="APC", city="Napa")
 
     pilot = UserFactory(email="pilot@example.test", first_name="Ada", last_name="Marsh")
     MemberProfileFactory(

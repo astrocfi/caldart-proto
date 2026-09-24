@@ -9,9 +9,11 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
+import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { useAdminUser, useSendPasswordReset, useUpdateAdminUser } from './api';
 
@@ -48,6 +50,7 @@ export function UserDetailPage(): JSX.Element {
   const { user: me } = useAuth();
 
   const [form, setForm] = useState<FormState | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const user = query.data;
 
   // Seed the form once the account has loaded, and again after a save so the
@@ -114,6 +117,11 @@ export function UserDetailPage(): JSX.Element {
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
+            if (!isEmailAddress(form.email)) {
+              setEmailError(EMAIL_MESSAGE);
+              return;
+            }
+            setEmailError(null);
             update.mutate(form, {
               onSuccess: () => toast.show('Account saved.', 'success'),
             });
@@ -145,17 +153,18 @@ export function UserDetailPage(): JSX.Element {
           </Field>
           <Field
             label="Email address"
-            error={fieldError(update.error, 'email')}
+            error={emailError ?? fieldError(update.error, 'email')}
             hint="This is also how they sign in."
           >
             {(props) => (
-              <input
+              <MaskedInput
                 {...props}
                 type="email"
                 name="email"
                 autoComplete="email"
+                mask={maskEmail}
                 value={form.email}
-                onChange={(event) => setForm({ ...form, email: event.target.value })}
+                onValueChange={(next) => setForm({ ...form, email: next })}
               />
             )}
           </Field>

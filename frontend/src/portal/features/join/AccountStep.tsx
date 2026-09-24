@@ -8,6 +8,8 @@ import { useAuth, useRegister, useSignOut } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
+import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
 import './join.css';
 
 export interface AccountStepProps {
@@ -23,6 +25,7 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   if (isAuthenticated && user) {
     return (
@@ -45,6 +48,13 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Say so here rather than after a round trip: the address is how they
+    // will sign in, and a typo in it locks them out of their own account.
+    if (!isEmailAddress(email)) {
+      setEmailError(EMAIL_MESSAGE);
+      return;
+    }
+    setEmailError(null);
     register.mutate(
       {
         email: email.trim(),
@@ -88,18 +98,19 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
         <Field
           label="Email address"
           required
-          error={fieldErrors.email ?? null}
+          error={emailError ?? fieldErrors.email ?? null}
           hint="This is how you will sign in."
         >
           {(props) => (
-            <input
+            <MaskedInput
               {...props}
               type="email"
               name="email"
               autoComplete="email"
               required
+              mask={maskEmail}
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onValueChange={(next) => setEmail(next)}
             />
           )}
         </Field>

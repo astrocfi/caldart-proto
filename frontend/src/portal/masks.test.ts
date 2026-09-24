@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   caretAfterMask,
+  isEmailAddress,
+  maskEmail,
   maskAirportIdentifier,
+  maskAirportIdentifiers,
   maskDigits,
   maskDollars,
   maskExtension,
@@ -61,20 +64,38 @@ describe('maskAirportIdentifier', () => {
     expect(maskAirportIdentifier('e16')).toBe('E16');
   });
 
-  it('drops the ICAO K typed in front of a full identifier', () => {
-    expect(maskAirportIdentifier('KPAO')).toBe('PAO');
+  it('trims the ICAO K as the fourth character arrives', () => {
+    expect(maskAirportIdentifier('kcrq')).toBe('CRQ');
   });
 
-  it('keeps a K that is part of the identifier', () => {
+  it('keeps a three-character identifier that starts with K', () => {
     expect(maskAirportIdentifier('KLS')).toBe('KLS');
   });
 
-  it('drops only the prefix from an identifier that starts with K', () => {
+  it('trims only the prefix from an identifier that starts with K', () => {
     expect(maskAirportIdentifier('KKAB')).toBe('KAB');
   });
 
-  it('refuses a fourth character', () => {
+  it('refuses a fourth character that is not an ICAO prefix', () => {
     expect(maskAirportIdentifier('SQLX')).toBe('SQL');
+  });
+});
+
+describe('maskAirportIdentifiers', () => {
+  it('keeps the commas between identifiers', () => {
+    expect(maskAirportIdentifiers('ccr, c83')).toBe('CCR, C83');
+  });
+
+  it('trims the ICAO K from every entry of a pasted list', () => {
+    expect(maskAirportIdentifiers('KCRQ, KMYF, F70')).toBe('CRQ, MYF, F70');
+  });
+
+  it('refuses punctuation that is not a comma', () => {
+    expect(maskAirportIdentifiers('CCR; C83')).toBe('CCR C83');
+  });
+
+  it('collapses a doubled separator', () => {
+    expect(maskAirportIdentifiers('CCR,,  C83')).toBe('CCR, C83');
   });
 });
 
@@ -168,4 +189,35 @@ describe('caretAfterMask', () => {
   it('puts the caret at the start when nothing precedes it', () => {
     expect(caretAfterMask('415-555-0100', 0, '415-555-0100')).toBe(0);
   });
+});
+
+describe('maskEmail', () => {
+  it('refuses the spaces a copied address drags in', () => {
+    expect(maskEmail(' marta@example.org ')).toBe('marta@example.org');
+  });
+
+  it('lower-cases what was typed', () => {
+    expect(maskEmail('Marta@Example.ORG')).toBe('marta@example.org');
+  });
+
+  it('refuses a second at sign', () => {
+    expect(maskEmail('marta@example@org')).toBe('marta@exampleorg');
+  });
+
+  it('keeps the punctuation an address may hold', () => {
+    expect(maskEmail("o'neill+dart_1@sub.example.co.uk")).toBe("o'neill+dart_1@sub.example.co.uk");
+  });
+});
+
+describe('isEmailAddress', () => {
+  it.each(['marta@example.org', 'o.neill+dart@sub.example.co.uk'])('accepts %s', (value) => {
+    expect(isEmailAddress(value)).toBe(true);
+  });
+
+  it.each(['marta', 'marta@example', 'marta@.org', '@example.org', 'marta@example.o'])(
+    'refuses %s',
+    (value) => {
+      expect(isEmailAddress(value)).toBe(false);
+    },
+  );
 });

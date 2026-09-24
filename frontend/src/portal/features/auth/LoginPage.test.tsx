@@ -113,13 +113,33 @@ describe('LoginPage', () => {
     );
 
     renderLogin();
-    await userEvent.type(await screen.findByLabelText(/email address/i), 'bogus');
+    await userEvent.type(await screen.findByLabelText(/email address/i), 'marta@example.org');
     await userEvent.type(screen.getByLabelText(/password/i), 'whatever');
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     const input = await screen.findByLabelText(/email address/i);
     await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'true'));
     expect(screen.getByText('Enter a valid email address.')).toBeInTheDocument();
+  });
+
+  it('refuses an address that is not one before asking the server', async () => {
+    let asked = false;
+    server.use(
+      http.post(`${API}/auth/login`, () => {
+        asked = true;
+        return HttpResponse.json({ detail: 'nope' }, { status: 400 });
+      }),
+    );
+
+    renderLogin();
+    await userEvent.type(await screen.findByLabelText(/email address/i), 'bogus');
+    await userEvent.type(screen.getByLabelText(/password/i), 'whatever');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(
+      await screen.findByText('Use an email address like name@example.org.'),
+    ).toBeInTheDocument();
+    expect(asked).toBe(false);
   });
 
   it('drops everything the previous user had cached', async () => {

@@ -14,7 +14,8 @@ An unsafe method with no ``X-CSRFToken`` gets **403** before either check,
 signed in or not.  Those two answers are the same on every endpoint here and
 are not repeated in the status lists below.
 
-The code lives in ``backend/apps/members/``:
+The DART catalog and the DART screen live in their own app; see
+:doc:`api-darts`.  The code here lives in ``backend/apps/members/``:
 
 ``api/admin_views.py``
    The views.

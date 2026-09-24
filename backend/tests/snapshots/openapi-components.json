@@ -413,16 +413,80 @@
   },
   "Dart": {
     "properties": {
-      "airport_identifier": "string",
+      "airport_identifiers": "string",
       "city": "string",
+      "contacts": "array<ref:DartContact>",
       "id": "integer",
-      "name": "string"
+      "name": "string",
+      "website_url": "string(uri)"
     },
     "required": [
-      "airport_identifier",
+      "airport_identifiers",
       "city",
+      "contacts",
       "id",
+      "name",
+      "website_url"
+    ]
+  },
+  "DartAdmin": {
+    "properties": {
+      "airport_identifiers": "string",
+      "city": "string",
+      "contacts": "array<ref:DartContact>",
+      "id": "integer",
+      "is_active": "boolean",
+      "member_count": "integer",
+      "name": "string",
+      "page_count": "integer",
+      "website_url": "unknown"
+    },
+    "required": [
+      "airport_identifiers",
+      "id",
+      "member_count",
+      "name",
+      "page_count"
+    ]
+  },
+  "DartAdminRequest": {
+    "properties": {
+      "airport_identifiers": "string",
+      "city": "string",
+      "contacts": "array<ref:DartContactRequest>",
+      "is_active": "boolean",
+      "name": "string",
+      "website_url": "unknown"
+    },
+    "required": [
+      "airport_identifiers",
       "name"
+    ]
+  },
+  "DartContact": {
+    "properties": {
+      "email": "unknown",
+      "id": "integer",
+      "name": "string",
+      "phone": "string",
+      "title": "string"
+    },
+    "required": [
+      "id",
+      "name",
+      "title"
+    ]
+  },
+  "DartContactRequest": {
+    "properties": {
+      "email": "unknown",
+      "name": "string",
+      "phone": "string",
+      "title": "string"
+    },
+    "required": [
+      "name",
+      "title"
     ]
   },
   "DartRef": {
@@ -965,6 +1029,17 @@
       "owner_type": "ref:OwnerTypeEnum",
       "seats": "integer|null",
       "year": "integer|null"
+    },
+    "required": []
+  },
+  "PatchedDartAdminRequest": {
+    "properties": {
+      "airport_identifiers": "string",
+      "city": "string",
+      "contacts": "array<ref:DartContactRequest>",
+      "is_active": "boolean",
+      "name": "string",
+      "website_url": "unknown"
     },
     "required": []
   },

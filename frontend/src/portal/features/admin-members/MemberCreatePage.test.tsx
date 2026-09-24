@@ -10,7 +10,7 @@ import { server } from '@test/server';
 import { MemberCreatePage } from './MemberCreatePage';
 import { makeDetail } from '@test/fixtures/members';
 
-const DARTS = [{ id: 3, name: 'Palo Alto', airport_identifier: 'PAO', city: 'Palo Alto' }];
+const DARTS = [{ id: 3, name: 'Palo Alto', airport_identifiers: 'PAO', city: 'Palo Alto' }];
 
 let posted: Record<string, unknown> | null = null;
 

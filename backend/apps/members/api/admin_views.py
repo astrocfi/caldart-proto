@@ -1,4 +1,4 @@
-"""Account-administrator member management and reports.
+"""Account-administrator member and membership management, and reports.
 
 Every view here is gated on ``account_admin``; ``system_admin`` passes through
 :func:`apps.accounts.permissions.user_has_any_role`.  Anonymous callers get 401

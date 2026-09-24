@@ -37,7 +37,7 @@ describe('ForgotPasswordPage', () => {
     );
 
     renderWithProviders(<ForgotPasswordPage />);
-    await userEvent.type(screen.getByLabelText(/email address/i), 'bogus');
+    await userEvent.type(screen.getByLabelText(/email address/i), 'marta@example.org');
     await userEvent.click(screen.getByRole('button', { name: /email me a link/i }));
 
     expect(await screen.findByText('Enter a valid email address.')).toBeInTheDocument();

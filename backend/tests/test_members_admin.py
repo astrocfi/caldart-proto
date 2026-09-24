@@ -27,8 +27,8 @@ from apps.accounts.roles import (
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
+from apps.darts.models import Dart
 from apps.members.models import (
-    Dart,
     MedicalType,
     MemberProfile,
     Membership,
@@ -96,7 +96,7 @@ def population(
 ) -> dict[str, User]:
     """A mixed member table: current, expiring, expired, lifetime and never."""
     day = timedelta(days=1)
-    other_dart = DartFactory(name="Livermore", airport_identifier="LVK", city="Livermore")
+    other_dart = DartFactory(name="Livermore", airport_identifiers="LVK", city="Livermore")
     aircraft = AircraftFactory(n_number="N4242C")
 
     people: dict[str, User] = {}

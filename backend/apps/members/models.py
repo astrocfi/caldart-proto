@@ -1,8 +1,11 @@
-"""Members domain: Dart, MemberProfile, MembershipPlan, Membership."""
+"""Members domain: MemberProfile, MembershipPlan, Membership.
+
+The teams themselves live in ``apps.darts``: a DART outlives any one
+membership, and it carries its own airports and its own people.
+"""
 
 from __future__ import annotations
 
-import re
 from datetime import date
 from typing import Any
 
@@ -11,33 +14,7 @@ from django.db import models
 from django.utils import timezone
 
 from caldart.models import TimestampedModel
-
-
-# ``cms.DartPage`` points here with ``related_name="pages"``, but it is a Wagtail
-# page: its base classes are untyped, so django-stubs cannot build the reverse
-# manager for the relation and reports it against this end of it.
-class Dart(TimestampedModel):  # type: ignore[django-manager-missing]
-    """A local Disaster Airlift Response Team."""
-
-    name = models.CharField(max_length=120, unique=True)
-    airport_identifier = models.CharField(
-        max_length=8, blank=True, help_text="FAA identifier, e.g. E16"
-    )
-    city = models.CharField(max_length=120, blank=True)
-    is_active = models.BooleanField(default=True)
-    sort_order = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        ordering = ["sort_order", "name"]
-        verbose_name = "DART"
-        verbose_name_plural = "DARTs"
-        indexes = [models.Index(fields=["is_active", "sort_order"], name="members_dart_active_idx")]
-
-    def __str__(self) -> str:
-        """The name, with the airport identifier in parentheses when there is one."""
-        if self.airport_identifier:
-            return f"{self.name} ({self.airport_identifier})"
-        return self.name
+from caldart.phone import normalize_phone
 
 
 class PilotCertificateType(models.TextChoices):
@@ -214,40 +191,6 @@ CALIFORNIA_COUNTIES: tuple[str, ...] = (
 #: highest civil totals on record are under 60,000.
 MAX_TOTAL_HOURS = 99_999
 
-#: A phone number as this system stores and prints it.
-PHONE_RE = re.compile(r"^\d{3}-\d{3}-\d{4}$")
-
-#: What a phone extension may be: digits, and not many of them.
-PHONE_EXTENSION_RE = re.compile(r"^\d{1,6}$")
-
-#: A three-character FAA airport identifier, such as ``PAO``, ``E16`` or
-#: ``KLS``.  Any of the three may be a ``K``: it is the four-letter ICAO form
-#: that carries ``K`` as a prefix, and the form typed here never does.
-AIRPORT_IDENTIFIER_RE = re.compile(r"^[A-Z0-9]{3}$")
-
-AIRPORT_IDENTIFIER_MESSAGE = "Use a three-character identifier like PAO, E16, or KLS."
-
-_PHONE_STRIP = re.compile(r"[^0-9]")
-
-
-def normalize_phone(value: str | None) -> str:
-    """Return ``value`` as ``XXX-XXX-XXXX``, or unchanged when it cannot be.
-
-    Punctuation and spaces are dropped and a leading country code ``1`` is
-    removed, so ``+1 (415) 555-0100``, ``415.555.0100`` and ``4155550100`` all
-    come back ``415-555-0100``.  A blank value gives ``""``.  Anything that is
-    not ten digits after that is returned stripped of nothing, for the caller to
-    refuse: this function never invents a number.
-    """
-    if not value:
-        return ""
-    digits = _PHONE_STRIP.sub("", value)
-    if len(digits) == 11 and digits.startswith("1"):
-        digits = digits[1:]
-    if len(digits) != 10:
-        return value.strip()
-    return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
-
 
 class MemberProfile(TimestampedModel):
     """Everything the join form collects, plus admin-only notes."""
@@ -282,7 +225,7 @@ class MemberProfile(TimestampedModel):
     home_airport_identifier = models.CharField(max_length=3, blank=True)
     home_airport_city = models.CharField(max_length=120, blank=True)
     dart = models.ForeignKey(
-        Dart, on_delete=models.SET_NULL, null=True, blank=True, related_name="members"
+        "darts.Dart", on_delete=models.SET_NULL, null=True, blank=True, related_name="members"
     )
     air_care_alliance_number = models.CharField(max_length=40, blank=True)
     pilot_certificate_type = models.CharField(

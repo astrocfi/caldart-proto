@@ -17,13 +17,16 @@ from django.utils import timezone
 
 from apps.accounts.models import User as UserModel
 from apps.aircraft.models import Aircraft, normalize_n_number
-from apps.members.models import MembershipState, normalize_phone
+from apps.members.models import (
+    MembershipState,
+)
 from apps.members.services import (
     membership_of,
     membership_payload,
     membership_status,
     with_membership,
 )
+from caldart.phone import normalize_phone
 
 User = get_user_model()
 
