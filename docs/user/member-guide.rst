@@ -45,13 +45,19 @@ profile that lets you move on.
 Everything else can wait until later.  The form is in three sections:
 
 **Contact**
-  Phone and alternate phone, postal address, county — California counties
-  are offered as suggestions as you type — and an emergency contact.
+  Phone and alternate phone, an optional extension, postal address, and an
+  emergency contact.  Every number is stored as ``415-555-0100``: type it any
+  way you like — with a ``+1``, with brackets, or as ten bare digits — and it is
+  filed in that one shape.  **State** is a list, **ZIP code** is five digits, and
+  **California county** is a list with "Not in California" at the top of it.
 
 **Aviation**
   Your home airport, the DART you fly with, your Air Care Alliance number,
-  pilot certificate and number, whether you are IFR rated, ratings
-  , medical, and its expiration date, last flight review and total hours.
+  pilot certificate and number, whether you are IFR rated, ratings, medical
+  and its expiration date, last flight review and total hours.  The ratings are
+  ASEL, AMEL, ASES, AMES, Helicopter and Instrument on one line, and CFI, CFII
+  and MEI on the next.  Tick **I fly rented or borrowed aircraft** if you have
+  no airframe of your own to list: a DART leader then knows that is why.
 
   Two rules are enforced: if you name a pilot certificate you must give its
   number, and if you name a medical (BasicMed or any class) you must give
@@ -236,10 +242,12 @@ When something goes wrong
    rule applies to a pilot certificate and its number: *"Give your pilot
    certificate number."*
 
-**The state or postal code box is rejected.**
-   *"Use the two-letter state code, for example CA."* and *"Use a ZIP code
-   like 95035 or 95035-1234."*  The state field takes two letters, and the
-   postal code five digits or five plus four.
+**A phone number is rejected.**
+   *"Use a ten-digit number like 415-555-0100."*  Ten digits are what the
+   system stores, however you type them.  An extension goes in its own box.
+
+**The ZIP code box is rejected.**
+   *"Use a five-digit ZIP code like 95035."*  ZIP+4 is not collected.
 
 **The dashboard still nags you to finish your profile.**
    The nudge checks exactly the fields the profile form requires — phone,

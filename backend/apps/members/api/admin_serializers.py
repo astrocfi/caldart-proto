@@ -54,7 +54,10 @@ class AdminProfileSerializer(ProfileSerializer):
     joins at an airshow may be no more than a name.
     """
 
-    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=24, required=False, allow_blank=True)
+    # An administrator may correct the joining date: theirs is the record an
+    # import or a paper form lands in, and only they can know the old date.
+    member_since = serializers.DateField(required=False, allow_null=True)
 
     class Meta(ProfileSerializer.Meta):
         fields = [*ProfileSerializer.Meta.fields, "notes", "how_heard"]

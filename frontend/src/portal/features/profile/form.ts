@@ -8,12 +8,14 @@
  */
 import { ApiError } from '@/portal/api/client';
 import type {
+  CaliforniaCounty,
   IfrRated,
   MedicalType,
   PilotCertificateType,
   Profile,
   ProfilePatch,
   Rating,
+  UsState,
 } from '@/portal/api/types';
 
 /**
@@ -35,13 +37,14 @@ export function saveErrorMessage(error: unknown): string {
 export interface ProfileFormValues {
   /* contact */
   phone: string;
+  phone_extension: string;
   phone_alt: string;
   address_line1: string;
   address_line2: string;
   city: string;
-  state: string;
+  state: UsState;
   postal_code: string;
-  county: string;
+  county: CaliforniaCounty | '';
   emergency_contact_name: string;
   emergency_contact_phone: string;
   /* aviation */
@@ -58,7 +61,9 @@ export interface ProfileFormValues {
   medical_expiration: string;
   flight_review_date: string;
   total_hours: string;
+  flies_rented_aircraft: boolean;
   /* volunteer interests */
+  vol_mission_pilot: boolean;
   vol_ground_team: boolean;
   vol_exercise_training: boolean;
   vol_member_support: boolean;
@@ -71,6 +76,7 @@ export type ProfileFormErrors = Partial<Record<keyof ProfileFormValues, string>>
 
 export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   phone: '',
+  phone_extension: '',
   phone_alt: '',
   address_line1: '',
   address_line2: '',
@@ -92,6 +98,8 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   medical_expiration: '',
   flight_review_date: '',
   total_hours: '',
+  flies_rented_aircraft: false,
+  vol_mission_pilot: false,
   vol_ground_team: false,
   vol_exercise_training: false,
   vol_member_support: false,
@@ -104,6 +112,7 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
 export function profileToForm(profile: Profile): ProfileFormValues {
   return {
     phone: profile.phone,
+    phone_extension: profile.phone_extension,
     phone_alt: profile.phone_alt,
     address_line1: profile.address_line1,
     address_line2: profile.address_line2,
@@ -125,6 +134,8 @@ export function profileToForm(profile: Profile): ProfileFormValues {
     medical_expiration: profile.medical_expiration ?? '',
     flight_review_date: profile.flight_review_date ?? '',
     total_hours: profile.total_hours === null ? '' : String(profile.total_hours),
+    flies_rented_aircraft: profile.flies_rented_aircraft,
+    vol_mission_pilot: profile.vol_mission_pilot,
     vol_ground_team: profile.vol_ground_team,
     vol_exercise_training: profile.vol_exercise_training,
     vol_member_support: profile.vol_member_support,
@@ -138,16 +149,17 @@ export function profileToForm(profile: Profile): ProfileFormValues {
 export function formToPatch(values: ProfileFormValues): ProfilePatch {
   const hours = values.total_hours.trim();
   return {
-    phone: values.phone.trim(),
-    phone_alt: values.phone_alt.trim(),
+    phone: normalizePhone(values.phone),
+    phone_extension: values.phone_extension.trim(),
+    phone_alt: normalizePhone(values.phone_alt),
     address_line1: values.address_line1.trim(),
     address_line2: values.address_line2.trim(),
     city: values.city.trim(),
-    state: values.state.trim().toUpperCase(),
+    state: values.state,
     postal_code: values.postal_code.trim(),
-    county: values.county.trim(),
+    county: values.county,
     emergency_contact_name: values.emergency_contact_name.trim(),
-    emergency_contact_phone: values.emergency_contact_phone.trim(),
+    emergency_contact_phone: normalizePhone(values.emergency_contact_phone),
     home_airport_identifier: values.home_airport_identifier.trim().toUpperCase(),
     home_airport_city: values.home_airport_city.trim(),
     dart_id: values.dart_id === '' ? null : Number(values.dart_id),
@@ -160,6 +172,8 @@ export function formToPatch(values: ProfileFormValues): ProfilePatch {
     medical_expiration: values.medical_expiration || null,
     flight_review_date: values.flight_review_date || null,
     total_hours: hours === '' ? null : Number(hours),
+    flies_rented_aircraft: values.flies_rented_aircraft,
+    vol_mission_pilot: values.vol_mission_pilot,
     vol_ground_team: values.vol_ground_team,
     vol_exercise_training: values.vol_exercise_training,
     vol_member_support: values.vol_member_support,
@@ -169,8 +183,29 @@ export function formToPatch(values: ProfileFormValues): ProfilePatch {
   };
 }
 
-const STATE_RE = /^[A-Za-z]{2}$/;
-const POSTAL_RE = /^\d{5}(-\d{4})?$/;
+const POSTAL_RE = /^\d{5}$/;
+const PHONE_RE = /^\d{3}-\d{3}-\d{4}$/;
+const EXTENSION_RE = /^\d{1,6}$/;
+
+/** The most hours a logbook may claim, matching `MAX_TOTAL_HOURS` on the server. */
+export const MAX_TOTAL_HOURS = 99_999;
+
+const PHONE_MESSAGE = 'Use a ten-digit number like 415-555-0100.';
+
+/**
+ * A typed number as this system stores it: `XXX-XXX-XXXX`.
+ *
+ * Punctuation and spaces are dropped and a leading country code `1` with them,
+ * so `+1 (415) 555-0100` and `4155550100` both come back `415-555-0100`.
+ * Anything that is not ten digits is returned trimmed, for the caller to
+ * refuse: this never invents a number.
+ */
+export function normalizePhone(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  const ten = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  if (ten.length !== 10) return value.trim();
+  return `${ten.slice(0, 3)}-${ten.slice(3, 6)}-${ten.slice(6)}`;
+}
 
 /**
  * The fields that make a profile "complete" — the list behind the user payload's
@@ -186,6 +221,7 @@ export const REQUIRED_PROFILE_FIELDS = [
   'phone',
   'address_line1',
   'city',
+  'state',
   'postal_code',
   'pilot_certificate_type',
 ] as const satisfies readonly (keyof ProfileFormValues)[];
@@ -194,6 +230,7 @@ const REQUIRED_MESSAGES: Record<(typeof REQUIRED_PROFILE_FIELDS)[number], string
   phone: 'A phone number is required.',
   address_line1: 'Your street address is required.',
   city: 'Your city is required.',
+  state: 'Choose your state.',
   postal_code: 'Your ZIP code is required.',
   pilot_certificate_type: 'Choose a certificate, or "Not a pilot".',
 };
@@ -212,14 +249,20 @@ export function validateProfileForm(values: ProfileFormValues): ProfileFormError
     if (!String(values[field] ?? '').trim()) errors[field] = REQUIRED_MESSAGES[field];
   }
 
-  const state = values.state.trim();
-  if (state && !STATE_RE.test(state)) {
-    errors.state = 'Use the two-letter state code, for example CA.';
+  for (const field of ['phone', 'phone_alt', 'emergency_contact_phone'] as const) {
+    const typed = values[field].trim();
+    if (!typed) continue;
+    if (!PHONE_RE.test(normalizePhone(typed))) errors[field] = PHONE_MESSAGE;
+  }
+
+  const extension = values.phone_extension.trim();
+  if (extension && !EXTENSION_RE.test(extension)) {
+    errors.phone_extension = 'An extension is digits only, for example 4021.';
   }
 
   const postal = values.postal_code.trim();
   if (postal && !POSTAL_RE.test(postal)) {
-    errors.postal_code = 'Use a ZIP code like 95035 or 95035-1234.';
+    errors.postal_code = 'Use a five-digit ZIP code like 95035.';
   }
 
   if (values.medical_type !== 'none' && !values.medical_expiration) {
@@ -233,6 +276,8 @@ export function validateProfileForm(values: ProfileFormValues): ProfileFormError
   const hours = values.total_hours.trim();
   if (hours !== '' && !/^\d+$/.test(hours)) {
     errors.total_hours = 'Enter your total hours as a whole number.';
+  } else if (hours !== '' && Number(hours) > MAX_TOTAL_HOURS) {
+    errors.total_hours = `Enter fewer than ${MAX_TOTAL_HOURS.toLocaleString('en-US')} hours.`;
   }
 
   return errors;

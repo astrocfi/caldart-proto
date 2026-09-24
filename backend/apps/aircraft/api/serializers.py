@@ -8,7 +8,12 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from apps.aircraft.models import Aircraft, normalize_n_number
+from apps.aircraft.models import (
+    N_NUMBER_MESSAGE,
+    N_NUMBER_RE,
+    Aircraft,
+    normalize_n_number,
+)
 from apps.members.models import (
     RATING_VALUES,
     IfrRated,
@@ -21,7 +26,7 @@ NEGATIVE_MONEY_MESSAGE = "Enter an amount of $0 or more."
 
 
 class NNumberField(serializers.CharField):
-    """A registration field that always stores the canonical ``N12345`` form.
+    """A registration field that always stores the canonical ``N172SP`` form.
 
     Normalizing in ``to_internal_value`` (rather than in ``validate_n_number``)
     matters: DRF runs a field's validators on the value this returns, so the
@@ -40,7 +45,9 @@ class NNumberField(serializers.CharField):
         value = super().to_internal_value(cast("str", data))
         normalized = normalize_n_number(value)
         if not normalized:
-            raise serializers.ValidationError("Enter a registration, for example N12345.")
+            raise serializers.ValidationError("Enter a registration, for example N172SP.")
+        if not N_NUMBER_RE.match(normalized):
+            raise serializers.ValidationError(N_NUMBER_MESSAGE)
         return normalized
 
 

@@ -17,20 +17,31 @@ from rest_framework import serializers
 from apps.aircraft.api.serializers import AircraftSummarySerializer
 from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.models import (
+    CALIFORNIA_COUNTIES,
+    MAX_TOTAL_HOURS,
+    PHONE_EXTENSION_RE,
+    PHONE_RE,
     RATING_VALUES,
+    US_STATE_VALUES,
     Dart,
     MedicalType,
     MemberProfile,
     Membership,
     PilotCertificateType,
+    normalize_phone,
 )
 from apps.payments.models import Payment
 
-#: Two letters, e.g. ``CA``.
-STATE_RE = re.compile(r"^[A-Za-z]{2}$")
+#: Five digits, e.g. ``95035``.  The four-digit add-on is not collected: it is
+#: not needed to reach anybody and it is one more thing to keep right.
+POSTAL_RE = re.compile(r"^\d{5}$")
 
-#: ``12345`` or ``12345-6789``.
-POSTAL_RE = re.compile(r"^\d{5}(-\d{4})?$")
+#: What every phone field answers when it cannot be read as ten digits.
+PHONE_MESSAGE = "Use a ten-digit number like 415-555-0100."
+
+#: How long a typed number may be before it is refused on length alone: enough
+#: for ``+1 (415) 555-0100`` and its spaces, and nowhere near a paragraph.
+RAW_PHONE_LENGTH = 24
 
 
 class DartSerializer(serializers.ModelSerializer[Dart]):
@@ -109,9 +120,26 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     )
     aircraft = AircraftSummarySerializer(many=True, read_only=True)
     medical_is_current = serializers.BooleanField(read_only=True)
+    # Stamped when the first term is created and never moved, so it is reported
+    # rather than edited here; an administrator corrects it on the member record.
+    member_since = serializers.DateField(read_only=True, allow_null=True)
 
     # A member has to be reachable: required on PUT, never blank on PATCH.
-    phone = serializers.CharField(max_length=32)
+    #
+    # The three phone fields take a longer string than the column holds, because
+    # what arrives may carry a country code, spaces and brackets.  What is stored
+    # is always the canonical twelve characters, and a number too long to be one
+    # is answered with `PHONE_MESSAGE` rather than a column-width complaint.
+    phone = serializers.CharField(max_length=RAW_PHONE_LENGTH)
+    phone_alt = serializers.CharField(max_length=RAW_PHONE_LENGTH, required=False, allow_blank=True)
+    emergency_contact_phone = serializers.CharField(
+        max_length=RAW_PHONE_LENGTH, required=False, allow_blank=True
+    )
+    state = serializers.ChoiceField(choices=US_STATE_VALUES)
+    county = serializers.ChoiceField(choices=CALIFORNIA_COUNTIES, required=False, allow_blank=True)
+    total_hours = serializers.IntegerField(
+        min_value=0, max_value=MAX_TOTAL_HOURS, required=False, allow_null=True
+    )
     ratings = serializers.ListField(
         child=serializers.ChoiceField(choices=RATING_VALUES),
         required=False,
@@ -130,8 +158,10 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "state",
             "postal_code",
             "county",
+            "phone_extension",
             "emergency_contact_name",
             "emergency_contact_phone",
+            "member_since",
             # aviation
             "home_airport_identifier",
             "home_airport_city",
@@ -148,7 +178,9 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "flight_review_date",
             "total_hours",
             "aircraft",
+            "flies_rented_aircraft",
             # volunteer interests
+            "vol_mission_pilot",
             "vol_ground_team",
             "vol_exercise_training",
             "vol_member_support",
@@ -158,27 +190,54 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         ]
 
     # -- field-level rules -------------------------------------------------
-    def validate_state(self, value: str) -> str:
-        """Uppercase the state, rejecting anything but two letters.
+    def validate_phone(self, value: str) -> str:
+        """The member's own number, in canonical form and never blank."""
+        return self._phone(value, required=True)
 
-        A blank value passes: the field is optional.  Anything else that is not
-        exactly two letters is refused with "Use the two-letter state code, for
-        example CA."
+    def validate_phone_alt(self, value: str) -> str:
+        """A second number, optional, in canonical form."""
+        return self._phone(value, required=False)
+
+    def validate_emergency_contact_phone(self, value: str) -> str:
+        """The emergency contact's number, optional, in canonical form."""
+        return self._phone(value, required=False)
+
+    def _phone(self, value: str, *, required: bool) -> str:
+        """``value`` as ``XXX-XXX-XXXX``, refusing anything that is not ten digits.
+
+        A blank value passes when the field is optional and is refused with
+        ``PHONE_MESSAGE`` when it is not.  ``+1``, spaces, dots and parentheses
+        are all accepted on the way in and none of them are stored.
         """
-        value = (value or "").strip().upper()
-        if value and not STATE_RE.match(value):
-            raise serializers.ValidationError("Use the two-letter state code, for example CA.")
+        normalized = normalize_phone(value)
+        if not normalized:
+            if required:
+                raise serializers.ValidationError(PHONE_MESSAGE)
+            return ""
+        if not PHONE_RE.match(normalized):
+            raise serializers.ValidationError(PHONE_MESSAGE)
+        return normalized
+
+    def validate_phone_extension(self, value: str) -> str:
+        """Up to six digits, and nothing else.
+
+        The extension is its own field so nobody appends it to the number and
+        breaks the format every other screen relies on.
+        """
+        value = (value or "").strip()
+        if value and not PHONE_EXTENSION_RE.match(value):
+            raise serializers.ValidationError("An extension is digits only, for example 4021.")
         return value
 
     def validate_postal_code(self, value: str) -> str:
-        """Trim the ZIP code, rejecting anything but ``12345`` or ``12345-6789``.
+        """Trim the ZIP code, rejecting anything but five digits.
 
         A blank value passes: the field is optional.  Anything else is refused
-        with "Use a ZIP code like 95035 or 95035-1234."
+        with "Use a five-digit ZIP code like 95035."
         """
         value = (value or "").strip()
         if value and not POSTAL_RE.match(value):
-            raise serializers.ValidationError("Use a ZIP code like 95035 or 95035-1234.")
+            raise serializers.ValidationError("Use a five-digit ZIP code like 95035.")
         return value
 
     def validate_ratings(self, value: list[str]) -> list[str]:

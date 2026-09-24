@@ -14,8 +14,32 @@ from typing import Any
 
 from django.core.management.base import BaseCommand
 
+from apps.accounts.models import User
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
-from apps.members.models import MembershipPlan
+from apps.members.models import MembershipPlan, MembershipState
+from apps.members.services import membership_status
+
+
+def _subject(*, insured: bool | None, current_member: bool) -> dict[str, str]:
+    """A seeded member the leader check can be demonstrated on.
+
+    ``insured`` picks somebody who lists an aircraft whose insurance is current
+    (``True``) or has lapsed (``False``), or anybody at all (``None``);
+    ``current_member`` picks somebody whose membership is current or is not.
+    Returns ``{"name", "nNumber"}``, with an empty ``nNumber`` when the member
+    lists no aircraft, and empty strings when nobody in the seed fits -- the
+    specs then fail on the name they were given, which says what is missing.
+    """
+    for user in User.objects.filter(profile__isnull=False).select_related("profile"):
+        is_current = membership_status(user)["status"] == MembershipState.CURRENT
+        if is_current is not current_member:
+            continue
+        for aircraft in user.profile.aircraft.all():
+            if insured is None or aircraft.insurance_is_current is insured:
+                return {"name": user.display_name, "nNumber": aircraft.n_number}
+        if insured is None:
+            return {"name": user.display_name, "nNumber": ""}
+    return {"name": "", "nNumber": ""}
 
 
 def seed_facts() -> dict[str, Any]:
@@ -25,13 +49,21 @@ def seed_facts() -> dict[str, Any]:
     ``accounts`` maps each demo key (``member``, ``leader``, ``sysadmin``, and the
     rest) to that account's address. ``planPricesCents`` maps each membership
     plan's slug to its price in cents, read from the database so it reflects the
-    plans that are actually there.
+    plans that are actually there.  ``leaderCheck`` names three members the
+    leader check reads differently -- an insured pilot, one whose aircraft
+    insurance has lapsed, and one whose membership has -- so the specs assert on
+    the seed rather than on names typed into them, which drift.
     """
     return {
         "demoPassword": DEMO_PASSWORD,
         "accounts": {key: email for key, email, *_rest in DEMO_ACCOUNTS},
         "planPricesCents": {
             plan.slug: plan.price_cents for plan in MembershipPlan.objects.order_by("slug")
+        },
+        "leaderCheck": {
+            "insuredPilot": _subject(insured=True, current_member=True),
+            "lapsedInsurance": _subject(insured=False, current_member=True),
+            "expiredMember": _subject(insured=None, current_member=False),
         },
     }
 

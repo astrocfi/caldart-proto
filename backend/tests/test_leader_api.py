@@ -137,6 +137,30 @@ def test_search_by_partial_email(api_client: APIClient, dart_leader: User, pilot
     ]
 
 
+@pytest.mark.parametrize(
+    "query", ["650-555-0100", "(650) 555-0100", "6505550100", "+1 650 555 0100"]
+)
+def test_search_by_phone_number_matches_on_the_digits(
+    api_client: APIClient, dart_leader: User, pilot: User, query: str
+) -> None:
+    """However the number is punctuated, it finds the member.
+
+    On an activation a ten-digit cell number is the fastest thing a leader has
+    to hand, so every spelling of one has to reach the same person.
+    """
+    api_client.force_login(dart_leader)
+    response = api_client.get(SEARCH_URL, {"q": query})
+    assert [row["user_id"] for row in response.json()] == [pilot.pk]
+
+
+def test_a_short_number_is_not_read_as_a_phone_search(
+    api_client: APIClient, dart_leader: User, pilot: User
+) -> None:
+    """Four digits are a certificate or a street number, not a phone number."""
+    api_client.force_login(dart_leader)
+    assert api_client.get(SEARCH_URL, {"q": "0100"}).json() == []
+
+
 @pytest.mark.parametrize("query", ["N172SP", "n172sp", "n-172-sp", "172sp"])
 def test_search_by_n_number_finds_the_members_who_fly_it(
     api_client: APIClient, dart_leader: User, pilot: User, query: str

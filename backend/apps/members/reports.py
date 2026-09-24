@@ -38,6 +38,9 @@ class RowContext(TypedDict):
 #: Header text and the value function for every column, in export order.
 #: A lifetime membership has no expiry date, so ``expires_on`` is blank for one;
 #: the ``plan`` column ("Life") and ``status`` ("current") say what it is.
+#: ``joined_on`` is the start of the earliest term on file, and ``member_since``
+#: the day the member says they joined -- the same date until the terms before a
+#: gap, or before an import, are missing.
 MEMBER_REPORT_COLUMNS: tuple[tuple[str, Callable[[RowContext], str]], ...] = (
     ("name", lambda ctx: ctx["user"].display_name),
     ("email", lambda ctx: ctx["user"].email),
@@ -55,6 +58,7 @@ MEMBER_REPORT_COLUMNS: tuple[tuple[str, Callable[[RowContext], str]], ...] = (
     ("city", lambda ctx: _value(ctx["profile"], "city")),
     ("state", lambda ctx: _value(ctx["profile"], "state")),
     ("joined_on", lambda ctx: _iso(ctx["joined_on"])),
+    ("member_since", lambda ctx: _iso(_date(ctx["profile"], "member_since"))),
 )
 
 #: Column headers, for both exports.

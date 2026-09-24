@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { aircraftExportUrl, aircraftQuery } from './api';
-import { aircraftPayload, emptyAircraftValues, validateAircraft } from './form';
+import { matchType, suggestTypes } from './catalog';
+import { N_NUMBER_MESSAGE, aircraftPayload, emptyAircraftValues, validateAircraft } from './form';
 import {
   centsToDollars,
   dollarsToCents,
+  formatDollars,
   insuranceTone,
   looksLikeRegistration,
   normalizeNNumber,
@@ -73,10 +75,38 @@ describe('money conversion', () => {
     expect(dollarsToCents(raw)).toBe(expected);
   });
 
-  it('renders cents back into an editable field', () => {
-    expect(centsToDollars(100_000_000)).toBe('1000000');
+  it('renders cents back into an editable field, grouped for reading', () => {
+    expect(centsToDollars(100_000_000)).toBe('1,000,000');
     expect(centsToDollars(12_345)).toBe('123.45');
     expect(centsToDollars(null)).toBe('');
+  });
+
+  it('groups a half-typed amount and leaves anything else alone', () => {
+    expect(formatDollars('1000000')).toBe('1,000,000');
+    expect(formatDollars('1,000,000')).toBe('1,000,000');
+    expect(formatDollars('')).toBe('');
+    expect(formatDollars('about a million')).toBe('about a million');
+  });
+});
+
+describe('the type catalog', () => {
+  it('suggests a type from a few letters of its name', () => {
+    const models = suggestTypes('Mal').map((type) => type.model);
+    expect(models).toContain('PA-46 Malibu');
+  });
+
+  it('suggests from the ICAO designator too', () => {
+    expect(suggestTypes('C172').map((type) => type.model)).toContain('172 Skyhawk');
+  });
+
+  it('says nothing until there is something to go on', () => {
+    expect(suggestTypes('M')).toEqual([]);
+  });
+
+  it('matches a model exactly, so the make can fill itself in', () => {
+    expect(matchType('PA-46 Malibu')?.make).toBe('Piper');
+    expect(matchType('  sr22 ')?.make).toBe('Cirrus');
+    expect(matchType('Mal')).toBeNull();
   });
 });
 
@@ -84,6 +114,22 @@ describe('validateAircraft', () => {
   it('requires a registration, a make and a model', () => {
     const errors = validateAircraft(emptyAircraftValues());
     expect(Object.keys(errors).sort()).toEqual(['make', 'model', 'n_number']);
+  });
+
+  it.each([
+    ['N1', undefined],
+    ['N172SP', undefined],
+    ['n-172sp', undefined],
+    ['N12345', undefined],
+    ['N123AB', undefined],
+    ['N1234567', N_NUMBER_MESSAGE],
+    ['NA1', N_NUMBER_MESSAGE],
+    ['N0123', N_NUMBER_MESSAGE],
+    ['N1I', N_NUMBER_MESSAGE],
+    ['N12ABC', N_NUMBER_MESSAGE],
+  ])('judges the registration %s', (n_number, expected) => {
+    const values = { ...emptyAircraftValues(), n_number, make: 'Cessna', model: '172' };
+    expect(validateAircraft(values).n_number).toBe(expected);
   });
 
   it('rejects a negative liability limit', () => {

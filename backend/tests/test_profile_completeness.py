@@ -20,12 +20,13 @@ PROFILE_URL = "/api/v1/me/profile"
 ME_URL = "/api/v1/auth/me"
 
 
-def test_complete_fields_are_the_five_documented_ones() -> None:
-    """These five alone decide ``profile_complete`` (``docs/developer/api-auth.rst``)."""
+def test_complete_fields_are_the_six_documented_ones() -> None:
+    """These six alone decide ``profile_complete`` (``docs/developer/api-auth.rst``)."""
     assert MemberProfile.COMPLETE_FIELDS == (
         "phone",
         "address_line1",
         "city",
+        "state",
         "postal_code",
         "pilot_certificate_type",
     )
@@ -44,10 +45,10 @@ def test_every_named_field_is_needed(field: str) -> None:
     assert profile.is_complete is False
 
 
-def test_state_is_not_part_of_the_rule() -> None:
-    """``is_complete`` does not require ``state`` to be set."""
+def test_a_blank_state_leaves_the_profile_incomplete() -> None:
+    """``state`` is one of the fields the rule requires: mail has to reach them."""
     profile = MemberProfileFactory(state="")
-    assert profile.is_complete is True
+    assert profile.is_complete is False
 
 
 def test_not_a_pilot_still_counts_as_complete() -> None:

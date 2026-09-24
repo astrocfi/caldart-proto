@@ -160,7 +160,11 @@ def seed_plans() -> list[MembershipPlan]:
 
 
 def _profile_defaults(
-    rng: random.Random, faker: Faker, darts: list[Dart], today: date
+    rng: random.Random,
+    faker: Faker,
+    darts: list[Dart],
+    today: date,
+    certificate: str | None = None,
 ) -> dict[str, Any]:
     """One plausible profile, drawn from ``rng`` and ``faker``.
 
@@ -168,20 +172,25 @@ def _profile_defaults(
     number, ratings, hours, and a flight review, and roughly a quarter of pilots
     are given a medical that expired before ``today`` so the leader checks have
     something to fail on.  The DART is drawn from ``darts`` and supplies the
-    member's city and home airport.
+    member's city and home airport.  ``certificate`` forces the pilot
+    certificate, which the caller uses to make sure every kind appears at least
+    once however the draw falls.
     """
-    certificate = rng.choices(
-        [
-            PilotCertificateType.NONE,
-            PilotCertificateType.STUDENT,
-            PilotCertificateType.SPORT,
-            PilotCertificateType.RECREATIONAL,
-            PilotCertificateType.PRIVATE,
-            PilotCertificateType.COMMERCIAL,
-            PilotCertificateType.ATP,
-        ],
-        weights=[12, 6, 3, 2, 45, 22, 10],
-    )[0]
+    certificate = (
+        certificate
+        or rng.choices(
+            [
+                PilotCertificateType.NONE,
+                PilotCertificateType.STUDENT,
+                PilotCertificateType.SPORT,
+                PilotCertificateType.RECREATIONAL,
+                PilotCertificateType.PRIVATE,
+                PilotCertificateType.COMMERCIAL,
+                PilotCertificateType.ATP,
+            ],
+            weights=[12, 6, 3, 2, 45, 22, 10],
+        )[0]
+    )
     is_pilot = certificate != PilotCertificateType.NONE
 
     if not is_pilot:
@@ -232,6 +241,8 @@ def _profile_defaults(
         "medical_expiration": medical_expiration,
         "flight_review_date": (today - timedelta(days=rng.randint(10, 800)) if is_pilot else None),
         "total_hours": rng.randint(60, 6_000) if is_pilot else None,
+        "flies_rented_aircraft": is_pilot and rng.random() < 0.2,
+        "vol_mission_pilot": is_pilot and rng.random() < 0.5,
         "vol_ground_team": rng.random() < 0.45,
         "vol_exercise_training": rng.random() < 0.5,
         "vol_member_support": rng.random() < 0.3,
@@ -289,8 +300,19 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     ctx["plans"] = {plan.slug: plan for plan in plans}
 
     profiles: list[MemberProfile] = []
+    # One generated member is dealt each certificate type, so the demo data
+    # covers every kind whatever the random draw does with the rest.  The named
+    # demo accounts are left to the draw: the walkthrough and the end-to-end
+    # suite read them by name, and their certificates are part of that story.
+    forced = dict(
+        zip(
+            [user.pk for user in ctx["generated_users"]],
+            PilotCertificateType.values,
+            strict=False,
+        )
+    )
     for user in ctx["users"]:
-        defaults = _profile_defaults(rng, faker, darts, today)
+        defaults = _profile_defaults(rng, faker, darts, today, forced.get(user.pk))
         profile, created = MemberProfile.objects.get_or_create(user=user, defaults=defaults)
         if not created:
             for field, value in defaults.items():

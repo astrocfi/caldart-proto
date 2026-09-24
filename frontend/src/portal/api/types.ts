@@ -105,8 +105,12 @@ export type PilotCertificateType =
 
 export type IfrRated = 'na' | 'yes' | 'no';
 
+/**
+ * A rating a member holds, in the two rows the forms show: the category and
+ * class ratings, then the instructor ones.
+ */
 export type Rating =
-  'instrument' | 'multi_engine' | 'cfi' | 'cfii' | 'mei' | 'seaplane' | 'helicopter' | 'glider';
+  'asel' | 'amel' | 'ases' | 'ames' | 'helicopter' | 'instrument' | 'cfi' | 'cfii' | 'mei';
 
 export type MedicalType = 'none' | 'basicmed' | 'first' | 'second' | 'third';
 
@@ -125,18 +129,141 @@ export interface Plan {
   description: string;
 }
 
+/** A two-letter US state or territory code, as the profile stores it. */
+export type UsState =
+  | 'AL'
+  | 'AK'
+  | 'AZ'
+  | 'AR'
+  | 'CA'
+  | 'CO'
+  | 'CT'
+  | 'DE'
+  | 'DC'
+  | 'FL'
+  | 'GA'
+  | 'HI'
+  | 'ID'
+  | 'IL'
+  | 'IN'
+  | 'IA'
+  | 'KS'
+  | 'KY'
+  | 'LA'
+  | 'ME'
+  | 'MD'
+  | 'MA'
+  | 'MI'
+  | 'MN'
+  | 'MS'
+  | 'MO'
+  | 'MT'
+  | 'NE'
+  | 'NV'
+  | 'NH'
+  | 'NJ'
+  | 'NM'
+  | 'NY'
+  | 'NC'
+  | 'ND'
+  | 'OH'
+  | 'OK'
+  | 'OR'
+  | 'PA'
+  | 'RI'
+  | 'SC'
+  | 'SD'
+  | 'TN'
+  | 'TX'
+  | 'UT'
+  | 'VT'
+  | 'VA'
+  | 'WA'
+  | 'WV'
+  | 'WI'
+  | 'WY'
+  | 'AS'
+  | 'GU'
+  | 'MP'
+  | 'PR'
+  | 'VI';
+
+/** A California county, which is the only county list the profile offers. */
+export type CaliforniaCounty =
+  | 'Alameda'
+  | 'Alpine'
+  | 'Amador'
+  | 'Butte'
+  | 'Calaveras'
+  | 'Colusa'
+  | 'Contra Costa'
+  | 'Del Norte'
+  | 'El Dorado'
+  | 'Fresno'
+  | 'Glenn'
+  | 'Humboldt'
+  | 'Imperial'
+  | 'Inyo'
+  | 'Kern'
+  | 'Kings'
+  | 'Lake'
+  | 'Lassen'
+  | 'Los Angeles'
+  | 'Madera'
+  | 'Marin'
+  | 'Mariposa'
+  | 'Mendocino'
+  | 'Merced'
+  | 'Modoc'
+  | 'Mono'
+  | 'Monterey'
+  | 'Napa'
+  | 'Nevada'
+  | 'Orange'
+  | 'Placer'
+  | 'Plumas'
+  | 'Riverside'
+  | 'Sacramento'
+  | 'San Benito'
+  | 'San Bernardino'
+  | 'San Diego'
+  | 'San Francisco'
+  | 'San Joaquin'
+  | 'San Luis Obispo'
+  | 'San Mateo'
+  | 'Santa Barbara'
+  | 'Santa Clara'
+  | 'Santa Cruz'
+  | 'Shasta'
+  | 'Sierra'
+  | 'Siskiyou'
+  | 'Solano'
+  | 'Sonoma'
+  | 'Stanislaus'
+  | 'Sutter'
+  | 'Tehama'
+  | 'Trinity'
+  | 'Tulare'
+  | 'Tuolumne'
+  | 'Ventura'
+  | 'Yolo'
+  | 'Yuba';
+
 export interface Profile {
   /* contact */
   phone: string;
+  phone_extension: string;
   phone_alt: string;
   address_line1: string;
   address_line2: string;
   city: string;
-  state: string;
+  state: UsState;
   postal_code: string;
-  county: string;
+  county: CaliforniaCounty | '';
   emergency_contact_name: string;
   emergency_contact_phone: string;
+  /** The day they first joined, stamped with their first term and never moved. */
+  member_since: IsoDate | null;
   /* aviation */
   home_airport_identifier: string;
   home_airport_city: string;
@@ -152,7 +279,9 @@ export interface Profile {
   flight_review_date: IsoDate | null;
   total_hours: number | null;
   aircraft: AircraftSummary[];
+  flies_rented_aircraft: boolean;
   /* volunteer interests */
+  vol_mission_pilot: boolean;
   vol_ground_team: boolean;
   vol_exercise_training: boolean;
   vol_member_support: boolean;
@@ -163,7 +292,9 @@ export interface Profile {
 
 /** The writable half of a profile: `dart` reads nested, but writes as `dart_id`. */
 export type ProfilePatch = Partial<
-  Omit<Profile, 'dart' | 'aircraft' | 'medical_is_current'> & { dart_id: number | null }
+  Omit<Profile, 'dart' | 'aircraft' | 'medical_is_current' | 'member_since'> & {
+    dart_id: number | null;
+  }
 >;
 
 /** `POST /me/profile/aircraft` answers with the aircraft the profile now lists. */
@@ -231,6 +362,8 @@ export interface MemberDetail {
 export type AdminProfilePayload = ProfilePatch & {
   notes?: string;
   how_heard?: string;
+  /** Read-only for a member; an administrator may correct the joining date. */
+  member_since?: IsoDate | null;
 };
 
 /** `POST /admin/members`. */

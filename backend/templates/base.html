@@ -84,12 +84,19 @@
           {% endif %}{% endfor %}
         </ul>
         <ul class="navbar__actions">
-          {% if user.is_authenticated %}
-            <li class="navbar__greeting">Welcome, {% firstof user.first_name user.email %}</li>
-          {% endif %}
+          {% comment %}
+            Signed in, the portal link *is* the greeting: one entry, which says
+            who you are and takes you to your own record.
+          {% endcomment %}
           {% for item in nav %}{% if item.kind == "portal" %}
             <li>
-              <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.title }}</a>
+              <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>
+                {% if user.is_authenticated and item.url == "/portal/" %}
+                  Welcome, {% firstof user.first_name user.email %}
+                {% else %}
+                  {{ item.title }}
+                {% endif %}
+              </a>
             </li>
           {% endif %}{% endfor %}
         </ul>

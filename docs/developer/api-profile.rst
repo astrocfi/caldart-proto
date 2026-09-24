@@ -170,14 +170,25 @@ Validation
 ===========================  ===========================================================
 Field                        Rule
 ===========================  ===========================================================
-``phone``                    Required on ``PUT``; never blank on ``PATCH``.
-``state``                    Two letters if given; stored upper-cased (``ca`` → ``CA``).
-                             The column is two characters wide, so a longer value is
-                             refused by the field's own length check.
-``postal_code``              ``12345`` or ``12345-6789`` if given.
-``ratings``                  Each value from ``instrument, multi_engine, cfi, cfii,
-                             mei, seaplane, helicopter, glider``; repeats are dropped
-                             and the order is kept.
+``phone``                    Required on ``PUT``; never blank on ``PATCH``.  Stored
+                             as ``XXX-XXX-XXXX``: ``+1``, spaces, dots and brackets
+                             are accepted and none of them are kept, and anything
+                             that is not ten digits is refused.
+``phone_alt``,               The same rule, and both may be blank.
+``emergency_contact_phone``
+``phone_extension``          Up to six digits if given.  It is its own field so
+                             nobody appends it to a number.
+``state``                    One of the two-letter codes, and required: the fifty
+                             states, DC, and the territories with USPS codes.
+``postal_code``              Five digits if given.  ZIP+4 is refused: five reach
+                             anybody, and are one thing to keep right.
+``county``                   One of California's fifty-eight, or blank for a member
+                             who lives elsewhere.
+``total_hours``              ``0`` to ``99999`` if given.  A larger number is a typo:
+                             the highest civil totals on record are under 60,000.
+``ratings``                  Each value from ``asel, amel, ases, ames, helicopter,
+                             instrument, cfi, cfii, mei``; repeats are dropped and the
+                             order is kept.
 ``medical_expiration``       Required once ``medical_type`` is anything but ``none``.
 ``certificate_number``       Required once ``pilot_certificate_type`` is anything but
                              ``none``.
@@ -193,12 +204,13 @@ cross-field complaints are raised together when both apply:
      "certificate_number": ["Give your pilot certificate number."]
    }
 
-The other two sentences are "Use the two-letter state code, for example CA."
-— for any non-blank ``state`` that is not two letters, a single character such
-as ``C`` included — and "Use a ZIP code like 95035 or 95035-1234."
+The field-level sentences are "Use a ten-digit number like 415-555-0100." for
+each of the three phone fields, "An extension is digits only, for example
+4021.", and "Use a five-digit ZIP code like 95035."  ``state`` and ``county``
+are choice fields, so an unknown value is DRF's own "is not a valid choice".
 
 The portal's form applies the same rules before it sends anything, and on top
-of them marks as required the five fields that make a profile complete
+of them marks as required the six fields that make a profile complete
 (:ref:`profile-completeness`).  The server stays authoritative: only ``phone``
 is required there, so an API client may store a partial profile.
 
@@ -207,17 +219,17 @@ is required there, so an API client may store a partial profile.
 Profile completeness
 --------------------
 
-A profile is complete when ``phone``, ``address_line1``, ``city``
-, ``postal_code``, and ``pilot_certificate_type`` all have a value.  That list is
+A profile is complete when ``phone``, ``address_line1``, ``city``, ``state``,
+``postal_code``, and ``pilot_certificate_type`` all have a value.  That list is
 ``MemberProfile.COMPLETE_FIELDS``.  The certificate box always holds a value,
-and *Not a pilot* counts.  ``state`` is not part of the rule.
+and *Not a pilot* counts; ``state`` is a list that defaults to ``CA``.
 
 One list serves every reader of it:
 
 - ``profile_complete`` on the user payload (:doc:`api-auth`) is
-  ``MemberProfile.is_complete`` over those five fields.  It is what the
+  ``MemberProfile.is_complete`` over those six fields.  It is what the
   dashboard nudge and the join wizard's step gating key off.
-- The portal's profile form requires exactly the same five
+- The portal's profile form requires exactly the same six
   (``REQUIRED_PROFILE_FIELDS`` in
   ``frontend/src/portal/features/profile/form.ts``), so a profile the form
   saves is a profile the server calls complete.

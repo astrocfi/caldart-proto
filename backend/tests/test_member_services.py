@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import date, timedelta
 from typing import Any
 
 import pytest
@@ -13,8 +14,14 @@ from apps.accounts.models import User
 from apps.accounts.roles import MEMBER
 from apps.accounts.services import EMAIL_CHANGE_REFUSED
 from apps.cms.models import SiteSettings
-from apps.members.models import Dart, MemberProfile
-from apps.members.services import create_member, delete_member, register_member, update_member
+from apps.members.models import Dart, MemberProfile, MembershipPlan
+from apps.members.services import (
+    activate_term,
+    create_member,
+    delete_member,
+    register_member,
+    update_member,
+)
 from apps.payments.models import PaymentStatus
 from caldart.exceptions import DomainPermissionError, DomainValidationError
 from tests.factories import MemberProfileFactory, PaymentFactory, UserFactory
@@ -256,3 +263,35 @@ def test_the_payment_refusal_counts_the_records(
         "target@example.test has 2 payment records, which must be kept. "
         "Deactivate the account instead."
     )
+
+
+# --------------------------------------------------------------------------
+# member_since
+# --------------------------------------------------------------------------
+def test_the_first_term_stamps_member_since(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A member's joining date is the start of the first term they hold."""
+    MemberProfileFactory(user=member)
+
+    activate_term(member, annual_plan)
+
+    member.profile.refresh_from_db()
+    assert member.profile.member_since == today
+
+
+def test_a_renewal_does_not_move_member_since(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """Renewing, lapsing and rejoining all leave the joining date where it was."""
+    MemberProfileFactory(user=member, member_since=today - timedelta(days=900))
+
+    activate_term(member, annual_plan)
+
+    member.profile.refresh_from_db()
+    assert member.profile.member_since == today - timedelta(days=900)
+
+
+def test_a_member_with_no_profile_is_left_alone(member: User, annual_plan: MembershipPlan) -> None:
+    """An account with no profile row still gets its term, and nothing raises."""
+    assert activate_term(member, annual_plan).pk is not None
