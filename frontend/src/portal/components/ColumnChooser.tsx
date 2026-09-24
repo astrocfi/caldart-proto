@@ -1,15 +1,16 @@
 /**
- * The column chooser behind the payments table and its two exports.
+ * The column chooser behind a report table and its two exports.
  *
  * The registry comes from the server, so the screen and the exports can never
  * offer different columns, and the chosen set drives both at once: what is on
  * screen is what the CSV and the PDF will carry.
  */
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { ReportColumn } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
+import { Button } from './Button';
+import { useClickOutside } from './useClickOutside';
 
 export interface ColumnChooserProps {
   /** Every column the exports can carry, in export order. */
@@ -41,16 +42,25 @@ export function toggleColumn(columns: ReportColumn[], chosen: string[], key: str
   return columns.filter((column) => wanted.has(column.key)).map((column) => column.key);
 }
 
-/** The Columns button and the checkbox list it opens. */
+/**
+ * The Columns button and the checkbox list it opens.
+ *
+ * The list closes on a click anywhere outside it and on Escape, so it never
+ * sits over the table a treasurer is trying to read.
+ */
 export function ColumnChooser({ columns, chosen, onChange }: ColumnChooserProps): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const handleClose = useCallback(() => setIsOpen(false), []);
+
+  useClickOutside(rootRef, handleClose, isOpen);
 
   function handleToggle(key: string) {
     onChange(toggleColumn(columns, chosen, key));
   }
 
   return (
-    <div className="column-chooser">
+    <div className="column-chooser" ref={rootRef}>
       <Button
         variant="quiet"
         small
