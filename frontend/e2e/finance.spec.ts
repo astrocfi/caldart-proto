@@ -145,7 +145,9 @@ test('the member ledger gathers one member whole history', async ({ page }) => {
   await openPaymentList(page);
   await page.getByLabel('Search').fill(SEED.refundedPayment.email);
   await page.getByRole('link', { name: SEED.refundedPayment.name }).first().click();
-  await page.getByRole('link', { name: `Everything ${SEED.refundedPayment.name} has paid` }).click();
+  await page
+    .getByRole('link', { name: `Everything ${SEED.refundedPayment.name} has paid` })
+    .click();
 
   await expect(page.getByRole('heading', { name: SEED.refundedPayment.name })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Totals' })).toBeVisible();
