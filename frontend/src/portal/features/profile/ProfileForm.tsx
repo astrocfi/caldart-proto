@@ -6,7 +6,7 @@
  * member screens; what this adds is the state, the inline validation and the
  * submit button a member needs.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent, JSX, ReactNode } from 'react';
 
 import { useDarts } from '@/portal/api/queries';
@@ -38,27 +38,30 @@ export function ProfileForm({
   secondaryAction,
 }: ProfileFormProps): JSX.Element {
   const [values, setValues] = useState<ProfileFormValues>(initialValues);
-  const [errors, setErrors] = useState<ProfileFormErrors>({});
+  // The fields the member has typed in and left, so a complaint appears when
+  // they move on from a field rather than when they try to save.
+  const [touched, setTouched] = useState<Partial<Record<keyof ProfileFormValues, true>>>({});
   const [submitted, setSubmitted] = useState(false);
   const darts = useDarts();
 
-  // Re-check as the member types, but only once they have tried to submit —
-  // nobody wants to be told a field is empty before they reach it.
-  useEffect(() => {
-    if (submitted) setErrors(validateProfileForm(values));
-  }, [submitted, values]);
+  const errors = validateProfileForm(values);
+
+  // Before the first save attempt only a field they have left says anything;
+  // afterwards every complaint is shown, including fields never reached.
+  const visible: ProfileFormErrors = {};
+  for (const [key, message] of Object.entries(errors) as [keyof ProfileFormValues, string][]) {
+    if (submitted || touched[key]) visible[key] = message;
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
-    const found = validateProfileForm(values);
-    setErrors(found);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(errors).length > 0) return;
     onSubmit(formToPatch(values), values);
   }
 
   /** Inline rules win; a server message fills in anything they missed. */
-  const shownErrors: ProfileFormErrors = { ...serverErrors, ...errors };
+  const shownErrors: ProfileFormErrors = { ...serverErrors, ...visible };
 
   const hasErrors = Object.keys(errors).length > 0;
 
@@ -71,6 +74,7 @@ export function ProfileForm({
         darts={darts.data ?? []}
         dartsLoading={darts.isPending}
         markRequired
+        onFieldBlur={(key) => setTouched((left) => ({ ...left, [key]: true }))}
       />
 
       {submitted && hasErrors ? (

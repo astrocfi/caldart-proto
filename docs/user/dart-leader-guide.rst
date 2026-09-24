@@ -106,7 +106,10 @@ this card; an account administrator can read it out of the register.
 
 Use it when the airplane in front of you is not the one on the member's
 profile — a club airplane, or one they have just started flying.  As on the
-member search, you can type the registration however you like.
+member search, you can type the registration however you like, and aircraft
+are suggested underneath the box as you type: a make, a model, or an owner's
+name finds them too, so a half-remembered tail number is enough.  Tap one to
+open its card.
 
 If the registration is not in the register at all, the card says so.  Ask the
 pilot to add the airplane from **My aircraft** in their portal, or ask an

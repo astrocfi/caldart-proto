@@ -14,7 +14,9 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
 import { useDebounced } from '@/portal/components/useDebounced';
+import { maskDigits, maskNNumber } from '@/portal/masks';
 import './aircraft.css';
 import { InsuranceChip } from './InsuranceChip';
 import { ServiceChip } from './ServiceChip';
@@ -41,9 +43,8 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
   const results = found.filter((aircraft) => !excludeIds.includes(aircraft.id));
   const attached = found.filter((aircraft) => excludeIds.includes(aircraft.id));
   const searched = debounced.length > 0 && search.isSuccess;
-  // Offering "add a new aircraft" when the only match is already attached
-  // would invite a duplicate registration; say so instead.
-  const nothingToAdd = searched && results.length === 0 && attached.length === 0;
+  // Say so when a search found nothing, rather than leaving the results blank.
+  const nothingFound = searched && results.length === 0 && attached.length === 0;
 
   const handleStartAdding = (): void => {
     create.reset();
@@ -87,6 +88,15 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
             : ''}
       </p>
 
+      {adding ? null : (
+        <p className="cluster aircraft-add">
+          <Button variant="secondary" small onClick={handleStartAdding}>
+            Add an aircraft
+          </Button>
+          <span className="muted">Not in the register? Add it yourself.</span>
+        </p>
+      )}
+
       {search.isFetching && !search.data ? <p className="muted">Searching…</p> : null}
 
       {results.length > 0 ? (
@@ -116,7 +126,7 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
         </p>
       ) : null}
 
-      {nothingToAdd && !adding ? (
+      {nothingFound && !adding ? (
         <EmptyState
           title="No aircraft matches that"
           description="If the plane is not in the register yet, add it — it takes a moment."
@@ -180,11 +190,13 @@ function NewAircraftForm({
 
       <Field label="N-number" required error={errors.n_number}>
         {(field) => (
-          <input
+          <MaskedInput
             {...field}
             className="mono"
+            placeholder="N172SP"
+            mask={maskNNumber}
             value={values.n_number}
-            onChange={(event) => set('n_number', event.target.value)}
+            onValueChange={(next) => set('n_number', next)}
           />
         )}
       </Field>
@@ -215,12 +227,13 @@ function NewAircraftForm({
       <div className="aircraft-new__pair">
         <Field label="Year" error={errors.year}>
           {(field) => (
-            <input
+            <MaskedInput
               {...field}
               className="mono"
               inputMode="numeric"
+              mask={(raw) => maskDigits(raw, 4)}
               value={values.year}
-              onChange={(event) => set('year', event.target.value)}
+              onValueChange={(next) => set('year', next)}
             />
           )}
         </Field>

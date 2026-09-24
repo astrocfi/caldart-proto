@@ -8,9 +8,20 @@ import { useId } from 'react';
 import type { JSX } from 'react';
 
 import type { ContributionTier } from '@/portal/api/types';
+import { MaskedInput } from '@/portal/components/MaskedInput';
 import { formatCents } from '@/portal/components/Money';
+import { maskWholeDollars } from '@/portal/masks';
 
 export const OTHER = 'other';
+
+/** Enough digits for the largest contribution the server accepts. */
+const DOLLAR_DIGITS = 6;
+
+/** A grouped dollar amount as integer cents; a blank box is nothing given. */
+function dollarsToCents(typed: string): number {
+  const digits = typed.replace(/\D/g, '');
+  return digits ? Number(digits) * 100 : 0;
+}
 
 export interface ContributionChooserProps {
   tiers: ContributionTier[];
@@ -41,6 +52,18 @@ export function ContributionChooser({
   disabled = false,
 }: ContributionChooserProps): JSX.Element {
   const otherId = useId();
+
+  /**
+   * Whole dollars, grouped, and never more than the server accepts.
+   *
+   * The cap is applied as the amount is typed, so a digit too many is refused
+   * at the keyboard rather than at the payment provider.
+   */
+  const maskAmount = (raw: string): string => {
+    const masked = maskWholeDollars(raw, DOLLAR_DIGITS);
+    const cents = dollarsToCents(masked);
+    return cents > maxCents ? maskWholeDollars(String(Math.floor(maxCents / 100))) : masked;
+  };
 
   return (
     <fieldset className="checkout__section">
@@ -96,27 +119,15 @@ export function ContributionChooser({
             <span aria-hidden="true" className="mono">
               $
             </span>
-            <input
+            <MaskedInput
               id={otherId}
-              type="number"
-              min={0}
-              max={maxCents / 100}
-              step="1"
-              inputMode="decimal"
+              className="mono"
+              inputMode="numeric"
               aria-describedby={`${otherId}-hint`}
               disabled={disabled}
-              value={value === 0 ? '' : String(value / 100)}
-              onChange={(event) => {
-                const dollars = Number.parseFloat(event.target.value);
-                if (!Number.isFinite(dollars) || dollars <= 0) {
-                  onChange(0);
-                  return;
-                }
-                // Clamp rather than reject: a typed digit too many should not
-                // discard what the member meant, and the server refuses
-                // anything above this anyway.
-                onChange(Math.min(Math.round(dollars * 100), maxCents));
-              }}
+              mask={maskAmount}
+              value={value === 0 ? '' : maskWholeDollars(String(Math.floor(value / 100)))}
+              onValueChange={(next) => onChange(dollarsToCents(next))}
             />
           </div>
         </div>

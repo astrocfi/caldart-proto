@@ -580,3 +580,78 @@ def test_attached_aircraft_summary_flags_expired_insurance(
     profile.aircraft.add(lapsed)
     api_client.force_login(member)
     assert api_client.get(PROFILE_URL).json()["aircraft"][0]["insurance_is_current"] is False
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["phone_extension", "phone_alt_extension", "emergency_contact_phone_extension"],
+)
+def test_every_number_carries_its_own_extension(
+    api_client: APIClient, member: User, profile: MemberProfile, field: str
+) -> None:
+    """Each of the three numbers has an extension field of its own, stored as typed."""
+    api_client.force_login(member)
+    response = api_client.patch(PROFILE_URL, {field: "4021"}, format="json")
+    assert response.status_code == 200, response.json()
+    assert response.json()[field] == "4021"
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["phone_extension", "phone_alt_extension", "emergency_contact_phone_extension"],
+)
+def test_an_extension_is_digits_only(
+    api_client: APIClient, member: User, profile: MemberProfile, field: str
+) -> None:
+    """An extension with a letter in it is refused, naming the field it came in."""
+    api_client.force_login(member)
+    response = api_client.patch(PROFILE_URL, {field: "x40"}, format="json")
+    assert response.status_code == 400
+    assert response.json()[field] == ["An extension is digits only, for example 4021."]
+
+
+def test_home_airport_is_stored_in_upper_case(
+    api_client: APIClient, member: User, profile: MemberProfile
+) -> None:
+    """A lower-cased identifier is stored as the three upper-case characters."""
+    api_client.force_login(member)
+    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": "pao"}, format="json")
+    assert response.status_code == 200, response.json()
+    assert response.json()["home_airport_identifier"] == "PAO"
+
+
+@pytest.mark.parametrize(
+    "identifier",
+    ["KPAO", "PA", "PAOX", "PA-"],
+    ids=["icao-form", "too-short", "too-long", "punctuation"],
+)
+def test_home_airport_must_be_three_letters_or_digits(
+    api_client: APIClient, member: User, profile: MemberProfile, identifier: str
+) -> None:
+    """Anything but exactly three letters or digits is refused, the ICAO form included."""
+    api_client.force_login(member)
+    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": identifier}, format="json")
+    assert response.status_code == 400
+    assert response.json()["home_airport_identifier"] == [
+        "Use a three-character identifier like PAO, E16, or KLS."
+    ]
+
+
+def test_home_airport_accepts_an_identifier_that_starts_with_k(
+    api_client: APIClient, member: User, profile: MemberProfile
+) -> None:
+    """``KLS`` is Kelso's identifier: a K is only a prefix on the four-letter form."""
+    api_client.force_login(member)
+    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": "kls"}, format="json")
+    assert response.status_code == 200, response.json()
+    assert response.json()["home_airport_identifier"] == "KLS"
+
+
+def test_home_airport_accepts_an_identifier_with_a_digit(
+    api_client: APIClient, member: User, profile: MemberProfile
+) -> None:
+    """``E16`` is San Martin's identifier: a digit is as good as a letter."""
+    api_client.force_login(member)
+    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": "e16"}, format="json")
+    assert response.status_code == 200, response.json()
+    assert response.json()["home_airport_identifier"] == "E16"

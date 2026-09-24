@@ -129,10 +129,14 @@ Filters
    table.  ``new`` is a member whose only term is unpaid.
 ``certificate``
    A ``pilot_certificate_type`` value: ``none``, ``student``, ``sport``,
-   ``recreational``, ``private``, ``commercial``, ``atp``.
+   ``recreational``, ``private``, ``commercial``, ``atp``; or ``licensed``,
+   which is every certificate a pilot may act on alone -- the five from
+   ``sport`` upward, and neither ``student`` nor ``none``.
 ``medical``
    A ``medical_type`` value: ``none``, ``basicmed``, ``first``, ``second``,
-   ``third``.
+   ``third``; or ``any``, which is every account holding a medical of any
+   class.  An account with no profile row holds none, so ``any`` leaves it
+   out.
 ``dart``
    A DART id, or a case-insensitive substring of a DART name.
 ``role``
@@ -311,7 +315,9 @@ and every payment newest first.
      },
      "profile": {
        "phone": "415-555-0100",
+       "phone_extension": "",
        "phone_alt": "",
+       "phone_alt_extension": "",
        "address_line1": "1 Embarcadero",
        "address_line2": "",
        "city": "San Carlos",
@@ -320,6 +326,7 @@ and every payment newest first.
        "county": "San Mateo",
        "emergency_contact_name": "Dana Lee",
        "emergency_contact_phone": "650-555-0199",
+       "emergency_contact_phone_extension": "",
        "home_airport_identifier": "SQL",
        "home_airport_city": "San Carlos",
        "dart": {"id": 3, "name": "Palo Alto"},

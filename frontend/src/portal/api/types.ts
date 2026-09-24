@@ -254,6 +254,7 @@ export interface Profile {
   phone: string;
   phone_extension: string;
   phone_alt: string;
+  phone_alt_extension: string;
   address_line1: string;
   address_line2: string;
   city: string;
@@ -262,6 +263,7 @@ export interface Profile {
   county: CaliforniaCounty | '';
   emergency_contact_name: string;
   emergency_contact_phone: string;
+  emergency_contact_phone_extension: string;
   /** The day they first joined, stamped with their first term and never moved. */
   member_since: IsoDate | null;
   /* aviation */

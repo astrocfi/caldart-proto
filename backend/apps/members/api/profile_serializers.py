@@ -17,6 +17,8 @@ from rest_framework import serializers
 from apps.aircraft.api.serializers import AircraftSummarySerializer
 from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.models import (
+    AIRPORT_IDENTIFIER_MESSAGE,
+    AIRPORT_IDENTIFIER_RE,
     CALIFORNIA_COUNTIES,
     MAX_TOTAL_HOURS,
     PHONE_EXTENSION_RE,
@@ -135,6 +137,9 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
     emergency_contact_phone = serializers.CharField(
         max_length=RAW_PHONE_LENGTH, required=False, allow_blank=True
     )
+    # Wider than the column, so a pasted ICAO identifier is answered with the
+    # rule rather than with a complaint about length.
+    home_airport_identifier = serializers.CharField(max_length=8, required=False, allow_blank=True)
     state = serializers.ChoiceField(choices=US_STATE_VALUES)
     county = serializers.ChoiceField(choices=CALIFORNIA_COUNTIES, required=False, allow_blank=True)
     total_hours = serializers.IntegerField(
@@ -159,8 +164,10 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
             "postal_code",
             "county",
             "phone_extension",
+            "phone_alt_extension",
             "emergency_contact_name",
             "emergency_contact_phone",
+            "emergency_contact_phone_extension",
             "member_since",
             # aviation
             "home_airport_identifier",
@@ -219,14 +226,41 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         return normalized
 
     def validate_phone_extension(self, value: str) -> str:
-        """Up to six digits, and nothing else.
+        """The member's own extension, up to six digits."""
+        return self._extension(value)
 
-        The extension is its own field so nobody appends it to the number and
+    def validate_phone_alt_extension(self, value: str) -> str:
+        """The extension on the second number, up to six digits."""
+        return self._extension(value)
+
+    def validate_emergency_contact_phone_extension(self, value: str) -> str:
+        """The extension on the emergency contact's number, up to six digits."""
+        return self._extension(value)
+
+    def _extension(self, value: str) -> str:
+        """``value`` as up to six digits, and nothing else.
+
+        A blank value passes: every extension is optional.  Anything else is
+        refused with "An extension is digits only, for example 4021."  The
+        extension is its own field so nobody appends it to the number and
         breaks the format every other screen relies on.
         """
         value = (value or "").strip()
         if value and not PHONE_EXTENSION_RE.match(value):
             raise serializers.ValidationError("An extension is digits only, for example 4021.")
+        return value
+
+    def validate_home_airport_identifier(self, value: str) -> str:
+        """The home airport as a three-character FAA identifier, upper-cased.
+
+        A blank value passes: the field is optional.  Anything else must be
+        three letters or digits and must not begin with ``K``, the ICAO prefix
+        no three-character identifier carries, and is refused with
+        ``AIRPORT_IDENTIFIER_MESSAGE`` otherwise.
+        """
+        value = (value or "").strip().upper()
+        if value and not AIRPORT_IDENTIFIER_RE.match(value):
+            raise serializers.ValidationError(AIRPORT_IDENTIFIER_MESSAGE)
         return value
 
     def validate_postal_code(self, value: str) -> str:

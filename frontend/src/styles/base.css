@@ -299,6 +299,9 @@ a:hover {
   margin-left: 0.15em;
 }
 
+/* A control with no `type` attribute is a text box, and CSS's attribute
+ * selectors do not know that, so it is named here with the rest. */
+input:not([type]),
 input[type='text'],
 input[type='email'],
 input[type='password'],
