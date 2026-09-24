@@ -78,7 +78,23 @@ and answers with what it did.  ``system_admin`` only.  The body is optional;
 
 .. code-block:: json
 
-   {"sent": 4, "skipped": 12}
+   {
+     "sent": 4,
+     "skipped": 12,
+     "actions": [
+       {"kind": "t30", "member": "Maria Alvarez", "email": "maria@example.org",
+        "on": "2026-10-14", "amount_cents": null, "detail": ""},
+       {"kind": "t7", "member": "Sam Ochoa", "email": "sam@example.org",
+        "on": "2026-09-21", "amount_cents": null, "detail": ""}
+     ]
+   }
+
+``actions`` names the member behind every reminder: ``kind`` is the reminder
+kind, ``member`` and ``email`` who it went to, and ``on`` the day their term runs
+out.  A live run lists what it sent; a dry run lists what it would have sent, so
+an operator can read who is about to be written to before letting the scan write
+to them.  ``amount_cents`` is always ``null`` here, because a reminder moves no
+money.
 
 ``sent`` counts the reminders the run mailed and ``skipped`` those it decided
 against — a member who has already had that reminder, or who is outside the
@@ -222,7 +238,24 @@ the audit log.
 
 .. code-block:: json
 
-   {"noticed": 2, "warned": 0, "charged": 1, "failed": 0, "paused": 0, "skipped": 3}
+   {
+     "noticed": 2, "warned": 0, "charged": 1, "failed": 0, "paused": 0, "skipped": 3,
+     "actions": [
+       {"kind": "renewal_notice", "member": "Maria Alvarez", "email": "maria@example.org",
+        "on": "2026-10-14", "amount_cents": null, "detail": ""},
+       {"kind": "charge", "member": "Sam Ochoa", "email": "sam@example.org",
+        "on": "2026-09-24", "amount_cents": 4500, "detail": ""}
+     ]
+   }
+
+``actions`` names the member behind every email the scan sent and every charge it
+took.  ``kind`` is the email template, or ``charge`` for the money itself;
+``member`` and ``email`` are who it concerned; ``on`` is the date the action
+turns on; ``amount_cents`` is integer cents for a charge and ``null`` otherwise;
+and ``detail`` carries anything else worth printing, such as a decline reason.  A
+dry run lists what a live run would do, and, since it cannot ask the provider
+whether a charge would be taken, reports the message a charge that succeeds
+sends.
 
 The full description of the request, the counts and what each one means is on
 :doc:`api-renewals`, and :doc:`renewals` is the subsystem chapter behind it.

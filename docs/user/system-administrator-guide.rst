@@ -119,8 +119,13 @@ When you do want to run it by hand:
 2. Press **Run now**.  The result reads, for example, "Would send 4 emails,
    skipped 2."  Skipped means already sent, or the member has renewed, or holds
    a lifetime membership, or their account is deactivated.
-3. If the numbers look right and you have a reason to send now rather than
-   waiting for the morning, clear the checkbox and press **Run now** again.
+3. Read the table under the result.  It names every member the run would write
+   to: which reminder, who they are, their address, and the day their term runs
+   out.  That is the check worth making before a live run -- the counts say how
+   many, this says who.
+4. If the numbers and the names look right and you have a reason to send now
+   rather than waiting for the morning, clear the checkbox and press **Run now**
+   again.  The table then names the members who were actually emailed.
 
 Running it twice sends nothing twice.  Each member gets one email per
 membership per kind, and the log below the button is what enforces that.
@@ -145,6 +150,11 @@ charge for each membership running out and emails the member a fortnight's
 warning, it warns anyone whose saved card expires before their next charge, and
 it charges whatever is due.
 
+A life member's standing authority is a contribution rather than a renewal: it
+charges once a year, on the anniversary of the day it was set up or of the last
+contribution taken, and extends no membership term.  The same scan handles it,
+and its emails say "contribution" throughout.
+
 The **Renewals** panel runs the same scan by hand, and works like the reminders
 one:
 
@@ -159,10 +169,15 @@ one:
    *paused* the members whose last retry was refused, or whose membership had
    lapsed too long to catch up, and whose automatic renewal has therefore
    switched itself off, and *skipped* the ones that needed nothing doing.
-3. If the numbers look right and you have a reason to run now rather than
-   waiting for the morning, clear the checkbox and press **Run now** again.
-   A real run asks before it starts, because it charges every member whose
-   renewal is due: press **Yes, charge what is due** to go ahead, or
+3. Read the table under the result.  It names every member the run would email
+   and every charge it would take: what, who, when, and how much.  A rehearsal
+   cannot ask the provider whether a charge would go through, so it lists the
+   charge and the message a charge that succeeds sends; a live run lists the
+   decline instead when a provider refuses.
+4. If the numbers and the names look right and you have a reason to run now
+   rather than waiting for the morning, clear the checkbox and press **Run now**
+   again.  A real run asks before it starts, because it charges every member
+   whose renewal is due: press **Yes, charge what is due** to go ahead, or
    **Cancel** to think again.
 
 Running it twice charges nobody twice, and sends nothing twice: each scheduled

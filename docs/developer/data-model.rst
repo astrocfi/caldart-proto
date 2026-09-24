@@ -96,7 +96,7 @@ Domain schema
           Refund -> Payment [label="payment (PROTECT)\lrelated: refunds"];
           Refund -> User [label="requested_by (null, SET_NULL)"];
           Mandate -> User [label="user  1--1, CASCADE", arrowhead=none];
-          Mandate -> Plan [label="plan (PROTECT)"];
+          Mandate -> Plan [label="plan (null, PROTECT)"];
           Attempt -> Mandate [label="mandate (CASCADE)\lrelated: attempts"];
           Attempt -> Membership [label="membership (CASCADE)"];
           Attempt -> Payment [label="payment (null, SET_NULL)"];
@@ -213,7 +213,7 @@ Domain schema
       payments.Refund.payment        -> payments.Payment         FK, PROTECT, related name refunds
       payments.Refund.requested_by   -> accounts.User            FK, SET_NULL, nullable
       payments.RenewalMandate.user   -> accounts.User            1--1, CASCADE
-      payments.RenewalMandate.plan   -> members.MembershipPlan   FK, PROTECT
+      payments.RenewalMandate.plan   -> members.MembershipPlan   FK, PROTECT, nullable
       payments.RenewalAttempt.mandate    -> payments.RenewalMandate  FK, CASCADE, related name attempts
       payments.RenewalAttempt.membership -> members.Membership       FK, CASCADE
       payments.RenewalAttempt.payment    -> payments.Payment         FK, SET_NULL, nullable
@@ -1093,9 +1093,10 @@ several.
 ``RenewalMandate``
 ------------------
 
-One member's standing authority for CalDART to renew their membership each
-year from a saved payment method.  ``OneToOneField`` on the user, related name
-``renewal_mandate``, so a member holds at most one.
+One member's standing authority for CalDART to charge a saved payment method
+once a year: their membership renewal, a contribution, or both.
+``OneToOneField`` on the user, related name ``renewal_mandate``, so a member
+holds at most one.
 
 .. list-table::
    :header-rows: 1
@@ -1106,8 +1107,9 @@ year from a saved payment method.  ``OneToOneField`` on the user, related name
    * - ``user``
      - one-to-one, ``CASCADE``
    * - ``plan``
-     - FK, ``PROTECT`` — always a plan with a duration; a lifetime membership
-       never renews
+     - FK, ``PROTECT``, nullable — a plan with a duration, since a lifetime plan
+       never renews, or null when the member already holds a lifetime term and
+       the authority is over the contribution alone
    * - ``contribution_cents``
      - renewed alongside the dues
    * - ``provider``

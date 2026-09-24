@@ -71,7 +71,10 @@ chosen provider.
     "auto_renew": true}
 
 ``plan`` may be ``null`` for a contribution on its own, in which case no
-membership term is created when it succeeds.  There is no amount field; one
+membership term is created when it succeeds.  A life member -- somebody who
+already holds a term that never expires -- has nothing left to buy, so a ``plan``
+from one is refused with a 400 naming ``plan``: ``You are a life member, so there
+is nothing to renew. Make a contribution instead.``  There is no amount field; one
 sent anyway is ignored.  ``contribution_cents`` runs from ``0`` to
 ``9999900`` ($99,999.00) inclusive -- inside every provider's per-charge
 ceiling, so an amount the API accepts is one the provider will take.  Anything
@@ -82,9 +85,11 @@ outside that range is refused before a payment row is created.
 customer on the intent and PayPal a vault instruction on the order, and neither
 can be added afterwards -- and the method they pay with becomes the one CalDART
 renews from once the payment succeeds.  It is refused, with a 400 naming
-``auto_renew``, for a plan that never expires, for a checkout that buys no plan
-at all, and for a provider that cannot charge a saved method, which is every
-provider but ``stripe``, ``paypal`` and ``mock``.  A refusal deletes the pending
+``auto_renew``, for a plan that never expires, for a checkout by a member who is
+not a life member that buys no plan at all, for a life member who contributes
+nothing, and for a provider that cannot charge a saved method, which is every
+provider but ``stripe``, ``paypal`` and ``mock``.  A life member's authority
+names no plan and charges their contribution once a year.  A refusal deletes the pending
 payment again, exactly as a provider that will not start one does.  Turning
 automatic renewal on again replaces whatever authority was there.
 

@@ -148,8 +148,9 @@ Either way the scan carries on with the next member and returns its summary.
 ``manage.py send_renewal_reminders`` prints the failure count and exits
 non-zero when it is not zero, which is what makes the systemd unit go to
 ``failed`` and show up in ``systemctl list-timers`` and the journal.  The
-``POST /system/reminders/run`` payload carries ``{sent, skipped}`` alone, so a
-failure reaches the operator through the log rather than through the response.
+``POST /system/reminders/run`` payload carries ``{sent, skipped, actions}``, with
+no failure count, so a failure reaches the operator through the log rather than
+through the response.
 
 
 Running it
@@ -185,7 +186,14 @@ The command prints a structured summary::
     already_sent   1
     lifetime       1
   failed           0
+  would email t60 to Maria Alvarez <maria@example.org> on 2027-03-02
+  would email t30 to Sam Ochoa <sam@example.org> on 2027-01-31
   would send 12, skipped 2
+
+The lines after the counts are the run's ``actions``: one per reminder, naming
+the member, their address and the day their term runs out.  A live run prints
+``emailed t60 to ...`` instead.  They are what turns "twelve reminders" into
+"these twelve people", which is the thing worth checking before a live run.
 
 A dry run writes nothing at all: no email, no log row, and no membership status
 flips.  It is safe on production.
@@ -196,7 +204,8 @@ summary is still printed; the non-zero status is what the timer notices.
 
 System administrators can also run the scan from ``/portal/system``, with the
 same dry-run switch.  That endpoint is ``POST /system/reminders/run`` and
-returns ``{"sent": n, "skipped": n}``.
+returns ``{"sent": n, "skipped": n, "actions": [...]}``, the same actions the
+command prints; see :doc:`api-system`.
 
 In development, Mailpit catches everything: http://localhost:8025.
 

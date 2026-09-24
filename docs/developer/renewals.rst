@@ -24,7 +24,9 @@ price changes what renews without touching either provider.
 A **mandate** (``RenewalMandate``) is one member's standing authority.  A member
 has at most one: it is a ``OneToOneField`` on the account.  It carries the plan
 it renews, the contribution renewed alongside the dues, the provider, the
-provider's handles on the saved method, the label the member reads, and a status:
+provider's handles on the saved method, the label the member reads, and a status.
+Its plan is null for a member who already holds a lifetime term, which is what
+makes the authority a contribution rather than a renewal.  The statuses are:
 
 ``pending``
    created, but no method saved yet.  A checkout that asked for automatic
@@ -48,6 +50,61 @@ ladder of attempts reads back as one renewal.
 A lifetime plan can never hold a mandate: it does not expire, so there is nothing
 to renew.  Neither can the ``manual`` provider: a check cannot be written again
 without the member.  Both refusals are a 400 keyed by ``auto_renew``.
+
+.. _renewals-kinds:
+
+The three kinds
+===============
+
+What a mandate charges for is read off its plan and its contribution, and it is
+what every email and every screen says:
+
+===================  ==========================================================
+``kind``             The mandate
+===================  ==========================================================
+``renewal``          names a plan and no contribution.  It renews the membership
+                     and nothing else.
+``both``             names a plan and a contribution.  It renews the membership
+                     and takes the contribution in the same charge.
+``contribution``     names no plan at all.  The member already holds a lifetime
+                     term, so nothing of theirs renews; the authority is over the
+                     contribution alone, charged once a year.
+===================  ==========================================================
+
+``mandate_kind(mandate)`` answers the kind and ``kind_label(kind)`` the words for
+it in running prose -- ``renewal``, ``renewal and contribution``,
+``contribution``.  A contribution-only mandate never says "renew" or "membership
+renewal" to the member.
+
+A life member can hold only a contribution-only authority.  Asking for a plan is
+refused with ``A life member's membership does not renew; choose a contribution
+instead.`` and asking for no contribution with ``A contribution to charge each
+year is needed.``; both are a 400 keyed by ``auto_renew``, and both guard
+``POST /me/renewal/setup``, ``PATCH /me/renewal`` and a checkout's ``auto_renew``
+alike.  A checkout that tries to sell a life member a term is refused separately,
+keyed by ``plan``.
+
+.. _renewals-next-charge:
+
+The next charge is never unknown
+================================
+
+``next_charge_on(mandate, today)`` is ``None`` only for a mandate that is not
+``active``.  For one that is, it answers, in order:
+
+1. the earliest ``scheduled`` attempt's own date, when one is waiting;
+2. for a contribution-only mandate, ``contribution_charge_date(mandate, today)``;
+3. for a member with a dated current term, that term's charge date;
+4. otherwise ``today`` -- the term has already run out, and the next scan is what
+   charges it.
+
+``contribution_charge_date`` is one year after the local date of
+``last_charged_at``, or of ``created_at`` when nothing has been charged yet.  An
+anniversary of 29 February becomes 28 February, and one that has already gone by
+is answered as ``today``.
+
+So an active mandate always has a date to show, on the member's payments screen,
+on the finance screens and in the emails that report a charge.
 
 .. _renewals-schedule:
 
@@ -93,8 +150,15 @@ it, and it does three things in order.
    runs furthest into the future.  If its charge date -- ``ends_on`` less
    ``CHARGE_LEAD_DAYS`` -- is within ``NOTICE_DAYS``, and no attempt for that term
    is either waiting or already paid, create a ``scheduled`` attempt for that date
-   and send ``renewal_notice``.  A member holding a lifetime term has no term to
-   renew and is skipped as ``no_term``.
+   and send ``renewal_notice``.  A mandate that names a plan but whose member has
+   since been granted a lifetime term has no expiry left to renew and is skipped
+   as ``lifetime``.
+
+   A contribution-only mandate is treated the same way, with
+   ``contribution_charge_date`` in place of the term's charge date: the notice
+   goes out ``NOTICE_DAYS`` before it and schedules an attempt against the
+   member's lifetime term.  A member who holds no lifetime term is skipped as
+   ``no_term``.
 
    Only a ``scheduled`` or ``succeeded`` attempt stands in the way, so a mandate
    that was paused over a term and then turned back on is scheduled again rather
@@ -146,13 +210,37 @@ it, and it does three things in order.
 
    An attempt whose mandate is no longer active, and one whose member has renewed
    by some other means in the meantime, is closed as ``skipped`` and charges
-   nothing.
+   nothing.  A contribution-only charge extends no term, creates a payment with no
+   plan, and can never be overtaken by a renewal, so the "already renewed" rule
+   does not apply to it; the retry ladder and the pause do, unchanged.
 
 The run returns a summary -- ``noticed``, ``warned``, ``charged``, ``failed``,
 ``paused``, ``skipped`` -- and writes one ``renewals.run`` audit record.  A dry
 run changes no mandate, emails nobody and charges nobody; it reports the counts
 the same scan would produce, and the rehearsal itself is still recorded in the
 audit log.
+
+.. _renewals-actions:
+
+Who the run was about
+=====================
+
+Counts answer how much happened, never to whom.  Beside them the run carries
+``actions``: one ``RunAction`` (``caldart/runs.py``, shared with the reminder
+scan) for every email the scan sent and every charge it took.  Each names the
+kind, the member, their address, the date the action turns on, the amount for a
+charge, and a detail such as a decline reason.
+
+A live run records what it did and a dry run what it would have done, so an
+operator can rehearse the scan and read off who is about to be written to.  A
+rehearsal cannot ask the provider whether a charge would be taken, so it reports
+the charge and the message a charge that succeeds sends; a live run reports the
+decline instead when the provider refuses.
+
+``manage.py run_auto_renewals`` prints one line per action after the counts --
+``would email renewal_notice to Maria Alvarez <maria@example.org> on
+2026-10-14`` in a rehearsal, ``emailed ...`` in a live run -- and
+``POST /system/renewals/run`` answers the same list as JSON.
 
 Every email is keyed on a timestamp of the attempt it belongs to, so a scan run
 twice in one day sends nothing twice.  One member's problem never stops the scan:
@@ -229,6 +317,19 @@ Template                   When
                            when their membership had lapsed too long to catch up.
 ``renewal_canceled``       The member or an administrator turned it off.
 =========================  ====================================================
+
+Every one of them is worded by the mandate's kind.  A ``renewal`` mandate's
+emails read as they always have; a ``both`` mandate says "renew your membership
+and take your contribution" where the verb falls and "renewal and contribution"
+where the noun does; a ``contribution`` mandate never says "renew" or "membership
+renewal" at all -- "we will take your contribution on ...", "thank you for your
+contribution", "automatic contribution is on".  The templates read ``kind`` and
+``kind_label`` out of the shared context.
+
+``renewal_enabled`` and ``renewal_charged`` each carry ``next_charge_on`` and say
+``Your next charge will be on <date>``.  It is never blank: the date reporting a
+charge is computed after the term has been extended, so it is the charge after
+this one.
 
 ``renewal_base.html`` is the shared HTML shell, the same table-and-inline-styles
 layout the reminders use.  A mail server that refuses a message is logged at
