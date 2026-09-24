@@ -14,8 +14,8 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Field } from '@/portal/components/Field';
 import { useToast } from '@/portal/components/Toast';
 import { useDeleteMember } from './api';
@@ -88,9 +88,15 @@ export function MemberDangerZone({ member }: { member: MemberDetail }): JSX.Elem
             />
           )}
         </Field>
-        <Button type="submit" variant="danger" disabled={!confirmed || remove.isPending}>
+        <DeleteButton
+          label="Delete member"
+          type="submit"
+          variant="danger"
+          small={false}
+          disabled={!confirmed || remove.isPending}
+        >
           {remove.isPending ? 'Deleting…' : 'Delete member'}
-        </Button>
+        </DeleteButton>
       </form>
     </Card>
   );

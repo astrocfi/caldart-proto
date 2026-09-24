@@ -49,9 +49,9 @@ function TrashcanIcon(): JSX.Element {
 /**
  * A quiet, small trashcan button that removes or deletes something.
  *
- * `label` names the thing being removed and is always the button's accessible
- * name and its tooltip; a caller that passes its own `title` (the reason the
- * button is disabled, say) keeps that title instead.  With `children` the words
+ * `label` names the thing being removed.  On an icon-only button it is both the
+ * accessible name and the tooltip, unless the caller passes its own `title` —
+ * the reason the button is disabled, say — which wins.  With `children` the words
  * follow the icon and `label` is not repeated as an `aria-label`.  Every other
  * `Button` prop — `onClick`, `disabled`, `type`, `variant`, `small` — is passed
  * straight through, and the variant defaults to `quiet` and the size to small.
@@ -71,7 +71,7 @@ export function DeleteButton({
       variant={variant}
       small={small}
       className={[isIconOnly ? 'button--icon' : '', className ?? ''].filter(Boolean).join(' ')}
-      title={title ?? label}
+      title={title ?? (isIconOnly ? label : undefined)}
       {...(isIconOnly ? { 'aria-label': label } : {})}
       {...rest}
     >
