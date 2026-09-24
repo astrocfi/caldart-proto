@@ -261,10 +261,14 @@ not every app needs every one.
     ``/aircraft...``, the exports under ``/admin/aircraft/``, and the DART
     leader check under ``/leader/``.
 ``payments``
-    ``Payment``; the provider plugins in ``providers/`` (``stripe``
-    , ``paypal``, and ``mock``); checkout, confirmation, webhooks, and payment
-    reporting.  Endpoints ``/payments/...`` and ``/admin/payments``;
-    ``views.py`` also serves the Apple Pay domain-verification file.
+    ``Payment``, ``Refund``, ``RenewalMandate`` and ``RenewalAttempt``; the
+    provider plugins in ``providers/`` (``stripe``, ``paypal``, and
+    ``mock``); checkout, confirmation, webhooks, receipts, refunds, payment
+    reporting, reconciliation, and automatic renewal.  Endpoints
+    ``/payments/...``, ``/me/payments/...``, ``/me/renewal``, the finance
+    area's ``/admin/payments...`` and ``/admin/renewals...``, and
+    ``/system/renewals/run``; ``views.py`` also serves the Apple Pay
+    domain-verification file.
 ``reminders``
     ``ReminderLog`` and the renewal-reminder scanner, with its
     ``send_renewal_reminders`` command.  Endpoints ``/admin/reminders/log``

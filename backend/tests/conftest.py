@@ -415,6 +415,20 @@ def treasurer_client(api_client: APIClient, treasurer: UserModel) -> APIClient:
     return api_client
 
 
+@pytest.fixture
+def fixed_name_admin(account_admin: UserModel) -> UserModel:
+    """Return ``account_admin`` with its name pinned instead of Faker-generated.
+
+    A member or payment report lists every account, admins included, so a Faker-drawn
+    name for the signed-in admin could coincidentally match a search or ordering
+    assertion and change the result. Request this fixture (or a population fixture
+    built from it) wherever that matters.
+    """
+    account_admin.first_name, account_admin.last_name = "Zoe", "Yeager"
+    account_admin.save(update_fields=["first_name", "last_name"])
+    return account_admin
+
+
 # -- domain fixtures -------------------------------------------------------
 @pytest.fixture
 def annual_plan(db: None) -> MembershipPlan:
