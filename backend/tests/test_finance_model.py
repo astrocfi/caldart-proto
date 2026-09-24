@@ -32,6 +32,7 @@ from apps.payments.models import (
     RenewalMandate,
     RenewalOutcome,
 )
+from caldart import audit
 from tests.conftest import role_matrix
 from tests.factories import (
     MembershipFactory,
@@ -312,3 +313,26 @@ def test_a_treasurer_does_not_read_the_member_records(treasurer_client: APIClien
 def test_a_treasurer_reads_the_payment_list(treasurer_client: APIClient) -> None:
     """The signed-in treasurer fixture reaches the payment list itself."""
     assert treasurer_client.get(PAYMENTS_URL).status_code == 200
+
+
+# --------------------------------------------------------------------------
+# The audit actions the finance area writes
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    ("constant", "action"),
+    [
+        ("PAYMENT_RECORD", "payment.record"),
+        ("PAYMENT_REFUND", "payment.refund"),
+        ("PAYMENT_RECONCILE", "payment.reconcile"),
+        ("PAYMENT_RECEIPT_RESEND", "payment.receipt_resend"),
+        ("PAYMENT_NOTE", "payment.note"),
+        ("RENEWAL_ENABLE", "renewal.enable"),
+        ("RENEWAL_CANCEL", "renewal.cancel"),
+        ("RENEWALS_RUN", "renewals.run"),
+    ],
+)
+def test_the_finance_audit_actions_are_named_as_the_journal_shows_them(
+    constant: str, action: str
+) -> None:
+    """Each finance action is the dotted slug the deployment guide's table lists."""
+    assert getattr(audit, constant) == action

@@ -89,6 +89,7 @@ member@example.org             member (current membership)
 expired@example.org            member (expired membership)
 leader@example.org             member, dart_leader
 useradmin@example.org          member, user_admin
+treasurer@example.org          member, treasurer
 accountadmin@example.org       member, account_admin
 webadmin@example.org           member, website_admin
 sysadmin@example.org           member, system_admin (superuser)

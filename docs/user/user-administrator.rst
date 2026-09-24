@@ -114,6 +114,9 @@ Things worth knowing:
 * Roles are **additive**.  Leave ``member`` ticked when you add
   ``dart_leader``: taking it away removes their own profile and renewal
   screens.
+* ``treasurer`` opens the finance area and nothing else.  It does **not** open
+  the member records, which carry medical and certificate data, so a volunteer
+  who keeps the books needs no access to anybody's medical currency.
 * ``system_admin`` implies every other role in permission checks, and also makes
   the account a Django superuser.  Grant it sparingly.
 * Removing ``system_admin`` takes the superuser flag away again.  An account
