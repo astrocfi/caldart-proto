@@ -53,6 +53,7 @@ frontend/               Vite + React 19 + TypeScript (strict)
   src/test/             msw server, handlers, render helpers
 docs/                   Sphinx (user/ and developer/), built with -W
 deploy/                 gunicorn.conf.py, systemd/, apache/, nginx/
+scripts/                developer conveniences that wrap a make target
 plans/                  implementation plans; archive/ holds finished ones
 critiques/              dated review reports
 ```

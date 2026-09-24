@@ -27,7 +27,8 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
 - American spelling, not British (e.g. `color`, not `colour`). <!-- codespell:ignore colour -->
   `make lint` enforces this with `make lint-spelling`, which runs codespell over
   `README.rst`, `CLAUDE.md`, `docs/`, `backend/`, `frontend/src/`, `frontend/e2e/`,
-  `.github/`, `deploy/` and `.claude/` with the `clear`, `rare` and `en-GB_to_en-US`
+  `frontend/scripts/`, `scripts/`, `.github/`, `deploy/` and `.claude/` with the
+  `clear`, `rare` and `en-GB_to_en-US`
   dictionaries, plus the project dictionary `.codespell-dictionary.txt` at the repository
   root for British words those built-in dictionaries miss (e.g. `aeroplane->airplane`,
   `cheque->check`). To flag another such word, add a `word->correction` line to that file
