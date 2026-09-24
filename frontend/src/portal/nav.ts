@@ -44,6 +44,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   { to: '/admin/members', label: 'Members', roles: ['account_admin'], group: 'Administration' },
   { to: '/admin/aircraft', label: 'Aircraft', roles: ['account_admin'], group: 'Administration' },
+  { to: '/admin/darts', label: 'DARTs', roles: ['account_admin'], group: 'Administration' },
   { to: '/admin/payments', label: 'Payments', roles: ['account_admin'], group: 'Administration' },
   {
     to: '/admin/reminders',

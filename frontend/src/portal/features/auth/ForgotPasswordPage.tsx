@@ -6,6 +6,9 @@ import { usePasswordResetRequest } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
+import { maskEmail } from '@/portal/masks';
+import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
 import { Page } from '@/portal/components/Page';
 import { FormAlert, fieldError } from './form';
 
@@ -13,6 +16,7 @@ import { FormAlert, fieldError } from './form';
 export function ForgotPasswordPage(): JSX.Element {
   const request = usePasswordResetRequest();
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // The API answers 204 whether or not the address is registered, so the page
   // must say the same thing either way.
@@ -50,19 +54,29 @@ export function ForgotPasswordPage(): JSX.Element {
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
+            if (!isEmailAddress(email)) {
+              setEmailError(EMAIL_MESSAGE);
+              return;
+            }
+            setEmailError(null);
             request.mutate({ email });
           }}
         >
-          <Field label="Email address" required error={fieldError(request.error, 'email')}>
+          <Field
+            label="Email address"
+            required
+            error={emailError ?? fieldError(request.error, 'email')}
+          >
             {(props) => (
-              <input
+              <MaskedInput
                 {...props}
                 type="email"
                 name="email"
                 autoComplete="username"
                 required
+                mask={maskEmail}
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onValueChange={(next) => setEmail(next)}
               />
             )}
           </Field>

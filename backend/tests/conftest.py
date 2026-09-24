@@ -60,7 +60,8 @@ if TYPE_CHECKING:
     from apps.accounts.models import User as UserModel
     from apps.aircraft.models import Aircraft
     from apps.cms.models import HomePage, SiteSettings
-    from apps.members.models import Dart, MemberProfile, MembershipPlan
+    from apps.darts.models import Dart
+from apps.members.models import MemberProfile, MembershipPlan
 
 User = get_user_model()
 
@@ -414,7 +415,7 @@ def life_plan(db: None) -> MembershipPlan:
 @pytest.fixture
 def dart(db: None) -> Dart:
     """Return a saved ``Dart`` named "Palo Alto" with airport identifier ``PAO``."""
-    return DartFactory(name="Palo Alto", airport_identifier="PAO", city="Palo Alto")
+    return DartFactory(name="Palo Alto", airport_identifiers="PAO", city="Palo Alto")
 
 
 @pytest.fixture

@@ -15,24 +15,26 @@ from django.db import models
 from rest_framework import serializers
 
 from apps.aircraft.api.serializers import AircraftSummarySerializer
-from apps.members.api.serializers import MembershipStatusSerializer
-from apps.members.models import (
+from apps.darts.api.serializers import DartRefSerializer
+from apps.darts.models import (
     AIRPORT_IDENTIFIER_MESSAGE,
     AIRPORT_IDENTIFIER_RE,
+    Dart,
+    normalize_airport_identifier,
+)
+from apps.members.api.serializers import MembershipStatusSerializer
+from apps.members.models import (
     CALIFORNIA_COUNTIES,
     MAX_TOTAL_HOURS,
-    PHONE_EXTENSION_RE,
-    PHONE_RE,
     RATING_VALUES,
     US_STATE_VALUES,
-    Dart,
     MedicalType,
     MemberProfile,
     Membership,
     PilotCertificateType,
-    normalize_phone,
 )
 from apps.payments.models import Payment
+from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
 
 #: Five digits, e.g. ``95035``.  The four-digit add-on is not collected: it is
 #: not needed to reach anybody and it is one more thing to keep right.
@@ -44,24 +46,6 @@ PHONE_MESSAGE = "Use a ten-digit number like 415-555-0100."
 #: How long a typed number may be before it is refused on length alone: enough
 #: for ``+1 (415) 555-0100`` and its spaces, and nowhere near a paragraph.
 RAW_PHONE_LENGTH = 24
-
-
-class DartSerializer(serializers.ModelSerializer[Dart]):
-    """``GET /darts`` -- the public DART catalog."""
-
-    class Meta:
-        model = Dart
-        fields = ["id", "name", "airport_identifier", "city"]
-        read_only_fields = fields
-
-
-class DartRefSerializer(serializers.ModelSerializer[Dart]):
-    """The ``dart: {id, name}`` stub nested in a profile."""
-
-    class Meta:
-        model = Dart
-        fields = ["id", "name"]
-        read_only_fields = fields
 
 
 class MembershipTermSerializer(serializers.ModelSerializer[Membership]):
@@ -251,14 +235,14 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         return value
 
     def validate_home_airport_identifier(self, value: str) -> str:
-        """The home airport as a three-character FAA identifier, upper-cased.
+        """The home airport as this system stores it: three characters.
 
-        A blank value passes: the field is optional.  Anything else must be
-        three letters or digits and must not begin with ``K``, the ICAO prefix
-        no three-character identifier carries, and is refused with
-        ``AIRPORT_IDENTIFIER_MESSAGE`` otherwise.
+        A blank value passes: the field is optional.  The ICAO spelling is
+        accepted and trimmed, so ``KCRQ`` is stored as ``CRQ``; anything that
+        is not then three letters or digits is refused with
+        ``AIRPORT_IDENTIFIER_MESSAGE``.
         """
-        value = (value or "").strip().upper()
+        value = normalize_airport_identifier(value or "")
         if value and not AIRPORT_IDENTIFIER_RE.match(value):
             raise serializers.ValidationError(AIRPORT_IDENTIFIER_MESSAGE)
         return value

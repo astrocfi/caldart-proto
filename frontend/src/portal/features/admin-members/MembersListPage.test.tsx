@@ -11,8 +11,8 @@ import { MembersListPage } from './MembersListPage';
 import { LIFETIME, makeRow } from '@test/fixtures/members';
 
 const DARTS = [
-  { id: 3, name: 'Palo Alto', airport_identifier: 'PAO', city: 'Palo Alto' },
-  { id: 5, name: 'Napa', airport_identifier: 'APC', city: 'Napa' },
+  { id: 3, name: 'Palo Alto', airport_identifiers: 'PAO', city: 'Palo Alto' },
+  { id: 5, name: 'Napa', airport_identifiers: 'APC', city: 'Napa' },
 ];
 
 /** Every request the list page makes, with the last member query recorded. */

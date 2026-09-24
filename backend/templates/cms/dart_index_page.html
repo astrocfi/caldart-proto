@@ -30,7 +30,7 @@
               {% for dart_page in dart_pages %}
                 <tr>
                   <th scope="row"><a href="{{ dart_page.url }}">{{ dart_page.title }}</a></th>
-                  <td class="mono">{{ dart_page.airport_identifier|default:"—" }}</td>
+                  <td class="mono">{{ dart_page.airport_identifiers|default:"—" }}</td>
                   <td>{{ dart_page.city|default:"—" }}</td>
                   <td>{{ dart_page.leader_name|default:"—" }}</td>
                 </tr>

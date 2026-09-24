@@ -26,11 +26,8 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.roles import MEMBER
 from apps.aircraft.models import Aircraft
-from apps.members.models import (
-    Dart,
-    MembershipPlan,
-    MembershipStatusChoices,
-)
+from apps.darts.models import Dart
+from apps.members.models import MembershipPlan, MembershipStatusChoices
 from apps.members.services import MembershipStatusDict, membership_status
 from tests.factories import MemberProfileFactory, MembershipFactory, UserFactory
 

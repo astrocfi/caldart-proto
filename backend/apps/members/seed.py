@@ -12,11 +12,12 @@ from datetime import date, timedelta
 from typing import Any, TypedDict
 
 from django.core.management.base import OutputWrapper
+from django.utils.text import slugify
 from faker import Faker
 
+from apps.darts.models import Dart, DartContact
 from apps.members.models import (
     RATING_VALUES,
-    Dart,
     IfrRated,
     MedicalType,
     MemberProfile,
@@ -25,10 +26,12 @@ from apps.members.models import (
 )
 
 #: The DARTs to seed.
+#: Every DART, with the airports it flies from and the town it is named for.
+#: A team may cover several fields: Contra Costa has two, and San Diego nine.
 DARTS: tuple[tuple[str, str, str], ...] = (
     ("Angwin", "2O3", "Angwin"),
     ("Central Coast", "SBP", "San Luis Obispo"),
-    ("Contra Costa", "CCR", "Concord"),
+    ("Contra Costa", "CCR, C83", "Concord"),
     ("Half Moon Bay", "HAF", "Half Moon Bay"),
     ("Hayward", "HWD", "Hayward"),
     ("Livermore", "LVK", "Livermore"),
@@ -37,11 +40,11 @@ DARTS: tuple[tuple[str, str, str], ...] = (
     ("Palo Alto", "PAO", "Palo Alto"),
     ("Reid-Hillview", "RHV", "San Jose"),
     ("San Carlos", "SQL", "San Carlos"),
+    ("San Diego", "KCRQ, KMYF, KOKB, KRNM, KSEE, KSDM, F70, L08, L18", "San Diego"),
     ("San Martin (South County)", "E16", "San Martin"),
     ("Santa Monica", "SMO", "Santa Monica"),
     ("Santa Rosa", "STS", "Santa Rosa"),
     ("Watsonville", "WVI", "Watsonville"),
-    ("Unaffiliated", "", ""),
 )
 
 
@@ -115,25 +118,71 @@ MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
 )
 
 
-def seed_darts() -> list[Dart]:
+#: The seed behind the generated contact names, so the example teams read the
+#: same on every installation.
+DART_SEED = 20260101
+
+#: The people an example DART lists, as ``(title, whether they have a phone)``.
+#: Names and addresses are generated, so no real volunteer is named here.
+DART_CONTACT_ROLES: tuple[tuple[str, bool], ...] = (
+    ("DART leader", True),
+    ("Deputy leader", True),
+    ("Ground team lead", False),
+    ("Communications", False),
+)
+
+#: The domain the example contact addresses are built in.
+DART_CONTACT_DOMAIN = "caldart.example.org"
+
+
+def seed_darts(seed: int = DART_SEED) -> list[Dart]:
     """Create or update every DART in :data:`DARTS`, and return them in that order.
 
     Each is keyed on its name, so running the seed twice leaves one row per
-    DART with the airport, city, and sort order the table gives it.
+    DART with the airports, city and website the table gives it, and with the
+    same handful of example contacts on it.  ``seed`` fixes the
+    generated contact names, so two runs produce the same people.
     """
+    faker = Faker("en_US")
+    faker.seed_instance(seed)
+    rng = random.Random(seed)  # noqa: S311 - demo data, not security-sensitive
+
     darts = []
-    for order, (name, identifier, city) in enumerate(DARTS, start=1):
+    for name, identifiers, city in DARTS:
+        slug = slugify(name)
         dart, _ = Dart.objects.update_or_create(
             name=name,
             defaults={
-                "airport_identifier": identifier,
+                "airport_identifiers": identifiers,
                 "city": city,
+                "website_url": f"https://{slug}.{DART_CONTACT_DOMAIN}/",
                 "is_active": True,
-                "sort_order": order,
             },
         )
+        seed_dart_contacts(dart, faker, rng)
         darts.append(dart)
     return darts
+
+
+def seed_dart_contacts(dart: Dart, faker: Faker, rng: random.Random) -> None:
+    """Give ``dart`` its example contacts, replacing any it already has.
+
+    Every team gets a leader and a deputy; the other roles are drawn, so the
+    list looks like a real one rather than four identical teams.
+    """
+    dart.contacts.all().delete()
+    wanted = DART_CONTACT_ROLES[: rng.randint(2, len(DART_CONTACT_ROLES))]
+    for position, (title, has_phone) in enumerate(wanted):
+        person = faker.name()
+        mailbox = person.lower().replace(" ", ".").replace("'", "")
+        DartContact.objects.create(
+            dart=dart,
+            name=person,
+            title=title,
+            phone=faker.numerify("###-###-####") if has_phone else "",
+            email=f"{mailbox}@{DART_CONTACT_DOMAIN}",
+            sort_order=position,
+        )
 
 
 def seed_plans() -> list[MembershipPlan]:
@@ -225,7 +274,7 @@ def _profile_defaults(
         "county": rng.choice(CA_COUNTIES),
         "emergency_contact_name": faker.name(),
         "emergency_contact_phone": faker.numerify("###-###-####"),
-        "home_airport_identifier": dart.airport_identifier or rng.choice(["SQL", "PAO", "LVK"]),
+        "home_airport_identifier": dart.home_airport or rng.choice(["SQL", "PAO", "LVK"]),
         "home_airport_city": dart.city or faker.city(),
         "dart": dart,
         "air_care_alliance_number": (faker.numerify("ACA-#####") if rng.random() < 0.35 else ""),

@@ -89,8 +89,11 @@ Step by step:
    checkout on the machine shares one pair of containers.  Data lives in the
    ``caldart_pgdata`` volume and survives ``make down``.
 
-3. **``make migrate``** applies the migrations.  Three of them carry data
-   rather than schema.
+3. **``make migrate``** applies the migrations.  Each app has one initial
+   migration describing its tables as they are: this is a prototype with no
+   installation to upgrade, so a schema change is made by editing the model and
+   regenerating that migration rather than by stacking a fix-up on top of it.
+   Three migrations carry data rather than schema.
    ``accounts.0002_seed_roles`` creates the six role groups, so a migrated
    database already knows what a ``dart_leader`` is, ``cms.0002_site_root``
    makes a ``HomePage`` the Wagtail site root, and

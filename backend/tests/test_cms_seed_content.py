@@ -25,7 +25,7 @@ from apps.cms.models import (
     StandardPage,
     get_site_settings,
 )
-from apps.members.models import Dart
+from apps.darts.models import Dart
 from tests.factories import MemberProfileFactory, MembershipFactory
 
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
@@ -85,7 +85,7 @@ def test_seed_content_creates_one_page_per_dart() -> None:
     # Airport identifiers make the slugs, and appear on the index table.
     palo_alto = pages.get(dart__name="Palo Alto")
     assert palo_alto.slug == "pao"
-    assert palo_alto.airport_identifier == "PAO"
+    assert palo_alto.airport_identifiers == "PAO"
 
 
 def test_seed_content_creates_three_news_posts() -> None:

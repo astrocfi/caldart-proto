@@ -310,6 +310,13 @@ DART_INDEX = PageSpec(
         "to the closest leader."
     ),
     body=(
+        heading("If no team is near you"),
+        rich(
+            "<p>Not every member lives within reach of an organized team. Join anyway and "
+            "leave the DART box empty: you carry a full CalDART membership, receive the "
+            "same training material, and are called on by the nearest DART when a mission "
+            "fits.</p>"
+        ),
         heading("Starting a new team"),
         rich(
             "<p>If your airport has no DART, it takes four or five committed volunteers "
@@ -343,19 +350,12 @@ DART_LEADERS: tuple[str, ...] = (
 #: The domain the example leader contact addresses are built in.
 DART_CONTACT_DOMAIN = "caldart.example.org"
 
-#: The summary of a DART that has a home airport.  ``name``, ``where`` and
-#: ``county`` are filled in from the team's own record.
+#: The summary of one DART.  ``name``, ``where`` and ``county`` are filled in
+#: from the team's own record, and ``where`` names every field it flies from.
 DART_SUMMARY = (
     "<p>The {name} DART flies from {where}. Members meet monthly, train "
     "with {county} county emergency services, and take part in "
     "the statewide airlift exercise each year.</p>"
-)
-
-#: The summary of the team for members with no DART within reach.
-UNAFFILIATED_SUMMARY = (
-    "<p>Not every member lives within reach of an organized team. Unaffiliated "
-    "members carry a full CalDART membership, receive the same training material "
-    "and are called on by the nearest DART when a mission fits.</p>"
 )
 
 #: What every DART page carries below its own summary.

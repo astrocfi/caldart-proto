@@ -53,7 +53,7 @@ from apps.cms.models import (
 )
 from apps.cms.permissions import grant_website_admin_permissions
 from apps.cms.seed import ensure_site_root
-from apps.members.models import Dart
+from apps.darts.models import Dart
 from apps.members.seed import seed_darts
 
 #: One entry of a page body: the block type, then either rich text or the block's
@@ -214,36 +214,33 @@ def seed_history(about: StandardPage) -> StandardPage:
 def dart_page_body(dart: Dart) -> list[StreamItem]:
     """The body of one DART's page: its own summary, then the shared blocks.
 
-    A team with a home airport is described by where it flies from and which
-    county it trains with; a team without one gets the unaffiliated copy instead.
+    The summary names the town and every airport the team flies from, so a page
+    for a two-field team reads as one.
     """
-    if dart.airport_identifier:
-        summary = content.DART_SUMMARY.format(
-            name=dart.name,
-            where=f"{dart.city} ({dart.airport_identifier})",
-            county=dart.city or "their",
-        )
-    else:
-        summary = content.UNAFFILIATED_SUMMARY
+    summary = content.DART_SUMMARY.format(
+        name=dart.name,
+        where=f"{dart.city} ({dart.airport_identifiers})",
+        county=dart.city or "their",
+    )
     return [*stream([content.rich(summary)]), *stream(content.DART_PAGE_BODY)]
 
 
 def seed_darts_section(about: StandardPage) -> DartIndexPage:
     """Create or update ``/about/darts/`` and one DART page below it per team.
 
-    Each page is slugged by the team's airport identifier, or by its name when it
-    has none, and carries a leader name and a generated example contact address.
+    Each page is slugged by the first airport the team flies from, and carries a
+    leader name and a generated example contact address.
     A page whose team no longer exists is deleted, so re-seeding converges on
     exactly one page per DART.  Returns the index page.
     """
     index = upsert_spec(about, DartIndexPage, content.DART_INDEX)
 
-    darts = list(Dart.objects.order_by("sort_order", "name"))
+    darts = list(Dart.objects.order_by("name"))
     wanted: set[str] = set()
     for position, dart in enumerate(darts):
         leader = content.DART_LEADERS[position % len(content.DART_LEADERS)]
         mailbox = leader.lower().replace(" ", ".").replace("'", "")
-        slug = dart.airport_identifier.lower() if dart.airport_identifier else slugify(dart.name)
+        slug = dart.home_airport.lower() if dart.home_airport else slugify(dart.name)
         wanted.add(slug)
         upsert_page(
             index,

@@ -15,12 +15,8 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, SYSTEM_ADMIN
-from apps.members.models import (
-    Dart,
-    MedicalType,
-    MembershipPlan,
-    MembershipStatusChoices,
-)
+from apps.darts.models import Dart
+from apps.members.models import MedicalType, MembershipPlan, MembershipStatusChoices
 from tests.conftest import role_matrix
 from tests.factories import (
     AircraftFactory,

@@ -23,6 +23,7 @@ import {
   emptyAccountDraft,
 } from './MemberFormFields';
 import { useCreateMember } from './api';
+import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
 import { splitErrors } from './errors';
 
 /** `/admin/members/new` page: create a member account and profile in one request. */
@@ -36,10 +37,21 @@ export function MemberCreatePage(): JSX.Element {
   const [profile, setProfile] = useState(EMPTY_PROFILE_FORM);
   const [adminOnly, setAdminOnly] = useState(EMPTY_ADMIN_ONLY);
 
-  const errors = splitErrors(create.error);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const server = splitErrors(create.error);
+  const errors = {
+    ...server,
+    account: emailError ? { ...server.account, email: emailError } : server.account,
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (!isEmailAddress(account.email)) {
+      setEmailError(EMAIL_MESSAGE);
+      return;
+    }
+    setEmailError(null);
     create.mutate(
       {
         email: account.email.trim(),

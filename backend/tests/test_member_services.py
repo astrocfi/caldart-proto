@@ -14,7 +14,8 @@ from apps.accounts.models import User
 from apps.accounts.roles import MEMBER
 from apps.accounts.services import EMAIL_CHANGE_REFUSED
 from apps.cms.models import SiteSettings
-from apps.members.models import Dart, MemberProfile, MembershipPlan
+from apps.darts.models import Dart
+from apps.members.models import MemberProfile, MembershipPlan
 from apps.members.services import (
     activate_term,
     create_member,

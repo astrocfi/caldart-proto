@@ -16,6 +16,8 @@ import type { JSX } from 'react';
 
 import type { AdminProfile, AdminProfilePayload } from '@/portal/api/types';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
+import { maskEmail } from '@/portal/masks';
 
 export interface AccountDraft {
   email: string;
@@ -82,12 +84,13 @@ export function AccountFields({
         <div className="col-half">
           <Field label="Email address" required error={errors.email}>
             {(props) => (
-              <input
+              <MaskedInput
                 {...props}
                 type="email"
                 autoComplete="email"
+                mask={maskEmail}
                 value={value.email}
-                onChange={(event) => set('email', event.target.value)}
+                onValueChange={(next) => set('email', next)}
               />
             )}
           </Field>

@@ -2,6 +2,16 @@ import type { ChangeEvent, InputHTMLAttributes, JSX } from 'react';
 
 import { caretAfterMask } from '@/portal/masks';
 
+/**
+ * The input types whose caret can be moved.
+ *
+ * `setSelectionRange` throws on any other type -- `email` and `number` among
+ * them -- so the caret is left where the browser put it there.  Those types
+ * are only used for fields the mask does not re-punctuate, where the caret
+ * never had to move.
+ */
+const SELECTABLE_TYPES = new Set(['text', 'search', 'tel', 'url', 'password', undefined]);
+
 export interface MaskedInputProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,
   'value' | 'onChange'
@@ -38,8 +48,10 @@ export function MaskedInput({
     // React re-renders with the same string it already has, so the DOM value
     // and the caret are set here rather than left where the browser put them.
     input.value = masked;
-    const next = caretAfterMask(raw, caret, masked);
-    input.setSelectionRange(next, next);
+    if (SELECTABLE_TYPES.has(rest.type)) {
+      const next = caretAfterMask(raw, caret, masked);
+      input.setSelectionRange(next, next);
+    }
     onValueChange(masked);
   };
 

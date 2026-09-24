@@ -22,6 +22,5 @@ urlpatterns = [
     ),
     path("me/membership", views.MyMembershipView.as_view(), name="me-membership"),
     path("me/payments", views.MyPaymentsView.as_view(), name="me-payments"),
-    path("darts", views.DartListView.as_view(), name="darts"),
     path("plans", views.PlanListView.as_view(), name="plans"),
 ]

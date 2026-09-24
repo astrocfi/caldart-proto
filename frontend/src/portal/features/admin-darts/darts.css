@@ -1,0 +1,27 @@
+/*
+ * The DART screen: the form's contact rows, which are a small table of people
+ * rather than a stack of full-width fields.
+ */
+.dart-contacts {
+  margin-top: var(--space-4);
+}
+
+.dart-contacts__row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 var(--space-4);
+  align-items: end;
+  padding-block: var(--space-3);
+  border-top: var(--hairline) solid var(--color-rule);
+}
+
+@media (min-width: 50rem) {
+  .dart-contacts__row {
+    grid-template-columns: 1.2fr 1fr 10rem 1.4fr auto;
+  }
+}
+
+.dart-contacts__row .field-pair,
+.dart-contacts__row .dart-contacts__phone {
+  width: 100%;
+}

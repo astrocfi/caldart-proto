@@ -21,6 +21,7 @@ import { Loading } from '../components/Loading';
 import { PortalLayout } from '../layout/PortalLayout';
 import { NotFound } from './not-found';
 import { adminAircraftRoutes } from './admin-aircraft';
+import { adminDartsRoutes } from './admin-darts';
 import { adminMembersRoutes } from './admin-members';
 import { adminPaymentsRoutes } from './admin-payments';
 import { adminRemindersRoutes } from './admin-reminders';
@@ -43,6 +44,7 @@ export const privateRoutes: RouteObject[] = [
   ...leaderRoutes,
   ...adminMembersRoutes,
   ...adminAircraftRoutes,
+  ...adminDartsRoutes,
   ...adminPaymentsRoutes,
   ...adminRemindersRoutes,
   ...adminUsersRoutes,

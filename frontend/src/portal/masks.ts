@@ -8,7 +8,8 @@
  * returns a string the field is happy to hold.  They are the first half of the
  * rules in `features/profile/form.ts` and `features/aircraft/form.ts`; those
  * still judge a finished value, because a mask cannot tell a half-typed number
- * from a wrong one.
+ * from a wrong one.  `isEmailAddress` is the one check that lives here too,
+ * because it belongs with the mask that shapes what it reads.
  */
 
 /** The characters a mask counts when it puts the caret back (see `caretAfterMask`). */
@@ -46,18 +47,40 @@ export function maskPostalCode(raw: string): string {
 }
 
 /**
- * A three-character FAA airport identifier, such as `PAO`, `E16` or `KLS`.
+ * One airport identifier, as this system stores it: three letters or digits.
  *
- * Letters and digits only, in upper case.  A `K` typed in front of a full
- * identifier is dropped, because that is the ICAO prefix on the four-letter
- * form: `KPAO` becomes `PAO`, and `KKAB` becomes `KAB`.  A `K` that is part of
- * the identifier itself is kept -- Kelso is `KLS` -- so only a fourth
- * character triggers the trim.
+ * The four-letter ICAO form is the same field with a `K` in front, so that `K`
+ * is trimmed as the fourth character arrives: `KCRQ` becomes `CRQ`, and
+ * `KKAB` becomes `KAB`.  A three-character identifier that begins with `K` is
+ * left alone — Kelso really is `KLS` — because only a fourth character says
+ * the `K` was a prefix.  One airport is then written one way everywhere.
  */
 export function maskAirportIdentifier(raw: string): string {
   const typed = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
   const trimmed = typed.length > 3 && typed.startsWith('K') ? typed.slice(1) : typed;
   return trimmed.slice(0, 3);
+}
+
+/**
+ * A comma-separated list of airport identifiers, such as `CCR, C83`.
+ *
+ * Each entry follows `maskAirportIdentifier`, so a pasted `KCRQ, KMYF` becomes
+ * `CRQ, MYF` as it lands.  The commas and single spaces between them are left
+ * where they are typed, so a list can be edited in the middle.
+ */
+export function maskAirportIdentifiers(raw: string): string {
+  return (
+    raw
+      .toUpperCase()
+      .replace(/[^A-Z0-9, ]/g, '')
+      .replace(/ {2,}/g, ' ')
+      .replace(/,{2,}/g, ',')
+      // The separators are captured, so they land back between the entries
+      // exactly as they were typed and an edit in the middle stays put.
+      .split(/([, ]+)/)
+      .map((part, index) => (index % 2 === 1 ? part : maskAirportIdentifier(part)))
+      .join('')
+  );
 }
 
 /**
@@ -123,6 +146,37 @@ export function maskDollars(raw: string, maxDigits = 12): string {
     .replace(/\./g, '')
     .slice(0, 2);
   return `${whole}.${cents}`;
+}
+
+/**
+ * An email address as it is typed: no spaces, one `@`, lower case.
+ *
+ * Everything an address may not hold is refused at the keyboard -- spaces
+ * above all, which is what a copied address drags in -- and the address is
+ * lower-cased, because that is how people read one back and sign-in ignores
+ * case anyway.  A second `@` is refused; the rest of the shape is
+ * `isEmailAddress`'s to judge, once there is something to judge.
+ */
+export function maskEmail(raw: string): string {
+  const cleaned = raw.toLowerCase().replace(/[^a-z0-9.!#$%&'*+/=?^_`{|}~@-]/g, '');
+  const at = cleaned.indexOf('@');
+  if (at === -1) return cleaned;
+  return `${cleaned.slice(0, at)}@${cleaned.slice(at + 1).replace(/@/g, '')}`;
+}
+
+/** What every screen says when an address is not one. */
+export const EMAIL_MESSAGE = 'Use an email address like name@example.org.';
+
+/**
+ * Whether `value` is an address worth sending to: something, one `@`,
+ * something, a dot, and a domain ending of at least two letters.
+ *
+ * Deliberately looser than the server's own check and than the RFC: this
+ * catches the typo -- a missing `@`, a trailing comma, `name@example` -- while
+ * the server has the last word.
+ */
+export function isEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[a-z]{2,}$/i.test(value.trim());
 }
 
 /** How many letters and digits `value` holds. */

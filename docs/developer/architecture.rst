@@ -245,12 +245,17 @@ not every app needs every one.
     (``permissions.py``); and the auth rate limits (``throttling.py``).
     Endpoints ``/auth/...``, ``/admin/users`` and ``/roles``; commands
     ``seed_roles`` and ``seed_demo``.
+``darts``
+    ``Dart`` and ``DartContact``: the teams, the airports each flies from, the
+    team's own website and the people who run it.  Endpoints: the public
+    ``/darts`` catalog and the account administrator's ``/admin/darts``.  The
+    app sits below ``members``, because a profile names a DART and a DART
+    knows nothing about any member.
 ``members``
-    ``Dart``, ``MemberProfile``, ``MembershipPlan``, and ``Membership``, and
-    the rules for whether a membership is current.  Endpoints: the member's
-    own ``/me/...``, the public ``/darts`` and ``/plans``, and the account
-    administrator's ``/admin/members`` and ``/admin/memberships``, with the
-    membership report.
+    ``MemberProfile``, ``MembershipPlan``, and ``Membership``, and the rules
+    for whether a membership is current.  Endpoints: the member's own
+    ``/me/...``, the public ``/plans``, and the account administrator's
+    ``/admin/members`` and ``/admin/memberships``, with the membership report.
 ``aircraft``
     ``Aircraft``, the shared register with insurance data.  Endpoints
     ``/aircraft...``, the exports under ``/admin/aircraft/``, and the DART

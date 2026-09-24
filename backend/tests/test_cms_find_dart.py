@@ -6,7 +6,7 @@ import pytest
 from django.test import Client
 
 from apps.cms.models import SiteSettings
-from apps.members.models import Dart
+from apps.darts.models import Dart
 from tests.factories import (
     make_dart_index,
     make_dart_page,
