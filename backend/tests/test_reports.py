@@ -175,7 +175,7 @@ COLUMNS: tuple[ReportColumn[tuple[str, str, str]], ...] = (
 
 
 def test_select_columns_answers_the_defaults_when_nothing_is_requested() -> None:
-    """No requested list means the columns whose ``default`` is true, in registry order."""
+    """No requested list means the columns whose ``default`` is true, in order."""
     assert [column.key for column in select_columns(COLUMNS, None)] == ["name", "email"]
 
 
@@ -250,6 +250,4 @@ def test_pdf_relative_widths_decide_how_much_room_each_column_gets(pdf_text: Pdf
 def test_pdf_rejects_widths_that_do_not_match_the_header() -> None:
     """One relative width per column, or ``ValueError`` before anything is drawn."""
     with pytest.raises(ValueError, match="4 columns but 2 widths"):
-        pdf_table_response(
-            "x.pdf", title="Report", header=HEADER, rows=ROWS, widths=[1, 1]
-        )
+        pdf_table_response("x.pdf", title="Report", header=HEADER, rows=ROWS, widths=[1, 1])
