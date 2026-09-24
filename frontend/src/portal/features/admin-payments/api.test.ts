@@ -23,6 +23,9 @@ function row(
     total_cents: total,
     plan_cents: total,
     contribution_cents: 0,
+    fee_cents: 0,
+    net_cents: total,
+    refunded_cents: 0,
     by_provider: by,
   };
 }

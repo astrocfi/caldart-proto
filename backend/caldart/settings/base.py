@@ -261,6 +261,12 @@ SPECTACULAR_SETTINGS = {
         "RolesEnum": "apps.accounts.roles.ROLE_SLUGS",
         "ReminderKindEnum": "apps.reminders.models.ReminderKind.choices",
         "NavKindEnum": "apps.cms.api.serializers.NAV_KINDS",
+        "PaymentKindEnum": "apps.payments.models.PaymentKind.choices",
+        "MandateProviderEnum": "apps.payments.models.MandateProvider.choices",
+        "MandateStatusEnum": "apps.payments.models.MandateStatus.choices",
+        "RefundStatusEnum": "apps.payments.models.RefundStatus.choices",
+        "RenewalOutcomeEnum": "apps.payments.models.RenewalOutcome.choices",
+        "ManualMethodEnum": "apps.payments.manual.MANUAL_METHOD_CHOICES",
     },
     # A read-only field and a write-only one describe different objects, so the
     # request body gets its own component; that is the split the portal's

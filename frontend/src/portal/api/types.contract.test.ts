@@ -20,29 +20,39 @@ import { describe, expect, it } from 'vitest';
 
 import type { components } from './schema';
 import type {
+  AdminProfile,
+  AdminProfilePayload,
+  AdminUserPatch,
   Aircraft,
   AircraftDetail,
   AircraftPatch,
   AircraftPilot,
   AircraftSummary,
-  AdminProfile,
-  AdminProfilePayload,
-  AdminUserPatch,
   AttachedAircraft,
   Backup,
   CheckoutRequest,
   CheckoutResponse,
+  ContributionRow,
   ContributionTier,
   Dart,
+  FinancePaymentTerm,
   GrantTermPayload,
   Health,
   IfrRated,
   LeaderSearchResult,
   LeaderStatus,
+  LedgerMandate,
+  LedgerMember,
+  LedgerTotals,
   LoginPayload,
+  MandateProvider,
+  MandateStatus,
+  ManualMethod,
+  ManualPaymentPayload,
   MedicalType,
   MemberCreatePayload,
   MemberDetail,
+  MemberLedger,
   MemberPayment,
   MemberRow,
   MemberTerm,
@@ -58,24 +68,20 @@ import type {
   NavKind,
   OwnerType,
   Paginated,
-  Refund,
-  RefundIssued,
-  RefundReason,
-  RefundRequest,
-  RefundState,
-  RefundedPayment,
   PasswordChangePayload,
   PasswordResetConfirmPayload,
   PasswordResetRequestPayload,
   Payment,
+  PaymentDetail,
+  PaymentKind,
+  PaymentPatch,
   PaymentPeriodSummary,
   PaymentProvider,
+  PaymentRenewalAttempt,
   PaymentResult,
   PaymentState,
   PaymentSummary,
   PaymentTerm,
-  ReceiptSend,
-  StatementYears,
   PaymentWallet,
   PaymentsConfig,
   PilotCertificateType,
@@ -83,14 +89,25 @@ import type {
   Profile,
   ProfilePatch,
   Rating,
+  ReceiptSend,
+  ReconciliationRow,
+  Refund,
+  RefundIssued,
+  RefundReason,
+  RefundRequest,
+  RefundState,
+  RefundedPayment,
   RegisterPayload,
   ReminderKind,
   ReminderLogEntry,
   ReminderRunResult,
+  RenewalOutcome,
+  ReportColumn,
   Role,
   RoleSlug,
   SendPasswordResetResult,
   SiteConfig,
+  StatementYears,
   TermUpdatePayload,
   User,
 } from './types';
@@ -131,6 +148,11 @@ const paymentWallet: Matches<PaymentWallet, Schemas['WalletEnum']> = true;
 const paymentState: Matches<PaymentState, Schemas['PaymentStatusEnum']> = true;
 const reminderKind: Matches<ReminderKind, Schemas['ReminderKindEnum']> = true;
 const navKind: Matches<NavKind, Schemas['NavKindEnum']> = true;
+const paymentKind: Matches<PaymentKind, Schemas['PaymentKindEnum']> = true;
+const mandateProvider: Matches<MandateProvider, Schemas['MandateProviderEnum']> = true;
+const mandateStatus: Matches<MandateStatus, Schemas['MandateStatusEnum']> = true;
+const renewalOutcome: Matches<RenewalOutcome, Schemas['RenewalOutcomeEnum']> = true;
+const manualMethod: Matches<ManualMethod, Schemas['ManualMethodEnum']> = true;
 
 /* ------------------------------------------------------------------- auth */
 const user: Matches<User, Schemas['User']> = true;
@@ -179,7 +201,10 @@ const aircraftPilot: Matches<AircraftPilot, Schemas['AircraftPilot']> = true;
 const aircraftDetail: Matches<AircraftDetail, Schemas['AircraftDetail']> = true;
 
 /* --------------------------------------------------------------- payments */
-const payment: Matches<Payment, Schemas['Payment']> = true;
+const payment: Matches<Payment, Schemas['FinancePayment']> = true;
+const paymentDetail: Matches<PaymentDetail, Schemas['FinancePaymentDetail']> = true;
+const financePaymentTerm: Matches<FinancePaymentTerm, Schemas['FinancePaymentTerm']> = true;
+const paymentAttempt: Matches<PaymentRenewalAttempt, Schemas['PaymentRenewalAttempt']> = true;
 const memberPayment: Matches<MemberPayment, Schemas['AdminPayment']> = true;
 const paymentSummary: Matches<PaymentSummary, Schemas['PaymentSummary']> = true;
 const paymentTerm: Matches<PaymentTerm, Schemas['PaymentTerm']> = true;
@@ -197,6 +222,15 @@ const paymentsConfig: Matches<PaymentsConfig, Schemas['PaymentsConfig']> = true;
 const checkoutRequest: Matches<CheckoutRequest, Schemas['CheckoutRequest']> = true;
 const checkoutResponse: Matches<CheckoutResponse, Schemas['CheckoutResponse']> = true;
 const periodSummary: Matches<PaymentPeriodSummary, Schemas['PaymentPeriodSummary']> = true;
+const reportColumn: Matches<ReportColumn, Schemas['ReportColumn']> = true;
+const reconciliationRow: Matches<ReconciliationRow, Schemas['ReconciliationRow']> = true;
+const contributionRow: Matches<ContributionRow, Schemas['ContributionRow']> = true;
+const ledgerMandate: Matches<LedgerMandate, Schemas['LedgerMandate']> = true;
+const ledgerMember: Matches<LedgerMember, Schemas['LedgerMember']> = true;
+const ledgerTotals: Matches<LedgerTotals, Schemas['LedgerTotals']> = true;
+const memberLedger: Matches<MemberLedger, Schemas['MemberLedger']> = true;
+const paymentPatch: Matches<PaymentPatch, Schemas['PatchedPaymentPatchRequest']> = true;
+const manualPayment: Matches<ManualPaymentPayload, Schemas['ManualPaymentRequest']> = true;
 
 /* ----------------------------------------------------------------- leader */
 const leaderSearch: Matches<LeaderSearchResult, Schemas['LeaderSearchResult']> = true;
@@ -214,7 +248,7 @@ const membersPage: Matches<MembersPage, Schemas['MembersPage']> = true;
 const siteConfig: Matches<SiteConfig, Schemas['SiteConfig']> = true;
 
 /* ------------------------------------------------------------- pagination */
-const paginatedPayments: Matches<Paginated<Payment>, Schemas['PaginatedPaymentList']> = true;
+const paginatedPayments: Matches<Paginated<Payment>, Schemas['PaginatedFinancePaymentList']> = true;
 const paginatedUsers: Matches<Paginated<User>, Schemas['PaginatedAdminUserList']> = true;
 const paginatedMembers: Matches<Paginated<MemberRow>, Schemas['PaginatedMemberListList']> = true;
 const paginatedAircraft: Matches<Paginated<Aircraft>, Schemas['PaginatedAircraftList']> = true;
@@ -235,6 +269,11 @@ const assertions: readonly true[] = [
   medicalType,
   ownerType,
   paymentProvider,
+  paymentKind,
+  mandateProvider,
+  mandateStatus,
+  renewalOutcome,
+  manualMethod,
   paymentWallet,
   paymentState,
   reminderKind,
@@ -271,6 +310,9 @@ const assertions: readonly true[] = [
   aircraftPilot,
   aircraftDetail,
   payment,
+  paymentDetail,
+  financePaymentTerm,
+  paymentAttempt,
   memberPayment,
   paymentSummary,
   paymentTerm,
@@ -288,6 +330,15 @@ const assertions: readonly true[] = [
   checkoutRequest,
   checkoutResponse,
   periodSummary,
+  reportColumn,
+  reconciliationRow,
+  contributionRow,
+  ledgerMandate,
+  ledgerMember,
+  ledgerTotals,
+  memberLedger,
+  paymentPatch,
+  manualPayment,
   leaderSearch,
   leaderStatus,
   reminderLog,
@@ -320,6 +371,11 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PaymentStatusEnum',
   'ReminderKindEnum',
   'NavKindEnum',
+  'PaymentKindEnum',
+  'MandateProviderEnum',
+  'MandateStatusEnum',
+  'RenewalOutcomeEnum',
+  'ManualMethodEnum',
   'User',
   'Role',
   'LoginRequest',
@@ -351,7 +407,10 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PatchedAircraftRequest',
   'AircraftPilot',
   'AircraftDetail',
-  'Payment',
+  'FinancePayment',
+  'FinancePaymentDetail',
+  'FinancePaymentTerm',
+  'PaymentRenewalAttempt',
   'AdminPayment',
   'PaymentSummary',
   'PaymentTerm',
@@ -369,6 +428,15 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'CheckoutRequest',
   'CheckoutResponse',
   'PaymentPeriodSummary',
+  'ReportColumn',
+  'ReconciliationRow',
+  'ContributionRow',
+  'LedgerMandate',
+  'LedgerMember',
+  'LedgerTotals',
+  'MemberLedger',
+  'PatchedPaymentPatchRequest',
+  'ManualPaymentRequest',
   'LeaderSearchResult',
   'LeaderStatus',
   'ReminderLog',
@@ -378,7 +446,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'NavEntry',
   'MembersPage',
   'SiteConfig',
-  'PaginatedPaymentList',
+  'PaginatedFinancePaymentList',
   'PaginatedAdminUserList',
   'PaginatedMemberListList',
   'PaginatedAircraftList',

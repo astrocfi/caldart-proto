@@ -16,6 +16,7 @@ to document each app's endpoints in detail, request body by response body.
    api-darts
    api-aircraft
    api-payments
+   api-finance
    api-refunds
    api-system
 
@@ -808,9 +809,9 @@ not (see :ref:`api-csrf-bootstrap`).
      - owner
      - owner
      - owner
-     - owner
      - ✓
-     - 403 for a non-owner without the role
+     - ✓
+     - 403 for a non-owner without a finance role
    * - ``POST /payments/{stripe,paypal}/webhook``
      - ✓
      - ✓
@@ -1031,8 +1032,8 @@ Reading the matrix:
 **"owner"**
     The payment's ``user`` is the caller.  On the three confirm endpoints
     that is enforced by filtering the lookup, so a non-owner gets **404**; on
-    ``GET /payments/{id}`` it is an object permission that also admits
-    ``account_admin``, so a non-owner without that role gets **403**.
+    ``GET /payments/{id}`` it is an object permission that also admits the
+    finance roles, so a non-owner without one gets **403**.
 
 **Serializer switching on aircraft.**  ``GET /aircraft/{id}`` and
 ``GET /aircraft/lookup`` return the ``pilots`` array — other members' names,

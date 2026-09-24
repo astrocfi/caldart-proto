@@ -23,12 +23,13 @@ from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership, MembershipPlan, MembershipState
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentStatus
-from apps.payments.seed import HISTORY_MONTHS
+from apps.payments.seed import HISTORY_MONTHS, MANUAL_PAYMENT_COUNT
 
 User = get_user_model()
 
-#: The payments ``seed_demo`` creates from its fixed random seed, one per term.
-SEEDED_PAYMENTS = 73
+#: The payments ``seed_demo`` creates from its fixed random seed: one per term,
+#: plus the ones recorded by hand, all succeeded.
+SEEDED_PAYMENTS = 73 + MANUAL_PAYMENT_COUNT
 
 #: How many of them the seed refunds: two in full and four contributions, which
 #: leaves the first two ``refunded`` and the other four ``partially_refunded``.
@@ -140,11 +141,11 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
 
 
 def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
-    """The seed spreads payments across two providers and at least 24 months."""
+    """The seed spreads payments across the providers and at least 24 months."""
     _seed()
     providers = set(Payment.objects.values_list("provider", flat=True))
-    assert providers == {"stripe", "paypal"}
-    assert Payment.objects.filter(contribution_cents__gt=0).count() == 30
+    assert providers == {"stripe", "paypal", "manual"}
+    assert Payment.objects.filter(contribution_cents__gt=0).count() == 30 + MANUAL_PAYMENT_COUNT
     months = Payment.objects.dates("created_at", "month")
     oldest, newest = min(months), max(months)
     span = (newest.year - oldest.year) * 12 + newest.month - oldest.month

@@ -339,6 +339,26 @@
       "StripeCheckoutResponse"
     ]
   },
+  "ContributionRow": {
+    "properties": {
+      "contribution_cents": "integer",
+      "count": "integer",
+      "email": "string(email)",
+      "name": "string",
+      "net_contribution_cents": "integer",
+      "refunded_cents": "integer",
+      "user_id": "integer"
+    },
+    "required": [
+      "contribution_cents",
+      "count",
+      "email",
+      "name",
+      "net_contribution_cents",
+      "refunded_cents",
+      "user_id"
+    ]
+  },
   "ContributionTier": {
     "properties": {
       "cents": "integer",
@@ -499,6 +519,150 @@
       "name"
     ]
   },
+  "FinancePayment": {
+    "properties": {
+      "amount_cents": "integer",
+      "completed_at": "string(date-time)|null",
+      "contribution_cents": "integer",
+      "created_at": "string(date-time)",
+      "currency": "string",
+      "fee_cents": "integer",
+      "id": "integer",
+      "kind": "ref:PaymentKindEnum",
+      "membership": "ref:FinancePaymentTerm|null",
+      "net_cents": "integer",
+      "note": "string",
+      "paid_on": "string(date)|null",
+      "plan": "string|null",
+      "plan_amount_cents": "integer",
+      "provider": "ref:PaymentProviderEnum",
+      "provider_ref": "string",
+      "receipt_number": "string",
+      "receipt_sent_at": "string(date-time)|null",
+      "received_on": "string(date)|null",
+      "reconciled_by": "string|null",
+      "reconciled_on": "string(date)|null",
+      "recorded_by": "string|null",
+      "refunded_cents": "integer",
+      "renewal_attempt": "ref:PaymentRenewalAttempt|null",
+      "status": "ref:PaymentStatusEnum",
+      "user_email": "string(email)",
+      "user_id": "integer",
+      "user_name": "string",
+      "wallet": "ref:WalletEnum"
+    },
+    "required": [
+      "amount_cents",
+      "completed_at",
+      "contribution_cents",
+      "created_at",
+      "currency",
+      "fee_cents",
+      "id",
+      "kind",
+      "membership",
+      "net_cents",
+      "note",
+      "paid_on",
+      "plan",
+      "plan_amount_cents",
+      "provider",
+      "provider_ref",
+      "receipt_number",
+      "receipt_sent_at",
+      "received_on",
+      "reconciled_by",
+      "reconciled_on",
+      "recorded_by",
+      "refunded_cents",
+      "renewal_attempt",
+      "status",
+      "user_email",
+      "user_id",
+      "user_name",
+      "wallet"
+    ]
+  },
+  "FinancePaymentDetail": {
+    "properties": {
+      "amount_cents": "integer",
+      "completed_at": "string(date-time)|null",
+      "contribution_cents": "integer",
+      "created_at": "string(date-time)",
+      "currency": "string",
+      "fee_cents": "integer",
+      "id": "integer",
+      "kind": "ref:PaymentKindEnum",
+      "membership": "ref:FinancePaymentTerm|null",
+      "net_cents": "integer",
+      "note": "string",
+      "paid_on": "string(date)|null",
+      "plan": "string|null",
+      "plan_amount_cents": "integer",
+      "provider": "ref:PaymentProviderEnum",
+      "provider_ref": "string",
+      "receipt_number": "string",
+      "receipt_sent_at": "string(date-time)|null",
+      "received_on": "string(date)|null",
+      "reconciled_by": "string|null",
+      "reconciled_on": "string(date)|null",
+      "recorded_by": "string|null",
+      "refunded_cents": "integer",
+      "refunds": "array<ref:Refund>",
+      "renewal_attempt": "ref:PaymentRenewalAttempt|null",
+      "status": "ref:PaymentStatusEnum",
+      "user_email": "string(email)",
+      "user_id": "integer",
+      "user_name": "string",
+      "wallet": "ref:WalletEnum"
+    },
+    "required": [
+      "amount_cents",
+      "completed_at",
+      "contribution_cents",
+      "created_at",
+      "currency",
+      "fee_cents",
+      "id",
+      "kind",
+      "membership",
+      "net_cents",
+      "note",
+      "paid_on",
+      "plan",
+      "plan_amount_cents",
+      "provider",
+      "provider_ref",
+      "receipt_number",
+      "receipt_sent_at",
+      "received_on",
+      "reconciled_by",
+      "reconciled_on",
+      "recorded_by",
+      "refunded_cents",
+      "refunds",
+      "renewal_attempt",
+      "status",
+      "user_email",
+      "user_id",
+      "user_name",
+      "wallet"
+    ]
+  },
+  "FinancePaymentTerm": {
+    "properties": {
+      "ends_on": "string(date)|null",
+      "id": "integer",
+      "starts_on": "string(date)",
+      "status": "ref:MembershipTermStatusEnum"
+    },
+    "required": [
+      "ends_on",
+      "id",
+      "starts_on",
+      "status"
+    ]
+  },
   "Health": {
     "properties": {
       "db": "string",
@@ -612,6 +776,58 @@
       "phone"
     ]
   },
+  "LedgerMandate": {
+    "properties": {
+      "canceled_at": "string(date-time)|null",
+      "contribution_cents": "integer",
+      "failure_count": "integer",
+      "id": "integer",
+      "last_charged_at": "string(date-time)|null",
+      "method_label": "string",
+      "plan": "string",
+      "provider": "ref:MandateProviderEnum",
+      "status": "ref:MandateStatusEnum"
+    },
+    "required": [
+      "canceled_at",
+      "contribution_cents",
+      "failure_count",
+      "id",
+      "last_charged_at",
+      "method_label",
+      "plan",
+      "provider",
+      "status"
+    ]
+  },
+  "LedgerMember": {
+    "properties": {
+      "email": "string(email)",
+      "id": "integer",
+      "membership": "ref:MembershipStatus",
+      "name": "string"
+    },
+    "required": [
+      "email",
+      "id",
+      "membership",
+      "name"
+    ]
+  },
+  "LedgerTotals": {
+    "properties": {
+      "contribution_cents": "integer",
+      "fee_cents": "integer",
+      "paid_cents": "integer",
+      "refunded_cents": "integer"
+    },
+    "required": [
+      "contribution_cents",
+      "fee_cents",
+      "paid_cents",
+      "refunded_cents"
+    ]
+  },
   "LoginRequest": {
     "properties": {
       "email": "string(email)",
@@ -620,6 +836,45 @@
     "required": [
       "email",
       "password"
+    ]
+  },
+  "MandateProviderEnum": {
+    "enum": [
+      "stripe",
+      "paypal",
+      "mock"
+    ]
+  },
+  "MandateStatusEnum": {
+    "enum": [
+      "pending",
+      "active",
+      "paused",
+      "canceled"
+    ]
+  },
+  "ManualMethodEnum": {
+    "enum": [
+      "check",
+      "cash",
+      "bank_transfer",
+      "other"
+    ]
+  },
+  "ManualPaymentRequest": {
+    "properties": {
+      "contribution_cents": "integer",
+      "method": "ref:ManualMethodEnum",
+      "note": "string",
+      "plan": "string|null",
+      "received_on": "string(date)",
+      "reference": "string",
+      "user_id": "integer"
+    },
+    "required": [
+      "method",
+      "received_on",
+      "user_id"
     ]
   },
   "MedicalTypeEnum": {
@@ -673,6 +928,22 @@
       "payments",
       "profile",
       "roles"
+    ]
+  },
+  "MemberLedger": {
+    "properties": {
+      "mandate": "ref:LedgerMandate|null",
+      "payments": "array<ref:FinancePaymentDetail>",
+      "statement_years": "array<integer>",
+      "totals": "ref:LedgerTotals",
+      "user": "ref:LedgerMember"
+    },
+    "required": [
+      "mandate",
+      "payments",
+      "statement_years",
+      "totals",
+      "user"
     ]
   },
   "MemberList": {
@@ -808,9 +1079,15 @@
       "mock"
     ]
   },
+  "MockCompleteOutcomeEnum": {
+    "enum": [
+      "succeed",
+      "fail"
+    ]
+  },
   "MockCompleteRequest": {
     "properties": {
-      "outcome": "ref:OutcomeEnum",
+      "outcome": "ref:MockCompleteOutcomeEnum",
       "payment_id": "integer"
     },
     "required": [
@@ -849,12 +1126,6 @@
       "portal"
     ]
   },
-  "OutcomeEnum": {
-    "enum": [
-      "succeed",
-      "fail"
-    ]
-  },
   "OwnerTypeEnum": {
     "enum": [
       "individual",
@@ -886,24 +1157,24 @@
       "results"
     ]
   },
-  "PaginatedMemberListList": {
+  "PaginatedFinancePaymentList": {
     "properties": {
       "count": "integer",
       "next": "string(uri)|null",
       "previous": "string(uri)|null",
-      "results": "array<ref:MemberList>"
+      "results": "array<ref:FinancePayment>"
     },
     "required": [
       "count",
       "results"
     ]
   },
-  "PaginatedPaymentList": {
+  "PaginatedMemberListList": {
     "properties": {
       "count": "integer",
       "next": "string(uri)|null",
       "previous": "string(uri)|null",
-      "results": "array<ref:Payment>"
+      "results": "array<ref:MemberList>"
     },
     "required": [
       "count",
@@ -1053,6 +1324,13 @@
     },
     "required": []
   },
+  "PatchedPaymentPatchRequest": {
+    "properties": {
+      "note": "string",
+      "reconciled_on": "string(date)|null"
+    },
+    "required": []
+  },
   "PatchedProfileRequest": {
     "properties": {
       "address_line1": "string",
@@ -1125,38 +1403,11 @@
       "paypal"
     ]
   },
-  "Payment": {
-    "properties": {
-      "amount_cents": "integer",
-      "completed_at": "string(date-time)|null",
-      "contribution_cents": "integer",
-      "created_at": "string(date-time)",
-      "currency": "string",
-      "id": "integer",
-      "plan": "string|null",
-      "plan_amount_cents": "integer",
-      "provider": "ref:PaymentProviderEnum",
-      "provider_ref": "string",
-      "status": "ref:PaymentStatusEnum",
-      "user_id": "integer",
-      "user_name": "string",
-      "wallet": "ref:WalletEnum"
-    },
-    "required": [
-      "amount_cents",
-      "completed_at",
-      "contribution_cents",
-      "created_at",
-      "currency",
-      "id",
-      "plan",
-      "plan_amount_cents",
-      "provider",
-      "provider_ref",
-      "status",
-      "user_id",
-      "user_name",
-      "wallet"
+  "PaymentKindEnum": {
+    "enum": [
+      "membership",
+      "contribution",
+      "both"
     ]
   },
   "PaymentPeriodSummary": {
@@ -1164,16 +1415,22 @@
       "by_provider": "ref:ProviderTotals",
       "contribution_cents": "integer",
       "count": "integer",
+      "fee_cents": "integer",
+      "net_cents": "integer",
       "period": "string",
       "plan_cents": "integer",
+      "refunded_cents": "integer",
       "total_cents": "integer"
     },
     "required": [
       "by_provider",
       "contribution_cents",
       "count",
+      "fee_cents",
+      "net_cents",
       "period",
       "plan_cents",
+      "refunded_cents",
       "total_cents"
     ]
   },
@@ -1183,6 +1440,18 @@
       "paypal",
       "mock",
       "manual"
+    ]
+  },
+  "PaymentRenewalAttempt": {
+    "properties": {
+      "id": "integer",
+      "outcome": "ref:RenewalOutcomeEnum",
+      "scheduled_on": "string(date)"
+    },
+    "required": [
+      "id",
+      "outcome",
+      "scheduled_on"
     ]
   },
   "PaymentResult": {
@@ -1210,7 +1479,7 @@
       "completed_at": "string(date-time)|null",
       "contribution_cents": "integer",
       "id": "integer",
-      "kind": "ref:PaymentSummaryKindEnum",
+      "kind": "ref:PaymentKindEnum",
       "membership": "ref:PaymentTerm|null",
       "paid_on": "string(date)|null",
       "plan": "string|null",
@@ -1236,13 +1505,6 @@
       "refunded_cents",
       "status",
       "wallet"
-    ]
-  },
-  "PaymentSummaryKindEnum": {
-    "enum": [
-      "membership",
-      "contribution",
-      "both"
     ]
   },
   "PaymentTerm": {
@@ -1432,6 +1694,30 @@
       "sent"
     ]
   },
+  "ReconciliationRow": {
+    "properties": {
+      "count": "integer",
+      "fee_cents": "integer",
+      "gross_cents": "integer",
+      "net_after_refunds_cents": "integer",
+      "net_cents": "integer",
+      "period": "string",
+      "reconciled_count": "integer",
+      "refunded_cents": "integer",
+      "unreconciled_count": "integer"
+    },
+    "required": [
+      "count",
+      "fee_cents",
+      "gross_cents",
+      "net_after_refunds_cents",
+      "net_cents",
+      "period",
+      "reconciled_count",
+      "refunded_cents",
+      "unreconciled_count"
+    ]
+  },
   "Refund": {
     "properties": {
       "amount_cents": "integer",
@@ -1558,6 +1844,26 @@
     "required": [
       "sent",
       "skipped"
+    ]
+  },
+  "RenewalOutcomeEnum": {
+    "enum": [
+      "scheduled",
+      "succeeded",
+      "failed",
+      "skipped"
+    ]
+  },
+  "ReportColumn": {
+    "properties": {
+      "default": "boolean",
+      "key": "string",
+      "label": "string"
+    },
+    "required": [
+      "default",
+      "key",
+      "label"
     ]
   },
   "Role": {

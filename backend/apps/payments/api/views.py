@@ -1,4 +1,4 @@
-"""Payments API and payment reports.
+"""The payments API: checkout, each provider's confirmation, and the webhooks.
 
 Two rules run through every view here:
 
@@ -8,6 +8,9 @@ Two rules run through every view here:
 * a membership is only activated after the *provider* has confirmed the money,
   which is why the confirm endpoints re-fetch the intent or capture the order
   rather than believing the browser.
+
+The finance area's own endpoints -- the list, the reports, the ledger and the
+reconciliation -- live in ``report_views.py``.
 """
 
 from __future__ import annotations
@@ -15,34 +18,29 @@ from __future__ import annotations
 from typing import Any, cast
 
 from django.conf import settings
-from django.db.models import QuerySet
-from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.http import Http404, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status as http_status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.accounts.permissions import IsFinance, user_has_any_role
-from apps.accounts.roles import ACCOUNT_ADMIN
+from apps.accounts.permissions import user_has_any_role
+from apps.accounts.roles import ACCOUNT_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
 from apps.members.services import membership_status
-from apps.payments import reports
 from apps.payments.api.serializers import (
     CheckoutResponseSerializer,
     CheckoutSerializer,
     MockCompleteSerializer,
-    PaymentPeriodSummarySerializer,
-    PaymentReportQuerySerializer,
     PaymentResultSerializer,
     PaymentsConfigSerializer,
-    PaymentSerializer,
     PayPalCaptureSerializer,
     StripeConfirmSerializer,
 )
@@ -55,7 +53,6 @@ from apps.payments.models import (
 from apps.payments.providers import available_providers, get_provider
 from apps.payments.providers.base import PaymentError
 from apps.payments.services import create_checkout
-from caldart.reports import CSV_MEDIA_TYPE, csv_response, download_responses
 
 #: What the webhook endpoints answer with.  The provider chooses the body, and
 #: neither portal screen reads it, so the schema describes only the status.
@@ -100,14 +97,18 @@ def load_payment(payment_id: int, user: User, *, provider: str | None = None) ->
     return payment
 
 
-class IsPaymentOwnerOrAccountAdmin(BasePermission):
+class IsPaymentOwnerOrFinance(BasePermission):
     """Object permission for ``GET /payments/{id}``."""
 
     def has_object_permission(self, request: Request, view: APIView, obj: Payment) -> bool:
-        """Whether ``request.user`` owns ``obj``, or holds the ``account_admin`` role."""
+        """Whether ``request.user`` owns ``obj``, or holds a finance role.
+
+        The finance roles are ``treasurer`` and ``account_admin``; a system
+        administrator passes through the usual rule.
+        """
         if obj.user_id == request.user.id:
             return True
-        return user_has_any_role(request.user, (ACCOUNT_ADMIN,))
+        return user_has_any_role(request.user, (TREASURER, ACCOUNT_ADMIN))
 
 
 # --------------------------------------------------------------------------
@@ -278,16 +279,16 @@ class MockCompleteView(APIView):
 
 
 class PaymentDetailView(RetrieveAPIView[Payment]):
-    """``GET /payments/{id}`` -- the owner, or an account admin."""
+    """``GET /payments/{id}`` -- the owner, or a finance role."""
 
-    permission_classes = [IsAuthenticated, IsPaymentOwnerOrAccountAdmin]
+    permission_classes = [IsAuthenticated, IsPaymentOwnerOrFinance]
     # The view answers with the result body rather than the payment row, so this
     # is here only for DRF's own introspection, not for the response.
     serializer_class = PaymentResultSerializer  # type: ignore[assignment]
     queryset = Payment.objects.select_related("user", "plan")
 
     def retrieve(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        """200 with ``{status, membership}`` for the payer or an account admin.
+        """200 with ``{status, membership}`` for the payer or a finance role.
 
         Any other signed-in member gets 403, and an unknown id 404.
         """
@@ -337,100 +338,3 @@ class PayPalWebhookView(APIView):
         against the payment without changing it.
         """
         return get_provider(PaymentProvider.PAYPAL).handle_webhook(request)
-
-
-# --------------------------------------------------------------------------
-# Reports -- the finance roles
-# --------------------------------------------------------------------------
-def report_query(request: Request) -> PaymentReportQuerySerializer:
-    """The validated report parameters of ``request``.
-
-    Raises DRF's ``ValidationError`` -- a 400 keyed by the parameter at fault --
-    for anything the three report endpoints will not act on.
-    """
-    serializer = PaymentReportQuerySerializer(data=request.query_params)
-    serializer.is_valid(raise_exception=True)
-    return serializer
-
-
-class AdminPaymentListView(ListAPIView[Payment]):
-    """``GET /admin/payments`` -- filtered, searchable, ordered, paginated."""
-
-    permission_classes = [IsAuthenticated, IsFinance]
-    serializer_class = PaymentSerializer
-    # Filtering, search, and ordering are handled here rather than by the
-    # project-wide backends: they all key off the ``paid_at`` annotation.
-    filter_backends = []
-
-    def get_queryset(self) -> QuerySet[Payment]:
-        """The payments the query string asks for, in the order it asks for.
-
-        Raises DRF's ``ValidationError`` -- a 400 -- for a parameter the report
-        will not act on.  Only a treasurer or an account administrator reaches
-        this; the page size is the project-wide default.
-        """
-        filters = report_query(self.request).to_filters()
-        queryset = reports.apply_filters(reports.base_queryset(), filters)
-        return queryset.order_by(*self.requested_ordering())
-
-    def requested_ordering(self) -> list[str]:
-        """The ``order_by`` arguments ``?ordering=`` asks for.
-
-        Newest money first when the parameter is absent, and a leading ``-``
-        reverses.  The id breaks ties, so paging is stable.  Raises
-        DRF's ``ValidationError`` keyed by ``ordering``, saying
-        ``Cannot order by '<field>'.``, for a field outside
-        :data:`apps.payments.reports.ORDERING_FIELDS`.
-        """
-        requested = (self.request.query_params.get("ordering") or "").strip()
-        field = requested.lstrip("-")
-        if field and field not in reports.ORDERING_FIELDS:
-            raise ValidationError({"ordering": f"Cannot order by '{field}'."})
-        return [requested or "-paid_at", "-id"]
-
-
-class AdminPaymentSummaryView(APIView):
-    """``GET /admin/payments/summary?group=month|year`` -- money per period."""
-
-    permission_classes = [IsAuthenticated, IsFinance]
-
-    @extend_schema(responses={200: PaymentPeriodSummarySerializer(many=True)})
-    def get(self, request: Request) -> Response:
-        """200 with one row per period, oldest first, for the finance roles only.
-
-        The same filters as the list narrow it, and only succeeded payments count.
-        400 for a parameter the report will not act on, ``group`` included.
-        """
-        query = report_query(request)
-        queryset = reports.apply_filters(reports.base_queryset(), query.to_filters())
-        rows = reports.summarize(queryset, query.validated_data["group"])
-        # The stubs take the instance type from the single-object parameter, so
-        # they do not widen it to a list when ``many`` is set.
-        serializer = PaymentPeriodSummarySerializer(rows, many=True)  # type: ignore[arg-type]
-        return Response(serializer.data)
-
-
-class AdminPaymentExportView(APIView):
-    """``GET /admin/payments/export.csv`` -- the filtered list as a download."""
-
-    permission_classes = [IsAuthenticated, IsFinance]
-
-    @extend_schema(
-        responses=download_responses(CSV_MEDIA_TYPE, "The filtered payment list as a CSV file.")
-    )
-    def get(self, request: Request) -> StreamingHttpResponse:
-        """200 with ``caldart-payments.csv`` as an attachment, for the finance roles only.
-
-        The same filters as the list narrow it, and the rows are newest money
-        first.  400 for a parameter the report will not act on.
-        """
-        filters = report_query(request).to_filters()
-        # django-stubs cannot see the ``paid_at`` annotation the queryset carries.
-        queryset = reports.apply_filters(reports.base_queryset(), filters).order_by(
-            "-paid_at"  # type: ignore[misc]
-        )
-        return csv_response(
-            "caldart-payments.csv",
-            reports.CSV_HEADER,
-            reports.csv_rows(queryset),
-        )
