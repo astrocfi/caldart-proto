@@ -1000,8 +1000,9 @@ def _charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: b
         run.charged += 1
         run.record_action(CHARGE_KIND, mandate, on=attempt.scheduled_on, amount_cents=amount_cents)
         # A rehearsal cannot ask the provider whether the charge would be taken,
-        # so it reports the message a charge that succeeds sends.
-        run.record_action("renewal_charged", mandate, on=next_charge_on(mandate, today))
+        # so it reports the message a charge that succeeds sends.  It carries no
+        # date: the charge that has not happened is what sets the one after it.
+        run.record_action("renewal_charged", mandate)
         return
     if not _claim(attempt):
         run.record_skipped("in_flight")

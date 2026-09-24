@@ -32,11 +32,15 @@ function logHandler(rows: ReminderLogEntry[]) {
 
 describe('runSummary', () => {
   it('says what a dry run would have done', () => {
-    expect(runSummary({ sent: 3, skipped: 1 }, true)).toBe('Would send 3 emails, skipped 1.');
+    expect(runSummary({ sent: 3, skipped: 1, actions: [] }, true)).toBe(
+      'Would send 3 emails, skipped 1.',
+    );
   });
 
   it('says what a real run did, in the singular', () => {
-    expect(runSummary({ sent: 1, skipped: 0 }, false)).toBe('Sent 1 email, skipped 0.');
+    expect(runSummary({ sent: 1, skipped: 0, actions: [] }, false)).toBe(
+      'Sent 1 email, skipped 0.',
+    );
   });
 });
 
