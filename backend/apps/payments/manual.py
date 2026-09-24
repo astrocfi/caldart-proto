@@ -1,10 +1,10 @@
 """Payments taken by hand: a check in the mail, cash at a meeting, a transfer.
 
-Money that never passes through Stripe or PayPal still buys a membership term,
-so a payment recorded here goes through exactly the same service a card
-checkout does.  It differs in only three ways: the provider is ``manual``, the
-fee is nothing so the net equals the amount, and the ledger date is the day the
-money was received rather than the moment it was keyed in.
+Money that never passes through Stripe or PayPal still buys a membership term
+and still earns a receipt, so a payment recorded here goes through exactly the
+same service a card checkout does.  It differs in only three ways: the provider
+is ``manual``, the fee is nothing so the net equals the amount, and the ledger
+date is the day the money was received rather than the moment it was keyed in.
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ def record_manual_payment(
 
     The payment is created already succeeded, with a zero fee and a net equal to
     the amount, and the term is activated through the same service a card
-    checkout uses.  Returns the payment as saved.
+    checkout uses, which also emails the receipt.  Returns the payment as saved.
 
     Raises ``DomainValidationError`` keyed by ``method`` for a method outside
     :data:`MANUAL_METHODS`, by ``received_on`` for a day in the future, by

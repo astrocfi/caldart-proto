@@ -495,10 +495,11 @@ class AdminPaymentRecordView(APIView):
     def post(self, request: Request) -> Response:
         """201 with the payment, which is already succeeded and has bought its term.
 
-        400 keyed by the field at fault for an unusable body -- an unknown method,
-        a date in the future, a reference another recorded payment carries, an
-        inactive plan, or a plan and contribution that come to nothing -- and 404
-        for an unknown member.
+        The member is emailed the same receipt a card payment earns.  400 keyed
+        by the field at fault for an unusable body -- an unknown method, a date
+        in the future, a reference another recorded payment carries, an inactive
+        plan, or a plan and contribution that come to nothing -- and 404 for an
+        unknown member.
         """
         serializer = ManualPaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

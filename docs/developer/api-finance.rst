@@ -341,7 +341,7 @@ role; **404** for an unknown id.
 Money that arrived by check, cash or bank transfer.  The payment is created
 already succeeded with provider ``manual``, a zero fee and a net equal to the
 amount, and whatever term it bought is activated through the same service a
-card checkout uses.
+card checkout uses — which also emails the member their receipt.
 
 .. code-block:: json
 

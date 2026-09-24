@@ -219,7 +219,8 @@ the plan (or none, for a pure contribution), name the method, type the check
 number, and set the day the money arrived.
 
 |org| records it as already paid, with no provider fee, activates whatever term
-it bought.  The day you set is the one the payment is dated by everywhere in the books — the
+it bought, and emails the member the same receipt a card payment earns.  The
+day you set is the one the payment is dated by everywhere in the books — the
 day the check arrived, not the day you keyed it in.  A check number another
 recorded payment already carries is refused, which is what stops the same check
 being entered twice.
