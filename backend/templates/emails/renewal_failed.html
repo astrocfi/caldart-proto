@@ -1,8 +1,8 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}{% if lapsed %}Automatic renewal is off: {{ error }}.{% else %}The card saved for your automatic renewal was refused: {{ error }}.{% endif %}{% endblock %}
+{% block preheader %}{% if lapsed %}Automatic renewal is off: {{ error }}.{% else %}The card saved for your automatic {{ kind_label }} was refused: {{ error }}.{% endif %}{% endblock %}
 
-{% block heading %}We could not renew your membership{% endblock %}
+{% block heading %}{% if kind == "contribution" %}We could not take your contribution{% else %}We could not renew your membership{% endif %}{% endblock %}
 
 {% block lede %}{% if lapsed %}{{ error|capfirst }}.{% else %}{{ method_label }} was refused: {{ error }}.{% endif %}{% endblock %}
 
@@ -20,15 +20,27 @@
       have.
     </p>
   {% else %}
-  <p style="margin:0 0 14px 0;">
-    We tried to charge {{ amount }} to {{ method_label }} to renew your
-    {{ plan_name }} membership, and it was refused.
-  </p>
+  {% if kind == "contribution" %}
+    <p style="margin:0 0 14px 0;">
+      We tried to charge {{ amount }} to {{ method_label }} for your contribution,
+      and it was refused.
+    </p>
+  {% else %}
+    <p style="margin:0 0 14px 0;">
+      We tried to charge {{ amount }} to {{ method_label }} to renew your
+      {{ plan_name }} membership, and it was refused.
+    </p>
+  {% endif %}
   {% if next_on %}
     <p style="margin:0 0 14px 0;">
       We will try again on {{ next_on|date:"F j, Y" }}. You do not have to do
       anything, but if the card has changed, saving the new one now will save
       that attempt.
+    </p>
+  {% elif kind == "contribution" %}
+    <p style="margin:0 0 14px 0;">
+      That was the last attempt, so your automatic contribution is off. You can
+      contribute by hand, or turn it back on with another card.
     </p>
   {% else %}
     <p style="margin:0 0 14px 0;">

@@ -424,7 +424,11 @@ def expire_membership(user: UserModel, plan: MembershipPlan, *, days_ago: int = 
 
 
 class RenewalMandateFactory(ModelFactory[RenewalMandate]):
-    """Builds an active mock mandate on a test card ending 4242, no contribution."""
+    """Builds an active mock mandate on a test card ending 4242, no contribution.
+
+    Pass ``plan=None`` for a life member's contribution-only authority, which
+    renews no term and charges its contribution once a year.
+    """
 
     class Meta:
         model = RenewalMandate

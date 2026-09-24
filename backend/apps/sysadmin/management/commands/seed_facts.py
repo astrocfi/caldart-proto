@@ -74,7 +74,7 @@ def _auto_renewing_member() -> dict[str, str]:
     fail on the name they were given, which says what is missing.
     """
     mandate = (
-        RenewalMandate.objects.filter(status=MandateStatus.ACTIVE)
+        RenewalMandate.objects.filter(status=MandateStatus.ACTIVE, plan__isnull=False)
         .select_related("user")
         .order_by("pk")
         .first()
@@ -96,6 +96,24 @@ def _paused_renewal_member() -> dict[str, str]:
     """
     mandate = (
         RenewalMandate.objects.filter(status=MandateStatus.PAUSED)
+        .select_related("user")
+        .order_by("pk")
+        .first()
+    )
+    if mandate is None:
+        return {"name": "", "email": ""}
+    return {"name": mandate.user.display_name, "email": mandate.user.email}
+
+
+def _contribution_mandate_member() -> dict[str, str]:
+    """A seeded life member whose standing authority charges a contribution alone.
+
+    Returns ``{"name", "email"}`` for the first active mandate that names no
+    plan, and empty strings when the seed has none -- the specs then fail on the
+    name they were given, which says what is missing.
+    """
+    mandate = (
+        RenewalMandate.objects.filter(status=MandateStatus.ACTIVE, plan__isnull=True)
         .select_related("user")
         .order_by("pk")
         .first()
@@ -140,8 +158,9 @@ def seed_facts() -> dict[str, Any]:
     the seed rather than on names typed into them, which drift.
     ``manualPaymentCount`` is how many payments the seed recorded by hand, which
     is what a finance spec filtering the list to checks expects to find.
-    ``autoRenewal`` names one member whose membership renews itself and one whose
-    renewal was paused after every retry was refused.  ``refundedPayment`` names a
+    ``autoRenewal`` names one member whose membership renews itself, one whose
+    renewal was paused after every retry was refused, and one life member whose
+    standing authority charges a contribution alone.  ``refundedPayment`` names a
     member whose payment was refunded in part, and the receipt number that payment
     carries, which is how a finance spec finds it in the list.
     """
@@ -161,6 +180,7 @@ def seed_facts() -> dict[str, Any]:
         "autoRenewal": {
             "activeMandate": _auto_renewing_member(),
             "pausedMandate": _paused_renewal_member(),
+            "contributionMandate": _contribution_mandate_member(),
         },
     }
 

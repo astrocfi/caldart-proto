@@ -17,7 +17,11 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.members.models import MembershipPlan, MembershipSource
+from apps.members.models import (
+    MembershipPlan,
+    MembershipSource,
+    MembershipStatusChoices,
+)
 from apps.members.services import activate_term
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.receipts import send_receipt
@@ -27,6 +31,18 @@ from caldart.exceptions import DomainValidationError
 #: not know.  A payment whose ``net_cents`` is still this while its amount is
 #: not has a fee nobody has been told; :func:`backfill_fees` is what asks again.
 UNKNOWN_NET_CENTS = 0
+
+#: What a life member is told when a checkout is asked to sell them a term.
+LIFE_MEMBER_CHECKOUT_MESSAGE = (
+    "You are a life member, so there is nothing to renew. Make a contribution instead."
+)
+
+
+def holds_lifetime_term(user: User) -> bool:
+    """Whether ``user`` holds an active membership term that never expires."""
+    return user.memberships.filter(
+        status=MembershipStatusChoices.ACTIVE, ends_on__isnull=True
+    ).exists()
 
 
 @transaction.atomic
@@ -42,11 +58,15 @@ def create_checkout(
     plan's price plus ``contribution_cents``.  A falsy ``plan_slug`` makes the
     payment a pure donation, with no plan and a zero plan amount.
 
+    A life member has nothing left to buy, so a ``plan_slug`` for a member who
+    already holds a term that never expires is refused: their money goes to a
+    contribution instead.
+
     Raises ``DomainValidationError`` keyed by ``provider`` for a slug outside
     :class:`PaymentProvider`, by ``contribution_cents`` for a negative
-    contribution, by ``plan`` when no active plan has that slug, and by
-    ``amount_cents`` when the total comes to zero.  Nothing is written when it
-    raises.
+    contribution, by ``plan`` when no active plan has that slug and when the
+    payer is a life member, and by ``amount_cents`` when the total comes to zero.
+    Nothing is written when it raises.
     """
     if provider not in PaymentProvider.values:
         raise DomainValidationError("provider", f"Unknown payment provider '{provider}'.")
@@ -61,6 +81,8 @@ def create_checkout(
         plan = MembershipPlan.objects.filter(slug=plan_slug, is_active=True).first()
         if plan is None:
             raise DomainValidationError("plan", f"Unknown membership plan '{plan_slug}'.")
+        if holds_lifetime_term(user):
+            raise DomainValidationError("plan", LIFE_MEMBER_CHECKOUT_MESSAGE)
         plan_amount_cents = plan.price_cents
 
     amount_cents = plan_amount_cents + contribution_cents

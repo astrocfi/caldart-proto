@@ -1395,7 +1395,8 @@
   },
   "PatchedRenewalPatchRequest": {
     "properties": {
-      "contribution_cents": "integer"
+      "contribution_cents": "integer",
+      "plan": "string"
     },
     "required": []
   },
@@ -1896,10 +1897,12 @@
   },
   "ReminderRunResult": {
     "properties": {
+      "actions": "array<ref:RunAction>",
       "sent": "integer",
       "skipped": "integer"
     },
     "required": [
+      "actions",
       "sent",
       "skipped"
     ]
@@ -1959,6 +1962,7 @@
       "created_at": "string(date-time)",
       "failure_count": "integer",
       "id": "integer",
+      "kind": "ref:RenewalMandateKindEnum",
       "last_charged_at": "string(date-time)|null",
       "last_error": "string",
       "method_brand": "string",
@@ -1967,8 +1971,8 @@
       "method_label": "string",
       "method_last4": "string",
       "next_charge_on": "string(date)|null",
-      "plan": "string",
-      "plan_name": "string",
+      "plan": "string|null",
+      "plan_name": "string|null",
       "provider": "ref:MandateProviderEnum",
       "status": "ref:MandateStatusEnum",
       "user_email": "string",
@@ -1982,6 +1986,7 @@
       "created_at",
       "failure_count",
       "id",
+      "kind",
       "last_charged_at",
       "last_error",
       "method_brand",
@@ -1997,6 +2002,13 @@
       "user_email",
       "user_id",
       "user_name"
+    ]
+  },
+  "RenewalMandateKindEnum": {
+    "enum": [
+      "renewal",
+      "both",
+      "contribution"
     ]
   },
   "RenewalOutcomeEnum": {
@@ -2015,6 +2027,7 @@
   },
   "RenewalRunResult": {
     "properties": {
+      "actions": "array<ref:RunAction>",
       "charged": "integer",
       "failed": "integer",
       "noticed": "integer",
@@ -2023,6 +2036,7 @@
       "warned": "integer"
     },
     "required": [
+      "actions",
       "charged",
       "failed",
       "noticed",
@@ -2038,7 +2052,6 @@
       "provider": "ref:MandateProviderEnum"
     },
     "required": [
-      "plan",
       "provider"
     ]
   },
@@ -2081,6 +2094,24 @@
       "account_admin",
       "website_admin",
       "system_admin"
+    ]
+  },
+  "RunAction": {
+    "properties": {
+      "amount_cents": "integer|null",
+      "detail": "string",
+      "email": "string",
+      "kind": "string",
+      "member": "string",
+      "on": "string(date)|null"
+    },
+    "required": [
+      "amount_cents",
+      "detail",
+      "email",
+      "kind",
+      "member",
+      "on"
     ]
   },
   "SendPasswordResetResult": {

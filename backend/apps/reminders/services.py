@@ -15,6 +15,7 @@ import logging
 import smtplib
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from typing import Any
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -30,6 +31,7 @@ from apps.payments.models import MandateStatus, RenewalMandate, RenewalOutcome
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from caldart import audit
 from caldart.mail import contact_email, org_name
+from caldart.runs import RunAction, action_lines
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +83,12 @@ class ReminderRun:
     """Structured summary of one scan.
 
     Printed by ``manage.py send_renewal_reminders`` and reduced to
-    ``{sent, skipped}`` by ``POST /system/reminders/run``.
+    ``{sent, skipped, actions}`` by ``POST /system/reminders/run``.
+
+    ``actions`` names the members behind the counts: one
+    :class:`~caldart.runs.RunAction` per reminder, its ``kind`` the reminder kind
+    and its ``on`` the day the term runs out.  A live run records what it sent; a
+    dry run records what it would have sent.
     """
 
     today: date
@@ -93,11 +100,24 @@ class ReminderRun:
     sent_by_kind: dict[str, int] = field(default_factory=dict)
     skipped_by_reason: dict[str, int] = field(default_factory=dict)
     failed_by_kind: dict[str, int] = field(default_factory=dict)
+    actions: list[RunAction] = field(default_factory=list)
 
-    def record_sent(self, kind: str) -> None:
-        """Count one more reminder of ``kind`` sent, overall, and per kind."""
+    def record_sent(self, kind: str, user: User, membership: Membership) -> None:
+        """Count one more reminder of ``kind``, and name who it went to.
+
+        Counted overall and per kind, and appended to ``actions`` with the
+        member's name, their address and the day their term runs out.
+        """
         self.sent += 1
         self.sent_by_kind[kind] = self.sent_by_kind.get(kind, 0) + 1
+        self.actions.append(
+            RunAction(
+                kind=kind,
+                member=user.display_name,
+                email=user.email,
+                on=membership.ends_on,
+            )
+        )
 
     def record_skipped(self, reason: str) -> None:
         """Count one more candidate skipped for ``reason``, overall, and per reason."""
@@ -109,16 +129,20 @@ class ReminderRun:
         self.failed += 1
         self.failed_by_kind[kind] = self.failed_by_kind.get(kind, 0) + 1
 
-    def as_dict(self) -> dict[str, int]:
-        """The ``{sent, skipped}`` payload of ``POST /system/reminders/run``.
+    def as_dict(self) -> dict[str, Any]:
+        """The ``{sent, skipped, actions}`` payload of ``POST /system/reminders/run``.
 
         Failures are deliberately not in it: the panel reports what went out,
         and the operator reads the count and the log lines from the command.
         """
-        return {"sent": self.sent, "skipped": self.skipped}
+        return {
+            "sent": self.sent,
+            "skipped": self.skipped,
+            "actions": [action.as_dict() for action in self.actions],
+        }
 
     def as_lines(self) -> list[str]:
-        """Human-readable summary, one fact per line."""
+        """Human-readable summary, one fact per line, then one line per reminder."""
         lines = [
             f"today            {self.today.isoformat()}",
             f"mode             {'dry run (nothing written)' if self.dry_run else 'live'}",
@@ -136,7 +160,7 @@ class ReminderRun:
             count = self.failed_by_kind.get(kind, 0)
             if count:
                 lines.append(f"  {kind:<14} {count}")
-        return lines
+        return lines + action_lines(self.actions, dry_run=self.dry_run)
 
 
 def renew_url() -> str:
@@ -269,6 +293,9 @@ def send_renewal_reminders(
     another run wrote first counts as ``already_sent``.  The run summary is
     returned either way; nothing is raised.
 
+    The run's ``actions`` name every member a reminder went to, or would have
+    gone to, so a rehearsal answers who as well as how many.
+
     Every run ends with one audit record carrying the mode and the four counts.
     ``actor`` is the account that asked for it; the management command and the
     daily timer leave it at ``command``.
@@ -291,7 +318,7 @@ def send_renewal_reminders(
                 run.record_skipped(reason)
                 continue
             if dry_run:
-                run.record_sent(kind)
+                run.record_sent(kind, user, membership)
                 continue
             try:
                 _send_one(user, membership, kind, today)
@@ -317,7 +344,7 @@ def send_renewal_reminders(
                 )
                 run.record_failed(kind)
             else:
-                run.record_sent(kind)
+                run.record_sent(kind, user, membership)
 
     audit.record(
         audit.REMINDERS_RUN,

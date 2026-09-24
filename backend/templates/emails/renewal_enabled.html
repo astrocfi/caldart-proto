@@ -1,22 +1,32 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}We will renew your {{ plan_name }} membership automatically and email you before every charge.{% endblock %}
+{% block preheader %}{% if kind == "contribution" %}We will take your contribution automatically and email you before every charge.{% else %}We will renew your {{ plan_name }} membership automatically and email you before every charge.{% endif %}{% endblock %}
 
-{% block heading %}Automatic renewal is on{% endblock %}
+{% block heading %}Automatic {{ kind_label }} is on{% endblock %}
 
-{% block lede %}{{ amount }} to {{ method_label }}{% if charge_on %}, next on {{ charge_on|date:"F j, Y" }}{% endif %}.{% endblock %}
+{% block lede %}{{ amount }} to {{ method_label }}, next on {{ next_charge_on|date:"F j, Y" }}.{% endblock %}
 
 {% block body %}
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  {% if kind == "contribution" %}
+    <p style="margin:0 0 14px 0;">
+      Your contribution to {{ org_name }} will be taken automatically from now on.
+      We will charge {{ amount }} to {{ method_label }} once a year.
+    </p>
+  {% else %}
+    <p style="margin:0 0 14px 0;">
+      Your {{ plan_name }} membership will renew itself from now on. We will charge
+      {{ amount }} to {{ method_label }}, and again each year after that.
+    </p>
+  {% endif %}
   <p style="margin:0 0 14px 0;">
-    Your {{ plan_name }} membership will renew itself from now on. We will charge
-    {{ amount }} to {{ method_label }}{% if charge_on %} on {{ charge_on|date:"F j, Y" }}{% endif %}, and again each year after that.
+    Your next charge will be on {{ next_charge_on|date:"F j, Y" }}.
   </p>
   <p style="margin:0 0 14px 0;">
-    You will get an email fourteen days before every charge, so nothing happens
-    without warning. You can change the contribution or turn automatic renewal
-    off at any time.
+    We will email you fourteen days before every charge, so nothing happens
+    without warning. You can change the contribution or turn automatic
+    {{ kind_label }} off at any time.
   </p>
 {% endblock %}
 
-{% block cta_label %}Manage automatic renewal{% endblock %}
+{% block cta_label %}Manage automatic {{ kind_label }}{% endblock %}

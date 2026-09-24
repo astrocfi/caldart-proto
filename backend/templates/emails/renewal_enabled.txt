@@ -1,13 +1,17 @@
-{{ org_name }} — automatic renewal is on
+{{ org_name }} — automatic {{ kind_label }} is on
 
 Hello {{ first_name }},
-
+{% if kind == "contribution" %}
+Your contribution to {{ org_name }} will be taken automatically from now on. We
+will charge {{ amount }} to {{ method_label }} once a year.
+{% else %}
 Your {{ plan_name }} membership will renew itself from now on. We will charge
-{{ amount }} to {{ method_label }}{% if charge_on %} on {{ charge_on|date:"F j, Y" }}{% endif %}, and again each
-year after that.
+{{ amount }} to {{ method_label }}, and again each year after that.
+{% endif %}
+Your next charge will be on {{ next_charge_on|date:"F j, Y" }}.
 
-You will get an email fourteen days before every charge, so nothing happens
-without warning. You can change the contribution or turn automatic renewal off
+We will email you fourteen days before every charge, so nothing happens without
+warning. You can change the contribution or turn automatic {{ kind_label }} off
 at any time:
 {{ payments_url }}
 

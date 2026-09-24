@@ -163,9 +163,10 @@ class RenewalRunView(APIView):
         The body takes ``dry_run``, defaulting to ``False``; a dry run changes no
         mandate, emails nobody and charges nobody, and reports the counts the
         same scan would produce.  The rehearsal is recorded in the audit log like
-        any other run.  The answer is ``{noticed, warned, charged,
-        failed, paused, skipped}``, and the caller is recorded as the actor on the
-        ``renewals.run`` audit record.
+        any other run.  The answer is ``{noticed, warned, charged, failed, paused,
+        skipped, actions}``, where ``actions`` names every member the run emailed
+        or charged -- or, in a rehearsal, would have -- and the caller is recorded
+        as the actor on the ``renewals.run`` audit record.
         """
         payload = RenewalRunRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

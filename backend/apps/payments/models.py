@@ -342,7 +342,10 @@ class RenewalMandate(TimestampedModel):
     payment succeeds; three failed charges in a row pause it, and the member or an
     administrator can cancel it at any time.
 
-    The plan always has a duration: a lifetime membership never renews, and the
+    ``plan`` is the plan that renews, and it always has a duration: a lifetime
+    plan never renews.  ``plan`` is null instead for a member who already holds a
+    lifetime term: their membership needs no renewing, so the mandate is a
+    standing authority for the contribution alone, charged once a year.  The
     provider is always one that can charge off-session -- ``stripe``, ``paypal``
     or ``mock``, never ``manual``.
     """
@@ -355,7 +358,10 @@ class RenewalMandate(TimestampedModel):
     plan = models.ForeignKey(
         "members.MembershipPlan",
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="renewal_mandates",
+        help_text="Null when the member is a life member and only the contribution renews.",
     )
     contribution_cents = models.PositiveIntegerField(
         default=0, help_text="Renewed alongside the dues."

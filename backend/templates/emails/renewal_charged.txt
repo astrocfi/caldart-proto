@@ -1,9 +1,18 @@
-{{ org_name }} — your membership has been renewed
+{% if kind == "contribution" %}{{ org_name }} — thank you for your contribution{% else %}{{ org_name }} — your membership has been renewed{% endif %}
 
 Hello {{ first_name }},
-
+{% if kind == "contribution" %}
+We have charged {{ amount }} to {{ method_label }}. Thank you for your
+contribution to {{ org_name }}.
+{% elif kind == "both" %}
+We have charged {{ amount }} to {{ method_label }}, renewed your {{ plan_name }}
+membership and taken your contribution.{% if expires_on %} Your membership is now good through
+{{ expires_on|date:"F j, Y" }}.{% endif %}
+{% else %}
 We have charged {{ amount }} to {{ method_label }} and renewed your {{ plan_name }}
 membership.{% if expires_on %} It is now good through {{ expires_on|date:"F j, Y" }}.{% endif %}
+{% endif %}
+Your next charge will be on {{ next_charge_on|date:"F j, Y" }}.
 
 Your receipt{% if receipt_number %} — {{ receipt_number }}{% endif %} is attached. Every payment you have made is in
 the portal:

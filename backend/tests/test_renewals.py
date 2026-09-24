@@ -642,6 +642,8 @@ def test_the_renewal_emails_read_as_written(
     replacements[f"{renewed_end.strftime('%B')} {renewed_end.day}, {renewed_end.year}"] = (
         "<RENEWED>"
     )
+    next_charge = charge_date_for(renewed_end)
+    replacements[f"{next_charge.strftime('%B')} {next_charge.day}, {next_charge.year}"] = "<NEXT>"
     replacements[str(charge_on)] = "<CHARGE>"
     paid = Payment.objects.first()
     if paid is not None:

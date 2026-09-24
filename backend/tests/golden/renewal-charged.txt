@@ -5,6 +5,8 @@ Hello Dana,
 We have charged $45.00 to Test card ending 4242, expires 12/2030 and renewed your Annual
 membership. It is now good through <RENEWED>.
 
+Your next charge will be on <NEXT>.
+
 Your receipt — <RECEIPT> is attached. Every payment you have made is in
 the portal:
 http://localhost:8000/portal/payments

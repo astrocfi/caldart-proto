@@ -1,16 +1,32 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}We have renewed your {{ plan_name }} membership and charged {{ amount }}.{% endblock %}
+{% block preheader %}{% if kind == "contribution" %}We have taken your contribution of {{ amount }}. Thank you.{% else %}We have renewed your {{ plan_name }} membership and charged {{ amount }}.{% endif %}{% endblock %}
 
-{% block heading %}Your membership has been renewed{% endblock %}
+{% block heading %}{% if kind == "contribution" %}Thank you for your contribution{% else %}Your membership has been renewed{% endif %}{% endblock %}
 
 {% block lede %}{{ amount }} charged to {{ method_label }}.{% endblock %}
 
 {% block body %}
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  {% if kind == "contribution" %}
+    <p style="margin:0 0 14px 0;">
+      We have charged {{ amount }} to {{ method_label }}. Thank you for your
+      contribution to {{ org_name }}.
+    </p>
+  {% elif kind == "both" %}
+    <p style="margin:0 0 14px 0;">
+      We have charged {{ amount }} to {{ method_label }}, renewed your
+      {{ plan_name }} membership and taken your contribution.{% if expires_on %} Your membership is
+      now good through {{ expires_on|date:"F j, Y" }}.{% endif %}
+    </p>
+  {% else %}
+    <p style="margin:0 0 14px 0;">
+      We have charged {{ amount }} to {{ method_label }} and renewed your
+      {{ plan_name }} membership.{% if expires_on %} It is now good through {{ expires_on|date:"F j, Y" }}.{% endif %}
+    </p>
+  {% endif %}
   <p style="margin:0 0 14px 0;">
-    We have charged {{ amount }} to {{ method_label }} and renewed your
-    {{ plan_name }} membership.{% if expires_on %} It is now good through {{ expires_on|date:"F j, Y" }}.{% endif %}
+    Your next charge will be on {{ next_charge_on|date:"F j, Y" }}.
   </p>
   <p style="margin:0 0 14px 0;">
     Your receipt{% if receipt_number %} — {{ receipt_number }}{% endif %} is attached, and every

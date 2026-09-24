@@ -69,7 +69,7 @@ class Migration(migrations.Migration):
                 ('last_charged_at', models.DateTimeField(blank=True, null=True)),
                 ('raw', models.JSONField(blank=True, default=dict)),
                 ('canceled_by', models.ForeignKey(blank=True, help_text='The member themselves, or the administrator who turned it off.', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='renewal_mandates_canceled', to=settings.AUTH_USER_MODEL)),
-                ('plan', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='renewal_mandates', to='members.membershipplan')),
+                ('plan', models.ForeignKey(blank=True, help_text='Null when the member is a life member and only the contribution renews.', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='renewal_mandates', to='members.membershipplan')),
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='renewal_mandate', to=settings.AUTH_USER_MODEL)),
             ],
             options={

@@ -180,7 +180,20 @@ def test_run_dry_run_reports_without_writing(
 
     body = api_client.post(RUN_URL, {"dry_run": True}).json()
 
-    assert body == {"sent": 1, "skipped": 0}
+    assert body == {
+        "sent": 1,
+        "skipped": 0,
+        "actions": [
+            {
+                "kind": ReminderKind.T30,
+                "member": user.display_name,
+                "email": user.email,
+                "on": (timezone.localdate() + timedelta(days=30)).isoformat(),
+                "amount_cents": None,
+                "detail": "",
+            }
+        ],
+    }
     assert mailoutbox == []
     assert ReminderLog.objects.count() == 0
 
@@ -203,7 +216,8 @@ def test_run_sends_for_real(
 
     body = api_client.post(RUN_URL, {}).json()
 
-    assert body == {"sent": 1, "skipped": 0}
+    assert body["sent"] == 1
+    assert body["actions"][0]["email"] == user.email
     assert len(mailoutbox) == 1
     assert ReminderLog.objects.get().kind == ReminderKind.T7
 
@@ -227,7 +241,7 @@ def test_run_is_idempotent(
     api_client.post(RUN_URL, {})
     body = api_client.post(RUN_URL, {}).json()
 
-    assert body == {"sent": 0, "skipped": 1}
+    assert body == {"sent": 0, "skipped": 1, "actions": []}
     assert len(mailoutbox) == 1
 
 
@@ -238,7 +252,7 @@ def test_run_with_no_one_due_is_still_a_200(api_client: APIClient, system_admin:
     response = api_client.post(RUN_URL, {"dry_run": False})
 
     assert response.status_code == 200
-    assert response.json() == {"sent": 0, "skipped": 0}
+    assert response.json() == {"sent": 0, "skipped": 0, "actions": []}
 
 
 def test_run_rejects_a_non_boolean_dry_run(api_client: APIClient, system_admin: User) -> None:

@@ -40,7 +40,14 @@ from apps.payments.api.serializers import (
 )
 from apps.payments.models import RenewalAttempt, RenewalMandate, RenewalOutcome
 from apps.payments.providers.base import PaymentError, get_provider
-from apps.payments.renewals import begin_mandate, cancel_mandate, save_method
+from apps.payments.renewals import (
+    AUTO_RENEW_FIELD,
+    LIFE_MEMBER_PLAN_MESSAGE,
+    begin_mandate,
+    cancel_mandate,
+    lifetime_term,
+    save_method,
+)
 
 #: What ``DELETE /me/renewal`` and ``DELETE /admin/renewals/{id}`` answer with.
 DELETE_RESPONSE_DESCRIPTION = "Automatic renewal is off.  The body is empty."
@@ -57,6 +64,14 @@ def signed_in_user(request: Request) -> User:
     permissions say, which is what the cast records.
     """
     return cast(User, request.user)
+
+
+def renewable_plan(slug: str) -> MembershipPlan:
+    """The active plan named by ``slug``, or a 400 keyed by ``plan``."""
+    plan = MembershipPlan.objects.filter(slug=slug, is_active=True).first()
+    if plan is None:
+        raise ValidationError({"plan": f"Unknown membership plan '{slug}'."})
+    return plan
 
 
 def own_mandate(request: Request) -> RenewalMandate | None:
@@ -92,19 +107,31 @@ class MyRenewalView(APIView):
 
     @extend_schema(request=RenewalPatchSerializer, responses={200: RenewalEnvelopeSerializer})
     def patch(self, request: Request) -> Response:
-        """200 with the mandate after changing the contribution renewed with the dues.
+        """200 with the mandate after changing what it renews and what it contributes.
 
-        404 when the caller has no mandate, and 400 naming ``contribution_cents``
-        for an amount outside what a checkout would accept.  The dues themselves
-        are not settable: they are the plan's price at the time of each charge.
+        ``plan`` names the plan that renews from now on; leaving it out leaves the
+        plan alone.  404 when the caller has no mandate, 400 naming
+        ``contribution_cents`` for an amount outside what a checkout would accept,
+        400 naming ``plan`` for a plan that is not on offer, and 400 naming
+        ``auto_renew`` when a life member names a plan at all: their membership
+        does not renew, so their authority is over the contribution alone.  The
+        dues themselves are not settable: they are the plan's price at the time of
+        each charge.
         """
         mandate = own_mandate(request)
         if mandate is None:
             raise Http404(NO_MANDATE)
         payload = RenewalPatchSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
+        fields = ["contribution_cents", "updated_at"]
+        slug = payload.validated_data["plan"]
+        if slug:
+            if lifetime_term(signed_in_user(request)) is not None:
+                raise ValidationError({AUTO_RENEW_FIELD: LIFE_MEMBER_PLAN_MESSAGE})
+            mandate.plan = renewable_plan(slug)
+            fields.insert(0, "plan")
         mandate.contribution_cents = payload.validated_data["contribution_cents"]
-        mandate.save(update_fields=["contribution_cents", "updated_at"])
+        mandate.save(update_fields=fields)
         return Response(mandate_body(mandate))
 
     @extend_schema(
@@ -137,18 +164,20 @@ class MyRenewalSetupView(APIView):
         the browser needs -- a Stripe SetupIntent's client secret, a PayPal setup
         token, nothing at all for the mock provider.  No money moves.
 
+        A life member leaves ``plan`` out: their membership never runs out, so the
+        authority they hold is over the contribution alone, charged once a year.
+
         400 naming ``plan`` for a plan that is not on offer, naming ``auto_renew``
-        for one that never expires, and naming ``detail`` when the provider
-        refuses to start.
+        for one that never expires, for a life member who names a plan or
+        contributes nothing, and for a member who is not a life member and names
+        no plan, and naming ``detail`` when the provider refuses to start.
         """
         payload = RenewalSetupSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         provider_slug = payload.validated_data["provider"]
 
         slug = payload.validated_data["plan"]
-        plan = MembershipPlan.objects.filter(slug=slug, is_active=True).first()
-        if plan is None:
-            raise ValidationError({"plan": f"Unknown membership plan '{slug}'."})
+        plan = renewable_plan(slug) if slug else None
 
         mandate = begin_mandate(
             signed_in_user(request),
