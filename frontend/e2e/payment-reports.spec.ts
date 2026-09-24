@@ -18,6 +18,9 @@ function periodRows(page: Page): Locator {
     .getByRole('row');
 }
 
+/** The statuses the by-period summary counts: the money arrived, whatever came back later. */
+const RECEIVED_STATUSES = new Set(['succeeded', 'partially_refunded', 'refunded']);
+
 interface LedgerTotals {
   payments: number;
   months: number;
@@ -75,9 +78,10 @@ function parseCsv(text: string): string[][] {
  * same payments, so counting the CSV gives the summary's expected row counts
  * from outside the screen being tested.  The two endpoints do not cover the
  * same rows, though: the export carries every payment, while the summary counts
- * only the succeeded ones, so `months` and `years` come from the succeeded rows
- * alone and `payments` — which the ledger caption below the summary counts —
- * from all of them.  The counts are read at the moment the spec runs rather than
+ * only the ones whose money arrived — succeeded, and refunded in part or in
+ * full, since a refund is netted rather than erased — so `months` and `years`
+ * come from those rows alone and `payments` — which the ledger caption below
+ * the summary counts — from all of them.  The counts are read at the moment the spec runs rather than
  * from the seed, because an earlier spec in the same run may have paid for a
  * membership of its own, or had a card declined.
  */
@@ -95,7 +99,7 @@ async function ledgerTotals(page: Page): Promise<LedgerTotals> {
 
   const rows = records.slice(1);
   const succeeded = rows
-    .filter((row) => row[statusColumn] === 'succeeded')
+    .filter((row) => RECEIVED_STATUSES.has(row[statusColumn] ?? ''))
     .map((row) => row[0] ?? '');
   return {
     payments: rows.length,
