@@ -13,17 +13,10 @@ import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { useToast } from '@/portal/components/Toast';
+import { usePaymentsConfig } from '@/portal/features/checkout/api';
+import { dollarsToCents, maskContribution } from '@/portal/features/checkout/ContributionChooser';
 import { maskWholeDollars } from '@/portal/masks';
 import { useUpdateRenewal } from './api';
-
-/** Enough digits for the largest contribution the server accepts. */
-const DOLLAR_DIGITS = 6;
-
-/** A grouped dollar amount as integer cents; a blank box is nothing given. */
-function dollarsToCents(typed: string): number {
-  const digits = typed.replace(/\D/g, '');
-  return digits ? Number(digits) * 100 : 0;
-}
 
 export interface ContributionFormProps {
   mandate: RenewalMandate;
@@ -36,12 +29,13 @@ export function ContributionForm({
   mandate,
   onDone: handleDone,
 }: ContributionFormProps): JSX.Element {
-  const [typed, setTyped] = useState(
+  const initial =
     mandate.contribution_cents === 0
       ? ''
-      : maskWholeDollars(String(Math.floor(mandate.contribution_cents / 100))),
-  );
+      : maskWholeDollars(String(Math.floor(mandate.contribution_cents / 100)));
+  const [typed, setTyped] = useState(initial);
   const [error, setError] = useState<string | null>(null);
+  const { data: config } = usePaymentsConfig();
   const update = useUpdateRenewal();
   const toast = useToast();
 
@@ -49,7 +43,11 @@ export function ContributionForm({
     event.preventDefault();
     setError(null);
     try {
-      await update.mutateAsync(dollarsToCents(typed));
+      // The box holds whole dollars, so a contribution that is not a whole
+      // number of them goes back untouched unless the member changes it.
+      await update.mutateAsync(
+        typed === initial ? mandate.contribution_cents : dollarsToCents(typed),
+      );
       toast.show('Contribution saved.', 'success');
       handleDone();
     } catch (caught) {
@@ -77,7 +75,7 @@ export function ContributionForm({
               {...props}
               className="mono"
               inputMode="numeric"
-              mask={(raw) => maskWholeDollars(raw, DOLLAR_DIGITS)}
+              mask={(raw) => maskContribution(raw, config?.max_contribution_cents ?? null)}
               value={typed}
               onValueChange={(next) => setTyped(next)}
             />

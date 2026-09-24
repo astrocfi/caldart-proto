@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useSiteConfig } from '@/portal/api/queries';
+import { useRenewal, useSiteConfig } from '@/portal/api/queries';
 import type { RenewalMandate } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ButtonLink } from '@/portal/components/Button';
@@ -11,7 +11,6 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { MembershipChip, PaymentChip, membershipTone } from '@/portal/components/StatusChip';
-import { useRenewal } from '@/portal/features/payments/api';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { groupedNavItems } from '@/portal/nav';
 import './dashboard.css';

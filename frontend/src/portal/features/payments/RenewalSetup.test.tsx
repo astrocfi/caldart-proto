@@ -11,8 +11,8 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { RenewalEnvelope, RenewalSetupRequest } from '@/portal/api/types';
-import { API, makeUser, signedInAs } from '@test/handlers';
 import { makeMandate, makePaymentsConfig } from '@test/fixtures/payments';
+import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { RenewalSetup } from './RenewalSetup';

@@ -5,16 +5,23 @@
  * SetupIntent, which is what gives CalDART permission to charge it again when
  * the membership runs out.  `confirmSetup` runs with `redirect: 'if_required'`,
  * so a card that needs no bank confirmation never leaves the page; one that does
- * comes back to the Payments screen, where the member confirms again.
+ * comes back to `/portal/payments` with the SetupIntent in the query string, and
+ * the Automatic renewal card confirms it there.
  */
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
+import type { RenewalSetupRequest } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
+import { useDebounced } from '@/portal/components/useDebounced';
 import { isAbortError } from '@/portal/features/checkout/api';
-import { appearanceFromTokens, stripeFor } from '@/portal/features/checkout/StripePanel';
+import {
+  AMOUNT_DEBOUNCE_MS,
+  appearanceFromTokens,
+  stripeFor,
+} from '@/portal/features/checkout/StripePanel';
 import { startRenewalSetup, useConfirmRenewal } from './api';
 import type { RenewalPanelProps } from './types';
 
@@ -22,6 +29,25 @@ import type { RenewalPanelProps } from './types';
 function returnUrl(): string {
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
   return `${origin}/portal/payments`;
+}
+
+/**
+ * The setup request for the current selection, once that selection has held still.
+ *
+ * It travels through `useDebounced` as its own JSON, exactly as the checkout's
+ * request does, so a member typing an amount digit by digit asks Stripe for one
+ * SetupIntent rather than one per keystroke.  The object handed back keeps its
+ * identity for as long as the JSON does, which is what lets the effect depend on
+ * it and nothing else.
+ */
+function useSettledSetup(plan: string, contributionCents: number): RenewalSetupRequest {
+  const wanted = JSON.stringify({
+    plan,
+    contribution_cents: contributionCents,
+    provider: 'stripe',
+  } satisfies RenewalSetupRequest);
+  const settled = useDebounced(wanted, AMOUNT_DEBOUNCE_MS);
+  return useMemo(() => JSON.parse(settled) as RenewalSetupRequest, [settled]);
 }
 
 export interface StripeRenewalPanelProps extends RenewalPanelProps {
@@ -39,16 +65,14 @@ export function StripeRenewalPanel({
   const [error, setError] = useState<string | null>(null);
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const appearance = useMemo(() => appearanceFromTokens(), []);
+  const settled = useSettledSetup(plan, contributionCents);
 
   useEffect(() => {
     const controller = new AbortController();
     setClientSecret(null);
     setError(null);
 
-    startRenewalSetup(
-      { plan, contribution_cents: contributionCents, provider: 'stripe' },
-      controller.signal,
-    )
+    startRenewalSetup(settled, controller.signal)
       .then((response) => {
         if (controller.signal.aborted) return;
         if (response.provider !== 'stripe' || !response.client.client_secret) {
@@ -70,7 +94,7 @@ export function StripeRenewalPanel({
     return () => {
       controller.abort();
     };
-  }, [plan, contributionCents]);
+  }, [settled]);
 
   if (error) {
     return (

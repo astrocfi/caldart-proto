@@ -82,7 +82,7 @@ function returnUrl(paymentId: number): string {
 }
 
 /** Wait for the member to stop changing the amount before re-creating an intent. */
-const AMOUNT_DEBOUNCE_MS = 500;
+export const AMOUNT_DEBOUNCE_MS = 500;
 
 /**
  * The checkout request for the current selection, once that selection has held still.

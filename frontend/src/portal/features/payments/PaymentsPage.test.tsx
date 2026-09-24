@@ -5,11 +5,12 @@
  */
 import { screen, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
+import type { RequestHandler } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { PaymentSummary } from '@/portal/api/types';
-import { API, makeUser, signedInAs } from '@test/handlers';
 import { makePaymentSummary, makePaymentsConfig } from '@test/fixtures/payments';
+import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { PaymentsPage } from './PaymentsPage';
@@ -17,11 +18,15 @@ import { PaymentsPage } from './PaymentsPage';
 function mount({
   payments = [],
   years = [],
+  extra = [],
 }: {
   payments?: PaymentSummary[];
   years?: number[];
+  /** Handlers that take precedence over the ones below, for the failure cases. */
+  extra?: RequestHandler[];
 } = {}) {
   server.use(
+    ...extra,
     signedInAs(makeUser()),
     http.get(`${API}/payments/config`, () => HttpResponse.json(makePaymentsConfig())),
     http.get(`${API}/me/payments`, () => HttpResponse.json(payments)),
@@ -102,5 +107,18 @@ describe('PaymentsPage', () => {
     mount();
 
     expect(await screen.findByText('No statements yet')).toBeInTheDocument();
+  });
+
+  it('does not pass a failed statements read off as a year with nothing in it', async () => {
+    mount({
+      extra: [
+        http.get(`${API}/me/payments/statements`, () =>
+          HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),
+        ),
+      ],
+    });
+
+    expect(await screen.findByText('Your statements could not be loaded')).toBeInTheDocument();
+    expect(screen.queryByText('No statements yet')).not.toBeInTheDocument();
   });
 });

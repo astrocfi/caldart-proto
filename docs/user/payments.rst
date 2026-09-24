@@ -160,9 +160,9 @@ then reads **Stopped** and repeats the reason the last charge was refused;
 not running, say — the next run catches up: your membership is renewed on the
 spot and the email tells you the charge is happening that day.  The new term
 starts on the day the money arrives, so the days you were not covered stay in
-the record.  If you have been lapsed for more than a month, |org| does not charge
-you out of the blue: automatic renewal switches itself off, you are told why, and
-you renew by hand from the Payments screen.
+the record.  If you have been lapsed for more than a month, |org| does not
+charge you out of the blue: automatic renewal switches itself off, you are told
+why, and you renew by hand from the Payments screen.
 
 **Life members** have nothing to renew, so the option is not offered.
 
@@ -188,8 +188,8 @@ is something you received.
 
 The join wizard's last step says the receipt is on its way, and links to the
 Payments screen.  If the email never arrived, or you deleted it, every receipt
-can be downloaded again from the **Receipt** link on its row there.  Ask the office to send one again if you
-would rather have it in your inbox.
+can be downloaded again from the **Receipt** link on its row there.  Ask the
+office to send one again if you would rather have it in your inbox.
 
 Contribution statements
 -----------------------

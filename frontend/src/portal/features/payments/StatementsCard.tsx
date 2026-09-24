@@ -21,6 +21,12 @@ export function StatementsCard(): JSX.Element {
         <p className="muted" role="status">
           Loading…
         </p>
+      ) : statements.error ? (
+        // A year missing from a failed read is not a year without a statement.
+        <EmptyState
+          title="Your statements could not be loaded"
+          description="Please reload the page, or contact CalDART if it keeps happening."
+        />
       ) : years.length === 0 ? (
         <EmptyState
           title="No statements yet"

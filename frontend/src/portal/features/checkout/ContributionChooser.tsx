@@ -18,9 +18,23 @@ export const OTHER = 'other';
 const DOLLAR_DIGITS = 6;
 
 /** A grouped dollar amount as integer cents; a blank box is nothing given. */
-function dollarsToCents(typed: string): number {
+export function dollarsToCents(typed: string): number {
   const digits = typed.replace(/\D/g, '');
   return digits ? Number(digits) * 100 : 0;
+}
+
+/**
+ * Whole dollars, grouped, and never more than the server accepts.
+ *
+ * The cap is applied as the amount is typed, so a digit too many is refused at
+ * the keyboard rather than at the payment provider.  A `maxCents` of `null` is
+ * a cap not yet known, and caps nothing.
+ */
+export function maskContribution(raw: string, maxCents: number | null): string {
+  const masked = maskWholeDollars(raw, DOLLAR_DIGITS);
+  if (maxCents === null) return masked;
+  const cents = dollarsToCents(masked);
+  return cents > maxCents ? maskWholeDollars(String(Math.floor(maxCents / 100))) : masked;
 }
 
 export interface ContributionChooserProps {
@@ -53,17 +67,7 @@ export function ContributionChooser({
 }: ContributionChooserProps): JSX.Element {
   const otherId = useId();
 
-  /**
-   * Whole dollars, grouped, and never more than the server accepts.
-   *
-   * The cap is applied as the amount is typed, so a digit too many is refused
-   * at the keyboard rather than at the payment provider.
-   */
-  const maskAmount = (raw: string): string => {
-    const masked = maskWholeDollars(raw, DOLLAR_DIGITS);
-    const cents = dollarsToCents(masked);
-    return cents > maxCents ? maskWholeDollars(String(Math.floor(maxCents / 100))) : masked;
-  };
+  const maskAmount = (raw: string): string => maskContribution(raw, maxCents);
 
   return (
     <fieldset className="checkout__section">

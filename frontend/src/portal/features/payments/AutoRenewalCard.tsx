@@ -8,16 +8,19 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 
+import { useRenewal } from '@/portal/api/queries';
 import type { RenewalMandate } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
+import { EmptyState } from '@/portal/components/EmptyState';
 import { Money, formatCents } from '@/portal/components/Money';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { ContributionForm } from './ContributionForm';
 import { RenewalSetup } from './RenewalSetup';
-import { useCancelRenewal, useRenewal } from './api';
+import { useCancelRenewal } from './api';
+import { useSetupReturn } from './setupReturn';
 
 /** What the card offers to do next; `setup` is the inline turn-on flow. */
 type Mode = 'idle' | 'setup' | 'contribution' | 'confirm-off';
@@ -32,6 +35,7 @@ type Mode = 'idle' | 'setup' | 'contribution' | 'confirm-off';
 export function AutoRenewalCard(): JSX.Element {
   const renewal = useRenewal();
   const cancel = useCancelRenewal();
+  const setupReturn = useSetupReturn();
   const toast = useToast();
   const [mode, setMode] = useState<Mode>('idle');
 
@@ -55,10 +59,33 @@ export function AutoRenewalCard(): JSX.Element {
 
   return (
     <Card eyebrow="Membership" title="Automatic renewal">
+      {setupReturn.isConfirming ? (
+        <p className="muted" role="status">
+          Finishing off the payment method you just saved…
+        </p>
+      ) : null}
+      {setupReturn.error ? (
+        <p className="renewal__error" role="alert">
+          {setupReturn.error}
+        </p>
+      ) : null}
+
       {renewal.isPending ? (
         <p className="muted" role="status">
           Checking your renewal settings…
         </p>
+      ) : renewal.error ? (
+        // Saying "Off" here would be a statement about the member's money that
+        // nothing has established, so the card says only that it does not know.
+        <EmptyState
+          title="Your renewal settings could not be read"
+          description="We cannot tell you whether CalDART renews your membership automatically. Try again, or contact CalDART if it keeps happening."
+          action={
+            <Button variant="secondary" onClick={() => void renewal.refetch()}>
+              Try again
+            </Button>
+          }
+        />
       ) : (
         <>
           <MandateSummary mandate={mandate} />

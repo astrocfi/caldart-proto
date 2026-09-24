@@ -2,8 +2,10 @@
  * Everything the member's own Payments screen says to the API.
  *
  * The payment rows themselves come from `@/portal/features/profile/api`, which
- * already owns `GET /me/payments`; this module adds the standing authority to
- * renew, the contribution statements, and the two download addresses.
+ * already owns `GET /me/payments`, and the mandate itself from
+ * `@/portal/api/queries`, which the dashboard reads too; this module adds the
+ * calls that change the mandate, the contribution statements, and the two
+ * download addresses.
  *
  * Every mutation writes the mandate it was answered with straight into the
  * renewal query, so the card redraws from the server's own view of the
@@ -13,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '@/portal/api/client';
+import { RENEWAL_KEY } from '@/portal/api/queries';
 import type {
   RenewalConfirmRequest,
   RenewalEnvelope,
@@ -21,16 +24,7 @@ import type {
   StatementYears,
 } from '@/portal/api/types';
 
-export const RENEWAL_KEY = ['me', 'renewal'] as const;
 export const STATEMENT_YEARS_KEY = ['me', 'payments', 'statements'] as const;
-
-/** The signed-in member's standing authority to renew, via `GET /me/renewal`. */
-export function useRenewal(): UseQueryResult<RenewalEnvelope> {
-  return useQuery({
-    queryKey: RENEWAL_KEY,
-    queryFn: () => api.get<RenewalEnvelope>('/me/renewal'),
-  });
-}
 
 /** The calendar years the member may download a contribution statement for. */
 export function useStatementYears(): UseQueryResult<StatementYears> {

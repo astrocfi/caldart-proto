@@ -2,8 +2,8 @@ import { screen, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { API, makeUser, signedInAs } from '@test/handlers';
 import { makeMandate } from '@test/fixtures/payments';
+import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type {
