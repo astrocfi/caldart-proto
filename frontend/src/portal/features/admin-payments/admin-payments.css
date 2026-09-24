@@ -105,3 +105,132 @@
 .pager__status {
   font-size: var(--text-sm);
 }
+
+/* ------------------------------------------------------------- tab bar */
+.finance-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  border-bottom: var(--hairline) solid var(--color-rule);
+  margin-bottom: var(--space-4);
+}
+
+.finance-tabs__tab {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: calc(-1 * var(--hairline));
+}
+
+.finance-tabs__tab:hover {
+  color: var(--color-fg);
+}
+
+.finance-tabs__tab[aria-current='page'] {
+  color: var(--color-fg);
+  font-weight: var(--weight-medium);
+  border-bottom-color: var(--color-primary);
+}
+
+/* --------------------------------------------------- tile breakdowns */
+.stat-tile__breakdown {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0 var(--space-3);
+  justify-content: start;
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-xs);
+}
+
+.stat-tile__breakdown > div {
+  display: contents;
+}
+
+.stat-tile__breakdown dt {
+  color: var(--color-muted);
+}
+
+.stat-tile__breakdown dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------- period table */
+.period-table__filters {
+  padding-bottom: var(--space-2);
+}
+
+/* ---------------------------------------------------- column chooser */
+.column-chooser {
+  position: relative;
+}
+
+.column-chooser__panel {
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  left: 0;
+  display: grid;
+  gap: var(--space-1);
+  min-width: 14rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: var(--hairline) solid var(--color-rule-strong);
+  background: var(--color-bg-raised);
+}
+
+.column-chooser__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------- payment facts */
+.payment-facts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-4);
+}
+
+@media (min-width: 40rem) {
+  .payment-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.payment-facts dt {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.payment-facts dd {
+  margin: 0;
+}
+
+/* ------------------------------------------------------ record a payment */
+.record-payment__results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.record-payment__chosen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.refund-form {
+  max-width: 32rem;
+}

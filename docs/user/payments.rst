@@ -241,6 +241,23 @@ For treasurers and account administrators
 and nothing else: the member records, with their medical and certificate
 details, stay closed to them.  An account administrator holds both.
 
+Moving around the area
+----------------------
+
+A tab bar sits at the top of every finance screen:
+
+* **Overview** (``/portal/admin/payments``) — the headline figures and the
+  period table;
+* **Payments** (``/portal/admin/payments/list``) — every payment, with the
+  filters, the column chooser and the exports;
+* **Renewals** — the standing renewal authorities and the charges against them;
+* **Reconciliation** — the period table built for a bank statement;
+* **Contributions** — the year-end acknowledgment list.
+
+Opening one payment, one member's ledger or the form that records a check
+leaves the bar in place, with **Payments** marked, so you always know where in
+the area you are standing.
+
 The headline figures
 --------------------
 
@@ -301,6 +318,32 @@ the day they were run in their name, so two exports never overwrite one
 another.  The CSV writes money as a plain number a spreadsheet adds up; the PDF
 prints it with a dollar sign and names the filters underneath the title.
 
+One payment's record
+--------------------
+
+Clicking a member's name in the list opens the payment itself: who paid, what
+for, the dues and the contribution separately, the total, the provider's fee
+and the net, what has been refunded, the reference the provider gave it, when
+the receipt was emailed, the term it bought, and whether it was an automatic
+charge rather than somebody at a keyboard.  Beneath that are the refunds
+against it, and beneath those the two fields that are yours: the day you
+matched the payment to a statement, and a note — the check number, or why the
+entry exists.
+
+Four actions sit under the record:
+
+* **Refund** opens the refund form described below;
+* **Resend receipt** emails the member their receipt again, and the screen
+  stamps the moment it went;
+* **Download receipt** gives you the PDF, for attaching to something else;
+* **Fetch fee from provider** appears only while the fee is still unknown.
+  Stripe and PayPal report what they kept a moment after the money arrives, and
+  sometimes later than that; this asks again.  A payment nobody can price — one
+  recorded by hand, one that never succeeded — says so rather than reporting a
+  fee of nothing.
+
+A link at the foot opens everything that member has paid.
+
 Recording a payment taken by hand
 ---------------------------------
 
@@ -353,10 +396,16 @@ can download for themselves.
 A member's ledger
 -----------------
 
-Opening a member from the payment list gives their whole money history in one
-place: what they have paid, given, and been charged in fees over every year;
-every payment, including the attempts that failed; their automatic renewal, if
-they have one; and the years they can download a contribution statement for.
+Opening a member from a payment gives their whole money history in one place:
+what they have paid, given, and been charged in fees over every year; their
+automatic renewal, if they have one, with the saved method, the next charge
+date and the reason the last charge was refused; every payment, including the
+attempts that failed, each linking to its own record; and a button for every
+year they can be sent a contribution statement for.
+
+An account administrator reaches the same cards from the Payments tab of the
+member record; a treasurer, who does not open member records, reaches them
+here.
 
 Automatic renewals
 ------------------

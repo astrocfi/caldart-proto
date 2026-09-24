@@ -14,7 +14,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import QuerySet
+from django.db.models import CharField, F, Q, QuerySet, Value
+from django.db.models.functions import Concat
 from django.http import HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
@@ -33,10 +34,12 @@ from apps.payments import reconciliation, reports
 from apps.payments.api.serializers import (
     ContributionQuerySerializer,
     ContributionRowSerializer,
+    FinanceMemberSerializer,
     FinancePaymentDetailSerializer,
     FinancePaymentSerializer,
     ManualPaymentSerializer,
     MemberLedgerSerializer,
+    MemberSearchQuerySerializer,
     PaymentPatchSerializer,
     PaymentPeriodSummarySerializer,
     PaymentReportQuerySerializer,
@@ -45,8 +48,10 @@ from apps.payments.api.serializers import (
     ReportColumnSerializer,
 )
 from apps.payments.manual import record_manual_payment
-from apps.payments.models import Payment, RenewalMandate
+from apps.payments.models import Payment, PaymentProvider, RenewalMandate
+from apps.payments.providers.base import PaymentError
 from apps.payments.reports import PAYMENT_REPORT_COLUMNS
+from apps.payments.services import backfill_fees, fees_are_known
 from caldart import audit
 from caldart.reports import (
     CSV_MEDIA_TYPE,
@@ -68,6 +73,12 @@ CONTRIBUTION_WIDTHS = (2.4, 3, 1, 1.6, 1.4, 1.8)
 
 #: The header both contribution exports print, in column order.
 CONTRIBUTION_HEADER = ("Name", "Email", "Payments", "Contributed", "Refunded", "Net")
+
+#: What the fee refresh answers with when the provider still cannot price a payment.
+FEES_UNAVAILABLE = "The provider has no fee to report for this payment yet."
+
+#: How many members the finance area's search answers with at most.
+MEMBER_SEARCH_LIMIT = 10
 
 #: The title on every page of the contributions PDF.
 CONTRIBUTION_TITLE = "CalDART contributions"
@@ -596,3 +607,85 @@ def statement_years(payments: list[Payment]) -> list[int]:
 def mandate_of(member: User) -> RenewalMandate | None:
     """The member's renewal mandate, or ``None`` when they have no standing authority."""
     return RenewalMandate.objects.filter(user=member).select_related("plan").first()
+
+
+class AdminPaymentFeesView(APIView):
+    """``POST /admin/payments/{id}/fees`` -- ask the provider what a payment cost."""
+
+    permission_classes = [IsAuthenticated, IsFinance]
+
+    @extend_schema(request=None, responses={200: FinancePaymentDetailSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """200 with the payment as it now stands, its fee and net filled in.
+
+        A provider settles asynchronously, so a payment can arrive before anybody
+        knows what it cost; this asks again and records the answer.  400 carrying
+        ``detail`` when the provider still has nothing to report -- a payment
+        recorded by hand, one that never succeeded, a charge the provider has not
+        settled -- or when it cannot be reached.  404 for an unknown id, 403
+        without a finance role.
+        """
+        payment = get_object_or_404(Payment, pk=pk)
+        if payment.provider == PaymentProvider.MANUAL:
+            raise ValidationError({"detail": FEES_UNAVAILABLE})
+        try:
+            payment = backfill_fees(payment)
+        except PaymentError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        if not fees_are_known(payment):
+            raise ValidationError({"detail": FEES_UNAVAILABLE})
+        return Response(FinancePaymentDetailSerializer(self.row(pk)).data)
+
+    def row(self, pk: int) -> Payment:
+        """The payment read back through the finance queryset, ready to serialize."""
+        return get_object_or_404(reports.base_queryset(), pk=pk)
+
+
+class AdminFinanceMemberSearchView(APIView):
+    """``GET /admin/payments/members?search=`` -- who a payment can be recorded for."""
+
+    permission_classes = [IsAuthenticated, IsFinance]
+
+    @extend_schema(responses={200: FinanceMemberSerializer(many=True)})
+    def get(self, request: Request) -> Response:
+        """200 with the members whose name or address carries the term, by name.
+
+        At most :data:`MEMBER_SEARCH_LIMIT` rows come back, so a short term does
+        not answer with the whole register, and a blank ``search`` answers none at
+        all.  403 without a finance role.
+        """
+        query = MemberSearchQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        term = query.validated_data["search"].strip()
+        rows = [
+            {
+                "user_id": member.pk,
+                "name": member.display_name,
+                "email": member.email,
+                "membership": membership_status(member),
+            }
+            for member in search_members(term)
+        ]
+        serializer = FinanceMemberSerializer(rows, many=True)  # type: ignore[arg-type]
+        return Response(serializer.data)
+
+
+def search_members(term: str) -> list[User]:
+    """The members whose name or address carries ``term``, by name, capped.
+
+    The term is matched against the full name as well as each half of it, so a
+    treasurer holding a check made out to "Marta Reyes" can type what is written
+    on it.  An empty term matches nobody: the search is a form control, and a
+    form nobody has typed in asks for no members rather than for all of them.
+    """
+    if term == "":
+        return []
+    matches = User.objects.annotate(
+        full_name=Concat(F("first_name"), Value(" "), F("last_name"), output_field=CharField())
+    ).filter(
+        Q(full_name__icontains=term)
+        | Q(first_name__icontains=term)
+        | Q(last_name__icontains=term)
+        | Q(email__icontains=term)
+    )
+    return list(matches.order_by("last_name", "first_name", "pk")[:MEMBER_SEARCH_LIMIT])

@@ -35,6 +35,7 @@ import type {
   ContributionRow,
   ContributionTier,
   Dart,
+  FinanceMember,
   FinancePaymentTerm,
   GrantTermPayload,
   Health,
@@ -231,6 +232,7 @@ const periodSummary: Matches<PaymentPeriodSummary, Schemas['PaymentPeriodSummary
 const reportColumn: Matches<ReportColumn, Schemas['ReportColumn']> = true;
 const reconciliationRow: Matches<ReconciliationRow, Schemas['ReconciliationRow']> = true;
 const contributionRow: Matches<ContributionRow, Schemas['ContributionRow']> = true;
+const financeMember: Matches<FinanceMember, Schemas['FinanceMember']> = true;
 const ledgerMember: Matches<LedgerMember, Schemas['LedgerMember']> = true;
 const ledgerTotals: Matches<LedgerTotals, Schemas['LedgerTotals']> = true;
 const memberLedger: Matches<MemberLedger, Schemas['MemberLedger']> = true;
@@ -347,6 +349,7 @@ const assertions: readonly true[] = [
   reportColumn,
   reconciliationRow,
   contributionRow,
+  financeMember,
   ledgerMember,
   ledgerTotals,
   memberLedger,
@@ -451,6 +454,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'ReportColumn',
   'ReconciliationRow',
   'ContributionRow',
+  'FinanceMember',
   'LedgerMember',
   'LedgerTotals',
   'MemberLedger',

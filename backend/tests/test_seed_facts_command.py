@@ -7,12 +7,15 @@ from typing import Any
 import pytest
 from django.core.management import call_command
 
+from apps.accounts.models import User
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
 from apps.members.models import MembershipPlan
+from apps.payments.models import PaymentStatus
 from tests.factories import (
     AircraftFactory,
     MemberProfileFactory,
     MembershipFactory,
+    PaymentFactory,
     UserFactory,
 )
 
@@ -54,7 +57,7 @@ def test_reports_no_plan_prices_when_no_plan_is_seeded(
 
 
 def test_writes_one_json_object_and_nothing_else(capsys: pytest.CaptureFixture[str]) -> None:
-    """The command writes exactly the five documented keys, and no other output."""
+    """The command writes exactly the documented keys, and no other output."""
     call_command("seed_facts")
     captured = capsys.readouterr()
     assert captured.err == ""
@@ -65,6 +68,7 @@ def test_writes_one_json_object_and_nothing_else(capsys: pytest.CaptureFixture[s
         "leaderCheck",
         "manualPaymentCount",
         "planPricesCents",
+        "refundedPayment",
     ]
 
 
@@ -120,3 +124,24 @@ def test_a_plane_with_no_policy_on_file_is_not_a_lapsed_policy(
     facts = read_facts(capsys)["leaderCheck"]
 
     assert facts["lapsedInsurance"] == {"name": "Ola South", "nNumber": "N222BB"}
+
+
+def test_names_the_member_whose_payment_came_back(
+    member: User, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``refundedPayment`` names the partially refunded payment and who made it."""
+    payment = PaymentFactory(
+        user=member, status=PaymentStatus.PARTIALLY_REFUNDED, amount_cents=4_500
+    )
+
+    facts = read_facts(capsys)["refundedPayment"]
+
+    assert facts["email"] == member.email
+    assert facts["receiptNumber"] == payment.receipt_number
+
+
+def test_reports_no_refunded_payment_when_nothing_came_back(
+    db: None, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``refundedPayment`` carries empty strings when the seed refunded nothing."""
+    assert read_facts(capsys)["refundedPayment"]["receiptNumber"] == ""

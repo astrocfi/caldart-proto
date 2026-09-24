@@ -15,6 +15,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { Field } from '@/portal/components/Field';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
+import { FinanceTabs } from './FinanceTabs';
 import { contributionsExportUrl, statementUrl, useContributions } from './reports-api';
 import './admin-payments.css';
 
@@ -105,6 +106,8 @@ export function ContributionsPage(): JSX.Element {
       eyebrow="Payments"
       lede="Everyone who gave in one calendar year, and what each of them gave."
     >
+      <FinanceTabs />
+
       <p className="muted">
         A payment counts in the year its money arrived. The net figure is what an acknowledgment
         letter quotes: given, less anything refunded against it.

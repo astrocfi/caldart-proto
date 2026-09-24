@@ -42,6 +42,14 @@ export interface LeaderSubject {
   nNumber: string;
 }
 
+/** One seeded payment that was refunded, and the member it belongs to. */
+export interface RefundedPayment {
+  name: string;
+  email: string;
+  /** The receipt number the payment carries, e.g. `CALDART-000017`. */
+  receiptNumber: string;
+}
+
 /** What `manage.py seed_facts` reports about the seeded database. */
 export interface SeedFacts {
   /** The password every seeded demo account shares. */
@@ -56,6 +64,10 @@ export interface SeedFacts {
    * is generated a little differently.
    */
   leaderCheck: Record<'insuredPilot' | 'lapsedInsurance' | 'expiredMember', LeaderSubject>;
+  /** How many payments the seed recorded by hand, which the finance list filters to. */
+  manualPaymentCount: number;
+  /** A member whose payment came back in part, for the refund assertions. */
+  refundedPayment: RefundedPayment;
 }
 
 const LEADER_SUBJECT_KEYS = ['insuredPilot', 'lapsedInsurance', 'expiredMember'] as const;
@@ -131,11 +143,32 @@ function checkedSeedFacts(parsed: unknown): SeedFacts {
     return [key, { name: subject.name, nNumber }] as const;
   });
 
+  const manualPaymentCount = root.manualPaymentCount;
+  if (typeof manualPaymentCount !== 'number' || manualPaymentCount <= 0) {
+    rejectFacts('`manualPaymentCount` is not a count above zero: the seed recorded no checks');
+  }
+
+  const rawRefunded = objectField(root, 'refundedPayment');
+  const refundedText = (field: keyof RefundedPayment): string => {
+    const value = rawRefunded[field];
+    if (typeof value !== 'string' || value.length === 0) {
+      rejectFacts(`\`refundedPayment.${field}\` is missing: no seeded payment was refunded`);
+    }
+    return value;
+  };
+  const refundedPayment: RefundedPayment = {
+    name: refundedText('name'),
+    email: refundedText('email'),
+    receiptNumber: refundedText('receiptNumber'),
+  };
+
   return {
     demoPassword,
     accounts: Object.fromEntries(accountEntries) as Record<DemoAccount, string>,
     planPricesCents: Object.fromEntries(priceEntries) as Record<PlanSlug, number>,
     leaderCheck: Object.fromEntries(leaderEntries) as SeedFacts['leaderCheck'],
+    manualPaymentCount,
+    refundedPayment,
   };
 }
 

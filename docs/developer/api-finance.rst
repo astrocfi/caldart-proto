@@ -343,6 +343,55 @@ Statuses: **200**; **400** for a body the serializer refuses, a future
 role; **404** for an unknown id.
 
 
+``POST /admin/payments/{id}/fees``
+==================================
+
+Asks the provider again what a payment cost, and records the answer.  A card
+provider settles asynchronously, so a payment can arrive before anybody knows
+its fee; this is how a treasurer fills the gap in without waiting for the next
+webhook.  The body is empty.  The answer is the same object ``GET
+/admin/payments/{id}`` gives, with ``fee_cents`` and ``net_cents`` as the
+provider has just reported them, so the screen redraws from it.
+
+A payment the provider cannot price is refused rather than answered with
+zeroes -- one recorded by hand, one that never succeeded, one the provider has
+not settled yet:
+
+.. code-block:: json
+
+   {"detail": "The provider has no fee to report for this payment yet."}
+
+A provider that is unconfigured or unreachable is refused the same way, with
+its own sentence, so "no answer yet" and "could not ask" read differently.
+
+Statuses: **200**; **400** when the provider has nothing to report or could not
+be asked; **401** when anonymous; **403** without a finance role; **404** for an
+unknown id.
+
+
+``GET /admin/payments/members``
+===============================
+
+The member search behind the form that records a payment taken by hand.  A
+treasurer does not read ``/admin/members/*``, so this answers the little the
+form needs: who the member is, and where their membership stands.
+
+.. code-block:: json
+
+   [{"user_id": 37, "name": "Marta Reyes", "email": "marta@example.org",
+     "membership": {"status": "current", "expires_on": "2027-01-08",
+                    "plan": "Annual", "is_lifetime": false}}]
+
+``?search=`` matches a full name, a first name, a last name or an address,
+ignoring case, so a check made out to "Marta Reyes" can be searched for as it
+is written.
+Rows read by surname then first name, and at most ten come back, so a one-letter
+term answers a page rather than the register.  A blank or absent ``search``
+answers an empty list: a form nobody has typed in asks for nobody.
+
+Statuses: **200**; **401** when anonymous; **403** without a finance role.
+
+
 ``POST /admin/payments/record``
 ===============================
 
@@ -391,6 +440,8 @@ Endpoint                                       Who
 ``GET /admin/payments/ledger/{user_id}``       Finance
 ``GET | PATCH /admin/payments/{id}``           Finance
 ``POST /admin/payments/record``                Finance
+``POST /admin/payments/{id}/fees``             Finance
+``GET /admin/payments/members``                Finance
 =============================================  ==========================
 
 "Finance" is ``treasurer`` or ``account_admin``; ``system_admin`` passes every

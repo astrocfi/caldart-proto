@@ -1,6 +1,10 @@
 /**
  * Flow D in `docs/demo-walkthrough.rst`: an account administrator sees
  * payments per month and per year, and downloads the CSV.
+ *
+ * The overview carries the tiles and the period table; the list and its
+ * exports are the Payments tab beside it, so the counts the CSV gives are
+ * fetched from there and asserted against the overview.
  */
 import { readFile } from 'node:fs/promises';
 
@@ -86,6 +90,7 @@ function parseCsv(text: string): string[][] {
  * membership of its own, or had a card declined.
  */
 async function ledgerTotals(page: Page): Promise<LedgerTotals> {
+  await page.goto('/portal/admin/payments/list');
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('link', { name: 'Export CSV' }).click(),
@@ -126,11 +131,13 @@ test('an account administrator reads the monthly and yearly totals and exports t
   await expect(page.getByText('Year to date')).toBeVisible();
   await expect(page.getByText('Last 12 months')).toBeVisible();
 
-  // Export CSV downloads every payment the screen reports on, so it says how
-  // many rows each grouping must have and how many the ledger must count.
+  // Export CSV downloads every payment the area reports on, so it says how
+  // many rows each grouping must have and how many the list must count.
   const totals = await ledgerTotals(page);
   expect(totals.payments).toBeGreaterThan(totals.months);
   expect(totals.months).toBeGreaterThan(totals.years);
+
+  await page.goto('/portal/admin/payments');
 
   // Month is the default grouping: one row per month that carries a payment.
   const periodTable = page.getByRole('region', { name: 'Payments by period' });
@@ -145,14 +152,14 @@ test('an account administrator reads the monthly and yearly totals and exports t
   await expect(periodTable.getByRole('columnheader', { name: 'Year' })).toBeVisible();
   await expect(periodRows(page)).toHaveCount(totals.years);
 
-  // The ledger below counts the same payments in its caption.
-  await expect(page.getByRole('heading', { name: 'All payments' })).toBeVisible();
+  // The Payments tab counts the same payments in its caption.
+  await page.goto('/portal/admin/payments/list');
   await expect(page.getByText(`${totals.payments} payments`)).toBeVisible();
 });
 
 test('a filtered export carries the filter', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
-  await page.goto('/portal/admin/payments');
+  await page.goto('/portal/admin/payments/list');
 
   await page.getByLabel('Provider').selectOption('mock');
   await expect(page.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(

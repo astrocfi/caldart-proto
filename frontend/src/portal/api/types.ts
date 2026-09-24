@@ -829,6 +829,14 @@ export interface ContributionRow {
   net_contribution_cents: number;
 }
 
+/** One row of `GET /admin/payments/members`: a member a payment can be recorded for. */
+export interface FinanceMember {
+  user_id: number;
+  name: string;
+  email: string;
+  membership: MembershipStatus;
+}
+
 /** Who a ledger is about. */
 export interface LedgerMember {
   id: number;

@@ -26,6 +26,7 @@ import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { useDebounced } from '@/portal/components/useDebounced';
+import { FinanceTabs } from './FinanceTabs';
 import {
   MANDATE_STATUS_LABELS,
   MANDATE_STATUS_TONES,
@@ -286,6 +287,8 @@ export function RenewalsPage(): JSX.Element {
       eyebrow="Payments"
       lede="Who has asked CalDART to renew their membership for them, and how those charges went."
     >
+      <FinanceTabs />
+
       <section className="stack">
         <h2 className="period-table__title">Standing authorities</h2>
         <DataTable

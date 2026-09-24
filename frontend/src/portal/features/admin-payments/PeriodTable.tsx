@@ -4,7 +4,7 @@
  * Newest first: an administrator looking at this page almost always wants the
  * period they are in.
  */
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 import type { PaymentPeriodSummary } from '@/portal/api/types';
 import { EmptyState } from '@/portal/components/EmptyState';
@@ -18,6 +18,8 @@ export interface PeriodTableProps {
   group: SummaryGroup;
   onGroupChange: (group: SummaryGroup) => void;
   isLoading?: boolean;
+  /** Filter controls rendered between the heading and the table. */
+  filters?: ReactNode;
 }
 
 /** `2026-03` -> `March 2026`; `2026` is already readable. */
@@ -35,6 +37,7 @@ export function PeriodTable({
   group,
   onGroupChange,
   isLoading = false,
+  filters,
 }: PeriodTableProps): JSX.Element {
   const providers = providersIn(rows);
   const newestFirst = [...rows].reverse();
@@ -60,6 +63,8 @@ export function PeriodTable({
         </div>
       </div>
 
+      {filters ? <div className="period-table__filters">{filters}</div> : null}
+
       {isLoading ? (
         <p className="muted" role="status">
           Loading summary…
@@ -73,7 +78,8 @@ export function PeriodTable({
         <div className="table-wrap">
           <table>
             <caption className="visually-hidden">
-              Payment totals by {group}, with a column for each provider
+              Payment totals by {group}, with a column for each provider, then the fees, the net and
+              what was refunded
             </caption>
             <thead>
               <tr>
@@ -93,6 +99,15 @@ export function PeriodTable({
                   </th>
                 ))}
                 <th scope="col" className="numeric">
+                  Fees
+                </th>
+                <th scope="col" className="numeric">
+                  Net
+                </th>
+                <th scope="col" className="numeric">
+                  Refunded
+                </th>
+                <th scope="col" className="numeric">
                   Total
                 </th>
               </tr>
@@ -109,6 +124,9 @@ export function PeriodTable({
                       {row.by_provider[provider] ? formatCents(row.by_provider[provider]) : '—'}
                     </td>
                   ))}
+                  <td className="numeric">{formatCents(row.fee_cents)}</td>
+                  <td className="numeric">{formatCents(row.net_cents)}</td>
+                  <td className="numeric">{formatCents(row.refunded_cents)}</td>
                   <td className="numeric period-table__total">{formatCents(row.total_cents)}</td>
                 </tr>
               ))}
