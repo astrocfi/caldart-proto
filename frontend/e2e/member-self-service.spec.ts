@@ -25,6 +25,18 @@ test('a member signs in, edits their profile and reads members-only content', as
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'Total hours' })).toHaveValue('1234');
 
+  // The form says what it wants: no leading K, one primary DART, and ground
+  // support among the volunteer interests.
+  await expect(page.getByText('Three characters, omit the leading K')).toBeVisible();
+  await expect(page.getByText('Your primary DART')).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: 'Ground support' })).toBeVisible();
+
+  // My aircraft ledes in one sentence and offers one way to add an airplane.
+  await page.goto('/portal/profile/aircraft');
+  await expect(page.getByText('The planes you commonly fly.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add an aircraft' })).toHaveCount(1);
+  await expect(page.getByText('Not in the register? Add it yourself.')).toBeVisible();
+
   // The dashboard lists the members-only pages, and one of them opens.
   await page.goto('/portal/');
   const memberContent = page
