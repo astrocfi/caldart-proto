@@ -37,6 +37,7 @@ vi.mock('../features/join/JoinWizard', () => ({ JoinWizard: pageStub('Join CalDA
 vi.mock('../features/join/RenewPage', () => ({ RenewPage: pageStub('Renew') }));
 vi.mock('../features/profile/ProfilePage', () => ({ ProfilePage: pageStub('My profile') }));
 vi.mock('../features/profile/MyAircraftPage', () => ({ MyAircraftPage: pageStub('My aircraft') }));
+vi.mock('../features/payments/PaymentsPage', () => ({ PaymentsPage: pageStub('My payments') }));
 vi.mock('../features/leader/LeaderSearchPage', () => ({
   LeaderSearchPage: pageStub('Member check'),
 }));
@@ -118,6 +119,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   { path: '/', heading: 'Dashboard', allowed: ANY_SIGNED_IN },
   { path: '/profile', heading: 'My profile', allowed: ANY_SIGNED_IN },
   { path: '/profile/aircraft', heading: 'My aircraft', allowed: ANY_SIGNED_IN },
+  { path: '/payments', heading: 'My payments', allowed: ANY_SIGNED_IN },
   { path: '/renew', heading: 'Renew', allowed: ANY_SIGNED_IN },
   { path: '/change-password', heading: 'Change password', allowed: ANY_SIGNED_IN },
   {

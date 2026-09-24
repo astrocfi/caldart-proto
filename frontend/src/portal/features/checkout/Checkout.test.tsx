@@ -303,7 +303,9 @@ describe('Checkout · mock provider', () => {
     await waitFor(() =>
       expect(handleSuccess).toHaveBeenCalledWith({ paymentId: 77, membership: CURRENT_MEMBERSHIP }),
     );
-    expect(requests).toEqual([{ plan: 'annual', contribution_cents: 2000, provider: 'mock' }]);
+    expect(requests).toEqual([
+      { plan: 'annual', contribution_cents: 2000, provider: 'mock', auto_renew: false },
+    ]);
   });
 
   it('reports a declined test payment without calling onSuccess', async () => {
@@ -353,7 +355,9 @@ describe('Checkout · Stripe', () => {
     renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
 
     expect(await screen.findByTestId('payment-element')).toBeInTheDocument();
-    expect(requests).toEqual([{ plan: 'annual', contribution_cents: 0, provider: 'stripe' }]);
+    expect(requests).toEqual([
+      { plan: 'annual', contribution_cents: 0, provider: 'stripe', auto_renew: false },
+    ]);
     expect(screen.getByRole('button', { name: 'Pay $45.00' })).toBeInTheDocument();
   });
 

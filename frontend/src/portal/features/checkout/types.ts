@@ -19,5 +19,7 @@ export interface ProviderPanelProps {
   contributionCents: number;
   /** Plan price plus contribution, for display only — the server recomputes. */
   amountCents: number;
+  /** Save the method and renew the membership from it each year. */
+  autoRenew: boolean;
   onSuccess: (result: CheckoutResult) => void;
 }

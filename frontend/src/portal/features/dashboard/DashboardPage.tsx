@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useSiteConfig } from '@/portal/api/queries';
+import type { RenewalMandate } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
@@ -10,6 +11,7 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { MembershipChip, PaymentChip, membershipTone } from '@/portal/components/StatusChip';
+import { useRenewal } from '@/portal/features/payments/api';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { groupedNavItems } from '@/portal/nav';
 import './dashboard.css';
@@ -28,6 +30,7 @@ export function DashboardPage(): JSX.Element {
   const { user, roles } = useAuth();
   const membership = useMembership();
   const payments = useMyPayments();
+  const renewal = useRenewal();
   const siteConfig = useSiteConfig();
 
   const status = membership.data ?? user?.membership ?? null;
@@ -124,7 +127,12 @@ export function DashboardPage(): JSX.Element {
             )}
           </Card>
 
-          <Card eyebrow="History" title="Recent payments">
+          <Card
+            eyebrow="History"
+            title="Recent payments"
+            footer={<Link to="/payments">All payments, receipts and renewal</Link>}
+          >
+            <RenewalLine mandate={renewal.data?.mandate ?? null} />
             {payments.isPending ? (
               <p className="muted" role="status">
                 Loading…
@@ -188,6 +196,30 @@ export function DashboardPage(): JSX.Element {
         </div>
       </div>
     </Page>
+  );
+}
+
+/** One line on the dashboard saying whether the membership renews itself. */
+function RenewalLine({ mandate }: { mandate: RenewalMandate | null }) {
+  if (mandate === null || mandate.status === 'pending' || mandate.status === 'canceled') {
+    return <p className="muted">Automatic renewal is off.</p>;
+  }
+  if (mandate.status === 'paused') {
+    return (
+      <p className="muted">
+        Automatic renewal stopped after a payment was refused. Save another method to start it
+        again.
+      </p>
+    );
+  }
+  if (mandate.next_charge_on === null) {
+    return <p className="muted">Automatic renewal is on, with nothing due yet.</p>;
+  }
+  return (
+    <p className="muted">
+      Automatic renewal is on: <Money cents={mandate.amount_cents} /> on{' '}
+      <DateText value={mandate.next_charge_on} />.
+    </p>
   );
 }
 

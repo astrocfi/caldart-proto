@@ -1,5 +1,6 @@
 /** Step 4 — you are in: status card and the two places to go next. */
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import { useSiteConfig } from '@/portal/api/queries';
 import { ButtonLink } from '@/portal/components/Button';
@@ -49,6 +50,10 @@ export function DoneStep(): JSX.Element {
             ) : (
               <p>Your membership is not active yet.</p>
             )}
+            <p className="muted">
+              A receipt is on its way to your inbox, with the PDF attached. You can download it
+              again at any time from <Link to="/payments">Payments</Link>.
+            </p>
           </div>
         ) : null}
       </Card>
