@@ -612,6 +612,186 @@ plausible wallets, so the payment reports have something realistic to group
 by.
 
 
+Testing against the sandboxes
+==============================
+
+Everything on this page so far sets up one provider at a time.  This section
+walks the fees, receipts, refunds, reconciliation and automatic renewal that
+:doc:`renewals`, :doc:`api-refunds` and :doc:`api-finance` describe, taken
+end to end against Stripe test mode and the PayPal sandbox rather than the
+mock provider.
+
+Check your credentials first
+-----------------------------
+
+Before opening a browser, run:
+
+.. code-block:: console
+
+   $ make sandbox-check
+
+``manage.py payments_sandbox_check`` makes one read-only call to each
+provider whose keys are set — Stripe's account balance and its enabled
+payment methods, a PayPal OAuth token and the sandbox account's own name —
+and reports which webhook secret is configured and what fees, refunds and
+off-session (automatic renewal) charges each provider will be able to do. It
+moves no money and creates nothing. A provider left unconfigured is named but
+does not by itself fail the command; it exits non-zero only when a provider
+with keys set could not be reached, or when neither provider is usable at
+all, which is what a blank ``.env`` reports.
+
+``stripe listen`` with every event this page uses
+---------------------------------------------------
+
+The narrower ``stripe listen`` under **Stripe → Set up the webhook**, earlier
+on this page, covers checkout on its own. Everything below also needs the fee
+and refund events, so run it with the full list instead:
+
+.. code-block:: console
+
+   $ stripe listen --forward-to localhost:8000/api/v1/payments/stripe/webhook \
+       --events payment_intent.succeeded,payment_intent.payment_failed,\
+   charge.refunded,charge.updated,setup_intent.succeeded
+
+``payment_intent.succeeded`` and ``payment_intent.payment_failed`` are the
+checkout safety net; ``charge.updated`` is how a fee Stripe could not report
+at the moment of the charge arrives; ``charge.refunded`` is how a refund taken
+in the Stripe dashboard reaches the ledger (:doc:`api-refunds`);
+``setup_intent.succeeded`` covers turning automatic renewal on from the
+Payments screen without paying anything at that moment. Leave the terminal
+running for the whole drill below.
+
+Stripe test cards for every path
+---------------------------------
+
+Beyond the four cards under **Stripe → Test cards**, earlier on this page,
+this one exercises the automatic-renewal decline path:
+
+===========================  =========================================
+Number                       What happens
+===========================  =========================================
+``4242 4242 4242 4242``      Succeeds immediately; use it for the
+                             renewal charge that should succeed.
+``4000 0025 0000 3155``      Requires 3-D Secure; only relevant while a
+                             member is present, so never for a renewal
+                             charge, which is off-session.
+``4000 0000 0000 0002``      Declined outright, at checkout or at setup.
+``4000 0000 0000 0341``      Attaches successfully — the setup and the
+                             first checkout both succeed — but every
+                             off-session charge against it is declined.
+                             Save this one for the automatic renewal to
+                             prove the retry ladder and the pause without
+                             touching a card that works.
+===========================  =========================================
+
+The mock provider's own stand-in for the last card is a mandate whose
+``method_last4`` is ``0002``, covered in :doc:`renewals`; either is enough to
+drive the decline path, and ``4000 0000 0000 0341`` is the one to reach for
+when the drill is meant to look like a real card failing in production.
+
+PayPal: Vault, and a refund from the dashboard
+-------------------------------------------------
+
+Automatic renewal over PayPal needs the sandbox REST app to be able to vault
+a payment method, which is a setting **Apps & Credentials → your app →
+Features**: turn on **Vault**, next to the **Advanced Credit and Debit Card
+Payments** toggle. It takes effect immediately, with no separate approval.
+``payments_sandbox_check`` cannot see whether it is on — there is no read
+endpoint for a REST app's own feature flags — so check it in the dashboard
+before relying on it.
+
+To refund from the dashboard rather than the portal: **Activity** in the
+sandbox business account, find the captured payment, and **Issue a refund**.
+That posts ``PAYMENT.CAPTURE.REFUNDED`` to the webhook once it is configured,
+under **PayPal → Webhooks** earlier on this page, which is what the next
+section watches for.
+
+The full drill
+---------------
+
+With ``stripe listen`` running and both providers configured, this walks
+every path :doc:`renewals`, :doc:`api-refunds` and :doc:`api-finance`
+describe. It reads best as a member's Stripe checkout with automatic renewal,
+but every step names the PayPal or mock equivalent where it differs.
+
+#. **Join or renew with automatic renewal on.** From the portal's checkout,
+   tick **Renew automatically each year** and pay with ``4242 4242 4242
+   4242``. This is ``POST /payments/checkout`` with ``auto_renew: true``
+   (:doc:`api-payments`); on success it creates an ``active``
+   ``RenewalMandate`` from the card the checkout just used, and
+   ``renewal_enabled`` arrives in Mailpit (http://localhost:8025) naming the
+   plan, the amount and the next charge date.
+
+#. **Advance to the notice date and watch it fire.** The charge falls
+   ``CHARGE_LEAD_DAYS`` (one day) before the term's ``ends_on``, and the
+   notice goes out ``NOTICE_DAYS`` (fourteen days) before that
+   (:ref:`renewals-schedule`). Run the scan as of that date:
+
+   .. code-block:: console
+
+      $ uv run backend/manage.py run_auto_renewals --today 2026-12-28
+
+   ``renewal_notice`` arrives in Mailpit naming the amount, the date and the
+   card. Running the same command again for the same day sends nothing a
+   second time — the attempt's ``noticed_at`` is what makes it idempotent.
+
+#. **Advance to the charge date.** Run the scan again as of the day before
+   ``ends_on``:
+
+   .. code-block:: console
+
+      $ uv run backend/manage.py run_auto_renewals --today 2026-12-31
+
+   Stripe charges the saved card off-session; ``renewal_charged`` arrives in
+   Mailpit with the new expiry date and CalDART's own receipt PDF attached —
+   the only email a renewal charge earns, in place of the plain receipt a
+   person's own checkout gets. ``stripe listen``'s terminal shows the
+   ``payment_intent.succeeded`` delivery for the charge, which changes
+   nothing further: the scan already activated the term before the webhook
+   arrived.
+
+#. **Watch the decline path.** Repeat the first three steps with ``4000 0000
+   0000 0341`` (or the mock provider's ``0002`` mandate) instead. The charge
+   date's scan declines, ``renewal_failed`` names the reason and the next try
+   in ``RETRY_OFFSETS`` (one day, three days, a week); run the scan again as
+   of each retry date in turn. After the third decline the mandate is
+   ``paused``, the member is told automatic renewal is off, and a
+   ``send_renewal_reminders --today`` run for a date after that shows the
+   ordinary reminder resuming for that membership (:doc:`reminders`).
+
+#. **Refund from the portal.** Open the charged payment from **Payments →
+   Payments** as the treasurer, choose **Refund**, and give back the
+   contribution while leaving the dues. This is ``POST
+   /admin/payments/{id}/refunds`` (:doc:`api-refunds`); the payment's status
+   moves to **Partially refunded**, and ``refund`` arrives in Mailpit naming
+   the amount and what it covered.
+
+#. **Refund the same way from the provider, and watch the webhook file it.**
+   Issue a second, small refund on a different payment directly from the
+   Stripe or PayPal dashboard rather than the portal. ``stripe listen``'s
+   terminal shows ``charge.refunded`` (or the PayPal webhook logs
+   ``PAYMENT.CAPTURE.REFUNDED``) arriving a moment later, and the payment's
+   detail screen shows a refund with the note *Issued in the provider's
+   dashboard* and no treasurer named against it — CalDART heard about it
+   without anyone touching the portal.
+
+#. **Record a check.** **Record a payment** for the same or another member,
+   with method ``check`` and a made-up check number. This is ``POST
+   /admin/payments/record`` (:doc:`api-finance`); it activates the term
+   immediately, with a zero fee, and the member's ordinary receipt email
+   follows.
+
+#. **Reconcile and export.** Open the recorded check from the payment list
+   and set **Reconciled** to today — ``PATCH /admin/payments/{id}`` — then
+   open **Reconciliation** and confirm the month's ``reconciled_count`` rose
+   by one. **Export CSV** and **Export PDF** from the payment list each carry
+   today's date in the filename and the column chooser's current columns.
+
+A run of the whole drill exercises every email in :doc:`renewals` and
+:doc:`api-refunds` but the plain ``receipt`` and cancellation emails, which
+the mock provider's checkout already covers without any of this setup.
+
+
 Origins the browser is allowed to reach
 =======================================
 
