@@ -1,8 +1,8 @@
 """The account administrator's DART screen: list, create, edit, retire, delete.
 
 Covers the role matrix on every endpoint, the counts the list carries, the
-airport-identifier rule the profile form shares, and the guard that refuses to
-delete a DART somebody is still on.
+fields a row does and does not carry, the airport-identifier rule the profile
+form shares, and the guard that refuses to delete a DART somebody is still on.
 """
 
 from __future__ import annotations
@@ -96,6 +96,28 @@ def test_a_dart_nobody_is_on_counts_zero(account_admin_client: APIClient) -> Non
     assert account_admin_client.get(LIST_URL).json()[0]["member_count"] == 0
 
 
+def test_a_dart_row_names_its_airports_and_no_town(account_admin_client: APIClient) -> None:
+    """A DART is its name, its airports, its website and whether it is active.
+
+    A team is identified by the fields it flies from, so the row carries no
+    town of its own.
+    """
+    DartFactory(name="Angwin", airport_identifiers="2O3")
+    row = account_admin_client.get(LIST_URL).json()[0]
+
+    assert row["airport_identifiers"] == "2O3"
+    assert "city" not in row
+
+
+def test_the_public_catalog_carries_no_town(api_client: APIClient, db: None) -> None:
+    """``GET /darts`` answers the same fields the administrator's screen edits."""
+    DartFactory(name="Angwin", airport_identifiers="2O3")
+    row = api_client.get("/api/v1/darts").json()[0]
+
+    assert row["airport_identifiers"] == "2O3"
+    assert "city" not in row
+
+
 # --------------------------------------------------------------------------
 # Writing
 # --------------------------------------------------------------------------
@@ -103,7 +125,7 @@ def test_creating_a_dart_returns_it_with_its_counts(account_admin_client: APICli
     """A create answers 201 with the stored row, counts included."""
     response = account_admin_client.post(
         LIST_URL,
-        {"name": "Santa Ynez", "airport_identifiers": "iza", "city": "Santa Ynez"},
+        {"name": "Santa Ynez", "airport_identifiers": "iza"},
         format="json",
     )
     assert response.status_code == 201, response.json()
@@ -224,10 +246,12 @@ def test_an_airport_list_has_a_limit(account_admin_client: APIClient) -> None:
 
 def test_editing_a_dart_saves_the_fields_it_carried(account_admin_client: APIClient) -> None:
     """A PATCH edits only what it names and answers with the whole row."""
-    dart = DartFactory(name="Napa", city="Napa")
-    response = account_admin_client.patch(detail_url(dart), {"city": "Angwin"}, format="json")
+    dart = DartFactory(name="Napa", website_url="https://napa.example.org/")
+    response = account_admin_client.patch(
+        detail_url(dart), {"website_url": "https://napadart.example.org/"}, format="json"
+    )
     assert response.status_code == 200, response.json()
-    assert response.json()["city"] == "Angwin"
+    assert response.json()["website_url"] == "https://napadart.example.org/"
     assert response.json()["name"] == "Napa"
 
 
@@ -409,7 +433,7 @@ def test_an_edit_that_leaves_the_contacts_out_keeps_them(
     dart = DartFactory(name="Napa")
     DartContact.objects.create(dart=dart, name="Helen", title="DART leader")
 
-    response = account_admin_client.patch(detail_url(dart), {"city": "Angwin"}, format="json")
+    response = account_admin_client.patch(detail_url(dart), {"name": "Angwin"}, format="json")
 
     assert [contact["name"] for contact in response.json()["contacts"]] == ["Helen"]
 

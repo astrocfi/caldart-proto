@@ -26,25 +26,25 @@ from apps.members.models import (
 )
 
 #: The DARTs to seed.
-#: Every DART, with the airports it flies from and the town it is named for.
+#: Every DART, with the airports it flies from.
 #: A team may cover several fields: Contra Costa has two, and San Diego nine.
-DARTS: tuple[tuple[str, str, str], ...] = (
-    ("Angwin", "2O3", "Angwin"),
-    ("Central Coast", "SBP", "San Luis Obispo"),
-    ("Contra Costa", "CCR, C83", "Concord"),
-    ("Half Moon Bay", "HAF", "Half Moon Bay"),
-    ("Hayward", "HWD", "Hayward"),
-    ("Livermore", "LVK", "Livermore"),
-    ("Monterey", "MRY", "Monterey"),
-    ("Napa", "APC", "Napa"),
-    ("Palo Alto", "PAO", "Palo Alto"),
-    ("Reid-Hillview", "RHV", "San Jose"),
-    ("San Carlos", "SQL", "San Carlos"),
-    ("San Diego", "KCRQ, KMYF, KOKB, KRNM, KSEE, KSDM, F70, L08, L18", "San Diego"),
-    ("San Martin (South County)", "E16", "San Martin"),
-    ("Santa Monica", "SMO", "Santa Monica"),
-    ("Santa Rosa", "STS", "Santa Rosa"),
-    ("Watsonville", "WVI", "Watsonville"),
+DARTS: tuple[tuple[str, str], ...] = (
+    ("Angwin", "2O3"),
+    ("Central Coast", "SBP"),
+    ("Contra Costa", "CCR, C83"),
+    ("Half Moon Bay", "HAF"),
+    ("Hayward", "HWD"),
+    ("Livermore", "LVK"),
+    ("Monterey", "MRY"),
+    ("Napa", "APC"),
+    ("Palo Alto", "PAO"),
+    ("Reid-Hillview", "RHV"),
+    ("San Carlos", "SQL"),
+    ("San Diego", "KCRQ, KMYF, KOKB, KRNM, KSEE, KSDM, F70, L08, L18"),
+    ("San Martin (South County)", "E16"),
+    ("Santa Monica", "SMO"),
+    ("Santa Rosa", "STS"),
+    ("Watsonville", "WVI"),
 )
 
 
@@ -139,7 +139,7 @@ def seed_darts(seed: int = DART_SEED) -> list[Dart]:
     """Create or update every DART in :data:`DARTS`, and return them in that order.
 
     Each is keyed on its name, so running the seed twice leaves one row per
-    DART with the airports, city and website the table gives it, and with the
+    DART with the airports and website the table gives it, and with the
     same handful of example contacts on it.  ``seed`` fixes the
     generated contact names, so two runs produce the same people.
     """
@@ -148,13 +148,12 @@ def seed_darts(seed: int = DART_SEED) -> list[Dart]:
     rng = random.Random(seed)  # noqa: S311 - demo data, not security-sensitive
 
     darts = []
-    for name, identifiers, city in DARTS:
+    for name, identifiers in DARTS:
         slug = slugify(name)
         dart, _ = Dart.objects.update_or_create(
             name=name,
             defaults={
                 "airport_identifiers": identifiers,
-                "city": city,
                 "website_url": f"https://{slug}.{DART_CONTACT_DOMAIN}/",
                 "is_active": True,
             },
@@ -221,7 +220,7 @@ def _profile_defaults(
     number, ratings, hours, and a flight review, and roughly a quarter of pilots
     are given a medical that expired before ``today`` so the leader checks have
     something to fail on.  The DART is drawn from ``darts`` and supplies the
-    member's city and home airport.  ``certificate`` forces the pilot
+    member's home airport.  ``certificate`` forces the pilot
     certificate, which the caller uses to make sure every kind appears at least
     once however the draw falls.
     """
@@ -268,14 +267,14 @@ def _profile_defaults(
         "phone_alt": faker.numerify("###-###-####") if rng.random() < 0.3 else "",
         "address_line1": faker.street_address(),
         "address_line2": "",
-        "city": dart.city or faker.city(),
+        "city": faker.city(),
         "state": "CA",
         "postal_code": faker.numerify("9####"),
         "county": rng.choice(CA_COUNTIES),
         "emergency_contact_name": faker.name(),
         "emergency_contact_phone": faker.numerify("###-###-####"),
         "home_airport_identifier": dart.home_airport or rng.choice(["SQL", "PAO", "LVK"]),
-        "home_airport_city": dart.city or faker.city(),
+        "home_airport_city": faker.city(),
         "dart": dart,
         "air_care_alliance_number": (faker.numerify("ACA-#####") if rng.random() < 0.35 else ""),
         "pilot_certificate_type": certificate,

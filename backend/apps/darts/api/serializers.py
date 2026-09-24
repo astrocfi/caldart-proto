@@ -55,7 +55,7 @@ class DartSerializer(serializers.ModelSerializer[Dart]):
 
     class Meta:
         model = Dart
-        fields = ["id", "name", "airport_identifiers", "city", "website_url", "contacts"]
+        fields = ["id", "name", "airport_identifiers", "website_url", "contacts"]
         read_only_fields = fields
 
 
@@ -108,7 +108,6 @@ class DartAdminSerializer(serializers.ModelSerializer[Dart]):
             "id",
             "name",
             "airport_identifiers",
-            "city",
             "website_url",
             "is_active",
             "contacts",

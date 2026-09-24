@@ -91,7 +91,6 @@ class Dart(TimestampedModel):  # type: ignore[django-manager-missing]
         max_length=120,
         help_text="FAA or ICAO identifiers, separated by commas, e.g. CCR, C83",
     )
-    city = models.CharField(max_length=120, blank=True)
     #: Many teams run a site of their own; it is where a visitor finds meeting
     #: times and local contacts that do not belong in this database.
     website_url = models.URLField(

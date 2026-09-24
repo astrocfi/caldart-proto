@@ -435,7 +435,6 @@
   "Dart": {
     "properties": {
       "airport_identifiers": "string",
-      "city": "string",
       "contacts": "array<ref:DartContact>",
       "id": "integer",
       "name": "string",
@@ -443,7 +442,6 @@
     },
     "required": [
       "airport_identifiers",
-      "city",
       "contacts",
       "id",
       "name",
@@ -453,7 +451,6 @@
   "DartAdmin": {
     "properties": {
       "airport_identifiers": "string",
-      "city": "string",
       "contacts": "array<ref:DartContact>",
       "id": "integer",
       "is_active": "boolean",
@@ -473,7 +470,6 @@
   "DartAdminRequest": {
     "properties": {
       "airport_identifiers": "string",
-      "city": "string",
       "contacts": "array<ref:DartContactRequest>",
       "is_active": "boolean",
       "name": "string",
@@ -1330,7 +1326,6 @@
   "PatchedDartAdminRequest": {
     "properties": {
       "airport_identifiers": "string",
-      "city": "string",
       "contacts": "array<ref:DartContactRequest>",
       "is_active": "boolean",
       "name": "string",

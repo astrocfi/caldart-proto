@@ -134,7 +134,6 @@ export interface Dart {
   name: string;
   /** Every field the team flies from, as `"CCR, C83"`. */
   airport_identifiers: string;
-  city: string;
   /** The team's own site, or `''` when it has none. */
   website_url: string;
   contacts: DartContact[];

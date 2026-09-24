@@ -359,14 +359,13 @@ def test_dart_index_renders_a_table_of_teams(
 def test_dart_page_renders_its_facts(
     client: Client, site_settings: SiteSettings, dart: Dart
 ) -> None:
-    """A DART page exposes the team's airport identifier, city and leader mail link."""
+    """A DART page exposes the team's airport identifiers and the leader mail link."""
     home = site_settings.site.root_page.specific
     about = make_standard_page(home, "about", "About Us")
     index = make_dart_index(about)
     page = make_dart_page(index, dart, body=[("paragraph", "<p>We meet monthly.</p>")])
 
     assert page.airport_identifiers == "PAO"
-    assert page.city == "Palo Alto"
     assert page.leader_href == "mailto:helen@example.org"
 
     body = client.get(page.url).content.decode()

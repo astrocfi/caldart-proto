@@ -85,7 +85,7 @@ def reportable(
 ) -> dict[str, User]:
     """Three members whose report rows exercise every kind of cell."""
     day = timedelta(days=1)
-    napa = DartFactory(name="Napa", airport_identifiers="APC", city="Napa")
+    napa = DartFactory(name="Napa", airport_identifiers="APC")
 
     pilot = UserFactory(email="pilot@example.test", first_name="Ada", last_name="Marsh")
     MemberProfileFactory(

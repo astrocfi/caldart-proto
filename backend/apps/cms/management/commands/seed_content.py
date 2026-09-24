@@ -216,13 +216,13 @@ def seed_history(about: StandardPage) -> StandardPage:
 def dart_page_body(dart: Dart) -> list[StreamItem]:
     """The body of one DART's page: its own summary, then the shared blocks.
 
-    The summary names the town and every airport the team flies from, so a page
-    for a two-field team reads as one.
+    The summary names every airport the team flies from, so a page for a
+    two-field team reads as one.
     """
     summary = content.DART_SUMMARY.format(
         name=dart.name,
-        where=f"{dart.city} ({dart.airport_identifiers})",
-        county=dart.city or "their",
+        where=dart.airport_identifiers,
+        county="their",
     )
     return [*stream([content.rich(summary)]), *stream(content.DART_PAGE_BODY)]
 
