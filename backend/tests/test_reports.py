@@ -7,7 +7,15 @@ from collections.abc import Iterator
 import pytest
 from django.http import StreamingHttpResponse
 
-from caldart.reports import csv_response, csv_rows, filter_summary, pdf_table_response
+from caldart.reports import (
+    ReportColumn,
+    csv_response,
+    csv_rows,
+    dollars,
+    filter_summary,
+    pdf_table_response,
+    select_columns,
+)
 from tests.conftest import PdfText, pdf_page_count, read_csv
 
 HEADER: list[str] = ["name", "email", "n_number", "expires_on"]
@@ -156,3 +164,92 @@ def test_filter_summary_joins_the_active_filters_and_skips_the_empty_ones() -> N
 def test_filter_summary_says_so_when_no_filter_is_active() -> None:
     """An empty filter mapping summarizes as "No filters applied"."""
     assert filter_summary({}) == "No filters applied"
+
+
+#: A three-column registry over a ``(name, email, note)`` row, two columns on by default.
+COLUMNS: tuple[ReportColumn[tuple[str, str, str]], ...] = (
+    ReportColumn("name", "Name", True, lambda row: row[0]),
+    ReportColumn("email", "Email", True, lambda row: row[1]),
+    ReportColumn("note", "Note", False, lambda row: row[2]),
+)
+
+
+def test_select_columns_answers_the_defaults_when_nothing_is_requested() -> None:
+    """No requested list means the columns whose ``default`` is true, in registry order."""
+    assert [column.key for column in select_columns(COLUMNS, None)] == ["name", "email"]
+
+
+def test_select_columns_answers_the_defaults_for_an_empty_request() -> None:
+    """An empty requested list is read as "no choice made", not as "no columns"."""
+    assert [column.key for column in select_columns(COLUMNS, [])] == ["name", "email"]
+
+
+def test_select_columns_follows_the_requested_order() -> None:
+    """The chosen columns come back in the order asked for, defaults ignored."""
+    chosen = select_columns(COLUMNS, ["note", "name"])
+    assert [column.key for column in chosen] == ["note", "name"]
+
+
+def test_select_columns_rejects_the_first_unknown_key() -> None:
+    """An unrecognized key raises ``ValueError`` naming that key and nothing else."""
+    with pytest.raises(ValueError, match="Unknown column: shoe_size"):
+        select_columns(COLUMNS, ["name", "shoe_size", "hat_size"])
+
+
+def test_report_column_reads_a_row_through_its_value_function() -> None:
+    """A column's ``value`` turns one row into the cell the exports write."""
+    column = select_columns(COLUMNS, ["email"])[0]
+    assert column.label == "Email"
+    assert column.value(("Marta Reyes", "marta@example.org", "check 1180")) == "marta@example.org"
+
+
+@pytest.mark.parametrize(
+    ("cents", "expected"),
+    [(0, "$0.00"), (5, "$0.05"), (12345, "$123.45"), (100000000, "$1,000,000.00")],
+    ids=["zero", "cents-only", "dollars-and-cents", "millions"],
+)
+def test_dollars_formats_integer_cents_for_a_reader(cents: int, expected: str) -> None:
+    """Integer cents read as dollars with a thousands separator and two decimals."""
+    assert dollars(cents) == expected
+
+
+@pytest.mark.parametrize(
+    ("landscape", "expected_box"),
+    [(True, b"/MediaBox [ 0 0 792 612 ]"), (False, b"/MediaBox [ 0 0 612 792 ]")],
+    ids=["landscape", "portrait"],
+)
+def test_pdf_page_size_follows_the_landscape_flag(landscape: bool, expected_box: bytes) -> None:
+    """``landscape`` chooses between US letter on its side and US letter upright."""
+    response = pdf_table_response(
+        "members.pdf", title="Report", header=HEADER, rows=ROWS, landscape=landscape
+    )
+    assert expected_box in response.content
+
+
+def test_pdf_relative_widths_decide_how_much_room_each_column_gets(pdf_text: PdfText) -> None:
+    """A column given the larger share of the width fits text that otherwise wraps."""
+    sentence = "Palo Alto Airport disaster airlift standby"
+    wide_first = pdf_table_response(
+        "x.pdf",
+        title="Report",
+        header=["note", "code"],
+        rows=[[sentence, "A"]],
+        widths=[9, 1],
+    )
+    narrow_first = pdf_table_response(
+        "x.pdf",
+        title="Report",
+        header=["note", "code"],
+        rows=[[sentence, "A"]],
+        widths=[1, 9],
+    )
+    assert sentence in pdf_text(wide_first.content)[0]
+    assert sentence not in pdf_text(narrow_first.content)[0]
+
+
+def test_pdf_rejects_widths_that_do_not_match_the_header() -> None:
+    """One relative width per column, or ``ValueError`` before anything is drawn."""
+    with pytest.raises(ValueError, match="4 columns but 2 widths"):
+        pdf_table_response(
+            "x.pdf", title="Report", header=HEADER, rows=ROWS, widths=[1, 1]
+        )
