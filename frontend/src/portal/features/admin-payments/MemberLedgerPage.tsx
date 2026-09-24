@@ -63,13 +63,13 @@ const LEDGER_COLUMNS: Column<PaymentDetail>[] = [
 export function MandateCard({ mandate }: { mandate: RenewalMandate | null }): JSX.Element {
   if (mandate === null) {
     return (
-      <Card title="Automatic renewal" eyebrow="Standing authority">
+      <Card title="Automatic renewal" eyebrow="Renewal">
         <p className="muted">This member renews by hand.</p>
       </Card>
     );
   }
   return (
-    <Card title="Automatic renewal" eyebrow="Standing authority">
+    <Card title="Automatic renewal" eyebrow="Renewal">
       <dl className="payment-facts">
         <div>
           <dt>State</dt>

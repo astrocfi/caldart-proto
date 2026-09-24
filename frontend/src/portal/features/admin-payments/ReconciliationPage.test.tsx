@@ -34,7 +34,7 @@ function reconciliationHandler(rows: ReconciliationRow[], seen: URLSearchParams[
 
 describe('reconciliationPeriodLabel', () => {
   it('spells a month out', () => {
-    expect(reconciliationPeriodLabel('2026-01', 'month')).toBe('January 2026');
+    expect(reconciliationPeriodLabel('2026-01', 'month')).toBe('Jan 2026');
   });
 
   it('leaves a year as it is', () => {
@@ -72,7 +72,7 @@ describe('ReconciliationPage', () => {
     server.use(reconciliationHandler([JANUARY], []));
     renderWithProviders(<ReconciliationPage />);
 
-    const row = within(await screen.findByRole('row', { name: /January 2026/ }));
+    const row = within(await screen.findByRole('row', { name: /Jan 2026/ }));
     expect(row.getByText('$1,480.00')).toBeInTheDocument();
     expect(row.getByText('$46.20')).toBeInTheDocument();
     expect(row.getByText('$1,408.80')).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe('ReconciliationPage', () => {
     const seen: URLSearchParams[] = [];
     server.use(reconciliationHandler([JANUARY], seen));
     renderWithProviders(<ReconciliationPage />);
-    await screen.findByRole('row', { name: /January 2026/ });
+    await screen.findByRole('row', { name: /Jan 2026/ });
 
     await userEvent.type(screen.getByLabelText('From'), '2026-01-01');
 

@@ -20,6 +20,7 @@ from io import BytesIO
 
 from django.conf import settings
 from django.utils import timezone
+from django.utils.text import slugify
 
 from apps.accounts.models import User
 from apps.members.models import Membership
@@ -274,6 +275,13 @@ def render_statement_pdf(user: User, year: int) -> bytes:
     return buffer.getvalue()
 
 
-def statement_filename(year: int) -> str:
-    """The name a statement downloads under: ``caldart-contributions-2026.pdf``."""
-    return f"caldart-contributions-{year}.pdf"
+def statement_filename(member: User, year: int) -> str:
+    """The statement's download name, e.g. ``caldart-contributions-2026-marta-reyes.pdf``.
+
+    The member's display name is slugified, so a treasurer who downloads a dozen
+    statements for one year can tell them apart in a folder.  A name that slugifies
+    to nothing (an email address made only of symbols, say) falls back to the
+    account id.
+    """
+    who = slugify(member.display_name) or str(member.pk)
+    return f"caldart-contributions-{year}-{who}.pdf"

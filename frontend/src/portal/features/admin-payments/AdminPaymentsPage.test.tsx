@@ -64,7 +64,7 @@ describe('AdminPaymentsPage', () => {
 
     const table = await screen.findByRole('table', { name: /by month/ });
     const first = within(table).getAllByRole('row')[1];
-    expect(within(first!).getByRole('rowheader')).toHaveTextContent('January 2026');
+    expect(within(first!).getByRole('rowheader')).toHaveTextContent('Jan 2026');
   });
 
   it('reports what went back out of a period', async () => {

@@ -197,11 +197,12 @@ export function FilterBar({ value, onChange, compact = false }: FilterBarProps):
               </select>
             )}
           </Field>
-          <Field label="At least" hint="Dollars">
+          <Field label="At least">
             {(props) => (
               <input
                 {...props}
                 type="number"
+                placeholder="Dollars"
                 min="0"
                 step="0.01"
                 value={dollarsFromCents(value.min_cents)}
@@ -209,11 +210,12 @@ export function FilterBar({ value, onChange, compact = false }: FilterBarProps):
               />
             )}
           </Field>
-          <Field label="At most" hint="Dollars">
+          <Field label="At most">
             {(props) => (
               <input
                 {...props}
                 type="number"
+                placeholder="Dollars"
                 min="0"
                 step="0.01"
                 value={dollarsFromCents(value.max_cents)}
@@ -223,11 +225,12 @@ export function FilterBar({ value, onChange, compact = false }: FilterBarProps):
           </Field>
         </>
       )}
-      <Field label="Search" hint="Name, email, reference, or note">
+      <Field label="Search">
         {(props) => (
           <input
             {...props}
             type="search"
+            placeholder="Name, email, reference, or note"
             value={value.search}
             onChange={(event) => set('search', event.target.value)}
           />

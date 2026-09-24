@@ -153,7 +153,7 @@ describe('RenewalsPage', () => {
     renderWithProviders(<RenewalsPage />);
     await screen.findByRole('row', { name: /Maria Alvarez/ });
 
-    await userEvent.selectOptions(screen.getByLabelText('Renewal status'), 'paused');
+    await userEvent.selectOptions(screen.getByLabelText('Auto-renewal status'), 'paused');
 
     await expect.poll(() => seen.mandateQueries.at(-1)?.get('status')).toBe('paused');
   });

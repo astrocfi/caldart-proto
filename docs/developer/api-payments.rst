@@ -321,7 +321,9 @@ contribution that settled in ``year``, each netted against whatever of it came
 back, the year's total, and the 501(c)(3) wording.  A refund is applied to the
 contribution before the dues, because a member asking for part of a payment
 back is asking for the gift back.  Attached as
-``caldart-contributions-2026.pdf``.
+``caldart-contributions-<year>-<member-name>.pdf`` -- for example
+``caldart-contributions-2026-marta-reyes.pdf`` -- so a folder of statements
+sorts by year and reads by name.
 
 Statuses: **200**; **401** when anonymous; **404** for a year the member
 contributed nothing in.
