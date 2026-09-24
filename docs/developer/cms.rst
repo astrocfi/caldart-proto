@@ -81,7 +81,7 @@ Model                Notes
                      as a table.
 ``DartPage``         ``dart`` (nullable ``SET_NULL`` FK to ``darts.Dart``),
                      ``leader_name``, ``leader_contact``, ``body``.
-                     ``airport_identifiers`` and ``city`` are read through the
+                     ``airport_identifiers`` is read through the
                      FK, so the page never duplicates the membership database.
                      Deleting the DART leaves the page with no DART attached.
 ``ContactPage``      ``intro`` + ``body``; the address block comes from

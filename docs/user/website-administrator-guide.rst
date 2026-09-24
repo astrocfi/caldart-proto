@@ -78,7 +78,7 @@ a page:
     itself.
 
 ``DART index`` / ``DART page``
-    The index renders the teams as a table — name, airport, city, leader.  A
+    The index renders the teams as a table — name, airport, leader.  A
     DART page links to the DART record members can join, so the airport
     identifier and city come from the membership database rather than being
     retyped.
@@ -463,8 +463,8 @@ When something goes wrong
    Only while you are signed out of the *portal*.  Signed in, any role beyond
    plain ``member`` gets through whatever your own membership is doing.
 
-**A DART page shows the wrong airport or city.**
-   Those are read from the membership database, not typed on the page.  An
+**A DART page shows the wrong airport.**
+   It is read from the membership database, not typed on the page.  An
    account administrator corrects the DART record and every page follows.
 
 **Your Site settings edits disappeared after a re-seed.**

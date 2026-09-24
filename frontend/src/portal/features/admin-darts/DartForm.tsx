@@ -1,16 +1,17 @@
 /**
  * The DART form, used to add one and to edit one.
  *
- * It asks for the four things a DART is — its name, its airport, its town and
- * whether it is taking members — in that order, and nothing else: the ordering
- * number is here because the public list is in it, and it defaults to the end
- * of the list so nobody has to think about it.
+ * It asks for the three things a DART is — its name, its airports and its
+ * website — then the people who run it, then whether it is taking members.  On
+ * an existing DART it also carries the delete control, because deleting a team
+ * is a thing you do while looking at it rather than from a row in a list.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
 
 import type { AdminDart, AdminDartPatch, DartContact } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
+import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import {
@@ -24,7 +25,6 @@ import './darts.css';
 export interface DartFormValues {
   name: string;
   airport_identifiers: string;
-  city: string;
   website_url: string;
   is_active: boolean;
   contacts: DartContact[];
@@ -60,6 +60,12 @@ export interface DartFormProps {
   errors?: Record<string, string>;
   onSubmit: (payload: AdminDartPatch) => void;
   onCancel: () => void;
+  /** Delete this DART; absent on the add form, which has nothing to delete. */
+  onDelete?: () => void;
+  /** Why the DART cannot be deleted, shown as the control's tooltip. */
+  deleteBlockedBy?: string | null;
+  /** Whether the delete request is in flight. */
+  deletePending?: boolean;
 }
 
 /** One identifier as it is stored: three letters or digits. */
@@ -105,7 +111,6 @@ export function emptyDartValues(): DartFormValues {
   return {
     name: '',
     airport_identifiers: '',
-    city: '',
     website_url: '',
     is_active: true,
     contacts: [emptyContact()],
@@ -117,7 +122,6 @@ export function dartToValues(dart: AdminDart): DartFormValues {
   return {
     name: dart.name,
     airport_identifiers: dart.airport_identifiers,
-    city: dart.city,
     website_url: dart.website_url,
     is_active: dart.is_active,
     contacts: dart.contacts.length > 0 ? dart.contacts.map((one) => ({ ...one })) : [],
@@ -129,7 +133,6 @@ export function dartPayload(values: DartFormValues): AdminDartPatch {
   return {
     name: values.name.trim(),
     airport_identifiers: splitAirports(values.airport_identifiers).join(', '),
-    city: values.city.trim(),
     website_url: values.website_url.trim(),
     is_active: values.is_active,
     // A row nobody typed into is not a person: an empty form should not save
@@ -153,10 +156,14 @@ export function DartForm({
   errors = {},
   onSubmit,
   onCancel: handleCancel,
+  onDelete: handleDelete,
+  deleteBlockedBy = null,
+  deletePending = false,
 }: DartFormProps): JSX.Element {
   const [values, setValues] = useState<DartFormValues>(initial);
   const [nameError, setNameError] = useState<string | null>(null);
   const [airportError, setAirportError] = useState<string | null>(null);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   const set = <Key extends keyof DartFormValues>(key: Key, next: DartFormValues[Key]): void => {
     setValues((current) => ({ ...current, [key]: next }));
@@ -180,6 +187,20 @@ export function DartForm({
       ...current,
       contacts: current.contacts.filter((_, position) => position !== index),
     }));
+  };
+
+  /** Swap the person at `index` with the one at `index + step`. */
+  const moveContact = (index: number, step: -1 | 1): void => {
+    setValues((current) => {
+      const contacts = [...current.contacts];
+      const target = index + step;
+      const moved = contacts[index];
+      const displaced = contacts[target];
+      if (moved === undefined || displaced === undefined) return current;
+      contacts[index] = displaced;
+      contacts[target] = moved;
+      return { ...current, contacts };
+    });
   };
 
   const handleSubmit = (event: React.FormEvent): void => {
@@ -228,16 +249,6 @@ export function DartForm({
             />
           )}
         </Field>
-        <Field label="Town" error={errors.city}>
-          {(props) => (
-            <input
-              {...props}
-              name="city"
-              value={values.city}
-              onChange={(event) => set('city', event.target.value)}
-            />
-          )}
-        </Field>
         <Field
           label="Website"
           error={errors.website_url}
@@ -257,10 +268,10 @@ export function DartForm({
       </div>
 
       <fieldset className="dart-contacts">
-        <legend>Who to ask</legend>
+        <legend>DART management</legend>
         <p className="muted small">
-          Up to {MAX_CONTACTS} people, shown on the team&rsquo;s page. A phone number and an email
-          address are both optional, but give at least one of them.
+          Up to {MAX_CONTACTS} people, shown on the team&rsquo;s page in the order you put them in.
+          A phone number and an email address are both optional, but give at least one of them.
         </p>
         {values.contacts.map((contact, index) => (
           <div className="dart-contacts__row" key={index}>
@@ -308,14 +319,30 @@ export function DartForm({
                 />
               )}
             </Field>
-            <Button
-              variant="quiet"
-              small
-              aria-label={`Remove person ${index + 1}`}
-              onClick={() => handleRemoveContact(index)}
-            >
-              Remove
-            </Button>
+            <span className="cluster dart-contacts__controls">
+              <Button
+                variant="quiet"
+                small
+                aria-label={`Move person ${index + 1} up`}
+                disabled={index === 0}
+                onClick={() => moveContact(index, -1)}
+              >
+                Move up
+              </Button>
+              <Button
+                variant="quiet"
+                small
+                aria-label={`Move person ${index + 1} down`}
+                disabled={index === values.contacts.length - 1}
+                onClick={() => moveContact(index, 1)}
+              >
+                Move down
+              </Button>
+              <DeleteButton
+                label={`Remove person ${index + 1}`}
+                onClick={() => handleRemoveContact(index)}
+              />
+            </span>
           </div>
         ))}
         {values.contacts.length < MAX_CONTACTS ? (
@@ -348,6 +375,31 @@ export function DartForm({
         <Button variant="quiet" onClick={handleCancel}>
           Cancel
         </Button>
+        {handleDelete ? (
+          <span className="cluster dart-form__danger">
+            {isConfirmingDelete ? (
+              <>
+                <Button variant="danger" disabled={deletePending} onClick={handleDelete}>
+                  Delete for good
+                </Button>
+                <Button variant="quiet" onClick={() => setIsConfirmingDelete(false)}>
+                  Keep
+                </Button>
+              </>
+            ) : (
+              <DeleteButton
+                label="Delete this DART"
+                variant="danger"
+                small={false}
+                disabled={deleteBlockedBy !== null}
+                title={deleteBlockedBy ?? undefined}
+                onClick={() => setIsConfirmingDelete(true)}
+              >
+                Delete this DART
+              </DeleteButton>
+            )}
+          </span>
+        ) : null}
       </div>
     </form>
   );
