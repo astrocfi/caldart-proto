@@ -573,6 +573,41 @@ def activate_term(
     return term
 
 
+#: The longest note a term can carry, which is the model field's own width.
+MAX_TERM_NOTE = 255
+
+
+@transaction.atomic
+def cancel_term(term: Membership, *, actor: User | None = None, note: str = "") -> Membership:
+    """Cancel ``term`` so it stops covering the member, and return the row as saved.
+
+    A canceled term counts for nothing: ``membership_status`` skips it, so a
+    member with no other active term reads as expired, or as never covered.
+
+    ``note`` is why it was canceled -- a refund, an administrator's correction.
+    It is appended to whatever the term already said, separated by a period and
+    a space, so the original reason is never lost, and the whole is cut to
+    ``MAX_TERM_NOTE`` characters.  ``actor`` is the administrator behind the
+    cancellation, and is recorded in the audit log; a cancellation nobody
+    initiated, such as one a provider's webhook caused, is recorded under
+    ``command``.
+
+    Cancelling a term that is already canceled changes nothing but the note.
+    """
+    term.status = MembershipStatusChoices.CANCELED
+    if note:
+        joined = f"{term.note}. {note}" if term.note else note
+        term.note = joined[:MAX_TERM_NOTE]
+    term.save(update_fields=["status", "note", "updated_at"])
+    audit.record(
+        audit.MEMBERSHIP_CORRECT,
+        actor=actor if actor is not None else audit.COMMAND_ACTOR,
+        target=term,
+        status=MembershipStatusChoices.CANCELED.value,
+    )
+    return term
+
+
 def stamp_member_since(user: User, joined_on: date) -> None:
     """Record ``joined_on`` as the day ``user`` joined, if nothing has yet.
 

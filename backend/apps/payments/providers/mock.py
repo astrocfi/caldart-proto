@@ -7,8 +7,8 @@ from typing import Any
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 
-from apps.payments.models import Payment, PaymentWallet
-from apps.payments.providers.base import Provider, ProviderFees, register
+from apps.payments.models import Payment, PaymentWallet, Refund
+from apps.payments.providers.base import Provider, ProviderFees, ProviderRefund, register
 from apps.payments.services import mark_failed, mark_succeeded
 
 #: The mock provider charges a Stripe-shaped fee -- 2.9% of the amount plus 30
@@ -96,6 +96,23 @@ class MockProvider(Provider):
             return True
         mark_failed(payment, raw)
         return False
+
+    def refund(self, payment: Payment, refund: Refund) -> ProviderRefund:
+        """Give the money back instantly, under the reference ``mock_refund_<id>``.
+
+        Nothing moves, so nothing can fail: the answer records the amount and the
+        payment it came off.  Raises :class:`MockPaymentsDisabledError` when
+        ``PAYMENTS_MOCK_ENABLED`` is off.
+        """
+        self._check_enabled()
+        return ProviderRefund(
+            provider_ref=f"mock_refund_{refund.pk}",
+            raw={
+                "provider": "mock",
+                "amount_cents": refund.amount_cents,
+                "payment_ref": payment.provider_ref,
+            },
+        )
 
     def handle_webhook(self, request: HttpRequest) -> HttpResponse:
         """Accept and ignore: 204 for a ``POST``, 405 for any other method."""

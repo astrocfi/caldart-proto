@@ -18,6 +18,7 @@ from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
 from apps.members.services import cancel_term
 from apps.payments import refunds as refund_service
@@ -158,9 +159,7 @@ def test_a_succeeded_refund_is_stamped_with_the_time_it_was_taken(
     assert refund.refunded_at is not None
 
 
-def test_the_mock_provider_supplies_its_own_reference(
-    paid: Payment, account_admin: User
-) -> None:
+def test_the_mock_provider_supplies_its_own_reference(paid: Payment, account_admin: User) -> None:
     """A mock refund carries the reference the mock provider made for it."""
     refund = refund_service.issue_refund(
         paid, amount_cents=1_000, reason=RefundReason.OTHER, actor=account_admin
@@ -199,9 +198,7 @@ def test_a_refund_of_nothing_is_refused(paid: Payment, account_admin: User) -> N
     assert caught.value.field == "amount_cents"
 
 
-def test_a_refund_larger_than_what_is_left_is_refused(
-    paid: Payment, account_admin: User
-) -> None:
+def test_a_refund_larger_than_what_is_left_is_refused(paid: Payment, account_admin: User) -> None:
     """The message names what is actually left to give back."""
     RefundFactory(payment=paid, amount_cents=2_000)
     with pytest.raises(DomainValidationError, match=r"\$45\.00") as caught:
@@ -249,9 +246,7 @@ def test_a_fully_refunded_payment_cannot_be_refunded_again(
 def test_an_unknown_reason_is_refused(paid: Payment, account_admin: User) -> None:
     """The reason must be one of the choices, and the complaint says which field."""
     with pytest.raises(DomainValidationError, match="Unknown refund reason") as caught:
-        refund_service.issue_refund(
-            paid, amount_cents=100, reason="because", actor=account_admin
-        )
+        refund_service.issue_refund(paid, amount_cents=100, reason="because", actor=account_admin)
     assert caught.value.field == "reason"
 
 
@@ -433,7 +428,10 @@ def test_the_refund_email_is_silent_about_a_term_that_stands(
 
 
 def test_a_refused_email_does_not_undo_the_refund(
-    paid: Payment, account_admin: User, monkeypatch: pytest.MonkeyPatch, caplog: Any
+    paid: Payment,
+    account_admin: User,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """The money is back; a mail server that refuses the notice is logged, not raised."""
 
@@ -473,7 +471,7 @@ def test_a_failed_refund_emails_nobody(
 # The audit trail
 # --------------------------------------------------------------------------
 def test_a_refund_is_recorded_in_the_audit_log(
-    paid: Payment, account_admin: User, caplog: Any
+    paid: Payment, account_admin: User, caplog: pytest.LogCaptureFixture
 ) -> None:
     """One ``payment.refund`` line names the payment, the amount and the reason."""
     with caplog.at_level(logging.INFO, logger=audit.LOGGER_NAME):
@@ -544,9 +542,7 @@ def test_a_dashboard_refund_of_one_we_issued_records_nothing(
 
 def test_a_dashboard_refund_emails_the_member(paid: Payment) -> None:
     """The member hears about it whoever pressed the button."""
-    refund_service.record_dashboard_refund(
-        paid, amount_cents=2_000, provider_ref="re_mail", raw={}
-    )
+    refund_service.record_dashboard_refund(paid, amount_cents=2_000, provider_ref="re_mail", raw={})
 
     assert len(mail.outbox) == 1
 
@@ -556,44 +552,30 @@ def test_a_dashboard_refund_cancels_no_term(
 ) -> None:
     """The treasurer decides about the term; a webhook never does."""
     term = MembershipFactory(user=member, plan=annual_plan, payment=paid)
-    refund_service.record_dashboard_refund(
-        paid, amount_cents=6_500, provider_ref="re_term", raw={}
-    )
+    refund_service.record_dashboard_refund(paid, amount_cents=6_500, provider_ref="re_term", raw={})
 
     term.refresh_from_db()
     assert term.status == MembershipStatusChoices.ACTIVE
 
 
 # --------------------------------------------------------------------------
-# POST /admin/payments/{id}/refunds
+# Issuing a refund through the API
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize(("role", "allowed"), role_matrix("treasurer", "account_admin"))
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_only_the_finance_roles_may_issue_a_refund(
     api_client: APIClient,
     all_role_users: dict[str, User],
     paid: Payment,
-    role: str,
+    slug: str,
     allowed: bool,
 ) -> None:
-    """A treasurer and an account administrator refund; every other role is refused."""
-    api_client.force_login(all_role_users[role])
+    """The finance roles refund; every other role is refused."""
+    api_client.force_login(all_role_users[slug])
     response = api_client.post(
         refunds_url(paid), {"amount_cents": 1_000, "reason": RefundReason.OTHER}
     )
 
     assert (response.status_code == 201) is allowed
-
-
-def test_the_system_admin_may_issue_a_refund(
-    api_client: APIClient, system_admin: User, paid: Payment
-) -> None:
-    """A system administrator passes every permission in the project."""
-    api_client.force_login(system_admin)
-    response = api_client.post(
-        refunds_url(paid), {"amount_cents": 1_000, "reason": RefundReason.OTHER}
-    )
-
-    assert response.status_code == 201
 
 
 def test_an_anonymous_caller_is_refused(api_client: APIClient, paid: Payment) -> None:
@@ -604,9 +586,7 @@ def test_an_anonymous_caller_is_refused(api_client: APIClient, paid: Payment) ->
     assert response.status_code == 401
 
 
-def test_the_response_carries_the_refund(
-    treasurer_client: APIClient, paid: Payment
-) -> None:
+def test_the_response_carries_the_refund(treasurer_client: APIClient, paid: Payment) -> None:
     """The body's ``refund`` is the row just written."""
     response = treasurer_client.post(
         refunds_url(paid),
@@ -632,7 +612,9 @@ def test_the_response_carries_the_payment_as_it_now_stands(
     assert body["payment"]["refunded_cents"] == 2_000
 
 
-def test_the_endpoint_records_who_asked(treasurer_client: APIClient, treasurer: User, paid: Payment) -> None:
+def test_the_endpoint_records_who_asked(
+    treasurer_client: APIClient, treasurer: User, paid: Payment
+) -> None:
     """``requested_by`` is the administrator behind the request."""
     treasurer_client.post(refunds_url(paid), {"amount_cents": 1_000, "reason": RefundReason.OTHER})
 

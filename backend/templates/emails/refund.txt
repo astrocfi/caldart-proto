@@ -1,0 +1,21 @@
+{{ org_name }} — a refund of {{ amount }}
+
+Hello {{ first_name }},
+
+We have refunded {{ amount }} against your payment of {{ payment_amount }} for
+{{ description }} (receipt {{ receipt_number }}). The reason recorded is
+{{ reason|lower }}.
+
+The money goes back to the card or account you paid with. Your bank decides how
+quickly it appears, which is usually a few working days.
+{% if term_canceled %}
+Your membership term has been canceled with this refund, so you are
+no longer a member of {{ org_name }}. You are welcome to join again at any time.
+{% endif %}
+See your payments and download receipts here:
+{{ payments_url }}
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because a payment on your {{ org_name }} account was refunded.

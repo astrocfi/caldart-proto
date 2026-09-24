@@ -14,6 +14,8 @@ from apps.payments.models import (
     Payment,
     PaymentProvider,
     PaymentStatus,
+    Refund,
+    RefundReason,
 )
 from apps.payments.reports import DEFAULT_GROUP, GROUPS, PaymentFilters, PeriodSummary
 
@@ -337,3 +339,58 @@ class ReceiptSendSerializer(serializers.Serializer[dict[str, Any]]):
 
     sent = serializers.BooleanField()
     receipt_sent_at = serializers.DateTimeField(allow_null=True)
+
+
+class RefundSerializer(serializers.ModelSerializer[Refund]):
+    """One refund row against a payment."""
+
+    payment_id = serializers.IntegerField(read_only=True)
+    requested_by_id = serializers.IntegerField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = Refund
+        fields = [
+            "id",
+            "payment_id",
+            "amount_cents",
+            "reason",
+            "note",
+            "status",
+            "provider_ref",
+            "requested_by_id",
+            "refunded_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class RefundCreateSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /admin/payments/{id}/refunds``.
+
+    There is no payment field: the payment is the one in the path.  ``amount_cents``
+    is what to give back, at most what the payment has left unrefunded, and
+    ``cancel_term`` ends the membership term the payment bought.
+    """
+
+    amount_cents = serializers.IntegerField(min_value=1)
+    reason = serializers.ChoiceField(choices=RefundReason.choices)
+    note = serializers.CharField(required=False, allow_blank=True, max_length=255, default="")
+    cancel_term = serializers.BooleanField(required=False, default=False)
+
+
+class RefundedPaymentSerializer(serializers.ModelSerializer[Payment]):
+    """A payment as it stands after a refund: enough to redraw the row it came from."""
+
+    refunded_cents = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = ["id", "amount_cents", "refunded_cents", "status"]
+        read_only_fields = fields
+
+
+class RefundIssuedSerializer(serializers.Serializer[dict[str, Any]]):
+    """The 201 body of ``POST /admin/payments/{id}/refunds``."""
+
+    refund = RefundSerializer()
+    payment = RefundedPaymentSerializer()

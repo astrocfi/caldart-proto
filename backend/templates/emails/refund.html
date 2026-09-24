@@ -1,0 +1,92 @@
+{% comment %}
+The refund notice.
+
+Table layout and inline styles because email clients support little else.  The
+palette is the `duty` theme -- paper #EEF2F7, ink #1D2530, navy #1F4E79,
+rule #CCD6E1, muted #55606D -- with Georgia standing in for Fraunces and the
+system sans for IBM Plex Sans, since webfonts do not load in most mail clients.
+{% endcomment %}<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ org_name }} refund</title>
+  </head>
+  <body style="margin:0; padding:0; background:#EEF2F7; color:#1D2530; -webkit-font-smoothing:antialiased;">
+    <span style="display:none; font-size:1px; color:#EEF2F7; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">{{ amount }} has been refunded to the card or account you paid with.</span>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EEF2F7;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; background:#FFFFFF; border:1px solid #CCD6E1; border-radius:2px;">
+
+            <tr>
+              <td style="padding:28px 32px 0 32px;">
+                <p style="margin:0; font-family:Georgia,'Times New Roman',serif; font-size:18px; letter-spacing:0.02em; color:#1F4E79;">{{ org_name }}</p>
+                <hr style="border:0; border-top:1px solid #CCD6E1; margin:20px 0 0 0;" />
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:24px 32px 0 32px;">
+                <h1 style="margin:0 0 12px 0; font-family:Georgia,'Times New Roman',serif; font-weight:600; font-size:26px; line-height:1.2; color:#1D2530;">A refund of {{ amount }}</h1>
+                <p style="margin:0 0 16px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.55; color:#55606D;">Hello {{ first_name }}, we have refunded {{ amount }} against your payment of {{ payment_amount }} for {{ description }}.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:0 32px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#1D2530;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #CCD6E1; border-bottom:1px solid #CCD6E1;">
+                  <tr>
+                    <td style="padding:10px 0; font-size:15px; color:#55606D;">Receipt</td>
+                    <td align="right" style="padding:10px 0; font-size:15px;">{{ receipt_number }}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0; font-size:15px; color:#55606D;">Reason</td>
+                    <td align="right" style="padding:10px 0; font-size:15px;">{{ reason }}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0; font-size:15px; color:#55606D;">Refunded</td>
+                    <td align="right" style="padding:10px 0; font-size:15px; font-weight:600;">{{ amount }}</td>
+                  </tr>
+                </table>
+                <p style="margin:16px 0 0 0;">The money goes back to the card or account you paid with. Your bank decides how quickly it appears, which is usually a few working days.</p>
+                {% if term_canceled %}<p style="margin:16px 0 0 0;">Your membership term has been canceled with this refund, so you are no longer a member of {{ org_name }}. You are welcome to join again at any time.</p>{% endif %}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:24px 32px 8px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="background:#1F4E79; border-radius:2px;">
+                      <a href="{{ payments_url }}" style="display:inline-block; padding:12px 22px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:15px; font-weight:600; color:#FFFFFF; text-decoration:none;">See your payments</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:12px 0 0 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; color:#55606D;">
+                  Or paste this into your browser:<br />
+                  <a href="{{ payments_url }}" style="color:#1F4E79;">{{ payments_url }}</a>
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:20px 32px 28px 32px;">
+                <hr style="border:0; border-top:1px solid #CCD6E1; margin:0 0 16px 0;" />
+                <p style="margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#55606D;">
+                  {{ org_name }} is a volunteer disaster air transportation network.
+                  {% if contact_email %}Questions? Write to <a href="mailto:{{ contact_email }}" style="color:#1F4E79;">{{ contact_email }}</a>.{% endif %}
+                </p>
+                <p style="margin:8px 0 0 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#55606D;">
+                  You are receiving this because a payment on your {{ org_name }} account was refunded.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
