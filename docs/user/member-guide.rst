@@ -188,9 +188,9 @@ N-number, make, and model, an insurance chip (**Current**, **Expired**, or
 
 To add one, search for it by N-number in the panel underneath and select it.
 If the aircraft is not in the CalDART register yet, the panel offers a short
-form to add it.  To take one off your profile, press **Remove** — this only
-detaches it from you; the aircraft record and anyone else's link to it are
-untouched.
+form to add it.  To take one off your profile, press the trashcan beside it —
+this only detaches it from you; the aircraft record and anyone else's link to
+it are untouched.
 
 An aircraft's insurance is what a DART leader checks before letting you fly a
 mission in it, so keep the carrier, limits, and expiration date accurate.

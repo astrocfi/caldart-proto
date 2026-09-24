@@ -230,5 +230,5 @@ When something goes wrong
    commas and a leading ``$`` are accepted and stripped for you.
 
 **You removed an airplane and worry you deleted it.**
-   **Remove** on your own profile only detaches it from you.  The record, and
-   everybody else's link to it, is untouched.
+   The trashcan on your own profile only detaches the airplane from you.  The
+   record, and everybody else's link to it, is untouched.
