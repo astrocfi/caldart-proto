@@ -194,7 +194,7 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	    || { echo; echo "==== last 100 lines of $(E2E_LOG) ===="; tail -100 $(E2E_LOG); exit 1; }
 
 # ----------------------------------------------------------------- lint
-lint: lint-backend lint-frontend lint-spelling ## ruff + mypy + tsc + eslint + prettier + codespell
+lint: lint-backend lint-frontend lint-spelling ## ruff + mypy + tsc + eslint + prettier + contrast + codespell
 
 lint-backend: ## ruff check + ruff format --check + mypy
 	$(UV) run ruff check .
@@ -207,12 +207,13 @@ lint-backend: ## ruff check + ruff format --check + mypy
 # .claude, which codespell would otherwise skip for their leading dot.
 lint-spelling: ## codespell over docs, prose and code
 	$(UV) run codespell --check-hidden README.rst CLAUDE.md docs backend frontend/src \
-	  frontend/e2e .github deploy .claude
+	  frontend/e2e frontend/scripts .github deploy .claude
 
 lint-frontend: ## tsc --noEmit + eslint + prettier --check
 	cd frontend && $(NPM) run typecheck
 	cd frontend && $(NPM) run lint
 	cd frontend && $(NPM) run format:check
+	cd frontend && $(NPM) run theme-contrast
 
 format: ## Auto-format Python and TypeScript
 	$(UV) run ruff format .

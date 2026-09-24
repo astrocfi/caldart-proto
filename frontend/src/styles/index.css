@@ -1,13 +1,17 @@
 /*
  * The single CSS entry point shared by the public site and the portal.
  *
- * Fonts are self-hosted through @fontsource so the site works offline.
- * Only the weights actually used are imported, and only the Latin and
- * Latin Extended subsets: the site is English-language only, and the
- * unimported subsets (cyrillic, greek, vietnamese, ...) would otherwise ship
- * as dead weight in the production build.
+ * Fonts are self-hosted through @fontsource so the site works offline.  Every
+ * theme names its own display, body and mono faces, so every face a theme can
+ * ask for is declared here; a browser downloads only the ones the active
+ * theme's `--font-*` stacks actually use.  Only the weights used are imported,
+ * and, where the package offers them, only the Latin and Latin Extended
+ * subsets: the site is English-language only, and the unimported subsets
+ * (cyrillic, greek, vietnamese, ...) would otherwise ship as dead weight in
+ * the production build.
  */
 
+/* -- duty, sierra ----------------------------------------------------- */
 /* Display: Fraunces variable, Latin only -- see fraunces-latin.css for why
  * that file exists instead of an upstream import. */
 @import './fraunces-latin.css';
@@ -28,9 +32,73 @@
 @import '@fontsource/ibm-plex-mono/latin-500.css';
 @import '@fontsource/ibm-plex-mono/latin-ext-500.css';
 
+/* -- squadron --------------------------------------------------------- */
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/600.css';
+@import '@fontsource/barlow/700.css';
+@import '@fontsource-variable/source-sans-3';
+@import '@fontsource-variable/source-sans-3/wght-italic.css';
+@import '@fontsource-variable/jetbrains-mono';
+
+/* -- flight-deck ------------------------------------------------------ */
+@import '@fontsource-variable/exo-2';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/inter/wght-italic.css';
+
+/* -- contrail --------------------------------------------------------- */
+@import '@fontsource/titillium-web/400.css';
+@import '@fontsource/titillium-web/600.css';
+@import '@fontsource/titillium-web/700.css';
+@import '@fontsource-variable/open-sans';
+@import '@fontsource-variable/open-sans/wght-italic.css';
+@import '@fontsource-variable/roboto-mono';
+
+/* -- sectional -------------------------------------------------------- */
+@import '@fontsource-variable/manrope';
+
+/* -- tarmac ----------------------------------------------------------- */
+@import '@fontsource-variable/archivo';
+@import '@fontsource-variable/karla';
+@import '@fontsource-variable/karla/wght-italic.css';
+@import '@fontsource-variable/fira-code';
+
+/* -- coastal ---------------------------------------------------------- */
+@import '@fontsource-variable/lora';
+@import '@fontsource-variable/nunito-sans';
+@import '@fontsource-variable/nunito-sans/wght-italic.css';
+@import '@fontsource-variable/source-code-pro';
+
+/* -- slate ------------------------------------------------------------ */
+@import '@fontsource-variable/merriweather';
+@import '@fontsource-variable/work-sans';
+@import '@fontsource-variable/work-sans/wght-italic.css';
+@import '@fontsource/dm-mono/400.css';
+@import '@fontsource/dm-mono/500.css';
+
+/* -- meridian --------------------------------------------------------- */
+@import '@fontsource-variable/libre-franklin';
+@import '@fontsource-variable/libre-franklin/wght-italic.css';
+
+/* -- monterey-night --------------------------------------------------- */
+@import '@fontsource-variable/sora';
+
+/* -- granite ---------------------------------------------------------- */
+@import '@fontsource-variable/inter-tight';
+@import '@fontsource-variable/geist-mono';
+
 @import './tokens.css';
 @import './base.css';
 @import './themes/duty.css';
 @import './themes/sierra.css';
 @import './themes/pacific.css';
 @import './themes/night.css';
+@import './themes/squadron.css';
+@import './themes/flight-deck.css';
+@import './themes/contrail.css';
+@import './themes/sectional.css';
+@import './themes/tarmac.css';
+@import './themes/coastal.css';
+@import './themes/slate.css';
+@import './themes/meridian.css';
+@import './themes/monterey-night.css';
+@import './themes/granite.css';

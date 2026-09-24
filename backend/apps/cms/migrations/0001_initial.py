@@ -162,7 +162,7 @@ class Migration(migrations.Migration):
                 ('donate_url', models.CharField(blank=True, max_length=200)),
                 ('facebook_url', models.URLField(blank=True)),
                 ('twitter_url', models.URLField(blank=True)),
-                ('theme', models.CharField(choices=[('duty', 'Duty (default, blue and red)'), ('sierra', 'Sierra (warm paper)'), ('pacific', 'Pacific (cool paper)'), ('night', 'Night (dark)')], default='duty', max_length=20)),
+                ('theme', models.CharField(choices=[('duty', 'Duty (default, blue and red)'), ('sierra', 'Sierra (warm paper)'), ('pacific', 'Pacific (cool paper)'), ('night', 'Night (dark)'), ('squadron', 'Squadron (logo blue on white)'), ('flight-deck', 'Flight deck (logo blue, dark)'), ('contrail', 'Contrail (logo blue, sky paper)'), ('sectional', 'Sectional (aeronautical chart)'), ('tarmac', 'Tarmac (concrete and asphalt)'), ('coastal', 'Coastal (fog and ocean teal)'), ('slate', 'Slate (cool corporate)'), ('meridian', 'Meridian (high-contrast civic)'), ('monterey-night', 'Monterey night (charcoal dark)'), ('granite', 'Granite (near-monochrome)')], default='duty', max_length=20)),
                 ('footer_text', models.TextField(blank=True, default='CalDART is a 501(c)(3) non-profit. Contributions are tax deductible.')),
                 ('site', models.OneToOneField(editable=False, on_delete=django.db.models.deletion.CASCADE, to='wagtailcore.site')),
             ],

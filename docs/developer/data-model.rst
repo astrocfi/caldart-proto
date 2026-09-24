@@ -1079,8 +1079,8 @@ join.
 ``SiteSettings`` (a Wagtail ``BaseSiteSetting``) carries ``org_name``,
 ``tagline``, ``contact_email``, ``duty_phone``,
 ``mailing_address``, ``ein``, ``donate_url``,
-``facebook_url``, ``twitter_url``, ``theme`` (one of ``duty``, ``sierra``,
-``pacific``, ``night``; default ``duty``) and ``footer_text``.
+``facebook_url``, ``twitter_url``, ``theme`` (one of the slugs listed in
+:doc:`theming`; default ``duty``) and ``footer_text``.
 
 sysadmin
 ========

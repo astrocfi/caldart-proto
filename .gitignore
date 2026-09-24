@@ -240,3 +240,6 @@ test-results/
 # is per-user.  Everything else under .claude/ is committed.
 .claude/worktrees/
 .claude/settings.local.json
+
+# Theme preview screenshots (regenerate with `npm run theme-previews`)
+theme-previews/

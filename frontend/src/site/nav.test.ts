@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 import { currentNavIndex, isTheme, THEMES } from './nav';
@@ -48,4 +52,33 @@ describe('isTheme', () => {
     expect(isTheme(null)).toBe(false);
     expect(isTheme(undefined)).toBe(false);
   });
+});
+
+describe('the shipped themes', () => {
+  const styles = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'styles');
+  const index = readFileSync(join(styles, 'index.css'), 'utf8');
+  const read = (theme: string): string =>
+    readFileSync(join(styles, 'themes', `${theme}.css`), 'utf8');
+
+  it.each(THEMES)('%s has a stylesheet that declares its own block', (theme) => {
+    expect(read(theme)).toContain(`:root[data-theme='${theme}']`);
+  });
+
+  it.each(THEMES)('%s is imported by index.css', (theme) => {
+    expect(index).toContain(`@import './themes/${theme}.css';`);
+  });
+
+  // duty, sierra, pacific and night share one type stack, which `tokens.css`
+  // carries as the default; every other theme names all three faces itself.
+  const SHARED_TYPE = ['duty', 'sierra', 'pacific', 'night'];
+
+  it.each(THEMES.filter((theme) => !SHARED_TYPE.includes(theme)))(
+    '%s names its own display, body and mono faces',
+    (theme) => {
+      const css = read(theme);
+      expect(css).toContain('--font-display:');
+      expect(css).toContain('--font-body:');
+      expect(css).toContain('--font-mono:');
+    },
+  );
 });

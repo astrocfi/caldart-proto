@@ -1,0 +1,37 @@
+/* Sectional: an aeronautical chart -- chart cream, chart blue, airspace magenta, terrain tan. */
+
+:root[data-theme='sectional'] {
+  --color-bg: #f7f3e8;
+  --color-bg-raised: #fffdf7;
+  --color-bg-sunken: #ece5d3;
+  --color-fg: #24211c;
+  --color-primary: #2c5aa0;
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: #204478;
+  --color-accent: #a72f80;
+  --color-secondary: #b3833f;
+  --color-rule: #ded5c0;
+  --color-rule-strong: #b5a88d;
+  --color-muted: #5d584c;
+  --color-selection: #b3833f33;
+
+  --color-ok: #27693f;
+  --color-warn: #825900;
+  --color-bad: #ab3628;
+  --color-ok-bg: #27693f1f;
+  --color-warn-bg: #8259001f;
+  --color-bad-bg: #ab36281f;
+  --color-neutral-bg: #5d584c17;
+
+  --color-focus: #2c5aa0;
+
+  --font-display:
+    'Manrope Variable', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body:
+    'Source Sans 3 Variable', 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
+  --font-mono:
+    'Roboto Mono Variable', 'Roboto Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  color-scheme: light;
+}

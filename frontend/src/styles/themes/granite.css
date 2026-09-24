@@ -1,0 +1,37 @@
+/* Granite: near-monochrome -- white, near-black, grays, and one blue for links. */
+
+:root[data-theme='granite'] {
+  --color-bg: #ffffff;
+  --color-bg-raised: #fafafa;
+  --color-bg-sunken: #f0f0f0;
+  --color-fg: #111111;
+  --color-primary: #1f1f1f;
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: #000000;
+  --color-accent: #0a58ca;
+  --color-secondary: #6b7280;
+  --color-rule: #e2e2e2;
+  --color-rule-strong: #b1b1b1;
+  --color-muted: #5c5c5c;
+  --color-selection: #0a58ca26;
+
+  --color-ok: #27693f;
+  --color-warn: #825900;
+  --color-bad: #ab3628;
+  --color-ok-bg: #27693f1f;
+  --color-warn-bg: #8259001f;
+  --color-bad-bg: #ab36281f;
+  --color-neutral-bg: #5c5c5c17;
+
+  --color-focus: #0a58ca;
+
+  --font-display:
+    'Inter Tight Variable', 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-body:
+    'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:
+    'Geist Mono Variable', 'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  color-scheme: light;
+}

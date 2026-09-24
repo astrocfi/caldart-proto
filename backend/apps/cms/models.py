@@ -55,6 +55,16 @@ THEME_CHOICES: tuple[tuple[str, str], ...] = (
     ("sierra", "Sierra (warm paper)"),
     ("pacific", "Pacific (cool paper)"),
     ("night", "Night (dark)"),
+    ("squadron", "Squadron (logo blue on white)"),
+    ("flight-deck", "Flight deck (logo blue, dark)"),
+    ("contrail", "Contrail (logo blue, sky paper)"),
+    ("sectional", "Sectional (aeronautical chart)"),
+    ("tarmac", "Tarmac (concrete and asphalt)"),
+    ("coastal", "Coastal (fog and ocean teal)"),
+    ("slate", "Slate (cool corporate)"),
+    ("meridian", "Meridian (high-contrast civic)"),
+    ("monterey-night", "Monterey night (charcoal dark)"),
+    ("granite", "Granite (near-monochrome)"),
 )
 DEFAULT_THEME = "duty"
 

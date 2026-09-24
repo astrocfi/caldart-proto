@@ -1586,7 +1586,17 @@
       "duty",
       "sierra",
       "pacific",
-      "night"
+      "night",
+      "squadron",
+      "flight-deck",
+      "contrail",
+      "sectional",
+      "tarmac",
+      "coastal",
+      "slate",
+      "meridian",
+      "monterey-night",
+      "granite"
     ]
   },
   "User": {

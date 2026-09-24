@@ -1,0 +1,37 @@
+/* Contrail: the logo gone light and airy -- high sky paper, cobalt, crimson. */
+
+:root[data-theme='contrail'] {
+  --color-bg: #eef4fb;
+  --color-bg-raised: #ffffff;
+  --color-bg-sunken: #dfe8f5;
+  --color-fg: #1a2333;
+  --color-primary: #1b409a;
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: #142f73;
+  --color-accent: #b02c3a;
+  --color-secondary: #3b7dd8;
+  --color-rule: #cfdcec;
+  --color-rule-strong: #a0b2cb;
+  --color-muted: #515c70;
+  --color-selection: #3b7dd833;
+
+  --color-ok: #27693f;
+  --color-warn: #825900;
+  --color-bad: #ab3628;
+  --color-ok-bg: #27693f1f;
+  --color-warn-bg: #8259001f;
+  --color-bad-bg: #ab36281f;
+  --color-neutral-bg: #515c7017;
+
+  --color-focus: #1b409a;
+
+  --font-display:
+    'Titillium Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body:
+    'Open Sans Variable', 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-mono:
+    'Roboto Mono Variable', 'Roboto Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  color-scheme: light;
+}
