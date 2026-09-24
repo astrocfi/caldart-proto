@@ -3,8 +3,8 @@ API: payments
 =============
 
 Every endpoint under ``/api/v1/payments/`` and ``/api/v1/admin/payments``:
-checkout and its confirmation for each provider, the webhooks, and the
-payment reports.  General API conventions — session
+checkout and its confirmation for each provider, the webhooks, the receipts
+and contribution statements, and the payment reports.  General API conventions — session
 authentication, the CSRF header, pagination, error shapes — are in
 :doc:`api-reference`; the two worth repeating here are that an
 unauthenticated request that reaches the permission check gets **401** (not
@@ -228,6 +228,145 @@ neither owns the payment nor holds ``account_admin``; **404** for an unknown
 id.
 
 
+Receipts and statements
+=======================
+
+CalDART sends its own receipt for every payment that succeeds, whoever took
+the money, with the PDF attached, and stamps ``receipt_sent_at`` on the
+payment when it goes.  Stripe is not asked to send a receipt of its own: the
+member gets one, and it carries the 501(c)(3) wording a donor needs.  A mail
+server that refuses the message is logged and leaves ``receipt_sent_at`` null,
+so resending it is the retry.
+
+A receipt exists only for money that arrived.  A pending or failed payment has
+none, and every endpoint below answers **404** for one, exactly as it does for
+an id nobody holds.
+
+``GET /me/payments``
+--------------------
+
+Any authenticated user, over their own payments, newest first.  Each row
+carries everything the payments screen draws, so it needs no second call per
+row:
+
+.. code-block:: json
+
+   [{"id": 414, "plan": "Annual", "kind": "both",
+     "amount_cents": 14500, "plan_amount_cents": 4500,
+     "contribution_cents": 10000, "refunded_cents": 2500,
+     "provider": "stripe", "wallet": "card", "status": "partially_refunded",
+     "paid_on": "2026-03-14", "completed_at": "2026-03-14T18:02:11Z",
+     "receipt_sent_at": "2026-03-14T18:02:13Z",
+     "membership": {"id": 87, "starts_on": "2026-03-14",
+                    "ends_on": "2027-03-13"}}]
+
+``kind`` is ``membership``, ``contribution`` or ``both``, read from the plan
+and the contribution.  ``paid_on`` is the ledger date: the day a check was
+received, or the local date the provider settled, and null while the payment
+has not completed.  ``membership`` is the term the payment activated, or null
+when it bought none.
+
+``GET /me/payments/{id}/receipt.pdf``
+-------------------------------------
+
+The payment's **owner only** — an account administrator reading somebody
+else's receipt uses the finance route below.  Answers the receipt as
+``application/pdf``, attached as ``caldart-receipt-CALDART-000414.pdf``.
+
+Statuses: **200**; **401** when anonymous; **404** for an unknown payment, for
+one belonging to somebody else, and for one whose money never arrived.
+
+``GET /me/payments/statements``
+-------------------------------
+
+Any authenticated user.  The calendar years the caller may download a
+contribution statement for, newest first:
+
+.. code-block:: json
+
+   {"years": [2026, 2025]}
+
+A year appears only when the member made at least one contribution in it that
+settled.  A member who has never contributed gets an empty list, not a 404.
+
+Statuses: **200**; **401** when anonymous.
+
+``GET /me/payments/statements/{year}.pdf``
+-------------------------------------------
+
+Any authenticated user, over their own giving.  One upright page listing every
+contribution that settled in ``year``, each netted against whatever of it came
+back, the year's total, and the 501(c)(3) wording.  A refund is applied to the
+contribution before the dues, because a member asking for part of a payment
+back is asking for the gift back.  Attached as
+``caldart-contributions-2026.pdf``.
+
+Statuses: **200**; **401** when anonymous; **404** for a year the member
+contributed nothing in.
+
+``GET /admin/payments/{id}/receipt.pdf``
+-----------------------------------------
+
+Finance — a ``treasurer`` or an ``account_admin``.  The same receipt, for any
+member's payment.
+
+Statuses: **200**; **401** when anonymous; **403** for any other role;
+**404** for an unknown payment or one whose money never arrived.
+
+``POST /admin/payments/{id}/receipt``
+--------------------------------------
+
+Finance.  Builds the receipt afresh and emails it to the payer with its PDF
+attached.  The body is empty.
+
+.. code-block:: json
+
+   {"sent": true, "receipt_sent_at": "2026-03-15T09:14:02Z"}
+
+``sent`` says whether the mail server took the message.  A refusal answers
+``{"sent": false, "receipt_sent_at": null}`` with the stamp unchanged, so the
+same call is the retry.  Writes a ``payment.receipt_resend`` audit record
+either way.
+
+Statuses: **200**; **401** when anonymous; **403** for any other role;
+**404** for an unknown payment or one whose money never arrived.
+
+``GET /admin/payments/ledger/{user_id}/statements/{year}.pdf``
+---------------------------------------------------------------
+
+Finance.  Any member's contribution statement for one year, as the member's
+own route renders it.
+
+Statuses: **200**; **401** when anonymous; **403** for any other role;
+**404** for an unknown member and for a year they contributed nothing in.
+
+
+Fees and net amounts
+====================
+
+Every payment records what it cost: ``fee_cents``, what the provider kept, and
+``net_cents``, what reached CalDART's balance — both exactly as the provider
+reported them, never computed from a published rate.
+
+Stripe
+   ``payment_intents.retrieve`` expands ``latest_charge.balance_transaction``,
+   and the transaction's ``fee`` and ``net`` are already integer cents.
+PayPal
+   ``seller_receivable_breakdown.paypal_fee.value`` and ``.net_amount.value``
+   from the capture, converted from PayPal's decimal strings.
+Mock
+   2.9% rounded half up to the cent, plus 30 cents — the shape of a card fee,
+   so seeded and test data look real.
+Recorded by hand
+   Zero fee; the net is the whole amount.
+
+Some payment methods settle after the charge, and until they do there is no
+fee to record: the payment keeps ``fee_cents`` and ``net_cents`` at zero, and
+Stripe's ``charge.updated`` webhook fills them in when the balance transaction
+appears.  A payment whose ``net_cents`` is zero against a non-zero amount is
+one whose fee nobody has reported yet.
+
+
 Webhooks
 ========
 
@@ -242,8 +381,16 @@ answers **400** ``{"detail": "Invalid Stripe signature."}`` when it does not
 check out.  Handles:
 
 * ``payment_intent.succeeded`` — re-runs the same amount/currency/metadata
-  verification as the confirm endpoint, then marks the payment succeeded;
-* ``payment_intent.payment_failed`` — marks it failed.
+  verification as the confirm endpoint, then marks the payment succeeded,
+  recording the fee when the event carries an expanded balance transaction;
+* ``payment_intent.payment_failed`` — marks it failed;
+* ``charge.updated`` — fills in a fee that did not exist when the money
+  arrived.  The figures are taken from the event when it carries an expanded
+  balance transaction, and read back from Stripe otherwise.  A payment whose
+  fee is already recorded is left alone, so a re-delivery changes nothing.
+  Stripe orders no deliveries, so this event is acted on whatever state the
+  payment is in: a fee that arrives before the ``payment_intent.succeeded``
+  that settles the row is kept when the row settles.
 
 Everything else is acknowledged and ignored.  The response says what happened:
 
@@ -253,7 +400,8 @@ Everything else is acknowledged and ignored.  The response says what happened:
 
 ``handled`` is false for an event about a payment this installation does not
 have, for a ``payment_intent.succeeded`` that fails the same verification the
-confirm endpoint applies, and for every event type above that is not listed.
+confirm endpoint applies, for a ``charge.updated`` whose fee is already known
+or still unreadable, and for every event type above that is not listed.
 It is idempotent, so it is safe for it to race the browser's confirm call or
 to be re-delivered from the Stripe dashboard.
 
@@ -284,8 +432,8 @@ Statuses: **200** whether or not the notification was verified or acted on;
 **405** for any method but ``POST``.
 
 
-Reports — ``account_admin``
-===========================
+Reports — finance
+=================
 
 All three endpoints share one filter set, applied to ``paid_at``: the moment
 the money arrived, which is ``completed_at`` when the payment settled and
@@ -415,8 +563,11 @@ Endpoint                               Who
 ``POST /payments/paypal/capture``      The payment's owner
 ``POST /payments/mock/complete``       The payment's owner, mock enabled
 ``GET /payments/{id}``                 Owner or ``account_admin``
+``GET /me/payments``                   Any authenticated user, own rows
+``GET /me/payments/{id}/receipt.pdf``  The payment's owner
+``GET /me/payments/statements*``       Any authenticated user, own giving
 ``POST /payments/*/webhook``           Nobody — signature verified instead
-``GET /admin/payments*``               ``account_admin``
+``GET /admin/payments*``               ``treasurer`` or ``account_admin``
 =====================================  ==========================================
 
 ``system_admin`` passes every role check, as everywhere else in the API.  The

@@ -1210,18 +1210,51 @@
       "completed_at": "string(date-time)|null",
       "contribution_cents": "integer",
       "id": "integer",
+      "kind": "ref:PaymentSummaryKindEnum",
+      "membership": "ref:PaymentTerm|null",
+      "paid_on": "string(date)|null",
       "plan": "string|null",
+      "plan_amount_cents": "integer",
       "provider": "ref:PaymentProviderEnum",
-      "status": "ref:PaymentStatusEnum"
+      "receipt_sent_at": "string(date-time)|null",
+      "refunded_cents": "integer",
+      "status": "ref:PaymentStatusEnum",
+      "wallet": "ref:WalletEnum"
     },
     "required": [
       "amount_cents",
       "completed_at",
       "contribution_cents",
       "id",
+      "kind",
+      "membership",
+      "paid_on",
       "plan",
+      "plan_amount_cents",
       "provider",
-      "status"
+      "receipt_sent_at",
+      "refunded_cents",
+      "status",
+      "wallet"
+    ]
+  },
+  "PaymentSummaryKindEnum": {
+    "enum": [
+      "membership",
+      "contribution",
+      "both"
+    ]
+  },
+  "PaymentTerm": {
+    "properties": {
+      "ends_on": "string(date)|null",
+      "id": "integer",
+      "starts_on": "string(date)"
+    },
+    "required": [
+      "ends_on",
+      "id",
+      "starts_on"
     ]
   },
   "PaymentsConfig": {
@@ -1378,6 +1411,16 @@
       "cfi",
       "cfii",
       "mei"
+    ]
+  },
+  "ReceiptSend": {
+    "properties": {
+      "receipt_sent_at": "string(date-time)|null",
+      "sent": "boolean"
+    },
+    "required": [
+      "receipt_sent_at",
+      "sent"
     ]
   },
   "RegisterRequest": {
@@ -1549,6 +1592,14 @@
       "MP",
       "PR",
       "VI"
+    ]
+  },
+  "StatementYears": {
+    "properties": {
+      "years": "array<integer>"
+    },
+    "required": [
+      "years"
     ]
   },
   "StripeCheckoutClient": {

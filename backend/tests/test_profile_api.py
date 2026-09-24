@@ -549,11 +549,18 @@ def test_payments_are_newest_first_and_scoped_to_the_caller(
     assert set(rows[0]) == {
         "id",
         "plan",
+        "kind",
         "amount_cents",
+        "plan_amount_cents",
         "contribution_cents",
+        "refunded_cents",
         "provider",
+        "wallet",
         "status",
+        "paid_on",
         "completed_at",
+        "receipt_sent_at",
+        "membership",
     }
     assert rows[0]["plan"] == "Annual"
 

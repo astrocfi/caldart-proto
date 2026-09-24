@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
@@ -37,12 +38,27 @@ class PaymentVerificationError(PaymentError):
     """
 
 
+@dataclass(frozen=True)
+class ProviderFees:
+    """What a provider kept out of one payment, and what reached CalDART.
+
+    ``fee_cents`` is the provider's own charge and ``net_cents`` what it paid
+    across, both exactly as the provider reported them.  The two need not add up
+    to the payment's amount: a provider that nets a chargeback or a currency
+    conversion into the same settlement says so, and the record follows it.
+    """
+
+    fee_cents: int
+    net_cents: int
+
+
 class Provider:
     """A payment backend.
 
     ``start`` returns the parameters the browser needs to present the payment
     UI; ``confirm`` verifies server-side and marks the payment succeeded;
-    ``handle_webhook`` processes an asynchronous notification.
+    ``handle_webhook`` processes an asynchronous notification, and
+    ``fetch_fees`` asks the provider again what a settled payment cost.
     """
 
     slug: str = ""
@@ -80,6 +96,18 @@ class Provider:
         Raises ``NotImplementedError``: every subclass must define it.
         """
         raise NotImplementedError
+
+    def fetch_fees(self, payment: Payment) -> ProviderFees | None:
+        """Ask the provider what ``payment`` cost, or ``None`` when it cannot say.
+
+        A provider settles asynchronously, so the fee is often unknown at the
+        moment the money arrives and knowable a little later.  This is the call
+        that asks again.  ``None`` means the provider has no figure yet -- not
+        that the fee was zero -- and leaves whatever is already recorded alone.
+        The default answers ``None``, which is right for a backend that reports
+        no fee at all.
+        """
+        return None
 
 
 _REGISTRY: dict[str, type[Provider]] = {}

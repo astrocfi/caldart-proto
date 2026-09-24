@@ -8,8 +8,35 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 
 from apps.payments.models import Payment, PaymentWallet
-from apps.payments.providers.base import Provider, register
+from apps.payments.providers.base import Provider, ProviderFees, register
 from apps.payments.services import mark_failed, mark_succeeded
+
+#: The mock provider charges a Stripe-shaped fee -- 2.9% of the amount plus 30
+#: cents -- so seeded and test data carry figures that look like the real thing
+#: rather than a suspiciously round zero.  The rate is kept as a fraction in
+#: whole numbers so the fee is integer arithmetic from end to end.
+FEE_NUMERATOR = 29
+FEE_DENOMINATOR = 1_000
+FEE_FIXED_CENTS = 30
+
+
+def fee_cents(amount_cents: int) -> int:
+    """The mock provider's fee on ``amount_cents``: 2.9% plus 30 cents.
+
+    The percentage is rounded half up to the cent, as a card processor rounds
+    it, so $45.00 costs 161 cents rather than 160.  A payment of nothing costs
+    nothing: the fixed part is only charged where there is money to charge it on.
+    """
+    if amount_cents == 0:
+        return 0
+    percentage = (amount_cents * FEE_NUMERATOR + FEE_DENOMINATOR // 2) // FEE_DENOMINATOR
+    return percentage + FEE_FIXED_CENTS
+
+
+def fees_for(payment: Payment) -> ProviderFees:
+    """What the mock provider kept out of ``payment`` and what it paid across."""
+    fee = fee_cents(payment.amount_cents)
+    return ProviderFees(fee_cents=fee, net_cents=payment.amount_cents - fee)
 
 
 class MockPaymentsDisabledError(RuntimeError):
@@ -49,19 +76,22 @@ class MockProvider(Provider):
 
         ``outcome`` is ``"succeed"`` or ``"fail"``.  Succeeding marks the payment
         succeeded with the ``mock`` wallet, gives it the reference ``mock_<id>`` if
-        it has none, activates the term and returns ``True``; anything else marks it
-        failed and returns ``False``.  Either way ``raw`` records the outcome and the
-        amount.  Raises :class:`MockPaymentsDisabledError` when ``PAYMENTS_MOCK_ENABLED``
-        is off.
+        it has none, records the fee :func:`fee_cents` works out, activates the term
+        and returns ``True``; anything else marks it failed and returns ``False``.
+        Either way ``raw`` records the outcome and the amount.  Raises
+        :class:`MockPaymentsDisabledError` when ``PAYMENTS_MOCK_ENABLED`` is off.
         """
         self._check_enabled()
         raw = {"provider": "mock", "outcome": outcome, "amount_cents": payment.amount_cents}
         if outcome == "succeed":
+            fees = fees_for(payment)
             mark_succeeded(
                 payment,
                 wallet=PaymentWallet.MOCK,
                 raw=raw,
                 provider_ref=payment.provider_ref or f"mock_{payment.pk}",
+                fee_cents=fees.fee_cents,
+                net_cents=fees.net_cents,
             )
             return True
         mark_failed(payment, raw)
@@ -72,3 +102,11 @@ class MockProvider(Provider):
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
         return HttpResponse(status=204)
+
+    def fetch_fees(self, payment: Payment) -> ProviderFees:
+        """The fee the mock provider would have charged, worked out afresh.
+
+        It needs nothing from outside, so it always answers, whatever state the
+        payment is in.
+        """
+        return fees_for(payment)

@@ -33,7 +33,7 @@ from apps.members.models import (
     Membership,
     PilotCertificateType,
 )
-from apps.payments.models import Payment
+from apps.payments.models import Payment, PaymentKind
 from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
 
 #: Five digits, e.g. ``95035``.  The four-digit add-on is not collected: it is
@@ -65,21 +65,47 @@ class MembershipDetailSerializer(MembershipStatusSerializer):
     history = MembershipTermSerializer(many=True, read_only=True)
 
 
+class PaymentTermSerializer(serializers.ModelSerializer[Membership]):
+    """The membership term one payment bought, as its own payment row names it."""
+
+    class Meta:
+        model = Membership
+        fields = ["id", "starts_on", "ends_on"]
+        read_only_fields = fields
+
+
 class PaymentSummarySerializer(serializers.ModelSerializer[Payment]):
-    """The trimmed payment row a member sees for themselves."""
+    """The payment row a member sees for themselves on ``GET /me/payments``.
+
+    It carries everything the payments screen draws, so the screen needs no
+    second call per row: what the payment bought and what it cost, how much of
+    it has come back, when CalDART's receipt was emailed, and the term it
+    activated.
+    """
 
     plan = serializers.SerializerMethodField()
+    kind = serializers.ChoiceField(choices=PaymentKind.choices, read_only=True)
+    paid_on = serializers.DateField(read_only=True, allow_null=True)
+    refunded_cents = serializers.IntegerField(read_only=True)
+    membership = PaymentTermSerializer(read_only=True, allow_null=True)
 
     class Meta:
         model = Payment
         fields = [
             "id",
             "plan",
+            "kind",
             "amount_cents",
+            "plan_amount_cents",
             "contribution_cents",
+            "refunded_cents",
             "provider",
+            "wallet",
             "status",
+            "paid_on",
             "completed_at",
+            "receipt_sent_at",
+            "membership",
         ]
         read_only_fields = fields
 

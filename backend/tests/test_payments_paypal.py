@@ -25,8 +25,12 @@ from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.providers import paypal
-from apps.payments.providers.base import PaymentVerificationError, ProviderNotConfiguredError
-from apps.payments.services import create_checkout
+from apps.payments.providers.base import (
+    PaymentVerificationError,
+    ProviderFees,
+    ProviderNotConfiguredError,
+)
+from apps.payments.services import create_checkout, fees_are_known
 from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -591,3 +595,131 @@ def test_the_webhook_finds_the_payment_by_order_id(
     assert response.status_code == 200
     payment.refresh_from_db()
     assert "last_webhook" in payment.raw
+
+
+# --------------------------------------------------------------------------
+# fees
+# --------------------------------------------------------------------------
+def with_breakdown(
+    order: dict[str, Any], *, fee: str = "1.61", net: str = "43.39"
+) -> dict[str, Any]:
+    """The same capture response, with the seller receivable breakdown PayPal adds."""
+    capture = order["purchase_units"][0]["payments"]["captures"][0]
+    capture["seller_receivable_breakdown"] = {
+        "gross_amount": {"currency_code": "USD", "value": "45.00"},
+        "paypal_fee": {"currency_code": "USD", "value": fee},
+        "net_amount": {"currency_code": "USD", "value": net},
+    }
+    return order
+
+
+@respx.mock
+def test_capture_records_the_fee_from_the_seller_breakdown(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The fee PayPal reports on the capture lands on the payment in cents."""
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+        return_value=httpx.Response(201, json=with_breakdown(capture_payload(payment)))
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+
+    payment.refresh_from_db()
+    assert payment.fee_cents == 161
+
+
+@respx.mock
+def test_capture_records_the_net_from_the_seller_breakdown(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The net PayPal reports is stored as reported."""
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+        return_value=httpx.Response(201, json=with_breakdown(capture_payload(payment)))
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+
+    payment.refresh_from_db()
+    assert payment.net_cents == 4_339
+
+
+@respx.mock
+def test_a_capture_without_a_breakdown_leaves_the_fee_unknown(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """An order PayPal has not settled reports no fee, and none is invented."""
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{ORDERS_URL}/ORDER-1/capture").mock(
+        return_value=httpx.Response(201, json=capture_payload(payment))
+    )
+
+    api_client.force_login(member)
+    api_client.post(CAPTURE, {"payment_id": payment.pk, "order_id": "ORDER-1"})
+
+    payment.refresh_from_db()
+    assert fees_are_known(payment) is False
+
+
+def test_a_breakdown_that_is_not_a_number_reports_no_fee() -> None:
+    """A fee PayPal sends as something other than a decimal is refused, not guessed."""
+    capture = {
+        "seller_receivable_breakdown": {
+            "paypal_fee": {"value": "not-a-number"},
+            "net_amount": {"value": "43.39"},
+        }
+    }
+
+    assert paypal.fees_from_capture(capture) is None
+
+
+@respx.mock
+def test_a_verified_capture_webhook_records_the_fee(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, settings: Settings
+) -> None:
+    """The breakdown on a verified capture notification is recorded too."""
+    settings.PAYPAL_WEBHOOK_ID = "WH-CONFIG"
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.post(f"{SANDBOX}/v1/notifications/verify-webhook-signature").mock(
+        return_value=httpx.Response(200, json={"verification_status": "SUCCESS"})
+    )
+    event = webhook_event(payment)
+    event["resource"]["seller_receivable_breakdown"] = {
+        "paypal_fee": {"value": "1.61"},
+        "net_amount": {"value": "43.39"},
+    }
+
+    post_webhook(api_client, event)
+
+    payment.refresh_from_db()
+    assert payment.fee_cents == 161
+
+
+@respx.mock
+def test_fetch_fees_reads_the_order_again(member: User, annual_plan: MembershipPlan) -> None:
+    """Asking PayPal what a settled order cost reads the breakdown off the order."""
+    payment = pending_paypal_payment(member)
+    token_route(respx.mock)
+    respx.get(f"{ORDERS_URL}/ORDER-1").mock(
+        return_value=httpx.Response(200, json=with_breakdown(capture_payload(payment)))
+    )
+
+    fees = paypal.PayPalProvider().fetch_fees(payment)
+
+    assert fees == ProviderFees(fee_cents=161, net_cents=4_339)
+
+
+def test_fetch_fees_for_a_payment_with_no_order_asks_nothing(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """A payment that never reached PayPal has nothing to ask about."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
+
+    assert paypal.PayPalProvider().fetch_fees(payment) is None

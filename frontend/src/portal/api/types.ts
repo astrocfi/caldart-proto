@@ -530,15 +530,44 @@ export interface Payment {
   completed_at: IsoDateTime | null;
 }
 
-/** The trimmed row shown on `/me/payments`. */
+/** What a payment bought, read from its plan and its contribution. */
+export type PaymentKind = 'membership' | 'contribution' | 'both';
+
+/** The membership term one payment bought, as its own payment row names it. */
+export interface PaymentTerm {
+  id: number;
+  starts_on: IsoDate;
+  ends_on: IsoDate | null;
+}
+
+/** The row shown on `/me/payments`: everything the payments screen draws. */
 export interface PaymentSummary {
   id: number;
   plan: string | null;
+  kind: PaymentKind;
   amount_cents: number;
+  plan_amount_cents: number;
   contribution_cents: number;
+  refunded_cents: number;
   provider: PaymentProvider;
+  wallet: PaymentWallet;
   status: PaymentState;
+  /** The ledger date: the day a check arrived, or the day the provider settled. */
+  paid_on: IsoDate | null;
   completed_at: IsoDateTime | null;
+  receipt_sent_at: IsoDateTime | null;
+  membership: PaymentTerm | null;
+}
+
+/** `GET /me/payments/statements` -- the years a statement can be had for. */
+export interface StatementYears {
+  years: number[];
+}
+
+/** `POST /admin/payments/{id}/receipt` -- what came of sending the receipt again. */
+export interface ReceiptSend {
+  sent: boolean;
+  receipt_sent_at: IsoDateTime | null;
 }
 
 export interface ContributionTier {

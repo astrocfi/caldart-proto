@@ -247,11 +247,18 @@ describe('<DashboardPage/>', () => {
     const payments: PaymentSummary[] = Array.from({ length: 7 }, (_, index) => ({
       id: 100 - index,
       plan: 'Annual',
+      kind: 'membership',
       amount_cents: 4500 + index,
+      plan_amount_cents: 4500 + index,
       contribution_cents: 0,
+      refunded_cents: 0,
       provider: 'stripe',
+      wallet: 'card',
       status: 'succeeded',
+      paid_on: `2026-0${index + 1}-01`,
       completed_at: `2026-0${index + 1}-01T12:00:00Z`,
+      receipt_sent_at: `2026-0${index + 1}-01T12:00:05Z`,
+      membership: null,
     }));
 
     mount({ user: makeUser({ membership: CURRENT }), status: CURRENT, payments });

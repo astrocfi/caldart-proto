@@ -314,3 +314,26 @@ class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             status=data["status"],
             search=data["search"],
         )
+
+
+class StatementYearsSerializer(serializers.Serializer[dict[str, Any]]):
+    """``GET /me/payments/statements`` -- the years a statement can be had for.
+
+    Newest first, and a year appears only when the member made at least one
+    contribution in it that settled.  An empty list means there is nothing to
+    download.
+    """
+
+    years = serializers.ListField(child=serializers.IntegerField())
+
+
+class ReceiptSendSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /admin/payments/{id}/receipt`` -- what came of sending it again.
+
+    ``sent`` says whether the mail server took the message, and
+    ``receipt_sent_at`` is the stamp on the payment afterwards: the moment it
+    went, or null when it did not and the send is still owed.
+    """
+
+    sent = serializers.BooleanField()
+    receipt_sent_at = serializers.DateTimeField(allow_null=True)
