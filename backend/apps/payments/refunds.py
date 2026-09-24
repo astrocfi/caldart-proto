@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import smtplib
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import transaction
@@ -36,11 +36,16 @@ from apps.payments.models import (
     RefundReason,
     RefundStatus,
 )
-from apps.payments.providers.base import PaymentError, ProviderRefund, get_provider
 from caldart import audit
 from caldart.exceptions import DomainValidationError
 from caldart.mail import contact_email, org_name, send_templated
 from caldart.reports import money_label
+
+if TYPE_CHECKING:
+    # Inline below as well: the two providers that can refund import this module,
+    # so a top-level import here would close the cycle.  This one is read by the
+    # type checker alone and costs nothing at run time.
+    from apps.payments.providers.base import ProviderRefund
 
 log = logging.getLogger(__name__)
 
@@ -279,6 +284,10 @@ def _ask_the_provider(payment: Payment, refund: Refund) -> ProviderRefund:
     Any ``PaymentError`` the provider raises marks ``refund`` failed and travels
     on to the caller.
     """
+    # Inline: the providers import this module, so importing them at the top
+    # would close the cycle.
+    from apps.payments.providers.base import PaymentError, ProviderRefund, get_provider
+
     if payment.provider == PaymentProvider.MANUAL:
         return ProviderRefund(provider_ref="", raw={"provider": PaymentProvider.MANUAL.value})
     try:

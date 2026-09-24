@@ -27,9 +27,13 @@ from apps.payments.seed import HISTORY_MONTHS
 
 User = get_user_model()
 
-#: The payments ``seed_demo`` creates from its fixed random seed: one per term,
-#: all succeeded.
+#: The payments ``seed_demo`` creates from its fixed random seed, one per term.
 SEEDED_PAYMENTS = 73
+
+#: How many of them the seed refunds: two in full and four contributions, which
+#: leaves the first two ``refunded`` and the other four ``partially_refunded``.
+SEEDED_FULL_REFUNDS = 2
+SEEDED_PARTIAL_REFUNDS = 4
 
 #: Every test here runs `seed_demo`, which seeds the whole demo data set.
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
@@ -90,7 +94,11 @@ def test_seed_demo_shapes() -> None:
     assert User.objects.count() == len(DEMO_ACCOUNTS) + GENERATED_MEMBER_COUNT
     assert MemberProfile.objects.count() == User.objects.count()
     assert Aircraft.objects.count() == 25
-    assert Payment.objects.filter(status=PaymentStatus.SUCCEEDED).count() == SEEDED_PAYMENTS
+    still_whole = SEEDED_PAYMENTS - SEEDED_FULL_REFUNDS - SEEDED_PARTIAL_REFUNDS
+    assert Payment.objects.filter(status=PaymentStatus.SUCCEEDED).count() == still_whole
+    assert Payment.objects.filter(status=PaymentStatus.REFUNDED).count() == SEEDED_FULL_REFUNDS
+    partially = Payment.objects.filter(status=PaymentStatus.PARTIALLY_REFUNDED).count()
+    assert partially == SEEDED_PARTIAL_REFUNDS
 
 
 def test_seed_demo_covers_every_membership_status() -> None:
@@ -98,8 +106,10 @@ def test_seed_demo_covers_every_membership_status() -> None:
     _seed()
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
     assert counts[MembershipState.CURRENT] == 34
-    assert counts[MembershipState.EXPIRED] == 9
-    assert counts[MembershipState.NONE] == 5
+    # Two expired terms are canceled with a full refund; one of the two members
+    # held nothing else, so they fall back to no membership history at all.
+    assert counts[MembershipState.EXPIRED] == 8
+    assert counts[MembershipState.NONE] == 6
     lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
     assert len(lifetime) == 6
 

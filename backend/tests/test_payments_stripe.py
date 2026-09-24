@@ -1029,7 +1029,8 @@ def test_a_stripe_error_leaves_the_refund_failed(
             self, params: dict[str, Any], options: dict[str, Any] | None = None
         ) -> stripe.Refund:
             """Raise as the SDK does when the API call fails."""
-            raise stripe.APIConnectionError("boom")
+            # The stripe stubs leave APIConnectionError.__init__ untyped.
+            raise stripe.APIConnectionError("boom")  # type: ignore[no-untyped-call]
 
     def client() -> SimpleNamespace:
         return SimpleNamespace(v1=SimpleNamespace(refunds=RefusingRefunds()))
