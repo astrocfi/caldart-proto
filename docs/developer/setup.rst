@@ -418,6 +418,12 @@ Five commands must be green, and CI runs all five on every pull request:
 that type-checks but does not build. See
 :doc:`testing` for how the suites are organized.
 
+To read the documentation you just built, ``make read-docs`` builds it and
+opens ``docs/_build/html/index.html`` in your browser.  It runs
+``scripts/read-docs.sh``, which takes ``--open`` to open the built pages
+without rebuilding and ``--build`` to rebuild without opening, and honors
+``BROWSER`` when you would rather not use the platform default.
+
 Troubleshooting
 ===============
 

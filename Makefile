@@ -64,7 +64,7 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
         lint lint-backend \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
         audit audit-backend audit-frontend backup restore reminders docs shell superuser \
-        collectstatic clean
+        read-docs collectstatic clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -207,7 +207,7 @@ lint-backend: ## ruff check + ruff format --check + mypy
 # .claude, which codespell would otherwise skip for their leading dot.
 lint-spelling: ## codespell over docs, prose and code
 	$(UV) run codespell --check-hidden README.rst CLAUDE.md docs backend frontend/src \
-	  frontend/e2e frontend/scripts .github deploy .claude
+	  frontend/e2e frontend/scripts scripts .github deploy .claude
 
 lint-frontend: ## tsc --noEmit + eslint + prettier --check
 	cd frontend && $(NPM) run typecheck
@@ -282,6 +282,9 @@ reminders: ## Send renewal reminders (make reminders TODAY=2027-01-01 DRY_RUN=1)
 docs: ## Build the Sphinx documentation (nitpicky; warnings are errors)
 	$(UV) run sphinx-build -n -W -b html docs docs/_build/html
 	@echo "Docs at docs/_build/html/index.html"
+
+read-docs: ## Build the documentation and open it in a browser
+	./scripts/read-docs.sh
 
 clean: ## Remove build artifacts
 	rm -rf docs/_build frontend/dist backend/staticfiles
