@@ -117,7 +117,7 @@ def build_nav(request: HttpRequest) -> list[NavEntry]:
     ``kind="page"``, each carrying its own in-menu children as ``children`` for a
     drop-down.  A page behind the members-only wall is moved to the end as
     ``kind="portal"``, beside the portal link itself, which is the member portal
-    for a signed-in reader and Log in for everybody else.  An entry is ``active``
+    for a signed-in reader and Sign in for everybody else.  An entry is ``active``
     when the request path starts with its URL, and the home entry only when the
     path is exactly ``/``.
     """
@@ -146,7 +146,7 @@ def build_nav(request: HttpRequest) -> list[NavEntry]:
     signed_in = user is not None and user.is_authenticated
     entries.append(
         {
-            "title": PORTAL_TITLE if signed_in else "Log in",
+            "title": PORTAL_TITLE if signed_in else "Sign in",
             "url": "/portal/" if signed_in else "/portal/login",
             "active": False,
             "kind": "portal",

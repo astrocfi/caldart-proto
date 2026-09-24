@@ -89,7 +89,7 @@
             who you are and takes you to your own record.
           {% endcomment %}
           {% for item in nav %}{% if item.kind == "portal" %}
-            <li>
+            <li{% if item.children %} class="navbar__has-menu"{% endif %}>
               <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>
                 {% if user.is_authenticated and item.url == "/portal/" %}
                   Welcome, {% firstof user.first_name user.email %}
@@ -97,6 +97,13 @@
                   {{ item.title }}
                 {% endif %}
               </a>
+              {% if item.children %}
+                <ul class="navbar__menu navbar__menu--right">
+                  {% for child in item.children %}
+                    <li><a href="{{ child.url }}">{{ child.title }}</a></li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
             </li>
           {% endif %}{% endfor %}
         </ul>

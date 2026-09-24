@@ -378,7 +378,7 @@ Site Settings.  ``cms/<page_type>.html`` renders one page model,
 ``cms/blocks/*.html`` one StreamField block each, and
 ``cms/members_only_wall.html`` is what a visitor gets in place of a page they
 may not read.  The navigation comes from ``site_chrome``: the live top-level
-pages flagged *show in menus*, in tree order, then *Join* and either *Log in*
+pages flagged *show in menus*, in tree order, then *Join* and either *Sign in*
 or *Members*, depending on whether the visitor is signed in.
 
 ``base.html`` loads one bundle, ``frontend/src/site/main.ts``.  It imports

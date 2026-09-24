@@ -230,7 +230,7 @@ It is the one API call the SPA makes with no session, so it is ``AllowAny``.
      "nav": [
        {"title": "About", "url": "/about/", "active": false, "kind": "page"},
        {"title": "Join", "url": "/portal/join", "active": false, "kind": "portal"},
-       {"title": "Log in", "url": "/portal/login", "active": false, "kind": "portal"}
+       {"title": "Sign in", "url": "/portal/login", "active": false, "kind": "portal"}
      ],
      "members_pages": []
    }
@@ -238,7 +238,7 @@ It is the one API call the SPA makes with no session, so it is ``AllowAny``.
 ``nav`` entries carry a ``kind`` of ``page`` or ``portal``, which is how the
 public templates render content pages as links and Join and Members as
 buttons.  Wagtail pages come first; Join is always offered, and the last entry
-is Members for a signed-in reader and Log in for everybody else.  ``active`` is
+is Members for a signed-in reader and Sign in for everybody else.  ``active`` is
 true when the request path starts with the entry's URL, which never marks the
 home page.
 
