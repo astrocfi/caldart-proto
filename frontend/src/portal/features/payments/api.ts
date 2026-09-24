@@ -57,16 +57,26 @@ export function statementUrl(year: number): string {
  * SetupIntent secret, a PayPal vault setup token, or nothing at all for the mock
  * provider.  Nothing is charged, and the mandate stays `pending` until it is
  * confirmed.
+ *
+ * Pass `signal` to abandon the attempt.  One that fires before `fetch`
+ * dispatches, as an effect cleanup run straight after setup does, stops the
+ * request outright, so a StrictMode remount asks the provider for one session
+ * rather than two.
  */
+export function startRenewalSetup(
+  request: RenewalSetupRequest,
+  signal?: AbortSignal,
+): Promise<RenewalSetupResponse> {
+  return api.post<RenewalSetupResponse>('/me/renewal/setup', request, { signal });
+}
+
+/** {@link startRenewalSetup} as a mutation, for a panel that starts on a click. */
 export function useStartRenewalSetup(): UseMutationResult<
   RenewalSetupResponse,
   Error,
   RenewalSetupRequest
 > {
-  return useMutation({
-    mutationFn: (request: RenewalSetupRequest) =>
-      api.post<RenewalSetupResponse>('/me/renewal/setup', request),
-  });
+  return useMutation({ mutationFn: (request: RenewalSetupRequest) => startRenewalSetup(request) });
 }
 
 /**

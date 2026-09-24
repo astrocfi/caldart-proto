@@ -143,8 +143,8 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
             <span>Renew automatically each year</span>
           </label>
           <p className="checkout__fineprint muted">
-            We will email you 14 days before charging this card, and you can turn it off at any
-            time from Payments.
+            We will email you 14 days before charging this card, and you can turn it off at any time
+            from Payments.
           </p>
         </div>
       ) : null}

@@ -575,3 +575,71 @@ describe('Checkout · what a payment refreshes', () => {
     expect(client.getQueryState(AUTH_ME_KEY)?.isInvalidated).toBe(false);
   });
 });
+
+describe('Checkout · renewing automatically', () => {
+  it('offers the choice for a plan with a term, and starts it off', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+
+    const checkbox = await screen.findByRole('checkbox', {
+      name: 'Renew automatically each year',
+    });
+    expect(checkbox).not.toBeChecked();
+    expect(
+      screen.getByText(/We will email you 14 days before charging this card/),
+    ).toBeInTheDocument();
+  });
+
+  it('hides the choice for a membership that never expires', async () => {
+    const user = userEvent.setup();
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+
+    await user.click(await screen.findByRole('radio', { name: /Life/ }));
+
+    expect(
+      screen.queryByRole('checkbox', { name: 'Renew automatically each year' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('asks the server to save the method when the box is ticked', async () => {
+    const user = userEvent.setup();
+    serveConfig(config());
+    const requests = serveCheckout();
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT_MEMBERSHIP }),
+      ),
+    );
+
+    renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} />);
+    await user.click(
+      await screen.findByRole('checkbox', { name: 'Renew automatically each year' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() => expect(requests).toEqual([expect.objectContaining({ auto_renew: true })]));
+  });
+
+  it('never asks for a mandate the server would refuse on a lifetime plan', async () => {
+    const user = userEvent.setup();
+    serveConfig(config());
+    const requests = serveCheckout();
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT_MEMBERSHIP }),
+      ),
+    );
+
+    renderWithProviders(<Checkout mode="join" onSuccess={() => {}} />);
+    await user.click(
+      await screen.findByRole('checkbox', { name: 'Renew automatically each year' }),
+    );
+    await user.click(screen.getByRole('radio', { name: /Life/ }));
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() =>
+      expect(requests).toEqual([expect.objectContaining({ plan: 'life', auto_renew: false })]),
+    );
+  });
+});

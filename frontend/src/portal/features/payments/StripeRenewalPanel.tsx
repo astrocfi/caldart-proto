@@ -13,8 +13,9 @@ import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import { Button } from '@/portal/components/Button';
+import { isAbortError } from '@/portal/features/checkout/api';
 import { appearanceFromTokens, stripeFor } from '@/portal/features/checkout/StripePanel';
-import { useConfirmRenewal, useStartRenewalSetup } from './api';
+import { startRenewalSetup, useConfirmRenewal } from './api';
 import type { RenewalPanelProps } from './types';
 
 /** Where Stripe sends the browser back for a card that needs a bank confirmation. */
@@ -36,21 +37,20 @@ export function StripeRenewalPanel({
 }: StripeRenewalPanelProps): JSX.Element {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { mutateAsync: startSetup } = useStartRenewalSetup();
-
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const appearance = useMemo(() => appearanceFromTokens(), []);
 
   useEffect(() => {
-    // A selection the member changed while the first request was in flight must
-    // not overwrite the intent belonging to the selection they settled on.
-    let isCurrent = true;
+    const controller = new AbortController();
     setClientSecret(null);
     setError(null);
 
-    startSetup({ plan, contribution_cents: contributionCents, provider: 'stripe' })
+    startRenewalSetup(
+      { plan, contribution_cents: contributionCents, provider: 'stripe' },
+      controller.signal,
+    )
       .then((response) => {
-        if (!isCurrent) return;
+        if (controller.signal.aborted) return;
         if (response.provider !== 'stripe' || !response.client.client_secret) {
           setError('Stripe did not return a setup session. Please try again.');
           return;
@@ -58,16 +58,19 @@ export function StripeRenewalPanel({
         setClientSecret(response.client.client_secret);
       })
       .catch((caught: unknown) => {
-        if (!isCurrent) return;
+        if (isAbortError(caught) || controller.signal.aborted) return;
         setError(
           caught instanceof ApiError ? caught.message : 'Stripe could not start saving that card.',
         );
       });
 
+    // Abandon the request rather than only ignore its answer. A StrictMode
+    // remount aborts before `fetch` dispatches, so the member's pending
+    // authority is written once, not twice.
     return () => {
-      isCurrent = false;
+      controller.abort();
     };
-  }, [plan, contributionCents, startSetup]);
+  }, [plan, contributionCents]);
 
   if (error) {
     return (
