@@ -1,0 +1,96 @@
+/**
+ * A member turns automatic renewal on while paying, reads the standing
+ * authority on their Payments screen, downloads a receipt, and turns it off
+ * again.
+ *
+ * The account is created here rather than borrowed from the seed, because the
+ * seeded members already carry mandates of their own and this flow is about a
+ * member who has never had one.
+ */
+import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+import { SEED, formatCents, uniqueEmail } from './helpers';
+
+/** Steps 1 and 2 of the join wizard: an account, then a usable profile. */
+async function register(page: Page, email: string): Promise<void> {
+  await page.goto('/portal/join');
+  await page.getByRole('textbox', { name: 'First name' }).fill('Rosa');
+  await page.getByRole('textbox', { name: 'Last name' }).fill('Belmonte');
+  await page.getByRole('textbox', { name: 'Email address' }).fill(email);
+  await page.getByLabel(/^Password/).fill('a-long-demo-passphrase');
+  await page.getByRole('button', { name: 'Create account' }).click();
+
+  await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Phone', exact: true }).fill('650-555-0177');
+  await page.getByRole('textbox', { name: 'Address', exact: true }).fill('9 Runway Lane');
+  await page.getByRole('textbox', { name: 'City', exact: true }).fill('San Carlos');
+  await page.getByRole('textbox', { name: 'ZIP code', exact: true }).fill('94070');
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(page.getByRole('heading', { name: 'Pay your dues' })).toBeVisible();
+}
+
+/** The Automatic renewal card on `/portal/payments`. */
+function renewalCard(page: Page) {
+  return page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Automatic renewal' }) });
+}
+
+test('a member pays with renewal on, reads it, takes a receipt, and turns it off', async ({
+  page,
+}) => {
+  await register(page, uniqueEmail('renewer'));
+
+  // Pay with renewal on: the checkbox belongs to the annual plan, which is the
+  // default, and the mock provider stands in for a card.
+  await page.getByRole('checkbox', { name: 'Renew automatically each year' }).check();
+  await page.getByRole('tab', { name: 'Test payment' }).click();
+  await page.getByRole('button', { name: 'Succeed', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
+  await expect(page.getByText(/A receipt is on its way to your inbox/)).toBeVisible();
+
+  // The Payments screen names the saved method and what will be charged.
+  await page.goto('/portal/payments');
+  const card = renewalCard(page);
+  await expect(card.getByText('On', { exact: true })).toBeVisible();
+  await expect(card.getByText('Test card ending 4242, expires 12/2030')).toBeVisible();
+  await expect(card.getByText(formatCents(SEED.planPricesCents.annual))).toBeVisible();
+
+  // The receipt the email carried can be fetched again, and it is a PDF.
+  const receipt = page.getByRole('link', { name: 'Receipt' }).first();
+  const href = await receipt.getAttribute('href');
+  expect(href).not.toBeNull();
+  const response = await page.request.get(href ?? '');
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toBe('application/pdf');
+
+  // Turning it off asks first, and then the card says so.
+  await card.getByRole('button', { name: 'Turn off' }).click();
+  await page.getByRole('button', { name: 'Yes, turn it off' }).click();
+  await expect(page.getByText('Automatic renewal is off.').first()).toBeVisible();
+  await expect(card.getByText('Off', { exact: true })).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Turn on' })).toBeVisible();
+});
+
+test('a member turns automatic renewal on from the Payments screen alone', async ({ page }) => {
+  await register(page, uniqueEmail('later'));
+
+  // Pay without renewal, so the mandate is created on the Payments screen.
+  await page.getByRole('tab', { name: 'Test payment' }).click();
+  await page.getByRole('button', { name: 'Succeed', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
+
+  await page.goto('/portal/payments');
+  const card = renewalCard(page);
+  await expect(card.getByText('Off', { exact: true })).toBeVisible();
+
+  await card.getByRole('button', { name: 'Turn on' }).click();
+  await card.getByRole('tab', { name: 'Test payment method' }).click();
+  await card.getByRole('button', { name: 'Save this test card' }).click();
+
+  await expect(page.getByText('Automatic renewal is on.').first()).toBeVisible();
+  await expect(card.getByText('On', { exact: true })).toBeVisible();
+  await expect(card.getByText('Test card ending 4242, expires 12/2030')).toBeVisible();
+});

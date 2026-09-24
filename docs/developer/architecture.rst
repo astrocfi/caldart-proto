@@ -418,6 +418,7 @@ File                      Routes, and who may open them
                           in
 ``dashboard.tsx``         ``/``: signed in
 ``profile.tsx``           ``/profile``, ``/profile/aircraft``: signed in
+``payments.tsx``          ``/payments``: signed in
 ``leader.tsx``            ``/leader``, ``/leader/aircraft``: ``dart_leader`` or
                           ``account_admin``
 ``admin-members.tsx``     ``/admin/members``, ``/admin/members/new``,

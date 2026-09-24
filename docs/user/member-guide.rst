@@ -121,13 +121,23 @@ Member content
   you expected pages, check your membership status first.
 
 Recent payments
-  Your last five payments: date, plan, amount, and status.
+  Whether automatic renewal is on, and your last five payments: date, plan,
+  amount, and status.  **All payments, receipts and renewal** opens the
+  Payments screen.
 
 Quick links
   The rest of the portal, filtered to what your roles allow.  A plain
   member sees their profile, aircraft, and renewal; a DART leader also sees
   the member and aircraft checks; administrators see their sections too.
 
+
+Payments
+========
+
+**Payments** in the menu holds your money: whether |org| renews your membership
+for you, everything you have paid, a **Receipt** link for each of those
+payments, and a contribution statement for each calendar year you gave in.
+:doc:`payments` walks through all three.
 
 Renewing
 ========

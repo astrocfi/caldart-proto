@@ -83,6 +83,28 @@ If your membership has already lapsed, the new term starts today.
 
 Life members have nothing to renew.
 
+The Payments screen
+-------------------
+
+**Payments** in the portal menu is where your money lives.  It has three cards,
+in the order they matter:
+
+**Automatic renewal** says whether |org| will renew your membership for you, and
+carries the buttons that change that.  The next section covers it.
+
+**Your payments** lists everything you have paid |org|, newest first: the date,
+what it bought, the amount, what has been refunded if anything has, the status,
+and a **Receipt** link.  The link downloads the same PDF the receipt email
+carried.  A payment that never settled -- one that failed, or one still in
+flight -- has no receipt, because no money arrived.
+
+**Contribution statements** offers one button per calendar year you contributed
+in.
+
+Your dashboard's **Recent payments** card shows the last five and links here for
+the rest; the line above them says whether automatic renewal is on and, when it
+is, what the next charge comes to and when.
+
 Renewing automatically
 ----------------------
 
@@ -90,10 +112,15 @@ You can ask |org| to renew your Annual membership for you, so it never lapses
 because a reminder arrived in a busy week.
 
 **Turning it on.**  Tick **Renew automatically each year** at the checkout, and
-the card or PayPal account you pay with is saved for next time.  Or turn it on
-without paying anything: **Payments** in the portal menu has an **Automatic
-renewal** card with a **Turn on** button, which asks for a payment method and
-for the contribution you would like renewed alongside your dues.
+the card or PayPal account you pay with is saved for next time.  The box appears
+for a membership with a term and not for a membership for life, which has
+nothing to renew.
+
+Or turn it on without paying anything: **Turn on** on the **Automatic renewal**
+card opens the same choices the checkout offers -- the plan that will renew, the
+contribution to renew beside it, and a tab per payment method -- and saves the
+method without charging it.  The card then states what each year's charge will
+come to before you save anything.
 
 **What happens then.**  The day before your membership runs out, |org| charges
 the saved method for that year's dues plus your contribution, and your coverage
@@ -113,20 +140,21 @@ While automatic renewal is on you do not get the ordinary renewal reminders —
 the renewal emails cover that term instead.
 
 **Changing or stopping it.**  The **Automatic renewal** card on the Payments
-screen shows the method, the next charge date and the amount.  **Change
-contribution** adjusts what is renewed alongside your dues; the dues themselves
-are whatever the plan costs on the day.  **Turn off** stops it, and takes effect
-immediately: nothing further is charged, the saved method is dropped, and your
-membership still runs to the end of the term you have paid for.  The ordinary
-reminders resume.
+screen shows the method, the plan, the contribution, the next charge date and
+the amount.  **Change contribution** adjusts what is renewed alongside your
+dues; the dues themselves are whatever the plan costs on the day.  **Turn off**
+asks you to confirm and then stops it, immediately: nothing further is charged,
+the saved method is dropped, and your membership still runs to the end of the
+term you have paid for.  The ordinary reminders resume.
 
 **If a charge is refused.**  You get an email saying why — "Your card was
 declined", or whatever the bank told us — and |org| tries again the next day,
 three days after that, and a week after that.  If all four attempts are refused,
 automatic renewal switches itself off, you are told so, and the ordinary renewal
 reminders take over.  Nothing about your current membership changes; it simply
-runs to its end date as it would have anyway.  Save a new card from the Payments
-screen and turn it back on whenever you like.
+runs to its end date as it would have anyway.  The card on the Payments screen
+then reads **Stopped** and repeats the reason the last charge was refused;
+**Turn on again** saves another method and starts it up.
 
 **If a charge is late.**  If |org| misses a charge date — the overnight job was
 not running, say — the next run catches up: your membership is renewed on the
@@ -158,8 +186,9 @@ services were provided in exchange for this contribution* — the wording your
 accountant looks for.  Membership dues are shown as dues, because a membership
 is something you received.
 
-If the email never arrived, or you deleted it, every receipt can be downloaded
-again from **Payments** in the portal.  Ask the office to send one again if you
+The join wizard's last step says the receipt is on its way, and links to the
+Payments screen.  If the email never arrived, or you deleted it, every receipt
+can be downloaded again from the **Receipt** link on its row there.  Ask the office to send one again if you
 would rather have it in your inbox.
 
 Contribution statements

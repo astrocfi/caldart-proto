@@ -87,3 +87,28 @@ test('a signed-out visitor is asked to sign in and comes back where they were', 
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/portal\/profile$/);
 });
+
+test('a member reads their payments, and every settled one offers its receipt', async ({
+  page,
+}) => {
+  await signIn(page, DEMO.member);
+
+  await page
+    .getByRole('navigation', { name: 'Portal sections' })
+    .getByRole('link', {
+      name: 'Payments',
+    })
+    .click();
+  await expect(page).toHaveURL(/\/portal\/payments$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Payments' })).toBeVisible();
+
+  // The seeded member has paid dues more than once, so the table has rows and
+  // each settled row carries a receipt.
+  const receipts = page.getByRole('link', { name: 'Receipt' });
+  await expect(receipts.first()).toBeVisible();
+
+  const href = await receipts.first().getAttribute('href');
+  const response = await page.request.get(href ?? '');
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toBe('application/pdf');
+});
