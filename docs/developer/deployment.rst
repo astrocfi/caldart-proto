@@ -644,6 +644,17 @@ Action                        Fields beyond actor and target
 ``db.reset``                  ``database``, ``seeded``
 ``reminders.run``             ``dry_run``, ``sent``, ``skipped``, ``failed``,
                               ``expired_flipped``
+``payment.record``            ``provider``, ``wallet``, ``amount_cents``,
+                              ``plan``
+``payment.refund``            ``amount_cents``, ``reason``, ``term_canceled``
+``payment.reconcile``         ``reconciled`` -- whether it is now matched
+``payment.receipt_resend``    --
+``payment.note``              --
+``renewal.enable``            ``provider``, ``plan``
+``renewal.cancel``            ``provider``, ``self_service`` -- whether the
+                              member turned it off themselves
+``renewals.run``              ``dry_run``, ``noticed``, ``charged``,
+                              ``failed``, ``paused``, ``skipped``
 ============================= ===============================================
 
 An action is recorded only when it really alters the record.  The admin account

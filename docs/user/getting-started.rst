@@ -72,6 +72,10 @@ Role                 What it adds
                      , certificate, and aircraft insurance currency.
 ``user_admin``       List accounts, assign roles, activate and
                      deactivate, and trigger password resets.
+``treasurer``        The money: every payment, fee, refund, and automatic
+                     renewal; issue refunds, record payments taken by
+                     check or cash, reconcile a period against the bank
+                     statement, and run the financial reports.
 ``account_admin``    Create, edit, and delete members, grant membership
                      terms by hand, maintain aircraft and payments, read
                      the renewal reminder log, run reports, and check

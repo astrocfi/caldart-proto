@@ -58,6 +58,9 @@ The demo accounts all use the password ``caldart-demo``:
    * - ``useradmin@example.org``
      - Nina Kowalski
      - ``member``, ``user_admin``; current
+   * - ``treasurer@example.org``
+     - Lucia Ferreira
+     - ``member``, ``treasurer``; no membership term
    * - ``accountadmin@example.org``
      - Curtis Whitfield
      - ``member``, ``account_admin``; lifetime

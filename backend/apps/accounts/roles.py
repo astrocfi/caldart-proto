@@ -8,6 +8,7 @@ editor permissions.
 MEMBER = "member"
 DART_LEADER = "dart_leader"
 USER_ADMIN = "user_admin"
+TREASURER = "treasurer"
 ACCOUNT_ADMIN = "account_admin"
 WEBSITE_ADMIN = "website_admin"
 SYSTEM_ADMIN = "system_admin"
@@ -25,6 +26,10 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
     ),
     USER_ADMIN: (
         "List users, assign roles, activate or deactivate accounts, and trigger password resets."
+    ),
+    TREASURER: (
+        "See every payment, fee, refund, and renewal; issue refunds, record "
+        "payments taken by hand, reconcile periods, and run the financial reports."
     ),
     ACCOUNT_ADMIN: (
         "Create, edit, and delete members and profiles, grant or extend "

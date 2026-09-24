@@ -91,3 +91,30 @@ def test_names_a_member_for_each_leader_check_case(
     assert facts["insuredPilot"] == {"name": "Ivy North", "nNumber": "N111AA"}
     assert facts["lapsedInsurance"] == {"name": "Ola South", "nNumber": "N222BB"}
     assert facts["expiredMember"]["name"] == "Eli West"
+
+
+def test_a_plane_with_no_policy_on_file_is_not_a_lapsed_policy(
+    capsys: pytest.CaptureFixture[str], annual_plan: MembershipPlan, today: date
+) -> None:
+    """``lapsedInsurance`` needs an expiration date in the past, not a blank one.
+
+    An airframe with nothing on file reads as "No insurance on file" in the portal,
+    not as expired cover, so naming its owner would send the leader-check spec
+    looking for words that are not on the screen.
+    """
+    day = timedelta(days=1)
+    nothing_on_file = UserFactory(email="blank@example.test", first_name="Ada", last_name="Ames")
+    MemberProfileFactory(user=nothing_on_file).aircraft.add(
+        AircraftFactory(n_number="N333CC", insurance_expiration=None)
+    )
+    MembershipFactory(user=nothing_on_file, plan=annual_plan, starts_on=today - day)
+
+    lapsed_cover = UserFactory(email="cover@example.test", first_name="Ola", last_name="South")
+    MemberProfileFactory(user=lapsed_cover).aircraft.add(
+        AircraftFactory(n_number="N222BB", insurance_expiration=today - 10 * day)
+    )
+    MembershipFactory(user=lapsed_cover, plan=annual_plan, starts_on=today - day)
+
+    facts = read_facts(capsys)["leaderCheck"]
+
+    assert facts["lapsedInsurance"] == {"name": "Ola South", "nNumber": "N222BB"}

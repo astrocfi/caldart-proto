@@ -400,12 +400,21 @@ rules govern every gate in the matrix below:
 Views declare their gates with the permission classes in
 ``apps/accounts/permissions.py``.  ``HasRole(slug)`` and ``HasAnyRole(*slugs)``
 are factories that return a DRF permission class; ``IsUserAdmin``
-, ``IsAccountAdmin``, and ``IsSystemAdmin`` are ready-made ones, and
-``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check.  Every one
+, ``IsAccountAdmin``, ``IsFinance``, and ``IsSystemAdmin`` are ready-made ones,
+and ``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check.
+``IsFinance`` is ``HasAnyRole(TREASURER, ACCOUNT_ADMIN)`` and guards every
+``/admin/payments`` and ``/admin/renewals`` endpoint.  Every one
 of them runs its test through ``user_has_any_role``, so an anonymous caller
 always fails and the two rules above always hold.  Object-level rules, such
 as who may edit an aircraft record, are separate classes in the owning app
 (``apps/aircraft/api/permissions.py``).
+
+``treasurer`` grants the finance area and nothing else.  It is deliberately
+kept away from ``/admin/members/*``, which carries medical and certificate
+data, so a volunteer who keeps the books reads the money without reading
+anybody's medical currency.  An ``account_admin`` holds both.  Like every slug
+in ``STAFF_ROLE_SLUGS`` it does widen one thing outside the API: the holder
+reads the website's members-only pages whatever their own membership says.
 
 ``website_admin`` grants **no API endpoint at all**.  It exists to give its
 holder Wagtail admin permissions, which are enforced by Wagtail, not by DRF.
@@ -431,16 +440,18 @@ not (see :ref:`api-csrf-bootstrap`).
 
 .. list-table::
    :header-rows: 1
-   :widths: 34 10 10 10 10 10 16
+   :widths: 26 7 7 7 7 7 7 15
 
    * - Endpoint
      - anon
      - member
      - dart_leader
      - user_admin
+     - treasurer
      - account_admin
      - Notes
    * - ``GET /auth/csrf``
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -453,8 +464,10 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      - throttled; signs the caller in
    * - ``POST /auth/login``
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -467,9 +480,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      - 204 even when anonymous
    * - ``GET /auth/me``
      - ·
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -481,8 +496,10 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      - keeps the session alive
    * - ``POST /auth/password/reset``
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -495,9 +512,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      - throttled
    * - ``GET /roles``
      - ·
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -509,12 +528,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - ·
+     - ·
      -
    * - ``GET | PATCH /admin/users/{id}``
      - ·
      - ·
      - ·
      - ✓
+     - ·
      - ·
      - ``PUT`` → 405
    * - ``POST /admin/users/{id}/send-password-reset``
@@ -523,8 +544,10 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - ·
+     - ·
      -
    * - ``GET /darts``, ``GET /plans``
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -537,9 +560,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      - ``members_pages`` gated on content access
    * - ``GET | PUT | PATCH /me/profile``
      - ·
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -551,9 +576,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      - 200 with the new list
    * - ``DELETE /me/profile/aircraft/{id}``
      - ·
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -565,8 +592,50 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      -
+   * - ``GET /me/payments/{id}/receipt.pdf``
+     - ·
+     - owner
+     - owner
+     - owner
+     - owner
+     - owner
+     - your own receipt, as a PDF; 404 for anyone else's
+   * - ``GET /me/payments/statements``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the years you may download a statement for
+   * - ``GET /me/payments/statements/{year}.pdf``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - 404 for a year with no contribution
+   * - ``GET | PATCH | DELETE /me/renewal``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - your own automatic renewal
+   * - ``POST /me/renewal/setup``, ``POST /me/renewal/confirm``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - turns automatic renewal on without paying
    * - ``GET | POST /admin/members``
+     - ·
      - ·
      - ·
      - ·
@@ -578,9 +647,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
+     - ·
      - ✓
      - ``PUT`` → 405; delete is a hard delete
    * - ``GET | POST /admin/darts``
+     - ·
      - ·
      - ·
      - ·
@@ -592,9 +663,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
+     - ·
      - ✓
      - delete refused while anything points at it
    * - ``POST /admin/members/{id}/memberships``
+     - ·
      - ·
      - ·
      - ·
@@ -606,9 +679,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
+     - ·
      - ✓
      - only ``ends_on``, ``status``, ``note``
    * - ``GET /admin/members/export.{csv,pdf}``
+     - ·
      - ·
      - ·
      - ·
@@ -621,9 +696,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      - any member may add an airframe
    * - ``GET /aircraft/lookup``
      - ·
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -635,15 +712,18 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      - ``pilots`` only for leaders/admins
    * - ``PATCH | PUT /aircraft/{id}``
      - ·
      - creator
      - creator
      - creator
+     - creator
      - ✓
      - object-level
    * - ``DELETE /aircraft/{id}``
+     - ·
      - ·
      - ·
      - ·
@@ -655,12 +735,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
+     - ·
      - ✓
      - not ``dart_leader``
    * - ``GET /leader/search``
      - ·
      - ·
      - ✓
+     - ·
      - ·
      - ✓
      - param is ``q``; max 20
@@ -669,6 +751,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - ·
+     - ·
      - ✓
      -
    * - ``GET /leader/aircraft``
@@ -676,10 +759,12 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - ·
+     - ·
      - ✓
      - always includes ``pilots``
    * - ``GET /payments/config``
      - ·
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -691,9 +776,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - ✓
      - server recomputes the total
    * - ``POST /payments/stripe/confirm``
      - ·
+     - owner
      - owner
      - owner
      - owner
@@ -705,9 +792,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - owner
      - owner
      - owner
+     - owner
      - owner only, whatever the role; 404 for anyone else's
    * - ``POST /payments/mock/complete``
      - ·
+     - owner
      - owner
      - owner
      - owner
@@ -718,9 +807,11 @@ not (see :ref:`api-csrf-bootstrap`).
      - owner
      - owner
      - owner
+     - owner
      - ✓
      - 403 for a non-owner without the role
    * - ``POST /payments/{stripe,paypal}/webhook``
+     - ✓
      - ✓
      - ✓
      - ✓
@@ -733,12 +824,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
+     - ✓
      -
    * - ``GET /admin/payments/summary``
      - ·
      - ·
      - ·
      - ·
+     - ✓
      - ✓
      - succeeded payments only
    * - ``GET /admin/payments/export.csv``
@@ -747,15 +840,154 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
+     - ✓
      - all statuses
+   * - ``GET /admin/payments/columns``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - the export's column registry
+   * - ``GET /admin/payments/export.pdf``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - all statuses; ``?columns=`` applies
+   * - ``GET /admin/payments/reconciliation``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - one row per period or provider
+   * - ``GET /admin/payments/reconciliation/export.{csv,pdf}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - the same rows
+   * - ``GET /admin/payments/contributions``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - one row per contributing member
+   * - ``GET /admin/payments/contributions/export.{csv,pdf}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - the same rows
+   * - ``GET | PATCH /admin/payments/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - the full finance row; ``PATCH`` takes ``reconciled_on`` and ``note``
+   * - ``POST /admin/payments/record``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - a payment taken by check or cash
+   * - ``POST /admin/payments/{id}/receipt``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - resends the receipt email
+   * - ``GET /admin/payments/{id}/receipt.pdf``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - any member's receipt
+   * - ``POST /admin/payments/{id}/refunds``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - issues a refund
+   * - ``GET /admin/payments/ledger/{user_id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - one member's whole money history
+   * - ``GET /admin/payments/ledger/{user_id}/statements/{year}.pdf``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - any member's statement
+   * - ``GET /admin/renewals``, ``GET /admin/renewals/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - the mandates
+   * - ``DELETE /admin/renewals/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - turns a member's renewal off
+   * - ``GET /admin/renewals/attempts``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - the scheduled and finished charges
    * - ``GET /admin/reminders/log``
+     - ·
      - ·
      - ·
      - ·
      - ·
      - ✓
      - also ``system_admin``
+   * - ``POST /system/renewals/run``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
    * - ``POST /system/reminders/run``
+     - ·
      - ·
      - ·
      - ·
@@ -768,6 +1000,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
+     - ·
      - ``system_admin`` only
    * - ``GET | POST /system/backups``
      - ·
@@ -775,8 +1008,10 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ·
+     - ·
      - ``system_admin`` only
    * - ``GET /system/backups/{name}/download``
+     - ·
      - ·
      - ·
      - ·

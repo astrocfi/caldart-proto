@@ -311,3 +311,32 @@ def test_no_role_user_is_refused_role_gated_endpoints(
     """Role-gated endpoints answer 403, not 401: the session is real, the role is not."""
     api_client.force_login(no_role_user)
     assert api_client.get(url).status_code == 403
+
+
+# --------------------------------------------------------------------------
+# The treasurer: the money, and nothing else
+# --------------------------------------------------------------------------
+#: Role-gated endpoints outside the finance area, which a treasurer may not reach.
+TREASURER_DENIED_GETS = [
+    MEMBERS_LIST_URL,
+    USERS_LIST_URL,
+    "/api/v1/admin/members/export.csv",
+    "/api/v1/admin/aircraft/export.csv",
+    "/api/v1/admin/darts",
+    "/api/v1/admin/reminders/log",
+    "/api/v1/leader/search",
+    "/api/v1/system/health",
+]
+
+
+@pytest.mark.parametrize("url", TREASURER_DENIED_GETS)
+def test_treasurer_is_refused_every_endpoint_outside_the_finance_area(
+    treasurer_client: APIClient, url: str
+) -> None:
+    """The finance role carries the money screens only: everything else answers 403."""
+    assert treasurer_client.get(url).status_code == 403
+
+
+def test_treasurer_reaches_the_finance_reports(treasurer_client: APIClient) -> None:
+    """The payment summary is finance's own, so the treasurer reads it."""
+    assert treasurer_client.get("/api/v1/admin/payments/summary").status_code == 200

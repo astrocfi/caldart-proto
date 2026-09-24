@@ -51,7 +51,8 @@ Domain schema
                 abstract model it inherits.  ``TimestampedModel`` is drawn
                 once rather than eight times: ``Dart``, ``DartContact``,
                 ``MemberProfile``, ``MembershipPlan``, ``Membership``,
-                ``Aircraft``, ``Payment``, and ``ReminderLog`` all inherit it.
+                ``Aircraft``, ``Payment``, ``Refund``, ``RenewalMandate``,
+                ``RenewalAttempt``, and ``ReminderLog`` all inherit it.
       :alt: Entity-relationship diagram of the CalDART domain models
 
       digraph caldart_domain {
@@ -73,7 +74,10 @@ Domain schema
           Contact [label="darts.DartContact\l  name, title, phone, email\l  sort_order\l"];
           Plan [label="members.MembershipPlan\l  name (unique), slug (unique)\l  price_cents, duration_days\l"];
           Membership [label="members.Membership\l  starts_on, ends_on\l  status, source\l"];
-          Payment [label="payments.Payment\l  amount_cents, provider\l  wallet, status, provider_ref\l"];
+          Payment [label="payments.Payment\l  amount_cents, fee_cents, net_cents\l  provider, wallet, status, provider_ref\l  received_on, reconciled_on, note\l"];
+          Refund [label="payments.Refund\l  amount_cents, reason, note\l  status, provider_ref, refunded_at\l"];
+          Mandate [label="payments.RenewalMandate\l  provider, method_ref, method_label\l  status, failure_count\l  contribution_cents\l"];
+          Attempt [label="payments.RenewalAttempt\l  scheduled_on, outcome, error\l  noticed_at, attempted_at\l  result_emailed_at\l"];
           Aircraft [label="aircraft.Aircraft\l  n_number (unique)\l  make, model, insurance_*\l"];
           Reminder [label="reminders.ReminderLog\l  kind, sent_at, to_email\l  (user, membership, kind) unique\l"];
           DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
@@ -88,6 +92,15 @@ Domain schema
           Membership -> Payment [label="payment  1--1 (null, SET_NULL)", arrowhead=none];
           Payment -> User [label="user (PROTECT)"];
           Payment -> Plan [label="plan (null, PROTECT)"];
+          Payment -> User [label="reconciled_by, recorded_by (null, SET_NULL)"];
+          Refund -> Payment [label="payment (PROTECT)\lrelated: refunds"];
+          Refund -> User [label="requested_by (null, SET_NULL)"];
+          Mandate -> User [label="user  1--1, CASCADE", arrowhead=none];
+          Mandate -> Plan [label="plan (PROTECT)"];
+          Attempt -> Mandate [label="mandate (CASCADE)\lrelated: attempts"];
+          Attempt -> Membership [label="membership (CASCADE)"];
+          Attempt -> Payment [label="payment (null, SET_NULL)"];
+          Attempt -> Attempt [label="retry_of (null, SET_NULL)"];
           Aircraft -> User [label="created_by (null, SET_NULL)"];
           Reminder -> User [label="user (CASCADE)"];
           Reminder -> Membership [label="membership (CASCADE)"];
@@ -113,7 +126,8 @@ Domain schema
       caldart.TimestampedModel   created_at, updated_at
                                  inherited by Dart, DartContact, MemberProfile,
                                  MembershipPlan, Membership, Aircraft
-                                 , Payment, and ReminderLog
+                                 , Payment, Refund, RenewalMandate
+                                 , RenewalAttempt, and ReminderLog
       payments.Provider          start(payment), confirm(payment, **kwargs),
                                  handle_webhook(request)
                                  implemented by StripeProvider (slug stripe),
@@ -138,12 +152,19 @@ Domain schema
              ^                  |                   |
              | dart             |                   |
           cms.DartPage    members.Membership   payments.Payment ....> Provider
-                             |  |  |     '--- 1--1 ---'  |
-                             |  |  '-> members.MembershipPlan <-'
-                             |  |
-                             |  '--- granted_by --> accounts.User
+                             |  |  |     '--- 1--1 ---'  |  ^
+                             |  |  '-> members.MembershipPlan <-'  |
+                             |  |                                  | payment
+                             |  '--- granted_by --> accounts.User   '- payments.Refund
                              |
                              '--- reminders.ReminderLog --> accounts.User
+
+          payments.RenewalMandate --- 1--1 --- accounts.User
+                 ^          '--------> members.MembershipPlan
+                 | mandate
+          payments.RenewalAttempt --- membership --> members.Membership
+                 |  '-------- payment --> payments.Payment
+                 '----------- retry_of --> payments.RenewalAttempt
 
       Nodes and their key fields
       --------------------------
@@ -158,8 +179,15 @@ Domain schema
       members.MembershipPlan  name (unique), slug (unique), price_cents,
                               duration_days
       members.Membership      starts_on, ends_on, status, source
-      payments.Payment        amount_cents, provider, wallet, status,
-                              provider_ref
+      payments.Payment        amount_cents, fee_cents, net_cents, provider,
+                              wallet, status, provider_ref, received_on,
+                              reconciled_on, note
+      payments.Refund         amount_cents, reason, note, status,
+                              provider_ref, refunded_at
+      payments.RenewalMandate provider, method_ref, method_label, status,
+                              failure_count, contribution_cents
+      payments.RenewalAttempt scheduled_on, outcome, error, noticed_at,
+                              attempted_at, result_emailed_at
       aircraft.Aircraft       n_number (unique), make, model, insurance_*
       reminders.ReminderLog   kind, sent_at, to_email;
                               (user, membership, kind) unique together
@@ -180,6 +208,16 @@ Domain schema
       payments.Payment.user          -> accounts.User            FK, PROTECT
       payments.Payment.plan          -> members.MembershipPlan   FK, PROTECT, nullable
       payments.Payment.provider      -> payments.Provider        slug, via get_provider()
+      payments.Payment.reconciled_by -> accounts.User            FK, SET_NULL, nullable
+      payments.Payment.recorded_by   -> accounts.User            FK, SET_NULL, nullable
+      payments.Refund.payment        -> payments.Payment         FK, PROTECT, related name refunds
+      payments.Refund.requested_by   -> accounts.User            FK, SET_NULL, nullable
+      payments.RenewalMandate.user   -> accounts.User            1--1, CASCADE
+      payments.RenewalMandate.plan   -> members.MembershipPlan   FK, PROTECT
+      payments.RenewalAttempt.mandate    -> payments.RenewalMandate  FK, CASCADE, related name attempts
+      payments.RenewalAttempt.membership -> members.Membership       FK, CASCADE
+      payments.RenewalAttempt.payment    -> payments.Payment         FK, SET_NULL, nullable
+      payments.RenewalAttempt.retry_of   -> payments.RenewalAttempt  FK, SET_NULL, nullable
       aircraft.Aircraft.created_by   -> accounts.User            FK, SET_NULL, nullable
       reminders.ReminderLog.user     -> accounts.User            FK, CASCADE
       reminders.ReminderLog.membership -> members.Membership     FK, CASCADE
@@ -417,6 +455,10 @@ descriptions live in ``apps/accounts/roles.py``:
    * - ``user_admin``
      - \+ list users, assign roles, activate or deactivate accounts, trigger
        password resets
+   * - ``treasurer``
+     - \+ see every payment, fee, refund, and renewal; issue refunds, record
+       payments taken by hand, reconcile periods, and run the financial
+       reports
    * - ``account_admin``
      - \+ create, edit, and delete members and profiles, grant or extend
        memberships manually, manage aircraft, and run payment, membership and
@@ -912,20 +954,47 @@ One attempt to pay for a membership term, make a contribution, or both.
    * - ``currency``
      - ``"usd"``
    * - ``provider``
-     - ``stripe``, ``paypal``, ``mock``
+     - ``stripe``, ``paypal``, ``mock``, ``manual`` (recorded by hand)
    * - ``wallet``
      - how the member paid: ``card``, ``apple_pay``, ``google_pay``, or
        ``link`` from the Stripe charge (:doc:`payments-setup`), ``paypal``
-       for PayPal, ``mock`` for the mock provider, and ``unknown`` (the
-       default) when the provider does not say
+       for PayPal, ``mock`` for the mock provider, ``check``, ``cash``,
+       ``bank_transfer`` or ``other`` for a payment recorded by hand, and
+       ``unknown`` (the default) when the provider does not say
    * - ``provider_ref``
      - PaymentIntent id or PayPal order id
    * - ``status``
-     - ``pending``, ``succeeded``, ``failed``, ``refunded``
+     - ``pending``, ``succeeded``, ``failed``, ``partially_refunded``,
+       ``refunded``
    * - ``completed_at``
      - nullable datetime, set when the payment succeeds
+   * - ``fee_cents``
+     - the provider's fee, as the provider reported it
+   * - ``net_cents``
+     - what reached CalDART's balance, as the provider reported it
+   * - ``receipt_sent_at``
+     - nullable datetime — when CalDART's own receipt was last emailed
+   * - ``received_on``
+     - nullable date — for a payment recorded by hand, the day the money
+       arrived
+   * - ``reconciled_on``
+     - nullable date — when a treasurer matched it to a bank statement
+   * - ``reconciled_by``
+     - FK ``User``, ``SET_NULL``, nullable — who matched it
+   * - ``note``
+     - a treasurer's note: the check number, the reason for a manual entry
+   * - ``recorded_by``
+     - FK ``User``, ``SET_NULL``, nullable — the administrator who recorded a
+       payment taken by hand
    * - ``raw``
      - ``JSONField`` — the last provider payload, for forensics
+
+**Derived, not stored.**  ``refunded_cents`` is the sum of the payment's
+succeeded refunds; ``kind`` is ``membership``, ``contribution`` or ``both``,
+read from the plan and the contribution; ``paid_on`` is the ledger date, which
+is ``received_on`` for a payment recorded by hand and the local date of
+``completed_at`` for every other provider; and ``receipt_number`` is
+``CALDART-`` followed by the id padded to six digits.
 
 **Invariants.**
 
@@ -950,8 +1019,11 @@ One attempt to pay for a membership term, make a contribution, or both.
   sends the operator back to the users listing with that same sentence as an
   error message; one protected account refuses a whole bulk batch, because the
   bulk delete is a single query that cannot succeed in part.
-- ``refunded`` is a value the schema accepts; nothing in the prototype sets it
-  (see :doc:`roadmap`).
+- ``partially_refunded`` and ``refunded`` say how much of the payment has been
+  given back; the ``Refund`` rows beneath it carry the amounts, and
+  ``refunded_cents`` adds the succeeded ones up.  Both are values the schema
+  accepts and nothing yet writes: the service that issues a refund is described
+  in :doc:`roadmap`.
 
 Contribution tiers are a module constant, not a table:
 ``CONTRIBUTION_TIERS`` in ``apps/payments/models.py`` — No contribution,
@@ -975,6 +1047,129 @@ changes a payment's state:
 ``record_provider_event(payment, payload)``
     Files a notification under ``raw["last_webhook"]`` without changing state.
     The PayPal webhook is a recorder; the capture call is the authority.
+
+``Refund``
+----------
+
+Money given back against one payment, in whole or in part.  A payment may carry
+several.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 36 64
+
+   * - Field
+     - Notes
+   * - ``payment``
+     - FK, ``PROTECT``, related name ``refunds``
+   * - ``amount_cents``
+     - what was given back
+   * - ``reason``
+     - ``requested_by_member``, ``duplicate``, ``error``, ``fraudulent``,
+       ``other``
+   * - ``note``
+     - the treasurer's own sentence, blank by default
+   * - ``status``
+     - ``pending``, ``succeeded``, ``failed``
+   * - ``provider_ref``
+     - the Stripe or PayPal refund id; blank for a manual or mock refund
+   * - ``requested_by``
+     - FK ``User``, ``SET_NULL``, nullable — ``NULL`` when the refund was
+       issued in the provider's own dashboard and reached CalDART by webhook
+   * - ``refunded_at``
+     - nullable datetime, set when the provider confirms it
+   * - ``raw``
+     - ``JSONField`` — the provider's refund payload
+
+**Invariants.**
+
+- A payment's succeeded refunds never total more than its ``amount_cents``.
+  The rule lives in the refund service rather than in the database, because it
+  is a sum across rows.
+- ``payment`` is ``PROTECT`` for the same reason ``Payment.user`` is: a refund
+  is a financial record, and the payment it reverses cannot be deleted out from
+  under it.
+
+``RenewalMandate``
+------------------
+
+One member's standing authority for CalDART to renew their membership each
+year from a saved payment method.  ``OneToOneField`` on the user, related name
+``renewal_mandate``, so a member holds at most one.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 36 64
+
+   * - Field
+     - Notes
+   * - ``user``
+     - one-to-one, ``CASCADE``
+   * - ``plan``
+     - FK, ``PROTECT`` — always a plan with a duration; a lifetime membership
+       never renews
+   * - ``contribution_cents``
+     - renewed alongside the dues
+   * - ``provider``
+     - ``stripe``, ``paypal`` or ``mock``
+   * - ``customer_ref``
+     - Stripe customer id / PayPal payer id
+   * - ``method_ref``
+     - Stripe payment method id / PayPal vault id
+   * - ``method_brand``, ``method_last4``, ``method_exp_month``,
+       ``method_exp_year``
+     - the card's details; blank and ``NULL`` for PayPal
+   * - ``method_label``
+     - what the member sees: "Visa ending 4242, expires 03/2028"
+   * - ``status``
+     - ``pending`` (created at checkout), ``active``, ``paused`` (the retries
+       ran out), ``canceled``
+   * - ``failure_count``
+     - consecutive failed charges; reset on success
+   * - ``canceled_at``, ``canceled_by``
+     - who turned it off: the member themselves, or an administrator
+   * - ``last_charged_at``
+     - the last successful charge
+   * - ``raw``
+     - ``JSONField`` — the provider's payload for the saved method
+
+``RenewalAttempt``
+------------------
+
+One scheduled charge against a mandate, and the row every renewal email is
+keyed on.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 36 64
+
+   * - Field
+     - Notes
+   * - ``mandate``
+     - FK, ``CASCADE``, related name ``attempts``
+   * - ``membership``
+     - FK, ``CASCADE`` — the term whose expiry this charge renews
+   * - ``scheduled_on``
+     - the day the charge is due
+   * - ``retry_of``
+     - FK to another attempt, ``SET_NULL``, nullable — the attempt this one
+       retries
+   * - ``outcome``
+     - ``scheduled``, ``succeeded``, ``failed``, ``skipped``
+   * - ``payment``
+     - FK ``Payment``, ``SET_NULL``, nullable until the charge is made
+   * - ``error``
+     - the provider's decline reason, in the words the member is shown
+   * - ``noticed_at``
+     - when the advance-warning email went out
+   * - ``attempted_at``
+     - when the charge was tried
+   * - ``result_emailed_at``
+     - when the charged or failed email went out
+
+The three timestamps are what make the scanner idempotent: an email goes out
+only when its own stamp is still ``NULL``, so a scan that runs twice in one day
+sends nothing twice.
 
 reminders
 =========
@@ -1100,8 +1295,8 @@ rebuilds a development database from nothing in a few seconds.
 
 Two migrations do more than create tables and are worth knowing about:
 
-- ``accounts.0002_seed_roles`` runs the same ``seed_roles`` function, so the six
-  groups exist in any migrated database;
+- ``accounts.0002_seed_roles`` runs the same ``seed_roles`` function, so every
+  role group exists in any migrated database;
 - ``cms.0003_website_admin_permissions`` grants the ``website_admin`` group its
   Wagtail permissions, and ``seed_content`` calls the same function, so the
   grant is applied whichever route you take.

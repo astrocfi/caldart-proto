@@ -16,7 +16,7 @@ disagree, one of them is wrong — fix it in the same pull request.
 Features
 ========
 
-- **Accounts and roles.** Email-and-password sign-in, six roles held as
+- **Accounts and roles.** Email-and-password sign-in, seven roles held as
   Django groups, and self-service password reset.
 - **Membership.** Two plans — Annual at $45 for 365 days and Life at $650 —
   bought online and activated the instant the payment clears.
@@ -89,6 +89,7 @@ member@example.org             member (current membership)
 expired@example.org            member (expired membership)
 leader@example.org             member, dart_leader
 useradmin@example.org          member, user_admin
+treasurer@example.org          member, treasurer
 accountadmin@example.org       member, account_admin
 webadmin@example.org           member, website_admin
 sysadmin@example.org           member, system_admin (superuser)

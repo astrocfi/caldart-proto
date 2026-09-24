@@ -16,15 +16,29 @@ from django.core.management.base import BaseCommand
 
 from apps.accounts.models import User
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
+from apps.aircraft.models import Aircraft
 from apps.members.models import MembershipPlan, MembershipState
 from apps.members.services import membership_status
+
+
+def _has_lapsed_insurance(aircraft: Aircraft) -> bool:
+    """True when ``aircraft`` carries an expiration date that is already past.
+
+    An airframe with no expiration date on file is not lapsed: it has nothing on
+    file at all, which the portal says in those words rather than calling the
+    cover expired.
+    """
+    if aircraft.insurance_expiration is None:
+        return False
+    return not aircraft.insurance_is_current
 
 
 def _subject(*, insured: bool | None, current_member: bool) -> dict[str, str]:
     """A seeded member the leader check can be demonstrated on.
 
     ``insured`` picks somebody who lists an aircraft whose insurance is current
-    (``True``) or has lapsed (``False``), or anybody at all (``None``);
+    (``True``) or carries an expiration date that has passed (``False``), or
+    anybody at all (``None``);
     ``current_member`` picks somebody whose membership is current or is not.
     Returns ``{"name", "nNumber"}``, with an empty ``nNumber`` when the member
     lists no aircraft, and empty strings when nobody in the seed fits -- the
@@ -35,7 +49,10 @@ def _subject(*, insured: bool | None, current_member: bool) -> dict[str, str]:
         if is_current is not current_member:
             continue
         for aircraft in user.profile.aircraft.all():
-            if insured is None or aircraft.insurance_is_current is insured:
+            if insured is None:
+                return {"name": user.display_name, "nNumber": aircraft.n_number}
+            matches = aircraft.insurance_is_current if insured else _has_lapsed_insurance(aircraft)
+            if matches:
                 return {"name": user.display_name, "nNumber": aircraft.n_number}
         if insured is None:
             return {"name": user.display_name, "nNumber": ""}

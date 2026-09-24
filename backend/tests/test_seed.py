@@ -29,7 +29,7 @@ User = get_user_model()
 
 #: The payments ``seed_demo`` creates from its fixed random seed: one per term,
 #: all succeeded.
-SEEDED_PAYMENTS = 70
+SEEDED_PAYMENTS = 73
 
 #: Every test here runs `seed_demo`, which seeds the whole demo data set.
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
@@ -99,7 +99,7 @@ def test_seed_demo_covers_every_membership_status() -> None:
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
     assert counts[MembershipState.CURRENT] == 34
     assert counts[MembershipState.EXPIRED] == 9
-    assert counts[MembershipState.NONE] == 4
+    assert counts[MembershipState.NONE] == 5
     lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
     assert len(lifetime) == 6
 
@@ -115,11 +115,11 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
         for u in User.objects.all()
         if (e := membership_status(u)["expires_on"]) and today <= e <= soon
     ]
-    assert len(expiring) == 6
+    assert len(expiring) == 7
 
     profiles = MemberProfile.objects.exclude(medical_type="none")
-    assert sum(1 for p in profiles if not p.medical_is_current) == 15
-    assert sum(1 for p in profiles if p.medical_is_current) == 26
+    assert sum(1 for p in profiles if not p.medical_is_current) == 14
+    assert sum(1 for p in profiles if p.medical_is_current) == 28
     assert {p.pilot_certificate_type for p in MemberProfile.objects.all()} == {
         "none",
         "student",
@@ -136,7 +136,7 @@ def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
     _seed()
     providers = set(Payment.objects.values_list("provider", flat=True))
     assert providers == {"stripe", "paypal"}
-    assert Payment.objects.filter(contribution_cents__gt=0).count() == 29
+    assert Payment.objects.filter(contribution_cents__gt=0).count() == 30
     months = Payment.objects.dates("created_at", "month")
     oldest, newest = min(months), max(months)
     span = (newest.year - oldest.year) * 12 + newest.month - oldest.month

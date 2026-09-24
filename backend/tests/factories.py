@@ -38,7 +38,18 @@ from apps.members.models import (
     MembershipStatusChoices,
     PilotCertificateType,
 )
-from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
+from apps.payments.models import (
+    MandateStatus,
+    Payment,
+    PaymentProvider,
+    PaymentStatus,
+    PaymentWallet,
+    Refund,
+    RefundReason,
+    RefundStatus,
+    RenewalAttempt,
+    RenewalMandate,
+)
 from apps.reminders.models import ReminderKind, ReminderLog
 
 if TYPE_CHECKING:
@@ -235,6 +246,23 @@ class PaymentFactory(ModelFactory[Payment]):
         self.refresh_from_db(fields=["created_at"])
 
 
+class RefundFactory(ModelFactory[Refund]):
+    """Builds a succeeded 1,000-cent refund against a new succeeded payment.
+
+    The reason is ``requested_by_member`` and no provider reference is set, which is
+    what a mock or manual refund looks like.
+    """
+
+    class Meta:
+        model = Refund
+
+    payment = factory.SubFactory("tests.factories.PaymentFactory", status=PaymentStatus.SUCCEEDED)
+    amount_cents = 1_000
+    reason = RefundReason.REQUESTED_BY_MEMBER
+    status = RefundStatus.SUCCEEDED
+    refunded_at = factory.LazyFunction(timezone.now)
+
+
 class MembershipFactory(ModelFactory[Membership]):
     """Builds an active ``Membership`` starting today, ending per the plan's duration."""
 
@@ -393,3 +421,37 @@ def expire_membership(user: UserModel, plan: MembershipPlan, *, days_ago: int = 
         ends_on=today - timedelta(days=days_ago),
         status=MembershipStatusChoices.EXPIRED,
     )
+
+
+class RenewalMandateFactory(ModelFactory[RenewalMandate]):
+    """Builds an active mock mandate on a test card ending 4242, no contribution."""
+
+    class Meta:
+        model = RenewalMandate
+
+    user = factory.SubFactory(UserFactory)
+    plan = factory.SubFactory(MembershipPlanFactory)
+    contribution_cents = 0
+    provider = PaymentProvider.MOCK
+    method_ref = "mock"
+    method_brand = "visa"
+    method_last4 = "4242"
+    method_exp_month = 12
+    method_exp_year = 2030
+    method_label = "Test card ending 4242, expires 12/2030"
+    status = MandateStatus.ACTIVE
+
+
+class RenewalAttemptFactory(ModelFactory[RenewalAttempt]):
+    """Builds a scheduled attempt for today against a new mandate and membership.
+
+    The mandate and the membership are independent new records unless both are
+    passed, so a test that wants one member's own renewal gives both.
+    """
+
+    class Meta:
+        model = RenewalAttempt
+
+    mandate = factory.SubFactory(RenewalMandateFactory)
+    membership = factory.SubFactory(MembershipFactory)
+    scheduled_on = factory.LazyFunction(timezone.localdate)

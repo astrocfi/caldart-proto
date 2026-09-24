@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.management.commands.seed_roles import seed_roles
 from apps.accounts.models import User
-from apps.accounts.permissions import HasAnyRole, HasRole, user_has_any_role
+from apps.accounts.permissions import HasAnyRole, HasRole, IsFinance, user_has_any_role
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
@@ -25,6 +25,7 @@ from apps.accounts.roles import (
     ROLE_SLUGS,
     STAFF_ROLE_SLUGS,
     SYSTEM_ADMIN,
+    TREASURER,
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
@@ -34,12 +35,13 @@ from tests.factories import MembershipFactory, UserFactory
 pytestmark = pytest.mark.django_db
 
 
-def test_role_slugs_are_the_six_documented_roles() -> None:
-    """``ROLE_SLUGS`` lists the six roles least privileged first."""
+def test_role_slugs_are_the_seven_documented_roles() -> None:
+    """``ROLE_SLUGS`` lists the seven roles least privileged first."""
     assert ROLE_SLUGS == (
         MEMBER,
         DART_LEADER,
         USER_ADMIN,
+        TREASURER,
         ACCOUNT_ADMIN,
         WEBSITE_ADMIN,
         SYSTEM_ADMIN,
@@ -179,6 +181,7 @@ def _view_for(permission_class: type[BasePermission]) -> Callable[..., Response]
         (MEMBER, False),
         (DART_LEADER, True),
         (USER_ADMIN, False),
+        (TREASURER, False),
         (ACCOUNT_ADMIN, False),
         (WEBSITE_ADMIN, False),
         (SYSTEM_ADMIN, True),
@@ -198,6 +201,7 @@ def test_has_role_matrix(slug: str, allowed: bool, all_role_users: dict[str, Use
         (MEMBER, False),
         (DART_LEADER, False),
         (USER_ADMIN, True),
+        (TREASURER, False),
         (ACCOUNT_ADMIN, True),
         (WEBSITE_ADMIN, False),
         (SYSTEM_ADMIN, True),
@@ -206,6 +210,26 @@ def test_has_role_matrix(slug: str, allowed: bool, all_role_users: dict[str, Use
 def test_has_any_role_matrix(slug: str, allowed: bool, all_role_users: dict[str, User]) -> None:
     """``HasAnyRole(user_admin, account_admin)`` admits either admin, or system admin."""
     view = _view_for(HasAnyRole(USER_ADMIN, ACCOUNT_ADMIN))
+    request = APIRequestFactory().get("/")
+    request.user = all_role_users[slug]
+    assert (view(request).status_code == 200) is allowed
+
+
+@pytest.mark.parametrize(
+    ("slug", "allowed"),
+    [
+        (MEMBER, False),
+        (DART_LEADER, False),
+        (USER_ADMIN, False),
+        (TREASURER, True),
+        (ACCOUNT_ADMIN, True),
+        (WEBSITE_ADMIN, False),
+        (SYSTEM_ADMIN, True),
+    ],
+)
+def test_is_finance_matrix(slug: str, allowed: bool, all_role_users: dict[str, User]) -> None:
+    """``IsFinance`` admits a treasurer, an account administrator and a system admin."""
+    view = _view_for(IsFinance)
     request = APIRequestFactory().get("/")
     request.user = all_role_users[slug]
     assert (view(request).status_code == 200) is allowed

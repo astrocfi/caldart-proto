@@ -13,7 +13,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
+from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from tests.conftest import Golden, csv_body, read_csv, role_matrix
@@ -342,8 +342,8 @@ def test_export_formats_money_as_dollars(
 # Role matrix
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("url", [LIST, SUMMARY, EXPORT])
-@pytest.mark.parametrize(("slug", "allowed"), role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN))
-def test_reports_are_account_admin_only(
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
+def test_reports_are_for_the_finance_roles_only(
     api_client: APIClient,
     all_role_users: dict[str, User],
     history: list[Payment],
@@ -351,7 +351,7 @@ def test_reports_are_account_admin_only(
     slug: str,
     allowed: bool,
 ) -> None:
-    """Only account admins and system admins may view any of the three reports."""
+    """Only a treasurer, an account admin or a system admin views the three reports."""
     api_client.force_login(all_role_users[slug])
     assert api_client.get(url).status_code == (200 if allowed else 403)
 
