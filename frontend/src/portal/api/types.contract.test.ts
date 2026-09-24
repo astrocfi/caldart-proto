@@ -67,6 +67,9 @@ import type {
   PaymentResult,
   PaymentState,
   PaymentSummary,
+  PaymentTerm,
+  ReceiptSend,
+  StatementYears,
   PaymentWallet,
   PaymentsConfig,
   PilotCertificateType,
@@ -173,6 +176,9 @@ const aircraftDetail: Matches<AircraftDetail, Schemas['AircraftDetail']> = true;
 const payment: Matches<Payment, Schemas['Payment']> = true;
 const memberPayment: Matches<MemberPayment, Schemas['AdminPayment']> = true;
 const paymentSummary: Matches<PaymentSummary, Schemas['PaymentSummary']> = true;
+const paymentTerm: Matches<PaymentTerm, Schemas['PaymentTerm']> = true;
+const receiptSend: Matches<ReceiptSend, Schemas['ReceiptSend']> = true;
+const statementYears: Matches<StatementYears, Schemas['StatementYears']> = true;
 const paymentResult: Matches<PaymentResult, Schemas['PaymentResult']> = true;
 const contributionTier: Matches<ContributionTier, Schemas['ContributionTier']> = true;
 const paymentsConfig: Matches<PaymentsConfig, Schemas['PaymentsConfig']> = true;
@@ -255,6 +261,9 @@ const assertions: readonly true[] = [
   payment,
   memberPayment,
   paymentSummary,
+  paymentTerm,
+  receiptSend,
+  statementYears,
   paymentResult,
   contributionTier,
   paymentsConfig,
@@ -327,6 +336,9 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'Payment',
   'AdminPayment',
   'PaymentSummary',
+  'PaymentTerm',
+  'ReceiptSend',
+  'StatementYears',
   'PaymentResult',
   'ContributionTier',
   'PaymentsConfig',

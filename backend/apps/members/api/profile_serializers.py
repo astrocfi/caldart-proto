@@ -33,7 +33,7 @@ from apps.members.models import (
     Membership,
     PilotCertificateType,
 )
-from apps.payments.models import Payment
+from apps.payments.models import Payment, PaymentKind
 from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
 
 #: Five digits, e.g. ``95035``.  The four-digit add-on is not collected: it is
@@ -84,7 +84,7 @@ class PaymentSummarySerializer(serializers.ModelSerializer[Payment]):
     """
 
     plan = serializers.SerializerMethodField()
-    kind = serializers.CharField(read_only=True)
+    kind = serializers.ChoiceField(choices=PaymentKind.choices, read_only=True)
     paid_on = serializers.DateField(read_only=True, allow_null=True)
     refunded_cents = serializers.IntegerField(read_only=True)
     membership = PaymentTermSerializer(read_only=True, allow_null=True)

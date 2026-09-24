@@ -2,6 +2,11 @@
 
 Every term goes through :func:`apps.members.services.activate_term`, so the
 seeded data exercises the same code path as a real checkout.
+
+Each payment carries the fee its provider would have charged and the net that
+would have reached CalDART, and is stamped as having had its receipt emailed,
+so the finance screens and the exports have real figures to show from the first
+run.
 """
 
 from __future__ import annotations
@@ -39,6 +44,26 @@ STRIPE_WALLETS: tuple[tuple[str, int], ...] = (
     (PaymentWallet.GOOGLE_PAY, 12),
     (PaymentWallet.LINK, 10),
 )
+
+#: What each provider charges, as the rate in thousandths and the fixed part in
+#: cents: Stripe 2.9% + 30 cents, PayPal 3.49% + 49 cents.  A provider nobody
+#: lists here takes nothing, which is what a payment recorded by hand costs.
+PROVIDER_FEES: dict[str, tuple[int, int]] = {
+    PaymentProvider.STRIPE: (29, 30),
+    PaymentProvider.PAYPAL: (35, 49),
+}
+
+
+def _fee_cents(provider: str, amount_cents: int) -> int:
+    """The fee ``provider`` would have charged on ``amount_cents``.
+
+    The percentage is rounded half up to the cent, as a processor rounds it.
+    A provider with no published rate -- a check, say -- costs nothing.
+    """
+    if provider not in PROVIDER_FEES:
+        return 0
+    rate, fixed = PROVIDER_FEES[provider]
+    return (amount_cents * rate + 500) // 1_000 + fixed
 
 
 def _pick(rng: random.Random, mix: tuple[tuple[str, int], ...]) -> str:
@@ -109,6 +134,7 @@ def _payment_for(
         )
     )
 
+    fee = _fee_cents(provider, amount)
     payment, created = Payment.objects.get_or_create(
         provider=provider,
         provider_ref=ref,
@@ -121,12 +147,18 @@ def _payment_for(
             "currency": "usd",
             "wallet": wallet,
             "status": PaymentStatus.SUCCEEDED,
+            "fee_cents": fee,
+            "net_cents": amount - fee,
             "raw": {"seeded": True, "provider": provider},
         },
     )
     if created:
-        # ``created_at`` is auto_now_add, so backdate it with an UPDATE.
-        Payment.objects.filter(pk=payment.pk).update(created_at=paid_at, completed_at=paid_at)
+        # ``created_at`` is auto_now_add, so backdate it with an UPDATE.  The
+        # receipt is stamped as sent at the same moment: a seeded payment stands
+        # for one that went through, and a real one always earns a receipt.
+        Payment.objects.filter(pk=payment.pk).update(
+            created_at=paid_at, completed_at=paid_at, receipt_sent_at=paid_at
+        )
         payment.refresh_from_db()
     return payment
 
