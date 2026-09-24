@@ -379,8 +379,21 @@ export interface MemberTerm extends MembershipTerm {
   created_at: IsoDateTime;
 }
 
-/** One payment row in `GET /admin/members/{id}`: a `Payment` without the account it names. */
-export type MemberPayment = Omit<Payment, 'user_id' | 'user_name'>;
+/** One payment row in `GET /admin/members/{id}`: the member's own money, no finance detail. */
+export interface MemberPayment {
+  id: number;
+  plan: string | null;
+  amount_cents: number;
+  plan_amount_cents: number;
+  contribution_cents: number;
+  currency: string;
+  provider: PaymentProvider;
+  wallet: PaymentWallet;
+  provider_ref: string;
+  status: PaymentState;
+  created_at: IsoDateTime;
+  completed_at: IsoDateTime | null;
+}
 
 /** `GET /admin/members/{id}`. */
 export interface MemberDetail {
@@ -513,25 +526,62 @@ export type PaymentWallet =
 
 export type PaymentState = 'pending' | 'succeeded' | 'failed' | 'partially_refunded' | 'refunded';
 
+/** What a payment bought: dues, a contribution, or both at once. */
+export type PaymentKind = 'membership' | 'contribution' | 'both';
+
+/** The membership term a payment bought, as the finance row carries it. */
+export interface FinancePaymentTerm {
+  id: number;
+  starts_on: IsoDate;
+  ends_on: IsoDate | null;
+  status: MembershipTermStatus;
+}
+
+/** The automatic charge a payment came from, when it came from one. */
+export interface PaymentRenewalAttempt {
+  id: number;
+  scheduled_on: IsoDate;
+  outcome: RenewalOutcome;
+}
+
+/** One row of `GET /admin/payments`: the finance view of one payment. */
 export interface Payment {
   id: number;
   user_id: number;
   user_name: string;
+  user_email: string;
   plan: string | null;
+  kind: PaymentKind;
   amount_cents: number;
   plan_amount_cents: number;
   contribution_cents: number;
+  fee_cents: number;
+  net_cents: number;
+  refunded_cents: number;
   currency: string;
   provider: PaymentProvider;
   wallet: PaymentWallet;
   provider_ref: string;
   status: PaymentState;
+  receipt_number: string;
+  receipt_sent_at: IsoDateTime | null;
+  /** The day the money counts as received: `received_on` for a check, else the completion. */
+  paid_on: IsoDate | null;
+  received_on: IsoDate | null;
+  reconciled_on: IsoDate | null;
+  reconciled_by: string | null;
+  recorded_by: string | null;
+  note: string;
+  membership: FinancePaymentTerm | null;
+  renewal_attempt: PaymentRenewalAttempt | null;
   created_at: IsoDateTime;
   completed_at: IsoDateTime | null;
 }
 
-/** What a payment bought, read from its plan and its contribution. */
-export type PaymentKind = 'membership' | 'contribution' | 'both';
+/** `GET /admin/payments/{id}`: the finance row with its refunds beneath it. */
+export interface PaymentDetail extends Payment {
+  refunds: Refund[];
+}
 
 /** The membership term one payment bought, as its own payment row names it. */
 export interface PaymentTerm {
@@ -652,7 +702,106 @@ export interface PaymentPeriodSummary {
   total_cents: number;
   plan_cents: number;
   contribution_cents: number;
+  fee_cents: number;
+  net_cents: number;
+  refunded_cents: number;
   by_provider: Partial<Record<PaymentProvider, number>>;
+}
+
+/* ------------------------------------------------------------------ finance */
+export type MandateProvider = 'stripe' | 'paypal' | 'mock';
+
+export type MandateStatus = 'pending' | 'active' | 'paused' | 'canceled';
+
+export type RenewalOutcome = 'scheduled' | 'succeeded' | 'failed' | 'skipped';
+
+/** How money taken by hand was presented. */
+export type ManualMethod = 'check' | 'cash' | 'bank_transfer' | 'other';
+
+/** One entry of `GET /admin/payments/columns`, which drives the column chooser. */
+export interface ReportColumn {
+  key: string;
+  label: string;
+  default: boolean;
+}
+
+/** One row of `GET /admin/payments/reconciliation`: a period, or a provider. */
+export interface ReconciliationRow {
+  period: string;
+  count: number;
+  gross_cents: number;
+  fee_cents: number;
+  net_cents: number;
+  refunded_cents: number;
+  net_after_refunds_cents: number;
+  reconciled_count: number;
+  unreconciled_count: number;
+}
+
+/** One row of `GET /admin/payments/contributions`: a member's giving for one year. */
+export interface ContributionRow {
+  user_id: number;
+  name: string;
+  email: string;
+  count: number;
+  contribution_cents: number;
+  refunded_cents: number;
+  net_contribution_cents: number;
+}
+
+/** The member's standing renewal authority, as the finance ledger shows it. */
+export interface LedgerMandate {
+  id: number;
+  plan: string;
+  contribution_cents: number;
+  provider: MandateProvider;
+  method_label: string;
+  status: MandateStatus;
+  failure_count: number;
+  last_charged_at: IsoDateTime | null;
+  canceled_at: IsoDateTime | null;
+}
+
+/** Who a ledger is about. */
+export interface LedgerMember {
+  id: number;
+  name: string;
+  email: string;
+  membership: MembershipStatus;
+}
+
+/** What a member has paid over their whole history, in cents. */
+export interface LedgerTotals {
+  paid_cents: number;
+  contribution_cents: number;
+  fee_cents: number;
+  refunded_cents: number;
+}
+
+/** `GET /admin/payments/ledger/{user_id}`. */
+export interface MemberLedger {
+  user: LedgerMember;
+  totals: LedgerTotals;
+  payments: PaymentDetail[];
+  mandate: LedgerMandate | null;
+  statement_years: number[];
+}
+
+/** `PATCH /admin/payments/{id}`: the two fields a treasurer writes. */
+export interface PaymentPatch {
+  reconciled_on?: IsoDate | null;
+  note?: string;
+}
+
+/** `POST /admin/payments/record`: money taken by check, cash or transfer. */
+export interface ManualPaymentPayload {
+  user_id: number;
+  plan: string | null;
+  contribution_cents: number;
+  method: ManualMethod;
+  reference: string;
+  received_on: IsoDate;
+  note: string;
 }
 
 /* ------------------------------------------------------------------ leader */

@@ -1,7 +1,8 @@
-"""Payment reports for account administrators.
+"""The finance payment list, the period summary and the two exports.
 
-The list, the month/year summary and the CSV export, including the role matrix
-and the arithmetic over a fixture spanning three months and two years.
+The role matrix, the filters, the arithmetic over a fixture spanning three
+months and two years, and the column registry that drives both exports and
+the screen's column chooser.
 """
 
 from __future__ import annotations
@@ -16,14 +17,36 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
-from tests.conftest import Golden, csv_body, read_csv, role_matrix
-from tests.factories import PaymentFactory, UserFactory
+from tests.conftest import Golden, PdfText, csv_body, read_csv, role_matrix
+from tests.factories import MembershipFactory, PaymentFactory, RefundFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
 LIST = "/api/v1/admin/payments"
 SUMMARY = "/api/v1/admin/payments/summary"
 EXPORT = "/api/v1/admin/payments/export.csv"
+EXPORT_PDF = "/api/v1/admin/payments/export.pdf"
+COLUMNS = "/api/v1/admin/payments/columns"
+
+#: The header the export prints when the caller chooses no columns.
+DEFAULT_HEADER = [
+    "Date",
+    "Name",
+    "Email",
+    "Plan",
+    "Kind",
+    "Dues",
+    "Contribution",
+    "Total",
+    "Fee",
+    "Net",
+    "Refunded",
+    "Provider",
+    "Method",
+    "Status",
+    "Reference",
+    "Reconciled",
+]
 
 
 def paid_at(year: int, month: int, day: int = 15) -> dt.datetime:
@@ -41,14 +64,21 @@ def make_payment(
     contribution_cents: int = 0,
     status: str = PaymentStatus.SUCCEEDED,
     ref: str = "",
+    fee_cents: int = 0,
 ) -> Payment:
-    """Create a completed (or not) payment backdated to ``when``."""
+    """Create a completed (or not) payment backdated to ``when``.
+
+    ``fee_cents`` is what the provider kept; the net is the rest of the total.
+    """
+    total = plan_cents + contribution_cents
     return PaymentFactory(
         user=user,
         plan=plan,
-        amount_cents=plan_cents + contribution_cents,
+        amount_cents=total,
         plan_amount_cents=plan_cents,
         contribution_cents=contribution_cents,
+        fee_cents=fee_cents,
+        net_cents=total - fee_cents,
         provider=provider,
         wallet=PaymentWallet.CARD,
         provider_ref=ref or f"ref-{user.pk}-{when:%Y%m%d}-{provider}",
@@ -65,11 +95,17 @@ def history(
     """Three months of payments across two years and both real providers."""
     other = user_factory(email="wilma@example.test", first_name="Wilma", last_name="Voss")
     return [
-        make_payment(member, annual_plan, when=paid_at(2025, 11, 3)),
+        make_payment(member, annual_plan, when=paid_at(2025, 11, 3), fee_cents=161),
         make_payment(
             other, annual_plan, when=paid_at(2025, 11, 20), provider=PaymentProvider.PAYPAL
         ),
-        make_payment(member, annual_plan, when=paid_at(2026, 1, 8), contribution_cents=10_000),
+        make_payment(
+            member,
+            annual_plan,
+            when=paid_at(2026, 1, 8),
+            contribution_cents=10_000,
+            fee_cents=450,
+        ),
         make_payment(
             other,
             annual_plan,
@@ -275,47 +311,120 @@ def test_summary_of_nothing_is_an_empty_list(api_client: APIClient, account_admi
 
 
 # --------------------------------------------------------------------------
+# GET /admin/payments/columns
+# --------------------------------------------------------------------------
+def test_the_column_registry_lists_every_export_column(
+    treasurer_client: APIClient,
+) -> None:
+    """The chooser is data-driven: one entry per column, in export order."""
+    rows = treasurer_client.get(COLUMNS).json()
+    assert [row["key"] for row in rows] == [
+        "paid_on",
+        "receipt_number",
+        "name",
+        "email",
+        "plan",
+        "kind",
+        "plan_amount",
+        "contribution",
+        "total",
+        "fee",
+        "net",
+        "refunded",
+        "provider",
+        "wallet",
+        "status",
+        "provider_ref",
+        "received_on",
+        "reconciled_on",
+        "note",
+        "membership_starts",
+        "membership_ends",
+    ]
+
+
+def test_the_columns_that_are_off_by_default_are_named(treasurer_client: APIClient) -> None:
+    """Five columns are for an audit rather than the everyday list."""
+    rows = treasurer_client.get(COLUMNS).json()
+    assert [row["key"] for row in rows if not row["default"]] == [
+        "receipt_number",
+        "received_on",
+        "note",
+        "membership_starts",
+        "membership_ends",
+    ]
+
+
+def test_every_column_carries_the_label_the_exports_print(
+    treasurer_client: APIClient,
+) -> None:
+    """The label is the header text, not the key."""
+    rows = treasurer_client.get(COLUMNS).json()
+    assert [row["label"] for row in rows if row["default"]] == DEFAULT_HEADER
+
+
+# --------------------------------------------------------------------------
 # GET /admin/payments/export.csv
 # --------------------------------------------------------------------------
-def test_export_returns_a_csv_download(
-    api_client: APIClient, account_admin: User, history: list[Payment]
+def test_export_returns_a_csv_download_named_for_today(
+    treasurer_client: APIClient, history: list[Payment], today: dt.date
 ) -> None:
-    """The export is a named, downloadable CSV with the seven history rows."""
-    api_client.force_login(account_admin)
-    response = api_client.get(EXPORT)
+    """The export is a dated, downloadable CSV with the seven history rows."""
+    response = treasurer_client.get(EXPORT)
 
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/csv")
-    assert response["Content-Disposition"] == 'attachment; filename="caldart-payments.csv"'
+    assert (
+        response["Content-Disposition"]
+        == f'attachment; filename="caldart-payments-{today.isoformat()}.csv"'
+    )
+    assert len(read_csv(response)) == 8  # header + 7 payments
 
-    rows = read_csv(response)
-    assert rows[0][:4] == ["paid_on", "name", "email", "plan"]
-    assert len(rows) == 8  # header + 7 payments
 
-
-def test_export_honors_the_filters(
-    api_client: APIClient, account_admin: User, history: list[Payment]
+def test_export_prints_the_default_columns_when_none_are_chosen(
+    treasurer_client: APIClient, history: list[Payment]
 ) -> None:
-    """The export applies the same provider and status filters as the list."""
-    api_client.force_login(account_admin)
-    response = api_client.get(EXPORT, {"provider": "paypal", "status": "succeeded"})
-    rows = read_csv(response)
+    """With no ``columns`` parameter the export carries the default sixteen."""
+    assert read_csv(treasurer_client.get(EXPORT))[0] == DEFAULT_HEADER
 
+
+def test_export_carries_the_chosen_columns_in_the_order_asked_for(
+    treasurer_client: APIClient, history: list[Payment]
+) -> None:
+    """``?columns=`` decides both which columns appear and where."""
+    rows = read_csv(treasurer_client.get(EXPORT, {"columns": "total,email"}))
+    assert rows[0] == ["Total", "Email"]
+
+
+def test_export_refuses_a_column_no_report_carries(
+    treasurer_client: APIClient, history: list[Payment]
+) -> None:
+    """An unknown column key is a 400 keyed by ``columns``."""
+    response = treasurer_client.get(EXPORT, {"columns": "total,karma"})
+    assert response.json() == {"columns": ["Unknown column: karma"]}
+
+
+def test_export_honors_the_filters(treasurer_client: APIClient, history: list[Payment]) -> None:
+    """The export applies the same provider and status filters as the list."""
+    rows = read_csv(treasurer_client.get(EXPORT, {"provider": "paypal", "status": "succeeded"}))
     assert len(rows) == 3
-    assert [row[7] for row in rows[1:]] == ["paypal", "paypal"]
+
+
+def test_export_honors_the_ordering(treasurer_client: APIClient, history: list[Payment]) -> None:
+    """``?ordering=`` reorders the export rows, not only the list."""
+    rows = read_csv(treasurer_client.get(EXPORT, {"columns": "total", "ordering": "amount_cents"}))
+    totals = [float(row[0]) for row in rows[1:]]
+    assert totals == sorted(totals)
 
 
 def test_export_matches_the_recorded_document(
-    api_client: APIClient,
-    account_admin: User,
+    treasurer_client: APIClient,
     member: User,
     history: list[Payment],
     golden: Golden,
 ) -> None:
-    """The whole export -- header, every row, all eleven columns -- matches its record."""
-    api_client.force_login(account_admin)
-
-    body = csv_body(api_client.get(EXPORT))
+    """The whole export -- header, every row, every column -- matches its record."""
+    body = csv_body(treasurer_client.get(EXPORT))
 
     # The fixture's names come from Faker and its references carry row ids, so
     # both are replaced by fixed stand-ins before the documents are compared.
@@ -325,23 +434,189 @@ def test_export_matches_the_recorded_document(
 
 
 def test_export_formats_money_as_dollars(
-    api_client: APIClient, member: User, account_admin: User, annual_plan: MembershipPlan
+    treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
     """The export formats cent amounts as two-decimal dollar strings."""
-    make_payment(member, annual_plan, when=paid_at(2026, 3, 9), contribution_cents=10_000)
-    api_client.force_login(account_admin)
-    row = read_csv(api_client.get(EXPORT))[1]
+    make_payment(
+        member, annual_plan, when=paid_at(2026, 3, 9), contribution_cents=10_000, fee_cents=450
+    )
+    row = read_csv(treasurer_client.get(EXPORT))[1]
 
     assert row[0] == "2026-03-09"
-    assert row[4] == "45.00"  # plan_amount
-    assert row[5] == "100.00"  # contribution
-    assert row[6] == "145.00"  # total
+    assert row[5] == "45.00"  # dues
+    assert row[6] == "100.00"  # contribution
+    assert row[7] == "145.00"  # total
+    assert row[8] == "4.50"  # fee
+    assert row[9] == "140.50"  # net
+
+
+def test_export_leaves_the_date_blank_for_a_payment_that_never_arrived(
+    treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A failed attempt has no ledger date, so its date cell is empty."""
+    make_payment(member, annual_plan, when=paid_at(2026, 3, 9), status=PaymentStatus.FAILED)
+    assert read_csv(treasurer_client.get(EXPORT))[1][0] == ""
+
+
+def test_export_dates_a_recorded_payment_by_the_day_it_was_received(
+    treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A check is dated the day it arrived, not the day it was keyed in."""
+    payment = make_payment(
+        member, annual_plan, when=paid_at(2026, 3, 9), provider=PaymentProvider.MANUAL
+    )
+    Payment.objects.filter(pk=payment.pk).update(received_on=dt.date(2026, 2, 27))
+    assert read_csv(treasurer_client.get(EXPORT))[1][0] == "2026-02-27"
+
+
+# --------------------------------------------------------------------------
+# GET /admin/payments/export.pdf
+# --------------------------------------------------------------------------
+def test_pdf_export_returns_a_dated_pdf_download(
+    treasurer_client: APIClient, history: list[Payment], today: dt.date
+) -> None:
+    """The PDF export is an attachment named for the day it was run."""
+    response = treasurer_client.get(EXPORT_PDF)
+
+    assert response["Content-Type"] == "application/pdf"
+    assert (
+        response["Content-Disposition"]
+        == f'attachment; filename="caldart-payments-{today.isoformat()}.pdf"'
+    )
+
+
+def test_pdf_export_names_the_filters_in_its_subtitle(
+    treasurer_client: APIClient, history: list[Payment], pdf_text: PdfText
+) -> None:
+    """The subtitle under the title says which filters produced the table."""
+    response = treasurer_client.get(EXPORT_PDF, {"provider": "paypal"})
+    assert "provider: paypal" in " ".join(pdf_text(response.content)[0])
+
+
+def test_pdf_export_carries_the_chosen_columns(
+    treasurer_client: APIClient, history: list[Payment], pdf_text: PdfText
+) -> None:
+    """``?columns=`` drives the PDF exactly as it drives the CSV."""
+    response = treasurer_client.get(EXPORT_PDF, {"columns": "email"})
+    page = pdf_text(response.content)[0]
+    assert "Email" in page
+
+
+# --------------------------------------------------------------------------
+# Fees, net and refunds
+# --------------------------------------------------------------------------
+def test_summary_reports_the_fees_and_the_net(
+    treasurer_client: APIClient, history: list[Payment]
+) -> None:
+    """Each period carries what the providers kept and what reached the bank."""
+    january = next(
+        row for row in treasurer_client.get(SUMMARY).json() if row["period"] == "2026-01"
+    )
+    assert january["fee_cents"] == 450
+    assert january["net_cents"] == 20_550
+
+
+def test_summary_reports_what_went_back(
+    treasurer_client: APIClient, history: list[Payment]
+) -> None:
+    """A succeeded refund is reported against the period the payment arrived in."""
+    RefundFactory(payment=history[2], amount_cents=2_500)
+    january = next(
+        row for row in treasurer_client.get(SUMMARY).json() if row["period"] == "2026-01"
+    )
+    assert january["refunded_cents"] == 2_500
+
+
+def test_a_refunded_payment_still_counts_as_money_that_arrived(
+    treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A refunded payment is revenue that came and went, not revenue that never came."""
+    make_payment(member, annual_plan, when=paid_at(2026, 4, 2), status=PaymentStatus.REFUNDED)
+    assert treasurer_client.get(SUMMARY).json()[0]["count"] == 1
+
+
+# --------------------------------------------------------------------------
+# The wider filters
+# --------------------------------------------------------------------------
+def test_list_filters_by_plan_slug(
+    treasurer_client: APIClient, history: list[Payment], member: User, life_plan: MembershipPlan
+) -> None:
+    """``?plan=`` narrows to the payments that bought one plan."""
+    make_payment(member, life_plan, when=paid_at(2026, 3, 1))
+    assert treasurer_client.get(LIST, {"plan": "life"}).json()["count"] == 1
+
+
+def test_list_filters_by_kind(treasurer_client: APIClient, history: list[Payment]) -> None:
+    """``?kind=both`` finds the payments that bought a term and gave as well."""
+    assert treasurer_client.get(LIST, {"kind": "both"}).json()["count"] == 2
+
+
+def test_list_filters_by_member(
+    treasurer_client: APIClient, history: list[Payment], member: User
+) -> None:
+    """``?member=`` narrows to one member's payments."""
+    assert treasurer_client.get(LIST, {"member": member.pk}).json()["count"] == 4
+
+
+def test_list_filters_by_amount_range(treasurer_client: APIClient, history: list[Payment]) -> None:
+    """``?min_cents=`` and ``?max_cents=`` bound the total."""
+    assert treasurer_client.get(LIST, {"min_cents": 6_000}).json()["count"] == 2
+
+
+def test_list_filters_by_wallet(
+    treasurer_client: APIClient, history: list[Payment], member: User, annual_plan: MembershipPlan
+) -> None:
+    """``?wallet=`` narrows to how the money was presented."""
+    payment = make_payment(member, annual_plan, when=paid_at(2026, 3, 4))
+    Payment.objects.filter(pk=payment.pk).update(wallet=PaymentWallet.CHECK)
+    assert treasurer_client.get(LIST, {"wallet": "check"}).json()["count"] == 1
+
+
+def test_list_filters_to_the_payments_still_to_be_matched(
+    treasurer_client: APIClient, history: list[Payment]
+) -> None:
+    """``?reconciled=no`` is how a treasurer finds what is left to do."""
+    Payment.objects.filter(pk=history[0].pk).update(reconciled_on=dt.date(2026, 3, 1))
+    assert treasurer_client.get(LIST, {"reconciled": "no"}).json()["count"] == 6
+
+
+def test_list_filters_to_the_payments_already_matched(
+    treasurer_client: APIClient, history: list[Payment]
+) -> None:
+    """``?reconciled=yes`` is the other half of the same question."""
+    Payment.objects.filter(pk=history[0].pk).update(reconciled_on=dt.date(2026, 3, 1))
+    assert treasurer_client.get(LIST, {"reconciled": "yes"}).json()["count"] == 1
+
+
+def test_list_orders_by_the_net_amount(treasurer_client: APIClient, history: list[Payment]) -> None:
+    """The net the provider handed over is an ordering field of its own."""
+    rows = treasurer_client.get(LIST, {"ordering": "-net_cents"}).json()["results"]
+    assert [row["net_cents"] for row in rows] == sorted(
+        (row["net_cents"] for row in rows), reverse=True
+    )
+
+
+def test_a_row_carries_the_term_it_bought(
+    treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The finance row names the membership term the payment paid for."""
+    payment = make_payment(member, annual_plan, when=paid_at(2026, 3, 9))
+    MembershipFactory(user=member, plan=annual_plan, payment=payment)
+    row = treasurer_client.get(LIST).json()["results"][0]
+    assert row["membership"]["starts_on"] == timezone.localdate().isoformat()
+
+
+def test_a_row_never_carries_the_provider_payload(
+    treasurer_client: APIClient, history: list[Payment]
+) -> None:
+    """``raw`` is the provider's own payload and stays out of the API."""
+    assert "raw" not in treasurer_client.get(LIST).json()["results"][0]
 
 
 # --------------------------------------------------------------------------
 # Role matrix
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize("url", [LIST, SUMMARY, EXPORT])
+@pytest.mark.parametrize("url", [LIST, SUMMARY, COLUMNS, EXPORT, EXPORT_PDF])
 @pytest.mark.parametrize(("slug", "allowed"), role_matrix(TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_reports_are_for_the_finance_roles_only(
     api_client: APIClient,
@@ -351,12 +626,12 @@ def test_reports_are_for_the_finance_roles_only(
     slug: str,
     allowed: bool,
 ) -> None:
-    """Only a treasurer, an account admin or a system admin views the three reports."""
+    """Only a treasurer, an account admin or a system admin views the reports."""
     api_client.force_login(all_role_users[slug])
     assert api_client.get(url).status_code == (200 if allowed else 403)
 
 
-@pytest.mark.parametrize("url", [LIST, SUMMARY, EXPORT])
+@pytest.mark.parametrize("url", [LIST, SUMMARY, COLUMNS, EXPORT, EXPORT_PDF])
 def test_reports_reject_anonymous_callers(api_client: APIClient, url: str) -> None:
     """An anonymous caller gets a 401 from every report endpoint."""
     assert api_client.get(url).status_code == 401

@@ -19,6 +19,7 @@ from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
 from apps.aircraft.models import Aircraft
 from apps.members.models import MembershipPlan, MembershipState
 from apps.members.services import membership_status
+from apps.payments.models import Payment, PaymentProvider
 
 
 def _has_lapsed_insurance(aircraft: Aircraft) -> bool:
@@ -70,6 +71,8 @@ def seed_facts() -> dict[str, Any]:
     leader check reads differently -- an insured pilot, one whose aircraft
     insurance has lapsed, and one whose membership has -- so the specs assert on
     the seed rather than on names typed into them, which drift.
+    ``manualPaymentCount`` is how many payments the seed recorded by hand, which
+    is what a finance spec filtering the list to checks expects to find.
     """
     return {
         "demoPassword": DEMO_PASSWORD,
@@ -82,6 +85,7 @@ def seed_facts() -> dict[str, Any]:
             "lapsedInsurance": _subject(insured=False, current_member=True),
             "expiredMember": _subject(insured=None, current_member=False),
         },
+        "manualPaymentCount": Payment.objects.filter(provider=PaymentProvider.MANUAL).count(),
     }
 
 

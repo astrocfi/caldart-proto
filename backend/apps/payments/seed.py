@@ -7,6 +7,12 @@ Each payment carries the fee its provider would have charged and the net that
 would have reached CalDART, and is stamped as having had its receipt emailed,
 so the finance screens and the exports have real figures to show from the first
 run.
+
+The demo books also hold money taken by hand -- a handful of checks -- and a
+reconciliation history: every payment older than
+:data:`RECONCILED_AFTER_DAYS` has been matched to a statement by the demo
+treasurer, so the finance screens open on a realistic mix of matched and
+outstanding rows.
 """
 
 from __future__ import annotations
@@ -40,6 +46,20 @@ from apps.payments.refunds import apply_refund_totals
 
 #: How far back the payment history runs.
 HISTORY_MONTHS = 24
+
+#: How many payments the demo treasurer has taken by check.
+MANUAL_PAYMENT_COUNT = 8
+
+#: The contribution amounts the seeded checks carry, in cents, cycled through
+#: so the demo books hold a spread rather than eight identical rows.
+MANUAL_AMOUNTS_CENTS = (2_500, 5_000, 10_000, 25_000)
+
+#: A payment older than this many days has been matched to a bank statement.
+#: Anything newer is still outstanding, which is what a treasurer works through.
+RECONCILED_AFTER_DAYS = 60
+
+#: How long after the money arrives the treasurer gets to the statement.
+RECONCILED_LAG_DAYS = 5
 
 PROVIDER_MIX: tuple[tuple[str, int], ...] = (
     (PaymentProvider.STRIPE, 70),
@@ -269,6 +289,74 @@ def _seed_refunds(today: dt.date, generated: list[User]) -> int:
     return written
 
 
+def _manual_payments(ctx: dict[str, Any]) -> int:
+    """Record :data:`MANUAL_PAYMENT_COUNT` checks, and return how many there are.
+
+    Each one is a pure contribution from a different seeded member, received on
+    a day in the past two years, with the check number in the note.  Keyed on the
+    provider reference, so a second seed run finds the rows it made before.
+    """
+    rng = ctx["rng"]
+    today = ctx["today"]
+    treasurer = ctx["demo_users"]["treasurer"]
+    payers = rng.sample(ctx["users"], MANUAL_PAYMENT_COUNT)
+
+    for index, payer in enumerate(payers):
+        amount = MANUAL_AMOUNTS_CENTS[index % len(MANUAL_AMOUNTS_CENTS)]
+        received_on = today - timedelta(days=rng.randint(10, HISTORY_MONTHS * 30))
+        check_number = 1_000 + index
+        payment, created = Payment.objects.get_or_create(
+            provider=PaymentProvider.MANUAL,
+            provider_ref=str(check_number),
+            defaults={
+                "user": payer,
+                "plan": None,
+                "amount_cents": amount,
+                "plan_amount_cents": 0,
+                "contribution_cents": amount,
+                "currency": "usd",
+                "wallet": PaymentWallet.CHECK,
+                "status": PaymentStatus.SUCCEEDED,
+                "received_on": received_on,
+                "note": f"Check {check_number}",
+                "recorded_by": treasurer,
+                "fee_cents": 0,
+                "net_cents": amount,
+                "raw": {"seeded": True, "provider": PaymentProvider.MANUAL.value},
+            },
+        )
+        if created:
+            paid_at = timezone.make_aware(dt.datetime.combine(received_on, dt.time(hour=9)))
+            Payment.objects.filter(pk=payment.pk).update(created_at=paid_at, completed_at=paid_at)
+    return MANUAL_PAYMENT_COUNT
+
+
+def _reconcile_settled_payments(ctx: dict[str, Any]) -> int:
+    """Match every payment older than :data:`RECONCILED_AFTER_DAYS` to a statement.
+
+    Returns how many rows the demo treasurer has matched.  A payment that is
+    already matched is left alone, so a second seed run changes nothing.
+    """
+    today = ctx["today"]
+    treasurer = ctx["demo_users"]["treasurer"]
+    cutoff = today - timedelta(days=RECONCILED_AFTER_DAYS)
+
+    matched = 0
+    settled = Payment.objects.filter(
+        status=PaymentStatus.SUCCEEDED, reconciled_on__isnull=True
+    ).only("id", "provider", "completed_at", "received_on")
+    for payment in settled:
+        paid_on = payment.paid_on
+        if paid_on is None or paid_on > cutoff:
+            continue
+        Payment.objects.filter(pk=payment.pk).update(
+            reconciled_on=paid_on + timedelta(days=RECONCILED_LAG_DAYS),
+            reconciled_by=treasurer,
+        )
+        matched += 1
+    return matched
+
+
 def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
     """Seed each user's payments and terms, and return the shared seed context.
 
@@ -307,13 +395,17 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             terms += 1
 
     expired = expire_lapsed_memberships(today)
+    manual = _manual_payments(ctx)
+    reconciled = _reconcile_settled_payments(ctx)
     refunds = _seed_refunds(today, ctx["generated_users"])
 
-    ctx["payment_count"] = payments
+    ctx["payment_count"] = payments + manual
+    ctx["manual_payment_count"] = manual
     ctx["refund_count"] = refunds
     if stdout is not None:
         stdout.write(
             f"  payments: {payments} succeeded payments, {terms} terms, "
-            f"{expired} lapsed terms marked expired, {refunds} refunds"
+            f"{expired} lapsed terms marked expired, {manual} recorded by hand, "
+            f"{reconciled} reconciled, {refunds} refunds"
         )
     return ctx

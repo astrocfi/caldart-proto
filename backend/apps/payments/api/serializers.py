@@ -11,7 +11,7 @@ from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
 from apps.members.models import Membership
-from apps.payments.manual import MANUAL_METHODS
+from apps.payments.manual import MANUAL_METHOD_CHOICES, MANUAL_METHODS
 from apps.payments.models import (
     MAX_CONTRIBUTION_CENTS,
     Payment,
@@ -495,13 +495,13 @@ class FinancePaymentSerializer(serializers.ModelSerializer[Payment]):
     user_name = serializers.SerializerMethodField()
     user_email = serializers.EmailField(source="user.email", read_only=True)
     plan = serializers.SerializerMethodField()
-    kind = serializers.CharField(read_only=True)
-    paid_on = serializers.DateField(read_only=True)
+    kind = serializers.ChoiceField(choices=PaymentKind.choices, read_only=True)
+    paid_on = serializers.DateField(read_only=True, allow_null=True)
     receipt_number = serializers.CharField(read_only=True)
     refunded_cents = serializers.IntegerField(read_only=True)
     reconciled_by = serializers.SerializerMethodField()
     recorded_by = serializers.SerializerMethodField()
-    membership = FinancePaymentTermSerializer(read_only=True)
+    membership = FinancePaymentTermSerializer(read_only=True, allow_null=True)
     renewal_attempt = serializers.SerializerMethodField()
 
     class Meta:
@@ -606,7 +606,7 @@ class ManualPaymentSerializer(serializers.Serializer[dict[str, Any]]):
     contribution_cents = serializers.IntegerField(
         required=False, min_value=0, max_value=MAX_CONTRIBUTION_CENTS, default=0
     )
-    method = serializers.ChoiceField(choices=[(w.value, w.label) for w in MANUAL_METHODS])
+    method = serializers.ChoiceField(choices=MANUAL_METHOD_CHOICES)
     reference = serializers.CharField(required=False, allow_blank=True, max_length=128, default="")
     received_on = serializers.DateField()
     note = serializers.CharField(required=False, allow_blank=True, max_length=255, default="")

@@ -28,6 +28,9 @@ MANUAL_METHODS = (
     PaymentWallet.OTHER,
 )
 
+#: The same four, as the choices a serializer field takes.
+MANUAL_METHOD_CHOICES = [(method.value, method.label) for method in MANUAL_METHODS]
+
 
 @transaction.atomic
 def record_manual_payment(
