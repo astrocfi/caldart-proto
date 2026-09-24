@@ -98,15 +98,16 @@ class MockProvider(Provider):
         return False
 
     def refund(self, payment: Payment, refund: Refund) -> ProviderRefund:
-        """Give the money back instantly, under the reference ``mock_refund_<id>``.
+        """Give the money back instantly, with no provider reference.
 
         Nothing moves, so nothing can fail: the answer records the amount and the
-        payment it came off.  Raises :class:`MockPaymentsDisabledError` when
-        ``PAYMENTS_MOCK_ENABLED`` is off.
+        payment it came off.  There is no provider holding a refund id, so the
+        reference is blank, as it is for a refund written by hand.  Raises
+        :class:`MockPaymentsDisabledError` when ``PAYMENTS_MOCK_ENABLED`` is off.
         """
         self._check_enabled()
         return ProviderRefund(
-            provider_ref=f"mock_refund_{refund.pk}",
+            provider_ref="",
             raw={
                 "provider": "mock",
                 "amount_cents": refund.amount_cents,

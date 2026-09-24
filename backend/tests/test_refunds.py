@@ -31,7 +31,7 @@ from apps.payments.models import (
     RefundStatus,
 )
 from apps.payments.providers.base import ProviderUnavailableError
-from apps.payments.providers.mock import MockProvider
+from apps.payments.providers.mock import MockPaymentsDisabledError, MockProvider
 from caldart import audit
 from caldart.exceptions import DomainValidationError
 from tests.conftest import role_matrix
@@ -159,12 +159,12 @@ def test_a_succeeded_refund_is_stamped_with_the_time_it_was_taken(
     assert refund.refunded_at is not None
 
 
-def test_the_mock_provider_supplies_its_own_reference(paid: Payment, account_admin: User) -> None:
-    """A mock refund carries the reference the mock provider made for it."""
+def test_a_mock_refund_carries_no_provider_reference(paid: Payment, account_admin: User) -> None:
+    """No provider is holding a refund id, so the reference is blank."""
     refund = refund_service.issue_refund(
         paid, amount_cents=1_000, reason=RefundReason.OTHER, actor=account_admin
     )
-    assert refund.provider_ref == f"mock_refund_{refund.pk}"
+    assert refund.provider_ref == ""
 
 
 def test_a_manual_payment_is_refunded_without_calling_a_provider(
@@ -243,6 +243,27 @@ def test_a_fully_refunded_payment_cannot_be_refunded_again(
         )
 
 
+def test_a_refund_still_pending_holds_its_amount_against_the_payment(
+    paid: Payment, account_admin: User
+) -> None:
+    """Two refunds at once cannot exceed the payment: the pending row counts."""
+    RefundFactory(payment=paid, amount_cents=6_500, status=RefundStatus.PENDING, refunded_at=None)
+    with pytest.raises(DomainValidationError, match=r"\$0\.00") as caught:
+        refund_service.issue_refund(
+            paid, amount_cents=100, reason=RefundReason.OTHER, actor=account_admin
+        )
+    assert caught.value.field == "amount_cents"
+
+
+def test_a_refund_that_failed_frees_its_amount_again(paid: Payment, account_admin: User) -> None:
+    """A refund the provider refused took no money, so it holds none back."""
+    RefundFactory(payment=paid, amount_cents=6_500, status=RefundStatus.FAILED, refunded_at=None)
+    refund = refund_service.issue_refund(
+        paid, amount_cents=6_500, reason=RefundReason.OTHER, actor=account_admin
+    )
+    assert refund.status == RefundStatus.SUCCEEDED
+
+
 def test_an_unknown_reason_is_refused(paid: Payment, account_admin: User) -> None:
     """The reason must be one of the choices, and the complaint says which field."""
     with pytest.raises(DomainValidationError, match="Unknown refund reason") as caught:
@@ -290,6 +311,19 @@ def test_a_provider_failure_leaves_the_payment_succeeded(
     assert paid.status == PaymentStatus.SUCCEEDED
 
 
+def test_a_fault_that_is_not_a_payment_error_still_fails_the_row(
+    paid: Payment, account_admin: User, settings: Settings
+) -> None:
+    """Whatever the provider raises, no refund is left stranded ``pending``."""
+    settings.PAYMENTS_MOCK_ENABLED = False
+    with pytest.raises(MockPaymentsDisabledError):
+        refund_service.issue_refund(
+            paid, amount_cents=1_000, reason=RefundReason.OTHER, actor=account_admin
+        )
+
+    assert Refund.objects.get().status == RefundStatus.FAILED
+
+
 # --------------------------------------------------------------------------
 # The membership term
 # --------------------------------------------------------------------------
@@ -319,6 +353,36 @@ def test_cancel_term_keeps_an_existing_note_alongside_the_new_one(
     canceled = cancel_term(term, note="Refunded in full")
 
     assert canceled.note == "Granted at the airshow. Refunded in full"
+
+
+def test_cancel_term_does_not_double_the_period_an_existing_note_ended_in(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """The separator is added once, however the old note was punctuated."""
+    term = MembershipFactory(user=member, plan=annual_plan, note="Granted at the airshow.")
+    canceled = cancel_term(term, note="Refunded in full")
+
+    assert canceled.note == "Granted at the airshow. Refunded in full"
+
+
+def test_cancel_term_keeps_the_reason_when_the_note_already_fills_the_field(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """The older text gives way: why the term ended is never the part that is lost."""
+    term = MembershipFactory(user=member, plan=annual_plan, note="x" * 255)
+    canceled = cancel_term(term, note="Canceled by refund 9")
+
+    assert canceled.note.endswith("Canceled by refund 9")
+
+
+def test_cancel_term_keeps_the_note_within_the_field(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """However long the two notes are together, what is saved fits the column."""
+    term = MembershipFactory(user=member, plan=annual_plan, note="x" * 255)
+    canceled = cancel_term(term, note="Canceled by refund 9")
+
+    assert len(canceled.note) == 255
 
 
 def test_a_refund_can_cancel_the_term_the_payment_bought(
@@ -538,6 +602,33 @@ def test_a_dashboard_refund_of_one_we_issued_records_nothing(
 
     assert again is None
     assert Refund.objects.count() == 1
+
+
+def test_a_dashboard_refund_with_no_readable_amount_records_nothing(paid: Payment) -> None:
+    """A notification CalDART cannot read an amount from is not a refund of $0.00."""
+    written = refund_service.record_dashboard_refund(
+        paid, amount_cents=0, provider_ref="re_unreadable", raw={}
+    )
+
+    assert written is None
+
+
+def test_a_dashboard_refund_with_no_readable_amount_writes_no_row(paid: Payment) -> None:
+    """Nothing reaches the ledger, so no total and no screen counts it."""
+    refund_service.record_dashboard_refund(
+        paid, amount_cents=0, provider_ref="re_unreadable", raw={}
+    )
+
+    assert Refund.objects.count() == 0
+
+
+def test_a_dashboard_refund_with_no_readable_amount_emails_nobody(paid: Payment) -> None:
+    """The member is not told about money that did not move."""
+    refund_service.record_dashboard_refund(
+        paid, amount_cents=0, provider_ref="re_unreadable", raw={}
+    )
+
+    assert len(mail.outbox) == 0
 
 
 def test_a_dashboard_refund_emails_the_member(paid: Payment) -> None:

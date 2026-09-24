@@ -107,8 +107,8 @@ Provider        The call
 ``paypal``      ``POST /v2/payments/captures/{capture_id}/refund``, where the
                 capture id is read from the capture response stored on the
                 payment.  A payment with no completed capture is a **400**.
-``mock``        Succeeds at once, under the reference
-                ``mock_refund_<refund id>``.
+``mock``        Succeeds at once, with no provider reference: no provider is
+                holding a refund id.
 ``manual``      Nothing is called: a check or cash goes back the way it came,
                 and the row is written with no provider reference.
 ==============  ===========================================================

@@ -221,7 +221,8 @@ redirect-based payment.
     "membership": {"status": "none", "expires_on": null,
                    "plan": null, "is_lifetime": false}}
 
-``status`` is ``pending``, ``succeeded``, ``failed``, or ``refunded``.
+``status`` is ``pending``, ``succeeded``, ``failed``, ``partially_refunded``
+or ``refunded``.
 
 Statuses: **200**; **401** when anonymous; **403** for a signed-in caller who
 neither owns the payment nor holds ``account_admin``; **404** for an unknown
@@ -449,8 +450,8 @@ Parameter        Meaning
 ``from``         ``YYYY-MM-DD``; payments on or after this date.
 ``to``           ``YYYY-MM-DD``; payments on or before this date.
 ``provider``     ``stripe``, ``paypal``, or ``mock``.
-``status``       ``pending``, ``succeeded``, ``failed``, or
-                 ``refunded``.
+``status``       ``pending``, ``succeeded``, ``failed``,
+                 ``partially_refunded``, or ``refunded``.
 ``search``       Member name, email, or the provider's reference.
 ``group``        ``month`` or ``year``; the summary's period.
 ===============  ====================================================

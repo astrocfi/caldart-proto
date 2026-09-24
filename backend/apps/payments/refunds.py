@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -79,8 +80,24 @@ def remaining_cents(payment: Payment) -> int:
     A payment nobody has refunded answers its whole ``amount_cents``, and one
     that has been given back in full answers ``0``.  Pending and failed refunds
     count for nothing, so a refund the provider refused does not lock money away.
+    This is the figure a screen shows; :func:`issue_refund` holds itself to the
+    stricter one below, which also counts the refunds still in flight.
     """
     return payment.amount_cents - payment.refunded_cents
+
+
+def claimed_cents(payment: Payment) -> int:
+    """Every cent of ``payment`` a refund has claimed: succeeded and pending alike.
+
+    A pending refund has been asked of the provider and may yet succeed, so it
+    counts against the payment until it fails.  Counting it is what keeps two
+    refunds issued at the same moment from together exceeding the payment: the
+    first request's row is already on file when the second reads the total.
+    """
+    total: int | None = payment.refunds.exclude(status=RefundStatus.FAILED).aggregate(
+        total=Sum("amount_cents")
+    )["total"]
+    return total or 0
 
 
 def issue_refund(
@@ -108,11 +125,12 @@ def issue_refund(
     ``note`` a sentence at most 255 characters long.
 
     Raises ``DomainValidationError`` keyed by ``amount_cents`` when the amount is
-    zero or less, when it exceeds :func:`remaining_cents`, and when the payment
-    never succeeded, and keyed by ``reason`` for a reason outside the choices;
-    nothing is written when it raises.  A provider that refuses or cannot be
-    reached leaves the row ``failed``, emails nobody and re-raises the provider's
-    own ``PaymentError``, so the caller can show the sentence it carries.
+    zero or less, when it exceeds what :func:`claimed_cents` leaves of the
+    payment -- so a refund still pending holds its own amount back -- and when
+    the payment never succeeded, and keyed by ``reason`` for a reason outside the
+    choices; nothing is written when it raises.  A provider that refuses or
+    cannot be reached leaves the row ``failed``, emails nobody and re-raises,
+    so the caller can show the sentence the error carries.
     """
     if reason not in RefundReason.values:
         raise DomainValidationError("reason", f"Unknown refund reason '{reason}'.")
@@ -125,7 +143,7 @@ def issue_refund(
             )
         if amount_cents <= 0:
             raise DomainValidationError("amount_cents", "A refund must be for more than zero.")
-        left = remaining_cents(locked)
+        left = locked.amount_cents - claimed_cents(locked)
         if amount_cents > left:
             raise DomainValidationError(
                 "amount_cents",
@@ -181,10 +199,19 @@ def record_dashboard_refund(
     ``provider_ref`` against this payment, which is what makes a second delivery
     of the same notification -- and the notification for a refund CalDART itself
     issued -- a no-op.  Returns ``None`` too for a blank ``provider_ref``, since
-    there would be nothing to recognize it by next time.
+    there would be nothing to recognize it by next time, and for an amount of
+    zero or less, which is what a notification CalDART cannot read an amount
+    from comes to: a refund of nothing is not a fact worth filing or emailing.
     """
     if not provider_ref:
         log.warning("Ignored a dashboard refund for payment %s with no reference", payment.pk)
+        return None
+    if amount_cents <= 0:
+        log.warning(
+            "Ignored dashboard refund %s for payment %s: no readable amount",
+            provider_ref,
+            payment.pk,
+        )
         return None
 
     with transaction.atomic():
@@ -281,18 +308,19 @@ def _ask_the_provider(payment: Payment, refund: Refund) -> ProviderRefund:
 
     A payment recorded by hand is answered without calling anything: the money
     goes back the way it came, by check or in cash, and no provider is involved.
-    Any ``PaymentError`` the provider raises marks ``refund`` failed and travels
-    on to the caller.
+    Anything the provider raises -- its own ``PaymentError``, or a fault nobody
+    foresaw -- marks ``refund`` failed and travels on to the caller, so no path
+    leaves a row stranded ``pending``.
     """
     # Inline: the providers import this module, so importing them at the top
     # would close the cycle.
-    from apps.payments.providers.base import PaymentError, ProviderRefund, get_provider
+    from apps.payments.providers.base import ProviderRefund, get_provider
 
     if payment.provider == PaymentProvider.MANUAL:
         return ProviderRefund(provider_ref="", raw={"provider": PaymentProvider.MANUAL.value})
     try:
         return get_provider(payment.provider).refund(payment, refund)
-    except PaymentError as exc:
+    except Exception as exc:
         refund.status = RefundStatus.FAILED
         refund.raw = {"error": str(exc)}
         refund.save(update_fields=["status", "raw", "updated_at"])
