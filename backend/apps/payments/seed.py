@@ -221,8 +221,8 @@ def _refund(payment: Payment, amount_cents: int, reason: str, note: str) -> bool
     return created
 
 
-def _seed_refunds(today: dt.date) -> int:
-    """Refund a few seeded payments, and return how many refunds were written.
+def _seed_refunds(today: dt.date, generated: list[User]) -> int:
+    """Refund a few of ``generated``'s payments, and return how many were written.
 
     Two payments are given back in full and the terms they bought are canceled;
     four contributions are given back on their own, leaving the dues and the
@@ -230,9 +230,19 @@ def _seed_refunds(today: dt.date) -> int:
     already ended and from payments that carry a contribution, so the choice
     depends on nothing a refund changes: running this twice writes nothing
     twice, and it never moves the shared random stream.
+
+    Only the generated members are touched.  The named demo accounts are the
+    fixed cast the guides and the end-to-end specs drive, and a canceled term
+    would change the membership each of them is there to demonstrate.
     """
+    member_ids = [user.pk for user in generated]
     terms = list(
-        Membership.objects.filter(payment__isnull=False, ends_on__isnull=False, ends_on__lt=today)
+        Membership.objects.filter(
+            user_id__in=member_ids,
+            payment__isnull=False,
+            ends_on__isnull=False,
+            ends_on__lt=today,
+        )
         .select_related("payment")
         .order_by("payment_id")[:FULL_REFUNDS]
     )
@@ -248,7 +258,7 @@ def _seed_refunds(today: dt.date) -> int:
             written += 1
 
     contributions = (
-        Payment.objects.filter(contribution_cents__gt=0)
+        Payment.objects.filter(user_id__in=member_ids, contribution_cents__gt=0)
         .exclude(pk__in=refunded_ids)
         .order_by("pk")[:PARTIAL_REFUNDS]
     )
@@ -297,7 +307,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             terms += 1
 
     expired = expire_lapsed_memberships(today)
-    refunds = _seed_refunds(today)
+    refunds = _seed_refunds(today, ctx["generated_users"])
 
     ctx["payment_count"] = payments
     ctx["refund_count"] = refunds

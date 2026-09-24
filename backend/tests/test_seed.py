@@ -106,10 +106,8 @@ def test_seed_demo_covers_every_membership_status() -> None:
     _seed()
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
     assert counts[MembershipState.CURRENT] == 34
-    # Two expired terms are canceled with a full refund; one of the two members
-    # held nothing else, so they fall back to no membership history at all.
-    assert counts[MembershipState.EXPIRED] == 8
-    assert counts[MembershipState.NONE] == 6
+    assert counts[MembershipState.EXPIRED] == 9
+    assert counts[MembershipState.NONE] == 5
     lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
     assert len(lifetime) == 6
 
