@@ -237,6 +237,11 @@ rehearsal cannot ask the provider whether a charge would be taken, so it reports
 the charge and the message a charge that succeeds sends; a live run reports the
 decline instead when the provider refuses.
 
+A charge whose date has already come round is scheduled and taken by the same
+scan.  A rehearsal writes no attempt for its charge step to find, so the notice
+step hands the attempts it would have written straight to it, and a rehearsal
+names every charge the live run of that date then takes.
+
 ``manage.py run_auto_renewals`` prints one line per action after the counts --
 ``would email renewal_notice to Maria Alvarez <maria@example.org> on
 2026-10-14`` in a rehearsal, ``emailed ...`` in a live run -- and

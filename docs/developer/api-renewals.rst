@@ -159,9 +159,13 @@ alone.  A life member may not give one: their membership does not renew.  The
 dues are not settable: they are the plan's price at the time of each charge.  The
 answer is the mandate envelope.
 
+What the authority may become is the rule ``POST /me/renewal/setup`` applies, so
+a patch that would leave a mandate nothing to charge again is refused.
+
 Statuses: **200**; **400** naming ``contribution_cents`` for an amount outside
 what a checkout would accept, naming ``plan`` for a slug no active plan carries,
-and naming ``auto_renew`` when a life member names a plan; **404** when the
+and naming ``auto_renew`` when a life member names a plan, when a life member
+contributes nothing, and when the plan named never expires; **404** when the
 caller has no mandate; **401** when anonymous.
 
 ``DELETE /me/renewal``
