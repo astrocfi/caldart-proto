@@ -217,7 +217,8 @@ Runs the automatic-renewal scan immediately instead of waiting for the 06:30
 timer: it schedules the charges for terms running out, sends the advance
 notices, charges the renewals due, and retries or pauses the ones the provider
 refused.  The body is optional and ``dry_run`` defaults to ``false``; a dry run
-writes nothing, emails nobody and charges nobody.
+changes no mandate, emails nobody and charges nobody, and is itself recorded in
+the audit log.
 
 .. code-block:: json
 

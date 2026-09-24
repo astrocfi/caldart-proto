@@ -323,6 +323,7 @@
   },
   "CheckoutRequest": {
     "properties": {
+      "auto_renew": "boolean",
       "contribution_cents": "integer",
       "plan": "string|null",
       "provider": "ref:PaymentProviderEnum"
@@ -776,30 +777,6 @@
       "phone"
     ]
   },
-  "LedgerMandate": {
-    "properties": {
-      "canceled_at": "string(date-time)|null",
-      "contribution_cents": "integer",
-      "failure_count": "integer",
-      "id": "integer",
-      "last_charged_at": "string(date-time)|null",
-      "method_label": "string",
-      "plan": "string",
-      "provider": "ref:MandateProviderEnum",
-      "status": "ref:MandateStatusEnum"
-    },
-    "required": [
-      "canceled_at",
-      "contribution_cents",
-      "failure_count",
-      "id",
-      "last_charged_at",
-      "method_label",
-      "plan",
-      "provider",
-      "status"
-    ]
-  },
   "LedgerMember": {
     "properties": {
       "email": "string(email)",
@@ -932,7 +909,7 @@
   },
   "MemberLedger": {
     "properties": {
-      "mandate": "ref:LedgerMandate|null",
+      "mandate": "ref:RenewalMandate|null",
       "payments": "array<ref:FinancePaymentDetail>",
       "statement_years": "array<integer>",
       "totals": "ref:LedgerTotals",
@@ -1066,17 +1043,12 @@
     "properties": {
       "client": "object",
       "payment_id": "integer",
-      "provider": "ref:MockCheckoutResponseProviderEnum"
+      "provider": "ref:Provider3f1Enum"
     },
     "required": [
       "client",
       "payment_id",
       "provider"
-    ]
-  },
-  "MockCheckoutResponseProviderEnum": {
-    "enum": [
-      "mock"
     ]
   },
   "MockCompleteOutcomeEnum": {
@@ -1092,6 +1064,16 @@
     },
     "required": [
       "payment_id"
+    ]
+  },
+  "MockRenewalSetupResponse": {
+    "properties": {
+      "client": "object",
+      "provider": "ref:Provider3f1Enum"
+    },
+    "required": [
+      "client",
+      "provider"
     ]
   },
   "NavChild": {
@@ -1187,6 +1169,30 @@
       "next": "string(uri)|null",
       "previous": "string(uri)|null",
       "results": "array<ref:ReminderLog>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PaginatedRenewalAttemptList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:RenewalAttempt>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PaginatedRenewalMandateList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:RenewalMandate>"
     },
     "required": [
       "count",
@@ -1369,6 +1375,12 @@
     },
     "required": []
   },
+  "PatchedRenewalPatchRequest": {
+    "properties": {
+      "contribution_cents": "integer"
+    },
+    "required": []
+  },
   "PayPalCaptureRequest": {
     "properties": {
       "order_id": "string",
@@ -1390,7 +1402,7 @@
     "properties": {
       "client": "ref:PayPalCheckoutClient",
       "payment_id": "integer",
-      "provider": "ref:PayPalCheckoutResponseProviderEnum"
+      "provider": "ref:Provider278Enum"
     },
     "required": [
       "client",
@@ -1398,9 +1410,22 @@
       "provider"
     ]
   },
-  "PayPalCheckoutResponseProviderEnum": {
-    "enum": [
-      "paypal"
+  "PayPalRenewalSetupClient": {
+    "properties": {
+      "setup_token": "string"
+    },
+    "required": [
+      "setup_token"
+    ]
+  },
+  "PayPalRenewalSetupResponse": {
+    "properties": {
+      "client": "ref:PayPalRenewalSetupClient",
+      "provider": "ref:Provider278Enum"
+    },
+    "required": [
+      "client",
+      "provider"
     ]
   },
   "PaymentKindEnum": {
@@ -1653,6 +1678,21 @@
       "state"
     ]
   },
+  "Provider278Enum": {
+    "enum": [
+      "paypal"
+    ]
+  },
+  "Provider3f1Enum": {
+    "enum": [
+      "mock"
+    ]
+  },
+  "ProviderEc9Enum": {
+    "enum": [
+      "stripe"
+    ]
+  },
   "ProviderTotals": {
     "properties": {
       "manual": "integer",
@@ -1846,12 +1886,150 @@
       "skipped"
     ]
   },
+  "RenewalAttempt": {
+    "properties": {
+      "attempted_at": "string(date-time)|null",
+      "created_at": "string(date-time)",
+      "error": "string",
+      "id": "integer",
+      "mandate_id": "integer",
+      "membership_id": "integer",
+      "noticed_at": "string(date-time)|null",
+      "outcome": "ref:RenewalOutcomeEnum",
+      "payment_id": "integer|null",
+      "result_emailed_at": "string(date-time)|null",
+      "scheduled_on": "string(date)",
+      "user_id": "integer",
+      "user_name": "string"
+    },
+    "required": [
+      "attempted_at",
+      "created_at",
+      "error",
+      "id",
+      "mandate_id",
+      "membership_id",
+      "noticed_at",
+      "outcome",
+      "payment_id",
+      "result_emailed_at",
+      "scheduled_on",
+      "user_id",
+      "user_name"
+    ]
+  },
+  "RenewalConfirmRequest": {
+    "properties": {
+      "setup_intent_id": "string",
+      "setup_token": "string"
+    },
+    "required": []
+  },
+  "RenewalEnvelope": {
+    "properties": {
+      "mandate": "ref:RenewalMandate|null"
+    },
+    "required": [
+      "mandate"
+    ]
+  },
+  "RenewalMandate": {
+    "properties": {
+      "amount_cents": "integer",
+      "canceled_at": "string(date-time)|null",
+      "contribution_cents": "integer",
+      "created_at": "string(date-time)",
+      "failure_count": "integer",
+      "id": "integer",
+      "last_charged_at": "string(date-time)|null",
+      "last_error": "string",
+      "method_brand": "string",
+      "method_exp_month": "integer|null",
+      "method_exp_year": "integer|null",
+      "method_label": "string",
+      "method_last4": "string",
+      "next_charge_on": "string(date)|null",
+      "plan": "string",
+      "plan_name": "string",
+      "provider": "ref:MandateProviderEnum",
+      "status": "ref:MandateStatusEnum",
+      "user_email": "string",
+      "user_id": "integer",
+      "user_name": "string"
+    },
+    "required": [
+      "amount_cents",
+      "canceled_at",
+      "contribution_cents",
+      "created_at",
+      "failure_count",
+      "id",
+      "last_charged_at",
+      "last_error",
+      "method_brand",
+      "method_exp_month",
+      "method_exp_year",
+      "method_label",
+      "method_last4",
+      "next_charge_on",
+      "plan",
+      "plan_name",
+      "provider",
+      "status",
+      "user_email",
+      "user_id",
+      "user_name"
+    ]
+  },
   "RenewalOutcomeEnum": {
     "enum": [
       "scheduled",
       "succeeded",
       "failed",
       "skipped"
+    ]
+  },
+  "RenewalRunRequestRequest": {
+    "properties": {
+      "dry_run": "boolean"
+    },
+    "required": []
+  },
+  "RenewalRunResult": {
+    "properties": {
+      "charged": "integer",
+      "failed": "integer",
+      "noticed": "integer",
+      "paused": "integer",
+      "skipped": "integer",
+      "warned": "integer"
+    },
+    "required": [
+      "charged",
+      "failed",
+      "noticed",
+      "paused",
+      "skipped",
+      "warned"
+    ]
+  },
+  "RenewalSetupRequest": {
+    "properties": {
+      "contribution_cents": "integer",
+      "plan": "string",
+      "provider": "ref:MandateProviderEnum"
+    },
+    "required": [
+      "plan",
+      "provider"
+    ]
+  },
+  "RenewalSetupResponse": {
+    "discriminator": "provider",
+    "one_of": [
+      "MockRenewalSetupResponse",
+      "PayPalRenewalSetupResponse",
+      "StripeRenewalSetupResponse"
     ]
   },
   "ReportColumn": {
@@ -1998,17 +2176,12 @@
     "properties": {
       "client": "ref:StripeCheckoutClient",
       "payment_id": "integer",
-      "provider": "ref:StripeCheckoutResponseProviderEnum"
+      "provider": "ref:ProviderEc9Enum"
     },
     "required": [
       "client",
       "payment_id",
       "provider"
-    ]
-  },
-  "StripeCheckoutResponseProviderEnum": {
-    "enum": [
-      "stripe"
     ]
   },
   "StripeConfirmRequest": {
@@ -2018,6 +2191,24 @@
     },
     "required": [
       "payment_id"
+    ]
+  },
+  "StripeRenewalSetupClient": {
+    "properties": {
+      "client_secret": "string"
+    },
+    "required": [
+      "client_secret"
+    ]
+  },
+  "StripeRenewalSetupResponse": {
+    "properties": {
+      "client": "ref:StripeRenewalSetupClient",
+      "provider": "ref:ProviderEc9Enum"
+    },
+    "required": [
+      "client",
+      "provider"
     ]
   },
   "ThemeEnum": {

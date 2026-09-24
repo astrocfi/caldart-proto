@@ -179,8 +179,14 @@ def access_token() -> str:
     return token
 
 
-def call(method: str, path: str, *, json_body: dict[str, Any] | None = None) -> dict[str, Any]:
+def call(
+    method: str, path: str, *, json_body: dict[str, Any] | None = None, request_id: str = ""
+) -> dict[str, Any]:
     """One authenticated Orders v2 call, returning the decoded body.
+
+    ``request_id`` is sent as ``PayPal-Request-Id``, which makes the call
+    idempotent at PayPal: a create repeated under the same id answers with the
+    resource the first call made rather than making a second one.
 
     Raises :class:`~apps.payments.providers.base.ProviderUnavailableError` when the
     call never completes, and
@@ -188,15 +194,18 @@ def call(method: str, path: str, *, json_body: dict[str, Any] | None = None) -> 
     answers with an error status.  A body that is not JSON is read as an empty
     dict, so a successful call with an unreadable body returns ``{}``.
     """
+    headers = {
+        "Authorization": f"Bearer {access_token()}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    if request_id:
+        headers["PayPal-Request-Id"] = request_id
     try:
         response = httpx.request(
             method,
             f"{api_base()}{path}",
-            headers={
-                "Authorization": f"Bearer {access_token()}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
+            headers=headers,
             json=json_body,
             timeout=TIMEOUT_SECONDS,
         )
@@ -647,9 +656,12 @@ class PayPalProvider(Provider):
         """Create an order against the vaulted account and capture it at once.
 
         Marks the payment succeeded when PayPal completes a capture for the right
-        amount.  Raises :class:`PaymentDeclinedError` when PayPal will not take
-        the vaulted method, and :class:`ProviderUnavailableError` when PayPal
-        cannot be reached.
+        amount.  The order is created under ``PayPal-Request-Id:
+        caldart-renewal-<payment id>``, matching Stripe's idempotency key, so a
+        scan interrupted between the order and its capture takes no second
+        payment when it runs again.  Raises :class:`PaymentDeclinedError` when
+        PayPal will not take the vaulted method, and
+        :class:`ProviderUnavailableError` when PayPal cannot be reached.
         """
         try:
             order = call(
@@ -670,6 +682,7 @@ class PayPalProvider(Provider):
                     ],
                     "payment_source": {"paypal": {"vault_id": mandate.method_ref}},
                 },
+                request_id=f"caldart-renewal-{payment.pk}",
             )
         except PaymentVerificationError as exc:
             raise PaymentDeclinedError(str(exc) or DECLINED_MESSAGE) from exc

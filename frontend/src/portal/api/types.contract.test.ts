@@ -108,7 +108,6 @@ import type {
   ReminderKind,
   ReminderLogEntry,
   ReminderRunResult,
-  RenewalOutcome,
   ReportColumn,
   Role,
   RoleSlug,
@@ -239,9 +238,6 @@ const paymentPatch: Matches<PaymentPatch, Schemas['PatchedPaymentPatchRequest']>
 const manualPayment: Matches<ManualPaymentPayload, Schemas['ManualPaymentRequest']> = true;
 
 /* ----------------------------------------------------- automatic renewal */
-const mandateProvider: Matches<MandateProvider, Schemas['Provider7c9Enum']> = true;
-const mandateStatus: Matches<MandateStatus, Schemas['RenewalMandateStatusEnum']> = true;
-const renewalOutcome: Matches<RenewalOutcome, Schemas['RenewalAttemptOutcomeEnum']> = true;
 const renewalMandate: Matches<RenewalMandate, Schemas['RenewalMandate']> = true;
 const renewalEnvelope: Matches<RenewalEnvelope, Schemas['RenewalEnvelope']> = true;
 const renewalAttempt: Matches<RenewalAttempt, Schemas['RenewalAttempt']> = true;
@@ -356,9 +352,6 @@ const assertions: readonly true[] = [
   memberLedger,
   paymentPatch,
   manualPayment,
-  mandateProvider,
-  mandateStatus,
-  renewalOutcome,
   renewalMandate,
   renewalEnvelope,
   renewalAttempt,
@@ -463,9 +456,6 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'MemberLedger',
   'PatchedPaymentPatchRequest',
   'ManualPaymentRequest',
-  'Provider7c9Enum',
-  'RenewalMandateStatusEnum',
-  'RenewalAttemptOutcomeEnum',
   'RenewalMandate',
   'RenewalEnvelope',
   'RenewalAttempt',

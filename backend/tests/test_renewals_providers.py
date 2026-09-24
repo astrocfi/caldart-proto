@@ -37,6 +37,7 @@ from apps.payments.providers.base import (
 )
 from apps.payments.providers.mock import DECLINED_LAST4, MOCK_CARD_LABEL
 from apps.payments.providers.paypal import paypal_label
+from apps.payments.renewals import begin_mandate
 from apps.payments.services import create_checkout
 from tests.factories import RenewalMandateFactory
 
@@ -135,6 +136,8 @@ class FakeStripe:
         self.created_intent: dict[str, Any] = {}
         self.created_setup: dict[str, Any] = {}
         self.created_customer: dict[str, Any] = {}
+        self.method_payload: dict[str, Any] = {}
+        self.retrieved_method = ""
 
     # -- customers
     def create_customer(self, params: dict[str, Any]) -> stripe.Customer:
@@ -153,6 +156,12 @@ class FakeStripe:
     ) -> stripe.SetupIntent:
         """Answer with ``setup_payload``, whatever id is asked for."""
         return stripe.SetupIntent.construct_from(self.setup_payload, SECRET_KEY)
+
+    # -- payment methods
+    def retrieve_method(self, method_id: str) -> stripe.PaymentMethod:
+        """Record the method asked for and answer with ``method_payload``."""
+        self.retrieved_method = method_id
+        return stripe.PaymentMethod.construct_from(self.method_payload, SECRET_KEY)
 
     # -- payment intents
     def create_intent(
@@ -173,6 +182,7 @@ class FakeStripe:
                     create=self.create_setup, retrieve=self.retrieve_setup
                 ),
                 payment_intents=SimpleNamespace(create=self.create_intent),
+                payment_methods=SimpleNamespace(retrieve=self.retrieve_method),
             )
         )
 
@@ -375,6 +385,56 @@ def test_stripe_reads_the_method_a_checkout_saved(
     assert method.method_ref == "pm_test_1"
 
 
+def test_a_stripe_checkout_ignores_a_mandate_that_renews_something_else(
+    fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A mandate left over from another checkout never vaults this checkout's card."""
+    begin_mandate(
+        member, plan=annual_plan, contribution_cents=5_000, provider=MandateProvider.STRIPE
+    )
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    fake_stripe.intent_payload = {"id": "pi_1", "client_secret": "pi_1_secret"}
+
+    get_provider(MandateProvider.STRIPE).start(payment)
+
+    assert "setup_future_usage" not in fake_stripe.created_intent
+
+
+def test_stripe_reads_the_method_from_a_webhook_shaped_intent(
+    fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The webhook stores ``latest_charge`` as a bare id, so the card is fetched."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    payment.raw = {
+        "id": "pi_1",
+        "customer": "cus_test_1",
+        "payment_method": "pm_test_1",
+        "latest_charge": "ch_1",
+    }
+    payment.save(update_fields=["raw"])
+    fake_stripe.method_payload = {
+        "id": "pm_test_1",
+        "card": {"brand": "visa", "last4": "4242", "exp_month": 3, "exp_year": 2028},
+    }
+
+    method = get_provider(MandateProvider.STRIPE).method_from_payment(payment)
+
+    assert method is not None
+    assert method.label == "Visa ending 4242, expires 03/2028"
+
+
+def test_a_webhook_shaped_intent_that_saved_no_card_yields_no_method(
+    fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A method Stripe reports without a card activates nothing."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    payment.raw = {"id": "pi_1", "payment_method": "pm_test_1", "latest_charge": "ch_1"}
+    payment.save(update_fields=["raw"])
+    fake_stripe.method_payload = {"id": "pm_test_1", "type": "us_bank_account"}
+
+    assert get_provider(MandateProvider.STRIPE).method_from_payment(payment) is None
+
+
 def test_a_stripe_checkout_that_saved_nothing_yields_no_method(
     fake_stripe: FakeStripe, member: User, annual_plan: MembershipPlan
 ) -> None:
@@ -522,6 +582,25 @@ def test_a_paypal_renewal_charges_the_vaulted_account(
 
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.SUCCEEDED
+
+
+def test_a_paypal_renewal_order_carries_its_own_request_id(
+    paypal_configured: None, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The order is keyed like Stripe's charge, so a repeated scan takes nothing twice."""
+    mandate = RenewalMandateFactory(
+        user=member, plan=annual_plan, provider=MandateProvider.PAYPAL, method_ref="vault_1"
+    )
+    payment = create_checkout(member, "annual", 0, PaymentProvider.PAYPAL)
+    with respx.mock as router:
+        mock_token(router)
+        route = router.post(f"{SANDBOX}/v2/checkout/orders").mock(
+            return_value=httpx.Response(201, json=captured_order(payment))
+        )
+        get_provider(MandateProvider.PAYPAL).charge_mandate(mandate, payment)
+
+    request_id = route.calls.last.request.headers["PayPal-Request-Id"]
+    assert request_id == f"caldart-renewal-{payment.pk}"
 
 
 def test_a_paypal_renewal_the_vault_refuses_is_a_decline(

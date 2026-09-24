@@ -84,9 +84,16 @@ can be added afterwards -- and the method they pay with becomes the one CalDART
 renews from once the payment succeeds.  It is refused, with a 400 naming
 ``auto_renew``, for a plan that never expires, for a checkout that buys no plan
 at all, and for a provider that cannot charge a saved method, which is every
-provider but ``stripe``, ``paypal`` and ``mock``.  Turning automatic renewal on
-again replaces whatever authority was there.  :doc:`api-renewals` covers the
-mandate that results and :doc:`renewals` the scan that acts on it.
+provider but ``stripe``, ``paypal`` and ``mock``.  A refusal deletes the pending
+payment again, exactly as a provider that will not start one does.  Turning
+automatic renewal on again replaces whatever authority was there.
+
+A checkout with ``auto_renew`` false deletes any ``pending`` authority the payer
+is still carrying from a checkout they abandoned, and a pending authority is
+activated only by a payment for the same plan and the same contribution it names.
+Between them, no method is ever saved against a payer who did not ask at this
+checkout.  :doc:`api-renewals` covers the mandate that results and
+:doc:`renewals` the scan that acts on it.
 
 **201 Created**:
 

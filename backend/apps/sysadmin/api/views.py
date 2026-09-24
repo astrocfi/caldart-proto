@@ -160,9 +160,10 @@ class RenewalRunView(APIView):
     def post(self, request: Request) -> Response:
         """Run the scan and return its counts with status 200.
 
-        The body takes ``dry_run``, defaulting to ``False``; a dry run writes
-        nothing, emails nobody and charges nobody, and reports the counts the
-        same scan would produce.  The answer is ``{noticed, warned, charged,
+        The body takes ``dry_run``, defaulting to ``False``; a dry run changes no
+        mandate, emails nobody and charges nobody, and reports the counts the
+        same scan would produce.  The rehearsal is recorded in the audit log like
+        any other run.  The answer is ``{noticed, warned, charged,
         failed, paused, skipped}``, and the caller is recorded as the actor on the
         ``renewals.run`` audit record.
         """

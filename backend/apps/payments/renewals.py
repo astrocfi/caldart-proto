@@ -22,8 +22,8 @@ in this order, for every mandate that is ``active``:
    hands the member back to the ordinary renewal reminders.
 
 Every email is keyed on a timestamp of the attempt it belongs to, so a scan run
-twice in one day sends nothing twice, and a dry run writes and sends nothing at
-all.
+twice in one day sends nothing twice.  A dry run changes no mandate, sends no
+email and charges nobody; the run itself is still recorded in the audit log.
 """
 
 from __future__ import annotations
@@ -54,6 +54,8 @@ from apps.payments.models import (
 from apps.payments.providers.base import (
     MandateMethod,
     PaymentError,
+    ProviderNotConfiguredError,
+    ProviderUnavailableError,
     get_provider,
 )
 from apps.payments.services import create_checkout, mark_failed
@@ -88,6 +90,8 @@ SKIP_REASONS: tuple[str, ...] = (
     "not_active",
     "already_renewed",
     "no_plan",
+    "in_flight",
+    "provider_down",
 )
 
 #: Subject lines, in the house voice: plain, specific, no exclamation marks.
@@ -134,11 +138,18 @@ def term_to_renew(user: User, today: date) -> Membership | None:
     out on ``today``.  ``None`` when the member holds no such term, and ``None``
     as well when any active term is a lifetime one: a lifetime membership never
     needs renewing.
+
+    The member's terms are walked in Python rather than filtered in the database,
+    so a caller that has prefetched ``memberships`` -- the finance list does --
+    costs no query per member.
     """
-    active = user.memberships.filter(status=MembershipStatusChoices.ACTIVE)
-    if active.filter(ends_on__isnull=True).exists():
+    active = [m for m in user.memberships.all() if m.status == MembershipStatusChoices.ACTIVE]
+    if any(term.ends_on is None for term in active):
         return None
-    return active.filter(ends_on__gte=today).order_by("-ends_on", "-id").first()
+    dated = [term for term in active if term.ends_on is not None and term.ends_on >= today]
+    if len(dated) == 0:
+        return None
+    return max(dated, key=lambda term: (term.ends_on, term.id))
 
 
 def next_charge_on(mandate: RenewalMandate, today: date | None = None) -> date | None:
@@ -147,15 +158,20 @@ def next_charge_on(mandate: RenewalMandate, today: date | None = None) -> date |
     A scheduled attempt's own date when one is waiting, otherwise the charge date
     of the member's current term.  ``None`` for a mandate that is not ``active``,
     and for one whose member holds no term that needs renewing.
+
+    The attempts are walked in Python, so a caller that has prefetched
+    ``attempts`` costs no query per mandate.
     """
     if mandate.status != MandateStatus.ACTIVE:
         return None
     today = today or timezone.localdate()
-    scheduled = (
-        mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED).order_by("scheduled_on").first()
-    )
-    if scheduled is not None:
-        return scheduled.scheduled_on
+    scheduled = [
+        attempt.scheduled_on
+        for attempt in mandate.attempts.all()
+        if attempt.outcome == RenewalOutcome.SCHEDULED
+    ]
+    if len(scheduled) > 0:
+        return min(scheduled)
     term = term_to_renew(mandate.user, today)
     if term is None or term.ends_on is None:
         return None
@@ -204,8 +220,10 @@ def send_mandate_email(mandate: RenewalMandate, template: str, **extra: Any) -> 
 
     A mail server that refuses the message is logged at ERROR and answered
     ``False`` rather than raised: one member's mail problem never stops a scan,
-    and the timestamp that would have recorded the send stays unset, so the next
-    run tries again.
+    and the timestamp that would have recorded the send stays unset.  The advance
+    notice and the card-expiry warning are sent again on the next run because of
+    that; the message that reports a charge or a decline is not resent, since the
+    attempt it belongs to is already closed.
     """
     if not mandate.user.email:
         return False
@@ -371,16 +389,35 @@ def cancel_mandate(mandate: RenewalMandate, *, actor: User | None) -> RenewalMan
 def pending_mandate_for(payment: Payment) -> RenewalMandate | None:
     """The ``pending`` mandate this payment would activate, or ``None``.
 
-    A mandate only matches when it is the payer's own, is still pending, and
-    names the provider the payment is being taken with, so a member who started
-    a Stripe mandate and then paid with PayPal activates nothing.
+    A mandate only matches when it is the payer's own, is still pending, names
+    the provider the payment is being taken with, and renews exactly what the
+    payment buys -- the same plan and the same contribution.  A member who
+    started a Stripe mandate and then paid with PayPal activates nothing, and
+    neither does a checkout for some other plan that happens to follow an
+    abandoned one: a mandate is the authority the payer asked for at *this*
+    checkout, never one left over from another.
     """
     mandate = RenewalMandate.objects.filter(
         user_id=payment.user_id, status=MandateStatus.PENDING
     ).first()
     if mandate is None or mandate.provider != payment.provider:
         return None
+    if mandate.plan_id != payment.plan_id:
+        return None
+    if mandate.contribution_cents != payment.contribution_cents:
+        return None
     return mandate
+
+
+def discard_pending_mandate(user: User) -> None:
+    """Throw away the member's ``pending`` mandate, if they hold one.
+
+    A pending mandate has no saved method, has charged nothing and has never been
+    announced to anybody, so a checkout that declines automatic renewal deletes it
+    outright rather than canceling it: there is no standing authority to withdraw
+    and nothing to tell the member.  A mandate in any other state is left alone.
+    """
+    RenewalMandate.objects.filter(user=user, status=MandateStatus.PENDING).delete()
 
 
 def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:
@@ -450,7 +487,7 @@ class RenewalRun:
         """Human-readable summary, one fact per line."""
         lines = [
             f"today            {self.today.isoformat()}",
-            f"mode             {'dry run (nothing written)' if self.dry_run else 'live'}",
+            f"mode             {'dry run (nothing renewed)' if self.dry_run else 'live'}",
             f"noticed          {self.noticed}",
             f"card warnings    {self.warned}",
             f"charged          {self.charged}",
@@ -484,8 +521,9 @@ def run_auto_renewals(
     """Scan every mandate, send the notices due, and charge the renewals due.
 
     ``today`` defaults to the current local date and is what every comparison is
-    made against, so a rehearsal can be run as of any date.  A dry run writes
-    nothing and sends nothing; it reports the counts the same scan would produce.
+    made against, so a rehearsal can be run as of any date.  A dry run changes no
+    mandate, charges nobody and sends no email; it reports the counts the same
+    scan would produce, and is itself recorded in the audit log.
 
     Nothing one member's mandate does stops the scan: a provider that declines,
     a provider that cannot be reached and a mail server that refuses a message
@@ -517,21 +555,38 @@ def run_auto_renewals(
 
 
 def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool) -> None:
-    """Schedule the charge for a term running out, and email the warning."""
+    """Schedule the charge for a term running out, and email the warning.
+
+    Only an attempt that is still ``scheduled`` or has already ``succeeded``
+    stands in the way of a fresh one, so a mandate that was paused over a term and
+    then turned back on is scheduled again rather than left to lapse quietly.  An
+    attempt that is waiting but whose notice never went out -- a mail server that
+    refused it -- is written to again here.
+    """
     term = term_to_renew(mandate.user, today)
     if term is None or term.ends_on is None:
         run.record_skipped("no_term")
         return
-    if mandate.attempts.filter(membership=term).exists():
+    waiting = (
+        mandate.attempts.filter(
+            membership=term,
+            outcome__in=(RenewalOutcome.SCHEDULED, RenewalOutcome.SUCCEEDED),
+        )
+        .order_by("-pk")
+        .first()
+    )
+    if waiting is not None and (
+        waiting.outcome != RenewalOutcome.SCHEDULED or waiting.noticed_at is not None
+    ):
         return
-    charge_on = charge_date_for(term.ends_on)
+    charge_on = waiting.scheduled_on if waiting is not None else charge_date_for(term.ends_on)
     if (charge_on - today).days > NOTICE_DAYS:
         return
 
     run.noticed += 1
     if dry_run:
         return
-    attempt = RenewalAttempt.objects.create(
+    attempt = waiting or RenewalAttempt.objects.create(
         mandate=mandate, membership=term, scheduled_on=charge_on
     )
     if send_mandate_email(mandate, "renewal_notice", charge_on=charge_on, expires_on=term.ends_on):
@@ -593,6 +648,9 @@ def _charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: b
     if dry_run:
         run.charged += 1
         return
+    if not _claim(attempt):
+        run.record_skipped("in_flight")
+        return
 
     try:
         payment = create_checkout(
@@ -608,16 +666,54 @@ def _charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: b
         return
 
     attempt.payment = payment
-    attempt.attempted_at = timezone.now()
-    attempt.save(update_fields=["payment", "attempted_at", "updated_at"])
+    attempt.save(update_fields=["payment", "updated_at"])
 
     try:
         get_provider(mandate.provider).charge_mandate(mandate, payment)
+    except (ProviderUnavailableError, ProviderNotConfiguredError) as exc:
+        _postpone(attempt, payment, str(exc), run)
+        return
     except PaymentError as exc:
         _record_failure(attempt, payment, str(exc), today, run)
         return
 
     _record_success(attempt, run)
+
+
+def _claim(attempt: RenewalAttempt) -> bool:
+    """Take an attempt for this run, and say whether this run got it.
+
+    The claim is a single conditional update: the attempt is stamped
+    ``attempted_at`` only while it is still ``scheduled`` and unstamped, so of two
+    scans running at once -- the timer and a system administrator pressing "Run
+    now" -- exactly one charges, and the other finds nothing to do.
+    """
+    claimed = RenewalAttempt.objects.filter(
+        pk=attempt.pk,
+        outcome=RenewalOutcome.SCHEDULED,
+        attempted_at__isnull=True,
+    ).update(attempted_at=timezone.now(), updated_at=timezone.now())
+    if claimed == 0:
+        return False
+    attempt.refresh_from_db(fields=["attempted_at", "updated_at"])
+    return True
+
+
+def _postpone(attempt: RenewalAttempt, payment: Payment, reason: str, run: RenewalRun) -> None:
+    """Put a charge back that the provider could not be asked to take.
+
+    A provider that cannot be reached, or that is not configured, says nothing
+    about the member's card, so it costs no rung of the retry ladder, sends no
+    decline notice and does not pause the mandate.  The pending payment is thrown
+    away and the attempt is released, still scheduled for the same day, so the
+    next scan tries it again.
+    """
+    log.error("renewal attempt %s could not reach %s: %s", attempt.pk, payment.provider, reason)
+    attempt.payment = None
+    attempt.attempted_at = None
+    attempt.save(update_fields=["payment", "attempted_at", "updated_at"])
+    payment.delete()
+    run.record_skipped("provider_down")
 
 
 def _already_renewed(attempt: RenewalAttempt, today: date) -> bool:

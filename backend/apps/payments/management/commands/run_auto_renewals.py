@@ -28,7 +28,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--dry-run",
             action="store_true",
-            help="Report what would happen without writing, emailing or charging anything.",
+            help="Report what would happen without renewing, emailing or charging anything.",
         )
         parser.add_argument(
             "--today",

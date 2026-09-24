@@ -247,8 +247,9 @@ for the daily timer.
 
    {"dry_run": true}
 
-``dry_run`` defaults to ``false``.  A dry run writes nothing, emails nobody and
-charges nobody, and reports the counts the same scan would produce.
+``dry_run`` defaults to ``false``.  A dry run changes no mandate, emails nobody
+and charges nobody, and reports the counts the same scan would produce; the
+rehearsal itself is recorded in the audit log.
 
 .. code-block:: json
 

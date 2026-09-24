@@ -273,19 +273,27 @@ member screen and for the Payments tab of the member record.
      "totals": {"paid_cents": 43500, "contribution_cents": 11000,
                 "fee_cents": 1380, "refunded_cents": 2500},
      "payments": [],
-     "mandate": {"id": 4, "plan": "Annual", "contribution_cents": 2000,
+     "mandate": {"id": 4, "user_id": 37, "user_name": "Marta Reyes",
+                 "user_email": "marta@example.org",
+                 "plan": "annual", "plan_name": "Annual",
+                 "contribution_cents": 2000, "amount_cents": 6500,
                  "provider": "stripe",
                  "method_label": "Visa ending 4242, expires 03/2028",
+                 "method_brand": "visa", "method_last4": "4242",
+                 "method_exp_month": 3, "method_exp_year": 2028,
                  "status": "active", "failure_count": 0,
+                 "next_charge_on": "2027-01-07", "last_error": "",
                  "last_charged_at": "2026-01-05T06:30:12-08:00",
-                 "canceled_at": null},
+                 "canceled_at": null,
+                 "created_at": "2025-01-05T06:30:12-08:00"},
      "statement_years": [2026, 2025]
    }
 
 ``payments`` holds the same rows as ``GET /admin/payments/{id}`` below, newest
 money first, including the attempts that failed.  ``totals`` counts only money
-that arrived.  ``mandate`` is ``null`` for a member with no standing renewal
-authority.  ``statement_years`` names the years the member can download a
+that arrived.  ``mandate`` is the same object ``GET /me/renewal`` answers with,
+described in :doc:`api-renewals`, and is ``null`` for a member with no standing
+renewal authority.  ``statement_years`` names the years the member can download a
 contribution statement for — a year qualifies when at least one payment
 carrying a contribution arrived in it — newest first.
 

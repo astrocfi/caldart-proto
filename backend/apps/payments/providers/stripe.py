@@ -310,9 +310,6 @@ class StripeProvider(Provider):
             "currency": payment.currency,
             "automatic_payment_methods": {"enabled": True},
             "description": f"CalDART \u00b7 {payment.description}",
-            # stripe's params type the field as a string, but its API takes null
-            # for "send no receipt".
-            "receipt_email": payment.user.email or None,  # type: ignore[typeddict-item]
             "metadata": {
                 "payment_id": str(payment.pk),
                 "user_id": str(payment.user_id),
@@ -709,19 +706,49 @@ class StripeProvider(Provider):
     def method_from_payment(self, payment: Payment) -> MandateMethod | None:
         """The card a succeeded checkout saved, read off the stored intent.
 
-        ``None`` when the intent recorded no payment method or no card details,
-        which is what a payment that saved nothing looks like.
+        The intent stored by the browser's confirm carries its charge expanded, so
+        the card is read straight out of it.  The intent stored by the
+        ``payment_intent.succeeded`` webhook does not -- ``latest_charge`` is a
+        bare id there -- so the payment method is retrieved from Stripe instead,
+        and the mandate is activated whichever of the two arrives first.
+
+        ``None`` when the intent recorded no payment method at all, which is what
+        a payment that saved nothing looks like, and ``None`` when Stripe cannot
+        be asked for the card.
         """
         intent = payment.raw or {}
-        method_id = intent.get("payment_method")
+        method = intent.get("payment_method")
+        method_id = method.get("id") if isinstance(method, dict) else method
+        if not method_id:
+            return None
         charge = intent.get("latest_charge")
         details = charge.get("payment_method_details") if isinstance(charge, dict) else None
         card = details.get("card") if isinstance(details, dict) else None
-        if not method_id or not isinstance(card, dict):
+        if not isinstance(card, dict):
+            card = self.card_for_method(str(method_id))
+        if card is None:
             return None
         customer = intent.get("customer")
         customer_id = customer.get("id") if isinstance(customer, dict) else customer
         return method_from_card(str(method_id), str(customer_id or ""), card, intent)
+
+    def card_for_method(self, method_id: str) -> dict[str, Any] | None:
+        """The ``card`` block of a saved payment method, asked of Stripe directly.
+
+        ``None`` when the method is not a card and when Stripe cannot be reached,
+        which is logged rather than raised: a mandate that cannot be activated now
+        is left pending for the next attempt rather than failing the payment that
+        was already taken.
+        """
+        try:
+            retrieved = stripe_client().v1.payment_methods.retrieve(method_id)
+        except (stripe.StripeError, ProviderNotConfiguredError) as exc:
+            log.warning(
+                "Stripe payment_methods.retrieve failed for %s: %s", method_id, type(exc).__name__
+            )
+            return None
+        card = retrieved.to_dict().get("card")
+        return card if isinstance(card, dict) else None
 
 
 def decline_reason(intent: dict[str, Any]) -> str:

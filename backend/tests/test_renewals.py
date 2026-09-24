@@ -7,13 +7,16 @@ be walked without a real provider.
 
 from __future__ import annotations
 
+import smtplib
 from datetime import date, timedelta
 
 import pytest
 from django.core.mail import EmailMessage
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
+from apps.payments import renewals
 from apps.payments.models import (
     MandateStatus,
     Payment,
@@ -22,7 +25,8 @@ from apps.payments.models import (
     RenewalMandate,
     RenewalOutcome,
 )
-from apps.payments.providers.mock import DECLINED_LAST4
+from apps.payments.providers.base import ProviderUnavailableError
+from apps.payments.providers.mock import DECLINED_LAST4, MockProvider, mock_method
 from apps.payments.renewals import (
     CHARGE_LEAD_DAYS,
     NOTICE_DAYS,
@@ -31,10 +35,11 @@ from apps.payments.renewals import (
     charge_date_for,
     next_charge_on,
     run_auto_renewals,
+    save_method,
     term_to_renew,
 )
 from tests.conftest import Golden
-from tests.factories import MembershipFactory, RenewalMandateFactory
+from tests.factories import MembershipFactory, RenewalAttemptFactory, RenewalMandateFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -73,6 +78,11 @@ def make_mandate(
 def subjects(mailbox: list[EmailMessage]) -> list[str]:
     """The subject line of every message sent so far."""
     return [str(message.subject) for message in mailbox]
+
+
+def refusing_mailer(**kwargs: object) -> None:
+    """Stand in for a mail server that will not take the message."""
+    raise smtplib.SMTPException("The mail server refused the message.")
 
 
 # --------------------------------------------------------------------------
@@ -632,3 +642,179 @@ def test_the_renewal_emails_read_as_written(
     )
     replacements[str(charge_on)] = "<CHARGE>"
     golden(f"renewal-{template}.txt", str(mailoutbox[-1].body), replace=replacements)
+
+
+# --------------------------------------------------------------------------
+# Two scans at once
+# --------------------------------------------------------------------------
+def test_an_attempt_another_run_already_took_is_not_charged_again(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """Of two overlapping scans only the one that claimed the attempt charges it."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+    RenewalAttempt.objects.update(attempted_at=timezone.now())
+
+    run_auto_renewals(today=today)
+
+    assert Payment.objects.count() == 0
+
+
+def test_an_attempt_another_run_already_took_is_counted_as_in_flight(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """The summary says why nothing happened, rather than reporting a charge."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+    RenewalAttempt.objects.update(attempted_at=timezone.now())
+
+    run = run_auto_renewals(today=today)
+
+    assert run.skipped_by_reason == {"in_flight": 1}
+
+
+# --------------------------------------------------------------------------
+# A provider that cannot be reached
+# --------------------------------------------------------------------------
+@pytest.fixture
+def unreachable_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make every mock charge fail the way an unreachable provider does."""
+
+    def refuse(self: MockProvider, mandate: RenewalMandate, payment: Payment) -> None:
+        """Raise as the provider does when its API cannot be reached at all."""
+        raise ProviderUnavailableError("We could not reach the payment provider.")
+
+    monkeypatch.setattr(MockProvider, "charge_mandate", refuse)
+
+
+def test_a_provider_outage_costs_the_member_no_rung_of_the_retry_ladder(
+    unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """Nothing was learned about the card, so nothing is held against it."""
+    mandate = make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+
+    run_auto_renewals(today=today)
+
+    mandate.refresh_from_db()
+    assert mandate.failure_count == 0
+
+
+def test_a_provider_outage_leaves_the_mandate_active(
+    unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """An outage never turns a member's automatic renewal off."""
+    mandate = make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+
+    run_auto_renewals(today=today)
+
+    mandate.refresh_from_db()
+    assert mandate.status == MandateStatus.ACTIVE
+
+
+def test_a_provider_outage_tells_the_member_nothing(
+    unreachable_provider: None,
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """A member is not written to about a decline that never happened."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+    mailoutbox.clear()
+
+    run_auto_renewals(today=today)
+
+    assert subjects(mailoutbox) == []
+
+
+def test_a_charge_a_provider_outage_stopped_is_tried_again(
+    unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """The attempt is released, still scheduled, so the next scan takes it up."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+
+    run_auto_renewals(today=today)
+
+    attempt = RenewalAttempt.objects.get()
+    assert attempt.outcome == RenewalOutcome.SCHEDULED
+
+
+def test_a_charge_a_provider_outage_stopped_leaves_no_pending_payment(
+    unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """The payment row started for a charge nobody took is thrown away again."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+
+    run_auto_renewals(today=today)
+
+    assert Payment.objects.count() == 0
+
+
+# --------------------------------------------------------------------------
+# Turning a paused mandate back on
+# --------------------------------------------------------------------------
+def pause_over_the_current_term(mandate: RenewalMandate) -> None:
+    """Leave ``mandate`` paused with a failed attempt against its member's term."""
+    RenewalAttemptFactory(
+        mandate=mandate,
+        membership=mandate.user.memberships.get(),
+        outcome=RenewalOutcome.FAILED,
+        error="Your card was declined.",
+    )
+    mandate.status = MandateStatus.PAUSED
+    mandate.failure_count = len(RETRY_OFFSETS) + 1
+    mandate.save(update_fields=["status", "failure_count"])
+
+
+def test_a_reactivated_mandate_is_scheduled_for_the_term_that_paused_it(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """Turning renewal back on rescues the term the failures were against."""
+    mandate = make_mandate(member, annual_plan, ends_on=today + timedelta(days=NOTICE_DAYS))
+    pause_over_the_current_term(mandate)
+    save_method(mandate, mock_method(), actor=member)
+
+    run_auto_renewals(today=today)
+
+    assert RenewalAttempt.objects.filter(outcome=RenewalOutcome.SCHEDULED).count() == 1
+
+
+def test_a_reactivated_mandate_charges_the_term_that_paused_it(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """The rescued term is charged on its charge date, so the membership stands."""
+    ends_on = today + timedelta(days=NOTICE_DAYS)
+    mandate = make_mandate(member, annual_plan, ends_on=ends_on)
+    pause_over_the_current_term(mandate)
+    save_method(mandate, mock_method(), actor=member)
+    run_auto_renewals(today=today)
+
+    run = run_auto_renewals(today=charge_date_for(ends_on))
+
+    assert run.charged == 1
+
+
+# --------------------------------------------------------------------------
+# A notice the mail server refused
+# --------------------------------------------------------------------------
+def test_a_notice_the_mail_server_refused_is_sent_again_next_run(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A member whose mail bounced once still gets their fourteen days' warning."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=NOTICE_DAYS))
+    monkeypatch.setattr(renewals, "send_templated", refusing_mailer)
+    run_auto_renewals(today=today)
+    monkeypatch.undo()
+
+    run_auto_renewals(today=today)
+
+    assert subjects(mailoutbox)[-1].startswith("CalDART: we will renew your membership")

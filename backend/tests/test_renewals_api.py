@@ -22,6 +22,7 @@ from apps.members.models import MembershipPlan, MembershipStatusChoices
 from apps.payments.models import (
     MandateProvider,
     MandateStatus,
+    Payment,
     RenewalAttempt,
     RenewalMandate,
     RenewalOutcome,
@@ -315,12 +316,49 @@ def test_a_checkout_that_did_not_ask_for_renewal_creates_no_mandate(
     assert RenewalMandate.objects.filter(user=member).count() == 0
 
 
+def test_a_checkout_that_declines_renewal_throws_away_an_abandoned_mandate(
+    member_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A member who says no is not renewed from a mandate they walked away from."""
+    RenewalMandateFactory(
+        user=member,
+        plan=annual_plan,
+        status=MandateStatus.PENDING,
+        provider=MandateProvider.MOCK,
+        method_ref="",
+    )
+
+    checkout(member_client, auto_renew=False)
+
+    assert RenewalMandate.objects.filter(user=member).count() == 0
+
+
+def test_a_payment_that_declined_renewal_activates_no_abandoned_mandate(
+    member_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Paying without asking to renew never turns a stale mandate on."""
+    started = checkout(member_client, auto_renew=False)
+
+    member_client.post(MOCK_COMPLETE, {"payment_id": started["payment_id"]}, format="json")
+
+    assert RenewalMandate.objects.filter(status=MandateStatus.ACTIVE).count() == 0
+
+
 def test_a_checkout_cannot_ask_to_renew_a_lifetime_plan(
     member_client: APIClient, life_plan: MembershipPlan
 ) -> None:
     """A membership that never expires is refused, naming ``auto_renew``."""
     body = checkout(member_client, plan="life")
     assert body["auto_renew"] == ["A lifetime membership never expires, so it cannot renew itself."]
+
+
+def test_a_checkout_refused_for_renewal_leaves_no_pending_payment(
+    member_client: APIClient, member: User, life_plan: MembershipPlan
+) -> None:
+    """The payment started for a refused checkout is deleted again, as for any refusal."""
+    checkout(member_client, plan="life")
+
+    assert Payment.objects.filter(user=member).count() == 0
 
 
 def test_a_checkout_cannot_ask_to_renew_a_pure_contribution(

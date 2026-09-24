@@ -211,10 +211,16 @@ class AdminRenewalListView(ListAPIView[RenewalMandate]):
         Raises DRF's ``ValidationError`` keyed by ``status`` for a status outside
         the mandate states.  Only a treasurer or an account administrator reaches
         this.
+
+        The attempts and the member's terms are prefetched, because the serializer
+        reads the next charge date and the last decline out of them: without that
+        the page costs three further queries for every row it answers.
         """
         query = RenewalStatusFilterSerializer(data=self.request.query_params)
         query.is_valid(raise_exception=True)
-        queryset = RenewalMandate.objects.select_related("user", "plan")
+        queryset = RenewalMandate.objects.select_related("user", "plan").prefetch_related(
+            "attempts", "user__memberships"
+        )
         wanted = query.validated_data["status"]
         if wanted:
             queryset = queryset.filter(status=wanted)

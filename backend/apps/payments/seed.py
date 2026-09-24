@@ -84,11 +84,14 @@ PAUSED_MANDATES = 1
 CANCELED_MANDATES = 1
 
 #: The saved cards the seeded mandates carry, as a provider would describe them.
-SEED_CARDS: tuple[tuple[str, str, str, int, int], ...] = (
-    (MandateProvider.STRIPE, "visa", "4242", 3, 2028),
-    (MandateProvider.STRIPE, "mastercard", "4444", 11, 2027),
-    (MandateProvider.STRIPE, "amex", "0005", 7, 2029),
-    (MandateProvider.PAYPAL, "", "", 0, 0),
+#: The saved method each seeded mandate carries, cycled through by index.  A
+#: PayPal mandate vaults an account rather than a card, so it carries no card at
+#: all: ``(brand, last4, expiry month, expiry year)`` or ``None``.
+SEED_CARDS: tuple[tuple[str, tuple[str, str, int, int] | None], ...] = (
+    (MandateProvider.STRIPE, ("visa", "4242", 3, 2028)),
+    (MandateProvider.STRIPE, ("mastercard", "4444", 11, 2027)),
+    (MandateProvider.STRIPE, ("amex", "0005", 7, 2029)),
+    (MandateProvider.PAYPAL, None),
 )
 
 PROVIDER_MIX: tuple[tuple[str, int], ...] = (
@@ -444,10 +447,10 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     return ctx
 
 
-def _card(rng: random.Random, index: int) -> dict[str, Any]:
+def _card(index: int) -> dict[str, Any]:
     """The saved method the mandate at ``index`` carries, as the provider gave it."""
-    provider, brand, last4, month, year = SEED_CARDS[index % len(SEED_CARDS)]
-    if provider == MandateProvider.PAYPAL:
+    provider, card = SEED_CARDS[index % len(SEED_CARDS)]
+    if card is None:
         return {
             "provider": provider,
             "method_ref": f"seed_vault_{index}",
@@ -457,6 +460,7 @@ def _card(rng: random.Random, index: int) -> dict[str, Any]:
             "method_exp_year": None,
             "method_label": "PayPal (m***@example.org)",
         }
+    brand, last4, month, year = card
     return {
         "provider": provider,
         "customer_ref": f"seed_cus_{index}",
@@ -511,7 +515,7 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
 
     for index, (user, term) in enumerate(candidates):
         contribution = _contribution(rng)
-        fields = _card(rng, index)
+        fields = _card(index)
         if index == ACTIVE_MANDATES:
             fields |= {
                 "provider": MandateProvider.MOCK,

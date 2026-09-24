@@ -85,19 +85,30 @@ it, and it does three things in order.
 
 1. **Notice.**  For every ``active`` mandate, find the member's active term that
    runs furthest into the future.  If its charge date -- ``ends_on`` less
-   ``CHARGE_LEAD_DAYS`` -- is within ``NOTICE_DAYS``, and no attempt exists for
-   that term yet, create a ``scheduled`` attempt for that date and send
-   ``renewal_notice``.  A member holding a lifetime term has no term to renew and
-   is skipped as ``no_term``.
+   ``CHARGE_LEAD_DAYS`` -- is within ``NOTICE_DAYS``, and no attempt for that term
+   is either waiting or already paid, create a ``scheduled`` attempt for that date
+   and send ``renewal_notice``.  A member holding a lifetime term has no term to
+   renew and is skipped as ``no_term``.
+
+   Only a ``scheduled`` or ``succeeded`` attempt stands in the way, so a mandate
+   that was paused over a term and then turned back on is scheduled again rather
+   than left to lapse.  An attempt that is waiting but whose notice the mail
+   server refused is written to again on the next run.
 
 2. **Card expiry.**  If the saved card expires before the next charge, and its
    expiry is within ``CARD_EXPIRY_WARNING_DAYS``, send ``renewal_card_expiring``.
    The expiry the warning was sent for is recorded on the mandate, so the warning
    goes out once rather than every morning.
 
-3. **Charge.**  For every ``scheduled`` attempt due today or earlier: create the
-   payment from the plan's current price plus the mandate's contribution, then
-   ask the provider to charge the saved method off-session.
+3. **Charge.**  For every ``scheduled`` attempt due today or earlier: claim the
+   attempt, create the payment from the plan's current price plus the mandate's
+   contribution, then ask the provider to charge the saved method off-session.
+
+   The claim is a single conditional update that stamps ``attempted_at`` while the
+   attempt is still ``scheduled`` and unstamped.  Two scans running at once -- the
+   06:30 timer and an administrator pressing **Run now** -- therefore charge once
+   between them: the run that loses the claim counts the attempt as ``in_flight``
+   and moves on.
 
    On success the payment goes through the same ``mark_succeeded`` path as a
    checkout, so the next term is activated starting the day after the current one
@@ -110,14 +121,21 @@ it, and it does three things in order.
    retries left gets the next attempt from ``RETRY_OFFSETS``; one whose retries
    are exhausted is paused.
 
+   A provider that cannot be reached, or that is not configured, says nothing
+   about the member's card: the pending payment is deleted, the claim is released,
+   the attempt stays ``scheduled`` for the next scan, and the run counts it as
+   ``provider_down``.  No retry rung is spent, no email goes out and the mandate
+   stays ``active``.
+
    An attempt whose mandate is no longer active, and one whose member has renewed
    by some other means in the meantime, is closed as ``skipped`` and charges
    nothing.
 
 The run returns a summary -- ``noticed``, ``warned``, ``charged``, ``failed``,
 ``paused``, ``skipped`` -- and writes one ``renewals.run`` audit record.  A dry
-run writes nothing, emails nobody and charges nobody; it reports the counts the
-same scan would produce.
+run changes no mandate, emails nobody and charges nobody; it reports the counts
+the same scan would produce, and the rehearsal itself is still recorded in the
+audit log.
 
 Every email is keyed on a timestamp of the attempt it belongs to, so a scan run
 twice in one day sends nothing twice.  One member's problem never stops the scan:

@@ -538,9 +538,17 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
         return next_charge_on(obj)
 
     def get_last_error(self, obj: RenewalMandate) -> str:
-        """The reason the most recent failed charge was refused, or an empty string."""
-        failed = obj.attempts.filter(outcome=RenewalOutcome.FAILED).order_by("-pk").first()
-        return failed.error if failed is not None else ""
+        """The reason the most recent failed charge was refused, or an empty string.
+
+        The attempts are walked in Python, so a list view that has prefetched them
+        answers every row without a further query.
+        """
+        failed = [
+            attempt for attempt in obj.attempts.all() if attempt.outcome == RenewalOutcome.FAILED
+        ]
+        if len(failed) == 0:
+            return ""
+        return max(failed, key=lambda attempt: attempt.pk).error
 
 
 class RenewalEnvelopeSerializer(serializers.Serializer[dict[str, Any]]):
