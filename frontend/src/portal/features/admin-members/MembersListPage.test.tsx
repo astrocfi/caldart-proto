@@ -10,6 +10,15 @@ import { server } from '@test/server';
 import { MembersListPage } from './MembersListPage';
 import { LIFETIME, makeRow } from '@test/fixtures/members';
 
+/** The registry `GET /admin/members/columns` answers with, trimmed to five. */
+const COLUMNS = [
+  { key: 'name', label: 'Name', default: true },
+  { key: 'email', label: 'Email', default: true },
+  { key: 'dart', label: 'DART', default: true },
+  { key: 'certificate_number', label: 'Certificate number', default: false },
+  { key: 'state', label: 'State', default: false },
+];
+
 const DARTS = [
   { id: 3, name: 'Palo Alto', airport_identifiers: 'PAO', city: 'Palo Alto' },
   { id: 5, name: 'Napa', airport_identifiers: 'APC', city: 'Napa' },
@@ -26,6 +35,7 @@ function lastMemberQuery(): URLSearchParams {
 function listHandlers(rows = [makeRow()], count = rows.length) {
   return [
     http.get(`${API}/darts`, () => HttpResponse.json(DARTS)),
+    http.get(`${API}/admin/members/columns`, () => HttpResponse.json(COLUMNS)),
     http.get(`${API}/admin/members`, ({ request }) => {
       requestedUrls.push(request.url);
       return HttpResponse.json({
@@ -292,19 +302,66 @@ describe('MembersListPage', () => {
     const pdf = screen.getByRole('link', { name: /Export PDF/ });
     expect(csv).toHaveAttribute(
       'href',
-      '/api/v1/admin/members/export.csv?status=current&dart=5&expiring_within=30',
+      '/api/v1/admin/members/export.csv?status=current&dart=5&expiring_within=30' +
+        '&columns=name%2Cemail%2Cdart',
     );
     expect(pdf.getAttribute('href')).toContain('/api/v1/admin/members/export.pdf?');
     expect(pdf.getAttribute('href')).toContain('dart=5');
   });
 
-  it('exports without a query string when nothing is filtered', async () => {
+  it('exports the default columns when nothing is filtered', async () => {
     server.use(...listHandlers());
     renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
       'href',
-      '/api/v1/admin/members/export.csv',
+      '/api/v1/admin/members/export.csv?columns=name%2Cemail%2Cdart',
+    );
+  });
+
+  it('offers every column the report can carry, with the defaults ticked', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    const panel = screen.getByRole('group', { name: /Columns to show and export/ });
+    expect(within(panel).getByRole('checkbox', { name: 'Name' })).toBeChecked();
+    expect(within(panel).getByRole('checkbox', { name: 'State' })).not.toBeChecked();
+  });
+
+  it('carries a chosen column into both export links', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'State' }));
+
+    expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
+      'href',
+      '/api/v1/admin/members/export.csv?columns=name%2Cemail%2Cdart%2Cstate',
+    );
+    expect(screen.getByRole('link', { name: /Export PDF/ })).toHaveAttribute(
+      'href',
+      '/api/v1/admin/members/export.pdf?columns=name%2Cemail%2Cdart%2Cstate',
+    );
+  });
+
+  it('drops a column the administrator unticks from the export links', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'DART' }));
+
+    expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
+      'href',
+      '/api/v1/admin/members/export.csv?columns=name%2Cemail',
     );
   });
 

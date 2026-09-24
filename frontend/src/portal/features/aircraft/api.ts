@@ -15,6 +15,7 @@ import type {
   AircraftPatch,
   OwnerType,
   Paginated,
+  ReportColumn,
 } from '@/portal/api/types';
 
 export type InsuranceState = 'current' | 'expired' | 'missing';
@@ -42,15 +43,47 @@ export function aircraftQuery(filters: AircraftFilters): Record<string, string |
   return query;
 }
 
-/** A download URL for the CSV/PDF exports, carrying the current filters. */
-export function aircraftExportUrl(format: 'csv' | 'pdf', filters: AircraftFilters): string {
+export interface AircraftExportOptions {
+  /** The chosen column keys; absent or empty leaves the server's defaults. */
+  columns?: string[];
+}
+
+/**
+ * A download URL for the CSV/PDF exports.
+ *
+ * It carries the filters the register is showing and the columns the chooser is
+ * showing, so the file that downloads holds the same aircraft and the same
+ * columns the administrator chose rather than a fixed report.
+ */
+export function aircraftExportUrl(
+  format: 'csv' | 'pdf',
+  filters: AircraftFilters,
+  options: AircraftExportOptions = {},
+): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(aircraftQuery(filters))) {
     if (key === 'page') continue;
     params.append(key, String(value));
   }
+  if (options.columns !== undefined && options.columns.length > 0) {
+    params.set('columns', options.columns.join(','));
+  }
   const query = params.toString();
   return `${API_BASE}/admin/aircraft/export.${format}${query ? `?${query}` : ''}`;
+}
+
+/**
+ * Every column the register exports can carry, in export order.
+ *
+ * The registry never changes while the portal is open, so it is fetched once
+ * and kept.
+ */
+export function useAircraftReportColumns(): UseQueryResult<ReportColumn[]> {
+  return useQuery({
+    queryKey: [AIRCRAFT_KEY, 'columns'],
+    queryFn: () => api.get<ReportColumn[]>('/admin/aircraft/columns'),
+    staleTime: Infinity,
+  });
 }
 
 /**
