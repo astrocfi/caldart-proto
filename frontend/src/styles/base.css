@@ -426,6 +426,16 @@ legend {
   font-size: var(--text-xs);
 }
 
+/* An icon-only button: square, so a lone trashcan is not a wide slab. */
+.button--icon {
+  padding: var(--space-2);
+  aspect-ratio: 1;
+}
+
+.button--icon.button--small {
+  padding: var(--space-1);
+}
+
 .button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
