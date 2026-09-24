@@ -610,7 +610,7 @@ def test_a_sort_that_cannot_separate_two_rows_falls_back_to_the_name(
     ordering: str,
 ) -> None:
     """Rows a sort ties are ordered by surname, whichever sort tied them."""
-    ordered = rows(account_admin_client.get(LIST_URL, {"ordering": ordering, "page_size": 200}))
+    ordered = rows(account_admin_client.get(LIST_URL, {"ordering": ordering, "page_size": "200"}))
     listed = [row["email"] for row in ordered if row["email"].endswith("@tie.test")]
     assert listed == ["b@tie.test", "a@tie.test", "c@tie.test"]
 
@@ -626,7 +626,7 @@ def test_sorting_by_name_falls_back_to_the_dart_for_two_of_one_name(
     MemberProfileFactory(user=late, dart=santa_rosa)
     MemberProfileFactory(user=early, dart=napa)
 
-    ordered = rows(account_admin_client.get(LIST_URL, {"ordering": "name", "page_size": 200}))
+    ordered = rows(account_admin_client.get(LIST_URL, {"ordering": "name", "page_size": "200"}))
     listed = [row["email"] for row in ordered if row["email"].endswith("@tie.test")]
     assert listed == ["early@tie.test", "late@tie.test"]
 

@@ -685,6 +685,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - only ``ends_on``, ``status``, ``note``
+   * - ``GET /admin/members/columns``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - the exports' column registry
    * - ``GET /admin/members/export.{csv,pdf}``
      - ·
      - ·
@@ -692,7 +700,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
-     -
+     - ``?columns=`` applies
    * - ``GET | POST /aircraft``
      - ·
      - ✓
@@ -733,6 +741,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - never the creator alone
+   * - ``GET /admin/aircraft/columns``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - the exports' column registry; not ``dart_leader``
    * - ``GET /admin/aircraft/export.{csv,pdf}``
      - ·
      - ·
@@ -740,7 +756,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
-     - not ``dart_leader``
+     - ``?columns=`` applies; not ``dart_leader``
    * - ``GET /leader/search``
      - ·
      - ·

@@ -38,6 +38,13 @@ screen it came from.  ``?ordering=`` is the one exception: the members and
 aircraft exports honor it, and the payments export ignores it and always
 sorts by payment date, newest first.
 
+All three reports let the caller choose their columns.  Each one declares a
+registry of ``ReportColumn`` entries, a ``columns`` endpoint answers that
+registry so the screen's chooser is data-driven, and ``?columns=key,key`` picks
+which columns an export carries and in what order.  Leaving the parameter out
+takes the report's default columns, which are sized to fit one landscape page
+without wrapping.
+
 
 Shared helpers
 ==============
@@ -70,10 +77,11 @@ it:
 ``build_pdf_table(buffer, …)``
    The same, into any writable binary stream, for tests and for anything that
    is not an HTTP response.
-``ReportColumn(key, label, default, value)``
+``ReportColumn(key, label, default, value, width=1.0)``
    One column of a report: the stable ``key`` a caller asks for, the ``label``
-   both exports print, whether it is in the report by ``default``, and the
-   ``value`` function that turns one row into that row's cell.  A report
+   both exports print, whether it is in the report by ``default``, the ``value``
+   function that turns one row into that row's cell, and the ``width`` share the
+   PDF gives it relative to the other columns of the same export.  A report
    declares its columns once, in export order, and both headers and both row
    builders follow from that tuple.
 ``select_columns(columns, requested)``
@@ -83,6 +91,16 @@ it:
    the order requested.  A key no column carries raises ``ValueError`` naming
    that key, and so does a key asked for twice — a report has one cell per
    column — and an endpoint answers either as a 400 keyed by ``columns``.
+``column_payload(columns)``
+   The registry as the screen's chooser reads it: one ``{"key", "label",
+   "default"}`` entry per column, in registry order.  It is what every
+   ``columns`` endpoint answers with, serialized by ``ReportColumnSerializer``.
+``chosen_columns(columns, requested)``
+   The columns a ``?columns=`` query parameter asks for.  ``requested`` is the
+   raw parameter — a comma-separated list of keys, or an empty string when the
+   caller chose nothing, which means the default columns.  An unknown or
+   repeated key raises DRF's ``ValidationError`` keyed by ``columns``, so every
+   export refuses a bad list the same way and with a 400.
 ``money_label(cents, *, currency=True)``
    Integer cents as the dollars a reader sees: ``12345`` becomes ``$123.45``,
    with commas between thousands.  ``currency=False`` gives ``123.45`` instead,
@@ -168,31 +186,44 @@ Served by ``GET /api/v1/admin/members/export.csv`` and ``export.pdf`` to
 ``account_admin`` and ``system_admin`` — see :doc:`api-members` for the
 filters.  The filenames carry the date: ``caldart-members-2026-09-04.csv``.
 
-Columns, in order, from ``backend/apps/members/reports.py``:
+Columns, in order, from ``backend/apps/members/reports.py``.  The ten marked
+"default" are the report when the caller chooses none; the rest are there to be
+asked for with ``?columns=``:
 
-==================== ==========================================================
-Column               Contents
-==================== ==========================================================
-name                 Full name, or the email address when no name is on file
-email                Login address
-phone                Primary phone from the profile
-dart                 DART name, blank when unaffiliated
-status               ``current``, ``new``, ``expired``, or ``none``
-plan                 Plan behind that status, e.g. ``Annual`` or ``Life``
-expires_on           End of unbroken coverage; **blank for a lifetime member**
-certificate          Pilot certificate, e.g. ``Private``; blank for none
-certificate_number   Certificate number as entered
-ifr                  ``Yes``, ``No``, or ``Not applicable``
-medical_type         ``BasicMed``, ``Third class``, …; blank for none
-medical_expiration   Medical expiry date
-aircraft             N-numbers of the planes the member commonly flies, spaced
-city                 City from the profile
-state                Two-letter state
-joined_on            Start of the earliest membership term
-member_since         The day the member joined, as recorded on their profile:
-                     the same date until the terms before a gap, or before an
-                     import, are missing
-==================== ==========================================================
+==================== ======================= ======= ======================================
+Key                  Label                   Default Contents
+==================== ======================= ======= ======================================
+name                 Name                    yes     Full name, or the email address when
+                                                     no name is on file
+email                Email                   yes     Login address
+phone                Phone                   yes     Primary phone from the profile
+dart                 DART                    yes     DART name, blank when unaffiliated
+status               Status                  yes     ``current``, ``new``, ``expired``, or
+                                                     ``none``
+plan                 Plan                    no      Plan behind that status, e.g.
+                                                     ``Annual`` or ``Life``
+expires_on           Expires                 yes     End of unbroken coverage; **blank for
+                                                     a lifetime member**
+certificate          Certificate             yes     Pilot certificate, e.g. ``Private``;
+                                                     blank for none
+certificate_number   Certificate number      no      Certificate number as entered
+ifr                  IFR                     no      ``Yes``, ``No``, or ``Not applicable``
+medical_type         Medical                 yes     ``BasicMed``, ``Third class``, …;
+                                                     blank for none
+medical_expiration   Medical expires         yes     Medical expiry date
+aircraft             Aircraft                yes     N-numbers of the planes the member
+                                                     commonly flies, spaced
+city                 City                    no      City from the profile
+state                State                   no      Two-letter state
+joined_on            Joined                  no      Start of the earliest membership term
+member_since         Member since            no      The day the member joined, as recorded
+                                                     on their profile: the same date until
+                                                     the terms before a gap, or before an
+                                                     import, are missing
+==================== ======================= ======= ======================================
+
+``GET /api/v1/admin/members/columns`` answers the same registry as JSON, for
+the chooser on the member list.  The CSV header row is the labels.
 
 Dates are ISO-8601 (``YYYY-MM-DD``) so a spreadsheet sorts them correctly.
 
@@ -220,14 +251,15 @@ Everything about a column lives in one tuple.  In
 .. code-block:: python
 
    MEMBER_REPORT_COLUMNS = (
-       ("name", lambda ctx: ctx["user"].display_name),
+       ReportColumn("name", "Name", True, lambda ctx: ctx["user"].display_name, width=2.6),
        ...
-       ("county", lambda ctx: _value(ctx["profile"], "county")),
+       ReportColumn("county", "County", False, lambda ctx: _value(ctx["profile"], "county")),
    )
 
-Add an entry and both exports pick it up: ``MEMBER_REPORT_HEADER`` is derived
-from it, and ``member_report_rows`` builds each row by calling every value
-function in order.
+Add an entry and everything picks it up: both export headers are the labels,
+``member_report_rows`` builds each row by calling the value function of every
+chosen column in order, and ``GET /admin/members/columns`` offers the new column
+to the chooser.
 
 The ``ctx`` dictionary a value function receives is built by ``_row_context``
 and holds ``user``, ``profile`` (which may be ``None``), ``dart``,
@@ -247,51 +279,80 @@ Then:
 * Update the column table above.
 * Extend ``DOCUMENTED_COLUMNS`` in ``backend/tests/test_members_reports.py``.  It is
   a deliberate copy of the column table above, and the test that compares it
-  with ``MEMBER_REPORT_HEADER`` is what stops the report and this page drifting
+  with the registry's keys is what stops the report and this page drifting
   apart.
 
-The PDF divides the page width evenly between columns, so each new column
-makes them all narrower.  Sixteen columns is comfortable on landscape letter
-at 7.5pt; past about twenty, drop a column or split the report rather than
-shrinking the type.
+Widths and wrapping
+-------------------
 
+A column's ``width`` is its share of the printable width, and the shares of the
+chosen columns are scaled to fill the page, so their units do not matter.  The
+widths of the default columns are tuned so that no cell of the seeded data has
+to wrap at the 7.5pt cell font, and
+``backend/tests/test_report_columns.py`` measures every default cell of every
+seeded row with reportlab's ``stringWidth`` and fails when one no longer fits.
+
+A new default column therefore takes room from the others.  If the measurement
+fails, re-tune the widths or make the column non-default; do not shrink the
+font.  Adding a non-default column costs the defaults nothing, because a
+caller who asks for it asks for a different set.
 
 The aircraft report
 ===================
 
 Served by ``GET /api/v1/admin/aircraft/export.csv`` and ``export.pdf`` to
 ``account_admin``.  Filenames carry the date: ``caldart-aircraft-2026-09-04.csv``.
-Both formats render from one row builder in ``backend/apps/aircraft/reports.py``,
-so they cannot disagree about the data — but unlike the membership report they
-do **not** share a header tuple or a money format:
+Both formats render from one column registry in
+``backend/apps/aircraft/reports.py``, so they cannot disagree about the data.
+The columns, in order:
+
+======================== ======================= ======= ==============================
+Key                      Label                   Default Contents
+======================== ======================= ======= ==============================
+n_number                 N-number                yes     Registration, canonical form
+make                     Make                    yes     Manufacturer
+model                    Model                   yes     Model designation
+owner_name               Owner                   yes     Registered owner
+owner_type               Owner type              no      Individual, flying club, FBO, …
+insurance_carrier        Carrier                 yes     Insurer on the policy
+liability_per_occurrence Liability / occurrence  yes     Liability limit per occurrence
+liability_per_person     Liability / person      no      Liability limit per person
+hull                     Hull                    yes     Hull value insured
+insurance_expiration     Expires                 yes     Date the cover runs out
+insurance_current        Current                 yes     ``yes`` or ``no``
+pilots                   Pilots                  no      Display names of the members who
+                                                         have attached the airplane, from
+                                                         ``apps.aircraft.services``
+                                                         ``.pilot_names``
+======================== ======================= ======= ==============================
+
+``GET /api/v1/admin/aircraft/columns`` answers the registry as JSON, for the
+chooser on the register screen.  The pilot list is off by default because it is
+as long as the number of members who fly the plane, which is the one cell no
+width can promise to hold.
+
+The two formats share the header — both print the labels — but not the money
+format:
 
 .. list-table::
    :header-rows: 1
    :widths: 20 40 40
 
    * -
-     - CSV (``HEADER``)
-     - PDF (``PDF_HEADER``)
-   * - Column names
-     - machine names: ``n_number``, ``liability_per_occurrence``, …
-     - human titles: "N-number", "Liability / occurrence", …
+     - CSV
+     - PDF
    * - Money
      - plain decimals, ``1000000.00``
      - currency, ``$1,000,000``
 
-That split is deliberate — one file is parsed and the other is read — and it
-is the reason ``_dollars(cents, *, currency)`` takes a keyword.
-
-The twelve columns, in order: ``n_number``, ``make``, ``model``, ``owner``,
-``owner_type``, ``insurance_carrier``, ``liability_per_occurrence``,
-``liability_per_person``, ``hull``, ``insurance_expiration``,
-``insurance_current``, and ``pilots`` — the display names of the members who
-have attached the airplane, from ``apps.aircraft.services.pilot_names``.
+That split is deliberate — one file is parsed and the other is read — and it is
+why a row is built from an ``AircraftRow``, which pairs the aircraft with the
+money format its export wants.
 
 Both exports take the register's full filter set: ``search``, ``make``,
 ``owner_type``, ``insurance`` (``current`` / ``expired`` / ``missing``),
-``expiring_within``, ``is_active``, and ``ordering``.  The PDF subtitle names
-every one of them, through ``AircraftExportMixin.applied_filters``.
+``expiring_within``, ``is_active``, and ``ordering``, plus ``?columns=``.  The
+PDF subtitle names every filter, through ``AircraftExportMixin.applied_filters``.
 
 
 The payments reports
@@ -303,8 +364,7 @@ finance roles and documented endpoint by endpoint in :doc:`api-finance`.
 The payment list
 ----------------
 
-``GET /api/v1/admin/payments/export.csv`` and ``export.pdf``.  Unlike the other
-two exports in this chapter, its columns are **chosen by the caller**.
+``GET /api/v1/admin/payments/export.csv`` and ``export.pdf``.
 ``PAYMENT_REPORT_COLUMNS`` in ``backend/apps/payments/reports.py`` is a tuple of
 ``ReportColumn`` entries — ``key``, ``label``, ``default`` and a value function
 — and ``select_columns`` turns ``?columns=a,b,c`` into the columns to print, in
