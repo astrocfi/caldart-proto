@@ -116,10 +116,21 @@ See :doc:`payments`.
 Do I get a receipt?
 -------------------
 
-If you paid by card through Stripe, Stripe emails you one.  CalDART does not
-send a receipt of its own.  Your payment history is always at
-``/portal/`` on the dashboard, with the date, plan, amount, and method, and an
-account administrator can confirm any payment for you.
+Yes.  CalDART emails one the moment the payment clears, with a PDF attached,
+whichever way you paid — card, PayPal, or a check somebody entered for you.
+The PDF carries the organization's address and EIN, a receipt number, the date
+and what you bought, and a contribution on it carries the 501(c)(3) wording.
+Every receipt can be downloaded again from **Payments** in the portal.
+
+See :doc:`payments`.
+
+Can I get a statement of my contributions for my taxes?
+--------------------------------------------------------
+
+Yes.  **Payments** in the portal offers one button per calendar year you
+contributed in, and the statement lists every contribution that year, anything
+refunded, and the total, with the wording a tax return needs.  A year you paid
+dues and gave nothing has no statement: dues are not a gift.
 
 See :doc:`payments`.
 

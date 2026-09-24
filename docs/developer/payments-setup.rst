@@ -706,8 +706,8 @@ Going live: checklist
    [ ] One real payment taken, refunded in the provider's dashboard, and the
        membership term corrected by hand (CalDART does not record refunds)
    [ ] One real payment made and refunded from the Stripe dashboard
-   [ ] Receipt email arrives (Stripe sends it to the PaymentIntent's
-       receipt_email, which is the member's address)
+   [ ] Receipt email arrives (CalDART sends it, with the PDF attached, to the
+       address on the member's account)
 
 Two things bite people at go-live: forgetting that the Apple Pay domain
 registration is per-mode *and* per-domain, and leaving a test webhook secret

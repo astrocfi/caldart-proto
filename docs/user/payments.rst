@@ -86,13 +86,32 @@ Life members have nothing to renew.
 Receipts
 --------
 
-Stripe emails a receipt to the address on your CalDART account as soon as the
-payment settles.  PayPal emails its own receipt.  CalDART itself keeps a
-record of every payment against your account: your dashboard shows what you
-paid, when, and what it bought.
+|org| emails you a receipt the moment a payment clears, whether you paid by
+card, through PayPal, or by a check somebody entered for you.  The PDF is
+attached to the message: it carries the organization's name, address and EIN,
+a receipt number, the date, what you paid for, and the total.
 
-For a tax letter covering your contributions, ask an account administrator —
-the payment report gives them the exact figures.
+A receipt that covers a contribution also carries the sentence *No goods or
+services were provided in exchange for this contribution* — the wording your
+accountant looks for.  Membership dues are shown as dues, because a membership
+is something you received.
+
+If the email never arrived, or you deleted it, every receipt can be downloaded
+again from **Payments** in the portal.  Ask the office to send one again if you
+would rather have it in your inbox.
+
+Contribution statements
+-----------------------
+
+A statement gathers a whole calendar year of contributions onto one page: the
+date, receipt number and amount of each, anything that was refunded, and the
+year's total, with the same 501(c)(3) wording.  It is what you file with a tax
+return.
+
+**Payments** in the portal offers one button per year you contributed in.  A
+year in which you paid dues and gave nothing has no statement, because dues are
+not a gift.  If part of a payment was refunded, the refund comes off the
+contribution first, and the statement shows the amount, the refund and the net.
 
 If something goes wrong
 -----------------------
