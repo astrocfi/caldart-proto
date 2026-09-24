@@ -310,7 +310,8 @@ Choosing the columns
 Twenty-one columns are on offer; sixteen of them are on to begin with.  The
 five that are off — the receipt number, the day a check was received, your own
 note, and the two dates of the term a payment bought — are the ones an audit
-wants and an everyday list does not.
+wants and an everyday list does not.  Click anywhere outside the chooser, or
+press Escape, to put it away.
 
 **Export CSV** and **Export PDF** download exactly what the filters and the
 column chooser describe, in the order the table is sorted in.  Both files carry

@@ -40,6 +40,18 @@ describe('DeleteButton', () => {
     );
   });
 
+  it('shows no tooltip when it already shows its words', () => {
+    render(<DeleteButton label="Delete member">Delete member</DeleteButton>);
+
+    expect(screen.getByRole('button', { name: 'Delete member' })).not.toHaveAttribute('title');
+  });
+
+  it('is still named by its label when the words it would show are withheld', () => {
+    render(<DeleteButton label="Remove N12345">{false}</DeleteButton>);
+
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('button--icon');
+  });
+
   it('is not an icon-only button when it shows text', () => {
     render(<DeleteButton label="Delete this DART">Delete this DART</DeleteButton>);
 

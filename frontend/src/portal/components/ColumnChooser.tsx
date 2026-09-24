@@ -46,12 +46,24 @@ export function toggleColumn(columns: ReportColumn[], chosen: string[], key: str
  * The Columns button and the checkbox list it opens.
  *
  * The list closes on a click anywhere outside it and on Escape, so it never
- * sits over the table a treasurer is trying to read.
+ * sits over the table a treasurer is trying to read.  Closing it while the focus
+ * is still inside puts the focus back on the Columns button, so a keyboard user
+ * who presses Escape carries on from the control they opened rather than from
+ * the top of the page.
  */
 export function ColumnChooser({ columns, chosen, onChange }: ColumnChooserProps): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const handleClose = useCallback(() => setIsOpen(false), []);
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    // The panel is about to unmount.  If the focus is inside it, it would fall to
+    // the document body, so hand it back to the button that opened the panel.  A
+    // pointer press outside then moves it on to whatever was pressed.
+    const root = rootRef.current;
+    if (root !== null && root.contains(document.activeElement)) {
+      root.querySelector<HTMLButtonElement>('.column-chooser__toggle')?.focus();
+    }
+  }, []);
 
   useClickOutside(rootRef, handleClose, isOpen);
 
@@ -64,6 +76,7 @@ export function ColumnChooser({ columns, chosen, onChange }: ColumnChooserProps)
       <Button
         variant="quiet"
         small
+        className="column-chooser__toggle"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
       >

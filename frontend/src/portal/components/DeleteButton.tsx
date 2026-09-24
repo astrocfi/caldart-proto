@@ -52,7 +52,10 @@ function TrashcanIcon(): JSX.Element {
  * `label` names the thing being removed.  On an icon-only button it is both the
  * accessible name and the tooltip, unless the caller passes its own `title` —
  * the reason the button is disabled, say — which wins.  With `children` the words
- * follow the icon and `label` is not repeated as an `aria-label`.  Every other
+ * follow the icon, `label` is not repeated as an `aria-label`, and there is no
+ * tooltip unless the caller supplies one, since the button already says what it
+ * does.  Children that are absent, `null` or `false` make an icon-only button, so
+ * a caller may show its words conditionally and still have a named control.  Every other
  * `Button` prop — `onClick`, `disabled`, `type`, `variant`, `small` — is passed
  * straight through, and the variant defaults to `quiet` and the size to small.
  */
@@ -65,7 +68,10 @@ export function DeleteButton({
   title,
   ...rest
 }: DeleteButtonProps): JSX.Element {
-  const isIconOnly = children === undefined;
+  // A caller that shows its words conditionally passes `false` or `null` for the
+  // quiet case, so an empty child has to count as no child: otherwise the button
+  // would draw the trashcan alone with no accessible name at all.
+  const isIconOnly = children === undefined || children === null || children === false;
   return (
     <Button
       variant={variant}
