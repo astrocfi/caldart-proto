@@ -293,7 +293,9 @@ Reconciling against a bank statement
 The **Reconciliation** tab answers, for a range you choose, what the books say
 arrived: one row per month, per year, or per provider, with the gross, the
 fees, the net, what went back, the net after refunds, and how many of that
-period's payments you have already matched.
+period's payments you have already matched.  A **Month** / **Year** /
+**Provider** toggle chooses which of the three you are looking at, and **From**,
+**To** and **Provider** bound what is counted.
 
 Two dating rules make the rows line up with a statement.  A payment counts in
 the period the money arrived.  A refund counts in the period it was *taken*, so
@@ -315,6 +317,10 @@ gave, what went back, and the difference.  That last figure is the one an
 acknowledgment letter quotes.  Export it as a CSV for a mail merge, or as a PDF
 for the board.
 
+Each row carries a **Statement** link, which downloads that member's
+contribution statement for the year on screen -- the same document the member
+can download for themselves.
+
 A member's ledger
 -----------------
 
@@ -322,6 +328,30 @@ Opening a member from the payment list gives their whole money history in one
 place: what they have paid, given, and been charged in fees over every year;
 every payment, including the attempts that failed; their automatic renewal, if
 they have one; and the years they can download a contribution statement for.
+
+Automatic renewals
+------------------
+
+The **Renewals** tab lists every member who has asked |org| to renew their
+membership for them: the plan, what the next charge comes to, the day it falls
+due, the card or PayPal account it will be taken from, and the state of the
+authority itself -- on, paused, awaiting a method, or off.  Filter by state, or
+search by name, email address, or the saved method.
+
+A paused renewal shows the reason its last charge was refused beneath its
+state.  That is the answer to "why was I not renewed?", and it is the wording
+the member was emailed.
+
+**Turn off** ends a member's automatic renewal on their behalf.  It asks you to
+confirm, because the member is emailed when it happens.  Every charge still
+scheduled is dropped and the membership itself runs to the end of its term; the
+authority stays on the list, marked off, rather than disappearing.  A member can
+turn it on again themselves from their own **Payments** screen.
+
+Beneath the authorities, **Recent charges** is one row per scheduled charge: the
+day it was due, the member, whether it was charged, refused, skipped, or is
+still waiting, when it was tried, and the reason a provider gave for refusing.
+Filter by outcome to read a run's refusals on their own.
 
 Refunds
 -------

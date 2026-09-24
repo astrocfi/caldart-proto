@@ -151,8 +151,10 @@ one:
 1. Leave **Dry run (charge nothing)** ticked the first time.  It reports what
    *would* happen without charging anybody, emailing anybody or writing
    anything.
-2. Press **Run now**.  The result reads, for example, "Noticed 2, charged 1,
-   failed 0, paused 0, skipped 3."  *Noticed* is the fortnight's-warning emails,
+2. Press **Run now**.  The result reads, for example, "Would notice 2, warn 0,
+   charge 1, fail 0, pause 0, and skip 3", and a real run says the same in the
+   past tense.  *Noticed* is the fortnight's-warning emails, *warned* the
+   members whose saved card expires before their next charge,
    *charged* the renewals taken, *failed* the charges a provider refused,
    *paused* the members whose last retry was refused, or whose membership had
    lapsed too long to catch up, and whose automatic renewal has therefore
