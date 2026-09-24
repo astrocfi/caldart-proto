@@ -193,6 +193,12 @@ export function ReconciliationPage(): JSX.Element {
         emptyTitle="Nothing was taken in this range"
         emptyDescription="Widen the dates, or clear the filters to see every period."
       />
+
+      {rows.isError ? (
+        <p role="alert" className="field__error">
+          The reconciliation could not be loaded.
+        </p>
+      ) : null}
     </Page>
   );
 }

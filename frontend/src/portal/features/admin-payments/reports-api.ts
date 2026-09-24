@@ -24,6 +24,7 @@ import type {
 import type { StatusTone } from '@/portal/components/StatusChip';
 import { queryString } from './api';
 import { PROVIDER_LABELS } from './labels';
+import { periodLabel } from './PeriodTable';
 
 /** How the reconciliation table gathers its rows. */
 export type ReconciliationGroup = 'month' | 'year' | 'provider';
@@ -106,12 +107,16 @@ export function statementUrl(userId: number, year: number): string {
 /** How many mandates and attempts one page of the Renewals tab holds. */
 export const RENEWAL_PAGE_SIZE = 50;
 
-/** The standing renewal authorities, via `GET /admin/renewals`. */
+/** The standing renewal authorities, via `GET /admin/renewals`, one page at a time. */
 export function useRenewalMandates(
   status: MandateStatus | '',
   search: string,
+  page: number,
 ): UseQueryResult<Paginated<RenewalMandate>> {
-  const params: Record<string, string> = { page_size: String(RENEWAL_PAGE_SIZE) };
+  const params: Record<string, string> = {
+    page: String(page),
+    page_size: String(RENEWAL_PAGE_SIZE),
+  };
   if (status !== '') params.status = status;
   if (search !== '') params.search = search;
   return useQuery({
@@ -121,11 +126,15 @@ export function useRenewalMandates(
   });
 }
 
-/** The scheduled charges, via `GET /admin/renewals/attempts`. */
+/** The scheduled charges, via `GET /admin/renewals/attempts`, one page at a time. */
 export function useRenewalAttempts(
   outcome: RenewalOutcome | '',
+  page: number,
 ): UseQueryResult<Paginated<RenewalAttempt>> {
-  const params: Record<string, string> = { page_size: String(RENEWAL_PAGE_SIZE) };
+  const params: Record<string, string> = {
+    page: String(page),
+    page_size: String(RENEWAL_PAGE_SIZE),
+  };
   if (outcome !== '') params.outcome = outcome;
   return useQuery({
     queryKey: ['admin', 'renewals', 'attempts', params],
@@ -187,11 +196,5 @@ export function reconciliationPeriodLabel(period: string, group: ReconciliationG
     const label: string | undefined = PROVIDER_LABELS[period as PaymentProvider];
     return label ?? period;
   }
-  if (group === 'year') return period;
-  const [year, month] = period.split('-');
-  if (year === undefined || month === undefined) return period;
-  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
+  return periodLabel(period, group);
 }

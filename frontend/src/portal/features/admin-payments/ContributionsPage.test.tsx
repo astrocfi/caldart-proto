@@ -84,4 +84,18 @@ describe('ContributionsPage', () => {
 
     expect(await screen.findByText('No contributions that year')).toBeInTheDocument();
   });
+
+  it('shows a failed call as a failure, not as a year nobody gave in', async () => {
+    server.use(
+      http.get(
+        `${API}/admin/payments/contributions`,
+        () => new HttpResponse(null, { status: 500 }),
+      ),
+    );
+    renderWithProviders(<ContributionsPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The contributions could not be loaded.',
+    );
+  });
 });

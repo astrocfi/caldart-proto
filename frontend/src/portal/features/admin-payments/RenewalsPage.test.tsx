@@ -74,8 +74,8 @@ const REFUSED: RenewalAttempt = {
   created_at: '2026-02-28T06:30:11Z',
 };
 
-function page<Row>(rows: Row[]): Paginated<Row> {
-  return { count: rows.length, next: null, previous: null, results: rows };
+function page<Row>(rows: Row[], count = rows.length): Paginated<Row> {
+  return { count, next: null, previous: null, results: rows };
 }
 
 interface Recorded {
@@ -165,6 +165,80 @@ describe('RenewalsPage', () => {
     const row = within(await screen.findByRole('row', { name: /2026\/03\/14/ }));
     expect(row.getByText('Refused')).toBeInTheDocument();
     expect(row.getByText('Your card was declined')).toBeInTheDocument();
+  });
+
+  it('tells the administrator when a mandate refuses to be turned off', async () => {
+    server.use(
+      http.delete(`${API}/admin/renewals/:id`, () =>
+        HttpResponse.json({ detail: 'That renewal is already off.' }, { status: 400 }),
+      ),
+      ...renewalHandlers([PAUSED], [], record()),
+    );
+    renderWithProviders(<RenewalsPage />);
+
+    const row = within(await screen.findByRole('row', { name: /Ben Ortiz/ }));
+    await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
+    await userEvent.click(row.getByRole('button', { name: 'Yes, turn it off' }));
+
+    expect(await screen.findByText('That renewal is already off.')).toBeInTheDocument();
+    expect(row.getByRole('button', { name: 'Yes, turn it off' })).toBeInTheDocument();
+  });
+
+  it('counts every mandate the server has, not only the page on screen', async () => {
+    const seen = record();
+    server.use(
+      http.get(`${API}/admin/renewals/attempts`, () => HttpResponse.json(page([]))),
+      http.get(`${API}/admin/renewals`, ({ request }) => {
+        seen.mandateQueries.push(new URL(request.url).searchParams);
+        return HttpResponse.json(page([ACTIVE], 180));
+      }),
+    );
+    renderWithProviders(<RenewalsPage />);
+
+    expect(await screen.findByText('180 renewals')).toBeInTheDocument();
+
+    const pager = within(screen.getByRole('navigation', { name: 'Renewal pages' }));
+    expect(pager.getByText('Page 1 of 4')).toBeInTheDocument();
+    await userEvent.click(pager.getByRole('button', { name: 'Next' }));
+
+    await expect.poll(() => seen.mandateQueries.at(-1)?.get('page')).toBe('2');
+  });
+
+  it('offers no pager when one page holds every mandate', async () => {
+    server.use(...renewalHandlers([ACTIVE], [], record()));
+    renderWithProviders(<RenewalsPage />);
+    await screen.findByRole('row', { name: /Maria Alvarez/ });
+
+    expect(screen.queryByRole('navigation', { name: 'Renewal pages' })).not.toBeInTheDocument();
+  });
+
+  it('pages the attempts by the count the server reports', async () => {
+    const seen = record();
+    server.use(
+      http.get(`${API}/admin/renewals/attempts`, ({ request }) => {
+        seen.attemptQueries.push(new URL(request.url).searchParams);
+        return HttpResponse.json(page([REFUSED], 120));
+      }),
+      http.get(`${API}/admin/renewals`, () => HttpResponse.json(page([]))),
+    );
+    renderWithProviders(<RenewalsPage />);
+
+    expect(await screen.findByText('120 attempts')).toBeInTheDocument();
+
+    const pager = within(screen.getByRole('navigation', { name: 'Renewal charge pages' }));
+    await userEvent.click(pager.getByRole('button', { name: 'Next' }));
+
+    await expect.poll(() => seen.attemptQueries.at(-1)?.get('page')).toBe('2');
+  });
+
+  it('says so when the mandates cannot be loaded', async () => {
+    server.use(
+      http.get(`${API}/admin/renewals/attempts`, () => HttpResponse.json(page([]))),
+      http.get(`${API}/admin/renewals`, () => new HttpResponse(null, { status: 500 })),
+    );
+    renderWithProviders(<RenewalsPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The renewals could not be loaded.');
   });
 
   it('narrows the attempts to one outcome', async () => {

@@ -424,7 +424,11 @@ File                      Routes, and who may open them
                           ``/admin/members/:id``: ``account_admin``
 ``admin-aircraft.tsx``    ``/admin/aircraft``, ``/admin/aircraft/:id``:
                           ``account_admin``
-``admin-payments.tsx``    ``/admin/payments``: ``account_admin``
+``admin-payments.tsx``    ``/admin/payments``: ``account_admin``;
+                          ``/admin/payments/reconciliation``,
+                          ``/admin/payments/contributions``,
+                          ``/admin/payments/renewals``: ``account_admin``
+                          or ``treasurer``
 ``admin-reminders.tsx``   ``/admin/reminders``: ``account_admin``
 ``admin-users.tsx``       ``/admin/users``, ``/admin/users/:id``: ``user_admin``
 ``system.tsx``            ``/system``: ``system_admin``

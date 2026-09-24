@@ -113,4 +113,18 @@ describe('ReconciliationPage', () => {
 
     expect(await screen.findByText('Nothing was taken in this range')).toBeInTheDocument();
   });
+
+  it('shows a failed call as a failure, not as an empty period', async () => {
+    server.use(
+      http.get(
+        `${API}/admin/payments/reconciliation`,
+        () => new HttpResponse(null, { status: 500 }),
+      ),
+    );
+    renderWithProviders(<ReconciliationPage />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The reconciliation could not be loaded.',
+    );
+  });
 });

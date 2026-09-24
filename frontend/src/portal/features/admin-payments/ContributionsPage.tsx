@@ -122,6 +122,12 @@ export function ContributionsPage(): JSX.Element {
         emptyTitle="No contributions that year"
         emptyDescription="Choose another year, or check that the payments were recorded."
       />
+
+      {rows.isError ? (
+        <p role="alert" className="field__error">
+          The contributions could not be loaded.
+        </p>
+      ) : null}
     </Page>
   );
 }

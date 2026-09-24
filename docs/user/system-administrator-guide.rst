@@ -161,6 +161,9 @@ one:
    switched itself off, and *skipped* the ones that needed nothing doing.
 3. If the numbers look right and you have a reason to run now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
+   A real run asks before it starts, because it charges every member whose
+   renewal is due: press **Yes, charge what is due** to go ahead, or
+   **Cancel** to think again.
 
 Running it twice charges nobody twice, and sends nothing twice: each scheduled
 charge records what has already gone out.

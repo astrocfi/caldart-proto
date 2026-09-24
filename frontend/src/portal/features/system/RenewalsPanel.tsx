@@ -5,6 +5,10 @@
  * It sits beside the reminders panel because the two scans are a pair — the
  * renewals one runs first each morning, so a membership it renews is never
  * also nagged about.
+ *
+ * A rehearsal runs on one press.  A real run asks first, because it charges
+ * every member whose renewal is due, and a cleared checkbox is a quiet thing
+ * to lean a hundred charges on.
  */
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
@@ -33,16 +37,35 @@ export function renewalRunSummary(result: RenewalRunResult, dryRun: boolean): st
 export function RenewalsPanel(): JSX.Element {
   const [dryRun, setDryRun] = useState(true);
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const run = useRunRenewals();
 
-  const handleRun = (): void => {
+  const start = (): void => {
     setLastRunWasDry(dryRun);
+    setIsConfirming(false);
     run.mutate(dryRun);
+  };
+
+  const handleRun = (): void => {
+    if (dryRun) {
+      start();
+      return;
+    }
+    setIsConfirming(true);
+  };
+
+  const handleConfirm = (): void => {
+    start();
+  };
+
+  const handleCancelRun = (): void => {
+    setIsConfirming(false);
   };
 
   const handleDryRunChange = (event: ChangeEvent<HTMLInputElement>): void => {
     setDryRun(event.target.checked);
+    setIsConfirming(false);
   };
 
   return (
@@ -50,15 +73,26 @@ export function RenewalsPanel(): JSX.Element {
       eyebrow="Membership"
       title="Automatic renewals"
       footer={
-        <>
-          <Button onClick={handleRun} disabled={run.isPending}>
-            {run.isPending ? 'Running…' : 'Run now'}
-          </Button>
-          <label className="cluster">
-            <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
-            Dry run (charge nothing)
-          </label>
-        </>
+        isConfirming ? (
+          <>
+            <Button variant="danger" onClick={handleConfirm} disabled={run.isPending}>
+              Yes, charge what is due
+            </Button>
+            <Button variant="quiet" onClick={handleCancelRun}>
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button onClick={handleRun} disabled={run.isPending}>
+              {run.isPending ? 'Running…' : 'Run now'}
+            </Button>
+            <label className="cluster">
+              <input type="checkbox" checked={dryRun} onChange={handleDryRunChange} />
+              Dry run (charge nothing)
+            </label>
+          </>
+        )
       }
     >
       <p className="muted">
@@ -69,7 +103,16 @@ export function RenewalsPanel(): JSX.Element {
         already gone out.
       </p>
 
-      {run.isSuccess ? <p role="status">{renewalRunSummary(run.data, lastRunWasDry)}</p> : null}
+      {isConfirming ? (
+        <p role="status">
+          This charges every renewal that is due, for real, and emails each member. Rehearse it
+          first if you are not sure what is waiting.
+        </p>
+      ) : null}
+
+      {run.isSuccess && !isConfirming ? (
+        <p role="status">{renewalRunSummary(run.data, lastRunWasDry)}</p>
+      ) : null}
 
       {run.isError ? (
         <p className="field__error" role="alert">

@@ -56,11 +56,32 @@ describe('RenewalsPanel', () => {
 
     await userEvent.click(screen.getByLabelText('Dry run (charge nothing)'));
     await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    expect(bodies).toEqual([]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, charge what is due' }));
 
     expect(
       await screen.findByText('Noticed 2, warned 0, charged 1, failed 0, paused 0, and skipped 3.'),
     ).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: false }]);
+  });
+
+  it('charges nothing when the confirmation is waved off', async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(`${API}/system/renewals/run`, async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(RESULT);
+      }),
+    );
+    renderWithProviders(<RenewalsPanel />);
+
+    await userEvent.click(screen.getByLabelText('Dry run (charge nothing)'));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(bodies).toEqual([]);
+    expect(screen.getByRole('button', { name: 'Run now' })).toBeInTheDocument();
   });
 
   it('reports a run the server refused', async () => {

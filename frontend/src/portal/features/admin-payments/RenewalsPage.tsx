@@ -31,6 +31,7 @@ import {
   MANDATE_STATUS_TONES,
   RENEWAL_OUTCOME_LABELS,
   RENEWAL_OUTCOME_TONES,
+  RENEWAL_PAGE_SIZE,
   useCancelMandate,
   useRenewalAttempts,
   useRenewalMandates,
@@ -45,6 +46,37 @@ export function isCancelable(mandate: RenewalMandate): boolean {
   return mandate.status !== 'canceled';
 }
 
+interface PagerProps {
+  label: string;
+  page: number;
+  count: number;
+  onPageChange: (page: number) => void;
+}
+
+/** Previous/Next for one of the tab's two tables; nothing when a page holds it all. */
+function Pager({ label, page, count, onPageChange }: PagerProps): JSX.Element | null {
+  const lastPage = Math.max(1, Math.ceil(count / RENEWAL_PAGE_SIZE));
+  if (lastPage === 1) return null;
+  return (
+    <nav className="pager" aria-label={label}>
+      <Button variant="quiet" small disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        Previous
+      </Button>
+      <span className="muted pager__status" aria-live="polite">
+        Page {page} of {lastPage}
+      </span>
+      <Button
+        variant="quiet"
+        small
+        disabled={page >= lastPage}
+        onClick={() => onPageChange(page + 1)}
+      >
+        Next
+      </Button>
+    </nav>
+  );
+}
+
 /** The Renewals tab of the finance area. */
 export function RenewalsPage(): JSX.Element {
   const toast = useToast();
@@ -53,10 +85,12 @@ export function RenewalsPage(): JSX.Element {
   const [term, setTerm] = useState('');
   const [outcome, setOutcome] = useState<RenewalOutcome | ''>('');
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [mandatePage, setMandatePage] = useState(1);
+  const [attemptPage, setAttemptPage] = useState(1);
 
   const search = useDebounced(term.trim());
-  const mandates = useRenewalMandates(status, search);
-  const attempts = useRenewalAttempts(outcome);
+  const mandates = useRenewalMandates(status, search, mandatePage);
+  const attempts = useRenewalAttempts(outcome, attemptPage);
   const cancel = useCancelMandate();
 
   const handleCancel = (mandate: RenewalMandate): void => {
@@ -187,7 +221,10 @@ export function RenewalsPage(): JSX.Element {
           <select
             {...props}
             value={status}
-            onChange={(event) => setStatus(event.target.value as MandateStatus | '')}
+            onChange={(event) => {
+              setStatus(event.target.value as MandateStatus | '');
+              setMandatePage(1);
+            }}
           >
             <option value="">Any status</option>
             {STATUSES.map((option) => (
@@ -204,7 +241,10 @@ export function RenewalsPage(): JSX.Element {
             {...props}
             type="search"
             value={term}
-            onChange={(event) => setTerm(event.target.value)}
+            onChange={(event) => {
+              setTerm(event.target.value);
+              setMandatePage(1);
+            }}
           />
         )}
       </Field>
@@ -218,7 +258,10 @@ export function RenewalsPage(): JSX.Element {
           <select
             {...props}
             value={outcome}
-            onChange={(event) => setOutcome(event.target.value as RenewalOutcome | '')}
+            onChange={(event) => {
+              setOutcome(event.target.value as RenewalOutcome | '');
+              setAttemptPage(1);
+            }}
           >
             <option value="">Any outcome</option>
             {OUTCOMES.map((option) => (
@@ -234,6 +277,8 @@ export function RenewalsPage(): JSX.Element {
 
   const mandateRows = mandates.data?.results ?? [];
   const attemptRows = attempts.data?.results ?? [];
+  const mandateCount = mandates.data?.count ?? 0;
+  const attemptCount = attempts.data?.count ?? 0;
 
   return (
     <Page
@@ -247,11 +292,22 @@ export function RenewalsPage(): JSX.Element {
           columns={mandateColumns}
           rows={mandateRows}
           rowKey={(row) => row.id}
-          caption={`${mandateRows.length} renewal${mandateRows.length === 1 ? '' : 's'}`}
+          caption={`${mandateCount} renewal${mandateCount === 1 ? '' : 's'}`}
           filters={mandateFilters}
           isLoading={mandates.isPending}
           emptyTitle="No renewals match"
           emptyDescription="Clear the status filter, or search for a different member."
+        />
+        {mandates.isError ? (
+          <p role="alert" className="field__error">
+            The renewals could not be loaded.
+          </p>
+        ) : null}
+        <Pager
+          label="Renewal pages"
+          page={mandatePage}
+          count={mandateCount}
+          onPageChange={(next) => setMandatePage(next)}
         />
       </section>
 
@@ -261,11 +317,22 @@ export function RenewalsPage(): JSX.Element {
           columns={attemptColumns}
           rows={attemptRows}
           rowKey={(row) => row.id}
-          caption={`${attemptRows.length} attempt${attemptRows.length === 1 ? '' : 's'}`}
+          caption={`${attemptCount} attempt${attemptCount === 1 ? '' : 's'}`}
           filters={attemptFilters}
           isLoading={attempts.isPending}
           emptyTitle="No renewal charges yet"
           emptyDescription="The scan schedules a charge a fortnight before it is taken."
+        />
+        {attempts.isError ? (
+          <p role="alert" className="field__error">
+            The renewal charges could not be loaded.
+          </p>
+        ) : null}
+        <Pager
+          label="Renewal charge pages"
+          page={attemptPage}
+          count={attemptCount}
+          onPageChange={(next) => setAttemptPage(next)}
         />
       </section>
     </Page>

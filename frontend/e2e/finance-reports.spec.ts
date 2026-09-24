@@ -47,6 +47,17 @@ test('a treasurer reconciles a period and exports it', async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/^caldart-reconciliation-.+\.csv$/);
 });
 
+/**
+ * Show the contributions of `year` and wait for the table to settle, either on
+ * rows or on the empty state.
+ */
+async function contributionRows(page: Page, year: number): Promise<Locator> {
+  await page.getByLabel('Year').selectOption(String(year));
+  const rows = bodyRows(page, new RegExp(`Contributions in ${year}`));
+  await expect(rows.first().or(page.getByText('No contributions that year'))).toBeVisible();
+  return rows;
+}
+
 test('a treasurer reads the year of giving and can print a statement', async ({ page }) => {
   await signIn(page, DEMO.treasurer);
   await page.goto('/portal/admin/payments/contributions');
@@ -56,7 +67,11 @@ test('a treasurer reads the year of giving and can print a statement', async ({ 
   const thisYear = new Date().getFullYear();
   await expect(page.getByLabel('Year')).toHaveValue(String(thisYear));
 
-  const rows = bodyRows(page, new RegExp(`Contributions in ${thisYear}`));
+  // The seed spreads its payments over the past two years, so early in January
+  // the current year may hold none of them; last year always holds some.
+  let rows = await contributionRows(page, thisYear);
+  if ((await rows.count()) === 0) rows = await contributionRows(page, thisYear - 1);
+
   await expect(rows.first()).toBeVisible();
   await expect(rows.first().getByRole('link', { name: 'Statement' })).toHaveAttribute(
     'href',
