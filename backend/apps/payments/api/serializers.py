@@ -14,6 +14,8 @@ from apps.members.models import Membership
 from apps.payments.manual import MANUAL_METHOD_CHOICES
 from apps.payments.models import (
     MAX_CONTRIBUTION_CENTS,
+    MandateProvider,
+    MandateStatus,
     Payment,
     PaymentKind,
     PaymentProvider,
@@ -23,6 +25,7 @@ from apps.payments.models import (
     RefundReason,
     RenewalAttempt,
     RenewalMandate,
+    RenewalOutcome,
 )
 from apps.payments.reconciliation import (
     DEFAULT_GROUP as RECONCILIATION_DEFAULT_GROUP,
@@ -31,6 +34,7 @@ from apps.payments.reconciliation import (
     RECONCILIATION_GROUPS,
     ReconciliationRow,
 )
+from apps.payments.renewals import next_charge_on, renewal_amount_cents
 from apps.payments.reports import (
     DEFAULT_GROUP,
     GROUPS,
@@ -84,6 +88,11 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     There is deliberately no amount field: the server recomputes the total from
     the plan price plus the contribution.  A contribution outside
     ``0..MAX_CONTRIBUTION_CENTS`` is a 400 naming ``contribution_cents``.
+
+    ``auto_renew`` asks for the payment method to be saved and the membership
+    renewed from it each year.  It is a 400 naming ``auto_renew`` for a plan that
+    never expires, for a checkout that buys no plan at all, and for a provider
+    that cannot charge a saved method.
     """
 
     plan = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
@@ -91,6 +100,7 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
         required=False, min_value=0, max_value=MAX_CONTRIBUTION_CENTS, default=0
     )
     provider = serializers.ChoiceField(choices=PaymentProvider.choices)
+    auto_renew = serializers.BooleanField(required=False, default=False)
 
 
 class StripeCheckoutClientSerializer(serializers.Serializer[dict[str, str]]):
@@ -462,6 +472,240 @@ class RefundIssuedSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 # --------------------------------------------------------------------------
+# Automatic renewal
+# --------------------------------------------------------------------------
+class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
+    """One member's standing authority, as the member and finance screens read it."""
+
+    user_id = serializers.IntegerField(read_only=True)
+    user_name = serializers.SerializerMethodField()
+    user_email = serializers.SerializerMethodField()
+    plan = serializers.SerializerMethodField()
+    plan_name = serializers.SerializerMethodField()
+    amount_cents = serializers.SerializerMethodField()
+    next_charge_on = serializers.SerializerMethodField()
+    last_error = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RenewalMandate
+        fields = [
+            "id",
+            "user_id",
+            "user_name",
+            "user_email",
+            "plan",
+            "plan_name",
+            "contribution_cents",
+            "amount_cents",
+            "provider",
+            "method_label",
+            "method_brand",
+            "method_last4",
+            "method_exp_month",
+            "method_exp_year",
+            "status",
+            "failure_count",
+            "next_charge_on",
+            "last_error",
+            "last_charged_at",
+            "canceled_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_user_name(self, obj: RenewalMandate) -> str:
+        """The member's display name."""
+        return obj.user.display_name
+
+    def get_user_email(self, obj: RenewalMandate) -> str:
+        """The member's email address."""
+        return obj.user.email
+
+    def get_plan(self, obj: RenewalMandate) -> str:
+        """The slug of the plan that renews."""
+        return obj.plan.slug
+
+    def get_plan_name(self, obj: RenewalMandate) -> str:
+        """The name of the plan that renews."""
+        return obj.plan.name
+
+    def get_amount_cents(self, obj: RenewalMandate) -> int:
+        """What the next charge comes to: the plan's price plus the contribution."""
+        return renewal_amount_cents(obj)
+
+    def get_next_charge_on(self, obj: RenewalMandate) -> dt.date | None:
+        """The day of the next charge, or ``None`` when nothing is due."""
+        return next_charge_on(obj)
+
+    def get_last_error(self, obj: RenewalMandate) -> str:
+        """The reason the most recent failed charge was refused, or an empty string."""
+        failed = obj.attempts.filter(outcome=RenewalOutcome.FAILED).order_by("-pk").first()
+        return failed.error if failed is not None else ""
+
+
+class RenewalEnvelopeSerializer(serializers.Serializer[dict[str, Any]]):
+    """``GET | PATCH /me/renewal`` and ``POST /me/renewal/confirm``.
+
+    One key, ``mandate``, which is ``null`` for a member who has never turned
+    automatic renewal on.  The envelope is what carries that null: a bare null
+    body is indistinguishable from an empty one.
+    """
+
+    mandate = RenewalMandateSerializer(allow_null=True)
+
+
+class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
+    """One scheduled charge, as ``GET /admin/renewals/attempts`` lists it."""
+
+    mandate_id = serializers.IntegerField(read_only=True)
+    membership_id = serializers.IntegerField(read_only=True)
+    payment_id = serializers.IntegerField(read_only=True, allow_null=True)
+    user_id = serializers.SerializerMethodField()
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RenewalAttempt
+        fields = [
+            "id",
+            "mandate_id",
+            "membership_id",
+            "payment_id",
+            "user_id",
+            "user_name",
+            "scheduled_on",
+            "outcome",
+            "error",
+            "noticed_at",
+            "attempted_at",
+            "result_emailed_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_user_id(self, obj: RenewalAttempt) -> int:
+        """The id of the member whose renewal this attempt is."""
+        return obj.mandate.user_id
+
+    def get_user_name(self, obj: RenewalAttempt) -> str:
+        """The display name of the member whose renewal this attempt is."""
+        return obj.mandate.user.display_name
+
+
+class RenewalSetupSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /me/renewal/setup`` -- what to save a payment method for.
+
+    ``plan`` is the slug of the plan to renew and must have a duration; a
+    lifetime plan is a 400 naming ``auto_renew``.  ``provider`` must be one that
+    can charge a saved method.
+    """
+
+    plan = serializers.CharField()
+    contribution_cents = serializers.IntegerField(
+        required=False, min_value=0, max_value=MAX_CONTRIBUTION_CENTS, default=0
+    )
+    provider = serializers.ChoiceField(choices=MandateProvider.choices)
+
+
+class StripeRenewalSetupClientSerializer(serializers.Serializer[dict[str, str]]):
+    """What the Stripe Payment Element in setup mode needs."""
+
+    client_secret = serializers.CharField()
+
+
+class PayPalRenewalSetupClientSerializer(serializers.Serializer[dict[str, str]]):
+    """What the PayPal buttons need to have the member approve a vault token."""
+
+    setup_token = serializers.CharField()
+
+
+@extend_schema_field({"type": "object"})
+class MockRenewalSetupClientSerializer(serializers.Serializer[dict[str, Any]]):
+    """The mock provider needs nothing from the browser to save its test card."""
+
+
+class StripeRenewalSetupResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    """The body of ``POST /me/renewal/setup`` when ``provider`` is Stripe."""
+
+    provider = serializers.ChoiceField(choices=[MandateProvider.STRIPE])
+    client = StripeRenewalSetupClientSerializer()
+
+
+class PayPalRenewalSetupResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    """The body of ``POST /me/renewal/setup`` when ``provider`` is PayPal."""
+
+    provider = serializers.ChoiceField(choices=[MandateProvider.PAYPAL])
+    client = PayPalRenewalSetupClientSerializer()
+
+
+class MockRenewalSetupResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    """The body of ``POST /me/renewal/setup`` when ``provider`` is ``mock``."""
+
+    provider = serializers.ChoiceField(choices=[MandateProvider.MOCK])
+    client = MockRenewalSetupClientSerializer()
+
+
+#: The body of ``POST /me/renewal/setup``, schema-only: ``client`` carries what the
+#: chosen provider's browser SDK needs, discriminated by ``provider``.  The keys are
+#: the plain ``str`` values, since they become mapping keys in the document.
+RenewalSetupResponseSerializer = PolymorphicProxySerializer(
+    component_name="RenewalSetupResponse",
+    serializers={
+        MandateProvider.STRIPE.value: StripeRenewalSetupResponseSerializer,
+        MandateProvider.PAYPAL.value: PayPalRenewalSetupResponseSerializer,
+        MandateProvider.MOCK.value: MockRenewalSetupResponseSerializer,
+    },
+    resource_type_field_name="provider",
+)
+
+
+class RenewalConfirmSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /me/renewal/confirm`` -- the provider's handle on what the browser did.
+
+    ``setup_intent_id`` for Stripe and ``setup_token`` for PayPal; the mock
+    provider needs neither.  Which one is required is the provider's business,
+    and it answers 400 when the one it needs is missing.
+    """
+
+    setup_intent_id = serializers.CharField(required=False, allow_blank=True, default="")
+    setup_token = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class RenewalPatchSerializer(serializers.Serializer[dict[str, Any]]):
+    """``PATCH /me/renewal`` -- the contribution renewed alongside the dues."""
+
+    contribution_cents = serializers.IntegerField(min_value=0, max_value=MAX_CONTRIBUTION_CENTS)
+
+
+class RenewalStatusFilterSerializer(serializers.Serializer[dict[str, Any]]):
+    """``GET /admin/renewals?status=`` -- an empty status narrows nothing."""
+
+    status = serializers.CharField(required=False, allow_blank=True, default="")
+
+    def validate_status(self, value: str) -> str:
+        """Return ``value``, or raise ``Unknown status '<value>'.`` for an unknown one."""
+        if value and value not in MandateStatus.values:
+            raise serializers.ValidationError(f"Unknown status '{value}'.")
+        return value
+
+
+class RenewalRunRequestSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /system/renewals/run`` body: ``dry_run``, defaulting to ``False``."""
+
+    dry_run = serializers.BooleanField(default=False)
+
+
+class RenewalRunResultSerializer(serializers.Serializer[dict[str, int]]):
+    """The counts one automatic-renewal scan reports."""
+
+    noticed = serializers.IntegerField()
+    warned = serializers.IntegerField()
+    charged = serializers.IntegerField()
+    failed = serializers.IntegerField()
+    paused = serializers.IntegerField()
+    skipped = serializers.IntegerField()
+
+
+# --------------------------------------------------------------------------
 # Finance reports
 # --------------------------------------------------------------------------
 class FinancePaymentTermSerializer(serializers.ModelSerializer[Membership]):
@@ -659,27 +903,6 @@ class ContributionRowSerializer(serializers.Serializer[ContributionRow]):
     net_contribution_cents = serializers.IntegerField()
 
 
-class LedgerMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
-    """The member's standing renewal authority, as the finance ledger shows it."""
-
-    plan = serializers.CharField(source="plan.name", read_only=True)
-
-    class Meta:
-        model = RenewalMandate
-        fields = [
-            "id",
-            "plan",
-            "contribution_cents",
-            "provider",
-            "method_label",
-            "status",
-            "failure_count",
-            "last_charged_at",
-            "canceled_at",
-        ]
-        read_only_fields = fields
-
-
 class LedgerMemberSerializer(serializers.Serializer[dict[str, Any]]):
     """Who the ledger is about."""
 
@@ -704,7 +927,7 @@ class MemberLedgerSerializer(serializers.Serializer[dict[str, Any]]):
     user = LedgerMemberSerializer()
     totals = LedgerTotalsSerializer()
     payments = FinancePaymentDetailSerializer(many=True)
-    mandate = LedgerMandateSerializer(allow_null=True)
+    mandate = RenewalMandateSerializer(allow_null=True)
     statement_years = serializers.ListField(child=serializers.IntegerField())
 
 

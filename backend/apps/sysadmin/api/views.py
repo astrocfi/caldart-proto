@@ -17,6 +17,11 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from apps.accounts.permissions import IsSystemAdmin
+from apps.payments.api.serializers import (
+    RenewalRunRequestSerializer,
+    RenewalRunResultSerializer,
+)
+from apps.payments.renewals import run_auto_renewals
 from apps.sysadmin import services
 from apps.sysadmin.api.serializers import BackupSerializer, HealthSerializer
 from caldart import audit
@@ -144,3 +149,24 @@ class BackupDownloadView(APIView):
             filename=path.name,
             content_type=BACKUP_MEDIA_TYPE,
         )
+
+
+class RenewalRunView(APIView):
+    """``POST /system/renewals/run`` -- run the automatic-renewal scan now."""
+
+    permission_classes = [IsSystemAdmin]
+
+    @extend_schema(request=RenewalRunRequestSerializer, responses={200: RenewalRunResultSerializer})
+    def post(self, request: Request) -> Response:
+        """Run the scan and return its counts with status 200.
+
+        The body takes ``dry_run``, defaulting to ``False``; a dry run writes
+        nothing, emails nobody and charges nobody, and reports the counts the
+        same scan would produce.  The answer is ``{noticed, warned, charged,
+        failed, paused, skipped}``, and the caller is recorded as the actor on the
+        ``renewals.run`` audit record.
+        """
+        payload = RenewalRunRequestSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        run = run_auto_renewals(dry_run=payload.validated_data["dry_run"], actor=_actor(request))
+        return Response(RenewalRunResultSerializer(run.as_dict()).data)

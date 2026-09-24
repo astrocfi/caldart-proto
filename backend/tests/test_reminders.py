@@ -2,7 +2,8 @@
 
 Every kind fires on its own offset, nothing fires early, a second run sends
 nothing, a dry run writes nothing, and members who have already renewed --
-including lifetime members -- are left alone.  Late runs and failed sends are
+including lifetime members and those whose membership renews itself -- are left
+alone.  Late runs and failed sends are
 covered by ``test_reminders_resilience.py``.
 """
 
@@ -22,10 +23,17 @@ from pytest_django.fixtures import Settings
 from apps.accounts.models import User
 from apps.cms.models import SiteSettings, get_site_settings
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
+from apps.payments.models import MandateStatus
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from apps.reminders.services import ReminderRun, build_email, renew_url, send_renewal_reminders
 from tests.conftest import Golden
-from tests.factories import MemberProfileFactory, MembershipFactory, UserFactory
+from tests.factories import (
+    MemberProfileFactory,
+    MembershipFactory,
+    RenewalAttemptFactory,
+    RenewalMandateFactory,
+    UserFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -205,6 +213,54 @@ def test_lifetime_members_are_skipped(
     assert run.sent == 0
     assert run.skipped_by_reason == {"lifetime": 1}
     assert mailoutbox == []
+
+
+@pytest.mark.parametrize(
+    ("status", "skipped"),
+    [
+        (MandateStatus.ACTIVE, True),
+        (MandateStatus.PAUSED, False),
+        (MandateStatus.CANCELED, False),
+    ],
+)
+def test_a_member_whose_membership_renews_itself_is_skipped(
+    annual_plan: MembershipPlan,
+    mailoutbox: list[EmailMessage],
+    status: str,
+    skipped: bool,
+) -> None:
+    """An active mandate covers the term; a paused or canceled one covers nothing."""
+    user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    RenewalMandateFactory(user=user, plan=annual_plan, status=status)
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.skipped_by_reason.get("auto_renew", 0) == (1 if skipped else 0)
+
+
+def test_a_pending_mandate_with_a_charge_waiting_also_silences_the_reminders(
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
+) -> None:
+    """A mandate still being set up but already scheduled to charge covers the term."""
+    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    mandate = RenewalMandateFactory(user=user, plan=annual_plan, status=MandateStatus.PENDING)
+    RenewalAttemptFactory(mandate=mandate, membership=membership, scheduled_on=TODAY)
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.skipped_by_reason.get("auto_renew", 0) == 1
+
+
+def test_a_pending_mandate_with_no_charge_waiting_silences_nothing(
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
+) -> None:
+    """A member who began setting renewal up and stopped still gets their reminder."""
+    user, _membership = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    RenewalMandateFactory(user=user, plan=annual_plan, status=MandateStatus.PENDING)
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.sent == 1
 
 
 def test_deactivated_users_are_skipped(

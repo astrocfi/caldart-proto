@@ -1,0 +1,85 @@
+# CalDART automatic-renewal scan.
+#
+# Deploy path: /srv/caldart. Triggered by caldart-renewals.timer, which runs
+# it daily at 06:30; it is a oneshot, so it is not enabled directly -- enable
+# the timer instead:
+#
+#   sudo cp deploy/systemd/caldart-renewals.service \
+#           deploy/systemd/caldart-renewals.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now caldart-renewals.timer
+#
+# Run it by hand (safe to repeat -- each renewal attempt records which emails
+# have gone out, and an attempt that has been charged is no longer scheduled):
+#   sudo systemctl start caldart-renewals.service
+#   journalctl -u caldart-renewals -n 50
+
+[Unit]
+Description=CalDART automatic-renewal scan
+Documentation=file:///srv/caldart/docs/developer/deployment.rst
+# Needs the database, outbound SMTP and the payment providers.
+After=network.target docker.service caldart-web.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+User=caldart
+Group=caldart
+UMask=0027
+
+WorkingDirectory=/srv/caldart/backend
+
+# Same configuration as the web service. This command uses DATABASE_URL,
+# EMAIL_URL, DEFAULT_FROM_EMAIL and SITE_URL (the renewal emails link to
+# SITE_URL + /portal/payments), and the Stripe and PayPal keys, because it
+# charges saved payment methods.
+EnvironmentFile=/etc/caldart/caldart.env
+
+Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# Schedules the charges for terms running out, sends the advance notices,
+# charges the renewals due, and retries or pauses the ones the provider
+# refused. Add --dry-run to rehearse, or --today=YYYY-MM-DD to scan as of
+# another date.
+ExecStart=/srv/caldart/.venv/bin/python /srv/caldart/backend/manage.py run_auto_renewals
+
+# A slow provider or SMTP server should not leave this hanging until the next
+# trigger.
+TimeoutStartSec=900
+
+# --- Hardening --------------------------------------------------------------
+# Same profile as caldart-web, minus the writable media/staticfiles paths --
+# this command reads and writes the database, calls the payment providers and
+# sends mail.
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RemoveIPC=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+# Present so "systemctl enable caldart-renewals.service" is not an error, but
+# the timer is what should normally be enabled.
+WantedBy=multi-user.target

@@ -41,7 +41,6 @@ import type {
   IfrRated,
   LeaderSearchResult,
   LeaderStatus,
-  LedgerMandate,
   LedgerMember,
   LedgerTotals,
   LoginPayload,
@@ -84,6 +83,14 @@ import type {
   PaymentTerm,
   PaymentWallet,
   PaymentsConfig,
+  RenewalAttempt,
+  RenewalConfirmRequest,
+  RenewalEnvelope,
+  RenewalMandate,
+  RenewalOutcome,
+  RenewalRunResult,
+  RenewalSetupRequest,
+  RenewalSetupResponse,
   PilotCertificateType,
   Plan,
   Profile,
@@ -225,12 +232,23 @@ const periodSummary: Matches<PaymentPeriodSummary, Schemas['PaymentPeriodSummary
 const reportColumn: Matches<ReportColumn, Schemas['ReportColumn']> = true;
 const reconciliationRow: Matches<ReconciliationRow, Schemas['ReconciliationRow']> = true;
 const contributionRow: Matches<ContributionRow, Schemas['ContributionRow']> = true;
-const ledgerMandate: Matches<LedgerMandate, Schemas['LedgerMandate']> = true;
 const ledgerMember: Matches<LedgerMember, Schemas['LedgerMember']> = true;
 const ledgerTotals: Matches<LedgerTotals, Schemas['LedgerTotals']> = true;
 const memberLedger: Matches<MemberLedger, Schemas['MemberLedger']> = true;
 const paymentPatch: Matches<PaymentPatch, Schemas['PatchedPaymentPatchRequest']> = true;
 const manualPayment: Matches<ManualPaymentPayload, Schemas['ManualPaymentRequest']> = true;
+
+/* ----------------------------------------------------- automatic renewal */
+const mandateProvider: Matches<MandateProvider, Schemas['Provider7c9Enum']> = true;
+const mandateStatus: Matches<MandateStatus, Schemas['RenewalMandateStatusEnum']> = true;
+const renewalOutcome: Matches<RenewalOutcome, Schemas['RenewalAttemptOutcomeEnum']> = true;
+const renewalMandate: Matches<RenewalMandate, Schemas['RenewalMandate']> = true;
+const renewalEnvelope: Matches<RenewalEnvelope, Schemas['RenewalEnvelope']> = true;
+const renewalAttempt: Matches<RenewalAttempt, Schemas['RenewalAttempt']> = true;
+const renewalSetupRequest: Matches<RenewalSetupRequest, Schemas['RenewalSetupRequest']> = true;
+const renewalSetupResponse: Matches<RenewalSetupResponse, Schemas['RenewalSetupResponse']> = true;
+const renewalConfirm: Matches<RenewalConfirmRequest, Schemas['RenewalConfirmRequest']> = true;
+const renewalRun: Matches<RenewalRunResult, Schemas['RenewalRunResult']> = true;
 
 /* ----------------------------------------------------------------- leader */
 const leaderSearch: Matches<LeaderSearchResult, Schemas['LeaderSearchResult']> = true;
@@ -333,12 +351,21 @@ const assertions: readonly true[] = [
   reportColumn,
   reconciliationRow,
   contributionRow,
-  ledgerMandate,
   ledgerMember,
   ledgerTotals,
   memberLedger,
   paymentPatch,
   manualPayment,
+  mandateProvider,
+  mandateStatus,
+  renewalOutcome,
+  renewalMandate,
+  renewalEnvelope,
+  renewalAttempt,
+  renewalSetupRequest,
+  renewalSetupResponse,
+  renewalConfirm,
+  renewalRun,
   leaderSearch,
   leaderStatus,
   reminderLog,
@@ -431,12 +458,21 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'ReportColumn',
   'ReconciliationRow',
   'ContributionRow',
-  'LedgerMandate',
   'LedgerMember',
   'LedgerTotals',
   'MemberLedger',
   'PatchedPaymentPatchRequest',
   'ManualPaymentRequest',
+  'Provider7c9Enum',
+  'RenewalMandateStatusEnum',
+  'RenewalAttemptOutcomeEnum',
+  'RenewalMandate',
+  'RenewalEnvelope',
+  'RenewalAttempt',
+  'RenewalSetupRequest',
+  'RenewalSetupResponse',
+  'RenewalConfirmRequest',
+  'RenewalRunResult',
   'LeaderSearchResult',
   'LeaderStatus',
   'ReminderLog',
