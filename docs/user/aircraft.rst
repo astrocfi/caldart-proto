@@ -119,15 +119,27 @@ columns unless you ask for others:
    N-number, Make, Model, Owner, Carrier, Liability / occurrence,
    Hull, Expires, Current
 
-Three more columns — *Owner type*, *Liability / person*, and *Pilots*, the
-members who list the airplane on their profile — are there for an insurance
-review or a roster and are added to a download by choosing the columns.  The
-CSV gives money as plain decimal dollars for a spreadsheet; the PDF is a
+The CSV gives money as plain decimal dollars for a spreadsheet; the PDF is a
 landscape-letter table with the filters printed under the title, sized so no
 column has to wrap.
 
 A useful monthly routine: filter to **Expiring within 30 days**, export the
 PDF, and work down it.
+
+Choosing the columns
+--------------------
+
+**Columns**, beside the filters, opens a chooser that drives both downloads.
+Three columns beyond the nine above are on offer — *Owner type*,
+*Liability / person*, and *Pilots*, the members who list the airplane on their
+profile.  They are there for an insurance review or a roster, so they are off
+until you tick them; the pilot list is as long as the number of members who fly
+the airplane, which is why it is asked for rather than assumed.  Click anywhere
+outside the chooser, or press Escape, to put it away.
+
+The chooser feeds the downloads, not the table: the register on screen keeps its
+five columns however many you tick.  The last column cannot be unticked, since a
+report of nothing helps nobody.
 
 Editing a record
 ----------------

@@ -19,10 +19,11 @@ The check, in ten seconds
 
 #. Sign in and open **Member check** in the portal menu (``/portal/leader``).
 #. Type a surname, an email address, or the N-number of the aircraft.
-#. Tap the person in the results.
-#. Read the band at the top of the card.
+#. Read **GO** or **NO-GO** on the person's line in the results.
+#. Tap them for the detail: the medical, the certificate, and the insurance on
+   the airplanes they fly.
 
-The band says **GO** or **NO-GO** in words, not only in color, so it is
+The verdict says **GO** or **NO-GO** in words, not only in color, so it is
 readable in bright sun and to anyone who does not see red and green apart.
 
 
@@ -46,17 +47,21 @@ punctuation, spaces, and case are ignored.  A search term with no digits in it
 is never treated as a registration, so looking for "Nate" finds Nate rather
 than every N-numbered airplane on file.
 
-The search returns at most twenty people, each with their membership state, so
-you can often tell who you want before opening the card.  If nobody comes back
-for an N-number, the page offers to check the aircraft itself instead.
+The search returns at most twenty people, and every line already answers the
+question: the membership state, **GO** or **NO-GO**, and the medical in words —
+"Class 3 medical to 2027/03/31", "Medical expired 2026/01/31", or "No medical on
+file".  For a single name that is the whole check; open the card when you want
+the certificate, the ratings, or the insurance on the airplanes.  If nobody
+comes back for an N-number, the page offers to check the aircraft itself
+instead.
 
 
 Reading the status card
 =======================
 
 **The band.**  A member is a **GO** when their membership *and* their medical
-are current.  When either is not, the band reads **NO-GO** and names the
-reasons — "Membership expired", "No medical on file" — so you know what to ask
+are current — the same rule the results list applies.  When either is not, the
+band reads **NO-GO** and names the reasons — "Membership expired", "No medical on file" — so you know what to ask
 them to fix.
 
 .. note::
