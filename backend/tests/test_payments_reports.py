@@ -342,9 +342,7 @@ def test_export_formats_money_as_dollars(
 # Role matrix
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("url", [LIST, SUMMARY, EXPORT])
-@pytest.mark.parametrize(
-    ("slug", "allowed"), role_matrix(TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN)
-)
+@pytest.mark.parametrize(("slug", "allowed"), role_matrix(TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_reports_are_for_the_finance_roles_only(
     api_client: APIClient,
     all_role_users: dict[str, User],

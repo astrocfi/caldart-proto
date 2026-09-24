@@ -184,12 +184,14 @@ export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = {
   stripe: 'Stripe',
   paypal: 'PayPal',
   mock: 'Test',
+  manual: 'By hand',
 };
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentState, string> = {
   pending: 'Pending',
   succeeded: 'Succeeded',
   failed: 'Failed',
+  partially_refunded: 'Partly refunded',
   refunded: 'Refunded',
 };
 
@@ -200,5 +202,9 @@ export const PAYMENT_WALLET_LABELS: Record<PaymentWallet, string> = {
   link: 'Link',
   paypal: 'PayPal',
   mock: 'Test',
+  check: 'Check',
+  cash: 'Cash',
+  bank_transfer: 'Bank transfer',
+  other: 'Other',
   unknown: '—',
 };

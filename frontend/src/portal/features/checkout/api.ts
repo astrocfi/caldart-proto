@@ -107,6 +107,7 @@ export const PROVIDER_LABELS: Record<PaymentProvider, string> = {
   stripe: 'Card · Apple Pay · Google Pay',
   paypal: 'PayPal',
   mock: 'Test payment',
+  manual: 'Recorded by hand',
 };
 
 /** Tab order, so the list does not jump about with the server's ordering. */

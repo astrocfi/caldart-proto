@@ -496,12 +496,22 @@ export interface AircraftDetail extends Aircraft {
 }
 
 /* ---------------------------------------------------------------- payments */
-export type PaymentProvider = 'stripe' | 'paypal' | 'mock';
+export type PaymentProvider = 'stripe' | 'paypal' | 'mock' | 'manual';
 
 export type PaymentWallet =
-  'card' | 'apple_pay' | 'google_pay' | 'link' | 'paypal' | 'mock' | 'unknown';
+  | 'card'
+  | 'apple_pay'
+  | 'google_pay'
+  | 'link'
+  | 'paypal'
+  | 'mock'
+  | 'check'
+  | 'cash'
+  | 'bank_transfer'
+  | 'other'
+  | 'unknown';
 
-export type PaymentState = 'pending' | 'succeeded' | 'failed' | 'refunded';
+export type PaymentState = 'pending' | 'succeeded' | 'failed' | 'partially_refunded' | 'refunded';
 
 export interface Payment {
   id: number;
