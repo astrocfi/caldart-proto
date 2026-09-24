@@ -148,9 +148,12 @@ See :doc:`payments`.
 Can I get a refund?
 -------------------
 
-Ask the office.  There is no self-service refund, and administrators cannot
-issue one from CalDART either — it is done in the payment provider's own
-dashboard and then reconciled by hand.
+Ask the office.  There is no self-service refund, but a treasurer or an
+account administrator can issue one from CalDART, in part or in full: a
+contribution on its own, say, while your membership stands.  You are emailed
+when it goes through, with the amount and whether your membership ended with
+it, and the money goes back to the card or account you paid with — your bank
+decides how quickly it appears, usually a few working days.
 
 See :doc:`payments`.
 

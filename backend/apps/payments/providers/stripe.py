@@ -37,16 +37,18 @@ import stripe
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonResponse
 
-from apps.payments.models import Payment, PaymentProvider, PaymentWallet
+from apps.payments.models import Payment, PaymentProvider, PaymentWallet, Refund
 from apps.payments.providers.base import (
     PaymentError,
     PaymentVerificationError,
     Provider,
     ProviderFees,
     ProviderNotConfiguredError,
+    ProviderRefund,
     ProviderUnavailableError,
     register,
 )
+from apps.payments.refunds import record_dashboard_refund
 from apps.payments.services import fees_are_known, mark_failed, mark_succeeded, record_fees
 
 log = logging.getLogger(__name__)
@@ -111,6 +113,25 @@ def idempotency_key(payment: Payment) -> str:
     instead of a second one.
     """
     return f"caldart-payment-{payment.pk}-start"
+
+
+def refund_idempotency_key(refund: Refund) -> str:
+    """The key that ties one Stripe refund to one refund row.
+
+    A call repeated after a timeout then returns the refund already taken rather
+    than giving the money back twice.
+    """
+    return f"caldart-refund-{refund.pk}"
+
+
+def succeeded_refunds(charge: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every refund in a charge's ``refunds.data`` that Stripe reports as succeeded.
+
+    A charge with no refund list, or one whose refunds are all pending or failed,
+    gives an empty list: only a succeeded refund has actually moved money.
+    """
+    data = (charge.get("refunds") or {}).get("data") or []
+    return [entry for entry in data if entry.get("status") == "succeeded"]
 
 
 def unavailable(payment: Payment, call: str, exc: stripe.StripeError) -> ProviderUnavailableError:
@@ -213,12 +234,15 @@ def payment_for_charge(charge: dict[str, Any]) -> Payment | None:
 
 
 def payment_for_intent(intent: dict[str, Any]) -> Payment | None:
-    """Find our row from the intent's metadata, falling back to the intent id.
+    """Find our row from a webhook object's metadata, falling back to its ids.
 
-    Matches only Stripe payments: ``metadata.payment_id`` first, then
-    ``provider_ref`` against the intent's id.  A ``payment_id`` that is not a
-    number matches nothing, and the search falls through to the intent id.
-    Returns ``None`` when neither finds a row.
+    ``intent`` is the event's ``data.object``, which is a PaymentIntent for the
+    payment events and a charge for ``charge.refunded``.  Matches only Stripe
+    payments: ``metadata.payment_id`` first -- a charge inherits the intent's
+    metadata -- then ``provider_ref`` against the object's own id and, for a
+    charge, against the ``payment_intent`` it names.  A ``payment_id`` that is not
+    a number matches nothing, and the search falls through to those ids.  Returns
+    ``None`` when none of them finds a row.
     """
     metadata = intent.get("metadata") or {}
     raw_id = metadata.get("payment_id")
@@ -232,10 +256,13 @@ def payment_for_intent(intent: dict[str, Any]) -> Payment | None:
         if payment is not None:
             return payment
 
-    intent_id = intent.get("id")
-    if not intent_id:
-        return None
-    return Payment.objects.filter(provider=PaymentProvider.STRIPE, provider_ref=intent_id).first()
+    for ref in (intent.get("id"), intent.get("payment_intent")):
+        if not ref:
+            continue
+        found = Payment.objects.filter(provider=PaymentProvider.STRIPE, provider_ref=ref).first()
+        if found is not None:
+            return found
+    return None
 
 
 @register
@@ -332,6 +359,26 @@ class StripeProvider(Provider):
         )
         return True
 
+    def record_refunds(self, payment: Payment, charge: dict[str, Any]) -> int:
+        """File every succeeded refund on ``charge`` that we have no row for yet.
+
+        Returns how many refunds were recorded, which is zero when they are all
+        already on file -- the ordinary answer to a redelivered webhook, and to
+        the notification for a refund CalDART itself issued.  A refund Stripe
+        reports as pending or failed is skipped: no money has moved.
+        """
+        recorded = 0
+        for entry in succeeded_refunds(charge):
+            written = record_dashboard_refund(
+                payment,
+                amount_cents=int(entry.get("amount") or 0),
+                provider_ref=str(entry.get("id") or ""),
+                raw=jsonable(entry),
+            )
+            if written is not None:
+                recorded += 1
+        return recorded
+
     def verify(self, payment: Payment, intent: dict[str, Any]) -> None:
         """Everything about the intent that must match our own row.
 
@@ -347,6 +394,35 @@ class StripeProvider(Provider):
         if str(intent.get("currency") or "").lower() != payment.currency.lower():
             raise PaymentVerificationError("PaymentIntent currency does not match this payment.")
 
+    # ---------------------------------------------------------------- refund
+    def refund(self, payment: Payment, refund: Refund) -> ProviderRefund:
+        """Refund ``refund.amount_cents`` of the payment's PaymentIntent.
+
+        Returns Stripe's refund id and the refund object it answered with.  The
+        call carries an idempotency key built from the refund row, so a repeat
+        after a timeout gives the money back once.  Raises
+        :class:`PaymentVerificationError` when the payment carries no intent to
+        refund, :class:`ProviderNotConfiguredError` without a secret key and
+        :class:`ProviderUnavailableError` when Stripe cannot be reached or
+        refuses the refund.
+        """
+        if not payment.provider_ref:
+            raise PaymentVerificationError("That payment has no PaymentIntent to refund.")
+        client = stripe_client()
+        try:
+            created = client.v1.refunds.create(
+                {
+                    "payment_intent": payment.provider_ref,
+                    "amount": refund.amount_cents,
+                    "metadata": {"refund_id": str(refund.pk), "payment_id": str(payment.pk)},
+                },
+                {"idempotency_key": refund_idempotency_key(refund)},
+            )
+        except stripe.StripeError as exc:
+            raise unavailable(payment, "refunds.create", exc) from exc
+        answer = created.to_dict()
+        return ProviderRefund(provider_ref=answer["id"], raw=jsonable(answer))
+
     # --------------------------------------------------------------- webhook
     def handle_webhook(self, request: HttpRequest) -> HttpResponse:
         """Verify ``Stripe-Signature``, then apply the event idempotently.
@@ -356,9 +432,10 @@ class StripeProvider(Provider):
         ``{"received": true, "handled": ...}``: ``handled`` is true when a
         ``payment_intent.succeeded`` event passed :meth:`verify` and activated the
         term, when a ``payment_intent.payment_failed`` event marked the payment
-        failed, and when a ``charge.updated`` event filled in a fee that was not
-        known when the money arrived.  An unknown payment, a failed verification
-        and any other event type are all received but not handled.
+        failed, when a ``charge.updated`` event filled in a fee that was not known
+        when the money arrived, and when a ``charge.refunded`` event recorded a
+        refund taken in Stripe's own dashboard.  An unknown payment, a failed
+        verification and any other event type are all received but not handled.
         """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
@@ -401,6 +478,8 @@ class StripeProvider(Provider):
             )
         elif event_type == "payment_intent.payment_failed":
             mark_failed(payment, jsonable(intent))
+        elif event_type == "charge.refunded":
+            self.record_refunds(payment, intent)
         else:
             return JsonResponse({"received": True, "handled": False})
 

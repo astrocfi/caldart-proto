@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypedDict
 
 from django.http import HttpRequest, HttpResponse
 
-from apps.payments.models import Payment, PaymentProvider
+from apps.payments.models import Payment, PaymentProvider, Refund
 
 
 class PaymentError(RuntimeError):
@@ -52,13 +52,27 @@ class ProviderFees:
     net_cents: int
 
 
+class ProviderRefund(TypedDict):
+    """What a provider reports after giving money back.
+
+    ``provider_ref`` is the provider's own id for the refund, which is what makes
+    the record idempotent when the same refund arrives again by webhook; it is
+    empty for a provider that issues no reference.  ``raw`` is the provider's
+    answer, stored verbatim on the refund row.
+    """
+
+    provider_ref: str
+    raw: dict[str, Any]
+
+
 class Provider:
     """A payment backend.
 
     ``start`` returns the parameters the browser needs to present the payment
     UI; ``confirm`` verifies server-side and marks the payment succeeded;
-    ``handle_webhook`` processes an asynchronous notification, and
-    ``fetch_fees`` asks the provider again what a settled payment cost.
+    ``refund`` gives money back; ``handle_webhook`` processes an asynchronous
+    notification, and ``fetch_fees`` asks the provider again what a settled
+    payment cost.
     """
 
     slug: str = ""
@@ -87,6 +101,19 @@ class Provider:
         provider's own handle on the attempt, such as Stripe's intent id or
         PayPal's order id.  Raises ``NotImplementedError``: every subclass must
         define it.
+        """
+        raise NotImplementedError
+
+    def refund(self, payment: Payment, refund: Refund) -> ProviderRefund:
+        """Ask the provider to give ``refund.amount_cents`` of ``payment`` back.
+
+        ``refund`` is the ``pending`` row the refund service has already written,
+        whose primary key is what an idempotency key is built from, so a call
+        repeated after a timeout gives the money back once.  Returns the
+        provider's reference and its answer; raises a
+        :class:`PaymentError` subclass when the provider refuses or cannot be
+        reached, which leaves the refund row ``failed``.  Raises
+        ``NotImplementedError``: every subclass must define it.
         """
         raise NotImplementedError
 

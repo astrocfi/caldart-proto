@@ -25,9 +25,19 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan
-from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
+from apps.payments.models import (
+    Payment,
+    PaymentProvider,
+    PaymentStatus,
+    PaymentWallet,
+    Refund,
+    RefundReason,
+    RefundStatus,
+)
 from apps.payments.providers import stripe as stripe_provider
+from apps.payments.providers.base import ProviderUnavailableError
 from apps.payments.providers.stripe import wallet_from_intent
+from apps.payments.refunds import issue_refund
 from apps.payments.services import create_checkout, fees_are_known
 from tests.factories import UserFactory
 
@@ -711,7 +721,7 @@ def test_webhook_ignores_uninteresting_events(
 ) -> None:
     """An event type the webhook does not handle is accepted but marked unhandled."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
-    event = stripe_event("charge.refunded", intent_payload(payment, id="pi_ref"))
+    event = stripe_event("payment_intent.created", intent_payload(payment, id="pi_ref"))
 
     response = post_webhook(api_client, event)
     assert json.loads(response.content)["handled"] is False
@@ -914,3 +924,218 @@ def test_a_success_after_an_early_charge_updated_keeps_the_fee(
 
     payment.refresh_from_db()
     assert payment.net_cents == 4_339
+
+
+# --------------------------------------------------------------------------
+# refunds
+# --------------------------------------------------------------------------
+class FakeRefunds:
+    """Stand-in for ``v1.refunds`` that records what it was asked to create."""
+
+    def __init__(self, refund_id: str = "re_test_1") -> None:
+        """Start with no recorded call, answering ``create`` with ``refund_id``."""
+        self.refund_id = refund_id
+        self.created: dict[str, Any] = {}
+        self.create_options: dict[str, Any] = {}
+
+    def create(
+        self, params: dict[str, Any], options: dict[str, Any] | None = None
+    ) -> stripe.Refund:
+        """Record ``params`` and ``options`` and answer with a succeeded refund."""
+        self.created = params
+        self.create_options = options or {}
+        return stripe.Refund.construct_from(
+            {
+                "id": self.refund_id,
+                "object": "refund",
+                "status": "succeeded",
+                "amount": params["amount"],
+                "payment_intent": params["payment_intent"],
+            },
+            SECRET_KEY,
+        )
+
+
+@pytest.fixture
+def fake_refunds(monkeypatch: pytest.MonkeyPatch) -> FakeRefunds:
+    """Replace ``stripe_client`` with one exposing only ``v1.refunds``."""
+    fake = FakeRefunds()
+
+    def client() -> SimpleNamespace:
+        stripe_provider.secret_key()
+        return SimpleNamespace(v1=SimpleNamespace(refunds=fake))
+
+    monkeypatch.setattr(stripe_provider, "stripe_client", client)
+    return fake
+
+
+def succeeded_stripe_payment(member: User, intent_id: str = "pi_refundable") -> Payment:
+    """A succeeded Stripe payment of 4,500 cents carrying ``intent_id``."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    payment.provider_ref = intent_id
+    payment.status = PaymentStatus.SUCCEEDED
+    payment.save(update_fields=["provider_ref", "status"])
+    return payment
+
+
+def test_a_refund_asks_stripe_for_the_amount_against_the_intent(
+    member: User, annual_plan: MembershipPlan, account_admin: User, fake_refunds: FakeRefunds
+) -> None:
+    """The refund names the PaymentIntent and the cents to give back."""
+    payment = succeeded_stripe_payment(member)
+    issue_refund(payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin)
+
+    assert fake_refunds.created["payment_intent"] == "pi_refundable"
+    assert fake_refunds.created["amount"] == 1_500
+
+
+def test_a_refund_carries_an_idempotency_key_of_its_own(
+    member: User, annual_plan: MembershipPlan, account_admin: User, fake_refunds: FakeRefunds
+) -> None:
+    """A call repeated after a timeout gives the money back once."""
+    payment = succeeded_stripe_payment(member)
+    refund = issue_refund(
+        payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin
+    )
+
+    assert fake_refunds.create_options["idempotency_key"] == f"caldart-refund-{refund.pk}"
+
+
+def test_a_refund_keeps_the_stripe_refund_id(
+    member: User, annual_plan: MembershipPlan, account_admin: User, fake_refunds: FakeRefunds
+) -> None:
+    """The provider reference is what a later webhook is recognized by."""
+    payment = succeeded_stripe_payment(member)
+    refund = issue_refund(
+        payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin
+    )
+
+    assert refund.provider_ref == "re_test_1"
+
+
+def test_a_stripe_error_leaves_the_refund_failed(
+    member: User,
+    annual_plan: MembershipPlan,
+    account_admin: User,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Stripe refusing the refund is a provider outage, not a 500."""
+    payment = succeeded_stripe_payment(member)
+
+    class RefusingRefunds:
+        """A ``v1.refunds`` that always raises Stripe's own error."""
+
+        def create(
+            self, params: dict[str, Any], options: dict[str, Any] | None = None
+        ) -> stripe.Refund:
+            """Raise as the SDK does when the API call fails."""
+            # The stripe stubs leave APIConnectionError.__init__ untyped.
+            raise stripe.APIConnectionError("boom")  # type: ignore[no-untyped-call]
+
+    def client() -> SimpleNamespace:
+        return SimpleNamespace(v1=SimpleNamespace(refunds=RefusingRefunds()))
+
+    monkeypatch.setattr(stripe_provider, "stripe_client", client)
+
+    with pytest.raises(ProviderUnavailableError, match="Stripe could not be reached"):
+        issue_refund(payment, amount_cents=1_500, reason=RefundReason.ERROR, actor=account_admin)
+
+    assert Refund.objects.get().status == RefundStatus.FAILED
+
+
+# --- charge.refunded ------------------------------------------------------
+def charge_payload(payment: Payment, refunds: list[dict[str, Any]]) -> dict[str, Any]:
+    """A charge as ``charge.refunded`` carries it, with ``refunds.data`` filled in."""
+    return {
+        "id": "ch_refunded_1",
+        "object": "charge",
+        "payment_intent": payment.provider_ref,
+        "metadata": {"payment_id": str(payment.pk)},
+        "refunds": {"object": "list", "data": refunds},
+    }
+
+
+def stripe_refund(refund_id: str, amount: int, status: str = "succeeded") -> dict[str, Any]:
+    """One entry of a charge's ``refunds.data``."""
+    return {"id": refund_id, "object": "refund", "amount": amount, "status": status}
+
+
+def test_a_dashboard_refund_webhook_records_the_refund(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Somebody refunding in Stripe's dashboard still lands in the ledger."""
+    payment = succeeded_stripe_payment(member)
+    event = stripe_event(
+        "charge.refunded", charge_payload(payment, [stripe_refund("re_dash", 1_000)])
+    )
+
+    response = post_webhook(api_client, event)
+
+    assert json.loads(response.content)["handled"] is True
+    refund = Refund.objects.get()
+    assert refund.amount_cents == 1_000
+    assert refund.provider_ref == "re_dash"
+
+
+def test_a_dashboard_refund_webhook_updates_the_payment(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A full refund taken in the dashboard leaves the payment refunded here."""
+    payment = succeeded_stripe_payment(member)
+    event = stripe_event(
+        "charge.refunded",
+        charge_payload(payment, [stripe_refund("re_dash_full", payment.amount_cents)]),
+    )
+
+    post_webhook(api_client, event)
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.REFUNDED
+
+
+def test_a_second_delivery_of_charge_refunded_records_nothing(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Stripe retries a webhook, and the refund id is what makes that harmless."""
+    payment = succeeded_stripe_payment(member)
+    event = stripe_event(
+        "charge.refunded", charge_payload(payment, [stripe_refund("re_twice", 1_000)])
+    )
+
+    post_webhook(api_client, event)
+    post_webhook(api_client, event)
+
+    assert Refund.objects.count() == 1
+
+
+def test_a_pending_refund_in_the_webhook_is_not_recorded(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Only a refund Stripe reports as succeeded has actually given money back."""
+    payment = succeeded_stripe_payment(member)
+    event = stripe_event(
+        "charge.refunded",
+        charge_payload(payment, [stripe_refund("re_pending", 1_000, status="pending")]),
+    )
+
+    post_webhook(api_client, event)
+
+    assert Refund.objects.count() == 0
+
+
+def test_charge_refunded_for_an_unknown_payment_is_ignored(api_client: APIClient) -> None:
+    """A charge that matches no row of ours is received and left alone."""
+    event = stripe_event(
+        "charge.refunded",
+        {
+            "id": "ch_nobody",
+            "object": "charge",
+            "metadata": {"payment_id": "424242"},
+            "refunds": {"data": [stripe_refund("re_nobody", 100)]},
+        },
+    )
+
+    response = post_webhook(api_client, event)
+
+    assert json.loads(response.content)["handled"] is False
+    assert Refund.objects.count() == 0

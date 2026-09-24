@@ -573,6 +573,62 @@ def activate_term(
     return term
 
 
+#: The longest note a term can carry, which is the model field's own width.
+MAX_TERM_NOTE = 255
+
+
+def _joined_note(existing: str, addition: str) -> str:
+    """``addition`` appended to ``existing``, within ``MAX_TERM_NOTE`` characters.
+
+    The two are separated by a period and a space, and a period the old text
+    already ended in is dropped rather than doubled.  ``addition`` is kept whole
+    wherever it fits: the old text loses its front to make room, and disappears
+    when there is no room for any of it.
+    """
+    addition = addition.strip()
+    prefix = existing.rstrip(". ")
+    if not prefix:
+        return addition[:MAX_TERM_NOTE]
+    room = MAX_TERM_NOTE - len(addition) - 2
+    if room <= 0:
+        return addition[:MAX_TERM_NOTE]
+    kept = prefix[len(prefix) - room :] if len(prefix) > room else prefix
+    return f"{kept}. {addition}"
+
+
+@transaction.atomic
+def cancel_term(term: Membership, *, actor: User | None = None, note: str = "") -> Membership:
+    """Cancel ``term`` so it stops covering the member, and return the row as saved.
+
+    A canceled term counts for nothing: ``membership_status`` skips it, so a
+    member with no other active term reads as expired, or as never covered.
+
+    ``note`` is why it was canceled -- a refund, an administrator's correction.
+    It is appended to whatever the term already said, separated by a period and
+    a space, with any period the old text ended in dropped so the join never
+    reads ``..``.  The reason for the cancellation always survives: it is the
+    older text that is trimmed, from its front, when the two together exceed
+    ``MAX_TERM_NOTE`` characters, and a note that fills the field on its own
+    replaces what was there.  ``actor`` is the administrator behind the
+    cancellation, and is recorded in the audit log; a cancellation nobody
+    initiated, such as one a provider's webhook caused, is recorded under
+    ``command``.
+
+    Canceling a term that is already canceled changes nothing but the note.
+    """
+    term.status = MembershipStatusChoices.CANCELED
+    if note:
+        term.note = _joined_note(term.note, note)
+    term.save(update_fields=["status", "note", "updated_at"])
+    audit.record(
+        audit.MEMBERSHIP_CORRECT,
+        actor=actor if actor is not None else audit.COMMAND_ACTOR,
+        target=term,
+        status=MembershipStatusChoices.CANCELED.value,
+    )
+    return term
+
+
 def stamp_member_since(user: User, joined_on: date) -> None:
     """Record ``joined_on`` as the day ``user`` joined, if nothing has yet.
 

@@ -193,20 +193,41 @@ easiest route to a year-end summary or a treasurer's report.
 Refunds
 -------
 
-Refunds are issued in the provider's own dashboard (Stripe or PayPal), not in
-CalDART, and **CalDART never finds out**.  Nothing in the system sets a payment
-to *Refunded*: the row goes on reading *succeeded*, the money is counted in
-every total, and the **Status → Refunded** filter will never match anything.
+A refund is issued from CalDART, on the payment itself, and the record stays
+with the payment: the amount, the reason, your note, and the date.
 
-So a refund is two jobs, not one:
+Open the payment, choose **Refund**, and fill in three things:
 
-#. Refund in the provider's dashboard.
-#. Correct CalDART by hand — edit or cancel the membership term under
-   **Administration → Members**, and note in the term why, since the payment
-   row cannot tell the story itself.
+* **Amount** — prefilled with everything the payment has left unrefunded.
+  Type a smaller figure to give back part of it, such as a contribution while
+  the dues stand.
+* **Reason** — requested by the member, duplicate payment, charged in error,
+  fraudulent, or other.
+* **Cancel the membership term** — prefilled on when the amount covers the
+  dues, off when it does not.  Leave it off for a contribution refund; the
+  membership is untouched either way unless you say so.
 
-Keep your own record of refunds until CalDART can record them; see
-:doc:`/developer/roadmap`.
+CalDART asks the payment provider for the money, and the member is emailed
+with the amount, what it was for, and whether their membership ended with it.
+The money goes back to the card or account they paid with, and their bank
+decides how quickly it appears — usually a few working days.
+
+The payment's status then reads **Partially refunded** while some of it has
+gone back and **Refunded** once all of it has, and the reports count refunds
+separately from what was taken.
+
+A payment recorded by hand is refunded the same way, except that nobody is
+called: write the check, record the refund, and the ledger matches.
+
+**If the provider refuses.**  The refund is kept with the status *failed* and
+the reason the provider gave, and no money moved.  Try again, or take it up in
+the provider's dashboard.
+
+**Refunds made in Stripe or PayPal directly.**  CalDART hears about those too:
+the provider's notification creates the refund record, marked *Issued in the
+provider's dashboard*.  What it does **not** do is end anybody's membership —
+no notification decides that.  If the refund should end the term, cancel it
+yourself on the payment's screen.
 
 
 When something goes wrong
@@ -227,11 +248,10 @@ When something goes wrong
    meantime.
 
 **The totals do not match the provider's dashboard.**
-   Three ordinary reasons before you suspect a fault: the period tiles count
-   only *succeeded* payments while the CSV export includes every status;
-   refunds are invisible here (above); and the tiles use the date the payment
-   completed, which can fall a day either side of the provider's own
-   settlement date.
+   Two ordinary reasons before you suspect a fault: the period tiles count
+   only payments whose money arrived while the CSV export includes every
+   status; and the tiles use the date the payment completed, which can fall a
+   day either side of the provider's own settlement date.
 
 **A provider column is empty.**
    Only providers that were configured when a payment was taken can appear

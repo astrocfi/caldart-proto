@@ -221,7 +221,8 @@ redirect-based payment.
     "membership": {"status": "none", "expires_on": null,
                    "plan": null, "is_lifetime": false}}
 
-``status`` is ``pending``, ``succeeded``, ``failed``, or ``refunded``.
+``status`` is ``pending``, ``succeeded``, ``failed``, ``partially_refunded``
+or ``refunded``.
 
 Statuses: **200**; **401** when anonymous; **403** for a signed-in caller who
 neither owns the payment nor holds ``account_admin``; **404** for an unknown
@@ -390,7 +391,9 @@ check out.  Handles:
   fee is already recorded is left alone, so a re-delivery changes nothing.
   Stripe orders no deliveries, so this event is acted on whatever state the
   payment is in: a fee that arrives before the ``payment_intent.succeeded``
-  that settles the row is kept when the row settles.
+  that settles the row is kept when the row settles;
+* ``charge.refunded`` — records every succeeded refund on the charge that is
+  not already on file, as :ref:`api-refunds-webhooks` describes.
 
 Everything else is acknowledged and ignored.  The response says what happened:
 
@@ -422,7 +425,9 @@ order id) and answers:
 ``verified`` is true only when ``PAYPAL_WEBHOOK_ID`` is set *and* PayPal's
 ``verify-webhook-signature`` call passes.  A verified
 ``PAYMENT.CAPTURE.COMPLETED`` for the right amount activates the membership;
-``PAYMENT.CAPTURE.DENIED`` and ``PAYMENT.CAPTURE.REVERSED`` mark it failed.
+``PAYMENT.CAPTURE.DENIED`` and ``PAYMENT.CAPTURE.REVERSED`` mark it failed; and
+a verified ``PAYMENT.CAPTURE.REFUNDED`` records the refund, as
+:ref:`api-refunds-webhooks` describes.
 Without verification nothing changes — an unverifiable notification is not
 evidence that money moved.  A notification about a payment this installation
 does not have is received but not filed.
@@ -445,8 +450,8 @@ Parameter        Meaning
 ``from``         ``YYYY-MM-DD``; payments on or after this date.
 ``to``           ``YYYY-MM-DD``; payments on or before this date.
 ``provider``     ``stripe``, ``paypal``, or ``mock``.
-``status``       ``pending``, ``succeeded``, ``failed``, or
-                 ``refunded``.
+``status``       ``pending``, ``succeeded``, ``failed``,
+                 ``partially_refunded``, or ``refunded``.
 ``search``       Member name, email, or the provider's reference.
 ``group``        ``month`` or ``year``; the summary's period.
 ===============  ====================================================

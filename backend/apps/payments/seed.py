@@ -1,4 +1,4 @@
-"""Seed ~24 months of succeeded payments and the terms they bought.
+"""Seed ~24 months of succeeded payments, the terms they bought and some refunds.
 
 Every term goes through :func:`apps.members.services.activate_term`, so the
 seeded data exercises the same code path as a real checkout.
@@ -20,15 +20,23 @@ from django.core.management.base import OutputWrapper
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.members.models import MembershipPlan, MembershipSource
-from apps.members.services import activate_term, expire_lapsed_memberships
+from apps.members.models import (
+    Membership,
+    MembershipPlan,
+    MembershipSource,
+)
+from apps.members.services import activate_term, cancel_term, expire_lapsed_memberships
 from apps.payments.models import (
     CONTRIBUTION_TIERS,
     Payment,
     PaymentProvider,
     PaymentStatus,
     PaymentWallet,
+    Refund,
+    RefundReason,
+    RefundStatus,
 )
+from apps.payments.refunds import apply_refund_totals
 
 #: How far back the payment history runs.
 HISTORY_MONTHS = 24
@@ -66,6 +74,29 @@ def provider_fee_cents(provider: str, amount_cents: int) -> int:
         return 0
     rate, fixed = PROVIDER_FEES[provider]
     return (amount_cents * rate + 5_000) // 10_000 + fixed
+
+
+#: How many payments the seed gives back in full, canceling the term each bought.
+#: They are chosen from terms that have already ended, so the demo's current
+#: members stay current.
+FULL_REFUNDS = 2
+
+#: How many contributions the seed gives back on their own, leaving the dues and
+#: the membership term alone.
+PARTIAL_REFUNDS = 4
+
+#: The reason recorded against each seeded refund, in the order they are written.
+REFUND_REASONS: tuple[str, ...] = (
+    RefundReason.REQUESTED_BY_MEMBER,
+    RefundReason.DUPLICATE,
+    RefundReason.REQUESTED_BY_MEMBER,
+    RefundReason.ERROR,
+    RefundReason.REQUESTED_BY_MEMBER,
+    RefundReason.OTHER,
+)
+
+#: How long after a payment a seeded refund was taken.
+REFUND_DELAY_DAYS = 5
 
 
 def _pick(rng: random.Random, mix: tuple[tuple[str, int], ...]) -> str:
@@ -165,6 +196,79 @@ def _payment_for(
     return payment
 
 
+def _refund(payment: Payment, amount_cents: int, reason: str, note: str) -> bool:
+    """Write one seeded refund against ``payment``, and say whether it was created.
+
+    Keyed on the payment's own seeded reference, so a second ``seed_demo`` run
+    finds the row it made before instead of writing a second refund.  The
+    payment's status follows the running total.
+    """
+    refunded_at = (payment.completed_at or timezone.now()) + timedelta(days=REFUND_DELAY_DAYS)
+    _, created = Refund.objects.get_or_create(
+        payment=payment,
+        provider_ref=f"seed_refund_{payment.pk}",
+        defaults={
+            "amount_cents": amount_cents,
+            "reason": reason,
+            "note": note,
+            "status": RefundStatus.SUCCEEDED,
+            "refunded_at": refunded_at,
+            "raw": {"seeded": True},
+        },
+    )
+    if created:
+        apply_refund_totals(payment)
+    return created
+
+
+def _seed_refunds(today: dt.date, generated: list[User]) -> int:
+    """Refund a few of ``generated``'s payments, and return how many were written.
+
+    Two payments are given back in full and the terms they bought are canceled;
+    four contributions are given back on their own, leaving the dues and the
+    membership alone.  Both sets are chosen in id order from terms that have
+    already ended and from payments that carry a contribution, so the choice
+    depends on nothing a refund changes: running this twice writes nothing
+    twice, and it never moves the shared random stream.
+
+    Only the generated members are touched.  The named demo accounts are the
+    fixed cast the guides and the end-to-end specs drive, and a canceled term
+    would change the membership each of them is there to demonstrate.
+    """
+    member_ids = [user.pk for user in generated]
+    terms = list(
+        Membership.objects.filter(
+            user_id__in=member_ids,
+            payment__isnull=False,
+            ends_on__isnull=False,
+            ends_on__lt=today,
+        )
+        .select_related("payment")
+        .order_by("payment_id")[:FULL_REFUNDS]
+    )
+    written = 0
+    refunded_ids = []
+    for index, term in enumerate(terms):
+        payment = term.payment
+        if payment is None:
+            continue
+        refunded_ids.append(payment.pk)
+        if _refund(payment, payment.amount_cents, REFUND_REASONS[index], "Membership refunded"):
+            cancel_term(term, note="Canceled with a full refund")
+            written += 1
+
+    contributions = (
+        Payment.objects.filter(user_id__in=member_ids, contribution_cents__gt=0)
+        .exclude(pk__in=refunded_ids)
+        .order_by("pk")[:PARTIAL_REFUNDS]
+    )
+    for index, payment in enumerate(contributions):
+        reason = REFUND_REASONS[FULL_REFUNDS + index]
+        if _refund(payment, payment.contribution_cents, reason, "Contribution refunded"):
+            written += 1
+    return written
+
+
 def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
     """Seed each user's payments and terms, and return the shared seed context.
 
@@ -203,11 +307,13 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             terms += 1
 
     expired = expire_lapsed_memberships(today)
+    refunds = _seed_refunds(today, ctx["generated_users"])
 
     ctx["payment_count"] = payments
+    ctx["refund_count"] = refunds
     if stdout is not None:
         stdout.write(
             f"  payments: {payments} succeeded payments, {terms} terms, "
-            f"{expired} lapsed terms marked expired"
+            f"{expired} lapsed terms marked expired, {refunds} refunds"
         )
     return ctx

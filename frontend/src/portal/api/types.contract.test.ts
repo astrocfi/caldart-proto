@@ -58,6 +58,12 @@ import type {
   NavKind,
   OwnerType,
   Paginated,
+  Refund,
+  RefundIssued,
+  RefundReason,
+  RefundRequest,
+  RefundState,
+  RefundedPayment,
   PasswordChangePayload,
   PasswordResetConfirmPayload,
   PasswordResetRequestPayload,
@@ -179,6 +185,12 @@ const paymentSummary: Matches<PaymentSummary, Schemas['PaymentSummary']> = true;
 const paymentTerm: Matches<PaymentTerm, Schemas['PaymentTerm']> = true;
 const receiptSend: Matches<ReceiptSend, Schemas['ReceiptSend']> = true;
 const statementYears: Matches<StatementYears, Schemas['StatementYears']> = true;
+const refundReason: Matches<RefundReason, Schemas['ReasonEnum']> = true;
+const refundState: Matches<RefundState, Schemas['RefundStatusEnum']> = true;
+const refund: Matches<Refund, Schemas['Refund']> = true;
+const refundRequest: Matches<RefundRequest, Schemas['RefundCreateRequest']> = true;
+const refundedPayment: Matches<RefundedPayment, Schemas['RefundedPayment']> = true;
+const refundIssued: Matches<RefundIssued, Schemas['RefundIssued']> = true;
 const paymentResult: Matches<PaymentResult, Schemas['PaymentResult']> = true;
 const contributionTier: Matches<ContributionTier, Schemas['ContributionTier']> = true;
 const paymentsConfig: Matches<PaymentsConfig, Schemas['PaymentsConfig']> = true;
@@ -264,6 +276,12 @@ const assertions: readonly true[] = [
   paymentTerm,
   receiptSend,
   statementYears,
+  refundReason,
+  refundState,
+  refund,
+  refundRequest,
+  refundedPayment,
+  refundIssued,
   paymentResult,
   contributionTier,
   paymentsConfig,
@@ -339,6 +357,12 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PaymentTerm',
   'ReceiptSend',
   'StatementYears',
+  'ReasonEnum',
+  'RefundStatusEnum',
+  'Refund',
+  'RefundCreateRequest',
+  'RefundedPayment',
+  'RefundIssued',
   'PaymentResult',
   'ContributionTier',
   'PaymentsConfig',

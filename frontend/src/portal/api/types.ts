@@ -601,6 +601,50 @@ export interface PaymentResult {
   membership: MembershipStatus;
 }
 
+/* ----------------------------------------------------------------- refunds */
+export type RefundReason = 'requested_by_member' | 'duplicate' | 'error' | 'fraudulent' | 'other';
+
+export type RefundState = 'pending' | 'succeeded' | 'failed';
+
+/** One refund against a payment, in whole or in part. */
+export interface Refund {
+  id: number;
+  payment_id: number;
+  amount_cents: number;
+  reason: RefundReason;
+  note: string;
+  status: RefundState;
+  /** The Stripe or PayPal refund id; empty for a manual or mock refund. */
+  provider_ref: string;
+  /** Null when the refund was issued in the provider's own dashboard. */
+  requested_by_id: number | null;
+  refunded_at: IsoDateTime | null;
+  created_at: IsoDateTime;
+}
+
+/** The body of `POST /admin/payments/{id}/refunds`. */
+export interface RefundRequest {
+  amount_cents: number;
+  reason: RefundReason;
+  note?: string;
+  /** Cancel the membership term the payment bought. */
+  cancel_term?: boolean;
+}
+
+/** A payment as it stands after a refund. */
+export interface RefundedPayment {
+  id: number;
+  amount_cents: number;
+  refunded_cents: number;
+  status: PaymentState;
+}
+
+/** The 201 body of `POST /admin/payments/{id}/refunds`. */
+export interface RefundIssued {
+  refund: Refund;
+  payment: RefundedPayment;
+}
+
 /** One row of `GET /admin/payments/summary`. */
 export interface PaymentPeriodSummary {
   period: string;
