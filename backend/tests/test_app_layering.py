@@ -41,7 +41,34 @@ EXEMPT_DIRECTORIES = frozenset({"api", "management", "migrations"})
 EXEMPT_FILENAMES = frozenset({"admin.py"})
 
 #: The project modules every app builds on.  They may import no app at all.
-FOUNDATION_MODULES = ("models.py", "reports.py", "exceptions.py", "pagination.py")
+#: ``org.py`` is deliberately not among them: it reads the Wagtail site settings
+#: through one inline import, which is what keeps that dependency out of here and
+#: out of ``mail.py``, which calls it.  That import is declared in
+#: :data:`SANCTIONED_PROJECT_INLINE_IMPORTS` below.
+FOUNDATION_MODULES = (
+    "models.py",
+    "reports.py",
+    "receipts.py",
+    "mail.py",
+    "exceptions.py",
+    "pagination.py",
+)
+
+#: Directories and files inside ``caldart`` that wire the apps together: the URL
+#: confs name every app's routes, and the settings name every app.
+EXEMPT_PROJECT_DIRECTORIES = frozenset({"settings"})
+EXEMPT_PROJECT_FILENAMES = frozenset({"urls.py", "api_urls.py"})
+
+#: The complete set of inline app imports made by a ``caldart`` module, as
+#: ``(importer, imported)`` pairs.  A project module sits below every app, so each
+#: of these is a deliberate reach upward, kept inline so importing the module
+#: never pulls an app in.
+SANCTIONED_PROJECT_INLINE_IMPORTS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("caldart.org", "apps.cms.models"),
+        ("caldart.views", "apps.cms.models"),
+    }
+)
 
 #: The complete set of inline cross-app imports, as ``(importer, imported)`` pairs.
 #: Each one breaks an app-level import cycle, and each carries a comment saying so.
@@ -51,7 +78,6 @@ SANCTIONED_INLINE_IMPORTS: frozenset[tuple[str, str]] = frozenset(
         ("apps.accounts.models", "apps.members.services"),
         ("apps.accounts.services", "apps.cms.models"),
         ("apps.members.services", "apps.payments.models"),
-        ("apps.reminders.services", "apps.cms.models"),
     }
 )
 
@@ -267,7 +293,10 @@ def test_the_comment_block_is_read_from_its_first_line(lines: list[str], expecte
 
 
 def test_project_foundation_modules_import_nothing_from_apps() -> None:
-    """``caldart`` models, reports, exceptions and pagination sit below every app."""
+    """The project's models, reports, receipts, mail, exceptions and pagination sit below.
+
+    Each of them is read by several apps, so none may read an app back.
+    """
     offenders: list[str] = []
     for filename in FOUNDATION_MODULES:
         path = BACKEND_ROOT / "caldart" / filename
@@ -275,6 +304,46 @@ def test_project_foundation_modules_import_nothing_from_apps() -> None:
             f"caldart.{path.stem} imports {record.target}" for record in app_imports(path)
         )
     assert sorted(offenders) == []
+
+
+def project_modules() -> list[Path]:
+    """Every ``caldart`` module the project rule governs, sorted by path.
+
+    The URL confs and the settings package are composition points and are left
+    out; everything else in the project package is code an app reads.
+    """
+    project_root = BACKEND_ROOT / "caldart"
+    return [
+        path
+        for path in sorted(project_root.rglob("*.py"))
+        if path.name not in EXEMPT_PROJECT_FILENAMES
+        and not EXEMPT_PROJECT_DIRECTORIES.intersection(path.relative_to(project_root).parts[:-1])
+    ]
+
+
+def test_every_app_import_in_a_project_module_is_inline_and_sanctioned() -> None:
+    """A project module reaches an app only through a declared inline import."""
+    unsanctioned: list[str] = []
+    for path in project_modules():
+        module = module_name(path)
+        unsanctioned.extend(
+            f"{module} imports {record.target}"
+            for record in app_imports(path)
+            if not record.is_inline
+            or (module, record.target) not in SANCTIONED_PROJECT_INLINE_IMPORTS
+        )
+    assert sorted(unsanctioned) == []
+
+
+def test_every_sanctioned_project_inline_import_still_exists() -> None:
+    """The project list carries no entry the code has stopped needing."""
+    present = {
+        (module_name(path), record.target)
+        for path in project_modules()
+        for record in app_imports(path)
+        if record.is_inline
+    }
+    assert sorted(SANCTIONED_PROJECT_INLINE_IMPORTS - present) == []
 
 
 def test_timestamped_model_lives_in_the_project_package() -> None:

@@ -55,17 +55,40 @@ it:
 ``csv_cell(value)``
    One value as a CSV cell: ``None`` as an empty string, a formula-looking
    string with a leading apostrophe, everything else unchanged.
-``pdf_table_response(filename, *, title, subtitle, header, rows, landscape)``
+``pdf_table_response(filename, *, title, subtitle, header, rows, landscape, widths)``
    A reportlab table in the CalDART palette: hairline rules instead of boxes,
    zebra rows, the header repeated on every page, and a footer carrying
    "CalDART · generated <timestamp>" and "Page n of m".  ``landscape`` defaults
-   to true, which is landscape US letter (792 × 612 points).  Unlike the CSV
-   path this returns an ordinary ``HttpResponse``: reportlab needs the whole
-   document before it can write any of it, so a PDF export does hold its rows
-   in memory.
+   to true, which is landscape US letter (792 × 612 points); ``landscape=False``
+   is the same page upright (612 × 792).  ``widths`` gives the columns relative
+   shares of the printable width — ``[3, 1, 1]`` makes the first column three
+   times either of the others — and is scaled to fill the page, so the units do
+   not matter; without it every column is the same width.  One width per column,
+   or ``ValueError``.  Unlike the CSV path this returns an ordinary
+   ``HttpResponse``: reportlab needs the whole document before it can write any
+   of it, so a PDF export does hold its rows in memory.
 ``build_pdf_table(buffer, …)``
    The same, into any writable binary stream, for tests and for anything that
    is not an HTTP response.
+``ReportColumn(key, label, default, value)``
+   One column of a report: the stable ``key`` a caller asks for, the ``label``
+   both exports print, whether it is in the report by ``default``, and the
+   ``value`` function that turns one row into that row's cell.  A report
+   declares its columns once, in export order, and both headers and both row
+   builders follow from that tuple.
+``select_columns(columns, requested)``
+   The columns to export.  A ``requested`` list that is ``None`` or empty means
+   the caller chose nothing, and the answer is every column whose ``default``
+   is true, in registry order; otherwise it is one column per requested key, in
+   the order requested.  A key no column carries raises ``ValueError`` naming
+   that key, and so does a key asked for twice — a report has one cell per
+   column — and an endpoint answers either as a 400 keyed by ``columns``.
+``money_label(cents, *, currency=True)``
+   Integer cents as the dollars a reader sees: ``12345`` becomes ``$123.45``,
+   with commas between thousands.  ``currency=False`` gives ``123.45`` instead,
+   the shape a CSV cell carries so the column sums in a spreadsheet.  It is text
+   for people either way; an amount bound for Stripe or PayPal is built by the
+   provider module that speaks to that API.
 ``filter_summary(filters)``
    Renders ``{"status": "current", "dart": "Napa"}`` as
    ``status: current · dart: Napa``, dropping empty values, or "No filters
@@ -74,6 +97,37 @@ it:
 Fraunces and IBM Plex are web fonts and are not embedded in the PDFs; the
 built-in Times and Helvetica families carry the same serif-display,
 sans-supporting-text contrast.
+
+
+.. _reports-receipts:
+
+Receipts and statements
+=======================
+
+A receipt and an annual contribution statement are not tables of a list, so
+they have their own builders in ``backend/caldart/receipts.py``.  Both are pure
+functions — a typed dataclass in, a PDF written to a binary stream out — and
+neither reads a model, so the app that holds the payments gathers the facts and
+hands them over.
+
+``build_receipt_pdf(buffer, receipt)``
+   One upright US-letter page acknowledging one payment: the organization's
+   letterhead, the receipt number and the date the money was received, who paid,
+   a ``ReceiptLine`` per thing the payment bought with its amount in dollars, the
+   total, and how the money arrived.  A line marked ``deductible`` — a
+   contribution — also brings the sentence "No goods or services were provided in
+   exchange for this contribution" onto the page.  Membership dues are printed as
+   dues and never claim a deduction.
+``build_statement_pdf(buffer, statement)``
+   One upright page covering a member's contributions for a calendar year: a
+   ``StatementLine`` per contribution with its date, receipt number, amount,
+   refund and net, then the year's total net of refunds and the same 501(c)(3)
+   wording in the plural.  Dues are not on it; a statement covers gifts alone.
+
+The letterhead itself comes from ``org_details()`` in ``backend/caldart/org.py``,
+which reads the organization's name, contact address, mailing address, EIN and
+site URL from the Wagtail site settings a website administrator edits.  A field
+nobody has filled in draws no line at all.
 
 
 .. _reports-untrusted-values:
@@ -93,9 +147,9 @@ a single apostrophe, the OWASP treatment: every spreadsheet strips it on
 import, and the cell reads as the text it always was.  Only strings are
 treated this way; a number or a date passes through untouched.
 
-The money columns are strings — each report formats its cents into dollars
-itself — and they still never pick up an apostrophe, because the fields behind
-them (``amount_cents``, ``contribution_cents``, the insurance amounts) are
+The money columns are strings — each report formats its cents itself, some of
+them through ``money_label`` — and they still never pick up an apostrophe,
+because the fields behind them (``amount_cents``, ``contribution_cents``, the insurance amounts) are
 positive integer fields, so a formatted amount never opens with a sign and
 always sums correctly in the spreadsheet.  A value a member typed is the case
 the policy is for: a phone number entered as ``+1 707 555 0134`` opens with

@@ -15,7 +15,6 @@ import logging
 import smtplib
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -29,11 +28,7 @@ from apps.members.models import Membership, MembershipState, MembershipStatusCho
 from apps.members.services import expire_lapsed_memberships, membership_status
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from caldart import audit
-
-if TYPE_CHECKING:
-    # Inline: for typing only. A real import would make reminders (layer 4) depend
-    # upward on cms (layer 5); TYPE_CHECKING avoids that at runtime.
-    from apps.cms.models import SiteSettings
+from caldart.mail import contact_email, org_name
 
 log = logging.getLogger(__name__)
 
@@ -147,35 +142,6 @@ def renew_url() -> str:
     return f"{settings.SITE_URL.rstrip('/')}/portal/renew"
 
 
-def _site_settings() -> SiteSettings | None:
-    """The default site's ``SiteSettings`` row, or ``None`` when there is none.
-
-    It is ``None`` before ``migrate`` has set the site up, and reading it never
-    creates the row.
-    """
-    # Inline: the site settings live in cms, the top layer, and a top-level import
-    # would make reminders depend upward on it.
-    from apps.cms.models import get_site_settings
-
-    return get_site_settings()
-
-
-def _org_name() -> str:
-    """The organization name from Wagtail site settings, or the default."""
-    site_settings = _site_settings()
-    return (getattr(site_settings, "org_name", "") if site_settings else "") or "CalDART"
-
-
-def _contact_email() -> str:
-    """The contact address from Wagtail site settings, or ``""``.
-
-    It is empty when the site settings are missing or their ``contact_email`` is
-    blank; the templates then omit the contact line.
-    """
-    site_settings = _site_settings()
-    return (getattr(site_settings, "contact_email", "") if site_settings else "") or ""
-
-
 def build_email(
     user: User, membership: Membership, kind: str, today: date
 ) -> EmailMultiAlternatives:
@@ -185,7 +151,7 @@ def build_email(
     so a reminder the catch-up window picked up two days behind says 28 days
     rather than claiming 30.
     """
-    org = _org_name()
+    org = org_name()
     # Lifetime terms (no ends_on) never reach here: _candidates() filters on ends_on.
     assert membership.ends_on is not None  # noqa: S101 - mypy strict narrowing, not test code
     days = abs((membership.ends_on - today).days)
@@ -193,7 +159,7 @@ def build_email(
         "user": user,
         "first_name": user.first_name or user.display_name,
         "org_name": org,
-        "contact_email": _contact_email(),
+        "contact_email": contact_email(),
         "plan_name": membership.plan.name,
         "expires_on": membership.ends_on,
         "days": days,

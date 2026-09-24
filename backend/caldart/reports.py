@@ -11,7 +11,8 @@ sans-supporting-text contrast.
 from __future__ import annotations
 
 import csv
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from http import HTTPStatus
 from typing import IO, Any
@@ -90,6 +91,78 @@ HEADER_CELL_STYLE = ParagraphStyle(
     leading=9,
     textColor=INK,
 )
+
+
+# --------------------------------------------------------------------------
+# Columns
+# --------------------------------------------------------------------------
+@dataclass(frozen=True)
+class ReportColumn[RowT]:
+    """One column of a report: how to name it, whether to show it, how to read it.
+
+    ``key`` is the stable name a caller asks for and an endpoint answers with,
+    ``label`` the header text both exports print, ``default`` whether the column
+    is in the report when the caller chooses none, and ``value`` a function from
+    one row to that row's cell.  A report declares its columns once, in export
+    order, and the CSV header, the PDF header and both row builders follow from
+    that one tuple.
+    """
+
+    key: str
+    label: str
+    default: bool
+    value: Callable[[RowT], object]
+
+
+def select_columns[RowT](
+    columns: Sequence[ReportColumn[RowT]],
+    requested: Sequence[str] | None,
+) -> list[ReportColumn[RowT]]:
+    """The columns to export, given what the caller asked for.
+
+    ``requested`` that is ``None`` or empty means the caller chose nothing, and
+    the answer is every column whose ``default`` is true, in registry order.
+    Otherwise the answer is one column per requested key, in the order
+    requested, so a caller decides both which columns appear and where.
+
+    A key no column carries raises ``ValueError`` reading ``Unknown column:
+    <key>``, naming the first unknown key only, and a key asked for twice raises
+    ``Repeated column: <key>``: a report has one cell per column, so a repeat is
+    a mistake in the request rather than a wider table.  An endpoint turns
+    either into a 400 keyed by ``columns``.
+    """
+    if requested is None or len(requested) == 0:
+        return [column for column in columns if column.default]
+    by_key = {column.key: column for column in columns}
+    chosen: list[ReportColumn[RowT]] = []
+    seen: set[str] = set()
+    for key in requested:
+        if key not in by_key:
+            raise ValueError(f"Unknown column: {key}")
+        if key in seen:
+            raise ValueError(f"Repeated column: {key}")
+        seen.add(key)
+        chosen.append(by_key[key])
+    return chosen
+
+
+def money_label(cents: int, *, currency: bool = True) -> str:
+    """Integer cents as the dollars a reader sees, e.g. ``12345`` -> ``$123.45``.
+
+    Money is integer cents everywhere in the database and the API, and this
+    turns it into the text a person reads: a PDF cell, an email, a screen.
+    Thousands are separated with commas and the cents are always shown.
+    ``currency=False`` drops the dollar sign and the separators, giving
+    ``123.45``, which is what a CSV cell carries so a spreadsheet reads the
+    column as numbers.
+
+    This is text for people.  A provider payload is not: an amount bound for
+    Stripe or PayPal is built by the provider module that speaks to it, which
+    knows what that API wants.
+    """
+    if not currency:
+        return f"{cents / 100:.2f}"
+    return f"${cents / 100:,.2f}"
 
 
 # --------------------------------------------------------------------------
@@ -234,9 +307,21 @@ def build_pdf_table(
     header: Sequence[str],
     rows: Iterable[Sequence[Any]],
     landscape: bool = True,
+    widths: Sequence[float] | None = None,
     generated_at: datetime | None = None,
 ) -> None:
-    """Render the report into ``buffer`` (any writable binary stream)."""
+    """Render the report into ``buffer`` (any writable binary stream).
+
+    ``landscape`` chooses US letter on its side (792 x 612 points) or upright
+    (612 x 792).  ``widths`` gives the columns relative shares of the printable
+    width -- ``[3, 1, 1]`` makes the first column three times either of the
+    others -- and the shares are scaled to fill the page, so their units do not
+    matter.  Without it every column is the same width.  One width per column,
+    or ``ValueError`` reading ``<n> columns but <m> widths`` before anything is
+    drawn.
+    """
+    if widths is not None and len(widths) != len(header):
+        raise ValueError(f"{len(header)} columns but {len(widths)} widths")
     pagesize = landscape_size(letter) if landscape else letter
     generated_at = generated_at or timezone.localtime()
     footer_left = f"CalDART \u00b7 generated {generated_at:%Y-%m-%d %H:%M %Z}".strip()
@@ -268,7 +353,11 @@ def build_pdf_table(
     data.extend(_as_cells(row, CELL_STYLE) for row in rows)
 
     columns = len(header) or 1
-    col_width = doc.width / columns
+    if widths is None:
+        col_widths = [doc.width / columns] * columns
+    else:
+        share = doc.width / sum(widths)
+        col_widths = [width * share for width in widths]
 
     style = TableStyle(
         [
@@ -284,7 +373,7 @@ def build_pdf_table(
         ]
     )
 
-    table = LongTable(data, colWidths=[col_width] * columns, repeatRows=1)
+    table = LongTable(data, colWidths=col_widths, repeatRows=1)
     table.setStyle(style)
 
     story: list[Flowable] = [Paragraph(escape_markup(title), TITLE_STYLE)]
@@ -307,8 +396,13 @@ def pdf_table_response(
     header: Sequence[str],
     rows: Iterable[Sequence[Any]],
     landscape: bool = True,
+    widths: Sequence[float] | None = None,
 ) -> HttpResponse:
-    """A landscape-letter PDF table download in the CalDART house style."""
+    """A letter-size PDF table download in the CalDART house style.
+
+    ``landscape`` and ``widths`` mean what they mean in :func:`build_pdf_table`;
+    the default is a landscape page with columns of equal width.
+    """
     response = HttpResponse(content_type=PDF_MEDIA_TYPE)
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     build_pdf_table(
@@ -318,6 +412,7 @@ def pdf_table_response(
         header=header,
         rows=rows,
         landscape=landscape,
+        widths=widths,
     )
     return response
 
