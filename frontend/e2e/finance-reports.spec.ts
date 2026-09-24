@@ -35,7 +35,9 @@ test('a treasurer reconciles a period and exports it', async ({ page }) => {
     .getByRole('button', { name: 'Provider' })
     .click();
   const byProvider = bodyRows(page, /Takings by provider/);
-  await expect(byProvider.first()).toBeVisible();
+  // The table keeps the rows it had while the regrouped ones are fetched, so
+  // wait for a provider name in the first cell before counting.
+  await expect(byProvider.first()).toContainText(/Stripe|PayPal|Test|By hand/);
   expect(await byProvider.count()).toBeLessThan(monthCount);
 
   const [download] = await Promise.all([
