@@ -215,12 +215,48 @@
 }
 
 /* ------------------------------------------------------ record a payment */
-.record-payment__results {
+/* The member picker's results read like the member check's: one row per
+ * member, name first, the rest muted, the membership chip at the end. */
+.member-picker__results {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: var(--space-1);
+  border-top: var(--hairline) solid var(--color-rule);
+}
+
+.member-picker__result {
+  border-bottom: var(--hairline) solid var(--color-rule);
+}
+
+.member-picker__button {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.member-picker__button:hover,
+.member-picker__button:focus-visible {
+  background: var(--color-bg-sunken);
+}
+
+.member-picker__name {
+  font-weight: var(--weight-medium);
+}
+
+.member-picker__meta {
+  flex: 1 1 14ch;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
 }
 
 .record-payment__chosen {

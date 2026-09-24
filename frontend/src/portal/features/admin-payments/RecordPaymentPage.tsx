@@ -68,23 +68,38 @@ function MemberPicker({ chosen, onChoose, error }: MemberPickerProps): JSX.Eleme
 
   return (
     <div className="stack">
-      <Field label="Member" hint="Search by name or email address" error={error} required>
+      <Field label="Member" error={error} required>
         {(props) => (
           <input
             {...props}
             type="search"
+            placeholder="Search by name or email address"
             value={term}
             onChange={(event) => setTerm(event.target.value)}
           />
         )}
       </Field>
+      <p className="visually-hidden" role="status">
+        {results.isFetching
+          ? 'Searching'
+          : results.data !== undefined
+            ? `${results.data.length} members found`
+            : ''}
+      </p>
+      {results.isFetching && !results.data ? <p className="muted">Searching…</p> : null}
       {results.data === undefined || results.data.length === 0 ? null : (
-        <ul className="record-payment__results">
+        <ul className="member-picker__results">
           {results.data.map((member) => (
-            <li key={member.user_id}>
-              <Button variant="quiet" small onClick={() => onChoose(member)}>
-                {member.name} · {member.email}
-              </Button>
+            <li key={member.user_id} className="member-picker__result">
+              <button
+                type="button"
+                className="member-picker__button"
+                onClick={() => onChoose(member)}
+              >
+                <span className="member-picker__name">{member.name}</span>
+                <span className="member-picker__meta">{member.email}</span>
+                <MembershipChip membership={member.membership} />
+              </button>
             </li>
           ))}
         </ul>

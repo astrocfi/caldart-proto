@@ -22,13 +22,13 @@ export interface PeriodTableProps {
   filters?: ReactNode;
 }
 
-/** `2026-03` -> `March 2026`; `2026` is already readable. */
+/** `2026-03` -> `Mar 2026`, three letters so no month wraps; `2026` is already readable. */
 export function periodLabel(period: string, group: SummaryGroup): string {
   if (group === 'year') return period;
   const [year, month] = period.split('-');
   if (!year || !month) return period;
   const date = new Date(Number(year), Number(month) - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
 /** Money per month or year, with one column per payment provider, newest first. */

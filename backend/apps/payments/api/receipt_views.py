@@ -60,7 +60,7 @@ def _statement_download(member: User, year: int) -> HttpResponse:
     if year not in receipts.statement_years(member):
         raise Http404("No contributions in that year.")
     return _pdf_download(
-        receipts.statement_filename(year), receipts.render_statement_pdf(member, year)
+        receipts.statement_filename(member, year), receipts.render_statement_pdf(member, year)
     )
 
 

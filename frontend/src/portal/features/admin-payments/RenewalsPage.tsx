@@ -1,5 +1,5 @@
 /**
- * `/admin/payments/renewals` — the standing authorities members have given
+ * `/admin/payments/renewals` — the automatic renewals members have set up
  * CalDART to renew their membership, and the charges scheduled against them.
  *
  * Two tables: the mandates, which is where a support call is answered and
@@ -217,7 +217,7 @@ export function RenewalsPage(): JSX.Element {
 
   const mandateFilters = (
     <div className="payment-filters">
-      <Field label="Renewal status">
+      <Field label="Auto-renewal status">
         {(props) => (
           <select
             {...props}
@@ -236,11 +236,12 @@ export function RenewalsPage(): JSX.Element {
           </select>
         )}
       </Field>
-      <Field label="Search" hint="Name, email, or the saved method">
+      <Field label="Search">
         {(props) => (
           <input
             {...props}
             type="search"
+            placeholder="Name, email, or the saved method"
             value={term}
             onChange={(event) => {
               setTerm(event.target.value);
@@ -290,7 +291,7 @@ export function RenewalsPage(): JSX.Element {
       <FinanceTabs />
 
       <section className="stack">
-        <h2 className="period-table__title">Standing authorities</h2>
+        <h2 className="period-table__title">Automatic renewals</h2>
         <DataTable
           columns={mandateColumns}
           rows={mandateRows}

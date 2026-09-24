@@ -421,7 +421,10 @@ def test_a_member_who_never_gave_is_offered_no_year(api_client: APIClient, membe
 def test_a_member_downloads_their_own_statement(
     api_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """The statement comes back as an attachment named for its year."""
+    """The statement comes back as an attachment named for its year and the member."""
+    member.first_name = "Marta"
+    member.last_name = "Reyes"
+    member.save(update_fields=["first_name", "last_name"])
     succeeded_payment(
         member,
         annual_plan,
@@ -433,7 +436,30 @@ def test_a_member_downloads_their_own_statement(
     response = api_client.get(f"{MY_STATEMENTS}/2026.pdf")
 
     assert response["Content-Disposition"] == (
-        'attachment; filename="caldart-contributions-2026.pdf"'
+        'attachment; filename="caldart-contributions-2026-marta-reyes.pdf"'
+    )
+
+
+def test_a_statement_for_a_member_with_no_usable_name_is_named_by_id(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A display name that slugifies to nothing falls back to the account id."""
+    member.first_name = ""
+    member.last_name = ""
+    member.email = "@@@@@@@@"
+    member.save(update_fields=["first_name", "last_name", "email"])
+    succeeded_payment(
+        member,
+        annual_plan,
+        contribution_cents=5_000,
+        completed_at=timezone.make_aware(dt.datetime(2026, 2, 1, 12, 0)),
+    )
+    api_client.force_login(member)
+
+    response = api_client.get(f"{MY_STATEMENTS}/2026.pdf")
+
+    assert response["Content-Disposition"] == (
+        f'attachment; filename="caldart-contributions-2026-{member.pk}.pdf"'
     )
 
 

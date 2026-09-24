@@ -250,7 +250,7 @@ A tab bar sits at the top of every finance screen:
   period table;
 * **Payments** (``/portal/admin/payments/list``) — every payment, with the
   filters, the column chooser and the exports;
-* **Renewals** — the standing renewal authorities and the charges against them;
+* **Renewals** — the automatic renewals members have set up and the charges against them;
 * **Reconciliation** — the period table built for a bank statement;
 * **Contributions** — the year-end acknowledgment list.
 
