@@ -22,6 +22,10 @@ describe('toggleColumn', () => {
     expect(toggleColumn(TEST_COLUMNS, ['name', 'total'], 'total')).toEqual(['name']);
   });
 
+  it('refuses to remove the last column, which would export the defaults instead', () => {
+    expect(toggleColumn(TEST_COLUMNS, ['name'], 'name')).toEqual(['name']);
+  });
+
   it('keeps the chosen columns in registry order however they were ticked', () => {
     expect(toggleColumn(TEST_COLUMNS, ['total', 'name'], 'paid_on')).toEqual([
       'paid_on',

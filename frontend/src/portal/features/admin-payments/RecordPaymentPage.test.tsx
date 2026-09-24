@@ -10,7 +10,11 @@ import { server } from '@test/server';
 import { RecordPaymentPage } from './RecordPaymentPage';
 
 /** Serve the member search, the plan catalog and the record endpoint. */
-function serveRecord(recorded: Record<string, unknown>[], failure?: Record<string, string[]>) {
+function serveRecord(
+  recorded: Record<string, unknown>[],
+  failure?: Record<string, string[] | string>,
+  failureStatus = 400,
+) {
   server.use(
     http.get(`${API}/plans`, () =>
       HttpResponse.json([
@@ -23,7 +27,7 @@ function serveRecord(recorded: Record<string, unknown>[], failure?: Record<strin
     }),
     http.post(`${API}/admin/payments/record`, async ({ request }) => {
       recorded.push((await request.json()) as Record<string, unknown>);
-      if (failure) return HttpResponse.json(failure, { status: 400 });
+      if (failure) return HttpResponse.json(failure, { status: failureStatus });
       return HttpResponse.json(makeDetail(), { status: 201 });
     }),
   );
@@ -128,5 +132,16 @@ describe('RecordPaymentPage', () => {
     await user.click(screen.getByRole('button', { name: 'Record the payment' }));
 
     expect(await screen.findByText('Another payment carries that reference.')).toBeInTheDocument();
+  });
+
+  it('shows an error that carries only a sentence', async () => {
+    const user = userEvent.setup();
+    serveRecord([], { detail: 'No member matches that id.' }, 404);
+    renderWithProviders(<RecordPaymentPage />);
+
+    await chooseMember(user);
+    await user.click(screen.getByRole('button', { name: 'Record the payment' }));
+
+    expect(await screen.findByText('No member matches that id.')).toBeInTheDocument();
   });
 });

@@ -13,6 +13,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '@/portal/api/client';
+import type { ApiError } from '@/portal/api/client';
 import type {
   FinanceMember,
   ManualPaymentPayload,
@@ -354,6 +355,18 @@ export function providersIn(rows: PaymentPeriodSummary[]): PaymentProvider[] {
     for (const provider of Object.keys(row.by_provider)) seen.add(provider);
   }
   return order.filter((provider) => seen.has(provider));
+}
+
+/**
+ * The messages a failed write should show, keyed by field.
+ *
+ * `ApiError.fieldErrors` skips `detail`, so an error that carries nothing else —
+ * a 404 for a member deleted since the search, a 403, any DRF error with only a
+ * sentence — would leave the form silent.  Fall back to the sentence itself.
+ */
+export function reportedErrors(error: ApiError): Record<string, string> {
+  const fields = error.fieldErrors;
+  return Object.keys(fields).length > 0 ? fields : { detail: error.message };
 }
 
 /** What is left of a payment to refund, in cents: never below zero. */

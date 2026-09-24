@@ -140,6 +140,38 @@ describe('PaymentDetailPage', () => {
     expect(screen.getByRole('checkbox', { name: /Cancel the membership term/ })).not.toBeChecked();
   });
 
+  it("leaves the treasurer's own answer about the term alone as the amount changes", async () => {
+    const user = userEvent.setup();
+    servePayment();
+    renderDetail();
+
+    await user.click(await screen.findByRole('button', { name: 'Refund' }));
+    const box = screen.getByRole('checkbox', { name: /Cancel the membership term/ });
+    await user.click(box);
+    await user.clear(screen.getByLabelText(/Amount/));
+    await user.type(screen.getByLabelText(/Amount/), '145');
+
+    expect(box).not.toBeChecked();
+  });
+
+  it('shows a refund error that carries only a sentence', async () => {
+    const user = userEvent.setup();
+    const payment = makeDetail();
+    servePayment(payment);
+    server.use(
+      http.post(`${API}/admin/payments/${payment.id}/refunds`, () =>
+        HttpResponse.json({ detail: 'That payment is no longer refundable.' }, { status: 409 }),
+      ),
+    );
+    renderDetail();
+
+    await user.click(await screen.findByRole('button', { name: 'Refund' }));
+    const form = screen.getByRole('form', { name: 'Refund this payment' });
+    await user.click(within(form).getByRole('button', { name: 'Refund' }));
+
+    expect(await screen.findByText('That payment is no longer refundable.')).toBeInTheDocument();
+  });
+
   it('writes the reconciliation date the treasurer typed', async () => {
     const user = userEvent.setup();
     const bodies = servePayment();

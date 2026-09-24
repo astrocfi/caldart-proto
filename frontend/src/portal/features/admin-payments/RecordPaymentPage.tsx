@@ -20,7 +20,7 @@ import { Page } from '@/portal/components/Page';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { useDebounced } from '@/portal/components/useDebounced';
-import { useFinanceMemberSearch, useRecordPayment } from './api';
+import { reportedErrors, useFinanceMemberSearch, useRecordPayment } from './api';
 import { FinanceTabs } from './FinanceTabs';
 import { MANUAL_METHOD_LABELS } from './labels';
 import './admin-payments.css';
@@ -139,7 +139,7 @@ export function RecordPaymentPage(): JSX.Element {
           void navigate(`/admin/payments/${payment.id}`);
         },
         onError: (error) => {
-          if (error instanceof ApiError) setErrors(error.fieldErrors);
+          if (error instanceof ApiError) setErrors(reportedErrors(error));
           else setErrors({ detail: 'Something went wrong. Please try again.' });
         },
       },

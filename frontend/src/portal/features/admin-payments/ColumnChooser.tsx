@@ -28,12 +28,16 @@ export function defaultColumnKeys(columns: ReportColumn[]): string[] {
  * The chosen keys with `key` added or removed, kept in registry order.
  *
  * Order matters: the export prints the columns in the order the registry lists
- * them, so the table has to agree however the boxes were ticked.
+ * them, so the table has to agree however the boxes were ticked.  The last
+ * column cannot be removed: an empty set would export the server's defaults
+ * rather than what is on screen, and a table of nothing helps nobody.
  */
 export function toggleColumn(columns: ReportColumn[], chosen: string[], key: string): string[] {
   const wanted = new Set(chosen);
-  if (wanted.has(key)) wanted.delete(key);
-  else wanted.add(key);
+  if (wanted.has(key)) {
+    if (wanted.size === 1) return chosen;
+    wanted.delete(key);
+  } else wanted.add(key);
   return columns.filter((column) => wanted.has(column.key)).map((column) => column.key);
 }
 
@@ -63,6 +67,7 @@ export function ColumnChooser({ columns, chosen, onChange }: ColumnChooserProps)
               <input
                 type="checkbox"
                 checked={chosen.includes(column.key)}
+                disabled={chosen.length === 1 && chosen.includes(column.key)}
                 onChange={() => handleToggle(column.key)}
               />
               {column.label}

@@ -82,6 +82,35 @@ describe('PaymentsListPage', () => {
     );
   });
 
+  it('clears the filters again, on the controls and in the export link', async () => {
+    const user = userEvent.setup();
+    serveList();
+    renderWithProviders(<PaymentsListPage />);
+
+    await screen.findByRole('table', { name: /1 payment/ });
+    await user.selectOptions(screen.getByLabelText('Status'), 'succeeded');
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+
+    expect(screen.getByLabelText('Status')).toHaveValue('');
+  });
+
+  it('takes a cleared filter back out of the export link', async () => {
+    const user = userEvent.setup();
+    serveList();
+    renderWithProviders(<PaymentsListPage />);
+
+    await screen.findByRole('table', { name: /1 payment/ });
+    await user.selectOptions(screen.getByLabelText('Status'), 'succeeded');
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: /Export CSV/ })).not.toHaveAttribute(
+        'href',
+        expect.stringContaining('status='),
+      ),
+    );
+  });
+
   it('offers a PDF export as well', async () => {
     serveList();
     renderWithProviders(<PaymentsListPage />);

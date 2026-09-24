@@ -11,12 +11,16 @@ import datetime as dt
 from typing import Any
 
 import pytest
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
-from apps.payments.models import Payment, PaymentProvider, PaymentStatus
+from apps.payments.manual import record_manual_payment
+from apps.payments.models import Payment, PaymentStatus, PaymentWallet
+from apps.payments.providers.base import PaymentError
+from apps.payments.providers.mock import MockProvider
 from tests.conftest import role_matrix
 from tests.factories import MembershipFactory, PaymentFactory, UserFactory
 
@@ -64,23 +68,62 @@ def test_the_fee_answer_is_the_whole_finance_row(
     assert response.json()["refunds"] == []
 
 
-def test_a_provider_with_nothing_to_report_is_refused(
-    treasurer_client: APIClient, member: User
+def test_a_payment_recorded_by_hand_is_refused(
+    treasurer_client: APIClient, member: User, treasurer: User
 ) -> None:
-    """A payment recorded by hand has no provider to ask, so the button is a 400."""
-    manual = PaymentFactory(
+    """A check has no provider to ask, so the button is a 400 rather than a zero fee."""
+    manual = record_manual_payment(
         user=member,
-        provider=PaymentProvider.MANUAL,
-        status=PaymentStatus.SUCCEEDED,
-        amount_cents=4_500,
-        fee_cents=0,
-        net_cents=0,
+        plan_slug=None,
+        contribution_cents=4_500,
+        method=PaymentWallet.CHECK,
+        reference="1182",
+        received_on=timezone.localdate(),
+        note="",
+        actor=treasurer,
     )
 
     response = treasurer_client.post(fees_url(manual))
 
     assert response.status_code == 400
     assert response.json()["detail"] == "The provider has no fee to report for this payment yet."
+
+
+def test_a_payment_that_never_succeeded_is_refused(
+    treasurer_client: APIClient, member: User
+) -> None:
+    """A pending payment has nothing to price, so the button is a 400."""
+    pending = PaymentFactory(
+        user=member,
+        amount_cents=4_500,
+        plan_amount_cents=4_500,
+        status=PaymentStatus.PENDING,
+        fee_cents=0,
+        net_cents=0,
+    )
+
+    response = treasurer_client.post(fees_url(pending))
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "The provider has no fee to report for this payment yet."
+
+
+def test_a_provider_that_cannot_be_asked_says_so(
+    treasurer_client: APIClient,
+    settled_payment: Payment,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A provider that is unconfigured or unreachable is a 400 in its own words."""
+
+    def unreachable(self: MockProvider, payment: Payment) -> None:
+        raise PaymentError("Stripe is not configured.")
+
+    monkeypatch.setattr(MockProvider, "fetch_fees", unreachable)
+
+    response = treasurer_client.post(fees_url(settled_payment))
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Stripe is not configured."
 
 
 def test_an_unknown_payment_has_no_fee_to_fetch(treasurer_client: APIClient) -> None:
@@ -123,6 +166,13 @@ def search(client: APIClient, term: str) -> list[dict[str, Any]]:
     assert response.status_code == 200
     rows: list[dict[str, Any]] = response.json()
     return rows
+
+
+def test_a_full_name_finds_the_member_it_names(
+    treasurer_client: APIClient, searchable_members: list[User]
+) -> None:
+    """A check made out to "Marta Reyes" is searched for exactly as it is written."""
+    assert [row["name"] for row in search(treasurer_client, "Marta Reyes")] == ["Marta Reyes"]
 
 
 def test_a_surname_finds_everybody_who_carries_it(

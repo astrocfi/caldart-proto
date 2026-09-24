@@ -15,7 +15,7 @@ import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import { formatCents } from '@/portal/components/Money';
 import { useToast } from '@/portal/components/Toast';
-import { unrefundedCents, useIssueRefund } from './api';
+import { reportedErrors, unrefundedCents, useIssueRefund } from './api';
 import { REFUND_REASON_LABELS } from './labels';
 
 const REASONS: RefundReason[] = [
@@ -53,6 +53,9 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
   const [reason, setReason] = useState<RefundReason>('requested_by_member');
   const [note, setNote] = useState('');
   const [cancelTerm, setCancelTerm] = useState(shouldCancelTerm(payment, remaining));
+  // Once the treasurer has ticked or unticked the box themselves, the amount
+  // stops speaking for them: it is their decision, not a running suggestion.
+  const [hasChosenCancel, setHasChosenCancel] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const refund = useIssueRefund(payment.id);
@@ -60,7 +63,12 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
 
   function handleAmountChange(typed: string) {
     setAmount(typed);
-    setCancelTerm(shouldCancelTerm(payment, amountCents(typed)));
+    if (!hasChosenCancel) setCancelTerm(shouldCancelTerm(payment, amountCents(typed)));
+  }
+
+  function handleCancelTermChange(checked: boolean) {
+    setHasChosenCancel(true);
+    setCancelTerm(checked);
   }
 
   function handleCancel() {
@@ -83,7 +91,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
           onDone();
         },
         onError: (error) => {
-          if (error instanceof ApiError) setErrors(error.fieldErrors);
+          if (error instanceof ApiError) setErrors(reportedErrors(error));
           else setErrors({ detail: 'Something went wrong. Please try again.' });
         },
       },
@@ -144,7 +152,7 @@ export function RefundForm({ payment, onDone, onCancel }: RefundFormProps): JSX.
           <input
             type="checkbox"
             checked={cancelTerm}
-            onChange={(event) => setCancelTerm(event.target.checked)}
+            onChange={(event) => handleCancelTermChange(event.target.checked)}
           />
           Cancel the membership term this payment bought
         </label>

@@ -11,6 +11,7 @@ import type { JSX } from 'react';
 
 import { ButtonLink } from '@/portal/components/Button';
 import { Page } from '@/portal/components/Page';
+import { useDebounced } from '@/portal/components/useDebounced';
 import { EMPTY_FILTERS, dashboardTotals, useAdminPaymentSummary, useMonthlyTotals } from './api';
 import type { PaymentFilterState, SummaryGroup } from './api';
 import { FilterBar } from './FilterBar';
@@ -24,8 +25,13 @@ export function AdminPaymentsPage(): JSX.Element {
   const [filters, setFilters] = useState<PaymentFilterState>(EMPTY_FILTERS);
   const [group, setGroup] = useState<SummaryGroup>('month');
 
+  // The search box types into the filter state, but the summary is an aggregate
+  // over the whole table, so only a settled term is worth asking for.
+  const settledSearch = useDebounced(filters.search);
+  const queried = useMemo(() => ({ ...filters, search: settledSearch }), [filters, settledSearch]);
+
   const monthly = useMonthlyTotals();
-  const summary = useAdminPaymentSummary(group, filters);
+  const summary = useAdminPaymentSummary(group, queried);
 
   const totals = useMemo(() => dashboardTotals(monthly.data ?? []), [monthly.data]);
 

@@ -14,7 +14,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Q, QuerySet
+from django.db.models import CharField, F, Q, QuerySet, Value
+from django.db.models.functions import Concat
 from django.http import HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
@@ -47,7 +48,7 @@ from apps.payments.api.serializers import (
     ReportColumnSerializer,
 )
 from apps.payments.manual import record_manual_payment
-from apps.payments.models import Payment, RenewalMandate
+from apps.payments.models import Payment, PaymentProvider, RenewalMandate
 from apps.payments.providers.base import PaymentError
 from apps.payments.reports import PAYMENT_REPORT_COLUMNS
 from apps.payments.services import backfill_fees, fees_are_known
@@ -625,6 +626,8 @@ class AdminPaymentFeesView(APIView):
         without a finance role.
         """
         payment = get_object_or_404(Payment, pk=pk)
+        if payment.provider == PaymentProvider.MANUAL:
+            raise ValidationError({"detail": FEES_UNAVAILABLE})
         try:
             payment = backfill_fees(payment)
         except PaymentError as exc:
@@ -670,12 +673,19 @@ class AdminFinanceMemberSearchView(APIView):
 def search_members(term: str) -> list[User]:
     """The members whose name or address carries ``term``, by name, capped.
 
-    An empty term matches nobody: the search is a form control, and a form nobody
-    has typed in asks for no members rather than for all of them.
+    The term is matched against the full name as well as each half of it, so a
+    treasurer holding a check made out to "Marta Reyes" can type what is written
+    on it.  An empty term matches nobody: the search is a form control, and a
+    form nobody has typed in asks for no members rather than for all of them.
     """
     if term == "":
         return []
-    matches = User.objects.filter(
-        Q(first_name__icontains=term) | Q(last_name__icontains=term) | Q(email__icontains=term)
+    matches = User.objects.annotate(
+        full_name=Concat(F("first_name"), Value(" "), F("last_name"), output_field=CharField())
+    ).filter(
+        Q(full_name__icontains=term)
+        | Q(first_name__icontains=term)
+        | Q(last_name__icontains=term)
+        | Q(email__icontains=term)
     )
     return list(matches.order_by("last_name", "first_name", "pk")[:MEMBER_SEARCH_LIMIT])

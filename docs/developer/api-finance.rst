@@ -382,7 +382,9 @@ form needs: who the member is, and where their membership stands.
      "membership": {"status": "current", "expires_on": "2027-01-08",
                     "plan": "Annual", "is_lifetime": false}}]
 
-``?search=`` matches a first name, a last name or an address, ignoring case.
+``?search=`` matches a full name, a first name, a last name or an address,
+ignoring case, so a check made out to "Marta Reyes" can be searched for as it
+is written.
 Rows read by surname then first name, and at most ten come back, so a one-letter
 term answers a page rather than the register.  A blank or absent ``search``
 answers an empty list: a form nobody has typed in asks for nobody.
