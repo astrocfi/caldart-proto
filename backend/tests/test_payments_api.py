@@ -14,7 +14,7 @@ from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN
+from apps.accounts.roles import ACCOUNT_ADMIN, MEMBER, SYSTEM_ADMIN, TREASURER
 from apps.members.models import Membership, MembershipPlan
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
@@ -461,7 +461,9 @@ def test_anonymous_may_not_read_a_payment(
     assert api_client.get(f"/api/v1/payments/{payment.pk}").status_code == 401
 
 
-@pytest.mark.parametrize(("slug", "allowed"), role_matrix(MEMBER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
+@pytest.mark.parametrize(
+    ("slug", "allowed"), role_matrix(MEMBER, TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN)
+)
 def test_payment_detail_role_matrix(
     api_client: APIClient,
     all_role_users: dict[str, User],
@@ -470,7 +472,7 @@ def test_payment_detail_role_matrix(
     slug: str,
     allowed: bool,
 ) -> None:
-    """Only the owner and an account admin (or system admin) may look."""
+    """Only the owner and a finance role (or a system admin) may look."""
     owner = all_role_users[MEMBER]
     payment = payment_factory(user=owner, plan=annual_plan, provider=PaymentProvider.MOCK)
     url = f"/api/v1/payments/{payment.pk}"

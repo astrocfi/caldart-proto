@@ -122,9 +122,7 @@ def test_a_refund_is_dated_by_the_day_it_was_taken(
     treasurer_client: APIClient, books: list[Payment]
 ) -> None:
     """A January payment refunded in February belongs to February here."""
-    RefundFactory(
-        payment=books[0], amount_cents=2_500, refunded_at=at_noon(2026, 2, 14)
-    )
+    RefundFactory(payment=books[0], amount_cents=2_500, refunded_at=at_noon(2026, 2, 14))
     february = treasurer_client.get(TABLE).json()[1]
     assert february["refunded_cents"] == 2_500
 
@@ -133,9 +131,7 @@ def test_the_net_after_refunds_takes_the_refunds_off(
     treasurer_client: APIClient, books: list[Payment]
 ) -> None:
     """The last money column is the net less what went back in the same period."""
-    RefundFactory(
-        payment=books[2], amount_cents=1_000, refunded_at=at_noon(2026, 2, 20)
-    )
+    RefundFactory(payment=books[2], amount_cents=1_000, refunded_at=at_noon(2026, 2, 20))
     february = treasurer_client.get(TABLE).json()[1]
     assert february["net_after_refunds_cents"] == 18_253
 
@@ -170,9 +166,7 @@ def test_the_provider_rows_add_up_to_the_same_gross_as_the_months(
     )
 
 
-def test_the_range_narrows_the_table(
-    treasurer_client: APIClient, books: list[Payment]
-) -> None:
+def test_the_range_narrows_the_table(treasurer_client: APIClient, books: list[Payment]) -> None:
     """``?from=`` and ``?to=`` bound the periods reported."""
     rows = treasurer_client.get(TABLE, {"from": "2026-02-01"}).json()
     assert [row["period"] for row in rows] == ["2026-02"]

@@ -11,7 +11,7 @@ from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
 from apps.members.models import Membership
-from apps.payments.manual import MANUAL_METHOD_CHOICES, MANUAL_METHODS
+from apps.payments.manual import MANUAL_METHOD_CHOICES
 from apps.payments.models import (
     MAX_CONTRIBUTION_CENTS,
     Payment,

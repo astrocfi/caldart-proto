@@ -54,7 +54,7 @@ def test_reports_no_plan_prices_when_no_plan_is_seeded(
 
 
 def test_writes_one_json_object_and_nothing_else(capsys: pytest.CaptureFixture[str]) -> None:
-    """The command writes exactly the four documented keys, and no other output."""
+    """The command writes exactly the five documented keys, and no other output."""
     call_command("seed_facts")
     captured = capsys.readouterr()
     assert captured.err == ""
@@ -62,6 +62,7 @@ def test_writes_one_json_object_and_nothing_else(capsys: pytest.CaptureFixture[s
         "accounts",
         "demoPassword",
         "leaderCheck",
+        "manualPaymentCount",
         "planPricesCents",
     ]
 
