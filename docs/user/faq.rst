@@ -89,16 +89,40 @@ On a demonstration or test deployment with no payment keys you will instead see
 a single **Test payment** panel with *Succeed* and *Fail* buttons.  Nothing is
 charged and no card details are collected.  See :doc:`payments`.
 
+Can my membership renew itself?
+-------------------------------
+
+Yes.  Tick **Renew automatically each year** at the checkout, or turn it on from
+**Payments** in the portal menu.  Three days before your membership runs out,
+CalDART charges the saved card or PayPal account for that year's dues plus
+whatever contribution you asked to renew alongside them, and your coverage
+carries straight on.
+
+You get an email fourteen days before every charge saying the amount, the date
+and which method will be used, and you can turn it off at any time from the same
+screen.  Life memberships never expire, so the option is not offered.
+
+See :doc:`payments`.
+
 How do I change the card on file?
 ---------------------------------
 
-There is no card on file.  CalDART does not store card numbers and does not
-charge you automatically — every membership term is paid for deliberately, one
-at a time, and you enter your details afresh each time.  So there is nothing to
-update: just pay with whatever you like when you next renew.
+If your membership renews itself, **Payments** in the portal menu shows the card
+or PayPal account on file; turn automatic renewal off and on again to save a
+different one.  Otherwise there is no card on file at all: CalDART stores a
+payment method only when you ask it to renew your membership for you, and
+otherwise you enter your details afresh each time you pay.
 
-(Automatic renewal is a possible future addition, and would change this
-answer.)
+See :doc:`payments`.
+
+How do I stop being charged automatically?
+------------------------------------------
+
+**Payments** in the portal menu, then **Turn off** on the **Automatic renewal**
+card.  It takes effect immediately: nothing further is charged and the saved
+payment method is dropped.  Your membership is untouched and runs to the end of
+the term you have already paid for, and the ordinary renewal reminders resume.
+If you would rather someone did it for you, ask the office.
 
 See :doc:`payments`.
 

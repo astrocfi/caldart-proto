@@ -94,6 +94,12 @@ all call it.  In order:
       the account has no email address;
    ``lifetime``
       the member holds a lifetime term, whatever else is on file;
+   ``auto_renew``
+      the membership renews itself, so the automatic-renewal emails already tell
+      the member what is happening to it.  That means an ``active`` mandate, or a
+      ``pending`` one with a charge already scheduled; a ``paused`` or
+      ``canceled`` mandate covers nothing and the reminders resume.  See
+      :doc:`renewals`;
    ``renewed``
       unbroken coverage now runs past this term.  For the pre-expiry kinds that
       means ``membership_status(user)["expires_on"]`` no longer equals this

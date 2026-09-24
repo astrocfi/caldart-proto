@@ -328,8 +328,8 @@ def save_method(
         audit.RENEWAL_ENABLE,
         actor=actor,
         target=mandate.user,
-        mandate=mandate.pk,
         provider=mandate.provider,
+        plan=mandate.plan.slug,
     )
     charge_on = next_charge_on(mandate)
     transaction.on_commit(
@@ -343,9 +343,10 @@ def cancel_mandate(mandate: RenewalMandate, *, actor: User | None) -> RenewalMan
     """Turn automatic renewal off, whoever asked, and tell the member.
 
     ``actor`` is the member themselves or the administrator who turned it off,
-    and is recorded as ``canceled_by``; it is ``None`` for a cancellation nobody
-    signed for.  Every scheduled attempt still waiting is marked ``skipped``, so
-    the next scan charges nothing.  Writes one ``renewal.cancel`` audit record
+    and is recorded as ``canceled_by`` and in the audit record's
+    ``self_service`` flag; it is ``None`` for a cancellation nobody signed for.
+    Every scheduled attempt still waiting is marked ``skipped``, so the next scan
+    charges nothing.  Writes one ``renewal.cancel`` audit record
     and emails the member after the transaction commits.  Calling it on a
     mandate that is already canceled changes nothing and sends nothing.
     """
@@ -360,8 +361,8 @@ def cancel_mandate(mandate: RenewalMandate, *, actor: User | None) -> RenewalMan
         audit.RENEWAL_CANCEL,
         actor=actor or audit.COMMAND_ACTOR,
         target=mandate.user,
-        mandate=mandate.pk,
-        by_member=actor is not None and actor.pk == mandate.user_id,
+        provider=mandate.provider,
+        self_service=actor is not None and actor.pk == mandate.user_id,
     )
     transaction.on_commit(lambda: send_mandate_email(mandate, "renewal_canceled"))
     return mandate

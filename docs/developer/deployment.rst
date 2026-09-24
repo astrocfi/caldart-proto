@@ -52,6 +52,7 @@ What you are deploying
               Django [label="Django 6 + Wagtail 8\l  caldart.settings.prod\l  /static/ via whitenoise\l"];
               Postgres [label="Postgres in Docker :5432\l  compose service db\l"];
               Timer [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
+              Renewals [label="caldart-renewals.timer\l  daily 06:30 ->\l  caldart-renewals.service\l  manage.py run_auto_renewals\l"];
               Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to the\l  web server\l", shape=folder, style=""];
               Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for both units\l", shape=note, style=""];
 
@@ -59,10 +60,12 @@ What you are deploying
               Gunicorn -> Django [label="WSGI\lcaldart.wsgi:application", arrowhead=none];
               Django -> Postgres [label="DATABASE_URL"];
               Timer -> Postgres [label="reads terms,\lwrites ReminderLog"];
+              Renewals -> Postgres [label="reads mandates,\lwrites payments and terms"];
               Apache -> Media [label="/media/ off disk", style=dotted];
               Django -> Media [label="/documents/<id>/<name>\lafter the members-only check", style=dotted];
               Env -> Gunicorn [label="settings", style=dashed, arrowhead=none];
               Env -> Timer [label="settings", style=dashed, arrowhead=none];
+              Env -> Renewals [label="settings", style=dashed, arrowhead=none];
           }
 
           Browser -> Apache [label="HTTPS :443\lHTTP :80 redirected"];
@@ -70,6 +73,8 @@ What you are deploying
           Stripe -> Apache [label="webhooks, HTTPS :443"];
           Django -> Smtp [label="password resets,\linvitations", style=dashed];
           Timer -> Smtp [label="renewal reminders", style=dashed];
+          Renewals -> Stripe [label="off-session charges", style=dashed];
+          Renewals -> Smtp [label="renewal notices and receipts", style=dashed];
       }
 
 .. only:: not graphviz
@@ -94,10 +99,16 @@ What you are deploying
       caldart-reminders.timer, daily 07:00            ^
         -> caldart-reminders.service                  |
            manage.py send_renewal_reminders ----------'
-           -> the SMTP server from EMAIL_URL
+           -> the SMTP server from EMAIL_URL          |
+                                                      |
+      caldart-renewals.timer, daily 06:30             |
+        -> caldart-renewals.service                   |
+           manage.py run_auto_renewals ---------------'
+           -> Stripe / PayPal for the off-session charges,
+              and the SMTP server for the renewal emails
 
-   Apache, gunicorn, Postgres, and the timer run on one Linux server with the
-   deploy root ``/srv/caldart``, and both systemd units read their settings
+   Apache, gunicorn, Postgres, and the two timers run on one Linux server with
+   the deploy root ``/srv/caldart``, and every systemd unit reads its settings
    from ``/etc/caldart/caldart.env`` (``root:caldart``, mode ``0640``).  Django
    calls out to ``api.stripe.com`` and ``api-m.paypal.com`` during a checkout,
    and to the same SMTP server for password resets and invitations.  ``nginx``
@@ -105,8 +116,9 @@ What you are deploying
    deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
-``caldart-web`` gunicorn unit, and Apache.  One thing runs daily: the
-``caldart-reminders`` timer.
+``caldart-web`` gunicorn unit, and Apache.  Two things run daily: the
+``caldart-renewals`` timer at 06:30 and the ``caldart-reminders`` timer at
+07:00.
 
 The application is a **Django 6** project with Wagtail 8 on top, and step 6
 installs it with ``uv sync --frozen``, so the box runs the exact versions
@@ -478,8 +490,28 @@ of ``/media/``.
 Daily at 07:00, with catch-up if the machine was off.  See :doc:`reminders` for
 the kinds, the templates and how to change the cadence.
 
+.. _deploy-renewals:
 
-11. Backups
+11. Automatic renewals
+======================
+
+::
+
+  sudo cp deploy/systemd/caldart-renewals.service \
+          deploy/systemd/caldart-renewals.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now caldart-renewals.timer
+  systemctl list-timers caldart-renewals.timer
+
+Daily at 06:30, with catch-up if the machine was off.  It runs half an hour
+before the reminder scan deliberately: a membership this scan renews is then
+never also sent a reminder about running out on the same morning.  Unlike the
+reminder scan it calls Stripe and PayPal, so the unit needs the same payment
+keys the web service has; they come from the same ``/etc/caldart/caldart.env``.
+See :doc:`renewals` for what it charges, when, and how to change the cadence.
+
+
+12. Backups
 ===========
 
 Take one now and schedule them::
@@ -494,7 +526,7 @@ Checking it worked
 
 ::
 
-  systemctl status caldart-web caldart-reminders.timer
+  systemctl status caldart-web caldart-reminders.timer caldart-renewals.timer
   sudo docker compose ps
   curl -sI https://caldart.example.org/ | head -1
   caldart_manage health --json
@@ -587,6 +619,7 @@ What                         Where
 ===========================  =================================================
 Application, gunicorn        ``journalctl -u caldart-web -f``
 Reminder runs                ``journalctl -u caldart-reminders -n 50``
+Renewal runs                 ``journalctl -u caldart-renewals -n 50``
 Apache :443 access / error   ``/var/log/apache2/caldart-{access,error}.log``
 Apache :80 access / error    ``/var/log/apache2/caldart-http-{access,error}.log``
                              — the redirect vhost, and therefore where a
@@ -614,6 +647,7 @@ The lines go to the journal with everything else, so a filter picks them out::
   journalctl -u caldart-web | grep 'action=member.delete'
   journalctl -u caldart-web -p warning | grep caldart.audit   # refused attempts
   journalctl -u caldart-reminders | grep 'action=reminders.run'
+  journalctl -u caldart-renewals | grep 'action=renewals.run'
 
 Each line is ``key=value`` pairs in a fixed order::
 

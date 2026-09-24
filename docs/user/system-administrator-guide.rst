@@ -134,6 +134,44 @@ the run controls (:doc:`account-administrator-guide`).
 The wording of the emails and the 07:00 schedule are in
 :doc:`/developer/reminders`.
 
+Automatic renewals
+------------------
+
+Members can ask CalDART to renew their membership for them, from a card or
+PayPal account saved with the payment provider.  A second scheduled job runs
+every morning at 06:30 — half an hour before the reminders, so a membership it
+renews is never also nagged about — and does three things: it schedules the
+charge for each membership running out and emails the member a fortnight's
+warning, it warns anyone whose saved card expires before their next charge, and
+it charges whatever is due.
+
+The **Renewals** panel runs the same scan by hand, and works like the reminders
+one:
+
+1. Leave **Dry run (charge nothing)** ticked the first time.  It reports what
+   *would* happen without charging anybody, emailing anybody or writing
+   anything.
+2. Press **Run now**.  The result reads, for example, "Noticed 2, charged 1,
+   failed 0, paused 0, skipped 3."  *Noticed* is the fortnight's-warning emails,
+   *charged* the renewals taken, *failed* the charges a provider refused,
+   *paused* the members whose last retry was refused and whose automatic renewal
+   has therefore switched itself off, and *skipped* the ones that needed nothing
+   doing.
+3. If the numbers look right and you have a reason to run now rather than
+   waiting for the morning, clear the checkbox and press **Run now** again.
+
+Running it twice charges nobody twice, and sends nothing twice: each scheduled
+charge records what has already gone out.
+
+A refused charge is not an outage.  CalDART tries again the next day, three days
+later, and a week after that; only when all four attempts are refused does it
+stop, tell the member, and hand them back to the ordinary reminders.  A treasurer
+or an account administrator reads the same renewals on
+**Administration → Payments**, with the reason each refusal was given.
+
+What it charges, when, and how to change the schedule are in
+:doc:`/developer/renewals`.
+
 
 Routine
 =======

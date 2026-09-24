@@ -83,6 +83,57 @@ If your membership has already lapsed, the new term starts today.
 
 Life members have nothing to renew.
 
+Renewing automatically
+----------------------
+
+You can ask |org| to renew your Annual membership for you, so it never lapses
+because a reminder arrived in a busy week.
+
+**Turning it on.**  Tick **Renew automatically each year** at the checkout, and
+the card or PayPal account you pay with is saved for next time.  Or turn it on
+without paying anything: **Payments** in the portal menu has an **Automatic
+renewal** card with a **Turn on** button, which asks for a payment method and
+for the contribution you would like renewed alongside your dues.
+
+**What happens then.**  Three days before your membership runs out, |org|
+charges the saved method for that year's dues plus your contribution, and your
+coverage carries straight on — the new term starts the day the current one ends.
+
+You are never charged without warning:
+
+* **Fourteen days before every charge** you get an email saying the amount, the
+  date, and which card or account will be used.
+* If the card on file expires before the next charge is due, you get an email
+  about that too, in time to save another one.
+* When the charge goes through, you get an email confirming it and your new
+  expiry date.
+
+While automatic renewal is on you do not get the ordinary renewal reminders —
+the renewal emails cover that term instead.
+
+**Changing or stopping it.**  The **Automatic renewal** card on the Payments
+screen shows the method, the next charge date and the amount.  **Change
+contribution** adjusts what is renewed alongside your dues; the dues themselves
+are whatever the plan costs on the day.  **Turn off** stops it, and takes effect
+immediately: nothing further is charged, the saved method is dropped, and your
+membership still runs to the end of the term you have paid for.  The ordinary
+reminders resume.
+
+**If a charge is refused.**  You get an email saying why — "Your card was
+declined", or whatever the bank told us — and |org| tries again the next day,
+three days after that, and a week after that.  If all four attempts are refused,
+automatic renewal switches itself off, you are told so, and the ordinary renewal
+reminders take over.  Nothing about your current membership changes; it simply
+runs to its end date as it would have anyway.  Save a new card from the Payments
+screen and turn it back on whenever you like.
+
+**Life members** have nothing to renew, so the option is not offered.
+
+**If your record came from the old CiviCRM system** with automatic renewal
+switched on, it did not come across: the card was never handed to |org|.  Turn
+it on again from the Payments screen, and until you do you will get the ordinary
+reminders.
+
 Receipts
 --------
 

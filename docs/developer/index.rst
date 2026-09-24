@@ -29,6 +29,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    data-model
    api-reference
    api-system
+   api-renewals
 
 .. toctree::
    :maxdepth: 1
@@ -39,6 +40,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    theming
    reports
    reminders
+   renewals
 
 .. toctree::
    :maxdepth: 1

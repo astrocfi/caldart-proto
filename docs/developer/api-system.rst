@@ -6,14 +6,15 @@ API: reminders, system, and site
 
 The endpoints that keep the installation running and the one the portal calls
 before it has a user: ``GET /admin/reminders/log`` and
-``POST /system/reminders/run`` from ``apps.reminders``, the health and backup
-routes under ``/system/`` from ``apps.sysadmin``, and ``GET /site/config``
-from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
+``POST /system/reminders/run`` from ``apps.reminders``, the health, backup and
+renewal-scan routes under ``/system/`` from ``apps.sysadmin``, and
+``GET /site/config`` from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
 session authentication, the CSRF header, pagination, and the error shapes.
 
 The subsystem chapters behind them are :doc:`reminders` (what the scan sends
-and when), :doc:`backup-restore` (what a dump contains and how to restore one)
-and :doc:`cms` (where the navigation and the members-only pages come from).
+and when), :doc:`renewals` (what the automatic-renewal scan charges and when),
+:doc:`backup-restore` (what a dump contains and how to restore one) and
+:doc:`cms` (where the navigation and the members-only pages come from).
 
 
 Reminders
@@ -98,7 +99,7 @@ anonymous; **403** for any other role.
 System
 ======
 
-All four routes are ``system_admin`` only, and every one of them is behind
+All five routes are ``system_admin`` only, and every one of them is behind
 ``/portal/system`` in the portal.  Restoring a dump is deliberately not among
 them: wiping the database is ``manage.py db_restore``, not a browser tab
 (:doc:`backup-restore`).
@@ -208,6 +209,25 @@ the file name.
 Statuses: **200**; **401** when anonymous; **403** for every other role;
 **404** for a name that is not a backup file name, and for one that is but
 matches no file.
+
+``POST /system/renewals/run``
+-----------------------------
+
+Runs the automatic-renewal scan immediately instead of waiting for the 06:30
+timer: it schedules the charges for terms running out, sends the advance
+notices, charges the renewals due, and retries or pauses the ones the provider
+refused.  The body is optional and ``dry_run`` defaults to ``false``; a dry run
+writes nothing, emails nobody and charges nobody.
+
+.. code-block:: json
+
+   {"noticed": 2, "warned": 0, "charged": 1, "failed": 0, "paused": 0, "skipped": 3}
+
+The full description of the request, the counts and what each one means is on
+:doc:`api-renewals`, and :doc:`renewals` is the subsystem chapter behind it.
+
+Statuses: **200**; **400** when ``dry_run`` is not a boolean; **401** when
+anonymous; **403** for any other role.
 
 
 Site
