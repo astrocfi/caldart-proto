@@ -202,3 +202,16 @@ def test_the_list_and_the_card_give_the_same_medical(leader_client: APIClient, g
     """The row's medical is the card's medical, field for field."""
     card = leader_client.get(STATUS_URL.format(pk=go.pk)).json()
     assert search_row(leader_client, go)["medical"] == card["medical"]
+
+
+def test_a_search_result_carries_exactly_these_fields(leader_client: APIClient, go: User) -> None:
+    """The row holds the seven fields the list draws and nothing else."""
+    assert set(search_row(leader_client, go)) == {
+        "user_id",
+        "name",
+        "email",
+        "dart",
+        "membership_status",
+        "medical",
+        "go_no_go",
+    }

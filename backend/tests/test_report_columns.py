@@ -8,11 +8,13 @@ is what the relative widths on the registries are for.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from io import StringIO
 
 import pytest
 from django.core.management import call_command
 from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from rest_framework.test import APIClient
 
@@ -21,7 +23,14 @@ from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.aircraft.reports import AIRCRAFT_REPORT_COLUMNS, aircraft_rows, export_queryset
 from apps.members.api.admin_filters import member_admin_queryset
 from apps.members.reports import MEMBER_REPORT_COLUMNS, member_report_rows
-from caldart.reports import CELL_STYLE, MARGIN, select_columns
+from caldart.reports import (
+    CELL_PADDING,
+    CELL_STYLE,
+    HEADER_CELL_STYLE,
+    MARGIN,
+    ReportColumn,
+    select_columns,
+)
 from tests.conftest import PdfText, RegisterDict, read_csv, role_matrix
 
 pytestmark = pytest.mark.django_db
@@ -36,10 +45,6 @@ AIRCRAFT_PDF_URL = "/api/v1/admin/aircraft/export.pdf"
 #: The printable width of a landscape US-letter page, which the relative widths
 #: of the chosen columns share out between them.
 PRINTABLE_WIDTH = landscape(letter)[0] - 2 * MARGIN
-
-#: The padding ``build_pdf_table`` puts either side of a cell, which is width a
-#: cell's text cannot use.
-CELL_PADDING = 6.0
 
 #: The member columns that are in the report when the caller chooses none.
 MEMBER_DEFAULTS = (
@@ -75,15 +80,27 @@ def seeded(db: None) -> None:
     call_command("seed_demo", stdout=StringIO())
 
 
-def fits(text: str, width: float, total: float) -> bool:
+def fits(text: str, width: float, total: float, *, style: ParagraphStyle = CELL_STYLE) -> bool:
     """True when ``text`` is drawn on one line in a column of that relative width.
 
     ``width`` is the column's share and ``total`` the shares of every column in
     the same export, which together decide how many points of the printable
-    width the column gets.
+    width the column gets; the padding on both sides of the cell is width the
+    text cannot use.  ``style`` is the paragraph style the cell is drawn in,
+    the body style for a data cell and ``HEADER_CELL_STYLE`` for a heading.
     """
-    room = width / total * PRINTABLE_WIDTH - CELL_PADDING
-    return stringWidth(text, CELL_STYLE.fontName, CELL_STYLE.fontSize) <= room
+    room = width / total * PRINTABLE_WIDTH - 2 * CELL_PADDING
+    return stringWidth(text, style.fontName, style.fontSize) <= room
+
+
+def wrapped_headers[T](columns: Sequence[ReportColumn[T]]) -> list[str]:
+    """The labels among ``columns`` that do not fit their column on one line."""
+    total = sum(column.width for column in columns)
+    return [
+        column.label
+        for column in columns
+        if not fits(column.label, column.width, total, style=HEADER_CELL_STYLE)
+    ]
 
 
 # --------------------------------------------------------------------------
@@ -118,6 +135,7 @@ def test_every_aircraft_column_is_labeled_for_a_reader() -> None:
 def test_no_default_member_cell_wraps_in_the_pdf(seeded: None) -> None:
     """Every default cell of every seeded member fits its column on one line."""
     columns = select_columns(MEMBER_REPORT_COLUMNS, None)
+    assert wrapped_headers(columns) == []
     total = sum(column.width for column in columns)
     rows = member_report_rows(member_admin_queryset(), columns)
     too_wide = [
@@ -133,6 +151,7 @@ def test_no_default_member_cell_wraps_in_the_pdf(seeded: None) -> None:
 def test_no_default_aircraft_cell_wraps_in_the_pdf(seeded: None) -> None:
     """Every default cell of every seeded aircraft fits its column on one line."""
     columns = select_columns(AIRCRAFT_REPORT_COLUMNS, None)
+    assert wrapped_headers(columns) == []
     total = sum(column.width for column in columns)
     rows = aircraft_rows(export_queryset(), columns, currency=True)
     too_wide = [

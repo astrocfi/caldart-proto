@@ -602,7 +602,7 @@ def one_dart_trio(dart: Dart, today: date) -> list[User]:
     return people
 
 
-@pytest.mark.parametrize("ordering", ["dart", "expires_on", "pilot"])
+@pytest.mark.parametrize("ordering", ["dart", "expires_on", "joined", "pilot"])
 def test_a_sort_that_cannot_separate_two_rows_falls_back_to_the_name(
     account_admin_client: APIClient,
     fixed_name_admin: User,

@@ -597,8 +597,8 @@ Statuses:
 ``GET /admin/members/columns``
 ==============================
 
-Every column the two exports can carry, in export order, so the screen's column
-chooser is data-driven.  One entry per column::
+Every column the two exports can carry, in export order, ``account_admin``
+only, so the screen's column chooser is data-driven.  One entry per column::
 
   [{"key": "name", "label": "Name", "default": true}, ...]
 

@@ -109,17 +109,20 @@ Exports
 -------
 
 **Export CSV** and **Export PDF** download exactly the rows the filters have
-selected — set the filters first, then export.  Both carry the same columns:
+selected — set the filters first, then export.  Both carry the same nine
+columns unless you ask for others:
 
 .. code-block:: text
 
-   n_number, make, model, owner, owner_type, insurance_carrier,
-   liability_per_occurrence, liability_per_person, hull,
-   insurance_expiration, insurance_current, pilots
+   N-number, Make, Model, Owner, Carrier, Liability / occurrence,
+   Hull, Expires, Current
 
-``pilots`` is the members who list the airplane on their profile.  The CSV
-gives money as plain decimal dollars for a spreadsheet; the PDF is a
-landscape-letter table with the filters printed under the title.
+Three more columns — *Owner type*, *Liability / person*, and *Pilots*, the
+members who list the airplane on their profile — are there for an insurance
+review or a roster and are added to a download by choosing the columns.  The
+CSV gives money as plain decimal dollars for a spreadsheet; the PDF is a
+landscape-letter table with the filters printed under the title, sized so no
+column has to wrap.
 
 A useful monthly routine: filter to **Expiring within 30 days**, export the
 PDF, and work down it.

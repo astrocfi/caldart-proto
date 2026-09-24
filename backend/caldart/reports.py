@@ -94,6 +94,11 @@ HEADER_CELL_STYLE = ParagraphStyle(
     textColor=INK,
 )
 
+#: The padding a table cell carries on each side, in points.  It is width the
+#: cell's text cannot use, so anything that asks whether a cell fits its column
+#: subtracts twice this from the column.
+CELL_PADDING = 3
+
 
 # --------------------------------------------------------------------------
 # Columns
@@ -419,10 +424,10 @@ def build_pdf_table(
     style = TableStyle(
         [
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 3),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), CELL_PADDING),
+            ("RIGHTPADDING", (0, 0), (-1, -1), CELL_PADDING),
+            ("TOPPADDING", (0, 0), (-1, -1), CELL_PADDING),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), CELL_PADDING),
             # Hairline rules instead of boxes.
             ("LINEBELOW", (0, 0), (-1, 0), 0.75, PRIMARY),
             ("LINEBELOW", (0, 1), (-1, -1), 0.25, RULE),
