@@ -13,6 +13,7 @@ from datetime import date, timedelta
 
 import pytest
 from django.core.mail import EmailMessage
+from django.utils import timezone
 from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
@@ -213,6 +214,60 @@ def test_a_member_changes_the_contribution_renewed_with_the_dues(
     RenewalMandateFactory(user=member, plan=annual_plan)
     member_client.patch(ME, {"contribution_cents": 5_000}, format="json")
     assert RenewalMandate.objects.get(user=member).contribution_cents == 5_000
+
+
+def test_a_member_changes_the_plan_that_renews(
+    member_client: APIClient, member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan
+) -> None:
+    """``plan`` on the patch replaces the plan the mandate renews from now on."""
+    RenewalMandateFactory(user=member, plan=life_plan)
+
+    member_client.patch(ME, {"plan": annual_plan.slug, "contribution_cents": 0}, format="json")
+
+    assert RenewalMandate.objects.get(user=member).plan_id == annual_plan.pk
+
+
+def test_a_patch_without_a_plan_leaves_the_plan_alone(
+    member_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Changing only the contribution does not disturb what renews."""
+    RenewalMandateFactory(user=member, plan=annual_plan)
+
+    member_client.patch(ME, {"contribution_cents": 5_000}, format="json")
+
+    assert RenewalMandate.objects.get(user=member).plan_id == annual_plan.pk
+
+
+def test_a_plan_nobody_offers_is_refused(
+    member_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A slug outside the catalog is a 400 keyed by ``plan``."""
+    RenewalMandateFactory(user=member, plan=annual_plan)
+
+    response = member_client.patch(ME, {"plan": "nonesuch", "contribution_cents": 0}, format="json")
+
+    assert response.json()["plan"] == "Unknown membership plan 'nonesuch'."
+
+
+def test_a_life_member_may_not_patch_a_plan_in(
+    member_client: APIClient, member: User, life_plan: MembershipPlan, annual_plan: MembershipPlan
+) -> None:
+    """A life member's authority stays over the contribution alone."""
+    MembershipFactory(
+        user=member,
+        plan=life_plan,
+        starts_on=timezone.localdate() - timedelta(days=400),
+        ends_on=None,
+    )
+    RenewalMandateFactory(user=member, plan=None, contribution_cents=5_000)
+
+    response = member_client.patch(
+        ME, {"plan": annual_plan.slug, "contribution_cents": 5_000}, format="json"
+    )
+
+    assert response.json()["auto_renew"] == (
+        "A life member's membership does not renew; choose a contribution instead."
+    )
 
 
 def test_a_negative_contribution_is_refused(
