@@ -5,7 +5,8 @@ Hello {{ first_name }},
 We have charged {{ amount }} to {{ method_label }} and renewed your {{ plan_name }}
 membership.{% if expires_on %} It is now good through {{ expires_on|date:"F j, Y" }}.{% endif %}
 
-Your receipt, and every payment you have made, are in the portal:
+Your receipt{% if receipt_number %} — {{ receipt_number }}{% endif %} is attached. Every payment you have made is in
+the portal:
 {{ payments_url }}
 
 --

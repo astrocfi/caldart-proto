@@ -107,7 +107,7 @@ You are never charged without warning:
 * If the card on file expires before the next charge is due, you get an email
   about that too, in time to save another one.
 * When the charge goes through, you get an email confirming it and your new
-  expiry date.
+  expiry date, with the receipt PDF attached.
 
 While automatic renewal is on you do not get the ordinary renewal reminders —
 the renewal emails cover that term instead.
@@ -149,7 +149,9 @@ Receipts
 |org| emails you a receipt the moment a payment clears, whether you paid by
 card, through PayPal, or by a check somebody entered for you.  The PDF is
 attached to the message: it carries the organization's name, address and EIN,
-a receipt number, the date, what you paid for, and the total.
+a receipt number, the date, what you paid for, and the total.  An automatic
+renewal earns one email, not two: the message telling you the membership was
+renewed is the one carrying the receipt.
 
 A receipt that covers a contribution also carries the sentence *No goods or
 services were provided in exchange for this contribution* — the wording your

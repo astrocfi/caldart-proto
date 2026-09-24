@@ -27,6 +27,7 @@ from apps.payments.models import (
 )
 from apps.payments.providers.base import ProviderUnavailableError
 from apps.payments.providers.mock import DECLINED_LAST4, MockProvider, mock_method
+from apps.payments.receipts import receipt_filename
 from apps.payments.renewals import (
     CHARGE_LEAD_DAYS,
     NOTICE_DAYS,
@@ -38,6 +39,7 @@ from apps.payments.renewals import (
     save_method,
     term_to_renew,
 )
+from caldart.reports import PDF_MEDIA_TYPE
 from tests.conftest import Golden
 from tests.factories import MembershipFactory, RenewalAttemptFactory, RenewalMandateFactory
 
@@ -641,6 +643,9 @@ def test_the_renewal_emails_read_as_written(
         "<RENEWED>"
     )
     replacements[str(charge_on)] = "<CHARGE>"
+    paid = Payment.objects.first()
+    if paid is not None:
+        replacements[paid.receipt_number] = "<RECEIPT>"
     golden(f"renewal-{template}.txt", str(mailoutbox[-1].body), replace=replacements)
 
 
@@ -1009,3 +1014,84 @@ def test_a_lifetime_member_is_never_caught_up(
     run_auto_renewals(today=today)
 
     assert Payment.objects.count() == 0
+
+
+# --------------------------------------------------------------------------
+# The receipt an automatic charge earns
+# --------------------------------------------------------------------------
+def test_an_automatic_charge_sends_exactly_one_email(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """The renewal email is the receipt, so the plain receipt does not go too."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+    mailoutbox.clear()
+
+    run_auto_renewals(today=today)
+
+    assert len(mailoutbox) == 1
+
+
+def test_the_renewal_email_is_the_one_that_goes(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """A successful automatic charge is reported by ``renewal_charged``."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+    mailoutbox.clear()
+
+    run_auto_renewals(today=today)
+
+    assert "your membership has been renewed" in str(mailoutbox[0].subject)
+
+
+def test_the_renewal_email_carries_the_receipt_pdf(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """One PDF is attached: CalDART's own receipt for the charge."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+    mailoutbox.clear()
+
+    run_auto_renewals(today=today)
+
+    payment = Payment.objects.get()
+    attached = [(a.filename, a.mimetype) for a in mailoutbox[0].attachments]
+    assert attached == [(receipt_filename(payment), PDF_MEDIA_TYPE)]
+
+
+def test_the_attached_receipt_is_a_pdf_document(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """The bytes attached are the rendered receipt, not a placeholder."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    run_auto_renewals(today=today - timedelta(days=1))
+    mailoutbox.clear()
+
+    run_auto_renewals(today=today)
+
+    assert mailoutbox[0].attachments[0].content.startswith(b"%PDF")
+
+
+def test_an_automatic_charge_is_stamped_as_receipted(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """The receipt went with the renewal email, so the payment records that it went."""
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+
+    run_auto_renewals(today=today - timedelta(days=1))
+    run_auto_renewals(today=today)
+
+    assert Payment.objects.get().receipt_sent_at is not None

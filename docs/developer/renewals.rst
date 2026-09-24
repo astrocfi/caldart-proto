@@ -125,7 +125,10 @@ it, and it does three things in order.
    On success the payment goes through the same ``mark_succeeded`` path as a
    checkout, so the next term is activated starting the day after the current one
    ends; the mandate's failure count is cleared, the attempt is ``succeeded`` and
-   ``renewal_charged`` goes out.  A charge taken after the member has already
+   ``renewal_charged`` goes out.  It carries CalDART's receipt and its PDF, and
+   stamps the payment's ``receipt_sent_at``: an automatic charge earns exactly
+   one email, so ``mark_succeeded`` sends no plain receipt for a payment a
+   renewal attempt owns.  A charge taken after the member has already
    expired starts its term on the day the money arrives, never back-dated to the
    old expiry, so the days nobody was covered stay visible in the record.
 
@@ -214,12 +217,16 @@ Template                   When
 ``renewal_enabled``        A mandate becomes active.  States the plan, the
                            amount, the method and the next charge date.
 ``renewal_notice``         ``NOTICE_DAYS`` before a charge.  States the amount,
-                           the date, the method and how to turn it off.
+                           the date, the method and how to turn it off.  A charge
+                           taken the day it is found is worded as happening
+                           today.
 ``renewal_card_expiring``  The saved card expires before the next charge.
-``renewal_charged``        A charge succeeded, with the new expiry date.
+``renewal_charged``        A charge succeeded: the new expiry date, and the
+                           receipt PDF attached.
 ``renewal_failed``         A charge was refused: the reason, and either when it
                            will be tried again or that it was the last try and
-                           the reminders resume.
+                           the reminders resume.  Also the message a member gets
+                           when their membership had lapsed too long to catch up.
 ``renewal_canceled``       The member or an administrator turned it off.
 =========================  ====================================================
 

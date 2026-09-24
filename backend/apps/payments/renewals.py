@@ -31,6 +31,7 @@ from __future__ import annotations
 import calendar
 import logging
 import smtplib
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any
@@ -58,11 +59,12 @@ from apps.payments.providers.base import (
     ProviderUnavailableError,
     get_provider,
 )
+from apps.payments.receipts import receipt_filename, render_receipt_pdf
 from apps.payments.services import create_checkout, mark_failed
 from caldart import audit
 from caldart.exceptions import DomainValidationError
-from caldart.mail import contact_email, org_name, send_templated
-from caldart.reports import money_label
+from caldart.mail import Attachment, contact_email, org_name, send_templated
+from caldart.reports import PDF_MEDIA_TYPE, money_label
 
 log = logging.getLogger(__name__)
 
@@ -246,12 +248,20 @@ def mandate_context(mandate: RenewalMandate, **extra: Any) -> dict[str, Any]:
     return context
 
 
-def send_mandate_email(mandate: RenewalMandate, template: str, **extra: Any) -> bool:
+def send_mandate_email(
+    mandate: RenewalMandate,
+    template: str,
+    *,
+    attachments: Sequence[Attachment] = (),
+    **extra: Any,
+) -> bool:
     """Send one renewal email to the mandate's member, and say whether it went.
 
     The subject comes from :data:`SUBJECTS` with the organization's name filled
     in, and the body from ``emails/<template>.{txt,html}`` rendered over
-    :func:`mandate_context`.  A member with no email address is not written to.
+    :func:`mandate_context`.  Each entry of ``attachments`` is a filename, its
+    bytes and its media type, which is how the charge report carries the
+    receipt.  A member with no email address is not written to.
 
     A mail server that refuses the message is logged at ERROR and answered
     ``False`` rather than raised: one member's mail problem never stops a scan,
@@ -270,6 +280,7 @@ def send_mandate_email(mandate: RenewalMandate, template: str, **extra: Any) -> 
             subject=subject,
             template=template,
             context=context,
+            attachments=attachments,
         )
     except (smtplib.SMTPException, OSError) as exc:
         log.error(
@@ -843,12 +854,21 @@ def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
 
     attempt.outcome = RenewalOutcome.SUCCEEDED
     renewed = term_to_renew(mandate.user, timezone.localdate())
+    payment = attempt.payment
+    attachments: list[Attachment] = []
+    if payment is not None:
+        attachments.append((receipt_filename(payment), render_receipt_pdf(payment), PDF_MEDIA_TYPE))
     if send_mandate_email(
         mandate,
         "renewal_charged",
         expires_on=renewed.ends_on if renewed is not None else None,
+        receipt_number=payment.receipt_number if payment is not None else "",
+        attachments=attachments,
     ):
         attempt.result_emailed_at = now
+        if payment is not None:
+            payment.receipt_sent_at = now
+            payment.save(update_fields=["receipt_sent_at", "updated_at"])
     attempt.save(update_fields=["outcome", "result_emailed_at", "updated_at"])
     run.charged += 1
 

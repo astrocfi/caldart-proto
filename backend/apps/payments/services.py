@@ -136,13 +136,18 @@ def mark_succeeded(
     active, from the payment method the provider has just recorded against the
     charge.  A payment with no such mandate activates nothing.
 
+    A payment taken by the renewal scanner gets no receipt here.  The renewal
+    email that reports the charge carries the same receipt and the same PDF, and
+    the member is owed one message per charge, not two; the scanner sends it and
+    stamps ``receipt_sent_at`` itself.
+
     Idempotent: a second call is a no-op that returns the same payment and
     sends no second receipt, so webhook and client confirmation can race safely.
     """
     payment, transitioned = _complete(
         payment, wallet=wallet, raw=raw, provider_ref=provider_ref, fees=(fee_cents, net_cents)
     )
-    if transitioned:
+    if transitioned and not payment.renewal_attempts.exists():
         send_receipt(payment)
     return payment
 
