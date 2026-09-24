@@ -19,6 +19,7 @@ import type {
   PaymentWallet,
   PilotCertificateType,
   Rating,
+  RoleSlug,
   UsState,
 } from './api/types';
 
@@ -130,6 +131,32 @@ export const INSTRUCTOR_RATINGS: Choice<Rating>[] = [
 
 export const RATINGS: Choice<Rating>[] = [...CATEGORY_RATINGS, ...INSTRUCTOR_RATINGS];
 
+/**
+ * What each role is called wherever a person reads it.
+ *
+ * Nothing in the portal shows a role slug: an underscored, lowercase code is an
+ * API value, not a name for a volunteer.  Declaring the labels as a record over
+ * `RoleSlug` means a role added to the API cannot reach a screen unlabeled —
+ * the record fails to compile until it has a name here.
+ */
+export const ROLE_LABELS: Record<RoleSlug, string> = {
+  member: 'Member',
+  dart_leader: 'DART leader',
+  user_admin: 'User administrator',
+  treasurer: 'Treasurer',
+  account_admin: 'Account administrator',
+  website_admin: 'Website administrator',
+  system_admin: 'System administrator',
+};
+
+/**
+ * The roles as a choice list, in the order `ROLE_LABELS` declares them, which
+ * runs from the role every member holds to the one that holds everything.
+ */
+export const ROLE_CHOICES: Choice<RoleSlug>[] = (Object.keys(ROLE_LABELS) as RoleSlug[]).map(
+  (slug) => ({ value: slug, label: ROLE_LABELS[slug] }),
+);
+
 /** The label for one code, or the code itself if the server invents a new one. */
 export function labelFor<Value extends string>(
   choices: readonly Choice<Value>[],
@@ -165,6 +192,8 @@ export const IFR_LABELS: Record<IfrRated, string> = {
 export const certificateLabel = (value: string): string => labelFor(CERTIFICATE_TYPES, value);
 /** The label for a medical type code. */
 export const medicalLabel = (value: string): string => labelFor(MEDICAL_TYPES, value);
+/** The display label for a role slug, or the slug itself if it is not a known role. */
+export const roleLabel = (value: string): string => labelFor(ROLE_CHOICES, value);
 
 /** Ratings as one readable phrase, e.g. "Instrument, Multi-engine". */
 export function ratingLabels(ratings: readonly Rating[]): string {

@@ -231,7 +231,7 @@ describe('the 403 page', () => {
       ),
       { route: '/secret' },
     );
-    expect(await screen.findByText(/open to the user admin role/i)).toBeInTheDocument();
+    expect(await screen.findByText(/open to the User administrator role/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /go to the dashboard/i })).toBeInTheDocument();
   });
 });

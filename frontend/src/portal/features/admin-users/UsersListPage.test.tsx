@@ -78,7 +78,7 @@ describe('UsersListPage', () => {
       '/admin/users/1',
     );
     const priyaRow = screen.getByRole('link', { name: 'Priya Raman' }).closest('tr')!;
-    expect(within(priyaRow).getByText('dart leader')).toBeInTheDocument();
+    expect(within(priyaRow).getByText('DART leader')).toBeInTheDocument();
     expect(within(priyaRow).getByText('Deactivated')).toBeInTheDocument();
     expect(screen.getByText('2 accounts')).toBeInTheDocument();
   });
@@ -104,10 +104,10 @@ describe('UsersListPage', () => {
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'dart leader' }));
+    await userEvent.click(screen.getByRole('button', { name: 'DART leader' }));
 
     await waitFor(() => expect(seen.at(-1)?.get('role')).toBe('dart_leader'));
-    expect(screen.getByRole('button', { name: 'dart leader' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'DART leader' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -115,7 +115,7 @@ describe('UsersListPage', () => {
       expect(screen.queryByRole('link', { name: 'Marta Reyes' })).not.toBeInTheDocument(),
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'dart leader' }));
+    await userEvent.click(screen.getByRole('button', { name: 'DART leader' }));
     await waitFor(() => expect(seen.at(-1)?.get('role')).toBeNull());
     expect(await screen.findByRole('link', { name: 'Marta Reyes' })).toBeInTheDocument();
   });

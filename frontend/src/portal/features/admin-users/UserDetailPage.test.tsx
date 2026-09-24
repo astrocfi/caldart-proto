@@ -71,6 +71,14 @@ describe('UserDetailPage', () => {
     expect(screen.getByRole('checkbox', { name: /dart leader/i })).not.toBeChecked();
   });
 
+  it('names each role in words rather than by its slug', async () => {
+    stubDetail();
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    expect(screen.getByRole('checkbox', { name: 'System administrator' })).toBeInTheDocument();
+  });
+
   it('saves a role toggle', async () => {
     const patched = stubDetail();
     renderDetail();

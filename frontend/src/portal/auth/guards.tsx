@@ -13,6 +13,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import type { Location } from 'react-router-dom';
 
 import type { RoleSlug } from '../api/types';
+import { roleLabel } from '../choices';
 import { Button, ButtonLink } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { Loading } from '../components/Loading';
@@ -90,11 +91,6 @@ export function RequireRole({ roles, children }: RequireRoleProps): JSX.Element 
   if (!isAuthenticated) return <Navigate to={loginRedirect(location)} replace />;
   if (!hasAnyRole(userRoles, roles)) return <Forbidden roles={roles} />;
   return <>{children ?? <Outlet />}</>;
-}
-
-/** Human wording for the role a page wanted, e.g. "user admin". */
-function roleLabel(slug: RoleSlug): string {
-  return slug.replace(/_/g, ' ');
 }
 
 /** The 403 page shown when a signed-in user lacks the role a route needs. */
