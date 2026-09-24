@@ -282,9 +282,12 @@ not every app needs every one.
 Code that several apps share lives in the project package:
 ``caldart/models.py`` (``TimestampedModel``, the abstract base that gives every
 model ``created_at`` and ``updated_at``), ``caldart/reports.py`` (the CSV and
-PDF house style), ``caldart/audit.py`` (the audit log, described in
-:ref:`deploy-audit-log`), ``caldart/pagination.py`` and
-``caldart/exceptions.py``.
+PDF house style, and the report column registry), ``caldart/receipts.py`` (the
+receipt and contribution-statement PDFs, both described in :doc:`reports`),
+``caldart/mail.py`` (one templated-email sender), ``caldart/org.py`` (the
+organization's letterhead, read from the Wagtail site settings),
+``caldart/audit.py`` (the audit log, described in :ref:`deploy-audit-log`),
+``caldart/pagination.py`` and ``caldart/exceptions.py``.
 ``make seed`` runs ``seed_roles``, then ``seed_demo`` (every app's ``seed.py``,
 with a fixed random seed so every machine gets the same data), then
 ``seed_content``; all three are idempotent.
