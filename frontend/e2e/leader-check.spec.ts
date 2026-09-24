@@ -56,6 +56,20 @@ test('a leader searches by name and reads the GO / NO-GO card', async ({ page })
   await expect(memberCard(page, name).getByRole('status')).toContainText('NO-GO');
 });
 
+test('the results list answers go or no-go before the card is opened', async ({ page }) => {
+  const { name } = SEED.leaderCheck.expiredMember;
+  await signIn(page, DEMO.leader);
+
+  await page.goto('/portal/leader');
+  await page
+    .getByRole('searchbox', { name: 'Name, email, phone, or N-number' })
+    .fill(surname(name));
+  const result = page.getByRole('button', { name: new RegExp(name) });
+  await expect(result).toBeVisible();
+  await expect(result).toContainText('NO-GO');
+  await expect(result).toContainText(/medical/i);
+});
+
 test('a member who is current on both counts is a GO', async ({ page }) => {
   const { name } = SEED.leaderCheck.insuredPilot;
   await signIn(page, DEMO.leader);
@@ -87,7 +101,7 @@ test('a leader can check a tail number on its own', async ({ page }) => {
   await expect(card).toBeVisible();
   await expect(card.getByRole('heading', { name: nNumber })).toBeVisible();
   await expect(card.getByRole('status')).toContainText('INSURED');
-  await expect(card.getByRole('status')).toContainText('Cover is current');
+  await expect(card.getByRole('status')).toContainText('Coverage is current');
   await expect(card.getByRole('term').filter({ hasText: /^Insurance$/ })).toBeVisible();
   await expect(card.getByRole('term').filter({ hasText: /^Liability$/ })).toBeVisible();
   await expect(card.getByText(name)).toBeVisible();
