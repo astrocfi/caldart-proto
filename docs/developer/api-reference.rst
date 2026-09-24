@@ -16,9 +16,10 @@ to document each app's endpoints in detail, request body by response body.
    api-darts
    api-aircraft
    api-payments
+   api-refunds
    api-system
 
-Every endpoint the project serves is on one of those six pages, and every one
+Every endpoint the project serves is on one of those pages, and every one
 of them appears in the :ref:`permission matrix <api-permission-matrix>` below.
 :doc:`api-system` covers the reminder, system, and site routes; the subsystem
 chapters behind them are :doc:`reminders`, :doc:`backup-restore` and

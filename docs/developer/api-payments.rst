@@ -390,7 +390,9 @@ check out.  Handles:
   fee is already recorded is left alone, so a re-delivery changes nothing.
   Stripe orders no deliveries, so this event is acted on whatever state the
   payment is in: a fee that arrives before the ``payment_intent.succeeded``
-  that settles the row is kept when the row settles.
+  that settles the row is kept when the row settles;
+* ``charge.refunded`` — records every succeeded refund on the charge that is
+  not already on file, as :ref:`api-refunds-webhooks` describes.
 
 Everything else is acknowledged and ignored.  The response says what happened:
 
@@ -422,7 +424,9 @@ order id) and answers:
 ``verified`` is true only when ``PAYPAL_WEBHOOK_ID`` is set *and* PayPal's
 ``verify-webhook-signature`` call passes.  A verified
 ``PAYMENT.CAPTURE.COMPLETED`` for the right amount activates the membership;
-``PAYMENT.CAPTURE.DENIED`` and ``PAYMENT.CAPTURE.REVERSED`` mark it failed.
+``PAYMENT.CAPTURE.DENIED`` and ``PAYMENT.CAPTURE.REVERSED`` mark it failed; and
+a verified ``PAYMENT.CAPTURE.REFUNDED`` records the refund, as
+:ref:`api-refunds-webhooks` describes.
 Without verification nothing changes — an unverifiable notification is not
 evidence that money moved.  A notification about a payment this installation
 does not have is received but not filed.

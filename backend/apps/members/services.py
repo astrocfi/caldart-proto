@@ -592,7 +592,7 @@ def cancel_term(term: Membership, *, actor: User | None = None, note: str = "") 
     initiated, such as one a provider's webhook caused, is recorded under
     ``command``.
 
-    Cancelling a term that is already canceled changes nothing but the note.
+    Canceling a term that is already canceled changes nothing but the note.
     """
     term.status = MembershipStatusChoices.CANCELED
     if note:

@@ -24,7 +24,6 @@ from apps.members.models import (
     Membership,
     MembershipPlan,
     MembershipSource,
-    MembershipStatusChoices,
 )
 from apps.members.services import activate_term, cancel_term, expire_lapsed_memberships
 from apps.payments.models import (
@@ -78,7 +77,7 @@ def provider_fee_cents(provider: str, amount_cents: int) -> int:
 
 
 #: How many payments the seed gives back in full, canceling the term each bought.
-#: They are chosen from terms that have already expired, so the demo's current
+#: They are chosen from terms that have already ended, so the demo's current
 #: members stay current.
 FULL_REFUNDS = 2
 
@@ -222,32 +221,37 @@ def _refund(payment: Payment, amount_cents: int, reason: str, note: str) -> bool
     return created
 
 
-def _seed_refunds() -> int:
+def _seed_refunds(today: dt.date) -> int:
     """Refund a few seeded payments, and return how many refunds were written.
 
-    Two payments are given back in full and the expired terms they bought are
-    canceled; four contributions are given back on their own, leaving the dues
-    and the membership alone.  The payments are chosen in id order rather than at
-    random, so the set is the same every run and adding a refund step never moves
-    the shared random stream.
+    Two payments are given back in full and the terms they bought are canceled;
+    four contributions are given back on their own, leaving the dues and the
+    membership alone.  Both sets are chosen in id order from terms that have
+    already ended and from payments that carry a contribution, so the choice
+    depends on nothing a refund changes: running this twice writes nothing
+    twice, and it never moves the shared random stream.
     """
     terms = list(
-        Membership.objects.filter(status=MembershipStatusChoices.EXPIRED, payment__isnull=False)
+        Membership.objects.filter(payment__isnull=False, ends_on__isnull=False, ends_on__lt=today)
         .select_related("payment")
         .order_by("payment_id")[:FULL_REFUNDS]
     )
     written = 0
+    refunded_ids = []
     for index, term in enumerate(terms):
         payment = term.payment
         if payment is None:
             continue
+        refunded_ids.append(payment.pk)
         if _refund(payment, payment.amount_cents, REFUND_REASONS[index], "Membership refunded"):
             cancel_term(term, note="Canceled with a full refund")
             written += 1
 
-    contributions = Payment.objects.filter(
-        contribution_cents__gt=0, status=PaymentStatus.SUCCEEDED
-    ).order_by("pk")[:PARTIAL_REFUNDS]
+    contributions = (
+        Payment.objects.filter(contribution_cents__gt=0)
+        .exclude(pk__in=refunded_ids)
+        .order_by("pk")[:PARTIAL_REFUNDS]
+    )
     for index, payment in enumerate(contributions):
         reason = REFUND_REASONS[FULL_REFUNDS + index]
         if _refund(payment, payment.contribution_cents, reason, "Contribution refunded"):
@@ -293,7 +297,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             terms += 1
 
     expired = expire_lapsed_memberships(today)
-    refunds = _seed_refunds()
+    refunds = _seed_refunds(today)
 
     ctx["payment_count"] = payments
     ctx["refund_count"] = refunds
