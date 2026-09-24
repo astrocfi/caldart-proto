@@ -185,7 +185,7 @@ def test_refunds_read_back_newest_first() -> None:
 def test_a_mandate_is_described_by_its_member_and_method() -> None:
     """``str`` on a mandate reads as the member, the method label and the status."""
     mandate = RenewalMandateFactory(method_label="Visa ending 4242, expires 03/2028")
-    assert str(mandate) == f"{mandate.user} · Visa ending 4242, expires 03/2028 (active)"
+    assert str(mandate) == f"{mandate.user} \u00b7 Visa ending 4242, expires 03/2028 (active)"
 
 
 def test_a_member_holds_at_most_one_mandate() -> None:
@@ -226,7 +226,7 @@ def test_a_mandate_carries_its_own_contribution(member: User) -> None:
 def test_an_attempt_is_described_by_its_date_and_outcome(member: User) -> None:
     """``str`` on an attempt reads as the member, the scheduled day and the outcome."""
     attempt = RenewalAttemptFactory(scheduled_on=date(2026, 6, 1))
-    assert str(attempt) == f"{attempt.mandate.user} · 2026-06-01 (scheduled)"
+    assert str(attempt) == f"{attempt.mandate.user} \u00b7 2026-06-01 (scheduled)"
 
 
 def test_a_new_attempt_has_been_neither_noticed_nor_charged(member: User) -> None:

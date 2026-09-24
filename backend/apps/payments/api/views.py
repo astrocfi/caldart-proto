@@ -29,7 +29,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.accounts.permissions import IsAccountAdmin, user_has_any_role
+from apps.accounts.permissions import IsFinance, user_has_any_role
 from apps.accounts.roles import ACCOUNT_ADMIN
 from apps.members.models import MembershipPlan
 from apps.members.services import membership_status
@@ -340,7 +340,7 @@ class PayPalWebhookView(APIView):
 
 
 # --------------------------------------------------------------------------
-# Reports -- account_admin
+# Reports -- the finance roles
 # --------------------------------------------------------------------------
 def report_query(request: Request) -> PaymentReportQuerySerializer:
     """The validated report parameters of ``request``.
@@ -356,7 +356,7 @@ def report_query(request: Request) -> PaymentReportQuerySerializer:
 class AdminPaymentListView(ListAPIView[Payment]):
     """``GET /admin/payments`` -- filtered, searchable, ordered, paginated."""
 
-    permission_classes = [IsAuthenticated, IsAccountAdmin]
+    permission_classes = [IsAuthenticated, IsFinance]
     serializer_class = PaymentSerializer
     # Filtering, search, and ordering are handled here rather than by the
     # project-wide backends: they all key off the ``paid_at`` annotation.
@@ -366,8 +366,8 @@ class AdminPaymentListView(ListAPIView[Payment]):
         """The payments the query string asks for, in the order it asks for.
 
         Raises DRF's ``ValidationError`` -- a 400 -- for a parameter the report
-        will not act on.  Only ``account_admin`` reaches this; the page size is
-        the project-wide default.
+        will not act on.  Only a treasurer or an account administrator reaches
+        this; the page size is the project-wide default.
         """
         filters = report_query(self.request).to_filters()
         queryset = reports.apply_filters(reports.base_queryset(), filters)
@@ -392,11 +392,11 @@ class AdminPaymentListView(ListAPIView[Payment]):
 class AdminPaymentSummaryView(APIView):
     """``GET /admin/payments/summary?group=month|year`` -- money per period."""
 
-    permission_classes = [IsAuthenticated, IsAccountAdmin]
+    permission_classes = [IsAuthenticated, IsFinance]
 
     @extend_schema(responses={200: PaymentPeriodSummarySerializer(many=True)})
     def get(self, request: Request) -> Response:
-        """200 with one row per period, oldest first, for ``account_admin`` only.
+        """200 with one row per period, oldest first, for the finance roles only.
 
         The same filters as the list narrow it, and only succeeded payments count.
         400 for a parameter the report will not act on, ``group`` included.
@@ -413,13 +413,13 @@ class AdminPaymentSummaryView(APIView):
 class AdminPaymentExportView(APIView):
     """``GET /admin/payments/export.csv`` -- the filtered list as a download."""
 
-    permission_classes = [IsAuthenticated, IsAccountAdmin]
+    permission_classes = [IsAuthenticated, IsFinance]
 
     @extend_schema(
         responses=download_responses(CSV_MEDIA_TYPE, "The filtered payment list as a CSV file.")
     )
     def get(self, request: Request) -> StreamingHttpResponse:
-        """200 with ``caldart-payments.csv`` as an attachment, for ``account_admin`` only.
+        """200 with ``caldart-payments.csv`` as an attachment, for the finance roles only.
 
         The same filters as the list narrow it, and the rows are newest money
         first.  400 for a parameter the report will not act on.

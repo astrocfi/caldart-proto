@@ -1181,7 +1181,8 @@
     "enum": [
       "stripe",
       "paypal",
-      "mock"
+      "mock",
+      "manual"
     ]
   },
   "PaymentResult": {
@@ -1199,6 +1200,7 @@
       "pending",
       "succeeded",
       "failed",
+      "partially_refunded",
       "refunded"
     ]
   },
@@ -1358,6 +1360,7 @@
   },
   "ProviderTotals": {
     "properties": {
+      "manual": "integer",
       "mock": "integer",
       "paypal": "integer",
       "stripe": "integer"
@@ -1630,6 +1633,10 @@
       "link",
       "paypal",
       "mock",
+      "check",
+      "cash",
+      "bank_transfer",
+      "other",
       "unknown"
     ]
   }
