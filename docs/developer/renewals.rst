@@ -54,7 +54,7 @@ without the member.  Both refusals are a 400 keyed by ``auto_renew``.
 The schedule
 ============
 
-Four constants in ``apps/payments/renewals.py`` set the cadence:
+Five constants in ``apps/payments/renewals.py`` set the cadence:
 
 ====================================  =========  =============================
 Constant                              Value      Meaning
@@ -67,6 +67,8 @@ Constant                              Value      Meaning
                                                  each retry is scheduled for.
 ``CARD_EXPIRY_WARNING_DAYS``          30         How close to a card's expiry the
                                                  member is warned it will not last.
+``CATCH_UP_DAYS``                     30         How long after a term ran out a
+                                                 scan may still renew it.
 ====================================  =========  =============================
 
 The lead is a single day because a member is never charged for the coming year
@@ -99,6 +101,12 @@ it, and it does three things in order.
    than left to lapse.  An attempt that is waiting but whose notice the mail
    server refused is written to again on the next run.
 
+   The notice is a window, not a day.  A charge date that has already gone by --
+   because the scanner was not running on it -- is taken as today: the attempt is
+   dated today and ``renewal_notice`` says the charge is happening today rather
+   than naming a date the member has already passed.  A mandate whose member has
+   no term left to renew at all goes to the catch-up rule below.
+
 2. **Card expiry.**  If the saved card expires before the next charge, and its
    expiry is within ``CARD_EXPIRY_WARNING_DAYS``, send ``renewal_card_expiring``.
    The expiry the warning was sent for is recorded on the mandate, so the warning
@@ -117,7 +125,9 @@ it, and it does three things in order.
    On success the payment goes through the same ``mark_succeeded`` path as a
    checkout, so the next term is activated starting the day after the current one
    ends; the mandate's failure count is cleared, the attempt is ``succeeded`` and
-   ``renewal_charged`` goes out.
+   ``renewal_charged`` goes out.  A charge taken after the member has already
+   expired starts its term on the day the money arrives, never back-dated to the
+   old expiry, so the days nobody was covered stay visible in the record.
 
    On a decline the payment is marked failed, the provider's reason is stored on
    the attempt, the failure count rises, and ``renewal_failed`` goes out naming
@@ -257,12 +267,40 @@ What went out is in the journal::
   journalctl -u caldart-renewals -n 50
   journalctl -u caldart-renewals | grep 'action=renewals.run'
 
+.. _renewals-catch-up:
+
+Catching up after downtime
+==========================
+
+While a mandate is ``active`` the ordinary renewal reminders are skipped for its
+member, so the scan is the only thing standing between them and a silent lapse.
+A scanner that was down over a charge date must therefore not simply skip the
+member it missed.
+
+For an ``active`` mandate whose member holds no term left to renew, the scan
+looks for the most recent ``active`` or ``expired`` term that has already run
+out.  A term with an attempt already against it is on the retry ladder and is
+left alone.  Otherwise:
+
+* **Within** ``CATCH_UP_DAYS`` of its ``ends_on``, the renewal is taken now: an
+  attempt dated today is created, ``renewal_notice`` goes out worded for a charge
+  that happens today, and the charge step of the same run takes it.  The term the
+  charge buys starts on the day the money arrives, so the gap is left in the
+  record rather than papered over.
+* **Longer ago than that**, the lapse is too long for an unannounced charge.  The
+  mandate is paused, nothing is charged, and ``renewal_failed`` tells the member
+  that renewal was not taken because the membership had lapsed for more than a
+  month, with a link to renew by hand.  The run counts the mandate under
+  ``paused``, and the ordinary reminders resume for that member.
+
+A dry run reports both outcomes without making either.
+
 Members whose records were imported from CiviCRM with automatic renewal switched
 on have no mandate here: the payment method was never handed to CalDART, and
 there is nothing to charge.  They re-authorize from the portal's Payments screen,
 and until they do the ordinary renewal reminders cover them.
 
-Changing the cadence means changing the four constants in
+Changing the cadence means changing the five constants in
 ``apps/payments/renewals.py`` and this page together.  A longer
 ``CHARGE_LEAD_DAYS`` charges further ahead of the term the member is paying for,
 which is the thing the one-day lead exists to avoid.

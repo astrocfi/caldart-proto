@@ -154,9 +154,9 @@ one:
 2. Press **Run now**.  The result reads, for example, "Noticed 2, charged 1,
    failed 0, paused 0, skipped 3."  *Noticed* is the fortnight's-warning emails,
    *charged* the renewals taken, *failed* the charges a provider refused,
-   *paused* the members whose last retry was refused and whose automatic renewal
-   has therefore switched itself off, and *skipped* the ones that needed nothing
-   doing.
+   *paused* the members whose last retry was refused, or whose membership had
+   lapsed too long to catch up, and whose automatic renewal has therefore
+   switched itself off, and *skipped* the ones that needed nothing doing.
 3. If the numbers look right and you have a reason to run now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
 
@@ -168,6 +168,12 @@ later, and a week after that; only when all four attempts are refused does it
 stop, tell the member, and hand them back to the ordinary reminders.  A treasurer
 or an account administrator reads the same renewals on
 **Administration → Payments**, with the reason each refusal was given.
+
+If the scan has not run for a while, the next run catches up: a member whose
+membership ran out within the last month is renewed on the spot, and told the
+charge is happening that day.  A member who has been lapsed longer than that is
+not charged unannounced — their automatic renewal switches itself off, they are
+told why, and the ordinary reminders resume.
 
 What it charges, when, and how to change the schedule are in
 :doc:`/developer/renewals`.

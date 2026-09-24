@@ -818,3 +818,194 @@ def test_a_notice_the_mail_server_refused_is_sent_again_next_run(
     run_auto_renewals(today=today)
 
     assert subjects(mailoutbox)[-1].startswith("CalDART: we will renew your membership")
+
+
+# --------------------------------------------------------------------------
+# Catching up after downtime
+# --------------------------------------------------------------------------
+def lapsed_mandate(
+    user: User, plan: MembershipPlan, *, ended_days_ago: int, today: date, last4: str = "4242"
+) -> RenewalMandate:
+    """An active mandate whose member's only term ran out ``ended_days_ago`` days back."""
+    mandate = make_mandate(user, plan, ends_on=today - timedelta(days=ended_days_ago), last4=last4)
+    Membership.objects.filter(user=user).update(status=MembershipStatusChoices.EXPIRED)
+    return mandate
+
+
+def test_a_scan_twenty_days_late_still_charges_the_lapsed_term(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A term that ran out inside the catch-up window is renewed on the day found."""
+    lapsed_mandate(member, annual_plan, ended_days_ago=20, today=today)
+
+    run_auto_renewals(today=today)
+
+    assert Payment.objects.filter(status=PaymentStatus.SUCCEEDED).count() == 1
+
+
+def test_a_catch_up_attempt_is_dated_the_day_the_scan_found_it(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """The attempt a late scan creates is scheduled for today, not for the date missed."""
+    lapsed_mandate(member, annual_plan, ended_days_ago=20, today=today)
+
+    run_auto_renewals(today=today)
+
+    assert RenewalAttempt.objects.get().scheduled_on == today
+
+
+def test_a_scan_twenty_days_late_leaves_the_mandate_active(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """Catching up is an ordinary renewal: nothing about the mandate changes."""
+    mandate = lapsed_mandate(member, annual_plan, ended_days_ago=20, today=today)
+
+    run_auto_renewals(today=today)
+
+    mandate.refresh_from_db()
+    assert mandate.status == MandateStatus.ACTIVE
+
+
+def test_a_late_charge_starts_the_new_term_on_the_day_it_is_paid(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A member who has lapsed is covered from the day the money arrives, not before."""
+    lapsed_mandate(member, annual_plan, ended_days_ago=20, today=today)
+
+    run_auto_renewals(today=today)
+
+    bought = Membership.objects.get(payment__isnull=False)
+    assert bought.starts_on == today
+
+
+def test_a_catch_up_notice_is_worded_for_a_charge_that_happens_today(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """The member is told the charge is happening now, not on some future date."""
+    lapsed_mandate(member, annual_plan, ended_days_ago=20, today=today)
+
+    run_auto_renewals(today=today)
+
+    notice = next(message for message in mailoutbox if "we will renew" in str(message.subject))
+    assert "we are charging it today" in str(notice.body)
+
+
+def test_a_term_whose_charge_date_has_passed_is_charged_the_day_it_is_found(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A term ending today had its charge date yesterday, and is still taken today."""
+    make_mandate(member, annual_plan, ends_on=today)
+
+    run_auto_renewals(today=today)
+
+    assert RenewalAttempt.objects.get().scheduled_on == today
+
+
+def test_a_scan_forty_days_late_pauses_the_mandate(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A membership lapsed longer than the catch-up window is not charged at all."""
+    mandate = lapsed_mandate(member, annual_plan, ended_days_ago=40, today=today)
+
+    run_auto_renewals(today=today)
+
+    mandate.refresh_from_db()
+    assert mandate.status == MandateStatus.PAUSED
+
+
+def test_a_scan_forty_days_late_takes_no_money(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """Nothing is charged for a term that ran out more than a month ago."""
+    lapsed_mandate(member, annual_plan, ended_days_ago=40, today=today)
+
+    run_auto_renewals(today=today)
+
+    assert Payment.objects.count() == 0
+
+
+def test_a_scan_forty_days_late_tells_the_member_why(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """The member is told the membership had lapsed too long for an automatic charge."""
+    lapsed_mandate(member, annual_plan, ended_days_ago=40, today=today)
+
+    run_auto_renewals(today=today)
+
+    assert "lapsed for more than a month" in str(mailoutbox[-1].body)
+
+
+def test_a_scan_forty_days_late_points_the_member_at_renewing_by_hand(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """The one thing left to do is renew by hand, so the email links to it."""
+    lapsed_mandate(member, annual_plan, ended_days_ago=40, today=today)
+
+    run_auto_renewals(today=today)
+
+    assert renewals.payments_url() in str(mailoutbox[-1].body)
+
+
+def test_a_scan_forty_days_late_counts_the_pause_in_its_summary(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """The run reports the mandate it turned off, so the operator sees it."""
+    lapsed_mandate(member, annual_plan, ended_days_ago=40, today=today)
+
+    assert run_auto_renewals(today=today).paused == 1
+
+
+def test_a_dry_run_leaves_a_mandate_lapsed_too_long_alone(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A rehearsal reports the pause it would make without making it."""
+    mandate = lapsed_mandate(member, annual_plan, ended_days_ago=40, today=today)
+
+    run_auto_renewals(today=today, dry_run=True)
+
+    mandate.refresh_from_db()
+    assert mandate.status == MandateStatus.ACTIVE
+
+
+def test_a_lapsed_term_already_attempted_is_not_caught_up_again(
+    member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A term whose charge already failed is on the retry ladder, not caught up."""
+    mandate = lapsed_mandate(member, annual_plan, ended_days_ago=20, today=today)
+    RenewalAttemptFactory(
+        mandate=mandate,
+        membership=Membership.objects.get(user=member),
+        scheduled_on=today - timedelta(days=21),
+        outcome=RenewalOutcome.FAILED,
+    )
+
+    run_auto_renewals(today=today)
+
+    assert Payment.objects.count() == 0
+
+
+def test_a_lifetime_member_is_never_caught_up(
+    member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan, today: date
+) -> None:
+    """A lifetime term has no expiry to catch up to, whatever else the member holds."""
+    lapsed_mandate(member, annual_plan, ended_days_ago=20, today=today)
+    MembershipFactory(
+        user=member,
+        plan=life_plan,
+        starts_on=today - timedelta(days=400),
+        ends_on=None,
+        status=MembershipStatusChoices.ACTIVE,
+    )
+
+    run_auto_renewals(today=today)
+
+    assert Payment.objects.count() == 0

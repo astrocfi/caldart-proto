@@ -1,7 +1,13 @@
 {{ org_name }} — we could not renew your membership
 
 Hello {{ first_name }},
+{% if lapsed %}
+We did not renew your {{ plan_name }} membership automatically: {{ error }}. Too much
+time had passed for us to charge {{ method_label }} without asking you first.
 
+Automatic renewal is off and we will send you the ordinary renewal reminders
+instead. You can renew by hand, or turn automatic renewal back on once you have:
+{% else %}
 We tried to charge {{ amount }} to {{ method_label }} to renew your {{ plan_name }}
 membership, and it was refused. The reason we were given: {{ error }}.
 
@@ -9,7 +15,7 @@ membership, and it was refused. The reason we were given: {{ error }}.
 if the card has changed, saving the new one now will save that attempt:{% else %}That was the last attempt, so automatic renewal is off and we will send you
 the ordinary renewal reminders instead. You can renew by hand, or turn
 automatic renewal back on with another card:{% endif %}
-{{ payments_url }}
+{% endif %}{{ payments_url }}
 
 --
 {{ org_name }} is a volunteer disaster air transportation network.

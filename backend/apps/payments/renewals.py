@@ -82,6 +82,17 @@ RETRY_OFFSETS: tuple[int, ...] = (1, 3, 7)
 #: How close to a card's expiry the member is warned that it will not last.
 CARD_EXPIRY_WARNING_DAYS = 30
 
+#: How long after a term ran out a scan may still renew it.  A scanner that was
+#: down over a charge date catches up inside this window; past it the lapse is
+#: too long for an unannounced charge to be the right thing to do, and the
+#: mandate is paused instead.
+CATCH_UP_DAYS = 30
+
+#: What the member is told when their membership had lapsed too long to renew.
+LAPSED_TOO_LONG_MESSAGE = (
+    "your membership had lapsed for more than a month, so we did not take the renewal"
+)
+
 #: The field an input refusal about automatic renewal is keyed by.
 AUTO_RENEW_FIELD = "auto_renew"
 
@@ -149,6 +160,28 @@ def term_to_renew(user: User, today: date) -> Membership | None:
     if any(term.ends_on is None for term in active):
         return None
     dated = [term for term in active if term.ends_on is not None and term.ends_on >= today]
+    if len(dated) == 0:
+        return None
+    return max(dated, key=lambda term: (term.ends_on, term.id))
+
+
+def lapsed_term_to_renew(user: User, today: date) -> Membership | None:
+    """The most recent dated term that has already run out, or ``None``.
+
+    This is the term a scan that missed its charge date would be catching up to:
+    the ``active`` or ``expired`` term with the latest ``ends_on`` before
+    ``today``.  A canceled term bought nothing that can be renewed and is not
+    considered.  ``None`` when the member holds no such term, and ``None`` as
+    well when any term of theirs is a lifetime one, which never needs renewing.
+
+    The member's terms are walked in Python, so a caller that has prefetched
+    ``memberships`` costs no query per member.
+    """
+    renewable = (MembershipStatusChoices.ACTIVE, MembershipStatusChoices.EXPIRED)
+    terms = [m for m in user.memberships.all() if m.status in renewable]
+    if any(term.ends_on is None for term in terms):
+        return None
+    dated = [term for term in terms if term.ends_on is not None and term.ends_on < today]
     if len(dated) == 0:
         return None
     return max(dated, key=lambda term: (term.ends_on, term.id))
@@ -567,7 +600,7 @@ def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: b
     """
     term = term_to_renew(mandate.user, today)
     if term is None or term.ends_on is None:
-        run.record_skipped("no_term")
+        _catch_up(mandate, today, run, dry_run=dry_run)
         return
     waiting = (
         mandate.attempts.filter(
@@ -582,6 +615,9 @@ def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: b
     ):
         return
     charge_on = waiting.scheduled_on if waiting is not None else charge_date_for(term.ends_on)
+    # A scan that was down over the charge date takes it today rather than
+    # writing to the member about a date that has already gone by.
+    charge_on = max(charge_on, today)
     if (charge_on - today).days > NOTICE_DAYS:
         return
 
@@ -591,9 +627,70 @@ def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: b
     attempt = waiting or RenewalAttempt.objects.create(
         mandate=mandate, membership=term, scheduled_on=charge_on
     )
-    if send_mandate_email(mandate, "renewal_notice", charge_on=charge_on, expires_on=term.ends_on):
+    _send_notice(mandate, attempt, charge_on, term.ends_on, today)
+
+
+def _catch_up(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool) -> None:
+    """Renew a term that already ran out, or pause a mandate too far behind to.
+
+    Reached for a mandate whose member holds no term left to renew.  While the
+    ordinary reminders are skipped for an active mandate, this is the only thing
+    that stops such a member lapsing unnoticed, so a term that ran out within
+    :data:`CATCH_UP_DAYS` is renewed here: the attempt is dated today, the notice
+    says the charge is happening today, and the charge step of the same run takes
+    it.  A term that ran out longer ago pauses the mandate and tells the member
+    why, and the ordinary reminders resume for them.
+
+    A term that already has an attempt against it is left alone: it is on the
+    retry ladder, not behind the scanner.
+    """
+    term = lapsed_term_to_renew(mandate.user, today)
+    if term is None or term.ends_on is None:
+        run.record_skipped("no_term")
+        return
+    if mandate.attempts.filter(membership=term).exists():
+        return
+    if (today - term.ends_on).days > CATCH_UP_DAYS:
+        _abandon(mandate, run, dry_run=dry_run)
+        return
+
+    run.noticed += 1
+    if dry_run:
+        return
+    attempt = RenewalAttempt.objects.create(mandate=mandate, membership=term, scheduled_on=today)
+    _send_notice(mandate, attempt, today, term.ends_on, today)
+
+
+def _send_notice(
+    mandate: RenewalMandate, attempt: RenewalAttempt, charge_on: date, expires_on: date, today: date
+) -> None:
+    """Send the advance notice for ``attempt``, and stamp it when the mail went.
+
+    ``today`` reaches the template so a charge that is happening now is worded as
+    happening now rather than as a date the member has to wait for.
+    """
+    if send_mandate_email(
+        mandate, "renewal_notice", charge_on=charge_on, expires_on=expires_on, today=today
+    ):
         attempt.noticed_at = timezone.now()
         attempt.save(update_fields=["noticed_at", "updated_at"])
+
+
+def _abandon(mandate: RenewalMandate, run: RenewalRun, *, dry_run: bool) -> None:
+    """Pause a mandate whose member lapsed too long ago to be charged unannounced.
+
+    Nothing is charged and no attempt is written: there is no term the money
+    would extend.  The member is told that automatic renewal is off, why, and
+    where to renew by hand, and the ordinary reminders cover them from then on.
+    """
+    run.paused += 1
+    if dry_run:
+        return
+    mandate.status = MandateStatus.PAUSED
+    mandate.save(update_fields=["status", "updated_at"])
+    send_mandate_email(
+        mandate, "renewal_failed", error=LAPSED_TOO_LONG_MESSAGE, next_on=None, lapsed=True
+    )
 
 
 def _warn_about_card(
