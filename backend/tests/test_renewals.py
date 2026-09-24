@@ -88,14 +88,14 @@ def refusing_mailer(**kwargs: object) -> None:
 # --------------------------------------------------------------------------
 # Dates
 # --------------------------------------------------------------------------
-def test_the_charge_falls_three_days_before_the_term_ends() -> None:
-    """A term ending on the 20th is renewed on the 17th, so a decline has room."""
-    assert charge_date_for(date(2026, 6, 20)) == date(2026, 6, 17)
+def test_the_charge_falls_the_day_before_the_term_ends() -> None:
+    """A term ending on the 20th is renewed on the 19th, its last full day covered."""
+    assert charge_date_for(date(2026, 6, 20)) == date(2026, 6, 19)
 
 
-def test_the_lead_is_three_days() -> None:
-    """The charge lead is stated once, and it is three days."""
-    assert CHARGE_LEAD_DAYS == 3
+def test_the_lead_is_one_day() -> None:
+    """The charge lead is stated once, and it is a single day."""
+    assert CHARGE_LEAD_DAYS == 1
 
 
 def test_a_card_expires_at_the_end_of_its_printed_month(

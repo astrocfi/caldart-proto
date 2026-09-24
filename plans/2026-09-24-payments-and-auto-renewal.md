@@ -209,9 +209,11 @@ logic stay in one place. Lifetime plans cannot hold a mandate.
 - **PayPal.** The order at checkout carries `payment_source.paypal.attributes.vault = {store_in_vault: "ON_SUCCESS", usage_type: "MERCHANT"}`; the capture response's `payment_source.paypal.attributes.vault.id` is the `method_ref` and the payer email the label. Turning on from the portal uses `POST /v3/vault/setup-tokens` (`POST /me/renewal/setup` → `{setup_token}`; the buttons approve it) and `POST /v3/vault/payment-tokens` on confirm. A charge is an Orders v2 create with `payment_source: {paypal: {vault_id}}` followed by capture.
 - **Mock.** Instant; the mandate reads "Test card ending 4242, expires 12/2030". A mandate whose `method_last4` is `0002` fails every charge with "Your card was declined" so the failure path can be demonstrated and tested; the seed uses it for the paused mandate.
 
-**Schedule.** Constants in `apps/payments/renewals.py`: `CHARGE_LEAD_DAYS = 3` (charge
-three days before the term's `ends_on`, so a decline has room to be retried before
-coverage lapses); `NOTICE_DAYS = 14` (the advance warning goes out fourteen days before
+**Schedule.** Constants in `apps/payments/renewals.py`: `CHARGE_LEAD_DAYS = 1` (charge
+the day before the term's `ends_on`; the owner's decision, so that a member is never
+charged for the coming year while a whole year of coverage still remains — a decline is
+therefore retried after the term has run out, and the term a late charge buys starts on
+the day the money arrives); `NOTICE_DAYS = 14` (the advance warning goes out fourteen days before
 the charge date, stating the amount, the date and how to cancel); `RETRY_OFFSETS = (1, 3,
 7)` (days after the failed attempt); `CARD_EXPIRY_WARNING_DAYS = 30`. After the third
 retry fails the mandate becomes `paused`, the member is told it is off, and the ordinary

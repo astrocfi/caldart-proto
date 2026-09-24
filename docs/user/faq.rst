@@ -93,10 +93,11 @@ Can my membership renew itself?
 -------------------------------
 
 Yes.  Tick **Renew automatically each year** at the checkout, or turn it on from
-**Payments** in the portal menu.  Three days before your membership runs out,
+**Payments** in the portal menu.  The day before your membership runs out,
 CalDART charges the saved card or PayPal account for that year's dues plus
 whatever contribution you asked to renew alongside them, and your coverage
-carries straight on.
+carries straight on.  You are never charged while a whole year of coverage still
+remains.
 
 You get an email fourteen days before every charge saying the amount, the date
 and which method will be used, and you can turn it off at any time from the same

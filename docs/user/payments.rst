@@ -95,9 +95,10 @@ without paying anything: **Payments** in the portal menu has an **Automatic
 renewal** card with a **Turn on** button, which asks for a payment method and
 for the contribution you would like renewed alongside your dues.
 
-**What happens then.**  Three days before your membership runs out, |org|
-charges the saved method for that year's dues plus your contribution, and your
-coverage carries straight on — the new term starts the day the current one ends.
+**What happens then.**  The day before your membership runs out, |org| charges
+the saved method for that year's dues plus your contribution, and your coverage
+carries straight on — the new term starts the day the current one ends.  You are
+never charged while a whole year of coverage still remains.
 
 You are never charged without warning:
 

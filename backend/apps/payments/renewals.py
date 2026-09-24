@@ -66,9 +66,11 @@ from caldart.reports import money_label
 
 log = logging.getLogger(__name__)
 
-#: How many days before a term's ``ends_on`` the renewal is charged.  A decline
-#: then still has room for its first retry before coverage lapses.
-CHARGE_LEAD_DAYS = 3
+#: How many days before a term's ``ends_on`` the renewal is charged.  One: a
+#: member is never charged for the coming year while a whole year of coverage
+#: still remains.  A decline is therefore retried after the term has run out,
+#: and the term the late charge buys starts on the day the money arrives.
+CHARGE_LEAD_DAYS = 1
 
 #: How many days before the charge the advance warning goes out.
 NOTICE_DAYS = 14

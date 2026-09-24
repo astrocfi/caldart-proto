@@ -53,8 +53,9 @@ Every endpoint that answers with a mandate answers with this shape.
 ``amount_cents`` is what the next charge comes to: the plan's price now plus
 ``contribution_cents``.  ``status`` is ``pending``, ``active``, ``paused`` or
 ``canceled``.  ``next_charge_on`` is the day of the waiting charge, or the charge
-date computed from the member's current term, and is ``null`` for a mandate that
-is not active and for a member with no term that needs renewing.  ``last_error``
+date computed from the member's current term -- the day before it ends -- and is
+``null`` for a mandate that is not active and for a member with no term that
+needs renewing.  ``last_error``
 carries the reason the most recent charge was refused, which is what a paused
 mandate shows the member.  The provider's own references -- the Stripe customer
 and payment method, the PayPal vault id -- are never sent to a browser.

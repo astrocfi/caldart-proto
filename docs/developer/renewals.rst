@@ -59,7 +59,7 @@ Four constants in ``apps/payments/renewals.py`` set the cadence:
 ====================================  =========  =============================
 Constant                              Value      Meaning
 ====================================  =========  =============================
-``CHARGE_LEAD_DAYS``                  3          Days before a term's ``ends_on``
+``CHARGE_LEAD_DAYS``                  1          Days before a term's ``ends_on``
                                                  that its renewal is charged.
 ``NOTICE_DAYS``                       14         Days before that charge that the
                                                  advance warning goes out.
@@ -69,10 +69,14 @@ Constant                              Value      Meaning
                                                  member is warned it will not last.
 ====================================  =========  =============================
 
-The lead exists so a decline has room: a charge three days out that fails is
-retried the next day, and again three days later, before coverage lapses.  When
-all three retries are refused the mandate is paused, the member is told automatic
-renewal is off, and the reminders take over.
+The lead is a single day because a member is never charged for the coming year
+while a whole year of coverage still remains: the charge falls on the term's last
+full day.  A decline is therefore retried after the term has run out -- the next
+day, three days later, and a week after that -- and the term a late charge buys
+starts on the day the money arrives, not on the old expiry, so the days nobody
+was covered stay visible in the record.  When all three retries are refused the
+mandate is paused, the member is told automatic renewal is off, and the reminders
+take over.
 
 .. _renewals-scanner:
 
@@ -259,6 +263,6 @@ there is nothing to charge.  They re-authorize from the portal's Payments screen
 and until they do the ordinary renewal reminders cover them.
 
 Changing the cadence means changing the four constants in
-``apps/payments/renewals.py`` and this page together.  A shorter
-``CHARGE_LEAD_DAYS`` leaves less room for a retry before coverage lapses; a
-longer one charges further ahead of the term the member is paying for.
+``apps/payments/renewals.py`` and this page together.  A longer
+``CHARGE_LEAD_DAYS`` charges further ahead of the term the member is paying for,
+which is the thing the one-day lead exists to avoid.
