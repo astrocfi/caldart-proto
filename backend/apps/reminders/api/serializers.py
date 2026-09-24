@@ -7,6 +7,7 @@ from typing import Any
 from rest_framework import serializers
 
 from apps.reminders.models import ReminderLog
+from caldart.runs import RunActionSerializer
 
 
 class ReminderLogSerializer(serializers.ModelSerializer[ReminderLog]):
@@ -35,8 +36,9 @@ class ReminderRunRequestSerializer(serializers.Serializer[Any]):
     dry_run = serializers.BooleanField(default=False)
 
 
-class ReminderRunResultSerializer(serializers.Serializer[dict[str, int]]):
-    """``{sent, skipped}``, serialized from a plain ``{"sent": int, "skipped": int}``."""
+class ReminderRunResultSerializer(serializers.Serializer[dict[str, Any]]):
+    """``{sent, skipped, actions}``: the counts, and the member behind each reminder."""
 
     sent = serializers.IntegerField()
     skipped = serializers.IntegerField()
+    actions = RunActionSerializer(many=True)

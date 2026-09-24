@@ -122,6 +122,12 @@ When you do want to run it by hand:
 3. If the numbers look right and you have a reason to send now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
 
+A rehearsal on the server says more than the numbers do.  ``caldart_manage
+send_renewal_reminders --dry-run`` prints one line per member under the counts --
+which reminder, who they are, their address, and the day their term runs out --
+so somebody with a shell can read off exactly who a live run would write to
+(:doc:`/developer/reminders`).
+
 Running it twice sends nothing twice.  Each member gets one email per
 membership per kind, and the log below the button is what enforces that.
 
@@ -145,6 +151,11 @@ charge for each membership running out and emails the member a fortnight's
 warning, it warns anyone whose saved card expires before their next charge, and
 it charges whatever is due.
 
+A life member's standing authority is a contribution rather than a renewal: it
+charges once a year, on the anniversary of the day it was set up or of the last
+contribution taken, and extends no membership term.  The same scan handles it,
+and its emails say "contribution" throughout.
+
 The **Renewals** panel runs the same scan by hand, and works like the reminders
 one:
 
@@ -164,6 +175,13 @@ one:
    A real run asks before it starts, because it charges every member whose
    renewal is due: press **Yes, charge what is due** to go ahead, or
    **Cancel** to think again.
+
+Here too a rehearsal on the server names the people behind the numbers.
+``caldart_manage run_auto_renewals --dry-run`` prints one line per email it would
+send and per charge it would take -- what, who, when, and how much.  A rehearsal
+cannot ask the provider whether a charge would go through, so it lists the charge
+and the message a charge that succeeds sends; a live run lists the decline
+instead when a provider refuses (:doc:`/developer/renewals`).
 
 Running it twice charges nobody twice, and sends nothing twice: each scheduled
 charge records what has already gone out.

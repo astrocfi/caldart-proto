@@ -16,6 +16,7 @@ const ACTIVE: RenewalMandate = {
   user_email: 'maria@example.org',
   plan: 'annual',
   plan_name: 'Annual',
+  kind: 'renewal',
   contribution_cents: 2500,
   amount_cents: 7000,
   provider: 'stripe',

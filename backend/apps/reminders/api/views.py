@@ -72,11 +72,13 @@ class ReminderRunView(APIView):
         request=ReminderRunRequestSerializer, responses={200: ReminderRunResultSerializer}
     )
     def post(self, request: Request) -> Response:
-        """Run the renewal scan and return its ``{sent, skipped}`` counts.
+        """Run the renewal scan and return its counts and the members behind them.
 
         Validates the body against ``ReminderRunRequestSerializer`` (``dry_run``,
         defaulting to ``False``) and responds ``200`` with the serialized
-        ``ReminderRunResultSerializer`` payload. ``request.user`` is recorded as the
+        ``ReminderRunResultSerializer`` payload: ``sent``, ``skipped``, and one
+        ``actions`` entry naming each member a reminder went to, or -- in a dry
+        run -- would have gone to. ``request.user`` is recorded as the
         audit actor; raises ``PermissionDenied`` if it is somehow anonymous, which
         ``IsSystemAdmin`` never lets through.
         """

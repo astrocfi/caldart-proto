@@ -78,10 +78,18 @@ RECONCILED_AFTER_DAYS = 60
 RECONCILED_LAG_DAYS = 5
 
 #: How many members hold a standing automatic-renewal authority: ten active, one
-#: paused after every retry was refused, and one the member turned off.
+#: paused after every retry was refused, and one the member turned off.  The
+#: account administrator's contribution-only authority is seeded on top of these.
 ACTIVE_MANDATES = 10
 PAUSED_MANDATES = 1
 CANCELED_MANDATES = 1
+
+#: What the account administrator's standing contribution charges each year.
+CONTRIBUTION_MANDATE_CENTS = 5_000
+
+#: How long ago that authority was created.  A year less thirty days, so its
+#: next charge is a month out and the walkthrough always shows a date.
+CONTRIBUTION_MANDATE_AGE_DAYS = 335
 
 #: The saved cards the seeded mandates carry, as a provider would describe them.
 #: The saved method each seeded mandate carries, cycled through by index.  A
@@ -497,10 +505,12 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
     """Create the demo mandates and their attempts, and return how many there are.
 
     Ten members renew automatically, one is paused after a charge and all three
-    of its retries were refused, and one turned automatic renewal off.  Each
-    active mandate whose charge falls inside the notice window already carries a
-    scheduled attempt with its warning sent, which is what the daily scan would
-    have left behind.  Running it twice over the same database changes nothing.
+    of its retries were refused, and one turned automatic renewal off.  The
+    account administrator, a life member, holds a contribution-only authority on
+    top of those.  Each active mandate whose charge falls inside the notice
+    window already carries a scheduled attempt with its warning sent, which is
+    what the daily scan would have left behind.  Running it twice over the same
+    database changes nothing.
     """
     rng: random.Random = ctx["rng"]
     today: dt.date = ctx["today"]
@@ -549,7 +559,42 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
         elif mandate.status == MandateStatus.ACTIVE:
             _seed_scheduled_attempt(mandate, term, today)
 
-    return len(candidates)
+    return len(candidates) + _seed_contribution_mandate(ctx)
+
+
+def _seed_contribution_mandate(ctx: dict[str, Any]) -> int:
+    """Give the account administrator a standing contribution, and count it.
+
+    They are a life member, so their membership never renews; their authority is
+    over the contribution alone.  It was created a year less thirty days ago, so
+    its next charge falls a month out and the walkthrough always has a date to
+    show.  Answers ``1``, which is how many such authorities it leaves behind
+    whether it created one or found one already there.
+    """
+    user = ctx["demo_users"]["accountadmin"]
+    _, created = RenewalMandate.objects.get_or_create(
+        user=user,
+        defaults={
+            "plan": None,
+            "contribution_cents": CONTRIBUTION_MANDATE_CENTS,
+            "status": MandateStatus.ACTIVE,
+            "provider": MandateProvider.MOCK,
+            "customer_ref": "",
+            "method_ref": "mock",
+            "method_brand": "visa",
+            "method_last4": "4242",
+            "method_exp_month": 12,
+            "method_exp_year": 2030,
+            "method_label": "Test card ending 4242, expires 12/2030",
+        },
+    )
+    if created:
+        # ``created_at`` is what the yearly anniversary is counted from, and
+        # ``auto_now_add`` will not take a value at creation time.
+        RenewalMandate.objects.filter(user=user).update(
+            created_at=timezone.now() - timedelta(days=CONTRIBUTION_MANDATE_AGE_DAYS)
+        )
+    return 1
 
 
 def _seed_scheduled_attempt(mandate: RenewalMandate, term: Membership, today: dt.date) -> None:

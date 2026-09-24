@@ -34,7 +34,12 @@ from apps.payments.reconciliation import (
     RECONCILIATION_GROUPS,
     ReconciliationRow,
 )
-from apps.payments.renewals import next_charge_on, renewal_amount_cents
+from apps.payments.renewals import (
+    MandateKind,
+    mandate_kind,
+    next_charge_on,
+    renewal_amount_cents,
+)
 from apps.payments.reports import (
     DEFAULT_GROUP,
     GROUPS,
@@ -44,6 +49,7 @@ from apps.payments.reports import (
     PeriodSummary,
 )
 from caldart.reports import ReportColumn, select_columns
+from caldart.runs import RunActionSerializer
 
 #: What a report date parameter answers with when it is not a date on the calendar.
 DATE_FORMAT_MESSAGE = "Expected a date as YYYY-MM-DD."
@@ -482,6 +488,7 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
     user_email = serializers.SerializerMethodField()
     plan = serializers.SerializerMethodField()
     plan_name = serializers.SerializerMethodField()
+    kind = serializers.SerializerMethodField()
     amount_cents = serializers.SerializerMethodField()
     next_charge_on = serializers.SerializerMethodField()
     last_error = serializers.SerializerMethodField()
@@ -495,6 +502,7 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
             "user_email",
             "plan",
             "plan_name",
+            "kind",
             "contribution_cents",
             "amount_cents",
             "provider",
@@ -521,20 +529,27 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
         """The member's email address."""
         return obj.user.email
 
-    def get_plan(self, obj: RenewalMandate) -> str:
-        """The slug of the plan that renews."""
-        return obj.plan.slug
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_plan(self, obj: RenewalMandate) -> str | None:
+        """The slug of the plan that renews, or ``None`` for a contribution alone."""
+        return obj.plan.slug if obj.plan is not None else None
 
-    def get_plan_name(self, obj: RenewalMandate) -> str:
-        """The name of the plan that renews."""
-        return obj.plan.name
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_plan_name(self, obj: RenewalMandate) -> str | None:
+        """The name of the plan that renews, or ``None`` for a contribution alone."""
+        return obj.plan.name if obj.plan is not None else None
+
+    @extend_schema_field(serializers.ChoiceField(choices=MandateKind.choices))
+    def get_kind(self, obj: RenewalMandate) -> str:
+        """What this authority charges for: a renewal, a contribution, or both."""
+        return mandate_kind(obj)
 
     def get_amount_cents(self, obj: RenewalMandate) -> int:
         """What the next charge comes to: the plan's price plus the contribution."""
         return renewal_amount_cents(obj)
 
     def get_next_charge_on(self, obj: RenewalMandate) -> dt.date | None:
-        """The day of the next charge, or ``None`` when nothing is due."""
+        """The day of the next charge, or ``None`` for a mandate that is not active."""
         return next_charge_on(obj)
 
     def get_last_error(self, obj: RenewalMandate) -> str:
@@ -603,11 +618,13 @@ class RenewalSetupSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /me/renewal/setup`` -- what to save a payment method for.
 
     ``plan`` is the slug of the plan to renew and must have a duration; a
-    lifetime plan is a 400 naming ``auto_renew``.  ``provider`` must be one that
-    can charge a saved method.
+    lifetime plan is a 400 naming ``auto_renew``.  A life member leaves ``plan``
+    out and gives a ``contribution_cents`` of more than nothing, which is the
+    only standing authority they can hold.  ``provider`` must be one that can
+    charge a saved method.
     """
 
-    plan = serializers.CharField()
+    plan = serializers.CharField(required=False, allow_blank=True, default="")
     contribution_cents = serializers.IntegerField(
         required=False, min_value=0, max_value=MAX_CONTRIBUTION_CENTS, default=0
     )
@@ -679,8 +696,14 @@ class RenewalConfirmSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 class RenewalPatchSerializer(serializers.Serializer[dict[str, Any]]):
-    """``PATCH /me/renewal`` -- the contribution renewed alongside the dues."""
+    """``PATCH /me/renewal`` -- the plan that renews and the contribution beside it.
 
+    ``plan`` is the slug of the plan to renew from now on; leaving it out leaves
+    the plan alone.  A life member may not give one, since their membership does
+    not renew.
+    """
+
+    plan = serializers.CharField(required=False, allow_blank=True, default="")
     contribution_cents = serializers.IntegerField(min_value=0, max_value=MAX_CONTRIBUTION_CENTS)
 
 
@@ -702,8 +725,8 @@ class RenewalRunRequestSerializer(serializers.Serializer[dict[str, Any]]):
     dry_run = serializers.BooleanField(default=False)
 
 
-class RenewalRunResultSerializer(serializers.Serializer[dict[str, int]]):
-    """The counts one automatic-renewal scan reports."""
+class RenewalRunResultSerializer(serializers.Serializer[dict[str, Any]]):
+    """The counts one automatic-renewal scan reports, and who they were about."""
 
     noticed = serializers.IntegerField()
     warned = serializers.IntegerField()
@@ -711,6 +734,7 @@ class RenewalRunResultSerializer(serializers.Serializer[dict[str, int]]):
     failed = serializers.IntegerField()
     paused = serializers.IntegerField()
     skipped = serializers.IntegerField()
+    actions = RunActionSerializer(many=True)
 
 
 # --------------------------------------------------------------------------

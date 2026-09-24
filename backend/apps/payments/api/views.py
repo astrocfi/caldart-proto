@@ -155,13 +155,19 @@ class CheckoutView(APIView):
         the server will not charge for, or when the provider refuses to start the
         payment -- in which case the pending payment is deleted again.
 
+        A life member has nothing to renew, so a ``plan`` from one is a 400 naming
+        ``plan``: their checkout is a contribution, with or without a standing
+        authority behind it.
+
         ``auto_renew`` asks for the method to be saved and the membership renewed
         from it each year: a ``pending`` mandate is created before the provider is
         started, so the provider knows to save the method, and it becomes active
-        when the payment succeeds.  400 naming ``auto_renew`` for a plan that never
-        expires, for a checkout that buys no plan, and for a provider that cannot
-        charge a saved method -- and the pending payment is deleted again, exactly
-        as it is when the provider refuses to start.
+        when the payment succeeds.  A life member's mandate carries no plan and
+        charges the contribution once a year.  400 naming ``auto_renew`` for a plan
+        that never expires, for a checkout by a member who is not a life member
+        that buys no plan, for a life member who contributes nothing, and for a
+        provider that cannot charge a saved method -- and the pending payment is
+        deleted again, exactly as it is when the provider refuses to start.
 
         A checkout that does *not* ask for automatic renewal throws away any
         pending mandate the member is still carrying from a checkout they

@@ -50,6 +50,12 @@ export interface RefundedPayment {
   receiptNumber: string;
 }
 
+/** The life member the seed gives a contribution-only standing authority. */
+export interface ContributionMandateMember {
+  name: string;
+  email: string;
+}
+
 /** What `manage.py seed_facts` reports about the seeded database. */
 export interface SeedFacts {
   /** The password every seeded demo account shares. */
@@ -68,6 +74,8 @@ export interface SeedFacts {
   manualPaymentCount: number;
   /** A member whose payment came back in part, for the refund assertions. */
   refundedPayment: RefundedPayment;
+  /** The life member whose standing authority charges a contribution alone. */
+  contributionMandate: ContributionMandateMember;
 }
 
 const LEADER_SUBJECT_KEYS = ['insuredPilot', 'lapsedInsurance', 'expiredMember'] as const;
@@ -162,6 +170,23 @@ function checkedSeedFacts(parsed: unknown): SeedFacts {
     receiptNumber: refundedText('receiptNumber'),
   };
 
+  const rawRenewal = objectField(root, 'autoRenewal');
+  const rawContribution = objectField(rawRenewal, 'contributionMandate');
+  const contributionText = (field: keyof ContributionMandateMember): string => {
+    const value = rawContribution[field];
+    if (typeof value !== 'string' || value.length === 0) {
+      rejectFacts(
+        `\`autoRenewal.contributionMandate.${field}\` is missing: ` +
+          'no seeded life member contributes automatically',
+      );
+    }
+    return value;
+  };
+  const contributionMandate: ContributionMandateMember = {
+    name: contributionText('name'),
+    email: contributionText('email'),
+  };
+
   return {
     demoPassword,
     accounts: Object.fromEntries(accountEntries) as Record<DemoAccount, string>,
@@ -169,6 +194,7 @@ function checkedSeedFacts(parsed: unknown): SeedFacts {
     leaderCheck: Object.fromEntries(leaderEntries) as SeedFacts['leaderCheck'],
     manualPaymentCount,
     refundedPayment,
+    contributionMandate,
   };
 }
 

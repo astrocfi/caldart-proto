@@ -37,7 +37,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from django.conf import settings
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import Model
 from django.utils import timezone
 
@@ -65,6 +65,7 @@ from caldart import audit
 from caldart.exceptions import DomainValidationError
 from caldart.mail import Attachment, contact_email, org_name, send_templated
 from caldart.reports import PDF_MEDIA_TYPE, money_label
+from caldart.runs import CHARGE_KIND, RunAction, action_lines
 
 log = logging.getLogger(__name__)
 
@@ -109,15 +110,73 @@ SKIP_REASONS: tuple[str, ...] = (
     "provider_down",
 )
 
-#: Subject lines, in the house voice: plain, specific, no exclamation marks.
-SUBJECTS: dict[str, str] = {
-    "renewal_enabled": "{org}: automatic renewal is on",
-    "renewal_notice": "{org}: we will renew your membership on {charge_on}",
-    "renewal_card_expiring": "{org}: the card we renew your membership with expires soon",
-    "renewal_charged": "{org}: your membership has been renewed",
-    "renewal_failed": "{org}: we could not renew your membership",
-    "renewal_canceled": "{org}: automatic renewal is off",
+
+class MandateKind(models.TextChoices):
+    """What a standing authority charges for, which is what every email says.
+
+    ``renewal`` renews a membership term and nothing else, ``both`` renews the
+    term and takes a contribution alongside it, and ``contribution`` takes a
+    contribution alone -- the only kind a life member can hold, since their
+    membership never runs out.
+    """
+
+    RENEWAL = "renewal", "Renewal"
+    BOTH = "both", "Renewal and contribution"
+    CONTRIBUTION = "contribution", "Contribution"
+
+
+#: The words every email and screen uses for each kind, in running prose.
+KIND_LABELS: dict[str, str] = {
+    MandateKind.RENEWAL: "renewal",
+    MandateKind.BOTH: "renewal and contribution",
+    MandateKind.CONTRIBUTION: "contribution",
 }
+
+#: Subject lines, in the house voice: plain, specific, no exclamation marks.
+#: Keyed by template and then by the mandate's kind, because a contribution-only
+#: mandate renews nothing and must never say it does.
+SUBJECTS: dict[str, dict[str, str]] = {
+    "renewal_enabled": {
+        MandateKind.RENEWAL: "{org}: automatic renewal is on",
+        MandateKind.BOTH: "{org}: automatic renewal is on",
+        MandateKind.CONTRIBUTION: "{org}: automatic contribution is on",
+    },
+    "renewal_notice": {
+        MandateKind.RENEWAL: "{org}: we will renew your membership on {charge_on}",
+        MandateKind.BOTH: (
+            "{org}: we will renew your membership and take your contribution on {charge_on}"
+        ),
+        MandateKind.CONTRIBUTION: "{org}: we will take your contribution on {charge_on}",
+    },
+    "renewal_card_expiring": {
+        MandateKind.RENEWAL: "{org}: the card we renew your membership with expires soon",
+        MandateKind.BOTH: "{org}: the card we renew your membership with expires soon",
+        MandateKind.CONTRIBUTION: "{org}: the card we take your contribution with expires soon",
+    },
+    "renewal_charged": {
+        MandateKind.RENEWAL: "{org}: your membership has been renewed",
+        MandateKind.BOTH: "{org}: your membership has been renewed",
+        MandateKind.CONTRIBUTION: "{org}: thank you for your contribution",
+    },
+    "renewal_failed": {
+        MandateKind.RENEWAL: "{org}: we could not renew your membership",
+        MandateKind.BOTH: "{org}: we could not renew your membership",
+        MandateKind.CONTRIBUTION: "{org}: we could not take your contribution",
+    },
+    "renewal_canceled": {
+        MandateKind.RENEWAL: "{org}: automatic renewal is off",
+        MandateKind.BOTH: "{org}: automatic renewal is off",
+        MandateKind.CONTRIBUTION: "{org}: automatic contribution is off",
+    },
+}
+
+#: What a life member is told when they ask for a plan to renew.
+LIFE_MEMBER_PLAN_MESSAGE = (
+    "A life member's membership does not renew; choose a contribution instead."
+)
+
+#: What a life member is told when they ask for a standing authority over nothing.
+LIFE_MEMBER_CONTRIBUTION_MESSAGE = "A contribution to charge each year is needed."
 
 
 # --------------------------------------------------------------------------
@@ -189,19 +248,79 @@ def lapsed_term_to_renew(user: User, today: date) -> Membership | None:
     return max(dated, key=lambda term: (term.ends_on, term.id))
 
 
+def lifetime_term(user: User) -> Membership | None:
+    """The member's active lifetime term, or ``None`` when they hold none.
+
+    A lifetime term is an ``active`` membership with no ``ends_on``.  The terms
+    are walked in Python, so a caller that has prefetched ``memberships`` costs
+    no query per member.
+    """
+    for term in user.memberships.all():
+        if term.status == MembershipStatusChoices.ACTIVE and term.ends_on is None:
+            return term
+    return None
+
+
+def mandate_kind(mandate: RenewalMandate) -> str:
+    """Which of :class:`MandateKind` ``mandate`` is, read off its plan and amount.
+
+    ``contribution`` when it names no plan, ``both`` when it names a plan and
+    carries a contribution, and ``renewal`` when it names a plan alone.
+    """
+    if mandate.plan_id is None:
+        return MandateKind.CONTRIBUTION
+    if mandate.contribution_cents > 0:
+        return MandateKind.BOTH
+    return MandateKind.RENEWAL
+
+
+def kind_label(kind: str) -> str:
+    """The words for ``kind`` in running prose: ``renewal and contribution`` and so on.
+
+    Raises ``KeyError`` for anything outside :class:`MandateKind`.
+    """
+    return KIND_LABELS[kind]
+
+
+def next_anniversary(anchor: date) -> date:
+    """One year after ``anchor``, with 29 February answered as 28 February.
+
+    Every other date keeps its day and month, so 3 March 2026 gives 3 March 2027.
+    """
+    try:
+        return anchor.replace(year=anchor.year + 1)
+    except ValueError:
+        return date(anchor.year + 1, 2, 28)
+
+
+def contribution_charge_date(mandate: RenewalMandate, today: date) -> date:
+    """The day a contribution-only mandate is next charged.
+
+    One year after the local date of the last charge, or of the day the mandate
+    was created when nothing has been charged yet.  An anniversary that has
+    already gone by -- because the scanner was not running on it -- is answered
+    as ``today``, since that is the day the next scan takes it.
+    """
+    charged = mandate.last_charged_at or mandate.created_at
+    return max(next_anniversary(timezone.localtime(charged).date()), today)
+
+
 def next_charge_on(mandate: RenewalMandate, today: date | None = None) -> date | None:
     """The day ``mandate`` will next be charged, as the portal shows it.
 
-    A scheduled attempt's own date when one is waiting, otherwise the charge date
-    of the member's current term.  ``None`` for a mandate that is not ``active``,
-    and for one whose member holds no term that needs renewing.
+    ``None`` for a mandate that is not ``active``, and a date for every mandate
+    that is: a scheduled attempt's own date when one is waiting; otherwise, for a
+    contribution-only mandate, :func:`contribution_charge_date`; otherwise the
+    charge date of the member's current dated term; and otherwise ``today``,
+    because the term has run out and the next scan is what charges it.
 
     The attempts are walked in Python, so a caller that has prefetched
     ``attempts`` costs no query per mandate.
     """
     if mandate.status != MandateStatus.ACTIVE:
         return None
-    today = today or timezone.localdate()
+    if today is None:
+        today = timezone.localdate()
     scheduled = [
         attempt.scheduled_on
         for attempt in mandate.attempts.all()
@@ -209,15 +328,22 @@ def next_charge_on(mandate: RenewalMandate, today: date | None = None) -> date |
     ]
     if len(scheduled) > 0:
         return min(scheduled)
+    if mandate.plan_id is None:
+        return contribution_charge_date(mandate, today)
     term = term_to_renew(mandate.user, today)
     if term is None or term.ends_on is None:
-        return None
+        return today
     return charge_date_for(term.ends_on)
 
 
 def renewal_amount_cents(mandate: RenewalMandate) -> int:
-    """What the next charge comes to: the plan's price plus the contribution."""
-    return mandate.plan.price_cents + mandate.contribution_cents
+    """What the next charge comes to: the plan's price plus the contribution.
+
+    A contribution-only mandate names no plan, so its next charge is the
+    contribution alone.
+    """
+    plan_cents = mandate.plan.price_cents if mandate.plan is not None else 0
+    return plan_cents + mandate.contribution_cents
 
 
 # --------------------------------------------------------------------------
@@ -228,14 +354,20 @@ def mandate_context(mandate: RenewalMandate, **extra: Any) -> dict[str, Any]:
 
     Carries the member's first name, the organization's name and contact
     address, the plan, the amount as the member reads it, the saved method's
-    label and the link to the portal's payments screen.
+    label and the link to the portal's payments screen.  ``kind`` is the
+    mandate's :class:`MandateKind` and ``kind_label`` the words for it, which is
+    how each template tells a renewal from a contribution.  ``plan_name`` is an
+    empty string for a contribution-only mandate, which names no plan.
     """
     amount_cents = renewal_amount_cents(mandate)
+    kind = mandate_kind(mandate)
     context: dict[str, Any] = {
         "first_name": mandate.user.first_name or mandate.user.display_name,
         "org_name": org_name(),
         "contact_email": contact_email(),
-        "plan_name": mandate.plan.name,
+        "kind": kind,
+        "kind_label": kind_label(kind),
+        "plan_name": mandate.plan.name if mandate.plan is not None else "",
         "amount": money_label(amount_cents),
         "amount_cents": amount_cents,
         "contribution": money_label(mandate.contribution_cents),
@@ -273,7 +405,7 @@ def send_mandate_email(
     if not mandate.user.email:
         return False
     context = mandate_context(mandate, **extra)
-    subject = SUBJECTS[template].format(org=context["org_name"], **extra)
+    subject = SUBJECTS[template][context["kind"]].format(org=context["org_name"], **extra)
     try:
         send_templated(
             to=mandate.user.email,
@@ -296,15 +428,32 @@ def send_mandate_email(
 # --------------------------------------------------------------------------
 # The mandate's life cycle
 # --------------------------------------------------------------------------
-def check_renewable(plan: MembershipPlan | None, provider: str) -> MembershipPlan:
-    """Refuse a mandate that could never be charged again, and return the plan.
+def check_renewable(
+    plan: MembershipPlan | None, provider: str, *, user: User, contribution_cents: int
+) -> MembershipPlan | None:
+    """Refuse a mandate that could never be charged again, and return its plan.
 
-    Returns ``plan`` when it can hold a standing authority on ``provider``.
-    Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` when there
-    is no plan to renew, when the plan is a lifetime one, or when the provider
-    cannot charge again without the member, which is every provider outside
-    :class:`~apps.payments.models.MandateProvider`.
+    A member who already holds an active lifetime term may hold a
+    contribution-only mandate and nothing else: ``plan`` must be ``None`` and
+    ``contribution_cents`` must be more than nothing, and ``None`` comes back.
+    Every other member needs a plan with a duration, which comes back as given.
+
+    Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` when the
+    provider cannot charge again without the member -- which is every provider
+    outside :class:`~apps.payments.models.MandateProvider` -- when a life member
+    asks for a plan or for no contribution, when a member who is not a life
+    member gives no plan, and when the plan is a lifetime one.
     """
+    if provider not in MandateProvider.values:
+        raise DomainValidationError(
+            AUTO_RENEW_FIELD, f"'{provider}' cannot charge a saved payment method."
+        )
+    if lifetime_term(user) is not None:
+        if plan is not None:
+            raise DomainValidationError(AUTO_RENEW_FIELD, LIFE_MEMBER_PLAN_MESSAGE)
+        if contribution_cents <= 0:
+            raise DomainValidationError(AUTO_RENEW_FIELD, LIFE_MEMBER_CONTRIBUTION_MESSAGE)
+        return None
     if plan is None:
         raise DomainValidationError(
             AUTO_RENEW_FIELD, "Automatic renewal needs a membership plan to renew."
@@ -312,10 +461,6 @@ def check_renewable(plan: MembershipPlan | None, provider: str) -> MembershipPla
     if plan.duration_days is None:
         raise DomainValidationError(
             AUTO_RENEW_FIELD, "A lifetime membership never expires, so it cannot renew itself."
-        )
-    if provider not in MandateProvider.values:
-        raise DomainValidationError(
-            AUTO_RENEW_FIELD, f"'{provider}' cannot charge a saved payment method."
         )
     return plan
 
@@ -336,10 +481,13 @@ def begin_mandate(
     asked for, and no saved method.  It becomes ``active`` only when the method
     is confirmed, through :func:`save_method`.
 
+    A life member's mandate carries no plan: it is a standing authority for the
+    contribution alone.
+
     Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` for
     anything :func:`check_renewable` refuses, and writes nothing when it does.
     """
-    renewable = check_renewable(plan, provider)
+    renewable = check_renewable(plan, provider, user=user, contribution_cents=contribution_cents)
     mandate, _ = RenewalMandate.objects.update_or_create(
         user=user,
         defaults={
@@ -393,11 +541,11 @@ def save_method(
         actor=actor,
         target=mandate.user,
         provider=mandate.provider,
-        plan=mandate.plan.slug,
+        plan=mandate.plan.slug if mandate.plan is not None else "",
     )
     charge_on = next_charge_on(mandate)
     transaction.on_commit(
-        lambda: send_mandate_email(mandate, "renewal_enabled", charge_on=charge_on)
+        lambda: send_mandate_email(mandate, "renewal_enabled", next_charge_on=charge_on)
     )
     return mandate
 
@@ -501,6 +649,12 @@ class RenewalRun:
     ``charged`` the renewals taken, ``failed`` the charges the provider refused,
     ``paused`` the mandates whose retries ran out on this scan, and ``skipped``
     the mandates and attempts that needed nothing doing.
+
+    ``actions`` names the people behind those counts: one
+    :class:`~caldart.runs.RunAction` per email and per charge, in the order the
+    scan reached them.  A live run records what it did; a dry run records what it
+    would have done, taking a charge the provider has not been asked about yet as
+    one that succeeds.
     """
 
     today: date
@@ -512,14 +666,36 @@ class RenewalRun:
     paused: int = 0
     skipped: int = 0
     skipped_by_reason: dict[str, int] = field(default_factory=dict)
+    actions: list[RunAction] = field(default_factory=list)
 
     def record_skipped(self, reason: str) -> None:
         """Count one more mandate or attempt skipped for ``reason``."""
         self.skipped += 1
         self.skipped_by_reason[reason] = self.skipped_by_reason.get(reason, 0) + 1
 
-    def as_dict(self) -> dict[str, int]:
-        """The counts ``POST /system/renewals/run`` answers with."""
+    def record_action(
+        self,
+        kind: str,
+        mandate: RenewalMandate,
+        *,
+        on: date | None = None,
+        amount_cents: int | None = None,
+        detail: str = "",
+    ) -> None:
+        """Note that ``kind`` happened, or would happen, to ``mandate``'s member."""
+        self.actions.append(
+            RunAction(
+                kind=kind,
+                member=mandate.user.display_name,
+                email=mandate.user.email,
+                on=on,
+                amount_cents=amount_cents,
+                detail=detail,
+            )
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        """The counts and the actions ``POST /system/renewals/run`` answers with."""
         return {
             "noticed": self.noticed,
             "warned": self.warned,
@@ -527,10 +703,11 @@ class RenewalRun:
             "failed": self.failed,
             "paused": self.paused,
             "skipped": self.skipped,
+            "actions": [action.as_dict() for action in self.actions],
         }
 
     def as_lines(self) -> list[str]:
-        """Human-readable summary, one fact per line."""
+        """Human-readable summary, one fact per line, then one line per action."""
         lines = [
             f"today            {self.today.isoformat()}",
             f"mode             {'dry run (nothing renewed)' if self.dry_run else 'live'}",
@@ -546,7 +723,7 @@ class RenewalRun:
             for reason in SKIP_REASONS
             if self.skipped_by_reason.get(reason)
         ]
-        return lines
+        return lines + action_lines(self.actions, dry_run=self.dry_run)
 
 
 def active_mandates() -> list[RenewalMandate]:
@@ -575,16 +752,24 @@ def run_auto_renewals(
     a provider that cannot be reached and a mail server that refuses a message
     are each recorded against that member's attempt and the walk carries on.
     Every run ends with one ``renewals.run`` audit record carrying the mode and
-    the counts, and returns them as a :class:`RenewalRun`.
+    the counts, and returns them as a :class:`RenewalRun`, whose ``actions`` name
+    every member the run emailed or charged -- or, in a rehearsal, would have.
+
+    A charge whose date has already come round is scheduled and taken by the same
+    scan.  A rehearsal writes no attempt for the charge step to find, so the
+    notice step hands it the attempts it would have written and the rehearsal
+    reports that charge too.
     """
-    today = today or timezone.localdate()
+    if today is None:
+        today = timezone.localdate()
     run = RenewalRun(today=today, dry_run=dry_run)
 
+    rehearsed: list[RenewalAttempt] = []
     for mandate in active_mandates():
-        _notice(mandate, today, run, dry_run=dry_run)
+        rehearsed += _notice(mandate, today, run, dry_run=dry_run)
         _warn_about_card(mandate, today, run, dry_run=dry_run)
 
-    for attempt in _due_attempts(today):
+    for attempt in [*_due_attempts(today), *rehearsed]:
         _charge(attempt, today, run, dry_run=dry_run)
 
     audit.record(
@@ -600,7 +785,24 @@ def run_auto_renewals(
     return run
 
 
-def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool) -> None:
+def _rehearsed_attempt(
+    mandate: RenewalMandate, term: Membership, charge_on: date, today: date
+) -> list[RenewalAttempt]:
+    """The unsaved attempt a rehearsal hands to its charge step, or nothing.
+
+    A live run creates the attempt here and finds it again in the same run when
+    its date has already come round.  A rehearsal writes nothing, so the attempt
+    it would have written is carried forward instead -- and only when it is due
+    today, since a charge still in the future is for a later run to take.
+    """
+    if charge_on > today:
+        return []
+    return [RenewalAttempt(mandate=mandate, membership=term, scheduled_on=charge_on)]
+
+
+def _notice(
+    mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool
+) -> list[RenewalAttempt]:
     """Schedule the charge for a term running out, and email the warning.
 
     Only an attempt that is still ``scheduled`` or has already ``succeeded``
@@ -608,11 +810,21 @@ def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: b
     then turned back on is scheduled again rather than left to lapse quietly.  An
     attempt that is waiting but whose notice never went out -- a mail server that
     refused it -- is written to again here.
+
+    Returns the attempts a rehearsal would have written and that are due today,
+    for the charge step to rehearse as well; a live run returns nothing, because
+    it has written them to the database the charge step reads.
     """
+    if mandate.plan_id is None:
+        return _notice_contribution(mandate, today, run, dry_run=dry_run)
+    if lifetime_term(mandate.user) is not None:
+        # The member has been granted a lifetime term since the mandate was made,
+        # so there is no expiry left for it to renew.
+        run.record_skipped("lifetime")
+        return []
     term = term_to_renew(mandate.user, today)
     if term is None or term.ends_on is None:
-        _catch_up(mandate, today, run, dry_run=dry_run)
-        return
+        return _catch_up(mandate, today, run, dry_run=dry_run)
     waiting = (
         mandate.attempts.filter(
             membership=term,
@@ -624,24 +836,78 @@ def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: b
     if waiting is not None and (
         waiting.outcome != RenewalOutcome.SCHEDULED or waiting.noticed_at is not None
     ):
-        return
+        return []
     charge_on = waiting.scheduled_on if waiting is not None else charge_date_for(term.ends_on)
     # A scan that was down over the charge date takes it today rather than
     # writing to the member about a date that has already gone by.
     charge_on = max(charge_on, today)
     if (charge_on - today).days > NOTICE_DAYS:
-        return
+        return []
 
     run.noticed += 1
+    run.record_action("renewal_notice", mandate, on=charge_on)
     if dry_run:
-        return
+        # An attempt already waiting is one the charge step finds by itself.
+        if waiting is not None:
+            return []
+        return _rehearsed_attempt(mandate, term, charge_on, today)
     attempt = waiting or RenewalAttempt.objects.create(
         mandate=mandate, membership=term, scheduled_on=charge_on
     )
     _send_notice(mandate, attempt, charge_on, term.ends_on, today)
+    return []
 
 
-def _catch_up(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool) -> None:
+def _notice_contribution(
+    mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool
+) -> list[RenewalAttempt]:
+    """Schedule and announce the yearly charge of a contribution-only mandate.
+
+    The charge date is :func:`contribution_charge_date`, and the attempt is
+    written against the member's lifetime term, which is what their standing
+    authority sits alongside.  A member who no longer holds one is skipped as
+    ``no_term``: there is nothing for the contribution to accompany.  An attempt
+    already waiting is reused, and one whose notice the mail server refused is
+    written to again here.
+
+    Returns what :func:`_notice` returns, for the same reason.
+    """
+    term = lifetime_term(mandate.user)
+    if term is None:
+        run.record_skipped("no_term")
+        return []
+    waiting = next(
+        (
+            attempt
+            for attempt in mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED).order_by("pk")
+        ),
+        None,
+    )
+    if waiting is not None and waiting.noticed_at is not None:
+        return []
+    charge_on = (
+        waiting.scheduled_on if waiting is not None else contribution_charge_date(mandate, today)
+    )
+    charge_on = max(charge_on, today)
+    if (charge_on - today).days > NOTICE_DAYS:
+        return []
+
+    run.noticed += 1
+    run.record_action("renewal_notice", mandate, on=charge_on)
+    if dry_run:
+        if waiting is not None:
+            return []
+        return _rehearsed_attempt(mandate, term, charge_on, today)
+    attempt = waiting or RenewalAttempt.objects.create(
+        mandate=mandate, membership=term, scheduled_on=charge_on
+    )
+    _send_notice(mandate, attempt, charge_on, None, today)
+    return []
+
+
+def _catch_up(
+    mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool
+) -> list[RenewalAttempt]:
     """Renew a term that already ran out, or pause a mandate too far behind to.
 
     Reached for a mandate whose member holds no term left to renew.  While the
@@ -654,26 +920,34 @@ def _catch_up(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run:
 
     A term that already has an attempt against it is left alone: it is on the
     retry ladder, not behind the scanner.
+
+    Returns what :func:`_notice` returns, for the same reason.
     """
     term = lapsed_term_to_renew(mandate.user, today)
     if term is None or term.ends_on is None:
         run.record_skipped("no_term")
-        return
+        return []
     if mandate.attempts.filter(membership=term).exists():
-        return
+        return []
     if (today - term.ends_on).days > CATCH_UP_DAYS:
         _abandon(mandate, run, dry_run=dry_run)
-        return
+        return []
 
     run.noticed += 1
+    run.record_action("renewal_notice", mandate, on=today)
     if dry_run:
-        return
+        return _rehearsed_attempt(mandate, term, today, today)
     attempt = RenewalAttempt.objects.create(mandate=mandate, membership=term, scheduled_on=today)
     _send_notice(mandate, attempt, today, term.ends_on, today)
+    return []
 
 
 def _send_notice(
-    mandate: RenewalMandate, attempt: RenewalAttempt, charge_on: date, expires_on: date, today: date
+    mandate: RenewalMandate,
+    attempt: RenewalAttempt,
+    charge_on: date,
+    expires_on: date | None,
+    today: date,
 ) -> None:
     """Send the advance notice for ``attempt``, and stamp it when the mail went.
 
@@ -695,6 +969,7 @@ def _abandon(mandate: RenewalMandate, run: RenewalRun, *, dry_run: bool) -> None
     where to renew by hand, and the ordinary reminders cover them from then on.
     """
     run.paused += 1
+    run.record_action("renewal_failed", mandate, detail=LAPSED_TOO_LONG_MESSAGE)
     if dry_run:
         return
     mandate.status = MandateStatus.PAUSED
@@ -721,6 +996,7 @@ def _warn_about_card(
         return
 
     run.warned += 1
+    run.record_action("renewal_card_expiring", mandate, on=expires_on)
     if dry_run:
         return
     if send_mandate_email(
@@ -749,23 +1025,35 @@ def _charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: b
         if not dry_run:
             _finish(attempt, RenewalOutcome.SKIPPED)
         return
+    if mandate.plan_id is not None and lifetime_term(mandate.user) is not None:
+        run.record_skipped("lifetime")
+        if not dry_run:
+            _finish(attempt, RenewalOutcome.SKIPPED)
+        return
     if _already_renewed(attempt, today):
         run.record_skipped("already_renewed")
         if not dry_run:
             _finish(attempt, RenewalOutcome.SKIPPED)
         return
 
+    amount_cents = renewal_amount_cents(mandate)
     if dry_run:
         run.charged += 1
+        run.record_action(CHARGE_KIND, mandate, on=attempt.scheduled_on, amount_cents=amount_cents)
+        # A rehearsal cannot ask the provider whether the charge would be taken,
+        # so it reports the message a charge that succeeds sends.  It carries no
+        # date: the charge that has not happened is what sets the one after it.
+        run.record_action("renewal_charged", mandate)
         return
     if not _claim(attempt):
         run.record_skipped("in_flight")
         return
 
+    run.record_action(CHARGE_KIND, mandate, on=attempt.scheduled_on, amount_cents=amount_cents)
     try:
         payment = create_checkout(
             mandate.user,
-            mandate.plan.slug,
+            mandate.plan.slug if mandate.plan is not None else None,
             mandate.contribution_cents,
             mandate.provider,
         )
@@ -831,7 +1119,11 @@ def _already_renewed(attempt: RenewalAttempt, today: date) -> bool:
 
     True when another term has been bought or granted since the attempt was
     scheduled, which is what a member paying by hand in the meantime looks like.
+    Always false for a contribution-only mandate, which renews no term and so can
+    never be overtaken by one.
     """
+    if attempt.mandate.plan_id is None:
+        return False
     term = term_to_renew(attempt.mandate.user, today)
     if term is None or term.ends_on is None or attempt.membership.ends_on is None:
         return False
@@ -853,7 +1145,11 @@ def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
     mandate.save(update_fields=["failure_count", "last_charged_at", "updated_at"])
 
     attempt.outcome = RenewalOutcome.SUCCEEDED
-    renewed = term_to_renew(mandate.user, timezone.localdate())
+    attempt.save(update_fields=["outcome", "updated_at"])
+
+    today = timezone.localdate()
+    renewed = term_to_renew(mandate.user, today)
+    charge_on = next_charge_on(mandate, today)
     payment = attempt.payment
     attachments: list[Attachment] = []
     if payment is not None:
@@ -862,6 +1158,7 @@ def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
         mandate,
         "renewal_charged",
         expires_on=renewed.ends_on if renewed is not None else None,
+        next_charge_on=charge_on,
         receipt_number=payment.receipt_number if payment is not None else "",
         attachments=attachments,
     ):
@@ -869,7 +1166,8 @@ def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
         if payment is not None:
             payment.receipt_sent_at = now
             payment.save(update_fields=["receipt_sent_at", "updated_at"])
-    attempt.save(update_fields=["outcome", "result_emailed_at", "updated_at"])
+    attempt.save(update_fields=["result_emailed_at", "updated_at"])
+    run.record_action("renewal_charged", mandate, on=charge_on)
     run.charged += 1
 
 
@@ -899,6 +1197,7 @@ def _record_failure(
 
     attempt.outcome = RenewalOutcome.FAILED
     attempt.error = reason[:255]
+    run.record_action("renewal_failed", mandate, on=next_on, detail=attempt.error)
     if send_mandate_email(mandate, "renewal_failed", error=attempt.error, next_on=next_on):
         attempt.result_emailed_at = timezone.now()
     attempt.save(update_fields=["outcome", "error", "result_emailed_at", "updated_at"])

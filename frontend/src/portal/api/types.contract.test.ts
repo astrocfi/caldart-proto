@@ -89,7 +89,9 @@ import type {
   RenewalEnvelope,
   RenewalMandate,
   RenewalOutcome,
+  RenewalPatchRequest,
   RenewalRunResult,
+  RunAction,
   RenewalSetupRequest,
   RenewalSetupResponse,
   PilotCertificateType,
@@ -247,6 +249,8 @@ const renewalSetupRequest: Matches<RenewalSetupRequest, Schemas['RenewalSetupReq
 const renewalSetupResponse: Matches<RenewalSetupResponse, Schemas['RenewalSetupResponse']> = true;
 const renewalConfirm: Matches<RenewalConfirmRequest, Schemas['RenewalConfirmRequest']> = true;
 const renewalRun: Matches<RenewalRunResult, Schemas['RenewalRunResult']> = true;
+const renewalPatch: Matches<RenewalPatchRequest, Schemas['PatchedRenewalPatchRequest']> = true;
+const runAction: Matches<RunAction, Schemas['RunAction']> = true;
 
 /* ----------------------------------------------------------------- leader */
 const leaderSearch: Matches<LeaderSearchResult, Schemas['LeaderSearchResult']> = true;
@@ -362,6 +366,8 @@ const assertions: readonly true[] = [
   renewalSetupResponse,
   renewalConfirm,
   renewalRun,
+  renewalPatch,
+  runAction,
   leaderSearch,
   leaderStatus,
   reminderLog,
@@ -467,6 +473,8 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'RenewalSetupResponse',
   'RenewalConfirmRequest',
   'RenewalRunResult',
+  'PatchedRenewalPatchRequest',
+  'RunAction',
   'LeaderSearchResult',
   'LeaderStatus',
   'ReminderLog',

@@ -10,6 +10,7 @@ from datetime import timedelta
 from typing import Any
 
 import pytest
+from django.utils import timezone
 from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
@@ -19,7 +20,7 @@ from apps.members.models import Membership, MembershipPlan
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from tests.conftest import ROLE_MATRIX, role_matrix
-from tests.factories import PaymentFactory, UserFactory
+from tests.factories import MembershipFactory, PaymentFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -167,6 +168,44 @@ def test_checkout_creates_a_pending_payment(
     assert payment.amount_cents == 14_500
     assert payment.plan_amount_cents == 4_500
     assert payment.contribution_cents == 10_000
+
+
+def test_checkout_refuses_a_plan_from_a_life_member(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan
+) -> None:
+    """A life member has nothing to renew, so a plan is a 400 pointing at contributing."""
+    MembershipFactory(
+        user=member,
+        plan=life_plan,
+        starts_on=timezone.localdate() - timedelta(days=400),
+        ends_on=None,
+    )
+    api_client.force_login(member)
+
+    response = api_client.post(
+        CHECKOUT, {"plan": "annual", "contribution_cents": 0, "provider": "mock"}
+    )
+
+    assert response.json()["plan"] == [
+        "You are a life member, so there is nothing to renew. Make a contribution instead."
+    ]
+
+
+def test_a_life_member_may_still_contribute(
+    api_client: APIClient, member: User, life_plan: MembershipPlan
+) -> None:
+    """A checkout with no plan and a contribution goes through for a life member."""
+    MembershipFactory(
+        user=member,
+        plan=life_plan,
+        starts_on=timezone.localdate() - timedelta(days=400),
+        ends_on=None,
+    )
+    api_client.force_login(member)
+
+    response = api_client.post(CHECKOUT, {"contribution_cents": 5_000, "provider": "mock"})
+
+    assert response.status_code == 201
 
 
 def test_checkout_ignores_an_amount_sent_by_the_client(

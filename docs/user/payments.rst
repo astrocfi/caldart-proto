@@ -81,7 +81,8 @@ following year.  Your dashboard shows the new date straight away.
 
 If your membership has already lapsed, the new term starts today.
 
-Life members have nothing to renew.
+Life members have nothing to renew.  Their money goes to a contribution instead,
+and |org| refuses a membership plan at their checkout with a line saying so.
 
 The Payments screen
 -------------------
@@ -112,9 +113,9 @@ You can ask |org| to renew your Annual membership for you, so it never lapses
 because a reminder arrived in a busy week.
 
 **Turning it on.**  Tick **Renew automatically each year** at the checkout, and
-the card or PayPal account you pay with is saved for next time.  The box appears
-for a membership with a term and not for a membership for life, which has
-nothing to renew.
+the card or PayPal account you pay with is saved for next time.  A life member
+sees **Contribute this amount automatically each year** in its place, since
+nothing of theirs renews.
 
 Or turn it on without paying anything: **Turn on** on the **Automatic renewal**
 card opens the same choices the checkout offers -- the plan that will renew, the
@@ -141,7 +142,8 @@ the renewal emails cover that term instead.
 
 **Changing or stopping it.**  The **Automatic renewal** card on the Payments
 screen shows the method, the plan, the contribution, the next charge date and
-the amount.  **Change contribution** adjusts what is renewed alongside your
+the amount.  The date is always there while it is on: it is either the day of a
+charge already scheduled or the day the next one falls due.  **Change contribution** adjusts what is renewed alongside your
 dues; the dues themselves are whatever the plan costs on the day.  **Turn off**
 asks you to confirm and then stops it, immediately: nothing further is charged,
 the saved method is dropped, and your membership still runs to the end of the
@@ -164,7 +166,12 @@ the record.  If you have been lapsed for more than a month, |org| does not
 charge you out of the blue: automatic renewal switches itself off, you are told
 why, and you renew by hand from the Payments screen.
 
-**Life members** have nothing to renew, so the option is not offered.
+**If you are a life member.**  Your membership never runs out, so there is
+nothing to renew — but you can still ask |org| to take a contribution for you
+once a year.  The card is headed **Automatic contribution**, the emails say
+"contribution" and never "renewal", and the charge falls on the anniversary of
+the day you turned it on, or of the last contribution taken.  **Change
+contribution** adjusts the amount; there is no plan to choose.
 
 **If your record came from the old CiviCRM system** with automatic renewal
 switched on, it did not come across: the card was never handed to |org|.  Turn

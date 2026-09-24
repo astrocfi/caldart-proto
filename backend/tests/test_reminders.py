@@ -477,10 +477,11 @@ def test_command_rejects_a_bad_date(annual_plan: MembershipPlan) -> None:
         call_command("send_renewal_reminders", "--today=last tuesday")
 
 
-def test_summary_lines_cover_every_kind() -> None:
+def test_summary_lines_cover_every_kind(annual_plan: MembershipPlan) -> None:
     """``as_lines`` lists every kind and each non-zero reason; ``as_dict`` sums both."""
+    user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T7))
     run = ReminderRun(today=TODAY, dry_run=False)
-    run.record_sent(ReminderKind.T7)
+    run.record_sent(ReminderKind.T7, user, membership)
     run.record_skipped("lifetime")
 
     lines = "\n".join(run.as_lines())
@@ -488,7 +489,49 @@ def test_summary_lines_cover_every_kind() -> None:
     for kind in ALL_KINDS:
         assert kind in lines
     assert "lifetime" in lines
-    assert run.as_dict() == {"sent": 1, "skipped": 1}
+    assert run.as_dict()["sent"] == 1
+    assert run.as_dict()["skipped"] == 1
+
+
+def test_a_dry_run_names_every_member_it_would_write_to(annual_plan: MembershipPlan) -> None:
+    """A rehearsal's actions carry the member, the address and the expiry date."""
+    ends_on = ends_on_for(ReminderKind.T30)
+    user, _term = make_member(annual_plan, ends_on)
+
+    run = send_renewal_reminders(today=TODAY, dry_run=True)
+
+    assert [action.as_dict() for action in run.actions] == [
+        {
+            "kind": ReminderKind.T30,
+            "member": user.display_name,
+            "email": user.email,
+            "on": ends_on.isoformat(),
+            "amount_cents": None,
+            "detail": "",
+        }
+    ]
+
+
+def test_a_dry_run_names_the_same_members_a_live_run_then_writes_to(
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
+) -> None:
+    """The rehearsal's actions and the live run's actions agree, member for member."""
+    make_member(annual_plan, ends_on_for(ReminderKind.T30))
+
+    rehearsed = send_renewal_reminders(today=TODAY, dry_run=True)
+    live = send_renewal_reminders(today=TODAY, dry_run=False)
+
+    assert live.actions == rehearsed.actions
+
+
+def test_a_dry_run_prints_who_would_be_written_to(annual_plan: MembershipPlan) -> None:
+    """``send_renewal_reminders --dry-run`` names each member under the counts."""
+    user, _term = make_member(annual_plan, ends_on_for(ReminderKind.T30))
+    out = StringIO()
+
+    call_command("send_renewal_reminders", "--dry-run", f"--today={TODAY.isoformat()}", stdout=out)
+
+    assert f"would email t30 to {user.display_name} <{user.email}>" in out.getvalue()
 
 
 def test_reminder_email_takes_its_name_from_site_settings() -> None:

@@ -8,7 +8,15 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { RenewalsPanel, renewalRunSummary } from './RenewalsPanel';
 
-const RESULT = { noticed: 2, warned: 0, charged: 1, failed: 0, paused: 0, skipped: 3 };
+const RESULT = {
+  noticed: 2,
+  warned: 0,
+  charged: 1,
+  failed: 0,
+  paused: 0,
+  skipped: 3,
+  actions: [],
+};
 
 describe('renewalRunSummary', () => {
   it('says what a rehearsal would have done', () => {

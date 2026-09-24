@@ -63,6 +63,7 @@ export function makeMandate(overrides: Partial<RenewalMandate> = {}): RenewalMan
     user_email: 'member@example.org',
     plan: 'annual',
     plan_name: 'Annual',
+    kind: 'both',
     contribution_cents: 2500,
     amount_cents: 7000,
     provider: 'stripe',

@@ -101,7 +101,23 @@ remains.
 
 You get an email fourteen days before every charge saying the amount, the date
 and which method will be used, and you can turn it off at any time from the same
-screen.  Life memberships never expire, so the option is not offered.
+screen.
+
+See :doc:`payments`.
+
+I am a life member — can I still give every year?
+--------------------------------------------------
+
+Yes.  A life membership never expires, so there is nothing to renew, but you can
+ask CalDART to take a contribution for you once a year.  The card on the
+Payments screen is headed **Automatic contribution** rather than **Automatic
+renewal**, you choose the amount and nothing else, and the charge falls on the
+anniversary of the day you turned it on.  Every email about it says
+"contribution"; none of them says your membership is being renewed, because it
+is not.
+
+The renew screen offers a life member the same thing: a contribution, with no
+plan to buy.
 
 See :doc:`payments`.
 
@@ -120,7 +136,7 @@ How do I stop being charged automatically?
 ------------------------------------------
 
 **Payments** in the portal menu, then **Turn off** on the **Automatic renewal**
-card.  It takes effect immediately: nothing further is charged and the saved
+card -- **Automatic contribution**, if you are a life member.  It takes effect immediately: nothing further is charged and the saved
 payment method is dropped.  Your membership is untouched and runs to the end of
 the term you have already paid for, and the ordinary renewal reminders resume.
 If you would rather someone did it for you, ask the office.

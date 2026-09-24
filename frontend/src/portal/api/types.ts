@@ -718,15 +718,20 @@ export type MandateStatus = 'pending' | 'active' | 'paused' | 'canceled';
 
 export type RenewalOutcome = 'scheduled' | 'succeeded' | 'failed' | 'skipped';
 
+/** What a standing authority charges for. `contribution` renews nothing. */
+export type MandateKind = 'renewal' | 'both' | 'contribution';
+
 /** One member's standing authority for CalDART to renew their membership. */
 export interface RenewalMandate {
   id: number;
   user_id: number;
   user_name: string;
   user_email: string;
-  /** The slug of the plan that renews. */
-  plan: string;
-  plan_name: string;
+  /** The slug of the plan that renews, or null for a contribution alone. */
+  plan: string | null;
+  plan_name: string | null;
+  /** A renewal, a contribution, or both. A life member's is always `contribution`. */
+  kind: MandateKind;
   contribution_cents: number;
   /** The plan's price plus the contribution: what the next charge comes to. */
   amount_cents: number;
@@ -738,6 +743,7 @@ export interface RenewalMandate {
   method_exp_year: number | null;
   status: MandateStatus;
   failure_count: number;
+  /** The day of the next charge. Null only for a mandate that is not active. */
   next_charge_on: IsoDate | null;
   /** Why the most recent charge was refused, or an empty string. */
   last_error: string;
@@ -769,9 +775,17 @@ export interface RenewalAttempt {
 }
 
 export interface RenewalSetupRequest {
-  plan: string;
+  /** The plan to renew. A life member leaves it out: nothing of theirs renews. */
+  plan?: string;
   contribution_cents: number;
   provider: MandateProvider;
+}
+
+/** `PATCH /me/renewal`: the plan that renews and the contribution beside it. */
+export interface RenewalPatchRequest {
+  /** Leaving it out leaves the plan alone. A life member may not give one. */
+  plan?: string;
+  contribution_cents: number;
 }
 
 export type RenewalSetupResponse =
@@ -784,7 +798,23 @@ export interface RenewalConfirmRequest {
   setup_token: string;
 }
 
-/** The counts one automatic-renewal scan reports. */
+/**
+ * One email a scan sent or would send, or one charge it took, and who it was about.
+ *
+ * `kind` is the email template name, a reminder kind, or `charge`. `on` is the
+ * date the action concerns and `amount_cents` the money a charge moves; both are
+ * null for an action that carries neither.
+ */
+export interface RunAction {
+  kind: string;
+  member: string;
+  email: string;
+  on: IsoDate | null;
+  amount_cents: number | null;
+  detail: string;
+}
+
+/** The counts one automatic-renewal scan reports, and who they were about. */
 export interface RenewalRunResult {
   noticed: number;
   warned: number;
@@ -792,6 +822,7 @@ export interface RenewalRunResult {
   failed: number;
   paused: number;
   skipped: number;
+  actions: RunAction[];
 }
 
 /* ------------------------------------------------------------------ finance */
@@ -940,6 +971,7 @@ export interface ReminderLogEntry {
 export interface ReminderRunResult {
   sent: number;
   skipped: number;
+  actions: RunAction[];
 }
 
 /* ------------------------------------------------------------------ system */

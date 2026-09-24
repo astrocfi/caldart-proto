@@ -360,4 +360,4 @@ def test_the_run_endpoint_still_returns_sent_and_skipped(
 
     body = api_client.post(RUN_URL, {"dry_run": False}).json()
 
-    assert body == {"sent": 0, "skipped": 0}
+    assert body == {"sent": 0, "skipped": 0, "actions": []}
