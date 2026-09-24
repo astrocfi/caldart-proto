@@ -19,6 +19,7 @@ import type {
   ReminderKind,
   ReminderLogEntry,
   ReminderRunResult,
+  RenewalRunResult,
 } from '@/portal/api/types';
 
 export const HEALTH_KEY = ['system', 'health'] as const;
@@ -88,6 +89,25 @@ export function useRunReminders(): UseMutationResult<ReminderRunResult, unknown,
     onSuccess: (_result, dryRun) => {
       // A dry run writes nothing, so there is no new log row to fetch.
       if (!dryRun) void queryClient.invalidateQueries({ queryKey: ['system', 'reminders', 'log'] });
+    },
+  });
+}
+
+/**
+ * Runs the automatic-renewal scan (or a rehearsal) via `POST /system/renewals/run`.
+ *
+ * A real run charges cards and activates terms, so the finance area's own
+ * queries are dropped afterwards; a dry run writes nothing and leaves them be.
+ */
+export function useRunRenewals(): UseMutationResult<RenewalRunResult, unknown, boolean> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dryRun: boolean) =>
+      api.post<RenewalRunResult>('/system/renewals/run', { dry_run: dryRun }),
+    onSuccess: (_result, dryRun) => {
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
     },
   });
 }
