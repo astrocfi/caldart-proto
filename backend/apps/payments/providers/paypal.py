@@ -28,6 +28,7 @@ from apps.payments.providers.base import (
     PaymentError,
     PaymentVerificationError,
     Provider,
+    ProviderFees,
     ProviderNotConfiguredError,
     ProviderUnavailableError,
     register,
@@ -226,6 +227,41 @@ def captured_cents(order: dict[str, Any]) -> int:
     return sum(cents((c.get("amount") or {}).get("value", 0)) for c in completed_captures(order))
 
 
+def fees_from_capture(capture: dict[str, Any]) -> ProviderFees | None:
+    """What PayPal kept and paid across, from one capture's seller breakdown.
+
+    Reads ``seller_receivable_breakdown.paypal_fee.value`` and
+    ``.net_amount.value``, the decimal strings PayPal reports, and converts both
+    to cents.  Answers ``None`` when the capture carries no breakdown, which is
+    what an order that has not settled looks like, and when either figure cannot
+    be read as a number.
+    """
+    breakdown = capture.get("seller_receivable_breakdown")
+    if not isinstance(breakdown, dict):
+        return None
+    fee = (breakdown.get("paypal_fee") or {}).get("value")
+    net = (breakdown.get("net_amount") or {}).get("value")
+    if fee is None or net is None:
+        return None
+    try:
+        return ProviderFees(fee_cents=cents(fee), net_cents=cents(net))
+    except ValueError:
+        log.warning("PayPal reported a fee that is not a number: %r", fee)
+        return None
+
+
+def fees_from_order(order: dict[str, Any]) -> ProviderFees | None:
+    """The same, from a whole order: the breakdown of its first completed capture.
+
+    Answers ``None`` for an order with no completed capture, and for one whose
+    capture carries no breakdown yet.
+    """
+    captures = completed_captures(order)
+    if not captures:
+        return None
+    return fees_from_capture(captures[0])
+
+
 def log_capture_mismatch(payment: Payment, order: dict[str, Any], reason: str) -> None:
     """Record at ERROR a capture that took money we cannot match to our row.
 
@@ -371,11 +407,14 @@ class PayPalProvider(Provider):
             log_capture_mismatch(payment, order, "custom_id")
             raise PaymentVerificationError("The PayPal capture belongs to another payment.")
 
+        fees = fees_from_order(order)
         mark_succeeded(
             payment,
             wallet=PaymentWallet.PAYPAL,
             raw=order,
             provider_ref=order_id,
+            fee_cents=fees.fee_cents if fees is not None else None,
+            net_cents=fees.net_cents if fees is not None else None,
         )
         return True
 
@@ -416,13 +455,35 @@ class PayPalProvider(Provider):
             if amount != payment.amount_cents:
                 log.error("PayPal webhook amount %s does not match payment %s", amount, payment.pk)
                 return JsonResponse({"received": True, "verified": True, "handled": False})
-            mark_succeeded(payment, wallet=PaymentWallet.PAYPAL, raw=payload)
+            fees = fees_from_capture(resource)
+            mark_succeeded(
+                payment,
+                wallet=PaymentWallet.PAYPAL,
+                raw=payload,
+                fee_cents=fees.fee_cents if fees is not None else None,
+                net_cents=fees.net_cents if fees is not None else None,
+            )
         elif event_type in CAPTURE_FAILED:
             mark_failed(payment, payload)
         else:
             return JsonResponse({"received": True, "verified": True, "handled": False})
 
         return JsonResponse({"received": True, "verified": True, "handled": True})
+
+    # ------------------------------------------------------------------ fees
+    def fetch_fees(self, payment: Payment) -> ProviderFees | None:
+        """Read the order again and take the fee off its capture's breakdown.
+
+        Answers ``None`` for a payment with no order id, and for an order PayPal
+        has not settled.  Raises
+        :class:`~apps.payments.providers.base.ProviderNotConfiguredError` without
+        credentials and
+        :class:`~apps.payments.providers.base.ProviderUnavailableError` when
+        PayPal cannot be reached.
+        """
+        if not payment.provider_ref:
+            return None
+        return fees_from_order(call("GET", f"/v2/checkout/orders/{payment.provider_ref}"))
 
     def verify_signature(self, request: HttpRequest, payload: dict[str, Any]) -> bool:
         """Ask PayPal whether the notification really came from them.

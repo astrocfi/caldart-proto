@@ -9,7 +9,12 @@ The flow:
 3. ``confirm`` retrieves the intent again and refuses to activate a membership
    unless Stripe agrees about the status, amount, currency, and payment id.
 4. ``handle_webhook`` is the safety net for redirect-based methods, and is
-   idempotent because :func:`~apps.payments.services.mark_succeeded` is.
+   idempotent because :func:`~apps.payments.services.mark_succeeded` is.  It
+   also carries ``charge.updated``, which is how a fee Stripe could not report
+   at the moment of the charge reaches us.
+
+Stripe is never asked to email a receipt of its own: CalDART sends one receipt,
+its own, which carries the 501(c)(3) wording a donor needs.
 
 Every call goes through :func:`stripe_client`, whose timeout and retry budget
 are shorter than the timeouts of the proxies in front of Django, so a slow
@@ -34,13 +39,15 @@ from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonR
 
 from apps.payments.models import Payment, PaymentProvider, PaymentWallet
 from apps.payments.providers.base import (
+    PaymentError,
     PaymentVerificationError,
     Provider,
+    ProviderFees,
     ProviderNotConfiguredError,
     ProviderUnavailableError,
     register,
 )
-from apps.payments.services import mark_failed, mark_succeeded
+from apps.payments.services import fees_are_known, mark_failed, mark_succeeded, record_fees
 
 log = logging.getLogger(__name__)
 
@@ -55,8 +62,16 @@ WALLET_TYPES: dict[str, str] = {
     "link": PaymentWallet.LINK,
 }
 
+#: The event Stripe sends when a charge's balance transaction becomes readable,
+#: which is how a fee that was not known at checkout arrives.
+CHARGE_UPDATED = "charge.updated"
+
 #: Intent statuses that mean the customer will not be charged.
 FAILED_STATUSES = frozenset({"canceled", "requires_payment_method"})
+
+#: What every retrieval expands, so the charge and the balance transaction that
+#: carries the fee come back with the intent instead of costing two more calls.
+INTENT_EXPAND = ["latest_charge.balance_transaction"]
 
 #: How long one Stripe HTTP attempt may take, and how many times the library
 #: may retry it.  The worst case is the product plus one attempt -- 40 seconds
@@ -153,6 +168,50 @@ def wallet_from_intent(intent: dict[str, Any]) -> str:
     return PaymentWallet.CARD
 
 
+def fees_from_intent(intent: dict[str, Any]) -> ProviderFees | None:
+    """What Stripe kept and paid across, from the intent's balance transaction.
+
+    Reads ``latest_charge.balance_transaction.fee`` and ``.net``, which are
+    integer cents in the settlement currency.  Answers ``None`` when the intent
+    was retrieved without the expansion, and when Stripe has not created the
+    balance transaction yet -- some payment methods settle minutes after the
+    charge, and until they do there is no fee to report.
+    """
+    charge = intent.get("latest_charge")
+    if not isinstance(charge, dict):
+        return None
+    return fees_from_charge(charge)
+
+
+def fees_from_charge(charge: dict[str, Any]) -> ProviderFees | None:
+    """The same, from a charge on its own, as a ``charge.updated`` event carries it.
+
+    Answers ``None`` when the charge's ``balance_transaction`` is still an
+    unexpanded id or is missing altogether.
+    """
+    transaction = charge.get("balance_transaction")
+    if not isinstance(transaction, dict):
+        return None
+    fee = transaction.get("fee")
+    net = transaction.get("net")
+    if fee is None or net is None:
+        return None
+    return ProviderFees(fee_cents=int(fee), net_cents=int(net))
+
+
+def payment_for_charge(charge: dict[str, Any]) -> Payment | None:
+    """Find our row from a charge: its metadata first, then its intent id.
+
+    A charge carries the intent's metadata, so the same ``payment_id`` lookup
+    works; failing that, the charge's ``payment_intent`` is matched against
+    ``provider_ref``.  Returns ``None`` when neither finds a row.
+    """
+    intent_id = charge.get("payment_intent")
+    return payment_for_intent(
+        {"metadata": charge.get("metadata") or {}, "id": intent_id if intent_id else None}
+    )
+
+
 def payment_for_intent(intent: dict[str, Any]) -> Payment | None:
     """Find our row from the intent's metadata, falling back to the intent id.
 
@@ -212,9 +271,6 @@ class StripeProvider(Provider):
                     "currency": payment.currency,
                     "automatic_payment_methods": {"enabled": True},
                     "description": f"CalDART \u00b7 {payment.description}",
-                    # stripe's params type the field as a string, but its API
-                    # takes null for "send no receipt".
-                    "receipt_email": payment.user.email or None,  # type: ignore[typeddict-item]
                     "metadata": {
                         "payment_id": str(payment.pk),
                         "user_id": str(payment.user_id),
@@ -252,7 +308,7 @@ class StripeProvider(Provider):
 
         client = stripe_client()
         try:
-            retrieved = client.v1.payment_intents.retrieve(intent_id, {"expand": ["latest_charge"]})
+            retrieved = client.v1.payment_intents.retrieve(intent_id, {"expand": INTENT_EXPAND})
         except stripe.StripeError as exc:
             raise unavailable(payment, "payment_intents.retrieve", exc) from exc
         intent = retrieved.to_dict()
@@ -265,11 +321,14 @@ class StripeProvider(Provider):
                 return False
             raise PaymentVerificationError(f"Stripe reports the payment as '{status}'.")
 
+        fees = fees_from_intent(intent)
         mark_succeeded(
             payment,
             wallet=wallet_from_intent(intent),
             raw=jsonable(intent),
             provider_ref=intent["id"],
+            fee_cents=fees.fee_cents if fees is not None else None,
+            net_cents=fees.net_cents if fees is not None else None,
         )
         return True
 
@@ -296,9 +355,10 @@ class StripeProvider(Provider):
         does not check out.  Otherwise the answer is 200 with
         ``{"received": true, "handled": ...}``: ``handled`` is true when a
         ``payment_intent.succeeded`` event passed :meth:`verify` and activated the
-        term, or a ``payment_intent.payment_failed`` event marked the payment
-        failed.  An unknown payment, a failed verification and any other event type
-        are all received but not handled.
+        term, when a ``payment_intent.payment_failed`` event marked the payment
+        failed, and when a ``charge.updated`` event filled in a fee that was not
+        known when the money arrived.  An unknown payment, a failed verification
+        and any other event type are all received but not handled.
         """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
@@ -314,7 +374,11 @@ class StripeProvider(Provider):
 
         event = verified.to_dict()
         event_type = event.get("type", "")
-        intent = (event.get("data") or {}).get("object") or {}
+        resource = (event.get("data") or {}).get("object") or {}
+        if event_type == CHARGE_UPDATED:
+            return self.handle_charge_updated(resource)
+
+        intent = resource
         payment = payment_for_intent(intent)
         if payment is None:
             log.info("Stripe webhook %s referenced an unknown payment", event_type)
@@ -326,11 +390,14 @@ class StripeProvider(Provider):
             except PaymentVerificationError as exc:
                 log.error("Stripe webhook verification failed: %s", exc)
                 return JsonResponse({"received": True, "handled": False})
+            fees = fees_from_intent(intent)
             mark_succeeded(
                 payment,
                 wallet=wallet_from_intent(intent),
                 raw=jsonable(intent),
                 provider_ref=intent.get("id") or payment.provider_ref,
+                fee_cents=fees.fee_cents if fees is not None else None,
+                net_cents=fees.net_cents if fees is not None else None,
             )
         elif event_type == "payment_intent.payment_failed":
             mark_failed(payment, jsonable(intent))
@@ -338,3 +405,50 @@ class StripeProvider(Provider):
             return JsonResponse({"received": True, "handled": False})
 
         return JsonResponse({"received": True, "handled": True})
+
+    def handle_charge_updated(self, charge: dict[str, Any]) -> JsonResponse:
+        """Fill in a fee Stripe could not report when the money arrived.
+
+        ``charge.updated`` is the event that fires when the balance transaction
+        finally exists.  The fee is taken from the event when it carries an
+        expanded balance transaction, and asked for again otherwise.  A payment
+        whose fee is already recorded is left alone, so a re-delivery changes
+        nothing, and a payment Stripe cannot be asked about is acknowledged
+        unhandled rather than failing the delivery.
+        """
+        payment = payment_for_charge(charge)
+        if payment is None or not payment.is_succeeded or fees_are_known(payment):
+            return JsonResponse({"received": True, "handled": False})
+
+        fees = fees_from_charge(charge)
+        if fees is None:
+            try:
+                fees = self.fetch_fees(payment)
+            except PaymentError as exc:
+                log.warning("Could not read the fee for payment %s: %s", payment.pk, exc)
+                return JsonResponse({"received": True, "handled": False})
+        if fees is None:
+            return JsonResponse({"received": True, "handled": False})
+
+        record_fees(payment, fee_cents=fees.fee_cents, net_cents=fees.net_cents)
+        return JsonResponse({"received": True, "handled": True})
+
+    # ------------------------------------------------------------------ fees
+    def fetch_fees(self, payment: Payment) -> ProviderFees | None:
+        """Retrieve the intent again and read the fee off its balance transaction.
+
+        Answers ``None`` for a payment with no intent id, and for one whose
+        balance transaction Stripe has still not created.  Raises
+        :class:`ProviderNotConfiguredError` without a secret key and
+        :class:`ProviderUnavailableError` when Stripe cannot be reached.
+        """
+        if not payment.provider_ref:
+            return None
+        client = stripe_client()
+        try:
+            retrieved = client.v1.payment_intents.retrieve(
+                payment.provider_ref, {"expand": INTENT_EXPAND}
+            )
+        except stripe.StripeError as exc:
+            raise unavailable(payment, "payment_intents.retrieve", exc) from exc
+        return fees_from_intent(retrieved.to_dict())

@@ -216,7 +216,8 @@ def test_checkout_creates_a_payment_intent(
     assert created["amount"] == 14_500 == payment.amount_cents
     assert created["currency"] == "usd"
     assert created["automatic_payment_methods"] == {"enabled": True}
-    assert created["receipt_email"] == member.email
+    # CalDART sends the one receipt, so Stripe is never asked to send its own.
+    assert "receipt_email" not in created
     assert created["metadata"] == {
         "payment_id": str(payment.pk),
         "user_id": str(member.pk),
@@ -274,7 +275,7 @@ def test_confirm_activates_the_membership(
     assert response.status_code == 200
     assert response.json()["status"] == "succeeded"
     assert response.json()["membership"]["status"] == "current"
-    assert fake_intents.retrieved["expand"] == ["latest_charge"]
+    assert fake_intents.retrieved["expand"] == ["latest_charge.balance_transaction"]
 
     payment.refresh_from_db()
     assert payment.wallet == PaymentWallet.CARD
