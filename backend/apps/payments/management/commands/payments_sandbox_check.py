@@ -1,10 +1,10 @@
 """``manage.py payments_sandbox_check`` -- verify Stripe and PayPal credentials.
 
 Makes one read-only call to each configured provider -- Stripe's account balance
-and payment method configuration, PayPal's OAuth token and account identity --
-so a developer can tell their ``.env`` is wired up correctly before opening a
-browser and working through a checkout by hand.  Nothing is charged, captured,
-or refunded.
+and payment method configuration, PayPal's OAuth token and its configured
+webhooks -- so a developer can tell their ``.env`` is wired up correctly before
+opening a browser and working through a checkout by hand.  Nothing is charged,
+captured, or refunded.
 
 Exits non-zero, through ``CommandError``, when no provider is usable: neither
 is configured, or a configured one could not be reached.  A provider that is
@@ -30,10 +30,14 @@ from caldart.reports import money_label
 
 log = logging.getLogger(__name__)
 
-#: The PayPal endpoint that identifies the account behind a client-credentials
-#: token.  It creates and moves nothing, which is why it is the standard way to
-#: prove a REST app's keys are live before using them for anything else.
-PAYPAL_USERINFO_PATH = "/v1/identity/oauth2/userinfo?schema=paypalv1.1"
+#: The Webhooks Management API's list endpoint.  It creates and moves nothing,
+#: and -- unlike the OpenID Connect identity endpoint, which needs a token from
+#: a user login and would report a perfectly working REST app key as
+#: unreachable -- it is a call any client-credentials token is entitled to,
+#: which is why it is the standard way to prove a REST app's keys are live.
+#: Listing the account's webhooks also lets the command confirm the configured
+#: ``PAYPAL_WEBHOOK_ID`` actually names one of them.
+PAYPAL_WEBHOOKS_PATH = "/v1/notifications/webhooks"
 
 
 @dataclass
@@ -150,19 +154,35 @@ def _check_stripe() -> _ProviderReport:
     return _ProviderReport(slug="stripe", configured=True, ok=True, lines=lines)
 
 
+def _paypal_webhook_id_line(webhook_ids: list[str]) -> str:
+    """Report whether ``PAYPAL_WEBHOOK_ID`` names one of the account's webhooks.
+
+    Never echoes the configured id itself, so misreading the report can never
+    be mistaken for reading the id out of ``.env``.
+    """
+    webhook_id = settings.PAYPAL_WEBHOOK_ID
+    if not webhook_id:
+        return "PAYPAL_WEBHOOK_ID: not set"
+    if webhook_id in webhook_ids:
+        return "PAYPAL_WEBHOOK_ID: set and found among the account's webhooks"
+    return "PAYPAL_WEBHOOK_ID: set but not found among the account's webhooks"
+
+
 def _check_paypal() -> _ProviderReport:
-    """Fetch a PayPal token and read the sandbox account's identity.
+    """Fetch a PayPal token and list the account's configured webhooks.
 
     Answers ``configured=False`` when ``PAYPAL_CLIENT_ID`` or
     ``PAYPAL_CLIENT_SECRET`` is empty, without making a call. Otherwise fetches
-    an OAuth token and reads it back with :data:`PAYPAL_USERINFO_PATH`, which
-    identifies the account the credentials belong to without creating or moving
-    anything. A call PayPal refuses or that cannot be reached comes back as
-    ``ok=False`` with the raised :class:`~apps.payments.providers.base.PaymentError`'s
-    message, logged at warning level with nothing but the exception's class.
-    Fees and refunds need nothing beyond working credentials; vault (automatic
-    renewal) is a REST app setting this command cannot read through the API, so
-    it is reported as something to check by hand.
+    an OAuth token and calls :data:`PAYPAL_WEBHOOKS_PATH`, which proves the
+    credentials are live and lets :func:`_paypal_webhook_id_line` confirm the
+    configured ``PAYPAL_WEBHOOK_ID`` actually names one of the account's
+    webhooks, without creating or moving anything. A call PayPal refuses or
+    that cannot be reached comes back as ``ok=False`` with the raised
+    :class:`~apps.payments.providers.base.PaymentError`'s message, logged at
+    warning level with nothing but the exception's class. Fees and refunds
+    need nothing beyond working credentials; vault (automatic renewal) is a
+    REST app setting this command cannot read through the API, so it is
+    reported as something to check by hand.
     """
     if not get_provider("paypal").is_configured():
         return _ProviderReport(
@@ -174,25 +194,37 @@ def _check_paypal() -> _ProviderReport:
 
     try:
         paypal_provider.access_token()
-        identity = paypal_provider.call("GET", PAYPAL_USERINFO_PATH)
+        response = paypal_provider.call("GET", PAYPAL_WEBHOOKS_PATH)
     except PaymentError as exc:
         log.warning("payments_sandbox_check: PayPal call failed: %s", type(exc).__name__)
         return _ProviderReport(
             slug="paypal", configured=True, ok=False, lines=[f"could not reach PayPal: {exc}"]
         )
 
-    name = identity.get("name") or "(no name on the sandbox account)"
-    email = identity.get("email") or "(no email on the sandbox account)"
+    webhook_ids = [webhook["id"] for webhook in response.get("webhooks") or []]
     lines = [
         f"token: fetched (PAYPAL_ENV={settings.PAYPAL_ENV})",
-        f"account: {name} <{email}>",
-        _webhook_line("PAYPAL_WEBHOOK_ID", settings.PAYPAL_WEBHOOK_ID),
+        f"webhooks configured on this account: {len(webhook_ids)}",
+        _paypal_webhook_id_line(webhook_ids),
         "fees: available -- seller_receivable_breakdown on every capture",
         "refunds: available -- POST /v2/payments/captures/{id}/refund",
         "vault (automatic renewal): enable by hand under the REST app's Vault feature; "
         "this command cannot check it without creating a setup token",
     ]
     return _ProviderReport(slug="paypal", configured=True, ok=True, lines=lines)
+
+
+def _mock_line() -> str:
+    """Report the mock provider's availability, which follows ``PAYMENTS_MOCK_ENABLED``.
+
+    A developer who turned the switch off in their own ``.env`` -- or a
+    checkout running against ``prod.py``, which defaults it to ``False`` -- sees
+    ``disabled`` rather than a claim that the mock tab is there when the
+    checkout will not offer it.
+    """
+    if settings.PAYMENTS_MOCK_ENABLED:
+        return "mock: available"
+    return f"mock: disabled (PAYMENTS_MOCK_ENABLED={settings.PAYMENTS_MOCK_ENABLED})"
 
 
 class Command(BaseCommand):
@@ -216,9 +248,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  {line}")
             self.stdout.write("")
 
-        self.stdout.write(
-            f"mock: always available (PAYMENTS_MOCK_ENABLED={settings.PAYMENTS_MOCK_ENABLED})"
-        )
+        self.stdout.write(_mock_line())
 
         usable = [report.slug for report in reports if report.ok]
         broken = [report.slug for report in reports if report.configured and not report.ok]
