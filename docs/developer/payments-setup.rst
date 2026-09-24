@@ -632,8 +632,9 @@ Before opening a browser, run:
 
 ``manage.py payments_sandbox_check`` makes one read-only call to each
 provider whose keys are set — Stripe's account balance and its enabled
-payment methods, a PayPal OAuth token and the sandbox account's own name —
-and reports which webhook secret is configured and what fees, refunds and
+payment methods, a PayPal OAuth token and the account's configured webhooks
+(confirming ``PAYPAL_WEBHOOK_ID`` names one of them, when it is set) — and
+reports which webhook secret is configured and what fees, refunds and
 off-session (automatic renewal) charges each provider will be able to do. It
 moves no money and creates nothing. A provider left unconfigured is named but
 does not by itself fail the command; it exits non-zero only when a provider
@@ -656,10 +657,15 @@ and refund events, so run it with the full list instead:
 ``payment_intent.succeeded`` and ``payment_intent.payment_failed`` are the
 checkout safety net; ``charge.updated`` is how a fee Stripe could not report
 at the moment of the charge arrives; ``charge.refunded`` is how a refund taken
-in the Stripe dashboard reaches the ledger (:doc:`api-refunds`);
-``setup_intent.succeeded`` covers turning automatic renewal on from the
-Payments screen without paying anything at that moment. Leave the terminal
-running for the whole drill below.
+in the Stripe dashboard reaches the ledger (:doc:`api-refunds`).
+``setup_intent.succeeded`` is not handled by ``handle_webhook`` at all: turning
+automatic renewal on from the Payments screen without paying anything saves
+the method synchronously, the moment the browser posts the setup intent id to
+``POST /me/renewal/confirm`` (:doc:`api-renewals`). It is only kept in this
+list so ``stripe listen`` forwards it into the terminal log rather than
+filtering it out -- seeing it arrive is a useful confirmation that the setup
+succeeded, even though nothing in CalDART reacts to the event itself. Leave
+the terminal running for the whole drill below.
 
 Stripe test cards for every path
 ---------------------------------
@@ -729,7 +735,7 @@ but every step names the PayPal or mock equivalent where it differs.
 
    .. code-block:: console
 
-      $ uv run backend/manage.py run_auto_renewals --today 2026-12-28
+      $ uv run backend/manage.py run_auto_renewals --today 2026-12-17
 
    ``renewal_notice`` arrives in Mailpit naming the amount, the date and the
    card. Running the same command again for the same day sends nothing a
@@ -754,10 +760,11 @@ but every step names the PayPal or mock equivalent where it differs.
    0000 0341`` (or the mock provider's ``0002`` mandate) instead. The charge
    date's scan declines, ``renewal_failed`` names the reason and the next try
    in ``RETRY_OFFSETS`` (one day, three days, a week); run the scan again as
-   of each retry date in turn. After the third decline the mandate is
-   ``paused``, the member is told automatic renewal is off, and a
-   ``send_renewal_reminders --today`` run for a date after that shows the
-   ordinary reminder resuming for that membership (:doc:`reminders`).
+   of each retry date in turn. After the charge and all three retries are
+   refused -- the fourth decline -- the mandate is ``paused``, the member is
+   told automatic renewal is off, and a ``send_renewal_reminders --today``
+   run for a date after that shows the ordinary reminder resuming for that
+   membership (:doc:`reminders`).
 
 #. **Refund from the portal.** Open the charged payment from **Payments →
    Payments** as the treasurer, choose **Refund**, and give back the
@@ -788,8 +795,9 @@ but every step names the PayPal or mock equivalent where it differs.
    today's date in the filename and the column chooser's current columns.
 
 A run of the whole drill exercises every email in :doc:`renewals` and
-:doc:`api-refunds` but the plain ``receipt`` and cancellation emails, which
-the mock provider's checkout already covers without any of this setup.
+:doc:`api-refunds` but ``renewal_card_expiring``, the plain ``receipt``, and
+the cancellation email, which the mock provider's checkout already covers
+without any of this setup.
 
 
 Origins the browser is allowed to reach
