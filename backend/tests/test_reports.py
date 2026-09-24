@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import cast
 
 import pytest
 from django.http import StreamingHttpResponse
+from rest_framework.exceptions import ValidationError
 
 from caldart.reports import (
     ReportColumn,
+    chosen_columns,
+    column_payload,
     csv_response,
     csv_rows,
     filter_summary,
@@ -200,6 +204,55 @@ def test_select_columns_rejects_a_key_asked_for_twice() -> None:
     """A repeated key raises ``ValueError`` naming it rather than repeating the column."""
     with pytest.raises(ValueError, match="Repeated column: name"):
         select_columns(COLUMNS, ["name", "email", "name"])
+
+
+def test_a_column_defaults_to_an_even_share_of_the_width() -> None:
+    """A column declared without a width asks for the same room as any other."""
+    assert [column.width for column in COLUMNS] == [1.0, 1.0, 1.0]
+
+
+def test_a_column_carries_the_relative_width_it_was_given() -> None:
+    """``width`` is the share of the printable width the PDF gives the column."""
+    wide: ReportColumn[tuple[str, str, str]] = ReportColumn(
+        "note", "Note", True, lambda row: row[2], width=3.5
+    )
+    assert wide.width == 3.5
+
+
+def test_column_payload_describes_every_column_for_the_chooser() -> None:
+    """``column_payload`` answers one ``key``/``label``/``default`` entry per column."""
+    assert column_payload(COLUMNS) == [
+        {"key": "name", "label": "Name", "default": True},
+        {"key": "email", "label": "Email", "default": True},
+        {"key": "note", "label": "Note", "default": False},
+    ]
+
+
+def test_chosen_columns_reads_a_comma_separated_query_parameter() -> None:
+    """``chosen_columns`` turns ``?columns=note,name`` into those columns, in order."""
+    chosen = chosen_columns(COLUMNS, "note,name")
+    assert [column.key for column in chosen] == ["note", "name"]
+
+
+def test_chosen_columns_answers_the_defaults_for_an_absent_parameter() -> None:
+    """An empty ``?columns=`` means the caller chose nothing, so the defaults apply."""
+    assert [column.key for column in chosen_columns(COLUMNS, "")] == ["name", "email"]
+
+
+def test_chosen_columns_refuses_an_unknown_key_keyed_by_columns() -> None:
+    """A key no column carries is a 400 keyed ``columns`` naming that key."""
+    with pytest.raises(ValidationError) as caught:
+        chosen_columns(COLUMNS, "name,shoe_size")
+    detail = cast("dict[str, list[str]]", caught.value.detail)
+    assert detail["columns"] == ["Unknown column: shoe_size"]
+
+
+def test_chosen_columns_refuses_a_repeated_key_keyed_by_columns() -> None:
+    """A key asked for twice is a 400 keyed ``columns`` naming that key."""
+    with pytest.raises(ValidationError) as caught:
+        chosen_columns(COLUMNS, "name,name")
+    detail = cast("dict[str, list[str]]", caught.value.detail)
+    assert detail["columns"] == ["Repeated column: name"]
 
 
 def test_report_column_reads_a_row_through_its_value_function() -> None:
