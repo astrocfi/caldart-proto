@@ -82,8 +82,8 @@ Every endpoint that returns an account returns the same object:
    the same rule and give the same answer.
 
 ``profile_complete``
-   True when the member profile has ``phone``, ``address_line1``, ``city``
-   , ``postal_code``, and ``pilot_certificate_type`` filled in.  False when there is
+   True when the member profile has ``phone``, ``address_line1``, ``city``,
+   ``state``, ``postal_code``, and ``pilot_certificate_type`` filled in.  False when there is
    no profile at all.  The portal uses it to decide whether to nag.
 
 The payload is read-only everywhere except ``PATCH /admin/users/{id}``.

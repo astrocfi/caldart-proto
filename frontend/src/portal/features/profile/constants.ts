@@ -11,6 +11,7 @@ export { CERTIFICATE_TYPES, IFR_OPTIONS, MEDICAL_TYPES, RATINGS } from '@/portal
 export type { Choice } from '@/portal/choices';
 
 export const VOLUNTEER_INTERESTS = [
+  { field: 'vol_mission_pilot', label: 'Mission pilot' },
   { field: 'vol_ground_team', label: 'Ground team' },
   { field: 'vol_exercise_training', label: 'Exercises and training' },
   { field: 'vol_member_support', label: 'Member support' },
@@ -19,7 +20,7 @@ export const VOLUNTEER_INTERESTS = [
   { field: 'vol_newsletter', label: 'Newsletter' },
 ] as const;
 
-/** Offered as `<datalist>` suggestions on the free-text county field. */
+/** The counties the county field offers.  It is a California organization. */
 export const CA_COUNTIES = [
   'Alameda',
   'Alpine',

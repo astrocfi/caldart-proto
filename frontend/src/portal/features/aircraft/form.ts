@@ -83,11 +83,24 @@ const MONEY_FIELDS = ['liability_per_occurrence', 'liability_per_person', 'hull'
 
 export const MONEY_ERROR = 'Enter an amount of $0 or more.';
 
+/**
+ * A US registration as the FAA issues them, mirroring `N_NUMBER_RE` on the
+ * server: `N`, then one to five characters that start with a digit and may end
+ * with one or two letters, never I or O, which read as 1 and 0.
+ */
+export const N_NUMBER_RE = /^N[1-9][0-9]{0,3}[A-HJ-NP-Z]{0,2}$|^N[1-9][0-9]{0,4}$/;
+
+export const N_NUMBER_MESSAGE =
+  'Use a US registration like N172SP: N, then digits, then at most two letters.';
+
 /** Client-side checks that mirror the serializer, so mistakes surface early. */
 export function validateAircraft(values: AircraftFormValues): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!normalizeNNumber(values.n_number)) {
-    errors.n_number = 'Enter a registration, for example N12345.';
+  const registration = normalizeNNumber(values.n_number);
+  if (!registration) {
+    errors.n_number = 'Enter a registration, for example N172SP.';
+  } else if (!N_NUMBER_RE.test(registration)) {
+    errors.n_number = N_NUMBER_MESSAGE;
   }
   if (!values.make.trim()) errors.make = 'Enter the make, for example Cessna.';
   if (!values.model.trim()) errors.model = 'Enter the model, for example 172S Skyhawk.';

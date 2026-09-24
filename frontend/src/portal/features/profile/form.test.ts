@@ -24,8 +24,8 @@ describe('profileToForm', () => {
     expect(values.flight_review_date).toBe('');
   });
 
-  it('defaults a blank state to CA', () => {
-    expect(profileToForm(makeProfile({ state: '' })).state).toBe('CA');
+  it('defaults a missing state to CA', () => {
+    expect(profileToForm(makeProfile({ state: 'CA' })).state).toBe('CA');
   });
 });
 
@@ -40,22 +40,24 @@ describe('formToPatch', () => {
   });
 
   it('nulls the empty date, hour, and dart values', () => {
-    const patch = formToPatch({ ...EMPTY_PROFILE_FORM, phone: '555-0100' });
+    const patch = formToPatch({ ...EMPTY_PROFILE_FORM, phone: '415-555-0100' });
     expect(patch.dart_id).toBeNull();
     expect(patch.medical_expiration).toBeNull();
     expect(patch.flight_review_date).toBeNull();
     expect(patch.total_hours).toBeNull();
   });
 
-  it('trims and upper-cases what the server would anyway', () => {
+  it('sends every phone in the one stored shape', () => {
     const patch = formToPatch({
       ...EMPTY_PROFILE_FORM,
-      phone: '  555-0100  ',
-      state: 'ca',
+      phone: '  +1 (415) 555.0100  ',
+      phone_alt: '4155550199',
+      emergency_contact_phone: '1-415-555-0111',
       home_airport_identifier: 'pao',
     });
-    expect(patch.phone).toBe('555-0100');
-    expect(patch.state).toBe('CA');
+    expect(patch.phone).toBe('415-555-0100');
+    expect(patch.phone_alt).toBe('415-555-0199');
+    expect(patch.emergency_contact_phone).toBe('415-555-0111');
     expect(patch.home_airport_identifier).toBe('PAO');
   });
 });
@@ -72,13 +74,14 @@ describe('validateProfileForm', () => {
       'phone',
       'pilot_certificate_type',
       'postal_code',
+      'state',
     ]);
   });
 
   // `pilot_certificate_type` is required too, but it is a select that always
   // holds a value, so it cannot be missing from a rendered form.
   it('names every missing required field in its own words', () => {
-    const errors = validateProfileForm({ ...EMPTY_PROFILE_FORM, state: '', postal_code: '' });
+    const errors = validateProfileForm({ ...EMPTY_PROFILE_FORM, postal_code: '' });
     expect(errors).toEqual({
       phone: 'A phone number is required.',
       address_line1: 'Your street address is required.',
@@ -87,25 +90,58 @@ describe('validateProfileForm', () => {
     });
   });
 
-  it('rejects a state that is not two letters', () => {
-    expect(validateProfileForm({ ...EMPTY_PROFILE_FORM, state: 'California' }).state).toBe(
-      'Use the two-letter state code, for example CA.',
+  const PHONE_MESSAGE = 'Use a ten-digit number like 415-555-0100.';
+
+  it.each([
+    ['415-555-0100', undefined],
+    ['(415) 555-0100', undefined],
+    ['+1 415 555 0100', undefined],
+    ['4155550100', undefined],
+    ['555-0100', PHONE_MESSAGE],
+    ['415-555-010', PHONE_MESSAGE],
+    ['415-555-01000', PHONE_MESSAGE],
+    ['call the office', PHONE_MESSAGE],
+  ])('judges the phone number %s', (phone, expected) => {
+    expect(validateProfileForm({ ...EMPTY_PROFILE_FORM, phone }).phone).toBe(expected);
+  });
+
+  it('judges the alternate and emergency numbers the same way', () => {
+    const errors = validateProfileForm({
+      ...EMPTY_PROFILE_FORM,
+      phone: '415-555-0100',
+      phone_alt: '12345',
+      emergency_contact_phone: '415 555 0111',
+    });
+    expect(errors.phone_alt).toBe(PHONE_MESSAGE);
+    expect(errors.emergency_contact_phone).toBeUndefined();
+  });
+
+  it('takes an extension of digits only', () => {
+    const values = { ...EMPTY_PROFILE_FORM, phone: '415-555-0100' };
+    expect(validateProfileForm({ ...values, phone_extension: '4021' }).phone_extension).toBe(
+      undefined,
+    );
+    expect(validateProfileForm({ ...values, phone_extension: 'x40' }).phone_extension).toBe(
+      'An extension is digits only, for example 4021.',
     );
   });
 
-  const POSTAL_MESSAGE = 'Use a ZIP code like 95035 or 95035-1234.';
+  const POSTAL_MESSAGE = 'Use a five-digit ZIP code like 95035.';
 
   it.each([
     ['94559', undefined],
-    ['94559-1234', undefined],
     ['9455', POSTAL_MESSAGE],
     ['945590', POSTAL_MESSAGE],
-    ['94559-123', POSTAL_MESSAGE],
-    ['94559-12345', POSTAL_MESSAGE],
+    ['94559-1234', POSTAL_MESSAGE],
     ['94559 1234', POSTAL_MESSAGE],
     ['SW1A 1AA', POSTAL_MESSAGE],
   ])('judges the ZIP code %s', (postalCode, expected) => {
-    const values = { ...EMPTY_PROFILE_FORM, phone: '1', city: 'Napa', postal_code: postalCode };
+    const values = {
+      ...EMPTY_PROFILE_FORM,
+      phone: '415-555-0100',
+      city: 'Napa',
+      postal_code: postalCode,
+    };
     expect(validateProfileForm(values).postal_code).toBe(expected);
   });
 

@@ -541,10 +541,10 @@ def test_a_members_only_page_sits_beside_the_portal_link(
     assert [e["kind"] for e in entries] == ["page", "page", "portal", "portal"]
 
 
-def test_the_nav_greets_a_signed_in_visitor_by_name(
+def test_the_portal_link_greets_a_signed_in_visitor_by_name(
     client: Client, site_settings: SiteSettings, member: User
 ) -> None:
-    """A signed-in reader is greeted in the bar, by first name."""
+    """Signed in, the portal link says who you are: one entry, not two."""
     member.first_name = "Marta"
     member.save(update_fields=["first_name"])
     client.force_login(member)
@@ -552,6 +552,8 @@ def test_the_nav_greets_a_signed_in_visitor_by_name(
     body = client.get("/").content.decode()
 
     assert "Welcome, Marta" in body
+    assert f">{PORTAL_TITLE}</a>" not in body
+    assert 'href="/portal/"' in body
 
 
 def test_nav_shows_the_portal_instead_of_log_in_when_signed_in(
@@ -560,7 +562,7 @@ def test_nav_shows_the_portal_instead_of_log_in_when_signed_in(
     """A signed-in visitor sees the portal link in place of "Log in"."""
     client.force_login(member)
     body = client.get("/").content.decode()
-    assert f">{PORTAL_TITLE}</a>" in body
+    assert 'href="/portal/"' in body
     assert 'href="/portal/"' in body
     assert ">Log in</a>" not in body
 

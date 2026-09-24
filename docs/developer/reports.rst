@@ -135,6 +135,9 @@ aircraft             N-numbers of the planes the member commonly flies, spaced
 city                 City from the profile
 state                Two-letter state
 joined_on            Start of the earliest membership term
+member_since         The day the member joined, as recorded on their profile:
+                     the same date until the terms before a gap, or before an
+                     import, are missing
 ==================== ==========================================================
 
 Dates are ISO-8601 (``YYYY-MM-DD``) so a spreadsheet sorts them correctly.

@@ -528,6 +528,10 @@ def activate_term(
     plan.  ``source`` records how the term was come by, ``granted_by`` the
     administrator behind a manual grant, and ``note`` their reason.
 
+    The member's ``member_since`` is stamped with this term's start the first
+    time they hold one, and never moved afterwards: a renewal does not change
+    it, and neither does a gap and a return, which is what the date means.
+
     Idempotent on ``payment``: calling twice with the same payment returns the
     term created the first time.
     """
@@ -554,7 +558,7 @@ def activate_term(
     else:
         ends_on = starts_on + timedelta(days=plan.duration_days - 1)
 
-    return Membership.objects.create(
+    term = Membership.objects.create(
         user=user,
         plan=plan,
         starts_on=starts_on,
@@ -565,6 +569,22 @@ def activate_term(
         granted_by=granted_by,
         note=note,
     )
+    stamp_member_since(user, starts_on)
+    return term
+
+
+def stamp_member_since(user: User, joined_on: date) -> None:
+    """Record ``joined_on`` as the day ``user`` joined, if nothing has yet.
+
+    Does nothing when the profile already carries a date, so the earliest one
+    wins however the member's terms are created, and nothing at all when the
+    account has no profile row.
+    """
+    profile = MemberProfile.objects.filter(user=user, member_since__isnull=True).first()
+    if profile is None:
+        return
+    profile.member_since = joined_on
+    profile.save(update_fields=["member_since", "updated_at"])
 
 
 def expire_lapsed_memberships(on_date: date | None = None) -> int:

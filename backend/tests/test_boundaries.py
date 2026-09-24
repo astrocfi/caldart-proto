@@ -219,7 +219,7 @@ def test_a_make_of_exactly_sixty_characters_is_stored(api_client: APIClient, mem
     make = "C" * 60
 
     response = api_client.post(
-        AIRCRAFT_URL, {"n_number": "N60EXACT", "make": make, "model": "172S"}, format="json"
+        AIRCRAFT_URL, {"n_number": "N60EX", "make": make, "model": "172S"}, format="json"
     )
 
     assert response.status_code == 201
@@ -231,36 +231,33 @@ def test_a_make_one_character_too_long_is_refused(api_client: APIClient, member:
     api_client.force_login(member)
 
     response = api_client.post(
-        AIRCRAFT_URL, {"n_number": "N61LONG", "make": "C" * 61, "model": "172S"}, format="json"
+        AIRCRAFT_URL, {"n_number": "N61L", "make": "C" * 61, "model": "172S"}, format="json"
     )
 
     assert response.status_code == 400
     assert response.json() == {"make": ["Ensure this field has no more than 60 characters."]}
 
 
-def test_a_phone_one_character_too_long_is_refused(api_client: APIClient, member: User) -> None:
-    """A profile phone past its column is a 400 naming the field and the limit."""
+def test_a_phone_of_more_than_ten_digits_is_refused(api_client: APIClient, member: User) -> None:
+    """A number that is not ten digits is a 400 naming the field."""
     MemberProfileFactory(user=member)
     api_client.force_login(member)
 
-    response = api_client.patch(PROFILE_URL, {"phone": "5" * 33}, format="json")
+    response = api_client.patch(PROFILE_URL, {"phone": "5" * 13}, format="json")
 
     assert response.status_code == 400
-    assert response.json() == {"phone": ["Ensure this field has no more than 32 characters."]}
+    assert response.json() == {"phone": ["Use a ten-digit number like 415-555-0100."]}
 
 
-def test_a_phone_of_exactly_thirty_two_characters_is_stored(
-    api_client: APIClient, member: User
-) -> None:
-    """A profile phone filling the column exactly is stored as written."""
+def test_a_phone_typed_any_way_is_stored_in_one_shape(api_client: APIClient, member: User) -> None:
+    """Ten digits reach the column however they were punctuated."""
     MemberProfileFactory(user=member)
     api_client.force_login(member)
-    phone = "5" * 32
 
-    response = api_client.patch(PROFILE_URL, {"phone": phone}, format="json")
+    response = api_client.patch(PROFILE_URL, {"phone": "+1 (415) 555.0100"}, format="json")
 
     assert response.status_code == 200
-    assert response.json()["phone"] == phone
+    assert response.json()["phone"] == "415-555-0100"
 
 
 # --------------------------------------------------------------------------
@@ -286,7 +283,7 @@ def non_ascii_member(annual_plan: MembershipPlan) -> User:
         first_name=NON_ASCII_FIRST_NAME,
         last_name=NON_ASCII_LAST_NAME,
     )
-    MemberProfileFactory(user=user, phone="+34 600 000 000")
+    MemberProfileFactory(user=user, phone="415-555-0100")
     MembershipFactory(
         user=user,
         plan=annual_plan,

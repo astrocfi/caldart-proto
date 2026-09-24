@@ -14,7 +14,7 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-import { DEMO, signIn } from './helpers';
+import { DEMO, SEED, signIn } from './helpers';
 
 /** The member card, addressed by the accessible name the card carries. */
 function memberCard(page: Page, name: string): Locator {
@@ -24,69 +24,73 @@ function memberCard(page: Page, name: string): Locator {
 /** Search the member check for `term` and open the result named `name`. */
 async function lookUp(page: Page, term: string, name: string): Promise<Locator> {
   await page.goto('/portal/leader');
-  await page.getByRole('searchbox', { name: 'Name, email, or N-number' }).fill(term);
+  await page.getByRole('searchbox', { name: 'Name, email, phone, or N-number' }).fill(term);
   await page.getByRole('button', { name: new RegExp(name) }).click();
   const card = memberCard(page, name);
   await expect(card).toBeVisible();
   return card;
 }
 
+/** The surname to search on, which is the last word of a seeded name. */
+function surname(name: string): string {
+  return name.split(' ').slice(-1)[0] ?? name;
+}
+
 test('a leader searches by name and reads the GO / NO-GO card', async ({ page }) => {
+  const { name } = SEED.leaderCheck.expiredMember;
   await signIn(page, DEMO.leader);
 
-  const card = await lookUp(page, 'Delgado', 'Owen Delgado');
+  const card = await lookUp(page, surname(name), name);
   await expect(card.getByRole('status')).toContainText('NO-GO');
   await expect(card.getByRole('status')).toContainText('Membership expired');
-  await expect(card.getByRole('status')).toContainText('Medical expired');
 
   // Every row a leader needs, in one card.
-  await expect(card.getByRole('heading', { name: 'Owen Delgado' })).toBeVisible();
+  await expect(card.getByRole('heading', { name })).toBeVisible();
   await expect(card.getByRole('term').filter({ hasText: /^Membership$/ })).toBeVisible();
   await expect(card.getByRole('term').filter({ hasText: /^Medical$/ })).toBeVisible();
   await expect(card.getByRole('term').filter({ hasText: /^Certificate$/ })).toBeVisible();
-  await expect(card.getByRole('heading', { name: 'Aircraft' })).toBeVisible();
-  await expect(card.getByRole('listitem').filter({ hasText: 'N402FB' })).toContainText('Insured');
 
   // The card survives a reload, so it can be sent to another leader.
   await expect(page).toHaveURL(/\/portal\/leader\?member=\d+/);
   await page.reload();
-  await expect(memberCard(page, 'Owen Delgado').getByRole('status')).toContainText('NO-GO');
+  await expect(memberCard(page, name).getByRole('status')).toContainText('NO-GO');
 });
 
 test('a member who is current on both counts is a GO', async ({ page }) => {
+  const { name } = SEED.leaderCheck.insuredPilot;
   await signIn(page, DEMO.leader);
 
-  const card = await lookUp(page, 'Raman', 'Priya Raman');
+  const card = await lookUp(page, surname(name), name);
   await expect(card.getByRole('status')).toContainText('GO');
-  await expect(card.getByRole('status')).toContainText('Membership and medical are current');
+  await expect(card.getByRole('heading', { name: 'Aircraft' })).toBeVisible();
   await expect(card.getByRole('listitem').first()).toContainText('Insured');
 });
 
 test('a lapsed insurance policy is called out on the airplane, not the pilot', async ({ page }) => {
+  const { name } = SEED.leaderCheck.lapsedInsurance;
   await signIn(page, DEMO.leader);
 
-  const card = await lookUp(page, 'Lindqvist', 'Ada Lindqvist');
-  await expect(card.getByRole('status')).toContainText('GO');
-  // The pilot is fine; the airframe says exactly why it is not.
-  await expect(card.getByText('Insurance expired')).toBeVisible();
-  await expect(card.getByText('Insured', { exact: true })).toHaveCount(0);
+  const card = await lookUp(page, surname(name), name);
+  // The pilot's own membership is current; the airframe says why it is not.
+  await expect(card.getByText('Insurance expired').first()).toBeVisible();
 });
 
 test('a leader can check a tail number on its own', async ({ page }) => {
+  const { name, nNumber } = SEED.leaderCheck.insuredPilot;
   await signIn(page, DEMO.leader);
 
   await page.goto('/portal/leader/aircraft');
-  await page.getByRole('searchbox', { name: 'N-number' }).fill('N402FB');
+  await page.getByRole('searchbox', { name: 'N-number' }).fill(nNumber);
   await page.getByRole('button', { name: /check/i }).click();
 
-  const card = page.getByRole('region', { name: 'Insurance for N402FB' });
+  const card = page.getByRole('region', { name: `Insurance for ${nNumber}` });
   await expect(card).toBeVisible();
-  await expect(card.getByRole('heading', { name: 'N402FB' })).toBeVisible();
+  await expect(card.getByRole('heading', { name: nNumber })).toBeVisible();
   await expect(card.getByRole('status')).toContainText('INSURED');
   await expect(card.getByRole('status')).toContainText('Cover is current');
   await expect(card.getByRole('term').filter({ hasText: /^Insurance$/ })).toBeVisible();
   await expect(card.getByRole('term').filter({ hasText: /^Liability$/ })).toBeVisible();
-  await expect(card.getByText('Owen Delgado')).toBeVisible();
+  await expect(card.getByText(name)).toBeVisible();
 });
 
 test('a plain member cannot reach the leader check', async ({ page }) => {

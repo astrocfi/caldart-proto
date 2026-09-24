@@ -41,7 +41,7 @@ USERS_LIST_URL = "/api/v1/admin/users"
 PROFILE_URL = "/api/v1/me/profile"
 
 #: The smallest body a profile ``PUT`` will accept.
-MINIMAL_PROFILE_PUT = {"phone": "555-0100"}
+MINIMAL_PROFILE_PUT = {"phone": "415-555-0100", "state": "CA"}
 
 #: Self-service and public endpoints a role-less account can still reach.
 NO_ROLE_ALLOWED_GETS = [
@@ -262,7 +262,7 @@ def test_role_may_patch_its_own_profile(
 ) -> None:
     """A partial profile edit is self-service for every role."""
     api_client.force_login(all_role_users[role])
-    response = api_client.patch(PROFILE_URL, {"phone": "555-0199"}, format="json")
+    response = api_client.patch(PROFILE_URL, {"phone": "415-555-0199"}, format="json")
     assert response.status_code == 200
 
 

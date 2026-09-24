@@ -20,6 +20,7 @@ export const TEST_AIRCRAFT: AircraftSummary = {
 export function makeProfile(overrides: Partial<Profile> = {}): Profile {
   return {
     phone: '650-555-0101',
+    phone_extension: '',
     phone_alt: '',
     address_line1: '1 Embarcadero',
     address_line2: '',
@@ -29,6 +30,7 @@ export function makeProfile(overrides: Partial<Profile> = {}): Profile {
     county: 'San Mateo',
     emergency_contact_name: '',
     emergency_contact_phone: '',
+    member_since: null,
     home_airport_identifier: 'SQL',
     home_airport_city: 'San Carlos',
     dart: { id: 1, name: 'Palo Alto' },
@@ -43,6 +45,8 @@ export function makeProfile(overrides: Partial<Profile> = {}): Profile {
     flight_review_date: null,
     total_hours: 750,
     aircraft: [],
+    flies_rented_aircraft: false,
+    vol_mission_pilot: false,
     vol_ground_team: false,
     vol_exercise_training: false,
     vol_member_support: false,

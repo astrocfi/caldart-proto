@@ -13,6 +13,15 @@ from caldart.models import TimestampedModel
 
 _N_NUMBER_STRIP = re.compile(r"[^A-Za-z0-9]")
 
+#: A US registration as the FAA issues them: ``N``, then one to five characters
+#: that start with digits and may end with one or two letters, and never the
+#: letters I or O, which read as 1 and 0.  ``N1``, ``N172SP`` and ``N9EL`` pass;
+#: ``NA1``, ``N1234567`` and ``N1I`` do not.
+N_NUMBER_RE = re.compile(r"^N[1-9][0-9]{0,3}[A-HJ-NP-Z]{0,2}$|^N[1-9][0-9]{0,4}$")
+
+#: What an unusable registration is answered with, wherever it is typed.
+N_NUMBER_MESSAGE = "Use a US registration like N172SP: N, then digits, then at most two letters."
+
 
 def normalize_n_number(value: str | None) -> str:
     """Normalize a US registration to canonical ``N#####`` form.

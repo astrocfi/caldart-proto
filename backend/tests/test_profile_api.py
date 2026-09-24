@@ -31,7 +31,7 @@ DARTS_URL = "/api/v1/darts"
 PLANS_URL = "/api/v1/plans"
 
 #: The smallest body a PUT will accept.
-MINIMAL_PUT = {"phone": "555-0100"}
+MINIMAL_PUT = {"phone": "415-555-0100", "state": "CA"}
 
 
 # --------------------------------------------------------------------------
@@ -193,7 +193,7 @@ def test_put_updates_every_writable_section(
             "phone_alt": "650-555-0102",
             "address_line1": "1 Embarcadero",
             "city": "San Carlos",
-            "state": "ca",
+            "state": "CA",
             "postal_code": "94070",
             "county": "San Mateo",
             "emergency_contact_name": "Dana Lee",
@@ -204,7 +204,7 @@ def test_put_updates_every_writable_section(
             "pilot_certificate_type": "commercial",
             "certificate_number": "3141592",
             "ifr_rated": "yes",
-            "ratings": ["instrument", "multi_engine"],
+            "ratings": ["instrument", "amel"],
             "medical_type": "second",
             "medical_expiration": "2030-01-31",
             "total_hours": 1200,
@@ -216,9 +216,9 @@ def test_put_updates_every_writable_section(
 
     assert response.status_code == 200, response.json()
     data = response.json()
-    assert data["state"] == "CA"  # normalized
+    assert data["state"] == "CA"
     assert data["dart"] == {"id": dart.id, "name": dart.name}
-    assert data["ratings"] == ["instrument", "multi_engine"]
+    assert data["ratings"] == ["instrument", "amel"]
     assert data["vol_ground_team"] is True
     assert data["vol_fundraising"] is False
 
@@ -265,11 +265,11 @@ def test_patch_leaves_untouched_fields_alone(
     api_client.force_login(member)
     original_city = profile.city
 
-    response = api_client.patch(PROFILE_URL, {"phone_alt": "555-0111"}, format="json")
+    response = api_client.patch(PROFILE_URL, {"phone_alt": "415-555-0111"}, format="json")
 
     assert response.status_code == 200
     profile.refresh_from_db()
-    assert profile.phone_alt == "555-0111"
+    assert profile.phone_alt == "415-555-0111"
     assert profile.city == original_city
 
 
@@ -397,13 +397,13 @@ def test_ratings_are_de_duplicated(
 ) -> None:
     """A repeated rating is written only once, in the order first seen."""
     api_client.force_login(member)
-    response = api_client.patch(PROFILE_URL, {"ratings": ["cfi", "cfi", "glider"]}, format="json")
+    response = api_client.patch(PROFILE_URL, {"ratings": ["cfi", "cfi", "asel"]}, format="json")
     assert response.status_code == 200
-    assert response.json()["ratings"] == ["cfi", "glider"]
+    assert response.json()["ratings"] == ["cfi", "asel"]
 
 
-@pytest.mark.parametrize("state", ["California", "C", "1A"])
-def test_state_must_be_two_letters(
+@pytest.mark.parametrize("state", ["California", "C", "1A", "ca", "XX"])
+def test_state_must_be_one_of_the_offered_codes(
     api_client: APIClient, member: User, profile: MemberProfile, state: str
 ) -> None:
     """A state value that is not two letters is refused, naming ``state``."""
@@ -424,13 +424,14 @@ def test_postal_code_must_look_like_a_zip(
     assert "postal_code" in response.json()
 
 
-def test_postal_code_accepts_zip_plus_four(
+def test_postal_code_refuses_zip_plus_four(
     api_client: APIClient, member: User, profile: MemberProfile
 ) -> None:
-    """A ZIP+4 postal code is accepted."""
+    """A ZIP+4 is refused: five digits reach anybody and are one thing to keep right."""
     api_client.force_login(member)
     response = api_client.patch(PROFILE_URL, {"postal_code": "94040-1234"}, format="json")
-    assert response.status_code == 200
+    assert response.status_code == 400
+    assert "postal_code" in response.json()
 
 
 def test_dart_id_may_be_cleared(

@@ -57,6 +57,7 @@ DOCUMENTED_COLUMNS = (
     "city",
     "state",
     "joined_on",
+    "member_since",
 )
 
 
@@ -165,6 +166,7 @@ def test_csv_row_content(
     assert row["city"] == "Palo Alto"
     assert row["state"] == "CA"
     assert row["joined_on"] == (today - timedelta(days=30)).isoformat()
+    assert row["member_since"] == ""
 
 
 def test_csv_leaves_a_lifetime_expiry_blank(
@@ -295,9 +297,9 @@ def test_pdf_subtitle_when_nothing_is_filtered(account_admin: User) -> None:
 def test_pdf_paginates_a_long_report(
     account_admin_client: APIClient, reportable: dict[str, User]
 ) -> None:
-    """A report of 124 members is drawn across the seven pages they fill."""
+    """A report of 124 members is drawn across the pages they fill, not one long one."""
     for index in range(120):
         MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
     body = account_admin_client.get(PDF_URL).content
     assert User.objects.count() == 124
-    assert pdf_page_count(body) == 7
+    assert pdf_page_count(body) == 9

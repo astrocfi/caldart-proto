@@ -813,8 +813,13 @@ waits for the thing itself, and says what went wrong when it never appears.
 e2e`` writes it with ``manage.py seed_facts`` straight after seeding the
 database, and ``e2e/helpers.ts`` reads it once per run and exports
 ``DEMO_PASSWORD``, ``DEMO`` (the demo key to address map) and ``SEED``
-(``planPricesCents`` among them).  A spec that hard-codes ``caldart-demo`` or
-``$45.00`` is a copy of ``apps/*/seed.py`` that will one day disagree with it.
+(``planPricesCents`` and ``leaderCheck`` among them).  A spec that hard-codes
+``caldart-demo`` or ``$45.00`` is a copy of ``apps/*/seed.py`` that will one day
+disagree with it, and one that hard-codes a *generated* member's name disagrees
+sooner than that: ``leaderCheck`` names one member per case the leader check
+reads differently -- an insured pilot, an aircraft whose cover has lapsed, and a
+member whose membership has -- found in the seeded data rather than typed into
+the spec.
 Running Playwright against a server you started yourself means writing the file
 yourself first, with the same command.
 

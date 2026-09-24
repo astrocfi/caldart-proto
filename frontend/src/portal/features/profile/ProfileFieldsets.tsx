@@ -13,17 +13,16 @@
  * Validation, submission, and the administrator-only fields belong to the
  * caller.
  */
-import { useId } from 'react';
 import type { JSX } from 'react';
 
-import type { Dart, Rating } from '@/portal/api/types';
+import type { CaliforniaCounty, Dart, Rating, UsState } from '@/portal/api/types';
+import { CATEGORY_RATINGS, INSTRUCTOR_RATINGS, US_STATES } from '@/portal/choices';
 import { Field } from '@/portal/components/Field';
 import {
   CA_COUNTIES,
   CERTIFICATE_TYPES,
   IFR_OPTIONS,
   MEDICAL_TYPES,
-  RATINGS,
   VOLUNTEER_INTERESTS,
 } from './constants';
 import type { Choice } from './constants';
@@ -38,11 +37,15 @@ type TextKey = {
 /** The form keys holding a coded value, which a `<select>` picks from a list. */
 type CodedKey = 'pilot_certificate_type' | 'ifr_rated' | 'medical_type';
 
+/** The two rows of ratings, as the form lays them out. */
+const RATING_ROWS: readonly (readonly Choice<Rating>[])[] = [CATEGORY_RATINGS, INSTRUCTOR_RATINGS];
+
 interface TextFieldOptions {
   label: string;
   type?: 'text' | 'tel' | 'date';
   autoComplete?: string;
-  inputMode?: 'numeric';
+  inputMode?: 'numeric' | 'tel';
+  placeholder?: string;
   maxLength?: number;
   size?: number;
   className?: string;
@@ -81,8 +84,6 @@ export function ProfileFieldsets({
   dartsLoading = false,
   markRequired = false,
 }: ProfileFieldsetsProps): JSX.Element {
-  const countyListId = useId();
-
   const set = <Key extends keyof ProfileFormValues>(key: Key, next: ProfileFormValues[Key]) =>
     onChange({ ...value, [key]: next });
 
@@ -140,8 +141,30 @@ export function ProfileFieldsets({
       <fieldset>
         <legend>Contact</legend>
         <div className="form-grid">
-          {text('phone', { label: 'Phone', type: 'tel', autoComplete: 'tel', required: true })}
-          {text('phone_alt', { label: 'Alternate phone', type: 'tel' })}
+          {text('phone', {
+            label: 'Phone',
+            type: 'tel',
+            autoComplete: 'tel',
+            inputMode: 'tel',
+            placeholder: '415-555-0100',
+            maxLength: 14,
+            hint: 'Ten digits, stored as 415-555-0100',
+            required: true,
+          })}
+          {text('phone_extension', {
+            label: 'Extension',
+            inputMode: 'numeric',
+            maxLength: 6,
+            size: 6,
+            hint: 'Optional',
+          })}
+          {text('phone_alt', {
+            label: 'Alternate phone',
+            type: 'tel',
+            inputMode: 'tel',
+            placeholder: '415-555-0100',
+            maxLength: 14,
+          })}
           {text('address_line1', {
             label: 'Address',
             autoComplete: 'address-line1',
@@ -149,41 +172,57 @@ export function ProfileFieldsets({
           })}
           {text('address_line2', { label: 'Address line 2', autoComplete: 'address-line2' })}
           {text('city', { label: 'City', autoComplete: 'address-level2', required: true })}
-          {text('state', {
-            label: 'State',
-            autoComplete: 'address-level1',
-            maxLength: 2,
-            size: 2,
-            hint: 'Two letters, e.g. CA',
-            transform: upperCase,
-          })}
+          <Field label="State" error={errors.state} required={markRequired}>
+            {(props) => (
+              <select
+                {...props}
+                name="state"
+                autoComplete="address-level1"
+                value={value.state}
+                onChange={(event) => set('state', event.target.value as UsState)}
+              >
+                {US_STATES.map((state) => (
+                  <option key={state.value} value={state.value}>
+                    {state.value} — {state.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
           {text('postal_code', {
             label: 'ZIP code',
             inputMode: 'numeric',
             autoComplete: 'postal-code',
+            maxLength: 5,
+            size: 5,
+            placeholder: '95035',
             required: true,
           })}
-          <Field label="County" error={errors.county} hint="California counties are suggested">
+          <Field label="California county" error={errors.county}>
             {(props) => (
-              <>
-                <input
-                  {...props}
-                  type="text"
-                  name="county"
-                  list={countyListId}
-                  value={value.county}
-                  onChange={(event) => set('county', event.target.value)}
-                />
-                <datalist id={countyListId}>
-                  {CA_COUNTIES.map((county) => (
-                    <option key={county} value={county} />
-                  ))}
-                </datalist>
-              </>
+              <select
+                {...props}
+                name="county"
+                value={value.county}
+                onChange={(event) => set('county', event.target.value as CaliforniaCounty | '')}
+              >
+                <option value="">Not in California</option>
+                {CA_COUNTIES.map((county) => (
+                  <option key={county} value={county}>
+                    {county}
+                  </option>
+                ))}
+              </select>
             )}
           </Field>
           {text('emergency_contact_name', { label: 'Emergency contact' })}
-          {text('emergency_contact_phone', { label: 'Emergency contact phone', type: 'tel' })}
+          {text('emergency_contact_phone', {
+            label: 'Emergency contact phone',
+            type: 'tel',
+            inputMode: 'tel',
+            placeholder: '415-555-0100',
+            maxLength: 14,
+          })}
         </div>
       </fieldset>
 
@@ -231,25 +270,45 @@ export function ProfileFieldsets({
             required: value.medical_type !== 'none',
           })}
           {text('flight_review_date', { label: 'Last flight review', type: 'date' })}
-          {text('total_hours', { label: 'Total hours', inputMode: 'numeric' })}
+          {text('total_hours', {
+            label: 'Total hours',
+            inputMode: 'numeric',
+            maxLength: 5,
+            size: 6,
+          })}
+          <Field label="Aircraft" error={errors.flies_rented_aircraft}>
+            {() => (
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  name="flies_rented_aircraft"
+                  checked={value.flies_rented_aircraft}
+                  onChange={(event) => set('flies_rented_aircraft', event.target.checked)}
+                />
+                <span>I fly rented or borrowed aircraft</span>
+              </label>
+            )}
+          </Field>
         </div>
 
         <fieldset className="checkbox-set">
           <legend>Ratings</legend>
-          <div className="checkbox-grid">
-            {RATINGS.map((rating) => (
-              <label key={rating.value} className="checkbox">
-                <input
-                  type="checkbox"
-                  name="ratings"
-                  value={rating.value}
-                  checked={value.ratings.includes(rating.value)}
-                  onChange={(event) => toggleRating(rating.value, event.target.checked)}
-                />
-                <span>{rating.label}</span>
-              </label>
-            ))}
-          </div>
+          {RATING_ROWS.map((row) => (
+            <div className="checkbox-row" key={row[0]?.value}>
+              {row.map((rating) => (
+                <label key={rating.value} className="checkbox">
+                  <input
+                    type="checkbox"
+                    name="ratings"
+                    value={rating.value}
+                    checked={value.ratings.includes(rating.value)}
+                    onChange={(event) => toggleRating(rating.value, event.target.checked)}
+                  />
+                  <span>{rating.label}</span>
+                </label>
+              ))}
+            </div>
+          ))}
         </fieldset>
       </fieldset>
 

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date
+from typing import Any
 
 from django.conf import settings
 from django.db import models
@@ -68,18 +70,176 @@ class MedicalType(models.TextChoices):
     THIRD = "third", "Third class"
 
 
-#: Values allowed in ``MemberProfile.ratings``.
+#: Values allowed in ``MemberProfile.ratings``, in the two rows the forms show:
+#: the category and class ratings, then the instructor ones.
 RATING_CHOICES: tuple[tuple[str, str], ...] = (
+    ("asel", "ASEL"),
+    ("amel", "AMEL"),
+    ("ases", "ASES"),
+    ("ames", "AMES"),
+    ("helicopter", "Helicopter"),
     ("instrument", "Instrument"),
-    ("multi_engine", "Multi-engine"),
     ("cfi", "CFI"),
     ("cfii", "CFII"),
     ("mei", "MEI"),
-    ("seaplane", "Seaplane"),
-    ("helicopter", "Helicopter"),
-    ("glider", "Glider"),
 )
 RATING_VALUES: tuple[str, ...] = tuple(value for value, _ in RATING_CHOICES)
+
+#: The two-letter codes a US address may carry: the fifty states, the District
+#: of Columbia, and the territories with USPS codes.
+US_STATE_CHOICES: tuple[tuple[str, str], ...] = (
+    ("AL", "Alabama"),
+    ("AK", "Alaska"),
+    ("AZ", "Arizona"),
+    ("AR", "Arkansas"),
+    ("CA", "California"),
+    ("CO", "Colorado"),
+    ("CT", "Connecticut"),
+    ("DE", "Delaware"),
+    ("DC", "District of Columbia"),
+    ("FL", "Florida"),
+    ("GA", "Georgia"),
+    ("HI", "Hawaii"),
+    ("ID", "Idaho"),
+    ("IL", "Illinois"),
+    ("IN", "Indiana"),
+    ("IA", "Iowa"),
+    ("KS", "Kansas"),
+    ("KY", "Kentucky"),
+    ("LA", "Louisiana"),
+    ("ME", "Maine"),
+    ("MD", "Maryland"),
+    ("MA", "Massachusetts"),
+    ("MI", "Michigan"),
+    ("MN", "Minnesota"),
+    ("MS", "Mississippi"),
+    ("MO", "Missouri"),
+    ("MT", "Montana"),
+    ("NE", "Nebraska"),
+    ("NV", "Nevada"),
+    ("NH", "New Hampshire"),
+    ("NJ", "New Jersey"),
+    ("NM", "New Mexico"),
+    ("NY", "New York"),
+    ("NC", "North Carolina"),
+    ("ND", "North Dakota"),  # codespell:ignore nd
+    ("OH", "Ohio"),
+    ("OK", "Oklahoma"),
+    ("OR", "Oregon"),
+    ("PA", "Pennsylvania"),
+    ("RI", "Rhode Island"),
+    ("SC", "South Carolina"),
+    ("SD", "South Dakota"),
+    ("TN", "Tennessee"),
+    ("TX", "Texas"),
+    ("UT", "Utah"),
+    ("VT", "Vermont"),
+    ("VA", "Virginia"),
+    ("WA", "Washington"),
+    ("WV", "West Virginia"),
+    ("WI", "Wisconsin"),
+    ("WY", "Wyoming"),
+    ("AS", "American Samoa"),
+    ("GU", "Guam"),
+    ("MP", "Northern Mariana Islands"),
+    ("PR", "Puerto Rico"),
+    ("VI", "US Virgin Islands"),
+)
+US_STATE_VALUES: tuple[str, ...] = tuple(code for code, _ in US_STATE_CHOICES)
+
+#: California's fifty-eight counties.  A member outside California leaves the
+#: county blank; the field names the county a DART would call on.
+CALIFORNIA_COUNTIES: tuple[str, ...] = (
+    "Alameda",
+    "Alpine",
+    "Amador",
+    "Butte",
+    "Calaveras",
+    "Colusa",
+    "Contra Costa",
+    "Del Norte",
+    "El Dorado",
+    "Fresno",
+    "Glenn",
+    "Humboldt",
+    "Imperial",
+    "Inyo",
+    "Kern",
+    "Kings",
+    "Lake",
+    "Lassen",
+    "Los Angeles",
+    "Madera",
+    "Marin",
+    "Mariposa",
+    "Mendocino",
+    "Merced",
+    "Modoc",
+    "Mono",
+    "Monterey",
+    "Napa",
+    "Nevada",
+    "Orange",
+    "Placer",
+    "Plumas",
+    "Riverside",
+    "Sacramento",
+    "San Benito",
+    "San Bernardino",
+    "San Diego",
+    "San Francisco",
+    "San Joaquin",
+    "San Luis Obispo",
+    "San Mateo",
+    "Santa Barbara",
+    "Santa Clara",
+    "Santa Cruz",
+    "Shasta",
+    "Sierra",
+    "Siskiyou",
+    "Solano",
+    "Sonoma",
+    "Stanislaus",
+    "Sutter",
+    "Tehama",
+    "Trinity",
+    "Tulare",
+    "Tuolumne",
+    "Ventura",
+    "Yolo",
+    "Yuba",
+)
+
+#: The most hours a logbook entry may claim.  A larger number is a typo: the
+#: highest civil totals on record are under 60,000.
+MAX_TOTAL_HOURS = 99_999
+
+#: A phone number as this system stores and prints it.
+PHONE_RE = re.compile(r"^\d{3}-\d{3}-\d{4}$")
+
+#: What a phone extension may be: digits, and not many of them.
+PHONE_EXTENSION_RE = re.compile(r"^\d{1,6}$")
+
+_PHONE_STRIP = re.compile(r"[^0-9]")
+
+
+def normalize_phone(value: str | None) -> str:
+    """Return ``value`` as ``XXX-XXX-XXXX``, or unchanged when it cannot be.
+
+    Punctuation and spaces are dropped and a leading country code ``1`` is
+    removed, so ``+1 (415) 555-0100``, ``415.555.0100`` and ``4155550100`` all
+    come back ``415-555-0100``.  A blank value gives ``""``.  Anything that is
+    not ten digits after that is returned stripped of nothing, for the caller to
+    refuse: this function never invents a number.
+    """
+    if not value:
+        return ""
+    digits = _PHONE_STRIP.sub("", value)
+    if len(digits) == 11 and digits.startswith("1"):
+        digits = digits[1:]
+    if len(digits) != 10:
+        return value.strip()
+    return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
 
 
 class MemberProfile(TimestampedModel):
@@ -90,16 +250,24 @@ class MemberProfile(TimestampedModel):
     )
 
     # -- contact ----------------------------------------------------------
-    phone = models.CharField(max_length=32, blank=True)
-    phone_alt = models.CharField(max_length=32, blank=True)
+    #: Every number is stored as ``XXX-XXX-XXXX``: one shape to read, to search
+    #: on and to print, rather than a dozen spellings to clean up afterwards.
+    phone = models.CharField(max_length=12, blank=True)
+    phone_extension = models.CharField(max_length=6, blank=True)
+    phone_alt = models.CharField(max_length=12, blank=True)
     address_line1 = models.CharField(max_length=200, blank=True)
     address_line2 = models.CharField(max_length=200, blank=True)
     city = models.CharField(max_length=120, blank=True)
-    state = models.CharField(max_length=2, blank=True, default="CA")
-    postal_code = models.CharField(max_length=12, blank=True)
-    county = models.CharField(max_length=120, blank=True)
+    state = models.CharField(max_length=2, blank=True, choices=US_STATE_CHOICES, default="CA")
+    postal_code = models.CharField(max_length=5, blank=True)
+    county = models.CharField(
+        "California county",
+        max_length=120,
+        blank=True,
+        choices=[(name, name) for name in CALIFORNIA_COUNTIES],
+    )
     emergency_contact_name = models.CharField(max_length=160, blank=True)
-    emergency_contact_phone = models.CharField(max_length=32, blank=True)
+    emergency_contact_phone = models.CharField(max_length=12, blank=True)
 
     # -- aviation ---------------------------------------------------------
     home_airport_identifier = models.CharField(max_length=8, blank=True)
@@ -123,14 +291,23 @@ class MemberProfile(TimestampedModel):
     aircraft = models.ManyToManyField(
         "aircraft.Aircraft", blank=True, related_name="pilots", verbose_name="planes commonly flown"
     )
+    #: A member who rents or borrows has no airframe to list, and a DART leader
+    #: needs to know that is the reason rather than an empty profile.
+    flies_rented_aircraft = models.BooleanField("flies rented or borrowed aircraft", default=False)
 
     # -- volunteer interests ---------------------------------------------
+    vol_mission_pilot = models.BooleanField("mission pilot", default=False)
     vol_ground_team = models.BooleanField("ground team", default=False)
     vol_exercise_training = models.BooleanField("exercises and training", default=False)
     vol_member_support = models.BooleanField("member support", default=False)
     vol_fundraising = models.BooleanField("fundraising", default=False)
     vol_social_media = models.BooleanField("social media", default=False)
     vol_newsletter = models.BooleanField("newsletter", default=False)
+
+    # -- membership -------------------------------------------------------
+    #: The day this person first joined, set when their first term is created
+    #: and never moved by a renewal or by a gap in their membership.
+    member_since = models.DateField(null=True, blank=True)
 
     # -- admin only -------------------------------------------------------
     notes = models.TextField(blank=True)
@@ -174,9 +351,23 @@ class MemberProfile(TimestampedModel):
         "phone",
         "address_line1",
         "city",
+        "state",
         "postal_code",
         "pilot_certificate_type",
     )
+
+    #: The fields ``save`` puts into canonical phone form.
+    PHONE_FIELDS = ("phone", "phone_alt", "emergency_contact_phone")
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Save the profile with every phone number in ``XXX-XXX-XXXX`` form.
+
+        A number that cannot be read as ten digits is stored as it was typed, so
+        nothing is invented here; the serializer refuses it at the boundary.
+        """
+        for field in self.PHONE_FIELDS:
+            setattr(self, field, normalize_phone(getattr(self, field)))
+        super().save(*args, **kwargs)
 
     @property
     def is_complete(self) -> bool:

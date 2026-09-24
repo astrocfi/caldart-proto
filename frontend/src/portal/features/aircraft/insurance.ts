@@ -61,8 +61,24 @@ export function dollarsToCents(value: string): number | null {
   return Math.round(amount * 100);
 }
 
-/** Cents back into a plain dollars string for an editable input. */
+/** Cents back into a dollars string for an editable input, with thousands commas. */
 export function centsToDollars(cents: number | null | undefined): string {
   if (cents === null || cents === undefined) return '';
-  return Number.isInteger(cents / 100) ? String(cents / 100) : (cents / 100).toFixed(2);
+  const dollars = cents / 100;
+  return dollars.toLocaleString('en-US', {
+    minimumFractionDigits: Number.isInteger(dollars) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/**
+ * A half-typed amount, grouped for reading: `1000000` shows as `1,000,000`.
+ *
+ * Returns the text unchanged when it is not a number, so somebody mid-edit is
+ * never fighting the field; `dollarsToCents` strips the commas again on the way
+ * out.
+ */
+export function formatDollars(typed: string): string {
+  const cents = dollarsToCents(typed);
+  return cents === null ? typed : centsToDollars(cents);
 }

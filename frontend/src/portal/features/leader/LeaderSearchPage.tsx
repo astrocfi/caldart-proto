@@ -82,8 +82,8 @@ export function LeaderSearchPage(): JSX.Element {
     >
       <Card>
         <Field
-          label="Name, email, or N-number"
-          hint="Try “Reyes”, “marta@example.org”, or “N172SP”."
+          label="Name, email, phone, or N-number"
+          hint="Try “Reyes”, “marta@example.org”, “415-555-0100”, or “N172SP”."
         >
           {(field) => (
             <input
@@ -146,7 +146,7 @@ export function LeaderSearchPage(): JSX.Element {
             description={
               looksLikeRegistration(debounced)
                 ? 'No member lists that aircraft. You can still check the aircraft itself.'
-                : 'Try a surname, part of an email address, or the N-number of the aircraft.'
+                : 'Try a surname, part of an email address, a phone number, or an N-number.'
             }
             action={
               looksLikeRegistration(debounced) ? (
