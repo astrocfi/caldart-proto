@@ -45,7 +45,8 @@ backend/                Django 6 + Wagtail 8
   tests/                ALL backend tests: conftest.py, factories.py,
                         test_<feature>.py
 frontend/               Vite + React 19 + TypeScript (strict)
-  src/styles/           tokens.css, base.css, themes/{sierra,pacific,night}.css
+  src/styles/           tokens.css, base.css, themes/<slug>.css (13 themes)
+  scripts/              theme-contrast.mjs (WCAG gate), theme-previews.mjs
   src/site/main.ts      public-site enhancements
   src/portal/           main.tsx, App.tsx, api/{client,types}.ts, nav.ts,
                         routes/*.tsx, features/<feature>/, components/

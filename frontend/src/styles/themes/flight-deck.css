@@ -1,0 +1,35 @@
+/* Flight deck: the logo after dark -- navy instruments, cobalt tint, crimson and amber. */
+
+:root[data-theme='flight-deck'] {
+  --color-bg: #0f1a33;
+  --color-bg-raised: #16233f;
+  --color-bg-sunken: #0a1226;
+  --color-fg: #e8ecf5;
+  --color-primary: #7ea2ff;
+  --color-primary-fg: #0f1a33;
+  --color-primary-hover: #9db8ff;
+  --color-accent: #ef6b78;
+  --color-secondary: #ffc857;
+  --color-rule: #26314d;
+  --color-rule-strong: #465170;
+  --color-muted: #a4afc9;
+  --color-selection: #ffc85733;
+
+  --color-ok: #63d0a0;
+  --color-warn: #ffc857;
+  --color-bad: #f4818c;
+  --color-ok-bg: #63d0a026;
+  --color-warn-bg: #ffc85726;
+  --color-bad-bg: #f4818c26;
+  --color-neutral-bg: #a4afc917;
+
+  --color-focus: #ffc857;
+
+  --font-display:
+    'Exo 2 Variable', 'Exo 2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body:
+    'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  color-scheme: dark;
+}

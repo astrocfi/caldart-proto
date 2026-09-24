@@ -316,30 +316,62 @@ Footer text            The small print in the first footer column
 Changing the theme
 ------------------
 
-**Theme** offers the palettes shipped with the site:
+**Theme** offers the fourteen looks shipped with the site.  Each one changes
+the palette *and* the typefaces:
 
-``Duty``
-    The default.  A blue-gray ground, a white page panel, navy chrome and the
-    wordmark's red for the one urgent button.
+``Duty (default, blue and red)``
+    A blue-gray ground, a white page panel, navy chrome and the wordmark's red
+    for the one urgent button.
 
-``Sierra``
+``Sierra (warm paper)``
     Warm paper, deep conifer green, signal orange.
 
-``Pacific``
+``Pacific (cool paper)``
     Cooler paper and a deep blue primary.
 
-``Night``
+``Night (dark)``
     A dark palette.
 
-Saving a new theme changes the public site *and* the member portal
-immediately, so the two always match.
+``Squadron (logo blue on white)``
+    The CalDART logo colors on white: cobalt, crimson and a lot of air.
+
+``Flight deck (logo blue, dark)``
+    The same logo colors on a deep navy instrument panel.
+
+``Contrail (logo blue, sky paper)``
+    The logo colors on pale sky paper; light and airy.
+
+``Sectional (aeronautical chart)``
+    Chart cream, chart blue, airspace magenta and terrain tan.
+
+``Tarmac (concrete and asphalt)``
+    Industrial neutrals with safety yellow used on surfaces only.
+
+``Coastal (fog and ocean teal)``
+    Fog paper, ocean teal, sunset coral and dune sand.
+
+``Slate (cool corporate)``
+    Slate blue-gray with amber emphasis.
+
+``Meridian (high-contrast civic)``
+    White, navy and burnt orange, with one typeface throughout.
+
+``Monterey night (charcoal dark)``
+    A charcoal dark palette with a sea-green primary and amber accent.
+
+``Granite (near-monochrome)``
+    White, near-black and grays, with one blue for links.
+
+Every theme meets the same contrast standard, so no choice makes the site
+harder to read.  Saving a new theme changes the public site *and* the member
+portal immediately, so the two always match.
 
 To see a theme before you commit to it, add ``?theme=`` to any page's URL
 while you are signed in as a website or system administrator — for example
 ``https://<your-site>/about/?theme=night``.  The preview is yours alone: it
 changes nothing on the server and nobody else sees it.
 
-Adding a fifth theme is a developer task; see :doc:`/developer/theming`.
+Adding another theme is a developer task; see :doc:`/developer/theming`.
 
 
 .. _redirects:

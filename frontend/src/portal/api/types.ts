@@ -661,7 +661,21 @@ export interface MembersPage {
 }
 
 /** A theme slug shipped in `frontend/src/styles/themes/`. */
-export type ThemeSlug = 'duty' | 'sierra' | 'pacific' | 'night';
+export type ThemeSlug =
+  | 'duty'
+  | 'sierra'
+  | 'pacific'
+  | 'night'
+  | 'squadron'
+  | 'flight-deck'
+  | 'contrail'
+  | 'sectional'
+  | 'tarmac'
+  | 'coastal'
+  | 'slate'
+  | 'meridian'
+  | 'monterey-night'
+  | 'granite';
 
 export interface SiteConfig {
   org_name: string;
