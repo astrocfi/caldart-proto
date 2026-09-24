@@ -3,7 +3,9 @@
 A member holding a lifetime term has nothing to renew, so their mandate names no
 plan.  These tests drive one through setup, the advance notice, the charge, a
 decline, the retries and the pause, and check that the endpoints refuse a plan
-anywhere a life member could offer one.
+anywhere a life member could offer one.  They also cover the words a mandate
+that both renews and contributes uses, which neither a plain renewal nor a
+contribution alone would say.
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ import pytest
 from django.core.mail import EmailMessage
 from django.utils import timezone
 from freezegun import freeze_time
+from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -25,7 +28,7 @@ from apps.payments.models import (
     RenewalMandate,
     RenewalOutcome,
 )
-from apps.payments.providers.mock import DECLINED_LAST4
+from apps.payments.providers.mock import DECLINED_LAST4, mock_method
 from apps.payments.renewals import (
     NOTICE_DAYS,
     RETRY_OFFSETS,
@@ -37,6 +40,7 @@ from apps.payments.renewals import (
     next_anniversary,
     next_charge_on,
     run_auto_renewals,
+    save_method,
 )
 from caldart.exceptions import DomainValidationError
 from tests.factories import MembershipFactory, RenewalMandateFactory
@@ -337,6 +341,63 @@ def test_an_annual_mandate_whose_member_became_a_life_member_is_skipped(
     run = run_auto_renewals(today=today)
 
     assert run.skipped_by_reason == {"lifetime": 1}
+
+
+# --------------------------------------------------------------------------
+# A mandate that renews and contributes at once
+# --------------------------------------------------------------------------
+def make_both_mandate(
+    user: User, plan: MembershipPlan, *, ends_on: date, last4: str = "4242"
+) -> RenewalMandate:
+    """A mandate over ``plan`` with a contribution, for a term ending ``ends_on``."""
+    MembershipFactory(
+        user=user,
+        plan=plan,
+        starts_on=ends_on - timedelta(days=364),
+        ends_on=ends_on,
+        status=MembershipStatusChoices.ACTIVE,
+    )
+    return RenewalMandateFactory(
+        user=user,
+        plan=plan,
+        contribution_cents=CONTRIBUTION_CENTS,
+        method_last4=last4,
+        method_label=f"Test card ending {last4}, expires 12/2030",
+    )
+
+
+def one_line(body: str) -> str:
+    """``body`` with every run of whitespace collapsed, so wrapping does not matter."""
+    return " ".join(body.split())
+
+
+def test_a_refused_charge_says_the_contribution_was_part_of_it(
+    member: User, annual_plan: MembershipPlan, today: date, mailoutbox: list[EmailMessage]
+) -> None:
+    """A decline names both halves of the money, not the membership alone."""
+    make_both_mandate(member, annual_plan, ends_on=today + timedelta(days=1), last4=DECLINED_LAST4)
+
+    run_auto_renewals(today=today)
+
+    assert "membership and take your contribution" in one_line(str(mailoutbox[-1].body))
+
+
+def test_turning_a_mandate_on_says_it_renews_and_contributes(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """The message that confirms the authority names the contribution it also takes."""
+    mandate = make_both_mandate(member, annual_plan, ends_on=today + timedelta(days=100))
+    mandate.status = MandateStatus.PENDING
+    mandate.save(update_fields=["status"])
+
+    with django_capture_on_commit_callbacks(execute=True):
+        save_method(mandate, mock_method(), actor=member)
+
+    assert "membership and take your contribution" in one_line(str(mailoutbox[-1].body))
 
 
 # --------------------------------------------------------------------------

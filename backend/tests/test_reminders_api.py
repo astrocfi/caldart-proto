@@ -216,8 +216,20 @@ def test_run_sends_for_real(
 
     body = api_client.post(RUN_URL, {}).json()
 
-    assert body["sent"] == 1
-    assert body["actions"][0]["email"] == user.email
+    assert body == {
+        "sent": 1,
+        "skipped": 0,
+        "actions": [
+            {
+                "kind": ReminderKind.T7,
+                "member": user.display_name,
+                "email": user.email,
+                "on": (timezone.localdate() + timedelta(days=7)).isoformat(),
+                "amount_cents": None,
+                "detail": "",
+            }
+        ],
+    }
     assert len(mailoutbox) == 1
     assert ReminderLog.objects.get().kind == ReminderKind.T7
 

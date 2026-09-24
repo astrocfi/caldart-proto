@@ -11,11 +11,17 @@ from datetime import date, timedelta
 
 import pytest
 from django.core.mail import EmailMessage
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan, MembershipStatusChoices
-from apps.payments.renewals import CHARGE_LEAD_DAYS, NOTICE_DAYS, run_auto_renewals
+from apps.payments.renewals import (
+    CATCH_UP_DAYS,
+    CHARGE_LEAD_DAYS,
+    NOTICE_DAYS,
+    run_auto_renewals,
+)
 from caldart.runs import CHARGE_KIND, RunAction, action_lines
 from tests.factories import MembershipFactory, RenewalMandateFactory
 
@@ -160,6 +166,45 @@ def test_a_rehearsal_names_the_people_a_live_run_then_writes_to(
     """The dry run's list and the live run's list agree, action for action."""
     set_up_renewal(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
     run_auto_renewals(today=today - timedelta(days=1))
+
+    rehearsed = run_auto_renewals(today=today, dry_run=True)
+    live = run_auto_renewals(today=today)
+
+    assert kinds_and_emails(live.actions) == kinds_and_emails(rehearsed.actions)
+
+
+def test_a_rehearsal_names_a_catch_up_charge_a_live_run_then_takes(
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """A term that lapsed while the scan was down is charged in the rehearsal too."""
+    set_up_renewal(member, annual_plan, ends_on=today - timedelta(days=CATCH_UP_DAYS - 1))
+
+    rehearsed = run_auto_renewals(today=today, dry_run=True)
+    live = run_auto_renewals(today=today)
+
+    assert kinds_and_emails(live.actions) == kinds_and_emails(rehearsed.actions)
+
+
+def test_a_rehearsal_names_a_contribution_a_live_run_then_takes(
+    member: User,
+    life_plan: MembershipPlan,
+    today: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """A contribution anniversary already gone by is charged in the rehearsal too."""
+    MembershipFactory(
+        user=member,
+        plan=life_plan,
+        starts_on=today - timedelta(days=800),
+        ends_on=None,
+        status=MembershipStatusChoices.ACTIVE,
+    )
+    mandate = RenewalMandateFactory(user=member, plan=None, contribution_cents=5_000)
+    mandate.last_charged_at = timezone.now() - timedelta(days=400)
+    mandate.save(update_fields=["last_charged_at"])
 
     rehearsed = run_auto_renewals(today=today, dry_run=True)
     live = run_auto_renewals(today=today)

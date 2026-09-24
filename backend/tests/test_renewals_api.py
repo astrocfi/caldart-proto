@@ -265,9 +265,41 @@ def test_a_life_member_may_not_patch_a_plan_in(
         ME, {"plan": annual_plan.slug, "contribution_cents": 5_000}, format="json"
     )
 
-    assert response.json()["auto_renew"] == (
+    assert response.json()["auto_renew"] == [
         "A life member's membership does not renew; choose a contribution instead."
+    ]
+
+
+def test_a_plan_that_never_expires_may_not_be_patched_in(
+    member_client: APIClient, member: User, annual_plan: MembershipPlan, life_plan: MembershipPlan
+) -> None:
+    """A lifetime plan cannot renew itself, so the patch is a 400 keyed ``auto_renew``."""
+    RenewalMandateFactory(user=member, plan=annual_plan)
+
+    response = member_client.patch(
+        ME, {"plan": life_plan.slug, "contribution_cents": 0}, format="json"
     )
+
+    assert response.json()["auto_renew"] == [
+        "A lifetime membership never expires, so it cannot renew itself."
+    ]
+
+
+def test_a_life_member_may_not_patch_their_contribution_away(
+    member_client: APIClient, member: User, life_plan: MembershipPlan
+) -> None:
+    """An authority over nothing at all is refused on the patch as it is at setup."""
+    MembershipFactory(
+        user=member,
+        plan=life_plan,
+        starts_on=timezone.localdate() - timedelta(days=400),
+        ends_on=None,
+    )
+    RenewalMandateFactory(user=member, plan=None, contribution_cents=5_000)
+
+    response = member_client.patch(ME, {"contribution_cents": 0}, format="json")
+
+    assert response.json()["auto_renew"] == ["A contribution to charge each year is needed."]
 
 
 def test_a_negative_contribution_is_refused(
