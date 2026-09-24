@@ -29,6 +29,7 @@ export function PayPalPanel({
   plan,
   contributionCents,
   amountCents,
+  autoRenew,
   onSuccess,
 }: PayPalPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +52,7 @@ export function PayPalPanel({
       >
         <PayPalButtons
           style={{ layout: 'vertical', shape: 'rect', label: 'paypal' }}
-          forceReRender={[amountCents, plan]}
+          forceReRender={[amountCents, plan, autoRenew]}
           createOrder={async () => {
             setError(null);
             hasOrderError.current = false;
@@ -60,6 +61,7 @@ export function PayPalPanel({
                 plan,
                 contribution_cents: contributionCents,
                 provider: 'paypal',
+                auto_renew: autoRenew,
               });
               paymentId.current = checkout.payment_id;
               if (checkout.provider !== 'paypal' || !checkout.client.order_id) {

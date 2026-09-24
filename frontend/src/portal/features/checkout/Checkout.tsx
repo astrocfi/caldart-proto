@@ -8,7 +8,7 @@
  * that hosts the widget owns the queries a payment moves, so the refresh happens
  * once, where the keys are known.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { PaymentProvider } from '@/portal/api/types';
@@ -37,6 +37,8 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
   const [contributionCents, setContributionCents] = useState(0);
   const [isOther, setIsOther] = useState(false);
   const [provider, setProvider] = useState<PaymentProvider | null>(null);
+  const [autoRenew, setAutoRenew] = useState(false);
+  const autoRenewId = useId();
 
   const providers = useMemo(
     () => PROVIDER_ORDER.filter((slug) => config?.providers.includes(slug)),
@@ -77,10 +79,15 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
   const planCents = selectedPlan?.price_cents ?? 0;
   const totalCents = planCents + contributionCents;
 
+  // Only a plan with a term can renew itself, so the offer is hidden for a
+  // membership for life rather than shown and refused by the server.
+  const canAutoRenew = selectedPlan !== null && selectedPlan.duration_days !== null;
+
   const panelProps = {
     plan: effectivePlan,
     contributionCents,
     amountCents: totalCents,
+    autoRenew: canAutoRenew && autoRenew,
     onSuccess,
   };
 
@@ -124,6 +131,24 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
         </div>
       </dl>
 
+      {canAutoRenew ? (
+        <div className="checkout__auto-renew">
+          <label className="checkout__auto-renew-label" htmlFor={autoRenewId}>
+            <input
+              id={autoRenewId}
+              type="checkbox"
+              checked={autoRenew}
+              onChange={(event) => setAutoRenew(event.target.checked)}
+            />
+            <span>Renew automatically each year</span>
+          </label>
+          <p className="checkout__fineprint muted">
+            We will email you 14 days before charging this card, and you can turn it off at any time
+            from Payments.
+          </p>
+        </div>
+      ) : null}
+
       {providers.length === 0 ? (
         <EmptyState
           title="Online payment is not set up yet"
@@ -151,6 +176,7 @@ interface ProviderTabsProps {
     plan: string;
     contributionCents: number;
     amountCents: number;
+    autoRenew: boolean;
     onSuccess: (result: CheckoutResult) => void;
   };
 }

@@ -233,3 +233,29 @@
   font-size: var(--text-xs);
   max-width: var(--measure);
 }
+
+/* ---------------------------------------------------------- auto-renewal */
+.checkout__auto-renew {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-3);
+  border: var(--hairline) solid var(--color-rule);
+  border-radius: var(--radius);
+}
+
+.checkout__auto-renew-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+
+.checkout__auto-renew-label input {
+  width: auto;
+  flex: none;
+  accent-color: var(--color-primary);
+}
+
+.checkout__auto-renew .checkout__fineprint {
+  margin: var(--space-1) 0 0;
+}

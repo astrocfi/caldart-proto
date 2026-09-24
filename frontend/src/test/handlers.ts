@@ -37,7 +37,7 @@ export function makeUser(overrides: Partial<User> = {}): User {
   };
 }
 
-/** Default handlers: CSRF works, nobody is signed in. */
+/** Default handlers: CSRF works, nobody is signed in, renewal is off. */
 export const handlers = [
   http.get(
     `${API}/auth/csrf`,
@@ -50,6 +50,9 @@ export const handlers = [
   http.get(`${API}/auth/me`, () =>
     HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 }),
   ),
+  // Every screen that carries the renewal state reads this, so the default keeps
+  // a suite that is not about renewal from having to declare one.
+  http.get(`${API}/me/renewal`, () => HttpResponse.json({ mandate: null })),
 ];
 
 /** Convenience: make `/auth/me` answer with `user`. */

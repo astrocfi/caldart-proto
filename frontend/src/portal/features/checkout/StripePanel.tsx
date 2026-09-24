@@ -28,7 +28,7 @@ import type { ProviderPanelProps } from './types';
 const stripeByKey = new Map<string, Promise<Stripe | null>>();
 
 /** The shared Stripe.js instance for `publishableKey`, loaded at most once. */
-function stripeFor(publishableKey: string): Promise<Stripe | null> {
+export function stripeFor(publishableKey: string): Promise<Stripe | null> {
   const existing = stripeByKey.get(publishableKey);
   if (existing) return existing;
   const created = loadStripe(publishableKey);
@@ -43,7 +43,7 @@ function cssToken(name: string, fallback: string): string {
 }
 
 /** Dress the Payment Element in our own tokens rather than Stripe's defaults. */
-function appearanceFromTokens(): Appearance {
+export function appearanceFromTokens(): Appearance {
   return {
     theme: 'stripe',
     variables: {
@@ -82,7 +82,7 @@ function returnUrl(paymentId: number): string {
 }
 
 /** Wait for the member to stop changing the amount before re-creating an intent. */
-const AMOUNT_DEBOUNCE_MS = 500;
+export const AMOUNT_DEBOUNCE_MS = 500;
 
 /**
  * The checkout request for the current selection, once that selection has held still.
@@ -93,11 +93,16 @@ const AMOUNT_DEBOUNCE_MS = 500;
  * identity for as long as the JSON does, which is what lets the caller depend on it
  * and nothing else.
  */
-function useSettledCheckout(plan: string | null, contributionCents: number): CheckoutRequest {
+function useSettledCheckout(
+  plan: string | null,
+  contributionCents: number,
+  autoRenew: boolean,
+): CheckoutRequest {
   const wanted = JSON.stringify({
     plan,
     contribution_cents: contributionCents,
     provider: 'stripe',
+    auto_renew: autoRenew,
   } satisfies CheckoutRequest);
   const settled = useDebounced(wanted, AMOUNT_DEBOUNCE_MS);
   return useMemo(() => JSON.parse(settled) as CheckoutRequest, [settled]);
@@ -118,11 +123,12 @@ export function StripePanel({
   plan,
   contributionCents,
   amountCents,
+  autoRenew,
   onSuccess: handleSuccess,
 }: StripePanelProps): JSX.Element {
   const [intent, setIntent] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const settled = useSettledCheckout(plan, contributionCents);
+  const settled = useSettledCheckout(plan, contributionCents, autoRenew);
 
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const appearance = useMemo(() => appearanceFromTokens(), []);

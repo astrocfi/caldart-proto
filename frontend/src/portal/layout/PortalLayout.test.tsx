@@ -79,6 +79,7 @@ describe('PortalLayout', () => {
       'Dashboard',
       'My profile',
       'My aircraft',
+      'Payments',
       'Renew',
       'Change password',
       'Back to caldart.org',

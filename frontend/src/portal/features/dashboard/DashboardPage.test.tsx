@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { makeMandate } from '@test/fixtures/payments';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -271,5 +272,49 @@ describe('<DashboardPage/>', () => {
     mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
 
     expect(await screen.findByText('No payments yet')).toBeInTheDocument();
+  });
+});
+
+describe('DashboardPage · payments and renewal', () => {
+  it('sends the member on to the payments screen for the rest', async () => {
+    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
+
+    expect(
+      await card('Recent payments').findByRole('link', {
+        name: 'All payments, receipts and renewal',
+      }),
+    ).toHaveAttribute('href', '/payments');
+  });
+
+  it('says automatic renewal is off when the member has no mandate', async () => {
+    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
+
+    expect(await screen.findByText('Automatic renewal is off.')).toBeInTheDocument();
+  });
+
+  it('names the next charge and its amount when automatic renewal is on', async () => {
+    server.use(
+      http.get(`${API}/me/renewal`, () =>
+        HttpResponse.json({
+          mandate: makeMandate({ next_charge_on: '2027-03-12', amount_cents: 7000 }),
+        }),
+      ),
+    );
+    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
+
+    const line = await screen.findByText(/Automatic renewal is on/);
+    expect(within(line).getByText('$70.00')).toBeInTheDocument();
+    expect(within(line).getByText('2027/03/12')).toBeInTheDocument();
+  });
+
+  it('says renewal stopped when a mandate has run out of retries', async () => {
+    server.use(
+      http.get(`${API}/me/renewal`, () =>
+        HttpResponse.json({ mandate: makeMandate({ status: 'paused' }) }),
+      ),
+    );
+    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
+
+    expect(await screen.findByText(/Automatic renewal stopped/)).toBeInTheDocument();
   });
 });

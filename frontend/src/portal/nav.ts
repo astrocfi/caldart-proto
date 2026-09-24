@@ -22,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', roles: [], group: 'Membership', end: true },
   { to: '/profile', label: 'My profile', roles: [], group: 'Membership' },
   { to: '/profile/aircraft', label: 'My aircraft', roles: [], group: 'Membership' },
+  { to: '/payments', label: 'Payments', roles: [], group: 'Membership' },
   { to: '/renew', label: 'Renew', roles: [], group: 'Membership' },
   // `/change-password` is a real route with a real screen; without an entry
   // here nothing in the portal linked to it.

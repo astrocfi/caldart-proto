@@ -27,9 +27,14 @@ describe('visibleNavItems', () => {
       'Dashboard',
       'My profile',
       'My aircraft',
+      'Payments',
       'Renew',
       'Change password',
     ]);
+  });
+
+  it('gives every signed-in member their own payments screen', () => {
+    expect(visibleNavItems([]).map((item) => item.to)).toContain('/payments');
   });
 
   it('offers every route the portal can render', () => {

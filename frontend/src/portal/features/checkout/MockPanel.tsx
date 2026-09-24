@@ -13,7 +13,12 @@ import { completeMockPayment, createCheckout } from './api';
 import type { ProviderPanelProps } from './types';
 
 /** Succeed / Fail buttons that drive the mock payment provider directly. */
-export function MockPanel({ plan, contributionCents, onSuccess }: ProviderPanelProps): JSX.Element {
+export function MockPanel({
+  plan,
+  contributionCents,
+  autoRenew,
+  onSuccess,
+}: ProviderPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -25,6 +30,7 @@ export function MockPanel({ plan, contributionCents, onSuccess }: ProviderPanelP
         plan,
         contribution_cents: contributionCents,
         provider: 'mock',
+        auto_renew: autoRenew,
       });
       const result = await completeMockPayment(checkout.payment_id, outcome);
       if (result.status === 'succeeded') {
