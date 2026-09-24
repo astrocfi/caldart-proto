@@ -39,7 +39,8 @@ from apps.cms.blocks import (
     stream_headings,
 )
 from apps.cms.forms import RestrictedBlocksPageForm
-from apps.members.models import Dart, MembershipPlan, MembershipState
+from apps.darts.models import Dart
+from apps.members.models import MembershipPlan, MembershipState
 from apps.members.services import MembershipStatusDict
 
 if TYPE_CHECKING:
@@ -544,18 +545,13 @@ class DartIndexPage(BasePage):
 
     @property
     def dart_pages(self) -> QuerySet[DartPage]:
-        """The live public DART pages below this index, in the DARTs' own order.
+        """The live public DART pages below this index, by page title.
 
-        Teams that share a sort order are ordered by page title.  A page whose
-        ``dart`` link is empty has no sort order, so it follows every linked page;
-        such pages are ordered among themselves by title.
+        The title is the team's name, so the directory reads alphabetically,
+        which is how somebody looks for their own field.
         """
         pages: QuerySet[DartPage] = (
-            DartPage.objects.child_of(self)
-            .live()
-            .public()
-            .select_related("dart")
-            .order_by("dart__sort_order", "title")
+            DartPage.objects.child_of(self).live().public().select_related("dart").order_by("title")
         )
         return pages
 
@@ -570,7 +566,7 @@ class DartPage(BasePage):
     """One local Disaster Airlift Response Team."""
 
     dart = models.ForeignKey(
-        "members.Dart",
+        "darts.Dart",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -607,9 +603,9 @@ class DartPage(BasePage):
         verbose_name = "DART page"
 
     @property
-    def airport_identifier(self) -> str:
+    def airport_identifiers(self) -> str:
         """The linked DART's airport identifier, or an empty string when unlinked."""
-        return self.dart.airport_identifier if self.dart else ""
+        return self.dart.airport_identifiers if self.dart else ""
 
     @property
     def city(self) -> str:

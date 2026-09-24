@@ -4,31 +4,19 @@ from typing import TYPE_CHECKING
 
 from django.contrib import admin
 
-from apps.members.models import Dart, MemberProfile, Membership, MembershipPlan
+from apps.members.models import MemberProfile, Membership, MembershipPlan
 
 if TYPE_CHECKING:
     # ``ModelAdmin`` carries the model it manages for the type checker, but it is
     # a plain class at runtime and cannot be subscripted, so each base is named
     # here and falls back to the bare class when the module is imported.
-    DartAdminBase = admin.ModelAdmin[Dart]
     ProfileAdminBase = admin.ModelAdmin[MemberProfile]
     PlanAdminBase = admin.ModelAdmin[MembershipPlan]
     MembershipAdminBase = admin.ModelAdmin[Membership]
 else:
-    DartAdminBase = admin.ModelAdmin
     ProfileAdminBase = admin.ModelAdmin
     PlanAdminBase = admin.ModelAdmin
     MembershipAdminBase = admin.ModelAdmin
-
-
-@admin.register(Dart)
-class DartAdmin(DartAdminBase):
-    """DARTs, in the order the public catalog lists them."""
-
-    list_display = ["name", "airport_identifier", "city", "is_active", "sort_order"]
-    list_filter = ["is_active"]
-    search_fields = ["name", "airport_identifier", "city"]
-    ordering = ["sort_order", "name"]
 
 
 @admin.register(MemberProfile)

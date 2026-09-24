@@ -6,6 +6,9 @@ import { useAuth, useLogin } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
+import { maskEmail } from '@/portal/masks';
+import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
 import { Page } from '@/portal/components/Page';
 import { FormAlert, fieldError } from './form';
 
@@ -24,6 +27,7 @@ export function LoginPage(): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const next = safeNext(params.get('next'));
 
@@ -40,6 +44,11 @@ export function LoginPage(): JSX.Element {
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
+            if (!isEmailAddress(email)) {
+              setEmailError(EMAIL_MESSAGE);
+              return;
+            }
+            setEmailError(null);
             login.mutate(
               { email, password },
               {
@@ -50,16 +59,21 @@ export function LoginPage(): JSX.Element {
             );
           }}
         >
-          <Field label="Email address" required error={fieldError(login.error, 'email')}>
+          <Field
+            label="Email address"
+            required
+            error={emailError ?? fieldError(login.error, 'email')}
+          >
             {(props) => (
-              <input
+              <MaskedInput
                 {...props}
                 type="email"
                 name="email"
                 autoComplete="username"
                 required
+                mask={maskEmail}
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onValueChange={(next) => setEmail(next)}
               />
             )}
           </Field>

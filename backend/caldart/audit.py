@@ -58,6 +58,9 @@ ACCOUNT_ACTIVATE = "account.activate"
 ACCOUNT_DEACTIVATE = "account.deactivate"
 MEMBER_CREATE = "member.create"
 MEMBER_DELETE = "member.delete"
+DART_CREATE = "dart.create"
+DART_UPDATE = "dart.update"
+DART_DELETE = "dart.delete"
 MEMBERSHIP_GRANT = "membership.grant"
 MEMBERSHIP_CORRECT = "membership.correct"
 PASSWORD_RESET_ADMIN_SENT = "password_reset.admin_sent"  # noqa: S105 - an audit event name
@@ -76,6 +79,7 @@ REASON_SYSTEM_ADMIN_TARGET = "system_admin_target"
 REASON_HAS_PAYMENTS = "has_payments"
 REASON_INACTIVE_ACCOUNT = "inactive_account"
 REASON_NO_SUCH_BACKUP = "no_such_backup"
+REASON_DART_IN_USE = "dart_in_use"
 
 log = logging.getLogger(LOGGER_NAME)
 

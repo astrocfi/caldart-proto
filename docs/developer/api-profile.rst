@@ -184,10 +184,10 @@ Field                        Rule
 ``emergency_contact_``       number and breaks the stored format.
 ``phone_extension``
 ``home_airport_identifier``  Three letters or digits if given, upper-cased on the
-                             way in.  Any of the three may be a ``K`` --
-                             Kelso is ``KLS`` -- because the ``K`` prefix
-                             belongs to the four-letter ICAO form, which this
-                             field does not take.
+                             way in.  The four-letter ICAO spelling is accepted
+                             and trimmed, so ``KCRQ`` is stored as ``CRQ``; a
+                             three-character identifier that begins with ``K``
+                             is left alone, because Kelso really is ``KLS``.
 ``state``                    One of the two-letter codes, and required: the fifty
                              states, DC, and the territories with USPS codes.
 ``postal_code``              Five digits if given.  ZIP+4 is refused: five reach
@@ -361,7 +361,7 @@ Unpaginated.
 
 .. code-block:: json
 
-   [{"id": 9, "name": "San Carlos", "airport_identifier": "SQL", "city": "San Carlos"}]
+   [{"id": 9, "name": "San Carlos", "airport_identifiers": "SQL", "city": "San Carlos"}]
 
 Statuses:
 

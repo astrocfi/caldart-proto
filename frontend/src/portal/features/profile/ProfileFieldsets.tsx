@@ -313,8 +313,8 @@ export function ProfileFieldsets({
                 <option value="">{dartsLoading ? 'Loading DARTs…' : 'Not decided yet'}</option>
                 {darts.map((dart) => (
                   <option key={dart.id} value={String(dart.id)}>
-                    {dart.airport_identifier
-                      ? `${dart.name} (${dart.airport_identifier})`
+                    {dart.airport_identifiers
+                      ? `${dart.name} (${dart.airport_identifiers})`
                       : dart.name}
                   </option>
                 ))}

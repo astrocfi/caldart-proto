@@ -19,7 +19,8 @@ from apps.accounts.roles import ROLE_SLUGS, SYSTEM_ADMIN
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD, GENERATED_MEMBER_COUNT
 from apps.aircraft.models import Aircraft
 from apps.cms.models import SiteSettings
-from apps.members.models import Dart, MemberProfile, Membership, MembershipPlan, MembershipState
+from apps.darts.models import Dart
+from apps.members.models import MemberProfile, Membership, MembershipPlan, MembershipState
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentStatus
 from apps.payments.seed import HISTORY_MONTHS

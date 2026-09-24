@@ -11,8 +11,8 @@ System administrators have it implicitly.  The role also opens **Payments**
 and **Aircraft** under *Administration* in the portal menu, and **Member
 check** and **Aircraft check** under *Operations* — the pre-flight currency
 checks described in :doc:`dart-leader-guide`.  This page covers **Members**,
-at ``/portal/admin/members``, and **Reminders**, at
-``/portal/admin/reminders``.
+at ``/portal/admin/members``, **DARTs**, at ``/portal/admin/darts``, and
+**Reminders**, at ``/portal/admin/reminders``.
 
 
 The member list
@@ -254,6 +254,47 @@ The columns are listed field by field in the developer documentation under
 :doc:`/developer/reports`.
 
 
+DARTs
+=====
+
+**DARTs**, under *Administration*, is the list of teams a member can join.
+Everything on it shows up in the **DART** box on the join form, on a member's
+profile, and in the DART filter on the member list, so adding a team here is
+all it takes to start putting people on it.
+
+The table gives each DART's name, its airport, its town, how many members are
+on it and whether it is taking new ones.  Click a column heading to sort.
+
+**Adding one**
+   **Add a DART** opens a short form: the **Name** members will see, the
+   three-character **Airport** identifier (``PAO``, ``E16`` — leave it blank
+   if the team has no home field), the **Town**, and **Position in the list**,
+   which is filled in for you and puts the new team at the end.  Lower numbers
+   come first, so give a team the same number as its neighbors' to sit beside
+   them.
+
+**Changing one**
+   **Edit** opens the same form on an existing DART.  Renaming one is safe:
+   the members on it stay on it.  The people are saved with the rest of the
+   form, so clearing a row really does take that person off the list.
+
+**Retiring one**
+   Untick **Accepting members** and save.  The DART disappears from the join
+   form and from a member's profile box, and everybody already on it stays on
+   it, so the history and the reports still read correctly.  Tick it again to
+   bring the team back.
+
+**Deleting one**
+   **Delete** is offered only for a DART nobody is on and no website page is
+   linked to, and it asks before it acts.  For any other, the button is
+   grayed out and says what is still attached — retire it instead.  Deleting
+   is permanent.
+
+A DART's own page on the public website is a separate thing, kept by a website
+administrator in the Wagtail editor (:doc:`website-administrator-guide`); the
+**DART** field on that page is what ties the two together.
+
+
 Reminders
 =========
 
@@ -289,6 +330,14 @@ Common tasks
 **How big is a DART?**
    DART, then Membership *Current*.  The caption under the filter bar gives
    the count.
+
+**A new team wants to join CalDART.**
+   **DARTs**, **Add a DART**, name and airport.  It appears on the join form
+   immediately, so the new team's pilots can pick it the same day.
+
+**A team has folded.**
+   Open it in **DARTs**, untick **Accepting members**, and save.  Nobody new
+   can pick it, and everyone on it keeps their record.
 
 **Somebody paid by check.**
    Open their record, Memberships, Grant a term, choose the plan, and note the

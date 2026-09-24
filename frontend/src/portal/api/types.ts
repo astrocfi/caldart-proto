@@ -114,12 +114,45 @@ export type Rating =
 
 export type MedicalType = 'none' | 'basicmed' | 'first' | 'second' | 'third';
 
+/** One named volunteer who runs a DART, and how to reach them. */
+export interface DartContact {
+  id?: number;
+  name: string;
+  title: string;
+  phone: string;
+  email: string;
+}
+
 export interface Dart {
   id: number;
   name: string;
-  airport_identifier: string;
+  /** Every field the team flies from, as `"CCR, C83"`. */
+  airport_identifiers: string;
   city: string;
+  /** The team's own site, or `''` when it has none. */
+  website_url: string;
+  contacts: DartContact[];
 }
+
+/**
+ * A DART as the account administrator's screen works with it.
+ *
+ * `member_count` and `page_count` say what points at the DART: the members
+ * whose profile names it, and the website pages linked to it.  Both are
+ * read-only, and both being zero is what makes a DART deletable.
+ */
+export interface AdminDart extends Dart {
+  is_active: boolean;
+  member_count: number;
+  page_count: number;
+}
+
+/**
+ * The body of `POST /admin/darts` and `PATCH /admin/darts/{id}`.
+ *
+ * `contacts` replaces the stored list; leaving it out keeps the list as it is.
+ */
+export type AdminDartPatch = Partial<Omit<AdminDart, 'id' | 'member_count' | 'page_count'>>;
 
 export interface Plan {
   slug: string;

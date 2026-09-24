@@ -2,8 +2,22 @@
 import type { AircraftSummary, Dart, Profile } from '@/portal/api/types';
 
 export const TEST_DARTS: Dart[] = [
-  { id: 1, name: 'Palo Alto', airport_identifier: 'PAO', city: 'Palo Alto' },
-  { id: 2, name: 'Watsonville', airport_identifier: 'WVI', city: 'Watsonville' },
+  {
+    id: 1,
+    name: 'Palo Alto',
+    airport_identifiers: 'PAO',
+    city: 'Palo Alto',
+    website_url: '',
+    contacts: [],
+  },
+  {
+    id: 2,
+    name: 'Watsonville',
+    airport_identifiers: 'WVI',
+    city: 'Watsonville',
+    website_url: '',
+    contacts: [],
+  },
 ];
 
 export const TEST_AIRCRAFT: AircraftSummary = {

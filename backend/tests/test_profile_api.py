@@ -10,7 +10,8 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.aircraft.models import Aircraft
-from apps.members.models import Dart, MemberProfile, MembershipPlan
+from apps.darts.models import Dart
+from apps.members.models import MemberProfile, MembershipPlan
 from tests.conftest import ROLE_MATRIX
 from tests.factories import (
     AircraftFactory,
@@ -77,15 +78,22 @@ def test_catalogs_are_public(
 # Catalogs
 # --------------------------------------------------------------------------
 def test_darts_lists_active_darts_in_order(api_client: APIClient, db: None) -> None:
-    """The DART list carries only active rows, ordered by ``sort_order``."""
-    DartFactory(name="Zulu", sort_order=2, is_active=True)
-    DartFactory(name="Alpha", sort_order=1, is_active=True)
-    DartFactory(name="Retired", sort_order=0, is_active=False)
+    """The DART list carries only active rows, in alphabetical order."""
+    DartFactory(name="Zulu", is_active=True)
+    DartFactory(name="Alpha", is_active=True)
+    DartFactory(name="Retired", is_active=False)
 
     rows = api_client.get(DARTS_URL).json()
 
     assert [row["name"] for row in rows] == ["Alpha", "Zulu"]
-    assert set(rows[0]) == {"id", "name", "airport_identifier", "city"}
+    assert set(rows[0]) == {
+        "id",
+        "name",
+        "airport_identifiers",
+        "city",
+        "website_url",
+        "contacts",
+    }
 
 
 def test_plans_lists_active_plans_in_order(api_client: APIClient, db: None) -> None:
@@ -622,13 +630,13 @@ def test_home_airport_is_stored_in_upper_case(
 
 @pytest.mark.parametrize(
     "identifier",
-    ["KPAO", "PA", "PAOX", "PA-"],
-    ids=["icao-form", "too-short", "too-long", "punctuation"],
+    ["PA", "XPAO", "PAOXX", "PA-"],
+    ids=["too-short", "four-without-the-k", "too-long", "punctuation"],
 )
 def test_home_airport_must_be_three_letters_or_digits(
     api_client: APIClient, member: User, profile: MemberProfile, identifier: str
 ) -> None:
-    """Anything but exactly three letters or digits is refused, the ICAO form included."""
+    """Three characters is the stored form; a fourth is only ever an ICAO ``K``."""
     api_client.force_login(member)
     response = api_client.patch(PROFILE_URL, {"home_airport_identifier": identifier}, format="json")
     assert response.status_code == 400
@@ -637,14 +645,19 @@ def test_home_airport_must_be_three_letters_or_digits(
     ]
 
 
-def test_home_airport_accepts_an_identifier_that_starts_with_k(
-    api_client: APIClient, member: User, profile: MemberProfile
+@pytest.mark.parametrize(
+    ("typed", "stored"),
+    [("kls", "KLS"), ("l08", "L08"), ("kcrq", "CRQ")],
+    ids=["k-is-the-identifier", "digits", "icao-form-trimmed"],
+)
+def test_home_airport_is_stored_in_the_one_spelling(
+    api_client: APIClient, member: User, profile: MemberProfile, typed: str, stored: str
 ) -> None:
-    """``KLS`` is Kelso's identifier: a K is only a prefix on the four-letter form."""
+    """``KCRQ`` typed is ``CRQ`` stored, so one airport reads one way everywhere."""
     api_client.force_login(member)
-    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": "kls"}, format="json")
+    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": typed}, format="json")
     assert response.status_code == 200, response.json()
-    assert response.json()["home_airport_identifier"] == "KLS"
+    assert response.json()["home_airport_identifier"] == stored
 
 
 def test_home_airport_accepts_an_identifier_with_a_digit(

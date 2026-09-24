@@ -195,7 +195,7 @@ const POSTAL_RE = /^\d{5}$/;
 const PHONE_RE = /^\d{3}-\d{3}-\d{4}$/;
 const EXTENSION_RE = /^\d{1,6}$/;
 
-/** Three letters or digits, which is every FAA identifier. */
+/** One identifier as it is stored: three letters or digits. */
 const AIRPORT_RE = /^[A-Z0-9]{3}$/;
 
 const EXTENSION_MESSAGE = 'An extension is digits only, for example 4021.';

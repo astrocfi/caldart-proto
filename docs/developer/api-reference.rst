@@ -13,6 +13,7 @@ to document each app's endpoints in detail, request body by response body.
    api-auth
    api-profile
    api-members
+   api-darts
    api-aircraft
    api-payments
    api-system
@@ -579,6 +580,20 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - ``PUT`` → 405; delete is a hard delete
+   * - ``GET | POST /admin/darts``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - every DART, retired ones too
+   * - ``GET | PATCH | DELETE /admin/darts/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - delete refused while anything points at it
    * - ``POST /admin/members/{id}/memberships``
      - ·
      - ·

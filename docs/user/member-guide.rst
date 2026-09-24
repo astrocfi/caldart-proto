@@ -258,9 +258,15 @@ of the required ones.
 **The home airport box drops the K you typed.**
    Identifiers here are three characters, as on a sectional: ``PAO``, ``E16``,
    ``SQL``.  ``K`` is the ICAO prefix on the four-letter form, so typing the
-   longer one drops it: ``KPAO`` becomes ``PAO``.  An identifier that really
-   does start with K is safe — ``KLS`` stays ``KLS``, and ``KKAB`` becomes
-   ``KAB``.
+   longer one drops it and ``KPAO`` becomes ``PAO``.  That way one airport is
+   written one way across the whole system.  An identifier that really does
+   start with K is safe — ``KLS`` stays ``KLS``, and ``KKAB`` becomes ``KAB``.
+
+**The email box will not take what you typed.**
+   *"Use an email address like name@example.org."*  The box takes no spaces
+   at all — a copied address often brings one with it — and lower-cases what
+   you type, which changes nothing: signing in ignores case.  The message
+   appears when there is no ``@``, or nothing after the last dot.
 
 **The ZIP code box is rejected.**
    *"Use a five-digit ZIP code like 95035."*  ZIP+4 is not collected.

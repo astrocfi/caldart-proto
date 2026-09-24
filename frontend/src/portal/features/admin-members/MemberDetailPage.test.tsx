@@ -10,7 +10,7 @@ import { server } from '@test/server';
 import { MemberDetailPage } from './MemberDetailPage';
 import { makeDetail } from '@test/fixtures/members';
 
-const DARTS = [{ id: 3, name: 'Palo Alto', airport_identifier: 'PAO', city: 'Palo Alto' }];
+const DARTS = [{ id: 3, name: 'Palo Alto', airport_identifiers: 'PAO', city: 'Palo Alto' }];
 const PLANS = [
   { slug: 'annual', name: 'Annual', price_cents: 4500, duration_days: 365, description: '' },
   { slug: 'life', name: 'Life', price_cents: 65000, duration_days: null, description: '' },

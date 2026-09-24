@@ -49,9 +49,9 @@ Domain schema
                 **dashed box** is an abstract model with no table of its own,
                 and an **empty arrowhead** points from a subclass to the
                 abstract model it inherits.  ``TimestampedModel`` is drawn
-                once rather than seven times: ``Dart``, ``MemberProfile``,
-                ``MembershipPlan``, ``Membership``, ``Aircraft``, ``Payment``,
-                and ``ReminderLog`` all inherit it.
+                once rather than eight times: ``Dart``, ``DartContact``,
+                ``MemberProfile``, ``MembershipPlan``, ``Membership``,
+                ``Aircraft``, ``Payment``, and ``ReminderLog`` all inherit it.
       :alt: Entity-relationship diagram of the CalDART domain models
 
       digraph caldart_domain {
@@ -69,7 +69,8 @@ Domain schema
           User [label="accounts.User\l  email (unique, ci)\l  first_name, last_name\l  is_active, is_superuser\l  roles: derived from groups\l"];
           Group [label="auth.Group\l  name = role slug\l"];
           Profile [label="members.MemberProfile\l  phone, address_line1, city,\l  state, postal_code\l  aviation, volunteer, admin notes\l"];
-          Dart [label="members.Dart\l  name (unique), airport_identifier\l  city, is_active, sort_order\l"];
+          Dart [label="darts.Dart\l  name (unique), airport_identifiers\l  city, website_url, is_active\l"];
+          Contact [label="darts.DartContact\l  name, title, phone, email\l  sort_order\l"];
           Plan [label="members.MembershipPlan\l  name (unique), slug (unique)\l  price_cents, duration_days\l"];
           Membership [label="members.Membership\l  starts_on, ends_on\l  status, source\l"];
           Payment [label="payments.Payment\l  amount_cents, provider\l  wallet, status, provider_ref\l"];
@@ -90,6 +91,7 @@ Domain schema
           Aircraft -> User [label="created_by (null, SET_NULL)"];
           Reminder -> User [label="user (CASCADE)"];
           Reminder -> Membership [label="membership (CASCADE)"];
+          Contact -> Dart [label="dart (CASCADE)\lrelated: contacts"];
           DartPage -> Dart [label="dart (null, SET_NULL)"];
 
           Payment -> Provider [label="provider slug, via get_provider()", style=dotted];
@@ -109,7 +111,7 @@ Domain schema
       Abstract models (dashed boxes in the drawn version; no table of their own)
       -------------------------------------------------------------------------
       caldart.TimestampedModel   created_at, updated_at
-                                 inherited by Dart, MemberProfile,
+                                 inherited by Dart, DartContact, MemberProfile,
                                  MembershipPlan, Membership, Aircraft
                                  , Payment, and ReminderLog
       payments.Provider          start(payment), confirm(payment, **kwargs),
@@ -132,7 +134,7 @@ Domain schema
              | dart    |        |            | aircraft (m2m,
              |         '--------|------------'   "planes commonly flown",
              v                  |                related name: pilots)
-          members.Dart          +-------------------.
+          darts.Dart          +-------------------.
              ^                  |                   |
              | dart             |                   |
           cms.DartPage    members.Membership   payments.Payment ....> Provider
@@ -151,8 +153,8 @@ Domain schema
       auth.Group              name = role slug
       members.MemberProfile   phone, address_line1, city, state, postal_code,
                               the aviation and volunteer fields, admin notes
-      members.Dart            name (unique), airport_identifier, city,
-                              is_active, sort_order
+      darts.Dart              name (unique), airport_identifiers, city,
+                              website_url, is_active
       members.MembershipPlan  name (unique), slug (unique), price_cents,
                               duration_days
       members.Membership      starts_on, ends_on, status, source
@@ -161,12 +163,14 @@ Domain schema
       aircraft.Aircraft       n_number (unique), make, model, insurance_*
       reminders.ReminderLog   kind, sent_at, to_email;
                               (user, membership, kind) unique together
+      darts.DartContact       name, title, phone, email, sort_order
       cms.DartPage            leader_name, leader_contact, body
 
       Edges
       -----
       members.MemberProfile.user     -> accounts.User            1--1, CASCADE
-      members.MemberProfile.dart     -> members.Dart             FK, SET_NULL, nullable
+      members.MemberProfile.dart     -> darts.Dart               FK, SET_NULL, nullable
+      darts.DartContact.dart         -> darts.Dart               FK, CASCADE
       members.MemberProfile.aircraft -> aircraft.Aircraft        m2m, related name pilots
       accounts.User.groups           -> auth.Group               m2m
       members.Membership.user        -> accounts.User            FK, CASCADE
@@ -179,7 +183,7 @@ Domain schema
       aircraft.Aircraft.created_by   -> accounts.User            FK, SET_NULL, nullable
       reminders.ReminderLog.user     -> accounts.User            FK, CASCADE
       reminders.ReminderLog.membership -> members.Membership     FK, CASCADE
-      cms.DartPage.dart              -> members.Dart             FK, SET_NULL, nullable
+      cms.DartPage.dart              -> darts.Dart               FK, SET_NULL, nullable
 
 CMS page models
 ---------------
@@ -216,7 +220,7 @@ CMS page models
 
           Image [label="wagtailimages.Image"];
           Site [label="wagtailcore.Site"];
-          Dart [label="members.Dart"];
+          Dart [label="darts.Dart"];
 
           BasePage -> Page [arrowhead=empty];
           Home -> BasePage [arrowhead=empty];
@@ -231,6 +235,7 @@ CMS page models
 
           Home -> Image [label="hero_image (null, SET_NULL)"];
           News -> Image [label="image (null, SET_NULL)"];
+          Contact -> Dart [label="dart (CASCADE)\lrelated: contacts"];
           DartPage -> Dart [label="dart (null, SET_NULL)"];
           Settings -> Site [label="site  1--1, CASCADE", arrowhead=none];
       }
@@ -269,7 +274,7 @@ CMS page models
           |        |           |           |        |
           |        |      StandardPage ----|--------'
           |        |                       |
-          |        |                    DartPage --> members.Dart
+          |        |                    DartPage --> darts.Dart
           |        |                                 (dart, SET_NULL)
           |        '--> wagtailimages.Image  (image, SET_NULL)
           '-----------> wagtailimages.Image  (hero_image, SET_NULL)
@@ -307,7 +312,7 @@ CMS page models
       cms.ContactPage          inherits cms.BasePage
       cms.HomePage.hero_image  -> wagtailimages.Image   FK, SET_NULL, nullable
       cms.NewsPage.image       -> wagtailimages.Image   FK, SET_NULL, nullable
-      cms.DartPage.dart        -> members.Dart          FK, SET_NULL, nullable
+      cms.DartPage.dart        -> darts.Dart          FK, SET_NULL, nullable
       cms.SiteSettings.site    -> wagtailcore.Site      1--1, CASCADE
 
 accounts
@@ -435,28 +440,51 @@ Rules:
   called from the ``accounts.0002_seed_roles`` data migration, so a freshly
   migrated database already has them.
 
-members
-=======
+darts
+=====
 
 ``Dart``
 --------
 
 A local Disaster Airlift Response Team.
 
-``name`` (unique), ``airport_identifier`` (e.g. ``E16``),
-``city``, ``is_active``, ``sort_order``.  Ordered by ``sort_order`` then
-``name``; ``__str__`` is ``"Angwin (2O3)"`` when there is an identifier and
-just the name otherwise.
+``name`` (unique), ``airport_identifiers``, ``city``, ``website_url``,
+``is_active``.  Ordered by ``name``, everywhere: a reader looking for their
+own team scans for its name, and no hand-kept ordering can go stale.
+``__str__`` is ``"Angwin (2O3)"``.
 
-Sixteen are seeded from ``DARTS`` in ``apps/members/seed.py``: fifteen
-airports — Angwin ``2O3``, Central Coast ``SBP``, Contra Costa ``CCR``, Half
-Moon Bay ``HAF``, Hayward ``HWD``, Livermore ``LVK``, Monterey ``MRY``, Napa
-``APC``, Palo Alto ``PAO``, Reid-Hillview ``RHV``, San Carlos ``SQL``, San
-Martin (South County) ``E16``, Santa Monica ``SMO``, Santa Rosa ``STS`` and
-Watsonville ``WVI`` — plus ``Unaffiliated``, which has no identifier and no
-city.  ``cms.DartPage`` points at this table with a nullable ``SET_NULL``
-foreign key, so deleting a DART leaves its page in place with no DART
-attached, and the airport and city are never retyped in the CMS.
+``airport_identifiers`` is every field the team flies from, comma-separated
+and stored in the canonical ``"CCR, C83"`` form that ``save()`` writes: a
+DART is organized around its airports and several cover more than one, so
+Contra Costa is ``CCR, C83`` and San Diego lists nine.  Each identifier is
+exactly three letters or digits.  The four-letter ICAO form is the same field
+with a ``K`` in front, and that ``K`` is trimmed on the way in -- ``KCRQ`` is
+stored as ``CRQ`` -- so one airport is written one way everywhere; a
+three-character identifier that begins with ``K`` is left alone, because Kelso
+really is ``KLS``.  ``airports`` gives the list and ``home_airport`` its first
+entry, which is what a single-line summary shows.
+
+Sixteen are seeded from ``DARTS`` in ``apps/members/seed.py``, each with the
+handful of example contacts ``seed_darts`` generates.  ``cms.DartPage``
+points at this table with a nullable ``SET_NULL`` foreign key, so deleting a
+DART leaves its page in place with no DART attached, and the airports and
+city are never retyped in the CMS.
+
+``DartContact``
+---------------
+
+One named volunteer who runs a DART, and how to reach them: ``name``,
+``title``, optional ``phone`` (stored as ``XXX-XXX-XXXX``) and optional
+``email``, ordered by ``sort_order``.  A DART lists at most
+``MAX_DART_CONTACTS`` of them, which the serializer enforces; the foreign key
+cascades, so a contact has no life without its DART.
+
+This is deliberately not a link to a member account: the person an emergency
+manager asks for by name may hold no account at all, and the listing outlives
+whoever holds the job this year.
+
+members
+=======
 
 ``MemberProfile``
 -----------------
@@ -1020,7 +1048,7 @@ not use it, and the ``body_headings`` used to build the "on this page" rail):
      - ``NewsPage`` adds ``date``, ``intro``, ``image``, ``body``, and may only
        live under a ``NewsIndexPage``.  Members-only capable.
    * - ``DartIndexPage`` / ``DartPage``
-     - ``DartPage`` has a nullable ``SET_NULL`` FK to ``members.Dart`` —
+     - ``DartPage`` has a nullable ``SET_NULL`` FK to ``darts.Dart`` —
        airport identifier and city are read from it — plus ``leader_name``
        , ``leader_contact``, and a body.
    * - ``ContactPage``

@@ -26,14 +26,13 @@ from apps.members.api.actors import acting_user
 from apps.members.api.profile_serializers import (
     AircraftAttachSerializer,
     AttachedAircraftSerializer,
-    DartSerializer,
     MembershipDetailSerializer,
     MembershipTermSerializer,
     PaymentSummarySerializer,
     ProfileSerializer,
 )
 from apps.members.api.serializers import PlanSerializer
-from apps.members.models import Dart, MemberProfile, MembershipPlan
+from apps.members.models import MemberProfile, MembershipPlan
 from apps.members.services import membership_status
 
 
@@ -140,15 +139,6 @@ class MyProfileAircraftDetailView(APIView):
 def _attached(profile: MemberProfile) -> dict[str, Any]:
     """The aircraft list the client should show, under the key ``aircraft``."""
     return {"aircraft": AircraftSummarySerializer(profile.aircraft.all(), many=True).data}
-
-
-class DartListView(ListAPIView[Dart]):
-    """``GET /darts`` -- public, active DARTs in their configured order."""
-
-    serializer_class = DartSerializer
-    permission_classes = [AllowAny]
-    pagination_class = None
-    queryset = Dart.objects.filter(is_active=True)
 
 
 class PlanListView(ListAPIView[MembershipPlan]):
