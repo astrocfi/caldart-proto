@@ -41,7 +41,16 @@ EXEMPT_DIRECTORIES = frozenset({"api", "management", "migrations"})
 EXEMPT_FILENAMES = frozenset({"admin.py"})
 
 #: The project modules every app builds on.  They may import no app at all.
-FOUNDATION_MODULES = ("models.py", "reports.py", "exceptions.py", "pagination.py")
+#: ``org.py`` is deliberately not among them: it reads the Wagtail site settings
+#: through one inline import, which is what keeps that dependency out of here.
+FOUNDATION_MODULES = (
+    "models.py",
+    "reports.py",
+    "receipts.py",
+    "mail.py",
+    "exceptions.py",
+    "pagination.py",
+)
 
 #: The complete set of inline cross-app imports, as ``(importer, imported)`` pairs.
 #: Each one breaks an app-level import cycle, and each carries a comment saying so.
@@ -51,7 +60,6 @@ SANCTIONED_INLINE_IMPORTS: frozenset[tuple[str, str]] = frozenset(
         ("apps.accounts.models", "apps.members.services"),
         ("apps.accounts.services", "apps.cms.models"),
         ("apps.members.services", "apps.payments.models"),
-        ("apps.reminders.services", "apps.cms.models"),
     }
 )
 
@@ -267,7 +275,10 @@ def test_the_comment_block_is_read_from_its_first_line(lines: list[str], expecte
 
 
 def test_project_foundation_modules_import_nothing_from_apps() -> None:
-    """``caldart`` models, reports, exceptions and pagination sit below every app."""
+    """The project's models, reports, receipts, mail, exceptions and pagination sit below.
+
+    Each of them is read by several apps, so none may read an app back.
+    """
     offenders: list[str] = []
     for filename in FOUNDATION_MODULES:
         path = BACKEND_ROOT / "caldart" / filename
