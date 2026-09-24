@@ -199,10 +199,63 @@ describe('AircraftPicker', () => {
     await search(user, /Search the aircraft register/i, 'n4321q');
 
     expect(await screen.findByText(/No aircraft matches that/i)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Add a new aircraft/i }));
+    await user.click(screen.getByRole('button', { name: /Add an aircraft/i }));
 
     // The registration the member typed is carried into the form, normalized.
     expect(screen.getByLabelText(/^N-number/)).toHaveValue('N4321Q');
+  });
+
+  it('offers exactly one way to add an aircraft when nothing matches', async () => {
+    const user = setupUser();
+    server.use(...searchOnly([]));
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+    await search(user, /Search the aircraft register/i, 'n4321q');
+
+    const empty = (await screen.findByText(/No aircraft matches that/i)).closest('.empty-state');
+    expect(within(empty as HTMLElement).queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('points at the button below rather than repeating it in the empty state', async () => {
+    const user = setupUser();
+    server.use(...searchOnly([]));
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+    await search(user, /Search the aircraft register/i, 'n4321q');
+
+    expect(
+      await screen.findByText('If the plane is not in the register yet, add it below.'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the add button below the results the search found', async () => {
+    const user = setupUser();
+    server.use(...searchOnly([makeAircraft()]));
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+    await search(user, /Search the aircraft register/i, 'cessna');
+
+    const list = await screen.findByRole('list');
+    const add = screen.getByRole('button', { name: /Add an aircraft/i });
+    expect(list.compareDocumentPosition(add)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('says what a result does when the search found some', async () => {
+    const user = setupUser();
+    server.use(...searchOnly([makeAircraft()]));
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+    await search(user, /Search the aircraft register/i, 'cessna');
+
+    expect(
+      await screen.findByText('Click on an aircraft to add it to your list.'),
+    ).toBeInTheDocument();
+  });
+
+  it('says nothing about clicking a result before a search has found one', () => {
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+
+    expect(screen.queryByText(/Click on an aircraft/i)).not.toBeInTheDocument();
   });
 
   it('creates the aircraft and selects it', async () => {
@@ -220,7 +273,7 @@ describe('AircraftPicker', () => {
     const handleSelect = vi.fn();
     renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
     await search(user, /Search the aircraft register/i, 'n4321q');
-    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+    await user.click(await screen.findByRole('button', { name: /Add an aircraft/i }));
 
     await user.type(screen.getByLabelText(/^Make/), 'Cirrus');
     await user.type(screen.getByLabelText(/^Model/), 'SR22');
@@ -245,7 +298,7 @@ describe('AircraftPicker', () => {
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n4321q');
-    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+    await user.click(await screen.findByRole('button', { name: /Add an aircraft/i }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
     expect(await screen.findByText(/Enter the make/i)).toBeInTheDocument();
@@ -267,7 +320,7 @@ describe('AircraftPicker', () => {
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n172sp');
-    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
+    await user.click(await screen.findByRole('button', { name: /Add an aircraft/i }));
     await user.type(screen.getByLabelText(/^Make/), 'Cessna');
     await user.type(screen.getByLabelText(/^Model/), '172S');
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
