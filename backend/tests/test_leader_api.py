@@ -195,10 +195,15 @@ def test_search_does_not_treat_a_name_as_a_registration(
 def test_search_result_shape(
     api_client: APIClient, dart_leader: User, pilot: User, dart: Dart
 ) -> None:
-    """A search result row carries the member's id, name, email, dart, and status."""
+    """A search result row carries the member's id, name, email, dart, and status.
+
+    The medical and the go/no-go the same row carries are covered in
+    ``test_leader_search_readiness.py``.
+    """
     api_client.force_login(dart_leader)
     row = api_client.get(SEARCH_URL, {"q": "Reyes"}).json()[0]
-    assert row == {
+    identity = {key: row[key] for key in ("user_id", "name", "email", "dart", "membership_status")}
+    assert identity == {
         "user_id": pilot.pk,
         "name": "Marta Reyes",
         "email": "marta@example.test",

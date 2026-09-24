@@ -28,6 +28,7 @@ from apps.accounts.roles import (
     WEBSITE_ADMIN,
 )
 from apps.darts.models import Dart
+from apps.members.api.admin_filters import MemberOrderingFilter
 from apps.members.models import (
     MedicalType,
     MemberProfile,
@@ -563,6 +564,71 @@ def test_ordering_by_joined(account_admin_client: APIClient, population: dict[st
     ordered = rows(account_admin_client.get(LIST_URL, {"ordering": "joined", "page_size": "200"}))
     joined = [row["joined_on"] for row in ordered if row["joined_on"]]
     assert joined == sorted(joined)
+
+
+#: What each ``?ordering=`` alias expands to, as ``docs/developer/api-members.rst``
+#: documents it.  Every alias ends in keys that settle a tie, so two rows the
+#: caller's sort cannot separate still come back in a readable order.
+DOCUMENTED_ALIASES = {
+    "pilot": ("pilot_rank", "last_name", "first_name"),
+    "name": ("last_name", "first_name", "profile__dart__name", "email"),
+    "email": ("email", "last_name", "first_name"),
+    "dart": ("profile__dart__name", "last_name", "first_name"),
+    "expires_on": ("effective_expiry", "last_name", "first_name"),
+    "joined": ("joined_on", "last_name", "first_name"),
+}
+
+
+def test_every_ordering_alias_expands_as_documented() -> None:
+    """Each alias sorts on the columns the API reference lists, in that order."""
+    assert MemberOrderingFilter.aliases == DOCUMENTED_ALIASES
+
+
+@pytest.fixture
+def one_dart_trio(dart: Dart, today: date) -> list[User]:
+    """Three members of one DART, all expiring on one day, created out of order.
+
+    Nothing but the name can separate them under any sort, so a list that comes
+    back in name order proves the secondary key is doing the work.
+    """
+    people = [
+        UserFactory(email="c@tie.test", first_name="Ada", last_name="Zeller"),
+        UserFactory(email="a@tie.test", first_name="Bo", last_name="Marsh"),
+        UserFactory(email="b@tie.test", first_name="Cy", last_name="Alvarez"),
+    ]
+    for person in people:
+        MemberProfileFactory(user=person, dart=dart)
+        MembershipFactory(user=person, starts_on=today - 30 * ONE_DAY)
+    return people
+
+
+@pytest.mark.parametrize("ordering", ["dart", "expires_on", "joined", "pilot"])
+def test_a_sort_that_cannot_separate_two_rows_falls_back_to_the_name(
+    account_admin_client: APIClient,
+    fixed_name_admin: User,
+    one_dart_trio: list[User],
+    ordering: str,
+) -> None:
+    """Rows a sort ties are ordered by surname, whichever sort tied them."""
+    ordered = rows(account_admin_client.get(LIST_URL, {"ordering": ordering, "page_size": "200"}))
+    listed = [row["email"] for row in ordered if row["email"].endswith("@tie.test")]
+    assert listed == ["b@tie.test", "a@tie.test", "c@tie.test"]
+
+
+def test_sorting_by_name_falls_back_to_the_dart_for_two_of_one_name(
+    account_admin_client: APIClient, fixed_name_admin: User, today: date
+) -> None:
+    """Two members of one name are ordered by the DART they fly with."""
+    napa = DartFactory(name="Napa")
+    santa_rosa = DartFactory(name="Santa Rosa")
+    late = UserFactory(email="late@tie.test", first_name="Ada", last_name="Marsh")
+    early = UserFactory(email="early@tie.test", first_name="Ada", last_name="Marsh")
+    MemberProfileFactory(user=late, dart=santa_rosa)
+    MemberProfileFactory(user=early, dart=napa)
+
+    ordered = rows(account_admin_client.get(LIST_URL, {"ordering": "name", "page_size": "200"}))
+    listed = [row["email"] for row in ordered if row["email"].endswith("@tie.test")]
+    assert listed == ["early@tie.test", "late@tie.test"]
 
 
 def test_the_list_does_not_scale_its_query_count_with_the_page(

@@ -29,6 +29,8 @@ const MARTA: LeaderSearchResult = {
   email: 'marta@example.org',
   dart: 'Palo Alto',
   membership_status: 'current',
+  medical: { type: 'third', expiration: '2027-12-01', is_current: true },
+  go_no_go: { membership: true, medical: true },
 };
 
 const STATUS: LeaderStatus = {

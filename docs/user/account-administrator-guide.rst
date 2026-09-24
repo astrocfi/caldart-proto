@@ -251,10 +251,11 @@ every matching member and not just the page in front of you.
   It is the one to attach to minutes, because it says on its face what it is a
   list of.
 
-Both carry the same sixteen columns: name, email, phone, DART, status, plan,
-expiry, certificate, and its number, IFR, medical class and expiry, aircraft,
-city, state, and join date.  A lifetime member has no expiry date, so that cell
-is empty and the plan column says *Life*.
+Both carry the same ten columns unless you ask for others: name, email, phone,
+DART, status, expiry, certificate, medical class and expiry, and aircraft.
+Seven more — plan, certificate number, IFR, city, state, joined, and member
+since — are added to a download by choosing the columns.  A lifetime member has
+no expiry date, so that cell is empty and the plan column says *Life*.
 
 The columns are listed field by field in the developer documentation under
 :doc:`/developer/reports`.

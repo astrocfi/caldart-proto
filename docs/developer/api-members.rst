@@ -58,6 +58,7 @@ Endpoints
   DELETE /api/v1/admin/members/{user_id}
   POST   /api/v1/admin/members/{user_id}/memberships
   PATCH  /api/v1/admin/memberships/{id}
+  GET    /api/v1/admin/members/columns
   GET    /api/v1/admin/members/export.csv
   GET    /api/v1/admin/members/export.pdf
 
@@ -157,13 +158,28 @@ Ordering
 --------
 
 ``?ordering=`` takes ``pilot``, ``name``, ``email``, ``dart``, ``expires_on``
-or ``joined``, each optionally prefixed with ``-``.  ``name`` expands to
-surname, forename, email; ``pilot`` ranks a current medical ahead of a lapsed
-one ahead of a non-pilot, which is the order the list's Pilot column reads in.
-The two date sorts, and ``dart``, keep rows with no value at the end in both
-directions, so lifetime members do not crowd out the answer to "who expires
-next".  Anything
-else falls back to ``name`` rather than being refused.
+or ``joined``, each optionally prefixed with ``-``.  Anything else falls back to
+``name`` rather than being refused.
+
+Every alias ends in keys that settle a tie, so two rows the caller's sort cannot
+separate — two members of one DART, two people whose membership runs out on the
+same day — still come back in a stable, readable order:
+
+============ ==================================================================
+``ordering`` Sorts on, in order
+============ ==================================================================
+pilot        ``pilot_rank``, surname, forename
+name         surname, forename, DART name, email
+email        email, surname, forename
+dart         DART name, surname, forename
+expires_on   computed expiry, surname, forename
+joined       start of the earliest term, surname, forename
+============ ==================================================================
+
+``pilot_rank`` ranks a current medical ahead of a lapsed one ahead of a
+non-pilot, which is the order the list's Pilot column reads in.  The two date
+sorts, and ``dart``, keep rows with no value at the end in both directions, so
+lifetime members do not crowd out the answer to "who expires next".
 
 
 Computed membership status
@@ -578,6 +594,24 @@ Statuses:
 * **405** — the request used ``PUT``, ``GET``, or ``DELETE``.
 
 
+``GET /admin/members/columns``
+==============================
+
+Every column the two exports can carry, in export order, ``account_admin``
+only, so the screen's column chooser is data-driven.  One entry per column::
+
+  [{"key": "name", "label": "Name", "default": true}, ...]
+
+``key`` is what ``?columns=`` names, ``label`` is the header both exports print,
+and ``default`` says whether the column is in the report when the caller chooses
+none.  The full registry is in :doc:`reports`.
+
+Statuses:
+
+* **200** — the list of columns.
+* **401/403** — the usual rules.
+
+
 ``GET /admin/members/export.csv``
 =================================
 
@@ -587,24 +621,31 @@ materializes in memory.  It takes **every filter and ordering parameter the
 list takes** and applies them to the whole result set — the export is not
 paginated.  Columns, style, and how to add one: :doc:`reports`.
 
+``?columns=`` is a comma-separated list of column keys, which chooses both which
+columns the export carries and the order they appear in.  Leaving it out gives
+the default columns.  The header row is the column labels.
+
 Statuses:
 
 * **200** — ``text/csv``, with a ``Content-Disposition`` filename carrying
   today's date.
-* **400** — the same filter refusals as the list.
+* **400** — the same filter refusals as the list, plus
+  ``{"columns": ["Unknown column: <key>"]}`` for a key no column carries and
+  ``{"columns": ["Repeated column: <key>"]}`` for one asked for twice.
 
 
 ``GET /admin/members/export.pdf``
 =================================
 
-The same rows as the CSV, rendered as a landscape-letter table with the
-applied filters printed under the title.
+The same rows and the same ``?columns=`` as the CSV, rendered as a
+landscape-letter table with the applied filters printed under the title.  Each
+chosen column takes the share of the page width its registry entry asks for.
 
 Statuses:
 
 * **200** — ``application/pdf``, with a ``Content-Disposition`` filename
   carrying today's date.
-* **400** — the same filter refusals as the list.
+* **400** — the same refusals as the CSV.
 
 
 Tests

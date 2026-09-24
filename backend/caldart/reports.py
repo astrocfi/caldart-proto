@@ -15,7 +15,7 @@ from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from http import HTTPStatus
-from typing import IO, Any
+from typing import IO, Any, TypedDict
 
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils import timezone
@@ -38,6 +38,8 @@ from reportlab.platypus import (
     Spacer,
     TableStyle,
 )
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 #: The media type every CSV export answers with.
 CSV_MEDIA_TYPE = "text/csv; charset=utf-8"
@@ -92,10 +94,23 @@ HEADER_CELL_STYLE = ParagraphStyle(
     textColor=INK,
 )
 
+#: The padding a table cell carries on each side, in points.  It is width the
+#: cell's text cannot use, so anything that asks whether a cell fits its column
+#: subtracts twice this from the column.
+CELL_PADDING = 3
+
 
 # --------------------------------------------------------------------------
 # Columns
 # --------------------------------------------------------------------------
+class ColumnDict(TypedDict):
+    """One column as a ``columns`` endpoint reports it."""
+
+    key: str
+    label: str
+    default: bool
+
+
 @dataclass(frozen=True)
 class ReportColumn[RowT]:
     """One column of a report: how to name it, whether to show it, how to read it.
@@ -103,7 +118,9 @@ class ReportColumn[RowT]:
     ``key`` is the stable name a caller asks for and an endpoint answers with,
     ``label`` the header text both exports print, ``default`` whether the column
     is in the report when the caller chooses none, and ``value`` a function from
-    one row to that row's cell.  A report declares its columns once, in export
+    one row to that row's cell.  ``width`` is the share of the printable width
+    the PDF gives the column, relative to the other columns of the same export,
+    and defaults to an even share.  A report declares its columns once, in export
     order, and the CSV header, the PDF header and both row builders follow from
     that one tuple.
     """
@@ -112,6 +129,7 @@ class ReportColumn[RowT]:
     label: str
     default: bool
     value: Callable[[RowT], object]
+    width: float = 1.0
 
 
 def select_columns[RowT](
@@ -144,6 +162,50 @@ def select_columns[RowT](
         seen.add(key)
         chosen.append(by_key[key])
     return chosen
+
+
+def column_payload[RowT](columns: Sequence[ReportColumn[RowT]]) -> list[ColumnDict]:
+    """Describe ``columns`` for the screen that lets a reader choose them.
+
+    One entry per column, in registry order, carrying the ``key`` ``?columns=``
+    accepts, the ``label`` both exports print and whether the column is one of
+    the ``default`` ones.  The relative width is the PDF's business and is not
+    reported.
+    """
+    return [
+        {"key": column.key, "label": column.label, "default": column.default} for column in columns
+    ]
+
+
+def chosen_columns[RowT](
+    columns: Sequence[ReportColumn[RowT]], requested: str
+) -> list[ReportColumn[RowT]]:
+    """The columns a ``?columns=`` query parameter asks for, or the default ones.
+
+    ``requested`` is the raw parameter: a comma-separated list of keys, or an
+    empty string when the caller chose nothing, which means the default columns.
+    A key no column carries, or one asked for twice, raises DRF's
+    ``ValidationError`` keyed by ``columns`` and carrying the message
+    :func:`select_columns` raises, so every export refuses a bad column list the
+    same way and with a 400.
+    """
+    try:
+        return select_columns(columns, requested.split(",") if requested else None)
+    except ValueError as exc:
+        raise ValidationError({"columns": [str(exc)]}) from exc
+
+
+class ReportColumnSerializer(serializers.Serializer[ColumnDict]):
+    """One entry of a report's ``columns`` endpoint, as :func:`column_payload` builds it.
+
+    The chooser on the screen reads exactly these three fields.
+    """
+
+    key = serializers.CharField()
+    # DRF's Field.label is a different thing from this serializer's own `label`
+    # field, so the stubs see the declaration as a narrowing of the attribute.
+    label = serializers.CharField()  # type: ignore[assignment]
+    default = serializers.BooleanField()
 
 
 def money_label(cents: int, *, currency: bool = True) -> str:
@@ -362,10 +424,10 @@ def build_pdf_table(
     style = TableStyle(
         [
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 3),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), CELL_PADDING),
+            ("RIGHTPADDING", (0, 0), (-1, -1), CELL_PADDING),
+            ("TOPPADDING", (0, 0), (-1, -1), CELL_PADDING),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), CELL_PADDING),
             # Hairline rules instead of boxes.
             ("LINEBELOW", (0, 0), (-1, 0), 0.75, PRIMARY),
             ("LINEBELOW", (0, 1), (-1, -1), 0.25, RULE),

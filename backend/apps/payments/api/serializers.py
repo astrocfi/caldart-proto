@@ -875,16 +875,6 @@ class ManualPaymentSerializer(serializers.Serializer[dict[str, Any]]):
     note = serializers.CharField(required=False, allow_blank=True, max_length=255, default="")
 
 
-class ReportColumnSerializer(serializers.Serializer[dict[str, Any]]):
-    """One entry of ``GET /admin/payments/columns``."""
-
-    key = serializers.CharField()
-    # DRF's Field.label is a different thing from this serializer's own `label`
-    # field, so the stubs see the declaration as a narrowing of the attribute.
-    label = serializers.CharField()  # type: ignore[assignment]
-    default = serializers.BooleanField()
-
-
 class ReconciliationRowSerializer(serializers.Serializer[ReconciliationRow]):
     """One row of ``GET /admin/payments/reconciliation``."""
 

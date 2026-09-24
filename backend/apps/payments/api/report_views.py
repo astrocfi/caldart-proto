@@ -45,7 +45,6 @@ from apps.payments.api.serializers import (
     PaymentReportQuerySerializer,
     ReconciliationQuerySerializer,
     ReconciliationRowSerializer,
-    ReportColumnSerializer,
 )
 from apps.payments.manual import record_manual_payment
 from apps.payments.models import Payment, PaymentProvider, RenewalMandate
@@ -57,6 +56,8 @@ from caldart.reports import (
     CSV_MEDIA_TYPE,
     PDF_MEDIA_TYPE,
     ReportColumn,
+    ReportColumnSerializer,
+    column_payload,
     csv_response,
     download_responses,
     filter_summary,
@@ -198,10 +199,7 @@ class AdminPaymentColumnsView(APIView):
         Each entry carries the ``key`` ``?columns=`` accepts, the ``label`` both
         exports print, and whether it is one of the ``default`` columns.
         """
-        rows = [
-            {"key": column.key, "label": column.label, "default": column.default}
-            for column in PAYMENT_REPORT_COLUMNS
-        ]
+        rows = column_payload(PAYMENT_REPORT_COLUMNS)
         serializer = ReportColumnSerializer(rows, many=True)  # type: ignore[arg-type]
         return Response(serializer.data)
 

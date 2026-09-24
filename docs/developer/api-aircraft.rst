@@ -328,40 +328,63 @@ Statuses:
 Exports
 =======
 
+``GET /admin/aircraft/columns``
+-------------------------------
+
+Every column the two exports can carry, in export order, ``account_admin``
+only, so the register screen's column chooser is data-driven.  One entry per
+column::
+
+  [{"key": "n_number", "label": "N-number", "default": true}, ...]
+
+``key`` is what ``?columns=`` names, ``label`` is the header both exports print,
+and ``default`` says whether the column is in the register when the caller
+chooses none.  The full registry is in :doc:`reports`.
+
+Statuses:
+
+* **200** — the list of columns.
+* **401/403** — the usual rules.
+
 ``GET /admin/aircraft/export.csv``
 ----------------------------------
 
 The filtered register as a CSV download, ``account_admin`` only.  It accepts
 exactly the filter and ordering parameters of ``GET /aircraft`` and is not
-paginated.  Columns, which :doc:`reports` describes in full::
+paginated.
 
-  n_number, make, model, owner, owner_type, insurance_carrier,
-  liability_per_occurrence, liability_per_person, hull,
-  insurance_expiration, insurance_current, pilots
+``?columns=`` is a comma-separated list of column keys, which chooses both which
+columns the export carries and the order they appear in; leaving it out gives
+the default columns.  The header row is the column labels.  :doc:`reports`
+lists every key.
 
-Rows come from ``apps/aircraft/reports.py``, which both formats share so they
-cannot drift apart.  Money is rendered as plain decimal dollars
-(``1000000.00``), and ``pilots`` is the attached members' display names joined
-with ``"; "``.  The file streams through ``caldart.reports.csv_response``.
+Rows come from the column registry in ``apps/aircraft/reports.py``, which both
+formats share so they cannot drift apart.  Money is rendered as plain decimal
+dollars (``1000000.00``), and ``pilots`` — off by default — is the attached
+members' display names joined with ``"; "``.  The file streams through
+``caldart.reports.csv_response``.
 
 Statuses:
 
 * **200** — ``text/csv``, with a ``Content-Disposition`` filename carrying
   today's date.
-* **400** — the same filter refusals as the list.
+* **400** — the same filter refusals as the list, plus
+  ``{"columns": ["Unknown column: <key>"]}`` for a key no column carries and
+  ``{"columns": ["Repeated column: <key>"]}`` for one asked for twice.
 
 ``GET /admin/aircraft/export.pdf``
 ----------------------------------
 
-The same rows, ``account_admin`` only, as a landscape-letter table from
-``pdf_table_response`` with the applied filters in the subtitle.  Money is
-rendered as currency here (``$1,000,000``).
+The same rows and the same ``?columns=``, ``account_admin`` only, as a
+landscape-letter table from ``pdf_table_response`` with the applied filters in
+the subtitle.  Each chosen column takes the share of the page width its registry
+entry asks for, and money is rendered as currency here (``$1,000,000``).
 
 Statuses:
 
 * **200** — ``application/pdf``, with a ``Content-Disposition`` filename
   carrying today's date.
-* **400** — the same filter refusals as the list.
+* **400** — the same refusals as the CSV.
 
 
 Leader check
@@ -393,15 +416,30 @@ normalizes to ``NATE`` and matches every US registration on file.
        "name": "Ana Bracco",
        "email": "ana@example.org",
        "dart": "Palo Alto",
-       "membership_status": "current"
+       "membership_status": "current",
+       "medical": {
+         "type": "third",
+         "expiration": "2027-03-31",
+         "is_current": true
+       },
+       "go_no_go": {"membership": true, "medical": true}
      }
    ]
 
 ``membership_status`` is the ``current`` / ``expired`` / ``none`` string of the
-``members.services`` membership summary.  The search queryset carries that
-summary as annotations (see :ref:`membership-status-sql`), so twenty matches
-cost the same number of queries as one.  The list is unpaginated, and a blank
-or missing ``q`` returns ``[]``.
+``members.services`` membership summary.
+
+``go_no_go`` and ``medical`` are the same two fields the status card carries and
+are computed by the same rule, so a leader reads the verdict off the list and
+opens the card for the detail rather than for the answer.  A member with no
+profile row reads as ``{"type": "none", "expiration": null, "is_current":
+false}`` and a no-go on both counts.
+
+Every field comes from the row the search already fetched: the membership
+summary rides along as annotations (see :ref:`membership-status-sql`) and the
+profile is selected with the user, so twenty matches cost the same number of
+queries as one.  The list is unpaginated, and a blank or missing ``q`` returns
+``[]``.
 
 Statuses:
 
