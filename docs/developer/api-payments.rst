@@ -388,6 +388,9 @@ check out.  Handles:
   arrived.  The figures are taken from the event when it carries an expanded
   balance transaction, and read back from Stripe otherwise.  A payment whose
   fee is already recorded is left alone, so a re-delivery changes nothing.
+  Stripe orders no deliveries, so this event is acted on whatever state the
+  payment is in: a fee that arrives before the ``payment_intent.succeeded``
+  that settles the row is kept when the row settles.
 
 Everything else is acknowledged and ignored.  The response says what happened:
 

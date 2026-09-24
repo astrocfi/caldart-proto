@@ -30,14 +30,14 @@ from caldart import audit
 from caldart.reports import PDF_MEDIA_TYPE, download_responses
 
 
-def pdf_download(filename: str, body: bytes) -> HttpResponse:
+def _pdf_download(filename: str, body: bytes) -> HttpResponse:
     """A rendered PDF as an attachment under ``filename``."""
     response = HttpResponse(body, content_type=PDF_MEDIA_TYPE)
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
 
-def settled_payment(payment_id: int, *, user: User | None = None) -> Payment:
+def _settled_payment(payment_id: int, *, user: User | None = None) -> Payment:
     """The settled payment ``payment_id``, or 404.
 
     ``user`` narrows the search to that member's own payments, which is what
@@ -51,7 +51,7 @@ def settled_payment(payment_id: int, *, user: User | None = None) -> Payment:
     return get_object_or_404(payments, pk=payment_id, status__in=receipts.SETTLED_STATUSES)
 
 
-def statement_download(member: User, year: int) -> HttpResponse:
+def _statement_download(member: User, year: int) -> HttpResponse:
     """``member``'s statement for ``year`` as a download, or 404.
 
     A year the member contributed nothing in has no statement, and answers 404
@@ -59,12 +59,12 @@ def statement_download(member: User, year: int) -> HttpResponse:
     """
     if year not in receipts.statement_years(member):
         raise Http404("No contributions in that year.")
-    return pdf_download(
+    return _pdf_download(
         receipts.statement_filename(year), receipts.render_statement_pdf(member, year)
     )
 
 
-def signed_in_user(request: Request) -> User:
+def _signed_in_user(request: Request) -> User:
     """The member behind a request ``IsAuthenticated`` has already let through."""
     return cast(User, request.user)
 
@@ -84,8 +84,8 @@ class MyReceiptView(APIView):
         401 when anonymous, and 404 for an unknown payment, for one belonging to
         somebody else, and for one whose money never arrived.
         """
-        payment = settled_payment(pk, user=signed_in_user(request))
-        return pdf_download(
+        payment = _settled_payment(pk, user=_signed_in_user(request))
+        return _pdf_download(
             receipts.receipt_filename(payment), receipts.render_receipt_pdf(payment)
         )
 
@@ -101,7 +101,7 @@ class MyStatementYearsView(APIView):
 
         A member who has never contributed gets an empty list, not a 404.
         """
-        years = receipts.statement_years(signed_in_user(request))
+        years = receipts.statement_years(_signed_in_user(request))
         return Response(StatementYearsSerializer({"years": years}).data)
 
 
@@ -115,7 +115,7 @@ class MyStatementView(APIView):
     )
     def get(self, request: Request, year: int) -> HttpResponse:
         """200 with the statement PDF; 401 when anonymous; 404 for a year with none."""
-        return statement_download(signed_in_user(request), year)
+        return _statement_download(_signed_in_user(request), year)
 
 
 # --------------------------------------------------------------------------
@@ -133,8 +133,8 @@ class AdminReceiptView(APIView):
         401 when anonymous, 403 for any other role, and 404 for an unknown
         payment or one whose money never arrived.
         """
-        payment = settled_payment(pk)
-        return pdf_download(
+        payment = _settled_payment(pk)
+        return _pdf_download(
             receipts.receipt_filename(payment), receipts.render_receipt_pdf(payment)
         )
 
@@ -154,11 +154,11 @@ class AdminReceiptSendView(APIView):
         same button is the retry.  401 when anonymous, 403 for any other role,
         and 404 for an unknown payment or one whose money never arrived.
         """
-        payment = settled_payment(pk)
+        payment = _settled_payment(pk)
         sent = receipts.send_receipt(payment)
         audit.record(
             audit.PAYMENT_RECEIPT_RESEND,
-            actor=signed_in_user(request),
+            actor=_signed_in_user(request),
             target=payment,
             sent=sent,
         )
@@ -184,4 +184,4 @@ class AdminMemberStatementView(APIView):
         for a year they contributed nothing in.
         """
         member = get_object_or_404(User, pk=user_id)
-        return statement_download(member, year)
+        return _statement_download(member, year)

@@ -884,3 +884,33 @@ def test_charge_updated_for_an_unknown_payment_is_acknowledged(
     response = post_webhook(api_client, event)
 
     assert json.loads(response.content)["handled"] is False
+
+
+def test_charge_updated_records_the_fee_before_the_payment_has_settled(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Stripe orders no deliveries, so the fee may arrive before the success does."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+
+    event = charge_event(payment, "pi_early", balance_transaction=balance_transaction(161, 4_339))
+    response = post_webhook(api_client, event)
+
+    assert json.loads(response.content)["handled"] is True
+    payment.refresh_from_db()
+    assert payment.fee_cents == 161
+
+
+def test_a_success_after_an_early_charge_updated_keeps_the_fee(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The success event carries no expanded transaction and must not wipe the fee."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    post_webhook(
+        api_client,
+        charge_event(payment, "pi_order", balance_transaction=balance_transaction(161, 4_339)),
+    )
+
+    post_webhook(api_client, succeeded_event(payment, "pi_order"))
+
+    payment.refresh_from_db()
+    assert payment.net_cents == 4_339

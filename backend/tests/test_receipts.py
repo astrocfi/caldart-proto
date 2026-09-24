@@ -9,6 +9,8 @@ finance roles reach any member's, and can send a receipt again.
 from __future__ import annotations
 
 import datetime as dt
+import logging
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -22,6 +24,7 @@ from apps.members.models import MembershipPlan
 from apps.payments import receipts
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.services import create_checkout, mark_succeeded
+from caldart import audit
 from caldart.receipts import CONTRIBUTION_NOTICE, CONTRIBUTIONS_NOTICE
 from tests.conftest import PdfText
 from tests.factories import PaymentFactory, RefundFactory, UserFactory
@@ -45,6 +48,26 @@ def drawn(pdf: bytes, pdf_text: PdfText) -> str:
 def _mock_enabled(settings: Settings) -> None:
     """Enable the mock provider, which the payments here are taken through."""
     settings.PAYMENTS_MOCK_ENABLED = True
+
+
+@pytest.fixture
+def audit_log(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixture]:
+    """Capture the ``caldart.audit`` records a test provokes.
+
+    The audit logger does not propagate, so the capture handler hangs on it
+    directly and comes off again whatever the test does.
+    """
+    logger = logging.getLogger(audit.LOGGER_NAME)
+    logger.addHandler(caplog.handler)
+    try:
+        yield caplog
+    finally:
+        logger.removeHandler(caplog.handler)
+
+
+def audit_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
+    """Every audit line captured, as rendered."""
+    return [record.getMessage() for record in caplog.records if record.name == audit.LOGGER_NAME]
 
 
 def succeeded_payment(
@@ -492,6 +515,46 @@ def test_a_refused_resend_reports_that_it_did_not_go(
     body = treasurer_client.post(f"/api/v1/admin/payments/{payment.pk}/receipt").json()
 
     assert body == {"sent": False, "receipt_sent_at": None}
+
+
+def test_a_resend_that_went_is_audited(
+    treasurer_client: APIClient,
+    treasurer: User,
+    member: User,
+    annual_plan: MembershipPlan,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """Sending a member's receipt again is a privileged act, so the log says who did."""
+    payment = succeeded_payment(member, annual_plan)
+
+    treasurer_client.post(f"/api/v1/admin/payments/{payment.pk}/receipt")
+
+    assert audit_messages(audit_log) == [
+        f"action=payment.receipt_resend actor={treasurer.pk} target={payment.pk} sent=true"
+    ]
+
+
+def test_a_resend_that_was_refused_is_audited(
+    treasurer_client: APIClient,
+    treasurer: User,
+    member: User,
+    annual_plan: MembershipPlan,
+    audit_log: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The attempt is recorded even when the mail server turned it away."""
+
+    def refuse(self: EmailMultiAlternatives, fail_silently: bool = False) -> int:
+        raise OSError("the mail server said no")
+
+    payment = succeeded_payment(member, annual_plan)
+    monkeypatch.setattr(EmailMultiAlternatives, "send", refuse)
+
+    treasurer_client.post(f"/api/v1/admin/payments/{payment.pk}/receipt")
+
+    assert audit_messages(audit_log) == [
+        f"action=payment.receipt_resend actor={treasurer.pk} target={payment.pk} sent=false"
+    ]
 
 
 def test_a_treasurer_downloads_any_members_statement(

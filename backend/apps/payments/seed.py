@@ -45,16 +45,18 @@ STRIPE_WALLETS: tuple[tuple[str, int], ...] = (
     (PaymentWallet.LINK, 10),
 )
 
-#: What each provider charges, as the rate in thousandths and the fixed part in
-#: cents: Stripe 2.9% + 30 cents, PayPal 3.49% + 49 cents.  A provider nobody
-#: lists here takes nothing, which is what a payment recorded by hand costs.
+#: What each provider charges, as the rate in ten-thousandths and the fixed part
+#: in cents: Stripe 2.9% + 30 cents, PayPal 3.49% + 49 cents.  PayPal's rate
+#: needs the finer granularity: 3.49% is not a whole number of thousandths.  A
+#: provider nobody lists here takes nothing, which is what a payment recorded by
+#: hand costs.
 PROVIDER_FEES: dict[str, tuple[int, int]] = {
-    PaymentProvider.STRIPE: (29, 30),
-    PaymentProvider.PAYPAL: (35, 49),
+    PaymentProvider.STRIPE: (290, 30),
+    PaymentProvider.PAYPAL: (349, 49),
 }
 
 
-def _fee_cents(provider: str, amount_cents: int) -> int:
+def provider_fee_cents(provider: str, amount_cents: int) -> int:
     """The fee ``provider`` would have charged on ``amount_cents``.
 
     The percentage is rounded half up to the cent, as a processor rounds it.
@@ -63,7 +65,7 @@ def _fee_cents(provider: str, amount_cents: int) -> int:
     if provider not in PROVIDER_FEES:
         return 0
     rate, fixed = PROVIDER_FEES[provider]
-    return (amount_cents * rate + 500) // 1_000 + fixed
+    return (amount_cents * rate + 5_000) // 10_000 + fixed
 
 
 def _pick(rng: random.Random, mix: tuple[tuple[str, int], ...]) -> str:
@@ -134,7 +136,7 @@ def _payment_for(
         )
     )
 
-    fee = _fee_cents(provider, amount)
+    fee = provider_fee_cents(provider, amount)
     payment, created = Payment.objects.get_or_create(
         provider=provider,
         provider_ref=ref,

@@ -18,6 +18,7 @@ from apps.accounts.models import User
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.providers.mock import fee_cents, fees_for
+from apps.payments.seed import provider_fee_cents
 from apps.payments.services import (
     backfill_fees,
     create_checkout,
@@ -232,3 +233,37 @@ def test_the_fee_columns_survive_a_second_confirmation(
 
     payment.refresh_from_db()
     assert payment.fee_cents == 161
+
+
+# --------------------------------------------------------------------------
+# the fees the seed writes
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    ("provider", "amount_cents", "expected"),
+    [
+        (PaymentProvider.STRIPE, 14_500, 451),
+        (PaymentProvider.STRIPE, 65_000, 1_915),
+        (PaymentProvider.PAYPAL, 14_500, 555),
+        (PaymentProvider.PAYPAL, 65_000, 2_318),
+        (PaymentProvider.MANUAL, 65_000, 0),
+    ],
+    ids=["stripe dues", "stripe life", "paypal dues", "paypal life", "a check"],
+)
+def test_the_seeded_fee_is_the_rate_each_provider_publishes(
+    provider: str, amount_cents: int, expected: int
+) -> None:
+    """Seeded figures match each published rate, and a payment by hand costs nothing."""
+    assert provider_fee_cents(provider, amount_cents) == expected
+
+
+def test_a_fee_recorded_before_the_payment_settled_survives(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """A provider that reports the fee first and the success second loses neither."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    record_fees(payment, fee_cents=161, net_cents=4_339)
+
+    mark_succeeded(Payment.objects.get(pk=payment.pk))
+
+    payment.refresh_from_db()
+    assert payment.net_cents == 4_339

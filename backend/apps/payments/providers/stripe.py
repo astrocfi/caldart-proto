@@ -415,9 +415,15 @@ class StripeProvider(Provider):
         whose fee is already recorded is left alone, so a re-delivery changes
         nothing, and a payment Stripe cannot be asked about is acknowledged
         unhandled rather than failing the delivery.
+
+        The fee is recorded whatever state the payment is in: Stripe orders no
+        deliveries, so this event can arrive before the
+        ``payment_intent.succeeded`` that settles the row, and
+        :func:`~apps.payments.services.settled_fees` keeps what is already
+        there.
         """
         payment = payment_for_charge(charge)
-        if payment is None or not payment.is_succeeded or fees_are_known(payment):
+        if payment is None or fees_are_known(payment):
             return JsonResponse({"received": True, "handled": False})
 
         fees = fees_from_charge(charge)

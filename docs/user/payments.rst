@@ -112,6 +112,10 @@ return.
 year in which you paid dues and gave nothing has no statement, because dues are
 not a gift.  If part of a payment was refunded, the refund comes off the
 contribution first, and the statement shows the amount, the refund and the net.
+A refund that covered the dues rather than the gift is taken off the
+contribution all the same, so a statement for a year in which dues came back
+understates what was given: check it against the receipts before filing it, and
+ask the office to confirm the figure.
 
 If something goes wrong
 -----------------------

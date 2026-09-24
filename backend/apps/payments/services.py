@@ -83,15 +83,19 @@ def settled_fees(payment: Payment, fee_cents: int | None, net_cents: int | None)
     """The fee and net to store for a payment that has just succeeded.
 
     A provider that reported both is believed.  A provider that reported only a
-    fee has its net computed as the amount less that fee.  A payment recorded by
-    hand cost nothing, so its net is the whole amount.  Anything else -- a
-    provider that has not settled yet -- is left unknown, as ``(0, 0)``, for
-    :func:`backfill_fees` to ask about later.
+    fee has its net computed as the amount less that fee.  A provider that
+    reported neither leaves a figure already on the row alone, because the fee
+    can reach us before the success does -- nothing orders a provider's
+    callbacks.  A payment recorded by hand cost nothing, so its net is the whole
+    amount.  Anything else -- a provider that has not settled yet -- is left
+    unknown, as ``(0, 0)``, for :func:`backfill_fees` to ask about later.
     """
     if fee_cents is not None:
         return fee_cents, net_cents if net_cents is not None else payment.amount_cents - fee_cents
     if net_cents is not None:
         return payment.amount_cents - net_cents, net_cents
+    if fees_are_known(payment):
+        return payment.fee_cents, payment.net_cents
     if payment.provider == PaymentProvider.MANUAL:
         return 0, payment.amount_cents
     return 0, UNKNOWN_NET_CENTS
