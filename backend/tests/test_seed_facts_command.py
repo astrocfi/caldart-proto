@@ -60,6 +60,7 @@ def test_writes_one_json_object_and_nothing_else(capsys: pytest.CaptureFixture[s
     assert captured.err == ""
     assert sorted(json.loads(captured.out)) == [
         "accounts",
+        "autoRenewal",
         "demoPassword",
         "leaderCheck",
         "manualPaymentCount",

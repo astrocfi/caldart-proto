@@ -18,6 +18,7 @@ to document each app's endpoints in detail, request body by response body.
    api-payments
    api-finance
    api-refunds
+   api-renewals
    api-system
 
 Every endpoint the project serves is on one of those pages, and every one

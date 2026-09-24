@@ -1,0 +1,16 @@
+{{ org_name }} — automatic renewal is off
+
+Hello {{ first_name }},
+
+Automatic renewal of your {{ plan_name }} membership has been turned off, and the
+payment method we had saved has been dropped. Nothing further will be charged.
+
+Your membership itself is untouched and runs to the end of its term. We will
+send you the usual reminders before it expires, and you can renew by hand or
+turn automatic renewal back on here:
+{{ payments_url }}
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because you are a member of {{ org_name }}.

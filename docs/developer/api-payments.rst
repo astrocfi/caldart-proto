@@ -67,7 +67,8 @@ chosen provider.
 
 .. code-block:: json
 
-   {"plan": "annual", "contribution_cents": 10000, "provider": "stripe"}
+   {"plan": "annual", "contribution_cents": 10000, "provider": "stripe",
+    "auto_renew": true}
 
 ``plan`` may be ``null`` for a contribution on its own, in which case no
 membership term is created when it succeeds.  There is no amount field; one
@@ -75,6 +76,24 @@ sent anyway is ignored.  ``contribution_cents`` runs from ``0`` to
 ``9999900`` ($99,999.00) inclusive -- inside every provider's per-charge
 ceiling, so an amount the API accepts is one the provider will take.  Anything
 outside that range is refused before a payment row is created.
+
+``auto_renew`` defaults to ``false``.  When it is true the payer is given a
+``pending`` standing authority before the provider is started -- Stripe needs a
+customer on the intent and PayPal a vault instruction on the order, and neither
+can be added afterwards -- and the method they pay with becomes the one CalDART
+renews from once the payment succeeds.  It is refused, with a 400 naming
+``auto_renew``, for a plan that never expires, for a checkout that buys no plan
+at all, and for a provider that cannot charge a saved method, which is every
+provider but ``stripe``, ``paypal`` and ``mock``.  A refusal deletes the pending
+payment again, exactly as a provider that will not start one does.  Turning
+automatic renewal on again replaces whatever authority was there.
+
+A checkout with ``auto_renew`` false deletes any ``pending`` authority the payer
+is still carrying from a checkout they abandoned, and a pending authority is
+activated only by a payment for the same plan and the same contribution it names.
+Between them, no method is ever saved against a payer who did not ask at this
+checkout.  :doc:`api-renewals` covers the mandate that results and
+:doc:`renewals` the scan that acts on it.
 
 **201 Created**:
 
@@ -95,7 +114,8 @@ Provider      ``client``
 ============  ==============================================
 
 **400** for an unknown or inactive plan, a contribution outside the accepted
-range, a total of zero, an unknown provider, a provider that is not
+range, a total of zero, an automatic renewal that could never be charged again,
+an unknown provider, a provider that is not
 configured (``{"provider": "'x' is not configured."}``), a provider that
 refuses the request, or a provider that cannot be reached — a timeout, a
 refused connection or an error on the provider's own side, all of which answer

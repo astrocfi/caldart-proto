@@ -26,6 +26,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipState, MembershipStatusChoices
 from apps.members.services import expire_lapsed_memberships, membership_status
+from apps.payments.models import MandateStatus, RenewalMandate, RenewalOutcome
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from caldart import audit
 from caldart.mail import contact_email, org_name
@@ -59,6 +60,7 @@ SKIP_REASONS: tuple[str, ...] = (
     "inactive_user",
     "no_email",
     "lifetime",
+    "auto_renew",
     "renewed",
 )
 
@@ -190,6 +192,8 @@ def _skip_reason(user: User, membership: Membership, kind: str, today: date) -> 
     status = membership_status(user, on_date=today)
     if status["is_lifetime"]:
         return "lifetime"
+    if _renews_itself(user):
+        return "auto_renew"
 
     if kind == ReminderKind.POST30:
         # Nothing to nag about once they are covered again.
@@ -200,6 +204,24 @@ def _skip_reason(user: User, membership: Membership, kind: str, today: date) -> 
     if status["expires_on"] != membership.ends_on:
         return "renewed"
     return None
+
+
+def _renews_itself(user: User) -> bool:
+    """Whether automatic renewal is covering this member, so a reminder would confuse.
+
+    True for an active mandate, and for a pending one that already has a
+    scheduled charge: in both cases the renewal emails tell the member what is
+    happening to their membership.  A paused or canceled mandate covers nothing,
+    so the ordinary reminders resume.
+    """
+    mandate = RenewalMandate.objects.filter(user=user).first()
+    if mandate is None:
+        return False
+    if mandate.status == MandateStatus.ACTIVE:
+        return True
+    if mandate.status != MandateStatus.PENDING:
+        return False
+    return mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED).exists()
 
 
 def _candidates(kind: str, today: date) -> QuerySet[Membership]:
@@ -236,6 +258,10 @@ def send_renewal_reminders(
     Flips memberships whose ``ends_on`` has passed to ``expired`` first, so the
     ``post30`` cohort is honestly labeled, then walks the five kinds in order.
     A dry run writes nothing at all: no email, no log rows, no status flips.
+
+    A member whose membership renews itself is skipped for every kind, because
+    the automatic-renewal emails already tell them what is happening; a mandate
+    that has been paused or canceled covers nothing, so the reminders resume.
 
     One member's problem never stops the scan.  A send the mail server refuses
     is logged at ERROR, counted in ``failed`` and ``failed_by_kind``, and leaves

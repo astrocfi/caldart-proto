@@ -52,7 +52,9 @@ from apps.payments.models import (
 )
 from apps.payments.providers import available_providers, get_provider
 from apps.payments.providers.base import PaymentError
+from apps.payments.renewals import begin_mandate, discard_pending_mandate
 from apps.payments.services import create_checkout
+from caldart.exceptions import DomainValidationError
 
 #: What the webhook endpoints answer with.  The provider chooses the body, and
 #: neither portal screen reads it, so the schema describes only the status.
@@ -152,6 +154,18 @@ class CheckoutView(APIView):
         the provider is not configured, when the plan or the contribution is one
         the server will not charge for, or when the provider refuses to start the
         payment -- in which case the pending payment is deleted again.
+
+        ``auto_renew`` asks for the method to be saved and the membership renewed
+        from it each year: a ``pending`` mandate is created before the provider is
+        started, so the provider knows to save the method, and it becomes active
+        when the payment succeeds.  400 naming ``auto_renew`` for a plan that never
+        expires, for a checkout that buys no plan, and for a provider that cannot
+        charge a saved method -- and the pending payment is deleted again, exactly
+        as it is when the provider refuses to start.
+
+        A checkout that does *not* ask for automatic renewal throws away any
+        pending mandate the member is still carrying from a checkout they
+        abandoned, so no method is ever saved against a member who said no.
         """
         serializer = CheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -160,12 +174,29 @@ class CheckoutView(APIView):
         if provider_slug not in available_providers():
             raise ValidationError({"provider": f"'{provider_slug}' is not configured."})
 
+        user = signed_in_user(request)
         payment = create_checkout(
-            signed_in_user(request),
+            user,
             serializer.validated_data.get("plan") or None,
             serializer.validated_data["contribution_cents"],
             provider_slug,
         )
+        if serializer.validated_data["auto_renew"]:
+            # Before the provider is started: Stripe needs a customer on the
+            # intent and PayPal a vault instruction on the order, and neither can
+            # be added after the fact.
+            try:
+                begin_mandate(
+                    user,
+                    plan=payment.plan,
+                    contribution_cents=payment.contribution_cents,
+                    provider=provider_slug,
+                )
+            except DomainValidationError:
+                payment.delete()
+                raise
+        else:
+            discard_pending_mandate(user)
         try:
             client = get_provider(provider_slug).start(payment)
         except PaymentError as exc:

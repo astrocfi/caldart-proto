@@ -131,13 +131,23 @@ def mark_succeeded(
     it is logged and leaves ``receipt_sent_at`` null, never undoing the
     membership the money bought.  Returns the row as saved.
 
+    A checkout that asked for automatic renewal leaves the payer a ``pending``
+    :class:`~apps.payments.models.RenewalMandate`; this is where it becomes
+    active, from the payment method the provider has just recorded against the
+    charge.  A payment with no such mandate activates nothing.
+
+    A payment taken by the renewal scanner gets no receipt here.  The renewal
+    email that reports the charge carries the same receipt and the same PDF, and
+    the member is owed one message per charge, not two; the scanner sends it and
+    stamps ``receipt_sent_at`` itself.
+
     Idempotent: a second call is a no-op that returns the same payment and
     sends no second receipt, so webhook and client confirmation can race safely.
     """
     payment, transitioned = _complete(
         payment, wallet=wallet, raw=raw, provider_ref=provider_ref, fees=(fee_cents, net_cents)
     )
-    if transitioned:
+    if transitioned and not payment.renewal_attempts.exists():
         send_receipt(payment)
     return payment
 
@@ -151,7 +161,7 @@ def _complete(
     provider_ref: str | None,
     fees: tuple[int | None, int | None],
 ) -> tuple[Payment, bool]:
-    """Move ``payment`` to succeeded and activate its term, under one lock.
+    """Move ``payment`` to succeeded, activate its term and its mandate, under one lock.
 
     Returns the row as saved and whether this call is the one that moved it, so
     only the caller that did the work sends the receipt.
@@ -190,6 +200,12 @@ def _complete(
             source=MembershipSource.PAYMENT,
             payment=payment,
         )
+
+    # Inline: renewals reads this module for create_checkout and mark_failed, so a
+    # top-level import here would close the cycle.
+    from apps.payments.renewals import activate_pending_mandate
+
+    activate_pending_mandate(payment)
     return payment, True
 
 

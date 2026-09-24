@@ -639,6 +639,8 @@ export interface CheckoutRequest {
   plan: string | null;
   contribution_cents: number;
   provider: PaymentProvider;
+  /** Save the method and renew the membership from it each year.  Defaults to false. */
+  auto_renew?: boolean;
 }
 
 export type CheckoutResponse =
@@ -708,13 +710,91 @@ export interface PaymentPeriodSummary {
   by_provider: Partial<Record<PaymentProvider, number>>;
 }
 
-/* ------------------------------------------------------------------ finance */
+/* -------------------------------------------------------- automatic renewal */
+/** The providers that can charge a saved payment method again. */
 export type MandateProvider = 'stripe' | 'paypal' | 'mock';
 
 export type MandateStatus = 'pending' | 'active' | 'paused' | 'canceled';
 
 export type RenewalOutcome = 'scheduled' | 'succeeded' | 'failed' | 'skipped';
 
+/** One member's standing authority for CalDART to renew their membership. */
+export interface RenewalMandate {
+  id: number;
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  /** The slug of the plan that renews. */
+  plan: string;
+  plan_name: string;
+  contribution_cents: number;
+  /** The plan's price plus the contribution: what the next charge comes to. */
+  amount_cents: number;
+  provider: MandateProvider;
+  method_label: string;
+  method_brand: string;
+  method_last4: string;
+  method_exp_month: number | null;
+  method_exp_year: number | null;
+  status: MandateStatus;
+  failure_count: number;
+  next_charge_on: IsoDate | null;
+  /** Why the most recent charge was refused, or an empty string. */
+  last_error: string;
+  last_charged_at: IsoDateTime | null;
+  canceled_at: IsoDateTime | null;
+  created_at: IsoDateTime;
+}
+
+/** `GET | PATCH /me/renewal`: `mandate` is null when renewal has never been turned on. */
+export interface RenewalEnvelope {
+  mandate: RenewalMandate | null;
+}
+
+/** One scheduled renewal charge, as `GET /admin/renewals/attempts` lists it. */
+export interface RenewalAttempt {
+  id: number;
+  mandate_id: number;
+  membership_id: number;
+  payment_id: number | null;
+  user_id: number;
+  user_name: string;
+  scheduled_on: IsoDate;
+  outcome: RenewalOutcome;
+  error: string;
+  noticed_at: IsoDateTime | null;
+  attempted_at: IsoDateTime | null;
+  result_emailed_at: IsoDateTime | null;
+  created_at: IsoDateTime;
+}
+
+export interface RenewalSetupRequest {
+  plan: string;
+  contribution_cents: number;
+  provider: MandateProvider;
+}
+
+export type RenewalSetupResponse =
+  | { provider: 'stripe'; client: { client_secret: string } }
+  | { provider: 'paypal'; client: { setup_token: string } }
+  | { provider: 'mock'; client: Record<string, never> };
+
+export interface RenewalConfirmRequest {
+  setup_intent_id: string;
+  setup_token: string;
+}
+
+/** The counts one automatic-renewal scan reports. */
+export interface RenewalRunResult {
+  noticed: number;
+  warned: number;
+  charged: number;
+  failed: number;
+  paused: number;
+  skipped: number;
+}
+
+/* ------------------------------------------------------------------ finance */
 /** How money taken by hand was presented. */
 export type ManualMethod = 'check' | 'cash' | 'bank_transfer' | 'other';
 
@@ -749,19 +829,6 @@ export interface ContributionRow {
   net_contribution_cents: number;
 }
 
-/** The member's standing renewal authority, as the finance ledger shows it. */
-export interface LedgerMandate {
-  id: number;
-  plan: string;
-  contribution_cents: number;
-  provider: MandateProvider;
-  method_label: string;
-  status: MandateStatus;
-  failure_count: number;
-  last_charged_at: IsoDateTime | null;
-  canceled_at: IsoDateTime | null;
-}
-
 /** Who a ledger is about. */
 export interface LedgerMember {
   id: number;
@@ -783,7 +850,7 @@ export interface MemberLedger {
   user: LedgerMember;
   totals: LedgerTotals;
   payments: PaymentDetail[];
-  mandate: LedgerMandate | null;
+  mandate: RenewalMandate | null;
   statement_years: number[];
 }
 

@@ -7,8 +7,15 @@ from typing import Any
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 
-from apps.payments.models import Payment, PaymentWallet, Refund
-from apps.payments.providers.base import Provider, ProviderFees, ProviderRefund, register
+from apps.payments.models import Payment, PaymentWallet, Refund, RenewalMandate
+from apps.payments.providers.base import (
+    MandateMethod,
+    PaymentDeclinedError,
+    Provider,
+    ProviderFees,
+    ProviderRefund,
+    register,
+)
 from apps.payments.services import mark_failed, mark_succeeded
 
 #: The mock provider charges a Stripe-shaped fee -- 2.9% of the amount plus 30
@@ -37,6 +44,21 @@ def fees_for(payment: Payment) -> ProviderFees:
     """What the mock provider kept out of ``payment`` and what it paid across."""
     fee = fee_cents(payment.amount_cents)
     return ProviderFees(fee_cents=fee, net_cents=payment.amount_cents - fee)
+
+
+#: The card the mock provider pretends to save for automatic renewal.
+MOCK_CARD_BRAND = "visa"
+MOCK_CARD_LAST4 = "4242"
+MOCK_CARD_EXP_MONTH = 12
+MOCK_CARD_EXP_YEAR = 2030
+MOCK_CARD_LABEL = "Test card ending 4242, expires 12/2030"
+
+#: A mandate saved with this last4 is refused every time it is charged, so the
+#: decline, the retries and the pause can be demonstrated without a real card.
+DECLINED_LAST4 = "0002"
+
+#: What the member is told when a mock mandate on :data:`DECLINED_LAST4` is charged.
+DECLINED_MESSAGE = "Your card was declined"
 
 
 class MockPaymentsDisabledError(RuntimeError):
@@ -128,3 +150,59 @@ class MockProvider(Provider):
         payment is in.
         """
         return fees_for(payment)
+
+    # ------------------------------------------------------------- mandates
+    def start_mandate(self, mandate: RenewalMandate) -> dict[str, Any]:
+        """Nothing for the browser to collect, so an empty dict.
+
+        Raises :class:`MockPaymentsDisabledError` when ``PAYMENTS_MOCK_ENABLED`` is off.
+        """
+        self._check_enabled()
+        return {}
+
+    def confirm_mandate(self, mandate: RenewalMandate, **kwargs: Any) -> MandateMethod:
+        """The one test card the mock provider ever saves.
+
+        Returns :data:`MOCK_CARD_LABEL` on a Visa ending :data:`MOCK_CARD_LAST4`,
+        expiring 12/2030.  Raises :class:`MockPaymentsDisabledError` when
+        ``PAYMENTS_MOCK_ENABLED`` is off.
+        """
+        self._check_enabled()
+        return mock_method()
+
+    def charge_mandate(self, mandate: RenewalMandate, payment: Payment) -> None:
+        """Take the money, unless the saved card is the one that always declines.
+
+        A mandate whose ``method_last4`` is :data:`DECLINED_LAST4` raises
+        :class:`~apps.payments.providers.base.PaymentDeclinedError` reading
+        :data:`DECLINED_MESSAGE` and leaves the payment as it was; any other
+        mandate marks the payment succeeded with the ``mock`` wallet and the
+        reference ``mock_<id>``.  Raises :class:`MockPaymentsDisabledError` when
+        ``PAYMENTS_MOCK_ENABLED`` is off.
+        """
+        self._check_enabled()
+        if mandate.method_last4 == DECLINED_LAST4:
+            raise PaymentDeclinedError(DECLINED_MESSAGE)
+        mark_succeeded(
+            payment,
+            wallet=PaymentWallet.MOCK,
+            raw={"provider": "mock", "outcome": "succeed", "off_session": True},
+            provider_ref=payment.provider_ref or f"mock_{payment.pk}",
+        )
+
+    def method_from_payment(self, payment: Payment) -> MandateMethod:
+        """The same test card :meth:`confirm_mandate` saves, whatever was paid."""
+        return mock_method()
+
+
+def mock_method() -> MandateMethod:
+    """The test card every mock mandate holds."""
+    return MandateMethod(
+        method_ref="mock",
+        label=MOCK_CARD_LABEL,
+        brand=MOCK_CARD_BRAND,
+        last4=MOCK_CARD_LAST4,
+        exp_month=MOCK_CARD_EXP_MONTH,
+        exp_year=MOCK_CARD_EXP_YEAR,
+        raw={"provider": "mock"},
+    )

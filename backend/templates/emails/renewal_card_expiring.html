@@ -1,0 +1,21 @@
+{% extends "emails/renewal_base.html" %}
+
+{% block preheader %}The card saved for your automatic renewal expires before the next charge is due.{% endblock %}
+
+{% block heading %}Your saved card expires soon{% endblock %}
+
+{% block lede %}{{ method_label }} expires on {{ expires_on|date:"F j, Y" }}.{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  <p style="margin:0 0 14px 0;">
+    The next renewal of your {{ plan_name }} membership is due on
+    {{ charge_on|date:"F j, Y" }}, which is after the card expires, so the charge
+    would be declined.
+  </p>
+  <p style="margin:0 0 14px 0;">
+    Save a new card and the renewal will go through as planned.
+  </p>
+{% endblock %}
+
+{% block cta_label %}Save a new card{% endblock %}

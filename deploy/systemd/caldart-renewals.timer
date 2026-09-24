@@ -1,0 +1,33 @@
+# Daily trigger for the CalDART automatic-renewal scan.
+#
+# Deploy path: /srv/caldart. Enable with:
+#   sudo systemctl enable --now caldart-renewals.timer
+# Inspect with:
+#   systemctl list-timers caldart-renewals.timer
+
+[Unit]
+Description=Run the CalDART automatic-renewal scan daily at 06:30
+Documentation=file:///srv/caldart/docs/developer/deployment.rst
+
+[Timer]
+Unit=caldart-renewals.service
+
+# 06:30 every day, in the system timezone -- half an hour before the reminder
+# scan, so a membership this run renews is never also sent a reminder about
+# running out.
+OnCalendar=*-*-* 06:30:00
+
+# If the machine was off or suspended at 06:30, run as soon as it comes back
+# rather than skipping that day's renewals entirely.
+Persistent=true
+
+# Renewals are date-driven, not time-critical to the second; letting systemd
+# coalesce the wakeup is cheaper.
+AccuracySec=1min
+
+# Spread the start over five minutes so the scan does not land at the same
+# instant as every other job on the host.
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,22 @@
+{% extends "emails/renewal_base.html" %}
+
+{% block preheader %}Automatic renewal is off; your membership runs to the end of its term.{% endblock %}
+
+{% block heading %}Automatic renewal is off{% endblock %}
+
+{% block lede %}Nothing further will be charged for your {{ plan_name }} membership.{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  <p style="margin:0 0 14px 0;">
+    Automatic renewal of your {{ plan_name }} membership has been turned off, and
+    the payment method we had saved has been dropped.
+  </p>
+  <p style="margin:0 0 14px 0;">
+    Your membership itself is untouched and runs to the end of its term. We will
+    send you the usual reminders before it expires, and you can renew by hand or
+    turn automatic renewal back on.
+  </p>
+{% endblock %}
+
+{% block cta_label %}Turn it back on{% endblock %}
