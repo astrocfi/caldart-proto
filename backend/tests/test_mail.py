@@ -59,14 +59,15 @@ def test_send_templated_attaches_the_html_body_as_an_alternative(
     email_template: str, mailoutbox: list[EmailMessage]
 ) -> None:
     """The rendered ``.html`` body rides along as the ``text/html`` alternative."""
-    send_templated(
+    message = send_templated(
         to="marta@example.org",
         subject="CalDART: your receipt",
         template=email_template,
         context=CONTEXT,
     )
 
-    html, mimetype = mailoutbox[0].alternatives[0]
+    assert len(mailoutbox) == 1
+    html, mimetype = message.alternatives[0]
     assert html == "<p>Dear Marta, your total is $95.00.</p>\n"
     assert mimetype == "text/html"
 
