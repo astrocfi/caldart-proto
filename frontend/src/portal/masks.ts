@@ -46,18 +46,18 @@ export function maskPostalCode(raw: string): string {
 }
 
 /**
- * A three-character FAA airport identifier, such as `PAO` or `E16`.
+ * A three-character FAA airport identifier, such as `PAO`, `E16` or `KLS`.
  *
- * Letters and digits only, in upper case.  A leading `K` is dropped: it is the
- * ICAO prefix on a four-letter identifier, so `KPAO` typed out of habit
- * becomes `PAO` rather than an identifier no US airport has.
+ * Letters and digits only, in upper case.  A `K` typed in front of a full
+ * identifier is dropped, because that is the ICAO prefix on the four-letter
+ * form: `KPAO` becomes `PAO`, and `KKAB` becomes `KAB`.  A `K` that is part of
+ * the identifier itself is kept -- Kelso is `KLS` -- so only a fourth
+ * character triggers the trim.
  */
 export function maskAirportIdentifier(raw: string): string {
-  return raw
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '')
-    .replace(/^K+/, '')
-    .slice(0, 3);
+  const typed = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const trimmed = typed.length > 3 && typed.startsWith('K') ? typed.slice(1) : typed;
+  return trimmed.slice(0, 3);
 }
 
 /**
@@ -145,6 +145,11 @@ function countSignificant(value: string): number {
  * `N` of a registration is, moves the caret along with it.
  */
 export function caretAfterMask(raw: string, caret: number, masked: string): number {
+  // Typing at the end is the common case, and the end is where the caret
+  // belongs however the mask rewrote what came before it -- including a
+  // separator the typist wrote themselves, such as the comma between two
+  // airport identifiers.
+  if (caret >= raw.length) return masked.length;
   const typed = countSignificant(raw.slice(0, caret));
   if (typed === 0) return 0;
   const added = Math.max(0, countSignificant(masked) - countSignificant(raw));

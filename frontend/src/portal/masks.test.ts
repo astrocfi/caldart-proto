@@ -61,8 +61,16 @@ describe('maskAirportIdentifier', () => {
     expect(maskAirportIdentifier('e16')).toBe('E16');
   });
 
-  it('drops the ICAO K prefix', () => {
+  it('drops the ICAO K typed in front of a full identifier', () => {
     expect(maskAirportIdentifier('KPAO')).toBe('PAO');
+  });
+
+  it('keeps a K that is part of the identifier', () => {
+    expect(maskAirportIdentifier('KLS')).toBe('KLS');
+  });
+
+  it('drops only the prefix from an identifier that starts with K', () => {
+    expect(maskAirportIdentifier('KKAB')).toBe('KAB');
   });
 
   it('refuses a fourth character', () => {
@@ -147,6 +155,14 @@ describe('caretAfterMask', () => {
 
   it('moves past a character the mask wrote itself', () => {
     expect(caretAfterMask('4', 1, 'N4')).toBe(2);
+  });
+
+  it('stays after a separator the typist wrote', () => {
+    expect(caretAfterMask('CCR,', 4, 'CCR,')).toBe(4);
+  });
+
+  it('stays at the end when the mask refused the last character', () => {
+    expect(caretAfterMask('415a', 4, '415')).toBe(3);
   });
 
   it('puts the caret at the start when nothing precedes it', () => {

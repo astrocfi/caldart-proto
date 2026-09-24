@@ -39,9 +39,20 @@ export function AircraftForm({
 }: AircraftFormProps): JSX.Element {
   const modelListId = useId();
   const [values, setValues] = useState<AircraftFormValues>(initial);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // The fields that have been typed in and left; a complaint appears when the
+  // typist moves on from a field rather than when they try to save.
+  const [touched, setTouched] = useState<Record<string, true>>({});
+  const [submitted, setSubmitted] = useState(false);
 
-  const shown = { ...errors, ...(serverErrors ?? {}) };
+  const found = validateAircraft(values);
+  const visible: Record<string, string> = {};
+  for (const [key, message] of Object.entries(found)) {
+    if (submitted || touched[key]) visible[key] = message;
+  }
+
+  const shown = { ...visible, ...(serverErrors ?? {}) };
+
+  const handleBlur = (key: string) => () => setTouched((left) => ({ ...left, [key]: true }));
 
   const set = <K extends keyof AircraftFormValues>(key: K, value: AircraftFormValues[K]): void => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -67,8 +78,7 @@ export function AircraftForm({
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
-    const found = validateAircraft(values);
-    setErrors(found);
+    setSubmitted(true);
     if (Object.keys(found).length > 0) return;
     onSubmit(aircraftPayload(values));
   };
@@ -92,6 +102,7 @@ export function AircraftForm({
                 mask={maskNNumber}
                 value={values.n_number}
                 onValueChange={(next) => set('n_number', next)}
+                onBlur={handleBlur('n_number')}
               />
             )}
           </Field>
@@ -105,6 +116,7 @@ export function AircraftForm({
                 mask={(raw) => maskDigits(raw, 4)}
                 value={values.year}
                 onValueChange={(next) => set('year', next)}
+                onBlur={handleBlur('year')}
               />
             )}
           </Field>
@@ -114,6 +126,7 @@ export function AircraftForm({
                 {...field}
                 value={values.make}
                 onChange={(event) => set('make', event.target.value)}
+                onBlur={handleBlur('make')}
               />
             )}
           </Field>
@@ -125,6 +138,7 @@ export function AircraftForm({
                   list={modelListId}
                   value={values.model}
                   onChange={(event) => handleModel(event.target.value)}
+                  onBlur={handleBlur('model')}
                 />
                 <datalist id={modelListId}>
                   {suggestions.map((type) => (
@@ -146,6 +160,7 @@ export function AircraftForm({
                 mask={(raw) => maskDigits(raw, 2)}
                 value={values.seats}
                 onValueChange={(next) => set('seats', next)}
+                onBlur={handleBlur('seats')}
               />
             )}
           </Field>
@@ -228,6 +243,7 @@ export function AircraftForm({
                 mask={maskDollars}
                 value={values.liability_per_occurrence}
                 onValueChange={(next) => set('liability_per_occurrence', next)}
+                onBlur={handleBlur('liability_per_occurrence')}
               />
             )}
           </Field>
@@ -244,6 +260,7 @@ export function AircraftForm({
                 mask={maskDollars}
                 value={values.liability_per_person}
                 onValueChange={(next) => set('liability_per_person', next)}
+                onBlur={handleBlur('liability_per_person')}
               />
             )}
           </Field>
@@ -260,6 +277,7 @@ export function AircraftForm({
                 mask={maskDollars}
                 value={values.hull}
                 onValueChange={(next) => set('hull', next)}
+                onBlur={handleBlur('hull')}
               />
             )}
           </Field>

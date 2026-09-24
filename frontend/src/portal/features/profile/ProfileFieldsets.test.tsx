@@ -103,15 +103,15 @@ describe('<ProfileFieldsets/>', () => {
     );
   });
 
-  it('drops the ICAO K from a home airport as it is typed', async () => {
+  it('upper-cases a home airport as it is typed', async () => {
     const user = userEvent.setup();
     const onChange = renderFieldsets();
 
-    await user.type(screen.getByLabelText('Home airport'), 'K');
+    await user.type(screen.getByLabelText('Home airport'), 'p');
 
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        home_airport_identifier: '',
+        home_airport_identifier: 'P',
       }) as Partial<typeof EMPTY_PROFILE_FORM>,
     );
   });

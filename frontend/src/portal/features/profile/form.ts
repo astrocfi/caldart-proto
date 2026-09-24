@@ -195,12 +195,12 @@ const POSTAL_RE = /^\d{5}$/;
 const PHONE_RE = /^\d{3}-\d{3}-\d{4}$/;
 const EXTENSION_RE = /^\d{1,6}$/;
 
-/** Three letters or digits, never starting with the ICAO ``K``. */
-const AIRPORT_RE = /^[A-JL-Z0-9][A-Z0-9]{2}$/;
+/** Three letters or digits, which is every FAA identifier. */
+const AIRPORT_RE = /^[A-Z0-9]{3}$/;
 
 const EXTENSION_MESSAGE = 'An extension is digits only, for example 4021.';
 
-const AIRPORT_MESSAGE = 'Use a three-character identifier like PAO or E16, with no leading K.';
+const AIRPORT_MESSAGE = 'Use a three-character identifier like PAO, E16, or KLS.';
 
 /** The most hours a logbook may claim, matching `MAX_TOTAL_HOURS` on the server. */
 export const MAX_TOTAL_HOURS = 99_999;

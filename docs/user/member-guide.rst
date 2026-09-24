@@ -245,6 +245,11 @@ When something goes wrong
    rule applies to a pilot certificate and its number: *"Give your pilot
    certificate number."*
 
+The form tells you about a field as you leave it, not when you press **Save**:
+type half a phone number, move to the next box, and that box turns red with
+the reason underneath.  A field you leave blank says nothing unless it is one
+of the required ones.
+
 **A phone number is rejected.**
    *"Use a ten-digit number like 415-555-0100."*  Ten digits are what the
    system stores.  The box takes nothing but digits, so this appears only when
@@ -252,8 +257,10 @@ When something goes wrong
 
 **The home airport box drops the K you typed.**
    Identifiers here are three characters, as on a sectional: ``PAO``, ``E16``,
-   ``SQL``.  ``K`` is the ICAO prefix on the four-letter form, so the box
-   leaves it out and ``KPAO`` becomes ``PAO``.
+   ``SQL``.  ``K`` is the ICAO prefix on the four-letter form, so typing the
+   longer one drops it: ``KPAO`` becomes ``PAO``.  An identifier that really
+   does start with K is safe — ``KLS`` stays ``KLS``, and ``KKAB`` becomes
+   ``KAB``.
 
 **The ZIP code box is rejected.**
    *"Use a five-digit ZIP code like 95035."*  ZIP+4 is not collected.

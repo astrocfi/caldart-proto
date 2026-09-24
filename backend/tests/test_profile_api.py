@@ -623,18 +623,28 @@ def test_home_airport_is_stored_in_upper_case(
 @pytest.mark.parametrize(
     "identifier",
     ["KPAO", "PA", "PAOX", "PA-"],
-    ids=["icao-prefix", "too-short", "too-long", "punctuation"],
+    ids=["icao-form", "too-short", "too-long", "punctuation"],
 )
-def test_home_airport_must_be_three_characters_without_a_leading_k(
+def test_home_airport_must_be_three_letters_or_digits(
     api_client: APIClient, member: User, profile: MemberProfile, identifier: str
 ) -> None:
-    """Anything but three letters or digits, and never a leading K, is refused."""
+    """Anything but exactly three letters or digits is refused, the ICAO form included."""
     api_client.force_login(member)
     response = api_client.patch(PROFILE_URL, {"home_airport_identifier": identifier}, format="json")
     assert response.status_code == 400
     assert response.json()["home_airport_identifier"] == [
-        "Use a three-character identifier like PAO or E16, with no leading K."
+        "Use a three-character identifier like PAO, E16, or KLS."
     ]
+
+
+def test_home_airport_accepts_an_identifier_that_starts_with_k(
+    api_client: APIClient, member: User, profile: MemberProfile
+) -> None:
+    """``KLS`` is Kelso's identifier: a K is only a prefix on the four-letter form."""
+    api_client.force_login(member)
+    response = api_client.patch(PROFILE_URL, {"home_airport_identifier": "kls"}, format="json")
+    assert response.status_code == 200, response.json()
+    assert response.json()["home_airport_identifier"] == "KLS"
 
 
 def test_home_airport_accepts_an_identifier_with_a_digit(

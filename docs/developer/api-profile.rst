@@ -184,9 +184,10 @@ Field                        Rule
 ``emergency_contact_``       number and breaks the stored format.
 ``phone_extension``
 ``home_airport_identifier``  Three letters or digits if given, upper-cased on the
-                             way in, and never beginning with ``K``: that is the
-                             ICAO prefix on a four-letter identifier, and no
-                             three-character identifier carries it.
+                             way in.  Any of the three may be a ``K`` --
+                             Kelso is ``KLS`` -- because the ``K`` prefix
+                             belongs to the four-letter ICAO form, which this
+                             field does not take.
 ``state``                    One of the two-letter codes, and required: the fifty
                              states, DC, and the territories with USPS codes.
 ``postal_code``              Five digits if given.  ZIP+4 is refused: five reach
@@ -216,7 +217,7 @@ cross-field complaints are raised together when both apply:
 The field-level sentences are "Use a ten-digit number like 415-555-0100." for
 each of the three phone fields, "An extension is digits only, for example
 4021.", "Use a five-digit ZIP code like 95035.", and "Use a three-character
-identifier like PAO or E16, with no leading K."  ``state`` and ``county``
+identifier like PAO, E16, or KLS."  ``state`` and ``county``
 are choice fields, so an unknown value is DRF's own "is not a valid choice".
 
 The portal's form applies the same rules before it sends anything, and on top

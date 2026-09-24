@@ -79,6 +79,11 @@ export interface ProfileFieldsetsProps {
   dartsLoading?: boolean;
   /** Star the fields a member has to fill in before a profile counts as complete. */
   markRequired?: boolean;
+  /**
+   * Called with a field's key when it loses focus, so the caller can show that
+   * field's error the moment the member leaves it rather than at save time.
+   */
+  onFieldBlur?: (key: keyof ProfileFormValues) => void;
 }
 
 /**
@@ -94,8 +99,11 @@ export function ProfileFieldsets({
   darts,
   dartsLoading = false,
   markRequired = false,
+  onFieldBlur,
 }: ProfileFieldsetsProps): JSX.Element {
   const extensionIds = useId();
+
+  const handleBlur = (key: keyof ProfileFormValues) => () => onFieldBlur?.(key);
 
   const set = <Key extends keyof ProfileFormValues>(key: Key, next: ProfileFormValues[Key]) =>
     onChange({ ...value, [key]: next });
@@ -120,6 +128,7 @@ export function ProfileFieldsets({
               mask={mask}
               value={value[key]}
               onValueChange={(next) => set(key, next)}
+              onBlur={handleBlur(key)}
             />
           ) : (
             <input
@@ -129,6 +138,7 @@ export function ProfileFieldsets({
               name={key}
               value={value[key]}
               onChange={(event) => set(key, event.target.value)}
+              onBlur={handleBlur(key)}
             />
           )
         }
@@ -167,6 +177,7 @@ export function ProfileFieldsets({
             mask={maskPhone}
             value={value[key]}
             onValueChange={(next) => set(key, next)}
+            onBlur={handleBlur(key)}
           />
           <label className="field-pair__extension" htmlFor={`${extensionIds}-${extensionKey}`}>
             <span>ext.</span>
@@ -177,6 +188,7 @@ export function ProfileFieldsets({
               mask={maskExtension}
               value={value[extensionKey]}
               onValueChange={(next) => set(extensionKey, next)}
+              onBlur={handleBlur(extensionKey)}
             />
           </label>
         </span>
@@ -196,6 +208,7 @@ export function ProfileFieldsets({
           name={key}
           value={value[key]}
           onChange={(event) => set(key, event.target.value as ProfileFormValues[Key])}
+          onBlur={handleBlur(key)}
         >
           {choices.map((choice) => (
             <option key={choice.value} value={choice.value}>
@@ -233,6 +246,7 @@ export function ProfileFieldsets({
                 autoComplete="address-level1"
                 value={value.state}
                 onChange={(event) => set('state', event.target.value as UsState)}
+                onBlur={handleBlur('state')}
               >
                 {US_STATES.map((state) => (
                   <option key={state.value} value={state.value}>
@@ -284,7 +298,7 @@ export function ProfileFieldsets({
             label: 'Home airport',
             size: 4,
             placeholder: 'PAO',
-            hint: 'Three characters, no leading K',
+            hint: 'Three characters, as on a sectional',
             mask: maskAirportIdentifier,
           })}
           {text('home_airport_city', { label: 'Home airport city' })}

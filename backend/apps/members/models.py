@@ -220,12 +220,12 @@ PHONE_RE = re.compile(r"^\d{3}-\d{3}-\d{4}$")
 #: What a phone extension may be: digits, and not many of them.
 PHONE_EXTENSION_RE = re.compile(r"^\d{1,6}$")
 
-#: A three-character FAA airport identifier, such as ``PAO`` or ``E16``.  A
-#: leading ``K`` is the ICAO prefix on a four-letter identifier, so no
-#: three-character one begins with it.
-AIRPORT_IDENTIFIER_RE = re.compile(r"^[A-JL-Z0-9][A-Z0-9]{2}$")
+#: A three-character FAA airport identifier, such as ``PAO``, ``E16`` or
+#: ``KLS``.  Any of the three may be a ``K``: it is the four-letter ICAO form
+#: that carries ``K`` as a prefix, and the form typed here never does.
+AIRPORT_IDENTIFIER_RE = re.compile(r"^[A-Z0-9]{3}$")
 
-AIRPORT_IDENTIFIER_MESSAGE = "Use a three-character identifier like PAO or E16, with no leading K."
+AIRPORT_IDENTIFIER_MESSAGE = "Use a three-character identifier like PAO, E16, or KLS."
 
 _PHONE_STRIP = re.compile(r"[^0-9]")
 
