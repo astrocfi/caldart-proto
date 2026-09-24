@@ -11,7 +11,7 @@ already are, and what would have to change.
 Deliberate non-goals
 ====================
 
-Four things are out of scope by decision rather than by omission:
+Three things are out of scope by decision rather than by omission:
 
 **Backwards compatibility.**  There is no data to migrate and no external API
 to keep stable.  Change a model and regenerate its migration rather than
@@ -26,59 +26,6 @@ bring across.
 **Internationalization.**  ``USE_I18N`` is on and ``LANGUAGE_CODE`` is
 ``en-us``, but no string is wrapped in ``gettext`` and no catalog exists.
 See :ref:`roadmap-i18n`.
-
-**Auto-renewing subscriptions.**  See below — it is the largest single item on
-this page.
-
-Payments and money
-==================
-
-Auto-renewing subscriptions
----------------------------
-
-Today every term is bought outright: ``create_checkout`` makes a one-off
-charge, ``mark_succeeded`` calls ``activate_term``, and the member is emailed
-before expiry to do it again.  Recurring billing would mean:
-
-- **Stripe Subscriptions or Billing** rather than a bare PaymentIntent, with a
-  ``Price`` per ``MembershipPlan`` and a ``Customer`` per ``User``.  The
-  ``Customer`` id is the missing column — there is nowhere to keep it.
-- **PayPal Subscriptions** (a different API from Orders v2, which is what
-  ``providers/paypal.py`` speaks).
-- A **``Subscription`` model** — provider, provider reference, plan, status,
-  current period end, cancel-at-period-end — with the webhook handlers to keep
-  it in step.
-- Rewriting the reminder scanner's audience: an auto-renewing member should be
-  told their card is about to be charged, and told loudly when it fails, rather
-  than being asked to renew.
-- A cancellation and card-update surface in the portal, and the dunning policy
-  that goes with a failed renewal.
-
-The provider abstraction (``providers/base.py``: ``start``, ``confirm``,
-``handle_webhook``) is the right seam to extend; the work is the state machine
-around it, not the HTTP.
-
-Receipts
---------
-
-A member gets no document after paying.  Stripe is passed a ``receipt_email``,
-so Stripe sends its own, but PayPal and the mock provider send nothing and
-CalDART sends nothing itself.  A receipt would be a rendered PDF — the
-``caldart.reports`` helpers already build PDFs — emailed on success and
-downloadable from ``/portal/`` alongside the payment history.  A 501(c)(3) also
-wants an annual contribution statement for tax purposes, which is the same
-document over a year's payments.
-
-Refunds
--------
-
-``PaymentStatus`` includes ``refunded`` and nothing ever sets it.  Refunding
-means refunding in the Stripe or PayPal dashboard and then correcting
-CalDART by hand.  A refunds UI would need: an account-administrator action on
-the payment row, a provider call (``stripe.Refund.create``, PayPal's refund
-endpoint), the resulting status change, and a decision about the membership
-term the payment bought — cancel it, shorten it, or leave it.  The webhook
-handlers would need to accept refund events, which they ignore.
 
 Members and accounts
 ====================
