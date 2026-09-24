@@ -56,8 +56,9 @@ Model                Notes
                      ``mission`` blocks) and ``tax_status``.
                      ``featured_news`` returns the three most recent live,
                      public news posts, members-only ones excluded whoever is
-                     looking; ``events_soon`` returns the three soonest events
-                     still ahead of today, in date order; ``darts`` and
+                     looking; ``events_soon`` returns the three soonest live
+                     ``EventPage`` records dated today or later, and
+                     ``event_index`` the calendar they link to; ``darts`` and
                      ``plans`` fill the sidebar's team finder and price list.
 ``StandardPage``     ``intro`` + ``body``; carries ``MembersOnlyMixin``.
 ``NewsIndexPage``    Paginates its child posts, ``NEWS_PAGE_SIZE`` at a time,
@@ -65,6 +66,17 @@ Model                Notes
                      open them.
 ``NewsPage``         ``date``, ``intro``, ``image``, ``body``; carries
                      ``MembersOnlyMixin``.  Only allowed under a news index.
+``EventIndexPage``   The calendar.  ``upcoming()`` is its live children dated
+                     today or later, soonest first, and ``past()`` the rest,
+                     most recent first; the page lists everything upcoming and
+                     paginates the past ``EVENT_PAGE_SIZE`` at a time.
+``EventPage``        ``date``, ``time``, ``location``, ``intro``, ``body``.
+                     ``EventPage.objects`` is an ``EventPageManager`` carrying
+                     ``upcoming()`` and ``past()``, which is what the home
+                     page's sidebar and the calendar both read.  ``is_past``
+                     says whether the day is over and ``when_and_where`` joins
+                     the place and the time into one line.  Only allowed under
+                     an event index.
 ``DartIndexPage``    ``intro`` + ``body`` above its children, which it renders
                      as a table.
 ``DartPage``         ``dart`` (nullable ``SET_NULL`` FK to ``darts.Dart``),
@@ -178,11 +190,9 @@ Blocks
 ``heading``, ``paragraph``, ``image``, ``quote``, ``cta``, ``document``,
 ``two_columns``, ``embed``, and ``raw_html``.  ``ColumnStreamBlock`` is the
 reduced set allowed inside a two-column block, so columns cannot nest, and
-The home page has two streams of its own: ``MissionStreamBlock``, whose
+The home page has one stream of its own: ``MissionStreamBlock``, whose
 ``mission`` blocks pair a ``year`` with the text of what was flown and render
-as the rows of one table, and ``EventStreamBlock``, whose ``event`` blocks
-carry a ``date``, a ``title``, an optional ``where`` and an optional page to
-link to.
+as the rows of one table.
 
 ``cta`` (``CTABlock``) is the call to action: a ``label``; a target that is
 either a ``page`` from the tree or a ``url`` (an external address, or a path
@@ -249,7 +259,7 @@ supplies four names:
     children as ``children`` for a drop-down.  A menu page behind the
     members-only wall is moved to the end as ``kind="portal"``, beside the
     portal link itself -- ``Member portal`` -> ``/portal/`` for a signed-in
-    visitor, ``Log in`` -> ``/portal/login`` for an anonymous one.  That title
+    visitor, ``Sign in`` -> ``/portal/login`` for an anonymous one.  That title
     is ``PORTAL_TITLE``, and it deliberately does not read ``Members``: a site
     whose members area is a content page would otherwise carry the same word
     twice in one bar.  ``base.html`` renders the first group as the navigation

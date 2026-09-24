@@ -90,7 +90,7 @@ user administrator (see :doc:`user-administrator`).
 Signing in
 ==========
 
-Go to ``/portal/`` and you land on the sign-in page, or use **Log in** in the
+Go to ``/portal/`` and you land on the sign-in page, or use **Sign in** in the
 public site's top navigation — the button changes to **Members** once you are
 signed in.  Enter your email address and password.
 

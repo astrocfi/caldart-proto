@@ -36,16 +36,16 @@
 
       <p class="cluster">
         {% if page.urgent_cta_label %}
-          <a class="button button--urgent" href="{{ page.urgent_cta_url|default:'/contact-us/' }}">{{ page.urgent_cta_label }}</a>
+          <a class="button button--urgent" href="{{ page.urgent_cta_url|default:'/contact/' }}">{{ page.urgent_cta_label }}</a>
         {% endif %}
         {% if page.primary_cta_label %}
           <a class="button" href="{{ page.primary_cta_url|default:'/portal/join' }}">{{ page.primary_cta_label }}</a>
         {% endif %}
-        {% if page.secondary_cta_label %}
-          <a class="button button--secondary" href="{{ page.secondary_cta_url|default:'/' }}">{{ page.secondary_cta_label }}</a>
-        {% endif %}
         {% if site_settings.donate_url %}
           <a class="button button--secondary" href="{{ site_settings.donate_url }}">Donate</a>
+        {% endif %}
+        {% if page.secondary_cta_label %}
+          <a class="button button--secondary" href="{{ page.secondary_cta_url|default:'/' }}">{{ page.secondary_cta_label }}</a>
         {% endif %}
       </p>
     </div>
@@ -94,9 +94,23 @@
         <h2 class="box__head">Upcoming events</h2>
         <div class="box__body">
           <ul class="events" role="list">
-            {% for block in events_soon %}{% include_block block %}{% endfor %}
+            {% for event in events_soon %}
+              <li class="event">
+                <p class="event__date">
+                  <span class="event__month">{{ event.date|date:"M" }}</span>
+                  <b class="event__day">{{ event.date|date:"j" }}</b>
+                </p>
+                <p class="event__what">
+                  <a href="{{ event.url }}">{{ event.title }}</a>
+                  {% if event.when_and_where %}<span class="event__where">{{ event.when_and_where }}</span>{% endif %}
+                </p>
+              </li>
+            {% endfor %}
           </ul>
         </div>
+        {% if event_index %}
+          <p class="box__more"><a href="{{ event_index.url }}">All events »</a></p>
+        {% endif %}
       </section>
     {% endif %}
 

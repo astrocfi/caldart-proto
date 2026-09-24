@@ -55,6 +55,16 @@ class NewsPostSpec:
     days_ago: int
 
 
+@dataclass(frozen=True)
+class EventSpec:
+    """One example event: the page, how many days out it is, and its details."""
+
+    page: PageSpec
+    days_ahead: int
+    time: str = ""
+    location: str = ""
+
+
 def rich(html: str) -> BlockSpec:
     """A ``paragraph`` body block holding ``html`` as rich text."""
     return BlockSpec("paragraph", html)
@@ -106,25 +116,19 @@ MISSION = (
     "earthquake, flood, or other disaster.</p>"
 )
 
+#: The welcome, with ``{contact}`` for the contact page's own URL: the
+#: paragraph invites the reader to write to us, so the link has to be the page
+#: the tree actually holds rather than a path typed here.
 WELCOME_BODY = (
     "<p>California has some 28,000 aircraft and 54,000 pilots. Most of them would help "
     "after a disaster if they knew how, and CalDART is the way they do: local Disaster "
     "Airlift Response Teams, each based at a general aviation airport, each able to fly "
     "people and supplies between any of the state's roughly 250 public airports under "
     "Part 91 rules.</p>"
-    "<p>Every DART runs a practice mobilization exercise at least once a year, and invites "
-    "county emergency managers, the local VOAD groups (Volunteer Organizations Active in "
-    "Disaster, the nonprofits that coordinate relief work), and neighboring DARTs to take "
-    "part. A DART can call for mutual aid from other DARTs, from CalDART members and "
-    "friends, and from pilots anywhere in the state.</p>"
-)
-
-#: The sidebar's calendar: how many days from today, the event, and where it is.
-UPCOMING_EVENTS: tuple[tuple[int, str, str], ...] = (
-    (25, "Ground crew workshop", "Reid-Hillview (KRHV), 9 am to 1 pm"),
-    (46, "Statewide radio and communications drill", "Every DART"),
-    (74, "DART leaders' meeting", "San Martin (E16), 10 am"),
-    (130, "Spring mobilization exercise", "Statewide"),
+    "<p>We welcome both pilot and ground-support volunteers, donations from the general "
+    "public, major sponsors, and partnerships with VOADs (Volunteer Organizations Active "
+    'in Disaster) and local emergency managers. <a href="{contact}">Contact us</a> or '
+    "select one of the options below.</p>"
 )
 
 MISSIONS_HEADING = "Missions flown"
@@ -216,6 +220,69 @@ ABOUT = PageSpec(
             "volunteers.</p>"
         ),
         cta("Find your DART", "/about/darts/", "secondary"),
+    ),
+)
+
+HOW_IT_WORKS = PageSpec(
+    slug="how-it-works",
+    title="How It Works",
+    show_in_menus=True,
+    intro=(
+        "A DART is ready before the disaster, not assembled during it. This is what the "
+        "network does between missions, and what happens when a county calls."
+    ),
+    body=(
+        heading("Training and exercises"),
+        rich(
+            "<p>Every DART runs a practice mobilization exercise at least once a year, and "
+            "invites county emergency managers, the local VOAD groups (Volunteer "
+            "Organizations Active in Disaster, the nonprofits that coordinate relief work), "
+            "and neighboring DARTs to take part. A DART can call for mutual aid from other "
+            "DARTs, from CalDART members and friends, and from pilots anywhere in the "
+            "state.</p>"
+        ),
+        heading("What an activation looks like"),
+        rich(
+            "<ol>"
+            "<li>A county emergency manager asks a DART for air transportation, and the "
+            "DART leader accepts the mission on behalf of the team.</li>"
+            "<li>The leader calls out the members whose membership, medical, and aircraft "
+            "insurance are current, and matches the load to the aircraft and the "
+            "airports.</li>"
+            "<li>Ground volunteers build the manifest, weigh and load the cargo, and pass "
+            "traffic by radio between the fields.</li>"
+            "<li>Pilots fly under Part 91, at their own expense, and never a leg they judge "
+            "unsafe.</li>"
+            "<li>The receiving end hands off to the agency or the relief organization that "
+            "asked for the load.</li>"
+            "</ol>"
+        ),
+        heading("Who does what"),
+        rich(
+            definition_list(
+                (
+                    ("Pilots", "fly the missions, and keep a current certificate and medical."),
+                    (
+                        "Aircraft owners",
+                        "make an aircraft available and keep its liability insurance current.",
+                    ),
+                    (
+                        "Ground volunteers",
+                        "handle manifests, loading, radios, and the hand-off at each end.",
+                    ),
+                    (
+                        "DART leaders",
+                        "hold the relationship with the county and call the team out.",
+                    ),
+                    (
+                        "CalDART",
+                        "trains the network, runs the statewide exercise, and keeps the "
+                        "membership and insurance records one system.",
+                    ),
+                )
+            )
+        ),
+        cta("Join CalDART", "/portal/join", "primary", "Annual membership is $45."),
     ),
 )
 
@@ -399,6 +466,140 @@ DIRECTORS = PageSpec(
             "<p>The board meets by video call on the second Tuesday of each month. "
             "Members are welcome; ask the secretary for the link. Minutes are posted in "
             "the members' area.</p>"
+        ),
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Events
+# ---------------------------------------------------------------------------
+
+EVENT_INDEX = PageSpec(
+    slug="events",
+    title="Events",
+    show_in_menus=True,
+    intro=(
+        "Exercises, workshops, drills, and meetings. Everything here is open to members, "
+        "and most of it is open to anyone thinking of joining."
+    ),
+)
+
+EVENTS: tuple[EventSpec, ...] = (
+    EventSpec(
+        days_ahead=25,
+        time="9 am to 1 pm",
+        location="Reid-Hillview (KRHV)",
+        page=PageSpec(
+            slug="ground-crew-workshop",
+            title="Ground crew workshop",
+            intro=(
+                "Manifests, weight and balance, and safe loading, for volunteers who do not fly."
+            ),
+            body=(
+                rich(
+                    "<p>A half day on the ramp and in the pilots' lounge, covering the work "
+                    "that keeps an airlift honest: building a manifest, weighing and marking "
+                    "cargo, reading a weight and balance sheet, and handing a load over at "
+                    "the far end.</p>"
+                    "<p>No flying, no experience, and no membership needed \u2014 come and see "
+                    "what a ground team does. Bring closed shoes and a hi-vis vest if you have "
+                    "one; we have spares if you do not.</p>"
+                ),
+                heading("What to expect"),
+                rich(
+                    "<ul><li>Coffee and a briefing at 9 am</li>"
+                    "<li>Loading practice with the club's aircraft</li>"
+                    "<li>Radio procedure for the ramp</li>"
+                    "<li>Lunch, and a debrief by 1 pm</li></ul>"
+                ),
+            ),
+        ),
+    ),
+    EventSpec(
+        days_ahead=46,
+        time="10 am to noon",
+        location="Every DART, on the air",
+        page=PageSpec(
+            slug="statewide-radio-drill",
+            title="Statewide radio and communications drill",
+            intro="Every team checks in on the statewide net, from its own airport.",
+            body=(
+                rich(
+                    "<p>A two-hour net exercise: each DART checks in from its home field, "
+                    "passes a short formal message to the net control station, and relays one "
+                    "on to a neighboring team. Amateur radio operators, aircraft radios, and "
+                    "the phone tree all get used, because on the day all three will be.</p>"
+                    "<p>Net control rotates between teams each year. Frequencies and the "
+                    "message format are in the members' area a week before.</p>"
+                ),
+            ),
+        ),
+    ),
+    EventSpec(
+        days_ahead=74,
+        time="10 am",
+        location="San Martin (E16)",
+        page=PageSpec(
+            slug="dart-leaders-meeting",
+            title="DART leaders' meeting",
+            intro="Quarterly meeting of the team leaders, with the board.",
+            body=(
+                rich(
+                    "<p>Team leaders meet quarterly to compare notes: what the counties are "
+                    "asking for, what the last exercise taught, where new teams are forming, "
+                    "and what the network needs from the board. Members are welcome to "
+                    "listen.</p>"
+                ),
+            ),
+        ),
+    ),
+    EventSpec(
+        days_ahead=130,
+        time="All day",
+        location="Statewide",
+        page=PageSpec(
+            slug="spring-mobilization-exercise",
+            title="Spring mobilization exercise",
+            intro=(
+                "The annual statewide airlift: every team, a scenario, and real loads between "
+                "real airports."
+            ),
+            body=(
+                rich(
+                    "<p>The largest thing CalDART does. Every team mobilizes against a "
+                    "scenario written with county emergency managers, flies simulated relief "
+                    "loads between airports on a schedule set by an exercise EOC, and "
+                    "debriefs the same evening.</p>"
+                    "<p>Pilots, aircraft owners, ground volunteers, and radio operators are "
+                    "all needed. Sign-up opens in the members' area six weeks beforehand, and "
+                    "county and VOAD partners are invited to send observers.</p>"
+                ),
+                heading("Who it is for"),
+                rich(
+                    "<ul><li>Pilots with a current medical and a current aircraft</li>"
+                    "<li>Ground volunteers, whatever your experience</li>"
+                    "<li>County emergency managers and VOAD partners, as observers</li></ul>"
+                ),
+            ),
+        ),
+    ),
+    EventSpec(
+        days_ahead=-21,
+        time="9 am to 3 pm",
+        location="Livermore (LVK)",
+        page=PageSpec(
+            slug="county-tabletop-exercise",
+            title="County tabletop exercise",
+            intro="A morning around a map with county emergency management, no aircraft moved.",
+            body=(
+                rich(
+                    "<p>Team leaders and county staff walked through the first twelve hours of "
+                    "a major earthquake: who calls whom, what a county can ask for, what a "
+                    "DART can honestly promise, and where the paperwork slows things down.</p>"
+                    "<p>The notes are in the members' area.</p>"
+                ),
+            ),
         ),
     ),
 )
@@ -654,7 +855,7 @@ SPONSORS = PageSpec(
             "acknowledged on this page and in the newsletter; it buys no influence over "
             "who we fly for.</p>"
         ),
-        cta("Talk to us about sponsorship", "/contact-us/", "secondary"),
+        cta("Talk to us about sponsorship", "/contact/", "secondary"),
     ),
 )
 
@@ -713,7 +914,8 @@ MEMBERS = PageSpec(
 
 MEMBERS_ONLY = PageSpec(
     slug="members-only",
-    title="Members Only",
+    title="Notices",
+    show_in_menus=True,
     members_only=True,
     intro="Notices for current members, posted by the board and by DART leaders.",
     body=(
@@ -737,6 +939,7 @@ MEMBERS_ONLY = PageSpec(
 DOCS_AND_LINKS = PageSpec(
     slug="docs-and-links",
     title="Documents and Links",
+    show_in_menus=True,
     members_only=True,
     intro="Handbooks, forms, and the outside references worth bookmarking.",
     body=(

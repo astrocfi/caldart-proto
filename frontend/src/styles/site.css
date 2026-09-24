@@ -206,6 +206,13 @@
   display: flex;
 }
 
+/* The members drop-down hangs off the right-hand action group, so it opens
+ * inward rather than off the edge of the bar. */
+.navbar__menu--right {
+  left: auto;
+  right: 0;
+}
+
 .navbar__menu a {
   border-right: 0;
   font-weight: var(--weight-normal);
@@ -485,6 +492,24 @@
 .event__where {
   display: block;
   color: var(--color-muted);
+}
+
+.event__intro {
+  display: block;
+}
+
+/* The calendar's own lists breathe more than the sidebar's, and what has
+ * already happened is quieter than what is still ahead. */
+.event-index .events {
+  margin-block: var(--space-4) var(--space-6);
+}
+
+.events--past .event__what a {
+  color: var(--color-muted);
+}
+
+.event__detail {
+  font-weight: var(--weight-medium);
 }
 
 .linklist {

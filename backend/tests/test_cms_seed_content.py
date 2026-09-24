@@ -16,9 +16,11 @@ from apps.cms.management.commands import seed_content_data as content
 
 #: Every test here runs `seed_content`, which builds the whole example site.
 from apps.cms.models import (
+    UPCOMING_EVENTS_COUNT,
     ContactPage,
     DartIndexPage,
     DartPage,
+    EventPage,
     HomePage,
     NewsIndexPage,
     NewsPage,
@@ -60,6 +62,7 @@ def test_seed_content_builds_the_documented_tree() -> None:
     about = StandardPage.objects.get(slug="about")
     assert about.get_parent().specific_class is HomePage
     assert {p.slug for p in about.get_children()} == {
+        "how-it-works",
         "history",
         "darts",
         "directors",
@@ -122,14 +125,20 @@ def test_seed_content_home_page_carries_the_missions_flown() -> None:
     assert home.primary_cta_url == "/portal/join"
 
 
-def test_seed_content_dates_every_event_ahead_of_today() -> None:
-    """``seed_content`` seeds the calendar so nothing in it has already happened."""
+def test_seed_content_seeds_one_page_per_example_event() -> None:
+    """``seed_content`` builds the calendar as pages, one per example event."""
+    seed()
+    assert EventPage.objects.count() == len(content.EVENTS)
+
+
+def test_seed_content_leaves_the_sidebar_something_to_show() -> None:
+    """The seeded calendar always has events still ahead for the home page."""
     seed()
     home = HomePage.objects.get()
     today = timezone.localdate()
 
-    assert len(home.upcoming_events) == len(content.UPCOMING_EVENTS)
-    assert all(block.value["date"] > today for block in home.upcoming_events)
+    assert len(home.events_soon) == UPCOMING_EVENTS_COUNT
+    assert all(event.date >= today for event in home.events_soon)
 
 
 def test_seed_content_gives_the_home_page_its_photograph() -> None:
@@ -233,7 +242,7 @@ def test_seed_content_runs_twice_cleanly() -> None:
     }
 
     assert first == second
-    assert first["pages"] == 33  # 32 site pages plus the invisible tree root
+    assert first["pages"] == 40  # 39 site pages plus the invisible tree root
 
 
 def test_seed_content_is_safe_after_seed_demo() -> None:
@@ -247,6 +256,7 @@ def test_seed_content_is_safe_after_seed_demo() -> None:
 # ------------------------------------------------------------ the copy module
 STANDARD_PAGE_SPECS = (
     content.ABOUT,
+    content.HOW_IT_WORKS,
     content.HISTORY,
     content.DIRECTORS,
     content.JOIN,

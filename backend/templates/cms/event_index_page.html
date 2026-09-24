@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% comment %}
+  The calendar: everything still ahead in full, then what has already happened,
+  paginated.  Each entry links to the event's own page.
+{% endcomment %}
+
+{% block body_class %}event-index{% endblock %}
+
+{% block content %}
+  <section class="box">
+    {% include "cms/includes/page_header.html" %}
+    <div class="box__body">
+      {% if page.intro %}<p class="lede">{{ page.intro }}</p>{% endif %}
+
+      <h2>Coming up</h2>
+      {% if upcoming %}
+        <ul class="events" role="list">
+          {% for event in upcoming %}
+            <li class="event">
+              <p class="event__date">
+                <span class="event__month">{{ event.date|date:"M" }}</span>
+                <b class="event__day">{{ event.date|date:"j" }}</b>
+              </p>
+              <p class="event__what">
+                <a href="{{ event.url }}">{{ event.title }}</a>
+                {% if event.when_and_where %}<span class="event__where">{{ event.when_and_where }}</span>{% endif %}
+                {% if event.intro %}<span class="event__intro">{{ event.intro }}</span>{% endif %}
+              </p>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">Nothing on the calendar yet. Check back soon.</p>
+      {% endif %}
+
+      {% if past %}
+        <h2>Already happened</h2>
+        <ul class="events events--past" role="list">
+          {% for event in past %}
+            <li class="event">
+              <p class="event__date">
+                <span class="event__month">{{ event.date|date:"M" }}</span>
+                <b class="event__day">{{ event.date|date:"j" }}</b>
+              </p>
+              <p class="event__what">
+                <a href="{{ event.url }}">{{ event.title }}</a>
+                {% if event.when_and_where %}<span class="event__where">{{ event.when_and_where }}</span>{% endif %}
+              </p>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    {% if past.has_other_pages %}
+      <nav class="box__more pagination" aria-label="Event pages">
+        {% if past.has_previous %}
+          <a href="?page={{ past.previous_page_number }}">« More recent</a>
+        {% endif %}
+        <span class="pagination__status">Page {{ past.number }} of {{ paginator.num_pages }}</span>
+        {% if past.has_next %}
+          <a href="?page={{ past.next_page_number }}">Older »</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+{% endblock %}

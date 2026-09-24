@@ -24,17 +24,16 @@ from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
 from django.utils import timezone
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
-from wagtail.blocks.stream_block import StreamValue
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.fields import RichTextField, StreamField
 from wagtail.models import Collection, Page, PageManager
+from wagtail.query import PageQuerySet
 from wagtail.search import index
 
 from apps.accounts.models import User
 from apps.cms.blocks import (
     RICH_TEXT_FEATURES,
     ContentStreamBlock,
-    EventStreamBlock,
     MissionStreamBlock,
     stream_headings,
 )
@@ -70,6 +69,9 @@ UPCOMING_EVENTS_COUNT = 3
 
 #: How many posts a news index page shows before paginating.
 NEWS_PAGE_SIZE = 8
+
+#: How many events an event index page shows before paginating.
+EVENT_PAGE_SIZE = 20
 
 #: A body needs at least this many H2 headings before the "on this page" rail
 #: earns its place.
@@ -282,11 +284,6 @@ class HomePage(BasePage):
         features=RICH_TEXT_FEATURES,
         help_text="The paragraphs under the mission statement.",
     )
-    upcoming_events = StreamField(
-        EventStreamBlock(),
-        blank=True,
-        help_text="Dated events for the sidebar.  One that has passed stops showing.",
-    )
     missions_heading = models.CharField(max_length=200, blank=True, default="Missions flown")
     missions_flown = StreamField(
         MissionStreamBlock(),
@@ -318,7 +315,6 @@ class HomePage(BasePage):
         ),
         FieldPanel("mission_statement"),
         FieldPanel("welcome_body"),
-        FieldPanel("upcoming_events"),
         MultiFieldPanel(
             [FieldPanel("missions_heading"), FieldPanel("missions_flown")],
             heading="Missions flown",
@@ -364,18 +360,21 @@ class HomePage(BasePage):
         return index_page
 
     @property
-    def events_soon(self) -> list[StreamValue.StreamChild]:
-        """The next few events that have not happened yet, soonest first.
+    def events_soon(self) -> list[EventPage]:
+        """The next few live public events, soonest first.
 
-        Reads ``upcoming_events`` in whatever order the editor left it, drops every
-        event dated before today, sorts what is left by date and returns at most
-        ``UPCOMING_EVENTS_COUNT`` of them.  An empty stream gives an empty list, so
-        the sidebar box disappears rather than standing empty.
+        An event dated today still counts: it has not happened until the day is
+        over.  Anything earlier is left out, and so is anything unpublished or
+        private, because the home page is public.  No events at all gives an
+        empty list, so the sidebar box disappears rather than standing empty.
         """
-        today = timezone.localdate()
-        ahead = [block for block in self.upcoming_events if block.value["date"] >= today]
-        ahead.sort(key=lambda block: block.value["date"])
-        return ahead[:UPCOMING_EVENTS_COUNT]
+        return list(EventPage.objects.upcoming()[:UPCOMING_EVENTS_COUNT])
+
+    @property
+    def event_index(self) -> EventIndexPage | None:
+        """The live event calendar the sidebar links to, or ``None`` if unpublished."""
+        index_page: EventIndexPage | None = EventIndexPage.objects.live().first()
+        return index_page
 
     @property
     def dart_index(self) -> DartIndexPage | None:
@@ -398,6 +397,7 @@ class HomePage(BasePage):
         context: dict[str, Any] = super().get_context(request, *args, **kwargs)
         context["featured_news"] = self.featured_news
         context["events_soon"] = self.events_soon
+        context["event_index"] = self.event_index
         context["news_index"] = self.news_index
         context["dart_index"] = self.dart_index
         context["darts"] = self.darts
@@ -525,6 +525,125 @@ class NewsPage(MembersOnlyMixin, BasePage):
     def __str__(self) -> str:
         """The page title, which is how Wagtail lists and chooses the page."""
         return str(self.title)
+
+
+class EventPageManager(PageManager):
+    """Adds the two orderings every event screen wants."""
+
+    def upcoming(self) -> PageQuerySet[EventPage]:
+        """Live public events from today on, soonest first.
+
+        An event dated today is still upcoming: it has not happened until the
+        day is over.  Ties on the date are broken by the earlier primary key, so
+        two events on one day keep the order they were created in.
+        """
+        events: PageQuerySet[EventPage] = self.get_queryset()
+        return events.live().public().filter(date__gte=timezone.localdate()).order_by("date", "pk")
+
+    def past(self) -> PageQuerySet[EventPage]:
+        """Live public events before today, most recent first."""
+        events: PageQuerySet[EventPage] = self.get_queryset()
+        return events.live().public().filter(date__lt=timezone.localdate()).order_by("-date", "-pk")
+
+
+class EventIndexPage(BasePage):
+    """The calendar: what is coming up, and what has already happened."""
+
+    intro = models.TextField(blank=True)
+
+    content_panels = [*Page.content_panels, FieldPanel("intro")]
+    search_fields = [*Page.search_fields, index.SearchField("intro")]
+
+    template = "cms/event_index_page.html"
+    subpage_types = ["cms.EventPage"]
+
+    class Meta:
+        verbose_name = "event index"
+        verbose_name_plural = "event indexes"
+
+    def upcoming(self) -> PageQuerySet[EventPage]:
+        """This calendar's own live events from today on, soonest first."""
+        return EventPage.objects.upcoming().child_of(self)
+
+    def past(self) -> PageQuerySet[EventPage]:
+        """This calendar's own live events before today, most recent first."""
+        return EventPage.objects.past().child_of(self)
+
+    def get_context(self, request: HttpRequest, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        """Wagtail's page context plus ``upcoming`` and one page of ``past`` events.
+
+        Everything still ahead is listed in full -- a calendar that hid the
+        fourth event would be no use -- and what has already happened is
+        paginated, ``EVENT_PAGE_SIZE`` to a page, with ``?page=`` choosing
+        which.  Anything that is not a page number falls back to the first page
+        and a number past the end to the last, because Django's paginator is
+        asked with ``get_page``.
+        """
+        from django.core.paginator import Paginator
+
+        context: dict[str, Any] = super().get_context(request, *args, **kwargs)
+        paginator = Paginator(self.past(), EVENT_PAGE_SIZE)
+        context["upcoming"] = self.upcoming()
+        context["paginator"] = paginator
+        context["past"] = paginator.get_page(request.GET.get("page") or 1)
+        return context
+
+
+class EventPage(BasePage):
+    """One dated event: an exercise, a workshop, a drill, or a meeting."""
+
+    date = models.DateField("event date")
+    time = models.CharField(max_length=60, blank=True, help_text="When it runs, e.g. 9 am to 1 pm.")
+    location = models.CharField(
+        max_length=160, blank=True, help_text="Airport and town, or who it is for."
+    )
+    intro = models.TextField(blank=True, help_text="One line, shown in the calendar.")
+    body = StreamField(ContentStreamBlock(), blank=True)
+
+    content_panels = [
+        *Page.content_panels,
+        FieldPanel("date"),
+        FieldPanel("time"),
+        FieldPanel("location"),
+        FieldPanel("intro"),
+        FieldPanel("body"),
+    ]
+
+    search_fields = [
+        *Page.search_fields,
+        index.SearchField("intro"),
+        index.SearchField("location"),
+        index.SearchField("body"),
+        index.FilterField("date"),
+    ]
+
+    template = "cms/event_page.html"
+    parent_page_types = ["cms.EventIndexPage"]
+    subpage_types: list[str] = []
+
+    objects: EventPageManager = EventPageManager()
+
+    class Meta:
+        verbose_name = "event"
+
+    def __str__(self) -> str:
+        """The page title, which is how Wagtail lists and chooses the page."""
+        return str(self.title)
+
+    @property
+    def is_past(self) -> bool:
+        """Whether the event's day is over."""
+        return bool(self.date < timezone.localdate())
+
+    @property
+    def when_and_where(self) -> str:
+        """The time and the place as one line, with whichever of them is set.
+
+        ``"9 am to 1 pm"`` and ``"Reid-Hillview (KRHV)"`` read as
+        ``"Reid-Hillview (KRHV), 9 am to 1 pm"``; either alone reads as itself,
+        and neither gives an empty string.
+        """
+        return ", ".join(part for part in (self.location, self.time) if part)
 
 
 class DartIndexPage(BasePage):

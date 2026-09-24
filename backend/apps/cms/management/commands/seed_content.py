@@ -45,6 +45,8 @@ from apps.cms.models import (
     ContactPage,
     DartIndexPage,
     DartPage,
+    EventIndexPage,
+    EventPage,
     HomePage,
     NewsIndexPage,
     NewsPage,
@@ -170,8 +172,8 @@ def seed_home(
     Overwrites those fields every time, attaches the example photograph, dates the
     events from the day it runs so they are always still ahead, publishes a
     revision, and returns the page reloaded from the database.  ``darts_url`` is
-    where the "find your DART" button points and ``contact_url`` where the request
-    for air support does.
+    where the "find your DART" button points, and ``contact_url`` both where the
+    request for air support goes and what the welcome paragraph links to.
     """
     home.hero_heading = content.HERO_HEADING
     home.hero_lede = content.HERO_LEDE
@@ -184,12 +186,7 @@ def seed_home(
     home.secondary_cta_label = content.SECONDARY_CTA_LABEL
     home.secondary_cta_url = darts_url
     home.mission_statement = content.MISSION
-    home.welcome_body = content.WELCOME_BODY
-    today = timezone.localdate()
-    home.upcoming_events = [
-        ("event", {"date": today + timedelta(days=days), "title": title, "where": where})
-        for days, title, where in content.UPCOMING_EVENTS
-    ]
+    home.welcome_body = content.WELCOME_BODY.format(contact=contact_url)
     home.missions_heading = content.MISSIONS_HEADING
     home.missions_flown = [
         ("mission", {"year": year, "text": text}) for year, text in content.MISSIONS_FLOWN
@@ -204,6 +201,11 @@ def seed_home(
 def seed_about(home: HomePage) -> StandardPage:
     """Create or update ``/about/``, the About Us page, in the menu."""
     return upsert_spec(home, StandardPage, content.ABOUT)
+
+
+def seed_how_it_works(about: StandardPage) -> StandardPage:
+    """Create or update ``/about/how-it-works/``, in the About Us menu."""
+    return upsert_spec(about, StandardPage, content.HOW_IT_WORKS)
 
 
 def seed_history(about: StandardPage) -> StandardPage:
@@ -293,6 +295,37 @@ def seed_news(home: HomePage) -> NewsIndexPage:
     return index
 
 
+def seed_events(home: HomePage) -> EventIndexPage:
+    """Create or update ``/events/`` and its example events, and return the index.
+
+    Each event is dated relative to today -- four still ahead and one already
+    past -- so the calendar always has something on it and the sidebar always
+    has something to show.
+    """
+    index = upsert_page(
+        home,
+        EventIndexPage,
+        content.EVENT_INDEX.slug,
+        title=content.EVENT_INDEX.title,
+        show_in_menus=content.EVENT_INDEX.show_in_menus,
+        intro=content.EVENT_INDEX.intro,
+    )
+    today = timezone.localdate()
+    for event in content.EVENTS:
+        upsert_page(
+            index,
+            EventPage,
+            event.page.slug,
+            title=event.page.title,
+            date=today + timedelta(days=event.days_ahead),
+            time=event.time,
+            location=event.location,
+            intro=event.page.intro,
+            body=stream(event.page.body),
+        )
+    return index
+
+
 def seed_join(home: HomePage) -> StandardPage:
     """Create or update ``/join/``, the dues and eligibility page, in the menu."""
     return upsert_spec(home, StandardPage, content.JOIN)
@@ -376,10 +409,12 @@ class Command(BaseCommand):
         home = HomePage.objects.get(pk=site.root_page_id)
 
         about = seed_about(home)
+        seed_how_it_works(about)
         seed_history(about)
         darts = seed_darts_section(about)
         seed_directors(about)
         seed_news(home)
+        seed_events(home)
         seed_join(home)
         seed_donate(home)
         seed_sponsors(about)
