@@ -56,9 +56,14 @@ test('a system administrator keeps the run controls on the System page', async (
   await signIn(page, DEMO.sysadmin);
   await page.goto('/portal/system');
 
-  await expect(page.getByRole('heading', { name: 'Renewal reminders' })).toBeVisible();
-  await expect(page.getByLabel('Dry run (send nothing)')).toBeChecked();
+  // The System page carries a second scan, the automatic renewals one, with
+  // run controls of its own, so every control here is read inside its panel.
+  const panel = page
+    .locator('section.card')
+    .filter({ has: page.getByRole('heading', { name: 'Renewal reminders' }) });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByLabel('Dry run (send nothing)')).toBeChecked();
 
-  await page.getByRole('button', { name: 'Run now' }).click();
-  await expect(page.getByRole('status').filter({ hasText: /^Would send / })).toBeVisible();
+  await panel.getByRole('button', { name: 'Run now' }).click();
+  await expect(panel.getByRole('status').filter({ hasText: /^Would send / })).toBeVisible();
 });

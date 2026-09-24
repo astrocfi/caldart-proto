@@ -151,14 +151,19 @@ one:
 1. Leave **Dry run (charge nothing)** ticked the first time.  It reports what
    *would* happen without charging anybody, emailing anybody or writing
    anything.
-2. Press **Run now**.  The result reads, for example, "Noticed 2, charged 1,
-   failed 0, paused 0, skipped 3."  *Noticed* is the fortnight's-warning emails,
+2. Press **Run now**.  The result reads, for example, "Would notice 2, warn 0,
+   charge 1, fail 0, pause 0, and skip 3", and a real run says the same in the
+   past tense.  *Noticed* is the fortnight's-warning emails, *warned* the
+   members whose saved card expires before their next charge,
    *charged* the renewals taken, *failed* the charges a provider refused,
    *paused* the members whose last retry was refused, or whose membership had
    lapsed too long to catch up, and whose automatic renewal has therefore
    switched itself off, and *skipped* the ones that needed nothing doing.
 3. If the numbers look right and you have a reason to run now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
+   A real run asks before it starts, because it charges every member whose
+   renewal is due: press **Yes, charge what is due** to go ahead, or
+   **Cancel** to think again.
 
 Running it twice charges nobody twice, and sends nothing twice: each scheduled
 charge records what has already gone out.
