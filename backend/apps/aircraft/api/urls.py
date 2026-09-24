@@ -13,6 +13,11 @@ urlpatterns = [
     path("aircraft/<int:pk>", views.AircraftDetailView.as_view(), name="detail"),
     # -- exports ----------------------------------------------------------
     path(
+        "admin/aircraft/columns",
+        views.AircraftColumnsView.as_view(),
+        name="columns",
+    ),
+    path(
         "admin/aircraft/export.csv",
         views.AircraftExportCsvView.as_view(),
         name="export-csv",

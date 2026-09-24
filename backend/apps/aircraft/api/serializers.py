@@ -160,16 +160,6 @@ class AircraftDetailSerializer(AircraftSerializer):
 # --------------------------------------------------------------------------
 # Leader check
 # --------------------------------------------------------------------------
-class LeaderSearchResultSerializer(serializers.Serializer[Any]):
-    """One row of a leader's member search."""
-
-    user_id = serializers.IntegerField()
-    name = serializers.CharField()
-    email = serializers.EmailField()
-    dart = serializers.CharField(allow_null=True)
-    membership_status = serializers.ChoiceField(choices=MembershipState.choices)
-
-
 class LeaderMembershipSerializer(serializers.Serializer[Any]):
     """The membership fields of the leader status card."""
 
@@ -200,6 +190,22 @@ class LeaderGoNoGoSerializer(serializers.Serializer[Any]):
 
     membership = serializers.BooleanField()
     medical = serializers.BooleanField()
+
+
+class LeaderSearchResultSerializer(serializers.Serializer[Any]):
+    """One row of a leader's member search, carrying its own go/no-go.
+
+    The medical and the two booleans are the same ones the status card shows, so
+    the list answers "may this member fly?" without a second request.
+    """
+
+    user_id = serializers.IntegerField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    dart = serializers.CharField(allow_null=True)
+    membership_status = serializers.ChoiceField(choices=MembershipState.choices)
+    medical = LeaderMedicalSerializer()
+    go_no_go = LeaderGoNoGoSerializer()
 
 
 class LeaderStatusSerializer(serializers.Serializer[Any]):

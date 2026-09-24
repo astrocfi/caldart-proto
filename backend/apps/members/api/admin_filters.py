@@ -270,22 +270,27 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
     """``?ordering=`` over pilot, name, email, DART, expiry and joining date.
 
     Each alias expands to real columns, so ``name`` sorts by surname then
-    forename, and the computed dates and the DART name keep empty values at the
-    end whichever direction is asked for (a lifetime member has no expiry to
-    compare, and an unaffiliated member has no team).
+    forename, every alias falls back to the name to settle a tie, and the
+    computed dates and the DART name keep empty values at the end whichever
+    direction is asked for (a lifetime member has no expiry to compare, and an
+    unaffiliated member has no team).
     """
 
     ordering_description = (
         "Which field to order by: pilot, name, email, dart, expires_on, or joined."
     )
 
+    #: Every alias ends in a key that settles a tie, so two rows the caller's
+    #: sort cannot separate -- two members of one DART, two people whose
+    #: membership runs out on the same day -- still come back in a stable,
+    #: readable order rather than in whatever order the database returns them.
     aliases: dict[str, tuple[str, ...]] = {
         "pilot": ("pilot_rank", "last_name", "first_name"),
-        "name": ("last_name", "first_name", "email"),
-        "email": ("email",),
+        "name": ("last_name", "first_name", "profile__dart__name", "email"),
+        "email": ("email", "last_name", "first_name"),
         "dart": ("profile__dart__name", "last_name", "first_name"),
-        "expires_on": ("effective_expiry",),
-        "joined": ("joined_on",),
+        "expires_on": ("effective_expiry", "last_name", "first_name"),
+        "joined": ("joined_on", "last_name", "first_name"),
     }
 
     def get_valid_fields(

@@ -880,12 +880,27 @@ export interface ManualPaymentPayload {
 }
 
 /* ------------------------------------------------------------------ leader */
+/** The medical on file, as both the search results and the status card carry it. */
+export interface LeaderMedical {
+  type: MedicalType;
+  expiration: IsoDate | null;
+  is_current: boolean;
+}
+
+/** Why a member is a go or a no-go, rather than only whether they are. */
+export interface LeaderGoNoGo {
+  membership: boolean;
+  medical: boolean;
+}
+
 export interface LeaderSearchResult {
   user_id: number;
   name: string;
   email: string;
   dart: string | null;
   membership_status: MembershipState;
+  medical: LeaderMedical;
+  go_no_go: LeaderGoNoGo;
 }
 
 export interface LeaderStatus {
@@ -904,16 +919,9 @@ export interface LeaderStatus {
     ifr_rated: IfrRated;
     ratings: Rating[];
   };
-  medical: {
-    type: MedicalType;
-    expiration: IsoDate | null;
-    is_current: boolean;
-  };
+  medical: LeaderMedical;
   aircraft: AircraftSummary[];
-  go_no_go: {
-    membership: boolean;
-    medical: boolean;
-  };
+  go_no_go: LeaderGoNoGo;
 }
 
 /* --------------------------------------------------------------- reminders */

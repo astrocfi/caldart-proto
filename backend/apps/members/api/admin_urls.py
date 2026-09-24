@@ -10,6 +10,11 @@ from apps.members.api import admin_views
 
 urlpatterns = [
     path(
+        "admin/members/columns",
+        admin_views.MemberColumnsView.as_view(),
+        name="admin-members-columns",
+    ),
+    path(
         "admin/members/export.csv",
         admin_views.MemberExportCsvView.as_view(),
         name="admin-members-export-csv",

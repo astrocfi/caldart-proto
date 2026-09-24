@@ -23,7 +23,7 @@ from apps.members.models import (
     MembershipStatusChoices,
     PilotCertificateType,
 )
-from apps.members.reports import MEMBER_REPORT_HEADER, member_report_filename
+from apps.members.reports import MEMBER_REPORT_COLUMNS, member_report_filename
 from caldart.reports import filter_summary
 from tests.conftest import pdf_page_count, read_csv
 from tests.factories import (
@@ -39,7 +39,7 @@ pytestmark = pytest.mark.django_db
 CSV_URL = "/api/v1/admin/members/export.csv"
 PDF_URL = "/api/v1/admin/members/export.pdf"
 
-#: The column order ``docs/developer/reports.rst`` documents, verbatim.
+#: The column keys ``docs/developer/reports.rst`` documents, in export order.
 DOCUMENTED_COLUMNS = (
     "name",
     "email",
@@ -59,6 +59,24 @@ DOCUMENTED_COLUMNS = (
     "joined_on",
     "member_since",
 )
+
+#: The header the CSV prints when the caller chooses no columns: the labels of
+#: the ten default columns, which is what ``docs/developer/reports.rst`` shows.
+DEFAULT_HEADER = [
+    "Name",
+    "Email",
+    "Phone",
+    "DART",
+    "Status",
+    "Expires",
+    "Certificate",
+    "Medical",
+    "Medical expires",
+    "Aircraft",
+]
+
+#: Every column, chosen by key, so a row can be read by key below.
+ALL_COLUMNS = {"columns": ",".join(DOCUMENTED_COLUMNS)}
 
 
 @pytest.fixture
@@ -111,11 +129,15 @@ def reportable(
 
 
 def row_for(table: list[list[str]], email: str) -> dict[str, str]:
-    """The CSV row for ``email``, as a header-keyed dict, or raise if it is absent."""
-    header = table[0]
+    """The row for ``email`` from an export of every column, keyed by column key.
+
+    ``table`` must come from a request carrying :data:`ALL_COLUMNS`, so the cells
+    line up with the documented keys whatever the labels say.
+    """
     for row in table[1:]:
-        if row[header.index("email")] == email:
-            return dict(zip(header, row, strict=True))
+        keyed = dict(zip(DOCUMENTED_COLUMNS, row, strict=True))
+        if keyed["email"] == email:
+            return keyed
     raise AssertionError(f"{email} is not in the export")
 
 
@@ -123,8 +145,8 @@ def row_for(table: list[list[str]], email: str) -> dict[str, str]:
 # CSV
 # --------------------------------------------------------------------------
 def test_csv_columns_are_in_the_documented_order() -> None:
-    """The exported CSV header matches the documented column order exactly."""
-    assert MEMBER_REPORT_HEADER == DOCUMENTED_COLUMNS
+    """The report's columns are the documented ones, in the documented order."""
+    assert tuple(column.key for column in MEMBER_REPORT_COLUMNS) == DOCUMENTED_COLUMNS
 
 
 def test_csv_download_headers(
@@ -147,9 +169,7 @@ def test_csv_row_content(
     annual_plan: MembershipPlan,
 ) -> None:
     """A pilot's row carries every documented column, correctly formatted."""
-    table = read_csv(account_admin_client.get(CSV_URL))
-    assert table[0] == list(DOCUMENTED_COLUMNS)
-
+    table = read_csv(account_admin_client.get(CSV_URL, ALL_COLUMNS))
     row = row_for(table, "pilot@example.test")
     assert row["name"] == "Ada Marsh"
     assert row["phone"] == "415-555-0100"
@@ -173,7 +193,7 @@ def test_csv_leaves_a_lifetime_expiry_blank(
     account_admin_client: APIClient, reportable: dict[str, User], life_plan: MembershipPlan
 ) -> None:
     """A lifetime member's row leaves the expiry column blank."""
-    row = row_for(read_csv(account_admin_client.get(CSV_URL)), "lifer@example.test")
+    row = row_for(read_csv(account_admin_client.get(CSV_URL, ALL_COLUMNS)), "lifer@example.test")
     assert row["status"] == "current"
     assert row["plan"] == life_plan.name
     assert row["expires_on"] == ""
@@ -183,7 +203,8 @@ def test_csv_blanks_a_missing_certificate_and_medical(
     account_admin_client: APIClient, reportable: dict[str, User]
 ) -> None:
     """A member with no certificate, medical or aircraft on file gets blank cells."""
-    row = row_for(read_csv(account_admin_client.get(CSV_URL)), "lapsed@example.test")
+    table = read_csv(account_admin_client.get(CSV_URL, ALL_COLUMNS))
+    row = row_for(table, "lapsed@example.test")
     assert row["status"] == "expired"
     assert row["certificate"] == ""
     assert row["medical_type"] == ""
@@ -241,7 +262,7 @@ def test_csv_with_no_matches_is_a_header_only(
 ) -> None:
     """A filter matching nobody exports the header row alone."""
     table = read_csv(account_admin_client.get(CSV_URL, {"search": "nobody-by-that-name"}))
-    assert table == [list(DOCUMENTED_COLUMNS)]
+    assert table == [DEFAULT_HEADER]
 
 
 # --------------------------------------------------------------------------
@@ -308,9 +329,12 @@ def test_pdf_subtitle_when_nothing_is_filtered(account_admin: User) -> None:
 def test_pdf_paginates_a_long_report(
     account_admin_client: APIClient, reportable: dict[str, User]
 ) -> None:
-    """A report of 124 members is drawn across the pages they fill, not one long one."""
+    """A report of 124 members is drawn across the pages they fill, not one long one.
+
+    One row to a line, so 124 members fill four landscape pages.
+    """
     for index in range(120):
         MemberProfileFactory(user=UserFactory(email=f"bulk{index}@example.test"))
     body = account_admin_client.get(PDF_URL).content
     assert User.objects.count() == 124
-    assert pdf_page_count(body) == 9
+    assert pdf_page_count(body) == 4

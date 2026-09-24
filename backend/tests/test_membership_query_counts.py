@@ -200,6 +200,22 @@ def test_leader_search_costs_a_fixed_number_of_queries(
 
 
 @pytest.mark.parametrize("size", PAGE_SIZES)
+def test_the_readiness_on_a_search_result_costs_no_query_of_its_own(
+    api_client: APIClient,
+    dart_leader: User,
+    population: Callable[[int], list[User]],
+    django_assert_num_queries: DjangoAssertNumQueries,
+    size: int,
+) -> None:
+    """Every row answers go/no-go, and the search still costs its fixed queries."""
+    population(size)
+    api_client.force_login(dart_leader)
+    with django_assert_num_queries(LEADER_SEARCH_QUERIES):
+        rows = api_client.get(LEADER_SEARCH, {"q": SEARCH_TERM}).json()
+    assert [set(row["go_no_go"]) for row in rows] == [{"membership", "medical"}] * size
+
+
+@pytest.mark.parametrize("size", PAGE_SIZES)
 def test_aircraft_detail_costs_a_fixed_number_of_queries(
     api_client: APIClient,
     dart_leader: User,

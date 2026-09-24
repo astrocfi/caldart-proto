@@ -11,7 +11,8 @@ from rest_framework.test import APIClient, APIRequestFactory
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.aircraft.api.views import AircraftExportPdfView
-from apps.aircraft.reports import aircraft_row
+from apps.aircraft.models import Aircraft
+from apps.aircraft.reports import AIRCRAFT_REPORT_COLUMNS, AircraftRow
 from tests.conftest import PdfText, RegisterDict, pdf_page_count, read_csv, role_matrix
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
 
@@ -20,24 +21,26 @@ pytestmark = pytest.mark.django_db
 CSV_URL = "/api/v1/admin/aircraft/export.csv"
 PDF_URL = "/api/v1/admin/aircraft/export.pdf"
 
+#: The header the CSV prints when the caller chooses no columns: the labels of
+#: the nine default columns.
 EXPECTED_HEADER = [
-    "n_number",
-    "make",
-    "model",
-    "owner",
-    "owner_type",
-    "insurance_carrier",
-    "liability_per_occurrence",
-    "liability_per_person",
-    "hull",
-    "insurance_expiration",
-    "insurance_current",
-    "pilots",
+    "N-number",
+    "Make",
+    "Model",
+    "Owner",
+    "Carrier",
+    "Liability / occurrence",
+    "Hull",
+    "Expires",
+    "Current",
 ]
 
+#: Every column, by key, so a test can read a cell by its position below.
+ALL_COLUMNS = {"columns": ",".join(column.key for column in AIRCRAFT_REPORT_COLUMNS)}
+
 #: Index of the first data row on a rendered page: the title, the subtitle and
-#: the twelve column headings come first, two of which wrap onto a second line.
-PDF_FIRST_ROW = 16
+#: the nine default column headings come first, each on one line.
+PDF_FIRST_ROW = 11
 
 #: The footer draws two more strings after the last row of the page.
 PDF_FOOTER = -2
@@ -95,7 +98,7 @@ def test_csv_columns_are_in_the_documented_order(
 def test_csv_content(api_client: APIClient, account_admin: User, register: RegisterDict) -> None:
     """Each row's fields, including formatted money and insurance status, are correct."""
     api_client.force_login(account_admin)
-    rows = read_csv(api_client.get(CSV_URL))
+    rows = read_csv(api_client.get(CSV_URL, ALL_COLUMNS))
     by_number = {row[0]: row for row in rows[1:]}
 
     current = by_number["N172SP"]
@@ -129,7 +132,7 @@ def test_csv_pilots_column_lists_attached_members(
     MemberProfileFactory(user=owen).aircraft.add(register["current"])
 
     api_client.force_login(account_admin)
-    rows = read_csv(api_client.get(CSV_URL))
+    rows = read_csv(api_client.get(CSV_URL, ALL_COLUMNS))
     pilots = {row[0]: row[11] for row in rows[1:]}
     assert set(pilots["N172SP"].split("; ")) == {"Marta Reyes", "Owen Delgado"}
     assert pilots["N33MM"] == ""
@@ -208,10 +211,8 @@ def test_pdf_is_filtered_like_the_list(
         "Mooney",
         "M20J",
         "Owen Delgado",
-        "Individual",
         "Avemco",
         "$1,000,000",
-        "$100,000",
         "$200,000",
         expires_on.isoformat(),
         "no",
@@ -257,18 +258,35 @@ def test_pdf_says_when_it_was_run_with_no_filters(
     assert page[1] == "No filters applied"
 
 
-def test_money_is_formatted_for_people_in_the_pdf_rows(register: RegisterDict) -> None:
-    """``aircraft_row`` formats cents as dollar amounts only when ``currency`` is set."""
-    row = aircraft_row(register["current"], currency=True)
-    assert row[6:9] == ["$1,000,000", "$100,000", "$145,000"]
-    plain = aircraft_row(register["current"])
-    assert plain[6:9] == ["1000000.00", "100000.00", "145000.00"]
+def money_cells(aircraft: Aircraft, *, currency: bool) -> list[str]:
+    """The three insured amounts of ``aircraft``, in the money format asked for."""
+    row = AircraftRow(aircraft=aircraft, currency=currency)
+    keys = {"liability_per_occurrence", "liability_per_person", "hull"}
+    return [str(column.value(row)) for column in AIRCRAFT_REPORT_COLUMNS if column.key in keys]
+
+
+def test_money_is_formatted_for_a_reader_in_the_pdf_rows(register: RegisterDict) -> None:
+    """The insured amounts are dollar amounts when the export renders for a reader."""
+    assert money_cells(register["current"], currency=True) == [
+        "$1,000,000",
+        "$100,000",
+        "$145,000",
+    ]
+
+
+def test_money_is_a_plain_number_a_spreadsheet_sums_in_the_csv(register: RegisterDict) -> None:
+    """The same amounts are plain two-place numbers when the export is a CSV."""
+    assert money_cells(register["current"], currency=False) == [
+        "1000000.00",
+        "100000.00",
+        "145000.00",
+    ]
 
 
 def test_odd_cent_amounts_keep_their_cents(register: RegisterDict) -> None:
-    """``aircraft_row``'s currency format keeps non-round cent amounts precise."""
+    """A reader's money format keeps non-round cent amounts precise."""
     register["current"].insurance_hull_cents = 12_345
-    assert aircraft_row(register["current"], currency=True)[8] == "$123.45"
+    assert money_cells(register["current"], currency=True)[2] == "$123.45"
 
 
 def test_the_export_subtitle_covers_every_filter_the_list_applies() -> None:

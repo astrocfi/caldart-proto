@@ -6,12 +6,13 @@ letter PDF with zebra rows, a repeated header and page numbers -- lives in
 ``caldart.reports``; this module only decides *what* goes in the table.
 
 Adding a column means adding one entry to :data:`MEMBER_REPORT_COLUMNS`; the
-CSV header, the PDF header and both row builders follow from it.
+CSV header, the PDF header and both row builders follow from it, and so does
+the list ``GET /admin/members/columns`` answers with.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from datetime import date
 from typing import TYPE_CHECKING, TypedDict
 
@@ -19,6 +20,7 @@ from django.utils import timezone
 
 from apps.members.models import MemberProfile
 from apps.members.services import MembershipStatusDict, membership_payload
+from caldart.reports import ReportColumn
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -35,34 +37,77 @@ class RowContext(TypedDict):
     joined_on: date | None
 
 
-#: Header text and the value function for every column, in export order.
+#: Every column the membership report can carry, in export order.  ``key`` is
+#: what ``?columns=`` names and what ``GET /admin/members/columns`` answers
+#: with, ``label`` is the header both exports print, ``default`` says whether
+#: the column appears when the caller chooses none, and ``width`` is the share
+#: of the page the PDF gives it.  The seven that are off by default -- the plan,
+#: the certificate number, the instrument rating, the town, the state and the
+#: two joining dates -- are there for a roster or an audit rather than for the
+#: everyday report, which is sized so no default cell has to wrap.
+#:
 #: A lifetime membership has no expiry date, so ``expires_on`` is blank for one;
 #: the ``plan`` column ("Life") and ``status`` ("current") say what it is.
 #: ``joined_on`` is the start of the earliest term on file, and ``member_since``
 #: the day the member says they joined -- the same date until the terms before a
 #: gap, or before an import, are missing.
-MEMBER_REPORT_COLUMNS: tuple[tuple[str, Callable[[RowContext], str]], ...] = (
-    ("name", lambda ctx: ctx["user"].display_name),
-    ("email", lambda ctx: ctx["user"].email),
-    ("phone", lambda ctx: ctx["profile"].phone if ctx["profile"] else ""),
-    ("dart", lambda ctx: ctx["dart"]),
-    ("status", lambda ctx: ctx["membership"]["status"]),
-    ("plan", lambda ctx: ctx["membership"]["plan"] or ""),
-    ("expires_on", lambda ctx: _iso(ctx["membership"]["expires_on"])),
-    ("certificate", lambda ctx: _display(ctx["profile"], "pilot_certificate_type")),
-    ("certificate_number", lambda ctx: _value(ctx["profile"], "certificate_number")),
-    ("ifr", lambda ctx: _display(ctx["profile"], "ifr_rated")),
-    ("medical_type", lambda ctx: _display(ctx["profile"], "medical_type")),
-    ("medical_expiration", lambda ctx: _iso(_date(ctx["profile"], "medical_expiration"))),
-    ("aircraft", lambda ctx: " ".join(ctx["aircraft"])),
-    ("city", lambda ctx: _value(ctx["profile"], "city")),
-    ("state", lambda ctx: _value(ctx["profile"], "state")),
-    ("joined_on", lambda ctx: _iso(ctx["joined_on"])),
-    ("member_since", lambda ctx: _iso(_date(ctx["profile"], "member_since"))),
+MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
+    ReportColumn("name", "Name", True, lambda ctx: ctx["user"].display_name, width=2.6),
+    ReportColumn("email", "Email", True, lambda ctx: ctx["user"].email, width=4.4),
+    ReportColumn(
+        "phone",
+        "Phone",
+        True,
+        lambda ctx: ctx["profile"].phone if ctx["profile"] else "",
+        width=1.9,
+    ),
+    ReportColumn("dart", "DART", True, lambda ctx: ctx["dart"], width=3.4),
+    ReportColumn("status", "Status", True, lambda ctx: ctx["membership"]["status"], width=1.1),
+    ReportColumn("plan", "Plan", False, lambda ctx: ctx["membership"]["plan"] or "", width=2.0),
+    ReportColumn(
+        "expires_on", "Expires", True, lambda ctx: _iso(ctx["membership"]["expires_on"]), width=1.6
+    ),
+    ReportColumn(
+        "certificate",
+        "Certificate",
+        True,
+        lambda ctx: _display(ctx["profile"], "pilot_certificate_type"),
+        width=2.8,
+    ),
+    ReportColumn(
+        "certificate_number",
+        "Certificate number",
+        False,
+        lambda ctx: _value(ctx["profile"], "certificate_number"),
+        width=1.6,
+    ),
+    ReportColumn("ifr", "IFR", False, lambda ctx: _display(ctx["profile"], "ifr_rated"), width=0.8),
+    ReportColumn(
+        "medical_type",
+        "Medical",
+        True,
+        lambda ctx: _display(ctx["profile"], "medical_type"),
+        width=1.8,
+    ),
+    ReportColumn(
+        "medical_expiration",
+        "Medical expires",
+        True,
+        lambda ctx: _iso(_date(ctx["profile"], "medical_expiration")),
+        width=2.1,
+    ),
+    ReportColumn("aircraft", "Aircraft", True, lambda ctx: " ".join(ctx["aircraft"]), width=2.4),
+    ReportColumn("city", "City", False, lambda ctx: _value(ctx["profile"], "city"), width=1.6),
+    ReportColumn("state", "State", False, lambda ctx: _value(ctx["profile"], "state"), width=0.8),
+    ReportColumn("joined_on", "Joined", False, lambda ctx: _iso(ctx["joined_on"]), width=1.6),
+    ReportColumn(
+        "member_since",
+        "Member since",
+        False,
+        lambda ctx: _iso(_date(ctx["profile"], "member_since")),
+        width=1.8,
+    ),
 )
-
-#: Column headers, for both exports.
-MEMBER_REPORT_HEADER: tuple[str, ...] = tuple(name for name, _ in MEMBER_REPORT_COLUMNS)
 
 REPORT_TITLE = "CalDART membership report"
 
@@ -122,17 +167,18 @@ def _row_context(user: MemberRow) -> RowContext:
     }
 
 
-def member_report_rows(users: Iterable[MemberRow]) -> Iterator[list[str]]:
+def member_report_rows(
+    users: Iterable[MemberRow], columns: Sequence[ReportColumn[RowContext]]
+) -> Iterator[list[str]]:
     """Yield one report row per user, lazily, in the queryset's order.
 
-    Each row holds the columns of :data:`MEMBER_REPORT_COLUMNS`, in that order,
-    every cell already text.  ``users`` must come from
-    ``admin_filters.member_admin_queryset`` so the membership annotations are
-    present.
+    Each row holds ``columns`` in the order given, every cell already text.
+    ``users`` must come from ``admin_filters.member_admin_queryset`` so the
+    membership annotations are present.
     """
     for user in users:
         context = _row_context(user)
-        yield [value(context) for _, value in MEMBER_REPORT_COLUMNS]
+        yield [str(column.value(context)) for column in columns]
 
 
 def member_report_filename(extension: str, on_date: date | None = None) -> str:
@@ -147,7 +193,6 @@ def member_report_filename(extension: str, on_date: date | None = None) -> str:
 
 __all__ = [
     "MEMBER_REPORT_COLUMNS",
-    "MEMBER_REPORT_HEADER",
     "REPORT_TITLE",
     "member_report_filename",
     "member_report_rows",

@@ -36,6 +36,10 @@ from apps.aircraft.models import Aircraft, normalize_n_number
 from caldart.reports import (
     CSV_MEDIA_TYPE,
     PDF_MEDIA_TYPE,
+    ReportColumn,
+    ReportColumnSerializer,
+    chosen_columns,
+    column_payload,
     csv_response,
     download_responses,
     filter_summary,
@@ -129,11 +133,37 @@ class AircraftLookupView(APIView):
 # --------------------------------------------------------------------------
 # Exports -- account_admin
 # --------------------------------------------------------------------------
+class AircraftColumnsView(APIView):
+    """``GET /admin/aircraft/columns`` -- what the register exports can carry."""
+
+    permission_classes = [IsAccountAdmin]
+
+    @extend_schema(responses={200: ReportColumnSerializer(many=True)})
+    def get(self, request: Request) -> Response:
+        """200 with every export column, in export order, for an account administrator.
+
+        Each entry carries the ``key`` ``?columns=`` accepts, the ``label`` both
+        exports print, and whether it is one of the ``default`` columns.
+        """
+        rows = column_payload(aircraft_reports.AIRCRAFT_REPORT_COLUMNS)
+        # The stubs take the instance type from the single-object parameter, so
+        # they do not widen it to a list when ``many`` is set.
+        serializer = ReportColumnSerializer(rows, many=True)  # type: ignore[arg-type]
+        return Response(serializer.data)
+
+
 class AircraftExportMixin(AircraftQuerysetMixin):
     """Shared plumbing: same filters as the list, account_admin only."""
 
     permission_classes = [IsAccountAdmin]
     serializer_class = AircraftSerializer
+
+    def columns(self) -> list[ReportColumn[aircraft_reports.AircraftRow]]:
+        """The columns ``?columns=`` asks for, or the default ones."""
+        return chosen_columns(
+            aircraft_reports.AIRCRAFT_REPORT_COLUMNS,
+            self.request.query_params.get("columns", ""),
+        )
 
     def export_queryset(self) -> QuerySet[Aircraft]:
         """Return the filtered register with the pilot join prefetched for export."""
@@ -164,11 +194,17 @@ class AircraftExportCsvView(AircraftExportMixin, generics.GenericAPIView[Aircraf
         responses=download_responses(CSV_MEDIA_TYPE, "The aircraft register as a CSV file.")
     )
     def get(self, request: Request) -> StreamingHttpResponse:
-        """Return the filtered register as a CSV file for download."""
+        """Return the filtered register as a CSV file for download.
+
+        ``?columns=`` chooses which columns appear and in what order; an unknown
+        or repeated key is a 400 keyed ``columns``.  The header row is the column
+        labels, and insured amounts are plain numbers a spreadsheet sums.
+        """
+        columns = self.columns()
         return csv_response(
             self.filename("csv"),
-            aircraft_reports.HEADER,
-            aircraft_reports.aircraft_rows(self.export_queryset()),
+            [column.label for column in columns],
+            aircraft_reports.aircraft_rows(self.export_queryset(), columns),
         )
 
 
@@ -179,13 +215,20 @@ class AircraftExportPdfView(AircraftExportMixin, generics.GenericAPIView[Aircraf
         responses=download_responses(PDF_MEDIA_TYPE, "The aircraft register as a PDF file.")
     )
     def get(self, request: Request) -> HttpResponse:
-        """Return the filtered register as a landscape-letter PDF for download."""
+        """Return the filtered register as a landscape-letter PDF for download.
+
+        The same ``?columns=`` as the CSV applies, each chosen column takes the
+        share of the page its registry width asks for, and insured amounts are
+        rendered as dollars for a reader.
+        """
+        columns = self.columns()
         return pdf_table_response(
             self.filename("pdf"),
-            title="CalDART aircraft register",
+            title=aircraft_reports.REPORT_TITLE,
             subtitle=filter_summary(self.applied_filters()),
-            header=aircraft_reports.PDF_HEADER,
-            rows=aircraft_reports.aircraft_rows(self.export_queryset(), currency=True),
+            header=[column.label for column in columns],
+            rows=aircraft_reports.aircraft_rows(self.export_queryset(), columns, currency=True),
+            widths=[column.width for column in columns],
         )
 
 
