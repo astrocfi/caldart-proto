@@ -41,6 +41,21 @@ from apps.members.services import with_membership
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
 
+#: The ``certificate`` value meaning "any certificate that may be flown on",
+#: and the certificates it covers: everything but ``none`` and ``student``.
+ANY_LICENSED = "licensed"
+
+LICENSED_CERTIFICATES: tuple[str, ...] = (
+    PilotCertificateType.SPORT,
+    PilotCertificateType.RECREATIONAL,
+    PilotCertificateType.PRIVATE,
+    PilotCertificateType.COMMERCIAL,
+    PilotCertificateType.ATP,
+)
+
+#: The ``medical`` value meaning "a medical of any class on file".
+ANY_MEDICAL = "any"
+
 #: Longest "expiring within" window this filter will answer.  Matches
 #: ``apps.aircraft.services.MAX_EXPIRING_WINDOW_DAYS``; clamping to it keeps
 #: ``today + timedelta(days=n)`` from raising ``OverflowError`` -- a 500 -- on
@@ -108,12 +123,14 @@ class MemberAdminFilterSet(django_filters.FilterSet):
         choices=MembershipState.choices, method="filter_status", label="Membership status"
     )
     certificate = django_filters.ChoiceFilter(
-        field_name="profile__pilot_certificate_type",
-        choices=PilotCertificateType.choices,
+        choices=[*PilotCertificateType.choices, (ANY_LICENSED, "Any licensed")],
+        method="filter_certificate",
         label="Pilot certificate",
     )
     medical = django_filters.ChoiceFilter(
-        field_name="profile__medical_type", choices=MedicalType.choices, label="Medical"
+        choices=[*MedicalType.choices, (ANY_MEDICAL, "Has any medical")],
+        method="filter_medical",
+        label="Medical",
     )
     dart = django_filters.CharFilter(method="filter_dart", label="DART (id or name)")
     role = django_filters.ChoiceFilter(
@@ -147,6 +164,38 @@ class MemberAdminFilterSet(django_filters.FilterSet):
             | Q(profile__phone_alt__icontains=value)
             | Q(profile__certificate_number__icontains=value)
         )
+
+    def filter_certificate(
+        self, queryset: QuerySet[MemberRow], name: str, value: str | None
+    ) -> QuerySet[MemberRow]:
+        """Rows holding that certificate, or any real one for ``licensed``.
+
+        ``licensed`` is every certificate a pilot may act on alone -- sport,
+        recreational, private, commercial and ATP -- which is what a leader
+        looking for somebody to fly a mission means by "a licensed pilot".  A
+        student certificate is not one of them, and neither is ``none``.
+        """
+        if not value:
+            return queryset
+        if value == ANY_LICENSED:
+            return queryset.filter(profile__pilot_certificate_type__in=LICENSED_CERTIFICATES)
+        return queryset.filter(profile__pilot_certificate_type=value)
+
+    def filter_medical(
+        self, queryset: QuerySet[MemberRow], name: str, value: str | None
+    ) -> QuerySet[MemberRow]:
+        """Rows holding that medical, or any medical at all for ``any``.
+
+        An account with no profile row at all has no medical either, so it is
+        excluded along with the profiles that answer ``none``.
+        """
+        if not value:
+            return queryset
+        if value == ANY_MEDICAL:
+            return queryset.exclude(
+                Q(profile__medical_type=MedicalType.NONE) | Q(profile__isnull=True)
+            )
+        return queryset.filter(profile__medical_type=value)
 
     def filter_status(
         self, queryset: QuerySet[MemberRow], name: str, value: str | None

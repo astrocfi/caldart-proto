@@ -37,12 +37,16 @@ Airplanes already on your list are filtered out of the results and named
 underneath, so you can tell the difference between "not in the register" and
 "already attached".
 
-If nothing matches, choose **Add a new aircraft**.  The short form needs:
+You do not have to search first: **Add an aircraft** sits under the search box
+and opens the same short form whenever you want it, and it is offered again
+under the results when a search finds nothing.  The form needs:
 
 =====================  ==========================================================
 Field                  Notes
 =====================  ==========================================================
-N-number               Required.  Typed however you like; stored canonically
+N-number               Required.  The box writes the ``N`` and takes digits
+                       first, then at most two letters, so ``172sp`` becomes
+                       ``N172SP`` and nothing else can be typed
 Make                   Required, e.g. ``Cessna``
 Model                  Required, e.g. ``172S Skyhawk``
 Year                   Optional, four digits

@@ -51,6 +51,8 @@ export function makeDetail(overrides: Partial<MemberDetail> = {}): MemberDetail 
     profile: {
       phone: '415-555-0100',
       phone_extension: '',
+      phone_alt_extension: '',
+      emergency_contact_phone_extension: '',
       phone_alt: '',
       address_line1: '1 Airport Way',
       address_line2: '',

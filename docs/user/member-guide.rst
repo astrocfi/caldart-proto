@@ -45,14 +45,17 @@ profile that lets you move on.
 Everything else can wait until later.  The form is in three sections:
 
 **Contact**
-  Phone and alternate phone, an optional extension, postal address, and an
-  emergency contact.  Every number is stored as ``415-555-0100``: type it any
-  way you like — with a ``+1``, with brackets, or as ten bare digits — and it is
-  filed in that one shape.  **State** is a list, **ZIP code** is five digits, and
-  **California county** is a list with "Not in California" at the top of it.
+  Phone, alternate phone, postal address, and an emergency contact.  Each of
+  the three numbers has its own **ext.** box beside it.  Every number is stored
+  as ``415-555-0100``, and the box types it that way for you: only digits go
+  in, the dashes are written as you reach them, and an eleventh digit is
+  refused.  **State** is a list, **ZIP code** takes five digits and nothing
+  else, and **California county** is a list with "Not in California" at the top
+  of it.
 
 **Aviation**
-  Your home airport, the DART you fly with, your Air Care Alliance number,
+  Your home airport as its three-character identifier — ``PAO``, ``E16`` — the
+  DART you fly with, your Air Care Alliance number,
   pilot certificate and number, whether you are IFR rated, ratings, medical
   and its expiration date, last flight review and total hours.  The ratings are
   ASEL, AMEL, ASES, AMES, Helicopter and Instrument on one line, and CFI, CFII
@@ -242,9 +245,22 @@ When something goes wrong
    rule applies to a pilot certificate and its number: *"Give your pilot
    certificate number."*
 
+The form tells you about a field as you leave it, not when you press **Save**:
+type half a phone number, move to the next box, and that box turns red with
+the reason underneath.  A field you leave blank says nothing unless it is one
+of the required ones.
+
 **A phone number is rejected.**
    *"Use a ten-digit number like 415-555-0100."*  Ten digits are what the
-   system stores, however you type them.  An extension goes in its own box.
+   system stores.  The box takes nothing but digits, so this appears only when
+   you have typed too few.  An extension goes in the **ext.** box beside it.
+
+**The home airport box drops the K you typed.**
+   Identifiers here are three characters, as on a sectional: ``PAO``, ``E16``,
+   ``SQL``.  ``K`` is the ICAO prefix on the four-letter form, so typing the
+   longer one drops it: ``KPAO`` becomes ``PAO``.  An identifier that really
+   does start with K is safe — ``KLS`` stays ``KLS``, and ``KKAB`` becomes
+   ``KAB``.
 
 **The ZIP code box is rejected.**
    *"Use a five-digit ZIP code like 95035."*  ZIP+4 is not collected.

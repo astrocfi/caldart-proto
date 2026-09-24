@@ -465,12 +465,15 @@ A ``OneToOneField`` to ``User`` with ``related_name="profile"``, holding
 everything the join form collects.  Deleting the user cascades.
 
 *Contact*
-    ``phone``, ``phone_alt``, ``address_line1``, ``address_line2``, ``city``,
-    ``state`` (2 characters, default ``CA``), ``postal_code``, ``county``,
-    ``emergency_contact_name``, ``emergency_contact_phone``.
+    ``phone``, ``phone_extension``, ``phone_alt``, ``phone_alt_extension``,
+    ``address_line1``, ``address_line2``, ``city``, ``state`` (2 characters,
+    default ``CA``), ``postal_code``, ``county``, ``emergency_contact_name``,
+    ``emergency_contact_phone``, ``emergency_contact_phone_extension``.  Every
+    number is stored as ``XXX-XXX-XXXX`` and each carries its own extension.
 
 *Aviation*
-    ``home_airport_identifier``, ``home_airport_city``, ``dart``
+    ``home_airport_identifier`` (3 characters, never a leading ``K``),
+    ``home_airport_city``, ``dart``
     (``SET_NULL``, nullable), ``air_care_alliance_number``,
     ``pilot_certificate_type``, ``certificate_number``, ``ifr_rated``,
     ``ratings``, ``medical_type``, ``medical_expiration``,

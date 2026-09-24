@@ -8,10 +8,11 @@ import type { JSX } from 'react';
 import type { AircraftPatch } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
+import { maskDigits, maskDollars, maskNNumber } from '@/portal/masks';
 import './aircraft.css';
 import { matchType, suggestTypes } from './catalog';
 import type { AircraftFormValues } from './form';
-import { formatDollars } from './insurance';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, aircraftPayload, validateAircraft } from './form';
 
 export interface AircraftFormProps {
@@ -38,9 +39,20 @@ export function AircraftForm({
 }: AircraftFormProps): JSX.Element {
   const modelListId = useId();
   const [values, setValues] = useState<AircraftFormValues>(initial);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // The fields that have been typed in and left; a complaint appears when the
+  // typist moves on from a field rather than when they try to save.
+  const [touched, setTouched] = useState<Record<string, true>>({});
+  const [submitted, setSubmitted] = useState(false);
 
-  const shown = { ...errors, ...(serverErrors ?? {}) };
+  const found = validateAircraft(values);
+  const visible: Record<string, string> = {};
+  for (const [key, message] of Object.entries(found)) {
+    if (submitted || touched[key]) visible[key] = message;
+  }
+
+  const shown = { ...visible, ...(serverErrors ?? {}) };
+
+  const handleBlur = (key: string) => () => setTouched((left) => ({ ...left, [key]: true }));
 
   const set = <K extends keyof AircraftFormValues>(key: K, value: AircraftFormValues[K]): void => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -66,8 +78,7 @@ export function AircraftForm({
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
-    const found = validateAircraft(values);
-    setErrors(found);
+    setSubmitted(true);
     if (Object.keys(found).length > 0) return;
     onSubmit(aircraftPayload(values));
   };
@@ -77,24 +88,35 @@ export function AircraftForm({
       <fieldset className="aircraft-form__section">
         <legend className="aircraft-form__legend">Aircraft</legend>
         <div className="aircraft-form__grid">
-          <Field label="N-number" required error={shown.n_number}>
+          <Field
+            label="N-number"
+            required
+            error={shown.n_number}
+            hint="Digits, then up to two letters"
+          >
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
+                placeholder="N172SP"
+                mask={maskNNumber}
                 value={values.n_number}
-                onChange={(event) => set('n_number', event.target.value)}
+                onValueChange={(next) => set('n_number', next)}
+                onBlur={handleBlur('n_number')}
               />
             )}
           </Field>
           <Field label="Year" error={shown.year}>
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="numeric"
+                size={6}
+                mask={(raw) => maskDigits(raw, 4)}
                 value={values.year}
-                onChange={(event) => set('year', event.target.value)}
+                onValueChange={(next) => set('year', next)}
+                onBlur={handleBlur('year')}
               />
             )}
           </Field>
@@ -104,6 +126,7 @@ export function AircraftForm({
                 {...field}
                 value={values.make}
                 onChange={(event) => set('make', event.target.value)}
+                onBlur={handleBlur('make')}
               />
             )}
           </Field>
@@ -115,6 +138,7 @@ export function AircraftForm({
                   list={modelListId}
                   value={values.model}
                   onChange={(event) => handleModel(event.target.value)}
+                  onBlur={handleBlur('model')}
                 />
                 <datalist id={modelListId}>
                   {suggestions.map((type) => (
@@ -128,12 +152,15 @@ export function AircraftForm({
           </Field>
           <Field label="Seats" error={shown.seats}>
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="numeric"
+                size={4}
+                mask={(raw) => maskDigits(raw, 2)}
                 value={values.seats}
-                onChange={(event) => set('seats', event.target.value)}
+                onValueChange={(next) => set('seats', next)}
+                onBlur={handleBlur('seats')}
               />
             )}
           </Field>
@@ -205,47 +232,52 @@ export function AircraftForm({
           </Field>
           <Field
             label="Liability per occurrence"
-            hint="US dollars."
+            hint="US dollars; commas write themselves."
             error={shown.liability_per_occurrence ?? shown.insurance_liability_per_occurrence_cents}
           >
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="decimal"
+                mask={maskDollars}
                 value={values.liability_per_occurrence}
-                onChange={(event) => set('liability_per_occurrence', event.target.value)}
-                onBlur={(event) =>
-                  set('liability_per_occurrence', formatDollars(event.target.value))
-                }
+                onValueChange={(next) => set('liability_per_occurrence', next)}
+                onBlur={handleBlur('liability_per_occurrence')}
               />
             )}
           </Field>
           <Field
             label="Liability per person"
-            hint="US dollars."
+            hint="US dollars; commas write themselves."
             error={shown.liability_per_person ?? shown.insurance_liability_per_person_cents}
           >
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="decimal"
+                mask={maskDollars}
                 value={values.liability_per_person}
-                onChange={(event) => set('liability_per_person', event.target.value)}
-                onBlur={(event) => set('liability_per_person', formatDollars(event.target.value))}
+                onValueChange={(next) => set('liability_per_person', next)}
+                onBlur={handleBlur('liability_per_person')}
               />
             )}
           </Field>
-          <Field label="Hull" hint="US dollars." error={shown.hull ?? shown.insurance_hull_cents}>
+          <Field
+            label="Hull"
+            hint="US dollars; commas write themselves."
+            error={shown.hull ?? shown.insurance_hull_cents}
+          >
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="decimal"
+                mask={maskDollars}
                 value={values.hull}
-                onChange={(event) => set('hull', event.target.value)}
-                onBlur={(event) => set('hull', formatDollars(event.target.value))}
+                onValueChange={(next) => set('hull', next)}
+                onBlur={handleBlur('hull')}
               />
             )}
           </Field>

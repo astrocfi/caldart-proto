@@ -39,6 +39,7 @@ export interface ProfileFormValues {
   phone: string;
   phone_extension: string;
   phone_alt: string;
+  phone_alt_extension: string;
   address_line1: string;
   address_line2: string;
   city: string;
@@ -47,6 +48,7 @@ export interface ProfileFormValues {
   county: CaliforniaCounty | '';
   emergency_contact_name: string;
   emergency_contact_phone: string;
+  emergency_contact_phone_extension: string;
   /* aviation */
   home_airport_identifier: string;
   home_airport_city: string;
@@ -78,6 +80,7 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   phone: '',
   phone_extension: '',
   phone_alt: '',
+  phone_alt_extension: '',
   address_line1: '',
   address_line2: '',
   city: '',
@@ -86,6 +89,7 @@ export const EMPTY_PROFILE_FORM: ProfileFormValues = {
   county: '',
   emergency_contact_name: '',
   emergency_contact_phone: '',
+  emergency_contact_phone_extension: '',
   home_airport_identifier: '',
   home_airport_city: '',
   dart_id: '',
@@ -114,6 +118,7 @@ export function profileToForm(profile: Profile): ProfileFormValues {
     phone: profile.phone,
     phone_extension: profile.phone_extension,
     phone_alt: profile.phone_alt,
+    phone_alt_extension: profile.phone_alt_extension,
     address_line1: profile.address_line1,
     address_line2: profile.address_line2,
     city: profile.city,
@@ -122,6 +127,7 @@ export function profileToForm(profile: Profile): ProfileFormValues {
     county: profile.county,
     emergency_contact_name: profile.emergency_contact_name,
     emergency_contact_phone: profile.emergency_contact_phone,
+    emergency_contact_phone_extension: profile.emergency_contact_phone_extension,
     home_airport_identifier: profile.home_airport_identifier,
     home_airport_city: profile.home_airport_city,
     dart_id: profile.dart ? String(profile.dart.id) : '',
@@ -152,6 +158,7 @@ export function formToPatch(values: ProfileFormValues): ProfilePatch {
     phone: normalizePhone(values.phone),
     phone_extension: values.phone_extension.trim(),
     phone_alt: normalizePhone(values.phone_alt),
+    phone_alt_extension: values.phone_alt_extension.trim(),
     address_line1: values.address_line1.trim(),
     address_line2: values.address_line2.trim(),
     city: values.city.trim(),
@@ -160,6 +167,7 @@ export function formToPatch(values: ProfileFormValues): ProfilePatch {
     county: values.county,
     emergency_contact_name: values.emergency_contact_name.trim(),
     emergency_contact_phone: normalizePhone(values.emergency_contact_phone),
+    emergency_contact_phone_extension: values.emergency_contact_phone_extension.trim(),
     home_airport_identifier: values.home_airport_identifier.trim().toUpperCase(),
     home_airport_city: values.home_airport_city.trim(),
     dart_id: values.dart_id === '' ? null : Number(values.dart_id),
@@ -186,6 +194,13 @@ export function formToPatch(values: ProfileFormValues): ProfilePatch {
 const POSTAL_RE = /^\d{5}$/;
 const PHONE_RE = /^\d{3}-\d{3}-\d{4}$/;
 const EXTENSION_RE = /^\d{1,6}$/;
+
+/** Three letters or digits, which is every FAA identifier. */
+const AIRPORT_RE = /^[A-Z0-9]{3}$/;
+
+const EXTENSION_MESSAGE = 'An extension is digits only, for example 4021.';
+
+const AIRPORT_MESSAGE = 'Use a three-character identifier like PAO, E16, or KLS.';
 
 /** The most hours a logbook may claim, matching `MAX_TOTAL_HOURS` on the server. */
 export const MAX_TOTAL_HOURS = 99_999;
@@ -255,9 +270,18 @@ export function validateProfileForm(values: ProfileFormValues): ProfileFormError
     if (!PHONE_RE.test(normalizePhone(typed))) errors[field] = PHONE_MESSAGE;
   }
 
-  const extension = values.phone_extension.trim();
-  if (extension && !EXTENSION_RE.test(extension)) {
-    errors.phone_extension = 'An extension is digits only, for example 4021.';
+  for (const field of [
+    'phone_extension',
+    'phone_alt_extension',
+    'emergency_contact_phone_extension',
+  ] as const) {
+    const extension = values[field].trim();
+    if (extension && !EXTENSION_RE.test(extension)) errors[field] = EXTENSION_MESSAGE;
+  }
+
+  const airport = values.home_airport_identifier.trim().toUpperCase();
+  if (airport && !AIRPORT_RE.test(airport)) {
+    errors.home_airport_identifier = AIRPORT_MESSAGE;
   }
 
   const postal = values.postal_code.trim();

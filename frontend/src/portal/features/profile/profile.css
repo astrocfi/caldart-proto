@@ -15,6 +15,38 @@
   }
 }
 
+/*
+ * A number and its extension share one column: both have a fixed format, so
+ * neither needs the width of a free-text box.
+ */
+.field-pair {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* `input[type='tel']` in base.css sets width: 100%, and a single class does
+ * not outrank an element-plus-attribute selector, so both widths here are
+ * written with two classes. */
+.field-pair .field-pair__main {
+  width: 13ch;
+  flex: 0 0 auto;
+}
+
+.field-pair__extension {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.field-pair .field-pair__extension input {
+  width: 6ch;
+  flex: 0 0 auto;
+}
+
 /* The ratings are read as two lines -- category and class, then instructor --
  * so they are laid out that way rather than flowed into a grid. */
 .checkbox-row {

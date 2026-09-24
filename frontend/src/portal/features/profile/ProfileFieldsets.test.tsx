@@ -10,7 +10,6 @@ import { EMPTY_PROFILE_FORM } from './form';
 
 const CONTACT_LABELS = [
   'Phone',
-  'Extension',
   'Alternate phone',
   'Address',
   'Address line 2',
@@ -87,6 +86,35 @@ describe('<ProfileFieldsets/>', () => {
       expect(screen.getByRole('group', { name: legend })).toBeInTheDocument();
     },
   );
+
+  it('gives each of the three numbers an extension box beside it', () => {
+    renderFieldsets();
+    expect(screen.getAllByLabelText('ext.')).toHaveLength(3);
+  });
+
+  it('refuses a letter typed into a phone number', async () => {
+    const user = userEvent.setup();
+    const onChange = renderFieldsets();
+
+    await user.type(screen.getByLabelText('Phone'), 'a');
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phone: '' }) as Partial<typeof EMPTY_PROFILE_FORM>,
+    );
+  });
+
+  it('upper-cases a home airport as it is typed', async () => {
+    const user = userEvent.setup();
+    const onChange = renderFieldsets();
+
+    await user.type(screen.getByLabelText('Home airport'), 'p');
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        home_airport_identifier: 'P',
+      }) as Partial<typeof EMPTY_PROFILE_FORM>,
+    );
+  });
 
   it('reports a typed character through onChange', async () => {
     const user = userEvent.setup();

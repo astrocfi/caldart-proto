@@ -164,3 +164,52 @@ describe('<ProfilePage/>', () => {
     expect(await screen.findByText('We could not load your profile')).toBeInTheDocument();
   });
 });
+
+describe('<ProfilePage/> inline complaints', () => {
+  beforeEach(() => {
+    server.use(
+      signedInAs(makeUser()),
+      http.get(`${API}/darts`, () => HttpResponse.json(TEST_DARTS)),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
+    );
+  });
+
+  it('marks a half-typed phone number as soon as the box is left', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    const phone = await screen.findByLabelText(label('Phone'));
+    await user.clear(phone);
+    await user.type(phone, '123');
+    await user.tab();
+
+    expect(await screen.findByText('Use a ten-digit number like 415-555-0100.')).toBeVisible();
+  });
+
+  it('says nothing about a blank optional field that is passed through', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    const alternate = await screen.findByLabelText(label('Alternate phone'));
+    await user.clear(alternate);
+    await user.click(alternate);
+    await user.tab();
+
+    expect(screen.queryByText('Use a ten-digit number like 415-555-0100.')).not.toBeInTheDocument();
+  });
+
+  it('clears the complaint once the number is finished', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ProfilePage />, { route: '/profile' });
+
+    const phone = await screen.findByLabelText(label('Phone'));
+    await user.clear(phone);
+    await user.type(phone, '123');
+    await user.tab();
+    await screen.findByText('Use a ten-digit number like 415-555-0100.');
+
+    await user.type(phone, '4155550100');
+
+    expect(screen.queryByText('Use a ten-digit number like 415-555-0100.')).not.toBeInTheDocument();
+  });
+});
