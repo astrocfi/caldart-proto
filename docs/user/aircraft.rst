@@ -150,8 +150,9 @@ Underneath, **Pilots who fly this aircraft** lists every member who has
 attached it, with their membership and medical currency — the same facts a
 DART leader would see.
 
-**Delete this aircraft** removes it from the register permanently, and from
-every profile that had it attached.  It asks once for confirmation.  Prefer
+**Delete this aircraft** — a trashcan and those words, as every delete in the
+portal is — removes it from the register permanently, and from every profile
+that had it attached.  It asks once for confirmation.  Prefer
 clearing the "in service" flag if the airplane may come back — the history
 stays, and a leader checking the tail number can still see what was on file.
 

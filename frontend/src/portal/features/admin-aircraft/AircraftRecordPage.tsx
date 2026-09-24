@@ -9,6 +9,7 @@ import { ApiError } from '@/portal/api/client';
 import type { AircraftPatch } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { DeleteButton } from '@/portal/components/DeleteButton';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
@@ -152,9 +153,14 @@ export function AircraftRecordPage(): JSX.Element {
             </Button>
           </div>
         ) : (
-          <Button variant="danger" onClick={() => setConfirming(true)}>
+          <DeleteButton
+            label="Delete this aircraft"
+            variant="danger"
+            small={false}
+            onClick={() => setConfirming(true)}
+          >
             Delete this aircraft
-          </Button>
+          </DeleteButton>
         )}
       </div>
     </Page>

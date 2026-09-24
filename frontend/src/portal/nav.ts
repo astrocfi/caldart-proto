@@ -14,13 +14,20 @@ export interface NavItem {
   roles: RoleSlug[];
   /** Grouping shown as a small-caps heading in the rail. */
   group: 'Membership' | 'Operations' | 'Administration' | 'System';
-  /** Match the route exactly rather than by prefix (used for the index route). */
+  /**
+   * Match the route exactly rather than by prefix.
+   *
+   * The index route needs it, and so does any entry whose path is the prefix of
+   * a deeper entry's: without it My profile marks itself current on My
+   * aircraft, and Member check on Aircraft check, so the rail shows two current
+   * pages at once.
+   */
   end?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', roles: [], group: 'Membership', end: true },
-  { to: '/profile', label: 'My profile', roles: [], group: 'Membership' },
+  { to: '/profile', label: 'My profile', roles: [], group: 'Membership', end: true },
   { to: '/profile/aircraft', label: 'My aircraft', roles: [], group: 'Membership' },
   { to: '/payments', label: 'Payments', roles: [], group: 'Membership' },
   { to: '/renew', label: 'Renew', roles: [], group: 'Membership' },
@@ -35,6 +42,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Member check',
     roles: ['dart_leader', 'account_admin'],
     group: 'Operations',
+    end: true,
   },
   {
     to: '/leader/aircraft',

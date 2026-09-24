@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 
 import type { Payment, ReportColumn } from '@/portal/api/types';
 import { Button, ButtonLink } from '@/portal/components/Button';
+import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
@@ -21,7 +22,6 @@ import { StatusChip } from '@/portal/components/StatusChip';
 import { useDebounced } from '@/portal/components/useDebounced';
 import { EMPTY_FILTERS, exportUrl, useAdminPayments, useReportColumns } from './api';
 import type { PaymentFilterState } from './api';
-import { ColumnChooser, defaultColumnKeys } from './ColumnChooser';
 import { FilterBar } from './FilterBar';
 import { FinanceTabs } from './FinanceTabs';
 import { KIND_LABELS, PROVIDER_LABELS, STATUS_LABELS, WALLET_LABELS, statusTone } from './labels';

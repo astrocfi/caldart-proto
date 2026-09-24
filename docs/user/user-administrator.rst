@@ -103,6 +103,13 @@ Roles
 The Roles section lists every role with a one-line description of what it
 grants, straight from the server, so the list stays right as roles are added.
 
+Every screen names a role the way a person says it — Member, DART leader, User
+administrator, Treasurer, Account administrator, Website administrator, and
+System administrator — on the tick boxes here, on the chips in the user list,
+and on that list's filter buttons.  The codes this page quotes, such as
+``dart_leader``, are what the API calls the same roles; nothing in the portal
+shows one.
+
 #. Open **Users & roles** and find the account.
 #. Open it, and scroll to **Roles**.
 #. Tick the roles they should have; untick the ones they should not.

@@ -524,16 +524,22 @@ the files they test, and an ``index.ts`` of what the route files use:
 ======================  ======================================================
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
-every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``StatusChip``,
-``DataTable``, ``Money``, ``DateText``, ``EmptyState``, and ``Toast``), and
-``choices.ts`` holds the one set of labels for certificate, medical, IFR, and
-rating codes.  ``components/Loading.tsx`` sits beside them without joining
-the barrel: the guards and the route table are its only callers, and both
-import it by name.  ``components/useDebounced.ts`` sits beside the primitives
-without joining their barrel, since it is a hook rather than something a
-page renders: it returns a value only once it has held still for a delay,
-which defaults to the ``SEARCH_DEBOUNCE_MS`` of 250 milliseconds that every
-search box uses.  The checkout panel passes 500 milliseconds instead, so
+every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``DeleteButton``,
+``StatusChip``, ``DataTable``, ``ColumnChooser``, ``Money``, ``DateText``,
+``EmptyState``, and ``Toast``), and ``choices.ts`` holds the one set of labels
+for certificate, medical, IFR, rating, and role codes.  ``DeleteButton`` is
+every Remove and Delete control in the portal: an inline trashcan drawn in
+``currentColor``, icon-only and square where the control sits in a row or on a
+form line, icon and words where the action is confirmed.  ``ColumnChooser``
+drives a report table and its two exports from one set of ticks, and closes on
+a click outside it or on Escape.  ``components/Loading.tsx`` sits beside them:
+the guards and the route table are its only callers, and both import it by
+name, as every file in the directory is imported -- there is no barrel.
+``components/useClickOutside.ts`` is the hook behind that dismissal, for any
+popover that wants it.  ``components/useDebounced.ts`` sits beside the
+primitives too, a hook rather than something a page renders: it returns a
+value only once it has held still for a delay, which defaults to the
+``SEARCH_DEBOUNCE_MS`` of 250 milliseconds that every search box uses.  The checkout panel passes 500 milliseconds instead, so
 changing the amount does not create a payment intent per keystroke.
 
 **Navigation.**  ``nav.ts`` declares every entry in ``NAV_ITEMS`` with the

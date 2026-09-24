@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 
 import type { RoleSlug, User } from '@/portal/api/types';
 import { useRoles } from '@/portal/auth/useAuth';
+import { roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
@@ -39,7 +40,7 @@ const columns: Column<User>[] = [
         <span className="cluster">
           {user.roles.map((role) => (
             <span key={role} className="chip chip--neutral">
-              {role.replace(/_/g, ' ')}
+              {roleLabel(role)}
             </span>
           ))}
         </span>
@@ -139,7 +140,7 @@ export function UsersListPage(): JSX.Element {
               title={entry.description}
               onClick={() => setRole(role === entry.slug ? '' : entry.slug)}
             >
-              {entry.slug.replace(/_/g, ' ')}
+              {roleLabel(entry.slug)}
             </Button>
           ))}
         </div>

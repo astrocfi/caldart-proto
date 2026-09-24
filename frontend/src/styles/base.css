@@ -426,9 +426,46 @@ legend {
   font-size: var(--text-xs);
 }
 
+/* An icon-only button: square, so a lone trashcan is not a wide slab. */
+.button--icon {
+  padding: var(--space-2);
+  aspect-ratio: 1;
+}
+
+.button--icon.button--small {
+  padding: var(--space-1);
+}
+
 .button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* ------------------------------------------------------ column chooser */
+.column-chooser {
+  position: relative;
+}
+
+.column-chooser__panel {
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  left: 0;
+  display: grid;
+  gap: var(--space-1);
+  min-width: 14rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: var(--hairline) solid var(--color-rule-strong);
+  background: var(--color-bg-raised);
+}
+
+.column-chooser__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
 }
 
 /* -------------------------------------------------------------- tables */

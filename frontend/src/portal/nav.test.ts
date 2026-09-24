@@ -124,7 +124,11 @@ describe('nav definition', () => {
     expect(new Set(paths).size).toBe(paths.length);
   });
 
-  it('marks only the index route as an exact match', () => {
-    expect(NAV_ITEMS.filter((item) => item.end).map((item) => item.to)).toEqual(['/']);
+  it('matches exactly the entries a deeper sibling would otherwise mark', () => {
+    expect(NAV_ITEMS.filter((item) => item.end).map((item) => item.to)).toEqual([
+      '/',
+      '/profile',
+      '/leader',
+    ]);
   });
 });

@@ -77,6 +77,52 @@ describe('ColumnChooser', () => {
     expect(handleChange).toHaveBeenCalledWith(expect.arrayContaining(['receipt_number']));
   });
 
+  it('closes on a click outside it', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <>
+        <Harness onChange={handleNothing} />
+        <p>somewhere else</p>
+      </>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByText('somewhere else'));
+
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+
+  it('closes on Escape', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Harness onChange={handleNothing} />);
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+
+  it('puts the focus back on the Columns button after Escape', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Harness onChange={handleNothing} />);
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.tab();
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Columns' })).toHaveFocus();
+  });
+
+  it('stays open while the boxes are being ticked', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Harness onChange={handleNothing} />);
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Receipt' }));
+
+    expect(screen.getAllByRole('checkbox')).toHaveLength(TEST_COLUMNS.length);
+  });
+
   it('puts the default columns back', async () => {
     const user = userEvent.setup();
     const handleChange = vi.fn();

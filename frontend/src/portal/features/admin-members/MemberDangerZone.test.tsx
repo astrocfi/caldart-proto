@@ -77,6 +77,14 @@ describe('MemberDangerZone', () => {
     expect(screen.getByRole('button', { name: 'Delete member' })).toBeDisabled();
   });
 
+  it('leads the delete with the trashcan the rest of the portal uses', () => {
+    renderZone([]);
+
+    expect(
+      screen.getByRole('button', { name: 'Delete member' }).querySelector('svg'),
+    ).toBeInTheDocument();
+  });
+
   it('names the profile and the membership terms the delete takes', () => {
     renderZone([]);
 

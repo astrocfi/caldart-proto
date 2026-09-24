@@ -38,9 +38,20 @@ function tree() {
       <Route element={<PortalLayout />}>
         <Route path="/" element={<Body label="dashboard body" />} />
         <Route path="/profile" element={<Body label="profile body" />} />
+        <Route path="/profile/aircraft" element={<Body label="aircraft body" />} />
+        <Route path="/leader/aircraft" element={<Body label="leader aircraft body" />} />
       </Route>
     </Routes>
   );
+}
+
+/** The names of the rail links the layout marks as the page you are on. */
+function currentRailLinkNames(): string[] {
+  const rail = screen.getByRole('navigation', { name: 'Portal sections' });
+  return within(rail)
+    .getAllByRole('link')
+    .filter((link) => link.getAttribute('aria-current') === 'page')
+    .map((link) => link.textContent ?? '');
 }
 
 /** The accessible names of the links in the portal rail, in render order. */
@@ -183,6 +194,22 @@ describe('PortalLayout', () => {
 
     await screen.findByText('dashboard body');
     expect(screen.queryByRole('button', { name: 'Menu' })).not.toBeInTheDocument();
+  });
+
+  it('marks only My aircraft when the member is on their aircraft page', async () => {
+    server.use(signedInAs(makeUser()));
+    renderWithProviders(tree(), { route: '/profile/aircraft' });
+    await screen.findByText('aircraft body');
+
+    expect(currentRailLinkNames()).toEqual(['My aircraft']);
+  });
+
+  it('marks only Aircraft check when a leader is on the aircraft check', async () => {
+    server.use(signedInAs(makeUser({ roles: ['member', 'dart_leader'] })));
+    renderWithProviders(tree(), { route: '/leader/aircraft' });
+    await screen.findByText('leader aircraft body');
+
+    expect(currentRailLinkNames()).toEqual(['Aircraft check']);
   });
 
   it('marks the entry for the open page as the current one', async () => {

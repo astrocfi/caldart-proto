@@ -10,6 +10,7 @@ import type { JSX } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import type { MemberDetail } from '@/portal/api/types';
+import { roleLabel } from '@/portal/choices';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
@@ -21,7 +22,6 @@ import { MemberMembershipsTab } from './MemberMembershipsTab';
 import { MemberPaymentsTab } from './MemberPaymentsTab';
 import { MemberProfileTab } from './MemberProfileTab';
 import { useMember } from './api';
-import { roleLabel } from './choices';
 
 const TABS = [
   { id: 'profile', label: 'Profile' },

@@ -170,6 +170,15 @@ describe('AircraftRecordPage', () => {
     expect(await screen.findByText('register')).toBeInTheDocument();
   });
 
+  it('leads the delete with the trashcan the rest of the portal uses', async () => {
+    server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));
+
+    renderRecord();
+
+    const remove = await screen.findByRole('button', { name: 'Delete this aircraft' });
+    expect(remove.querySelector('svg')).toBeInTheDocument();
+  });
+
   it('can be talked out of deleting', async () => {
     const user = userEvent.setup();
     server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));

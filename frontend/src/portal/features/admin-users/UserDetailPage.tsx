@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 
 import type { RoleSlug, User } from '@/portal/api/types';
 import { useAuth, useRoles } from '@/portal/auth/useAuth';
+import { roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
@@ -203,7 +204,7 @@ export function UserDetailPage(): JSX.Element {
                       checked={form.roles.includes(role.slug)}
                       onChange={(event) => toggleRole(role.slug, event.target.checked)}
                     />
-                    <span>{role.slug.replace(/_/g, ' ')}</span>
+                    <span>{roleLabel(role.slug)}</span>
                   </label>
                   <p className="field__hint">{role.description}</p>
                 </li>
