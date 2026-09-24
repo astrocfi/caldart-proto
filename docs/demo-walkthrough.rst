@@ -383,9 +383,9 @@ Troubleshooting
 
 .. rubric:: Flow C — a DART leader checks a member before a flight
 
-- *"Nobody matches that."*  Search is over name, email, and N-number only.  A
-  phone number or a certificate number will not find anybody here — those are
-  the account administrator's search fields.
+- *"Nobody matches that."*  Search is over name, email, phone number, and
+  N-number.  A certificate number will not find anybody here — that is the
+  account administrator's search field.
 - *A member with no profile at all.*  You get a well-formed NO-GO card rather
   than an error.
 - *An airplane marked out of service* is labeled as such on the card, and is

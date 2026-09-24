@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User as UserModel
 from apps.aircraft.models import Aircraft, normalize_n_number
-from apps.members.models import MembershipState
+from apps.members.models import MembershipState, normalize_phone
 from apps.members.services import (
     membership_of,
     membership_payload,
@@ -29,6 +29,10 @@ User = get_user_model()
 
 #: The leader search never returns more than this many people.
 SEARCH_LIMIT = 20
+
+#: How many digits a search term needs before it is read as a phone number.
+#: Seven is a local number; fewer is a certificate or a street number.
+PHONE_SEARCH_DIGITS = 7
 
 _PUNCTUATION = re.compile(r"[^A-Za-z0-9]")
 
@@ -48,10 +52,13 @@ def looks_like_registration(term: str) -> bool:
 
 
 def search_members(query: str, limit: int = SEARCH_LIMIT) -> QuerySet[UserModel]:
-    """Members matching ``query`` by name, email, or an aircraft N-number.
+    """Members matching ``query`` by name, email, phone number, or N-number.
 
-    Every row carries the membership annotations, so :func:`search_result`
-    reads a status without a query per person.
+    A phone number matches on its digits, so ``(415) 555-0100``, ``415-555-0100``
+    and ``4155550100`` all find the same person: on an activation a ten-digit
+    cell number is the fastest thing a leader has to hand.  Every row carries the
+    membership annotations, so :func:`search_result` reads a status without a
+    query per person.
     """
     term = (query or "").strip()
     if not term:
@@ -66,6 +73,13 @@ def search_members(query: str, limit: int = SEARCH_LIMIT) -> QuerySet[UserModel]
     if len(parts) >= 2:
         matches |= Q(first_name__icontains=parts[0]) & Q(last_name__icontains=parts[-1])
         matches |= Q(first_name__icontains=parts[-1]) & Q(last_name__icontains=parts[0])
+
+    digits = re.sub(r"\D", "", term)
+    if len(digits) >= PHONE_SEARCH_DIGITS:
+        stored = normalize_phone(digits)
+        matches |= Q(profile__phone=stored) | Q(profile__phone_alt=stored)
+        # A partial number: the last four digits are what somebody reads out.
+        matches |= Q(profile__phone__endswith=digits[-4:]) & Q(profile__phone__contains=digits[:3])
 
     if looks_like_registration(term):
         matches |= Q(profile__aircraft__n_number=normalize_n_number(term))

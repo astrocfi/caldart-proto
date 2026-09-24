@@ -19,6 +19,7 @@ import type {
   PaymentWallet,
   PilotCertificateType,
   Rating,
+  UsState,
 } from './api/types';
 
 export interface Choice<Value extends string> {
@@ -50,16 +51,84 @@ export const MEDICAL_TYPES: Choice<MedicalType>[] = [
   { value: 'third', label: 'Third class' },
 ];
 
-export const RATINGS: Choice<Rating>[] = [
+/** Every two-letter state or territory code the profile accepts. */
+export const US_STATES: Choice<UsState>[] = [
+  { value: 'AL', label: 'Alabama' },
+  { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' },
+  { value: 'CA', label: 'California' },
+  { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' },
+  { value: 'DE', label: 'Delaware' },
+  { value: 'DC', label: 'District of Columbia' },
+  { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' },
+  { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' },
+  { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' },
+  { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' },
+  { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' },
+  { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' },
+  { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' },
+  { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' },
+  { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' },
+  { value: 'WY', label: 'Wyoming' },
+  { value: 'AS', label: 'American Samoa' },
+  { value: 'GU', label: 'Guam' },
+  { value: 'MP', label: 'Northern Mariana Islands' },
+  { value: 'PR', label: 'Puerto Rico' },
+  { value: 'VI', label: 'US Virgin Islands' },
+];
+
+/** The category and class ratings, which the form shows as its first row. */
+export const CATEGORY_RATINGS: Choice<Rating>[] = [
+  { value: 'asel', label: 'ASEL' },
+  { value: 'amel', label: 'AMEL' },
+  { value: 'ases', label: 'ASES' },
+  { value: 'ames', label: 'AMES' },
+  { value: 'helicopter', label: 'Helicopter' },
   { value: 'instrument', label: 'Instrument' },
-  { value: 'multi_engine', label: 'Multi-engine' },
+];
+
+/** The instructor ratings, which the form shows as its second row. */
+export const INSTRUCTOR_RATINGS: Choice<Rating>[] = [
   { value: 'cfi', label: 'CFI' },
   { value: 'cfii', label: 'CFII' },
   { value: 'mei', label: 'MEI' },
-  { value: 'seaplane', label: 'Seaplane' },
-  { value: 'helicopter', label: 'Helicopter' },
-  { value: 'glider', label: 'Glider' },
 ];
+
+export const RATINGS: Choice<Rating>[] = [...CATEGORY_RATINGS, ...INSTRUCTOR_RATINGS];
 
 /** The label for one code, or the code itself if the server invents a new one. */
 export function labelFor<Value extends string>(

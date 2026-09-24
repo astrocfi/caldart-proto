@@ -2,14 +2,16 @@
  * The full aircraft record, in four sections: the airframe, its owner, its
  * insurance and the administrator's own notes.
  */
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { AircraftPatch } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import './aircraft.css';
+import { matchType, suggestTypes } from './catalog';
 import type { AircraftFormValues } from './form';
+import { formatDollars } from './insurance';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, aircraftPayload, validateAircraft } from './form';
 
 export interface AircraftFormProps {
@@ -34,6 +36,7 @@ export function AircraftForm({
   onCancel: handleCancel,
   withAdminFields = false,
 }: AircraftFormProps): JSX.Element {
+  const modelListId = useId();
   const [values, setValues] = useState<AircraftFormValues>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -41,6 +44,24 @@ export function AircraftForm({
 
   const set = <K extends keyof AircraftFormValues>(key: K, value: AircraftFormValues[K]): void => {
     setValues((current) => ({ ...current, [key]: value }));
+  };
+
+  const suggestions = suggestTypes(values.model);
+
+  /**
+   * Take what was typed, and fill the make in when it names one known type.
+   *
+   * Picking "PA-46 Malibu" from the list should not then need "Piper" typed
+   * beside it; typing a model nobody has heard of is still allowed, and an
+   * already-typed make is never overwritten.
+   */
+  const handleModel = (typed: string): void => {
+    const known = matchType(typed);
+    setValues((current) => ({
+      ...current,
+      model: typed,
+      make: known && !current.make.trim() ? known.make : current.make,
+    }));
   };
 
   const handleSubmit = (event: React.FormEvent): void => {
@@ -86,13 +107,23 @@ export function AircraftForm({
               />
             )}
           </Field>
-          <Field label="Model" required error={shown.model}>
+          <Field label="Model" required error={shown.model} hint="Start typing: Mal, 172, RV-7">
             {(field) => (
-              <input
-                {...field}
-                value={values.model}
-                onChange={(event) => set('model', event.target.value)}
-              />
+              <>
+                <input
+                  {...field}
+                  list={modelListId}
+                  value={values.model}
+                  onChange={(event) => handleModel(event.target.value)}
+                />
+                <datalist id={modelListId}>
+                  {suggestions.map((type) => (
+                    <option key={type.designator + type.model} value={type.model}>
+                      {type.make} · {type.designator}
+                    </option>
+                  ))}
+                </datalist>
+              </>
             )}
           </Field>
           <Field label="Seats" error={shown.seats}>
@@ -184,6 +215,9 @@ export function AircraftForm({
                 inputMode="decimal"
                 value={values.liability_per_occurrence}
                 onChange={(event) => set('liability_per_occurrence', event.target.value)}
+                onBlur={(event) =>
+                  set('liability_per_occurrence', formatDollars(event.target.value))
+                }
               />
             )}
           </Field>
@@ -199,6 +233,7 @@ export function AircraftForm({
                 inputMode="decimal"
                 value={values.liability_per_person}
                 onChange={(event) => set('liability_per_person', event.target.value)}
+                onBlur={(event) => set('liability_per_person', formatDollars(event.target.value))}
               />
             )}
           </Field>
@@ -210,6 +245,7 @@ export function AircraftForm({
                 inputMode="decimal"
                 value={values.hull}
                 onChange={(event) => set('hull', event.target.value)}
+                onBlur={(event) => set('hull', formatDollars(event.target.value))}
               />
             )}
           </Field>

@@ -125,11 +125,16 @@ Editing a record
 
 Click a registration to open the record.  It is in four sections:
 
-- **Aircraft** — registration, year, make, model, seats.
+- **Aircraft** — registration, year, make, model, seats.  The registration is
+  a US N-number: ``N`` and then up to five characters, digits first and at most
+  two letters after them, never I or O.  The model box suggests types as you
+  type — three letters of "Malibu" offers *PA-46 Malibu* — and picking one
+  fills the make in.
 - **Owner** — individual, FBO, or club, with a name and a contact.
 - **Insurance** — carrier, policy number, liability per occurrence and per
   person, hull value, and the expiry date.  Amounts are entered in dollars and
-  stored as integer cents; nothing may be negative.
+  stored as integer cents; nothing may be negative.  A figure is grouped for
+  reading as soon as you leave the box, so ``1000000`` becomes ``1,000,000``.
 - **Administration** — free-text notes and an "in service" flag.  Clearing
   it marks the airframe **Out of service**: it is labeled that way in the
   register, on the record, and on a DART leader's aircraft check, and it stops

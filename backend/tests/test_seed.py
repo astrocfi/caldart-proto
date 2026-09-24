@@ -28,7 +28,7 @@ User = get_user_model()
 
 #: The payments ``seed_demo`` creates from its fixed random seed: one per term,
 #: all succeeded.
-SEEDED_PAYMENTS = 81
+SEEDED_PAYMENTS = 70
 
 #: Every test here runs `seed_demo`, which seeds the whole demo data set.
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
@@ -114,11 +114,11 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
         for u in User.objects.all()
         if (e := membership_status(u)["expires_on"]) and today <= e <= soon
     ]
-    assert len(expiring) == 7
+    assert len(expiring) == 6
 
     profiles = MemberProfile.objects.exclude(medical_type="none")
-    assert sum(1 for p in profiles if not p.medical_is_current) == 7
-    assert sum(1 for p in profiles if p.medical_is_current) == 29
+    assert sum(1 for p in profiles if not p.medical_is_current) == 15
+    assert sum(1 for p in profiles if p.medical_is_current) == 26
     assert {p.pilot_certificate_type for p in MemberProfile.objects.all()} == {
         "none",
         "student",
@@ -135,7 +135,7 @@ def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
     _seed()
     providers = set(Payment.objects.values_list("provider", flat=True))
     assert providers == {"stripe", "paypal"}
-    assert Payment.objects.filter(contribution_cents__gt=0).count() == 27
+    assert Payment.objects.filter(contribution_cents__gt=0).count() == 29
     months = Payment.objects.dates("created_at", "month")
     oldest, newest = min(months), max(months)
     span = (newest.year - oldest.year) * 12 + newest.month - oldest.month

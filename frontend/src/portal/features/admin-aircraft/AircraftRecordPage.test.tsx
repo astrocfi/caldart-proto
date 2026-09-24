@@ -68,7 +68,7 @@ describe('AircraftRecordPage', () => {
     expect(within(form).getByLabelText(/^Year/)).toHaveValue('2008');
 
     const insurance = screen.getByRole('group', { name: 'Insurance' });
-    expect(within(insurance).getByLabelText(/Liability per occurrence/)).toHaveValue('1000000');
+    expect(within(insurance).getByLabelText(/Liability per occurrence/)).toHaveValue('1,000,000');
     expect(within(insurance).getByLabelText(/Insurance expires/)).toHaveValue('2027-03-01');
   });
 

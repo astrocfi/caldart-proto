@@ -27,6 +27,13 @@ export type PlanSlug = 'annual' | 'life';
 /** Every slug `PlanSlug` names, so the facts can be checked against the whole set. */
 const PLAN_SLUGS: readonly PlanSlug[] = ['annual', 'life'];
 
+/** One seeded member the leader check reads a particular way. */
+export interface LeaderSubject {
+  name: string;
+  /** An aircraft they list, or empty when they list none. */
+  nNumber: string;
+}
+
 /** What `manage.py seed_facts` reports about the seeded database. */
 export interface SeedFacts {
   /** The password every seeded demo account shares. */
@@ -35,7 +42,15 @@ export interface SeedFacts {
   accounts: Record<DemoAccount, string>;
   /** Membership plan slug to its price in cents. */
   planPricesCents: Record<PlanSlug, number>;
+  /**
+   * Three members the leader check reads differently.  They come from the seed
+   * rather than being typed into a spec, which drifts the moment the demo data
+   * is generated a little differently.
+   */
+  leaderCheck: Record<'insuredPilot' | 'lapsedInsurance' | 'expiredMember', LeaderSubject>;
 }
+
+const LEADER_SUBJECT_KEYS = ['insuredPilot', 'lapsedInsurance', 'expiredMember'] as const;
 
 const FACTS_PATH = resolve(dirname(fileURLToPath(import.meta.url)), 'seed-facts.json');
 
@@ -98,10 +113,21 @@ function checkedSeedFacts(parsed: unknown): SeedFacts {
     return [slug, price] as const;
   });
 
+  const rawLeader = objectField(root, 'leaderCheck');
+  const leaderEntries = LEADER_SUBJECT_KEYS.map((key) => {
+    const subject = rawLeader[key] as { name?: unknown; nNumber?: unknown } | undefined;
+    if (typeof subject?.name !== 'string' || subject.name.length === 0) {
+      rejectFacts(`\`leaderCheck.${key}.name\` is missing: no seeded member fits that case`);
+    }
+    const nNumber = typeof subject.nNumber === 'string' ? subject.nNumber : '';
+    return [key, { name: subject.name, nNumber }] as const;
+  });
+
   return {
     demoPassword,
     accounts: Object.fromEntries(accountEntries) as Record<DemoAccount, string>,
     planPricesCents: Object.fromEntries(priceEntries) as Record<PlanSlug, number>,
+    leaderCheck: Object.fromEntries(leaderEntries) as SeedFacts['leaderCheck'],
   };
 }
 

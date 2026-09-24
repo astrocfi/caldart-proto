@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -10,13 +10,14 @@ import { EMPTY_PROFILE_FORM } from './form';
 
 const CONTACT_LABELS = [
   'Phone',
+  'Extension',
   'Alternate phone',
   'Address',
   'Address line 2',
   'City',
   'State',
   'ZIP code',
-  'County',
+  'California county',
   'Emergency contact',
   'Emergency contact phone',
 ];
@@ -36,17 +37,19 @@ const AVIATION_LABELS = [
 ];
 
 const RATING_LABELS = [
+  'ASEL',
+  'AMEL',
+  'ASES',
+  'AMES',
+  'Helicopter',
   'Instrument',
-  'Multi-engine',
   'CFI',
   'CFII',
   'MEI',
-  'Seaplane',
-  'Helicopter',
-  'Glider',
 ];
 
 const VOLUNTEER_LABELS = [
+  'Mission pilot',
   'Ground team',
   'Exercises and training',
   'Member support',
@@ -106,13 +109,44 @@ describe('<ProfileFieldsets/>', () => {
     });
   });
 
-  it('upper-cases the state code as it is typed', async () => {
+  it('picks the state from a list rather than taking two typed letters', async () => {
     const user = userEvent.setup();
-    const onChange = renderFieldsets({ value: { ...EMPTY_PROFILE_FORM, state: '' } });
+    const onChange = renderFieldsets();
 
-    await user.type(screen.getByLabelText('State'), 'n');
+    await user.selectOptions(screen.getByLabelText('State'), 'NV');
 
-    expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, state: 'N' });
+    expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, state: 'NV' });
+  });
+
+  it("picks the county from California's, and offers an out for everyone else", async () => {
+    const user = userEvent.setup();
+    const onChange = renderFieldsets();
+    const county = screen.getByLabelText('California county');
+
+    await user.selectOptions(county, 'Napa');
+
+    expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, county: 'Napa' });
+    expect(within(county).getByRole('option', { name: 'Not in California' })).toBeInTheDocument();
+  });
+
+  it('offers the ratings in two rows, category and class then instructor', () => {
+    renderFieldsets();
+
+    for (const rating of ['ASEL', 'AMEL', 'ASES', 'AMES', 'Helicopter', 'Instrument']) {
+      expect(screen.getByRole('checkbox', { name: rating })).toBeInTheDocument();
+    }
+    for (const rating of ['CFI', 'CFII', 'MEI']) {
+      expect(screen.getByRole('checkbox', { name: rating })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole('checkbox', { name: 'Glider' })).not.toBeInTheDocument();
+  });
+
+  it('puts Mission pilot first among the volunteer interests', () => {
+    renderFieldsets();
+    const interests = screen
+      .getByRole('group', { name: 'Volunteer interests' })
+      .querySelectorAll('.checkbox span');
+    expect(interests[0]?.textContent).toBe('Mission pilot');
   });
 
   it('upper-cases the home airport identifier as it is typed', async () => {
