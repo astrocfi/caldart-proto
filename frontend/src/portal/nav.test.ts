@@ -78,6 +78,14 @@ describe('visibleNavItems', () => {
     expect(visible).toContain('Aircraft check');
   });
 
+  it('gives a treasurer the finance area', () => {
+    expect(labels(['member', 'treasurer'])).toContain('Payments');
+  });
+
+  it('keeps the member register away from a treasurer', () => {
+    expect(labels(['member', 'treasurer'])).not.toContain('Members');
+  });
+
   it('gives user_admin only the users screen on top of membership', () => {
     const visible = labels(['member', 'user_admin']);
     expect(visible).toContain('Users & roles');

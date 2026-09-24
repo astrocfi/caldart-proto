@@ -46,7 +46,14 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/admin/members', label: 'Members', roles: ['account_admin'], group: 'Administration' },
   { to: '/admin/aircraft', label: 'Aircraft', roles: ['account_admin'], group: 'Administration' },
   { to: '/admin/darts', label: 'DARTs', roles: ['account_admin'], group: 'Administration' },
-  { to: '/admin/payments', label: 'Payments', roles: ['account_admin'], group: 'Administration' },
+  // The finance area admits a treasurer as well as an account administrator,
+  // and the rail has to say so or a treasurer reaches it by URL only.
+  {
+    to: '/admin/payments',
+    label: 'Payments',
+    roles: ['account_admin', 'treasurer'],
+    group: 'Administration',
+  },
   {
     to: '/admin/reminders',
     label: 'Reminders',

@@ -62,6 +62,18 @@ vi.mock('../features/admin-aircraft/AircraftRecordPage', () => ({
 vi.mock('../features/admin-payments/AdminPaymentsPage', () => ({
   AdminPaymentsPage: pageStub('Payments'),
 }));
+vi.mock('../features/admin-payments/PaymentsListPage', () => ({
+  PaymentsListPage: pageStub('All payments'),
+}));
+vi.mock('../features/admin-payments/PaymentDetailPage', () => ({
+  PaymentDetailPage: pageStub('Payment record'),
+}));
+vi.mock('../features/admin-payments/RecordPaymentPage', () => ({
+  RecordPaymentPage: pageStub('Record a payment'),
+}));
+vi.mock('../features/admin-payments/MemberLedgerPage', () => ({
+  MemberLedgerPage: pageStub('Member ledger'),
+}));
 vi.mock('../features/admin-reminders/AdminRemindersPage', () => ({
   AdminRemindersPage: pageStub('Reminders'),
 }));
@@ -91,6 +103,7 @@ const IDENTITIES: Identity[] = [
   { name: 'member', roles: ['member'] },
   { name: 'dart_leader', roles: ['member', 'dart_leader'] },
   { name: 'user_admin', roles: ['member', 'user_admin'] },
+  { name: 'treasurer', roles: ['member', 'treasurer'] },
   { name: 'account_admin', roles: ['member', 'account_admin'] },
   { name: 'website_admin', roles: ['member', 'website_admin'] },
   { name: 'system_admin', roles: ['member', 'system_admin'] },
@@ -102,6 +115,7 @@ const ANY_SIGNED_IN = [
   'member',
   'dart_leader',
   'user_admin',
+  'treasurer',
   'account_admin',
   'website_admin',
   'system_admin',
@@ -153,7 +167,31 @@ const GUARDED_PATHS: GuardedPath[] = [
     heading: 'Aircraft record',
     allowed: ['account_admin', 'system_admin'],
   },
-  { path: '/admin/payments', heading: 'Payments', allowed: ['account_admin', 'system_admin'] },
+  {
+    path: '/admin/payments',
+    heading: 'Payments',
+    allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
+  {
+    path: '/admin/payments/list',
+    heading: 'All payments',
+    allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
+  {
+    path: '/admin/payments/record',
+    heading: 'Record a payment',
+    allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
+  {
+    path: '/admin/payments/members/1',
+    heading: 'Member ledger',
+    allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
+  {
+    path: '/admin/payments/412',
+    heading: 'Payment record',
+    allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
   { path: '/admin/reminders', heading: 'Reminders', allowed: ['account_admin', 'system_admin'] },
   { path: '/admin/users', heading: 'Users and roles', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },

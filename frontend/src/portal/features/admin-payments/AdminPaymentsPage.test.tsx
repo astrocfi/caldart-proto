@@ -1,122 +1,43 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { Payment, PaymentPeriodSummary } from '@/portal/api/types';
-import { API } from '@test/handlers';
+import { financeHandlers } from '@test/handlers';
+import { makePeriod } from '@test/fixtures/finance';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { AdminPaymentsPage } from './AdminPaymentsPage';
 
-const SUMMARY: PaymentPeriodSummary[] = [
-  {
-    period: '2025-11',
-    count: 2,
-    total_cents: 9_000,
-    plan_cents: 9_000,
-    contribution_cents: 0,
-    fee_cents: 291,
-    net_cents: 8_709,
-    refunded_cents: 0,
-    by_provider: { stripe: 4_500, paypal: 4_500 },
-  },
-  {
-    period: '2026-01',
-    count: 2,
-    total_cents: 21_000,
-    plan_cents: 9_000,
-    contribution_cents: 12_000,
-    fee_cents: 639,
-    net_cents: 20_361,
-    refunded_cents: 0,
-    by_provider: { stripe: 14_500, paypal: 6_500 },
-  },
+const MONTHS = [
+  makePeriod({ period: '2025-11', count: 2, total_cents: 9_000, refunded_cents: 0 }),
+  makePeriod(),
 ];
 
-const YEARS: PaymentPeriodSummary[] = [
-  {
-    period: '2026',
-    count: 4,
-    total_cents: 30_000,
-    plan_cents: 18_000,
-    contribution_cents: 12_000,
-    fee_cents: 930,
-    net_cents: 29_070,
-    refunded_cents: 0,
-    by_provider: { stripe: 19_000, paypal: 11_000 },
-  },
-];
-
-function payment(overrides: Partial<Payment> = {}): Payment {
-  return {
-    id: 1,
-    user_id: 3,
-    user_name: 'Marta Reyes',
-    user_email: 'marta@example.org',
-    plan: 'Annual',
-    kind: 'both',
-    amount_cents: 14_500,
-    plan_amount_cents: 4_500,
-    contribution_cents: 10_000,
-    fee_cents: 450,
-    net_cents: 14_050,
-    refunded_cents: 0,
-    currency: 'usd',
-    provider: 'stripe',
-    wallet: 'apple_pay',
-    provider_ref: 'pi_123',
-    status: 'succeeded',
-    receipt_number: 'CALDART-000001',
-    receipt_sent_at: '2026-01-08T20:00:10Z',
-    paid_on: '2026-01-08',
-    received_on: null,
-    reconciled_on: null,
-    reconciled_by: null,
-    recorded_by: null,
-    note: '',
-    membership: null,
-    renewal_attempt: null,
-    created_at: '2026-01-08T20:00:00Z',
-    completed_at: '2026-01-08T20:00:05Z',
-    ...overrides,
-  };
-}
-
-/** Serve the three endpoints the page uses, recording every request URL. */
-function serveDashboard(rows: Payment[] = [payment()]) {
+/** Serve the summary the overview reads, recording every request URL. */
+function serveOverview(): string[] {
   const urls: string[] = [];
-  server.use(
-    http.get(`${API}/admin/payments/summary`, ({ request }) => {
-      urls.push(request.url);
-      const group = new URL(request.url).searchParams.get('group');
-      return HttpResponse.json(group === 'year' ? YEARS : SUMMARY);
-    }),
-    http.get(`${API}/admin/payments`, ({ request }) => {
-      urls.push(request.url);
-      return HttpResponse.json({
-        count: rows.length,
-        next: null,
-        previous: null,
-        results: rows,
-      });
-    }),
-  );
+  server.use(...financeHandlers({ urls, summary: MONTHS }));
   return urls;
 }
 
 describe('AdminPaymentsPage', () => {
   it('shows the three headline tiles', async () => {
-    serveDashboard();
+    serveOverview();
     renderWithProviders(<AdminPaymentsPage />);
 
     expect(await screen.findByText('This month')).toBeInTheDocument();
-    expect(screen.getByText('Year to date')).toBeInTheDocument();
+  });
+
+  it('names every period the tiles cover', async () => {
+    serveOverview();
+    renderWithProviders(<AdminPaymentsPage />);
+
+    await screen.findByText('This month');
     expect(screen.getByText('Last 12 months')).toBeInTheDocument();
   });
 
-  it('renders the period table with a column per provider', async () => {
-    serveDashboard();
+  it('renders the period table with a column per provider and the fee columns', async () => {
+    serveOverview();
     renderWithProviders(<AdminPaymentsPage />);
 
     const table = await screen.findByRole('table', { name: /Payment totals by month/ });
@@ -130,105 +51,59 @@ describe('AdminPaymentsPage', () => {
       'Contributions',
       'Stripe',
       'PayPal',
+      'Fees',
+      'Net',
+      'Refunded',
       'Total',
     ]);
+  });
 
-    // Newest period first.
+  it('puts the newest period first', async () => {
+    serveOverview();
+    renderWithProviders(<AdminPaymentsPage />);
+
+    const table = await screen.findByRole('table', { name: /by month/ });
     const first = within(table).getAllByRole('row')[1];
     expect(within(first!).getByRole('rowheader')).toHaveTextContent('January 2026');
-    expect(first!).toHaveTextContent('$145.00');
-    expect(first!).toHaveTextContent('$65.00');
+  });
+
+  it('reports what went back out of a period', async () => {
+    serveOverview();
+    renderWithProviders(<AdminPaymentsPage />);
+
+    const table = await screen.findByRole('table', { name: /by month/ });
+    const first = within(table).getAllByRole('row')[1];
+    expect(first!).toHaveTextContent('$25.00');
   });
 
   it('switches the period table to years', async () => {
     const user = userEvent.setup();
-    serveDashboard();
+    const urls = serveOverview();
+    renderWithProviders(<AdminPaymentsPage />);
+
+    await user.click(await screen.findByRole('button', { name: 'Year' }));
+
+    await waitFor(() => expect(urls.some((url) => url.includes('group=year'))).toBe(true));
+  });
+
+  it('sends the overview filter to the server', async () => {
+    const user = userEvent.setup();
+    const urls = serveOverview();
     renderWithProviders(<AdminPaymentsPage />);
 
     await screen.findByRole('table', { name: /by month/ });
-    await user.click(screen.getByRole('button', { name: 'Year' }));
-
-    const table = await screen.findByRole('table', { name: /by year/ });
-    expect(within(table).getByRole('rowheader')).toHaveTextContent('2026');
-    expect(screen.getByRole('button', { name: 'Year' })).toHaveAttribute('aria-pressed', 'true');
-  });
-
-  it('lists payments with member, method, and status', async () => {
-    serveDashboard();
-    renderWithProviders(<AdminPaymentsPage />);
-
-    const table = await screen.findByRole('table', { name: /1 payment/ });
-    expect(within(table).getByRole('link', { name: 'Marta Reyes' })).toHaveAttribute(
-      'href',
-      '/admin/members/3',
-    );
-    expect(within(table).getByText(/Apple Pay/)).toBeInTheDocument();
-    expect(within(table).getByText('Succeeded')).toBeInTheDocument();
-    expect(within(table).getByText('$145.00')).toBeInTheDocument();
-  });
-
-  it('sends the filters to the server and reflects them in the export link', async () => {
-    const user = userEvent.setup();
-    const urls = serveDashboard();
-    renderWithProviders(<AdminPaymentsPage />);
-
-    await screen.findByRole('table', { name: /1 payment/ });
     await user.selectOptions(screen.getByLabelText('Provider'), 'paypal');
 
-    await waitFor(() =>
-      expect(
-        urls.some((url) => url.includes('/admin/payments?') && url.includes('provider=paypal')),
-      ).toBe(true),
-    );
-    expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
+    await waitFor(() => expect(urls.some((url) => url.includes('provider=paypal'))).toBe(true));
+  });
+
+  it('links on to the payment list', async () => {
+    serveOverview();
+    renderWithProviders(<AdminPaymentsPage />);
+
+    expect(await screen.findByRole('link', { name: 'All payments' })).toHaveAttribute(
       'href',
-      '/api/v1/admin/payments/export.csv?provider=paypal',
+      '/admin/payments/list',
     );
-  });
-
-  it('filters by date range', async () => {
-    const user = userEvent.setup();
-    const urls = serveDashboard();
-    renderWithProviders(<AdminPaymentsPage />);
-
-    await screen.findByRole('table', { name: /1 payment/ });
-    await user.type(screen.getByLabelText('From'), '2026-01-01');
-
-    await waitFor(() => expect(urls.some((url) => url.includes('from=2026-01-01'))).toBe(true));
-  });
-
-  it('clears the filters again', async () => {
-    const user = userEvent.setup();
-    serveDashboard();
-    renderWithProviders(<AdminPaymentsPage />);
-
-    await screen.findByRole('table', { name: /1 payment/ });
-    await user.selectOptions(screen.getByLabelText('Status'), 'failed');
-    await user.click(await screen.findByRole('button', { name: 'Clear filters' }));
-
-    expect(screen.getByLabelText('Status')).toHaveValue('');
-    expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
-      'href',
-      '/api/v1/admin/payments/export.csv',
-    );
-  });
-
-  it('asks the server to reorder when a column header is clicked', async () => {
-    const user = userEvent.setup();
-    const urls = serveDashboard();
-    renderWithProviders(<AdminPaymentsPage />);
-
-    await screen.findByRole('table', { name: /1 payment/ });
-    await user.click(screen.getByRole('button', { name: /Total/ }));
-
-    await waitFor(() =>
-      expect(urls.some((url) => url.includes('ordering=amount_cents'))).toBe(true),
-    );
-  });
-
-  it('shows an empty state when nothing matches', async () => {
-    serveDashboard([]);
-    renderWithProviders(<AdminPaymentsPage />);
-    expect(await screen.findByText('No payments match these filters')).toBeInTheDocument();
   });
 });

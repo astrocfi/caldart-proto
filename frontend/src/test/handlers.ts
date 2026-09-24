@@ -1,7 +1,15 @@
 import { HttpResponse, http } from 'msw';
 import type { HttpHandler } from 'msw';
 
-import type { MembershipStatus, RoleSlug, User } from '../portal/api/types';
+import type {
+  MembershipStatus,
+  Payment,
+  PaymentPeriodSummary,
+  Plan,
+  ReportColumn,
+  RoleSlug,
+  User,
+} from '../portal/api/types';
 
 export const API = '/api/v1';
 
@@ -58,4 +66,51 @@ export const handlers = [
 /** Convenience: make `/auth/me` answer with `user`. */
 export function signedInAs(user: User): HttpHandler {
   return http.get(`${API}/auth/me`, () => HttpResponse.json(user));
+}
+
+/**
+ * The finance endpoints the `/admin/payments` screens read, answering with
+ * whatever the caller passes.
+ *
+ * Every request URL is pushed onto `urls`, so a test can assert that a filter,
+ * a column choice or an ordering really reached the server rather than only
+ * changing the screen.
+ */
+export interface FinanceStub {
+  payments?: Payment[];
+  summary?: PaymentPeriodSummary[];
+  columns?: ReportColumn[];
+  plans?: Plan[];
+  urls?: string[];
+}
+
+/** Handlers for the finance list, summary, columns and plan catalog. */
+export function financeHandlers({
+  payments = [],
+  summary = [],
+  columns = [],
+  plans = [],
+  urls = [],
+}: FinanceStub = {}): HttpHandler[] {
+  const record = (request: Request) => urls.push(request.url);
+  return [
+    http.get(`${API}/admin/payments/summary`, ({ request }) => {
+      record(request);
+      return HttpResponse.json(summary);
+    }),
+    http.get(`${API}/admin/payments/columns`, ({ request }) => {
+      record(request);
+      return HttpResponse.json(columns);
+    }),
+    http.get(`${API}/admin/payments`, ({ request }) => {
+      record(request);
+      return HttpResponse.json({
+        count: payments.length,
+        next: null,
+        previous: null,
+        results: payments,
+      });
+    }),
+    http.get(`${API}/plans`, () => HttpResponse.json(plans)),
+  ];
 }

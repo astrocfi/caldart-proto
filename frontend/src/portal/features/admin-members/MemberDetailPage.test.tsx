@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { MemberDetailPage } from './MemberDetailPage';
 import { makeDetail } from '@test/fixtures/members';
+import { makeLedger } from '@test/fixtures/finance';
 
 const DARTS = [{ id: 3, name: 'Palo Alto', airport_identifiers: 'PAO', city: 'Palo Alto' }];
 const PLANS = [
@@ -30,6 +31,14 @@ function detailHandlers(member = makeDetail()) {
     http.get(`${API}/darts`, () => HttpResponse.json(DARTS)),
     http.get(`${API}/plans`, () => HttpResponse.json(PLANS)),
     http.get(`${API}/admin/members/${member.id}`, () => HttpResponse.json(member)),
+    http.get(`${API}/admin/payments/ledger/${member.id}`, () =>
+      HttpResponse.json(
+        makeLedger({
+          user: { ...makeLedger().user, id: member.id },
+          statement_years: [2026, 2025],
+        }),
+      ),
+    ),
     http.patch(`${API}/admin/members/${member.id}`, async ({ request }) => {
       captured.patchedMember = (await request.json()) as Record<string, unknown>;
       return HttpResponse.json(member);
@@ -103,7 +112,21 @@ describe('MemberDetailPage', () => {
     server.use(...detailHandlers());
     renderDetail('/admin/members/1?tab=payments');
     expect(await screen.findByRole('heading', { name: 'Payments' })).toBeInTheDocument();
-    expect(screen.getByText('$65.00')).toBeInTheDocument();
+  });
+
+  it('reads the payments tab from the finance ledger', async () => {
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1?tab=payments');
+    expect(await screen.findByRole('link', { name: 'CALDART-000412' })).toBeInTheDocument();
+  });
+
+  it('offers the member their contribution statements', async () => {
+    server.use(...detailHandlers());
+    renderDetail('/admin/members/1?tab=payments');
+    expect(await screen.findByRole('link', { name: '2025' })).toHaveAttribute(
+      'href',
+      '/api/v1/admin/payments/ledger/1/statements/2025.pdf',
+    );
   });
 
   it('saves the profile, notes included', async () => {
@@ -220,14 +243,11 @@ describe('MemberDetailPage', () => {
     expect(await screen.findByText('You cannot delete your own account.')).toBeInTheDocument();
   });
 
-  it('lists the payments with their contribution split out', async () => {
+  it('reports what the member has paid over their whole history', async () => {
     server.use(...detailHandlers());
     renderDetail('/admin/members/1?tab=payments');
 
-    const table = await screen.findByRole('table');
-    expect(within(table).getByText('$45.00')).toBeInTheDocument();
-    expect(within(table).getByText('$20.00')).toBeInTheDocument();
-    expect(within(table).getByText('stripe')).toBeInTheDocument();
+    expect(await screen.findByText('$435.00')).toBeInTheDocument();
   });
 
   it('explains a member it cannot load', async () => {
