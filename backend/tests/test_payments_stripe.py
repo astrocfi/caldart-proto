@@ -28,7 +28,7 @@ from apps.members.models import Membership, MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.providers import stripe as stripe_provider
 from apps.payments.providers.stripe import wallet_from_intent
-from apps.payments.services import create_checkout
+from apps.payments.services import create_checkout, fees_are_known
 from tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -744,3 +744,143 @@ def test_webhook_needs_no_session_or_csrf(
     """``csrf_client`` enforces CSRF, so a 403 here would mean the exemption broke."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
     assert post_webhook(csrf_client, succeeded_event(payment, "pi_anon")).status_code == 200
+
+
+# --- fees ------------------------------------------------------------------
+def balance_transaction(fee: int, net: int) -> dict[str, Any]:
+    """A balance transaction as Stripe expands it onto a charge."""
+    return {"id": "txn_test_1", "object": "balance_transaction", "fee": fee, "net": net}
+
+
+def settled_intent(payment: Payment, intent_id: str, *, fee: int, net: int) -> dict[str, Any]:
+    """An intent whose charge carries the balance transaction Stripe settled it on."""
+    intent = intent_payload(payment, id=intent_id)
+    intent["latest_charge"]["balance_transaction"] = balance_transaction(fee, net)
+    return intent
+
+
+def test_confirm_records_the_fee_from_the_balance_transaction(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
+) -> None:
+    """A settled intent's fee and net land on the payment when it is confirmed."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    fake_intents.payload = settled_intent(payment, "pi_fee", fee=161, net=4_339)
+
+    api_client.force_login(member)
+    api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_fee"})
+
+    payment.refresh_from_db()
+    assert payment.fee_cents == 161
+
+
+def test_confirm_records_the_net_from_the_balance_transaction(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
+) -> None:
+    """The net Stripe reports is stored as reported, not recomputed."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    fake_intents.payload = settled_intent(payment, "pi_net", fee=161, net=4_300)
+
+    api_client.force_login(member)
+    api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_net"})
+
+    payment.refresh_from_db()
+    assert payment.net_cents == 4_300
+
+
+def test_an_intent_with_no_balance_transaction_leaves_the_fee_unknown(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
+) -> None:
+    """Stripe settles some methods later, and until it does there is no fee to store."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    fake_intents.payload = intent_payload(payment, id="pi_unsettled")
+
+    api_client.force_login(member)
+    api_client.post(CONFIRM, {"payment_id": payment.pk, "payment_intent_id": "pi_unsettled"})
+
+    payment.refresh_from_db()
+    assert fees_are_known(payment) is False
+
+
+def test_an_unexpanded_balance_transaction_reads_as_no_fee_yet(
+    member: User, annual_plan: MembershipPlan
+) -> None:
+    """An id where the transaction should be is not a figure we can record."""
+    intent = {"latest_charge": {"balance_transaction": "txn_test_1"}}
+
+    assert stripe_provider.fees_from_intent(intent) is None
+
+
+def charge_event(payment: Payment, intent_id: str, **charge: Any) -> dict[str, Any]:
+    """A ``charge.updated`` event for ``payment``, carrying ``charge``'s fields."""
+    return stripe_event(
+        stripe_provider.CHARGE_UPDATED,
+        {
+            "id": "ch_test_1",
+            "object": "charge",
+            "payment_intent": intent_id,
+            "metadata": {"payment_id": str(payment.pk)},
+            **charge,
+        },
+    )
+
+
+def test_charge_updated_fills_in_a_fee_the_payment_did_not_have(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """The event that carries the settled balance transaction records the fee."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    post_webhook(api_client, succeeded_event(payment, "pi_late"))
+
+    event = charge_event(payment, "pi_late", balance_transaction=balance_transaction(161, 4_339))
+    response = post_webhook(api_client, event)
+
+    assert json.loads(response.content)["handled"] is True
+    payment.refresh_from_db()
+    assert payment.fee_cents == 161
+
+
+def test_charge_updated_re_reads_the_intent_when_the_event_carries_no_transaction(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan, fake_intents: FakeIntents
+) -> None:
+    """An unexpanded event sends us back to Stripe rather than giving up."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    post_webhook(api_client, succeeded_event(payment, "pi_refetch"))
+    fake_intents.payload = settled_intent(payment, "pi_refetch", fee=175, net=4_325)
+
+    post_webhook(api_client, charge_event(payment, "pi_refetch", balance_transaction="txn_1"))
+
+    payment.refresh_from_db()
+    assert payment.net_cents == 4_325
+
+
+def test_charge_updated_leaves_a_fee_we_already_know_alone(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A second delivery of the same event changes nothing."""
+    payment = create_checkout(member, "annual", 0, PaymentProvider.STRIPE)
+    post_webhook(api_client, succeeded_event(payment, "pi_twice"))
+    event = charge_event(payment, "pi_twice", balance_transaction=balance_transaction(161, 4_339))
+    post_webhook(api_client, event)
+
+    second = post_webhook(
+        api_client,
+        charge_event(payment, "pi_twice", balance_transaction=balance_transaction(999, 1)),
+    )
+
+    assert json.loads(second.content)["handled"] is False
+    payment.refresh_from_db()
+    assert payment.fee_cents == 161
+
+
+def test_charge_updated_for_an_unknown_payment_is_acknowledged(
+    api_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """An event about a payment this installation does not have changes nothing."""
+    event = stripe_event(
+        stripe_provider.CHARGE_UPDATED,
+        {"id": "ch_nobody", "object": "charge", "payment_intent": "pi_nobody", "metadata": {}},
+    )
+
+    response = post_webhook(api_client, event)
+
+    assert json.loads(response.content)["handled"] is False

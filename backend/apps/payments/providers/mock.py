@@ -13,20 +13,24 @@ from apps.payments.services import mark_failed, mark_succeeded
 
 #: The mock provider charges a Stripe-shaped fee -- 2.9% of the amount plus 30
 #: cents -- so seeded and test data carry figures that look like the real thing
-#: rather than a suspiciously round zero.
-FEE_RATE = 0.029
+#: rather than a suspiciously round zero.  The rate is kept as a fraction in
+#: whole numbers so the fee is integer arithmetic from end to end.
+FEE_NUMERATOR = 29
+FEE_DENOMINATOR = 1_000
 FEE_FIXED_CENTS = 30
 
 
 def fee_cents(amount_cents: int) -> int:
-    """The mock provider's fee on ``amount_cents``, rounded to the nearest cent.
+    """The mock provider's fee on ``amount_cents``: 2.9% plus 30 cents.
 
-    2.9% plus 30 cents, the shape of a card fee.  A payment of nothing costs
+    The percentage is rounded half up to the cent, as a card processor rounds
+    it, so $45.00 costs 161 cents rather than 160.  A payment of nothing costs
     nothing: the fixed part is only charged where there is money to charge it on.
     """
     if amount_cents == 0:
         return 0
-    return round(amount_cents * FEE_RATE) + FEE_FIXED_CENTS
+    percentage = (amount_cents * FEE_NUMERATOR + FEE_DENOMINATOR // 2) // FEE_DENOMINATOR
+    return percentage + FEE_FIXED_CENTS
 
 
 def fees_for(payment: Payment) -> ProviderFees:

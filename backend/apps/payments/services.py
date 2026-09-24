@@ -206,11 +206,13 @@ def record_fees(payment: Payment, *, fee_cents: int, net_cents: int) -> Payment:
 def backfill_fees(payment: Payment) -> Payment:
     """Ask the provider again what ``payment`` cost, and store what it says.
 
-    Answers the row unchanged when the payment was recorded by hand, when it has
-    not succeeded, and when the provider still has no figure to give.  Whatever
-    the provider raises -- it is unconfigured, or unreachable -- propagates, so
-    the caller can tell "no answer yet" from "could not ask".
+    The row is read afresh, so a caller holding a stale copy still gets the
+    right answer.  Answers it unchanged when the payment was recorded by hand,
+    when it has not succeeded, and when the provider still has no figure to
+    give.  Whatever the provider raises -- it is unconfigured, or unreachable --
+    propagates, so the caller can tell "no answer yet" from "could not ask".
     """
+    payment = Payment.objects.get(pk=payment.pk)
     if payment.provider == PaymentProvider.MANUAL or not payment.is_succeeded:
         return payment
     # Inline: the provider registry imports this module, so a top-level import
