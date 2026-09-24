@@ -41,11 +41,9 @@ from apps.payments.api.serializers import (
 from apps.payments.models import RenewalAttempt, RenewalMandate, RenewalOutcome
 from apps.payments.providers.base import PaymentError, get_provider
 from apps.payments.renewals import (
-    AUTO_RENEW_FIELD,
-    LIFE_MEMBER_PLAN_MESSAGE,
     begin_mandate,
     cancel_mandate,
-    lifetime_term,
+    check_renewable,
     save_method,
 )
 
@@ -113,24 +111,32 @@ class MyRenewalView(APIView):
         plan alone.  404 when the caller has no mandate, 400 naming
         ``contribution_cents`` for an amount outside what a checkout would accept,
         400 naming ``plan`` for a plan that is not on offer, and 400 naming
-        ``auto_renew`` when a life member names a plan at all: their membership
-        does not renew, so their authority is over the contribution alone.  The
-        dues themselves are not settable: they are the plan's price at the time of
-        each charge.
+        ``auto_renew`` for anything the standing authority could not charge again
+        -- a life member naming a plan at all or contributing nothing, and
+        anybody naming a plan that never expires -- which is the same rule the
+        setup endpoint applies.  The dues themselves are not settable: they are
+        the plan's price at the time of each charge.
         """
         mandate = own_mandate(request)
         if mandate is None:
             raise Http404(NO_MANDATE)
         payload = RenewalPatchSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        fields = ["contribution_cents", "updated_at"]
+        contribution_cents = payload.validated_data["contribution_cents"]
         slug = payload.validated_data["plan"]
+        # An absent slug leaves the plan alone, so what the mandate would hold
+        # afterwards is what the rule is applied to either way.
+        wanted = renewable_plan(slug) if slug else mandate.plan
+        fields = ["contribution_cents", "updated_at"]
+        mandate.plan = check_renewable(
+            wanted,
+            mandate.provider,
+            user=signed_in_user(request),
+            contribution_cents=contribution_cents,
+        )
         if slug:
-            if lifetime_term(signed_in_user(request)) is not None:
-                raise ValidationError({AUTO_RENEW_FIELD: LIFE_MEMBER_PLAN_MESSAGE})
-            mandate.plan = renewable_plan(slug)
             fields.insert(0, "plan")
-        mandate.contribution_cents = payload.validated_data["contribution_cents"]
+        mandate.contribution_cents = contribution_cents
         mandate.save(update_fields=fields)
         return Response(mandate_body(mandate))
 

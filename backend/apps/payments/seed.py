@@ -507,10 +507,10 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
     Ten members renew automatically, one is paused after a charge and all three
     of its retries were refused, and one turned automatic renewal off.  The
     account administrator, a life member, holds a contribution-only authority on
-    top of those.  Each
-    active mandate whose charge falls inside the notice window already carries a
-    scheduled attempt with its warning sent, which is what the daily scan would
-    have left behind.  Running it twice over the same database changes nothing.
+    top of those.  Each active mandate whose charge falls inside the notice
+    window already carries a scheduled attempt with its warning sent, which is
+    what the daily scan would have left behind.  Running it twice over the same
+    database changes nothing.
     """
     rng: random.Random = ctx["rng"]
     today: dt.date = ctx["today"]
@@ -568,7 +568,8 @@ def _seed_contribution_mandate(ctx: dict[str, Any]) -> int:
     They are a life member, so their membership never renews; their authority is
     over the contribution alone.  It was created a year less thirty days ago, so
     its next charge falls a month out and the walkthrough always has a date to
-    show.  Answers ``1`` when it was created, and ``0`` when it was already there.
+    show.  Answers ``1``, which is how many such authorities it leaves behind
+    whether it created one or found one already there.
     """
     user = ctx["demo_users"]["accountadmin"]
     _, created = RenewalMandate.objects.get_or_create(
@@ -587,13 +588,12 @@ def _seed_contribution_mandate(ctx: dict[str, Any]) -> int:
             "method_label": "Test card ending 4242, expires 12/2030",
         },
     )
-    if not created:
-        return 0
-    # ``created_at`` is what the yearly anniversary is counted from, and
-    # ``auto_now_add`` will not take a value at creation time.
-    RenewalMandate.objects.filter(user=user).update(
-        created_at=timezone.now() - timedelta(days=CONTRIBUTION_MANDATE_AGE_DAYS)
-    )
+    if created:
+        # ``created_at`` is what the yearly anniversary is counted from, and
+        # ``auto_now_add`` will not take a value at creation time.
+        RenewalMandate.objects.filter(user=user).update(
+            created_at=timezone.now() - timedelta(days=CONTRIBUTION_MANDATE_AGE_DAYS)
+        )
     return 1
 
 

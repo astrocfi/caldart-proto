@@ -1,6 +1,6 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}{% if kind == "contribution" %}We will take your contribution automatically and email you before every charge.{% else %}We will renew your {{ plan_name }} membership automatically and email you before every charge.{% endif %}{% endblock %}
+{% block preheader %}{% if kind == "contribution" %}We will take your contribution automatically and email you before every charge.{% elif kind == "both" %}We will renew your {{ plan_name }} membership, take your contribution and email you before every charge.{% else %}We will renew your {{ plan_name }} membership automatically and email you before every charge.{% endif %}{% endblock %}
 
 {% block heading %}Automatic {{ kind_label }} is on{% endblock %}
 
@@ -12,6 +12,12 @@
     <p style="margin:0 0 14px 0;">
       Your contribution to {{ org_name }} will be taken automatically from now on.
       We will charge {{ amount }} to {{ method_label }} once a year.
+    </p>
+  {% elif kind == "both" %}
+    <p style="margin:0 0 14px 0;">
+      From now on we will renew your {{ plan_name }} membership and take your
+      contribution. We will charge {{ amount }} to {{ method_label }}, and again
+      each year after that.
     </p>
   {% else %}
     <p style="margin:0 0 14px 0;">

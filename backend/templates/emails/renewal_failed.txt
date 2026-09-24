@@ -14,6 +14,10 @@ it was refused. The reason we were given: {{ error }}.
 {% if next_on %}We will try again on {{ next_on|date:"F j, Y" }}. You do not have to do anything, but
 if the card has changed, saving the new one now will save that attempt:{% else %}That was the last attempt, so your automatic contribution is off. You can
 contribute by hand, or turn it back on with another card:{% endif %}
+{% elif kind == "both" %}
+We tried to charge {{ amount }} to {{ method_label }} to renew your {{ plan_name }}
+membership and take your contribution, and it was refused. The reason we were
+given: {{ error }}.
 {% else %}
 We tried to charge {{ amount }} to {{ method_label }} to renew your {{ plan_name }}
 membership, and it was refused. The reason we were given: {{ error }}.

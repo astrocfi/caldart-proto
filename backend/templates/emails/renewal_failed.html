@@ -25,6 +25,11 @@
       We tried to charge {{ amount }} to {{ method_label }} for your contribution,
       and it was refused.
     </p>
+  {% elif kind == "both" %}
+    <p style="margin:0 0 14px 0;">
+      We tried to charge {{ amount }} to {{ method_label }} to renew your
+      {{ plan_name }} membership and take your contribution, and it was refused.
+    </p>
   {% else %}
     <p style="margin:0 0 14px 0;">
       We tried to charge {{ amount }} to {{ method_label }} to renew your

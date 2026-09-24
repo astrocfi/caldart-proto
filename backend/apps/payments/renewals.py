@@ -319,7 +319,8 @@ def next_charge_on(mandate: RenewalMandate, today: date | None = None) -> date |
     """
     if mandate.status != MandateStatus.ACTIVE:
         return None
-    today = today or timezone.localdate()
+    if today is None:
+        today = timezone.localdate()
     scheduled = [
         attempt.scheduled_on
         for attempt in mandate.attempts.all()
@@ -753,15 +754,22 @@ def run_auto_renewals(
     Every run ends with one ``renewals.run`` audit record carrying the mode and
     the counts, and returns them as a :class:`RenewalRun`, whose ``actions`` name
     every member the run emailed or charged -- or, in a rehearsal, would have.
+
+    A charge whose date has already come round is scheduled and taken by the same
+    scan.  A rehearsal writes no attempt for the charge step to find, so the
+    notice step hands it the attempts it would have written and the rehearsal
+    reports that charge too.
     """
-    today = today or timezone.localdate()
+    if today is None:
+        today = timezone.localdate()
     run = RenewalRun(today=today, dry_run=dry_run)
 
+    rehearsed: list[RenewalAttempt] = []
     for mandate in active_mandates():
-        _notice(mandate, today, run, dry_run=dry_run)
+        rehearsed += _notice(mandate, today, run, dry_run=dry_run)
         _warn_about_card(mandate, today, run, dry_run=dry_run)
 
-    for attempt in _due_attempts(today):
+    for attempt in [*_due_attempts(today), *rehearsed]:
         _charge(attempt, today, run, dry_run=dry_run)
 
     audit.record(
@@ -777,7 +785,24 @@ def run_auto_renewals(
     return run
 
 
-def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool) -> None:
+def _rehearsed_attempt(
+    mandate: RenewalMandate, term: Membership, charge_on: date, today: date
+) -> list[RenewalAttempt]:
+    """The unsaved attempt a rehearsal hands to its charge step, or nothing.
+
+    A live run creates the attempt here and finds it again in the same run when
+    its date has already come round.  A rehearsal writes nothing, so the attempt
+    it would have written is carried forward instead -- and only when it is due
+    today, since a charge still in the future is for a later run to take.
+    """
+    if charge_on > today:
+        return []
+    return [RenewalAttempt(mandate=mandate, membership=term, scheduled_on=charge_on)]
+
+
+def _notice(
+    mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool
+) -> list[RenewalAttempt]:
     """Schedule the charge for a term running out, and email the warning.
 
     Only an attempt that is still ``scheduled`` or has already ``succeeded``
@@ -785,19 +810,21 @@ def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: b
     then turned back on is scheduled again rather than left to lapse quietly.  An
     attempt that is waiting but whose notice never went out -- a mail server that
     refused it -- is written to again here.
+
+    Returns the attempts a rehearsal would have written and that are due today,
+    for the charge step to rehearse as well; a live run returns nothing, because
+    it has written them to the database the charge step reads.
     """
     if mandate.plan_id is None:
-        _notice_contribution(mandate, today, run, dry_run=dry_run)
-        return
+        return _notice_contribution(mandate, today, run, dry_run=dry_run)
     if lifetime_term(mandate.user) is not None:
         # The member has been granted a lifetime term since the mandate was made,
         # so there is no expiry left for it to renew.
         run.record_skipped("lifetime")
-        return
+        return []
     term = term_to_renew(mandate.user, today)
     if term is None or term.ends_on is None:
-        _catch_up(mandate, today, run, dry_run=dry_run)
-        return
+        return _catch_up(mandate, today, run, dry_run=dry_run)
     waiting = (
         mandate.attempts.filter(
             membership=term,
@@ -809,27 +836,31 @@ def _notice(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: b
     if waiting is not None and (
         waiting.outcome != RenewalOutcome.SCHEDULED or waiting.noticed_at is not None
     ):
-        return
+        return []
     charge_on = waiting.scheduled_on if waiting is not None else charge_date_for(term.ends_on)
     # A scan that was down over the charge date takes it today rather than
     # writing to the member about a date that has already gone by.
     charge_on = max(charge_on, today)
     if (charge_on - today).days > NOTICE_DAYS:
-        return
+        return []
 
     run.noticed += 1
     run.record_action("renewal_notice", mandate, on=charge_on)
     if dry_run:
-        return
+        # An attempt already waiting is one the charge step finds by itself.
+        if waiting is not None:
+            return []
+        return _rehearsed_attempt(mandate, term, charge_on, today)
     attempt = waiting or RenewalAttempt.objects.create(
         mandate=mandate, membership=term, scheduled_on=charge_on
     )
     _send_notice(mandate, attempt, charge_on, term.ends_on, today)
+    return []
 
 
 def _notice_contribution(
     mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool
-) -> None:
+) -> list[RenewalAttempt]:
     """Schedule and announce the yearly charge of a contribution-only mandate.
 
     The charge date is :func:`contribution_charge_date`, and the attempt is
@@ -838,11 +869,13 @@ def _notice_contribution(
     ``no_term``: there is nothing for the contribution to accompany.  An attempt
     already waiting is reused, and one whose notice the mail server refused is
     written to again here.
+
+    Returns what :func:`_notice` returns, for the same reason.
     """
     term = lifetime_term(mandate.user)
     if term is None:
         run.record_skipped("no_term")
-        return
+        return []
     waiting = next(
         (
             attempt
@@ -851,25 +884,30 @@ def _notice_contribution(
         None,
     )
     if waiting is not None and waiting.noticed_at is not None:
-        return
+        return []
     charge_on = (
         waiting.scheduled_on if waiting is not None else contribution_charge_date(mandate, today)
     )
     charge_on = max(charge_on, today)
     if (charge_on - today).days > NOTICE_DAYS:
-        return
+        return []
 
     run.noticed += 1
     run.record_action("renewal_notice", mandate, on=charge_on)
     if dry_run:
-        return
+        if waiting is not None:
+            return []
+        return _rehearsed_attempt(mandate, term, charge_on, today)
     attempt = waiting or RenewalAttempt.objects.create(
         mandate=mandate, membership=term, scheduled_on=charge_on
     )
     _send_notice(mandate, attempt, charge_on, None, today)
+    return []
 
 
-def _catch_up(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool) -> None:
+def _catch_up(
+    mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool
+) -> list[RenewalAttempt]:
     """Renew a term that already ran out, or pause a mandate too far behind to.
 
     Reached for a mandate whose member holds no term left to renew.  While the
@@ -882,23 +920,26 @@ def _catch_up(mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run:
 
     A term that already has an attempt against it is left alone: it is on the
     retry ladder, not behind the scanner.
+
+    Returns what :func:`_notice` returns, for the same reason.
     """
     term = lapsed_term_to_renew(mandate.user, today)
     if term is None or term.ends_on is None:
         run.record_skipped("no_term")
-        return
+        return []
     if mandate.attempts.filter(membership=term).exists():
-        return
+        return []
     if (today - term.ends_on).days > CATCH_UP_DAYS:
         _abandon(mandate, run, dry_run=dry_run)
-        return
+        return []
 
     run.noticed += 1
     run.record_action("renewal_notice", mandate, on=today)
     if dry_run:
-        return
+        return _rehearsed_attempt(mandate, term, today, today)
     attempt = RenewalAttempt.objects.create(mandate=mandate, membership=term, scheduled_on=today)
     _send_notice(mandate, attempt, today, term.ends_on, today)
+    return []
 
 
 def _send_notice(
