@@ -118,6 +118,23 @@ def test_a_month_counts_what_is_matched_and_what_is_not(
     assert january["unreconciled_count"] == 1
 
 
+def test_a_check_counts_in_the_month_it_was_received(
+    treasurer_client: APIClient, books: list[Payment], member: User, annual_plan: MembershipPlan
+) -> None:
+    """A check received in January but keyed in February is January's deposit."""
+    check = settled(
+        member,
+        annual_plan,
+        when=at_noon(2026, 2, 20),
+        total=3_000,
+        fee=0,
+        provider=PaymentProvider.MANUAL,
+    )
+    Payment.objects.filter(pk=check.pk).update(received_on=dt.date(2026, 1, 28))
+    january = treasurer_client.get(TABLE).json()[0]
+    assert january["gross_cents"] == 18_000
+
+
 def test_a_refund_is_dated_by_the_day_it_was_taken(
     treasurer_client: APIClient, books: list[Payment]
 ) -> None:

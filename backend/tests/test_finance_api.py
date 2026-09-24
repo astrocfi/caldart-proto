@@ -180,6 +180,18 @@ def test_un_matching_a_payment_forgets_who_matched_it(
     assert body["reconciled_by"] is None
 
 
+def test_a_match_cannot_be_dated_in_the_future(treasurer_client: APIClient, paid: Payment) -> None:
+    """A statement that has not been issued cannot have been matched against."""
+    tomorrow = timezone.localdate() + dt.timedelta(days=1)
+    response = treasurer_client.patch(
+        detail_url(paid), {"reconciled_on": tomorrow.isoformat()}, format="json"
+    )
+    assert response.status_code == 400
+    assert response.json() == {
+        "reconciled_on": ["A payment cannot have been matched in the future."]
+    }
+
+
 def test_a_note_can_be_written_without_reconciling(
     treasurer_client: APIClient, paid: Payment
 ) -> None:

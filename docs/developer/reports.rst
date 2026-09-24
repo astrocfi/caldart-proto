@@ -323,10 +323,12 @@ whenever there are failed attempts in the range, which is expected rather than
 a fault.
 
 ``paid_on`` is the ledger date: ``received_on`` for a payment recorded by hand,
-the local date of ``completed_at`` otherwise.  The *filters* key off the
-``paid_at`` annotation, ``Coalesce(completed_at, created_at)``, which the list,
-the summary and both exports share — which is what stops them answering "when
-was this paid?" differently.
+the local date of ``completed_at`` otherwise.  ``base_queryset`` annotates the
+same rule in SQL as ``paid_date``, and the filters, the period summary, the
+reconciliation rows and the contributions list all key off it — which is what
+stops them answering "when was this paid?" differently from the ``Date`` column.
+A second annotation, ``paid_at``, keeps the moment the payment settled, for
+``?ordering=paid_at`` and for breaking ties within one ledger day.
 
 The reconciliation table
 ------------------------
@@ -335,7 +337,7 @@ The reconciliation table
 provider: the count, the gross, the fees, the net, what went back, the net
 after refunds, and how many of the period's payments a treasurer has matched to
 a statement.  Two dating rules make the rows add up against a bank statement: a
-payment is dated by ``paid_at``, and a refund by ``refunded_at``, so a refund
+payment is dated by ``paid_date``, and a refund by ``refunded_at``, so a refund
 taken in a later period belongs to that period.  A period in which money only
 went back still gets a row.
 
@@ -349,7 +351,9 @@ The contributions list
 calendar year, largest net giver first: the count, what they gave, what went
 back, and the difference.  It is the list the year-end acknowledgments go out
 from, and its exports are ``caldart-contributions-<year>.{csv,pdf}``, portrait
-letter.
+letter.  A payment falls in the year of its ``paid_date``, so a check received
+in December and keyed in January counts in the year it arrived, the same year
+the period summary puts it in.
 
 The period summary
 ------------------

@@ -14,6 +14,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import Membership, MembershipPlan
+from apps.payments import manual
 from apps.payments.manual import record_manual_payment
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from caldart.exceptions import DomainValidationError
@@ -208,6 +209,40 @@ def test_a_reference_another_recorded_payment_carries_is_refused(
         note="",
         actor=treasurer,
     )
+    with pytest.raises(DomainValidationError, match="already carries the reference '1041'"):
+        record_manual_payment(
+            user=member,
+            plan_slug="annual",
+            contribution_cents=0,
+            method=PaymentWallet.CHECK,
+            reference="1041",
+            received_on=dt.date(2026, 3, 3),
+            note="",
+            actor=treasurer,
+        )
+
+
+def test_a_reference_taken_after_the_check_is_still_refused(
+    member: User,
+    treasurer: User,
+    annual_plan: MembershipPlan,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Two treasurers entering one check at once get the same 400, not a 500."""
+    record_manual_payment(
+        user=member,
+        plan_slug="annual",
+        contribution_cents=0,
+        method=PaymentWallet.CHECK,
+        reference="1041",
+        received_on=dt.date(2026, 3, 2),
+        note="",
+        actor=treasurer,
+    )
+    # The loser of the race passed the duplicate check before the winner's row
+    # existed, which is what a stubbed check stands in for here.
+    monkeypatch.setattr(manual, "_reference_taken", lambda reference: False)
+
     with pytest.raises(DomainValidationError, match="already carries the reference '1041'"):
         record_manual_payment(
             user=member,

@@ -1,14 +1,17 @@
 """Payment reporting: filters, the period summary, the column registry, exports.
 
-Everything here works off one annotation, ``paid_at`` -- the moment the money
-arrived, which is ``completed_at`` for a settled payment and ``created_at`` for
-one that never got that far.  Using it for both the date filter and the
-grouping keeps the list, the summary and the exports answering the same
-question.
+Everything here works off one annotation, ``paid_date`` -- the day the money
+counts as received, which is ``received_on`` for a payment recorded by hand and
+the local date of ``completed_at`` (or of ``created_at``, for one that never
+settled) for every other.  It is :attr:`apps.payments.models.Payment.paid_on`
+expressed in SQL, so the date filters, the period summary, the reconciliation
+rows, the contributions list and the exported ``Date`` column all answer the
+same question: a check received in January is January's money whatever day the
+treasurer keyed it in.
 
-A payment recorded by hand carries its own ledger date in ``received_on``, and
-that is what the ``paid_on`` column prints; the filters still work off
-``paid_at``, which for such a payment is the moment the treasurer keyed it in.
+A second annotation, ``paid_at``, keeps the moment a payment settled, so
+``?ordering=paid_at`` can sort by it and rows within one ledger day have a
+stable order.
 
 The exports share one column registry, :data:`PAYMENT_REPORT_COLUMNS`, so the
 CSV, the PDF and the chooser the screen draws can never drift apart.  Adding a
@@ -22,15 +25,14 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from typing import TypedDict
 
-from django.db.models import Count, Q, QuerySet, Sum
-from django.db.models.functions import Coalesce, TruncMonth, TruncYear
+from django.db.models import Count, DateField, Q, QuerySet, Sum
+from django.db.models.functions import Coalesce, TruncDate, TruncMonth, TruncYear
 from django.utils import timezone
 
 from apps.members.models import Membership
 from apps.payments.models import (
     Payment,
     PaymentKind,
-    PaymentProvider,
     PaymentStatus,
     Refund,
     RefundStatus,
@@ -42,6 +44,10 @@ PERIOD_FORMAT = {"month": "%Y-%m", "year": "%Y"}
 
 #: The period :func:`summarize` groups by unless the caller asks for the other.
 DEFAULT_GROUP = "month"
+
+#: How the list and the exports sort when ``?ordering=`` names nothing: newest
+#: ledger day first, and within a day the payment that settled last.
+DEFAULT_ORDERING = ("-paid_date", "-paid_at")
 
 #: The title on every page of the payments PDF export.
 REPORT_TITLE = "CalDART payments"
@@ -100,15 +106,26 @@ class ContributionRow(TypedDict):
 
 
 def base_queryset() -> QuerySet[Payment]:
-    """Every payment, annotated with ``paid_at`` and joined for display.
+    """Every payment, annotated with ``paid_date`` and ``paid_at`` and joined.
 
-    The refunds and the term each payment bought are fetched with it, so a
-    report over the whole table runs a fixed number of queries.
+    The refunds, the renewal attempt behind an automatic charge and the term each
+    payment bought are fetched with it, so a report over the whole table runs a
+    fixed number of queries however many rows it holds.  ``received_on`` is set
+    only on a payment recorded by hand, which is what makes it the first choice
+    for ``paid_date``.
     """
     return (
         Payment.objects.select_related("user", "plan", "membership")
-        .prefetch_related("refunds")
-        .annotate(paid_at=Coalesce("completed_at", "created_at"))
+        .prefetch_related("refunds", "renewal_attempts")
+        .annotate(
+            paid_at=Coalesce("completed_at", "created_at"),
+            paid_date=Coalesce(
+                "received_on",
+                TruncDate("completed_at"),
+                TruncDate("created_at"),
+                output_field=DateField(),
+            ),
+        )
     )
 
 
@@ -152,13 +169,13 @@ def _kind_filter(kind: str) -> Q:
 
 
 def apply_filters(queryset: QuerySet[Payment], filters: PaymentFilters) -> QuerySet[Payment]:
-    """Narrow ``queryset`` (which must carry ``paid_at``) by ``filters``."""
+    """Narrow ``queryset`` (which must carry ``paid_date``) by ``filters``."""
     # django-stubs resolves field names against the model, so it cannot see the
-    # ``paid_at`` annotation :func:`base_queryset` adds.
+    # ``paid_date`` annotation :func:`base_queryset` adds.
     if filters.date_from:
-        queryset = queryset.filter(paid_at__date__gte=filters.date_from)  # type: ignore[misc]
+        queryset = queryset.filter(paid_date__gte=filters.date_from)  # type: ignore[misc]
     if filters.date_to:
-        queryset = queryset.filter(paid_at__date__lte=filters.date_to)  # type: ignore[misc]
+        queryset = queryset.filter(paid_date__lte=filters.date_to)  # type: ignore[misc]
     if filters.provider:
         queryset = queryset.filter(provider=filters.provider)
     if filters.status:
@@ -202,9 +219,14 @@ def _refunds_by_period(queryset: QuerySet[Payment], group: str) -> dict[str, int
     rows = (
         Refund.objects.filter(status=RefundStatus.SUCCEEDED, payment__in=queryset)
         .annotate(
-            paid_at=Coalesce("payment__completed_at", "payment__created_at"),
+            paid_date=Coalesce(
+                "payment__received_on",
+                TruncDate("payment__completed_at"),
+                TruncDate("payment__created_at"),
+                output_field=DateField(),
+            ),
         )
-        .annotate(period=GROUPS[group]("paid_at"))
+        .annotate(period=GROUPS[group]("paid_date"))
         .values("period")
         .annotate(refunded_cents=Sum("amount_cents"))
     )
@@ -230,7 +252,7 @@ def summarize(queryset: QuerySet[Payment], group: str = DEFAULT_GROUP) -> list[P
     """
     received = queryset.filter(status__in=RECEIVED_STATUSES)
     rows = (
-        received.annotate(period=GROUPS[group]("paid_at"))
+        received.annotate(period=GROUPS[group]("paid_date"))
         .values("period", "provider")
         .annotate(
             count=Count("id"),
@@ -284,26 +306,23 @@ def contribution_rows(year: int) -> list[ContributionRow]:
     """One row per member who gave something in ``year``, largest giver first.
 
     A member appears when they made at least one payment carrying a contribution
-    that arrived in ``year``, dated by :attr:`apps.payments.models.Payment.paid_on`
-    so a check counts on the day it was received.  ``count`` is how many such
-    payments they made, ``refunded_cents`` what was given back against them --
-    whenever the refund itself was taken -- and ``net_contribution_cents`` the
-    difference, which is the figure the year-end acknowledgment quotes.  Ties on
-    the net amount break on the member's name, so the order is stable.
+    whose ledger date falls in ``year``, the same dating the filters and the
+    period summary use, so a check counts in the year it was received.  ``count``
+    is how many such payments they made, ``refunded_cents`` what was given back
+    against them -- whenever the refund itself was taken -- and
+    ``net_contribution_cents`` the difference, which is the figure the year-end
+    acknowledgment quotes.  Ties on the net amount break on the member's name, so
+    the order is stable.
     """
-    in_year = Q(provider=PaymentProvider.MANUAL, received_on__year=year) | ~Q(
-        provider=PaymentProvider.MANUAL
-    ) & Q(completed_at__year=year)
     payments = (
         base_queryset()
-        .filter(in_year, status__in=RECEIVED_STATUSES, contribution_cents__gt=0)
+        .filter(  # type: ignore[misc]
+            paid_date__year=year, status__in=RECEIVED_STATUSES, contribution_cents__gt=0
+        )
         .order_by()
     )
     rows: dict[int, ContributionRow] = {}
     for payment in payments:
-        paid_on = payment.paid_on
-        if paid_on is None or paid_on.year != year:
-            continue
         row = rows.setdefault(
             payment.user_id,
             {

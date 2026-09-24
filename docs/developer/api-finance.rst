@@ -50,9 +50,11 @@ Parameter        Meaning
 ``columns``      Comma-separated export column keys.
 ===============  ====================================================
 
-The date bounds are applied to ``paid_at`` — ``completed_at`` when the payment
-settled and ``created_at`` otherwise — which is also what the summary groups
-by.  A date the calendar does not have, such as ``2026-02-30``, is as much a
+The date bounds are applied to the ledger date — ``received_on`` for a payment
+recorded by hand, the local date of ``completed_at`` (or of ``created_at``, for
+one that never settled) otherwise — which is also what the summary groups by,
+what the reconciliation rows and the contributions list count by, and what the
+``paid_on`` export column prints.  A date the calendar does not have, such as ``2026-02-30``, is as much a
 **400** as ``last tuesday``:
 
 .. code-block:: json
@@ -62,8 +64,10 @@ by.  A date the calendar does not have, such as ``2026-02-30``, is as much a
 ``?ordering=`` accepts ``paid_at``, ``created_at``, ``completed_at``,
 ``amount_cents``, ``contribution_cents``, ``fee_cents``, ``net_cents``,
 ``reconciled_on``, ``status``, ``provider``, ``plan__name``,
-``user__last_name`` and ``user__email``, each with a ``-`` prefix for
-descending; anything else is a **400**.  The list and both exports honor it.
+``user__last_name`` and ``user__email``, each with a single ``-`` prefix for
+descending; anything else, a doubled prefix included, is a **400**.  The list
+and both exports honor it, and sort by the ledger date, newest first, when it
+is absent.
 
 
 ``GET /admin/payments``
@@ -240,8 +244,9 @@ a year the report will not look at is a **400**.
       "net_contribution_cents": 8500}
    ]
 
-A payment counts in the year its ``paid_on`` falls in, so a check counts on the
-day it was received.  ``refunded_cents`` is what went back against those
+A payment counts in the year its ledger date falls in — the same dating the
+filters and the period summary use — so a check counts in the year it was
+received, not the year it was keyed in.  ``refunded_cents`` is what went back against those
 payments, whenever the refund was taken, capped at the contribution the payment
 carried; ``net_contribution_cents`` is the difference, and is the figure an
 acknowledgment quotes.  Rows are largest net giver first, ties broken by name.
@@ -318,8 +323,16 @@ records nothing.  A body naming neither field is refused:
 
    {"non_field_errors": ["Send reconciled_on, note, or both."]}
 
-Statuses: **200**; **400** for a body the serializer refuses; **401** when
-anonymous; **403** without a finance role; **404** for an unknown id.
+So is a ``reconciled_on`` later than today: no statement has been issued for it
+yet.
+
+.. code-block:: json
+
+   {"reconciled_on": ["A payment cannot have been matched in the future."]}
+
+Statuses: **200**; **400** for a body the serializer refuses, a future
+``reconciled_on`` included; **401** when anonymous; **403** without a finance
+role; **404** for an unknown id.
 
 
 ``POST /admin/payments/record``
@@ -328,7 +341,7 @@ anonymous; **403** without a finance role; **404** for an unknown id.
 Money that arrived by check, cash or bank transfer.  The payment is created
 already succeeded with provider ``manual``, a zero fee and a net equal to the
 amount, and whatever term it bought is activated through the same service a
-card checkout uses — which also emails the member their receipt.
+card checkout uses.
 
 .. code-block:: json
 

@@ -195,17 +195,18 @@ a particular day — a check that arrived last month, say.
 Payments
 --------
 
-This member's whole money history: what they have paid, given and been charged
-in provider fees over every year, then every payment — the date, what it was
-for, the membership portion, any contribution on top, the total, the fee, what
-has gone back in refunds, the provider and the outcome.  Their automatic
-renewal, if they have one, is on the same tab, as are the years they can
-download a contribution statement for.
+Every payment this member has made: the date, what it was for, the membership
+portion, any contribution on top, the total, the provider and the outcome.
+The provider's fee, the refunds against a payment, the lifetime totals, the
+automatic renewal and the contribution statements are finance detail, and the
+member record does not carry them.
 
 Terms you grant by hand have no payment attached, so they do not appear here.
-For the organization-wide ledger, the period totals, the reconciliation table
-and the year-end contributions list, use **Payments** in the menu; that area is
-also open to a treasurer, who reaches the money without reaching this record.
+For the fees, the refunds, the renewal and the statement years — and for the
+organization-wide ledger, the period totals, the reconciliation table and the
+year-end contributions list — use **Payments** in the menu, and open the member
+from there.  That area is also open to a treasurer, who reaches the money
+without reaching this record.
 
 Danger zone
 -----------

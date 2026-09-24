@@ -89,8 +89,8 @@ async function ledgerTotals(page: Page): Promise<LedgerTotals> {
   expect(download.suggestedFilename()).toMatch(/\.csv$/);
   const records = parseCsv(await readFile(await download.path(), 'utf8'));
   const header = records[0] ?? [];
-  expect(header.slice(0, 4)).toEqual(['paid_on', 'name', 'email', 'plan']);
-  const statusColumn = header.indexOf('status');
+  expect(header.slice(0, 4)).toEqual(['Date', 'Name', 'Email', 'Plan']);
+  const statusColumn = header.indexOf('Status');
   expect(statusColumn).toBeGreaterThan(-1);
 
   const rows = records.slice(1);

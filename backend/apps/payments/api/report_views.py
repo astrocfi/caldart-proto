@@ -98,17 +98,23 @@ def report_query(request: Request) -> PaymentReportQuerySerializer:
 def requested_ordering(request: Request) -> list[str]:
     """The ``order_by`` arguments ``?ordering=`` asks for.
 
-    Newest money first when the parameter is absent, and a leading ``-``
-    reverses.  The id breaks ties, so paging is stable.  Raises DRF's
+    Newest money first when the parameter is absent -- by the ledger date, then
+    by the moment the payment settled -- and a single leading ``-`` reverses.
+    The id breaks ties, so paging is stable.  Raises DRF's
     ``ValidationError`` keyed by ``ordering``, saying ``Cannot order by
     '<field>'.``, for a field outside
     :data:`apps.payments.reports.ORDERING_FIELDS`.
     """
     requested = (request.query_params.get("ordering") or "").strip()
-    field = requested.lstrip("-")
-    if field and field not in reports.ORDERING_FIELDS:
+    # One leading "-" is the reversal Django understands; anything else -- a
+    # doubled prefix, a bare "-" -- is a field name the queryset cannot resolve,
+    # so it is refused here rather than raising ``FieldError`` from ``order_by``.
+    field = requested[1:] if requested.startswith("-") else requested
+    if requested and field not in reports.ORDERING_FIELDS:
         raise ValidationError({"ordering": f"Cannot order by '{field}'."})
-    return [requested or "-paid_at", "-id"]
+    if not requested:
+        return [*reports.DEFAULT_ORDERING, "-id"]
+    return [requested, "-id"]
 
 
 def filtered_payments(request: Request) -> QuerySet[Payment]:
@@ -489,11 +495,10 @@ class AdminPaymentRecordView(APIView):
     def post(self, request: Request) -> Response:
         """201 with the payment, which is already succeeded and has bought its term.
 
-        The member is emailed the same receipt a card payment earns.  400 keyed by
-        the field at fault for an unusable body -- an unknown method, a date in
-        the future, a reference another recorded payment carries, an inactive
-        plan, or a plan and contribution that come to nothing -- and 404 for an
-        unknown member.
+        400 keyed by the field at fault for an unusable body -- an unknown method,
+        a date in the future, a reference another recorded payment carries, an
+        inactive plan, or a plan and contribution that come to nothing -- and 404
+        for an unknown member.
         """
         serializer = ManualPaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

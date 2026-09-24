@@ -7,9 +7,11 @@ payment list answers "which payments", and this answers "how much, and how much
 is still unmatched".
 
 Two dating rules make the rows add up against a statement.  A payment is dated
-by ``paid_at`` -- when the money arrived.  A refund is dated by ``refunded_at``
--- when the money went back -- which is not always the same period, so a refund
-of a January payment taken in February belongs to February here.
+by ``paid_date`` -- the day the money arrived, which for a check is the day it
+was received rather than the day it was keyed in.  A refund is dated by
+``refunded_at`` -- when the money went back -- which is not always the same
+period, so a refund of a January payment taken in February belongs to February
+here.
 """
 
 from __future__ import annotations
@@ -97,9 +99,9 @@ def received_payments(
     """
     queryset = base_queryset().filter(status__in=RECEIVED_STATUSES)
     if date_from:
-        queryset = queryset.filter(paid_at__date__gte=date_from)  # type: ignore[misc]
+        queryset = queryset.filter(paid_date__gte=date_from)  # type: ignore[misc]
     if date_to:
-        queryset = queryset.filter(paid_at__date__lte=date_to)  # type: ignore[misc]
+        queryset = queryset.filter(paid_date__lte=date_to)  # type: ignore[misc]
     if provider:
         queryset = queryset.filter(provider=provider)
     return queryset
@@ -135,7 +137,9 @@ def _payment_buckets(payments: QuerySet[Payment], group: str) -> dict[str, Recon
         return {row["provider"]: _bucket(row["provider"], row) for row in by_provider}
 
     by_period = (
-        payments.annotate(period=GROUPS[group]("paid_at")).values("period").annotate(**_AGGREGATES)
+        payments.annotate(period=GROUPS[group]("paid_date"))
+        .values("period")
+        .annotate(**_AGGREGATES)
     )
     return {
         row["period"].strftime(PERIOD_FORMAT[group]): _bucket(

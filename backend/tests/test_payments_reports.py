@@ -10,6 +10,8 @@ from __future__ import annotations
 import datetime as dt
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -18,7 +20,14 @@ from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from tests.conftest import Golden, PdfText, csv_body, read_csv, role_matrix
-from tests.factories import MembershipFactory, PaymentFactory, RefundFactory, UserFactory
+from tests.factories import (
+    MembershipFactory,
+    PaymentFactory,
+    RefundFactory,
+    RenewalAttemptFactory,
+    RenewalMandateFactory,
+    UserFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -192,12 +201,43 @@ def test_list_orders_by_amount(
     assert amounts == sorted(amounts, reverse=True)
 
 
+@pytest.mark.parametrize("ordering", ["user__password", "--paid_at", "-"])
 def test_list_rejects_a_bad_ordering_field(
-    api_client: APIClient, account_admin: User, history: list[Payment]
+    api_client: APIClient, account_admin: User, history: list[Payment], ordering: str
 ) -> None:
-    """Ordering by a field outside the allowed set is refused."""
+    """Ordering by anything outside the allowed set is refused, not a 500."""
     api_client.force_login(account_admin)
-    assert api_client.get(LIST, {"ordering": "user__password"}).status_code == 400
+    assert api_client.get(LIST, {"ordering": ordering}).status_code == 400
+
+
+def test_list_dates_a_recorded_payment_by_the_day_it_was_received(
+    treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A check keyed in during March but received in February filters as February."""
+    payment = make_payment(
+        member, annual_plan, when=paid_at(2026, 3, 9), provider=PaymentProvider.MANUAL
+    )
+    Payment.objects.filter(pk=payment.pk).update(received_on=dt.date(2026, 2, 27))
+    body = treasurer_client.get(LIST, {"from": "2026-02-01", "to": "2026-02-28"}).json()
+    assert [row["id"] for row in body["results"]] == [payment.pk]
+
+
+def test_list_runs_the_same_queries_however_many_payments_it_holds(
+    treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Serializing one more payment, renewal attempt and all, costs no more queries."""
+    mandate = RenewalMandateFactory(user=member)
+    first = make_payment(member, annual_plan, when=paid_at(2026, 2, 2))
+    RenewalAttemptFactory(mandate=mandate, payment=first)
+    with CaptureQueriesContext(connection) as one_row:
+        assert treasurer_client.get(LIST).status_code == 200
+
+    second = make_payment(member, annual_plan, when=paid_at(2026, 2, 3))
+    RenewalAttemptFactory(mandate=mandate, payment=second)
+    with CaptureQueriesContext(connection) as two_rows:
+        assert treasurer_client.get(LIST).status_code == 200
+
+    assert len(two_rows) == len(one_row)
 
 
 def test_list_rejects_a_bad_date(
@@ -467,6 +507,18 @@ def test_export_dates_a_recorded_payment_by_the_day_it_was_received(
     )
     Payment.objects.filter(pk=payment.pk).update(received_on=dt.date(2026, 2, 27))
     assert read_csv(treasurer_client.get(EXPORT))[1][0] == "2026-02-27"
+
+
+def test_the_summary_counts_a_recorded_payment_in_the_month_it_arrived(
+    treasurer_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A check received in February is February's money, whenever it was keyed in."""
+    payment = make_payment(
+        member, annual_plan, when=paid_at(2026, 3, 9), provider=PaymentProvider.MANUAL
+    )
+    Payment.objects.filter(pk=payment.pk).update(received_on=dt.date(2026, 2, 27))
+    periods = [row["period"] for row in treasurer_client.get(SUMMARY).json()]
+    assert periods == ["2026-02"]
 
 
 # --------------------------------------------------------------------------

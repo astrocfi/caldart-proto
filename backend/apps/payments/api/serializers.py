@@ -558,8 +558,12 @@ class FinancePaymentSerializer(serializers.ModelSerializer[Payment]):
 
     @extend_schema_field(PaymentRenewalAttemptSerializer(allow_null=True))
     def get_renewal_attempt(self, obj: Payment) -> dict[str, Any] | None:
-        """The automatic charge behind it, or ``None`` when a person paid it."""
-        attempt = obj.renewal_attempts.first()
+        """The automatic charge behind it, or ``None`` when a person paid it.
+
+        Read from the prefetched attempts rather than with a query of its own, so
+        a page of the list costs the same as a single row.
+        """
+        attempt = next(iter(obj.renewal_attempts.all()), None)
         if attempt is None:
             return None
         return dict(PaymentRenewalAttemptSerializer(attempt).data)
@@ -580,11 +584,18 @@ class PaymentPatchSerializer(serializers.Serializer[dict[str, Any]]):
 
     ``reconciled_on`` is the day the payment was matched to a statement, or
     ``null`` to un-match it; ``note`` is the treasurer's own line.  Sending
-    neither is a 400: the request would change nothing.
+    neither is a 400: the request would change nothing, and so is a
+    ``reconciled_on`` later than today.
     """
 
     reconciled_on = serializers.DateField(required=False, allow_null=True)
     note = serializers.CharField(required=False, allow_blank=True, max_length=255)
+
+    def validate_reconciled_on(self, value: dt.date | None) -> dt.date | None:
+        """Return ``value``, or refuse a day no statement can have carried yet."""
+        if value is not None and value > timezone.localdate():
+            raise serializers.ValidationError("A payment cannot have been matched in the future.")
+        return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """Return ``attrs``, or refuse a body that names neither field."""
