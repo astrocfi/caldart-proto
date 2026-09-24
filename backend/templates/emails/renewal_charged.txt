@@ -1,0 +1,14 @@
+{{ org_name }} — your membership has been renewed
+
+Hello {{ first_name }},
+
+We have charged {{ amount }} to {{ method_label }} and renewed your {{ plan_name }}
+membership.{% if expires_on %} It is now good through {{ expires_on|date:"F j, Y" }}.{% endif %}
+
+Your receipt, and every payment you have made, are in the portal:
+{{ payments_url }}
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because you are a member of {{ org_name }}.

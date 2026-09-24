@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, TypedDict
 
 from django.http import HttpRequest, HttpResponse
 
-from apps.payments.models import Payment, PaymentProvider, Refund
+from apps.payments.models import Payment, PaymentProvider, Refund, RenewalMandate
 
 
 class PaymentError(RuntimeError):
@@ -27,6 +27,36 @@ class ProviderUnavailableError(PaymentError):
     the pending :class:`~apps.payments.models.Payment` it had just created, and
     a confirmation leaves the payment pending for another attempt.
     """
+
+
+class PaymentDeclinedError(PaymentError):
+    """The provider refused a charge it was asked to take off-session.
+
+    The message is the provider's own reason, written for the member -- "Your
+    card was declined", "Your card has expired" -- because it is what the
+    renewal attempt keeps in ``error`` and what the failure email quotes.
+    """
+
+
+@dataclass(frozen=True)
+class MandateMethod:
+    """The saved payment method behind a standing renewal authority.
+
+    ``customer_ref`` and ``method_ref`` are the provider's own handles -- a
+    Stripe customer and payment method, a PayPal payer and vault id -- and the
+    four card fields are empty or ``None`` for a method that is not a card, such
+    as a PayPal balance.  ``label`` is the one line the member reads, and ``raw``
+    is whatever the provider said, kept on the mandate for support questions.
+    """
+
+    method_ref: str
+    label: str
+    customer_ref: str = ""
+    brand: str = ""
+    last4: str = ""
+    exp_month: int | None = None
+    exp_year: int | None = None
+    raw: dict[str, Any] = field(default_factory=dict)
 
 
 class PaymentVerificationError(PaymentError):
@@ -72,7 +102,9 @@ class Provider:
     UI; ``confirm`` verifies server-side and marks the payment succeeded;
     ``refund`` gives money back; ``handle_webhook`` processes an asynchronous
     notification, and ``fetch_fees`` asks the provider again what a settled
-    payment cost.
+    payment cost.  The mandate calls -- ``start_mandate``, ``confirm_mandate``,
+    ``charge_mandate`` and ``method_from_payment`` -- save a payment method and
+    charge it off-session for automatic renewal.
     """
 
     slug: str = ""
@@ -133,6 +165,49 @@ class Provider:
         that the fee was zero -- and leaves whatever is already recorded alone.
         The default answers ``None``, which is right for a backend that reports
         no fee at all.
+        """
+        return None
+
+    # ------------------------------------------------------------- mandates
+    def start_mandate(self, mandate: RenewalMandate) -> dict[str, Any]:
+        """Begin saving a payment method for ``mandate``, without charging anything.
+
+        Returns the parameters the browser needs to collect the method -- a Stripe
+        SetupIntent's client secret, a PayPal setup token -- and stores whatever
+        handle the provider issued on the mandate, such as ``customer_ref``.
+        Raises ``NotImplementedError``: a provider that can hold a mandate defines it.
+        """
+        raise NotImplementedError
+
+    def confirm_mandate(self, mandate: RenewalMandate, **kwargs: Any) -> MandateMethod:
+        """Read back the method the member just saved, verified with the provider.
+
+        The keyword arguments are the provider's handle on what the browser did,
+        such as Stripe's setup intent id or PayPal's setup token.  Raises
+        :class:`PaymentVerificationError` when the provider's record does not
+        belong to this mandate, and ``NotImplementedError`` on a provider that
+        cannot hold one.
+        """
+        raise NotImplementedError
+
+    def charge_mandate(self, mandate: RenewalMandate, payment: Payment) -> None:
+        """Charge ``payment`` against the method ``mandate`` holds, off-session.
+
+        Returns ``None`` once the money has arrived and ``payment`` has been
+        marked succeeded.  Raises :class:`PaymentDeclinedError` with the
+        provider's reason when the method is refused, and
+        :class:`ProviderUnavailableError` when the provider cannot be reached;
+        neither leaves the payment succeeded.  Raises ``NotImplementedError`` on
+        a provider that cannot hold a mandate.
+        """
+        raise NotImplementedError
+
+    def method_from_payment(self, payment: Payment) -> MandateMethod | None:
+        """The method a succeeded payment saved for future use, or ``None``.
+
+        Read from the payment's own record of the charge, which is how a checkout
+        that asked for automatic renewal activates its mandate without a second
+        round trip.  ``None`` when the provider saved nothing.
         """
         return None
 

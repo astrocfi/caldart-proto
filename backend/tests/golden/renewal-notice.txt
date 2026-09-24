@@ -1,0 +1,15 @@
+CalDART — we will renew your membership on <CHARGE>
+
+Hello Dana,
+
+Your Annual membership runs out on <EXPIRES>. Because you asked
+us to renew it automatically, we will charge $45.00 to Test card ending 4242, expires 12/2030 on
+<CHARGE>, and your coverage will carry straight on.
+
+Nothing to do if that is right. If it is not — a different card, a different
+contribution, or no automatic renewal at all — change it here before that date:
+http://localhost:8000/portal/payments
+
+--
+CalDART is a volunteer disaster air transportation network.
+You are receiving this because you are a member of CalDART.

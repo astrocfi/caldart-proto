@@ -1,0 +1,17 @@
+{{ org_name }} — automatic renewal is on
+
+Hello {{ first_name }},
+
+Your {{ plan_name }} membership will renew itself from now on. We will charge
+{{ amount }} to {{ method_label }}{% if charge_on %} on {{ charge_on|date:"F j, Y" }}{% endif %}, and again each
+year after that.
+
+You will get an email fourteen days before every charge, so nothing happens
+without warning. You can change the contribution or turn automatic renewal off
+at any time:
+{{ payments_url }}
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because you are a member of {{ org_name }}.

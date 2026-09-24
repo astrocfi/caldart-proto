@@ -1,0 +1,15 @@
+{{ org_name }} — the card we renew your membership with expires soon
+
+Hello {{ first_name }},
+
+The card we have on file for your automatic renewal, {{ method_label }}, expires
+on {{ expires_on|date:"F j, Y" }}. The next renewal is due on {{ charge_on|date:"F j, Y" }}, which is
+after that, so the charge would be declined.
+
+Save a new card here and the renewal will go through as planned:
+{{ payments_url }}
+
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because you are a member of {{ org_name }}.

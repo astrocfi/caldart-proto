@@ -1,0 +1,14 @@
+CalDART — we could not renew your membership
+
+Hello Dana,
+
+We tried to charge $45.00 to Test card ending 0002, expires 12/2030 to renew your Annual
+membership, and it was refused. The reason we were given: Your card was declined.
+
+We will try again on <RETRY>. You do not have to do anything, but
+if the card has changed, saving the new one now will save that attempt:
+http://localhost:8000/portal/payments
+
+--
+CalDART is a volunteer disaster air transportation network.
+You are receiving this because you are a member of CalDART.

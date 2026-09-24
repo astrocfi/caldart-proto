@@ -1,0 +1,30 @@
+{% extends "emails/renewal_base.html" %}
+
+{% block preheader %}The card saved for your automatic renewal was refused: {{ error }}.{% endblock %}
+
+{% block heading %}We could not renew your membership{% endblock %}
+
+{% block lede %}{{ method_label }} was refused: {{ error }}.{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  <p style="margin:0 0 14px 0;">
+    We tried to charge {{ amount }} to {{ method_label }} to renew your
+    {{ plan_name }} membership, and it was refused.
+  </p>
+  {% if next_on %}
+    <p style="margin:0 0 14px 0;">
+      We will try again on {{ next_on|date:"F j, Y" }}. You do not have to do
+      anything, but if the card has changed, saving the new one now will save
+      that attempt.
+    </p>
+  {% else %}
+    <p style="margin:0 0 14px 0;">
+      That was the last attempt, so automatic renewal is off and we will send you
+      the ordinary renewal reminders instead. You can renew by hand, or turn
+      automatic renewal back on with another card.
+    </p>
+  {% endif %}
+{% endblock %}
+
+{% block cta_label %}Update your payment method{% endblock %}

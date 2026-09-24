@@ -1,0 +1,22 @@
+{% extends "emails/renewal_base.html" %}
+
+{% block preheader %}We will charge {{ amount }} on {{ charge_on|date:"F j, Y" }} to renew your {{ plan_name }} membership.{% endblock %}
+
+{% block heading %}Renewing on {{ charge_on|date:"F j, Y" }}{% endblock %}
+
+{% block lede %}Your {{ plan_name }} membership runs out on {{ expires_on|date:"F j, Y" }}.{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
+  <p style="margin:0 0 14px 0;">
+    Because you asked us to renew it automatically, we will charge {{ amount }} to
+    {{ method_label }} on {{ charge_on|date:"F j, Y" }}, and your coverage will carry
+    straight on.
+  </p>
+  <p style="margin:0 0 14px 0;">
+    Nothing to do if that is right. If it is not — a different card, a different
+    contribution, or no automatic renewal at all — change it before that date.
+  </p>
+{% endblock %}
+
+{% block cta_label %}Change or cancel{% endblock %}
