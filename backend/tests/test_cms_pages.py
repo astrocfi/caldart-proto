@@ -6,12 +6,9 @@ reach them without depending on another test module.
 
 from __future__ import annotations
 
-from datetime import timedelta
-
 import pytest
 from django.template.loader import render_to_string
 from django.test import Client
-from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.cms.context_processors import PORTAL_TITLE, build_nav
@@ -24,6 +21,8 @@ from tests.factories import (
     make_contact_page,
     make_dart_index,
     make_dart_page,
+    make_event_index,
+    make_event_page,
     make_news_index,
     make_news_page,
     make_standard_page,
@@ -96,18 +95,14 @@ def test_home_page_sidebar_lists_the_next_three_events(
 ) -> None:
     """The events box shows the three soonest events still ahead, in date order."""
     home = site_settings.site.root_page.specific
-    today = timezone.localdate()
-    home.upcoming_events = [
-        ("event", {"date": today + timedelta(days=60), "title": "Leaders meeting"}),
-        ("event", {"date": today - timedelta(days=1), "title": "Yesterday's drill"}),
-        ("event", {"date": today + timedelta(days=5), "title": "Ground crew workshop"}),
-        ("event", {"date": today + timedelta(days=30), "title": "Radio drill"}),
-        ("event", {"date": today + timedelta(days=90), "title": "Spring exercise"}),
-    ]
-    home.save()
-    home.save_revision().publish()
+    index = make_event_index(home)
+    make_event_page(index, "leaders", "Leaders meeting", days_ahead=60)
+    make_event_page(index, "yesterday", "Yesterday's drill", days_ahead=-1)
+    make_event_page(index, "ground", "Ground crew workshop", days_ahead=5)
+    make_event_page(index, "radio", "Radio drill", days_ahead=30)
+    make_event_page(index, "spring", "Spring exercise", days_ahead=90)
 
-    assert [block.value["title"] for block in home.events_soon] == [
+    assert [event.title for event in home.events_soon] == [
         "Ground crew workshop",
         "Radio drill",
         "Leaders meeting",
@@ -120,15 +115,36 @@ def test_home_page_sidebar_lists_the_next_three_events(
     assert "Spring exercise" not in body
 
 
+def test_home_page_sidebar_counts_today_as_still_ahead(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """An event dated today has not happened yet, so it is still listed."""
+    home = site_settings.site.root_page.specific
+    index = make_event_index(home)
+    make_event_page(index, "today", "Ramp session", days_ahead=0)
+
+    assert [event.title for event in home.events_soon] == ["Ramp session"]
+
+
+def test_home_page_sidebar_links_each_event_to_its_own_page(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """Every event in the box is a link to the event's page."""
+    home = site_settings.site.root_page.specific
+    index = make_event_index(home)
+    event = make_event_page(index, "ground", "Ground crew workshop", days_ahead=5)
+
+    body = client.get("/").content.decode()
+    assert f'href="{event.url}"' in body
+
+
 def test_home_page_hides_the_events_box_when_every_event_has_passed(
     client: Client, site_settings: SiteSettings
 ) -> None:
     """With nothing ahead the box disappears rather than standing empty."""
     home = site_settings.site.root_page.specific
-    yesterday = timezone.localdate() - timedelta(days=1)
-    home.upcoming_events = [("event", {"date": yesterday, "title": "Last year's drill"})]
-    home.save()
-    home.save_revision().publish()
+    index = make_event_index(home)
+    make_event_page(index, "last-year", "Last year's drill", days_ahead=-1)
 
     assert home.events_soon == []
     assert "Upcoming events" not in client.get("/").content.decode()
@@ -518,7 +534,7 @@ def test_nav_lists_menu_pages_then_the_portal_actions(
     request = client.get("/").wsgi_request
     entries = build_nav(request)
 
-    assert [e["title"] for e in entries] == ["Home", "About Us", "Log in"]
+    assert [e["title"] for e in entries] == ["Home", "About Us", "Sign in"]
     assert [e["kind"] for e in entries] == ["page", "page", "portal"]
     assert entries[0]["url"] == "/"
     assert [child["title"] for child in entries[1]["children"]] == ["History"]
@@ -539,8 +555,25 @@ def test_a_members_only_page_sits_beside_the_portal_link(
 
     entries = build_nav(client.get("/").wsgi_request)
 
-    assert [e["title"] for e in entries] == ["Home", "About Us", "Members Only", "Log in"]
+    assert [e["title"] for e in entries] == ["Home", "About Us", "Members Only", "Sign in"]
     assert [e["kind"] for e in entries] == ["page", "page", "portal", "portal"]
+
+
+def test_a_members_only_page_carries_its_own_children(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The members entry gets a drop-down of its subpages, as a section does."""
+    home = site_settings.site.root_page.specific
+    members = make_standard_page(
+        home, "members", "Members Only", show_in_menus=True, members_only=True
+    )
+    make_standard_page(members, "notices", "Notices", show_in_menus=True, members_only=True)
+    make_standard_page(members, "docs", "Documents", show_in_menus=True, members_only=True)
+
+    entries = build_nav(client.get("/").wsgi_request)
+    members_entry = next(entry for entry in entries if entry["title"] == "Members Only")
+
+    assert [child["title"] for child in members_entry["children"]] == ["Notices", "Documents"]
 
 
 def test_the_portal_link_greets_a_signed_in_visitor_by_name(
@@ -561,12 +594,12 @@ def test_the_portal_link_greets_a_signed_in_visitor_by_name(
 def test_nav_shows_the_portal_instead_of_log_in_when_signed_in(
     client: Client, site_settings: SiteSettings, member: User
 ) -> None:
-    """A signed-in visitor sees the portal link in place of "Log in"."""
+    """A signed-in visitor sees the portal link in place of "Sign in"."""
     client.force_login(member)
     body = client.get("/").content.decode()
     assert 'href="/portal/"' in body
-    assert 'href="/portal/"' in body
-    assert ">Log in</a>" not in body
+    assert 'href="/portal/login"' not in body
+    assert ">Sign in</a>" not in body
 
 
 def test_nav_marks_the_current_section(client: Client, site_settings: SiteSettings) -> None:

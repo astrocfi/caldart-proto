@@ -209,10 +209,12 @@ CMS page models
           BasePage [label="cms.BasePage (abstract)\l  base_form_class =\l    RestrictedBlocksPageForm\l  body_headings\l  show_on_this_page\l", style="rounded,dashed"];
           MembersOnly [label="cms.MembersOnlyMixin (abstract)\l  members_only\l  serve(): members-only wall, 403\l", style="rounded,dashed"];
 
-          Home [label="cms.HomePage\l  hero_heading, hero_lede,\l  hero_image_caption, CTAs,\l  mission, welcome_body,\l  upcoming_events, missions_flown,\l  tax status\l"];
+          Home [label="cms.HomePage\l  hero_heading, hero_lede,\l  hero_image_caption, CTAs,\l  mission, welcome_body,\l  missions_flown, tax status\l"];
           Standard [label="cms.StandardPage\l  intro, body\l"];
           NewsIndex [label="cms.NewsIndexPage\l  intro\l"];
           News [label="cms.NewsPage\l  date, intro, body\l"];
+          EventIndex [label="cms.EventIndexPage\l  intro\l"];
+          Event [label="cms.EventPage\l  date, time, location,\l  intro, body\l"];
           DartIndex [label="cms.DartIndexPage\l  intro, body\l"];
           DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
           Contact [label="cms.ContactPage\l  intro, body\l"];
@@ -229,6 +231,8 @@ CMS page models
           NewsIndex -> BasePage [arrowhead=empty];
           News -> BasePage [arrowhead=empty];
           News -> MembersOnly [arrowhead=empty];
+          EventIndex -> BasePage [arrowhead=empty];
+          Event -> BasePage [arrowhead=empty];
           DartIndex -> BasePage [arrowhead=empty];
           DartPage -> BasePage [arrowhead=empty];
           Contact -> BasePage [arrowhead=empty];
@@ -254,7 +258,8 @@ CMS page models
                              body_headings, show_on_this_page
                              inherits wagtailcore.Page; inherited by HomePage,
                              StandardPage, NewsIndexPage, NewsPage,
-                             DartIndexPage, DartPage, and ContactPage
+                             EventIndexPage, EventPage, DartIndexPage,
+                             DartPage, and ContactPage
       cms.MembersOnlyMixin   members_only; serve() renders the members-only
                              wall with HTTP 403
                              mixed into StandardPage and NewsPage
@@ -276,6 +281,9 @@ CMS page models
           |        |                       |
           |        |                    DartPage --> darts.Dart
           |        |                                 (dart, SET_NULL)
+          |        |
+          |     EventIndexPage, EventPage, and ContactPage inherit
+          |     cms.BasePage too, with no members-only mixin
           |        '--> wagtailimages.Image  (image, SET_NULL)
           '-----------> wagtailimages.Image  (hero_image, SET_NULL)
 
@@ -287,11 +295,13 @@ CMS page models
       --------------------------
       wagtailcore.Page     title, slug, live, path
       cms.HomePage         hero_heading, hero_lede, hero_image_caption, the
-                           three CTAs, mission, welcome_body, upcoming_events,
-                           missions_flown, tax status
+                           three CTAs, mission, welcome_body, missions_flown,
+                           tax status
       cms.StandardPage     intro, body
       cms.NewsIndexPage    intro
       cms.NewsPage         date, intro, body
+      cms.EventIndexPage   intro
+      cms.EventPage        date, time, location, intro, body
       cms.DartIndexPage    intro, body
       cms.DartPage         leader_name, leader_contact, body
       cms.ContactPage      intro, body
@@ -307,6 +317,8 @@ CMS page models
       cms.StandardPage         inherits cms.BasePage, cms.MembersOnlyMixin
       cms.NewsIndexPage        inherits cms.BasePage
       cms.NewsPage             inherits cms.BasePage, cms.MembersOnlyMixin
+      cms.EventIndexPage       inherits cms.BasePage
+      cms.EventPage            inherits cms.BasePage
       cms.DartIndexPage        inherits cms.BasePage
       cms.DartPage             inherits cms.BasePage
       cms.ContactPage          inherits cms.BasePage
@@ -1039,14 +1051,18 @@ not use it, and the ``body_headings`` used to build the "on this page" rail):
      - Notes
    * - ``HomePage``
      - the welcome box (heading, lede, captioned image, mission statement
-       , ``welcome_body``, and three CTAs), ``upcoming_events`` and
-       ``missions_flown`` (StreamFields of ``event`` and ``mission`` blocks),
-       tax status, and the three latest news posts.  Only under the tree root.
+       , ``welcome_body``, and three CTAs), ``missions_flown`` (a StreamField
+       of ``mission`` blocks), tax status, the three latest news posts, and
+       the three soonest events.  Only under the tree root.
    * - ``StandardPage``
      - ``intro`` plus a ``body`` StreamField.  Members-only capable.
    * - ``NewsIndexPage`` / ``NewsPage``
      - ``NewsPage`` adds ``date``, ``intro``, ``image``, ``body``, and may only
        live under a ``NewsIndexPage``.  Members-only capable.
+   * - ``EventIndexPage`` / ``EventPage``
+     - ``EventPage`` adds ``date``, ``time``, ``location``, ``intro``, and
+       ``body``, and may only live under an ``EventIndexPage``.  The index
+       lists everything upcoming and paginates what has passed.
    * - ``DartIndexPage`` / ``DartPage``
      - ``DartPage`` has a nullable ``SET_NULL`` FK to ``darts.Dart`` —
        airport identifier and city are read from it — plus ``leader_name``

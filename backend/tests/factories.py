@@ -19,6 +19,8 @@ from apps.cms.models import (
     ContactPage,
     DartIndexPage,
     DartPage,
+    EventIndexPage,
+    EventPage,
     HomePage,
     NewsIndexPage,
     NewsPage,
@@ -327,6 +329,21 @@ def make_news_page(
     """Publish a ``NewsPage`` dated ``days_ago`` days before today and return it."""
     fields.setdefault("date", timezone.localdate() - timedelta(days=days_ago))
     return publish(parent, NewsPage(title=title, slug=slug, **fields))
+
+
+def make_event_index(
+    parent: Page, slug: str = "events", title: str = "Events", **fields: Any
+) -> EventIndexPage:
+    """Publish an ``EventIndexPage`` named ``title`` under ``parent`` and return it."""
+    return publish(parent, EventIndexPage(title=title, slug=slug, **fields))
+
+
+def make_event_page(
+    parent: Page, slug: str, title: str, *, days_ahead: int = 0, **fields: Any
+) -> EventPage:
+    """Publish an ``EventPage`` dated ``days_ahead`` days from today and return it."""
+    fields.setdefault("date", timezone.localdate() + timedelta(days=days_ahead))
+    return publish(parent, EventPage(title=title, slug=slug, **fields))
 
 
 def make_dart_index(

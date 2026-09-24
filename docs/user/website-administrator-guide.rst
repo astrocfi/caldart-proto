@@ -42,16 +42,18 @@ page.  Choose **Pages** in the left-hand menu to walk the tree::
 
     Home
       About Us
+        How It Works
         History
         DARTs                       one page per team
         Directors and Officers
       News                          the index; posts live under it
+      Events                        the calendar; events live under it
       Join CalDART
       Donate
       Sponsors
       Contact Us
-      Members                       members only
-        Members Only
+      Members Only                  members only
+        Notices
         Documents and Links
 
 Page types
@@ -67,6 +69,13 @@ a page:
 ``News index`` / ``News post``
     The index lists the posts below it, newest first, eight to a page.  A post
     has a date, an intro, an optional lead image and a body.
+
+``Event index`` / ``Event``
+    The calendar. An event has a date, the time it runs ("9 am to 1 pm"), where
+    it is, a one-line intro for the listing, and a body for the details. The
+    index lists everything still ahead in full, then what has already happened,
+    twenty to a page. The home page's sidebar picks up the three soonest by
+    itself.
 
 ``DART index`` / ``DART page``
     The index renders the teams as a table — name, airport, city, leader.  A
@@ -84,10 +93,30 @@ a page:
     below it and three buttons, the first of which is the red one asking for
     air support.  Below that it lists the three most recent news posts
     automatically, then the missions CalDART has flown, which you write as
-    year-and-description blocks.  The sidebar carries the events you add --
-    each one a date, a title, where it is, and the page with the details --
-    and an event whose date has passed stops showing by itself.  The
-    tax-status note is shown in the membership box below them.
+    year-and-description blocks.  The sidebar picks up the three soonest
+    events from the calendar by itself, and an event whose date has passed
+    drops off it.  The tax-status note is shown in the membership box below
+    them.
+
+
+Putting an event on the calendar
+--------------------------------
+
+#. Open **Pages**, then **Events**, and choose **Add child page**.
+#. Give it a title — what people will see in the sidebar and on the calendar.
+#. Fill in the **Event date**. That date alone decides where the event
+   appears: today or later puts it under *Coming up* and in the home page's
+   sidebar, and yesterday or earlier moves it to *Already happened*. Nothing
+   has to be tidied away afterwards.
+#. **Time** and **Location** are free text and both optional: "9 am to 1 pm"
+   and "Reid-Hillview (KRHV)" read together as one line.
+#. **Intro** is the one line shown in the calendar listing; the **Body** is
+   everything else, built from the same blocks as any other page.
+#. **Publish**. A draft is invisible until you do.
+
+To correct an event, open it and publish again. To take one down, unpublish
+it: deleting is only worth it for something posted by mistake, since a past
+event is a record of what the network did.
 
 
 Creating, editing, and publishing
@@ -146,7 +175,7 @@ in-menu children of its own gets a drop-down listing them, which is how
 About Us offers History, DARTs, Directors and Officers, and Sponsors.
 
 Two things sit at the right-hand end: any menu page behind the members-only
-wall, and **Log in** / **Member portal**, which is not a page either.  A
+wall, and **Sign in** / **Member portal**, which is not a page either.  A
 signed-in reader is greeted there by first name.
 
 Deeper pages are still reached from their parent, which lists its children in

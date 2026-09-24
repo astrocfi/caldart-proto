@@ -63,7 +63,7 @@ def test_the_nav_matches_the_server_rendered_site(api_client: APIClient, site_tr
     """The API's nav lists the same titles, in the same order, as the rendered site."""
     data = api_client.get(URL).json()
     titles = [entry["title"] for entry in data["nav"]]
-    assert titles == ["Home", "About Us", "News", "Members", "Log in"]
+    assert titles == ["Home", "About Us", "News", "Members", "Sign in"]
     assert [entry["kind"] for entry in data["nav"][-2:]] == ["portal", "portal"]
     assert data["nav"][-1]["url"] == "/portal/login"
 
@@ -71,7 +71,7 @@ def test_the_nav_matches_the_server_rendered_site(api_client: APIClient, site_tr
 def test_signed_in_callers_see_the_portal_entry_in_the_nav(
     api_client: APIClient, site_tree: Page, member: User
 ) -> None:
-    """A signed-in caller's nav ends with the portal entry, not "Log in"."""
+    """A signed-in caller's nav ends with the portal entry, not "Sign in"."""
     api_client.force_login(member)
     titles = [entry["title"] for entry in api_client.get(URL).json()["nav"]]
     assert titles[-1] == PORTAL_TITLE
