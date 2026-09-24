@@ -221,8 +221,9 @@ For an account with no payments — a duplicate, a spam sign-up, a test record �
 the delete is permanent and takes the profile and every membership term with
 it.  There is no undo and no archive.
 
-The delete button stays disabled until you type the member's email address
-into the confirmation box.  Two further deletions are refused outright:
+The delete button — a trashcan and the words **Delete member**, as every
+delete in the portal is — stays disabled until you type the member's email
+address into the confirmation box.  Two further deletions are refused outright:
 
 * your own account; and
 * a system administrator's account, unless you are a system administrator
