@@ -81,11 +81,14 @@ it:
    the caller chose nothing, and the answer is every column whose ``default``
    is true, in registry order; otherwise it is one column per requested key, in
    the order requested.  A key no column carries raises ``ValueError`` naming
-   that key, which an endpoint answers as a 400 keyed by ``columns``.
-``dollars(cents)``
+   that key, and so does a key asked for twice — a report has one cell per
+   column — and an endpoint answers either as a 400 keyed by ``columns``.
+``money_label(cents, *, currency=True)``
    Integer cents as the dollars a reader sees: ``12345`` becomes ``$123.45``,
-   with commas between thousands.  Money is integer cents everywhere in the
-   database and the API, and this is where it becomes text.
+   with commas between thousands.  ``currency=False`` gives ``123.45`` instead,
+   the shape a CSV cell carries so the column sums in a spreadsheet.  It is text
+   for people either way; an amount bound for Stripe or PayPal is built by the
+   provider module that speaks to that API.
 ``filter_summary(filters)``
    Renders ``{"status": "current", "dart": "Napa"}`` as
    ``status: current · dart: Napa``, dropping empty values, or "No filters
@@ -144,9 +147,9 @@ a single apostrophe, the OWASP treatment: every spreadsheet strips it on
 import, and the cell reads as the text it always was.  Only strings are
 treated this way; a number or a date passes through untouched.
 
-The money columns are strings — each report renders its cents through
-``dollars`` — and they still never pick up an apostrophe, because the fields behind
-them (``amount_cents``, ``contribution_cents``, the insurance amounts) are
+The money columns are strings — each report formats its cents itself, some of
+them through ``money_label`` — and they still never pick up an apostrophe,
+because the fields behind them (``amount_cents``, ``contribution_cents``, the insurance amounts) are
 positive integer fields, so a formatted amount never opens with a sign and
 always sums correctly in the spreadsheet.  A value a member typed is the case
 the policy is for: a phone number entered as ``+1 707 555 0134`` opens with

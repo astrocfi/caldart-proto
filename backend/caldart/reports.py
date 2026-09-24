@@ -126,27 +126,42 @@ def select_columns[RowT](
     requested, so a caller decides both which columns appear and where.
 
     A key no column carries raises ``ValueError`` reading ``Unknown column:
-    <key>``, naming the first unknown key only; an endpoint turns that into a
-    400 keyed by ``columns``.
+    <key>``, naming the first unknown key only, and a key asked for twice raises
+    ``Repeated column: <key>``: a report has one cell per column, so a repeat is
+    a mistake in the request rather than a wider table.  An endpoint turns
+    either into a 400 keyed by ``columns``.
     """
     if requested is None or len(requested) == 0:
         return [column for column in columns if column.default]
     by_key = {column.key: column for column in columns}
     chosen: list[ReportColumn[RowT]] = []
+    seen: set[str] = set()
     for key in requested:
         if key not in by_key:
             raise ValueError(f"Unknown column: {key}")
+        if key in seen:
+            raise ValueError(f"Repeated column: {key}")
+        seen.add(key)
         chosen.append(by_key[key])
     return chosen
 
 
-def dollars(cents: int) -> str:
+def money_label(cents: int, *, currency: bool = True) -> str:
     """Integer cents as the dollars a reader sees, e.g. ``12345`` -> ``$123.45``.
 
-    Money is integer cents everywhere in the database and the API; this is the
-    one place it turns into dollars, for a CSV cell, a PDF cell or an email.
+    Money is integer cents everywhere in the database and the API, and this
+    turns it into the text a person reads: a PDF cell, an email, a screen.
     Thousands are separated with commas and the cents are always shown.
+    ``currency=False`` drops the dollar sign and the separators, giving
+    ``123.45``, which is what a CSV cell carries so a spreadsheet reads the
+    column as numbers.
+
+    This is text for people.  A provider payload is not: an amount bound for
+    Stripe or PayPal is built by the provider module that speaks to it, which
+    knows what that API wants.
     """
+    if not currency:
+        return f"{cents / 100:.2f}"
     return f"${cents / 100:,.2f}"
 
 

@@ -11,8 +11,8 @@ from caldart.reports import (
     ReportColumn,
     csv_response,
     csv_rows,
-    dollars,
     filter_summary,
+    money_label,
     pdf_table_response,
     select_columns,
 )
@@ -196,6 +196,12 @@ def test_select_columns_rejects_the_first_unknown_key() -> None:
         select_columns(COLUMNS, ["name", "shoe_size", "hat_size"])
 
 
+def test_select_columns_rejects_a_key_asked_for_twice() -> None:
+    """A repeated key raises ``ValueError`` naming it rather than repeating the column."""
+    with pytest.raises(ValueError, match="Repeated column: name"):
+        select_columns(COLUMNS, ["name", "email", "name"])
+
+
 def test_report_column_reads_a_row_through_its_value_function() -> None:
     """A column's ``value`` turns one row into the cell the exports write."""
     column = select_columns(COLUMNS, ["email"])[0]
@@ -208,9 +214,21 @@ def test_report_column_reads_a_row_through_its_value_function() -> None:
     [(0, "$0.00"), (5, "$0.05"), (12345, "$123.45"), (100000000, "$1,000,000.00")],
     ids=["zero", "cents-only", "dollars-and-cents", "millions"],
 )
-def test_dollars_formats_integer_cents_for_a_reader(cents: int, expected: str) -> None:
+def test_money_label_formats_integer_cents_for_a_reader(cents: int, expected: str) -> None:
     """Integer cents read as dollars with a thousands separator and two decimals."""
-    assert dollars(cents) == expected
+    assert money_label(cents) == expected
+
+
+@pytest.mark.parametrize(
+    ("cents", "expected"),
+    [(0, "0.00"), (5, "0.05"), (12345, "123.45"), (100000000, "1000000.00")],
+    ids=["zero", "cents-only", "dollars-and-cents", "millions"],
+)
+def test_money_label_without_currency_gives_a_number_a_spreadsheet_sums(
+    cents: int, expected: str
+) -> None:
+    """``currency=False`` drops the sign and the separators, for a CSV cell."""
+    assert money_label(cents, currency=False) == expected
 
 
 @pytest.mark.parametrize(

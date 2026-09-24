@@ -47,8 +47,8 @@ from caldart.reports import (
     RULE,
     SUBTITLE_STYLE,
     TITLE_STYLE,
-    dollars,
     escape_markup,
+    money_label,
 )
 
 #: The printable width of an upright US-letter page inside one-inch margins.
@@ -222,14 +222,14 @@ def build_receipt_pdf(buffer: IO[bytes], receipt: ReceiptData) -> None:
     rows.extend(
         [
             Paragraph(escape_markup(_described(line)), CELL_STYLE),
-            Paragraph(dollars(line.amount_cents), AMOUNT_STYLE),
+            Paragraph(money_label(line.amount_cents), AMOUNT_STYLE),
         ]
         for line in receipt.lines
     )
     rows.append(
         [
             Paragraph("Total", TOTAL_LABEL_STYLE),
-            Paragraph(dollars(receipt.total_cents), TOTAL_STYLE),
+            Paragraph(money_label(receipt.total_cents), TOTAL_STYLE),
         ]
     )
     story.append(_money_table(rows, widths=[5.2, 1.8]))
@@ -277,9 +277,9 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
         [
             Paragraph(line.paid_on.isoformat(), CELL_STYLE),
             Paragraph(escape_markup(line.receipt_number), CELL_STYLE),
-            Paragraph(dollars(line.amount_cents), AMOUNT_STYLE),
-            Paragraph(dollars(line.refunded_cents), AMOUNT_STYLE),
-            Paragraph(dollars(line.net_cents), AMOUNT_STYLE),
+            Paragraph(money_label(line.amount_cents), AMOUNT_STYLE),
+            Paragraph(money_label(line.refunded_cents), AMOUNT_STYLE),
+            Paragraph(money_label(line.net_cents), AMOUNT_STYLE),
         ]
         for line in statement.contributions
     )
@@ -289,7 +289,7 @@ def build_statement_pdf(buffer: IO[bytes], statement: StatementData) -> None:
             Paragraph("", CELL_STYLE),
             Paragraph("", CELL_STYLE),
             Paragraph("", CELL_STYLE),
-            Paragraph(dollars(statement.total_cents), TOTAL_STYLE),
+            Paragraph(money_label(statement.total_cents), TOTAL_STYLE),
         ]
     )
     story.append(_money_table(rows, widths=[1.2, 1.7, 1.4, 1.3, 1.4]))

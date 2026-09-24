@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import copy
+import smtplib
 from pathlib import Path
 
 import pytest
 from django.core.mail import EmailMessage
+from django.core.mail.backends.locmem import EmailBackend
 from pytest_django import Settings
 
 from caldart.mail import contact_email, org_name, send_templated
@@ -131,6 +133,38 @@ def test_send_templated_returns_the_message_it_sent(
     )
 
     assert message.to == ["marta@example.org"]
+
+
+def test_send_templated_renders_both_bodies_without_a_context(
+    email_template: str, mailoutbox: list[EmailMessage]
+) -> None:
+    """Omitting ``context`` renders the templates against nothing, not an error."""
+    send_templated(
+        to="marta@example.org",
+        subject="CalDART: your receipt",
+        template=email_template,
+    )
+
+    assert mailoutbox[0].body == "Dear , your total is .\n"
+
+
+def test_send_templated_raises_when_the_mail_server_refuses_the_message(
+    email_template: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A refusal reaches the caller, which is how a receipt knows it was not sent."""
+
+    def refuse(self: EmailBackend, email_messages: list[EmailMessage]) -> int:
+        raise smtplib.SMTPException("Mailbox unavailable")
+
+    monkeypatch.setattr(EmailBackend, "send_messages", refuse)
+
+    with pytest.raises(smtplib.SMTPException, match="Mailbox unavailable"):
+        send_templated(
+            to="marta@example.org",
+            subject="CalDART: your receipt",
+            template=email_template,
+            context=CONTEXT,
+        )
 
 
 def test_org_name_falls_back_when_there_is_no_site_settings_row() -> None:

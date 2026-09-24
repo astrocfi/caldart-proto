@@ -289,14 +289,13 @@ Subject lines are *not* in the templates; they are in ``SUBJECTS`` in
 ``services.py``, keyed by kind, with ``{org}`` and ``{days}`` substituted.
 
 ``org_name`` and ``contact_email`` come from ``org_name()`` and
-``contact_email()`` in ``backend/caldart/mail.py``, which every email in the
-application reads them from, so one organization name reaches a reminder, a
-receipt and a renewal notice alike.  Both fall back gracefully: the name to
-``CalDART`` and the address to an empty string, which the templates leave out
-rather than printing blank.  ``send_templated`` in that same module renders and
-sends a ``.txt``/``.html`` pair the way this scanner does, with attachments
-where a document rides along; see :ref:`reports-receipts` for the receipt PDF it
-carries.
+``contact_email()`` in ``backend/caldart/mail.py``, so one organization name and
+one contact address reach every email that reads them from there.  Both fall
+back: the name to ``CalDART`` and the address to an empty string, which the
+templates leave out rather than printing blank.  ``send_templated`` in that same
+module renders and sends a ``.txt``/``.html`` pair the way this scanner does,
+and attaches a document where one rides along; see :ref:`reports-receipts` for
+the receipt PDF.
 
 Every kind but ``expired`` states ``days`` in its subject and its body, so the
 wording follows the dates when a reminder goes out behind its nominal day.
