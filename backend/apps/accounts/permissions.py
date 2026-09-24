@@ -15,7 +15,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, USER_ADMIN
+from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER, USER_ADMIN
 
 
 def user_has_any_role(user: User | AnonymousUser | None, slugs: tuple[str, ...]) -> bool:
@@ -67,3 +67,8 @@ def HasRole(slug: str) -> type[_RolePermission]:  # noqa: N802 - DRF style
 IsUserAdmin = HasRole(USER_ADMIN)
 IsAccountAdmin = HasRole(ACCOUNT_ADMIN)
 IsSystemAdmin = HasRole(SYSTEM_ADMIN)
+
+#: The finance area: every ``/admin/payments*`` and ``/admin/renewals*`` endpoint.
+#: A treasurer sees the money but not the medical and certificate data on
+#: ``/admin/members/*``; an account administrator holds both.
+IsFinance = HasAnyRole(TREASURER, ACCOUNT_ADMIN)

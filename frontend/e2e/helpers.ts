@@ -8,7 +8,14 @@ import type { Page } from '@playwright/test';
 
 /** The keys `seed_demo` gives its named demo accounts. */
 export type DemoAccount =
-  'member' | 'expired' | 'leader' | 'useradmin' | 'accountadmin' | 'webadmin' | 'sysadmin';
+  | 'member'
+  | 'expired'
+  | 'leader'
+  | 'useradmin'
+  | 'treasurer'
+  | 'accountadmin'
+  | 'webadmin'
+  | 'sysadmin';
 
 /** Every key `DemoAccount` names, so the facts can be checked against the whole set. */
 const DEMO_ACCOUNT_KEYS: readonly DemoAccount[] = [
@@ -16,6 +23,7 @@ const DEMO_ACCOUNT_KEYS: readonly DemoAccount[] = [
   'expired',
   'leader',
   'useradmin',
+  'treasurer',
   'accountadmin',
   'webadmin',
   'sysadmin',

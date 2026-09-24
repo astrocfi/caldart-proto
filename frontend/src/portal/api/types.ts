@@ -11,7 +11,13 @@ export type IsoDate = string;
 export type IsoDateTime = string;
 
 export type RoleSlug =
-  'member' | 'dart_leader' | 'user_admin' | 'account_admin' | 'website_admin' | 'system_admin';
+  | 'member'
+  | 'dart_leader'
+  | 'user_admin'
+  | 'treasurer'
+  | 'account_admin'
+  | 'website_admin'
+  | 'system_admin';
 
 export interface Role {
   slug: RoleSlug;

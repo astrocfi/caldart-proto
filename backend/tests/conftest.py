@@ -38,6 +38,7 @@ from apps.accounts.roles import (
     MEMBER,
     ROLE_SLUGS,
     SYSTEM_ADMIN,
+    TREASURER,
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
@@ -336,6 +337,7 @@ def _role_fixture(slug: str, email: str) -> Callable[..., UserModel]:
 member = _role_fixture(MEMBER, "member@example.test")
 dart_leader = _role_fixture(DART_LEADER, "leader@example.test")
 user_admin = _role_fixture(USER_ADMIN, "useradmin@example.test")
+treasurer = _role_fixture(TREASURER, "treasurer@example.test")
 account_admin = _role_fixture(ACCOUNT_ADMIN, "accountadmin@example.test")
 website_admin = _role_fixture(WEBSITE_ADMIN, "webadmin@example.test")
 system_admin = _role_fixture(SYSTEM_ADMIN, "sysadmin@example.test")
@@ -373,6 +375,7 @@ def all_role_users(
     member: UserModel,
     dart_leader: UserModel,
     user_admin: UserModel,
+    treasurer: UserModel,
     account_admin: UserModel,
     website_admin: UserModel,
     system_admin: UserModel,
@@ -382,6 +385,7 @@ def all_role_users(
         MEMBER: member,
         DART_LEADER: dart_leader,
         USER_ADMIN: user_admin,
+        TREASURER: treasurer,
         ACCOUNT_ADMIN: account_admin,
         WEBSITE_ADMIN: website_admin,
         SYSTEM_ADMIN: system_admin,
@@ -396,6 +400,17 @@ def account_admin_client(api_client: APIClient, account_admin: UserModel) -> API
     Django client signed in as a superuser, which is a different caller entirely.
     """
     api_client.force_login(account_admin)
+    return api_client
+
+
+@pytest.fixture
+def treasurer_client(api_client: APIClient, treasurer: UserModel) -> APIClient:
+    """Return a DRF client already signed in as a treasurer.
+
+    The treasurer holds the finance role and the member role, so the client reaches
+    every ``/admin/payments`` endpoint and none of ``/admin/members``.
+    """
+    api_client.force_login(treasurer)
     return api_client
 
 

@@ -16,7 +16,7 @@ disagree, one of them is wrong — fix it in the same pull request.
 Features
 ========
 
-- **Accounts and roles.** Email-and-password sign-in, six roles held as
+- **Accounts and roles.** Email-and-password sign-in, seven roles held as
   Django groups, and self-service password reset.
 - **Membership.** Two plans — Annual at $45 for 365 days and Life at $650 —
   bought online and activated the instant the payment clears.

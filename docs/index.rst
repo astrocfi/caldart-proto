@@ -54,7 +54,7 @@ flows the system exists for, end to end, on seeded demo data.
 What it does
 ============
 
-- **Accounts and roles.**  Email-and-password sign-in, six roles held as
+- **Accounts and roles.**  Email-and-password sign-in, seven roles held as
   Django groups, and self-service password reset.  See
   :doc:`developer/data-model` for the role table.
 - **Membership.**  Two plans — Annual at $45 for 365 days and Life at $650 —

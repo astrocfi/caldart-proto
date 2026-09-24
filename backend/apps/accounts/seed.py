@@ -17,6 +17,7 @@ from apps.accounts.roles import (
     DART_LEADER,
     MEMBER,
     SYSTEM_ADMIN,
+    TREASURER,
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
@@ -29,6 +30,7 @@ DEMO_ACCOUNTS: tuple[tuple[str, str, str, str, tuple[str, ...], bool], ...] = (
     ("expired", "expired@example.org", "Owen", "Delgado", (MEMBER,), False),
     ("leader", "leader@example.org", "Priya", "Raman", (MEMBER, DART_LEADER), False),
     ("useradmin", "useradmin@example.org", "Nina", "Kowalski", (MEMBER, USER_ADMIN), False),
+    ("treasurer", "treasurer@example.org", "Lucia", "Ferreira", (MEMBER, TREASURER), False),
     (
         "accountadmin",
         "accountadmin@example.org",

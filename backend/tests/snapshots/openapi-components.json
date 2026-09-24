@@ -1451,6 +1451,7 @@
       "member",
       "dart_leader",
       "user_admin",
+      "treasurer",
       "account_admin",
       "website_admin",
       "system_admin"

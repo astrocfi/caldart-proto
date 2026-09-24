@@ -240,7 +240,7 @@ are ``models.py``, ``services.py``, an ``api/`` package (``urls.py``,
 not every app needs every one.
 
 ``accounts``
-    The custom ``User``, whose login is the email address; the six roles,
+    The custom ``User``, whose login is the email address; the seven roles,
     stored as Django ``Group`` rows (``roles.py``); the permission classes
     (``permissions.py``); and the auth rate limits (``throttling.py``).
     Endpoints ``/auth/...``, ``/admin/users`` and ``/roles``; commands
