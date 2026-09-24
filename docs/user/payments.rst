@@ -142,11 +142,13 @@ If something goes wrong
    counted twice, so there is no risk in asking.
 
 
-For account administrators
-==========================
+For treasurers and account administrators
+=========================================
 
 **Administration → Payments** in the portal is the money screen.  It needs the
-``account_admin`` role.
+``treasurer`` role or the ``account_admin`` role.  A treasurer sees the money
+and nothing else: the member records, with their medical and certificate
+details, stay closed to them.  An account administrator holds both.
 
 The headline figures
 --------------------
@@ -157,15 +159,18 @@ Three tiles across the top, all covering every payment on the system:
 * **Year to date** — 1 January to today;
 * **Last 12 months** — a rolling twelve-month window.
 
-Each shows the total taken and how many payments made it up.  Only successful
-payments count: a declined attempt was never revenue.
+Each shows the gross taken, what the payment providers kept in fees, what
+reached |org|'s bank, and how much has gone back in refunds.  A declined
+attempt was never revenue and is not counted; a payment since refunded was, and
+is counted with what went back beside it.
 
 Payments by period
 ------------------
 
 Below the tiles, a table of totals with a **Month** / **Year** toggle.  For
 each period it shows the number of payments, how much was dues, how much was
-contributions, a column per payment provider, and the total.  Newest first.
+contributions, the fees, the net, the refunds, a column per payment provider,
+and the total.
 
 This is the answer to "how are we doing compared to last year?" — switch to
 **Year** and read down the total column.
@@ -173,22 +178,89 @@ This is the answer to "how are we doing compared to last year?" — switch to
 The payment list
 ----------------
 
-The bottom half is every individual payment, with a filter bar:
+Every individual payment, with a filter bar:
 
 * **From** / **To** — the date the money arrived;
-* **Provider** — Stripe, PayPal, or Test;
-* **Status** — succeeded, pending, failed, or refunded;
-* **Search** — a member's name or email, or a provider's own reference
-  (a Stripe PaymentIntent id or a PayPal order id, useful when someone
-  forwards you a receipt).
+* **Provider** — Stripe, PayPal, Test, or Recorded by hand;
+* **Status** — succeeded, pending, failed, partially refunded, or refunded;
+* **Plan** and **Kind** — what the payment bought: dues, a contribution, or
+  both;
+* **Method** — card, Apple Pay, check, cash, and the rest;
+* **Reconciled** — matched to a bank statement, or still outstanding;
+* **Amount** — a lower and an upper bound on the total;
+* **Search** — a member's name or email, a provider's own reference (a Stripe
+  PaymentIntent id or a PayPal order id, useful when someone forwards you a
+  receipt), or a note you wrote on a payment.
 
 Click a column heading to sort by it; sorting and paging apply to the whole
 report, not just the page on screen.
 
-**Export CSV** downloads exactly what the filters describe, one row per
-payment: date, name, email, plan, dues, contribution, total, provider, wallet
-, status, and provider reference.  It opens in any spreadsheet, which is the
-easiest route to a year-end summary or a treasurer's report.
+Choosing the columns
+--------------------
+
+**Columns** opens a chooser that drives both the table and the exports.
+Twenty-one columns are on offer; sixteen of them are on to begin with.  The
+five that are off — the receipt number, the day a check was received, your own
+note, and the two dates of the term a payment bought — are the ones an audit
+wants and an everyday list does not.
+
+**Export CSV** and **Export PDF** download exactly what the filters and the
+column chooser describe, in the order the table is sorted in.  Both files carry
+the day they were run in their name, so two exports never overwrite one
+another.  The CSV writes money as a plain number a spreadsheet adds up; the PDF
+prints it with a dollar sign and names the filters underneath the title.
+
+Recording a payment taken by hand
+---------------------------------
+
+**Record a payment** is for money that never passed through a card: a check in
+the mail, cash at a meeting, a bank transfer.  Search for the member, choose
+the plan (or none, for a pure contribution), name the method, type the check
+number, and set the day the money arrived.
+
+|org| records it as already paid, with no provider fee, activates whatever term
+it bought, and emails the member the same receipt a card payment earns.  The
+day you set is the one the payment is dated by everywhere in the books — the
+day the check arrived, not the day you keyed it in.  A check number another
+recorded payment already carries is refused, which is what stops the same check
+being entered twice.
+
+Reconciling against a bank statement
+------------------------------------
+
+The **Reconciliation** tab answers, for a range you choose, what the books say
+arrived: one row per month, per year, or per provider, with the gross, the
+fees, the net, what went back, the net after refunds, and how many of that
+period's payments you have already matched.
+
+Two dating rules make the rows line up with a statement.  A payment counts in
+the period the money arrived.  A refund counts in the period it was *taken*, so
+a January payment refunded in February appears in February — which is where the
+bank put it.  A month in which money only went back still gets a row.
+
+Open a payment and set its **Reconciled** date once you have found it on the
+statement; |org| records that it was you.  Filtering the list to **Reconciled →
+No** is then the list of what is left to do.
+
+Both reconciliation exports are named for the range they cover.
+
+Contributions and the year-end list
+-----------------------------------
+
+The **Contributions** tab is one row per member who gave something in a
+calendar year, largest giver first: how many payments they made, what they
+gave, what went back, and the difference.  That last figure is the one an
+acknowledgment letter quotes.  Export it as a CSV for a mail merge, or as a PDF
+for the board.
+
+A member's ledger
+-----------------
+
+Opening a member from the payment list gives their whole money history in one
+place: what they have paid, given, and been charged in fees over every year;
+every payment, including the attempts that failed; their automatic renewal, if
+they have one; and the years they can download a contribution statement for.
+The same rows appear on the Payments tab of the member record.
 
 Refunds
 -------
@@ -248,10 +320,13 @@ When something goes wrong
    meantime.
 
 **The totals do not match the provider's dashboard.**
-   Two ordinary reasons before you suspect a fault: the period tiles count
-   only payments whose money arrived while the CSV export includes every
-   status; and the tiles use the date the payment completed, which can fall a
-   day either side of the provider's own settlement date.
+   Three ordinary reasons before you suspect a fault: the period tiles count
+   only money that arrived while the exports include every status, failed
+   attempts and all; the tiles report the gross, and a provider's dashboard
+   often shows you the net; and the tiles use the date the payment completed,
+   which can fall a day either side of the provider's own settlement date.
+   The **Reconciliation** tab is the screen built for this comparison, since it
+   shows the gross, the fees and the net side by side.
 
 **A provider column is empty.**
    Only providers that were configured when a payment was taken can appear

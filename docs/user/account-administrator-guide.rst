@@ -195,20 +195,25 @@ a particular day — a check that arrived last month, say.
 Payments
 --------
 
-Everything this member has paid: date, what it was for, the membership portion,
-any contribution on top, the total, the provider and the outcome.
+This member's whole money history: what they have paid, given and been charged
+in provider fees over every year, then every payment — the date, what it was
+for, the membership portion, any contribution on top, the total, the fee, what
+has gone back in refunds, the provider and the outcome.  Their automatic
+renewal, if they have one, is on the same tab, as are the years they can
+download a contribution statement for.
 
 Terms you grant by hand have no payment attached, so they do not appear here.
-For the organization-wide ledger and the month-by-month and year-by-year
-totals, use **Payments** in the menu.
+For the organization-wide ledger, the period totals, the reconciliation table
+and the year-end contributions list, use **Payments** in the menu; that area is
+also open to a treasurer, who reaches the money without reaching this record.
 
 Danger zone
 -----------
 
 **A member who has ever paid cannot be deleted.**  Payments are the
 organization's financial record: a membership fee or a donation stays in the
-ledger, the month-by-month totals and the CSV export whatever happens to the
-person who made it.  The tab says so instead of offering the form, and names
+ledger, the period totals and the exports whatever happens to the person who
+made it.  The tab says so instead of offering the form, and names
 how many payment records the account carries.  Deactivate the account instead,
 as below.
 

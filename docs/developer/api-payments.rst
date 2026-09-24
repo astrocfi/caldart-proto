@@ -2,10 +2,11 @@
 API: payments
 =============
 
-Every endpoint under ``/api/v1/payments/`` and ``/api/v1/admin/payments``:
-checkout and its confirmation for each provider, the webhooks, the receipts
-and contribution statements, and the payment reports.  General API conventions — session
-authentication, the CSRF header, pagination, error shapes — are in
+Every endpoint under ``/api/v1/payments/``: checkout and its confirmation for
+each provider, the webhooks, and the receipts and contribution statements a
+member downloads for themselves.  The finance area under
+``/api/v1/admin/payments`` is in :doc:`api-finance`.  General API conventions
+— session authentication, the CSRF header, pagination, error shapes — are in
 :doc:`api-reference`; the two worth repeating here are that an
 unauthenticated request that reaches the permission check gets **401** (not
 403, which is reserved for a refused role and for a missing CSRF token), and
@@ -212,8 +213,8 @@ two, or a payment started with another provider; **401** when anonymous;
 ``GET /payments/{id}``
 ----------------------
 
-The payment's **owner or an** ``account_admin``.  Used to poll after a
-redirect-based payment.
+The payment's **owner**, or a finance role (``treasurer`` or
+``account_admin``).  Used to poll after a redirect-based payment.
 
 .. code-block:: json
 
@@ -225,7 +226,7 @@ redirect-based payment.
 or ``refunded``.
 
 Statuses: **200**; **401** when anonymous; **403** for a signed-in caller who
-neither owns the payment nor holds ``account_admin``; **404** for an unknown
+neither owns the payment nor holds a finance role; **404** for an unknown
 id.
 
 
@@ -437,104 +438,14 @@ Statuses: **200** whether or not the notification was verified or acted on;
 **405** for any method but ``POST``.
 
 
-Reports — finance
-=================
+The finance reports
+===================
 
-All three endpoints share one filter set, applied to ``paid_at``: the moment
-the money arrived, which is ``completed_at`` when the payment settled and
-``created_at`` otherwise.
-
-===============  ====================================================
-Parameter        Meaning
-===============  ====================================================
-``from``         ``YYYY-MM-DD``; payments on or after this date.
-``to``           ``YYYY-MM-DD``; payments on or before this date.
-``provider``     ``stripe``, ``paypal``, or ``mock``.
-``status``       ``pending``, ``succeeded``, ``failed``,
-                 ``partially_refunded``, or ``refunded``.
-``search``       Member name, email, or the provider's reference.
-``group``        ``month`` or ``year``; the summary's period.
-===============  ====================================================
-
-One serializer reads all six for all three endpoints, so each refuses the same
-input the same way, with the complaint keyed by the parameter it came from.  An
-empty parameter narrows nothing, and a date the calendar does not have — such as
-``2026-02-30`` — is as much a **400** as ``last tuesday``:
-
-.. code-block:: json
-
-   {"from": ["Expected a date as YYYY-MM-DD."]}
-
-``GET /admin/payments``
------------------------
-
-Paginated (``?page=&page_size=``, default 25, max 200), newest first.
-``?ordering=`` accepts ``paid_at``, ``created_at``, ``completed_at``,
-``amount_cents``, ``contribution_cents``, ``status``, ``provider``,
-``plan__name``, ``user__last_name``, and ``user__email``, each with a ``-``
-prefix for descending; anything else is a **400**.
-
-.. code-block:: json
-
-   {
-     "count": 214,
-     "next": "http://localhost:8000/api/v1/admin/payments?page=2",
-     "previous": null,
-     "results": [
-       {"id": 412, "user_id": 37, "user_name": "Marta Reyes", "plan": "Annual",
-        "amount_cents": 14500, "plan_amount_cents": 4500,
-        "contribution_cents": 10000, "currency": "usd", "provider": "stripe",
-        "wallet": "apple_pay", "provider_ref": "pi_3NkP...",
-        "status": "succeeded", "created_at": "2026-01-08T20:00:00-08:00",
-        "completed_at": "2026-01-08T20:00:05-08:00"}
-     ]
-   }
-
-Datetimes carry the site's own offset rather than ``Z``: DRF renders them in
-``TIME_ZONE``, which is ``America/Los_Angeles``, so the same instant reads
-``-08:00`` in winter and ``-07:00`` in summer.
-
-Statuses: **200**; **400** for an unusable filter or ``?ordering=`` value;
-**401** when anonymous; **403** without ``account_admin``.
-
-``GET /admin/payments/summary``
--------------------------------
-
-``?group=`` defaults to ``month``, and the filters above apply.
-**Succeeded payments only** — a failed attempt was never revenue.  Oldest
-period first; periods with nothing in them are omitted.
-
-.. code-block:: json
-
-   [
-     {"period": "2026-01", "count": 2, "total_cents": 21000,
-      "plan_cents": 9000, "contribution_cents": 12000,
-      "by_provider": {"stripe": 14500, "paypal": 6500}}
-   ]
-
-``period`` is ``YYYY-MM`` for months and ``YYYY`` for years, computed in the
-site's time zone.  ``by_provider`` omits providers with nothing in that
-period, so it is safe to iterate but not to index blindly.
-
-Statuses: **200**; **400** for an unusable filter or ``group``; **401** when
-anonymous; **403** without ``account_admin``.
-
-``GET /admin/payments/export.csv``
-----------------------------------
-
-The filtered list as ``text/csv``, streamed, attachment
-``caldart-payments.csv``.  Columns:
-
-.. code-block:: text
-
-   paid_on,name,email,plan,plan_amount,contribution,total,provider,wallet,status,provider_ref
-   2026-01-08,Marta Reyes,marta@example.org,Annual,45.00,100.00,145.00,stripe,apple_pay,succeeded,pi_3NkP...
-
-Money is decimal dollars here rather than cents, because the file is opened in
-a spreadsheet.
-
-Statuses: **200**; **400** for an unusable filter; **401** when anonymous;
-**403** without ``account_admin``.
+The payment list, the period summary, the exports, the reconciliation table,
+the contributions list, the member ledger, the payment detail and recording a
+payment taken by hand are all in :doc:`api-finance`.  They are read by the
+``treasurer`` and ``account_admin`` roles rather than by a member, and they
+share one filter set of their own.
 
 
 Other payment routes
@@ -567,12 +478,13 @@ Endpoint                               Who
 ``POST /payments/stripe/confirm``      The payment's owner
 ``POST /payments/paypal/capture``      The payment's owner
 ``POST /payments/mock/complete``       The payment's owner, mock enabled
-``GET /payments/{id}``                 Owner or ``account_admin``
+``GET /payments/{id}``                 Owner, ``treasurer`` or
+                                       ``account_admin``
 ``GET /me/payments``                   Any authenticated user, own rows
 ``GET /me/payments/{id}/receipt.pdf``  The payment's owner
 ``GET /me/payments/statements*``       Any authenticated user, own giving
 ``POST /payments/*/webhook``           Nobody — signature verified instead
-``GET /admin/payments*``               ``treasurer`` or ``account_admin``
+``GET /admin/payments*``               See :doc:`api-finance`
 =====================================  ==========================================
 
 ``system_admin`` passes every role check, as everywhere else in the API.  The

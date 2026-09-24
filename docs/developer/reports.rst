@@ -294,33 +294,70 @@ Both exports take the register's full filter set: ``search``, ``make``,
 every one of them, through ``AircraftExportMixin.applied_filters``.
 
 
-The payments report
-===================
+The payments reports
+====================
 
-Served by ``GET /api/v1/admin/payments/export.csv`` to ``account_admin``.
-Three things set it apart from the other two:
+Four reports come out of ``backend/apps/payments/``, all of them served to the
+finance roles and documented endpoint by endpoint in :doc:`api-finance`.
 
-* **CSV only.**  There is no PDF export; the account-administrator screen has
-  a period table on it instead, and a board pack takes a screenshot of that or
-  a spreadsheet built from this file.
-* **The filename has no date in it** — it is always ``caldart-payments.csv``.
-* **It ignores ``?ordering=``** and always sorts by payment date, newest
-  first, even though the list endpoint beside it honors ten ordering fields.
+The payment list
+----------------
 
-Columns, from ``CSV_HEADER`` in ``backend/apps/payments/reports.py``:
-``paid_on``, ``name``, ``email``, ``plan``, ``plan_amount``, ``contribution``,
-``total``, ``provider``, ``wallet``, ``status``, ``provider_ref``.  Money is a
-plain decimal; ``plan`` is empty for a pure donation.
+``GET /api/v1/admin/payments/export.csv`` and ``export.pdf``.  Unlike the other
+two exports in this chapter, its columns are **chosen by the caller**.
+``PAYMENT_REPORT_COLUMNS`` in ``backend/apps/payments/reports.py`` is a tuple of
+``ReportColumn`` entries — ``key``, ``label``, ``default`` and a value function
+— and ``select_columns`` turns ``?columns=a,b,c`` into the columns to print, in
+the order asked for.  ``GET /admin/payments/columns`` answers the same registry
+as JSON, so the screen's column chooser is data-driven; adding a column means
+adding one entry to that tuple and nothing else.
 
-Filters are ``from``, ``to``, ``provider``, ``status``, and ``search``.  The
-export includes **every** status, while ``GET /admin/payments/summary`` counts
-only ``succeeded`` rows — so an export and a period total will differ whenever
-there are failed attempts in the range, which is expected rather than a fault.
+Both exports honor every list filter **and** ``?ordering=``, and carry the date
+in the filename: ``caldart-payments-<YYYY-MM-DD>.csv`` or ``.pdf``.  The CSV
+writes money as a plain decimal a spreadsheet adds up; the PDF writes it with
+a dollar sign and names the filters in its subtitle, through ``filter_summary``.
 
-``paid_on`` comes from the ``paid_at`` annotation,
-``Coalesce(completed_at, created_at)``.  The list, the summary and this export
-all key off it, which is what stops the three answering "when was this paid?"
-differently.
+The exports include **every** status, while ``GET /admin/payments/summary``
+counts only money that arrived — so an export and a period total differ
+whenever there are failed attempts in the range, which is expected rather than
+a fault.
+
+``paid_on`` is the ledger date: ``received_on`` for a payment recorded by hand,
+the local date of ``completed_at`` otherwise.  The *filters* key off the
+``paid_at`` annotation, ``Coalesce(completed_at, created_at)``, which the list,
+the summary and both exports share — which is what stops them answering "when
+was this paid?" differently.
+
+The reconciliation table
+------------------------
+
+``backend/apps/payments/reconciliation.py`` builds one row per month, year or
+provider: the count, the gross, the fees, the net, what went back, the net
+after refunds, and how many of the period's payments a treasurer has matched to
+a statement.  Two dating rules make the rows add up against a bank statement: a
+payment is dated by ``paid_at``, and a refund by ``refunded_at``, so a refund
+taken in a later period belongs to that period.  A period in which money only
+went back still gets a row.
+
+Both exports are portrait letter — nine narrow columns fit an upright page —
+and are named ``caldart-reconciliation-<from>-<to>.{csv,pdf}``.
+
+The contributions list
+----------------------
+
+``contribution_rows(year)`` answers one row per member who gave something in a
+calendar year, largest net giver first: the count, what they gave, what went
+back, and the difference.  It is the list the year-end acknowledgments go out
+from, and its exports are ``caldart-contributions-<year>.{csv,pdf}``, portrait
+letter.
+
+The period summary
+------------------
+
+``summarize`` groups by month or year and reports the gross, the split between
+dues and contributions, the fees, the net, what went back, and a per-provider
+breakdown of the gross.  It counts succeeded, partially refunded and refunded
+payments: a payment since refunded was revenue that came and went.
 
 
 Testing a report
@@ -348,4 +385,4 @@ Related
 =======
 
 The export endpoints themselves are documented on the page for each app:
-:doc:`api-members`, :doc:`api-aircraft` and :doc:`api-payments`.
+:doc:`api-members`, :doc:`api-aircraft` and :doc:`api-finance`.
