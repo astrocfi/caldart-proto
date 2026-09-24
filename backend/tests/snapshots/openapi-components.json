@@ -520,6 +520,20 @@
       "name"
     ]
   },
+  "FinanceMember": {
+    "properties": {
+      "email": "string(email)",
+      "membership": "ref:MembershipStatus",
+      "name": "string",
+      "user_id": "integer"
+    },
+    "required": [
+      "email",
+      "membership",
+      "name",
+      "user_id"
+    ]
+  },
   "FinancePayment": {
     "properties": {
       "amount_cents": "integer",

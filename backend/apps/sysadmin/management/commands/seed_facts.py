@@ -19,7 +19,13 @@ from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
 from apps.aircraft.models import Aircraft
 from apps.members.models import MembershipPlan, MembershipState
 from apps.members.services import membership_status
-from apps.payments.models import MandateStatus, Payment, PaymentProvider, RenewalMandate
+from apps.payments.models import (
+    MandateStatus,
+    Payment,
+    PaymentProvider,
+    PaymentStatus,
+    RenewalMandate,
+)
 
 
 def _has_lapsed_insurance(aircraft: Aircraft) -> bool:
@@ -99,6 +105,28 @@ def _paused_renewal_member() -> dict[str, str]:
     return {"name": mandate.user.display_name, "email": mandate.user.email}
 
 
+def _refunded_payment_member() -> dict[str, str]:
+    """A seeded member whose payment was refunded in part, for the finance specs.
+
+    Returns ``{"name", "email", "receiptNumber"}`` for the first partially
+    refunded payment, and empty strings when the seed refunded nothing -- the
+    specs then fail on the name they were given, which says what is missing.
+    """
+    payment = (
+        Payment.objects.filter(status=PaymentStatus.PARTIALLY_REFUNDED)
+        .select_related("user")
+        .order_by("pk")
+        .first()
+    )
+    if payment is None:
+        return {"name": "", "email": "", "receiptNumber": ""}
+    return {
+        "name": payment.user.display_name,
+        "email": payment.user.email,
+        "receiptNumber": payment.receipt_number,
+    }
+
+
 def seed_facts() -> dict[str, Any]:
     """Return the demo data set's facts, ready to serialize as JSON.
 
@@ -113,7 +141,9 @@ def seed_facts() -> dict[str, Any]:
     ``manualPaymentCount`` is how many payments the seed recorded by hand, which
     is what a finance spec filtering the list to checks expects to find.
     ``autoRenewal`` names one member whose membership renews itself and one whose
-    renewal was paused after every retry was refused.
+    renewal was paused after every retry was refused.  ``refundedPayment`` names a
+    member whose payment was refunded in part, and the receipt number that payment
+    carries, which is how a finance spec finds it in the list.
     """
     return {
         "demoPassword": DEMO_PASSWORD,
@@ -127,6 +157,7 @@ def seed_facts() -> dict[str, Any]:
             "expiredMember": _subject(insured=None, current_member=False),
         },
         "manualPaymentCount": Payment.objects.filter(provider=PaymentProvider.MANUAL).count(),
+        "refundedPayment": _refunded_payment_member(),
         "autoRenewal": {
             "activeMandate": _auto_renewing_member(),
             "pausedMandate": _paused_renewal_member(),

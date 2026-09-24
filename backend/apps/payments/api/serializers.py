@@ -996,3 +996,27 @@ class ContributionQuerySerializer(serializers.Serializer[dict[str, Any]]):
         """The year to report on, which is this year when the caller named none."""
         year = self.validated_data["year"]
         return year if year is not None else timezone.localdate().year
+
+
+class FinanceMemberSerializer(serializers.Serializer[dict[str, Any]]):
+    """One row of ``GET /admin/payments/members``: a member the finance area can bill.
+
+    The finance screens never read the member record, so the search that stands
+    behind the "record a payment" form carries only who the member is and where
+    their membership stands.
+    """
+
+    user_id = serializers.IntegerField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    membership = MembershipStatusSerializer()
+
+
+class MemberSearchQuerySerializer(serializers.Serializer[dict[str, Any]]):
+    """``?search=`` for the finance area's member search.
+
+    The parameter is optional, and an empty one asks for nobody rather than for
+    everybody: the form shows names only once somebody has typed.
+    """
+
+    search = serializers.CharField(required=False, allow_blank=True, default="")

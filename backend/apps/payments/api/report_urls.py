@@ -63,6 +63,11 @@ urlpatterns = [
         name="admin-contributions-pdf",
     ),
     path(
+        "admin/payments/members",
+        views.AdminFinanceMemberSearchView.as_view(),
+        name="admin-member-search",
+    ),
+    path(
         "admin/payments/record",
         views.AdminPaymentRecordView.as_view(),
         name="admin-record",
@@ -71,6 +76,11 @@ urlpatterns = [
         "admin/payments/ledger/<int:user_id>",
         views.AdminMemberLedgerView.as_view(),
         name="admin-ledger",
+    ),
+    path(
+        "admin/payments/<int:pk>/fees",
+        views.AdminPaymentFeesView.as_view(),
+        name="admin-fees",
     ),
     path(
         "admin/payments/<int:pk>",

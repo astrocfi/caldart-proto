@@ -909,6 +909,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - a payment taken by check or cash
+   * - ``POST /admin/payments/{id}/fees``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - asks the provider again what a payment cost
+   * - ``GET /admin/payments/members``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - the member search behind the record form
    * - ``POST /admin/payments/{id}/receipt``
      - ·
      - ·
