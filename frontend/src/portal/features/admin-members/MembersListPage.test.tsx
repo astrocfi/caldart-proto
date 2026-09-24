@@ -186,18 +186,29 @@ describe('MembersListPage', () => {
     expect(screen.getByTestId('location-search')).toHaveTextContent('status=current');
   });
 
-  it('applies the search box when the filter form is submitted', async () => {
+  it('searches as the name is typed, once the typing pauses', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
     renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.type(screen.getByLabelText('Search'), 'bracco');
-    // Typing alone must not query: only Apply (or Enter) commits it.
+    // The keystroke itself does not query: the list follows the pause.
     expect(lastMemberQuery().get('search')).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => expect(lastMemberQuery().get('search')).toBe('bracco'));
+  });
+
+  it('refuses a letter typed into the day count', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    const days = screen.getByLabelText('Expiring within (days)');
+    await user.type(days, '3a0');
+
+    expect(days).toHaveValue('30');
   });
 
   it('combines several filters', async () => {

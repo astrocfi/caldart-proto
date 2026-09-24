@@ -8,10 +8,11 @@ import type { JSX } from 'react';
 import type { AircraftPatch } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
+import { maskDigits, maskDollars, maskNNumber } from '@/portal/masks';
 import './aircraft.css';
 import { matchType, suggestTypes } from './catalog';
 import type { AircraftFormValues } from './form';
-import { formatDollars } from './insurance';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, aircraftPayload, validateAircraft } from './form';
 
 export interface AircraftFormProps {
@@ -77,24 +78,33 @@ export function AircraftForm({
       <fieldset className="aircraft-form__section">
         <legend className="aircraft-form__legend">Aircraft</legend>
         <div className="aircraft-form__grid">
-          <Field label="N-number" required error={shown.n_number}>
+          <Field
+            label="N-number"
+            required
+            error={shown.n_number}
+            hint="Digits, then up to two letters"
+          >
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
+                placeholder="N172SP"
+                mask={maskNNumber}
                 value={values.n_number}
-                onChange={(event) => set('n_number', event.target.value)}
+                onValueChange={(next) => set('n_number', next)}
               />
             )}
           </Field>
           <Field label="Year" error={shown.year}>
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="numeric"
+                size={6}
+                mask={(raw) => maskDigits(raw, 4)}
                 value={values.year}
-                onChange={(event) => set('year', event.target.value)}
+                onValueChange={(next) => set('year', next)}
               />
             )}
           </Field>
@@ -128,12 +138,14 @@ export function AircraftForm({
           </Field>
           <Field label="Seats" error={shown.seats}>
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="numeric"
+                size={4}
+                mask={(raw) => maskDigits(raw, 2)}
                 value={values.seats}
-                onChange={(event) => set('seats', event.target.value)}
+                onValueChange={(next) => set('seats', next)}
               />
             )}
           </Field>
@@ -205,47 +217,49 @@ export function AircraftForm({
           </Field>
           <Field
             label="Liability per occurrence"
-            hint="US dollars."
+            hint="US dollars; commas write themselves."
             error={shown.liability_per_occurrence ?? shown.insurance_liability_per_occurrence_cents}
           >
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="decimal"
+                mask={maskDollars}
                 value={values.liability_per_occurrence}
-                onChange={(event) => set('liability_per_occurrence', event.target.value)}
-                onBlur={(event) =>
-                  set('liability_per_occurrence', formatDollars(event.target.value))
-                }
+                onValueChange={(next) => set('liability_per_occurrence', next)}
               />
             )}
           </Field>
           <Field
             label="Liability per person"
-            hint="US dollars."
+            hint="US dollars; commas write themselves."
             error={shown.liability_per_person ?? shown.insurance_liability_per_person_cents}
           >
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="decimal"
+                mask={maskDollars}
                 value={values.liability_per_person}
-                onChange={(event) => set('liability_per_person', event.target.value)}
-                onBlur={(event) => set('liability_per_person', formatDollars(event.target.value))}
+                onValueChange={(next) => set('liability_per_person', next)}
               />
             )}
           </Field>
-          <Field label="Hull" hint="US dollars." error={shown.hull ?? shown.insurance_hull_cents}>
+          <Field
+            label="Hull"
+            hint="US dollars; commas write themselves."
+            error={shown.hull ?? shown.insurance_hull_cents}
+          >
             {(field) => (
-              <input
+              <MaskedInput
                 {...field}
                 className="mono"
                 inputMode="decimal"
+                mask={maskDollars}
                 value={values.hull}
-                onChange={(event) => set('hull', event.target.value)}
-                onBlur={(event) => set('hull', formatDollars(event.target.value))}
+                onValueChange={(next) => set('hull', next)}
               />
             )}
           </Field>

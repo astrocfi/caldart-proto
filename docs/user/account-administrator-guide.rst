@@ -67,21 +67,29 @@ Filtering
 ---------
 
 The filter bar sits above the table.  The dropdowns apply the moment you change
-them; the **Search** and **Expiring within (days)** boxes apply when you press Enter
-or the **Apply** button, so a half-typed name never runs a search.  **Clear**
-empties the whole bar.
+them, and the table narrows as you type in **Search** — it follows a short
+pause, so it does not chase every keystroke.  **Expiring within (days)** takes
+digits only and applies when you press Enter or the **Apply** button.
+**Clear** empties the whole bar.
 
 **Search**
    Matches a name, an email address, either phone number or a pilot
-   certificate number.  Full names work: ``Ana Bracco`` finds her.
+   certificate number, and narrows the list as you type.  Full names work:
+   ``Ana Bracco`` finds her.
 
 **Membership**
-   *Current* (a term covers today), *Expired* (a term has run out) or *Never a
-   member* (nobody has ever granted or sold them a term).  The three between
-   them account for every account exactly once.
+   *Current* (a term covers today), *Joined, not yet paid* (their only term is
+   unpaid), *Expired* (a paid term has run out) or *Never a member* (nobody has
+   ever granted or sold them a term).  The four between them account for every
+   account exactly once.
 
 **Certificate** and **Medical**
    The pilot certificate and medical class on the member's profile.
+   **Certificate** also offers *Any licensed*, which is every certificate a
+   pilot may act on alone — sport through ATP, and neither a student nor "not a
+   pilot".  **Medical** also offers *Has any medical*, which is everyone with a
+   medical of any class on file.  Each list's blank entry reads *Any*, and an
+   *Any* filter takes in the people who answered "none" as well.
 
 **DART**
    The team the member belongs to.

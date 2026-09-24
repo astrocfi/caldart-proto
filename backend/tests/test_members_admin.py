@@ -453,6 +453,31 @@ def test_certificate_and_medical_filters(
     assert emails(response) == {"expiring@example.test"}
 
 
+def test_certificate_filter_any_licensed_skips_students_and_non_pilots(
+    account_admin_client: APIClient, population: dict[str, User]
+) -> None:
+    """``certificate=licensed`` is every certificate a pilot may act on alone.
+
+    The private and commercial pilots are in; the student is not.  The two
+    profiles the fixture leaves at the factory's default are private pilots, so
+    they are in as well.
+    """
+    response = account_admin_client.get(LIST_URL, {"certificate": "licensed"})
+    assert emails(response) == POPULATION_EMAILS - {"expired@example.test"}
+
+
+def test_medical_filter_any_medical_is_everyone_with_one_on_file(
+    account_admin_client: APIClient, population: dict[str, User]
+) -> None:
+    """``medical=any`` matches every class, and nobody whose medical is ``none``.
+
+    Only the student in the fixture has no medical on file; the two profiles
+    left at the factory's default carry a third-class one.
+    """
+    response = account_admin_client.get(LIST_URL, {"medical": "any"})
+    assert emails(response) == POPULATION_EMAILS - {"expired@example.test"}
+
+
 def test_dart_filter_accepts_an_id_or_a_name(
     account_admin_client: APIClient, population: dict[str, User], dart: Dart
 ) -> None:

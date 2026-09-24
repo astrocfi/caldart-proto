@@ -49,7 +49,9 @@ Returns every ``MemberProfile`` field except the admin-only ``notes`` and
 
    {
      "phone": "650-555-0101",
+     "phone_extension": "",
      "phone_alt": "",
+     "phone_alt_extension": "",
      "address_line1": "1 Embarcadero",
      "address_line2": "",
      "city": "San Carlos",
@@ -58,6 +60,7 @@ Returns every ``MemberProfile`` field except the admin-only ``notes`` and
      "county": "San Mateo",
      "emergency_contact_name": "Dana Lee",
      "emergency_contact_phone": "650-555-0199",
+     "emergency_contact_phone_extension": "",
      "home_airport_identifier": "SQL",
      "home_airport_city": "San Carlos",
      "dart": {"id": 9, "name": "San Carlos"},
@@ -176,8 +179,14 @@ Field                        Rule
                              that is not ten digits is refused.
 ``phone_alt``,               The same rule, and both may be blank.
 ``emergency_contact_phone``
-``phone_extension``          Up to six digits if given.  It is its own field so
-                             nobody appends it to a number.
+``phone_extension``,         Up to six digits if given.  Each number has an
+``phone_alt_extension``,     extension of its own, so nobody appends one to a
+``emergency_contact_``       number and breaks the stored format.
+``phone_extension``
+``home_airport_identifier``  Three letters or digits if given, upper-cased on the
+                             way in, and never beginning with ``K``: that is the
+                             ICAO prefix on a four-letter identifier, and no
+                             three-character identifier carries it.
 ``state``                    One of the two-letter codes, and required: the fifty
                              states, DC, and the territories with USPS codes.
 ``postal_code``              Five digits if given.  ZIP+4 is refused: five reach
@@ -206,7 +215,8 @@ cross-field complaints are raised together when both apply:
 
 The field-level sentences are "Use a ten-digit number like 415-555-0100." for
 each of the three phone fields, "An extension is digits only, for example
-4021.", and "Use a five-digit ZIP code like 95035."  ``state`` and ``county``
+4021.", "Use a five-digit ZIP code like 95035.", and "Use a three-character
+identifier like PAO or E16, with no leading K."  ``state`` and ``county``
 are choice fields, so an unknown value is DRF's own "is not a valid choice".
 
 The portal's form applies the same rules before it sends anything, and on top

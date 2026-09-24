@@ -50,6 +50,11 @@
   font-size: var(--text-sm);
 }
 
+.aircraft-add {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
 .aircraft-new {
   margin-top: var(--space-5);
   padding-top: var(--space-4);

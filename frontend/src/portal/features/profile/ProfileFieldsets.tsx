@@ -13,11 +13,20 @@
  * Validation, submission, and the administrator-only fields belong to the
  * caller.
  */
+import { useId } from 'react';
 import type { JSX } from 'react';
 
 import type { CaliforniaCounty, Dart, Rating, UsState } from '@/portal/api/types';
 import { CATEGORY_RATINGS, INSTRUCTOR_RATINGS, US_STATES } from '@/portal/choices';
 import { Field } from '@/portal/components/Field';
+import { MaskedInput } from '@/portal/components/MaskedInput';
+import {
+  maskAirportIdentifier,
+  maskDigits,
+  maskExtension,
+  maskPhone,
+  maskPostalCode,
+} from '@/portal/masks';
 import {
   CA_COUNTIES,
   CERTIFICATE_TYPES,
@@ -52,8 +61,12 @@ interface TextFieldOptions {
   hint?: string;
   /** Starred, and only when the caller asked for markers. */
   required?: boolean;
-  /** Applied to every keystroke, for a field stored in one fixed case. */
-  transform?: (raw: string) => string;
+  /**
+   * Applied to every keystroke, so a character that cannot belong in the field
+   * is never typed into it and the format's punctuation is written for the
+   * member.  See `@/portal/masks`.
+   */
+  mask?: (raw: string) => string;
 }
 
 export interface ProfileFieldsetsProps {
@@ -67,8 +80,6 @@ export interface ProfileFieldsetsProps {
   /** Star the fields a member has to fill in before a profile counts as complete. */
   markRequired?: boolean;
 }
-
-const upperCase = (raw: string): string => raw.toUpperCase();
 
 /**
  * Render the profile fieldsets for whoever is editing the record.
@@ -84,6 +95,8 @@ export function ProfileFieldsets({
   dartsLoading = false,
   markRequired = false,
 }: ProfileFieldsetsProps): JSX.Element {
+  const extensionIds = useId();
+
   const set = <Key extends keyof ProfileFormValues>(key: Key, next: ProfileFormValues[Key]) =>
     onChange({ ...value, [key]: next });
 
@@ -94,24 +107,82 @@ export function ProfileFieldsets({
     );
 
   const text = (key: TextKey, options: TextFieldOptions) => {
-    const { label, hint, required = false, transform, ...input } = options;
+    const { label, hint, required = false, mask, ...input } = options;
     return (
       <Field label={label} hint={hint} error={errors[key]} required={markRequired && required}>
-        {(props) => (
-          <input
-            {...props}
-            type="text"
-            {...input}
-            name={key}
-            value={value[key]}
-            onChange={(event) =>
-              set(key, transform ? transform(event.target.value) : event.target.value)
-            }
-          />
-        )}
+        {(props) =>
+          mask ? (
+            <MaskedInput
+              {...props}
+              type="text"
+              {...input}
+              name={key}
+              mask={mask}
+              value={value[key]}
+              onValueChange={(next) => set(key, next)}
+            />
+          ) : (
+            <input
+              {...props}
+              type="text"
+              {...input}
+              name={key}
+              value={value[key]}
+              onChange={(event) => set(key, event.target.value)}
+            />
+          )
+        }
       </Field>
     );
   };
+
+  /**
+   * A number and its extension as one field, on one line.
+   *
+   * Both are fixed-width now that the format is fixed, so the pair fits the
+   * column a single phone box used to fill.
+   */
+  const phone = (
+    key: TextKey,
+    extensionKey: TextKey,
+    label: string,
+    options: { required?: boolean; autoComplete?: string; hint?: string } = {},
+  ) => (
+    <Field
+      label={label}
+      hint={options.hint}
+      error={errors[key] ?? errors[extensionKey]}
+      required={markRequired && (options.required ?? false)}
+    >
+      {(props) => (
+        <span className="field-pair">
+          <MaskedInput
+            {...props}
+            type="tel"
+            inputMode="tel"
+            className="field-pair__main"
+            autoComplete={options.autoComplete}
+            name={key}
+            placeholder="415-555-0100"
+            mask={maskPhone}
+            value={value[key]}
+            onValueChange={(next) => set(key, next)}
+          />
+          <label className="field-pair__extension" htmlFor={`${extensionIds}-${extensionKey}`}>
+            <span>ext.</span>
+            <MaskedInput
+              id={`${extensionIds}-${extensionKey}`}
+              inputMode="numeric"
+              name={extensionKey}
+              mask={maskExtension}
+              value={value[extensionKey]}
+              onValueChange={(next) => set(extensionKey, next)}
+            />
+          </label>
+        </span>
+      )}
+    </Field>
+  );
 
   const coded = <Key extends CodedKey>(
     key: Key,
@@ -141,30 +212,12 @@ export function ProfileFieldsets({
       <fieldset>
         <legend>Contact</legend>
         <div className="form-grid">
-          {text('phone', {
-            label: 'Phone',
-            type: 'tel',
-            autoComplete: 'tel',
-            inputMode: 'tel',
-            placeholder: '415-555-0100',
-            maxLength: 14,
-            hint: 'Ten digits, stored as 415-555-0100',
+          {phone('phone', 'phone_extension', 'Phone', {
             required: true,
+            autoComplete: 'tel',
+            hint: 'Ten digits; the dashes write themselves',
           })}
-          {text('phone_extension', {
-            label: 'Extension',
-            inputMode: 'numeric',
-            maxLength: 6,
-            size: 6,
-            hint: 'Optional',
-          })}
-          {text('phone_alt', {
-            label: 'Alternate phone',
-            type: 'tel',
-            inputMode: 'tel',
-            placeholder: '415-555-0100',
-            maxLength: 14,
-          })}
+          {phone('phone_alt', 'phone_alt_extension', 'Alternate phone')}
           {text('address_line1', {
             label: 'Address',
             autoComplete: 'address-line1',
@@ -193,10 +246,10 @@ export function ProfileFieldsets({
             label: 'ZIP code',
             inputMode: 'numeric',
             autoComplete: 'postal-code',
-            maxLength: 5,
             size: 5,
             placeholder: '95035',
             required: true,
+            mask: maskPostalCode,
           })}
           <Field label="California county" error={errors.county}>
             {(props) => (
@@ -216,13 +269,11 @@ export function ProfileFieldsets({
             )}
           </Field>
           {text('emergency_contact_name', { label: 'Emergency contact' })}
-          {text('emergency_contact_phone', {
-            label: 'Emergency contact phone',
-            type: 'tel',
-            inputMode: 'tel',
-            placeholder: '415-555-0100',
-            maxLength: 14,
-          })}
+          {phone(
+            'emergency_contact_phone',
+            'emergency_contact_phone_extension',
+            'Emergency contact phone',
+          )}
         </div>
       </fieldset>
 
@@ -231,9 +282,10 @@ export function ProfileFieldsets({
         <div className="form-grid">
           {text('home_airport_identifier', {
             label: 'Home airport',
-            maxLength: 8,
-            hint: 'e.g. PAO',
-            transform: upperCase,
+            size: 4,
+            placeholder: 'PAO',
+            hint: 'Three characters, no leading K',
+            mask: maskAirportIdentifier,
           })}
           {text('home_airport_city', { label: 'Home airport city' })}
           <Field label="DART" error={errors.dart_id} hint="The team you fly with">
@@ -273,8 +325,8 @@ export function ProfileFieldsets({
           {text('total_hours', {
             label: 'Total hours',
             inputMode: 'numeric',
-            maxLength: 5,
             size: 6,
+            mask: (raw) => maskDigits(raw, 5),
           })}
           <Field label="Aircraft" error={errors.flies_rented_aircraft}>
             {() => (

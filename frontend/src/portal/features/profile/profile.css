@@ -15,6 +15,33 @@
   }
 }
 
+/*
+ * A number and its extension share one column: both have a fixed format, so
+ * neither needs the width of a free-text box.
+ */
+.field-pair {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.field-pair__main {
+  width: 13ch;
+  flex: 0 0 auto;
+}
+
+.field-pair__extension {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.field-pair__extension input {
+  width: 7ch;
+}
+
 /* The ratings are read as two lines -- category and class, then instructor --
  * so they are laid out that way rather than flowed into a grid. */
 .checkbox-row {

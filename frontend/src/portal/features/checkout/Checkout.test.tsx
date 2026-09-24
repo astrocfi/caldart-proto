@@ -204,7 +204,7 @@ describe('Checkout', () => {
     const amount = screen.getByLabelText('Contribution amount');
     await user.type(amount, '123456789');
 
-    expect(amount).toHaveValue(99999);
+    expect(amount).toHaveValue('99,999');
     expect(screen.getByTestId('checkout-total')).toHaveTextContent('$100,044.00');
   });
 

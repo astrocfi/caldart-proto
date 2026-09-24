@@ -21,6 +21,8 @@ export function makeProfile(overrides: Partial<Profile> = {}): Profile {
   return {
     phone: '650-555-0101',
     phone_extension: '',
+    phone_alt_extension: '',
+    emergency_contact_phone_extension: '',
     phone_alt: '',
     address_line1: '1 Embarcadero',
     address_line2: '',

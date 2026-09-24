@@ -220,6 +220,13 @@ PHONE_RE = re.compile(r"^\d{3}-\d{3}-\d{4}$")
 #: What a phone extension may be: digits, and not many of them.
 PHONE_EXTENSION_RE = re.compile(r"^\d{1,6}$")
 
+#: A three-character FAA airport identifier, such as ``PAO`` or ``E16``.  A
+#: leading ``K`` is the ICAO prefix on a four-letter identifier, so no
+#: three-character one begins with it.
+AIRPORT_IDENTIFIER_RE = re.compile(r"^[A-JL-Z0-9][A-Z0-9]{2}$")
+
+AIRPORT_IDENTIFIER_MESSAGE = "Use a three-character identifier like PAO or E16, with no leading K."
+
 _PHONE_STRIP = re.compile(r"[^0-9]")
 
 
@@ -255,6 +262,7 @@ class MemberProfile(TimestampedModel):
     phone = models.CharField(max_length=12, blank=True)
     phone_extension = models.CharField(max_length=6, blank=True)
     phone_alt = models.CharField(max_length=12, blank=True)
+    phone_alt_extension = models.CharField(max_length=6, blank=True)
     address_line1 = models.CharField(max_length=200, blank=True)
     address_line2 = models.CharField(max_length=200, blank=True)
     city = models.CharField(max_length=120, blank=True)
@@ -268,9 +276,10 @@ class MemberProfile(TimestampedModel):
     )
     emergency_contact_name = models.CharField(max_length=160, blank=True)
     emergency_contact_phone = models.CharField(max_length=12, blank=True)
+    emergency_contact_phone_extension = models.CharField(max_length=6, blank=True)
 
     # -- aviation ---------------------------------------------------------
-    home_airport_identifier = models.CharField(max_length=8, blank=True)
+    home_airport_identifier = models.CharField(max_length=3, blank=True)
     home_airport_city = models.CharField(max_length=120, blank=True)
     dart = models.ForeignKey(
         Dart, on_delete=models.SET_NULL, null=True, blank=True, related_name="members"
