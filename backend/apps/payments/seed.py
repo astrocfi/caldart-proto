@@ -1,4 +1,4 @@
-"""Seed ~24 months of succeeded payments, the terms they bought and some refunds.
+"""Seed ~24 months of payments, the terms they bought, some refunds and the mandates.
 
 Every term goes through :func:`apps.members.services.activate_term`, so the
 seeded data exercises the same code path as a real checkout.
@@ -13,6 +13,10 @@ reconciliation history: every payment older than
 :data:`RECONCILED_AFTER_DAYS` has been matched to a statement by the demo
 treasurer, so the finance screens open on a realistic mix of matched and
 outstanding rows.
+
+A dozen members also have a standing automatic-renewal authority, one of them
+paused after a charge and its retries were all refused, so every state the
+renewals screens show is on screen with no clicking.
 """
 
 from __future__ import annotations
@@ -30,10 +34,13 @@ from apps.members.models import (
     Membership,
     MembershipPlan,
     MembershipSource,
+    MembershipStatusChoices,
 )
 from apps.members.services import activate_term, cancel_term, expire_lapsed_memberships
 from apps.payments.models import (
     CONTRIBUTION_TIERS,
+    MandateProvider,
+    MandateStatus,
     Payment,
     PaymentProvider,
     PaymentStatus,
@@ -41,8 +48,17 @@ from apps.payments.models import (
     Refund,
     RefundReason,
     RefundStatus,
+    RenewalAttempt,
+    RenewalMandate,
+    RenewalOutcome,
 )
+from apps.payments.providers.mock import DECLINED_LAST4, DECLINED_MESSAGE
 from apps.payments.refunds import apply_refund_totals
+from apps.payments.renewals import (
+    NOTICE_DAYS,
+    RETRY_OFFSETS,
+    charge_date_for,
+)
 
 #: How far back the payment history runs.
 HISTORY_MONTHS = 24
@@ -60,6 +76,20 @@ RECONCILED_AFTER_DAYS = 60
 
 #: How long after the money arrives the treasurer gets to the statement.
 RECONCILED_LAG_DAYS = 5
+
+#: How many members hold a standing automatic-renewal authority: ten active, one
+#: paused after every retry was refused, and one the member turned off.
+ACTIVE_MANDATES = 10
+PAUSED_MANDATES = 1
+CANCELED_MANDATES = 1
+
+#: The saved cards the seeded mandates carry, as a provider would describe them.
+SEED_CARDS: tuple[tuple[str, str, str, int, int], ...] = (
+    (MandateProvider.STRIPE, "visa", "4242", 3, 2028),
+    (MandateProvider.STRIPE, "mastercard", "4444", 11, 2027),
+    (MandateProvider.STRIPE, "amex", "0005", 7, 2029),
+    (MandateProvider.PAYPAL, "", "", 0, 0),
+)
 
 PROVIDER_MIX: tuple[tuple[str, int], ...] = (
     (PaymentProvider.STRIPE, 70),
@@ -398,14 +428,157 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     manual = _manual_payments(ctx)
     reconciled = _reconcile_settled_payments(ctx)
     refunds = _seed_refunds(today, ctx["generated_users"])
+    mandates = _seed_mandates(ctx)
 
     ctx["payment_count"] = payments + manual
     ctx["manual_payment_count"] = manual
     ctx["refund_count"] = refunds
+    ctx["mandate_count"] = mandates
     if stdout is not None:
         stdout.write(
             f"  payments: {payments} succeeded payments, {terms} terms, "
             f"{expired} lapsed terms marked expired, {manual} recorded by hand, "
-            f"{reconciled} reconciled, {refunds} refunds"
+            f"{reconciled} reconciled, {refunds} refunds, "
+            f"{mandates} renewal mandates"
         )
     return ctx
+
+
+def _card(rng: random.Random, index: int) -> dict[str, Any]:
+    """The saved method the mandate at ``index`` carries, as the provider gave it."""
+    provider, brand, last4, month, year = SEED_CARDS[index % len(SEED_CARDS)]
+    if provider == MandateProvider.PAYPAL:
+        return {
+            "provider": provider,
+            "method_ref": f"seed_vault_{index}",
+            "method_brand": "",
+            "method_last4": "",
+            "method_exp_month": None,
+            "method_exp_year": None,
+            "method_label": "PayPal (m***@example.org)",
+        }
+    return {
+        "provider": provider,
+        "customer_ref": f"seed_cus_{index}",
+        "method_ref": f"seed_pm_{index}",
+        "method_brand": brand,
+        "method_last4": last4,
+        "method_exp_month": month,
+        "method_exp_year": year,
+        "method_label": f"{brand.title()} ending {last4}, expires {month:02d}/{year}",
+    }
+
+
+def _mandate_candidates(users: list[User], today: dt.date) -> list[tuple[User, Membership]]:
+    """Members with an active term that runs out, and the term a renewal would renew.
+
+    Ordered by expiry, soonest first, so a caller taking an evenly spaced slice
+    gets charge dates spread across the coming year.
+    """
+    found: list[tuple[User, Membership]] = []
+    for user in users:
+        term = (
+            user.memberships.filter(
+                status=MembershipStatusChoices.ACTIVE, ends_on__isnull=False, ends_on__gte=today
+            )
+            .order_by("-ends_on")
+            .first()
+        )
+        if term is not None:
+            found.append((user, term))
+    return sorted(found, key=lambda pair: (pair[1].ends_on or today, pair[0].pk))
+
+
+def _seed_mandates(ctx: dict[str, Any]) -> int:
+    """Create the demo mandates and their attempts, and return how many there are.
+
+    Ten members renew automatically, one is paused after a charge and all three
+    of its retries were refused, and one turned automatic renewal off.  Each
+    active mandate whose charge falls inside the notice window already carries a
+    scheduled attempt with its warning sent, which is what the daily scan would
+    have left behind.  Running it twice over the same database changes nothing.
+    """
+    rng: random.Random = ctx["rng"]
+    today: dt.date = ctx["today"]
+    annual: MembershipPlan = ctx["plans"]["annual"]
+
+    wanted = ACTIVE_MANDATES + PAUSED_MANDATES + CANCELED_MANDATES
+    eligible = _mandate_candidates(ctx["users"], today)
+    # Evenly spaced through the expiry order, so the seeded charge dates spread
+    # across the coming year instead of bunching in the next fortnight.
+    step = max(len(eligible) // wanted, 1)
+    candidates = eligible[::step][:wanted]
+
+    for index, (user, term) in enumerate(candidates):
+        contribution = _contribution(rng)
+        fields = _card(rng, index)
+        if index == ACTIVE_MANDATES:
+            fields |= {
+                "provider": MandateProvider.MOCK,
+                "customer_ref": "",
+                "method_ref": "mock",
+                "method_brand": "visa",
+                "method_last4": DECLINED_LAST4,
+                "method_exp_month": 12,
+                "method_exp_year": 2030,
+                "method_label": f"Test card ending {DECLINED_LAST4}, expires 12/2030",
+                "status": MandateStatus.PAUSED,
+                "failure_count": len(RETRY_OFFSETS) + 1,
+            }
+        elif index == ACTIVE_MANDATES + PAUSED_MANDATES:
+            fields |= {
+                "status": MandateStatus.CANCELED,
+                "canceled_at": timezone.now() - timedelta(days=rng.randint(10, 90)),
+                "canceled_by": user,
+            }
+        else:
+            fields |= {"status": MandateStatus.ACTIVE}
+
+        mandate, created = RenewalMandate.objects.get_or_create(
+            user=user,
+            defaults={"plan": annual, "contribution_cents": contribution, **fields},
+        )
+        if not created:
+            continue
+        if mandate.status == MandateStatus.PAUSED:
+            _seed_failed_attempts(mandate, term, today)
+        elif mandate.status == MandateStatus.ACTIVE:
+            _seed_scheduled_attempt(mandate, term, today)
+
+    return len(candidates)
+
+
+def _seed_scheduled_attempt(mandate: RenewalMandate, term: Membership, today: dt.date) -> None:
+    """Leave a scheduled charge behind when the term is inside the notice window."""
+    if term.ends_on is None:
+        return
+    charge_on = charge_date_for(term.ends_on)
+    if (charge_on - today).days > NOTICE_DAYS:
+        return
+    RenewalAttempt.objects.create(
+        mandate=mandate,
+        membership=term,
+        scheduled_on=charge_on,
+        noticed_at=timezone.now(),
+    )
+
+
+def _seed_failed_attempts(mandate: RenewalMandate, term: Membership, today: dt.date) -> None:
+    """The charge and the three retries that all failed, which paused this mandate."""
+    if term.ends_on is None:
+        return
+    day = charge_date_for(term.ends_on) - timedelta(days=sum(RETRY_OFFSETS))
+    previous: RenewalAttempt | None = None
+    for offset in (0, *RETRY_OFFSETS):
+        day = day + timedelta(days=offset)
+        previous = RenewalAttempt.objects.create(
+            mandate=mandate,
+            membership=term,
+            scheduled_on=day,
+            retry_of=previous,
+            outcome=RenewalOutcome.FAILED,
+            error=DECLINED_MESSAGE,
+            noticed_at=timezone.now(),
+            attempted_at=timezone.now(),
+            result_emailed_at=timezone.now(),
+        )

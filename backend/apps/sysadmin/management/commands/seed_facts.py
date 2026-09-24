@@ -19,7 +19,7 @@ from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
 from apps.aircraft.models import Aircraft
 from apps.members.models import MembershipPlan, MembershipState
 from apps.members.services import membership_status
-from apps.payments.models import Payment, PaymentProvider
+from apps.payments.models import MandateStatus, Payment, PaymentProvider, RenewalMandate
 
 
 def _has_lapsed_insurance(aircraft: Aircraft) -> bool:
@@ -60,6 +60,45 @@ def _subject(*, insured: bool | None, current_member: bool) -> dict[str, str]:
     return {"name": "", "nNumber": ""}
 
 
+def _auto_renewing_member() -> dict[str, str]:
+    """A seeded member whose membership renews itself, for the renewal specs.
+
+    Returns ``{"name", "email", "methodLabel"}`` for the first member holding an
+    active mandate, and empty strings when the seed has none -- the specs then
+    fail on the name they were given, which says what is missing.
+    """
+    mandate = (
+        RenewalMandate.objects.filter(status=MandateStatus.ACTIVE)
+        .select_related("user")
+        .order_by("pk")
+        .first()
+    )
+    if mandate is None:
+        return {"name": "", "email": "", "methodLabel": ""}
+    return {
+        "name": mandate.user.display_name,
+        "email": mandate.user.email,
+        "methodLabel": mandate.method_label,
+    }
+
+
+def _paused_renewal_member() -> dict[str, str]:
+    """A seeded member whose automatic renewal was paused after its retries ran out.
+
+    Returns ``{"name", "email"}``, and empty strings when the seed has no paused
+    mandate.
+    """
+    mandate = (
+        RenewalMandate.objects.filter(status=MandateStatus.PAUSED)
+        .select_related("user")
+        .order_by("pk")
+        .first()
+    )
+    if mandate is None:
+        return {"name": "", "email": ""}
+    return {"name": mandate.user.display_name, "email": mandate.user.email}
+
+
 def seed_facts() -> dict[str, Any]:
     """Return the demo data set's facts, ready to serialize as JSON.
 
@@ -73,6 +112,8 @@ def seed_facts() -> dict[str, Any]:
     the seed rather than on names typed into them, which drift.
     ``manualPaymentCount`` is how many payments the seed recorded by hand, which
     is what a finance spec filtering the list to checks expects to find.
+    ``autoRenewal`` names one member whose membership renews itself and one whose
+    renewal was paused after every retry was refused.
     """
     return {
         "demoPassword": DEMO_PASSWORD,
@@ -86,6 +127,10 @@ def seed_facts() -> dict[str, Any]:
             "expiredMember": _subject(insured=None, current_member=False),
         },
         "manualPaymentCount": Payment.objects.filter(provider=PaymentProvider.MANUAL).count(),
+        "autoRenewal": {
+            "activeMandate": _auto_renewing_member(),
+            "pausedMandate": _paused_renewal_member(),
+        },
     }
 
 
