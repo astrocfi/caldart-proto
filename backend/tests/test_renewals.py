@@ -72,7 +72,7 @@ def make_mandate(
 
 def subjects(mailbox: list[EmailMessage]) -> list[str]:
     """The subject line of every message sent so far."""
-    return [message.subject for message in mailbox]
+    return [str(message.subject) for message in mailbox]
 
 
 # --------------------------------------------------------------------------
@@ -410,7 +410,7 @@ def test_the_failure_email_names_the_day_of_the_next_attempt(
 
 
 def walk_the_ladder(today: date) -> date:
-    """Run the scan on the charge date and on every retry date, and return the last day."""
+    """Scan on the charge date and on every retry date; return the last day scanned."""
     run_auto_renewals(today=today)
     day = today
     for offset in RETRY_OFFSETS:
@@ -515,9 +515,7 @@ def test_the_run_counts_the_mandate_it_paused(
 # --------------------------------------------------------------------------
 # The card-expiry warning
 # --------------------------------------------------------------------------
-def expiring_card_mandate(
-    member: User, plan: MembershipPlan, today: date
-) -> RenewalMandate:
+def expiring_card_mandate(member: User, plan: MembershipPlan, today: date) -> RenewalMandate:
     """A mandate whose card expires at the end of this month, charged next month."""
     mandate = make_mandate(member, plan, ends_on=today + timedelta(days=45))
     mandate.method_exp_month = today.month

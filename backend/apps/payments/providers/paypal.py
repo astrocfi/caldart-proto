@@ -23,8 +23,10 @@ from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonResponse
 
-from apps.payments.models import Payment, PaymentProvider, PaymentWallet, Refund
+from apps.payments.models import Payment, PaymentProvider, PaymentWallet, Refund, RenewalMandate
 from apps.payments.providers.base import (
+    MandateMethod,
+    PaymentDeclinedError,
     PaymentError,
     PaymentVerificationError,
     Provider,
@@ -64,6 +66,13 @@ TIMEOUT_SECONDS = 20.0
 CAPTURE_COMPLETED = "PAYMENT.CAPTURE.COMPLETED"
 CAPTURE_FAILED = frozenset({"PAYMENT.CAPTURE.DENIED", "PAYMENT.CAPTURE.REVERSED"})
 CAPTURE_REFUNDED = "PAYMENT.CAPTURE.REFUNDED"
+
+#: What the member is told when PayPal will not take a vaulted payment.
+DECLINED_MESSAGE = "PayPal refused the saved payment method."
+
+#: The vault instruction attached to a checkout order that is to save the payer's
+#: account for automatic renewal.
+VAULT_ATTRIBUTES = {"store_in_vault": "ON_SUCCESS", "usage_type": "MERCHANT"}
 
 
 def api_base() -> str:
@@ -319,7 +328,10 @@ class PayPalProvider(Provider):
 
         Stores the order id as ``provider_ref`` and the order in ``raw``, and
         returns ``{"order_id": ...}``.  No money moves yet: :meth:`confirm` is what
-        captures it.  Raises :class:`ProviderNotConfiguredError` without credentials,
+        captures it.  A payer with a ``pending`` renewal mandate has the order
+        created with PayPal's vault instruction, so the account they pay with is
+        saved for automatic renewal.  Raises :class:`ProviderNotConfiguredError`
+        without credentials,
         :class:`ProviderUnavailableError` when PayPal cannot be reached, and
         :class:`PaymentVerificationError` when PayPal rejects the request or
         answers without an order id.
@@ -340,15 +352,7 @@ class PayPalProvider(Provider):
                         },
                     }
                 ],
-                "payment_source": {
-                    "paypal": {
-                        "experience_context": {
-                            "brand_name": "CalDART",
-                            "shipping_preference": "NO_SHIPPING",
-                            "user_action": "PAY_NOW",
-                        }
-                    }
-                },
+                "payment_source": {"paypal": paypal_source(payment)},
             },
         )
         order_id = order.get("id")
@@ -585,6 +589,117 @@ class PayPalProvider(Provider):
             return False
         return result.get("verification_status") == "SUCCESS"
 
+    # ------------------------------------------------------------- mandates
+    def start_mandate(self, mandate: RenewalMandate) -> dict[str, Any]:
+        """Create the vault setup token the PayPal buttons approve.
+
+        Returns ``{"setup_token": ...}``.  No money moves: approving the token is
+        what lets :meth:`confirm_mandate` exchange it for a payment token.  Raises
+        :class:`ProviderNotConfiguredError` without credentials,
+        :class:`ProviderUnavailableError` when PayPal cannot be reached, and
+        :class:`PaymentVerificationError` when PayPal answers without a token id.
+        """
+        token = call(
+            "POST",
+            "/v3/vault/setup-tokens",
+            json_body={
+                "payment_source": {
+                    "paypal": {
+                        "usage_type": "MERCHANT",
+                        "experience_context": dict(EXPERIENCE_CONTEXT),
+                    }
+                }
+            },
+        )
+        token_id = token.get("id")
+        if not token_id:
+            raise PaymentVerificationError("PayPal did not return a setup token.")
+        return {"setup_token": token_id}
+
+    def confirm_mandate(self, mandate: RenewalMandate, **kwargs: Any) -> MandateMethod:
+        """Exchange the approved setup token for the vaulted payment token.
+
+        ``setup_token`` names the token the buttons approved.  Raises
+        :class:`PaymentVerificationError` when no token is given and when PayPal
+        answers without a vault id, and :class:`ProviderUnavailableError` when
+        PayPal cannot be reached.
+        """
+        setup_token = str(kwargs.get("setup_token") or "")
+        if not setup_token:
+            raise PaymentVerificationError("No PayPal setup token to confirm.")
+        token = call(
+            "POST",
+            "/v3/vault/payment-tokens",
+            json_body={"payment_source": {"token": {"id": setup_token, "type": "SETUP_TOKEN"}}},
+        )
+        vault_id = token.get("id")
+        if not vault_id:
+            raise PaymentVerificationError("PayPal did not return a payment token.")
+        paypal = (token.get("payment_source") or {}).get("paypal") or {}
+        return MandateMethod(
+            method_ref=str(vault_id),
+            customer_ref=str(token.get("customer", {}).get("id") or ""),
+            label=paypal_label(str(paypal.get("email_address") or "")),
+            raw=token,
+        )
+
+    def charge_mandate(self, mandate: RenewalMandate, payment: Payment) -> None:
+        """Create an order against the vaulted account and capture it at once.
+
+        Marks the payment succeeded when PayPal completes a capture for the right
+        amount.  Raises :class:`PaymentDeclinedError` when PayPal will not take
+        the vaulted method, and :class:`ProviderUnavailableError` when PayPal
+        cannot be reached.
+        """
+        try:
+            order = call(
+                "POST",
+                "/v2/checkout/orders",
+                json_body={
+                    "intent": "CAPTURE",
+                    "purchase_units": [
+                        {
+                            "reference_id": f"payment-{payment.pk}",
+                            "custom_id": str(payment.pk),
+                            "description": f"CalDART \u00b7 {payment.description}"[:127],
+                            "amount": {
+                                "currency_code": payment.currency.upper(),
+                                "value": dollars(payment.amount_cents),
+                            },
+                        }
+                    ],
+                    "payment_source": {"paypal": {"vault_id": mandate.method_ref}},
+                },
+            )
+        except PaymentVerificationError as exc:
+            raise PaymentDeclinedError(str(exc) or DECLINED_MESSAGE) from exc
+
+        order_id = order.get("id")
+        if order.get("status") != "COMPLETED":
+            try:
+                order = call("POST", f"/v2/checkout/orders/{order_id}/capture")
+            except PaymentVerificationError as exc:
+                raise PaymentDeclinedError(str(exc) or DECLINED_MESSAGE) from exc
+
+        if order.get("status") != "COMPLETED":
+            raise PaymentDeclinedError(DECLINED_MESSAGE)
+        total = captured_cents(order)
+        if total != payment.amount_cents:
+            log_capture_mismatch(payment, order, "amount")
+            raise PaymentVerificationError(
+                f"PayPal captured ${total / 100:,.2f}, not ${payment.amount_cents / 100:,.2f}."
+            )
+        mark_succeeded(
+            payment,
+            wallet=PaymentWallet.PAYPAL,
+            raw=order,
+            provider_ref=str(order_id or "") or payment.provider_ref,
+        )
+
+    def method_from_payment(self, payment: Payment) -> MandateMethod | None:
+        """The vaulted account a captured order saved, or ``None`` when it saved none."""
+        return vault_from_capture(payment.raw or {})
+
 
 def json_body(request: HttpRequest) -> dict[str, Any]:
     """The request body as a dict.
@@ -634,3 +749,61 @@ def payment_for_resource(resource: dict[str, Any]) -> Payment | None:
         if payment is not None:
             return payment
     return None
+
+
+EXPERIENCE_CONTEXT = {
+    "brand_name": "CalDART",
+    "shipping_preference": "NO_SHIPPING",
+    "user_action": "PAY_NOW",
+}
+
+
+def paypal_source(payment: Payment) -> dict[str, Any]:
+    """The ``payment_source.paypal`` block a checkout order carries.
+
+    The experience context always, plus the vault instruction when the payer
+    asked for automatic renewal, which is what makes PayPal keep the account for
+    a later charge.
+    """
+    # Inline: renewals reads this package, so a top-level import would close the
+    # cycle between the two.
+    from apps.payments.renewals import pending_mandate_for
+
+    source: dict[str, Any] = {"experience_context": dict(EXPERIENCE_CONTEXT)}
+    if pending_mandate_for(payment) is not None:
+        source["attributes"] = {"vault": dict(VAULT_ATTRIBUTES)}
+    return source
+
+
+def vault_from_capture(order: dict[str, Any]) -> MandateMethod | None:
+    """The vaulted PayPal account a captured order saved, or ``None``.
+
+    Reads ``payment_source.paypal.attributes.vault.id`` and the payer's email
+    address, which is what the member sees: ``"PayPal (m***@example.org)"``.
+    ``None`` when the order saved nothing.
+    """
+    paypal = (order.get("payment_source") or {}).get("paypal") or {}
+    vault = (paypal.get("attributes") or {}).get("vault") or {}
+    vault_id = vault.get("id")
+    if not vault_id:
+        return None
+    return MandateMethod(
+        method_ref=str(vault_id),
+        customer_ref=str(paypal.get("account_id") or ""),
+        label=paypal_label(str(paypal.get("email_address") or "")),
+        raw=order,
+    )
+
+
+def paypal_label(email: str) -> str:
+    """How a saved PayPal account reads to its owner.
+
+    ``"PayPal (m***@example.org)"`` for a known address, with everything after the
+    first character of the local part hidden, and ``"PayPal"`` when PayPal gave no
+    address at all.
+    """
+    if "@" not in email:
+        return "PayPal"
+    local, _, domain = email.partition("@")
+    masked = f"{local[0]}***" if local else "***"
+    return f"PayPal ({masked}@{domain})"

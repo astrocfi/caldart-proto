@@ -59,6 +59,23 @@ class MandateMethod:
     raw: dict[str, Any] = field(default_factory=dict)
 
 
+def card_label(brand: str, last4: str, exp_month: int | None, exp_year: int | None) -> str:
+    """The one line a member reads about a saved card.
+
+    ``"Visa ending 4242, expires 03/2028"`` when everything is known; the expiry
+    is left off when the provider did not give one, and a card with no last four
+    digits reads as its brand alone.  A method with no brand and no digits at all
+    reads ``"Saved payment method"``, so the label is never empty.
+    """
+    name = brand.replace("_", " ").title() if brand else ""
+    method = f"{name} ending {last4}".strip() if last4 else name
+    if not method:
+        method = "Saved payment method"
+    if exp_month is not None and exp_year is not None:
+        return f"{method}, expires {exp_month:02d}/{exp_year}"
+    return method
+
+
 class PaymentVerificationError(PaymentError):
     """The provider's own record of the payment does not match ours.
 

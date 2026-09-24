@@ -35,10 +35,13 @@ from typing import Any
 
 import stripe
 from django.conf import settings
+from stripe.params._payment_intent_create_params import PaymentIntentCreateParams
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonResponse
 
-from apps.payments.models import Payment, PaymentProvider, PaymentWallet, Refund
+from apps.payments.models import Payment, PaymentProvider, PaymentWallet, Refund, RenewalMandate
 from apps.payments.providers.base import (
+    MandateMethod,
+    PaymentDeclinedError,
     PaymentError,
     PaymentVerificationError,
     Provider,
@@ -46,6 +49,7 @@ from apps.payments.providers.base import (
     ProviderNotConfiguredError,
     ProviderRefund,
     ProviderUnavailableError,
+    card_label,
     register,
 )
 from apps.payments.refunds import record_dashboard_refund
@@ -74,6 +78,10 @@ FAILED_STATUSES = frozenset({"canceled", "requires_payment_method"})
 #: What every retrieval expands, so the charge and the balance transaction that
 #: carries the fee come back with the intent instead of costing two more calls.
 INTENT_EXPAND = ["latest_charge.balance_transaction"]
+
+#: What a member is told when Stripe refuses an off-session charge without
+#: giving a reason of its own.
+DECLINED_MESSAGE = "Your card was declined."
 
 #: How long one Stripe HTTP attempt may take, and how many times the library
 #: may retry it.  The worst case is the product plus one attempt -- 40 seconds
@@ -287,24 +295,39 @@ class StripeProvider(Provider):
         Stores the intent's id as ``provider_ref`` and the whole intent in ``raw``,
         and returns ``{"client_secret": ...}``.  The call is idempotent per payment,
         so starting the same payment twice returns the first intent rather than
-        charging twice.  Raises :class:`ProviderNotConfiguredError` without a secret key
-        and :class:`ProviderUnavailableError` when Stripe cannot be reached.
+        charging twice.
+
+        A payer with a ``pending`` renewal mandate has a Stripe customer created
+        for them, and the intent is created against it with
+        ``setup_future_usage="off_session"``, so the method they pay with is the
+        one CalDART renews from.  Raises :class:`ProviderNotConfiguredError`
+        without a secret key and :class:`ProviderUnavailableError` when Stripe
+        cannot be reached.
         """
         client = stripe_client()
+        params: PaymentIntentCreateParams = {
+            "amount": payment.amount_cents,
+            "currency": payment.currency,
+            "automatic_payment_methods": {"enabled": True},
+            "description": f"CalDART \u00b7 {payment.description}",
+            # stripe's params type the field as a string, but its API takes null
+            # for "send no receipt".
+            "receipt_email": payment.user.email or None,  # type: ignore[typeddict-item]
+            "metadata": {
+                "payment_id": str(payment.pk),
+                "user_id": str(payment.user_id),
+                "plan": payment.plan.slug if payment.plan is not None else "",
+            },
+        }
+        mandate = pending_mandate(payment)
+        if mandate is not None:
+            # Saving the method needs a customer to save it against, and
+            # off-session usage has to be declared when the intent is created.
+            params["customer"] = self.ensure_customer(mandate)
+            params["setup_future_usage"] = "off_session"
         try:
             created = client.v1.payment_intents.create(
-                {
-                    "amount": payment.amount_cents,
-                    "currency": payment.currency,
-                    "automatic_payment_methods": {"enabled": True},
-                    "description": f"CalDART \u00b7 {payment.description}",
-                    "metadata": {
-                        "payment_id": str(payment.pk),
-                        "user_id": str(payment.user_id),
-                        "plan": payment.plan.slug if payment.plan is not None else "",
-                    },
-                },
-                {"idempotency_key": idempotency_key(payment)},
+                params, {"idempotency_key": idempotency_key(payment)}
             )
         except stripe.StripeError as exc:
             raise unavailable(payment, "payment_intents.create", exc) from exc
@@ -537,3 +560,219 @@ class StripeProvider(Provider):
         except stripe.StripeError as exc:
             raise unavailable(payment, "payment_intents.retrieve", exc) from exc
         return fees_from_intent(retrieved.to_dict())
+
+    # ------------------------------------------------------------- mandates
+    def ensure_customer(self, mandate: RenewalMandate) -> str:
+        """The Stripe customer this mandate saves its method against.
+
+        Returns the mandate's ``customer_ref`` when it already has one; otherwise
+        creates a customer carrying the member's name, email address and id, saves
+        its id on the mandate and returns that.  Raises
+        :class:`ProviderUnavailableError` when Stripe cannot be reached.
+        """
+        if mandate.customer_ref:
+            return mandate.customer_ref
+        user = mandate.user
+        try:
+            created = stripe_client().v1.customers.create(
+                {
+                    "email": user.email,
+                    "name": user.display_name,
+                    "metadata": {"user_id": str(user.pk)},
+                }
+            )
+        except stripe.StripeError as exc:
+            log.warning(
+                "Stripe customers.create failed for user %s: %s", user.pk, type(exc).__name__
+            )
+            raise ProviderUnavailableError(UNAVAILABLE_MESSAGE) from exc
+        customer_id: str = created.to_dict()["id"]
+        mandate.customer_ref = customer_id
+        mandate.save(update_fields=["customer_ref", "updated_at"])
+        return customer_id
+
+    def start_mandate(self, mandate: RenewalMandate) -> dict[str, Any]:
+        """Create the SetupIntent the Payment Element collects a card into.
+
+        Returns ``{"client_secret": ...}`` for the Element rendered in ``setup``
+        mode, having made sure the mandate has a customer to save against.  No
+        money moves.  Raises :class:`ProviderNotConfiguredError` without a secret
+        key, :class:`ProviderUnavailableError` when Stripe cannot be reached, and
+        :class:`PaymentVerificationError` when Stripe answers without a client
+        secret.
+        """
+        customer = self.ensure_customer(mandate)
+        try:
+            created = stripe_client().v1.setup_intents.create(
+                {
+                    "customer": customer,
+                    "usage": "off_session",
+                    "automatic_payment_methods": {"enabled": True},
+                    "metadata": {
+                        "user_id": str(mandate.user_id),
+                        "mandate_id": str(mandate.pk),
+                    },
+                }
+            )
+        except stripe.StripeError as exc:
+            log.warning("Stripe setup_intents.create failed: %s", type(exc).__name__)
+            raise ProviderUnavailableError(UNAVAILABLE_MESSAGE) from exc
+        intent = created.to_dict()
+        secret = intent.get("client_secret")
+        if not secret:
+            raise PaymentVerificationError("Stripe returned no SetupIntent client secret.")
+        return {"client_secret": secret}
+
+    def confirm_mandate(self, mandate: RenewalMandate, **kwargs: Any) -> MandateMethod:
+        """Read back the card the member saved, and check it is theirs.
+
+        ``setup_intent_id`` names the SetupIntent the browser confirmed.  Raises
+        :class:`PaymentVerificationError` when no id is given, when the intent
+        belongs to another customer, when Stripe reports anything but
+        ``succeeded``, and when the intent carries no payment method; raises
+        :class:`ProviderUnavailableError` when Stripe cannot be reached.
+        """
+        setup_intent_id = str(kwargs.get("setup_intent_id") or "")
+        if not setup_intent_id:
+            raise PaymentVerificationError("No SetupIntent to confirm.")
+        try:
+            retrieved = stripe_client().v1.setup_intents.retrieve(
+                setup_intent_id, {"expand": ["payment_method"]}
+            )
+        except stripe.StripeError as exc:
+            log.warning("Stripe setup_intents.retrieve failed: %s", type(exc).__name__)
+            raise ProviderUnavailableError(UNAVAILABLE_MESSAGE) from exc
+        intent = retrieved.to_dict()
+
+        customer = intent.get("customer")
+        customer_id = customer.get("id") if isinstance(customer, dict) else customer
+        if str(customer_id or "") != mandate.customer_ref:
+            raise PaymentVerificationError("That SetupIntent belongs to another customer.")
+        if intent.get("status") != "succeeded":
+            raise PaymentVerificationError(f"Stripe reports the setup as '{intent.get('status')}'.")
+
+        method = intent.get("payment_method")
+        if not isinstance(method, dict):
+            raise PaymentVerificationError("Stripe saved no payment method.")
+        return method_from_card(
+            str(method.get("id") or ""),
+            str(customer_id or ""),
+            method.get("card") or {},
+            intent,
+        )
+
+    def charge_mandate(self, mandate: RenewalMandate, payment: Payment) -> None:
+        """Charge the saved card off-session, without the member present.
+
+        Confirms a PaymentIntent against the mandate's customer and payment
+        method, keyed so a repeated attempt cannot charge twice, and marks the
+        payment succeeded when Stripe reports ``succeeded``.  Raises
+        :class:`PaymentDeclinedError` carrying Stripe's own wording when the card
+        is refused or further authentication is required, and
+        :class:`ProviderUnavailableError` when Stripe cannot be reached.
+        """
+        try:
+            created = stripe_client().v1.payment_intents.create(
+                {
+                    "amount": payment.amount_cents,
+                    "currency": payment.currency,
+                    "customer": mandate.customer_ref,
+                    "payment_method": mandate.method_ref,
+                    "off_session": True,
+                    "confirm": True,
+                    "description": f"CalDART \u00b7 {payment.description}",
+                    "metadata": {
+                        "payment_id": str(payment.pk),
+                        "user_id": str(payment.user_id),
+                        "plan": payment.plan.slug if payment.plan is not None else "",
+                    },
+                },
+                {"idempotency_key": f"caldart-renewal-{payment.pk}"},
+            )
+        except stripe.CardError as exc:
+            raise PaymentDeclinedError(exc.user_message or DECLINED_MESSAGE) from exc
+        except stripe.StripeError as exc:
+            raise unavailable(payment, "payment_intents.create off-session", exc) from exc
+
+        intent = created.to_dict()
+        payment.provider_ref = intent["id"]
+        payment.save(update_fields=["provider_ref", "updated_at"])
+        if intent.get("status") != "succeeded":
+            raise PaymentDeclinedError(decline_reason(intent))
+        mark_succeeded(
+            payment,
+            wallet=wallet_from_intent(intent),
+            raw=jsonable(intent),
+            provider_ref=intent["id"],
+        )
+
+    def method_from_payment(self, payment: Payment) -> MandateMethod | None:
+        """The card a succeeded checkout saved, read off the stored intent.
+
+        ``None`` when the intent recorded no payment method or no card details,
+        which is what a payment that saved nothing looks like.
+        """
+        intent = payment.raw or {}
+        method_id = intent.get("payment_method")
+        charge = intent.get("latest_charge")
+        details = charge.get("payment_method_details") if isinstance(charge, dict) else None
+        card = details.get("card") if isinstance(details, dict) else None
+        if not method_id or not isinstance(card, dict):
+            return None
+        customer = intent.get("customer")
+        customer_id = customer.get("id") if isinstance(customer, dict) else customer
+        return method_from_card(str(method_id), str(customer_id or ""), card, intent)
+
+
+def decline_reason(intent: dict[str, Any]) -> str:
+    """The member-facing reason an off-session intent did not succeed.
+
+    Stripe's ``last_payment_error.message`` when there is one, otherwise the
+    intent's status spelled out, so the renewal attempt always records something
+    a person can act on.
+    """
+    error = intent.get("last_payment_error")
+    if isinstance(error, dict) and error.get("message"):
+        return str(error["message"])
+    status = intent.get("status")
+    if status == "requires_action":
+        return "Your bank asked for confirmation, which we cannot give off-session."
+    return DECLINED_MESSAGE
+
+
+def pending_mandate(payment: Payment) -> RenewalMandate | None:
+    """The Stripe mandate this payment would activate, or ``None``.
+
+    Read at checkout, so an intent that is going to save a card is created with
+    a customer and with ``setup_future_usage``.
+    """
+    # Inline: renewals reads this package, so a top-level import would close the
+    # cycle between the two.
+    from apps.payments.renewals import pending_mandate_for
+
+    return pending_mandate_for(payment)
+
+
+def method_from_card(
+    payment_method_id: str, customer_ref: str, card: dict[str, Any], raw: dict[str, Any]
+) -> MandateMethod:
+    """Build the saved-method record from a Stripe card object."""
+    brand = str(card.get("brand") or "")
+    last4 = str(card.get("last4") or "")
+    exp_month = card.get("exp_month")
+    exp_year = card.get("exp_year")
+    return MandateMethod(
+        method_ref=payment_method_id,
+        customer_ref=customer_ref,
+        brand=brand,
+        last4=last4,
+        exp_month=int(exp_month) if exp_month is not None else None,
+        exp_year=int(exp_year) if exp_year is not None else None,
+        label=card_label(
+            brand,
+            last4,
+            int(exp_month) if exp_month is not None else None,
+            int(exp_year) if exp_year is not None else None,
+        ),
+        raw=jsonable(raw),
+    )

@@ -232,10 +232,10 @@ def send_mandate_email(mandate: RenewalMandate, template: str, **extra: Any) -> 
 # --------------------------------------------------------------------------
 # The mandate's life cycle
 # --------------------------------------------------------------------------
-def check_renewable(plan: MembershipPlan | None, provider: str) -> None:
-    """Refuse a mandate that could never be charged again.
+def check_renewable(plan: MembershipPlan | None, provider: str) -> MembershipPlan:
+    """Refuse a mandate that could never be charged again, and return the plan.
 
-    Returns ``None`` when ``plan`` on ``provider`` can hold a standing authority.
+    Returns ``plan`` when it can hold a standing authority on ``provider``.
     Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` when there
     is no plan to renew, when the plan is a lifetime one, or when the provider
     cannot charge again without the member, which is every provider outside
@@ -253,6 +253,7 @@ def check_renewable(plan: MembershipPlan | None, provider: str) -> None:
         raise DomainValidationError(
             AUTO_RENEW_FIELD, f"'{provider}' cannot charge a saved payment method."
         )
+    return plan
 
 
 @transaction.atomic
@@ -274,11 +275,11 @@ def begin_mandate(
     Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` for
     anything :func:`check_renewable` refuses, and writes nothing when it does.
     """
-    check_renewable(plan, provider)
+    renewable = check_renewable(plan, provider)
     mandate, _ = RenewalMandate.objects.update_or_create(
         user=user,
         defaults={
-            "plan": plan,
+            "plan": renewable,
             "contribution_cents": contribution_cents,
             "provider": provider,
             "status": MandateStatus.PENDING,
