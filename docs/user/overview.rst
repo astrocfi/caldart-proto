@@ -183,9 +183,10 @@ after it has lapsed.
 
 Each email is sent once per term, so a scan that runs twice in a day does not
 mail you twice, and renewing stops the rest of the series.  Life members,
-accounts that have been deactivated, and members whose membership renews
-itself are never sent these: automatic renewal has its own emails that cover
-the same ground, described in :doc:`payments`.  Every email links to the
+accounts that have been deactivated, and members whose automatic renewal is
+covering the term are never sent these: automatic renewal has its own emails
+that cover the same ground, described in :doc:`payments`; if automatic
+renewal stops, the ordinary reminders resume.  Every email links to the
 renewal page.
 
 Every one of those emails is recorded.  Account administrators read the record

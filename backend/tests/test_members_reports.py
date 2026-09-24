@@ -192,16 +192,13 @@ def test_csv_blanks_a_missing_certificate_and_medical(
 
 
 @pytest.fixture
-def fixed_name_reportable(reportable: dict[str, User], account_admin: User) -> dict[str, User]:
+def fixed_name_reportable(reportable: dict[str, User], fixed_name_admin: User) -> dict[str, User]:
     """``reportable`` with the signed-in admin given a fixed name too.
 
-    ``account_admin`` otherwise carries a Faker-generated name, which would make a
-    search assertion here depend on whichever name Faker drew for this run -- the
-    report lists every account, admins included, so a drawn last name that happens
-    to contain a search term used below would add an unwanted row.
+    See ``fixed_name_admin`` in ``conftest.py``: the report lists every account,
+    admins included, so a Faker-drawn last name that happens to contain a search
+    term used below would add an unwanted row.
     """
-    account_admin.first_name, account_admin.last_name = "Zoe", "Yeager"
-    account_admin.save(update_fields=["first_name", "last_name"])
     return reportable
 
 
