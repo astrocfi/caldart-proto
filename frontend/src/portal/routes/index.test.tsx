@@ -14,6 +14,7 @@ import { makeUser, signedInAs } from '@test/handlers';
 import { renderRoutes } from '@test/render';
 import { server } from '@test/server';
 import type { RoleSlug } from '../api/types';
+import { FINANCE_TABS } from '../features/admin-payments/FinanceTabs';
 import { routes } from './index';
 
 const { pageStub } = vi.hoisted(() => ({
@@ -73,6 +74,15 @@ vi.mock('../features/admin-payments/RecordPaymentPage', () => ({
 }));
 vi.mock('../features/admin-payments/MemberLedgerPage', () => ({
   MemberLedgerPage: pageStub('Member ledger'),
+}));
+vi.mock('../features/admin-payments/RenewalsPage', () => ({
+  RenewalsPage: pageStub('Renewals'),
+}));
+vi.mock('../features/admin-payments/ReconciliationPage', () => ({
+  ReconciliationPage: pageStub('Reconciliation'),
+}));
+vi.mock('../features/admin-payments/ContributionsPage', () => ({
+  ContributionsPage: pageStub('Contributions'),
 }));
 vi.mock('../features/admin-reminders/AdminRemindersPage', () => ({
   AdminRemindersPage: pageStub('Reminders'),
@@ -178,6 +188,21 @@ const GUARDED_PATHS: GuardedPath[] = [
     allowed: ['account_admin', 'treasurer', 'system_admin'],
   },
   {
+    path: '/admin/payments/renewals',
+    heading: 'Renewals',
+    allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
+  {
+    path: '/admin/payments/reconciliation',
+    heading: 'Reconciliation',
+    allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
+  {
+    path: '/admin/payments/contributions',
+    heading: 'Contributions',
+    allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
+  {
     path: '/admin/payments/record',
     heading: 'Record a payment',
     allowed: ['account_admin', 'treasurer', 'system_admin'],
@@ -241,6 +266,16 @@ describe('the guarded paths', () => {
     renderRoutes(routes, { route: path });
 
     expect(await screen.findByText(FORBIDDEN)).toBeInTheDocument();
+  });
+});
+
+describe('the finance area', () => {
+  it('gives every tab a route a treasurer may open', () => {
+    const openToTreasurer = GUARDED_PATHS.filter((guarded) =>
+      guarded.allowed.includes('treasurer'),
+    ).map((guarded) => guarded.path);
+
+    expect(openToTreasurer).toEqual(expect.arrayContaining(FINANCE_TABS.map((tab) => tab.to)));
   });
 });
 

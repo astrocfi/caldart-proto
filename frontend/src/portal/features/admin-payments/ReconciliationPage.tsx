@@ -16,6 +16,7 @@ import { DataTable } from '@/portal/components/DataTable';
 import { Field } from '@/portal/components/Field';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
+import { FinanceTabs } from './FinanceTabs';
 import { PROVIDER_LABELS } from './labels';
 import {
   EMPTY_RECONCILIATION_FILTERS,
@@ -175,6 +176,8 @@ export function ReconciliationPage(): JSX.Element {
       eyebrow="Payments"
       lede="What the books say arrived, period by period, for matching against a statement."
     >
+      <FinanceTabs />
+
       <p className="muted">
         A payment counts in the period the money arrived; a refund counts in the period it was
         taken. Set a payment&rsquo;s reconciled date on its own screen once you have found it on the
