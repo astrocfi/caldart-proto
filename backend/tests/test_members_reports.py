@@ -191,8 +191,22 @@ def test_csv_blanks_a_missing_certificate_and_medical(
     assert row["aircraft"] == ""
 
 
+@pytest.fixture
+def fixed_name_reportable(reportable: dict[str, User], account_admin: User) -> dict[str, User]:
+    """``reportable`` with the signed-in admin given a fixed name too.
+
+    ``account_admin`` otherwise carries a Faker-generated name, which would make a
+    search assertion here depend on whichever name Faker drew for this run -- the
+    report lists every account, admins included, so a drawn last name that happens
+    to contain a search term used below would add an unwanted row.
+    """
+    account_admin.first_name, account_admin.last_name = "Zoe", "Yeager"
+    account_admin.save(update_fields=["first_name", "last_name"])
+    return reportable
+
+
 def test_csv_honors_the_list_filters(
-    account_admin_client: APIClient, reportable: dict[str, User]
+    account_admin_client: APIClient, fixed_name_reportable: dict[str, User]
 ) -> None:
     """The CSV export applies the same status, dart and search filters as the list."""
     table = read_csv(account_admin_client.get(CSV_URL, {"status": "expired"}))
