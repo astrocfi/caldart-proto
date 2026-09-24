@@ -237,7 +237,10 @@ Email
 Payments
 ========
 
-Covered in full, with test cards and account setup, in :doc:`payments-setup`.
+Covered in full, with test cards and account setup, in :doc:`payments-setup`,
+whose "Testing against the sandboxes" section walks every flow end to end
+against Stripe test mode and the PayPal sandbox. ``make sandbox-check``
+verifies whichever of the keys below are set before you open a browser.
 
 ``STRIPE_PUBLISHABLE_KEY``, ``STRIPE_SECRET_KEY``
    The Stripe API key pair.  Blank hides Stripe from the checkout provider

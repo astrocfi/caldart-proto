@@ -399,9 +399,29 @@ Beyond Django's and Wagtail's own, this project adds:
      - print database connectivity, pending migrations, free disk, last backup
    * - ``send_renewal_reminders [--dry-run] [--today=YYYY-MM-DD]``
      - the renewal scan
+   * - ``payments_sandbox_check``
+     - check the configured Stripe and PayPal credentials without moving money
 
 Run any of them with ``uv run backend/manage.py <command>``.  See
 :doc:`backup-restore` and :doc:`reminders` for the operational detail.
+
+Payments sandbox
+=================
+
+Working on Stripe or PayPal against their real sandboxes, rather than the
+mock provider, needs API keys in ``.env`` (:doc:`configuration`).  Once they
+are there, check that they actually work before opening a browser:
+
+.. code-block:: console
+
+   $ make sandbox-check
+
+It reports the Stripe balance and enabled payment methods, the PayPal
+sandbox account's configured webhooks, and which webhook secrets are set,
+without moving any money.
+:doc:`payments-setup` has the full recipe — creating the accounts, the test
+cards, and a drill through every fee, receipt, refund and automatic renewal
+path end to end.
 
 Before you open a pull request
 ==============================

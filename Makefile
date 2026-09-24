@@ -63,8 +63,8 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
         coverage-frontend e2e \
         lint lint-backend \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
-        audit audit-backend audit-frontend backup restore reminders docs shell superuser \
-        read-docs collectstatic clean
+        audit audit-backend audit-frontend backup restore reminders sandbox-check docs shell \
+        superuser read-docs collectstatic clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -277,6 +277,9 @@ reminders: ## Send renewal reminders (make reminders TODAY=2027-01-01 DRY_RUN=1)
 	$(MANAGE) send_renewal_reminders \
 	  $(if $(TODAY),--today=$(TODAY),) \
 	  $(call flag,DRY_RUN,--dry-run)
+
+sandbox-check: ## Verify Stripe and PayPal sandbox credentials without moving money
+	$(MANAGE) payments_sandbox_check
 
 # ----------------------------------------------------------------- docs
 docs: ## Build the Sphinx documentation (nitpicky; warnings are errors)
