@@ -94,7 +94,7 @@ Step by step:
    installation to upgrade, so a schema change is made by editing the model and
    regenerating that migration rather than by stacking a fix-up on top of it.
    Three migrations carry data rather than schema.
-   ``accounts.0002_seed_roles`` creates the six role groups, so a migrated
+   ``accounts.0002_seed_roles`` creates one group per role, so a migrated
    database already knows what a ``dart_leader`` is, ``cms.0002_site_root``
    makes a ``HomePage`` the Wagtail site root, and
    ``cms.0003_website_admin_permissions`` gives the ``website_admin`` group its
@@ -149,6 +149,8 @@ Sign in with any of the demo accounts, all of which use the password
      - ``member``, ``dart_leader``
    * - ``useradmin@example.org``
      - ``member``, ``user_admin``
+   * - ``treasurer@example.org``
+     - ``member``, ``treasurer`` — no membership term
    * - ``accountadmin@example.org``
      - ``member``, ``account_admin``
    * - ``webadmin@example.org``
@@ -379,7 +381,7 @@ Beyond Django's and Wagtail's own, this project adds:
    * - Command
      - What it does
    * - ``seed_roles``
-     - create the six role groups; idempotent, also run by a data migration
+     - create one group per role slug; idempotent, also run by a data migration
    * - ``seed_demo [--seed N]``
      - the demo data set; ``--seed`` is the *random* seed, default ``20260904``
    * - ``seed_content``

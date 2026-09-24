@@ -28,7 +28,7 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
         "List users, assign roles, activate or deactivate accounts, and trigger password resets."
     ),
     TREASURER: (
-        "See every payment, fee, refund and renewal, issue refunds, record "
+        "See every payment, fee, refund, and renewal; issue refunds, record "
         "payments taken by hand, reconcile periods, and run the financial reports."
     ),
     ACCOUNT_ADMIN: (

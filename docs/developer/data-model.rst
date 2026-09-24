@@ -455,6 +455,10 @@ descriptions live in ``apps/accounts/roles.py``:
    * - ``user_admin``
      - \+ list users, assign roles, activate or deactivate accounts, trigger
        password resets
+   * - ``treasurer``
+     - \+ see every payment, fee, refund, and renewal; issue refunds, record
+       payments taken by hand, reconcile periods, and run the financial
+       reports
    * - ``account_admin``
      - \+ create, edit, and delete members and profiles, grant or extend
        memberships manually, manage aircraft, and run payment, membership and
@@ -1017,7 +1021,9 @@ is ``received_on`` for a payment recorded by hand and the local date of
   bulk delete is a single query that cannot succeed in part.
 - ``partially_refunded`` and ``refunded`` say how much of the payment has been
   given back; the ``Refund`` rows beneath it carry the amounts, and
-  ``refunded_cents`` adds the succeeded ones up.
+  ``refunded_cents`` adds the succeeded ones up.  Both are values the schema
+  accepts and nothing yet writes: the service that issues a refund is described
+  in :doc:`roadmap`.
 
 Contribution tiers are a module constant, not a table:
 ``CONTRIBUTION_TIERS`` in ``apps/payments/models.py`` — No contribution,
@@ -1289,8 +1295,8 @@ rebuilds a development database from nothing in a few seconds.
 
 Two migrations do more than create tables and are worth knowing about:
 
-- ``accounts.0002_seed_roles`` runs the same ``seed_roles`` function, so the six
-  groups exist in any migrated database;
+- ``accounts.0002_seed_roles`` runs the same ``seed_roles`` function, so every
+  role group exists in any migrated database;
 - ``cms.0003_website_admin_permissions`` grants the ``website_admin`` group its
   Wagtail permissions, and ``seed_content`` calls the same function, so the
   grant is applied whichever route you take.

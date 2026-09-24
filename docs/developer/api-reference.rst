@@ -412,7 +412,9 @@ as who may edit an aircraft record, are separate classes in the owning app
 ``treasurer`` grants the finance area and nothing else.  It is deliberately
 kept away from ``/admin/members/*``, which carries medical and certificate
 data, so a volunteer who keeps the books reads the money without reading
-anybody's medical currency.  An ``account_admin`` holds both.
+anybody's medical currency.  An ``account_admin`` holds both.  Like every slug
+in ``STAFF_ROLE_SLUGS`` it does widen one thing outside the API: the holder
+reads the website's members-only pages whatever their own membership says.
 
 ``website_admin`` grants **no API endpoint at all**.  It exists to give its
 holder Wagtail admin permissions, which are enforced by Wagtail, not by DRF.

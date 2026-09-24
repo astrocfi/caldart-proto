@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('contribution_cents', models.PositiveIntegerField(default=0, help_text='Renewed alongside the dues.')),
-                ('provider', models.CharField(choices=[('stripe', 'Stripe'), ('paypal', 'PayPal'), ('mock', 'Mock'), ('manual', 'Recorded by hand')], max_length=12)),
+                ('provider', models.CharField(choices=[('stripe', 'Stripe'), ('paypal', 'PayPal'), ('mock', 'Mock')], max_length=12)),
                 ('customer_ref', models.CharField(blank=True, help_text='Stripe customer id / PayPal payer id.', max_length=128)),
                 ('method_ref', models.CharField(help_text='Stripe payment method id / PayPal vault id.', max_length=128)),
                 ('method_brand', models.CharField(blank=True, max_length=32)),
@@ -110,7 +110,7 @@ class Migration(migrations.Migration):
                 ('provider_ref', models.CharField(blank=True, help_text='The Stripe or PayPal refund id; blank for a manual or mock refund.', max_length=128)),
                 ('refunded_at', models.DateTimeField(blank=True, null=True)),
                 ('raw', models.JSONField(blank=True, default=dict)),
-                ('payment', models.ForeignKey(help_text='Protected: a refund is a financial record and outlives nothing.', on_delete=django.db.models.deletion.PROTECT, related_name='refunds', to='payments.payment')),
+                ('payment', models.ForeignKey(help_text='Protected: a refund is a financial record, and the payment it reverses cannot be deleted out from under it.', on_delete=django.db.models.deletion.PROTECT, related_name='refunds', to='payments.payment')),
                 ('requested_by', models.ForeignKey(blank=True, help_text="Null when the refund was issued in the provider's own dashboard.", null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='refunds_requested', to=settings.AUTH_USER_MODEL)),
             ],
             options={

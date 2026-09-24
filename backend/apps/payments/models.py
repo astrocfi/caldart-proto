@@ -22,6 +22,20 @@ class PaymentProvider(models.TextChoices):
     MANUAL = "manual", "Recorded by hand"
 
 
+class MandateProvider(models.TextChoices):
+    """The payment backends that can hold a standing renewal authority.
+
+    These are the members of ``PaymentProvider`` that can charge again off-session.
+    ``manual`` is absent deliberately: a check or a cash payment cannot be taken a
+    second time without the member, so a mandate naming it would be an authority
+    nobody could ever act on.
+    """
+
+    STRIPE = "stripe", "Stripe"
+    PAYPAL = "paypal", "PayPal"
+    MOCK = "mock", "Mock"
+
+
 class PaymentWallet(models.TextChoices):
     """How the money was presented, as far as the provider could tell us."""
 
@@ -271,7 +285,10 @@ class Refund(TimestampedModel):
         Payment,
         on_delete=models.PROTECT,
         related_name="refunds",
-        help_text="Protected: a refund is a financial record and outlives nothing.",
+        help_text=(
+            "Protected: a refund is a financial record, and the payment it "
+            "reverses cannot be deleted out from under it."
+        ),
     )
     amount_cents = models.PositiveIntegerField(help_text="What was given back.")
     reason = models.CharField(max_length=24, choices=RefundReason.choices)
@@ -325,7 +342,9 @@ class RenewalMandate(TimestampedModel):
     payment succeeds; three failed charges in a row pause it, and the member or an
     administrator can cancel it at any time.
 
-    The plan always has a duration: a lifetime membership never renews.
+    The plan always has a duration: a lifetime membership never renews, and the
+    provider is always one that can charge off-session -- ``stripe``, ``paypal``
+    or ``mock``, never ``manual``.
     """
 
     user = models.OneToOneField(
@@ -341,7 +360,7 @@ class RenewalMandate(TimestampedModel):
     contribution_cents = models.PositiveIntegerField(
         default=0, help_text="Renewed alongside the dues."
     )
-    provider = models.CharField(max_length=12, choices=PaymentProvider.choices)
+    provider = models.CharField(max_length=12, choices=MandateProvider.choices)
     customer_ref = models.CharField(
         max_length=128, blank=True, help_text="Stripe customer id / PayPal payer id."
     )

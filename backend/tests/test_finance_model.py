@@ -13,6 +13,7 @@ from datetime import date
 
 import pytest
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -20,6 +21,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
 from apps.payments.models import (
+    MandateProvider,
     MandateStatus,
     PaymentKind,
     PaymentProvider,
@@ -71,9 +73,7 @@ def test_payment_kind_reads_the_plan_and_the_contribution(
     assert payment.kind == expected
 
 
-def test_paid_on_is_the_local_date_the_provider_completed_the_payment(
-    annual_plan: MembershipPlan,
-) -> None:
+def test_paid_on_is_the_local_date_the_provider_completed_the_payment() -> None:
     """A provider payment is dated by ``completed_at`` in the local time zone."""
     completed = timezone.now()
     payment = PaymentFactory(status=PaymentStatus.SUCCEEDED, completed_at=completed)
@@ -130,6 +130,7 @@ def test_a_manual_payment_records_who_took_it_and_why(account_admin: User) -> No
     )
     payment.refresh_from_db()
     assert payment.note == "Check 1042"
+    assert payment.recorded_by == account_admin
 
 
 def test_reconciling_a_payment_keeps_the_date_and_the_treasurer(treasurer: User) -> None:
@@ -141,6 +142,7 @@ def test_reconciling_a_payment_keeps_the_date_and_the_treasurer(treasurer: User)
     )
     payment.refresh_from_db()
     assert payment.reconciled_by == treasurer
+    assert payment.reconciled_on == date(2026, 3, 1)
 
 
 def test_a_payment_starts_with_no_fee_and_no_receipt() -> None:
@@ -149,6 +151,15 @@ def test_a_payment_starts_with_no_fee_and_no_receipt() -> None:
     assert payment.fee_cents == 0
     assert payment.net_cents == 0
     assert payment.receipt_sent_at is None
+
+
+def test_a_payment_can_be_stored_as_partially_refunded() -> None:
+    """The widest status the column holds survives a round trip to the database."""
+    payment = PaymentFactory(
+        status=PaymentStatus.PARTIALLY_REFUNDED, amount_cents=10_000, completed_at=timezone.now()
+    )
+    payment.refresh_from_db()
+    assert payment.status == "partially_refunded"
 
 
 # --------------------------------------------------------------------------
@@ -215,6 +226,28 @@ def test_a_canceled_mandate_records_who_turned_it_off(member: User, treasurer: U
     assert mandate.canceled_by == treasurer
 
 
+def test_a_mandate_is_never_held_against_a_hand_recorded_payment() -> None:
+    """Only a provider that can charge off-session may hold a standing authority."""
+    assert MandateProvider.values == ["stripe", "paypal", "mock"]
+
+
+def test_every_mandate_provider_is_a_payment_provider_under_the_same_label() -> None:
+    """``MandateProvider`` is a subset of ``PaymentProvider``, labels included."""
+    payment_labels = dict(PaymentProvider.choices)
+    assert dict(MandateProvider.choices) == {
+        value: payment_labels[value] for value in MandateProvider.values
+    }
+
+
+def test_a_mandate_field_refuses_a_manual_provider(member: User) -> None:
+    """Validating a mandate that names ``manual`` reports the provider as invalid."""
+    mandate = RenewalMandateFactory(user=member)
+    mandate.provider = PaymentProvider.MANUAL
+    with pytest.raises(ValidationError) as excinfo:
+        mandate.full_clean()
+    assert "provider" in excinfo.value.error_dict
+
+
 def test_a_mandate_carries_its_own_contribution(member: User) -> None:
     """The contribution renewed alongside the dues is kept on the mandate."""
     mandate = RenewalMandateFactory(user=member, contribution_cents=2_000)
@@ -226,11 +259,13 @@ def test_a_mandate_carries_its_own_contribution(member: User) -> None:
 # --------------------------------------------------------------------------
 def test_an_attempt_is_described_by_its_date_and_outcome(member: User) -> None:
     """``str`` on an attempt reads as the member, the scheduled day and the outcome."""
-    attempt = RenewalAttemptFactory(scheduled_on=date(2026, 6, 1))
-    assert str(attempt) == f"{attempt.mandate.user} \u00b7 2026-06-01 (scheduled)"
+    attempt = RenewalAttemptFactory(
+        mandate=RenewalMandateFactory(user=member), scheduled_on=date(2026, 6, 1)
+    )
+    assert str(attempt) == f"{member} \u00b7 2026-06-01 (scheduled)"
 
 
-def test_a_new_attempt_has_been_neither_noticed_nor_charged(member: User) -> None:
+def test_a_new_attempt_has_been_neither_noticed_nor_charged() -> None:
     """An attempt starts scheduled, with no payment and none of its emails sent."""
     attempt = RenewalAttemptFactory()
     assert attempt.outcome == RenewalOutcome.SCHEDULED
@@ -240,7 +275,7 @@ def test_a_new_attempt_has_been_neither_noticed_nor_charged(member: User) -> Non
     assert attempt.result_emailed_at is None
 
 
-def test_a_retry_points_at_the_attempt_it_retries(member: User) -> None:
+def test_a_retry_points_at_the_attempt_it_retries() -> None:
     """``retry_of`` chains a retry to the failed attempt that caused it."""
     failed = RenewalAttemptFactory(outcome=RenewalOutcome.FAILED, error="Your card was declined")
     retry = RenewalAttemptFactory(mandate=failed.mandate, membership=failed.membership)
@@ -271,8 +306,8 @@ def test_attempts_read_back_newest_first(member: User) -> None:
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize("model", [Refund, RenewalMandate, RenewalAttempt])
 def test_the_finance_models_are_registered_in_the_django_admin(model: type) -> None:
-    """A system administrator can browse refunds, mandates and attempts in Wagtail."""
-    assert model in admin.site._registry
+    """Refunds, mandates and attempts are browsable in the Django admin."""
+    assert admin.site.is_registered(model)
 
 
 # --------------------------------------------------------------------------
@@ -321,18 +356,18 @@ def test_a_treasurer_reads_the_payment_list(treasurer_client: APIClient) -> None
 @pytest.mark.parametrize(
     ("constant", "action"),
     [
-        ("PAYMENT_RECORD", "payment.record"),
-        ("PAYMENT_REFUND", "payment.refund"),
-        ("PAYMENT_RECONCILE", "payment.reconcile"),
-        ("PAYMENT_RECEIPT_RESEND", "payment.receipt_resend"),
-        ("PAYMENT_NOTE", "payment.note"),
-        ("RENEWAL_ENABLE", "renewal.enable"),
-        ("RENEWAL_CANCEL", "renewal.cancel"),
-        ("RENEWALS_RUN", "renewals.run"),
+        (audit.PAYMENT_RECORD, "payment.record"),
+        (audit.PAYMENT_REFUND, "payment.refund"),
+        (audit.PAYMENT_RECONCILE, "payment.reconcile"),
+        (audit.PAYMENT_RECEIPT_RESEND, "payment.receipt_resend"),
+        (audit.PAYMENT_NOTE, "payment.note"),
+        (audit.RENEWAL_ENABLE, "renewal.enable"),
+        (audit.RENEWAL_CANCEL, "renewal.cancel"),
+        (audit.RENEWALS_RUN, "renewals.run"),
     ],
 )
 def test_the_finance_audit_actions_are_named_as_the_journal_shows_them(
     constant: str, action: str
 ) -> None:
     """Each finance action is the dotted slug the deployment guide's table lists."""
-    assert getattr(audit, constant) == action
+    assert constant == action

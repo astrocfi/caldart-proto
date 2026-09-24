@@ -254,7 +254,7 @@ for constantly:
      - ``golden(name, text)`` compares a whole rendered document with
        ``backend/tests/golden/name`` (:ref:`testing-golden-files`)
 
-The six role groups exist in every test database already: the accounts data
+The role groups exist in every test database already: the accounts data
 migration creates one ``Group`` per role slug, so nothing has to seed them.  A
 test that needs the database says so with ``pytestmark = pytest.mark.django_db``
 or by taking a fixture that opens it; a module that declares neither runs

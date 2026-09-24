@@ -363,7 +363,8 @@ def role_matrix(*allowed: str) -> list[tuple[str, bool]]:
     in ``ROLE_MATRIX`` is paired with ``False``.  The cases come back in privilege
     order, so ``role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN)`` is
     ``[("member", False), ("dart_leader", False), ("user_admin", False),
-    ("account_admin", True), ("website_admin", False), ("system_admin", True)]``
+    ("treasurer", False), ("account_admin", True), ("website_admin", False),
+    ("system_admin", True)]``
     and collects as ``[member-False]`` ... ``[system_admin-True]``.  Pair it with the
     ``all_role_users`` fixture to sign the matching user in.
     """
