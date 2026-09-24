@@ -87,7 +87,10 @@ class MyPaymentsView(APIView):
     def get(self, request: Request) -> Response:
         """200 with the caller's own payments, newest first."""
         payments = (
-            acting_user(request).payments.select_related("plan").order_by("-created_at", "-id")
+            acting_user(request)
+            .payments.select_related("plan", "membership")
+            .prefetch_related("refunds")
+            .order_by("-created_at", "-id")
         )
         return Response(PaymentSummarySerializer(payments, many=True).data)
 

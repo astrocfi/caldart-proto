@@ -51,9 +51,7 @@ def test_the_mock_fee_is_two_point_nine_percent_plus_thirty_cents(
     assert fee_cents(amount_cents) == expected
 
 
-def test_the_mock_net_is_the_amount_less_the_fee(
-    member: User, annual_plan: MembershipPlan
-) -> None:
+def test_the_mock_net_is_the_amount_less_the_fee(member: User, annual_plan: MembershipPlan) -> None:
     """What the mock provider pays across is the charge less what it kept."""
     payment = create_checkout(member, "annual", 10_000, PaymentProvider.MOCK)
 
@@ -203,9 +201,7 @@ def test_backfill_leaves_a_payment_recorded_by_hand_alone(
     assert backfill_fees(payment).fee_cents == 0
 
 
-def test_backfill_leaves_a_pending_payment_alone(
-    member: User, annual_plan: MembershipPlan
-) -> None:
+def test_backfill_leaves_a_pending_payment_alone(member: User, annual_plan: MembershipPlan) -> None:
     """A payment that has not succeeded has no fee to ask about."""
     payment = create_checkout(member, "annual", 0, PaymentProvider.MOCK)
 

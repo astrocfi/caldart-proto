@@ -228,17 +228,17 @@ def statement_years(user: User) -> list[int]:
 def refunded_contribution_cents(payment: Payment) -> int:
     """How much of ``payment``'s contribution came back, in cents.
 
-    A refund is applied to the contribution last: dues are what the member
-    received value for, so a refund smaller than the dues has not touched the
-    gift.  The result never exceeds the contribution itself.
+    A refund is applied to the contribution first: a member asking for part of
+    a payment back is asking for the gift back, not for the membership they are
+    still using.  The result never exceeds the contribution itself, so a refund
+    that reaches into the dues as well stops there.
     """
     refunded = sum(
         refund.amount_cents
         for refund in payment.refunds.all()
         if refund.status == RefundStatus.SUCCEEDED
     )
-    against_contribution = refunded - payment.plan_amount_cents
-    return max(0, min(payment.contribution_cents, against_contribution))
+    return min(payment.contribution_cents, refunded)
 
 
 def statement_data(user: User, year: int) -> StatementData:
