@@ -377,10 +377,11 @@ administrator in the Wagtail editor (:doc:`website-administrator-guide`); the
 Reminders
 =========
 
-**Reminders**, under *Administration*, is the record of the renewal emails
-CalDART has sent: one row per email, newest first, with the date and time it
-went out, which reminder it was, the member it went to and the address it was
-sent to.  It is the answer to "did we ever tell them?".
+**Reminders**, under *Administration*, lists one row per renewal email CalDART
+has sent, newest first, with the date and time it went out, which reminder it
+was, the member it went to and the address it was sent to.  Each member gets
+one email per membership per kind.  This is the record of what renewal emails
+were sent to each member.
 
 The **Reminder** box above the table narrows it to one kind: *60 days before*,
 *30 days before*, *7 days before*, *Expired* or *30 days after*.  *All

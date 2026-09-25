@@ -77,4 +77,22 @@ describe('AdminRemindersPage', () => {
     expect(screen.queryByRole('button', { name: 'Run now' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Dry run (send nothing)')).not.toBeInTheDocument();
   });
+
+  it('explains the log as the record of what renewal emails were sent', async () => {
+    server.use(logHandler(ENTRIES));
+    renderWithProviders(<AdminRemindersPage />);
+    await screen.findByText('Marta Reyes');
+
+    expect(
+      screen.getByText(
+        (_text, element) =>
+          element?.tagName.toLowerCase() === 'p' &&
+          element.textContent ===
+            'The scan runs every morning at 07:00 and mails a member 60, 30, and 7 days before ' +
+              'their membership ends, on the day it ends, and 30 days after. Each member gets ' +
+              'one email per membership per kind. This is the record of what renewal emails ' +
+              'were sent to each member.',
+      ),
+    ).toBeInTheDocument();
+  });
 });
