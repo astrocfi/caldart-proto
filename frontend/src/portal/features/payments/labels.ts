@@ -2,14 +2,14 @@
 import type { MandateKind } from '@/portal/api/types';
 
 /** What each kind of authority charges for, as the emails name it too. */
-export const MANDATE_KIND_LABELS: Record<MandateKind, string> = {
+const MANDATE_KIND_LABELS: Record<MandateKind, string> = {
   renewal: 'renewal',
   both: 'renewal and contribution',
   contribution: 'contribution',
 };
 
 /** `renewal`, `renewal and contribution`, or `contribution`. */
-export function mandateKindLabel(kind: MandateKind): string {
+function mandateKindLabel(kind: MandateKind): string {
   return MANDATE_KIND_LABELS[kind];
 }
 

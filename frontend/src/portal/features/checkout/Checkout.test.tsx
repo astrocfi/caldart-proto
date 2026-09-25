@@ -706,6 +706,30 @@ describe('Checkout · contributing', () => {
     ).not.toBeChecked();
   });
 
+  it('asks for a standing contribution when the box is ticked', async () => {
+    const user = userEvent.setup();
+    serveConfig(config());
+    const requests = serveCheckout();
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT_MEMBERSHIP }),
+      ),
+    );
+
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+    await user.click(await screen.findByRole('radio', { name: /Participating/ }));
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Contribute this amount automatically each year' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() =>
+      expect(requests).toEqual([
+        { plan: null, contribution_cents: 2000, provider: 'mock', auto_renew: true },
+      ]),
+    );
+  });
+
   it('shows a life member the contribution form even where a renewal was asked for', async () => {
     signInAsLifeMember();
     serveConfig(config());

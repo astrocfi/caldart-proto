@@ -24,11 +24,16 @@ function mount(
   {
     route = '/payments',
     membership = CURRENT_MEMBERSHIP,
-  }: { route?: string; membership?: MembershipStatus } = {},
+    hasMembership = true,
+  }: { route?: string; membership?: MembershipStatus; hasMembership?: boolean } = {},
 ) {
   server.use(
     signedInAs(makeUser({ membership })),
-    http.get(`${API}/me/membership`, () => HttpResponse.json({ ...membership, history: [] })),
+    http.get(`${API}/me/membership`, () =>
+      hasMembership
+        ? HttpResponse.json({ ...membership, history: [] })
+        : HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),
+    ),
     http.get(`${API}/me/renewal`, () => HttpResponse.json({ mandate } satisfies RenewalEnvelope)),
     http.get(`${API}/payments/config`, () => HttpResponse.json(makePaymentsConfig())),
   );
@@ -161,6 +166,27 @@ describe('AutoRenewalCard', () => {
     expect(screen.getByRole('radio', { name: /Annual/ })).toBeChecked();
   });
 
+  it('sends a contribution that is not whole dollars back untouched', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate({ contribution_cents: 2550 }));
+    const bodies = recordPatches(makeMandate({ contribution_cents: 2550 }));
+
+    await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(bodies).toEqual([{ plan: 'annual', contribution_cents: 2550 }]));
+  });
+
+  it('shows an amount no tier matches in the box that can edit it', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate({ contribution_cents: 7500 }));
+
+    await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+
+    expect(screen.getByRole('radio', { name: 'Other amount' })).toBeChecked();
+    expect(screen.getByLabelText('Contribution amount')).toHaveValue('75');
+  });
+
   it('offers no plan that never expires in the change form', async () => {
     const user = userEvent.setup();
     mount(makeMandate());
@@ -284,6 +310,29 @@ describe('AutoRenewalCard', () => {
       await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
       await waitFor(() => expect(bodies).toEqual([{ contribution_cents: 2500 }]));
+    });
+
+    it('names no plan even when the membership could not be read', async () => {
+      const user = userEvent.setup();
+      mount(makeContributionMandate(), { ...lifetime, hasMembership: false });
+      const bodies = recordPatches(makeContributionMandate());
+
+      await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+      await user.click(screen.getByRole('radio', { name: /Supporter/ }));
+      await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+      await waitFor(() => expect(bodies).toEqual([{ contribution_cents: 2500 }]));
+    });
+
+    it('will not save an authority with nothing to charge', async () => {
+      const user = userEvent.setup();
+      mount(makeContributionMandate(), lifetime);
+
+      await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+      await user.click(screen.getByRole('radio', { name: /No thank you/ }));
+
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+      expect(screen.getByText('Choose a contribution to charge each year.')).toBeVisible();
     });
 
     it('reports the contribution, not the renewal, when it is turned off', async () => {

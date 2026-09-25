@@ -183,8 +183,9 @@ once a year.  The card is headed **Automatic contribution**, the emails say
 "contribution" and never "renewal", and the charge falls on the anniversary of
 the day you turned it on, or of the last contribution taken.  **Turn on** offers
 the contribution tiers and nothing else, and waits for an amount: *Choose a
-contribution to charge each year.*  **Change contribution** adjusts the amount;
-there is no plan to choose.
+contribution to charge each year.*  **Change contribution** adjusts the amount
+and waits for one in the same words; there is no plan to choose, and the amount
+you already give is the one the form opens on.
 
 **If your record came from the old CiviCRM system** with automatic renewal
 switched on, it did not come across: the card was never handed to |org|.  Turn
