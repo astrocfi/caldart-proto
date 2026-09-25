@@ -120,6 +120,8 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-2) var(--space-3);
+  /* The empty note is a paragraph wearing this class; no margin keeps it level with the header. */
+  margin: 0;
   padding: var(--space-3) var(--space-4);
   border-top: var(--hairline) solid var(--color-rule);
 }
