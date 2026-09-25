@@ -27,6 +27,7 @@ export function PortalLayout(): JSX.Element {
   }, [location.pathname]);
 
   const groups = isAuthenticated ? groupedNavItems(roles) : [];
+  const hasRail = groups.length > 0;
 
   return (
     <div className="portal" data-drawer-open={drawerOpen ? 'true' : 'false'}>
@@ -70,8 +71,8 @@ export function PortalLayout(): JSX.Element {
         </div>
       </header>
 
-      <div className="portal__frame">
-        {groups.length > 0 ? (
+      <div className={hasRail ? 'portal__frame' : 'portal__frame portal__frame--no-rail'}>
+        {hasRail ? (
           <nav className="portal__rail" id="portal-nav" aria-label="Portal sections">
             {groups.map((bucket) => (
               <div key={bucket.group} className="portal__nav-group">

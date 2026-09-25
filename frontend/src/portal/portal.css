@@ -92,6 +92,13 @@
   }
 }
 
+/* A visitor who is not signed in gets no rail, and without this the page
+ * would drop into the rail's narrow column.  It follows the rule above so it
+ * wins at every width. */
+.portal__frame--no-rail {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 /* A report table needs the room this frame gives it, but a form or a
  * summary is not a report: `.card` (base.css) keeps to the portal's working
  * width. A card built around a report table (`.data-table`, DataTable.tsx)
@@ -222,10 +229,6 @@
 
 .page__body > * + * {
   margin-top: var(--space-6);
-}
-
-.auth-card {
-  max-width: 26rem;
 }
 
 /* ----------------------------------------------------------- empty state */
