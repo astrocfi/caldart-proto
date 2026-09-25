@@ -541,7 +541,9 @@ def save_method(
         actor=actor,
         target=mandate.user,
         provider=mandate.provider,
-        plan=mandate.plan.slug if mandate.plan is not None else "",
+        # A contribution-only authority names no plan, and an empty list is how a
+        # record says a field has no value: it renders as `-`.
+        plan=[] if mandate.plan is None else [mandate.plan.slug],
     )
     charge_on = next_charge_on(mandate)
     transaction.on_commit(
