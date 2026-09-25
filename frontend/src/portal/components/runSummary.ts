@@ -24,8 +24,8 @@ export function runSummary(result: RunCounts, dryRun: boolean): string {
  *
  * The labeled reasons come first, in `labels`' order; a reason the server
  * reports that `labels` does not name follows by its raw slug, so a new
- * reason still shows up here rather than silently dropping out of the total. `labels` names the run's own
- * vocabulary of skip reasons.
+ * reason still shows up here rather than silently dropping out of the total.
+ * `labels` names the run's own vocabulary of skip reasons.
  */
 export function skippedBreakdown(
   byReason: Record<string, number>,

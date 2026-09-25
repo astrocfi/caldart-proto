@@ -64,7 +64,7 @@ EMAIL_LOG_REPORT_COLUMNS: tuple[ReportColumn[EmailLog], ...] = (
 )
 
 
-def order_email_log(queryset: QuerySet[EmailLog], raw: str) -> QuerySet[EmailLog]:
+def order_email_log[R](queryset: QuerySet[EmailLog, R], raw: str) -> QuerySet[EmailLog, R]:
     """``queryset`` in the order a comma-separated ``raw`` ordering asks for.
 
     Only ``sent_at`` and ``-sent_at`` are honored; any other term is ignored, as the

@@ -245,7 +245,9 @@ Parameter          Effect
 ``q``              Case-insensitive match on the address written to and on the
                    recipient account's first and last name.
 ``ordering``       ``sent_at``, with a ``-`` prefix for descending.  An
-                   unrecognized field is ignored.
+                   unrecognized field is ignored.  Sends in the same instant
+                   follow their ``id`` in the same direction, as they do in the
+                   ``emails`` report.
 ``page``,          Standard pagination (25 by default, 200 at most).
 ``page_size``
 =================  ============================================================

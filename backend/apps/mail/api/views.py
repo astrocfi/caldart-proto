@@ -20,6 +20,7 @@ from apps.mail.api.serializers import EmailLogSerializer, EmailPurposeSerializer
 from apps.mail.filters import EmailLogFilterSet
 from apps.mail.models import EmailLog
 from apps.mail.purposes import PURPOSE_LABELS
+from apps.mail.reports import order_email_log
 from caldart.pagination import StandardPagination
 
 
@@ -33,12 +34,22 @@ class EmailLogListView(ListAPIView[EmailLog]):
     ordering_fields = ["sent_at"]
 
     def get_queryset(self) -> QuerySet[EmailLog]:
-        """Return every email log row with its recipient account preloaded.
-
-        The rows come back in ``EmailLog``'s default ordering, newest ``sent_at``
-        first, unless the request asks for another ``ordering``.
-        """
+        """Return every email log row with its recipient account preloaded."""
         return EmailLog.objects.select_related("user").all()
+
+    def filter_queryset[R](self, queryset: QuerySet[EmailLog, R]) -> QuerySet[EmailLog, R]:
+        """Narrow ``queryset`` by the filters and put it in the download's order.
+
+        Newest ``sent_at`` first unless ``?ordering=sent_at`` asks for oldest first;
+        any other ``ordering`` is ignored.  Sends in the same instant follow their
+        ``id`` in the same direction, so the pages and the ``emails`` report agree
+        row for row.
+        """
+        # DRF's OrderingFilter (kept so the schema documents ``ordering``) replaces
+        # ``EmailLog``'s ``-id`` tiebreak with the bare term; the report's order
+        # puts it back.
+        narrowed = super().filter_queryset(queryset)
+        return order_email_log(narrowed, self.request.query_params.get("ordering", ""))
 
 
 class EmailPurposeListView(APIView):
