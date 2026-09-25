@@ -31,6 +31,7 @@ export function makeRow(overrides: Partial<MemberRow> = {}): MemberRow {
     medical_is_current: true,
     aircraft: ['N172SP'],
     joined_on: '2024-07-01',
+    profile_updated_at: '2026-08-11T09:14:02.100522-07:00',
     ...overrides,
   };
 }
@@ -47,6 +48,7 @@ export function makeDetail(overrides: Partial<MemberDetail> = {}): MemberDetail 
     roles: ['member'],
     created_at: '2024-07-01T12:00:00Z',
     joined_on: '2024-07-01',
+    profile_updated_at: '2026-08-11T09:14:02.100522-07:00',
     membership: CURRENT,
     profile: {
       phone: '415-555-0100',
