@@ -58,6 +58,7 @@ DOCUMENTED_COLUMNS = (
     "state",
     "joined_on",
     "member_since",
+    "profile_updated",
 )
 
 #: The header the CSV prints when the caller chooses no columns: the labels of

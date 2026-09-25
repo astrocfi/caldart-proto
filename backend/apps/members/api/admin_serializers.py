@@ -8,7 +8,7 @@ payments.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth import password_validation
@@ -180,6 +180,7 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
     medical_is_current = serializers.SerializerMethodField()
     aircraft = serializers.SerializerMethodField()
     joined_on = serializers.DateField(read_only=True, allow_null=True)
+    profile_updated_at = serializers.SerializerMethodField()
 
     @staticmethod
     def _profile(obj: MemberRow) -> MemberProfile | None:
@@ -239,6 +240,11 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
             return []
         return [aircraft.n_number for aircraft in profile.aircraft.all()]
 
+    def get_profile_updated_at(self, obj: MemberRow) -> datetime | None:
+        """When the profile was last written, or ``None`` with no profile or no edit."""
+        profile = self._profile(obj)
+        return profile.profile_updated_at if profile else None
+
 
 class MemberDetailSerializer(serializers.Serializer[User]):
     """``GET /admin/members/{id}`` -- user, profile, memberships, and payments."""
@@ -252,6 +258,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
     roles = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(read_only=True)
     joined_on = serializers.SerializerMethodField()
+    profile_updated_at = serializers.SerializerMethodField()
     membership = serializers.SerializerMethodField()
     profile = serializers.SerializerMethodField()
     memberships = serializers.SerializerMethodField()
@@ -273,6 +280,11 @@ class MemberDetailSerializer(serializers.Serializer[User]):
             return annotated
         first = obj.memberships.order_by("starts_on").first()
         return first.starts_on if first else None
+
+    def get_profile_updated_at(self, obj: User) -> datetime | None:
+        """When the profile was last written, or ``None`` with no profile or no edit."""
+        profile: MemberProfile | None = getattr(obj, "profile", None)
+        return profile.profile_updated_at if profile else None
 
     @extend_schema_field(MembershipStatusSerializer)
     def get_membership(self, obj: User) -> dict[str, Any]:

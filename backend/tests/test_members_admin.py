@@ -277,6 +277,7 @@ def test_row_shape_matches_the_portal_member_row(
         "medical_is_current",
         "aircraft",
         "joined_on",
+        "profile_updated_at",
     }
     assert row["name"] == "Ana Bracco"
     assert row["dart"] == "Palo Alto"
@@ -536,7 +537,7 @@ def test_ordering_by_name_is_the_default(
     assert names == sorted(names, key=lambda value: value.split()[-1])
 
 
-@pytest.mark.parametrize("field", ["name", "email", "expires_on", "joined"])
+@pytest.mark.parametrize("field", ["name", "email", "expires_on", "joined", "updated"])
 def test_ordering_accepts_every_documented_field(
     account_admin_client: APIClient, population: dict[str, User], field: str
 ) -> None:
@@ -566,6 +567,24 @@ def test_ordering_by_joined(account_admin_client: APIClient, population: dict[st
     assert joined == sorted(joined)
 
 
+def test_ordering_by_updated_puts_never_edited_last(
+    account_admin_client: APIClient, population: dict[str, User]
+) -> None:
+    """Ordering by ``updated`` sorts edited profiles and puts never-edited ones last."""
+    now = timezone.now()
+    population["current"].profile.profile_updated_at = now - timedelta(days=3)
+    population["current"].profile.save(update_fields=["profile_updated_at"])
+    population["expiring"].profile.profile_updated_at = now - timedelta(hours=1)
+    population["expiring"].profile.save(update_fields=["profile_updated_at"])
+
+    ordered = rows(account_admin_client.get(LIST_URL, {"ordering": "updated", "page_size": "200"}))
+    updated = [row["profile_updated_at"] for row in ordered]
+    assert updated[0] is not None
+    assert updated[-1] is None
+    dated = [value for value in updated if value]
+    assert dated == sorted(dated)
+
+
 #: What each ``?ordering=`` alias expands to, as ``docs/developer/api-members.rst``
 #: documents it.  Every alias ends in keys that settle a tie, so two rows the
 #: caller's sort cannot separate still come back in a readable order.
@@ -576,6 +595,7 @@ DOCUMENTED_ALIASES = {
     "dart": ("profile__dart__name", "last_name", "first_name"),
     "expires_on": ("effective_expiry", "last_name", "first_name"),
     "joined": ("joined_on", "last_name", "first_name"),
+    "updated": ("profile__profile_updated_at", "last_name", "first_name"),
 }
 
 
@@ -602,7 +622,7 @@ def one_dart_trio(dart: Dart, today: date) -> list[User]:
     return people
 
 
-@pytest.mark.parametrize("ordering", ["dart", "expires_on", "joined", "pilot"])
+@pytest.mark.parametrize("ordering", ["dart", "expires_on", "joined", "pilot", "updated"])
 def test_a_sort_that_cannot_separate_two_rows_falls_back_to_the_name(
     account_admin_client: APIClient,
     fixed_name_admin: User,
@@ -666,6 +686,7 @@ def test_detail_returns_the_whole_record(
         "name",
         "is_active",
         "roles",
+        "profile_updated_at",
         "membership",
         "profile",
         "memberships",

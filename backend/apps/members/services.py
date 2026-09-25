@@ -124,6 +124,25 @@ type ProfileChanges = dict[str, Any]
 SELF_DELETE_REFUSED = "You cannot delete your own account."
 SYSTEM_ADMIN_DELETE_REFUSED = "Only a system administrator can delete a system administrator."
 
+#: Account columns whose edit counts as a profile write: a name or an email
+#: is what a member record shows alongside the rest of the profile.
+_PROFILE_TOUCHING_ACCOUNT_FIELDS = frozenset({"email", "first_name", "last_name"})
+
+
+def touch_profile(profile: MemberProfile) -> None:
+    """Stamp ``profile.profile_updated_at`` as now, and save that and ``updated_at``.
+
+    Called after every write of profile information: the member's own
+    ``PATCH /me/profile``, an administrator's edit to the profile or to the
+    account's name or email, an aircraft attached or detached, and the
+    profile's creation.  Never called for a payment, a membership grant or
+    renewal, a reminder, or a role change.  ``updated_at`` is listed in
+    ``update_fields`` alongside the stamp because Django skips an ``auto_now``
+    field that is left out, and this is a genuine write to the row.
+    """
+    profile.profile_updated_at = timezone.now()
+    profile.save(update_fields=["profile_updated_at", "updated_at"])
+
 
 # --------------------------------------------------------------------------
 # The member record: account plus profile
@@ -136,12 +155,14 @@ def register_member(
 
     The profile starts blank on purpose -- the join wizard fills it in -- but it
     must exist so ``/me/profile`` is a PATCH rather than a create.  Account and
-    profile are written together, so a failure leaves no half-made member.
+    profile are written together, so a failure leaves no half-made member.  The
+    new profile's ``profile_updated_at`` is stamped as the moment it was created.
     """
     user = create_account(
         email=email, password=password, first_name=first_name, last_name=last_name
     )
-    MemberProfile.objects.get_or_create(user=user)
+    profile, _ = MemberProfile.objects.get_or_create(user=user)
+    touch_profile(profile)
     return user
 
 
@@ -162,12 +183,14 @@ def create_member(
     at an airshow may be none of them.  Without a password the account holds an
     unusable one and is mailed an invitation to set the first; the mail is queued
     past the commit, so a create that rolls back mails nobody.  ``request`` only
-    tells that mail which site's name and contact address to use.
+    tells that mail which site's name and contact address to use.  The new
+    profile's ``profile_updated_at`` is stamped as the moment it was created.
     """
     user = create_account(
         email=email, password=password, first_name=first_name, last_name=last_name
     )
-    MemberProfile.objects.create(user=user, **(profile or {}))
+    row = MemberProfile.objects.create(user=user, **(profile or {}))
+    touch_profile(row)
     if not password:
         transaction.on_commit(lambda: send_password_invitation(user, request=request))
     audit.record(audit.MEMBER_CREATE, actor=actor, target=user, invited=not password)
@@ -189,6 +212,12 @@ def update_member(
     member's profile row, creating it if the account somehow has none.  Both
     halves are written together, so a refused account edit leaves the profile
     alone.
+
+    :func:`touch_profile` stamps the profile whenever the request carries
+    ``profile``, or an account ``email``, ``first_name`` or ``last_name`` --
+    the fields a member record shows alongside the rest of the profile.  A
+    request that only flips ``is_active`` leaves the stamp alone, and so does
+    one for a target with no profile row to stamp.
     """
     update_account(actor, target, account or {})
     if profile is not None:
@@ -196,7 +225,12 @@ def update_member(
         for field, value in profile.items():
             setattr(row, field, value)
         row.save()
+        touch_profile(row)
         target.refresh_from_db()
+    elif account is not None and _PROFILE_TOUCHING_ACCOUNT_FIELDS & account.keys():
+        existing = MemberProfile.objects.filter(user=target).first()
+        if existing is not None:
+            touch_profile(existing)
     return target
 
 
@@ -640,7 +674,7 @@ def stamp_member_since(user: User, joined_on: date) -> None:
     if profile is None:
         return
     profile.member_since = joined_on
-    profile.save(update_fields=["member_since", "updated_at"])
+    profile.save(update_fields=["member_since"])
 
 
 def expire_lapsed_memberships(on_date: date | None = None) -> int:

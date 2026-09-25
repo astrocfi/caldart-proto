@@ -357,6 +357,7 @@ export interface MemberRow {
   medical_is_current: boolean;
   aircraft: string[];
   joined_on: IsoDate | null;
+  profile_updated_at: IsoDateTime | null;
 }
 
 /* ---------------------------------------------------- member administration */
@@ -405,6 +406,7 @@ export interface MemberDetail {
   roles: RoleSlug[];
   created_at: IsoDateTime;
   joined_on: IsoDate | null;
+  profile_updated_at: IsoDateTime | null;
   membership: MembershipStatus;
   profile: AdminProfile | null;
   memberships: MemberTerm[];

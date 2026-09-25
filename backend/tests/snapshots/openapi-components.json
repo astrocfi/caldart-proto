@@ -941,6 +941,7 @@
       "name": "string",
       "payments": "array<ref:AdminPayment>",
       "profile": "ref:AdminProfile|null",
+      "profile_updated_at": "string(date-time)|null",
       "roles": "array<ref:RolesEnum>"
     },
     "required": [
@@ -956,6 +957,7 @@
       "name",
       "payments",
       "profile",
+      "profile_updated_at",
       "roles"
     ]
   },
@@ -989,6 +991,7 @@
       "name": "string",
       "phone": "string",
       "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "profile_updated_at": "string(date-time)|null",
       "user_id": "integer"
     },
     "required": [
@@ -1004,6 +1007,7 @@
       "name",
       "phone",
       "pilot_certificate_type",
+      "profile_updated_at",
       "user_id"
     ]
   },

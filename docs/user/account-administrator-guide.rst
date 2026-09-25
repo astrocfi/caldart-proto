@@ -261,10 +261,11 @@ Choosing the columns
 --------------------
 
 **Columns**, beside the filters, opens a chooser that drives both downloads.
-Seventeen columns are on offer; the ten above are on to begin with.  The seven
+Eighteen columns are on offer; the ten above are on to begin with.  The eight
 that are off — *Plan*, *Certificate number*, *IFR*, *City*, *State*, *Joined*
-(the day the first term on file began), and *Member since* (the day the member
-says they joined) — are the ones a roster or an audit wants and an everyday
+(the day the first term on file began), *Member since* (the day the member
+says they joined), and *Profile updated* (the day profile information was
+last written) — are the ones a roster or an audit wants and an everyday
 report does not.  Click anywhere outside the chooser, or press Escape, to put it
 away.
 

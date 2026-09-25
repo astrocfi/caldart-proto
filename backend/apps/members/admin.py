@@ -34,7 +34,7 @@ class MemberProfileAdmin(ProfileAdminBase):
     list_filter = ["dart", "pilot_certificate_type", "medical_type", "ifr_rated"]
     search_fields = ["user__email", "user__first_name", "user__last_name", "certificate_number"]
     autocomplete_fields = ["user", "dart", "aircraft"]
-    readonly_fields = ["created_at", "updated_at"]
+    readonly_fields = ["created_at", "updated_at", "profile_updated_at"]
 
     @admin.display(boolean=True, description="medical current")
     def medical_is_current(self, obj: MemberProfile) -> bool:

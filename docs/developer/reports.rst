@@ -220,6 +220,8 @@ member_since         Member since            no      The day the member joined, 
                                                      on their profile: the same date until
                                                      the terms before a gap, or before an
                                                      import, are missing
+profile_updated      Profile updated         no      Day profile information was last
+                                                     written; blank when never edited
 ==================== ======================= ======= ======================================
 
 ``GET /api/v1/admin/members/columns`` answers the same registry as JSON, for

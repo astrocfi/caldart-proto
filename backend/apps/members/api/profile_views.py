@@ -33,7 +33,7 @@ from apps.members.api.profile_serializers import (
 )
 from apps.members.api.serializers import PlanSerializer
 from apps.members.models import MemberProfile, MembershipPlan
-from apps.members.services import membership_status
+from apps.members.services import membership_status, touch_profile
 
 
 def get_or_create_profile(user: User) -> MemberProfile:
@@ -106,7 +106,8 @@ class MyProfileAircraftView(APIView):
 
         A body without an integer ``aircraft_id`` is a 400, and an id no
         aircraft has is a 404.  Attaching an aircraft already attached changes
-        nothing and still answers 200.
+        nothing and still answers 200.  The profile's ``profile_updated_at``
+        is stamped either way.
         """
         serializer = AircraftAttachSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -115,6 +116,7 @@ class MyProfileAircraftView(APIView):
         profile = get_or_create_profile(acting_user(request))
         # `add` is a no-op when the row is already there, so this is idempotent.
         profile.aircraft.add(aircraft)
+        touch_profile(profile)
         return Response(_attached(profile), status=status.HTTP_200_OK)
 
 
@@ -131,11 +133,13 @@ class MyProfileAircraftDetailView(APIView):
         """204 once the aircraft is off the caller's profile.
 
         An id no aircraft has is a 404; one the caller never attached is still a
-        204, and the aircraft record itself is left alone either way.
+        204, and the aircraft record itself is left alone either way.  The
+        profile's ``profile_updated_at`` is stamped either way too.
         """
         aircraft = get_object_or_404(Aircraft, pk=aircraft_id)
         profile = get_or_create_profile(acting_user(request))
         profile.aircraft.remove(aircraft)
+        touch_profile(profile)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

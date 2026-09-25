@@ -13,6 +13,7 @@ from io import StringIO
 
 import pytest
 from django.core.management import call_command
+from django.utils import timezone
 from reportlab.lib.pagesizes import landscape, letter
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -32,6 +33,7 @@ from caldart.reports import (
     select_columns,
 )
 from tests.conftest import PdfText, RegisterDict, read_csv, role_matrix
+from tests.factories import MemberProfileFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -289,3 +291,36 @@ def test_the_aircraft_pdf_prints_the_chosen_columns(
     """The register PDF's header row is the labels of the columns asked for."""
     body = account_admin_client.get(AIRCRAFT_PDF_URL, {"columns": "n_number,hull"}).content
     assert pdf_text(body)[0][2:4] == ["N-number", "Hull"]
+
+
+# --------------------------------------------------------------------------
+# The profile_updated column
+# --------------------------------------------------------------------------
+def test_profile_updated_is_documented_and_off_by_default() -> None:
+    """The ``profile_updated`` column is registered, off by default, for a reader."""
+    column = next(c for c in MEMBER_REPORT_COLUMNS if c.key == "profile_updated")
+    assert column.label == "Profile updated"
+    assert column.default is False
+
+
+def test_the_member_csv_reports_the_profile_updated_date(account_admin_client: APIClient) -> None:
+    """``?columns=profile_updated`` prints the local date the profile was last written."""
+    stamped = UserFactory(email="stamped@example.test", roles=["member"])
+    stamped_profile = MemberProfileFactory(user=stamped)
+    stamp = timezone.now().replace(microsecond=0)
+    stamped_profile.profile_updated_at = stamp
+    stamped_profile.save(update_fields=["profile_updated_at"])
+
+    table = read_csv(account_admin_client.get(MEMBER_CSV_URL, {"columns": "email,profile_updated"}))
+    row = next(cells for cells in table[1:] if cells[0] == "stamped@example.test")
+    assert row[1] == timezone.localdate(stamp).isoformat()
+
+
+def test_the_member_csv_blanks_a_never_edited_profile(account_admin_client: APIClient) -> None:
+    """A profile nobody has edited exports a blank ``profile_updated`` cell."""
+    never_edited = UserFactory(email="untouched@example.test", roles=["member"])
+    MemberProfileFactory(user=never_edited)
+
+    table = read_csv(account_admin_client.get(MEMBER_CSV_URL, {"columns": "email,profile_updated"}))
+    row = next(cells for cells in table[1:] if cells[0] == "untouched@example.test")
+    assert row[1] == ""
