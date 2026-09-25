@@ -8,8 +8,6 @@ unlinked website page.
 
 from __future__ import annotations
 
-import logging
-from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 import pytest
@@ -19,8 +17,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.darts.models import MAX_AIRPORT_IDENTIFIERS, MAX_DART_CONTACTS, Dart, DartContact
 from apps.members.models import MemberProfile
-from caldart import audit
-from tests.conftest import role_matrix
+from tests.conftest import audit_messages, role_matrix
 from tests.factories import (
     DartFactory,
     MemberProfileFactory,
@@ -44,27 +41,6 @@ LIST_URL = "/api/v1/admin/darts"
 def detail_url(dart: Dart) -> str:
     """Build the detail URL for one DART."""
     return f"/api/v1/admin/darts/{dart.pk}"
-
-
-@pytest.fixture
-def audit_log(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixture]:
-    """Capture the ``caldart.audit`` records a test provokes.
-
-    The audit logger does not propagate to the root logger, so ``caplog`` alone
-    sees nothing: its handler is attached to the audit logger for the test and
-    taken off again afterwards.
-    """
-    logger = logging.getLogger(audit.LOGGER_NAME)
-    logger.addHandler(caplog.handler)
-    try:
-        yield caplog
-    finally:
-        logger.removeHandler(caplog.handler)
-
-
-def audit_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
-    """Every audit message captured, in the order it was logged."""
-    return [record.getMessage() for record in caplog.records if record.name == audit.LOGGER_NAME]
 
 
 def names(response: ApiResponse) -> list[str]:

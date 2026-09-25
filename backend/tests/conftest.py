@@ -11,6 +11,7 @@ import copy
 import csv
 import io
 import json
+import logging
 import os
 import re
 import shutil
@@ -46,6 +47,7 @@ from apps.accounts.roles import (
     WEBSITE_ADMIN,
 )
 from apps.sysadmin import services
+from caldart import audit
 from caldart.settings.test import STATIC_ROOT_PREFIX
 from tests.factories import (
     DEFAULT_PASSWORD,
@@ -807,3 +809,28 @@ def refusing_mail_server(monkeypatch: pytest.MonkeyPatch) -> None:
         raise smtplib.SMTPException("Mailbox unavailable")
 
     monkeypatch.setattr(EmailBackend, "send_messages", refuse)
+
+
+@pytest.fixture
+def audit_log(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixture]:
+    """Capture the ``caldart.audit`` records a test provokes.
+
+    The audit logger does not propagate, so ``caplog`` alone sees nothing: its
+    handler is attached to the audit logger for the test and taken off again
+    afterwards.
+    """
+    logger = logging.getLogger(audit.LOGGER_NAME)
+    logger.addHandler(caplog.handler)
+    try:
+        yield caplog
+    finally:
+        logger.removeHandler(caplog.handler)
+
+
+def audit_messages(caplog: pytest.LogCaptureFixture, level: int | None = None) -> list[str]:
+    """Every audit line captured, as rendered, optionally only those at ``level``."""
+    return [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == audit.LOGGER_NAME and (level is None or record.levelno == level)
+    ]

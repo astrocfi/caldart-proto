@@ -12,7 +12,6 @@ from __future__ import annotations
 import ast
 import gzip
 import logging
-from collections.abc import Iterator
 from datetime import date, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -30,6 +29,7 @@ from apps.reminders.services import send_renewal_reminders
 from apps.sysadmin import services as sysadmin_services
 from apps.sysadmin.management.commands import db_reset as db_reset_command
 from caldart import audit
+from tests.conftest import audit_messages
 from tests.factories import AircraftFactory, MembershipFactory, PaymentFactory, UserFactory
 
 if TYPE_CHECKING:
@@ -58,29 +58,9 @@ TARGET_LAST_NAME = "Harkness"
 # --------------------------------------------------------------------------
 # Capture
 # --------------------------------------------------------------------------
-@pytest.fixture
-def audit_log(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixture]:
-    """Capture the ``caldart.audit`` records a test provokes."""
-    logger = logging.getLogger(audit.LOGGER_NAME)
-    logger.addHandler(caplog.handler)
-    try:
-        yield caplog
-    finally:
-        logger.removeHandler(caplog.handler)
-
-
-def messages(caplog: pytest.LogCaptureFixture, level: int | None = None) -> list[str]:
-    """Every audit message captured, optionally only those logged at ``level``."""
-    return [
-        record.getMessage()
-        for record in caplog.records
-        if record.name == audit.LOGGER_NAME and (level is None or record.levelno == level)
-    ]
-
-
 def one_message(caplog: pytest.LogCaptureFixture, level: int | None = None) -> str:
     """The single audit message captured, failing when there is not exactly one."""
-    captured = messages(caplog, level)
+    captured = audit_messages(caplog, level)
     assert len(captured) == 1
     return captured[0]
 
@@ -422,7 +402,7 @@ def test_an_edit_that_changes_nothing_records_nothing(
         format="json",
     )
     assert response.status_code == 200
-    assert messages(audit_log) == []
+    assert audit_messages(audit_log) == []
 
 
 def test_an_edit_records_only_the_columns_whose_value_changes(
@@ -902,5 +882,7 @@ def test_no_record_carries_an_email_address_or_a_name(
 
     personal = ["@", TARGET_FIRST_NAME, TARGET_LAST_NAME, "Renamed"]
     assert [
-        message for message in messages(audit_log) if any(needle in message for needle in personal)
+        message
+        for message in audit_messages(audit_log)
+        if any(needle in message for needle in personal)
     ] == []
