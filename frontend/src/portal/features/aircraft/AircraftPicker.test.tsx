@@ -213,6 +213,8 @@ describe('AircraftPicker', () => {
     await search(user, /Search the aircraft register/i, 'n4321q');
 
     const empty = (await screen.findByText(/No aircraft matches that/i)).closest('.empty-state');
+    expect(screen.getAllByRole('button', { name: /Add an aircraft/i })).toHaveLength(1);
+    expect(empty).not.toBeNull();
     expect(within(empty as HTMLElement).queryByRole('button')).not.toBeInTheDocument();
   });
 
