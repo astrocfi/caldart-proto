@@ -174,10 +174,10 @@ this person?", and to "is our mail going out at all?": a message the mail
 server refused reads, for example, "Failed: SMTPRecipientsRefused" in the
 **Status** column.  A message that went out reads simply "Sent".
 
-A renewal reminder is the one exception.  Its send shares a transaction with
-the reminder log, so that a reminder the mail server refuses stays due and
-goes out on the next scan; a refused reminder therefore leaves no row here at
-all.  The reminders panel's own **Failed** count, above, is what reports it.
+A renewal reminder still leaves a row here even when it is refused: only its
+own reminder-log entry is held back, so the reminder itself stays due and
+goes out on the next scan.  The reminders panel's own **Failed** count,
+above, reports it too.
 
 **Purpose** narrows the table to one kind of message -- a renewal reminder at
 a given stage, a renewal notice or charge, a receipt, a refund, an
