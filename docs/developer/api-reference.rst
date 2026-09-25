@@ -725,6 +725,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ``pilots`` only for leaders/admins
+   * - ``GET /aircraft/{id}/changes``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - names accounts, so not the creator
    * - ``PATCH | PUT /aircraft/{id}``
      - ·
      - creator
@@ -1069,7 +1077,8 @@ Reading the matrix:
     finance roles, so a non-owner without one gets **403**.
 
 **Serializer switching on aircraft.**  ``GET /aircraft/{id}`` and
-``GET /aircraft/lookup`` return the ``pilots`` array — other members' names,
+``GET /aircraft/lookup`` return the ``pilots`` array and ``updated_by`` — other
+members' names,
 emails, membership state and medical currency — only to ``dart_leader``
 , ``account_admin``, or ``system_admin``.  Plain members get the airplane alone.
 ``GET /aircraft`` (the list) never includes it for anybody.  That is what stops
