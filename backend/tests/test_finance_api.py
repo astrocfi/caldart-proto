@@ -15,6 +15,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
+from apps.payments.dates import CLOCK_GRACE_DAYS
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, RefundReason
 from tests.conftest import PdfText, read_csv, role_matrix
 from tests.factories import (
@@ -182,14 +183,26 @@ def test_un_matching_a_payment_forgets_who_matched_it(
 
 def test_a_match_cannot_be_dated_in_the_future(treasurer_client: APIClient, paid: Payment) -> None:
     """A statement that has not been issued cannot have been matched against."""
-    tomorrow = timezone.localdate() + dt.timedelta(days=1)
+    too_late = timezone.localdate() + dt.timedelta(days=CLOCK_GRACE_DAYS + 1)
     response = treasurer_client.patch(
-        detail_url(paid), {"reconciled_on": tomorrow.isoformat()}, format="json"
+        detail_url(paid), {"reconciled_on": too_late.isoformat()}, format="json"
     )
     assert response.status_code == 400
     assert response.json() == {
         "reconciled_on": ["A payment cannot have been matched in the future."]
     }
+
+
+def test_a_match_dated_by_a_clock_a_day_ahead_is_kept(
+    treasurer_client: APIClient, paid: Payment
+) -> None:
+    """A browser already on tomorrow can still match a payment to today's statement."""
+    tomorrow = timezone.localdate() + dt.timedelta(days=CLOCK_GRACE_DAYS)
+    response = treasurer_client.patch(
+        detail_url(paid), {"reconciled_on": tomorrow.isoformat()}, format="json"
+    )
+    assert response.status_code == 200
+    assert response.json()["reconciled_on"] == tomorrow.isoformat()
 
 
 def test_a_note_can_be_written_without_reconciling(

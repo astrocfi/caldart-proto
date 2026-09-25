@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from apps.members.api.serializers import MembershipStatusSerializer, PlanSerializer
 from apps.members.models import Membership
+from apps.payments.dates import is_in_the_future
 from apps.payments.manual import MANUAL_METHOD_CHOICES
 from apps.payments.models import (
     MAX_CONTRIBUTION_CENTS,
@@ -861,7 +862,7 @@ class PaymentPatchSerializer(serializers.Serializer[dict[str, Any]]):
     ``reconciled_on`` is the day the payment was matched to a statement, or
     ``null`` to un-match it; ``note`` is the treasurer's own line.  Sending
     neither is a 400: the request would change nothing, and so is a
-    ``reconciled_on`` later than today.
+    ``reconciled_on`` later than the day ``apps.payments.dates`` allows.
     """
 
     reconciled_on = serializers.DateField(required=False, allow_null=True)
@@ -869,7 +870,7 @@ class PaymentPatchSerializer(serializers.Serializer[dict[str, Any]]):
 
     def validate_reconciled_on(self, value: dt.date | None) -> dt.date | None:
         """Return ``value``, or refuse a day no statement can have carried yet."""
-        if value is not None and value > timezone.localdate():
+        if value is not None and is_in_the_future(value):
             raise serializers.ValidationError("A payment cannot have been matched in the future.")
         return value
 

@@ -12,9 +12,9 @@ from __future__ import annotations
 import datetime as dt
 
 from django.db import IntegrityError, transaction
-from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.payments.dates import is_in_the_future
 from apps.payments.models import Payment, PaymentProvider, PaymentWallet
 from apps.payments.services import create_checkout, mark_succeeded
 from caldart.exceptions import DomainValidationError
@@ -58,7 +58,8 @@ def record_manual_payment(
     checkout uses, which also emails the receipt.  Returns the payment as saved.
 
     Raises ``DomainValidationError`` keyed by ``method`` for a method outside
-    :data:`MANUAL_METHODS`, by ``received_on`` for a day in the future, by
+    :data:`MANUAL_METHODS`, by ``received_on`` for a day later than the one
+    :func:`~apps.payments.dates.latest_ledger_date` allows, by
     ``reference`` for a reference another recorded payment already carries --
     including one recorded between this call's check and its insert -- by
     ``plan`` for a plan that is not active, by ``contribution_cents`` for a
@@ -67,7 +68,7 @@ def record_manual_payment(
     """
     if method not in MANUAL_METHODS:
         raise DomainValidationError("method", f"Unknown payment method '{method}'.")
-    if received_on > timezone.localdate():
+    if is_in_the_future(received_on):
         raise DomainValidationError("received_on", "The money cannot have arrived in the future.")
     if reference and _reference_taken(reference):
         raise DomainValidationError("reference", _taken_message(reference))
