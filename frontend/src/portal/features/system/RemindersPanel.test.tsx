@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -30,6 +30,17 @@ function logHandler(rows: ReminderLogEntry[]) {
   return http.get(`${API}/admin/reminders/log`, () => HttpResponse.json(page(rows)));
 }
 
+const ACTIONS = [
+  {
+    kind: 't30' as const,
+    member: 'Marta Reyes',
+    email: 'marta@example.org',
+    on: '2026-07-15',
+    amount_cents: null,
+    detail: '',
+  },
+];
+
 describe('runSummary', () => {
   it('says what a dry run would have done', () => {
     expect(runSummary({ sent: 3, skipped: 1, actions: [] }, true)).toBe(
@@ -58,7 +69,7 @@ describe('RemindersPanel', () => {
       logHandler(ENTRIES),
       http.post(`${API}/system/reminders/run`, async ({ request }) => {
         bodies.push(await request.json());
-        return HttpResponse.json({ sent: 4, skipped: 2 });
+        return HttpResponse.json({ sent: 4, skipped: 2, actions: ACTIONS });
       }),
     );
     renderWithProviders(<RemindersPanel />);
@@ -69,6 +80,26 @@ describe('RemindersPanel', () => {
 
     expect(await screen.findByText('Would send 4 emails, skipped 2.')).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: true }]);
+    expect(screen.getByRole('heading', { name: 'What a live run would do' })).toBeInTheDocument();
+    const actionsTable = screen.getByRole('table', { name: '1 action' });
+    const row = within(actionsTable).getByRole('row', { name: /Marta Reyes/ });
+    expect(row).toHaveTextContent('30 days before');
+    expect(row).toHaveTextContent('2026/07/15');
+  });
+
+  it('says nothing was due when a run finds no actions', async () => {
+    server.use(
+      logHandler(ENTRIES),
+      http.post(`${API}/system/reminders/run`, () =>
+        HttpResponse.json({ sent: 0, skipped: 2, actions: [] }),
+      ),
+    );
+    renderWithProviders(<RemindersPanel />);
+    await screen.findByText('Marta Reyes');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+
+    expect(await screen.findByText('Nothing was due')).toBeInTheDocument();
   });
 
   it('sends for real once the dry-run box is cleared', async () => {
@@ -77,7 +108,7 @@ describe('RemindersPanel', () => {
       logHandler(ENTRIES),
       http.post(`${API}/system/reminders/run`, async ({ request }) => {
         bodies.push(await request.json());
-        return HttpResponse.json({ sent: 1, skipped: 0 });
+        return HttpResponse.json({ sent: 1, skipped: 0, actions: [] });
       }),
     );
     renderWithProviders(<RemindersPanel />);
@@ -88,6 +119,7 @@ describe('RemindersPanel', () => {
 
     expect(await screen.findByText('Sent 1 email, skipped 0.')).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: false }]);
+    expect(screen.getByRole('heading', { name: 'What this run did' })).toBeInTheDocument();
   });
 
   it('reports a failed run', async () => {

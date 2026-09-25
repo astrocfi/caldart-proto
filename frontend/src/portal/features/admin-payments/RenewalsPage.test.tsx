@@ -48,6 +48,19 @@ const PAUSED: RenewalMandate = {
   last_charged_at: null,
 };
 
+const CONTRIBUTION_ONLY: RenewalMandate = {
+  ...ACTIVE,
+  id: 15,
+  user_id: 37,
+  user_name: 'Dana Field',
+  user_email: 'dana@example.org',
+  plan: null,
+  plan_name: null,
+  kind: 'contribution',
+  contribution_cents: 5000,
+  amount_cents: 5000,
+};
+
 const CANCELED: RenewalMandate = {
   ...ACTIVE,
   id: 14,
@@ -118,6 +131,14 @@ describe('RenewalsPage', () => {
     expect(row.getByText('2027/03/14')).toBeInTheDocument();
   });
 
+  it('reads Contribution in the plan column for a mandate with no plan', async () => {
+    server.use(...renewalHandlers([CONTRIBUTION_ONLY], [], record()));
+    renderWithProviders(<RenewalsPage />);
+
+    const row = within(await screen.findByRole('row', { name: /Dana Field/ }));
+    expect(row.getByText('Contribution')).toBeInTheDocument();
+  });
+
   it('shows why a paused mandate stopped', async () => {
     server.use(...renewalHandlers([PAUSED], [], record()));
     renderWithProviders(<RenewalsPage />);
@@ -138,6 +159,20 @@ describe('RenewalsPage', () => {
     await userEvent.click(row.getByRole('button', { name: 'Yes, turn it off' }));
 
     await expect.poll(() => seen.canceled).toEqual([13]);
+  });
+
+  it('names the wording by kind when a contribution-only mandate is turned off', async () => {
+    const seen = record();
+    server.use(...renewalHandlers([CONTRIBUTION_ONLY], [], seen));
+    renderWithProviders(<RenewalsPage />);
+
+    const row = within(await screen.findByRole('row', { name: /Dana Field/ }));
+    await userEvent.click(row.getByRole('button', { name: 'Turn off' }));
+    await userEvent.click(row.getByRole('button', { name: 'Yes, turn it off' }));
+
+    expect(
+      await screen.findByText('Automatic contribution is off for Dana Field.'),
+    ).toBeInTheDocument();
   });
 
   it('offers no way to turn off a mandate that is already off', async () => {

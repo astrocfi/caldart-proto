@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import type { MemberLedger } from '@/portal/api/types';
-import { makeLedger, makeMandate } from '@test/fixtures/finance';
+import { makeContributionMandate, makeLedger, makeMandate } from '@test/fixtures/finance';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -62,6 +62,17 @@ describe('MemberLedgerPage', () => {
     renderLedger();
 
     expect(await screen.findByText('Visa ending 4242, expires 03/2028')).toBeInTheDocument();
+  });
+
+  it('titles the card Automatic contribution for a life member', async () => {
+    serveLedger(makeLedger({ mandate: makeContributionMandate() }));
+    renderLedger();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Automatic contribution' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Charges')).toBeInTheDocument();
+    expect(screen.getByText('Contribution · $50.00')).toBeInTheDocument();
   });
 
   it('names why the last automatic charge was refused', async () => {

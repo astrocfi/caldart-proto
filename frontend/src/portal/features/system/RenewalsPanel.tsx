@@ -17,6 +17,7 @@ import type { RenewalRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { useRunRenewals } from './api';
+import { RunActionsTable } from './RunActionsTable';
 
 /** The sentence shown after a run, in the past tense or the conditional. */
 export function renewalRunSummary(result: RenewalRunResult, dryRun: boolean): string {
@@ -31,6 +32,24 @@ export function renewalRunSummary(result: RenewalRunResult, dryRun: boolean): st
     `Noticed ${noticed}, warned ${warned}, charged ${charged}, ` +
     `failed ${failed}, paused ${paused}, and skipped ${skipped}.`
   );
+}
+
+/**
+ * What each email template name, or a charge, reads as in the actions table.
+ * `renewal_charged` reads by the charge itself, not "renewed", because a
+ * contribution-only mandate's charge renews no membership.
+ */
+const ACTION_KIND_LABELS: Record<string, string> = {
+  renewal_notice: 'Notice',
+  renewal_card_expiring: 'Card expiring warning',
+  renewal_charged: 'Charge taken notice',
+  renewal_failed: 'Charge failed notice',
+  charge: 'Charge',
+};
+
+/** A renewal run's own kind vocabulary, for the shared actions table. */
+function renewalKindLabel(kind: string): string {
+  return ACTION_KIND_LABELS[kind] ?? kind;
 }
 
 /** Runs the automatic-renewal scan on demand and reports what it did. */
@@ -111,7 +130,14 @@ export function RenewalsPanel(): JSX.Element {
       ) : null}
 
       {run.isSuccess && !isConfirming ? (
-        <p role="status">{renewalRunSummary(run.data, lastRunWasDry)}</p>
+        <>
+          <p role="status">{renewalRunSummary(run.data, lastRunWasDry)}</p>
+          <RunActionsTable
+            actions={run.data.actions}
+            dryRun={lastRunWasDry}
+            kindLabel={renewalKindLabel}
+          />
+        </>
       ) : null}
 
       {run.isError ? (
