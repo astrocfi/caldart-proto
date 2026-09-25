@@ -71,7 +71,7 @@ Active DARTs in alphabetical order, each with the people who run it.
 ``GET /admin/darts``
 ====================
 
-Every DART, retired ones included, in the same order and also unpaginated:
+Every DART, inactive ones included, in the same order and also unpaginated:
 the list is a page long and the screen shows all of it.  Each row adds
 ``is_active`` and the two counts the delete warning reads — ``member_count``,
 the profiles naming this DART, and ``page_count``, the website pages linked
@@ -114,7 +114,8 @@ Field                      Rule
                            omission.  A phone number follows the same rule as a
                            member's, stored as ``XXX-XXX-XXXX``.
 ``is_active``              Whether the DART is offered to members.  Turning it off
-                           retires the DART without touching the profiles on it.
+                           makes the DART inactive without touching the profiles
+                           on it.
 =========================  =============================================================
 
 A refused contact is keyed by its position in the list::
@@ -153,5 +154,7 @@ Tests
    carries; the fields a row carries, and that a town is not among them;
    the airport rules, including several airports on one team and both
    identifier forms; the people, their phone rule and the replace-on-write
-   behavior; the website link; retiring a DART; and the guard that refuses to
-   delete one somebody is still on.
+   behavior; the website link; making a DART inactive; and what a delete leaves
+   behind -- the members unaffiliated, the members themselves still present, the
+   website page surviving with ``dart`` null, and the audit line carrying both
+   counts.

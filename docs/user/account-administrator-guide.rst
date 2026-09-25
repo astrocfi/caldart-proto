@@ -327,6 +327,11 @@ filtered to that team.
    keeps its own words and loses only its link to the team.  Deleting is
    permanent, so a team that has simply stopped flying is better made inactive.
 
+   One thing a delete cannot reach is an unpublished draft of that website page:
+   the draft still names the deleted team, and publishing it fails.  Ask the
+   website administrator to open the page, clear its **DART** field, and publish
+   again.
+
 A DART's own page on the public website is a separate thing, kept by a website
 administrator in the Wagtail editor (:doc:`website-administrator-guide`); the
 **DART** field on that page is what ties the two together.

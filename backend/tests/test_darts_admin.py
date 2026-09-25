@@ -326,7 +326,7 @@ def test_deleting_a_dart_keeps_the_member_itself(account_admin_client: APIClient
     dart = DartFactory(name="Napa")
     profile = MemberProfileFactory(user=UserFactory(email="one@example.test"), dart=dart)
 
-    account_admin_client.delete(detail_url(dart))
+    assert account_admin_client.delete(detail_url(dart)).status_code == 204
 
     assert MemberProfile.objects.filter(pk=profile.pk).exists()
 

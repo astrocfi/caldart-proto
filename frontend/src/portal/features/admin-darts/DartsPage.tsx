@@ -123,9 +123,10 @@ export function DartsPage(): JSX.Element {
     );
   };
 
-  // The form waits on this promise to leave its confirmation, so the failure is
-  // reported here rather than thrown on: a DART that a page was linked to
-  // between the list load and the click says so and stays.
+  // The form waits on this promise to leave its confirmation, so a failure is
+  // reported here rather than thrown on: the administrator stays in the
+  // confirmation and reads what the server said, or the fallback wording when it
+  // said nothing usable.
   const handleDelete = async (dart: AdminDart): Promise<void> => {
     try {
       await remove.mutateAsync(dart.id);

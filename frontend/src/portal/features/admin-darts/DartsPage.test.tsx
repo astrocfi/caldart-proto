@@ -312,6 +312,34 @@ describe('DartsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('warns about one member in the singular', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart({ member_count: 1, page_count: 0 })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
+
+    expect(
+      screen.getByText(
+        'Deleting Palo Alto makes its 1 member unaffiliated. This cannot be undone.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('warns about one website page in the singular', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart({ member_count: 0, page_count: 1 })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
+
+    expect(
+      screen.getByText('Deleting Palo Alto unlinks 1 website page. This cannot be undone.'),
+    ).toBeInTheDocument();
+  });
+
   it('warns about nothing for a DART nothing points at', async () => {
     const user = userEvent.setup();
     stubList([makeDart()]);
