@@ -22,9 +22,12 @@ const GROWING = 'Watsonville';
 
 /** The Roster cell of `dart`'s row in the DARTs table. */
 async function rosterCell(page: Page, dart: string): Promise<Locator> {
+  // The headers are read once the row is on screen, so the index is the table's.
+  const row = page.getByRole('row').filter({ hasText: dart }).first();
+  await expect(row).toBeVisible();
   const headers = await page.getByRole('columnheader').allTextContents();
   const column = headers.findIndex((text) => text.startsWith('Roster'));
-  const row = page.getByRole('row').filter({ hasText: dart }).first();
+  expect(column).toBeGreaterThanOrEqual(0);
   return row.getByRole('cell').nth(column);
 }
 
