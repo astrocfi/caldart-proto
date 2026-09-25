@@ -3,8 +3,11 @@ import type { MandateProvider } from '@/portal/api/types';
 
 /** Every setup panel is handed the plan and contribution the member chose. */
 export interface RenewalPanelProps {
-  /** The slug of the plan that will renew; never a plan that lasts for life. */
-  plan: string;
+  /**
+   * The slug of the plan that will renew; never a plan that lasts for life, and
+   * null for a life member, whose authority is over the contribution alone.
+   */
+  plan: string | null;
   contributionCents: number;
   /** Called once the mandate is active. */
   onDone: () => void;

@@ -4,6 +4,10 @@
  * The member picks the plan that will renew, the contribution to renew beside
  * it, and the provider that will hold the method.  Only plans with a duration
  * are offered: a membership for life has nothing to renew.
+ *
+ * A life member chooses a contribution alone, and must choose one: an authority
+ * with nothing to charge is refused by the server, so the provider step waits
+ * until there is an amount.
  */
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -25,6 +29,8 @@ import '@/portal/features/checkout/checkout.css';
 const DEFAULT_PLAN = 'annual';
 
 export interface RenewalSetupProps {
+  /** True for a life member: no plan is offered, and the contribution stands alone. */
+  isLifetime?: boolean;
   /** Abandon the flow and go back to the card as it was. */
   onCancel: () => void;
   /** The mandate is active. */
@@ -37,6 +43,7 @@ export interface RenewalSetupProps {
 export function RenewalSetup({
   onCancel: handleCancel,
   onDone: handleDone,
+  isLifetime = false,
   initialContributionCents = 0,
 }: RenewalSetupProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
@@ -74,7 +81,7 @@ export function RenewalSetup({
 
   // A membership that never expires cannot renew itself, so it is not offered.
   const renewable = config.plans.filter((entry) => entry.duration_days !== null);
-  if (renewable.length === 0 || providers.length === 0) {
+  if ((renewable.length === 0 && !isLifetime) || providers.length === 0) {
     return (
       <EmptyState
         title="Automatic renewal is not available"
@@ -87,16 +94,22 @@ export function RenewalSetup({
   const effectivePlan = offered.includes(plan) ? plan : (offered[0] ?? plan);
   const selectedPlan = renewable.find((entry) => entry.slug === effectivePlan) ?? null;
   const planCents = selectedPlan?.price_cents ?? 0;
+  const chargeCents = isLifetime ? contributionCents : planCents + contributionCents;
+  // The server refuses an authority with nothing to charge, so a life member
+  // who has chosen no amount is stopped here rather than at the provider.
+  const needsContribution = isLifetime && contributionCents === 0;
 
   const panelProps = {
-    plan: effectivePlan,
+    plan: isLifetime ? null : effectivePlan,
     contributionCents,
     onDone: handleDone,
   };
 
   return (
     <div className="renewal-setup stack">
-      <PlanChooser plans={renewable} value={effectivePlan} onChange={(next) => setPlan(next)} />
+      {isLifetime ? null : (
+        <PlanChooser plans={renewable} value={effectivePlan} onChange={(next) => setPlan(next)} />
+      )}
 
       <ContributionChooser
         tiers={config.contribution_tiers}
@@ -112,24 +125,39 @@ export function RenewalSetup({
       />
 
       <p className="renewal-setup__total">
-        Each year CalDART will charge{' '}
-        <strong className="mono">{formatCents(planCents + contributionCents)}</strong> — the plan
-        price on the day, plus your contribution. We email you fourteen days before every charge.
+        Each year CalDART will charge <strong className="mono">{formatCents(chargeCents)}</strong>
+        {isLifetime
+          ? ' for your contribution.'
+          : ' — the plan price on the day, plus your contribution.'}{' '}
+        We will email you fourteen days before every charge.
       </p>
 
-      <ProviderTabs providers={providers} active={provider} onChange={(next) => setProvider(next)}>
-        {(current) => (
-          <>
-            {current === 'stripe' ? (
-              <StripeRenewalPanel publishableKey={config.stripe_publishable_key} {...panelProps} />
-            ) : null}
-            {current === 'paypal' ? (
-              <PayPalRenewalPanel clientId={config.paypal_client_id} {...panelProps} />
-            ) : null}
-            {current === 'mock' ? <MockRenewalPanel {...panelProps} /> : null}
-          </>
-        )}
-      </ProviderTabs>
+      {needsContribution ? (
+        <p className="renewal-setup__blocked" role="status">
+          Choose a contribution to charge each year.
+        </p>
+      ) : (
+        <ProviderTabs
+          providers={providers}
+          active={provider}
+          onChange={(next) => setProvider(next)}
+        >
+          {(current) => (
+            <>
+              {current === 'stripe' ? (
+                <StripeRenewalPanel
+                  publishableKey={config.stripe_publishable_key}
+                  {...panelProps}
+                />
+              ) : null}
+              {current === 'paypal' ? (
+                <PayPalRenewalPanel clientId={config.paypal_client_id} {...panelProps} />
+              ) : null}
+              {current === 'mock' ? <MockRenewalPanel {...panelProps} /> : null}
+            </>
+          )}
+        </ProviderTabs>
+      )}
 
       <Button variant="quiet" onClick={handleCancel}>
         Cancel

@@ -82,3 +82,20 @@ export function makeMandate(overrides: Partial<RenewalMandate> = {}): RenewalMan
     ...overrides,
   };
 }
+
+/**
+ * A life member's authority: a contribution alone, with no plan to renew.
+ *
+ * `plan`, `plan_name` and the plan half of `amount_cents` are all absent, which
+ * is what the server sends for a mandate whose member holds a lifetime term.
+ */
+export function makeContributionMandate(overrides: Partial<RenewalMandate> = {}): RenewalMandate {
+  return makeMandate({
+    plan: null,
+    plan_name: null,
+    kind: 'contribution',
+    contribution_cents: 5000,
+    amount_cents: 5000,
+    ...overrides,
+  });
+}

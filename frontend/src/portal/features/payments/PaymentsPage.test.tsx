@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { PaymentSummary } from '@/portal/api/types';
 import { makePaymentSummary, makePaymentsConfig } from '@test/fixtures/payments';
-import { API, makeUser, signedInAs } from '@test/handlers';
+import { API, CURRENT_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { PaymentsPage } from './PaymentsPage';
@@ -29,6 +29,9 @@ function mount({
     ...extra,
     signedInAs(makeUser()),
     http.get(`${API}/payments/config`, () => HttpResponse.json(makePaymentsConfig())),
+    http.get(`${API}/me/membership`, () =>
+      HttpResponse.json({ ...CURRENT_MEMBERSHIP, history: [] }),
+    ),
     http.get(`${API}/me/payments`, () => HttpResponse.json(payments)),
     http.get(`${API}/me/payments/statements`, () => HttpResponse.json({ years })),
   );

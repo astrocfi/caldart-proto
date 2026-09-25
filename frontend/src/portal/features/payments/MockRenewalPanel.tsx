@@ -9,7 +9,7 @@ import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import { Button } from '@/portal/components/Button';
-import { useConfirmRenewal, useStartRenewalSetup } from './api';
+import { renewalSetupRequest, useConfirmRenewal, useStartRenewalSetup } from './api';
 import type { RenewalPanelProps } from './types';
 
 /** Saves the mock provider's test card as the method CalDART renews from. */
@@ -26,7 +26,7 @@ export function MockRenewalPanel({
   async function save(): Promise<void> {
     setError(null);
     try {
-      await start.mutateAsync({ plan, contribution_cents: contributionCents, provider: 'mock' });
+      await start.mutateAsync(renewalSetupRequest(plan, contributionCents, 'mock'));
       await confirm.mutateAsync({ setup_intent_id: '', setup_token: '' });
       handleDone();
     } catch (caught) {
