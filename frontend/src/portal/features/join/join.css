@@ -54,12 +54,14 @@
   border-color: var(--color-accent);
 }
 
-.join-card {
+/* Outweighs `.portal__main .card` (portal.css), which caps every card at the
+ * portal's working width, so a join card keeps its own narrower width. */
+.portal__main .card.join-card {
   max-width: 46rem;
   margin-inline: auto;
 }
 
-.join-card--narrow {
+.portal__main .card.join-card--narrow {
   max-width: 30rem;
 }
 

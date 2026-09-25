@@ -6,10 +6,13 @@ import { describe, expect, it } from 'vitest';
 
 const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'portal.css'), 'utf8');
 
-/** The top-level declaration block for `selector`, ignoring any block nested in a media query. */
-function ruleBody(selector: string): string {
+/**
+ * The top-level declaration block for `selector` in `source` (portal.css by
+ * default), ignoring any block nested in a media query.
+ */
+function ruleBody(selector: string, source: string = css): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = new RegExp(`(?:^|\\n)${escaped}\\s*\\{([^}]*)\\}`).exec(css);
+  const match = new RegExp(`(?:^|\\n)${escaped}\\s*\\{([^}]*)\\}`).exec(source);
   if (!match?.[1]) throw new Error(`no top-level rule found for ${selector}`);
   return match[1];
 }
@@ -39,6 +42,26 @@ describe('the frame without a rail', () => {
     const twoColumns = css.indexOf('grid-template-columns: var(--rail-width) minmax(0, 1fr);');
     expect(twoColumns).toBeGreaterThan(-1);
     expect(css.indexOf('.portal__frame--no-rail')).toBeGreaterThan(twoColumns);
+  });
+});
+
+describe('the join wizard card', () => {
+  const joinCss = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), 'features/join/join.css'),
+    'utf8',
+  );
+
+  it('centers itself in the frame', () => {
+    expect(ruleBody('.portal__main .card.join-card', joinCss)).toContain('margin-inline: auto;');
+  });
+
+  // `.portal__main .card` caps every card at --page-max; the join card's own
+  // narrower caps must outweigh it or the account step spreads to 76rem.
+  it.each([
+    ['.portal__main .card.join-card', '46rem'],
+    ['.portal__main .card.join-card--narrow', '30rem'],
+  ])('%s keeps its own width inside the portal', (selector, width) => {
+    expect(ruleBody(selector, joinCss)).toContain(`max-width: ${width};`);
   });
 });
 
