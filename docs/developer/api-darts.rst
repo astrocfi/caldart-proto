@@ -139,7 +139,8 @@ Field                      Rule
                            refused with their own sentence.
 ``website_url``            The team's own site, or blank.  A URL, checked as one.
 ``contacts``               Any number of people, each with a ``name``, a
-                           ``title``, an optional ``phone`` and ``email``, and
+                           ``title``, an optional ``phone`` and ``email``
+                           (a person may have neither), and
                            ``receives_roster`` (default ``false``), whether
                            the person is sent the team's roster.  A person
                            without an email address may be ticked; the sender

@@ -334,16 +334,18 @@ filtered to that team.
 
 **The people who run it**
    **DART management** holds as many people as the team needs, each with a
-   name, a job title and a phone number or an email address; **Add a person**
-   adds a row.  Tick **Roster** on the row of each person who receives the
-   team's roster by email.  The **Roster** count in the table counts only the
-   ticked people who have an email address, since a roster cannot reach anyone
-   else.  The arrows at the head of each row put the people in order, and that
-   order is the order the team's page on the public website lists them in, so
-   the leader comes first.  The trashcan at
-   the end of a row takes that person off the list.  The people are saved with
-   the rest of the form, so clearing a row really does take that person off the
-   list.
+   name and a job title.  A phone number and an email address are both
+   optional.  **Add a person** adds a row; it is grayed out while the last row
+   has no name, so give the person above a name first.  Tick **Roster** on the
+   row of each person who receives the team's roster by email.  The **Roster**
+   count in the table counts only the ticked people who have an email address,
+   since a roster cannot reach anyone else.  The arrows at the head of each row
+   put the people in order, and that order is the order the team's page on the
+   public website lists them in, so the leader comes first.  A row with no name
+   cannot be put in order: its arrows are grayed out, and so are the arrows of
+   its neighbors that would move past it.  The trashcan at the end of a row
+   takes that person off the list.  The people are saved with the rest of the
+   form, so clearing a row really does take that person off the list.
 
 **Changing one**
    **Edit** opens the same form on an existing DART.  Renaming one is safe:
