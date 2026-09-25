@@ -89,6 +89,25 @@ describe('SubscriptionForm', () => {
     expect(offered).toEqual(['Any purpose', 'Receipt', 'Password reset']);
   });
 
+  it('never asks for the email purposes unless the emails report is chosen', async () => {
+    let purposesRequested = false;
+    server.use(
+      ...subscriptionHandlers({ reports: REPORTS }),
+      http.get(`${API}/reports/members/columns`, () => HttpResponse.json(MEMBER_COLUMNS)),
+      http.get(`${API}/system/emails/purposes`, () => {
+        purposesRequested = true;
+        return HttpResponse.json([]);
+      }),
+    );
+    const handleDone = vi.fn();
+    renderWithProviders(<SubscriptionForm onDone={handleDone} />);
+
+    await chooseReport('Members');
+    await screen.findByRole('button', { name: 'Columns' });
+
+    expect(purposesRequested).toBe(false);
+  });
+
   it('offers the column chooser for a report whose columns can be chosen', async () => {
     renderForm();
 

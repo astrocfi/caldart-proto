@@ -194,11 +194,24 @@ export function useEmailLog(query: EmailLogQuery): UseQueryResult<Paginated<Emai
   });
 }
 
+interface UseEmailPurposesOptions {
+  /**
+   * Whether to fetch at all. Defaults to `true`; a caller that only needs the
+   * purposes once some other condition holds (such as the emails report being
+   * the one chosen) passes `false` until then, so the request is never sent to
+   * a caller who cannot read it.
+   */
+  enabled?: boolean;
+}
+
 /** The purposes the log's filter offers, as `{value, label}`, via `GET /system/emails/purposes`. */
-export function useEmailPurposes(): UseQueryResult<EmailPurpose[]> {
+export function useEmailPurposes({ enabled = true }: UseEmailPurposesOptions = {}): UseQueryResult<
+  EmailPurpose[]
+> {
   return useQuery({
     queryKey: EMAIL_PURPOSES_KEY,
     queryFn: () => api.get<EmailPurpose[]>('/system/emails/purposes'),
     staleTime: Infinity,
+    enabled,
   });
 }

@@ -99,7 +99,10 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
   const create = useCreateSubscription();
   const darts = useDarts();
   const plans = usePlans();
-  const purposes = useEmailPurposes();
+  // Only the emails report's Purpose filter reads these, and only a
+  // system administrator can choose that report, so nobody else's form
+  // ever sends a request the server would refuse.
+  const purposes = useEmailPurposes({ enabled: slug === 'emails' });
   const runtimeOptions = useMemo(
     () => ({
       dart: (darts.data ?? []).map((dart) => ({ value: String(dart.id), label: dart.name })),
