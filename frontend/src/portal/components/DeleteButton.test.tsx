@@ -20,16 +20,28 @@ describe('DeleteButton', () => {
     );
   });
 
-  it('marks itself as an icon-only button when it shows no text', () => {
+  it('is a bare icon button when it shows no text', () => {
     render(<DeleteButton label="Remove N12345" />);
 
-    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('button--icon');
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('icon-button');
+  });
+
+  it('carries none of the portal button classes when it shows no text', () => {
+    render(<DeleteButton label="Remove N12345" />);
+
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).not.toHaveClass('button');
   });
 
   it('draws the trashcan where a screen reader will not announce it', () => {
     const { container } = render(<DeleteButton label="Remove N12345" />);
 
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('draws the trashcan rather than another icon when it shows no text', () => {
+    const { container } = render(<DeleteButton label="Remove N12345" />);
+
+    expect(container.querySelector('svg path[d="M4 7h16"]')).toBeInTheDocument();
   });
 
   it('reads as its text rather than its label when it shows text', () => {
@@ -49,21 +61,37 @@ describe('DeleteButton', () => {
   it('is still named by its label when the words it would show are withheld', () => {
     render(<DeleteButton label="Remove N12345">{false}</DeleteButton>);
 
-    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('button--icon');
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('icon-button');
   });
 
-  it('is not an icon-only button when it shows text', () => {
+  it('is a portal button rather than a bare icon when it shows text', () => {
     render(<DeleteButton label="Delete this DART">Delete this DART</DeleteButton>);
 
-    expect(screen.getByRole('button', { name: 'Delete this DART' })).not.toHaveClass(
-      'button--icon',
-    );
+    expect(screen.getByRole('button', { name: 'Delete this DART' })).not.toHaveClass('icon-button');
   });
 
-  it('is quiet and small unless the caller says otherwise', () => {
-    render(<DeleteButton label="Remove person 1" />);
+  it('is quiet unless the caller asks for another variant', () => {
+    render(<DeleteButton label="Delete member">Delete member</DeleteButton>);
 
-    expect(screen.getByRole('button', { name: 'Remove person 1' })).toHaveClass('button--quiet');
+    expect(screen.getByRole('button', { name: 'Delete member' })).toHaveClass('button--quiet');
+  });
+
+  it('is small unless the caller asks for a full-size button', () => {
+    render(<DeleteButton label="Delete member">Delete member</DeleteButton>);
+
+    expect(screen.getByRole('button', { name: 'Delete member' })).toHaveClass('button--small');
+  });
+
+  it('draws the trashcan at the text size when it shows words', () => {
+    const { container } = render(<DeleteButton label="Delete member">Delete member</DeleteButton>);
+
+    expect(container.querySelector('svg')).toHaveAttribute('width', '1em');
+  });
+
+  it('draws the trashcan at the shared icon size when it shows no text', () => {
+    const { container } = render(<DeleteButton label="Remove N12345" />);
+
+    expect(container.querySelector('svg')).toHaveAttribute('width', '1.25em');
   });
 
   it('takes the danger variant when the caller asks for it', () => {

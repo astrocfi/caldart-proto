@@ -524,15 +524,28 @@ the files they test, and an ``index.ts`` of what the route files use:
 ======================  ======================================================
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
-every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``DeleteButton``,
-``StatusChip``, ``DataTable``, ``ColumnChooser``, ``Money``, ``DateText``,
-``EmptyState``, and ``Toast``), and ``choices.ts`` holds the one set of labels
-for certificate, medical, IFR, rating, and role codes.  ``DeleteButton`` is
-every Remove and Delete control in the portal: an inline trashcan drawn in
-``currentColor``, icon-only and square where the control sits in a row or on a
-form line, icon and words where the action is confirmed.  ``ColumnChooser``
-drives a report table and its two exports from one set of ticks, and closes on
-a click outside it or on Escape.  ``components/Loading.tsx`` sits beside them:
+every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``IconButton``,
+``DeleteButton``, ``StatusChip``, ``DataTable``, ``ColumnChooser``, ``Money``,
+``DateText``, ``EmptyState``, and ``Toast``), and ``choices.ts`` holds the one
+set of labels for certificate, medical, IFR, rating, and role codes.
+``components/icons.tsx`` holds the inline SVG icons -- ``TrashcanIcon``,
+``ArrowUpIcon``, and ``ArrowDownIcon`` -- each ``aria-hidden``, drawn in
+``currentColor``, square, and ``1.25em`` on a side unless the caller asks for
+another size, so the portal ships no icon dependency.
+``IconButton`` is a control that shows one of those icons and nothing else: a
+``<button>`` with the ``icon-button`` class rather than a ``Button``, with no
+border, no background, and the muted text color until hover or keyboard focus
+brings it forward.  Its required ``label`` is the whole of the accessible name
+and the tooltip, unless the caller passes a ``title`` of its own.  Use it where
+the row already says what the control acts on -- an attached aircraft, a person
+on a DART -- so a list of records reads as a list rather than as a wall of
+buttons.  ``DeleteButton`` is every Remove and Delete control in the portal: a
+bare ``IconButton`` trashcan where the control sits in a row or on a form line,
+and a quiet ``Button`` with the trashcan leading its words where the action is
+confirmed, with the trashcan at the text size there rather than at the larger
+size a bare icon takes.  ``ColumnChooser`` drives a report table and its two
+exports from one set of ticks, and closes on a click outside it or on Escape.
+``components/Loading.tsx`` sits beside them:
 the guards and the route table are its only callers, and both import it by
 name, as every file in the directory is imported -- there is no barrel.
 ``components/useClickOutside.ts`` is the hook behind that dismissal, for any

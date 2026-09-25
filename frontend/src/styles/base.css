@@ -426,18 +426,41 @@ legend {
   font-size: var(--text-xs);
 }
 
-/* An icon-only button: square, so a lone trashcan is not a wide slab. */
-.button--icon {
-  padding: var(--space-2);
-  aspect-ratio: 1;
-}
-
-.button--icon.button--small {
-  padding: var(--space-1);
-}
-
 .button:disabled {
   opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------- bare icon button */
+/* One icon and nothing else: no frame, so a row of records reads as a list
+   rather than as a wall of buttons.  It comes forward on hover and on focus. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  line-height: 0;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color var(--duration) var(--ease);
+}
+
+.icon-button:hover:not(:disabled),
+.icon-button:focus-visible {
+  color: var(--color-fg);
+}
+
+.icon-button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+.icon-button:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
