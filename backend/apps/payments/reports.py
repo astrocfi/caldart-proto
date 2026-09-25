@@ -729,8 +729,15 @@ def contribution_report_query(params: Params) -> ReportQuery[ContributionRow]:
 
 
 def contribution_year(params: Params, today: dt.date) -> Params:
-    """``params`` with ``period`` replaced by the ``year`` it falls in."""
-    return resolve_period(params, today, lambda start, end: {"year": str(start.year)})
+    """``params`` with ``period`` replaced by the ``year`` it falls in.
+
+    Without a ``period``, a missing or blank ``year`` becomes the year ``today`` falls
+    in, so a report built for another day names and fills that day's year.
+    """
+    resolved = resolve_period(params, today, lambda start, end: {"year": str(start.year)})
+    if resolved.get("year", "") == "":
+        return {**resolved, "year": str(today.year)}
+    return resolved
 
 
 #: The year-end contributions list, for the finance roles: fixed columns, upright.

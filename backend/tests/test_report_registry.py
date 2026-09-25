@@ -365,6 +365,15 @@ def test_a_dated_report_resolves_a_period_into_its_own_params(
     }
 
 
+@pytest.mark.parametrize("params", [{}, {"year": ""}], ids=["no-year", "blank-year"])
+def test_the_contributions_report_defaults_to_the_year_it_is_built_in(
+    params: dict[str, str],
+) -> None:
+    """Without a year or a period, the year is the one ``today`` falls in."""
+    table = CONTRIBUTION_REPORT.table(params, fmt="pdf", today=date(2024, 6, 1))
+    assert table.filters == {"year": "2024"}
+
+
 @pytest.mark.parametrize(
     "resolve",
     [MEMBER_REPORT.resolve, AIRCRAFT_REPORT.resolve, RECONCILIATION_REPORT.resolve],

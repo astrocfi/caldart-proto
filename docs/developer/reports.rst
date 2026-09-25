@@ -490,10 +490,10 @@ Refunded and Net — on an upright page.  ``contribution_rows(year)`` answers on
 row per member who gave something in a calendar year, largest net giver first:
 the count, what they gave, what went back, and the difference.  It is the list
 the year-end acknowledgments go out from.  The year is ``?year=``, the year a
-``?period=`` falls in, or this year, and the subtitle always names it.  A
-payment falls in the year of its ``paid_date``, so a check received in December
-and keyed in January counts in the year it arrived, the same year the period
-summary puts it in.
+``?period=`` falls in, or the year the report is built in, and the subtitle always
+names it.  A payment falls in the year of its ``paid_date``, so a check received in
+December and keyed in January counts in the year it arrived, the same year the
+period summary puts it in.
 
 The period summary
 ------------------
