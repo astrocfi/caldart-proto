@@ -1,0 +1,122 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
+import { describe, expect, it } from 'vitest';
+
+import { API } from '@test/handlers';
+import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
+import type { EmailLogEntry, Paginated } from '@/portal/api/types';
+import { EmailLogPanel } from './EmailLogPanel';
+
+const ENTRIES: EmailLogEntry[] = [
+  {
+    id: 903,
+    to_email: 'marta.reyes@example.org',
+    user_id: 37,
+    user_name: 'Marta Reyes',
+    purpose: 'receipt',
+    subject: 'CalDART: your receipt for $95.00',
+    sent_at: '2026-01-08T09:00:02-08:00',
+    status: 'sent',
+    error: '',
+    attachments: 'receipt-2026-0041.pdf',
+  },
+  {
+    id: 902,
+    to_email: 'unknown@example.org',
+    user_id: null,
+    user_name: '',
+    purpose: 'password_reset',
+    subject: 'CalDART: reset your password',
+    sent_at: '2026-01-07T08:00:00-08:00',
+    status: 'failed',
+    error: 'SMTPRecipientsRefused',
+    attachments: '',
+  },
+];
+
+function page(rows: EmailLogEntry[]): Paginated<EmailLogEntry> {
+  return { count: rows.length, next: null, previous: null, results: rows };
+}
+
+function emailsHandler(rows: EmailLogEntry[]) {
+  return http.get(`${API}/system/emails`, () => HttpResponse.json(page(rows)));
+}
+
+describe('EmailLogPanel', () => {
+  it('shows the most recent emails with their purpose, recipient and status', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+
+    const table = await screen.findByRole('table');
+    const row = await within(table).findByRole('row', { name: /Marta Reyes/ });
+    expect(row).toHaveTextContent('marta.reyes@example.org');
+    expect(row).toHaveTextContent('Receipt');
+    expect(row).toHaveTextContent('Sent');
+    expect(row).toHaveTextContent('receipt-2026-0041.pdf');
+  });
+
+  it('reads a message with no account behind it by its address alone', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+
+    const table = await screen.findByRole('table');
+    const row = await within(table).findByRole('row', { name: /unknown@example\.org/ });
+    expect(row).toHaveTextContent('Password reset');
+  });
+
+  it('shows the error beside a failed send', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+
+    expect(await screen.findByText('Failed: SMTPRecipientsRefused')).toBeInTheDocument();
+  });
+
+  it('says nothing has gone out yet when the log is empty', async () => {
+    server.use(emailsHandler([]));
+    renderWithProviders(<EmailLogPanel />);
+
+    expect(await screen.findByText('No emails sent yet')).toBeInTheDocument();
+  });
+
+  it('filters by purpose', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+    await screen.findByText('Marta Reyes');
+
+    const captured: string[] = [];
+    server.use(
+      http.get(`${API}/system/emails`, ({ request: req }) => {
+        captured.push(new URL(req.url).searchParams.get('purpose') ?? '');
+        return HttpResponse.json(page(ENTRIES));
+      }),
+    );
+
+    await userEvent.selectOptions(screen.getByLabelText('Purpose'), 'receipt');
+
+    await waitFor(() => {
+      expect(captured).toContain('receipt');
+    });
+  });
+
+  it('debounces the search box before asking the server', async () => {
+    server.use(emailsHandler(ENTRIES));
+    renderWithProviders(<EmailLogPanel />);
+    await screen.findByText('Marta Reyes');
+
+    const captured: string[] = [];
+    server.use(
+      http.get(`${API}/system/emails`, ({ request: req }) => {
+        captured.push(new URL(req.url).searchParams.get('q') ?? '');
+        return HttpResponse.json(page(ENTRIES));
+      }),
+    );
+
+    await userEvent.type(screen.getByLabelText('Search'), 'reyes');
+
+    await waitFor(() => {
+      expect(captured.at(-1)).toBe('reyes');
+    });
+  });
+});

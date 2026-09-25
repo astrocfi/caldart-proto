@@ -26,6 +26,9 @@ function systemHandlers() {
     http.get(`${API}/admin/reminders/log`, () =>
       HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
     ),
+    http.get(`${API}/system/emails`, () =>
+      HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
+    ),
   ];
 }
 
@@ -47,6 +50,7 @@ describe('SystemPage', () => {
     expect(await screen.findByRole('heading', { name: 'Health' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Backups' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Renewal reminders' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Email log' })).toBeInTheDocument();
   });
 
   it('renders live data in each panel', async () => {
@@ -56,6 +60,7 @@ describe('SystemPage', () => {
     expect(await screen.findByText('0.1.0')).toBeInTheDocument();
     expect(screen.getByText('No backups yet')).toBeInTheDocument();
     expect(await screen.findByText('No reminders sent yet')).toBeInTheDocument();
+    expect(await screen.findByText('No emails sent yet')).toBeInTheDocument();
   });
 
   it('is closed to anyone without system_admin', async () => {
