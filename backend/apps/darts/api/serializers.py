@@ -159,12 +159,14 @@ class DartAdminSerializer(serializers.ModelSerializer[Dart]):
         return ", ".join(airports)
 
     def get_roster_recipients(self, dart: Dart) -> int:
-        """How many of ``dart``'s people are ticked to receive the roster and have an email.
+        """How many of ``dart``'s people are ticked for the roster and have an email.
 
         Counted from the contacts themselves rather than annotated on the
         queryset, so the answer to a save counts the people that save wrote.
         """
-        return sum(1 for contact in dart.contacts.all() if contact.receives_roster and contact.email)
+        return sum(
+            1 for contact in dart.contacts.all() if contact.receives_roster and contact.email
+        )
 
     def create(self, validated_data: dict[str, Any]) -> Dart:
         """Create the DART and its people together."""
