@@ -5,7 +5,7 @@ administrator's edit to the profile or to the account's name or email, an
 aircraft attached or detached, and the profile's creation -- goes through
 ``apps.members.services.touch_profile`` and is proved here.  So is every write
 the field is deliberately silent on: a payment, a membership grant or renewal,
-and a role change.
+a reminder, and a role change.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 import pytest
+from django.core.mail import EmailMessage
 from django.utils import timezone
 from freezegun import freeze_time
 from rest_framework.test import APIClient
@@ -30,7 +31,9 @@ from apps.members.services import (
     touch_profile,
     update_member,
 )
-from tests.factories import MemberProfileFactory, UserFactory
+from apps.reminders.models import REMINDER_OFFSETS, ReminderKind
+from apps.reminders.services import send_renewal_reminders
+from tests.factories import MemberProfileFactory, MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -177,6 +180,29 @@ def test_a_renewal_leaves_the_stamp_alone(member: User, annual_plan: MembershipP
 
     member.profile.refresh_from_db()
     assert member.profile.profile_updated_at is None
+
+
+def test_a_reminder_leaves_the_stamp_alone(
+    member: User,
+    profile: MemberProfile,
+    annual_plan: MembershipPlan,
+    mailoutbox: list[EmailMessage],
+    today: date,
+) -> None:
+    """Sending a renewal reminder about a member never stamps their profile."""
+    touch_profile(profile)
+    stamp = profile.profile_updated_at
+    ends_on = today - timedelta(days=REMINDER_OFFSETS[ReminderKind.T30])
+    MembershipFactory(
+        user=member, plan=annual_plan, starts_on=ends_on - timedelta(days=364), ends_on=ends_on
+    )
+
+    run = send_renewal_reminders(today=today)
+
+    assert run.sent == 1
+    assert len(mailoutbox) == 1
+    profile.refresh_from_db()
+    assert profile.profile_updated_at == stamp
 
 
 def test_a_role_change_leaves_the_stamp_alone(account_admin: User, member: User) -> None:
