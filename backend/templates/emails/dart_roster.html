@@ -1,0 +1,11 @@
+{% extends "emails/report_base.html" %}
+{% comment %}A DART's monthly roster; the plain-text body is dart_roster.txt.{% endcomment %}
+{% block title %}{{ dart_name }} roster{% endblock %}
+{% block preheader %}The {{ dart_name }} roster for {{ report_date|date:"F j, Y" }} is attached.{% endblock %}
+{% block heading %}{{ dart_name }} roster{% endblock %}
+{% block lede %}Hello {{ name }}, attached is the {{ dart_name }} roster for {{ report_date|date:"F j, Y" }}.{% endblock %}
+{% block body %}
+                <p style="margin:0;">It lists {{ members }} member{{ members|pluralize }} by name, with how to reach each one, their certificate and medical, their aircraft, and when their membership runs out. The file is {{ filename }}.</p>
+                <p style="margin:16px 0 0 0;">The DART's leaders may ask a CalDART account administrator to change who receives the roster.</p>
+{% endblock %}
+{% block why %}You are receiving this because the {{ dart_name }} lists you to receive its roster.{% endblock %}

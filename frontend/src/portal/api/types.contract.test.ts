@@ -19,6 +19,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { components } from './schema';
+import type { ReportSlug } from '@/portal/reports/types';
 import type {
   AdminProfile,
   AdminProfilePayload,
@@ -116,8 +117,17 @@ import type {
   ReminderKind,
   ReminderLogEntry,
   ReminderRunResult,
+  ReportCadence,
   ReportColumn,
+  ReportFormats,
+  ReportRunResult,
+  ReportSubscription,
+  ReportSubscriptionCreate,
+  ReportSubscriptionPatch,
   ReportSummary,
+  Roster,
+  SavedColumnSet,
+  SavedColumnSetWrite,
   Role,
   RoleSlug,
   SendPasswordResetResult,
@@ -243,6 +253,22 @@ const checkoutResponse: Matches<CheckoutResponse, Schemas['CheckoutResponse']> =
 const periodSummary: Matches<PaymentPeriodSummary, Schemas['PaymentPeriodSummary']> = true;
 const reportColumn: Matches<ReportColumn, Schemas['ReportColumn']> = true;
 const reportSummary: Matches<ReportSummary, Schemas['ReportSummary']> = true;
+const reportCadence: Matches<ReportCadence, Schemas['CadenceEnum']> = true;
+const reportFormats: Matches<ReportFormats, Schemas['FormatsEnum']> = true;
+const reportSlug: Matches<ReportSlug, Schemas['ReportEnum']> = true;
+const savedColumnSet: Matches<SavedColumnSet, Schemas['SavedColumnSet']> = true;
+const savedColumnSetWrite: Matches<SavedColumnSetWrite, Schemas['SavedColumnSetRequest']> = true;
+const reportSubscription: Matches<ReportSubscription, Schemas['ReportSubscription']> = true;
+const reportSubscriptionCreate: Matches<
+  ReportSubscriptionCreate,
+  Schemas['ReportSubscriptionCreateRequest']
+> = true;
+const reportSubscriptionPatch: Matches<
+  ReportSubscriptionPatch,
+  Schemas['PatchedReportSubscriptionRequest']
+> = true;
+const roster: Matches<Roster, Schemas['Roster']> = true;
+const reportRun: Matches<ReportRunResult, Schemas['ReportRunResult']> = true;
 const reconciliationRow: Matches<ReconciliationRow, Schemas['ReconciliationRow']> = true;
 const contributionRow: Matches<ContributionRow, Schemas['ContributionRow']> = true;
 const financeMember: Matches<FinanceMember, Schemas['FinanceMember']> = true;
@@ -371,6 +397,16 @@ const assertions: readonly true[] = [
   periodSummary,
   reportColumn,
   reportSummary,
+  reportCadence,
+  reportFormats,
+  reportSlug,
+  savedColumnSet,
+  savedColumnSetWrite,
+  reportSubscription,
+  reportSubscriptionCreate,
+  reportSubscriptionPatch,
+  roster,
+  reportRun,
   reconciliationRow,
   contributionRow,
   financeMember,
@@ -485,6 +521,16 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PaymentPeriodSummary',
   'ReportColumn',
   'ReportSummary',
+  'CadenceEnum',
+  'FormatsEnum',
+  'ReportEnum',
+  'SavedColumnSet',
+  'SavedColumnSetRequest',
+  'ReportSubscription',
+  'ReportSubscriptionCreateRequest',
+  'PatchedReportSubscriptionRequest',
+  'Roster',
+  'ReportRunResult',
   'ReconciliationRow',
   'ContributionRow',
   'FinanceMember',

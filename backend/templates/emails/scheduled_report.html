@@ -1,0 +1,28 @@
+{% extends "emails/report_base.html" %}
+{% comment %}The report a subscription sends; the plain-text body is scheduled_report.txt.{% endcomment %}
+{% block title %}{{ report_title }}{% endblock %}
+{% block preheader %}The {{ report_title }} for {{ report_date|date:"F j, Y" }} is attached.{% endblock %}
+{% block heading %}{{ report_title }}{% endblock %}
+{% block lede %}Hello{% if first_name %} {{ first_name }}{% endif %}, attached is the {{ report_title }} for {{ report_date|date:"F j, Y" }}, as {{ formats }}.{% endblock %}
+{% block body %}
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #CCD6E1; border-bottom:1px solid #CCD6E1;">
+                  <tr>
+                    <td style="padding:10px 0; font-size:15px; color:#55606D;">Filters</td>
+                    <td align="right" style="padding:10px 0; font-size:15px;">{{ filters }}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 0; font-size:15px; color:#55606D;">Sent</td>
+                    <td align="right" style="padding:10px 0; font-size:15px;">{{ schedule|capfirst }}</td>
+                  </tr>
+                  {% if created_by %}<tr>
+                    <td style="padding:10px 0; font-size:15px; color:#55606D;">Set up by</td>
+                    <td align="right" style="padding:10px 0; font-size:15px;">{{ created_by }}</td>
+                  </tr>{% endif %}
+                  {% for filename in filenames %}<tr>
+                    <td style="padding:10px 0; font-size:15px; color:#55606D;">Attached</td>
+                    <td align="right" style="padding:10px 0; font-size:15px;">{{ filename }}</td>
+                  </tr>{% endfor %}
+                </table>
+                <p style="margin:16px 0 0 0;">A CalDART account administrator or treasurer can change this report or stop it.</p>
+{% endblock %}
+{% block why %}You are receiving this because a CalDART report subscription names this address.{% endblock %}

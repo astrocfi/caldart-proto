@@ -1,0 +1,33 @@
+# Daily trigger for the CalDART scheduled reports.
+#
+# Deploy path: /srv/caldart. Enable with:
+#   sudo systemctl enable --now caldart-reports.timer
+# Inspect with:
+#   systemctl list-timers caldart-reports.timer
+
+[Unit]
+Description=Send the CalDART scheduled reports daily at 06:00
+Documentation=file:///srv/caldart/docs/developer/deployment.rst
+
+[Timer]
+Unit=caldart-reports.service
+
+# 06:00 every day, in the system timezone, so the reports are waiting in the
+# inbox at the start of the day, ahead of the 06:30 renewals and the 07:00
+# reminders.
+OnCalendar=*-*-* 06:00:00
+
+# If the machine was off or suspended at 06:00, run as soon as it comes back:
+# whatever was due is still due, and the run sends it.
+Persistent=true
+
+# Reports are date-driven, not time-critical to the second; letting systemd
+# coalesce the wakeup is cheaper.
+AccuracySec=1min
+
+# Spread the start over five minutes so the run does not land at the same
+# instant as every other 06:00 job on the host.
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

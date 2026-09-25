@@ -101,8 +101,9 @@ report is informational until a baseline is established.
 Golden files
 ------------
 
-``backend/tests/golden/`` holds whole documents the code renders — the five
-renewal-reminder emails and the payment CSV export — one file each.  A test
+``backend/tests/golden/`` holds whole documents the code renders — the
+renewal-reminder and automatic-renewal emails, the scheduled report and DART
+roster emails, and the payment CSV export — one file each.  A test
 gets the ``golden`` fixture and hands it the file name and the text it
 rendered:
 

@@ -115,6 +115,18 @@ class Dart(TimestampedModel):  # type: ignore[django-manager-missing]
         """Every identifier this DART flies from, in the order it was given."""
         return split_airport_identifiers(self.airport_identifiers)
 
+    def roster_recipients(self) -> list[DartContact]:
+        """The people ticked to receive the roster who have an address, in list order.
+
+        Reads ``contacts.all()``, so a queryset that prefetched the contacts costs no
+        further query.
+        """
+        return [
+            contact
+            for contact in self.contacts.all()
+            if contact.receives_roster and contact.email != ""
+        ]
+
     @property
     def home_airport(self) -> str:
         """The first identifier, which is the one a single-line summary shows."""

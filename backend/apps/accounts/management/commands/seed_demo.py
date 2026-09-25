@@ -24,6 +24,7 @@ SEED_APPS: tuple[str, ...] = (
     "apps.members",
     "apps.aircraft",
     "apps.payments",
+    "apps.reports",
     "apps.cms",
 )
 

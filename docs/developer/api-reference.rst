@@ -949,6 +949,54 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - the list's rows; ``?period=`` applies
+   * - ``GET | POST /reports/{slug}/column-sets``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ✓
+     - ✓
+     - your own sets, of a report you may read (see :doc:`api-reports`)
+   * - ``DELETE /reports/{slug}/column-sets/{id}``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ✓
+     - ✓
+     - your own set only; anyone else's is 404
+   * - ``GET | POST /reports/subscriptions``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - only the reports you may read; a recipient must be able to read theirs
+   * - ``GET | PATCH | DELETE /reports/subscriptions/{id}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - 404 for a report you may not read
+   * - ``POST /reports/subscriptions/{id}/send``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - sends it now; the next due day stays
+   * - ``GET /reports/rosters``, ``POST /reports/rosters/send``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - every active DART; ``dry_run`` rehearses
    * - ``GET | PATCH /admin/payments/{id}``
      - ·
      - ·
@@ -1070,6 +1118,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ``system_admin`` only
    * - ``POST /system/reminders/run``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
+   * - ``POST /system/reports/run``
      - ·
      - ·
      - ·

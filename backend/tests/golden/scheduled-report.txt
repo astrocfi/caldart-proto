@@ -1,0 +1,19 @@
+The California DART Network — CalDART membership report
+
+Hello,
+
+Attached is the CalDART membership report for October 1, 2026, as CSV and PDF.
+
+Filters: status: current
+
+This report is sent to this address weekly on Thursday; Zoe Yeager set it up.
+A CalDART account administrator or treasurer can change it or stop it.
+
+Attached:
+  caldart-members-2026-10-01.csv
+  caldart-members-2026-10-01.pdf
+
+--
+The California DART Network is a volunteer disaster air transportation network.
+Questions? Write to info@caldart.example.org.
+You are receiving this because a CalDART report subscription names this address.

@@ -53,6 +53,7 @@ What you are deploying
               Postgres [label="Postgres in Docker :5432\l  compose service db\l"];
               Timer [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
               Renewals [label="caldart-renewals.timer\l  daily 06:30 ->\l  caldart-renewals.service\l  manage.py run_auto_renewals\l"];
+              Reports [label="caldart-reports.timer\l  daily 06:00 ->\l  caldart-reports.service\l  manage.py send_scheduled_reports\l"];
               Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to the\l  web server\l", shape=folder, style=""];
               Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for both units\l", shape=note, style=""];
 
@@ -61,11 +62,13 @@ What you are deploying
               Django -> Postgres [label="DATABASE_URL"];
               Timer -> Postgres [label="reads terms,\lwrites ReminderLog"];
               Renewals -> Postgres [label="reads mandates,\lwrites payments and terms"];
+              Reports -> Postgres [label="reads subscriptions and DARTs,\lwrites their send dates"];
               Apache -> Media [label="/media/ off disk", style=dotted];
               Django -> Media [label="/documents/<id>/<name>\lafter the members-only check", style=dotted];
               Env -> Gunicorn [label="settings", style=dashed, arrowhead=none];
               Env -> Timer [label="settings", style=dashed, arrowhead=none];
               Env -> Renewals [label="settings", style=dashed, arrowhead=none];
+              Env -> Reports [label="settings", style=dashed, arrowhead=none];
           }
 
           Browser -> Apache [label="HTTPS :443\lHTTP :80 redirected"];
@@ -75,6 +78,7 @@ What you are deploying
           Timer -> Smtp [label="renewal reminders", style=dashed];
           Renewals -> Stripe [label="off-session charges", style=dashed];
           Renewals -> Smtp [label="renewal notices and receipts", style=dashed];
+          Reports -> Smtp [label="reports and DART rosters", style=dashed];
       }
 
 .. only:: not graphviz
@@ -104,10 +108,16 @@ What you are deploying
       caldart-renewals.timer, daily 06:30             |
         -> caldart-renewals.service                   |
            manage.py run_auto_renewals ---------------'
-           -> Stripe / PayPal for the off-session charges,
+           -> Stripe / PayPal for the off-session charges,|
               and the SMTP server for the renewal emails
+                                                      |
+      caldart-reports.timer, daily 06:00              |
+        -> caldart-reports.service                    |
+           manage.py send_scheduled_reports ----------'
+           -> the SMTP server, for the report subscriptions
+              and the DART rosters
 
-   Apache, gunicorn, Postgres, and the two timers run on one Linux server with
+   Apache, gunicorn, Postgres, and the three timers run on one Linux server with
    the deploy root ``/srv/caldart``, and every systemd unit reads its settings
    from ``/etc/caldart/caldart.env`` (``root:caldart``, mode ``0640``).  Django
    calls out to ``api.stripe.com`` and ``api-m.paypal.com`` during a checkout,
@@ -116,9 +126,9 @@ What you are deploying
    deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
-``caldart-web`` gunicorn unit, and Apache.  Two things run daily: the
-``caldart-renewals`` timer at 06:30 and the ``caldart-reminders`` timer at
-07:00.
+``caldart-web`` gunicorn unit, and Apache.  Three things run daily: the
+``caldart-reports`` timer at 06:00, the ``caldart-renewals`` timer at 06:30 and
+the ``caldart-reminders`` timer at 07:00.
 
 The application is a **Django 6** project with Wagtail 8 on top, and step 6
 installs it with ``uv sync --frozen``, so the box runs the exact versions
@@ -524,7 +534,28 @@ keys the web service has; they come from the same ``/etc/caldart/caldart.env``.
 See :doc:`renewals` for what it charges, when, and how to change the cadence.
 
 
-12. Backups
+.. _deploy-reports:
+
+12. Scheduled reports
+=====================
+
+::
+
+  sudo cp deploy/systemd/caldart-reports.service \
+          deploy/systemd/caldart-reports.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now caldart-reports.timer
+  systemctl list-timers caldart-reports.timer
+
+Daily at 06:00, with catch-up if the machine was off: whatever was due is still
+due, and the next run sends it.  It sends the report subscriptions that are due
+and each DART's monthly roster; it needs the database and the SMTP server, from
+the same ``/etc/caldart/caldart.env``.  Rehearse the first of next month with
+``caldart_manage send_scheduled_reports --dry-run --today <YYYY-MM-01>``.  See
+:doc:`scheduled-reports` for what it sends, and when.
+
+
+13. Backups
 ===========
 
 Take one now and schedule them::
@@ -539,7 +570,8 @@ Checking it worked
 
 ::
 
-  systemctl status caldart-web caldart-reminders.timer caldart-renewals.timer
+  systemctl status caldart-web caldart-reminders.timer caldart-renewals.timer \
+      caldart-reports.timer
   sudo docker compose ps
   curl -sI https://caldart.example.org/ | head -1
   caldart_manage health --json
@@ -635,6 +667,7 @@ What                         Where
 Application, gunicorn        ``journalctl -u caldart-web -f``
 Reminder runs                ``journalctl -u caldart-reminders -n 50``
 Renewal runs                 ``journalctl -u caldart-renewals -n 50``
+Scheduled report runs        ``journalctl -u caldart-reports -n 50``
 Apache :443 access / error   ``/var/log/apache2/caldart-{access,error}.log``
 Apache :80 access / error    ``/var/log/apache2/caldart-http-{access,error}.log``
                              — the redirect vhost, and therefore where a
@@ -663,13 +696,14 @@ The lines go to the journal with everything else, so a filter picks them out::
   journalctl -u caldart-web -p warning | grep caldart.audit   # refused attempts
   journalctl -u caldart-reminders | grep 'action=reminders.run'
   journalctl -u caldart-renewals | grep 'action=renewals.run'
+  journalctl -u caldart-reports | grep 'action=reports.run'
 
 Each line is ``key=value`` pairs in a fixed order::
 
   INFO  2026-09-14 09:31:02,144 caldart.audit action=account.roles actor=12 target=34 added=account_admin removed=-
 
 ``actor`` is the id of the account that acted, or ``command`` for a management
-command and for the reminder timer.  ``target`` is the id of the account or
+command and for the daily timers.  ``target`` is the id of the account or
 record acted on, or ``-``.  The actions:
 
 ============================= ===============================================
@@ -710,6 +744,12 @@ Action                        Fields beyond actor and target
                               member turned it off themselves
 ``renewals.run``              ``dry_run``, ``noticed``, ``charged``,
                               ``failed``, ``paused``, ``skipped``
+``reports.run``               ``dry_run``, ``sent``, ``skipped``, ``failed``
+``report.send``               ``kind`` -- ``subscription`` (the target is the
+                              subscription) or ``roster`` (the target is the
+                              DART), then ``dry_run``, ``sent``, ``skipped``,
+                              ``failed``; one line per **Send now**, and per
+                              DART when the rosters are sent by hand
 ============================= ===============================================
 
 An account edit is recorded only when it really alters the record.  The admin

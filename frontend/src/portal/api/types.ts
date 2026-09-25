@@ -6,6 +6,7 @@
  * step with the DRF serializers.  Dates are ISO-8601 strings
  * (`YYYY-MM-DD` for dates, full timestamps for datetimes).
  */
+import type { ReportSlug } from '@/portal/reports/types';
 
 export type IsoDate = string;
 export type IsoDateTime = string;
@@ -1133,4 +1134,92 @@ export interface ReportColumn {
   key: string;
   label: string;
   default: boolean;
+}
+
+/** One saved set of a report's columns, from `/reports/{slug}/column-sets`. */
+export interface SavedColumnSet {
+  id: number;
+  name: string;
+  /** Column keys, in the order the report prints them. */
+  columns: string[];
+}
+
+/** The body of `POST /reports/{slug}/column-sets`: save, or replace the set of that name. */
+export interface SavedColumnSetWrite {
+  name: string;
+  columns: string[];
+}
+
+/** How often a report subscription is sent. */
+export type ReportCadence = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
+/** Which files a report subscription attaches: one format, or `both`. */
+export type ReportFormats = 'csv' | 'pdf' | 'both';
+
+/**
+ * One report emailed to one address on a schedule, from `/reports/subscriptions`.
+ *
+ * `recipient_user` is the bound account, or null for an address outside CalDART,
+ * whose `recipient_name` is then blank. `filters` are the report's own params
+ * (`period` included) and `columns` the chosen keys, empty for the defaults.
+ * `weekday` (0 Monday to 6 Sunday) is read by the `weekly` cadence alone.
+ */
+export interface ReportSubscription {
+  id: number;
+  report: string;
+  report_title: string;
+  recipient_user: number | null;
+  recipient_name: string;
+  recipient_email: string;
+  filters: Record<string, string>;
+  columns: string[];
+  formats: ReportFormats;
+  cadence: ReportCadence;
+  weekday: number;
+  is_active: boolean;
+  created_by_name: string;
+  last_sent_at: IsoDateTime | null;
+  next_due_on: IsoDate;
+}
+
+/**
+ * The body of `POST /reports/subscriptions`. `confirmed` must be true when no
+ * account holds `recipient_email`.
+ */
+export interface ReportSubscriptionCreate {
+  report: ReportSlug;
+  recipient_email: string;
+  filters?: Record<string, string>;
+  columns?: string[];
+  formats: ReportFormats;
+  cadence: ReportCadence;
+  weekday?: number;
+  confirmed?: boolean;
+}
+
+/** The fields `PATCH /reports/subscriptions/{id}` may change. */
+export type ReportSubscriptionPatch = Partial<
+  Pick<ReportSubscription, 'is_active' | 'filters' | 'columns' | 'formats' | 'cadence' | 'weekday'>
+>;
+
+/** One active DART's roster, from `GET /reports/rosters`. */
+export interface Roster {
+  dart_id: number;
+  name: string;
+  /** How many people ticked to receive the roster have an email address. */
+  roster_recipients: number;
+  roster_sent_at: IsoDateTime | null;
+}
+
+/**
+ * What one run of the report sender did, or would do: the three run endpoints'
+ * answer. Each action is kind `report` (the report and formats in `detail`) or
+ * `roster` (the DART in `detail`).
+ */
+export interface ReportRunResult {
+  sent: number;
+  skipped: number;
+  failed: number;
+  skipped_by_reason: Record<string, number>;
+  actions: RunAction[];
 }

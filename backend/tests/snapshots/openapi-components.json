@@ -359,6 +359,14 @@
       ""
     ]
   },
+  "CadenceEnum": {
+    "enum": [
+      "weekly",
+      "monthly",
+      "quarterly",
+      "yearly"
+    ]
+  },
   "CheckoutRequest": {
     "properties": {
       "auto_renew": "boolean",
@@ -763,6 +771,13 @@
       "id",
       "starts_on",
       "status"
+    ]
+  },
+  "FormatsEnum": {
+    "enum": [
+      "csv",
+      "pdf",
+      "both"
     ]
   },
   "Health": {
@@ -1501,6 +1516,17 @@
     },
     "required": []
   },
+  "PatchedReportSubscriptionRequest": {
+    "properties": {
+      "cadence": "ref:CadenceEnum",
+      "columns": "array<string>",
+      "filters": "map<string>",
+      "formats": "ref:FormatsEnum",
+      "is_active": "boolean",
+      "weekday": "integer"
+    },
+    "required": []
+  },
   "PayPalCaptureRequest": {
     "properties": {
       "order_id": "string",
@@ -2181,6 +2207,87 @@
       "label"
     ]
   },
+  "ReportEnum": {
+    "enum": [
+      "members",
+      "aircraft",
+      "payments",
+      "reconciliation",
+      "contributions"
+    ]
+  },
+  "ReportRunRequestRequest": {
+    "properties": {
+      "dry_run": "boolean"
+    },
+    "required": []
+  },
+  "ReportRunResult": {
+    "properties": {
+      "actions": "array<ref:RunAction>",
+      "failed": "integer",
+      "sent": "integer",
+      "skipped": "integer",
+      "skipped_by_reason": "map<integer>"
+    },
+    "required": [
+      "actions",
+      "failed",
+      "sent",
+      "skipped",
+      "skipped_by_reason"
+    ]
+  },
+  "ReportSubscription": {
+    "properties": {
+      "cadence": "ref:CadenceEnum",
+      "columns": "array<string>",
+      "created_by_name": "string",
+      "filters": "map<string>",
+      "formats": "ref:FormatsEnum",
+      "id": "integer",
+      "is_active": "boolean",
+      "last_sent_at": "string(date-time)|null",
+      "next_due_on": "string(date)",
+      "recipient_email": "string(email)",
+      "recipient_name": "string",
+      "recipient_user": "integer|null",
+      "report": "string",
+      "report_title": "string",
+      "weekday": "integer"
+    },
+    "required": [
+      "cadence",
+      "created_by_name",
+      "formats",
+      "id",
+      "last_sent_at",
+      "next_due_on",
+      "recipient_email",
+      "recipient_name",
+      "recipient_user",
+      "report",
+      "report_title"
+    ]
+  },
+  "ReportSubscriptionCreateRequest": {
+    "properties": {
+      "cadence": "ref:CadenceEnum",
+      "columns": "array<string>",
+      "confirmed": "boolean",
+      "filters": "map<string>",
+      "formats": "ref:FormatsEnum",
+      "recipient_email": "string(email)",
+      "report": "ref:ReportEnum",
+      "weekday": "integer"
+    },
+    "required": [
+      "cadence",
+      "formats",
+      "recipient_email",
+      "report"
+    ]
+  },
   "ReportSummary": {
     "properties": {
       "choosable": "boolean",
@@ -2216,6 +2323,20 @@
       "system_admin"
     ]
   },
+  "Roster": {
+    "properties": {
+      "dart_id": "integer",
+      "name": "string",
+      "roster_recipients": "integer",
+      "roster_sent_at": "string(date-time)|null"
+    },
+    "required": [
+      "dart_id",
+      "name",
+      "roster_recipients",
+      "roster_sent_at"
+    ]
+  },
   "RunAction": {
     "properties": {
       "amount_cents": "integer|null",
@@ -2232,6 +2353,28 @@
       "kind",
       "member",
       "on"
+    ]
+  },
+  "SavedColumnSet": {
+    "properties": {
+      "columns": "array<string>",
+      "id": "integer",
+      "name": "string"
+    },
+    "required": [
+      "columns",
+      "id",
+      "name"
+    ]
+  },
+  "SavedColumnSetRequest": {
+    "properties": {
+      "columns": "array<string>",
+      "name": "string"
+    },
+    "required": [
+      "columns",
+      "name"
     ]
   },
   "SendPasswordResetResult": {

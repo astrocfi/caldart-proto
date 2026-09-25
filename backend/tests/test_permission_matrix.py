@@ -63,6 +63,9 @@ NO_ROLE_DENIED_GETS = [
     "/api/v1/reports/members/columns",
     "/api/v1/reports/aircraft/columns",
     "/api/v1/reports/payments/export.csv",
+    "/api/v1/reports/members/column-sets",
+    "/api/v1/reports/subscriptions",
+    "/api/v1/reports/rosters",
     "/api/v1/admin/payments",
     "/api/v1/admin/reminders/log",
     "/api/v1/system/emails",
@@ -352,6 +355,8 @@ TREASURER_DENIED_GETS = [
     "/api/v1/reports/members/columns",
     "/api/v1/reports/aircraft/export.csv",
     "/api/v1/reports/aircraft/columns",
+    "/api/v1/reports/members/column-sets",
+    "/api/v1/reports/rosters",
     "/api/v1/admin/darts",
     "/api/v1/admin/reminders/log",
     "/api/v1/leader/search",
@@ -390,3 +395,8 @@ def test_a_member_is_offered_no_report(api_client: APIClient, member: User) -> N
     """``GET /reports`` answers a member who may read nothing with an empty list."""
     api_client.force_login(member)
     assert api_client.get("/api/v1/reports").json() == []
+
+
+def test_treasurer_manages_the_report_subscriptions(treasurer_client: APIClient) -> None:
+    """The subscription list is finance's own, so the treasurer reads it."""
+    assert treasurer_client.get("/api/v1/reports/subscriptions").status_code == 200

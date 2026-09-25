@@ -300,8 +300,12 @@ report, a domain module, can read it.
     Everything that spans the reports: the registry of every app's report
     (``registry.py``), who may read one (``permissions.py``), and the
     endpoints under ``/reports/`` that list them, answer their columns and
-    download them (:doc:`api-reports`).  It gathers reports from the apps
-    below it, so it sits beside ``reminders``.
+    download them (:doc:`api-reports`).  It keeps each account's
+    ``SavedColumnSet`` and the ``ReportSubscription`` rows, and sends the
+    subscriptions and each DART's roster by email with its
+    ``send_scheduled_reports`` command (:doc:`scheduled-reports`); endpoint
+    ``/system/reports/run``.  It gathers reports from the apps below it, so it
+    sits beside ``reminders``.
 ``cms``
     The Wagtail page types, the StreamField blocks, ``SiteSettings``, the
     members-only wall, the ``site_chrome`` context processor and the

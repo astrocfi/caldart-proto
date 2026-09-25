@@ -40,6 +40,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    theming
    reports
    reminders
+   scheduled-reports
    renewals
 
 .. toctree::

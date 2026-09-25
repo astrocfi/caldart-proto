@@ -25,6 +25,7 @@ from apps.members.seed import DART_SEED
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentStatus
 from apps.payments.seed import HISTORY_MONTHS, MANUAL_PAYMENT_COUNT
+from apps.reports.models import ReportSubscription
 
 User = get_user_model()
 
@@ -220,3 +221,44 @@ def test_seed_demo_creates_the_wagtail_site_root() -> None:
     site = Site.objects.get(is_default_site=True)
     assert site.root_page.specific_class.__name__ == "HomePage"
     assert SiteSettings.objects.filter(site=site).exists()
+
+
+# -- reports -------------------------------------------------------------------
+def test_seed_demo_subscribes_the_administrator_and_the_treasurer() -> None:
+    """Two subscriptions, both set up by the demo account administrator.
+
+    The membership report goes monthly as a PDF to the account administrator, and this
+    year's payments quarterly as a CSV to the treasurer.
+    """
+    _seed()
+
+    rows = [
+        (
+            row.report,
+            row.recipient_user.email if row.recipient_user is not None else None,
+            row.filters,
+            row.formats,
+            row.cadence,
+            row.created_by.email if row.created_by is not None else None,
+        )
+        for row in ReportSubscription.objects.order_by("report")
+    ]
+    assert rows == [
+        ("members", "accountadmin@example.org", {}, "pdf", "monthly", "accountadmin@example.org"),
+        (
+            "payments",
+            "treasurer@example.org",
+            {"period": "this_year"},
+            "csv",
+            "quarterly",
+            "accountadmin@example.org",
+        ),
+    ]
+
+
+def test_seed_demo_keeps_two_subscriptions_on_a_second_run() -> None:
+    """Running the seed again updates the two subscriptions rather than adding more."""
+    _seed()
+    _seed()
+
+    assert ReportSubscription.objects.count() == 2
