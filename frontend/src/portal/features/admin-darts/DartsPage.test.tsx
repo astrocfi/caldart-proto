@@ -315,6 +315,23 @@ describe('DartsPage', () => {
     expect(screen.getByRole('button', { name: 'Delete this DART' })).toBeInTheDocument();
   });
 
+  it('offers the delete again when the delete fails', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart()]);
+    server.use(
+      http.delete(`${API}/admin/darts/1`, () =>
+        HttpResponse.json({ detail: 'A page points at Palo Alto.' }, { status: 409 }),
+      ),
+    );
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
+    await user.click(screen.getByRole('button', { name: 'Delete for good' }));
+
+    expect(await screen.findByRole('button', { name: 'Delete this DART' })).toBeInTheDocument();
+  });
+
   it('moves a person down the list and saves the new order', async () => {
     const user = userEvent.setup();
     let patched: { contacts?: { name: string }[] } | null = null;
@@ -335,7 +352,35 @@ describe('DartsPage', () => {
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    await user.click(screen.getByRole('button', { name: 'Move person 1 down' }));
+    await user.click(screen.getByRole('button', { name: 'Move down person 1' }));
+    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+
+    await waitFor(() =>
+      expect(patched?.contacts?.map((one) => one.name)).toEqual(['Sam', 'Helen']),
+    );
+  });
+
+  it('moves a person up the list and saves the new order', async () => {
+    const user = userEvent.setup();
+    let patched: { contacts?: { name: string }[] } | null = null;
+    stubList([
+      makeDart({
+        contacts: [
+          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+        ],
+      }),
+    ]);
+    server.use(
+      http.patch(`${API}/admin/darts/1`, async ({ request }) => {
+        patched = (await request.json()) as { contacts?: { name: string }[] };
+        return HttpResponse.json(makeDart());
+      }),
+    );
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Move up person 2' }));
     await user.click(screen.getByRole('button', { name: 'Save DART' }));
 
     await waitFor(() =>
@@ -357,8 +402,8 @@ describe('DartsPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
 
-    expect(screen.getByRole('button', { name: 'Move person 1 up' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Move person 2 down' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move up person 1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move down person 2' })).toBeDisabled();
   });
 
   it('takes a person off the list with the trashcan', async () => {

@@ -6,7 +6,7 @@
  * an existing DART it also carries the delete control, because deleting a team
  * is a thing you do while looking at it rather than from a row in a list.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { AdminDart, AdminDartPatch, DartContact } from '@/portal/api/types';
@@ -60,8 +60,12 @@ export interface DartFormProps {
   errors?: Record<string, string>;
   onSubmit: (payload: AdminDartPatch) => void;
   onCancel: () => void;
-  /** Delete this DART; absent on the add form, which has nothing to delete. */
-  onDelete?: () => void;
+  /**
+   * Delete this DART; absent on the add form, which has nothing to delete.
+   *
+   * A promise lets the form know the attempt is over, whether it worked or not.
+   */
+  onDelete?: () => void | Promise<unknown>;
   /** Why the DART cannot be deleted, shown as the control's tooltip. */
   deleteBlockedBy?: string | null;
   /** Whether the delete request is in flight. */
@@ -148,6 +152,17 @@ export function dartPayload(values: DartFormValues): AdminDartPatch {
   };
 }
 
+/** `items` with the entries at `from` and `to` exchanged. */
+function swap<Item>(items: Item[], from: number, to: number): Item[] {
+  const next = [...items];
+  const moved = next[from];
+  const displaced = next[to];
+  if (moved === undefined || displaced === undefined) return items;
+  next[from] = displaced;
+  next[to] = moved;
+  return next;
+}
+
 /** The add-and-edit form for one DART. */
 export function DartForm({
   initial,
@@ -164,6 +179,31 @@ export function DartForm({
   const [nameError, setNameError] = useState<string | null>(null);
   const [airportError, setAirportError] = useState<string | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  // A row's identity, so React moves its inputs and buttons with it rather than
+  // rewriting them in place when the order changes.  A saved person is known by
+  // the server's id; one the administrator just added gets a counter.
+  const nextRowKey = useRef(0);
+  const [rowKeys, setRowKeys] = useState<string[]>(() => initial.contacts.map(contactKey));
+  const rowControls = useRef(new Map<string, HTMLSpanElement | null>());
+  const [movedKey, setMovedKey] = useState<string | null>(null);
+  const [moveAnnouncement, setMoveAnnouncement] = useState('');
+
+  function contactKey(contact: DartContact): string {
+    if (contact.id !== undefined) return `saved-${contact.id}`;
+    nextRowKey.current += 1;
+    return `added-${nextRowKey.current}`;
+  }
+
+  // A row that moved keeps the focus, but the control the administrator pressed
+  // is disabled once the person reaches an end, so focus lands on the other one.
+  useEffect(() => {
+    if (movedKey === null) return;
+    setMovedKey(null);
+    const controls = rowControls.current.get(movedKey);
+    if (controls === null || controls === undefined) return;
+    if (controls.contains(document.activeElement)) return;
+    controls.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
+  }, [movedKey]);
 
   const set = <Key extends keyof DartFormValues>(key: Key, next: DartFormValues[Key]): void => {
     setValues((current) => ({ ...current, [key]: next }));
@@ -179,28 +219,38 @@ export function DartForm({
   };
 
   const handleAddContact = (): void => {
-    setValues((current) => ({ ...current, contacts: [...current.contacts, emptyContact()] }));
+    const blank = emptyContact();
+    setRowKeys((current) => [...current, contactKey(blank)]);
+    setValues((current) => ({ ...current, contacts: [...current.contacts, blank] }));
   };
 
   const handleRemoveContact = (index: number): void => {
+    setRowKeys((current) => current.filter((_, position) => position !== index));
     setValues((current) => ({
       ...current,
       contacts: current.contacts.filter((_, position) => position !== index),
     }));
   };
 
+  // A delete that succeeds closes the card, so the reset only ever shows after
+  // one that failed: the footer then offers the delete again rather than
+  // stranding the administrator in the confirmation.
+  const handleConfirmDelete = (): void => {
+    void Promise.resolve(handleDelete?.()).finally(() => setIsConfirmingDelete(false));
+  };
+
   /** Swap the person at `index` with the one at `index + step`. */
   const moveContact = (index: number, step: -1 | 1): void => {
-    setValues((current) => {
-      const contacts = [...current.contacts];
-      const target = index + step;
-      const moved = contacts[index];
-      const displaced = contacts[target];
-      if (moved === undefined || displaced === undefined) return current;
-      contacts[index] = displaced;
-      contacts[target] = moved;
-      return { ...current, contacts };
-    });
+    const target = index + step;
+    const moved = values.contacts[index];
+    if (moved === undefined || values.contacts[target] === undefined) return;
+    setValues((current) => ({ ...current, contacts: swap(current.contacts, index, target) }));
+    setRowKeys((current) => swap(current, index, target));
+    setMovedKey(rowKeys[index] ?? null);
+    setMoveAnnouncement(
+      `${moved.name.trim() || `Person ${index + 1}`} is now number ${target + 1} of ` +
+        `${values.contacts.length}.`,
+    );
   };
 
   const handleSubmit = (event: React.FormEvent): void => {
@@ -274,7 +324,7 @@ export function DartForm({
           A phone number and an email address are both optional, but give at least one of them.
         </p>
         {values.contacts.map((contact, index) => (
-          <div className="dart-contacts__row" key={index}>
+          <div className="dart-contacts__row" key={rowKeys[index] ?? `row-${index}`}>
             <Field label="Name" error={contactError(errors, index, 'name')}>
               {(props) => (
                 <input
@@ -319,24 +369,27 @@ export function DartForm({
                 />
               )}
             </Field>
-            <span className="cluster dart-contacts__controls">
+            <span
+              className="cluster dart-contacts__controls"
+              ref={(node) => {
+                rowControls.current.set(rowKeys[index] ?? `row-${index}`, node);
+              }}
+            >
               <Button
                 variant="quiet"
                 small
-                aria-label={`Move person ${index + 1} up`}
                 disabled={index === 0}
                 onClick={() => moveContact(index, -1)}
               >
-                Move up
+                Move up<span className="visually-hidden"> person {index + 1}</span>
               </Button>
               <Button
                 variant="quiet"
                 small
-                aria-label={`Move person ${index + 1} down`}
                 disabled={index === values.contacts.length - 1}
                 onClick={() => moveContact(index, 1)}
               >
-                Move down
+                Move down<span className="visually-hidden"> person {index + 1}</span>
               </Button>
               <DeleteButton
                 label={`Remove person ${index + 1}`}
@@ -345,6 +398,9 @@ export function DartForm({
             </span>
           </div>
         ))}
+        <p aria-live="polite" className="visually-hidden">
+          {moveAnnouncement}
+        </p>
         {values.contacts.length < MAX_CONTACTS ? (
           <Button variant="secondary" small onClick={handleAddContact}>
             Add a person
@@ -379,7 +435,7 @@ export function DartForm({
           <span className="cluster dart-form__danger">
             {isConfirmingDelete ? (
               <>
-                <Button variant="danger" disabled={deletePending} onClick={handleDelete}>
+                <Button variant="danger" disabled={deletePending} onClick={handleConfirmDelete}>
                   Delete for good
                 </Button>
                 <Button variant="quiet" onClick={() => setIsConfirmingDelete(false)}>

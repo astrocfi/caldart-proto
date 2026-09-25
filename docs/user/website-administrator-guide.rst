@@ -80,7 +80,7 @@ a page:
 ``DART index`` / ``DART page``
     The index renders the teams as a table — name, airport, leader.  A
     DART page links to the DART record members can join, so the airport
-    identifier and city come from the membership database rather than being
+    identifiers come from the membership database rather than being
     retyped.
 
 ``Contact page``
@@ -419,7 +419,7 @@ Things worth knowing
   , change, or delete your own there (see :ref:`redirects`).
 * **The home page's news list is automatic.**  Publish a news post and it
   appears; there is nothing to update by hand.
-* **DART pages read the airport and city from the membership database.**  If
+* **DART pages read the airports from the membership database.**  If
   they are wrong, an account administrator fixes the DART record, not the
   page.
 * **Preview before you publish**, especially on a phone-width window: the

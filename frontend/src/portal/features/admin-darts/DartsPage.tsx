@@ -124,19 +124,17 @@ export function DartsPage(): JSX.Element {
     );
   };
 
-  const handleDelete = (dart: AdminDart): void => {
-    remove.mutate(dart.id, {
-      onSuccess: () => {
-        toast.show(`${dart.name} deleted.`, 'success');
-        setEditing(null);
-      },
-      onError: (error) => {
-        toast.show(
-          error instanceof ApiError ? error.message : 'That DART was not deleted.',
-          'error',
-        );
-      },
-    });
+  // The form waits on this promise to leave its confirmation, so the failure is
+  // reported here rather than thrown on: a DART that a page was linked to
+  // between the list load and the click says so and stays.
+  const handleDelete = async (dart: AdminDart): Promise<void> => {
+    try {
+      await remove.mutateAsync(dart.id);
+      toast.show(`${dart.name} deleted.`, 'success');
+      setEditing(null);
+    } catch (error) {
+      toast.show(error instanceof ApiError ? error.message : 'That DART was not deleted.', 'error');
+    }
   };
 
   const columns: Column<AdminDart>[] = [
