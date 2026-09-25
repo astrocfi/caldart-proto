@@ -122,7 +122,12 @@ When you do want to run it by hand:
 3. If the numbers look right and you have a reason to send now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
 
-A rehearsal on the server says more than the numbers do.  ``caldart_manage
+Underneath the result, a table headed **What a live run would do** after a
+rehearsal, or **What this run did** after a real one, names every action
+behind those numbers: which reminder, the member and their address, and the
+day their term runs out.  It is empty when nothing was due.
+
+A rehearsal on the server says the same thing on a shell.  ``caldart_manage
 send_renewal_reminders --dry-run`` prints one line per member under the counts --
 which reminder, who they are, their address, and the day their term runs out --
 so somebody with a shell can read off exactly who a live run would write to
@@ -175,6 +180,11 @@ one:
    A real run asks before it starts, because it charges every member whose
    renewal is due: press **Yes, charge what is due** to go ahead, or
    **Cancel** to think again.
+
+Underneath the result, a table headed **What a live run would do** after a
+rehearsal, or **What this run did** after a real one, names every email and
+every charge behind those numbers: what it was, the member and their
+address, when, and how much.  It is empty when nothing was due.
 
 Here too a rehearsal on the server names the people behind the numbers.
 ``caldart_manage run_auto_renewals --dry-run`` prints one line per email it would

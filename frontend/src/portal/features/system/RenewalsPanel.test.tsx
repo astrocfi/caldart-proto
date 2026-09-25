@@ -15,7 +15,24 @@ const RESULT = {
   failed: 0,
   paused: 0,
   skipped: 3,
-  actions: [],
+  actions: [
+    {
+      kind: 'renewal_notice',
+      member: 'Dana Lee',
+      email: 'dana@example.org',
+      on: '2026-06-19',
+      amount_cents: null,
+      detail: '',
+    },
+    {
+      kind: 'charge',
+      member: 'Marta Reyes',
+      email: 'marta@example.org',
+      on: '2026-06-19',
+      amount_cents: 7000,
+      detail: '',
+    },
+  ],
 };
 
 describe('renewalRunSummary', () => {
@@ -52,6 +69,30 @@ describe('RenewalsPanel', () => {
     expect(bodies).toEqual([{ dry_run: true }]);
   });
 
+  it('lists who a rehearsal would write to, under a heading naming it a rehearsal', async () => {
+    server.use(http.post(`${API}/system/renewals/run`, () => HttpResponse.json(RESULT)));
+    renderWithProviders(<RenewalsPanel />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'What a live run would do' }),
+    ).toBeInTheDocument();
+    const row = screen.getByRole('row', { name: /Marta Reyes/ });
+    expect(row).toHaveTextContent('$70.00');
+  });
+
+  it('says nothing was due when a rehearsal finds no actions', async () => {
+    server.use(
+      http.post(`${API}/system/renewals/run`, () => HttpResponse.json({ ...RESULT, actions: [] })),
+    );
+    renderWithProviders(<RenewalsPanel />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+
+    expect(await screen.findByText('Nothing was due')).toBeInTheDocument();
+  });
+
   it('charges for real once the dry-run box is cleared', async () => {
     const bodies: unknown[] = [];
     server.use(
@@ -72,6 +113,7 @@ describe('RenewalsPanel', () => {
       await screen.findByText('Noticed 2, warned 0, charged 1, failed 0, paused 0, and skipped 3.'),
     ).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: false }]);
+    expect(screen.getByRole('heading', { name: 'What this run did' })).toBeInTheDocument();
   });
 
   it('charges nothing when the confirmation is waved off', async () => {
