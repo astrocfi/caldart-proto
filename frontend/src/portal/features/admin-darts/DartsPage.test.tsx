@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { AdminDart } from '@/portal/api/types';
+import type { AdminDart, AdminDartContact } from '@/portal/api/types';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -19,8 +19,22 @@ function makeDart(overrides: Partial<AdminDart> = {}): AdminDart {
     is_active: true,
     member_count: 0,
     page_count: 0,
+    roster_recipients: 0,
+    roster_sent_at: null,
     ...overrides,
   };
+}
+
+/** `count` saved people, numbered from 1, none of them ticked for the roster. */
+function makePeople(count: number): AdminDartContact[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: index + 1,
+    name: `Person ${index + 1}`,
+    title: 'Volunteer',
+    phone: '',
+    email: '',
+    receives_roster: false,
+  }));
 }
 
 const NAPA = makeDart({ id: 2, name: 'Napa', airport_identifiers: 'APC' });
@@ -195,7 +209,13 @@ describe('DartsPage', () => {
 
     await waitFor(() =>
       expect(posted?.contacts).toEqual([
-        { name: 'Helen Marchetti', title: 'DART leader', phone: '707-555-0133', email: '' },
+        {
+          name: 'Helen Marchetti',
+          title: 'DART leader',
+          phone: '707-555-0133',
+          email: '',
+          receives_roster: false,
+        },
       ]),
     );
   });
@@ -406,8 +426,15 @@ describe('DartsPage', () => {
     stubList([
       makeDart({
         contacts: [
-          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
-          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+          {
+            id: 1,
+            name: 'Helen',
+            title: 'DART leader',
+            phone: '',
+            email: '',
+            receives_roster: false,
+          },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '', receives_roster: false },
         ],
       }),
     ]);
@@ -434,8 +461,15 @@ describe('DartsPage', () => {
     stubList([
       makeDart({
         contacts: [
-          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
-          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+          {
+            id: 1,
+            name: 'Helen',
+            title: 'DART leader',
+            phone: '',
+            email: '',
+            receives_roster: false,
+          },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '', receives_roster: false },
         ],
       }),
     ]);
@@ -461,8 +495,15 @@ describe('DartsPage', () => {
     stubList([
       makeDart({
         contacts: [
-          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
-          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+          {
+            id: 1,
+            name: 'Helen',
+            title: 'DART leader',
+            phone: '',
+            email: '',
+            receives_roster: false,
+          },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '', receives_roster: false },
         ],
       }),
     ]);
@@ -479,8 +520,15 @@ describe('DartsPage', () => {
     stubList([
       makeDart({
         contacts: [
-          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
-          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+          {
+            id: 1,
+            name: 'Helen',
+            title: 'DART leader',
+            phone: '',
+            email: '',
+            receives_roster: false,
+          },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '', receives_roster: false },
         ],
       }),
     ]);
@@ -497,8 +545,15 @@ describe('DartsPage', () => {
     stubList([
       makeDart({
         contacts: [
-          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
-          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+          {
+            id: 1,
+            name: 'Helen',
+            title: 'DART leader',
+            phone: '',
+            email: '',
+            receives_roster: false,
+          },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '', receives_roster: false },
         ],
       }),
     ]);
@@ -515,5 +570,96 @@ describe('DartsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save DART' }));
 
     await waitFor(() => expect(patched?.contacts?.map((one) => one.name)).toEqual(['Sam']));
+  });
+
+  it('shows how many people receive each roster', async () => {
+    stubList([makeDart({ roster_recipients: 3 })]);
+    renderPage();
+
+    const cells = await screen.findAllByRole('cell', { name: 'Palo Alto' });
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    const column = headers.findIndex((text) => text?.startsWith('Roster'));
+    const row = cells[0]?.closest('tr') as HTMLElement;
+    expect(within(row).getAllByRole('cell')[column]).toHaveTextContent('3');
+  });
+
+  it('offers to add a sixth person to a DART of five', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart({ contacts: makePeople(5) })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByRole('button', { name: 'Add a person' })).toBeInTheDocument();
+  });
+
+  it('says the people show in the order they are put in, with no cap', async () => {
+    const user = userEvent.setup();
+    stubList();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+
+    expect(
+      screen.getByText(/^Shown on the team’s page in the order you put them in\./),
+    ).toBeInTheDocument();
+  });
+
+  it('shows who already receives the roster', async () => {
+    const user = userEvent.setup();
+    const [first, second] = makePeople(2) as [AdminDartContact, AdminDartContact];
+    stubList([makeDart({ contacts: [{ ...first, receives_roster: true }, second] })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByRole('checkbox', { name: 'Person 1 receives the roster' })).toBeChecked();
+  });
+
+  it('names an unnamed row by its number in the roster checkbox', async () => {
+    const user = userEvent.setup();
+    stubList();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Person 1 receives the roster' }),
+    ).not.toBeChecked();
+  });
+
+  it('sends the roster tick with each person', async () => {
+    const user = userEvent.setup();
+    let patched: { contacts?: AdminDartContact[] } | null = null;
+    stubList([
+      makeDart({
+        contacts: [
+          {
+            id: 1,
+            name: 'Helen',
+            title: 'DART leader',
+            phone: '',
+            email: '',
+            receives_roster: false,
+          },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '', receives_roster: false },
+        ],
+      }),
+    ]);
+    server.use(
+      http.patch(`${API}/admin/darts/1`, async ({ request }) => {
+        patched = (await request.json()) as { contacts?: AdminDartContact[] };
+        return HttpResponse.json(makeDart());
+      }),
+    );
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Sam receives the roster' }));
+    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+
+    await waitFor(() =>
+      expect(patched?.contacts?.map((one) => one.receives_roster)).toEqual([false, true]),
+    );
   });
 });

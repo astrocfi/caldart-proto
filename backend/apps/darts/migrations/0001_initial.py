@@ -22,6 +22,7 @@ class Migration(migrations.Migration):
                 ('airport_identifiers', models.CharField(help_text='FAA or ICAO identifiers, separated by commas, e.g. CCR, C83', max_length=120)),
                 ('website_url', models.URLField(blank=True, help_text="The team's own site, if it has one.", verbose_name='website')),
                 ('is_active', models.BooleanField(default=True)),
+                ('roster_sent_at', models.DateTimeField(blank=True, null=True)),
             ],
             options={
                 'verbose_name': 'DART',
@@ -41,6 +42,7 @@ class Migration(migrations.Migration):
                 ('phone', models.CharField(blank=True, max_length=12)),
                 ('email', models.EmailField(blank=True, max_length=254)),
                 ('sort_order', models.PositiveIntegerField(default=0)),
+                ('receives_roster', models.BooleanField(default=False)),
                 ('dart', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='contacts', to='darts.dart')),
             ],
             options={

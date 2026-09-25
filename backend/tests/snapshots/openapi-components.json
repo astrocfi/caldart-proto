@@ -490,12 +490,14 @@
   "DartAdmin": {
     "properties": {
       "airport_identifiers": "string",
-      "contacts": "array<ref:DartContact>",
+      "contacts": "array<ref:DartAdminContact>",
       "id": "integer",
       "is_active": "boolean",
       "member_count": "integer",
       "name": "string",
       "page_count": "integer",
+      "roster_recipients": "integer",
+      "roster_sent_at": "string(date-time)|null",
       "website_url": "unknown"
     },
     "required": [
@@ -503,13 +505,43 @@
       "id",
       "member_count",
       "name",
-      "page_count"
+      "page_count",
+      "roster_recipients",
+      "roster_sent_at"
+    ]
+  },
+  "DartAdminContact": {
+    "properties": {
+      "email": "unknown",
+      "id": "integer",
+      "name": "string",
+      "phone": "string",
+      "receives_roster": "boolean",
+      "title": "string"
+    },
+    "required": [
+      "id",
+      "name",
+      "title"
+    ]
+  },
+  "DartAdminContactRequest": {
+    "properties": {
+      "email": "unknown",
+      "name": "string",
+      "phone": "string",
+      "receives_roster": "boolean",
+      "title": "string"
+    },
+    "required": [
+      "name",
+      "title"
     ]
   },
   "DartAdminRequest": {
     "properties": {
       "airport_identifiers": "string",
-      "contacts": "array<ref:DartContactRequest>",
+      "contacts": "array<ref:DartAdminContactRequest>",
       "is_active": "boolean",
       "name": "string",
       "website_url": "unknown"
@@ -529,18 +561,6 @@
     },
     "required": [
       "id",
-      "name",
-      "title"
-    ]
-  },
-  "DartContactRequest": {
-    "properties": {
-      "email": "unknown",
-      "name": "string",
-      "phone": "string",
-      "title": "string"
-    },
-    "required": [
       "name",
       "title"
     ]
@@ -1411,7 +1431,7 @@
   "PatchedDartAdminRequest": {
     "properties": {
       "airport_identifiers": "string",
-      "contacts": "array<ref:DartContactRequest>",
+      "contacts": "array<ref:DartAdminContactRequest>",
       "is_active": "boolean",
       "name": "string",
       "website_url": "unknown"

@@ -15,7 +15,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
-from apps.darts.models import MAX_AIRPORT_IDENTIFIERS, MAX_DART_CONTACTS, Dart, DartContact
+from apps.darts.models import MAX_AIRPORT_IDENTIFIERS, Dart, DartContact
 from apps.members.models import MemberProfile
 from tests.conftest import audit_messages, role_matrix
 from tests.factories import (
@@ -433,20 +433,6 @@ def test_a_contact_may_be_email_only(account_admin_client: APIClient) -> None:
     )
     assert response.status_code == 201, response.json()
     assert response.json()["contacts"][0]["phone"] == ""
-
-
-def test_a_dart_lists_at_most_five_people(account_admin_client: APIClient) -> None:
-    """A longer list is a roster, which is what the member records are for."""
-    contacts = [
-        {"name": f"Person {index}", "title": "Volunteer"} for index in range(MAX_DART_CONTACTS + 1)
-    ]
-    response = account_admin_client.post(
-        LIST_URL,
-        {"name": "Napa", "airport_identifiers": "APC", "contacts": contacts},
-        format="json",
-    )
-    assert response.status_code == 400
-    assert response.json()["contacts"] == [f"A DART may list at most {MAX_DART_CONTACTS} people."]
 
 
 def test_editing_the_contacts_replaces_them(account_admin_client: APIClient) -> None:

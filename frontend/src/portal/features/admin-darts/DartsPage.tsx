@@ -174,6 +174,14 @@ export function DartsPage(): JSX.Element {
       sortValue: (dart) => dart.contacts.length,
     },
     {
+      key: 'roster',
+      header: 'Roster',
+      numeric: true,
+      width: '6rem',
+      render: (dart) => dart.roster_recipients,
+      sortValue: (dart) => dart.roster_recipients,
+    },
+    {
       key: 'members',
       header: 'Members',
       numeric: true,

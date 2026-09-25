@@ -30,10 +30,6 @@ AIRPORT_IDENTIFIERS_MESSAGE = "Use three-character identifiers, separated by com
 #: largest real one; this leaves room without letting the field become prose.
 MAX_AIRPORT_IDENTIFIERS = 12
 
-#: How many people a DART may list.  A team is run by a handful of volunteers;
-#: a longer list is a roster, which is what the member records are for.
-MAX_DART_CONTACTS = 5
-
 
 #: What separates one identifier from the next.  A comma is what the form
 #: asks for; a space alone is what a pasted list often carries, and no
@@ -97,6 +93,9 @@ class Dart(TimestampedModel):  # type: ignore[django-manager-missing]
         "website", max_length=200, blank=True, help_text="The team's own site, if it has one."
     )
     is_active = models.BooleanField(default=True)
+    #: When the team's monthly roster last went out to its ticked people, or
+    #: null when none has; the sender stamps it and nothing else writes it.
+    roster_sent_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         # Alphabetical, everywhere: a reader looking for their own team scans
@@ -145,6 +144,9 @@ class DartContact(TimestampedModel):
     phone = models.CharField(max_length=12, blank=True)
     email = models.EmailField(blank=True)
     sort_order = models.PositiveIntegerField(default=0)
+    #: Whether this person is sent the team's roster.  A person without an
+    #: email address may be ticked; the sender skips them.
+    receives_roster = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["sort_order", "pk"]

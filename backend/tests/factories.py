@@ -27,7 +27,7 @@ from apps.cms.models import (
     SiteSettings,
     StandardPage,
 )
-from apps.darts.models import Dart
+from apps.darts.models import Dart, DartContact
 from apps.mail.models import EmailLog, EmailStatus
 from apps.members.models import (
     IfrRated,
@@ -138,6 +138,20 @@ class DartFactory(ModelFactory[Dart]):
     name = factory.Sequence(lambda n: f"Test DART {n}")
     airport_identifiers = factory.Sequence(lambda n: f"T{n:02d}")
     is_active = True
+
+
+class DartContactFactory(ModelFactory[DartContact]):
+    """Builds a ``DartContact`` on a fresh DART: a named volunteer with an address."""
+
+    class Meta:
+        model = DartContact
+
+    dart = factory.SubFactory(DartFactory)
+    name = factory.Sequence(lambda n: f"Volunteer {n}")
+    title = "DART leader"
+    email = factory.Sequence(lambda n: f"volunteer{n}@example.test")
+    sort_order = factory.Sequence(lambda n: n)
+    receives_roster = False
 
 
 class AircraftFactory(ModelFactory[Aircraft]):

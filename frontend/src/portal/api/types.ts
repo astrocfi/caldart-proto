@@ -140,16 +140,32 @@ export interface Dart {
 }
 
 /**
+ * One person on a DART as the account administrator edits them.
+ *
+ * `receives_roster` says whether they are sent the team's roster; the public
+ * catalog leaves it out.
+ */
+export interface AdminDartContact extends DartContact {
+  receives_roster: boolean;
+}
+
+/**
  * A DART as the account administrator's screen works with it.
  *
  * `member_count` and `page_count` say what points at the DART: the members
  * whose profile names it, and the website pages linked to it.  Both are
  * read-only, and both being zero is what makes a DART deletable.
+ * `roster_recipients` counts the people ticked to receive the roster who have
+ * an email address, and `roster_sent_at` is when the last roster went out, or
+ * `null` when none has; both are read-only too.
  */
-export interface AdminDart extends Dart {
+export interface AdminDart extends Omit<Dart, 'contacts'> {
+  contacts: AdminDartContact[];
   is_active: boolean;
   member_count: number;
   page_count: number;
+  roster_recipients: number;
+  roster_sent_at: string | null;
 }
 
 /**
@@ -157,7 +173,9 @@ export interface AdminDart extends Dart {
  *
  * `contacts` replaces the stored list; leaving it out keeps the list as it is.
  */
-export type AdminDartPatch = Partial<Omit<AdminDart, 'id' | 'member_count' | 'page_count'>>;
+export type AdminDartPatch = Partial<
+  Omit<AdminDart, 'id' | 'member_count' | 'page_count' | 'roster_recipients' | 'roster_sent_at'>
+>;
 
 export interface Plan {
   slug: string;

@@ -122,13 +122,14 @@ MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
 #: same on every installation.
 DART_SEED = 20260101
 
-#: The people an example DART lists, as ``(title, whether they have a phone)``.
-#: Names and addresses are generated, so no real volunteer is named here.
-DART_CONTACT_ROLES: tuple[tuple[str, bool], ...] = (
-    ("DART leader", True),
-    ("Deputy leader", True),
-    ("Ground team lead", False),
-    ("Communications", False),
+#: The people an example DART lists, as ``(title, whether they have a phone,
+#: whether they receive the roster)``.  Names and addresses are generated, so
+#: no real volunteer is named here.
+DART_CONTACT_ROLES: tuple[tuple[str, bool, bool], ...] = (
+    ("DART leader", True, True),
+    ("Deputy leader", True, True),
+    ("Ground team lead", False, False),
+    ("Communications", False, False),
 )
 
 #: The domain the example contact addresses are built in.
@@ -166,12 +167,13 @@ def seed_darts(seed: int = DART_SEED) -> list[Dart]:
 def seed_dart_contacts(dart: Dart, faker: Faker, rng: random.Random) -> None:
     """Give ``dart`` its example contacts, replacing any it already has.
 
-    Every team gets a leader and a deputy; the other roles are drawn, so the
-    list looks like a real one rather than four identical teams.
+    Every team gets a leader and a deputy, both ticked to receive the roster;
+    the other roles are drawn, so the list looks like a real one rather than
+    four identical teams.
     """
     dart.contacts.all().delete()
     wanted = DART_CONTACT_ROLES[: rng.randint(2, len(DART_CONTACT_ROLES))]
-    for position, (title, has_phone) in enumerate(wanted):
+    for position, (title, has_phone, receives_roster) in enumerate(wanted):
         person = faker.name()
         mailbox = person.lower().replace(" ", ".").replace("'", "")
         DartContact.objects.create(
@@ -181,6 +183,7 @@ def seed_dart_contacts(dart: Dart, faker: Faker, rng: random.Random) -> None:
             phone=faker.numerify("###-###-####") if has_phone else "",
             email=f"{mailbox}@{DART_CONTACT_DOMAIN}",
             sort_order=position,
+            receives_roster=receives_roster,
         )
 
 

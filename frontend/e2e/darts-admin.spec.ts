@@ -1,9 +1,11 @@
 /**
  * Adding a DART from the portal: an account administrator creates one, and it
  * is offered on a member's profile the same moment, which is the whole point
- * of the screen.
+ * of the screen.  A DART lists as many people as it needs, and the Roster
+ * column counts the ones ticked to receive the team's roster.
  */
 import { expect, test } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { DEMO, signIn } from './helpers';
 
@@ -14,6 +16,20 @@ const DELETABLE = 'San Carlos';
 
 /** That team's own page on the public site, which outlives the team. */
 const DELETABLE_PAGE = '/about/darts/sql/';
+
+/** A seeded DART no other spec edits, whose people this file adds to. */
+const GROWING = 'Watsonville';
+
+/** The Roster cell of `dart`'s row in the DARTs table. */
+async function rosterCell(page: Page, dart: string): Promise<Locator> {
+  // The headers are read once the row is on screen, so the index is the table's.
+  const row = page.getByRole('row').filter({ hasText: dart }).first();
+  await expect(row).toBeVisible();
+  const headers = await page.getByRole('columnheader').allTextContents();
+  const column = headers.findIndex((text) => text.startsWith('Roster'));
+  expect(column).toBeGreaterThanOrEqual(0);
+  return row.getByRole('cell').nth(column);
+}
 
 test('an account administrator adds a DART and it is offered straight away', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
@@ -82,4 +98,46 @@ test('a plain member cannot reach the DART screen', async ({ page }) => {
 
   await expect(page.getByRole('link', { name: 'DARTs' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'DARTs', exact: true })).toHaveCount(0);
+});
+
+test('a DART takes a sixth person, and the Roster column counts the ticked ones', async ({
+  page,
+}) => {
+  await signIn(page, DEMO.accountadmin);
+  await page.goto('/portal/admin/darts');
+
+  // The seed ticks each team's leader and deputy, both with an address.
+  const before = await rosterCell(page, GROWING);
+  await expect(before).toHaveText('2');
+
+  await page
+    .getByRole('row')
+    .filter({ hasText: GROWING })
+    .first()
+    .getByRole('button', {
+      name: 'Edit',
+    })
+    .click();
+
+  // The seed lists two to four people; add rows until there are six.
+  const names = page.getByLabel('Name', { exact: true });
+  const seeded = await names.count();
+  for (let added = seeded; added < 6; added += 1) {
+    await page.getByRole('button', { name: 'Add a person' }).click();
+  }
+  await expect(names).toHaveCount(6);
+  for (let index = seeded; index < 6; index += 1) {
+    await names.nth(index).fill(`Volunteer ${index + 1}`);
+    await page.getByLabel('Title').nth(index).fill('Ground team');
+    await page
+      .getByLabel('Email')
+      .nth(index)
+      .fill(`volunteer${index + 1}@example.test`);
+  }
+  await page.getByRole('checkbox', { name: 'Volunteer 5 receives the roster' }).check();
+  await page.getByRole('checkbox', { name: 'Volunteer 6 receives the roster' }).check();
+  await page.getByRole('button', { name: 'Save DART' }).click();
+
+  await expect(page.getByText(`${GROWING} saved.`)).toBeVisible();
+  await expect(await rosterCell(page, GROWING)).toHaveText('4');
 });

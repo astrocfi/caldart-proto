@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
-import type { AdminDart, AdminDartPatch, DartContact } from '@/portal/api/types';
+import type { AdminDart, AdminDartContact, AdminDartPatch } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Field } from '@/portal/components/Field';
@@ -28,11 +28,8 @@ export interface DartFormValues {
   airport_identifiers: string;
   website_url: string;
   is_active: boolean;
-  contacts: DartContact[];
+  contacts: AdminDartContact[];
 }
-
-/** The most people a DART may list, matching the server's own cap. */
-export const MAX_CONTACTS = 5;
 
 /**
  * The serializer's message for one contact's field, if it sent one.
@@ -43,14 +40,19 @@ export const MAX_CONTACTS = 5;
 export function contactError(
   errors: Record<string, string>,
   index: number,
-  field: keyof DartContact,
+  field: keyof AdminDartContact,
 ): string | undefined {
   return errors[`contacts.${index}.${field}`];
 }
 
 /** A blank row of the contacts table. */
-function emptyContact(): DartContact {
-  return { name: '', title: '', phone: '', email: '' };
+function emptyContact(): AdminDartContact {
+  return { name: '', title: '', phone: '', email: '', receives_roster: false };
+}
+
+/** What a row is called aloud: the person's name, or its place in the list. */
+function personLabel(contact: AdminDartContact, index: number): string {
+  return contact.name.trim() || `Person ${index + 1}`;
 }
 
 export interface DartFormProps {
@@ -149,6 +151,7 @@ export function dartPayload(values: DartFormValues): AdminDartPatch {
         title: contact.title.trim(),
         phone: contact.phone,
         email: contact.email,
+        receives_roster: contact.receives_roster,
       })),
   };
 }
@@ -189,7 +192,7 @@ export function DartForm({
   const [movedKey, setMovedKey] = useState<string | null>(null);
   const [moveAnnouncement, setMoveAnnouncement] = useState('');
 
-  function contactKey(contact: DartContact): string {
+  function contactKey(contact: AdminDartContact): string {
     if (contact.id !== undefined) return `saved-${contact.id}`;
     nextRowKey.current += 1;
     return `added-${nextRowKey.current}`;
@@ -210,7 +213,7 @@ export function DartForm({
     setValues((current) => ({ ...current, [key]: next }));
   };
 
-  const setContact = (index: number, patch: Partial<DartContact>): void => {
+  const setContact = (index: number, patch: Partial<AdminDartContact>): void => {
     setValues((current) => ({
       ...current,
       contacts: current.contacts.map((contact, position) =>
@@ -249,8 +252,7 @@ export function DartForm({
     setRowKeys((current) => swap(current, index, target));
     setMovedKey(rowKeys[index] ?? null);
     setMoveAnnouncement(
-      `${moved.name.trim() || `Person ${index + 1}`} is now number ${target + 1} of ` +
-        `${values.contacts.length}.`,
+      `${personLabel(moved, index)} is now number ${target + 1} of ${values.contacts.length}.`,
     );
   };
 
@@ -321,8 +323,8 @@ export function DartForm({
       <fieldset className="dart-contacts">
         <legend>DART management</legend>
         <p className="muted small">
-          Up to {MAX_CONTACTS} people, shown on the team&rsquo;s page in the order you put them in.
-          A phone number and an email address are both optional, but give at least one of them.
+          Shown on the team&rsquo;s page in the order you put them in. A phone number and an email
+          address are both optional, but give at least one of them.
         </p>
         {values.contacts.map((contact, index) => (
           <div className="dart-contacts__row" key={rowKeys[index] ?? `row-${index}`}>
@@ -389,6 +391,18 @@ export function DartForm({
                 />
               )}
             </Field>
+            <div className="field dart-contacts__roster">
+              {/* The column's heading; the checkbox carries the whole sentence. */}
+              <span className="field__label" aria-hidden="true">
+                Roster
+              </span>
+              <input
+                type="checkbox"
+                aria-label={`${personLabel(contact, index)} receives the roster`}
+                checked={contact.receives_roster}
+                onChange={(event) => setContact(index, { receives_roster: event.target.checked })}
+              />
+            </div>
             <DeleteButton
               label={`Remove person ${index + 1}`}
               onClick={() => handleRemoveContact(index)}
@@ -398,11 +412,9 @@ export function DartForm({
         <p aria-live="polite" className="visually-hidden">
           {moveAnnouncement}
         </p>
-        {values.contacts.length < MAX_CONTACTS ? (
-          <Button variant="secondary" small onClick={handleAddContact}>
-            Add a person
-          </Button>
-        ) : null}
+        <Button variant="secondary" small onClick={handleAddContact}>
+          Add a person
+        </Button>
       </fieldset>
 
       <label className="checkbox">

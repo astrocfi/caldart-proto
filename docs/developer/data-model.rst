@@ -73,8 +73,8 @@ Domain schema
           User [label="accounts.User\l  email (unique, ci)\l  first_name, last_name\l  is_active, is_superuser\l  roles: derived from groups\l"];
           Group [label="auth.Group\l  name = role slug\l"];
           Profile [label="members.MemberProfile\l  phone, address_line1, city,\l  state, postal_code\l  aviation, volunteer, admin notes\l"];
-          Dart [label="darts.Dart\l  name (unique), airport_identifiers\l  website_url, is_active\l"];
-          Contact [label="darts.DartContact\l  name, title, phone, email\l  sort_order\l"];
+          Dart [label="darts.Dart\l  name (unique), airport_identifiers\l  website_url, is_active\l  roster_sent_at\l"];
+          Contact [label="darts.DartContact\l  name, title, phone, email\l  sort_order, receives_roster\l"];
           Plan [label="members.MembershipPlan\l  name (unique), slug (unique)\l  price_cents, duration_days\l"];
           Membership [label="members.Membership\l  starts_on, ends_on\l  status, source\l"];
           Payment [label="payments.Payment\l  amount_cents, fee_cents, net_cents\l  provider, wallet, status, provider_ref\l  received_on, reconciled_on, note\l"];
@@ -185,7 +185,7 @@ Domain schema
       members.MemberProfile   phone, address_line1, city, state, postal_code,
                               the aviation and volunteer fields, admin notes
       darts.Dart              name (unique), airport_identifiers,
-                              website_url, is_active
+                              website_url, is_active, roster_sent_at
       members.MembershipPlan  name (unique), slug (unique), price_cents,
                               duration_days
       members.Membership      starts_on, ends_on, status, source
@@ -205,7 +205,8 @@ Domain schema
                               (user, membership, kind) unique together
       mail.EmailLog           to_email, purpose, subject, sent_at, status,
                               error, attachments
-      darts.DartContact       name, title, phone, email, sort_order
+      darts.DartContact       name, title, phone, email, sort_order,
+                              receives_roster
       cms.DartPage            leader_name, leader_contact, body
 
       Edges
@@ -521,9 +522,11 @@ darts
 A local Disaster Airlift Response Team.
 
 ``name`` (unique), ``airport_identifiers``, ``website_url``,
-``is_active``.  Ordered by ``name``, everywhere: a reader looking for their
-own team scans for its name, and no hand-kept ordering can go stale.
-``__str__`` is ``"Angwin (2O3)"``.
+``is_active``, ``roster_sent_at``.  Ordered by ``name``, everywhere: a reader
+looking for their own team scans for its name, and no hand-kept ordering can
+go stale.  ``__str__`` is ``"Angwin (2O3)"``.  ``roster_sent_at`` is when the
+team's monthly roster last went out to its people, or null when none has; the
+roster sender stamps it and nothing else writes it.
 
 ``airport_identifiers`` is every field the team flies from, comma-separated
 and stored in the canonical ``"CCR, C83"`` form that ``save()`` writes: a
@@ -537,7 +540,8 @@ really is ``KLS``.  ``airports`` gives the list and ``home_airport`` its first
 entry, which is what a single-line summary shows.
 
 Sixteen are seeded from ``DARTS`` in ``apps/members/seed.py``, each with the
-handful of example contacts ``seed_darts`` generates.  ``cms.DartPage``
+handful of example contacts ``seed_darts`` generates, the leader and the
+deputy leader ticked to receive the roster.  ``cms.DartPage``
 points at this table with a nullable ``SET_NULL`` foreign key, so deleting a
 DART leaves its page in place with no DART attached, and the airports are
 never retyped in the CMS.  A DART is identified by the fields it flies from,
@@ -548,9 +552,11 @@ so it carries no town of its own.
 
 One named volunteer who runs a DART, and how to reach them: ``name``,
 ``title``, optional ``phone`` (stored as ``XXX-XXX-XXXX``) and optional
-``email``, ordered by ``sort_order``.  A DART lists at most
-``MAX_DART_CONTACTS`` of them, which the serializer enforces; the foreign key
-cascades, so a contact has no life without its DART.
+``email``, ordered by ``sort_order``, and ``receives_roster`` (default
+false), whether the person is sent the team's roster.  A DART lists any
+number of them, and a person without an email address may be ticked, to be
+skipped when the roster goes out.  The foreign key cascades, so a contact has
+no life without its DART.
 
 This is deliberately not a link to a member account: the person an emergency
 manager asks for by name may hold no account at all, and the listing outlives
