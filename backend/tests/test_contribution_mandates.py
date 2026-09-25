@@ -33,12 +33,11 @@ from apps.payments.renewals import (
     NOTICE_DAYS,
     RETRY_OFFSETS,
     MandateKind,
+    charge_date,
     check_renewable,
-    contribution_charge_date,
     kind_label,
     mandate_kind,
     next_anniversary,
-    next_charge_on,
     run_auto_renewals,
     save_method,
 )
@@ -66,11 +65,16 @@ def make_life_member(user: User, plan: MembershipPlan, *, started: date) -> User
 def make_contribution_mandate(
     user: User, *, last4: str = "4242", contribution_cents: int = CONTRIBUTION_CENTS
 ) -> RenewalMandate:
-    """An active mandate for ``user`` that names no plan and charges a contribution."""
+    """An active mandate for ``user`` that names no plan and charges a contribution.
+
+    Its charge falls one year from today, which is the day a life member's authority
+    takes when they name none of their own.
+    """
     return RenewalMandateFactory(
         user=user,
         plan=None,
         contribution_cents=contribution_cents,
+        next_charge_on=next_anniversary(timezone.localdate()),
         method_last4=last4,
         method_label=f"Test card ending {last4}, expires 12/2030",
     )
@@ -132,41 +136,6 @@ def test_an_anniversary_keeps_its_day_and_month() -> None:
     assert next_anniversary(date(2026, 3, 3)) == date(2027, 3, 3)
 
 
-def test_the_first_contribution_falls_a_year_after_the_mandate_was_made(
-    member: User, life_plan: MembershipPlan, today: date
-) -> None:
-    """Nothing charged yet means the anniversary is counted from the creation date."""
-    make_life_member(member, life_plan, started=today - timedelta(days=400))
-    mandate = make_contribution_mandate(member)
-
-    assert contribution_charge_date(mandate, today) == next_anniversary(today)
-
-
-def test_a_later_contribution_falls_a_year_after_the_last_charge(
-    member: User, life_plan: MembershipPlan, today: date
-) -> None:
-    """Once money has moved, the anniversary is counted from the day it moved."""
-    make_life_member(member, life_plan, started=today - timedelta(days=800))
-    mandate = make_contribution_mandate(member)
-    charged_on = today - timedelta(days=100)
-    mandate.last_charged_at = timezone.now() - timedelta(days=100)
-    mandate.save(update_fields=["last_charged_at"])
-
-    assert contribution_charge_date(mandate, today) == next_anniversary(charged_on)
-
-
-def test_an_anniversary_the_scanner_slept_through_is_due_today(
-    member: User, life_plan: MembershipPlan, today: date
-) -> None:
-    """A charge date already gone by is answered as today, which is when it is taken."""
-    make_life_member(member, life_plan, started=today - timedelta(days=800))
-    mandate = make_contribution_mandate(member)
-    mandate.last_charged_at = timezone.now() - timedelta(days=400)
-    mandate.save(update_fields=["last_charged_at"])
-
-    assert contribution_charge_date(mandate, today) == today
-
-
 def test_an_active_contribution_mandate_always_names_its_next_charge(
     member: User, life_plan: MembershipPlan, today: date
 ) -> None:
@@ -174,10 +143,10 @@ def test_an_active_contribution_mandate_always_names_its_next_charge(
     make_life_member(member, life_plan, started=today - timedelta(days=400))
     mandate = make_contribution_mandate(member)
 
-    assert next_charge_on(mandate, today) == next_anniversary(today)
+    assert charge_date(mandate, today) == next_anniversary(today)
 
 
-def test_a_member_whose_term_ran_out_is_charged_today(
+def test_a_member_whose_charge_date_went_by_is_charged_today(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """With the term gone the next scan takes the renewal, so the date shown is today."""
@@ -188,9 +157,11 @@ def test_a_member_whose_term_ran_out_is_charged_today(
         ends_on=today - timedelta(days=5),
         status=MembershipStatusChoices.EXPIRED,
     )
-    mandate = RenewalMandateFactory(user=member, plan=annual_plan)
+    mandate = RenewalMandateFactory(
+        user=member, plan=annual_plan, next_charge_on=today - timedelta(days=5)
+    )
 
-    assert next_charge_on(mandate, today) == today
+    assert charge_date(mandate, today) == today
 
 
 # --------------------------------------------------------------------------
@@ -253,7 +224,7 @@ def test_the_notice_goes_out_a_fortnight_before_the_contribution(
     """A contribution due inside the notice window earns one advance warning."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
     mandate = make_contribution_mandate(member)
-    due = contribution_charge_date(mandate, today)
+    due = mandate.next_charge_on
 
     with freeze_time(timezone.now() + timedelta(days=(due - today).days - NOTICE_DAYS)):
         run_auto_renewals()
@@ -267,7 +238,7 @@ def test_the_notice_never_says_the_word_renew(
     """A life member is never told their membership is being renewed."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
     mandate = make_contribution_mandate(member)
-    due = contribution_charge_date(mandate, today)
+    due = mandate.next_charge_on
 
     with freeze_time(timezone.now() + timedelta(days=(due - today).days - NOTICE_DAYS)):
         run_auto_renewals()
@@ -281,7 +252,7 @@ def test_the_charge_takes_the_contribution_and_extends_no_term(
     """The payment is the contribution alone, and the lifetime term is untouched."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
     mandate = make_contribution_mandate(member)
-    due = contribution_charge_date(mandate, today)
+    due = mandate.next_charge_on
 
     with freeze_time(timezone.now() + timedelta(days=(due - today).days - NOTICE_DAYS)):
         run_auto_renewals()
@@ -300,7 +271,7 @@ def test_the_charge_email_thanks_the_member_for_the_contribution(
     """The message reporting a contribution charge says thank you, not renewed."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
     mandate = make_contribution_mandate(member)
-    due = contribution_charge_date(mandate, today)
+    due = mandate.next_charge_on
 
     with freeze_time(timezone.now() + timedelta(days=(due - today).days - NOTICE_DAYS)):
         run_auto_renewals()
@@ -316,7 +287,7 @@ def test_a_refused_contribution_is_retried_and_then_paused(
     """The retry ladder and the pause apply to a contribution exactly as to a renewal."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
     mandate = make_contribution_mandate(member, last4=DECLINED_LAST4)
-    due = contribution_charge_date(mandate, today)
+    due = mandate.next_charge_on
     offset = (due - today).days
 
     with freeze_time(timezone.now() + timedelta(days=offset - NOTICE_DAYS)):
@@ -484,7 +455,7 @@ def test_the_seeded_attempt_hangs_off_the_lifetime_term(
     make_life_member(member, life_plan, started=today - timedelta(days=400))
     term = member.memberships.get()
     mandate = make_contribution_mandate(member)
-    due = contribution_charge_date(mandate, today)
+    due = mandate.next_charge_on
 
     with freeze_time(timezone.now() + timedelta(days=(due - today).days - NOTICE_DAYS)):
         run_auto_renewals()
