@@ -644,7 +644,15 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - turns automatic renewal on without paying
-   * - ``GET | POST /admin/members``
+   * - ``GET /admin/members``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ✓
+     - every member, a DART leader included; the treasurer is refused
+   * - ``POST /admin/members``
      - ·
      - ·
      - ·
