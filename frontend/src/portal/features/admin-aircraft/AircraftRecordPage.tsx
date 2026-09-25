@@ -1,5 +1,6 @@
 /**
- * `/admin/aircraft/:id` — one record: edit it, see who flies it, delete it.
+ * `/admin/aircraft/:id` — one record: edit it, read its history, see who flies
+ * it, delete it.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -17,9 +18,16 @@ import { useToast } from '@/portal/components/Toast';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
-import { useAircraft, useDeleteAircraft, useUpdateAircraft } from '@/portal/features/aircraft/api';
+import {
+  useAircraft,
+  useAircraftChanges,
+  useDeleteAircraft,
+  useUpdateAircraft,
+} from '@/portal/features/aircraft/api';
 import { aircraftToValues } from '@/portal/features/aircraft/form';
+import { changeLine, lastUpdatedLine } from './history';
 import '@/portal/features/aircraft/aircraft.css';
+import './history.css';
 
 /** `/admin/aircraft/:id` page: edit, view pilots, and delete an aircraft record. */
 export function AircraftRecordPage(): JSX.Element {
@@ -33,6 +41,7 @@ export function AircraftRecordPage(): JSX.Element {
   const toast = useToast();
 
   const record = useAircraft(knownId ? aircraftId : null);
+  const changes = useAircraftChanges(knownId ? aircraftId : null);
   const update = useUpdateAircraft(aircraftId);
   const remove = useDeleteAircraft(aircraftId);
   const [confirming, setConfirming] = useState(false);
@@ -102,7 +111,10 @@ export function AircraftRecordPage(): JSX.Element {
         </>
       }
     >
-      <Card eyebrow="Register" title="Details">
+      <Card
+        eyebrow={lastUpdatedLine(aircraft.updated_at, aircraft.updated_by ?? null)}
+        title="Details"
+      >
         <AircraftForm
           key={aircraft.id}
           initial={aircraftToValues(aircraft)}
@@ -112,6 +124,18 @@ export function AircraftRecordPage(): JSX.Element {
           onSubmit={handleSave}
           withAdminFields
         />
+      </Card>
+
+      <Card eyebrow="Register" title="History">
+        {changes.data === undefined || changes.data.length === 0 ? (
+          <p className="muted">No change is recorded for this record.</p>
+        ) : (
+          <ul className="aircraft-history">
+            {changes.data.map((change) => (
+              <li key={change.id}>{changeLine(change)}</li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       <Card eyebrow="Members" title="Pilots who fly this aircraft">

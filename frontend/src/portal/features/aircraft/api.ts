@@ -11,6 +11,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { API_BASE, ApiError, api } from '@/portal/api/client';
 import type {
   Aircraft,
+  AircraftChange,
   AircraftDetail,
   AircraftPatch,
   OwnerType,
@@ -112,6 +113,20 @@ export function useAircraft(id: number | null): UseQueryResult<AircraftDetail> {
   return useQuery({
     queryKey: [AIRCRAFT_KEY, 'detail', id],
     queryFn: () => api.get<AircraftDetail>(`/aircraft/${id}`),
+    enabled: id !== null && Number.isFinite(id),
+  });
+}
+
+/**
+ * One record's change history, newest first, or disabled while `id` is null.
+ *
+ * Every write to the register invalidates `aircraft`, so the history on screen
+ * grows the moment a save on the same record goes through.
+ */
+export function useAircraftChanges(id: number | null): UseQueryResult<AircraftChange[]> {
+  return useQuery({
+    queryKey: [AIRCRAFT_KEY, 'changes', id],
+    queryFn: () => api.get<AircraftChange[]>(`/aircraft/${id}/changes`),
     enabled: id !== null && Number.isFinite(id),
   });
 }
