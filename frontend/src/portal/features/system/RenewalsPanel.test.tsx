@@ -78,8 +78,11 @@ describe('RenewalsPanel', () => {
     expect(
       await screen.findByRole('heading', { name: 'What a live run would do' }),
     ).toBeInTheDocument();
-    const row = screen.getByRole('row', { name: /Marta Reyes/ });
-    expect(row).toHaveTextContent('$70.00');
+    const noticeRow = screen.getByRole('row', { name: /Dana Lee/ });
+    expect(noticeRow).toHaveTextContent('Notice');
+    const chargeRow = screen.getByRole('row', { name: /Marta Reyes/ });
+    expect(chargeRow).toHaveTextContent('Charge');
+    expect(chargeRow).toHaveTextContent('$70.00');
   });
 
   it('says nothing was due when a rehearsal finds no actions', async () => {

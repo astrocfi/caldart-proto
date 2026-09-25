@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -81,8 +81,10 @@ describe('RemindersPanel', () => {
     expect(await screen.findByText('Would send 4 emails, skipped 2.')).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: true }]);
     expect(screen.getByRole('heading', { name: 'What a live run would do' })).toBeInTheDocument();
-    const row = screen.getAllByRole('row', { name: /Marta Reyes/ }).at(0);
+    const actionsTable = screen.getByRole('table', { name: '1 action' });
+    const row = within(actionsTable).getByRole('row', { name: /Marta Reyes/ });
     expect(row).toHaveTextContent('30 days before');
+    expect(row).toHaveTextContent('2026/07/15');
   });
 
   it('says nothing was due when a run finds no actions', async () => {

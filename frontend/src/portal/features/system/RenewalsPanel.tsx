@@ -13,14 +13,11 @@
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
-import type { RenewalRunResult, RunAction } from '@/portal/api/types';
+import type { RenewalRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import type { Column } from '@/portal/components/DataTable';
-import { DataTable } from '@/portal/components/DataTable';
-import { DateText } from '@/portal/components/DateText';
-import { Money } from '@/portal/components/Money';
 import { useRunRenewals } from './api';
+import { RunActionsTable } from './RunActionsTable';
 
 /** The sentence shown after a run, in the past tense or the conditional. */
 export function renewalRunSummary(result: RenewalRunResult, dryRun: boolean): string {
@@ -37,39 +34,22 @@ export function renewalRunSummary(result: RenewalRunResult, dryRun: boolean): st
   );
 }
 
-/** What each email template name, or a charge, reads as in the actions table. */
+/**
+ * What each email template name, or a charge, reads as in the actions table.
+ * `renewal_charged` reads by the charge itself, not "renewed", because a
+ * contribution-only mandate's charge renews no membership.
+ */
 const ACTION_KIND_LABELS: Record<string, string> = {
   renewal_notice: 'Notice',
   renewal_card_expiring: 'Card expiring warning',
-  renewal_charged: 'Renewed notice',
+  renewal_charged: 'Charge taken notice',
   renewal_failed: 'Charge failed notice',
   charge: 'Charge',
 };
 
-const ACTION_COLUMNS: Column<RunAction>[] = [
-  { key: 'kind', header: 'What', render: (row) => ACTION_KIND_LABELS[row.kind] ?? row.kind },
-  {
-    key: 'member',
-    header: 'Who',
-    render: (row) => (
-      <>
-        {row.member}
-        <span className="muted"> · {row.email}</span>
-      </>
-    ),
-  },
-  { key: 'on', header: 'When', render: (row) => <DateText value={row.on} /> },
-  {
-    key: 'amount_cents',
-    header: 'Amount',
-    numeric: true,
-    render: (row) => <Money cents={row.amount_cents} />,
-  },
-];
-
-/** The heading over the actions table: what a rehearsal would do, or what a real run did. */
-function actionsHeading(dryRun: boolean): string {
-  return dryRun ? 'What a live run would do' : 'What this run did';
+/** A renewal run's own kind vocabulary, for the shared actions table. */
+function renewalKindLabel(kind: string): string {
+  return ACTION_KIND_LABELS[kind] ?? kind;
 }
 
 /** Runs the automatic-renewal scan on demand and reports what it did. */
@@ -152,12 +132,10 @@ export function RenewalsPanel(): JSX.Element {
       {run.isSuccess && !isConfirming ? (
         <>
           <p role="status">{renewalRunSummary(run.data, lastRunWasDry)}</p>
-          <h3>{actionsHeading(lastRunWasDry)}</h3>
-          <DataTable
-            columns={ACTION_COLUMNS}
-            rows={run.data.actions}
-            rowKey={(row) => `${row.kind}-${row.email}-${row.on ?? ''}-${row.detail}`}
-            emptyTitle="Nothing was due"
+          <RunActionsTable
+            actions={run.data.actions}
+            dryRun={lastRunWasDry}
+            kindLabel={renewalKindLabel}
           />
         </>
       ) : null}
