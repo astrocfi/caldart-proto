@@ -36,6 +36,7 @@ import {
 import { FinanceTabs } from './FinanceTabs';
 import {
   KIND_LABELS,
+  PAYMENT_AUTOMATIC_LABELS,
   PROVIDER_LABELS,
   REFUND_REASON_LABELS,
   REFUND_STATUS_LABELS,
@@ -163,7 +164,7 @@ function Facts({ payment }: FactsProps): JSX.Element {
         </dd>
       </div>
       <div>
-        <dt>Automatic renewal</dt>
+        <dt>{PAYMENT_AUTOMATIC_LABELS[payment.kind]}</dt>
         <dd>
           {payment.renewal_attempt === null ? (
             'Paid by a person'

@@ -27,6 +27,7 @@ import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { useDebounced } from '@/portal/components/useDebounced';
 import { FinanceTabs } from './FinanceTabs';
+import { MANDATE_KIND_LABELS } from './labels';
 import {
   MANDATE_STATUS_LABELS,
   MANDATE_STATUS_TONES,
@@ -98,7 +99,10 @@ export function RenewalsPage(): JSX.Element {
     cancel.mutate(mandate.id, {
       onSuccess: () => {
         setConfirmingId(null);
-        toast.show(`Automatic renewal is off for ${mandate.user_name}.`, 'success');
+        toast.show(
+          `${MANDATE_KIND_LABELS[mandate.kind]} is off for ${mandate.user_name}.`,
+          'success',
+        );
       },
       onError: (error) => {
         toast.show(
@@ -121,7 +125,7 @@ export function RenewalsPage(): JSX.Element {
       ),
       sortValue: (row) => row.user_name,
     },
-    { key: 'plan_name', header: 'Plan', render: (row) => row.plan_name },
+    { key: 'plan_name', header: 'Plan', render: (row) => row.plan_name ?? 'Contribution' },
     {
       key: 'amount_cents',
       header: 'Next charge',

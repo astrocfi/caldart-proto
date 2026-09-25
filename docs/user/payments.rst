@@ -332,11 +332,13 @@ One payment's record
 Clicking a member's name in the list opens the payment itself: who paid, what
 for, the dues and the contribution separately, the total, the provider's fee
 and the net, what has been refunded, the reference the provider gave it, when
-the receipt was emailed, the term it bought, and whether it was an automatic
-charge rather than somebody at a keyboard.  Beneath that are the refunds
-against it, and beneath those the two fields that are yours: the day you
-matched the payment to a statement, and a note — the check number, or why the
-entry exists.
+the receipt was emailed, the term it bought, and a row -- labeled
+**Automatic renewal**, **Automatic contribution**, or **Automatic renewal and
+contribution** by what the payment was for -- naming the day it was charged
+automatically, or saying it was paid by somebody at a keyboard.  Beneath that
+are the refunds against it, and beneath those the two fields that are yours:
+the day you matched the payment to a statement, and a note — the check
+number, or why the entry exists.
 
 Four actions sit under the record:
 
@@ -406,10 +408,13 @@ A member's ledger
 
 Opening a member from a payment gives their whole money history in one place:
 what they have paid, given, and been charged in fees over every year; their
-automatic renewal, if they have one, with the saved method, the next charge
-date and the reason the last charge was refused; every payment, including the
-attempts that failed, each linking to its own record; and a button for every
-year they can be sent a contribution statement for.
+standing renewal authority, if they have one -- the card is titled
+**Automatic renewal**, **Automatic contribution**, or **Automatic renewal and
+contribution** by what it charges for, and reads **Contribution** where a
+life member's authority renews no plan -- with the saved method, the next
+charge date and the reason the last charge was refused; every payment,
+including the attempts that failed, each linking to its own record; and a
+button for every year they can be sent a contribution statement for.
 
 An account administrator reaches the same cards from the Payments tab of the
 member record; a treasurer, who does not open member records, reaches them
@@ -419,20 +424,24 @@ Automatic renewals
 ------------------
 
 The **Renewals** tab lists every member who has asked |org| to renew their
-membership for them: the plan, what the next charge comes to, the day it falls
-due, the card or PayPal account it will be taken from, and the state of the
-authority itself -- on, paused, awaiting a method, or off.  Filter by state, or
-search by name, email address, or the saved method.
+membership, contribute automatically, or both: the plan -- **Contribution**
+for a life member's standing authority, which renews no plan -- what the next
+charge comes to, the day it falls due, the card or PayPal account it will be
+taken from, and the state of the authority itself -- on, paused, awaiting a
+method, or off.  Filter by state, or search by name, email address, or the
+saved method.
 
 A paused renewal shows the reason its last charge was refused beneath its
 state.  That is the answer to "why was I not renewed?", and it is the wording
 the member was emailed.
 
-**Turn off** ends a member's automatic renewal on their behalf.  It asks you to
-confirm, because the member is emailed when it happens.  Every charge still
-scheduled is dropped and the membership itself runs to the end of its term; the
-authority stays on the list, marked off, rather than disappearing.  A member can
-turn it on again themselves from their own **Payments** screen.
+**Turn off** ends a member's standing authority on their behalf.  It asks you
+to confirm, because the member is emailed when it happens, and the toast that
+follows names what was turned off -- automatic renewal, automatic
+contribution, or both -- by what the authority charged for.  Every charge
+still scheduled is dropped and the membership itself runs to the end of its
+term; the authority stays on the list, marked off, rather than disappearing.
+A member can turn it on again themselves from their own **Payments** screen.
 
 Beneath the authorities, **Recent charges** is one row per scheduled charge: the
 day it was due, the member, whether it was charged, refused, skipped, or is

@@ -125,6 +125,21 @@ export function makeMandate(overrides: Partial<RenewalMandate> = {}): RenewalMan
   };
 }
 
+/**
+ * A life member's standing authority, which charges a contribution alone and
+ * renews no plan, with `overrides` merged over it.
+ */
+export function makeContributionMandate(overrides: Partial<RenewalMandate> = {}): RenewalMandate {
+  return makeMandate({
+    plan: null,
+    plan_name: null,
+    kind: 'contribution',
+    contribution_cents: 5_000,
+    amount_cents: 5_000,
+    ...overrides,
+  });
+}
+
 /** One member's whole money history, with `overrides` merged over it. */
 export function makeLedger(overrides: Partial<MemberLedger> = {}): MemberLedger {
   return {

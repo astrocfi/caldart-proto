@@ -24,6 +24,7 @@ import { statementUrl, useMemberLedger } from './api';
 import { FinanceTabs } from './FinanceTabs';
 import {
   KIND_LABELS,
+  MANDATE_KIND_LABELS,
   MANDATE_STATUS_LABELS,
   PROVIDER_LABELS,
   STATUS_LABELS,
@@ -69,7 +70,7 @@ export function MandateCard({ mandate }: { mandate: RenewalMandate | null }): JS
     );
   }
   return (
-    <Card title="Automatic renewal" eyebrow="Renewal">
+    <Card title={MANDATE_KIND_LABELS[mandate.kind]} eyebrow="Renewal">
       <dl className="payment-facts">
         <div>
           <dt>State</dt>
@@ -82,7 +83,7 @@ export function MandateCard({ mandate }: { mandate: RenewalMandate | null }): JS
         <div>
           <dt>Renews</dt>
           <dd>
-            {mandate.plan_name} · {formatCents(mandate.amount_cents)}
+            {mandate.plan_name ?? 'Contribution'} · {formatCents(mandate.amount_cents)}
           </dd>
         </div>
         <div>

@@ -7,6 +7,7 @@
  * rest are named here because the finance area is the only place they appear.
  */
 import type {
+  MandateKind,
   MandateStatus,
   ManualMethod,
   PaymentKind,
@@ -58,4 +59,24 @@ export const MANDATE_STATUS_LABELS: Record<MandateStatus, string> = {
   active: 'On',
   paused: 'Paused after failed charges',
   canceled: 'Turned off',
+};
+
+/**
+ * What a standing renewal authority is called on the finance screens, by what
+ * it charges for.  A life member's authority is always `contribution`.
+ */
+export const MANDATE_KIND_LABELS: Record<MandateKind, string> = {
+  renewal: 'Automatic renewal',
+  both: 'Automatic renewal and contribution',
+  contribution: 'Automatic contribution',
+};
+
+/**
+ * The same wording, keyed by a payment's own kind, for the payment detail
+ * screen's row that says whether a charge came from a standing authority.
+ */
+export const PAYMENT_AUTOMATIC_LABELS: Record<PaymentKind, string> = {
+  membership: 'Automatic renewal',
+  both: 'Automatic renewal and contribution',
+  contribution: 'Automatic contribution',
 };

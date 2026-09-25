@@ -72,6 +72,17 @@ describe('PaymentDetailPage', () => {
     expect(await screen.findByText(/2026\/01\/09/)).toBeInTheDocument();
   });
 
+  it.each<[PaymentDetail['kind'], string]>([
+    ['membership', 'Automatic renewal'],
+    ['contribution', 'Automatic contribution'],
+    ['both', 'Automatic renewal and contribution'],
+  ])('names the automatic row by what a %s payment bought: %s', async (kind, label) => {
+    servePayment(makeDetail({ kind }));
+    renderDetail();
+
+    expect(await screen.findByText(label)).toBeInTheDocument();
+  });
+
   it('lists the refunds against the payment', async () => {
     servePayment(makeDetail({ refunds: [makeRefund()] }));
     renderDetail();
