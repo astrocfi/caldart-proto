@@ -138,10 +138,14 @@ test('a leader filters the member list by county and downloads the PDF', async (
     last_name: string;
   };
 
-  await page
+  // On a phone the menu is behind the Menu button.
+  const members = page
     .getByRole('navigation', { name: 'Portal sections' })
-    .getByRole('link', { name: 'Members' })
-    .click();
+    .getByRole('link', { name: 'Members' });
+  if (!(await members.isVisible())) {
+    await page.getByRole('button', { name: 'Menu' }).click();
+  }
+  await members.click();
   await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'New member' })).toHaveCount(0);
 
