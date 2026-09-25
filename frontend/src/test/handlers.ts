@@ -72,7 +72,6 @@ export const handlers = [
   // Every report screen reads its column registry as it mounts.  An empty
   // registry leaves the exports on the server's own default columns, so a suite
   // that is not about columns does not have to declare one.
-  http.get(`${API}/admin/members/columns`, () => HttpResponse.json([])),
   // The reports the caller may read and each report's column registry, empty
   // for the same reason: a suite that is not about reports need not declare one.
   http.get(`${API}/reports`, () => HttpResponse.json([])),

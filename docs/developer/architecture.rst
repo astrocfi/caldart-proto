@@ -463,7 +463,8 @@ File                      Routes, and who may open them
 ``payments.tsx``          ``/payments``: signed in
 ``leader.tsx``            ``/leader``, ``/leader/aircraft``: ``dart_leader`` or
                           ``account_admin``
-``admin-members.tsx``     ``/admin/members``, ``/admin/members/new``,
+``admin-members.tsx``     ``/admin/members``: ``account_admin`` or
+                          ``dart_leader``; ``/admin/members/new``,
                           ``/admin/members/:id``: ``account_admin``
 ``admin-aircraft.tsx``    ``/admin/aircraft``, ``/admin/aircraft/:id``:
                           ``account_admin``

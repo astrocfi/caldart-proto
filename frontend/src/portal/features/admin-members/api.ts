@@ -8,7 +8,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, api } from '@/portal/api/client';
+import { api } from '@/portal/api/client';
 import type {
   GrantTermPayload,
   MemberCreatePayload,
@@ -17,65 +17,15 @@ import type {
   MemberTerm,
   MemberUpdatePayload,
   Paginated,
-  ReportColumn,
   TermUpdatePayload,
 } from '@/portal/api/types';
-import type { MemberFilters } from './types';
-import { FILTER_KEYS } from './types';
+import type { FilterValues } from '@/portal/reports/types';
 
 export const MEMBERS_KEY = ['admin-members'] as const;
 
-/** Drop empty values so the URL only carries filters that are set. */
-export function filterParams(filters: Partial<MemberFilters>): URLSearchParams {
-  const params = new URLSearchParams();
-  for (const key of FILTER_KEYS) {
-    const value = filters[key];
-    if (value) params.set(key, value);
-  }
-  return params;
-}
-
-export interface MemberExportOptions {
-  /** The chosen column keys; absent or empty leaves the server's defaults. */
-  columns?: string[];
-}
-
-/**
- * The href behind the Export CSV / Export PDF buttons.
- *
- * It carries the filters the table is showing and the columns the chooser is
- * showing, so the file that downloads holds the same members and the same
- * columns the administrator chose rather than a fixed report.
- */
-export function exportUrl(
-  format: 'csv' | 'pdf',
-  filters: Partial<MemberFilters>,
-  options: MemberExportOptions = {},
-): string {
-  const params = filterParams(filters);
-  if (options.columns !== undefined && options.columns.length > 0) {
-    params.set('columns', options.columns.join(','));
-  }
-  const query = params.toString();
-  const base = `${API_BASE}/admin/members/export.${format}`;
-  return query ? `${base}?${query}` : base;
-}
-
-/**
- * Every column the membership report can carry, in export order.
- *
- * The registry never changes while the portal is open, so it is fetched once
- * and kept.
- */
-export function useMemberReportColumns(): UseQueryResult<ReportColumn[]> {
-  return useQuery({
-    queryKey: [...MEMBERS_KEY, 'columns'],
-    queryFn: () => api.get<ReportColumn[]>('/admin/members/columns'),
-    staleTime: Infinity,
-  });
-}
-
-export interface MemberListQuery extends Partial<MemberFilters> {
+export interface MemberListQuery {
+  /** The members report's filters and `ordering`, by query parameter; an empty value is unset. */
+  filters: FilterValues;
   page?: number;
   page_size?: number;
 }
@@ -88,7 +38,10 @@ export interface MemberListQuery extends Partial<MemberFilters> {
  * to a spinner and back.  `isPlaceholderData` says which of the two is showing.
  */
 export function useMembers(query: MemberListQuery): UseQueryResult<Paginated<MemberRow>> {
-  const params = filterParams(query);
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query.filters)) {
+    if (value !== '') params.set(key, value);
+  }
   if (query.page && query.page > 1) params.set('page', String(query.page));
   if (query.page_size) params.set('page_size', String(query.page_size));
   const search = params.toString();

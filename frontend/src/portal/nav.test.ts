@@ -61,6 +61,13 @@ describe('visibleNavItems', () => {
     expect(labels(['member', 'account_admin'])).toContain('Reminders');
   });
 
+  it('gives dart_leader the member list, filed under Administration', () => {
+    const administration = groupedNavItems(['member', 'dart_leader']).find(
+      (bucket) => bucket.group === 'Administration',
+    );
+    expect(administration?.items.map((item) => item.to)).toEqual(['/admin/members']);
+  });
+
   it('keeps the reminder log away from dart_leader', () => {
     expect(labels(['member', 'dart_leader'])).not.toContain('Reminders');
   });

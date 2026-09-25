@@ -35,7 +35,12 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from apps.accounts.roles import ROLE_SLUGS
-from apps.members.models import MedicalType, MembershipState, PilotCertificateType
+from apps.members.models import (
+    CALIFORNIA_COUNTIES,
+    MedicalType,
+    MembershipState,
+    PilotCertificateType,
+)
 from apps.members.services import with_membership
 from caldart.reports import given_params, ordering_terms
 
@@ -134,6 +139,13 @@ class MemberAdminFilterSet(django_filters.FilterSet):
         label="Medical",
     )
     dart = django_filters.CharFilter(method="filter_dart", label="DART (id or name)")
+    # The exact county the profile stores: a leader asking for Santa Clara County
+    # must not be handed Santa Barbara's members too.
+    county = django_filters.ChoiceFilter(
+        choices=[(name, name) for name in CALIFORNIA_COUNTIES],
+        field_name="profile__county",
+        label="California county",
+    )
     role = django_filters.ChoiceFilter(
         choices=[(slug, slug) for slug in ROLE_SLUGS], method="filter_role", label="Role"
     )
@@ -346,6 +358,7 @@ EXPORT_FILTER_PARAMS: tuple[str, ...] = (
     "certificate",
     "medical",
     "dart",
+    "county",
     "role",
     "expiring_within",
     "is_active",

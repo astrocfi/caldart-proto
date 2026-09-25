@@ -7,8 +7,12 @@ membership-status rules the list filters on.  The membership report downloads
 the list below with the same filters and ordering; it is served by
 :doc:`api-reports` and described in :doc:`reports`.
 
-Every route below requires the ``account_admin`` role.  ``system_admin``
-passes every role check, so a system administrator has them too.  An
+Every route below requires the ``account_admin`` role but one: ``GET
+/admin/members``, the list, also admits ``dart_leader``, so a DART leader reads
+the whole membership and downloads its report.  Creating a member, one member's
+record, and the membership terms stay with the account administrator; a
+treasurer reads none of them.  ``system_admin`` passes every role check, so a
+system administrator has them too.  An
 unauthenticated request gets **401** (``caldart.exceptions`` overrides DRF's
 403 for session auth); an authenticated request without the role gets **403**.
 An unsafe method with no ``X-CSRFToken`` gets **403** before either check,
@@ -116,7 +120,7 @@ profile nobody has edited, or for an account with none.  An account with no
 Statuses:
 
 * **200** — the page of rows, empty ``results`` when nothing matches.
-* **400** — ``status``, ``certificate``, ``medical``, or ``role`` carried a
+* **400** — ``status``, ``certificate``, ``medical``, ``county``, or ``role`` carried a
   value outside its choice list, or ``expiring_within`` was not a number.  The
   body is keyed on the offending parameter, for example
   ``{"status": ["Select a valid choice. bogus is not one of the available
@@ -144,6 +148,10 @@ Filters
    out.
 ``dart``
    A DART id, or a case-insensitive substring of a DART name.
+``county``
+   One of California's 58 counties, spelled as the profile stores it
+   (``San Mateo``), matched exactly: ``Santa Clara`` never lists Santa
+   Barbara's members.  A blank value narrows nothing; anything else is a 400.
 ``role``
    A role slug.  This matches the group actually assigned, so ``role=member``
    does not include a system administrator who lacks the ``member`` group.
@@ -624,10 +632,19 @@ Tests
 
 ``backend/tests/test_members_admin.py``
    The role matrix on every endpoint (401 anonymous, 403 for ``member``,
-   ``dart_leader``, ``user_admin``, and ``website_admin``, 200 for
-   ``account_admin`` and ``system_admin``), every filter against a mixed
+   ``user_admin``, and ``website_admin``, 403 for ``dart_leader`` on every
+   endpoint except the list, 200 for ``account_admin`` and ``system_admin``),
+   every filter against a mixed
    fixture, ordering, creation with and without a password, nested profile
    updates, the delete rules and the grant-term arithmetic.
+``backend/tests/test_member_county.py``
+   The county filter on the list and on the membership report, the 400 for a
+   county outside California, and the ``County`` column: its place after
+   ``state``, off by default, and the cell it prints.
+``backend/tests/test_member_list_leaders.py``
+   The DART leader on the list: the allow and deny matrix for the list, the
+   whole membership in the answer, the DART filter, the report download, and
+   the refusal of creating a member, reading a member record, and granting a term.
 ``backend/tests/test_members_delete_payments.py``
    The payment guard: a refusal for every payment status and its message, the
    payment summary before and after a refusal, the same refusal for a system

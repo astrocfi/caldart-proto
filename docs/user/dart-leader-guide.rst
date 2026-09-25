@@ -10,8 +10,9 @@ standing on the ramp.
 
 You need the ``dart_leader`` or ``account_admin`` role; both get the
 **Member check** and **Aircraft check** entries under *Operations* in the
-portal menu.  System administrators may open the same screens
-(``/portal/leader`` and ``/portal/leader/aircraft``).
+portal menu, and **Members** under *Administration* for the member list
+described below.  System administrators may open the same screens
+(``/portal/leader``, ``/portal/leader/aircraft`` and ``/portal/admin/members``).
 
 
 The check, in ten seconds
@@ -125,6 +126,34 @@ open its card.
 If the registration is not in the register at all, the card says so.  Ask the
 pilot to add the airplane from **My aircraft** in their portal, or ask an
 account administrator to add it to the register.
+
+
+The member list
+===============
+
+**Members**, under *Administration* in the portal menu
+(``/portal/admin/members``), lists every member of CalDART, not only your own
+DART's, with whether they can fly today, their DART, when their membership
+runs out, and their email address.  Use it to find people before a mission
+rather than to check one person on the ramp.
+
+* **Filter** with the bar above the table: by name or email, membership,
+  certificate, medical, DART, county, role, how soon the membership expires,
+  and active accounts only.  Each filter applies as soon as you change it; the
+  text boxes follow a short pause in your typing.  **Clear** empties them all.
+  The filters are part of the page's address, so a filtered list is a link you
+  can bookmark or send to another leader.
+* **Sort** by clicking a column heading; click again to reverse it.
+* **Open** a name to see that member in the member check, with the GO / NO-GO
+  card for them.
+* **Download** the report with **Export CSV** or **Export PDF**.  Either file
+  carries every member the filters match, not just the page on screen, and
+  **Columns** chooses what goes in it — phone, certificate, medical, aircraft,
+  county, and more.  The list on screen keeps its five columns whatever you
+  choose.
+
+Adding a member, and the full member record behind each name, belong to the
+account administrators; see :doc:`account-administrator-guide`.
 
 
 When something looks wrong

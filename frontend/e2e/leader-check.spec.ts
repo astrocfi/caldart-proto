@@ -124,3 +124,41 @@ test('a plain member cannot reach the leader check', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Not allowed' })).toBeVisible();
 });
+
+// A leader reads the whole membership, narrows it by county, and takes the
+// report away.  The county is the leader's own, read from their profile, so the
+// filter is sure to list somebody whichever county the seed drew.
+test('a leader filters the member list by county and downloads the PDF', async ({ page }) => {
+  await signIn(page, DEMO.leader);
+  const { county } = (await (await page.request.get('/api/v1/me/profile')).json()) as {
+    county: string;
+  };
+  const me = (await (await page.request.get('/api/v1/auth/me')).json()) as {
+    first_name: string;
+    last_name: string;
+  };
+
+  // On a phone the menu is behind the Menu button.
+  const members = page
+    .getByRole('navigation', { name: 'Portal sections' })
+    .getByRole('link', { name: 'Members' });
+  if (!(await members.isVisible())) {
+    await page.getByRole('button', { name: 'Menu' }).click();
+  }
+  await members.click();
+  await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'New member' })).toHaveCount(0);
+
+  await page.getByLabel('County').selectOption(county);
+  await expect(page).toHaveURL(/[?&]county=/);
+  expect(new URL(page.url()).searchParams.get('county')).toBe(county);
+  const self = page.getByRole('link', { name: `${me.first_name} ${me.last_name}` });
+  await expect(self).toHaveAttribute('href', /\/portal\/leader\?member=\d+$/);
+
+  const [pdf] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('link', { name: 'Export PDF' }).click(),
+  ]);
+  expect(pdf.suggestedFilename()).toMatch(/^caldart-members-\d{4}-\d{2}-\d{2}\.pdf$/);
+  expect(new URL(pdf.url()).searchParams.get('county')).toBe(county);
+});

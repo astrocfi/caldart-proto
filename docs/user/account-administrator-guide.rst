@@ -20,7 +20,9 @@ The member list
 
 The list shows everyone with a CalDART account — ``member`` is granted the
 moment someone registers, so "accounts" and "members" are the same set of
-people — one row each:
+people — one row each.  DART leaders open the same list, filter it the same
+way, and download the same report (see :doc:`dart-leader-guide`); the
+**New member** button and the member record behind each name are yours alone.
 
 **Pilot**
    A green tick when the member holds a pilot certificate and their medical is
@@ -67,11 +69,11 @@ as you like, under *Reports* below.
 Filtering
 ---------
 
-The filter bar sits above the table.  The dropdowns apply the moment you change
-them, and the table narrows as you type in **Search** — it follows a short
-pause, so it does not chase every keystroke.  **Expiring within (days)** takes
-digits only and applies when you press Enter or the **Apply** button.
-**Clear** empties the whole bar.
+The filter bar sits above the table.  The dropdowns and the checkbox apply the
+moment you change them, and the table narrows as you type in **Search** or
+**Expiring within (days)** — it follows a short pause, so it does not chase
+every keystroke.  **Expiring within (days)** takes digits only.  There is no
+Apply button.  **Clear** empties the whole bar and leaves the sort alone.
 
 **Search**
    Matches a name, an email address, either phone number or a pilot
@@ -95,6 +97,10 @@ digits only and applies when you press Enter or the **Apply** button.
 **DART**
    The team the member belongs to.
 
+**County**
+   The California county on the member's profile.  A member who has not given
+   one is listed only while the filter is on *Any*.
+
 **Role**
    People who hold a particular role.  This is the role actually assigned to
    the account: a system administrator is *not* listed under every other role
@@ -104,6 +110,10 @@ digits only and applies when you press Enter or the **Apply** button.
    A number of days.  It uses the computed expiry, so a member who has already
    renewed drops out of the window immediately, and lifetime members never
    appear in it.
+
+**Active accounts only**
+   Leaves out the accounts that have been deactivated, which the list
+   otherwise shows with "account deactivated" beside the name.
 
 Filters combine.  "Current members of the Napa DART whose membership expires
 within 30 days" is three dropdowns and a number.
@@ -269,11 +279,11 @@ Choosing the columns
 --------------------
 
 **Columns**, beside the filters, opens a chooser that drives both downloads.
-Eighteen columns are on offer; the ten above are on to begin with.  The eight
-that are off — *Plan*, *Certificate number*, *IFR*, *City*, *State*, *Joined*
-(the day the first term on file began), *Member since* (the day the member
-says they joined), and *Profile updated* (the day profile information was
-last written) — are the ones a roster or an audit wants and an everyday
+Nineteen columns are on offer; the ten above are on to begin with.  The nine
+that are off — *Plan*, *Certificate number*, *IFR*, *City*, *State*, *County*,
+*Joined* (the day the first term on file began), *Member since* (the day the
+member says they joined), and *Profile updated* (the day profile information
+was last written) — are the ones a roster or an audit wants and an everyday
 report does not.  Click anywhere outside the chooser, or press Escape, to put it
 away.
 
@@ -470,9 +480,9 @@ When something goes wrong
    cancel the wrong term and grant the right one, with a note saying why.
 
 **An export downloads far more rows than the screen shows.**
-   It should not: the export carries the filters the screen has.  Check that
-   you pressed **Apply** after typing in the Search or Expiring-within box —
-   the dropdowns apply immediately, those two do not.
+   It should not: the export carries the filters the screen has.  A box you
+   have just typed in applies after a short pause, so wait for the table to
+   narrow before you download.
 
 **The Danger zone will not let me delete a member.**
    Read what it says.  An account with any payment against it cannot be

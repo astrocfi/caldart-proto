@@ -48,10 +48,11 @@ class RowContext(TypedDict):
 #: what ``?columns=`` names and what ``GET /reports/members/columns`` answers
 #: with, ``label`` is the header both exports print, ``default`` says whether
 #: the column appears when the caller chooses none, and ``width`` is the share
-#: of the page the PDF gives it.  The seven that are off by default -- the plan,
-#: the certificate number, the instrument rating, the town, the state and the
-#: two joining dates -- are there for a roster or an audit rather than for the
-#: everyday report, which is sized so no default cell has to wrap.
+#: of the page the PDF gives it.  The ones that are off by default -- the plan,
+#: the certificate number, the instrument rating, the town, the state, the county,
+#: the two joining dates and the profile's last update -- are there for a roster
+#: or an audit rather than for the everyday report, which is sized so no default
+#: cell has to wrap.
 #:
 #: A lifetime membership has no expiry date, so ``expires_on`` is blank for one;
 #: the ``plan`` column ("Life") and ``status`` ("current") say what it is.
@@ -106,6 +107,9 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
     ReportColumn("aircraft", "Aircraft", True, lambda ctx: " ".join(ctx["aircraft"]), width=2.4),
     ReportColumn("city", "City", False, lambda ctx: _value(ctx["profile"], "city"), width=1.6),
     ReportColumn("state", "State", False, lambda ctx: _value(ctx["profile"], "state"), width=0.8),
+    ReportColumn(
+        "county", "County", False, lambda ctx: _value(ctx["profile"], "county"), width=1.8
+    ),
     ReportColumn("joined_on", "Joined", False, lambda ctx: _iso(ctx["joined_on"]), width=1.6),
     ReportColumn(
         "member_since",

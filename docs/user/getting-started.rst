@@ -69,7 +69,9 @@ Role                 What it adds
                      current.
 ``dart_leader``      A Disaster Airlift Response Team (DART) member: look
                      up any member and check membership, medical
-                     , certificate, and aircraft insurance currency.
+                     , certificate, and aircraft insurance currency;
+                     list and filter the whole membership and download
+                     its report.
 ``user_admin``       List accounts, assign roles, activate and
                      deactivate, and trigger password resets.
 ``treasurer``        The money: every payment, fee, refund, and automatic
@@ -181,7 +183,8 @@ roles allow it:
    The DART leader's member and aircraft checks.
 
 **Administration**
-   Members, aircraft, payments, reminders, and users and roles.
+   Members, aircraft, payments, reminders, and users and roles.  DART leaders
+   see **Members** here too.
 
 **System**
    Health, backups, and reminder runs.

@@ -83,6 +83,16 @@ export function FilterBar({
   const applied = completeValues(fields, values);
   const appliedKey = JSON.stringify(applied);
   const [draft, setDraft] = useState(applied);
+  // The applied values the draft was last reset to.  They are compared by
+  // content, so a page re-rendering with an equal object cannot wipe a
+  // half-typed box.  The draft follows a real change during the render itself
+  // rather than in an effect: an effect would let the settle effect below see
+  // the old draft beside the new values for one commit, and send it back.
+  const [draftBase, setDraftBase] = useState(appliedKey);
+  if (draftBase !== appliedKey) {
+    setDraftBase(appliedKey);
+    setDraft(applied);
+  }
   // The last set of values handed to `onChange` since the applied values last
   // changed, so a settled draft is sent once even if the page does not adopt it
   // exactly, yet is sent again once the page has moved to other values.
@@ -93,11 +103,8 @@ export function FilterBar({
     onChange(next);
   };
 
-  // Follow the applied values when they really change, compared by content so
-  // that a page re-rendering with an equal object cannot wipe a half-typed box.
   useEffect(() => {
     sentKey.current = appliedKey;
-    setDraft(JSON.parse(appliedKey) as FilterValues);
   }, [appliedKey]);
 
   // The typed boxes apply once the draft has held still.  Only a draft that is

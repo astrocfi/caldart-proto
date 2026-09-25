@@ -288,6 +288,7 @@ aircraft             Aircraft                yes     N-numbers of the planes the
                                                      commonly flies, spaced
 city                 City                    no      City from the profile
 state                State                   no      Two-letter state
+county               County                  no      California county from the profile
 joined_on            Joined                  no      Start of the earliest membership term
 member_since         Member since            no      The day the member joined, as recorded
                                                      on their profile: the same date until
