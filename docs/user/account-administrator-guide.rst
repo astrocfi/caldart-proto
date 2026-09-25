@@ -164,8 +164,8 @@ roles you hold yourself — every ordinary member, and anybody else whose roles
 you already have.  Any role you lack is enough to put a record out of reach, not
 just the administrative ones: as an account administrator you can edit an
 ordinary member's address and Active box, and another account administrator's,
-but not a DART leader's, a website administrator's, a user administrator's or a
-system administrator's.  On one of those the save is refused and nothing on the
+but not a DART leader's, a treasurer's, a website administrator's, a user
+administrator's or a system administrator's.  On one of those the save is refused and nothing on the
 record changes, profile fields included.  You cannot clear **Account is active**
 on your own record either.  Names, DART, phone numbers and every profile field
 stay editable on any record you can open.
@@ -424,7 +424,7 @@ When something goes wrong
 
 **"You cannot change the email address of an account that holds roles you do not hold."**
    The record carries a role you do not have — ``dart_leader``,
-   ``website_admin``, ``user_admin``, or ``system_admin``.  Moving an address is
+   ``treasurer``, ``website_admin``, ``user_admin``, or ``system_admin``.  Moving an address is
    enough to take an account over, so it is reserved for somebody who already
    holds every role that account holds.  Ask a system administrator, or a
    colleague who holds them all.

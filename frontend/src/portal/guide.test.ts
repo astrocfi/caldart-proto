@@ -10,7 +10,7 @@ describe('guidePath', () => {
   it('sends each administrator to their own guide', () => {
     expect(guidePath(['member', 'dart_leader'])).toBe('/docs/dart-leader-guide/');
     expect(guidePath(['member', 'user_admin'])).toBe('/docs/user-administrator/');
-    expect(guidePath(['member', 'treasurer'])).toBe('/docs/payments/');
+    expect(guidePath(['member', 'treasurer'])).toBe('/docs/treasurer-guide/');
     expect(guidePath(['member', 'account_admin'])).toBe('/docs/account-administrator-guide/');
     expect(guidePath(['member', 'website_admin'])).toBe('/docs/website-administrator-guide/');
     expect(guidePath(['member', 'system_admin'])).toBe('/docs/system-administrator-guide/');

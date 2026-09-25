@@ -19,7 +19,7 @@ const GUIDE_PAGES: readonly [RoleSlug, string][] = [
   ['system_admin', 'system-administrator-guide'],
   ['website_admin', 'website-administrator-guide'],
   ['account_admin', 'account-administrator-guide'],
-  ['treasurer', 'payments'],
+  ['treasurer', 'treasurer-guide'],
   ['user_admin', 'user-administrator'],
   ['dart_leader', 'dart-leader-guide'],
   ['member', 'member-guide'],
