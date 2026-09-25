@@ -82,6 +82,22 @@ describe('MemberDetailPage', () => {
     expect(screen.getByRole('link', { name: 'ana@example.org' })).toBeInTheDocument();
   });
 
+  it('says when the profile was last written', async () => {
+    server.use(...detailHandlers());
+    renderDetail();
+
+    const header = (await screen.findByText('Current')).closest('.cluster');
+    expect(header).toHaveTextContent('updated 2026/08/11');
+  });
+
+  it('says a profile nobody has written has never been edited', async () => {
+    server.use(...detailHandlers(makeDetail({ profile_updated_at: null })));
+    renderDetail();
+
+    const header = (await screen.findByText('Current')).closest('.cluster');
+    expect(header).toHaveTextContent('never edited');
+  });
+
   it('opens on the profile tab with the admin-only notes filled in', async () => {
     server.use(...detailHandlers());
     renderDetail();
