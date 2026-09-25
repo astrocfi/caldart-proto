@@ -226,6 +226,32 @@ describe('FilterBar', () => {
     expect(screen.getByLabelText('Search')).toHaveValue('lee');
   });
 
+  it('does not send the old values back when they change from outside', async () => {
+    const handleChange = vi.fn<(values: FilterValues) => void>();
+    const { rerender } = render(
+      <FilterBar fields={FIELDS} values={{ status: 'current' }} onChange={handleChange} />,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    rerender(<FilterBar fields={FIELDS} values={{ status: 'expired' }} onChange={handleChange} />);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    expect(handleChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps a value that is not one of its fields, such as the sort, when it changes', async () => {
+    const handleChange = vi.fn<(values: FilterValues) => void>();
+    const { rerender } = render(
+      <FilterBar fields={FIELDS} values={{ ordering: '' }} onChange={handleChange} />,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    rerender(<FilterBar fields={FIELDS} values={{ ordering: 'name' }} onChange={handleChange} />);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    expect(handleChange).not.toHaveBeenCalled();
+  });
+
   it('is one search landmark named by its label', () => {
     render(
       <FilterBar fields={FIELDS} values={{}} onChange={handleNothing} label="Filter members" />,
