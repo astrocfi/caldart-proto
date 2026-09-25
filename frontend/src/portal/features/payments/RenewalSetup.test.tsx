@@ -54,7 +54,13 @@ vi.mock('@paypal/react-paypal-js', () => ({
 }));
 
 /** Serve the config and record every setup request the flow sends. */
-function mount({ providers }: { providers: ('stripe' | 'paypal' | 'mock')[] }) {
+function mount({
+  providers,
+  isLifetime = false,
+}: {
+  providers: ('stripe' | 'paypal' | 'mock')[];
+  isLifetime?: boolean;
+}) {
   const setups: RenewalSetupRequest[] = [];
   const confirms: unknown[] = [];
   server.use(
@@ -80,9 +86,10 @@ function mount({ providers }: { providers: ('stripe' | 'paypal' | 'mock')[] }) {
   );
   const handleDone = vi.fn();
   const handleCancel = vi.fn();
-  renderWithProviders(<RenewalSetup onCancel={handleCancel} onDone={handleDone} />, {
-    route: '/payments',
-  });
+  renderWithProviders(
+    <RenewalSetup isLifetime={isLifetime} onCancel={handleCancel} onDone={handleDone} />,
+    { route: '/payments' },
+  );
   return { setups, confirms, handleDone, handleCancel };
 }
 
@@ -166,6 +173,14 @@ describe('RenewalSetup', () => {
     expect(handleDone).not.toHaveBeenCalled();
   });
 
+  it('promises the warning email in the words the card uses', async () => {
+    mount({ providers: ['mock'] });
+
+    expect(
+      await screen.findByText(/We will email you fourteen days before every charge\./),
+    ).toBeInTheDocument();
+  });
+
   it('hands the flow back unchanged when the member cancels', async () => {
     const user = userEvent.setup();
     const { handleCancel } = mount({ providers: ['mock'] });
@@ -173,5 +188,43 @@ describe('RenewalSetup', () => {
     await user.click(await screen.findByRole('button', { name: 'Cancel' }));
 
     expect(handleCancel).toHaveBeenCalledOnce();
+  });
+
+  describe('for a life member', () => {
+    it('offers no plan, because their membership never runs out', async () => {
+      mount({ providers: ['mock'], isLifetime: true });
+
+      expect(await screen.findByRole('radio', { name: /Supporter/ })).toBeInTheDocument();
+      expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
+    });
+
+    it('states that the yearly charge is the contribution alone', async () => {
+      const user = userEvent.setup();
+      mount({ providers: ['mock'], isLifetime: true });
+
+      await user.click(await screen.findByRole('radio', { name: /Supporter/ }));
+
+      expect(screen.getByText(/Each year CalDART will charge/)).toHaveTextContent(
+        'Each year CalDART will charge $25.00 for your contribution.',
+      );
+    });
+
+    it('asks for a contribution before it offers to save a method', async () => {
+      mount({ providers: ['mock'], isLifetime: true });
+
+      expect(await screen.findByText('Choose a contribution to charge each year.')).toBeVisible();
+      expect(screen.queryByRole('button', { name: 'Save this test card' })).not.toBeInTheDocument();
+    });
+
+    it('saves the method with no plan once an amount is chosen', async () => {
+      const user = userEvent.setup();
+      const { setups, handleDone } = mount({ providers: ['mock'], isLifetime: true });
+
+      await user.click(await screen.findByRole('radio', { name: /Supporter/ }));
+      await user.click(screen.getByRole('button', { name: 'Save this test card' }));
+
+      await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
+      expect(setups).toEqual([{ contribution_cents: 2500, provider: 'mock' }]);
+    });
   });
 });

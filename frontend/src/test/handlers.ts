@@ -30,6 +30,14 @@ export const CURRENT_MEMBERSHIP: MembershipStatus = {
   is_lifetime: false,
 };
 
+/** A membership that never runs out, for the screens a life member reads. */
+export const LIFETIME_MEMBERSHIP: MembershipStatus = {
+  status: 'current',
+  expires_on: null,
+  plan: 'Life',
+  is_lifetime: true,
+};
+
 /** Build a `user` payload without repeating every field in each test. */
 export function makeUser(overrides: Partial<User> = {}): User {
   return {

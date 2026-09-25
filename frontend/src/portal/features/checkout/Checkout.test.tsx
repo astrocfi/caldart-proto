@@ -5,7 +5,14 @@ import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CheckoutRequest, PaymentsConfig } from '@/portal/api/types';
-import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP, makeUser } from '@test/handlers';
+import {
+  API,
+  CURRENT_MEMBERSHIP,
+  LIFETIME_MEMBERSHIP,
+  NO_MEMBERSHIP,
+  makeUser,
+  signedInAs,
+} from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
@@ -641,5 +648,94 @@ describe('Checkout · renewing automatically', () => {
     await waitFor(() =>
       expect(requests).toEqual([expect.objectContaining({ plan: 'life', auto_renew: false })]),
     );
+  });
+});
+
+describe('Checkout · contributing', () => {
+  /** Sign in as a life member, whose membership never runs out. */
+  function signInAsLifeMember(): void {
+    server.use(signedInAs(makeUser({ membership: LIFETIME_MEMBERSHIP })));
+  }
+
+  it('offers a contribution and no plan at all', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    expect(await screen.findByRole('radio', { name: /Participating/ })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
+  });
+
+  it('posts no plan, so no membership term is bought', async () => {
+    const user = userEvent.setup();
+    serveConfig(config());
+    const requests = serveCheckout();
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT_MEMBERSHIP }),
+      ),
+    );
+
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+    await user.click(await screen.findByRole('radio', { name: /Participating/ }));
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() =>
+      expect(requests).toEqual([
+        { plan: null, contribution_cents: 2000, provider: 'mock', auto_renew: false },
+      ]),
+    );
+  });
+
+  it('waits for an amount before it offers a way to pay', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    expect(await screen.findByText('Choose a contribution to continue.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Succeed' })).not.toBeInTheDocument();
+  });
+
+  it('offers to take the same amount every year, in the words of a contribution', async () => {
+    const user = userEvent.setup();
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    await user.click(await screen.findByRole('radio', { name: /Participating/ }));
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Contribute this amount automatically each year' }),
+    ).not.toBeChecked();
+  });
+
+  it('asks for a standing contribution when the box is ticked', async () => {
+    const user = userEvent.setup();
+    serveConfig(config());
+    const requests = serveCheckout();
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT_MEMBERSHIP }),
+      ),
+    );
+
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+    await user.click(await screen.findByRole('radio', { name: /Participating/ }));
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Contribute this amount automatically each year' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() =>
+      expect(requests).toEqual([
+        { plan: null, contribution_cents: 2000, provider: 'mock', auto_renew: true },
+      ]),
+    );
+  });
+
+  it('shows a life member the contribution form even where a renewal was asked for', async () => {
+    signInAsLifeMember();
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="renew" onSuccess={() => {}} />);
+
+    expect(await screen.findByRole('radio', { name: /Participating/ })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
   });
 });

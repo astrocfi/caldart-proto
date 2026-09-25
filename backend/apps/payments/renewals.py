@@ -518,9 +518,11 @@ def save_method(
     """Store the saved payment method on ``mandate`` and make it ``active``.
 
     Clears the failure count and any cancellation, writes one ``renewal.enable``
-    audit record, and emails the member that automatic renewal is on, naming the
-    plan, the amount, the method and the next charge date.  The email is sent
-    after the transaction commits, so a rollback tells nobody anything.
+    audit record, and emails the member that the authority is on, naming the amount,
+    the method and the next charge date.  The plan is named where there is one; a
+    contribution-only authority renews nothing, so it names none and the record's
+    ``plan`` field renders ``-``.  The email is sent after the transaction commits,
+    so a rollback tells nobody anything.
     """
     mandate.customer_ref = method.customer_ref or mandate.customer_ref
     mandate.method_ref = method.method_ref
@@ -541,7 +543,9 @@ def save_method(
         actor=actor,
         target=mandate.user,
         provider=mandate.provider,
-        plan=mandate.plan.slug if mandate.plan is not None else "",
+        # A contribution-only authority names no plan, and an empty list is how a
+        # record says a field has no value: it renders as `-`.
+        plan=[] if mandate.plan is None else [mandate.plan.slug],
     )
     charge_on = next_charge_on(mandate)
     transaction.on_commit(

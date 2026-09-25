@@ -234,6 +234,11 @@
   max-width: var(--measure);
 }
 
+.checkout__blocked {
+  max-width: var(--measure);
+  font-size: var(--text-sm);
+}
+
 /* ---------------------------------------------------------- auto-renewal */
 .checkout__auto-renew {
   margin: 0 0 var(--space-5);

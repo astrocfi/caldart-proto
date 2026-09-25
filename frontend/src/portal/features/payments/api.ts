@@ -17,8 +17,10 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { API_BASE, api } from '@/portal/api/client';
 import { RENEWAL_KEY } from '@/portal/api/queries';
 import type {
+  MandateProvider,
   RenewalConfirmRequest,
   RenewalEnvelope,
+  RenewalPatchRequest,
   RenewalSetupRequest,
   RenewalSetupResponse,
   StatementYears,
@@ -42,6 +44,22 @@ export function receiptUrl(paymentId: number): string {
 /** Where a calendar year's contribution statement PDF is downloaded from. */
 export function statementUrl(year: number): string {
   return `${API_BASE}/me/payments/statements/${year}.pdf`;
+}
+
+/**
+ * The setup body for a plan that may be absent.
+ *
+ * A life member names no plan at all, and the field is left out rather than
+ * sent as null: their authority is over the contribution alone.
+ */
+export function renewalSetupRequest(
+  plan: string | null,
+  contributionCents: number,
+  provider: MandateProvider,
+): RenewalSetupRequest {
+  const request: RenewalSetupRequest = { contribution_cents: contributionCents, provider };
+  if (plan !== null) request.plan = plan;
+  return request;
 }
 
 /**
@@ -95,12 +113,12 @@ export function useConfirmRenewal(): UseMutationResult<
   });
 }
 
-/** Change the contribution renewed alongside the dues, via `PATCH /me/renewal`. */
-export function useUpdateRenewal(): UseMutationResult<RenewalEnvelope, Error, number> {
+/** Change the plan that renews and the contribution beside it, via `PATCH /me/renewal`. */
+export function useUpdateRenewal(): UseMutationResult<RenewalEnvelope, Error, RenewalPatchRequest> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (contributionCents: number) =>
-      api.patch<RenewalEnvelope>('/me/renewal', { contribution_cents: contributionCents }),
+    mutationFn: (request: RenewalPatchRequest) =>
+      api.patch<RenewalEnvelope>('/me/renewal', request),
     onSuccess: (envelope) => {
       queryClient.setQueryData(RENEWAL_KEY, envelope);
     },

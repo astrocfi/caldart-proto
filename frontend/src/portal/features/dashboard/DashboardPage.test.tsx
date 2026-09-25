@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { makeMandate } from '@test/fixtures/payments';
+import { makeContributionMandate, makeMandate } from '@test/fixtures/payments';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -302,9 +302,29 @@ describe('DashboardPage · payments and renewal', () => {
     );
     mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
 
-    const line = await screen.findByText(/Automatic renewal is on/);
+    const line = await screen.findByText(/Automatic renewal and contribution is on/);
     expect(within(line).getByText('$70.00')).toBeInTheDocument();
     expect(within(line).getByText('2027/03/12')).toBeInTheDocument();
+  });
+
+  it('says the contribution is off for a life member who has no mandate', async () => {
+    mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
+
+    expect(await screen.findByText('Automatic contribution is off.')).toBeInTheDocument();
+  });
+
+  it('names the next contribution and its amount for a life member', async () => {
+    server.use(
+      http.get(`${API}/me/renewal`, () =>
+        HttpResponse.json({
+          mandate: makeContributionMandate({ next_charge_on: '2027-08-20' }),
+        }),
+      ),
+    );
+    mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
+
+    const line = await screen.findByText(/Automatic contribution is on/);
+    expect(line).toHaveTextContent('Automatic contribution is on: $50.00 on 2027/08/20.');
   });
 
   it('says renewal stopped when a mandate has run out of retries', async () => {
@@ -315,6 +335,8 @@ describe('DashboardPage · payments and renewal', () => {
     );
     mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
 
-    expect(await screen.findByText(/Automatic renewal stopped/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Automatic renewal and contribution stopped/),
+    ).toBeInTheDocument();
   });
 });

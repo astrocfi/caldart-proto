@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
@@ -88,12 +88,39 @@ describe('<RenewPage/>', () => {
     expect(screen.getByText('2024/06/30')).toBeInTheDocument();
   });
 
-  it('tells a life member there is nothing to renew', async () => {
+  it('thanks a life member rather than offering a renewal', async () => {
+    renderRenew(detail({ expires_on: null, plan: 'Life', is_lifetime: true }));
+
+    expect(await screen.findByText('You are a life member. Thank you.')).toBeInTheDocument();
+  });
+
+  it('asks a life member to contribute instead', async () => {
     renderRenew(detail({ expires_on: null, plan: 'Life', is_lifetime: true }));
 
     expect(
-      await screen.findByText('You are a life member — there is nothing to renew.'),
+      await screen.findByRole('heading', { name: 'Contribute to CalDART', level: 1 }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'As a life member you have nothing to renew. A contribution keeps the DARTs flying.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('runs the checkout in contribute mode for a life member', async () => {
+    renderRenew(detail({ expires_on: null, plan: 'Life', is_lifetime: true }));
+
+    // The mode follows the membership, so the first render is whatever the page
+    // was asked for and the one that matters is the render after it arrives.
+    await waitFor(() => expect(modes.at(-1)).toBe('contribute'));
+  });
+
+  it('thanks a life member for the contribution the checkout took', async () => {
+    renderRenew(detail({ expires_on: null, plan: 'Life', is_lifetime: true }));
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pretend to pay' }));
+
+    expect(await screen.findByText('Thank you for your contribution.')).toBeInTheDocument();
   });
 
   it('renders the checkout in renew mode', async () => {

@@ -684,7 +684,8 @@ Action                        Fields beyond actor and target
 ``payment.reconcile``         ``reconciled`` -- whether it is now matched
 ``payment.receipt_resend``    --
 ``payment.note``              --
-``renewal.enable``            ``provider``, ``plan``
+``renewal.enable``            ``provider``, ``plan`` -- ``-`` for a
+                              contribution-only authority, which renews nothing
 ``renewal.cancel``            ``provider``, ``self_service`` -- whether the
                               member turned it off themselves
 ``renewals.run``              ``dry_run``, ``noticed``, ``charged``,

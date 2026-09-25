@@ -1,9 +1,10 @@
 /**
- * `/renew` — renew an existing membership.
+ * `/renew` — renew an existing membership, or contribute as a life member.
  *
  * The new term starts the day after the current one ends, so renewing early
  * costs nothing; the status card above the checkout says exactly what the
- * member has now.
+ * member has now.  A life member has nothing to renew, so the page asks for a
+ * contribution instead.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import type { JSX } from 'react';
@@ -30,17 +31,26 @@ export function RenewPage(): JSX.Element {
   const status = membership.data ?? null;
   const days = status ? daysUntil(status.expires_on) : null;
 
+  const isLifetime = status?.is_lifetime ?? false;
+
   function handleSuccess() {
     refreshAfterPayment(queryClient);
-    toast.show('Thank you — your membership is renewed.', 'success');
+    toast.show(
+      isLifetime ? 'Thank you for your contribution.' : 'Thank you — your membership is renewed.',
+      'success',
+    );
     void navigate('/');
   }
 
   return (
     <Page
-      title="Renew your membership"
+      title={isLifetime ? 'Contribute to CalDART' : 'Renew your membership'}
       eyebrow="Membership"
-      lede="A renewal starts the day after your current term ends, so there is no penalty for renewing early."
+      lede={
+        isLifetime
+          ? 'As a life member you have nothing to renew. A contribution keeps the DARTs flying.'
+          : 'A renewal starts the day after your current term ends, so there is no penalty for renewing early.'
+      }
     >
       <Card eyebrow="Now" title="Where you stand" className="join-card">
         {membership.isPending ? (
@@ -51,7 +61,7 @@ export function RenewPage(): JSX.Element {
           <div className="renew__status">
             <MembershipChip membership={status} />
             {status.is_lifetime ? (
-              <p>You are a life member — there is nothing to renew.</p>
+              <p>You are a life member. Thank you.</p>
             ) : status.expires_on ? (
               <p>
                 {status.status === 'current' ? 'Expires ' : 'Expired '}
@@ -71,7 +81,7 @@ export function RenewPage(): JSX.Element {
         ) : null}
       </Card>
 
-      <Checkout mode="renew" onSuccess={handleSuccess} />
+      <Checkout mode={isLifetime ? 'contribute' : 'renew'} onSuccess={handleSuccess} />
     </Page>
   );
 }

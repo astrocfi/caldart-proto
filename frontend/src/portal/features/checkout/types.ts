@@ -7,8 +7,11 @@ export interface CheckoutResult {
   membership: MembershipStatus;
 }
 
+/** What the checkout is for: a first term, a renewal, or a contribution alone. */
+export type CheckoutMode = 'join' | 'renew' | 'contribute';
+
 export interface CheckoutProps {
-  mode: 'join' | 'renew';
+  mode: CheckoutMode;
   onSuccess: (result: CheckoutResult) => void;
 }
 

@@ -154,6 +154,12 @@ CalDART emails you a reminder 60, 30, and 7 days before expiry, on the day
 it expires, and once 30 days afterwards.  Every reminder links straight to
 the renewal page.
 
+If you are a life member there is nothing there to renew, so the same menu
+entry opens **Contribute to CalDART**: the card says **You are a life
+member. Thank you.**, and the form below it takes a contribution.  Tick
+**Contribute this amount automatically each year** to have |org| take that
+amount once a year.
+
 
 Your profile
 ============

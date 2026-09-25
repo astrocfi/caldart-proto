@@ -5,12 +5,13 @@
  *
  * The account is created here rather than borrowed from the seed, because the
  * seeded members already carry mandates of their own and this flow is about a
- * member who has never had one.
+ * member who has never had one.  The life member at the end is the seeded one:
+ * their authority is over a contribution, since nothing of theirs renews.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { SEED, formatCents, uniqueEmail } from './helpers';
+import { SEED, formatCents, signIn, uniqueEmail } from './helpers';
 
 /** Steps 1 and 2 of the join wizard: an account, then a usable profile. */
 async function register(page: Page, email: string): Promise<void> {
@@ -30,11 +31,14 @@ async function register(page: Page, email: string): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Pay your dues' })).toBeVisible();
 }
 
+/** The card on `/portal/payments` headed `title`. */
+function authorityCard(page: Page, title: string) {
+  return page.locator('section').filter({ has: page.getByRole('heading', { name: title }) });
+}
+
 /** The Automatic renewal card on `/portal/payments`. */
 function renewalCard(page: Page) {
-  return page
-    .locator('section')
-    .filter({ has: page.getByRole('heading', { name: 'Automatic renewal' }) });
+  return authorityCard(page, 'Automatic renewal');
 }
 
 test('a member pays with renewal on, reads it, takes a receipt, and turns it off', async ({
@@ -93,4 +97,33 @@ test('a member turns automatic renewal on from the Payments screen alone', async
   await expect(page.getByText('Automatic renewal is on.').first()).toBeVisible();
   await expect(card.getByText('On', { exact: true })).toBeVisible();
   await expect(card.getByText('Test card ending 4242, expires 12/2030')).toBeVisible();
+});
+
+test('a life member reads their automatic contribution, turns it off, and turns it on again', async ({
+  page,
+}) => {
+  await signIn(page, SEED.contributionMandate.email);
+  await page.goto('/portal/payments');
+
+  // The card is about the contribution: their membership never runs out.
+  const card = authorityCard(page, 'Automatic contribution');
+  await expect(card.getByText('On', { exact: true })).toBeVisible();
+  await expect(card.getByText('Contribution charged each year')).toBeVisible();
+  await expect(card.locator('dd').filter({ hasText: /\d{4}\/\d{2}\/\d{2} · \$/ })).toBeVisible();
+
+  await card.getByRole('button', { name: 'Turn off' }).click();
+  await page.getByRole('button', { name: 'Yes, turn it off' }).click();
+  await expect(page.getByText('Automatic contribution is off.').first()).toBeVisible();
+  await expect(card.getByText('Off', { exact: true })).toBeVisible();
+
+  // Turning it on again offers a contribution and no plan at all.
+  await card.getByRole('button', { name: 'Turn on' }).click();
+  await expect(card.getByRole('radio', { name: /Annual/ })).toHaveCount(0);
+  await card.getByRole('radio', { name: /Participating/ }).check();
+  await card.getByRole('tab', { name: 'Test payment method' }).click();
+  await card.getByRole('button', { name: 'Save this test card' }).click();
+
+  await expect(page.getByText('Automatic contribution is on.').first()).toBeVisible();
+  await expect(card.getByText('On', { exact: true })).toBeVisible();
+  await expect(card.locator('dd').filter({ hasText: /\d{4}\/\d{2}\/\d{2} · \$/ })).toBeVisible();
 });

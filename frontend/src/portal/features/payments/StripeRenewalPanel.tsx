@@ -22,7 +22,7 @@ import {
   appearanceFromTokens,
   stripeFor,
 } from '@/portal/features/checkout/StripePanel';
-import { startRenewalSetup, useConfirmRenewal } from './api';
+import { renewalSetupRequest, startRenewalSetup, useConfirmRenewal } from './api';
 import type { RenewalPanelProps } from './types';
 
 /** Where Stripe sends the browser back for a card that needs a bank confirmation. */
@@ -40,12 +40,8 @@ function returnUrl(): string {
  * identity for as long as the JSON does, which is what lets the effect depend on
  * it and nothing else.
  */
-function useSettledSetup(plan: string, contributionCents: number): RenewalSetupRequest {
-  const wanted = JSON.stringify({
-    plan,
-    contribution_cents: contributionCents,
-    provider: 'stripe',
-  } satisfies RenewalSetupRequest);
+function useSettledSetup(plan: string | null, contributionCents: number): RenewalSetupRequest {
+  const wanted = JSON.stringify(renewalSetupRequest(plan, contributionCents, 'stripe'));
   const settled = useDebounced(wanted, AMOUNT_DEBOUNCE_MS);
   return useMemo(() => JSON.parse(settled) as RenewalSetupRequest, [settled]);
 }

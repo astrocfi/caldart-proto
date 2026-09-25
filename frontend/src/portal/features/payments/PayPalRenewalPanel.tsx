@@ -12,7 +12,7 @@ import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import { useToast } from '@/portal/components/Toast';
-import { useConfirmRenewal, useStartRenewalSetup } from './api';
+import { renewalSetupRequest, useConfirmRenewal, useStartRenewalSetup } from './api';
 import type { RenewalPanelProps } from './types';
 
 /** What a member is told when they close PayPal's window without approving. */
@@ -51,16 +51,14 @@ export function PayPalRenewalPanel({
       >
         <PayPalButtons
           style={{ layout: 'vertical', shape: 'rect', label: 'paypal' }}
-          forceReRender={[plan, contributionCents]}
+          forceReRender={[plan ?? '', contributionCents]}
           createVaultSetupToken={async () => {
             setError(null);
             hasSetupError.current = false;
             try {
-              const response = await start.mutateAsync({
-                plan,
-                contribution_cents: contributionCents,
-                provider: 'paypal',
-              });
+              const response = await start.mutateAsync(
+                renewalSetupRequest(plan, contributionCents, 'paypal'),
+              );
               if (response.provider !== 'paypal' || !response.client.setup_token) {
                 throw new Error('PayPal did not return a setup token.');
               }
