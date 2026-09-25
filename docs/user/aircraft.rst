@@ -35,9 +35,10 @@ For members: adding an airplane you fly
    in the list above with its insurance chip.
 
 Airplanes already on your list are filtered out of the results and named
-underneath — *N12345 is already on your list.*, or the registrations joined
-with commas and a final *and* when there are several — so you can tell the
-difference between "not in the register" and "already attached".  A search that
+underneath — *N12345 is already on your list.* for one, *N12345 and N9021K are
+already on your list.* for two, and three or more joined with commas and a
+final *and* — so you can tell the difference between "not in the register" and
+"already attached".  A search that
 finds nothing says so, and points at the button below it.
 
 One **Add a new aircraft** button sits at the foot of the panel, under the

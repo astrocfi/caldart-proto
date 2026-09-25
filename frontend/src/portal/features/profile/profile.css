@@ -52,8 +52,9 @@
 
 /* The profile form has a whole column to itself, and a phone box the width of
  * the number it holds reads as an afterthought beside the address fields above
- * it.  The DART form's contact row has no such room, so the wider boxes are
- * scoped to the profile form and the row keeps the widths above. */
+ * it.  The widths above stay the fallback for the same fieldsets rendered
+ * outside `.profile-form`, which today is the account administrator's member
+ * screens, where the fields share the page with a tab strip and a sidebar. */
 .profile-form .field-pair .field-pair__main {
   width: 32ch;
 }

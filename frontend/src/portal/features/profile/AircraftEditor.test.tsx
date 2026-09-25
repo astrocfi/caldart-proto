@@ -31,6 +31,8 @@ function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
     insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
     notes: '',
     created_by: MEMBER_ID,
+    updated_at: '2026-09-01T12:00:00Z',
+    updated_by: null,
     is_active: true,
     pilots: [],
     ...overrides,
@@ -53,6 +55,7 @@ describe('<AircraftEditor/>', () => {
     renderEditor(makeDetail());
 
     expect(await screen.findByRole('button', { name: 'Save aircraft' })).toBeInTheDocument();
+    expect(screen.queryByText('Someone else added this aircraft')).not.toBeInTheDocument();
   });
 
   it('asks the member to go to an account administrator about a record somebody else added', async () => {
@@ -62,5 +65,6 @@ describe('<AircraftEditor/>', () => {
     expect(
       screen.getByText('Ask a CalDART account administrator to correct it.'),
     ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save aircraft' })).not.toBeInTheDocument();
   });
 });

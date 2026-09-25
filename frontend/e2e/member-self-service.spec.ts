@@ -37,17 +37,26 @@ test('a member signs in, edits their profile and reads members-only content', as
   await expect(page.getByRole('button', { name: 'Add a new aircraft' })).toHaveCount(1);
   await expect(page.getByText('Not in the register? Add it yourself.')).toBeVisible();
 
-  // Attach an airplane from the picker, then search for it again: the picker
-  // leaves it out of the results and names it in a sentence underneath.
+  // Attach an airplane from the picker, then search for that registration on
+  // its own: the picker leaves it out of the results and names it in a
+  // sentence underneath.  Every registration begins with an N and a digit, so
+  // the search term and the result need no seeded make or model.
   const search = page.getByRole('searchbox', { name: 'Search the aircraft register' });
-  await search.fill('Cessna');
-  const firstResult = page.locator('.aircraft-result__ident').first();
+  await search.fill('N');
+  const firstResult = page.getByRole('button', { name: /^N\d/ }).first();
   await expect(firstResult).toBeVisible();
-  const nNumber = (await firstResult.innerText()).trim();
-  await page.locator('.aircraft-result__button').first().click();
-  await expect(page.getByText(`${nNumber} added.`)).toBeVisible();
+  await firstResult.click();
+  const added = page.getByText(/^N[0-9A-Z]+ added\.$/);
+  await expect(added).toBeVisible();
+  const nNumber = (await added.innerText()).trim().split(' ')[0] ?? '';
+
+  // Empty the box first, so the sentence the second search produces cannot be
+  // the one the attach itself already put on screen.
+  await search.fill('');
+  await expect(page.getByText(/already on your list\.$/)).toHaveCount(0);
 
   await search.fill(nNumber);
+  await expect(page.getByText('Click on an aircraft to add it to your list.')).toHaveCount(0);
   await expect(page.getByText(`${nNumber} is already on your list.`)).toBeVisible();
 
   // The dashboard lists the members-only pages, and one of them opens.
