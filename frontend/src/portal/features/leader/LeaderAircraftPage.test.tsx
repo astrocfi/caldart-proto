@@ -84,7 +84,7 @@ describe('LeaderAircraftPage', () => {
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?n_number=N172SP' });
 
     expect(await screen.findByText('NOT INSURED')).toBeInTheDocument();
-    expect(screen.getByText('Cover has expired')).toBeInTheDocument();
+    expect(screen.getByText('Coverage has expired')).toBeInTheDocument();
   });
 
   it('says NOT INSURED when there is no policy at all', async () => {
