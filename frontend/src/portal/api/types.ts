@@ -882,7 +882,6 @@ export interface RenewalRunResult {
 /** How money taken by hand was presented. */
 export type ManualMethod = 'check' | 'cash' | 'bank_transfer' | 'other';
 
-
 /** One row of `GET /admin/payments/reconciliation`: a period, or a provider. */
 export interface ReconciliationRow {
   period: string;
