@@ -411,7 +411,8 @@ Views declare their gates with the permission classes in
 ``apps/accounts/permissions.py``.  ``HasRole(slug)`` and ``HasAnyRole(*slugs)``
 are factories that return a DRF permission class; ``IsUserAdmin``
 , ``IsAccountAdmin``, ``IsFinance``, and ``IsSystemAdmin`` are ready-made ones,
-and ``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check.
+and ``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check and
+``GET /admin/members``, whose ``POST`` stays ``IsAccountAdmin``.
 ``IsFinance`` is ``HasAnyRole(TREASURER, ACCOUNT_ADMIN)`` and guards every
 ``/admin/payments`` and ``/admin/renewals`` endpoint.  Every one
 of them runs its test through ``user_has_any_role``, so an anonymous caller

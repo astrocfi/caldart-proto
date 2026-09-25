@@ -20,6 +20,7 @@ pytestmark = pytest.mark.django_db
 
 LIST_URL = "/api/v1/admin/members"
 CSV_URL = "/api/v1/reports/members/export.csv"
+COOK_REFUSED = {"county": ["Select a valid choice. Cook is not one of the available choices."]}
 
 
 @pytest.fixture
@@ -67,10 +68,10 @@ def test_the_county_must_match_exactly(
 def test_a_county_outside_california_is_refused(
     account_admin_client: APIClient, county_members: dict[str, User]
 ) -> None:
-    """A county that is not one of California's is a 400 keyed by ``county``."""
+    """A county that is not one of California's is a 400 naming the refused choice."""
     response = account_admin_client.get(LIST_URL, {"county": "Cook"})
     assert response.status_code == 400
-    assert "county" in response.json()
+    assert response.json() == COOK_REFUSED
 
 
 def test_a_blank_county_narrows_nothing(
@@ -91,8 +92,10 @@ def test_the_report_keeps_the_members_of_one_county(
 def test_the_report_refuses_a_county_outside_california(
     account_admin_client: APIClient, county_members: dict[str, User]
 ) -> None:
-    """A county the list refuses is refused by the export too, with a 400."""
-    assert account_admin_client.get(CSV_URL, {"county": "Cook"}).status_code == 400
+    """A county the list refuses is refused by the export too, with the same 400 body."""
+    response = account_admin_client.get(CSV_URL, {"county": "Cook"})
+    assert response.status_code == 400
+    assert response.json() == COOK_REFUSED
 
 
 def test_the_county_is_a_named_report_filter() -> None:

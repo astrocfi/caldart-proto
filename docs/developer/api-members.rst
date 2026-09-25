@@ -632,10 +632,19 @@ Tests
 
 ``backend/tests/test_members_admin.py``
    The role matrix on every endpoint (401 anonymous, 403 for ``member``,
-   ``dart_leader``, ``user_admin``, and ``website_admin``, 200 for
-   ``account_admin`` and ``system_admin``), every filter against a mixed
+   ``user_admin``, and ``website_admin``, 403 for ``dart_leader`` on every
+   endpoint except the list, 200 for ``account_admin`` and ``system_admin``),
+   every filter against a mixed
    fixture, ordering, creation with and without a password, nested profile
    updates, the delete rules and the grant-term arithmetic.
+``backend/tests/test_member_county.py``
+   The county filter on the list and on the membership report, the 400 for a
+   county outside California, and the ``County`` column: its place after
+   ``state``, off by default, and the cell it prints.
+``backend/tests/test_member_list_leaders.py``
+   The DART leader on the list: the allow and deny matrix for the list, the
+   whole membership in the answer, the DART filter, the report download, and
+   the refusal of creating a member, reading a member record, and granting a term.
 ``backend/tests/test_members_delete_payments.py``
    The payment guard: a refusal for every payment status and its message, the
    payment summary before and after a refusal, the same refusal for a system
