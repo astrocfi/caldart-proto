@@ -62,6 +62,8 @@ LIST_URL = "/api/v1/admin/members"
 #: Roles that may use the members-admin API at all.
 ALLOWED_ROLES = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
 DENIED_ROLES = [MEMBER, DART_LEADER, USER_ADMIN, WEBSITE_ADMIN]
+#: Roles refused the member list too: a DART leader may read it.
+LIST_DENIED_ROLES = [role for role in DENIED_ROLES if role != DART_LEADER]
 
 
 def detail_url(user: User) -> str:
@@ -207,14 +209,21 @@ def test_every_endpoint_is_401_when_anonymous(
 
 
 @pytest.mark.parametrize("role", DENIED_ROLES)
-def test_reads_are_forbidden_without_account_admin(
+def test_a_member_record_is_forbidden_without_account_admin(
     api_client: APIClient, all_role_users: dict[str, User], population: dict[str, User], role: str
 ) -> None:
-    """A role outside account admin and system admin is refused every read."""
+    """A role outside account admin and system admin is refused one member's record."""
     api_client.force_login(all_role_users[role])
-    target = population["current"]
-    for url in (LIST_URL, detail_url(target)):
-        assert api_client.get(url).status_code == 403, url
+    assert api_client.get(detail_url(population["current"])).status_code == 403
+
+
+@pytest.mark.parametrize("role", LIST_DENIED_ROLES)
+def test_the_list_is_forbidden_without_account_admin_or_dart_leader(
+    api_client: APIClient, all_role_users: dict[str, User], population: dict[str, User], role: str
+) -> None:
+    """A role outside account admin, DART leader and system admin is refused the list."""
+    api_client.force_login(all_role_users[role])
+    assert api_client.get(LIST_URL).status_code == 403
 
 
 @pytest.mark.parametrize("role", DENIED_ROLES)

@@ -1,6 +1,8 @@
 """Account-administrator member and membership management.
 
-Every view here is gated on ``account_admin``; ``system_admin`` passes through
+Every view here is gated on ``account_admin`` but one: reading the member list,
+``GET /admin/members``, also admits a ``dart_leader``, who sees the whole
+membership.  ``system_admin`` passes through
 :func:`apps.accounts.permissions.user_has_any_role`.  Anonymous callers get 401
 from ``caldart.exceptions``, not 403.
 """
@@ -15,13 +17,15 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, status
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.accounts.permissions import IsAccountAdmin
+from apps.accounts.permissions import HasAnyRole, IsAccountAdmin
+from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER
 from apps.members.api.actors import acting_user
 from apps.members.api.admin_serializers import (
     AdminMembershipSerializer,
@@ -42,6 +46,9 @@ from caldart import audit
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
+
+#: Who may read the member list: a DART leader as well as an account administrator.
+MemberListReader = HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)
 
 
 class MemberAdminBaseView(generics.GenericAPIView["MemberRow"]):
@@ -65,6 +72,16 @@ class MemberAdminBaseView(generics.GenericAPIView["MemberRow"]):
 )
 class MemberAdminListCreateView(MemberAdminBaseView, generics.ListCreateAPIView["MemberRow"]):
     """``GET /admin/members`` (filtered, ordered, paginated) and ``POST``."""
+
+    def get_permissions(self) -> list[BasePermission]:
+        """A DART leader or an account administrator to read; only the latter to create.
+
+        A leader reads the whole membership to find people for a mission, but
+        adding somebody to it stays with the account administrator.
+        """
+        if self.request.method in SAFE_METHODS:
+            return [MemberListReader()]
+        return [IsAccountAdmin()]
 
     def get_serializer_class(self) -> type[BaseSerializer[Any]]:
         """The create serializer for a POST, the list row serializer otherwise."""
