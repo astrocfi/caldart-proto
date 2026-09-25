@@ -129,7 +129,10 @@ in step 5 and documented in :doc:`configuration`.
 
 ``/static/`` is deliberately **not** aliased in the web server.  whitenoise
 serves it through the proxy so that the hashed filenames ``collectstatic``
-produces stay authoritative and get far-future cache headers.  Only
+produces stay authoritative and get far-future cache headers.  The user guide
+at ``/docs/`` is not aliased either: Django serves it from ``USER_GUIDE_ROOT``
+and asks the reader to sign in first, so it stays behind the same login as the
+portal and needs nothing from the web server (:doc:`configuration`).  Only
 ``/media/`` — Wagtail's user uploads, which keep their filenames — is served
 straight off disk, and ``/media/documents/`` is carved back out of it: a
 document may belong to the members-only collection, and Django's document view
@@ -270,18 +273,28 @@ password, the Django secret key and the payment provider secrets; it should
 never be world-readable and never be committed.
 
 
+.. _deploy-build:
+
 6. Build
 ========
 
 ::
 
   cd /srv/caldart
-  sudo uv sync --frozen --no-dev
+  sudo uv sync --frozen --no-dev --group docs
   cd frontend && sudo npm ci && sudo npm run build && cd ..
+  sudo uv run sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
 
 ``npm run build`` writes ``frontend/dist`` including
 ``.vite/manifest.json``, which django-vite reads to find the hashed asset
 names.  Without it every page raises at render time.
+
+``--group docs`` installs Sphinx and its theme, which the last line uses to
+build the user guide into ``docs/_build/guide``, the directory Django serves at
+``/docs/`` to signed-in users (it is ``make guide`` on a checkout).  The
+developer guide is not published: the build reads ``docs/user`` alone.  Without
+this step ``/docs/`` answers 404 and the journal says the guide has not been
+built.  A deployment that keeps the guide elsewhere sets ``USER_GUIDE_ROOT``.
 
 
 7. Database and static files
@@ -538,7 +551,9 @@ free space on the backup filesystem, the last backup, the version from
 ``debug`` is ``false`` and ``pending_migrations`` is ``0``.
 
 Then, in a browser: the public site loads and is styled, ``/portal/`` signs you
-in, ``/admin/`` opens Wagtail, and ``/portal/system`` shows three green panels.
+in, ``/admin/`` opens Wagtail, ``/portal/system`` shows three green panels, and
+the **User guide** link at the foot of the portal's menu opens your role's
+page of the guide.
 
 
 Deployment checks
@@ -727,8 +742,9 @@ Take a backup first, always.  ``caldart_manage`` is the function from
 
   cd /srv/caldart
   sudo git pull
-  sudo uv sync --frozen --no-dev
+  sudo uv sync --frozen --no-dev --group docs
   cd frontend && sudo npm ci && sudo npm run build && cd ..
+  sudo uv run sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
 
   caldart_manage migrate
   caldart_manage createcachetable
@@ -738,7 +754,9 @@ Take a backup first, always.  ``caldart_manage`` is the function from
   journalctl -u caldart-web -n 30
 
 Order matters: build the frontend before ``collectstatic``, and restart the web
-unit last.  ``createcachetable`` is idempotent: it does nothing when
+unit last.  The guide is rebuilt in the same sequence, so the copy at ``/docs/``
+is always the one the running code describes; Django reads it off disk on every
+request, so it needs no restart of its own.  ``createcachetable`` is idempotent: it does nothing when
 ``caldart_cache`` is already there, and it is in the list so that no upgrade
 can leave a box without it.  ``preload_app`` is on, so a restart — not a reload — is what picks
 up new code.
@@ -765,6 +783,11 @@ this document; check the vhost was actually reloaded.
 
 **Unstyled pages, or ``Manifest file not found``.**  ``npm run build`` did not
 run, or ``collectstatic`` did not.  Run both, then restart the unit.
+
+**``/docs/`` answers 404 and the journal says the user guide has not been
+built.**  The Sphinx step of :ref:`the build <deploy-build>` did not run, or
+``USER_GUIDE_ROOT`` names a directory with no ``index.html``.  Run it, or point
+the variable at the directory it wrote to.
 
 **``ValueError: Missing staticfiles manifest entry``.**  ``collectstatic`` ran
 before the frontend build.  Run them in that order and restart.

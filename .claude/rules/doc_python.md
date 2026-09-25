@@ -20,6 +20,11 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   docs page that covers it.
 - After ANY code or documentation change, rebuild the full tree and fix every warning and error
   before delivering (see Section 5).
+- The site serves `docs/user/` alone, at `/docs/`, to signed-in users. `make guide` builds that
+  copy from the same `conf.py` (the `guide` tag, the `dirhtml` builder), and `make docs` runs it
+  first. A reference from the user guide into the developer guide renders there as the page's
+  title in italics, so it is fine to keep; a reference into `demo-walkthrough.rst` or
+  `index.rst` is not resolvable in that build and fails it.
 
 ## 2. Prose Conventions
 

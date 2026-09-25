@@ -10,7 +10,8 @@ and run the renewal reminders.
 This guide covers that screen and the routine around it.  Anything that has to
 happen on the server itself — installing an upgrade, restoring a backup,
 changing configuration — is in the developer guide, and this page says when to
-go there.
+go there.  The developer guide is not published on the site with this one; it
+is in the repository, under ``docs/developer/``, and ``make docs`` builds it.
 
 
 What the role grants

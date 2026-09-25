@@ -190,6 +190,13 @@ On a phone the menu collapses behind the **Menu** button in the top bar.  Every
 screen is keyboard-navigable, and *Skip to content* is the first stop when you
 start tabbing.
 
+This guide is on the site too.  **User guide** at the foot of the portal's menu
+opens the page for your role — a member lands on :doc:`member-guide`, a DART
+leader on :doc:`dart-leader-guide`, an administrator on their own guide — and
+every page links to the rest.  The public site's footer links to the guide's
+front page.  Either way you are asked to sign in first if you have not
+already: the guide is for members.
+
 Where to go next:
 
 * :doc:`member-guide` — your profile, membership, and renewals.

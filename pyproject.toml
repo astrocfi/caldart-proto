@@ -23,7 +23,16 @@ dependencies = [
 ]
 
 [dependency-groups]
+# The Sphinx toolchain is its own group because production installs it: the
+# user guide is built on the server and served at /docs/ (see
+# docs/developer/deployment.rst).  `dev` includes it, so `uv sync` still
+# installs everything a checkout needs.
+docs = [
+    "sphinx>=8.0",
+    "furo>=2024.8.6",
+]
 dev = [
+    { include-group = "docs" },
     "pytest>=8.3",
     "pytest-django>=4.9",
     "pytest-cov>=6.0",
@@ -33,8 +42,6 @@ dev = [
     "respx>=0.21",
     "codespell>=2.4.3",
     "ruff>=0.7",
-    "sphinx>=8.0",
-    "furo>=2024.8.6",
     "mypy>=2.3.1",
     "django-stubs[compatible-mypy]>=6.1.1",
     "djangorestframework-stubs[compatible-mypy]>=3.18.1",

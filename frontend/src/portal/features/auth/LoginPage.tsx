@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -6,6 +6,7 @@ import { useAuth, useLogin } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
+import { isGuidePath, openGuide } from '@/portal/guide';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { maskEmail } from '@/portal/masks';
 import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
@@ -19,7 +20,13 @@ export function safeNext(raw: string | null): string {
   return raw;
 }
 
-/** `/login` — email + password, honoring `?next=`. */
+/**
+ * `/login` — email + password, honoring `?next=`.
+ *
+ * `next` is a portal route, except when it names a page of the user guide:
+ * Django sends a signed-out reader here with the guide page as `next`, and the
+ * guide lives outside the SPA, so that one is a full-page navigation.
+ */
 export function LoginPage(): JSX.Element {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -30,8 +37,14 @@ export function LoginPage(): JSX.Element {
   const [emailError, setEmailError] = useState<string | null>(null);
 
   const next = safeNext(params.get('next'));
+  const isGuide = isGuidePath(next);
+  const isSignedIn = !isLoading && isAuthenticated;
 
-  if (!isLoading && isAuthenticated) return <Navigate to={next} replace />;
+  useEffect(() => {
+    if (isSignedIn && isGuide) openGuide(next);
+  }, [isSignedIn, isGuide, next]);
+
+  if (isSignedIn) return isGuide ? <></> : <Navigate to={next} replace />;
 
   return (
     <Page
@@ -53,6 +66,10 @@ export function LoginPage(): JSX.Element {
               { email, password },
               {
                 onSuccess: () => {
+                  if (isGuide) {
+                    openGuide(next);
+                    return;
+                  }
                   void navigate(next, { replace: true });
                 },
               },

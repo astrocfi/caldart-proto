@@ -1,21 +1,33 @@
 """Sphinx configuration for the CalDART documentation set.
 
 Kept deliberately minimal: ``make docs`` needs nothing in the environment
-except Sphinx and the ``furo`` theme, both of which are in the ``dev``
+except Sphinx and the ``furo`` theme, both of which are in the ``docs``
 dependency group.  Graphviz is used when it is installed and skipped cleanly
 when it is not (see ``extensions`` below).  The whole set must build clean
 under ``sphinx-build -n -W`` (nitpicky; warnings are errors) -- ``make docs``
 runs it that way, and CI runs ``make docs`` on every PR.
+
+The same configuration builds two things.  ``make docs`` builds the whole tree
+from ``docs/``.  ``make guide`` builds ``docs/user/`` alone, with the ``guide``
+tag and the ``dirhtml`` builder, into the user guide the site serves at
+``/docs/`` to signed-in members; the developer guide stays unpublished, so a
+reference into it renders as the page's title in italics (see
+``_unpublished_developer_reference`` below).
 """
 
 from __future__ import annotations
 
 import shutil
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from docutils import nodes
+
 if TYPE_CHECKING:
-    from docutils.nodes import Node
+    from docutils.nodes import Element, Node
+    from sphinx.addnodes import pending_xref
     from sphinx.application import Sphinx
+    from sphinx.environment import BuildEnvironment
 
 # -- Project information -----------------------------------------------------
 
@@ -49,8 +61,93 @@ if _HAS_DOT:
 graphviz_output_format = "svg"
 
 
+# -- The user guide on its own -----------------------------------------------
+
+# The directory the developer guide lives in.  ``make guide`` builds from
+# ``docs/user`` with this file as its configuration, so the developer pages are
+# outside that build's source tree, and every reference into them from the user
+# guide (``:doc:`/developer/backup-restore``` and the like) would otherwise be
+# an unresolved reference and, under ``-W``, a failed build.
+_DEVELOPER_DIR = Path(__file__).parent / "developer"
+
+# The characters reStructuredText accepts for a section title's underline.
+_ADORNMENTS = "=-~^\"'`#*+_:.<>"
+
+
+def _underlines(candidate: str, title: str) -> bool:
+    """True when ``candidate`` is a title underline at least as long as ``title``."""
+    return len(candidate) >= len(title) and len(set(candidate)) == 1 and candidate[0] in _ADORNMENTS
+
+
+def _section_titles(lines: list[str]) -> list[tuple[int, str]]:
+    """Every section title in an rst source, as ``(line index, title)`` pairs."""
+    return [
+        (index, line.strip())
+        for index, line in enumerate(lines[:-1])
+        if line.strip() and _underlines(lines[index + 1], line)
+    ]
+
+
+def _developer_titles() -> tuple[dict[str, str], dict[str, str]]:
+    """Read the developer guide's page and section titles off its sources.
+
+    Returns two maps: docname (``developer/deployment``) to page title, and
+    label (``deploy-troubleshooting``) to the title of the section the label
+    precedes.  Read from the files rather than from Sphinx because the guide
+    build never parses them.
+    """
+    pages: dict[str, str] = {}
+    labels: dict[str, str] = {}
+    for source in sorted(_DEVELOPER_DIR.glob("*.rst")):
+        lines = source.read_text(encoding="utf-8").splitlines()
+        titles = _section_titles(lines)
+        if not titles:
+            continue
+        pages[f"developer/{source.stem}"] = titles[0][1]
+        for index, line in enumerate(lines):
+            if line.startswith(".. _") and line.rstrip().endswith(":"):
+                label = line.strip()[4:-1]
+                following = [title for title_index, title in titles if title_index > index]
+                if following:
+                    labels[label] = following[0]
+    return pages, labels
+
+
+_DEVELOPER_PAGES, _DEVELOPER_LABELS = _developer_titles()
+
+
+def _unpublished_developer_reference(
+    app: Sphinx, env: BuildEnvironment, node: pending_xref, contnode: Element
+) -> Node | None:
+    """Render a reference into a developer page this build leaves out.
+
+    Fires only for a reference Sphinx could not resolve.  In the whole-tree
+    build every developer page is present, so the handler declines and the
+    usual warning stands.  In the guide build the developer directory is
+    outside the source tree; a ``:doc:`` to one of its pages, or a ``:ref:`` to
+    a label defined in one, then renders as the page or section title in
+    italics (or as the explicit link text, when the reference gave one), and
+    anything else still warns.
+    """
+    if (Path(env.srcdir) / _DEVELOPER_DIR.name).is_dir():
+        return None
+    reftype = node["reftype"]
+    target = node["reftarget"]
+    if reftype == "doc":
+        title = _DEVELOPER_PAGES.get(target.removeprefix("/"))
+    elif reftype == "ref":
+        title = _DEVELOPER_LABELS.get(target)
+    else:
+        return None
+    if title is None:
+        return None
+    if node.get("refexplicit"):
+        return nodes.emphasis("", "", *contnode.children)
+    return nodes.emphasis(title, title)
+
+
 def setup(app: Sphinx) -> None:
-    """Keep ``.. graphviz::`` parseable even when the extension is not loaded.
+    """Register the guide build's reference handler and the graphviz stand-in.
 
     ``.. only::`` prunes the doctree *after* parsing, so a ``graphviz``
     directive inside a branch that will be discarded is still parsed -- and an
@@ -58,6 +155,8 @@ def setup(app: Sphinx) -> None:
     Registering a no-op under the same name closes that hole; the ``only``
     directive then discards the (empty) result as intended.
     """
+    app.connect("missing-reference", _unpublished_developer_reference)
+
     if _HAS_DOT:
         return
 
@@ -115,7 +214,7 @@ nitpicky = True
 # -- HTML output -------------------------------------------------------------
 
 html_theme = "furo"
-html_title = "CalDART"
+html_title = "CalDART user guide" if tags.has("guide") else "CalDART"  # noqa: F821 - Sphinx injects ``tags``
 
 # No custom static assets or templates.  Pointing at directories that do not
 # exist raises a warning, and warnings are errors.

@@ -18,7 +18,8 @@ description: Standards for declaring, installing, and maintaining the project's 
 | Group | Section | Install command | Purpose |
 |-------|---------|-----------------|---------|
 | **Runtime** | `[project].dependencies` | `uv sync` | Required for the application to run. |
-| **Dev** | `[dependency-groups].dev` | `uv sync` (installed by default) | Testing, linting, and the Sphinx docs toolchain. |
+| **Docs** | `[dependency-groups].docs` | `uv sync` (`dev` includes it); `uv sync --no-dev --group docs` in production | Sphinx and its theme: the user guide is built on the server and served at `/docs/`. |
+| **Dev** | `[dependency-groups].dev` | `uv sync` (installed by default) | Testing and linting, plus the `docs` group. |
 | **Frontend** | `frontend/package.json` (`dependencies`, `devDependencies`) | `cd frontend && npm ci` | The portal SPA, public-site scripts, and their tooling. |
 
 ## 3. Version Constraints

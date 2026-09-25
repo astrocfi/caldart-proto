@@ -1,8 +1,10 @@
 """Project middleware.
 
-``WagtailAdminCspMiddleware`` is the one place the Content-Security-Policy in
-``caldart.settings.base`` is relaxed.  Everything else -- the public site, the
-portal SPA and the API -- is served under that policy unchanged.
+``WagtailAdminCspMiddleware`` relaxes the Content-Security-Policy in
+``caldart.settings.base`` for the Wagtail admin; ``caldart.views.user_guide``
+relaxes it the same way for the built user guide.  Everything else -- the
+public site, the portal SPA and the API -- is served under that policy
+unchanged.
 """
 
 from __future__ import annotations
