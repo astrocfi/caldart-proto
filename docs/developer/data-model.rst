@@ -54,8 +54,9 @@ Domain schema
                 once rather than eight times: ``Dart``, ``DartContact``,
                 ``MemberProfile``, ``MembershipPlan``, ``Membership``,
                 ``Aircraft``, ``Payment``, ``Refund``, ``RenewalMandate``,
-                ``RenewalAttempt``, ``ReminderLog``, and ``EmailLog`` all
-                inherit it.
+                ``RenewalAttempt``, ``ReminderLog``, ``EmailLog``,
+                ``SavedColumnSet``, and ``ReportSubscription`` all inherit
+                it.
       :alt: Entity-relationship diagram of the CalDART domain models
 
       digraph caldart_domain {
@@ -85,6 +86,8 @@ Domain schema
           AircraftChange [label="aircraft.AircraftChange\l  changed_at, kind\l  fields (JSON)\l"];
           Reminder [label="reminders.ReminderLog\l  kind, sent_at, to_email\l  (user, membership, kind) unique\l"];
           Email [label="mail.EmailLog\l  to_email, purpose, subject\l  sent_at, status, error, attachments\l"];
+          ColumnSet [label="reports.SavedColumnSet\l  report, name, columns (JSON)\l  (user, report, name) unique\l"];
+          Subscription [label="reports.ReportSubscription\l  report, recipient_email\l  filters, columns (JSON)\l  formats, cadence, weekday\l  is_active, last_sent_at, next_due_on\l"];
           DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
 
           User -> Group [label="groups (m2m)", dir=none, color="black:black"];
@@ -112,6 +115,8 @@ Domain schema
           Reminder -> User [label="user (CASCADE)"];
           Reminder -> Membership [label="membership (CASCADE)"];
           Email -> User [label="user (null, SET_NULL)"];
+          ColumnSet -> User [label="user (CASCADE)"];
+          Subscription -> User [label="recipient_user, created_by (null, SET_NULL)"];
           Contact -> Dart [label="dart (CASCADE)\lrelated: contacts"];
           DartPage -> Dart [label="dart (null, SET_NULL)"];
 
@@ -135,7 +140,8 @@ Domain schema
                                  inherited by Dart, DartContact, MemberProfile,
                                  MembershipPlan, Membership, Aircraft
                                  , Payment, Refund, RenewalMandate
-                                 , RenewalAttempt, ReminderLog, and EmailLog
+                                 , RenewalAttempt, ReminderLog, EmailLog
+                                 , SavedColumnSet, and ReportSubscription
       payments.Provider          start(payment), confirm(payment, **kwargs),
                                  handle_webhook(request)
                                  implemented by StripeProvider (slug stripe),
@@ -168,6 +174,9 @@ Domain schema
                              '--- reminders.ReminderLog --> accounts.User
 
           mail.EmailLog --- user --> accounts.User
+
+          reports.SavedColumnSet --- user --> accounts.User
+          reports.ReportSubscription --- recipient_user, created_by --> accounts.User
 
           payments.RenewalMandate --- 1--1 --- accounts.User
                  ^          '--------> members.MembershipPlan
@@ -205,6 +214,12 @@ Domain schema
                               (user, membership, kind) unique together
       mail.EmailLog           to_email, purpose, subject, sent_at, status,
                               error, attachments
+      reports.SavedColumnSet  report, name, columns (JSON list of keys);
+                              (user, report, name) unique together
+      reports.ReportSubscription
+                              report, recipient_email, filters (JSON),
+                              columns (JSON), formats, cadence, weekday,
+                              is_active, last_sent_at, next_due_on
       darts.DartContact       name, title, phone, email, sort_order,
                               receives_roster
       cms.DartPage            leader_name, leader_contact, body
@@ -240,6 +255,9 @@ Domain schema
       reminders.ReminderLog.user     -> accounts.User            FK, CASCADE
       reminders.ReminderLog.membership -> members.Membership     FK, CASCADE
       mail.EmailLog.user             -> accounts.User            FK, SET_NULL, nullable
+      reports.SavedColumnSet.user    -> accounts.User            FK, CASCADE
+      reports.ReportSubscription.recipient_user -> accounts.User FK, SET_NULL, nullable
+      reports.ReportSubscription.created_by     -> accounts.User FK, SET_NULL, nullable
       cms.DartPage.dart              -> darts.Dart               FK, SET_NULL, nullable
 
 CMS page models
@@ -1353,6 +1371,85 @@ repeating; this is the record of the message.
 A reminder's own ``ReminderLog`` row is deleted by hand when the send fails,
 so the reminder stays due, but the send itself leaves a ``failed`` row here
 regardless -- the same as any other refused email.
+
+.. _data-model-reports:
+
+reports
+=======
+
+A report itself is not a row: it is a spec its app declares (see :doc:`reports`),
+and the rows here name one by its slug -- ``members``, ``aircraft``,
+``payments``, ``reconciliation`` or ``contributions``.
+
+``SavedColumnSet``
+------------------
+
+A named choice of one report's columns, kept for the account that saved it.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 24 76
+
+   * - Field
+     - Meaning
+   * - ``user``
+     - FK ``User``, ``CASCADE``: the account the set belongs to
+   * - ``report``
+     - the report's slug, at most 32 characters
+   * - ``name``
+     - at most 60 characters
+   * - ``columns``
+     - JSON list of the report's column keys, in the order it prints them; at
+       least one, none repeated, every one in the report's registry
+
+Unique on ``(user, report, name)``, compared exactly, so ``Roster`` and
+``roster`` are two sets; saving under a name already in use replaces that set's
+columns.  Ordered by ``name``.  A report whose columns are fixed keeps no sets.
+
+``ReportSubscription``
+----------------------
+
+One report, emailed to one address on a schedule (see
+:doc:`scheduled-reports`).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 24 76
+
+   * - Field
+     - Meaning
+   * - ``report``
+     - the report's slug
+   * - ``recipient_user``
+     - FK ``User``, ``SET_NULL``, nullable: the account the report goes to,
+       null for a confirmed address outside CalDART
+   * - ``recipient_email``
+     - always filled: the account's address when the subscription was set up,
+       or the address typed
+   * - ``filters``
+     - JSON object of the params the report takes, ``period`` included
+   * - ``columns``
+     - JSON list of column keys; empty means the report's defaults
+   * - ``formats``
+     - ``csv``, ``pdf`` or ``both``
+   * - ``cadence``
+     - ``weekly``, ``monthly``, ``quarterly`` or ``yearly``
+   * - ``weekday``
+     - 0 (Monday) to 6 (Sunday), default 0; read by ``weekly`` alone
+   * - ``is_active``
+     - default true; false pauses it, and the sender pauses a subscription
+       whose account may no longer read the report
+   * - ``created_by``
+     - FK ``User``, ``SET_NULL``, nullable: who set it up
+   * - ``last_sent_at``
+     - when it last went out, or null
+   * - ``next_due_on``
+     - the first day the daily run sends it
+
+Ordered by ``report``, then ``recipient_email``, and indexed on
+``(is_active, next_due_on)``, which is the daily run's question.  A DART's
+roster needs no row of its own: who receives it is ``DartContact.receives_roster``
+and when it last went is ``Dart.roster_sent_at``.
 
 cms
 ===

@@ -7,13 +7,15 @@ API: reminders, system, and site
 The endpoints that keep the installation running and the one the portal calls
 before it has a user: ``GET /admin/reminders/log`` and
 ``POST /system/reminders/run`` from ``apps.reminders``,
+``POST /system/reports/run`` from ``apps.reports``,
 ``GET /system/emails`` from ``apps.mail``, the health, backup and
 renewal-scan routes under ``/system/`` from ``apps.sysadmin``, and
 ``GET /site/config`` from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
 session authentication, the CSRF header, pagination, and the error shapes.
 
 The subsystem chapters behind them are :doc:`reminders` (what the scan sends
-and when), :doc:`renewals` (what the automatic-renewal scan charges and when),
+and when), :doc:`scheduled-reports` (which reports and rosters go out, and
+when), :doc:`renewals` (what the automatic-renewal scan charges and when),
 :doc:`backup-restore` (what a dump contains and how to restore one) and
 :doc:`cms` (where the navigation and the members-only pages come from).
 
@@ -115,6 +117,57 @@ member the scan would try to mail lands in it, including ones a live run would
 end up recording as a failure, or as skipped because a concurrent run got there
 first.  The breakdown per stage is what ``manage.py send_renewal_reminders``
 prints; see :doc:`reminders`.
+
+Statuses: **200**; **400** when ``dry_run`` is not a boolean; **401** when
+anonymous; **403** for any other role.
+
+
+.. _api-reports-run:
+
+Scheduled reports
+=================
+
+``POST /system/reports/run``
+----------------------------
+
+Runs the report sender immediately instead of waiting for the daily timer: every
+report subscription that is due, then every DART roster not yet sent this month,
+exactly as ``manage.py send_scheduled_reports`` sends them (see
+:doc:`scheduled-reports`).  ``system_admin`` only.  The body is optional;
+``dry_run`` defaults to ``false``.
+
+.. code-block:: json
+
+   {"dry_run": true}
+
+.. code-block:: json
+
+   {
+     "sent": 3,
+     "skipped": 1,
+     "failed": 0,
+     "skipped_by_reason": {"no_recipients": 1},
+     "actions": [
+       {"kind": "report", "member": "Curtis Whitfield",
+        "email": "accountadmin@example.org", "on": null, "amount_cents": null,
+        "detail": "CalDART membership report, PDF"},
+       {"kind": "roster", "member": "Dana Lee", "email": "dana@example.org",
+        "on": null, "amount_cents": null, "detail": "Bay Area DART"}
+     ]
+   }
+
+Each action is one email: kind ``report`` names the subscription's recipient,
+with the report's title and formats in ``detail``, and kind ``roster`` names a
+person ticked to receive a DART's roster, with the DART in ``detail``.  ``on``
+and ``amount_cents`` are always ``null``.  ``skipped_by_reason`` holds one entry
+per reason that occurred: ``not_permitted`` (the subscription's account may no
+longer read the report, so it was paused), ``no_recipients`` (a DART with nobody
+ticked who has an address) and ``no_email`` (one ticked person without an
+address).  ``failed`` counts the emails the mail server refused, and the reports
+the stored filters could no longer build; each of them stays due.
+
+A dry run writes nothing: no email, no pause, no stamp, and no date moves on.  The
+caller is the actor on the ``reports.run`` audit line.
 
 Statuses: **200**; **400** when ``dry_run`` is not a boolean; **401** when
 anonymous; **403** for any other role.

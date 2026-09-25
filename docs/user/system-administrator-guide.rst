@@ -299,6 +299,7 @@ Installing or upgrading the application       :doc:`/developer/deployment`
 Restoring a backup                            :doc:`/developer/backup-restore`
 Changing configuration or secrets             :doc:`/developer/configuration`
 Changing the reminder schedule or wording     :doc:`/developer/reminders`
+Changing when the scheduled reports go out    :doc:`/developer/scheduled-reports`
 Payment provider keys and webhooks            :doc:`/developer/payments-setup`
 ============================================  ==================================
 
@@ -396,6 +397,18 @@ When something goes wrong
    ``systemctl status caldart-reminders`` reads ``failed`` when the last run
    could not send something, and ``journalctl -u caldart-reminders`` names the
    member and membership ids it could not reach.
+
+**Scheduled reports or DART rosters never arrive.**
+   The reports and the rosters go out from one daily run, driven by
+   ``caldart-reports.timer`` at 06:00.  Confirm the timer is enabled and
+   running on the server; ``systemctl status caldart-reports`` reads
+   ``failed`` when the last run could not send something, and ``journalctl -u
+   caldart-reports`` names the subscription and DART ids it could not reach.
+   ``caldart_manage send_scheduled_reports --dry-run`` lists who today's run
+   would write to.  A subscription whose recipient has lost the role that
+   reads the report is paused, not sent, and a DART with nobody ticked to
+   receive its roster is skipped; both are counted in the run's summary.  See
+   :doc:`/developer/scheduled-reports`.
 
 The quickest diagnosis from a shell on the server is ``caldart_manage
 health``, or ``caldart_manage health --json`` if you want to feed it to
