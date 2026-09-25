@@ -114,10 +114,10 @@ all call it.  In order:
       means ``membership_status(user)["expires_on"]`` no longer equals this
       term's ``ends_on``; for ``post30`` it means the member is current again.
 
-4. **Log, then send.**  The ``ReminderLog`` row is written first, inside the
-   same transaction as the send.  A unique constraint on
-   ``(user, membership, kind)`` means that if two runs race, the loser rolls
-   back rather than sending a duplicate.
+4. **Log, then send.**  The ``ReminderLog`` row is written and committed
+   before the send is attempted.  A unique constraint on
+   ``(user, membership, kind)`` means that if two runs race, the loser's
+   insert fails immediately rather than sending a duplicate.
 
 The function returns a ``ReminderRun``: the date scanned, whether it was a dry
 run, how many terms were expired, how many emails were sent broken down by
@@ -132,8 +132,10 @@ The scan never stops at the first bad address.  Each send is attempted on its
 own, and two outcomes are handled rather than raised:
 
 **The mail server refuses the message** (an ``SMTPException``, or any other
-``OSError`` from the connection).  The transaction rolls back, so no
-``ReminderLog`` row survives and the reminder is still due.  A later run sends
+``OSError`` from the connection).  The ``ReminderLog`` row already written is
+deleted by hand, so no row survives and the reminder is still due -- the
+send itself still leaves a ``failed`` row in the email log
+(:ref:`api-email-log`).  A later run sends
 it while that member's ``ends_on`` is still inside the stage's span
 (:ref:`reminders-stages`), so the retry is the rest of the span and nothing
 more: a week for ``t7`` and ``expired``, three weeks or more for the others.
@@ -346,10 +348,10 @@ Every reminder is also recorded in the email log, under the purpose
 ``reminder_<kind>``, along with every other email the system sends
 (:ref:`api-email-log`).  The two logs answer different questions: the reminder
 log is the key that keeps a stage from repeating, and the email log is the record
-of the message, with its subject and whether the mail server took it.  Because
-the reminder row and the send share one transaction, a refused reminder leaves
-neither row behind and stays due; a refusal in any other email leaves a
-``failed`` row in the email log.
+of the message, with its subject and whether the mail server took it.  A refused
+reminder leaves no ``ReminderLog`` row, so it stays due, but the send is still
+recorded as a ``failed`` row in the email log, the same as any other refused
+email.
 
 .. _reminders-account-admin:
 
@@ -409,8 +411,9 @@ renewals being skipped, and the rendered content of every template.
 days late still sending, a run late enough to miss a stage sending the next one,
 nothing at all after ``post30`` -- the day count in a late email, and the
 failure paths: a locmem backend that refuses one address, the log line that
-names ids and no address, a log row written under the scan to stand in for a
-racing run, and a retry that the rest of the span allows.
+names ids and no address, a failed send still leaving a ``failed`` row in the
+email log, a log row written under the scan to stand in for a racing run, and a
+retry that the rest of the span allows.
 ``backend/tests/test_reminders_api.py`` covers the endpoints and their role
 matrix.  Dates are pinned with ``freezegun`` where the code reads the clock,
 and passed explicitly everywhere else.

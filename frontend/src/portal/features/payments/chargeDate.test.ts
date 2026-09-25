@@ -1,13 +1,7 @@
 /** The dates the renewal screens offer, and the day they warn about. */
 import { describe, expect, it } from 'vitest';
 
-import { defaultChargeDate, isAfterExpiry, notBeforeToday, todayIso } from './chargeDate';
-
-describe('todayIso', () => {
-  it('writes the reader’s own day as the date box wants it', () => {
-    expect(todayIso(new Date(2026, 8, 4))).toBe('2026-09-04');
-  });
-});
+import { defaultChargeDate, isAfterExpiry, notBeforeToday } from './chargeDate';
 
 describe('defaultChargeDate', () => {
   it('takes the day the membership runs out for a member who has an expiry', () => {

@@ -9,8 +9,6 @@ finance roles reach any member's, and can send a receipt again.
 from __future__ import annotations
 
 import datetime as dt
-import logging
-from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -24,9 +22,8 @@ from apps.members.models import MembershipPlan
 from apps.payments import receipts
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from apps.payments.services import create_checkout, mark_succeeded
-from caldart import audit
 from caldart.receipts import CONTRIBUTION_NOTICE, CONTRIBUTIONS_NOTICE
-from tests.conftest import PdfText
+from tests.conftest import PdfText, audit_messages
 from tests.factories import PaymentFactory, RefundFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -48,26 +45,6 @@ def drawn(pdf: bytes, pdf_text: PdfText) -> str:
 def _mock_enabled(settings: Settings) -> None:
     """Enable the mock provider, which the payments here are taken through."""
     settings.PAYMENTS_MOCK_ENABLED = True
-
-
-@pytest.fixture
-def audit_log(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixture]:
-    """Capture the ``caldart.audit`` records a test provokes.
-
-    The audit logger does not propagate, so the capture handler hangs on it
-    directly and comes off again whatever the test does.
-    """
-    logger = logging.getLogger(audit.LOGGER_NAME)
-    logger.addHandler(caplog.handler)
-    try:
-        yield caplog
-    finally:
-        logger.removeHandler(caplog.handler)
-
-
-def audit_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
-    """Every audit line captured, as rendered."""
-    return [record.getMessage() for record in caplog.records if record.name == audit.LOGGER_NAME]
 
 
 def succeeded_payment(

@@ -12,13 +12,7 @@
  * guessing.
  */
 import type { IsoDate } from '@/portal/api/types';
-
-/** Today as `YYYY-MM-DD` on the reader's own clock, for a date box. */
-export function todayIso(today: Date = new Date()): IsoDate {
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${today.getFullYear()}-${month}-${day}`;
-}
+import { todayIso } from '@/portal/components/DateText';
 
 export interface ChargeDateDefault {
   /** True for a life member: their membership has no expiry to charge on. */

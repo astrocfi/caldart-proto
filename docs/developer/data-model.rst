@@ -1258,10 +1258,10 @@ The invariant is a single constraint::
     UniqueConstraint(fields=["user", "membership", "kind"],
                      name="reminders_once_per_kind")
 
-so a second run writes nothing, and the log row is written inside the same
-transaction as the send — a failure rolls both back rather than recording an
-email that never left.  The reminder is then still due, and a later run retries
-it for as long as the term stays in that stage's span.
+so a second run writes nothing, and the log row is written and committed
+before the send is attempted; a failure deletes it by hand rather than
+recording an email that never left.  The reminder is then still due, and a
+later run retries it for as long as the term stays in that stage's span.
 
 ``kind`` and its offset in days from the membership's ``ends_on``, with the span
 of expiry dates it covers on a scan run on day D:
@@ -1344,10 +1344,9 @@ carries no constraint: a member who is written to twice has two rows, which is
 the honest record.  ``ReminderLog`` is the key that keeps a reminder from
 repeating; this is the record of the message.
 
-A reminder's send sits inside the transaction that writes its ``ReminderLog``
-row, so a reminder the mail server refuses rolls both rows back and stays due.
-Every other email is sent outside a transaction, and a refusal leaves a
-``failed`` row behind.
+A reminder's own ``ReminderLog`` row is deleted by hand when the send fails,
+so the reminder stays due, but the send itself leaves a ``failed`` row here
+regardless -- the same as any other refused email.
 
 cms
 ===

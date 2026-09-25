@@ -132,10 +132,10 @@ Every email the installation has tried to send, paginated, and newest first.
 ``system_admin`` only: the rows carry every address written to, which is
 operations work rather than membership work.  Each row is written by the shared
 mail funnel after the send, so a refusal is on the list beside the messages that
-went out -- which is the point of it.  The one exception is a renewal reminder:
-its send shares a transaction with its ``ReminderLog`` row, so a refused reminder
-rolls both rows back and stays due, and the reminder run's ``failed`` count is
-what reports it.
+went out -- which is the point of it, and true for a renewal reminder too.  A
+refused reminder has its ``ReminderLog`` row deleted, so the reminder stays
+due, but the send itself is on this list with a ``failed`` status; the
+reminder run's ``failed`` count reports it as well.
 
 .. code-block:: json
 

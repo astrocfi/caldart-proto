@@ -965,7 +965,6 @@ export interface LeaderSearchResult {
   email: string;
   dart: string | null;
   membership_status: MembershipState;
-  medical: LeaderMedical;
   go_no_go: LeaderGoNoGo;
 }
 

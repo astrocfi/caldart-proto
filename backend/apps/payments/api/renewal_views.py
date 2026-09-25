@@ -110,9 +110,11 @@ class MyRenewalView(APIView):
         ``plan`` names the plan that renews from now on; leaving it out leaves the
         plan alone, and ``next_charge_on`` moves the day of the next charge,
         leaving the stored day alone when it is absent.  A charge already scheduled
-        keeps the day it was written for, which is the day the answer carries, so
-        moving the date inside the notice window takes effect on the charge after
-        it.  404 when the caller has no mandate, 400 naming ``contribution_cents``
+        keeps the day it was written for, which is the day the answer carries;
+        ``_record_success`` overwrites the stored day after every charge, to the
+        term the charge bought or the next anniversary for a contribution, so a
+        day chosen while a charge is scheduled only lasts until that charge
+        completes.  404 when the caller has no mandate, 400 naming ``contribution_cents``
         for an amount outside what a checkout would accept, 400 naming
         ``next_charge_on`` for a day that has already gone by, 400 naming ``plan``
         for a plan that is not on offer, and 400 naming ``auto_renew`` for anything

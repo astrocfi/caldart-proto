@@ -476,11 +476,6 @@ normalizes to ``NATE`` and matches every US registration on file.
        "email": "ana@example.org",
        "dart": "Palo Alto",
        "membership_status": "current",
-       "medical": {
-         "type": "third",
-         "expiration": "2027-03-31",
-         "is_current": true
-       },
        "go_no_go": {"membership": true, "medical": true}
      }
    ]
@@ -488,11 +483,9 @@ normalizes to ``NATE`` and matches every US registration on file.
 ``membership_status`` is the ``current`` / ``expired`` / ``none`` string of the
 ``members.services`` membership summary.
 
-``go_no_go`` and ``medical`` are the same two fields the status card carries and
-are computed by the same rule, so a leader reads the verdict off the list and
-opens the card for the detail rather than for the answer.  A member with no
-profile row reads as ``{"type": "none", "expiration": null, "is_current":
-false}`` and a no-go on both counts.
+``go_no_go`` is computed by the same rule the status card uses, so a leader
+reads the verdict off the list and opens the card for the detail rather than
+for the answer.  A member with no profile row is a no-go on both counts.
 
 Every field comes from the row the search already fetched: the membership
 summary rides along as annotations (see :ref:`membership-status-sql`) and the
