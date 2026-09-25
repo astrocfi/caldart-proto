@@ -552,7 +552,7 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
             defaults={
                 "plan": annual,
                 "contribution_cents": contribution,
-                "next_charge_on": term.ends_on or today,
+                "next_charge_on": term.ends_on if term.ends_on is not None else today,
                 **fields,
             },
         )

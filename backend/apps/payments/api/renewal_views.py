@@ -109,15 +109,17 @@ class MyRenewalView(APIView):
 
         ``plan`` names the plan that renews from now on; leaving it out leaves the
         plan alone, and ``next_charge_on`` moves the day of the next charge,
-        leaving the stored day alone when it is absent.  404 when the caller has no
-        mandate, 400 naming ``contribution_cents`` for an amount outside what a
-        checkout would accept, 400 naming ``next_charge_on`` for a day that has
-        already gone by, 400 naming ``plan`` for a plan that is not on offer, and
-        400 naming ``auto_renew`` for anything the standing authority could not
-        charge again -- a life member naming a plan at all or contributing nothing,
-        and anybody naming a plan that never expires -- which is the same rule the
-        setup endpoint applies.  The dues themselves are not settable: they are
-        the plan's price at the time of each charge.
+        leaving the stored day alone when it is absent.  A charge already scheduled
+        keeps the day it was written for, which is the day the answer carries, so
+        moving the date inside the notice window takes effect on the charge after
+        it.  404 when the caller has no mandate, 400 naming ``contribution_cents``
+        for an amount outside what a checkout would accept, 400 naming
+        ``next_charge_on`` for a day that has already gone by, 400 naming ``plan``
+        for a plan that is not on offer, and 400 naming ``auto_renew`` for anything
+        the standing authority could not charge again -- a life member naming a plan
+        at all or contributing nothing, and anybody naming a plan that never expires
+        -- which is the same rule the setup endpoint applies.  The dues themselves
+        are not settable: they are the plan's price at the time of each charge.
         """
         mandate = own_mandate(request)
         if mandate is None:

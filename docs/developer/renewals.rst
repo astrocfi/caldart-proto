@@ -4,10 +4,11 @@ Automatic renewal
 
 A member can ask CalDART to renew their membership for them: the payment method
 they used is saved with the provider, and a daily scan charges it on the day the
-member chose, which is normally the day the term runs out.  This page covers the mandate that authority is held
-in, the scan that acts on it, the emails it sends, how it interacts with the
-renewal reminders, and how to operate it.  :doc:`api-renewals` is the endpoint
-reference, and :doc:`/user/payments` is what the member and the treasurer see.
+member chose, which is normally the day the term runs out.  This page covers the
+mandate that authority is held in, the scan that acts on it, the emails it sends,
+how it interacts with the renewal reminders, and how to operate it.
+:doc:`api-renewals` is the endpoint reference, and :doc:`/user/payments` is what
+the member and the treasurer see.
 
 .. _renewals-mechanism:
 
@@ -107,8 +108,11 @@ member held while paying.
 ``POST /me/renewal/setup``, ``PATCH /me/renewal`` and ``POST /payments/checkout``
 each take an optional ``next_charge_on``.  A day before today is refused with
 ``The next charge cannot be in the past.``, keyed by ``next_charge_on``.  Any
-later day is allowed, including one after the membership runs out: the member's
-Payments card says so, and their membership lapses until the charge comes round.
+later day is allowed, including one after the membership runs out, in which case
+the membership lapses until the charge comes round and the advance notice says so.
+Moving the stored day does not move a charge already scheduled: the waiting attempt
+keeps the day it was written for, which is the day ``charge_date`` answers until it
+is taken.
 
 ``charge_date(mandate, today)`` is what the screens and the emails read.  It is
 ``None`` only for a mandate that is not ``active``; for one that is it answers the
@@ -121,6 +125,15 @@ the charge bought for a renewal, and to the anniversary of the day the charge wa
 scheduled for a contribution, which renews no term.  An anniversary of 29
 February becomes 28 February.  A refused charge leaves the stored day alone: the
 retry lives on the attempt.
+
+A term bought outside the scan rolls the stored day forward as well.  When a
+payment extends the coverage the stored day was aimed at, the day moves on by the
+same span, so a day stored on the expiry becomes the new expiry and a day the
+member placed a fortnight early stays a fortnight early; a day already behind
+becomes the new expiry itself.  Without that a member who renews by hand a month
+before their expiry would be charged a second year on the day they had already
+covered.  A charge already scheduled when the coverage arrived is skipped as
+``already_renewed``, and rolls the stored day forward the same way.
 
 So an active mandate always has a date to show, on the member's payments screen,
 on the finance screens and in the emails that report a charge.

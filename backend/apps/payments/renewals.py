@@ -93,9 +93,6 @@ LAPSED_TOO_LONG_MESSAGE = (
 #: The field an input refusal about automatic renewal is keyed by.
 AUTO_RENEW_FIELD = "auto_renew"
 
-#: The field a refusal about the chosen charge date is keyed by.
-NEXT_CHARGE_FIELD = "next_charge_on"
-
 #: What a member is told when they ask to be charged on a day that has gone.
 PAST_CHARGE_DATE_MESSAGE = "The next charge cannot be in the past."
 
@@ -655,11 +652,50 @@ def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:
             payment.provider,
         )
         return None
-    if not (mandate.raw or {}).get(CHOSEN_DATE_KEY):
+    if mandate.raw.get(CHOSEN_DATE_KEY) is not True:
         # The term the money just bought is what the charge follows, not the one
         # the member held when they started the checkout.
         mandate.next_charge_on = default_charge_date(payment.user, timezone.localdate())
     return save_method(mandate, method, actor=payment.user)
+
+
+def roll_charge_date_past(user: User, *, covered_until: date | None) -> RenewalMandate | None:
+    """Move an active authority's stored charge day past coverage bought elsewhere.
+
+    ``covered_until`` is the day the member's coverage ran to before the term they
+    have just bought or been granted.  When their coverage now runs further than
+    that, the stored charge day moves on by the same span, keeping the place the
+    member gave it relative to their expiry: a day stored on the expiry itself
+    becomes the new expiry, a day stored a fortnight early stays a fortnight early,
+    and a day stored after the expiry stays as far after it.  A day already behind
+    when the coverage moved has lost that place, so it becomes the new expiry
+    itself.  Without this a member who renews by hand would be charged a second
+    year on a day their coverage already reaches past.
+
+    Does nothing, and answers ``None``, for a member with no active authority, for
+    a contribution-only authority, which renews no term, when the coverage did not
+    move, and when the stored day already falls on or after the day the coverage now
+    runs to -- which is what makes it safe to call twice for one term.  Otherwise
+    answers the mandate as saved.
+    """
+    mandate = RenewalMandate.objects.filter(
+        user=user, status=MandateStatus.ACTIVE, plan__isnull=False
+    ).first()
+    if mandate is None:
+        return None
+    today = timezone.localdate()
+    term = term_to_renew(user, today)
+    if term is None or term.ends_on is None:
+        return None
+    if mandate.next_charge_on >= term.ends_on:
+        return None
+    previous = covered_until if covered_until is not None else mandate.next_charge_on
+    if term.ends_on <= previous:
+        return None
+    rolled = term.ends_on - (previous - mandate.next_charge_on)
+    mandate.next_charge_on = rolled if rolled >= today else term.ends_on
+    mandate.save(update_fields=["next_charge_on", "updated_at"])
+    return mandate
 
 
 # --------------------------------------------------------------------------
@@ -893,10 +929,9 @@ def _notice_contribution(
 
     The charge date is the mandate's own, and the attempt is written against the
     member's lifetime term, which is what their standing authority sits alongside.
-    A member who no longer holds one is skipped as
-    ``no_term``: there is nothing for the contribution to accompany.  An attempt
-    already waiting is reused, and one whose notice the mail server refused is
-    written to again here.
+    A member who no longer holds one is skipped as ``no_term``: there is nothing for
+    the contribution to accompany.  An attempt already waiting is reused, and one
+    whose notice the mail server refused is written to again here.
 
     Returns what :func:`_notice` returns, for the same reason.
     """
@@ -1069,6 +1104,9 @@ def _charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: b
         run.record_skipped("already_renewed")
         if not dry_run:
             _finish(attempt, RenewalOutcome.SKIPPED)
+            # The coverage this charge was for arrived from somewhere else, so the
+            # stored day follows it rather than waiting a year where it is.
+            roll_charge_date_past(mandate.user, covered_until=attempt.membership.ends_on)
         return
 
     amount_cents = renewal_amount_cents(mandate)

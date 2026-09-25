@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 import pytest
+from django.core.mail import EmailMessage
 from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
@@ -105,7 +106,20 @@ def active_mandate(
 
 def term_of(user: User) -> Membership:
     """The member's term that runs furthest into the future."""
-    return user.memberships.order_by("-ends_on").first()  # type: ignore[return-value]
+    return user.memberships.order_by("-ends_on")[0]
+
+
+def hand_renewal(api_client: APIClient, user: User) -> Membership:
+    """The member buying another annual term themselves, over the ordinary checkout.
+
+    Answers the term the payment bought.
+    """
+    api_client.force_authenticate(user)
+    started = api_client.post(CHECKOUT, {"plan": "annual", "provider": "mock"}, format="json")
+    assert started.status_code == 201, started.json()
+    completed = api_client.post(MOCK_COMPLETE, {"payment_id": started.json()["payment_id"]})
+    assert completed.status_code == 200, completed.json()
+    return Membership.objects.get(payment_id=started.json()["payment_id"])
 
 
 # --------------------------------------------------------------------------
@@ -266,6 +280,24 @@ def test_patching_without_a_date_leaves_the_charge_day_alone(
 
     assert response.status_code == 200, response.json()
     assert RenewalMandate.objects.get(user=dated_member).next_charge_on == stored
+
+
+def test_patching_the_day_leaves_a_charge_already_scheduled_alone(
+    api_client: APIClient, dated_member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A charge already waiting keeps its day, which is the day the answer carries."""
+    mandate = active_mandate(dated_member, annual_plan, next_charge_on=today + timedelta(days=10))
+    waiting = today + timedelta(days=3)
+    RenewalAttemptFactory(mandate=mandate, membership=term_of(dated_member), scheduled_on=waiting)
+    api_client.force_authenticate(dated_member)
+    response = api_client.patch(
+        MY_RENEWAL,
+        {"contribution_cents": 0, "next_charge_on": (today + timedelta(days=40)).isoformat()},
+        format="json",
+    )
+
+    assert response.status_code == 200, response.json()
+    assert response.json()["mandate"]["next_charge_on"] == waiting.isoformat()
 
 
 def test_patching_refuses_a_day_already_past(
@@ -466,3 +498,99 @@ def test_a_stored_day_just_behind_is_charged_today(
 
     assert run.charged == 1
     assert RenewalAttempt.objects.get(outcome=RenewalOutcome.SUCCEEDED).scheduled_on == today
+
+
+# --------------------------------------------------------------------------
+# Coverage bought outside the scan
+# --------------------------------------------------------------------------
+def test_a_hand_renewal_moves_the_stored_day_to_the_new_expiry(
+    api_client: APIClient, dated_member: User, annual_plan: MembershipPlan, expires_on: date
+) -> None:
+    """Paying by hand carries the stored day on to the expiry of the term just bought."""
+    mandate = active_mandate(dated_member, annual_plan, next_charge_on=expires_on)
+
+    bought = hand_renewal(api_client, dated_member)
+
+    mandate.refresh_from_db()
+    assert mandate.next_charge_on == bought.ends_on
+
+
+def test_a_hand_renewal_keeps_a_day_chosen_early_as_early_as_it_was(
+    api_client: APIClient, dated_member: User, annual_plan: MembershipPlan, expires_on: date
+) -> None:
+    """A day placed a fortnight before the expiry stays a fortnight before it."""
+    early = timedelta(days=NOTICE_DAYS)
+    mandate = active_mandate(dated_member, annual_plan, next_charge_on=expires_on - early)
+
+    bought = hand_renewal(api_client, dated_member)
+
+    mandate.refresh_from_db()
+    assert bought.ends_on is not None
+    assert mandate.next_charge_on == bought.ends_on - early
+
+
+def test_a_hand_renewal_is_not_charged_for_again_on_the_old_day(
+    api_client: APIClient, dated_member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A member who renews a month early is not charged again when the old day comes."""
+    term = term_of(dated_member)
+    term.ends_on = today + timedelta(days=30)
+    term.save(update_fields=["ends_on"])
+    active_mandate(dated_member, annual_plan, next_charge_on=term.ends_on)
+    hand_renewal(api_client, dated_member)
+
+    run = run_auto_renewals(today=term.ends_on)
+
+    assert run.charged == 0
+    assert Payment.objects.count() == 1
+
+
+def test_a_charge_waiting_when_the_coverage_arrives_is_skipped_and_rolled_on(
+    api_client: APIClient, dated_member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A scheduled charge overtaken by a hand renewal neither charges nor sits still."""
+    term = term_of(dated_member)
+    term.ends_on = today + timedelta(days=NOTICE_DAYS)
+    term.save(update_fields=["ends_on"])
+    mandate = active_mandate(dated_member, annual_plan, next_charge_on=term.ends_on)
+    RenewalAttemptFactory(mandate=mandate, membership=term, scheduled_on=term.ends_on)
+    bought = hand_renewal(api_client, dated_member)
+
+    run = run_auto_renewals(today=term.ends_on)
+
+    mandate.refresh_from_db()
+    assert run.skipped_by_reason["already_renewed"] == 1
+    assert mandate.next_charge_on == bought.ends_on
+
+
+# --------------------------------------------------------------------------
+# A day the member chose beyond their expiry
+# --------------------------------------------------------------------------
+def test_a_day_chosen_after_the_expiry_waits_for_its_notice_window(
+    dated_member: User, annual_plan: MembershipPlan, today: date, expires_on: date
+) -> None:
+    """A member who chose a day beyond their expiry lapses until the window opens."""
+    chosen = expires_on + timedelta(days=24)
+    active_mandate(dated_member, annual_plan, next_charge_on=chosen)
+
+    run = run_auto_renewals(today=chosen - timedelta(days=NOTICE_DAYS + 1))
+
+    assert run.noticed == 0
+
+
+def test_the_notice_for_a_day_after_the_expiry_promises_no_continuous_coverage(
+    dated_member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    expires_on: date,
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """The member is told their membership lapses until the day they chose."""
+    chosen = expires_on + timedelta(days=24)
+    active_mandate(dated_member, annual_plan, next_charge_on=chosen)
+
+    run_auto_renewals(today=chosen - timedelta(days=NOTICE_DAYS))
+
+    body = mailoutbox[-1].body
+    assert "the day you chose, so your membership lapses until then" in body
+    assert "carry straight on" not in body

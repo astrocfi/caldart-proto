@@ -106,7 +106,7 @@ while a whole year of coverage still remains.
 You get an email fourteen days before every charge saying the amount, the date
 and which method will be used, and you can turn it off at any time from the same
 screen.  The card there always names the day of the next charge and what it
-comes to, and lets you move it.
+comes to.
 
 See :doc:`payments`.
 

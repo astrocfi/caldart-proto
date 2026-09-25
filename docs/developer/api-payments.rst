@@ -95,9 +95,9 @@ automatic renewal on again replaces whatever authority was there.
 
 ``next_charge_on`` is the day that authority first charges on.  Leaving it out
 takes the day the term this payment buys runs out, worked out when the payment
-succeeds.  A day before today is refused with a 400 naming ``next_charge_on``;
-any later day is accepted.  It is ignored when ``auto_renew`` is false, since
-there is no authority to date.
+succeeds.  A day before today is refused with a 400 naming ``next_charge_on``,
+whatever ``auto_renew`` says; any later day is accepted.  Nothing acts on it when
+``auto_renew`` is false, since there is then no authority to date.
 
 A checkout with ``auto_renew`` false deletes any ``pending`` authority the payer
 is still carrying from a checkout they abandoned, and a pending authority is

@@ -64,8 +64,9 @@ waiting charge, and failing that the day stored on the mandate -- the day the
 member chose -- or ``today`` when that has already gone by, because the next scan
 is what takes a charge the scanner missed.  It is ``null`` only for a mandate that
 is not active.  ``last_error`` carries the reason the most recent charge was
-refused, which is what a paused mandate shows the member.  The provider's own references -- the Stripe customer
-and payment method, the PayPal vault id -- are never sent to a browser.
+refused, which is what a paused mandate shows the member.  The provider's own
+references -- the Stripe customer and payment method, the PayPal vault id -- are
+never sent to a browser.
 
 
 A member's own renewal
@@ -162,18 +163,21 @@ alongside the dues, and the day of the next charge.
 ``plan`` names the plan that renews from now on; leaving it out leaves the plan
 alone.  A life member may not give one: their membership does not renew.
 ``next_charge_on`` moves the next charge, and leaving it out leaves the stored day
-alone.  The dues are not settable: they are the plan's price at the time of each
-charge.  The answer is the mandate envelope.
+alone; a charge already scheduled keeps its day, so a member who moves the date
+inside the fourteen-day notice window is still charged on the day the waiting
+charge was written for, which is the date the envelope answers.  The dues are not
+settable: they are the plan's price at the time of each charge.  The answer is the
+mandate envelope.
 
 What the authority may become is the rule ``POST /me/renewal/setup`` applies, so
 a patch that would leave a mandate nothing to charge again is refused.
 
 Statuses: **200**; **400** naming ``contribution_cents`` for an amount outside
 what a checkout would accept, naming ``next_charge_on`` for a day that has already
-gone by, naming ``plan`` for a slug no active plan carries,
-and naming ``auto_renew`` when a life member names a plan, when a life member
-contributes nothing, and when the plan named never expires; **404** when the
-caller has no mandate; **401** when anonymous.
+gone by, naming ``plan`` for a slug no active plan carries, and naming
+``auto_renew`` when a life member names a plan, when a life member contributes
+nothing, and when the plan named never expires; **404** when the caller has no
+mandate; **401** when anonymous.
 
 ``DELETE /me/renewal``
 ----------------------
