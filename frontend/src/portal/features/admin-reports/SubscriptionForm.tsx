@@ -46,6 +46,11 @@ function isReportSlug(slug: string): slug is ReportSlug {
   return slug in REPORTS;
 }
 
+/** Whether `value` is one of the cadences the form offers. */
+function isCadence(value: string): value is ReportCadence {
+  return CADENCES.some((cadence) => cadence === value);
+}
+
 /**
  * The server's refusals of the report's filters, each led by its field's label:
  * `Period: Choose a valid period.`
@@ -217,7 +222,10 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
               <select
                 {...props}
                 value={cadence}
-                onChange={(event) => setCadence(event.target.value as ReportCadence)}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  if (isCadence(next)) setCadence(next);
+                }}
               >
                 {CADENCES.map((option) => (
                   <option key={option} value={option}>
