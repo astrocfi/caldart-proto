@@ -180,6 +180,7 @@
       "owner_name": "string",
       "owner_type": "ref:OwnerTypeEnum",
       "seats": "integer|null",
+      "updated_at": "string(date-time)",
       "year": "integer|null"
     },
     "required": [
@@ -189,7 +190,18 @@
       "insurance_summary",
       "make",
       "model",
-      "n_number"
+      "n_number",
+      "updated_at"
+    ]
+  },
+  "AircraftActor": {
+    "properties": {
+      "id": "integer",
+      "name": "string"
+    },
+    "required": [
+      "id",
+      "name"
     ]
   },
   "AircraftAttachRequest": {
@@ -198,6 +210,28 @@
     },
     "required": [
       "aircraft_id"
+    ]
+  },
+  "AircraftChange": {
+    "properties": {
+      "changed_at": "string(date-time)",
+      "changed_by": "ref:AircraftActor|null",
+      "fields": "array<string>",
+      "id": "integer",
+      "kind": "ref:AircraftChangeKindEnum"
+    },
+    "required": [
+      "changed_at",
+      "changed_by",
+      "fields",
+      "id",
+      "kind"
+    ]
+  },
+  "AircraftChangeKindEnum": {
+    "enum": [
+      "created",
+      "updated"
     ]
   },
   "AircraftDetail": {
@@ -222,6 +256,8 @@
       "owner_type": "ref:OwnerTypeEnum",
       "pilots": "array<ref:AircraftPilot>",
       "seats": "integer|null",
+      "updated_at": "string(date-time)",
+      "updated_by": "ref:AircraftActor|null",
       "year": "integer|null"
     },
     "required": [
@@ -232,7 +268,9 @@
       "make",
       "model",
       "n_number",
-      "pilots"
+      "pilots",
+      "updated_at",
+      "updated_by"
     ]
   },
   "AircraftPilot": {

@@ -245,6 +245,30 @@ def test_role_may_not_patch_another_members_aircraft(
     assert other_aircraft.model != "hijacked"
 
 
+def test_the_creator_of_an_aircraft_may_not_read_its_history(
+    api_client: APIClient, member: User
+) -> None:
+    """Editing a record is not the same right as seeing who else has edited it."""
+    own = AircraftFactory(n_number="N71PM", created_by=member)
+    api_client.force_login(member)
+    assert api_client.get(f"{aircraft_url(own)}/changes").status_code == 403
+
+
+def test_a_dart_leader_may_not_read_an_aircraft_history(
+    api_client: APIClient, dart_leader: User, other_aircraft: Aircraft
+) -> None:
+    """A leader reads the insurance card, not the trail of who changed it."""
+    api_client.force_login(dart_leader)
+    assert api_client.get(f"{aircraft_url(other_aircraft)}/changes").status_code == 403
+
+
+def test_anonymous_cannot_read_an_aircraft_history(
+    api_client: APIClient, other_aircraft: Aircraft
+) -> None:
+    """The history answers 401 rather than naming the accounts that wrote the record."""
+    assert api_client.get(f"{aircraft_url(other_aircraft)}/changes").status_code == 401
+
+
 # --------------------------------------------------------------------------
 # Every role may PUT and PATCH its own profile
 # --------------------------------------------------------------------------
