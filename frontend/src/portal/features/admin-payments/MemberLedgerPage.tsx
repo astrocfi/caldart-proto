@@ -81,7 +81,7 @@ export function MandateCard({ mandate }: { mandate: RenewalMandate | null }): JS
           <dd>{mandate.method_label}</dd>
         </div>
         <div>
-          <dt>Renews</dt>
+          <dt>Charges</dt>
           <dd>
             {mandate.plan_name ?? 'Contribution'} · {formatCents(mandate.amount_cents)}
           </dd>

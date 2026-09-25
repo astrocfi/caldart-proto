@@ -156,7 +156,7 @@ export function RenewalsPage(): JSX.Element {
     },
     {
       key: 'actions',
-      header: 'Automatic renewal',
+      header: 'Actions',
       sortable: false,
       render: (row) => {
         if (!isCancelable(row)) return <span className="muted">Off</span>;
@@ -290,7 +290,7 @@ export function RenewalsPage(): JSX.Element {
     <Page
       title="Renewals"
       eyebrow="Payments"
-      lede="Who has asked CalDART to renew their membership for them, and how those charges went."
+      lede="Who has asked CalDART to renew their membership, contribute automatically, or both, and how those charges went."
     >
       <FinanceTabs />
 

@@ -71,6 +71,7 @@ describe('MemberLedgerPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Automatic contribution' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Charges')).toBeInTheDocument();
     expect(screen.getByText('Contribution · $50.00')).toBeInTheDocument();
   });
 
