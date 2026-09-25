@@ -258,6 +258,22 @@ describe('FilterBar', () => {
     expect(handleChange).toHaveBeenCalledTimes(1);
   });
 
+  it('applies a search retyped after the values changed from outside', async () => {
+    const handleChange = vi.fn<(values: FilterValues) => void>();
+    const { rerender } = render(
+      <FilterBar fields={FIELDS} values={{ search: '' }} onChange={handleChange} />,
+    );
+    await userEvent.type(screen.getByLabelText('Search'), 'dana');
+    await waitFor(() => expect(handleChange).toHaveBeenCalledTimes(1));
+    rerender(<FilterBar fields={FIELDS} values={{ search: 'dana' }} onChange={handleChange} />);
+
+    rerender(<FilterBar fields={FIELDS} values={{ search: '' }} onChange={handleChange} />);
+    await userEvent.type(screen.getByLabelText('Search'), 'dana');
+
+    await waitFor(() => expect(handleChange).toHaveBeenCalledTimes(2));
+    expect(handleChange).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'dana' }));
+  });
+
   it('applies a lone box at once when Enter is pressed', async () => {
     const handleChange = vi.fn();
     render(

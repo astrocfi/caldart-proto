@@ -83,8 +83,9 @@ export function FilterBar({
   const applied = completeValues(fields, values);
   const appliedKey = JSON.stringify(applied);
   const [draft, setDraft] = useState(applied);
-  // The last set of values handed to `onChange`, so a settled draft is sent
-  // once even if the page does not adopt it exactly.
+  // The last set of values handed to `onChange` since the applied values last
+  // changed, so a settled draft is sent once even if the page does not adopt it
+  // exactly, yet is sent again once the page has moved to other values.
   const sentKey = useRef(appliedKey);
 
   const send = (next: FilterValues): void => {
@@ -95,6 +96,7 @@ export function FilterBar({
   // Follow the applied values when they really change, compared by content so
   // that a page re-rendering with an equal object cannot wipe a half-typed box.
   useEffect(() => {
+    sentKey.current = appliedKey;
     setDraft(JSON.parse(appliedKey) as FilterValues);
   }, [appliedKey]);
 
