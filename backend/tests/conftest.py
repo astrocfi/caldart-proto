@@ -429,6 +429,13 @@ def treasurer_client(api_client: APIClient, treasurer: UserModel) -> APIClient:
 
 
 @pytest.fixture
+def system_admin_client(api_client: APIClient, system_admin: UserModel) -> APIClient:
+    """Return a DRF client already signed in as a system administrator."""
+    api_client.force_login(system_admin)
+    return api_client
+
+
+@pytest.fixture
 def fixed_name_admin(account_admin: UserModel) -> UserModel:
     """Return ``account_admin`` with its name pinned instead of Faker-generated.
 

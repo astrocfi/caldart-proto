@@ -118,6 +118,32 @@ describe('MemberStatusCard', () => {
     expect(row).toHaveTextContent('Private · 3181234 · IFR · Instrument');
   });
 
+  it('labels an unpaid membership "Unpaid", the same word the member report uses', () => {
+    renderWithProviders(
+      <MemberStatusCard
+        status={makeStatus({
+          membership: { status: 'new', expires_on: null, plan: null },
+          go_no_go: { membership: false, medical: true },
+        })}
+        today={TODAY}
+      />,
+    );
+    expect(screen.getByText('Unpaid')).toBeInTheDocument();
+  });
+
+  it('labels no membership "No membership", the same word the member report uses', () => {
+    renderWithProviders(
+      <MemberStatusCard
+        status={makeStatus({
+          membership: { status: 'none', expires_on: null, plan: null },
+          go_no_go: { membership: false, medical: true },
+        })}
+        today={TODAY}
+      />,
+    );
+    expect(screen.getByText('No membership')).toBeInTheDocument();
+  });
+
   it('shows a lifetime membership without inventing an expiry', () => {
     renderWithProviders(
       <MemberStatusCard

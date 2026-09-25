@@ -88,8 +88,6 @@ const MEMBER_FILTERS: FilterField[] = [
   { key: 'dart', label: 'DART', kind: 'select' },
   { key: 'county', label: 'County', kind: 'select', options: COUNTY_OPTIONS },
   { key: 'role', label: 'Role', kind: 'select', options: ROLE_CHOICES },
-  // The unit goes in the label, not in a hint: a hint makes the field taller
-  // than its neighbors and lifts the box off the row the bar sits on.
   { key: 'expiring_within', label: 'Expiring within (days)', kind: 'number' },
   { key: 'is_active', label: 'Active accounts only', kind: 'toggle' },
 ];

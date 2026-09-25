@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 
 import type { MembershipStatus, PaymentState } from '../api/types';
-import { PAYMENT_STATUS_LABELS } from '../choices';
+import { MEMBERSHIP_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '../choices';
 
 export type StatusTone = 'current' | 'expiring' | 'new' | 'expired' | 'none';
 
@@ -13,12 +13,12 @@ const TONE_CLASS: Record<StatusTone, string> = {
   none: 'chip--neutral',
 };
 
+// The `current`, `new`, `expired` and `none` tones read the same four words as
+// the member report and the member list's status filter; `expiring` is a tone
+// of its own, with no membership-state code behind it.
 const TONE_LABEL: Record<StatusTone, string> = {
-  current: 'Current',
+  ...MEMBERSHIP_STATUS_LABELS,
   expiring: 'Expiring soon',
-  new: 'Joined, not yet paid',
-  expired: 'Expired',
-  none: 'No membership',
 };
 
 /** Days before expiry at which a membership counts as "expiring soon". */

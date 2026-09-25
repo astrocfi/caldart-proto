@@ -21,6 +21,7 @@ import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChoo
 import { Field } from '@/portal/components/Field';
 import { FilterBar } from '@/portal/components/FilterBar';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
+import { useEmailPurposes } from '@/portal/features/system/api';
 import { useCreateSubscription, useReportColumns, useReports } from '@/portal/reports/api';
 import { REPORTS } from '@/portal/reports/definitions';
 import type { FilterField, FilterValues, ReportSlug } from '@/portal/reports/types';
@@ -98,12 +99,17 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
   const create = useCreateSubscription();
   const darts = useDarts();
   const plans = usePlans();
+  // Only the emails report's Purpose filter reads these, and only a
+  // system administrator can choose that report, so nobody else's form
+  // ever sends a request the server would refuse.
+  const purposes = useEmailPurposes({ enabled: slug === 'emails' });
   const runtimeOptions = useMemo(
     () => ({
       dart: (darts.data ?? []).map((dart) => ({ value: String(dart.id), label: dart.name })),
       plan: (plans.data ?? []).map((plan) => ({ value: plan.slug, label: plan.name })),
+      purpose: purposes.data ?? [],
     }),
-    [darts.data, plans.data],
+    [darts.data, plans.data, purposes.data],
   );
 
   const definition = slug === '' ? null : REPORTS[slug];

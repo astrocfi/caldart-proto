@@ -78,6 +78,16 @@ describe('StatusChip', () => {
     render(<StatusChip tone="current" label="Insured" />);
     expect(screen.getByText('Insured')).toHaveClass('chip--ok');
   });
+
+  it('labels the `new` tone "Unpaid", the same word the member report uses', () => {
+    render(<StatusChip tone="new" />);
+    expect(screen.getByText('Unpaid')).toHaveClass('chip--info');
+  });
+
+  it('labels the `none` tone "No membership", the same word the member report uses', () => {
+    render(<StatusChip tone="none" />);
+    expect(screen.getByText('No membership')).toHaveClass('chip--neutral');
+  });
 });
 
 describe('MembershipChip', () => {

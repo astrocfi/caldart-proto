@@ -8,19 +8,13 @@
 import type { JSX } from 'react';
 
 import type { LeaderStatus, MembershipState } from '@/portal/api/types';
+import { MEMBERSHIP_STATUS_LABELS } from '@/portal/choices';
 import { DateText } from '@/portal/components/DateText';
 import { StatusChip } from '@/portal/components/StatusChip';
 import type { StatusTone } from '@/portal/components/StatusChip';
 import { InsuranceChip } from '@/portal/features/aircraft/InsuranceChip';
 import { CERTIFICATE_LABELS, IFR_LABELS, MEDICAL_LABELS, ratingLabels } from './labels';
 import './leader.css';
-
-const MEMBERSHIP_LABEL: Record<MembershipState, string> = {
-  current: 'Current',
-  new: 'Joined, not yet paid',
-  expired: 'Expired',
-  none: 'Never joined',
-};
 
 const MEMBERSHIP_TONE: Record<MembershipState, StatusTone> = {
   current: 'current',
@@ -98,7 +92,7 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
           <dd>
             <StatusChip
               tone={MEMBERSHIP_TONE[status.membership.status]}
-              label={MEMBERSHIP_LABEL[status.membership.status]}
+              label={MEMBERSHIP_STATUS_LABELS[status.membership.status]}
             />
             <span className="leader-row__detail">
               {status.membership.plan ?? '—'}
