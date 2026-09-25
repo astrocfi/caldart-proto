@@ -180,13 +180,14 @@ test('a saved set of columns comes back after a reload', async ({ page }) => {
   const chooser = page.getByRole('group', { name: 'Columns to show and export' });
 
   // Tick Receipt, untick Fee, and save the boxes as they stand under a name.
-  await page.getByRole('button', { name: 'Columns' }).click();
+  await page.getByRole('button', { name: 'Columns', exact: true }).click();
   await chooser.getByRole('checkbox', { name: 'Receipt' }).check();
   await chooser.getByRole('checkbox', { name: 'Fee', exact: true }).uncheck();
-  await chooser.getByRole('textbox', { name: 'Name for these columns' }).fill('Audit');
-  await chooser.getByRole('button', { name: 'Save columns' }).click();
-  await expect(chooser.getByRole('combobox', { name: 'Load columns' })).toHaveValue(/^\d+$/);
-  await expect(chooser.getByRole('button', { name: 'Delete the saved set Audit' })).toBeVisible();
+  await page.getByRole('button', { name: 'Save columns' }).click();
+  const savePanel = page.getByRole('group', { name: 'Save these columns' });
+  await savePanel.getByRole('textbox', { name: 'Name for these columns' }).fill('Audit');
+  await savePanel.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(savePanel).toHaveCount(0);
 
   // A reload starts from the default columns again.
   await page.reload();
@@ -194,8 +195,10 @@ test('a saved set of columns comes back after a reload', async ({ page }) => {
   await expect(header.getByText('Receipt', { exact: true })).toHaveCount(0);
 
   // Loading the set puts its columns back, in the table and in the exports.
-  await page.getByRole('button', { name: 'Columns' }).click();
-  await chooser.getByRole('combobox', { name: 'Load columns' }).selectOption({ label: 'Audit' });
+  await page.getByRole('button', { name: 'Load columns' }).click();
+  const loadPanel = page.getByRole('group', { name: 'Your saved columns' });
+  await expect(loadPanel.getByRole('button', { name: 'Delete the saved set Audit' })).toBeVisible();
+  await loadPanel.getByRole('button', { name: 'Audit', exact: true }).click();
   await expect(header.getByText('Receipt', { exact: true })).toBeVisible();
   await expect(header.getByText('Fee', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
