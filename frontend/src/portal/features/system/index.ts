@@ -4,7 +4,8 @@ export { BackupsPanel, formatBytes } from './BackupsPanel';
 export { HealthPanel, healthChecks } from './HealthPanel';
 export type { CheckVerdict, HealthCheck } from './HealthPanel';
 export { KIND_LABELS, ReminderLog } from './ReminderLog';
-export { RemindersPanel, runSummary } from './RemindersPanel';
+export { RemindersPanel } from './RemindersPanel';
+export { runSummary } from '@/portal/components/runSummary';
 export { SystemPage } from './SystemPage';
 export {
   BACKUPS_KEY,

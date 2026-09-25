@@ -5,7 +5,7 @@
  */
 import type { ReportCadence, ReportFormats, ReportSubscription } from '@/portal/api/types';
 import type { Option } from '@/portal/reports/types';
-import { skippedBreakdown } from '@/portal/features/system/RemindersPanel';
+import { skippedBreakdown } from '@/portal/components/runSummary';
 
 /** The weekdays as `weekday` counts them: 0 is Monday, 6 is Sunday. */
 export const WEEKDAY_NAMES: readonly string[] = [

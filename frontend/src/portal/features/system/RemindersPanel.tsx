@@ -5,44 +5,14 @@
 import { useState } from 'react';
 import type { ChangeEvent, JSX } from 'react';
 
-import type { ReminderKind, ReminderRunResult } from '@/portal/api/types';
+import type { ReminderKind } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
+import { runSummary, skippedBreakdown } from '@/portal/components/runSummary';
 import { useRunReminders } from './api';
 import { SKIPPED_REASON_LABELS } from './labels';
 import { KIND_LABELS as REMINDER_KIND_LABELS, ReminderLog } from './ReminderLog';
-
-/** The sentence shown after a run. */
-export function runSummary(result: ReminderRunResult, dryRun: boolean): string {
-  const verb = dryRun ? 'Would send' : 'Sent';
-  const emails = result.sent === 1 ? '1 email' : `${result.sent} emails`;
-  return `${verb} ${emails}, skipped ${result.skipped}.`;
-}
-
-/**
- * `Skipped: <reason> <count>, …`, one entry per reason a candidate was passed
- * over that occurred at least once, or `''` when nothing was skipped.
- *
- * The labeled reasons come first, in `labels`' order; a reason the server
- * reports that `labels` does not name follows by its raw slug, mirroring
- * {@link purposeLabel}'s fallback, so a new reason still shows up here rather
- * than silently dropping out of the total.  `labels` defaults to the reminder
- * scan's own reasons; another run passes its own vocabulary.
- */
-export function skippedBreakdown(
-  byReason: Record<string, number>,
-  labels: Record<string, string> = SKIPPED_REASON_LABELS,
-): string {
-  const labeled = Object.keys(labels)
-    .filter((reason) => (byReason[reason] ?? 0) > 0)
-    .map((reason) => `${labels[reason]} ${byReason[reason]}`);
-  const unlabeled = Object.keys(byReason)
-    .filter((reason) => !(reason in labels) && (byReason[reason] ?? 0) > 0)
-    .map((reason) => `${reason} ${byReason[reason]}`);
-  const parts = [...labeled, ...unlabeled];
-  return parts.length > 0 ? `Skipped: ${parts.join(', ')}.` : '';
-}
 
 /** Whether `kind` is one of the reminder kinds `REMINDER_KIND_LABELS` names. */
 function isReminderKind(kind: string): kind is ReminderKind {
@@ -60,7 +30,9 @@ export function RemindersPanel(): JSX.Element {
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
 
   const run = useRunReminders();
-  const breakdown = run.data ? skippedBreakdown(run.data.skipped_by_reason) : '';
+  const breakdown = run.data
+    ? skippedBreakdown(run.data.skipped_by_reason, SKIPPED_REASON_LABELS)
+    : '';
 
   const handleRun = (): void => {
     setLastRunWasDry(dryRun);

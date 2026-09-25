@@ -8,7 +8,7 @@ import type { JSX } from 'react';
 
 import type { ReportRunResult } from '@/portal/api/types';
 import { RunActionsTable } from '@/portal/components/RunActionsTable';
-import { runSummary } from '@/portal/features/system/RemindersPanel';
+import { runSummary } from '@/portal/components/runSummary';
 import { reportKindLabel, reportSkippedBreakdown } from './labels';
 
 interface ReportRunOutcomeProps {
