@@ -62,12 +62,27 @@ test('an account administrator rehearses the DART rosters', async ({ page }) => 
   const dartName = (await firstDart.getByRole('cell').first().textContent()) ?? '';
   expect(dartName).not.toBe('');
 
+  // The seed generates the people's names, so read one ticked on that DART from its form.
+  await page.goto('/portal/admin/darts');
+  await page
+    .getByRole('row')
+    .filter({ hasText: dartName })
+    .first()
+    .getByRole('button', { name: 'Edit' })
+    .click();
+  const ticked = page.getByRole('checkbox', { name: / receives the roster$/, checked: true });
+  const tickedLabel = (await ticked.first().getAttribute('aria-label')) ?? '';
+  const person = tickedLabel.replace(/ receives the roster$/, '');
+  expect(person).not.toBe('');
+
+  await page.goto('/portal/admin/reports');
   await expect(card.getByLabel('Dry run (send nothing)')).toBeChecked();
   await card.getByRole('button', { name: 'Send rosters now' }).click();
   await expect(card.getByRole('status')).toHaveText(/^Would send [1-9]\d* emails?/);
 
   const actions = card.getByRole('table', { name: /^[1-9]\d* actions?$/ });
-  const roster = actions.getByRole('row').filter({ hasText: dartName }).first();
+  const roster = actions.getByRole('row').filter({ hasText: person }).filter({ hasText: dartName });
+  await expect(roster).toHaveCount(1);
   await expect(roster).toContainText('Roster');
 });
 
