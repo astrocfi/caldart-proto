@@ -26,7 +26,7 @@ from apps.mail.models import EmailLog, EmailStatus
 from apps.reports.schedule import next_due_after, schedule_label
 from apps.reports.services import run_scheduled_reports
 from caldart import audit
-from tests.conftest import Golden, PdfText, audit_messages, role_matrix
+from tests.conftest import DEPLOY_DIR, Golden, PdfText, audit_messages, role_matrix
 from tests.factories import ReportSubscriptionFactory
 
 RUN_URL = "/api/v1/system/reports/run"
@@ -440,3 +440,14 @@ def test_the_run_endpoint_answers_the_run(
             }
         ],
     }
+
+
+def test_the_reports_timer_runs_daily_at_six() -> None:
+    """The reports timer fires the daily service at 06:00 and catches up after a reboot."""
+    service = (DEPLOY_DIR / "systemd" / "caldart-reports.service").read_text()
+    timer = (DEPLOY_DIR / "systemd" / "caldart-reports.timer").read_text()
+
+    assert "manage.py send_scheduled_reports" in service
+    assert "Type=oneshot" in service
+    assert "OnCalendar=*-*-* 06:00:00" in timer
+    assert "Persistent=true" in timer
