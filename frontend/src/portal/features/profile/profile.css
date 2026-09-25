@@ -21,6 +21,7 @@
  */
 .field-pair {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
 }
@@ -47,6 +48,18 @@
 .field-pair .field-pair__extension input {
   width: 9ch;
   flex: 0 0 auto;
+}
+
+/* The profile form has a whole column to itself, and a phone box the width of
+ * the number it holds reads as an afterthought beside the address fields above
+ * it.  The DART form's contact row has no such room, so the wider boxes are
+ * scoped to the profile form and the row keeps the widths above. */
+.profile-form .field-pair .field-pair__main {
+  width: 32ch;
+}
+
+.profile-form .field-pair .field-pair__extension input {
+  width: 14ch;
 }
 
 /* The ratings are read as two lines -- category and class, then instructor --
@@ -141,6 +154,11 @@
   max-width: none;
 }
 
+/* Edit and the bare trashcan are one pair of controls, centered on each other
+ * rather than sitting on the row's baseline, where the icon hangs low. */
 .aircraft-list__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   margin-left: auto;
 }
