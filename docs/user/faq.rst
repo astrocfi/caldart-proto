@@ -101,7 +101,8 @@ remains.
 
 You get an email fourteen days before every charge saying the amount, the date
 and which method will be used, and you can turn it off at any time from the same
-screen.
+screen.  The card there always names the day of the next charge and what it
+comes to.
 
 See :doc:`payments`.
 
@@ -116,8 +117,10 @@ anniversary of the day you turned it on.  Every email about it says
 "contribution"; none of them says your membership is being renewed, because it
 is not.
 
-The renew screen offers a life member the same thing: a contribution, with no
-plan to buy.
+The **Renew** screen offers a life member the same thing: it is headed
+**Contribute to CalDART**, and the form under it takes a contribution with no
+plan to buy.  Tick **Contribute this amount automatically each year** there to
+set the yearly charge up while you give.
 
 See :doc:`payments`.
 

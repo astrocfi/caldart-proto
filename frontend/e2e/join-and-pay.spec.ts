@@ -9,7 +9,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { SEED, formatCents, uniqueEmail } from './helpers';
+import { SEED, formatCents, signIn, uniqueEmail } from './helpers';
 
 /**
  * Walk the public site the way a visitor does: the Join CalDART page from the
@@ -87,4 +87,21 @@ test('a declined payment says so and leaves the visitor able to try again', asyn
   await expect(page.getByRole('alert')).toContainText('declined');
   await expect(page).toHaveURL(/\/portal\/join\/pay/);
   await expect(page.getByRole('button', { name: 'Succeed', exact: true })).toBeEnabled();
+});
+
+test('a life member contributes where the renew screen would renew', async ({ page }) => {
+  await signIn(page, SEED.contributionMandate.email);
+  await page.goto('/portal/renew');
+
+  await expect(page.getByRole('heading', { name: 'Contribute to CalDART' })).toBeVisible();
+  await expect(page.getByText('You are a life member. Thank you.')).toBeVisible();
+  // Nothing is on sale here: a life member has bought their membership already.
+  await expect(page.getByRole('radio', { name: /Annual/ })).toHaveCount(0);
+
+  await page.getByRole('radio', { name: /Participating/ }).check();
+  await page.getByRole('tab', { name: 'Test payment' }).click();
+  await page.getByRole('button', { name: 'Succeed', exact: true }).click();
+
+  await expect(page.getByText('Thank you for your contribution.').first()).toBeVisible();
+  await expect(page).toHaveURL(/\/portal\/?$/);
 });
