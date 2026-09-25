@@ -8,8 +8,11 @@ import type {
   Plan,
   ReportColumn,
   RoleSlug,
+  SavedColumnSet,
+  SavedColumnSetWrite,
   User,
 } from '../portal/api/types';
+import type { ReportSlug } from '../portal/reports/types';
 
 export const API = '/api/v1';
 
@@ -76,6 +79,8 @@ export const handlers = [
   // for the same reason: a suite that is not about reports need not declare one.
   http.get(`${API}/reports`, () => HttpResponse.json([])),
   http.get(`${API}/reports/:slug/columns`, () => HttpResponse.json([])),
+  // The column chooser reads the caller's saved sets when it opens; none by default.
+  http.get(`${API}/reports/:slug/column-sets`, () => HttpResponse.json([])),
   // The aircraft record reads its history as it mounts.  An empty history keeps
   // a suite that is not about the history from having to declare one.
   http.get(`${API}/aircraft/:id/changes`, () => HttpResponse.json([])),
@@ -135,5 +140,56 @@ export function financeHandlers({
       });
     }),
     http.get(`${API}/plans`, () => HttpResponse.json(plans)),
+  ];
+}
+
+/** One request the column-set handlers answered, as a test asserts on it. */
+export interface ColumnSetRequest {
+  method: string;
+  url: string;
+  body: SavedColumnSetWrite | null;
+}
+
+/**
+ * A stateful stand-in for one report's saved column sets.
+ *
+ * `GET` lists the sets by name, `POST` saves one or replaces the columns of the
+ * set with that name (answering 201 either way, as the server does), and
+ * `DELETE` removes one by id, 404 for an id it does not hold.  `sets` seeds the
+ * store, which is copied so a test cannot mutate another's; every request is
+ * pushed onto `requests`.
+ */
+export function columnSetHandlers(
+  slug: ReportSlug,
+  sets: readonly SavedColumnSet[] = [],
+  requests: ColumnSetRequest[] = [],
+): HttpHandler[] {
+  let store = sets.map((set) => ({ ...set, columns: [...set.columns] }));
+  let nextId = Math.max(0, ...store.map((set) => set.id)) + 1;
+  const base = `${API}/reports/${slug}/column-sets`;
+  const byName = (a: SavedColumnSet, b: SavedColumnSet) => a.name.localeCompare(b.name);
+  return [
+    http.get(base, ({ request }) => {
+      requests.push({ method: 'GET', url: request.url, body: null });
+      return HttpResponse.json([...store].sort(byName));
+    }),
+    http.post(base, async ({ request }) => {
+      const body = (await request.json()) as SavedColumnSetWrite;
+      requests.push({ method: 'POST', url: request.url, body });
+      const existing = store.find((set) => set.name === body.name);
+      const saved = { id: existing?.id ?? nextId, name: body.name, columns: body.columns };
+      if (existing === undefined) nextId += 1;
+      store = [...store.filter((set) => set.id !== saved.id), saved];
+      return HttpResponse.json(saved, { status: 201 });
+    }),
+    http.delete(`${base}/:id`, ({ request, params }) => {
+      requests.push({ method: 'DELETE', url: request.url, body: null });
+      const id = Number(params.id);
+      if (!store.some((set) => set.id === id)) {
+        return HttpResponse.json({ detail: 'Not found.' }, { status: 404 });
+      }
+      store = store.filter((set) => set.id !== id);
+      return new HttpResponse(null, { status: 204 });
+    }),
   ];
 }
