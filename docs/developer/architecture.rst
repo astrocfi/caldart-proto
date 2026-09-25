@@ -548,9 +548,10 @@ the files they test, and an ``index.ts`` of what the route files use:
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``IconButton``,
-``DeleteButton``, ``StatusChip``, ``DataTable``, ``ColumnChooser``, ``Money``,
-``DateText``, ``EmptyState``, and ``Toast``), and ``choices.ts`` holds the one
-set of labels for certificate, medical, IFR, rating, and role codes.
+``DeleteButton``, ``StatusChip``, ``DataTable``, ``ColumnChooser``,
+``FilterBar``, ``RunActionsTable``, ``Money``, ``DateText``, ``EmptyState``, and
+``Toast``), and ``choices.ts`` holds the one set of labels for certificate,
+medical, IFR, rating, and role codes, and the list of California counties.
 ``components/icons.tsx`` holds the inline SVG icons -- ``TrashcanIcon``,
 ``ArrowUpIcon``, and ``ArrowDownIcon`` -- each ``aria-hidden``, drawn in
 ``currentColor``, square, and ``1.25em`` on a side unless the caller asks for
@@ -577,6 +578,40 @@ primitives too, a hook rather than something a page renders: it returns a
 value only once it has held still for a delay, which defaults to the
 ``SEARCH_DEBOUNCE_MS`` of 250 milliseconds that every search box uses.  The checkout panel passes 500 milliseconds instead, so
 changing the amount does not create a payment intent per keystroke.
+``RunActionsTable`` is the table of what a scheduled run did, or would do,
+behind its summary counts: one row per email sent or charge taken.
+
+**Filters and reports.**  ``reports/`` holds what every report shares in the
+portal.  ``reports/definitions.ts`` declares ``REPORTS``, one
+``ReportDefinition`` per report the server registers (``members``,
+``aircraft``, ``payments``, ``reconciliation``, and ``contributions``), each
+with its label, whether its columns can be chosen, whether it takes
+``?period=``, and its ``filters``: the single list of that report's filter
+fields.  A ``FilterField`` names the query parameter it sends as its ``key``,
+and its ``kind`` says how it is drawn: ``search`` (a text box), ``select`` (a
+drop-down whose blank first option reads *Any*, or the field's
+``placeholder``), ``number`` (digits only; with ``isDollars`` the box takes
+whole dollars and sends cents), ``date``, or ``toggle`` (a checkbox that sends
+``true`` or nothing).  A field marked ``subscriptionOnly``, the period of the
+payments and contributions reports, belongs to the form that subscribes
+somebody to a report; ``listFilters`` leaves it out for a list page.
+
+``components/FilterBar.tsx`` is the only filter UI.  It draws a report's
+fields, with choices only the server knows, such as the DARTs or the plans,
+passed in through its ``options`` prop, and applies every change itself: a
+select, a date, or a toggle at once, a text or number box once the typing has
+held still for ``SEARCH_DEBOUNCE_MS``.  There is no Apply button, and
+**Clear** empties every field.  ``components/useUrlFilters.ts`` keeps a list
+page's filters in the query string, so a filtered view is a link: it reads
+the keys it is given, and writing them drops the empty ones and ``page``, so a
+change of filter returns the list to its first page, while leaving any other
+parameter, such as ``ordering``, alone.
+
+``reports/api.ts`` is the one client for ``/api/v1/reports/``
+(:doc:`api-reference`): ``useReports`` lists the reports the caller may read,
+``useReportColumns`` fetches a report's column registry once and keeps it, and
+``reportExportUrl`` builds every export href, leaving out empty values and
+``page`` and joining the chosen ``columns`` with commas.
 
 **Navigation.**  ``nav.ts`` declares every entry in ``NAV_ITEMS`` with the
 roles that may see it (an empty list means any signed-in user) and a group:
