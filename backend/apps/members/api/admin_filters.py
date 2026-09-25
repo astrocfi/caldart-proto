@@ -267,7 +267,7 @@ class MemberAdminFilterSet(django_filters.FilterSet):
 
 
 class MemberOrderingFilter(drf_filters.OrderingFilter):
-    """``?ordering=`` over pilot, name, email, DART, expiry and joining date.
+    """``?ordering=`` over pilot, name, email, DART, expiry, joining date, or last update.
 
     Each alias expands to real columns, so ``name`` sorts by surname then
     forename, every alias falls back to the name to settle a tie, and the
@@ -301,7 +301,7 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
         view: APIView,
         context: Mapping[str, Any] | None = None,
     ) -> list[tuple[str, str]]:
-        """The six aliases, as DRF's ``(value, label)`` pairs.
+        """Every alias, as DRF's ``(value, label)`` pairs.
 
         Only these are accepted, so ``?ordering=`` can never reach a column the
         list does not sort on.

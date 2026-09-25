@@ -186,7 +186,9 @@ non-pilot, which is the order the list's Pilot column reads in.  The two date
 sorts, ``updated``, and ``dart``, keep rows with no value at the end in both
 directions, so lifetime members do not crowd out the answer to "who expires
 next", and a profile nobody has ever edited does not crowd out "who was
-touched most recently".
+touched most recently" — that question is ``-updated``, since ``updated``
+follows the same positive-column, ``-`` reverses convention as every other
+alias here and so sorts oldest edit first.
 
 
 Computed membership status
