@@ -165,7 +165,7 @@ class DartAdminSerializer(serializers.ModelSerializer[Dart]):
         queryset, so the answer to a save counts the people that save wrote.
         """
         return sum(
-            1 for contact in dart.contacts.all() if contact.receives_roster and contact.email
+            1 for contact in dart.contacts.all() if contact.receives_roster and contact.email != ""
         )
 
     def create(self, validated_data: dict[str, Any]) -> Dart:

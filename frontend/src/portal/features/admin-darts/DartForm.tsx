@@ -252,7 +252,7 @@ export function DartForm({
     setRowKeys((current) => swap(current, index, target));
     setMovedKey(rowKeys[index] ?? null);
     setMoveAnnouncement(
-      `${personLabel(moved, index)} is now number ${target + 1} of ` + `${values.contacts.length}.`,
+      `${personLabel(moved, index)} is now number ${target + 1} of ${values.contacts.length}.`,
     );
   };
 
