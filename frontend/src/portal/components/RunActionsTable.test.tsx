@@ -33,12 +33,14 @@ describe('RunActionsTable', () => {
     expect(within(table).getByRole('row', { name: /Dana Lee/ })).toHaveTextContent('Notice');
   });
 
-  it('wraps the heading and the table in a block the caller can space from what came before', () => {
+  it('wraps the heading and the table in a spaced block the caller can space from what came before', () => {
     const { container } = render(
       <RunActionsTable actions={ACTIONS} dryRun={false} kindLabel={() => 'Notice'} />,
     );
 
-    expect(container.querySelector('.run-actions')).toBeInTheDocument();
+    const wrapper = container.querySelector('.run-actions');
+    expect(wrapper).toBeInTheDocument();
+    expect(wrapper).toHaveClass('stack-tight');
   });
 
   it('renders the heading first, then the summary, then the table', () => {

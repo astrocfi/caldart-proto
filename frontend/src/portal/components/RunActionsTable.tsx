@@ -73,7 +73,7 @@ export function RunActionsTable({
   ];
 
   return (
-    <div className="run-actions">
+    <div className="run-actions stack-tight">
       <h3>{actionsHeading(dryRun)}</h3>
       {summary}
       <DataTable
