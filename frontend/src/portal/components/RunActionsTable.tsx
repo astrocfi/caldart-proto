@@ -1,7 +1,7 @@
 /**
- * The actions table shared by the renewals and reminders panels of
- * `/portal/system`: one row per email sent or charge taken behind a run's
- * summary counts, so "who did this actually reach?" never needs a shell.
+ * The actions table every scheduled run shows behind its summary counts: one
+ * row per email sent or charge taken, so "who did this actually reach?" never
+ * needs a shell.  The renewals and reminders panels of `/portal/system` use it.
  */
 import type { JSX } from 'react';
 

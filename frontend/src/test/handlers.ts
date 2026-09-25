@@ -74,6 +74,10 @@ export const handlers = [
   // that is not about columns does not have to declare one.
   http.get(`${API}/admin/members/columns`, () => HttpResponse.json([])),
   http.get(`${API}/admin/aircraft/columns`, () => HttpResponse.json([])),
+  // The reports the caller may read and each report's column registry, empty
+  // for the same reason: a suite that is not about reports need not declare one.
+  http.get(`${API}/reports`, () => HttpResponse.json([])),
+  http.get(`${API}/reports/:slug/columns`, () => HttpResponse.json([])),
   // The aircraft record reads its history as it mounts.  An empty history keeps
   // a suite that is not about the history from having to declare one.
   http.get(`${API}/aircraft/:id/changes`, () => HttpResponse.json([])),

@@ -16,8 +16,8 @@ import type { ChangeEvent, JSX } from 'react';
 import type { RenewalRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { RunActionsTable } from '@/portal/components/RunActionsTable';
 import { useRunRenewals } from './api';
-import { RunActionsTable } from './RunActionsTable';
 
 /** The sentence shown after a run, in the past tense or the conditional. */
 export function renewalRunSummary(result: RenewalRunResult, dryRun: boolean): string {

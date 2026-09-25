@@ -17,7 +17,7 @@ import { useId } from 'react';
 import type { JSX } from 'react';
 
 import type { CaliforniaCounty, Dart, Rating, UsState } from '@/portal/api/types';
-import { CATEGORY_RATINGS, INSTRUCTOR_RATINGS, US_STATES } from '@/portal/choices';
+import { CA_COUNTIES, CATEGORY_RATINGS, INSTRUCTOR_RATINGS, US_STATES } from '@/portal/choices';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import {
@@ -27,13 +27,7 @@ import {
   maskPhone,
   maskPostalCode,
 } from '@/portal/masks';
-import {
-  CA_COUNTIES,
-  CERTIFICATE_TYPES,
-  IFR_OPTIONS,
-  MEDICAL_TYPES,
-  VOLUNTEER_INTERESTS,
-} from './constants';
+import { CERTIFICATE_TYPES, IFR_OPTIONS, MEDICAL_TYPES, VOLUNTEER_INTERESTS } from './constants';
 import type { Choice } from './constants';
 import type { ProfileFormErrors, ProfileFormValues } from './form';
 import './profile.css';
