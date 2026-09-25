@@ -28,6 +28,7 @@ pytestmark = pytest.mark.django_db
 CSV_URL = "/api/v1/reports/emails/export.csv"
 PDF_URL = "/api/v1/reports/emails/export.pdf"
 COLUMNS_URL = "/api/v1/reports/emails/columns"
+LIST_URL = "/api/v1/system/emails"
 
 #: The installation's own timezone, in which ``Sent`` and the date range are read.
 PACIFIC = ZoneInfo("America/Los_Angeles")
@@ -177,12 +178,15 @@ def test_the_pdf_is_titled_and_names_its_filters(
     assert "from: 2026-03-01" in text
 
 
-def test_the_file_is_named_for_the_email_log(system_admin_client: APIClient) -> None:
-    """The download is ``caldart-emails-<YYYY-MM-DD>.csv``."""
+def test_the_file_is_named_for_the_email_log(
+    system_admin_client: APIClient, today: dt.date
+) -> None:
+    """The download is ``caldart-emails-<YYYY-MM-DD>.csv``, dated the local day."""
     response = system_admin_client.get(CSV_URL)
-    day = dt.datetime.now(PACIFIC).date().isoformat()
 
-    assert response["Content-Disposition"] == f'attachment; filename="caldart-emails-{day}.csv"'
+    assert response["Content-Disposition"] == (
+        f'attachment; filename="caldart-emails-{today.isoformat()}.csv"'
+    )
 
 
 # --------------------------------------------------------------------------
@@ -214,6 +218,30 @@ def test_an_unknown_ordering_is_ignored(system_admin_client: APIClient) -> None:
     rows = read_csv(system_admin_client.get(CSV_URL, {"ordering": "subject"}))
 
     assert column(rows, "Subject") == ["newer", "older"]
+
+
+@pytest.mark.parametrize(
+    ("ordering", "expected"),
+    [("-sent_at", ["second", "first"]), ("sent_at", ["first", "second"])],
+    ids=["newest-first", "oldest-first"],
+)
+def test_the_list_breaks_a_tie_in_sent_at_as_the_download_does(
+    system_admin_client: APIClient, ordering: str, expected: list[str]
+) -> None:
+    """Sends in the same instant follow their ``id`` in the direction of ``sent_at``.
+
+    The list and the file then agree row for row, and a page boundary between two
+    same-instant sends neither repeats nor skips one.
+    """
+    instant = pacific(2026, 1, 1)
+    EmailLogFactory(subject="first", sent_at=instant)
+    EmailLogFactory(subject="second", sent_at=instant)
+
+    body = system_admin_client.get(LIST_URL, {"ordering": ordering}).json()
+    rows = read_csv(system_admin_client.get(CSV_URL, {"ordering": ordering}))
+
+    assert [row["subject"] for row in body["results"]] == expected
+    assert column(rows, "Subject") == expected
 
 
 def test_the_purpose_filter_keeps_one_kind(system_admin_client: APIClient) -> None:
