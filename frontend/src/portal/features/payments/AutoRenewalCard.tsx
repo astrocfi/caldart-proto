@@ -13,10 +13,10 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 
 import { useRenewal } from '@/portal/api/queries';
-import type { RenewalMandate } from '@/portal/api/types';
+import type { IsoDate, RenewalMandate } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import { DateText } from '@/portal/components/DateText';
+import { DateText, formatDate } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Money, formatCents } from '@/portal/components/Money';
 import { StatusChip } from '@/portal/components/StatusChip';
@@ -25,6 +25,7 @@ import { useMembership } from '@/portal/features/profile/api';
 import { RenewalChangeForm } from './RenewalChangeForm';
 import { RenewalSetup } from './RenewalSetup';
 import { useCancelRenewal } from './api';
+import { isAfterExpiry } from './chargeDate';
 import { automaticCardTitle, automaticKindLabel } from './labels';
 import { useSetupReturn } from './setupReturn';
 
@@ -49,6 +50,7 @@ export function AutoRenewalCard(): JSX.Element {
   const mandate = renewal.data?.mandate ?? null;
   const isOn = mandate !== null && mandate.status === 'active';
   const isLifetime = membership.data?.is_lifetime ?? false;
+  const expiresOn = membership.data?.expires_on ?? null;
   const title = automaticCardTitle(isLifetime);
 
   function handleDone(): void {
@@ -97,11 +99,12 @@ export function AutoRenewalCard(): JSX.Element {
         />
       ) : (
         <>
-          <MandateSummary mandate={mandate} isLifetime={isLifetime} />
+          <MandateSummary mandate={mandate} isLifetime={isLifetime} expiresOn={expiresOn} />
 
           {mode === 'setup' ? (
             <RenewalSetup
               isLifetime={isLifetime}
+              expiresOn={expiresOn}
               initialContributionCents={mandate?.contribution_cents ?? 0}
               onCancel={() => setMode('idle')}
               onDone={handleDone}
@@ -141,7 +144,7 @@ export function AutoRenewalCard(): JSX.Element {
               {isOn ? (
                 <>
                   <Button variant="secondary" onClick={() => setMode('change')}>
-                    Change contribution
+                    Change
                   </Button>
                   <Button variant="quiet" onClick={() => setMode('confirm-off')}>
                     Turn off
@@ -163,18 +166,20 @@ export function AutoRenewalCard(): JSX.Element {
 interface MandateSummaryProps {
   mandate: RenewalMandate | null;
   isLifetime: boolean;
+  /** The day the membership runs out, or null when it never does or there is none. */
+  expiresOn: IsoDate | null;
 }
 
 /** The prose above the buttons: what CalDART will do, and when. */
-function MandateSummary({ mandate, isLifetime }: MandateSummaryProps): JSX.Element {
+function MandateSummary({ mandate, isLifetime, expiresOn }: MandateSummaryProps): JSX.Element {
   if (mandate === null || mandate.status === 'pending') {
     return (
       <div className="stack">
         <StatusChip tone="none" label="Off" />
         <p>
           {isLifetime
-            ? 'Your contribution is not taken automatically. Turn this on and CalDART will charge a saved card or PayPal account once a year for the contribution you choose.'
-            : 'Your membership does not renew itself. Turn this on and CalDART will charge a saved card or PayPal account the day before your membership runs out, so it never lapses.'}
+            ? 'Your contribution is not taken automatically. Turn this on and CalDART will charge a saved card or PayPal account once a year, on the day you choose, for the contribution you choose.'
+            : 'Turn this on and CalDART will charge a saved card or PayPal account on the day you choose, normally the day your membership runs out, so it never lapses.'}
         </p>
       </div>
     );
@@ -244,6 +249,12 @@ function MandateSummary({ mandate, isLifetime }: MandateSummaryProps): JSX.Eleme
           <dd>
             <DateText value={mandate.next_charge_on} /> ·{' '}
             <span className="mono">{formatCents(mandate.amount_cents)}</span>
+            {isAfterExpiry(mandate.next_charge_on, expiresOn) ? (
+              <span className="muted">
+                {' '}
+                after your membership runs out on {formatDate(expiresOn)}
+              </span>
+            ) : null}
           </dd>
         </div>
       </dl>

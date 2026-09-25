@@ -74,6 +74,88 @@ describe('AutoRenewalCard', () => {
     expect(screen.getByRole('button', { name: 'Turn on' })).toBeInTheDocument();
   });
 
+  it('says the charge falls on the day the member chooses when renewal is off', async () => {
+    mount(null);
+
+    expect(
+      await screen.findByText(
+        'Turn this on and CalDART will charge a saved card or PayPal account on the day you ' +
+          'choose, normally the day your membership runs out, so it never lapses.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('warns on the Next charge row when the charge falls after the membership runs out', async () => {
+    mount(makeMandate({ next_charge_on: '2027-07-15' }));
+
+    expect(await screen.findByText('Next charge')).toBeInTheDocument();
+    expect(screen.getByText('Next charge').nextElementSibling).toHaveTextContent(
+      'after your membership runs out on 2027/06/30',
+    );
+  });
+
+  it('says nothing about running out when the charge falls on the expiry day itself', async () => {
+    mount(makeMandate({ next_charge_on: '2027-06-30' }));
+
+    expect(await screen.findByText('Next charge')).toBeInTheDocument();
+    expect(screen.queryByText(/after your membership runs out/)).not.toBeInTheDocument();
+  });
+
+  it('opens the change form on the day the mandate already carries', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate({ next_charge_on: '2027-03-12' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+
+    expect(screen.getByLabelText('Next charge on')).toHaveValue('2027-03-12');
+  });
+
+  it('is headed Change your renewal for a mandate that renews a plan', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate());
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+
+    expect(screen.getByRole('heading', { name: 'Change your renewal' })).toBeInTheDocument();
+  });
+
+  it('sends the day the member moved the charge to', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate({ contribution_cents: 2500 }));
+    const bodies = recordPatches(makeMandate({ next_charge_on: '2027-05-01' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+    await user.clear(screen.getByLabelText('Next charge on'));
+    await user.type(screen.getByLabelText('Next charge on'), '2027-05-01');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(bodies).toEqual([
+        { plan: 'annual', contribution_cents: 2500, next_charge_on: '2027-05-01' },
+      ]),
+    );
+  });
+
+  it('puts a refused charge date back on the field it belongs to', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate());
+    server.use(
+      http.patch(`${API}/me/renewal`, () =>
+        HttpResponse.json(
+          { next_charge_on: ['The next charge cannot be in the past.'] },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The next charge cannot be in the past.',
+    );
+  });
+
   it('treats an unfinished setup as off, so the only way forward is to start again', async () => {
     mount(makeMandate({ status: 'pending' }));
 
@@ -149,18 +231,22 @@ describe('AutoRenewalCard', () => {
     mount(makeMandate({ contribution_cents: 2500 }));
     const bodies = recordPatches(makeMandate({ contribution_cents: 0 }));
 
-    await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
     await user.click(screen.getByRole('radio', { name: /No thank you/ }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    await waitFor(() => expect(bodies).toEqual([{ plan: 'annual', contribution_cents: 0 }]));
+    await waitFor(() =>
+      expect(bodies).toEqual([
+        { plan: 'annual', contribution_cents: 0, next_charge_on: '2027-03-12' },
+      ]),
+    );
   });
 
   it('opens the change form with the tier the mandate already carries', async () => {
     const user = userEvent.setup();
     mount(makeMandate({ contribution_cents: 2500 }));
 
-    await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
 
     expect(screen.getByRole('radio', { name: /Supporter/ })).toBeChecked();
     expect(screen.getByRole('radio', { name: /Annual/ })).toBeChecked();
@@ -171,17 +257,21 @@ describe('AutoRenewalCard', () => {
     mount(makeMandate({ contribution_cents: 2550 }));
     const bodies = recordPatches(makeMandate({ contribution_cents: 2550 }));
 
-    await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    await waitFor(() => expect(bodies).toEqual([{ plan: 'annual', contribution_cents: 2550 }]));
+    await waitFor(() =>
+      expect(bodies).toEqual([
+        { plan: 'annual', contribution_cents: 2550, next_charge_on: '2027-03-12' },
+      ]),
+    );
   });
 
   it('shows an amount no tier matches in the box that can edit it', async () => {
     const user = userEvent.setup();
     mount(makeMandate({ contribution_cents: 7500 }));
 
-    await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
 
     expect(screen.getByRole('radio', { name: 'Other amount' })).toBeChecked();
     expect(screen.getByLabelText('Contribution amount')).toHaveValue('75');
@@ -191,7 +281,7 @@ describe('AutoRenewalCard', () => {
     const user = userEvent.setup();
     mount(makeMandate());
 
-    await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
 
     expect(screen.queryByRole('radio', { name: /Life/ })).not.toBeInTheDocument();
   });
@@ -247,7 +337,7 @@ describe('AutoRenewalCard', () => {
       ),
     );
 
-    await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('That is more than we can take.');
@@ -255,6 +345,15 @@ describe('AutoRenewalCard', () => {
 
   describe('for a life member', () => {
     const lifetime = { membership: LIFETIME_MEMBERSHIP };
+
+    it('is headed Change your contribution when nothing of theirs renews', async () => {
+      const user = userEvent.setup();
+      mount(makeContributionMandate(), lifetime);
+
+      await user.click(await screen.findByRole('button', { name: 'Change' }));
+
+      expect(screen.getByRole('heading', { name: 'Change your contribution' })).toBeInTheDocument();
+    });
 
     it('is headed Automatic contribution, because nothing of theirs renews', async () => {
       mount(null, lifetime);
@@ -264,12 +363,12 @@ describe('AutoRenewalCard', () => {
       ).toBeInTheDocument();
     });
 
-    it('offers to charge the contribution once a year when there is no mandate', async () => {
+    it('offers to charge the contribution once a year, on a day of their own', async () => {
       mount(null, lifetime);
 
       expect(
         await screen.findByText(
-          /CalDART will charge a saved card or PayPal account once a year for the contribution you choose\./,
+          /once a year, on the day you choose, for the contribution you choose\./,
         ),
       ).toBeInTheDocument();
     });
@@ -304,12 +403,14 @@ describe('AutoRenewalCard', () => {
       mount(makeContributionMandate(), lifetime);
       const bodies = recordPatches(makeContributionMandate({ contribution_cents: 2500 }));
 
-      await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+      await user.click(await screen.findByRole('button', { name: 'Change' }));
       expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
       await user.click(screen.getByRole('radio', { name: /Supporter/ }));
       await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-      await waitFor(() => expect(bodies).toEqual([{ contribution_cents: 2500 }]));
+      await waitFor(() =>
+        expect(bodies).toEqual([{ contribution_cents: 2500, next_charge_on: '2027-03-12' }]),
+      );
     });
 
     it('names no plan even when the membership could not be read', async () => {
@@ -317,18 +418,20 @@ describe('AutoRenewalCard', () => {
       mount(makeContributionMandate(), { ...lifetime, hasMembership: false });
       const bodies = recordPatches(makeContributionMandate());
 
-      await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+      await user.click(await screen.findByRole('button', { name: 'Change' }));
       await user.click(screen.getByRole('radio', { name: /Supporter/ }));
       await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-      await waitFor(() => expect(bodies).toEqual([{ contribution_cents: 2500 }]));
+      await waitFor(() =>
+        expect(bodies).toEqual([{ contribution_cents: 2500, next_charge_on: '2027-03-12' }]),
+      );
     });
 
     it('will not save an authority with nothing to charge', async () => {
       const user = userEvent.setup();
       mount(makeContributionMandate(), lifetime);
 
-      await user.click(await screen.findByRole('button', { name: 'Change contribution' }));
+      await user.click(await screen.findByRole('button', { name: 'Change' }));
       await user.click(screen.getByRole('radio', { name: /No thank you/ }));
 
       expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();

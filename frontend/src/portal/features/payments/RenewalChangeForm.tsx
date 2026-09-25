@@ -8,6 +8,10 @@
  * What the form may change comes from the authority itself rather than from the
  * screen around it: an authority that names no plan renews nothing, so no plan
  * is offered and none is sent.
+ *
+ * The day of the next charge is the member's own, and the form opens on the day
+ * the mandate already carries.  A charge already scheduled keeps its own day, so
+ * moving the date inside the notice window moves the charge after it.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -16,12 +20,14 @@ import { ApiError } from '@/portal/api/client';
 import type { RenewalMandate, RenewalPatchRequest } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { EmptyState } from '@/portal/components/EmptyState';
+import { Field } from '@/portal/components/Field';
 import { formatCents } from '@/portal/components/Money';
 import { useToast } from '@/portal/components/Toast';
 import { ContributionChooser } from '@/portal/features/checkout/ContributionChooser';
 import { PlanChooser } from '@/portal/features/checkout/PlanChooser';
 import { usePaymentsConfig } from '@/portal/features/checkout/api';
 import { useUpdateRenewal } from './api';
+import { todayIso } from './chargeDate';
 import '@/portal/features/checkout/checkout.css';
 
 export interface RenewalChangeFormProps {
@@ -39,7 +45,9 @@ export function RenewalChangeForm({
   onDone: handleDone,
 }: RenewalChangeFormProps): JSX.Element {
   const { data: config, isPending } = usePaymentsConfig();
+  const earliestChargeOn = todayIso();
   const [plan, setPlan] = useState<string | null>(mandate.plan);
+  const [nextChargeOn, setNextChargeOn] = useState(mandate.next_charge_on ?? earliestChargeOn);
   const [contributionCents, setContributionCents] = useState(mandate.contribution_cents);
   // Null until the member picks: the amount they already hold decides which
   // control shows it, so an amount no tier matches opens its own box.
@@ -88,7 +96,10 @@ export function RenewalChangeForm({
   async function save(event: React.FormEvent): Promise<void> {
     event.preventDefault();
     setError(null);
-    const request: RenewalPatchRequest = { contribution_cents: contributionCents };
+    const request: RenewalPatchRequest = {
+      contribution_cents: contributionCents,
+      next_charge_on: nextChargeOn,
+    };
     if (sendsPlan && chosenPlan !== null) request.plan = chosenPlan;
     try {
       await update.mutateAsync(request);
@@ -98,6 +109,7 @@ export function RenewalChangeForm({
       setError(
         caught instanceof ApiError
           ? (caught.fieldErrors.contribution_cents ??
+              caught.fieldErrors.next_charge_on ??
               caught.fieldErrors.plan ??
               caught.fieldErrors.auto_renew ??
               caught.message)
@@ -111,6 +123,10 @@ export function RenewalChangeForm({
 
   return (
     <form className="renewal__change stack" onSubmit={(event) => void save(event)}>
+      <h3 className="eyebrow">
+        {isContributionOnly ? 'Change your contribution' : 'Change your renewal'}
+      </h3>
+
       {sendsPlan && chosenPlan !== null ? (
         <PlanChooser plans={renewable} value={chosenPlan} onChange={(next) => setPlan(next)} />
       ) : null}
@@ -124,6 +140,18 @@ export function RenewalChangeForm({
         // codespell:ignore-next-line onother
         onOther={(next) => setIsOther(next)}
       />
+
+      <Field label="Next charge on">
+        {(props) => (
+          <input
+            {...props}
+            type="date"
+            min={earliestChargeOn}
+            value={nextChargeOn}
+            onChange={(event) => setNextChargeOn(event.target.value)}
+          />
+        )}
+      </Field>
 
       <p className="renewal-setup__total">
         Each year CalDART will charge <strong className="mono">{formatCents(chargeCents)}</strong>
