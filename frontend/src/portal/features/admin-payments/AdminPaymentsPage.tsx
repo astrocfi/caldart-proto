@@ -10,34 +10,38 @@ import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
 import { ButtonLink } from '@/portal/components/Button';
+import { FilterBar } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
-import { useDebounced } from '@/portal/components/useDebounced';
-import { EMPTY_FILTERS, dashboardTotals, useAdminPaymentSummary, useMonthlyTotals } from './api';
-import type { PaymentFilterState, SummaryGroup } from './api';
-import { FilterBar } from './FilterBar';
+import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import { REPORTS, listFilters } from '@/portal/reports/definitions';
+import { dashboardTotals, useAdminPaymentSummary, useMonthlyTotals } from './api';
+import type { SummaryGroup } from './api';
 import { FinanceTabs } from './FinanceTabs';
 import { PeriodTable } from './PeriodTable';
 import { SummaryTiles } from './SummaryTiles';
 import './admin-payments.css';
 
+/**
+ * The payments report's filters the period table offers: the range, where the
+ * money came from, its state, and a search.  The rest narrow a list of payments
+ * more finely than a table of totals has any use for.
+ */
+const OVERVIEW_KEYS: readonly string[] = ['from', 'to', 'provider', 'status', 'search'];
+
+const FILTER_FIELDS = listFilters(REPORTS.payments).filter((field) =>
+  OVERVIEW_KEYS.includes(field.key),
+);
+const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
+
 /** `/admin/payments`: the tiles and the period table. */
 export function AdminPaymentsPage(): JSX.Element {
-  const [filters, setFilters] = useState<PaymentFilterState>(EMPTY_FILTERS);
+  const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
   const [group, setGroup] = useState<SummaryGroup>('month');
 
-  // The search box types into the filter state, but the summary is an aggregate
-  // over the whole table, so only a settled term is worth asking for.
-  const settledSearch = useDebounced(filters.search);
-  const queried = useMemo(() => ({ ...filters, search: settledSearch }), [filters, settledSearch]);
-
   const monthly = useMonthlyTotals();
-  const summary = useAdminPaymentSummary(group, queried);
+  const summary = useAdminPaymentSummary(group, filters);
 
   const totals = useMemo(() => dashboardTotals(monthly.data ?? []), [monthly.data]);
-
-  function handleFilterChange(next: PaymentFilterState) {
-    setFilters(next);
-  }
 
   return (
     <Page
@@ -55,7 +59,14 @@ export function AdminPaymentsPage(): JSX.Element {
         group={group}
         onGroupChange={(next) => setGroup(next)}
         isLoading={summary.isPending}
-        filters={<FilterBar value={filters} onChange={handleFilterChange} compact />}
+        filters={
+          <FilterBar
+            fields={FILTER_FIELDS}
+            values={filters}
+            onChange={(next) => setFilters(next)}
+            label="Filter the totals"
+          />
+        }
       />
     </Page>
   );

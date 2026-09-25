@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { aircraftExportUrl, aircraftQuery } from './api';
+import { aircraftQuery } from './api';
 import { matchType, suggestTypes } from './catalog';
 import { N_NUMBER_MESSAGE, aircraftPayload, emptyAircraftValues, validateAircraft } from './form';
 import {
@@ -193,11 +193,5 @@ describe('query helpers', () => {
       search: 'cessna',
       insurance: 'current',
     });
-  });
-
-  it('builds export URLs that carry the filters but not the page', () => {
-    const url = aircraftExportUrl('csv', { search: 'cessna', insurance: 'expired', page: 3 });
-    expect(url).toBe('/api/v1/admin/aircraft/export.csv?search=cessna&insurance=expired');
-    expect(aircraftExportUrl('pdf', {})).toBe('/api/v1/admin/aircraft/export.pdf');
   });
 });

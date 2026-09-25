@@ -10,8 +10,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '@/portal/api/client';
-import type { ReportColumn } from '@/portal/api/types';
-import type { ReportFormat, ReportSlug, ReportSummary } from './types';
+import type { ReportColumn, ReportSummary } from '@/portal/api/types';
+import type { ReportFormat, ReportSlug } from './types';
 
 export const REPORTS_KEY = ['reports'] as const;
 

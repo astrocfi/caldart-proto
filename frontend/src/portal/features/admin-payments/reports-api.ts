@@ -1,6 +1,7 @@
 /**
- * Queries, export hrefs and vocabulary for the finance area's three report
- * tabs: Reconciliation, Contributions and Renewals.
+ * Queries and vocabulary for the finance area's three report tabs:
+ * Reconciliation, Contributions and Renewals.  Their downloads are the report
+ * client's, `reportExportUrl` in `@/portal/reports/api`.
  *
  * The everyday list and its summary live in `./api`; these are the screens a
  * treasurer opens at the end of a month or a year, plus the standing renewal
@@ -10,7 +11,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, api } from '@/portal/api/client';
+import { api } from '@/portal/api/client';
 import type {
   ContributionRow,
   MandateStatus,
@@ -22,51 +23,24 @@ import type {
   RenewalOutcome,
 } from '@/portal/api/types';
 import type { StatusTone } from '@/portal/components/StatusChip';
-import { queryString } from './api';
+import type { FilterValues } from '@/portal/reports/types';
+import { filterParams, queryString } from './api';
 import { PROVIDER_LABELS } from './labels';
 import { periodLabel } from './PeriodTable';
 
 /** How the reconciliation table gathers its rows. */
 export type ReconciliationGroup = 'month' | 'year' | 'provider';
 
-/** The groupings the segmented control offers, in the order it draws them. */
-export const RECONCILIATION_GROUPS: readonly ReconciliationGroup[] = [
-  'month',
-  'year',
-  'provider',
-] as const;
+/** The grouping the server uses when none is asked for: a bank statement's, by month. */
+export const DEFAULT_RECONCILIATION_GROUP: ReconciliationGroup = 'month';
 
-/** The date range and provider a reconciliation run covers. */
-export interface ReconciliationFilterState {
-  from: string;
-  to: string;
-  provider: PaymentProvider | '';
-}
-
-export const EMPTY_RECONCILIATION_FILTERS: ReconciliationFilterState = {
-  from: '',
-  to: '',
-  provider: '',
-};
-
-/** The query parameters for a reconciliation call, dropping everything blank. */
-export function reconciliationParams(
-  filters: ReconciliationFilterState,
-  group: ReconciliationGroup,
-): Record<string, string> {
-  const params: Record<string, string> = { group };
-  if (filters.from !== '') params.from = filters.from;
-  if (filters.to !== '') params.to = filters.to;
-  if (filters.provider !== '') params.provider = filters.provider;
-  return params;
-}
-
-/** The reconciliation table, via `GET /admin/payments/reconciliation`. */
-export function useReconciliation(
-  filters: ReconciliationFilterState,
-  group: ReconciliationGroup,
-): UseQueryResult<ReconciliationRow[]> {
-  const params = reconciliationParams(filters, group);
+/**
+ * The reconciliation table, via `GET /admin/payments/reconciliation`.
+ *
+ * @param filters the reconciliation report's filter values; blank ones are not sent.
+ */
+export function useReconciliation(filters: FilterValues): UseQueryResult<ReconciliationRow[]> {
+  const params = filterParams(filters);
   return useQuery({
     queryKey: ['admin', 'payments', 'reconciliation', params],
     queryFn: () =>
@@ -75,33 +49,19 @@ export function useReconciliation(
   });
 }
 
-/** The href behind an "Export CSV" or "Export PDF" button on Reconciliation. */
-export function reconciliationExportUrl(
-  filters: ReconciliationFilterState,
-  group: ReconciliationGroup,
-  format: 'csv' | 'pdf',
-): string {
-  const query = queryString(reconciliationParams(filters, group));
-  return `${API_BASE}/admin/payments/reconciliation/export.${format}${query}`;
-}
-
-/** The year-end giving list, via `GET /admin/payments/contributions`. */
-export function useContributions(year: number): UseQueryResult<ContributionRow[]> {
+/**
+ * The year-end giving list, via `GET /admin/payments/contributions`.
+ *
+ * @param year a calendar year, or `''` for the server's own current year.
+ */
+export function useContributions(year: string): UseQueryResult<ContributionRow[]> {
+  const params = filterParams({ year });
   return useQuery({
-    queryKey: ['admin', 'payments', 'contributions', year],
-    queryFn: () => api.get<ContributionRow[]>(`/admin/payments/contributions?year=${year}`),
+    queryKey: ['admin', 'payments', 'contributions', params],
+    queryFn: () =>
+      api.get<ContributionRow[]>(`/admin/payments/contributions${queryString(params)}`),
     placeholderData: (previous) => previous,
   });
-}
-
-/** The href behind an export button on Contributions. */
-export function contributionsExportUrl(year: number, format: 'csv' | 'pdf'): string {
-  return `${API_BASE}/admin/payments/contributions/export.${format}?year=${year}`;
-}
-
-/** One member's contribution statement for one year, as a PDF download. */
-export function statementUrl(userId: number, year: number): string {
-  return `${API_BASE}/admin/payments/ledger/${userId}/statements/${year}.pdf`;
 }
 
 /** How many mandates and attempts one page of the Renewals tab holds. */

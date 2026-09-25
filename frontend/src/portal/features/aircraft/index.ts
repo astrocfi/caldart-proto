@@ -7,7 +7,6 @@ export type { InsuranceChipProps } from './InsuranceChip';
 export { ServiceChip } from './ServiceChip';
 export type { ServiceChipProps } from './ServiceChip';
 export {
-  aircraftExportUrl,
   aircraftQuery,
   findAircraft,
   lookupAircraft,

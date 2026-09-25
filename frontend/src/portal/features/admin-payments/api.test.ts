@@ -2,10 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { PaymentPeriodSummary } from '@/portal/api/types';
 import {
-  EMPTY_FILTERS,
   NO_TOTAL,
   dashboardTotals,
-  exportUrl,
   filterParams,
   monthKey,
   providersIn,
@@ -109,45 +107,18 @@ describe('providersIn', () => {
   });
 });
 
-describe('filters', () => {
+describe('filterParams', () => {
   it('drops blank values', () => {
-    expect(filterParams({ ...EMPTY_FILTERS, provider: 'stripe' })).toEqual({ provider: 'stripe' });
+    expect(filterParams({ provider: 'stripe', status: '', search: '' })).toEqual({
+      provider: 'stripe',
+    });
   });
 
-  it('carries the filters the finance list grew', () => {
-    expect(filterParams({ ...EMPTY_FILTERS, reconciled: 'no', kind: 'contribution' })).toEqual({
+  it('keeps every filter that is set', () => {
+    expect(filterParams({ reconciled: 'no', kind: 'contribution' })).toEqual({
       kind: 'contribution',
       reconciled: 'no',
     });
-  });
-
-  it('builds an export URL that carries the filters', () => {
-    const url = exportUrl('csv', {
-      ...EMPTY_FILTERS,
-      from: '2026-01-01',
-      to: '2026-03-31',
-      provider: 'paypal',
-      status: 'succeeded',
-      search: 'reyes',
-    });
-    expect(url).toBe(
-      '/api/v1/admin/payments/export.csv' +
-        '?from=2026-01-01&to=2026-03-31&provider=paypal&status=succeeded&search=reyes',
-    );
-  });
-
-  it('carries the chosen columns and the table order into an export', () => {
-    const url = exportUrl('pdf', EMPTY_FILTERS, {
-      columns: ['paid_on', 'total'],
-      ordering: '-amount_cents',
-    });
-    expect(url).toBe(
-      '/api/v1/admin/payments/export.pdf?columns=paid_on%2Ctotal&ordering=-amount_cents',
-    );
-  });
-
-  it('exports everything when nothing is filtered', () => {
-    expect(exportUrl('csv', EMPTY_FILTERS)).toBe('/api/v1/admin/payments/export.csv');
   });
 });
 

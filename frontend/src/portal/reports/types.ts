@@ -1,6 +1,7 @@
 /**
  * The shapes every report shares in the portal: which reports exist, the filter
- * fields each one takes, and what `GET /reports` says about them.
+ * fields each one takes.  What `GET /reports` says about them is `ReportSummary`
+ * in `@/portal/api/types`, which the server's schema holds to account.
  *
  * A report's filters are declared once, as `FilterField`s in `./definitions`,
  * and the one `FilterBar` draws them wherever the report is filtered: its list
@@ -56,14 +57,6 @@ export interface ReportDefinition {
   /** Whether the report's columns can be chosen; a fixed report refuses `?columns=`. */
   choosable: boolean;
   /** Whether the report accepts `?period=` in place of concrete dates. */
-  periods: boolean;
-}
-
-/** One entry of `GET /reports`: a report the caller may read. */
-export interface ReportSummary {
-  slug: ReportSlug;
-  title: string;
-  choosable: boolean;
   periods: boolean;
 }
 

@@ -621,6 +621,13 @@ page's filters in the query string, so a filtered view is a link: it reads
 the keys it is given, and writing them drops the empty ones and ``page``, so a
 change of filter returns the list to its first page, while leaving any other
 parameter, such as ``ordering``, alone.
+``components/useUrlListPosition.ts`` keeps a server-paged list's ``ordering``
+and ``page`` beside them the same way: a page that is not a whole number of at
+least 1 reads as the first, a change of order returns to the first page, and
+``useFirstPageWhenMissing`` goes back to the first page when the list answers
+404 for a page past its end.  Its ``sort`` feeds ``DataTable``'s ``sort`` prop,
+so the header arrow follows the address when the back button changes the
+order.
 
 ``reports/api.ts`` is the one client for ``/api/v1/reports/``
 (:doc:`api-reference`): ``useReports`` lists the reports the caller may read,

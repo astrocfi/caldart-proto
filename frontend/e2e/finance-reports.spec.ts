@@ -30,10 +30,7 @@ test('a treasurer reconciles a period and exports it', async ({ page }) => {
 
   // The same money regrouped: one row per provider that took any of it, which
   // is necessarily fewer rows than the months it was spread over.
-  await page
-    .getByRole('group', { name: 'Group takings by' })
-    .getByRole('button', { name: 'Provider' })
-    .click();
+  await page.getByLabel('Rows').selectOption('provider');
   const byProvider = bodyRows(page, /Takings by provider/);
   // The table keeps the rows it had while the regrouped ones are fetched, so
   // wait for a provider name in the first cell before counting.
@@ -44,15 +41,18 @@ test('a treasurer reconciles a period and exports it', async ({ page }) => {
     page.waitForEvent('download'),
     page.getByRole('link', { name: 'Export CSV' }).click(),
   ]);
-  expect(download.suggestedFilename()).toMatch(/^caldart-reconciliation-.+\.csv$/);
+  expect(download.suggestedFilename()).toMatch(/^caldart-reconciliation-\d{4}-\d{2}-\d{2}\.csv$/);
+  // The download carries the grouping on screen.
+  expect(download.url()).toContain('/reports/reconciliation/export.csv?group=provider');
 });
 
 /**
  * Show the contributions of `year` and wait for the table to settle, either on
- * rows or on the empty state.
+ * rows or on the empty state.  The current year is the blank choice, `This year`.
  */
 async function contributionRows(page: Page, year: number): Promise<Locator> {
-  await page.getByLabel('Year').selectOption(String(year));
+  const isThisYear = year === new Date().getFullYear();
+  await page.getByLabel('Year').selectOption(isThisYear ? '' : String(year));
   const rows = bodyRows(page, new RegExp(`Contributions in ${year}`));
   await expect(rows.first().or(page.getByText('No contributions that year'))).toBeVisible();
   return rows;
@@ -65,7 +65,8 @@ test('a treasurer reads the year of giving and can print a statement', async ({ 
   await expect(page.getByRole('heading', { name: 'Contributions', level: 1 })).toBeVisible();
 
   const thisYear = new Date().getFullYear();
-  await expect(page.getByLabel('Year')).toHaveValue(String(thisYear));
+  await expect(page.getByLabel('Year')).toHaveValue('');
+  await expect(page.getByRole('table', { name: `Contributions in ${thisYear}` })).toBeVisible();
 
   // The seed spreads its payments over the past two years, so early in January
   // the current year may hold none of them; last year always holds some.

@@ -73,7 +73,6 @@ export const handlers = [
   // registry leaves the exports on the server's own default columns, so a suite
   // that is not about columns does not have to declare one.
   http.get(`${API}/admin/members/columns`, () => HttpResponse.json([])),
-  http.get(`${API}/admin/aircraft/columns`, () => HttpResponse.json([])),
   // The reports the caller may read and each report's column registry, empty
   // for the same reason: a suite that is not about reports need not declare one.
   http.get(`${API}/reports`, () => HttpResponse.json([])),
@@ -123,7 +122,7 @@ export function financeHandlers({
       record(request);
       return HttpResponse.json(summary);
     }),
-    http.get(`${API}/admin/payments/columns`, ({ request }) => {
+    http.get(`${API}/reports/payments/columns`, ({ request }) => {
       record(request);
       return HttpResponse.json(columns);
     }),

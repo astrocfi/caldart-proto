@@ -6,27 +6,31 @@
  * figure is the one an acknowledgment letter quotes, so it is the column the
  * table leads the eye to.
  */
-import { useState } from 'react';
 import type { JSX } from 'react';
 
 import type { ContributionRow } from '@/portal/api/types';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
-import { Field } from '@/portal/components/Field';
+import { FilterBar } from '@/portal/components/FilterBar';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
+import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import { reportExportUrl } from '@/portal/reports/api';
+import { REPORTS, listFilters } from '@/portal/reports/definitions';
+import { statementUrl } from './api';
 import { FinanceTabs } from './FinanceTabs';
-import { contributionsExportUrl, statementUrl, useContributions } from './reports-api';
+import { useContributions } from './reports-api';
 import './admin-payments.css';
 
-/** How many years back the chooser offers, counting the current one. */
-export const YEARS_OFFERED = 10;
+const FILTER_FIELDS = listFilters(REPORTS.contributions);
+const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
-/** The years the chooser lists, this year first. */
-export function offeredYears(today: Date = new Date()): number[] {
-  const thisYear = today.getFullYear();
-  return Array.from({ length: YEARS_OFFERED }, (_unused, back) => thisYear - back);
-}
+/** The years the Year field offers; blank, its first choice, is this year. */
+const OFFERED_YEARS = new Set(
+  (FILTER_FIELDS.find((field) => field.key === 'year')?.options ?? []).map(
+    (option) => option.value,
+  ),
+);
 
 function columns(year: number): Column<ContributionRow>[] {
   return [
@@ -75,30 +79,17 @@ function columns(year: number): Column<ContributionRow>[] {
 
 /** The Contributions tab of the finance area. */
 export function ContributionsPage(): JSX.Element {
-  const years = offeredYears();
-  const [year, setYear] = useState<number>(years[0] ?? new Date().getFullYear());
+  const [addressFilters, setFilters] = useUrlFilters(FILTER_KEYS);
+  // A year the Year field does not offer reads as blank, so the select, the
+  // rows, the caption and the downloads never disagree about the year shown.
+  const filters = OFFERED_YEARS.has(addressFilters.year ?? '')
+    ? addressFilters
+    : { ...addressFilters, year: '' };
+  // A blank year is the current one, which the server reports on by default;
+  // the statements and the caption need it spelled out.
+  const year = Number(filters.year) || new Date().getFullYear();
 
-  const rows = useContributions(year);
-
-  const filterBar = (
-    <div className="payment-filters">
-      <Field label="Year">
-        {(props) => (
-          <select
-            {...props}
-            value={String(year)}
-            onChange={(event) => setYear(Number(event.target.value))}
-          >
-            {years.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
-    </div>
-  );
+  const rows = useContributions(filters.year ?? '');
 
   return (
     <Page
@@ -118,9 +109,16 @@ export function ContributionsPage(): JSX.Element {
         rows={rows.data ?? []}
         rowKey={(row) => row.user_id}
         caption={`Contributions in ${year}`}
-        filters={filterBar}
-        exportCsvUrl={contributionsExportUrl(year, 'csv')}
-        exportPdfUrl={contributionsExportUrl(year, 'pdf')}
+        filters={
+          <FilterBar
+            fields={FILTER_FIELDS}
+            values={filters}
+            onChange={(next) => setFilters(next)}
+            label="Filter contributions"
+          />
+        }
+        exportCsvUrl={reportExportUrl('contributions', 'csv', filters)}
+        exportPdfUrl={reportExportUrl('contributions', 'pdf', filters)}
         isLoading={rows.isPending}
         emptyTitle="No contributions that year"
         emptyDescription="Choose another year, or check that the payments were recorded."

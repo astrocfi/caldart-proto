@@ -10,19 +10,25 @@ import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
+import { usePlans } from '@/portal/api/queries';
 import type { Payment, ReportColumn } from '@/portal/api/types';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
+import { FilterBar } from '@/portal/components/FilterBar';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
-import { useDebounced } from '@/portal/components/useDebounced';
-import { EMPTY_FILTERS, exportUrl, useAdminPayments, useReportColumns } from './api';
-import type { PaymentFilterState } from './api';
-import { FilterBar } from './FilterBar';
+import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import {
+  useFirstPageWhenMissing,
+  useUrlListPosition,
+} from '@/portal/components/useUrlListPosition';
+import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
+import { REPORTS, listFilters } from '@/portal/reports/definitions';
+import { useAdminPayments } from './api';
 import { FinanceTabs } from './FinanceTabs';
 import { KIND_LABELS, PROVIDER_LABELS, STATUS_LABELS, WALLET_LABELS, statusTone } from './labels';
 import './admin-payments.css';
@@ -30,6 +36,9 @@ import './admin-payments.css';
 const PAGE_SIZE = 25;
 
 const DEFAULT_ORDERING = '-paid_at';
+
+const FILTER_FIELDS = listFilters(REPORTS.payments);
+const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
 /**
  * How the table draws each export column, and the `ordering` value behind it.
@@ -99,34 +108,33 @@ export function tableColumns(registry: ReportColumn[], chosen: string[]): Column
 
 /** `/admin/payments/list`: the finance list with its filters, columns and exports. */
 export function PaymentsListPage(): JSX.Element {
-  const [filters, setFilters] = useState<PaymentFilterState>(EMPTY_FILTERS);
+  const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
+  // The order and the page live in the address beside the filters.
+  const position = useUrlListPosition(DEFAULT_ORDERING);
+  const { ordering, page, setPage, sort, setSort: handleSortChange } = position;
   const [chosen, setChosen] = useState<string[] | null>(null);
-  const [page, setPage] = useState(1);
-  const [ordering, setOrdering] = useState(DEFAULT_ORDERING);
 
-  const registry = useReportColumns();
+  const plans = usePlans();
+  const planOptions = useMemo(
+    () => ({ plan: (plans.data ?? []).map((plan) => ({ value: plan.slug, label: plan.name })) }),
+    [plans.data],
+  );
+
+  const registry = useReportColumns('payments');
   const columns = useMemo(() => registry.data ?? [], [registry.data]);
   const chosenKeys = chosen ?? defaultColumnKeys(columns);
 
-  // The search box types into the filter state, but only a settled term is
-  // worth a request, so the query lags the box by the debounce.
-  const settledSearch = useDebounced(filters.search);
-  const queried = useMemo(() => ({ ...filters, search: settledSearch }), [filters, settledSearch]);
-  const list = useAdminPayments(queried, { page, pageSize: PAGE_SIZE, ordering });
+  const list = useAdminPayments(filters, { page, pageSize: PAGE_SIZE, ordering });
+  useFirstPageWhenMissing(position, list.error);
 
   const tableCells = useMemo(() => tableColumns(columns, chosenKeys), [columns, chosenKeys]);
   const rows = list.data?.results ?? [];
   const count = list.data?.count ?? 0;
   const lastPage = Math.max(1, Math.ceil(count / PAGE_SIZE));
-  const exportOptions = { columns: chosenKeys, ordering };
+  const exportParams = { ...filters, ordering, columns: chosenKeys };
 
   function handleColumnChange(next: string[]) {
     setChosen(next);
-  }
-
-  function handleFilterChange(next: PaymentFilterState) {
-    setFilters(next);
-    setPage(1);
   }
 
   return (
@@ -145,30 +153,28 @@ export function PaymentsListPage(): JSX.Element {
         caption={`${count} payment${count === 1 ? '' : 's'}`}
         filters={
           <>
-            <FilterBar value={filters} onChange={handleFilterChange} />
+            <FilterBar
+              fields={FILTER_FIELDS}
+              values={filters}
+              onChange={(next) => setFilters(next)}
+              options={planOptions}
+              label="Filter payments"
+            />
             <ColumnChooser columns={columns} chosen={chosenKeys} onChange={handleColumnChange} />
           </>
         }
-        exportCsvUrl={exportUrl('csv', queried, exportOptions)}
-        exportPdfUrl={exportUrl('pdf', queried, exportOptions)}
+        exportCsvUrl={reportExportUrl('payments', 'csv', exportParams)}
+        exportPdfUrl={reportExportUrl('payments', 'pdf', exportParams)}
         isLoading={list.isPending}
         emptyTitle="No payments match these filters"
         emptyDescription="Try a wider date range, or clear the filters."
-        initialSort={{ key: 'paid_at', direction: 'desc' }}
-        onSortChange={(key, direction) => {
-          setOrdering(`${direction === 'desc' ? '-' : ''}${key}`);
-          setPage(1);
-        }}
+        sort={sort}
+        onSortChange={handleSortChange}
       />
 
       {lastPage > 1 ? (
         <nav className="pager" aria-label="Payment pages">
-          <Button
-            variant="quiet"
-            small
-            disabled={page <= 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-          >
+          <Button variant="quiet" small disabled={page <= 1} onClick={() => setPage(page - 1)}>
             Previous
           </Button>
           <span className="muted pager__status" aria-live="polite">
@@ -178,7 +184,7 @@ export function PaymentsListPage(): JSX.Element {
             variant="quiet"
             small
             disabled={page >= lastPage}
-            onClick={() => setPage((current) => Math.min(lastPage, current + 1))}
+            onClick={() => setPage(page + 1)}
           >
             Next
           </Button>

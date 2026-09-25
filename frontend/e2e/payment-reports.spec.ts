@@ -164,8 +164,13 @@ test('a filtered export carries the filter', async ({ page }) => {
   await page.getByLabel('Provider').selectOption('mock');
   await expect(page.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
     'href',
-    /provider=mock/,
+    /\/reports\/payments\/export\.csv\?provider=mock/,
   );
+
+  // The filter lives in the address, so the filtered list survives a reload.
+  await expect(page).toHaveURL(/provider=mock/);
+  await page.reload();
+  await expect(page.getByLabel('Provider')).toHaveValue('mock');
 });
 
 test('a plain member cannot reach the payment reports', async ({ page }) => {
