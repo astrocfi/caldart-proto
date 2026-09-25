@@ -124,8 +124,9 @@ When you do want to run it by hand:
 
 Underneath the result, a table headed **What a live run would do** after a
 rehearsal, or **What this run did** after a real one, names every action
-behind those numbers: which reminder, the member and their address, and the
-day their term runs out.  It is empty when nothing was due.
+behind those numbers: which reminder, the member and their address, the day
+their term runs out, and the amount — always empty here, since a reminder
+moves no money.  It is empty when nothing was due.
 
 A rehearsal on the server says the same thing on a shell.  ``caldart_manage
 send_renewal_reminders --dry-run`` prints one line per member under the counts --
