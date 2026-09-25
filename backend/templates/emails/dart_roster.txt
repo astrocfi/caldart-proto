@@ -2,9 +2,10 @@
 
 Hello {{ name }},
 
-Attached is the {{ dart_name }} roster for {{ report_date|date:"F j, Y" }}. It lists
-{{ members }} member{{ members|pluralize }}, by name, with how to reach each one, their
-certificate and medical, their aircraft, and when their membership runs out.
+Attached is the {{ dart_name }} roster for {{ report_date|date:"F j, Y" }}.
+
+It lists {{ members }} member{{ members|pluralize }} by name, with how to reach each one,
+their certificate and medical, their aircraft, and when their membership runs out.
 
 The file is {{ filename }}.
 
