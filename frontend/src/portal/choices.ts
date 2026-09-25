@@ -238,8 +238,8 @@ export const MEMBERSHIP_STATUS_LABELS: Record<MembershipState, string> = {
 };
 
 /**
- * The membership states as a choice list, in the order a member's standing
- * runs from best to worst.
+ * The membership states as a choice list, in the order the member list's
+ * status filter offers them.
  */
 export const MEMBERSHIP_STATUS_CHOICES: Choice<MembershipState>[] = (
   Object.keys(MEMBERSHIP_STATUS_LABELS) as MembershipState[]
