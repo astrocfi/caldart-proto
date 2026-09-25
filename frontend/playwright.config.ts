@@ -13,9 +13,6 @@ import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:8021';
 
-/** The zone the backend keeps its dates in (`TIME_ZONE` in the Django settings). */
-const DEPLOYMENT_TIME_ZONE = 'America/Los_Angeles';
-
 export default defineConfig({
   testDir: './e2e',
   workers: 1,
@@ -31,10 +28,6 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   use: {
     baseURL,
-    // The server reads dates in the deployment's own zone, so the browser keeps
-    // the same one: a machine running in UTC would otherwise type tomorrow's
-    // date into a box the server refuses as being in the future.
-    timezoneId: DEPLOYMENT_TIME_ZONE,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
