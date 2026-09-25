@@ -17,12 +17,19 @@
 
 /*
  * The order a person's row reads in: the pair that moves them, the four fields,
- * then the trashcan that takes them off.
+ * the Roster checkbox, then the trashcan that takes them off.
  */
 @media (min-width: 50rem) {
   .dart-contacts__row {
-    grid-template-columns: auto 1.5fr 1.2fr 11rem 1.6fr auto;
+    grid-template-columns: auto 1.5fr 1.2fr 11rem 1.6fr auto auto;
   }
+}
+
+/* The Roster checkbox sits under its heading, centered in its narrow column. */
+.dart-contacts__roster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .dart-contacts__row .field-pair,
