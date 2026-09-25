@@ -25,7 +25,9 @@ pytestmark = pytest.mark.django_db
 TODAY = date(2026, 6, 15)
 
 
-def term_ending(plan: MembershipPlan, days_from_today: int, *, email: str | None = None) -> Membership:
+def term_ending(
+    plan: MembershipPlan, days_from_today: int, *, email: str | None = None
+) -> Membership:
     """One member holding a term that ends ``days_from_today`` days from :data:`TODAY`."""
     ends_on = TODAY + timedelta(days=days_from_today)
     user = UserFactory() if email is None else UserFactory(email=email)

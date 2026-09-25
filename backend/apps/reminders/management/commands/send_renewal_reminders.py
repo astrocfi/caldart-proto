@@ -2,9 +2,10 @@
 
 Run by ``deploy/systemd/caldart-reminders.timer`` at 07:00 in production and by
 ``make reminders`` in development.  Safe to repeat: ``ReminderLog`` dedupes on
-``(user, membership, kind)``.  The command exits non-zero when any reminder
-could not be sent, so the systemd unit goes to ``failed`` instead of reporting
-a clean run that reached nobody.
+``(user, membership, kind)``, which is what lets each kind cover a span of
+expiry dates rather than one date.  The command exits non-zero when any
+reminder could not be sent, so the systemd unit goes to ``failed`` instead of
+reporting a clean run that reached nobody.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from apps.reminders.services import send_renewal_reminders
 class Command(BaseCommand):
     """Runs the renewal reminder scan and reports its results to stdout."""
 
-    help = "Send t60/t30/t7/expired/post30 renewal reminders and expire lapsed terms."
+    help = "Send the t60/t30/t7/expired/post30 renewal stages and expire lapsed terms."
 
     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
         """Register ``--dry-run`` and ``--today`` on the command's argument parser."""

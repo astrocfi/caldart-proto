@@ -45,8 +45,9 @@ mail the server handed to the mail server successfully.
 =================  ============================================================
 Parameter          Effect
 =================  ============================================================
-``kind``           One of ``t60``, ``t30``, ``t7``, ``expired``, ``post30``.
-                   Anything else is a 400 on ``kind``.
+``kind``           One of the five stages ``t60``, ``t30``, ``t7``,
+                   ``expired``, ``post30``.  Anything else is a 400 on
+                   ``kind``.
 ``from``, ``to``   ``YYYY-MM-DD``, compared against the date part of
                    ``sent_at``: ``from`` is on or after, ``to`` on or before.
 ``search``         Case-insensitive match on the recipient address and on the
@@ -81,6 +82,8 @@ and answers with what it did.  ``system_admin`` only.  The body is optional;
    {
      "sent": 4,
      "skipped": 12,
+     "failed": 0,
+     "skipped_by_reason": {"already_sent": 10, "auto_renew": 2},
      "actions": [
        {"kind": "t30", "member": "Maria Alvarez", "email": "maria@example.org",
         "on": "2026-10-14", "amount_cents": null, "detail": ""},
@@ -97,16 +100,20 @@ to them.  ``amount_cents`` is always ``null`` here, because a reminder moves no
 money.
 
 ``sent`` counts the reminders the run mailed and ``skipped`` those it decided
-against — a member who has already had that reminder, or who is outside the
-cohort.  A dry run writes nothing at all: no email, no log rows and no
-membership status flips.  Its ``sent`` is therefore a count of candidates, not
-of outcomes: every member the scan would try to mail lands in it, including
-ones a live run would end up recording as a failure, or as skipped because a
-concurrent run got there first.  Sends the mail server refuses are logged at
-ERROR and left out of both counts, so a run whose numbers look thin is worth
-reading the log for.
-The full breakdown per kind and per skip reason is what
-``manage.py send_renewal_reminders`` prints; see :doc:`reminders`.
+against — a member who has already had that stage, or whose membership renews
+itself.  ``skipped_by_reason`` breaks that number down, with one entry per
+reason that occurred and nothing for a reason that did not: the keys are
+``already_sent``, ``inactive_user``, ``no_email``, ``lifetime``, ``auto_renew``
+and ``renewed``.  ``failed`` counts the sends the mail server refused, which
+are in neither of the other two counts and are logged at ERROR with the ids;
+between them the three numbers say why a thin run was thin.
+
+A dry run writes nothing at all: no email, no log rows and no membership status
+flips.  Its ``sent`` is therefore a count of candidates, not of outcomes: every
+member the scan would try to mail lands in it, including ones a live run would
+end up recording as a failure, or as skipped because a concurrent run got there
+first.  The breakdown per stage is what ``manage.py send_renewal_reminders``
+prints; see :doc:`reminders`.
 
 Statuses: **200**; **400** when ``dry_run`` is not a boolean; **401** when
 anonymous; **403** for any other role.
