@@ -94,6 +94,15 @@ note, and the two dates of the term a payment bought — are the ones an audit
 wants and an everyday list does not.  Click anywhere outside the chooser, or
 press Escape, to put it away.
 
+Below the boxes, **Load columns** lists the sets of columns you have saved for
+the payments report.  Pick one and its boxes are ticked; the chooser stays open,
+so you can carry on changing them.  To keep the boxes as they stand, type a name of up
+to 60 characters in the box beside **Save columns** and press it, or press Enter.
+Saving under a name you already use replaces that set, and loading a set puts
+its name in the box, so a set you load and change is saved again with one press.
+The trashcan beside **Load columns** deletes the set it shows.  Your saved sets
+are yours alone, and each report keeps its own.
+
 **Export CSV** and **Export PDF** download exactly what the filters and the
 column chooser describe, in the order the table is sorted in.  Both files carry
 the day they were run in their name, so two exports never overwrite one

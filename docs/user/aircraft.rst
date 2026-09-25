@@ -149,6 +149,15 @@ The chooser feeds the downloads, not the table: the register on screen keeps its
 five columns however many you tick.  The last column cannot be unticked, since a
 report of nothing helps nobody.
 
+Below the boxes, **Load columns** lists the sets of columns you have saved for
+the aircraft report.  Pick one and its boxes are ticked; the chooser stays open,
+so you can carry on changing them.  To keep the boxes as they stand, type a name of up
+to 60 characters in the box beside **Save columns** and press it, or press Enter.
+Saving under a name you already use replaces that set, and loading a set puts
+its name in the box, so a set you load and change is saved again with one press.
+The trashcan beside **Load columns** deletes the set it shows.  Your saved sets
+are yours alone, and each report keeps its own.
+
 Editing a record
 ----------------
 

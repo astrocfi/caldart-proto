@@ -150,7 +150,9 @@ rather than to check one person on the ramp.
   carries every member the filters match, not just the page on screen, and
   **Columns** chooses what goes in it — phone, certificate, medical, aircraft,
   county, and more.  The list on screen keeps its five columns whatever you
-  choose.
+  choose.  **Save columns**, under the boxes, keeps the columns you ticked under
+  a name, and **Load columns** ticks them again next time, as
+  :ref:`member-report-columns` describes.
 
 Adding a member, and the full member record behind each name, belong to the
 account administrators; see :doc:`account-administrator-guide`.
