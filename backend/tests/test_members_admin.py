@@ -58,8 +58,6 @@ pytestmark = pytest.mark.django_db
 
 ONE_DAY = timedelta(days=1)
 LIST_URL = "/api/v1/admin/members"
-CSV_URL = "/api/v1/admin/members/export.csv"
-PDF_URL = "/api/v1/admin/members/export.pdf"
 
 #: Roles that may use the members-admin API at all.
 ALLOWED_ROLES = {ACCOUNT_ADMIN, SYSTEM_ADMIN}
@@ -186,8 +184,6 @@ def emails(response: ApiResponse) -> set[str]:
     ("method", "path_for", "payload"),
     [
         ("get", lambda u, t: LIST_URL, None),
-        ("get", lambda u, t: CSV_URL, None),
-        ("get", lambda u, t: PDF_URL, None),
         ("get", lambda u, t: detail_url(u), None),
         ("post", lambda u, t: LIST_URL, {"email": "anon@example.test"}),
         ("patch", lambda u, t: detail_url(u), {"first_name": "Nope"}),
@@ -217,7 +213,7 @@ def test_reads_are_forbidden_without_account_admin(
     """A role outside account admin and system admin is refused every read."""
     api_client.force_login(all_role_users[role])
     target = population["current"]
-    for url in (LIST_URL, CSV_URL, PDF_URL, detail_url(target)):
+    for url in (LIST_URL, detail_url(target)):
         assert api_client.get(url).status_code == 403, url
 
 
@@ -249,8 +245,6 @@ def test_account_and_system_admins_may_read(
     api_client.force_login(all_role_users[role])
     assert api_client.get(LIST_URL).status_code == 200
     assert api_client.get(detail_url(population["current"])).status_code == 200
-    assert api_client.get(CSV_URL).status_code == 200
-    assert api_client.get(PDF_URL).status_code == 200
 
 
 # --------------------------------------------------------------------------

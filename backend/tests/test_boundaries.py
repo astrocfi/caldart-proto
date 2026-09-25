@@ -28,7 +28,7 @@ pytestmark = pytest.mark.django_db
 AIRCRAFT_URL = "/api/v1/aircraft"
 PROFILE_URL = "/api/v1/me/profile"
 MEMBERS_URL = "/api/v1/admin/members"
-MEMBERS_CSV_URL = "/api/v1/admin/members/export.csv"
+MEMBERS_CSV_URL = "/api/v1/reports/members/export.csv"
 
 #: One more row than a full page, so the second page holds exactly one.
 OVER_A_PAGE = StandardPagination.page_size + 1

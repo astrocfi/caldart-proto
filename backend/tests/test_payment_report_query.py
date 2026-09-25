@@ -1,6 +1,6 @@
 """The query parameters the finance payment reports share.
 
-``GET /admin/payments``, ``/admin/payments/summary`` and the two exports read
+``GET /admin/payments``, ``/admin/payments/summary`` and the payments report read
 the same parameters, so they refuse the same input the same way, with the
 complaint keyed by the parameter it came from.
 """
@@ -20,8 +20,8 @@ pytestmark = pytest.mark.django_db
 
 LIST = "/api/v1/admin/payments"
 SUMMARY = "/api/v1/admin/payments/summary"
-EXPORT = "/api/v1/admin/payments/export.csv"
-EXPORT_PDF = "/api/v1/admin/payments/export.pdf"
+EXPORT = "/api/v1/reports/payments/export.csv"
+EXPORT_PDF = "/api/v1/reports/payments/export.pdf"
 REPORTS = [LIST, SUMMARY, EXPORT, EXPORT_PDF]
 
 DATE_MESSAGE = "Expected a date as YYYY-MM-DD."

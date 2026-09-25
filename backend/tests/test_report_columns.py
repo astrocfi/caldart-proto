@@ -1,9 +1,10 @@
 """The column registries behind the member and aircraft reports.
 
-Two things are proved here.  The registries and their ``columns`` endpoints
-agree, and ``?columns=`` picks the cells of both exports; and the default
-columns are sized so that no cell of a seeded row has to wrap in the PDF, which
-is what the relative widths on the registries are for.
+Two things are proved here.  ``?columns=`` picks the cells of both formats of
+both reports; and the default columns are sized so that no cell of a seeded row
+has to wrap in the PDF, which is what the relative widths on the registries are
+for.  The ``columns`` endpoints and their role matrix are proved for every report
+in ``test_report_endpoints.py``.
 """
 
 from __future__ import annotations
@@ -19,11 +20,8 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from rest_framework.test import APIClient
 
-from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
-from apps.aircraft.reports import AIRCRAFT_REPORT_COLUMNS, aircraft_rows, export_queryset
-from apps.members.filters import member_admin_queryset
-from apps.members.reports import MEMBER_REPORT_COLUMNS, member_report_rows
+from apps.aircraft.reports import AIRCRAFT_REPORT, AIRCRAFT_REPORT_COLUMNS
+from apps.members.reports import MEMBER_REPORT, MEMBER_REPORT_COLUMNS
 from caldart.reports import (
     CELL_PADDING,
     CELL_STYLE,
@@ -32,17 +30,15 @@ from caldart.reports import (
     ReportColumn,
     select_columns,
 )
-from tests.conftest import PdfText, RegisterDict, read_csv, role_matrix
+from tests.conftest import PdfText, RegisterDict, read_csv
 from tests.factories import MemberProfileFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
-MEMBER_COLUMNS_URL = "/api/v1/admin/members/columns"
-AIRCRAFT_COLUMNS_URL = "/api/v1/admin/aircraft/columns"
-MEMBER_CSV_URL = "/api/v1/admin/members/export.csv"
-MEMBER_PDF_URL = "/api/v1/admin/members/export.pdf"
-AIRCRAFT_CSV_URL = "/api/v1/admin/aircraft/export.csv"
-AIRCRAFT_PDF_URL = "/api/v1/admin/aircraft/export.pdf"
+MEMBER_CSV_URL = "/api/v1/reports/members/export.csv"
+MEMBER_PDF_URL = "/api/v1/reports/members/export.pdf"
+AIRCRAFT_CSV_URL = "/api/v1/reports/aircraft/export.csv"
+AIRCRAFT_PDF_URL = "/api/v1/reports/aircraft/export.pdf"
 
 #: The printable width of a landscape US-letter page, which the relative widths
 #: of the chosen columns share out between them.
@@ -139,7 +135,7 @@ def test_no_default_member_cell_wraps_in_the_pdf(seeded: None) -> None:
     columns = select_columns(MEMBER_REPORT_COLUMNS, None)
     assert wrapped_headers(columns) == []
     total = sum(column.width for column in columns)
-    rows = member_report_rows(member_admin_queryset(), columns)
+    rows = MEMBER_REPORT.table({}, fmt="pdf", today=timezone.localdate()).rows
     too_wide = [
         (column.key, cell)
         for row in rows
@@ -155,7 +151,7 @@ def test_no_default_aircraft_cell_wraps_in_the_pdf(seeded: None) -> None:
     columns = select_columns(AIRCRAFT_REPORT_COLUMNS, None)
     assert wrapped_headers(columns) == []
     total = sum(column.width for column in columns)
-    rows = aircraft_rows(export_queryset(), columns, currency=True)
+    rows = AIRCRAFT_REPORT.table({}, fmt="pdf", today=timezone.localdate()).rows
     too_wide = [
         (column.key, cell)
         for row in rows
@@ -163,43 +159,6 @@ def test_no_default_aircraft_cell_wraps_in_the_pdf(seeded: None) -> None:
         if not fits(cell, column.width, total)
     ]
     assert too_wide == []
-
-
-# --------------------------------------------------------------------------
-# The columns endpoints
-# --------------------------------------------------------------------------
-@pytest.mark.parametrize("url", [MEMBER_COLUMNS_URL, AIRCRAFT_COLUMNS_URL])
-def test_columns_refuse_an_anonymous_caller(api_client: APIClient, url: str) -> None:
-    """Both columns endpoints answer an anonymous caller with a 401."""
-    assert api_client.get(url).status_code == 401
-
-
-@pytest.mark.parametrize("url", [MEMBER_COLUMNS_URL, AIRCRAFT_COLUMNS_URL])
-@pytest.mark.parametrize(("slug", "allowed"), role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN))
-def test_columns_role_matrix(
-    api_client: APIClient, all_role_users: dict[str, User], url: str, slug: str, allowed: bool
-) -> None:
-    """Only an account or system administrator reads either columns endpoint."""
-    api_client.force_login(all_role_users[slug])
-    assert api_client.get(url).status_code == (200 if allowed else 403)
-
-
-def test_member_columns_answer_the_registry(account_admin_client: APIClient) -> None:
-    """The member columns endpoint reports every column, in export order."""
-    payload = account_admin_client.get(MEMBER_COLUMNS_URL).json()
-    assert payload == [
-        {"key": column.key, "label": column.label, "default": column.default}
-        for column in MEMBER_REPORT_COLUMNS
-    ]
-
-
-def test_aircraft_columns_answer_the_registry(account_admin_client: APIClient) -> None:
-    """The aircraft columns endpoint reports every column, in export order."""
-    payload = account_admin_client.get(AIRCRAFT_COLUMNS_URL).json()
-    assert payload == [
-        {"key": column.key, "label": column.label, "default": column.default}
-        for column in AIRCRAFT_REPORT_COLUMNS
-    ]
 
 
 # --------------------------------------------------------------------------

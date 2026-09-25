@@ -11,11 +11,10 @@ import re
 from datetime import date, timedelta
 
 import pytest
-from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
+from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.darts.models import Dart
-from apps.members.api.admin_views import MemberExportPdfView
 from apps.members.filters import applied_filters
 from apps.members.models import (
     MedicalType,
@@ -23,9 +22,9 @@ from apps.members.models import (
     MembershipStatusChoices,
     PilotCertificateType,
 )
-from apps.members.reports import MEMBER_REPORT_COLUMNS, member_report_filename
+from apps.members.reports import MEMBER_REPORT, MEMBER_REPORT_COLUMNS
 from caldart.reports import filter_summary
-from tests.conftest import pdf_page_count, read_csv
+from tests.conftest import PdfText, pdf_page_count, read_csv
 from tests.factories import (
     AircraftFactory,
     DartFactory,
@@ -36,8 +35,8 @@ from tests.factories import (
 
 pytestmark = pytest.mark.django_db
 
-CSV_URL = "/api/v1/admin/members/export.csv"
-PDF_URL = "/api/v1/admin/members/export.pdf"
+CSV_URL = "/api/v1/reports/members/export.csv"
+PDF_URL = "/api/v1/reports/members/export.pdf"
 
 #: The column keys ``docs/developer/reports.rst`` documents, in export order.
 DOCUMENTED_COLUMNS = (
@@ -160,7 +159,6 @@ def test_csv_download_headers(
     assert response["Content-Disposition"] == (
         f'attachment; filename="caldart-members-{today.isoformat()}.csv"'
     )
-    assert member_report_filename("csv") == f"caldart-members-{today.isoformat()}.csv"
 
 
 def test_csv_row_content(
@@ -296,21 +294,15 @@ def test_pdf_survives_an_empty_result_set(
     assert response.content.startswith(b"%PDF-")
 
 
-def test_pdf_subtitle_summarizes_the_applied_filters(account_admin: User) -> None:
+def test_pdf_subtitle_summarizes_the_applied_filters(reportable: dict[str, User]) -> None:
     """The PDF subtitle names every non-empty filter applied to the export."""
-    request = APIRequestFactory().get(
-        PDF_URL, {"status": "current", "dart": "Napa", "expiring_within": "30", "search": ""}
-    )
-    force_authenticate(request, user=account_admin)
-    view = MemberExportPdfView()
-    view.request = view.initialize_request(request)
-
-    assert applied_filters(view.request) == {
+    params = {"status": "current", "dart": "Napa", "expiring_within": "30", "search": ""}
+    assert applied_filters(params) == {
         "status": "current",
         "dart": "Napa",
         "expiring_within": "30",
     }
-    subtitle = view.subtitle(view.request)
+    subtitle = filter_summary(MEMBER_REPORT.query(params).filters)
     assert "status: current" in subtitle
     assert "dart: Napa" in subtitle
     assert "expiring within: 30" in subtitle
@@ -318,13 +310,17 @@ def test_pdf_subtitle_summarizes_the_applied_filters(account_admin: User) -> Non
     assert "search" not in subtitle
 
 
-def test_pdf_subtitle_when_nothing_is_filtered(account_admin: User) -> None:
+def test_pdf_subtitle_when_nothing_is_filtered(reportable: dict[str, User]) -> None:
     """With no filters applied, the PDF subtitle is the default summary."""
-    request = APIRequestFactory().get(PDF_URL)
-    force_authenticate(request, user=account_admin)
-    view = MemberExportPdfView()
-    view.request = view.initialize_request(request)
-    assert view.subtitle(view.request) == filter_summary({})
+    assert filter_summary(MEMBER_REPORT.query({}).filters) == "No filters applied"
+
+
+def test_pdf_prints_the_filter_summary_under_its_title(
+    account_admin_client: APIClient, reportable: dict[str, User], pdf_text: PdfText
+) -> None:
+    """The PDF itself draws the title, then the filters it was run with."""
+    body = account_admin_client.get(PDF_URL, {"dart": "Napa"}).content
+    assert pdf_text(body)[0][:2] == ["CalDART membership report", "dart: Napa"]
 
 
 def test_pdf_paginates_a_long_report(

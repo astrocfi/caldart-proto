@@ -37,6 +37,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ROLE_SLUGS
 from apps.members.models import MedicalType, MembershipState, PilotCertificateType
 from apps.members.services import with_membership
+from caldart.reports import given_params, ordering_terms
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -311,26 +312,34 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
     def filter_queryset[M: Model, R](
         self, request: Request, queryset: QuerySet[M, R], view: APIView
     ) -> QuerySet[M, R]:
-        """``queryset`` ordered by the requested alias, defaulting to ``name``.
+        """``queryset`` ordered by ``?ordering=``, through :meth:`order_queryset`."""
+        return self.order_queryset(queryset, request.query_params.get(self.ordering_param, ""))
 
-        Each alias expands to its real columns, a leading ``-`` reverses them,
-        and empty values sort last whichever direction is asked for.
+    @classmethod
+    def order_queryset[M: Model, R](cls, queryset: QuerySet[M, R], ordering: str) -> QuerySet[M, R]:
+        """``queryset`` ordered by a comma-separated ``ordering``, defaulting to ``name``.
+
+        Each term is an alias, with a leading ``-`` to reverse it; a term naming no
+        alias is dropped, and when none is left the order is ``name``.  Each alias
+        expands to its real columns, and empty values sort last whichever direction
+        is asked for.  The member list and the members report both order through
+        this, so the two can never disagree.
         """
-        ordering = self.get_ordering(request, queryset, view) or ["name"]
-        terms = []
-        for term in ordering:
+        terms = [term for term in ordering_terms(ordering) if term.removeprefix("-") in cls.aliases]
+        expressions = []
+        for term in terms or ["name"]:
             descending = term.startswith("-")
-            for field in self.aliases.get(term.lstrip("-"), ()):
+            for field in cls.aliases[term.removeprefix("-")]:
                 expression = F(field)
-                terms.append(
+                expressions.append(
                     expression.desc(nulls_last=True)
                     if descending
                     else expression.asc(nulls_last=True)
                 )
-        return queryset.order_by(*terms) if terms else queryset
+        return queryset.order_by(*expressions)
 
 
-#: Query parameters echoed into the PDF subtitle.
+#: The query parameters the members report names in its PDF subtitle, in order.
 EXPORT_FILTER_PARAMS: tuple[str, ...] = (
     "search",
     "status",
@@ -344,14 +353,10 @@ EXPORT_FILTER_PARAMS: tuple[str, ...] = (
 )
 
 
-def applied_filters(request: Request) -> dict[str, str]:
+def applied_filters(params: Mapping[str, str]) -> dict[str, str]:
     """The filters the caller actually supplied, for the report subtitle.
 
-    Only the parameters in ``EXPORT_FILTER_PARAMS`` are looked at, and only
-    those the query string gives a non-empty value.
+    Only the parameters in ``EXPORT_FILTER_PARAMS`` are looked at, in that order, and
+    only those ``params`` gives a non-empty value.
     """
-    return {
-        key: request.query_params[key]
-        for key in EXPORT_FILTER_PARAMS
-        if request.query_params.get(key)
-    }
+    return given_params(params, EXPORT_FILTER_PARAMS)

@@ -5,21 +5,19 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
-from rest_framework.request import Request
-from rest_framework.test import APIClient, APIRequestFactory
+from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
-from apps.aircraft.api.views import AircraftExportPdfView
 from apps.aircraft.models import Aircraft
-from apps.aircraft.reports import AIRCRAFT_REPORT_COLUMNS, AircraftRow
-from tests.conftest import PdfText, RegisterDict, pdf_page_count, read_csv, role_matrix
+from apps.aircraft.reports import AIRCRAFT_REPORT, AIRCRAFT_REPORT_COLUMNS, EXPORT_FILTER_PARAMS
+from caldart.reports import ReportFormat, cell_text
+from tests.conftest import PdfText, RegisterDict, pdf_page_count, read_csv
 from tests.factories import AircraftFactory, MemberProfileFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
-CSV_URL = "/api/v1/admin/aircraft/export.csv"
-PDF_URL = "/api/v1/admin/aircraft/export.pdf"
+CSV_URL = "/api/v1/reports/aircraft/export.csv"
+PDF_URL = "/api/v1/reports/aircraft/export.pdf"
 
 #: The header the CSV prints when the caller chooses no columns: the labels of
 #: the nine default columns.
@@ -44,30 +42,6 @@ PDF_FIRST_ROW = 11
 
 #: The footer draws two more strings after the last row of the page.
 PDF_FOOTER = -2
-
-
-# --------------------------------------------------------------------------
-# Permissions
-# --------------------------------------------------------------------------
-@pytest.mark.parametrize("url", [CSV_URL, PDF_URL])
-def test_exports_require_authentication(api_client: APIClient, url: str) -> None:
-    """Both export endpoints refuse an anonymous caller with a 401."""
-    assert api_client.get(url).status_code == 401
-
-
-@pytest.mark.parametrize("url", [CSV_URL, PDF_URL])
-@pytest.mark.parametrize(("slug", "allowed"), role_matrix(ACCOUNT_ADMIN, SYSTEM_ADMIN))
-def test_export_role_matrix(
-    api_client: APIClient,
-    all_role_users: dict[str, User],
-    register: RegisterDict,
-    url: str,
-    slug: str,
-    allowed: bool,
-) -> None:
-    """Only account and system admins get 200 from either export; others get 403."""
-    api_client.force_login(all_role_users[slug])
-    assert api_client.get(url).status_code == (200 if allowed else 403)
 
 
 # --------------------------------------------------------------------------
@@ -258,16 +232,19 @@ def test_pdf_says_when_it_was_run_with_no_filters(
     assert page[1] == "No filters applied"
 
 
-def money_cells(aircraft: Aircraft, *, currency: bool) -> list[str]:
-    """The three insured amounts of ``aircraft``, in the money format asked for."""
-    row = AircraftRow(aircraft=aircraft, currency=currency)
+def money_cells(aircraft: Aircraft, fmt: ReportFormat) -> list[str]:
+    """The three insured amounts of ``aircraft``, as format ``fmt`` prints them."""
     keys = {"liability_per_occurrence", "liability_per_person", "hull"}
-    return [str(column.value(row)) for column in AIRCRAFT_REPORT_COLUMNS if column.key in keys]
+    return [
+        cell_text(column.value(aircraft), fmt)
+        for column in AIRCRAFT_REPORT_COLUMNS
+        if column.key in keys
+    ]
 
 
 def test_money_is_formatted_for_a_reader_in_the_pdf_rows(register: RegisterDict) -> None:
     """The insured amounts are dollar amounts when the export renders for a reader."""
-    assert money_cells(register["current"], currency=True) == [
+    assert money_cells(register["current"], "pdf") == [
         "$1,000,000",
         "$100,000",
         "$145,000",
@@ -276,7 +253,7 @@ def test_money_is_formatted_for_a_reader_in_the_pdf_rows(register: RegisterDict)
 
 def test_money_is_a_plain_number_a_spreadsheet_sums_in_the_csv(register: RegisterDict) -> None:
     """The same amounts are plain two-place numbers when the export is a CSV."""
-    assert money_cells(register["current"], currency=False) == [
+    assert money_cells(register["current"], "csv") == [
         "1000000.00",
         "100000.00",
         "145000.00",
@@ -286,19 +263,12 @@ def test_money_is_a_plain_number_a_spreadsheet_sums_in_the_csv(register: Registe
 def test_odd_cent_amounts_keep_their_cents(register: RegisterDict) -> None:
     """A reader's money format keeps non-round cent amounts precise."""
     register["current"].insurance_hull_cents = 12_345
-    assert money_cells(register["current"], currency=True)[2] == "$123.45"
+    assert money_cells(register["current"], "pdf")[2] == "$123.45"
 
 
 def test_the_export_subtitle_covers_every_filter_the_list_applies() -> None:
-    """``applied_filters`` reports every filter the register list supports."""
-    view = AircraftExportPdfView()
-    view.request = Request(APIRequestFactory().get("/", {"is_active": "true", "search": "N1"}))
-
-    filters = view.applied_filters()
-
-    assert filters["is_active"] == "true"
-    assert filters["search"] == "N1"
-    assert set(filters) == {
+    """The subtitle can name every filter the register list supports, and ordering."""
+    assert EXPORT_FILTER_PARAMS == (
         "search",
         "make",
         "owner_type",
@@ -306,4 +276,10 @@ def test_the_export_subtitle_covers_every_filter_the_list_applies() -> None:
         "expiring_within",
         "is_active",
         "ordering",
-    }
+    )
+
+
+def test_the_export_subtitle_names_the_filters_given_a_value(register: RegisterDict) -> None:
+    """A filter supplied with a value is named; a blank one is not."""
+    filters = AIRCRAFT_REPORT.query({"is_active": "true", "search": "N1", "make": ""}).filters
+    assert filters == {"search": "N1", "is_active": "true"}

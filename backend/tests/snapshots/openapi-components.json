@@ -2181,6 +2181,20 @@
       "label"
     ]
   },
+  "ReportSummary": {
+    "properties": {
+      "choosable": "boolean",
+      "periods": "boolean",
+      "slug": "string",
+      "title": "string"
+    },
+    "required": [
+      "choosable",
+      "periods",
+      "slug",
+      "title"
+    ]
+  },
   "Role": {
     "properties": {
       "description": "string",

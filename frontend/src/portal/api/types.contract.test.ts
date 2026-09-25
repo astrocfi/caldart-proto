@@ -117,6 +117,7 @@ import type {
   ReminderLogEntry,
   ReminderRunResult,
   ReportColumn,
+  ReportSummary,
   Role,
   RoleSlug,
   SendPasswordResetResult,
@@ -241,6 +242,7 @@ const checkoutRequest: Matches<CheckoutRequest, Schemas['CheckoutRequest']> = tr
 const checkoutResponse: Matches<CheckoutResponse, Schemas['CheckoutResponse']> = true;
 const periodSummary: Matches<PaymentPeriodSummary, Schemas['PaymentPeriodSummary']> = true;
 const reportColumn: Matches<ReportColumn, Schemas['ReportColumn']> = true;
+const reportSummary: Matches<ReportSummary, Schemas['ReportSummary']> = true;
 const reconciliationRow: Matches<ReconciliationRow, Schemas['ReconciliationRow']> = true;
 const contributionRow: Matches<ContributionRow, Schemas['ContributionRow']> = true;
 const financeMember: Matches<FinanceMember, Schemas['FinanceMember']> = true;
@@ -368,6 +370,7 @@ const assertions: readonly true[] = [
   checkoutResponse,
   periodSummary,
   reportColumn,
+  reportSummary,
   reconciliationRow,
   contributionRow,
   financeMember,
@@ -481,6 +484,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'CheckoutResponse',
   'PaymentPeriodSummary',
   'ReportColumn',
+  'ReportSummary',
   'ReconciliationRow',
   'ContributionRow',
   'FinanceMember',

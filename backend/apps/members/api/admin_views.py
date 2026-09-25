@@ -1,4 +1,4 @@
-"""Account-administrator member and membership management, and reports.
+"""Account-administrator member and membership management.
 
 Every view here is gated on ``account_admin``; ``system_admin`` passes through
 :func:`apps.accounts.permissions.user_has_any_role`.  Anonymous callers get 401
@@ -7,12 +7,10 @@ from ``caldart.exceptions``, not 403.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
 from typing import TYPE_CHECKING, Any
 
 from django.db import transaction
 from django.db.models import QuerySet
-from django.http import HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -36,31 +34,11 @@ from apps.members.api.admin_serializers import (
 from apps.members.filters import (
     MemberAdminFilterSet,
     MemberOrderingFilter,
-    applied_filters,
     member_admin_queryset,
 )
 from apps.members.models import Membership, MembershipSource
-from apps.members.reports import (
-    MEMBER_REPORT_COLUMNS,
-    REPORT_TITLE,
-    RowContext,
-    member_report_filename,
-    member_report_rows,
-)
 from apps.members.services import activate_term, delete_member
 from caldart import audit
-from caldart.reports import (
-    CSV_MEDIA_TYPE,
-    PDF_MEDIA_TYPE,
-    ReportColumn,
-    ReportColumnSerializer,
-    chosen_columns,
-    column_payload,
-    csv_response,
-    download_responses,
-    filter_summary,
-    pdf_table_response,
-)
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -210,89 +188,4 @@ class MembershipAdminDetailView(generics.UpdateAPIView[Membership]):
             target=term.user,
             term=term.pk,
             fields=changed,
-        )
-
-
-# --------------------------------------------------------------------------
-# Exports
-# --------------------------------------------------------------------------
-class MemberExportBaseView(MemberAdminBaseView):
-    """The filtered member list, rendered as a downloadable report."""
-
-    pagination_class = None
-    serializer_class = MemberListSerializer
-
-    def columns(self, request: Request) -> list[ReportColumn[RowContext]]:
-        """The columns ``?columns=`` asks for, or the default ones."""
-        return chosen_columns(MEMBER_REPORT_COLUMNS, request.query_params.get("columns", ""))
-
-    def rows(
-        self, request: Request, columns: Sequence[ReportColumn[RowContext]]
-    ) -> Iterator[list[str]]:
-        """The report rows for the filtered list, streamed a chunk at a time."""
-        queryset = self.filter_queryset(self.get_queryset())
-        return member_report_rows(queryset.iterator(chunk_size=200), columns)
-
-    def subtitle(self, request: Request) -> str:
-        """The filters the caller asked for, as one line under the report title."""
-        return filter_summary(applied_filters(request))
-
-
-class MemberColumnsView(APIView):
-    """``GET /admin/members/columns`` -- what the member exports can carry."""
-
-    permission_classes = [IsAccountAdmin]
-
-    @extend_schema(responses={200: ReportColumnSerializer(many=True)})
-    def get(self, request: Request) -> Response:
-        """200 with every export column, in export order, for an account administrator.
-
-        Each entry carries the ``key`` ``?columns=`` accepts, the ``label`` both
-        exports print, and whether it is one of the ``default`` columns.
-        """
-        rows = column_payload(MEMBER_REPORT_COLUMNS)
-        # The stubs take the instance type from the single-object parameter, so
-        # they do not widen it to a list when ``many`` is set.
-        serializer = ReportColumnSerializer(rows, many=True)  # type: ignore[arg-type]
-        return Response(serializer.data)
-
-
-class MemberExportCsvView(MemberExportBaseView):
-    """``GET /admin/members/export.csv``."""
-
-    @extend_schema(responses=download_responses(CSV_MEDIA_TYPE, "The member list as a CSV file."))
-    def get(self, request: Request, *args: Any, **kwargs: Any) -> StreamingHttpResponse:
-        """The filtered member list as a streamed CSV download.
-
-        ``?columns=`` chooses which columns appear and in what order, exactly as
-        on the PDF; an unknown or repeated key is a 400 keyed ``columns``.  The
-        header row is the column labels.
-        """
-        columns = self.columns(request)
-        return csv_response(
-            member_report_filename("csv"),
-            [column.label for column in columns],
-            self.rows(request, columns),
-        )
-
-
-class MemberExportPdfView(MemberExportBaseView):
-    """``GET /admin/members/export.pdf`` -- landscape letter."""
-
-    @extend_schema(responses=download_responses(PDF_MEDIA_TYPE, "The member list as a PDF file."))
-    def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        """The filtered member list as a landscape-letter PDF download.
-
-        The same ``?columns=`` as the CSV applies, and each chosen column takes
-        the share of the page its registry width asks for.
-        """
-        columns = self.columns(request)
-        return pdf_table_response(
-            member_report_filename("pdf"),
-            title=REPORT_TITLE,
-            subtitle=self.subtitle(request),
-            header=[column.label for column in columns],
-            rows=self.rows(request, columns),
-            landscape=True,
-            widths=[column.width for column in columns],
         )

@@ -1,7 +1,10 @@
-"""Shared CSV and PDF report helpers.
+"""The report engine: one way to turn a report's rows into a CSV or a PDF.
 
-The members, aircraft, and payments reports build on these, so the house style
-lives here rather than in any one app.
+Every report the portal downloads -- members, aircraft, payments, reconciliation
+and contributions -- is a :class:`ReportSpec` declared by its app, and every one of
+them becomes a file through :func:`build_report`.  The house style, the column
+registry, the formula policy for CSV cells and the markup escaping for PDF cells
+all live here, so no app has its own path to a file.
 
 Fraunces and IBM Plex are web fonts and are not embedded in the PDFs; the
 built-in Times/Helvetica families carry the same serif-display /
@@ -10,15 +13,19 @@ sans-supporting-text contrast.
 
 from __future__ import annotations
 
+import calendar
 import csv
-from collections.abc import Callable, Iterable, Iterator, Sequence
-from dataclasses import dataclass
-from datetime import datetime
+import io
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from dataclasses import dataclass, field
+from datetime import date, datetime
 from http import HTTPStatus
-from typing import IO, Any, TypedDict
+from typing import IO, Any, Literal, Protocol, TypedDict
 
-from django.http import HttpResponse, StreamingHttpResponse
+from django.db.models import Model, QuerySet
+from django.http import HttpResponse
 from django.utils import timezone
+from django_filters import FilterSet
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse
 from reportlab.lib import colors
@@ -41,11 +48,24 @@ from reportlab.platypus import (
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-#: The media type every CSV export answers with.
+#: The media type of a CSV document, as an email attachment names it.
+CSV_DOCUMENT_TYPE = "text/csv"
+
+#: The media type every CSV download answers with: the document type, with the
+#: character set the bytes are written in.
 CSV_MEDIA_TYPE = "text/csv; charset=utf-8"
 
-#: The media type every PDF export answers with.
+#: The media type of every PDF document and download.
 PDF_MEDIA_TYPE = "application/pdf"
+
+#: The two formats a report is built in.
+type ReportFormat = Literal["csv", "pdf"]
+
+#: A report's parameters as a query string carries them: one text value per name.
+type Params = Mapping[str, str]
+
+#: What a report whose columns are fixed answers a ``?columns=`` choice with.
+FIXED_COLUMNS_MESSAGE = "This report's columns are fixed."
 
 #: An ``@extend_schema`` ``responses`` mapping keyed by status and media type.
 type DownloadResponses = dict[tuple[HTTPStatus, str], OpenApiResponse]
@@ -227,6 +247,37 @@ def money_label(cents: int, *, currency: bool = True) -> str:
     return f"${cents / 100:,.2f}"
 
 
+@dataclass(frozen=True)
+class Money:
+    """An amount of money in a report cell, which each format renders its own way.
+
+    A CSV is added up, so it carries the plain number, ``1234.56``; a PDF is read, so
+    it carries dollars, ``$1,234.56``.  ``drop_zero_cents`` leaves the cents off a PDF
+    amount of whole dollars, ``$1,000,000``, for a column of round figures such as an
+    insured value; an amount with cents keeps them either way.
+    """
+
+    cents: int
+    drop_zero_cents: bool = False
+
+
+def cell_text(value: object, fmt: ReportFormat) -> str:
+    """One cell's value as the text ``fmt`` prints.
+
+    :class:`Money` is a plain two-place number in a CSV and dollars in a PDF (see
+    :func:`money_label`); ``None`` is a blank cell; anything else is its ``str``.
+    """
+    if value is None:
+        return ""
+    if not isinstance(value, Money):
+        return str(value)
+    if fmt == "csv":
+        return money_label(value.cents, currency=False)
+    if value.drop_zero_cents and value.cents % 100 == 0:
+        return f"${value.cents // 100:,}"
+    return money_label(value.cents)
+
+
 # --------------------------------------------------------------------------
 # CSV
 # --------------------------------------------------------------------------
@@ -271,28 +322,14 @@ def csv_rows(header: Sequence[str], rows: Iterable[Sequence[Any]]) -> Iterator[s
         yield writer.writerow([csv_cell(value) for value in row])
 
 
-def csv_response(
-    filename: str,
-    header: Sequence[str],
-    rows: Iterable[Sequence[Any]],
-) -> StreamingHttpResponse:
-    """Stream a CSV download.
-
-    The rows are consumed lazily, so a report over the whole member table never
-    materializes in memory.
-    """
-    response = StreamingHttpResponse(csv_rows(header, rows), content_type=CSV_MEDIA_TYPE)
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
-
-
 def download_responses(media_type: str, description: str) -> DownloadResponses:
     """The ``responses`` mapping of an endpoint that answers with a file download.
 
     An export answers with an attachment rather than a serialized object, so the
     one entry describes a ``200`` carrying an opaque binary body of ``media_type``,
     and leans on ``description`` to say which file arrives.  Pass the result
-    straight to ``@extend_schema(responses=...)``.
+    straight to ``@extend_schema(responses=...)``, or merge two for an endpoint that
+    answers in either of two formats.
     """
     return {
         (HTTPStatus.OK, media_type): OpenApiResponse(
@@ -450,36 +487,278 @@ def build_pdf_table(
     doc.build(story, canvasmaker=make_canvas)
 
 
-def pdf_table_response(
-    filename: str,
-    *,
-    title: str,
-    subtitle: str = "",
-    header: Sequence[str],
-    rows: Iterable[Sequence[Any]],
-    landscape: bool = True,
-    widths: Sequence[float] | None = None,
-) -> HttpResponse:
-    """A letter-size PDF table download in the CalDART house style.
-
-    ``landscape`` and ``widths`` mean what they mean in :func:`build_pdf_table`;
-    the default is a landscape page with columns of equal width.
-    """
-    response = HttpResponse(content_type=PDF_MEDIA_TYPE)
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    build_pdf_table(
-        response,  # type: ignore[arg-type]  # HttpResponse.write() duck-types IO[bytes]
-        title=title,
-        subtitle=subtitle,
-        header=header,
-        rows=rows,
-        landscape=landscape,
-        widths=widths,
-    )
-    return response
-
-
 def filter_summary(filters: dict[str, Any]) -> str:
     """Render applied filters for the PDF subtitle line."""
     parts = [f"{key.replace('_', ' ')}: {value}" for key, value in filters.items() if value]
     return " \u00b7 ".join(parts) if parts else "No filters applied"
+
+
+# --------------------------------------------------------------------------
+# Periods and ordering
+# --------------------------------------------------------------------------
+#: The periods a dated report accepts as ``?period=``, each counted from the day
+#: the report is built.
+PERIODS: tuple[str, ...] = ("this_month", "last_month", "this_year", "last_year")
+
+
+def period_bounds(period: str, today: date) -> tuple[date, date]:
+    """The first and last day of the period ``period`` names, counted from ``today``.
+
+    ``this_month`` and ``last_month`` are whole calendar months, ``this_year`` and
+    ``last_year`` whole calendar years; the last day may lie after ``today``.  A token
+    that is not one of :data:`PERIODS` raises DRF's ``ValidationError`` keyed by
+    ``period``, reading ``Unknown period '<period>'.``.
+    """
+    if period not in PERIODS:
+        raise ValidationError({"period": [f"Unknown period '{period}'."]})
+    if period == "this_year":
+        return date(today.year, 1, 1), date(today.year, 12, 31)
+    if period == "last_year":
+        return date(today.year - 1, 1, 1), date(today.year - 1, 12, 31)
+    year, month = today.year, today.month
+    if period == "last_month":
+        year, month = (year - 1, 12) if month == 1 else (year, month - 1)
+    return date(year, month, 1), date(year, month, calendar.monthrange(year, month)[1])
+
+
+def resolve_period(
+    params: Params, today: date, expand: Callable[[date, date], dict[str, str]]
+) -> Params:
+    """``params`` with ``period`` replaced by the concrete params it stands for.
+
+    ``expand`` turns the period's first and last day into the params the report
+    takes -- a date range, a year -- and those win over any the caller gave, so a
+    subscription that says "last month" always means the month before the one it is
+    sent in.  Without a ``period``, or with a blank one, the params come back less
+    that key.  An unknown period is refused as :func:`period_bounds` refuses it.
+    """
+    rest = {key: value for key, value in params.items() if key != "period"}
+    period = params.get("period", "")
+    if period == "":
+        return rest
+    start, end = period_bounds(period, today)
+    return {**rest, **expand(start, end)}
+
+
+def keep_params(params: Params, today: date) -> Params:
+    """The identity ``resolve``: a report without dates takes its params as they come."""
+    return params
+
+
+def apply_filterset[M: Model, R](
+    filterset_class: type[FilterSet], params: Params, queryset: QuerySet[M, R]
+) -> QuerySet[M, R]:
+    """``queryset`` narrowed by ``filterset_class`` over ``params``, as a list narrows it.
+
+    A value the filter set refuses raises DRF's ``ValidationError`` keyed by that
+    filter, with the filter's own messages, which is what the list endpoint's filter
+    backend answers the same value with.
+    """
+    filterset = filterset_class(data=params, queryset=queryset)
+    if not filterset.is_valid():
+        raise ValidationError({key: list(errors) for key, errors in filterset.errors.items()})
+    narrowed: QuerySet[M, R] = filterset.qs
+    return narrowed
+
+
+def given_params(params: Params, keys: Sequence[str] | None = None) -> dict[str, str]:
+    """The params that carry a value, in the order of ``keys`` (or of ``params``).
+
+    A blank value means "not given": a filter bar sends every parameter it has, and a
+    stored subscription may carry a filter nobody set.  With ``keys``, only those
+    names are looked at, which is how a report picks the filters its subtitle names.
+    """
+    names = params.keys() if keys is None else keys
+    return {key: params[key] for key in names if params.get(key, "") != ""}
+
+
+def ordering_terms(raw: str) -> list[str]:
+    """The terms of a comma-separated ``?ordering=``, stripped, blanks dropped.
+
+    Each report checks the terms against the orderings it offers; this only splits.
+    """
+    return [term.strip() for term in raw.split(",") if term.strip()]
+
+
+# --------------------------------------------------------------------------
+# Specs and documents
+# --------------------------------------------------------------------------
+@dataclass(frozen=True)
+class ReportQuery[RowT]:
+    """What a report's query answers: its rows, and the filters it applied.
+
+    ``rows`` may be a one-shot iterator, such as a queryset's ``iterator()``; it is
+    read once.  ``filters`` maps each applied filter's name to its value, and is what
+    the PDF subtitle prints through :func:`filter_summary`.
+    """
+
+    rows: Iterable[RowT]
+    filters: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ReportTable:
+    """A report's cells, ready for either format: labels, widths, text rows, filters."""
+
+    header: list[str]
+    widths: list[float]
+    rows: list[list[str]]
+    filters: dict[str, str]
+
+
+@dataclass(frozen=True)
+class ReportSpec[RowT]:
+    """One report: what it is called, who may read it, and how its rows are found.
+
+    ``slug`` names it in every URL, ``title`` heads its PDF and labels it in the
+    portal, and ``filename_stem`` begins its file name.  ``columns`` is its registry,
+    in export order.  ``roles`` are the role slugs that may read it (a system
+    administrator and a superuser always may).  ``query`` turns the params into rows
+    and the applied filters, raising DRF's ``ValidationError`` for a param it refuses.
+    ``landscape`` chooses the PDF's orientation.  ``choosable`` false makes the
+    columns fixed: every column is printed and a ``columns`` param is refused with
+    :data:`FIXED_COLUMNS_MESSAGE`.  ``resolve`` turns the params into the ones the
+    query reads, given the day the report is built on; a dated report uses it to
+    expand ``period`` (see :func:`resolve_period`), and every other report keeps
+    :func:`keep_params`.
+    """
+
+    slug: str
+    title: str
+    filename_stem: str
+    columns: Sequence[ReportColumn[RowT]]
+    roles: tuple[str, ...]
+    query: Callable[[Params], ReportQuery[RowT]]
+    landscape: bool = True
+    choosable: bool = True
+    resolve: Callable[[Params, date], Params] = keep_params
+
+    @property
+    def periods(self) -> bool:
+        """True when the report takes ``?period=``, which is when it resolves one."""
+        return self.resolve is not keep_params
+
+    def column_choices(self) -> list[ColumnDict]:
+        """The registry as the ``columns`` endpoint answers it."""
+        return column_payload(self.columns)
+
+    def table(self, params: Params, *, fmt: ReportFormat, today: date) -> ReportTable:
+        """The report's cells for ``params``, as ``fmt`` prints them.
+
+        The params are resolved for ``today`` first; then the columns are chosen --
+        every column of a fixed report, otherwise the ``columns`` param or the
+        defaults, refused as :func:`chosen_columns` refuses them -- and only then is
+        the query run, so a bad column list is refused before any row is read.
+        """
+        resolved = self.resolve(params, today)
+        requested = resolved.get("columns", "")
+        if self.choosable:
+            columns: Sequence[ReportColumn[RowT]] = chosen_columns(self.columns, requested)
+        elif requested != "":
+            raise ValidationError({"columns": [FIXED_COLUMNS_MESSAGE]})
+        else:
+            columns = self.columns
+        query = self.query(resolved)
+        return ReportTable(
+            header=[column.label for column in columns],
+            widths=[column.width for column in columns],
+            rows=[[cell_text(column.value(row), fmt) for column in columns] for row in query.rows],
+            filters=query.filters,
+        )
+
+
+class Report(Protocol):
+    """Any :class:`ReportSpec`, whatever its row type, as a registry holds it.
+
+    The engine never needs a report's row type, only its cells, so every spec
+    satisfies this and one registry holds them all.
+    """
+
+    @property
+    def slug(self) -> str:
+        """The name the report goes by in every URL."""
+
+    @property
+    def title(self) -> str:
+        """The PDF's title and the report's label in the portal."""
+
+    @property
+    def filename_stem(self) -> str:
+        """The start of the report's file name."""
+
+    @property
+    def roles(self) -> tuple[str, ...]:
+        """The role slugs that may read the report."""
+
+    @property
+    def landscape(self) -> bool:
+        """Whether the PDF is landscape."""
+
+    @property
+    def choosable(self) -> bool:
+        """Whether the caller may choose the columns."""
+
+    @property
+    def periods(self) -> bool:
+        """Whether the report takes ``?period=``."""
+
+    def column_choices(self) -> list[ColumnDict]:
+        """The registry as the ``columns`` endpoint answers it."""
+
+    def table(self, params: Params, *, fmt: ReportFormat, today: date) -> ReportTable:
+        """The report's cells for ``params``, as ``fmt`` prints them."""
+
+
+@dataclass(frozen=True)
+class ReportDocument:
+    """A built report: its file name, its media type, and its bytes."""
+
+    filename: str
+    media_type: str
+    content: bytes
+
+
+def build_report(
+    spec: Report, params: Params, *, fmt: ReportFormat, today: date | None = None
+) -> ReportDocument:
+    """Build ``spec`` for ``params`` as a CSV or a PDF document.
+
+    ``today`` defaults to the local date; it resolves the params (so ``period`` means
+    the period the report is built in) and dates the file name,
+    ``<filename_stem>-<YYYY-MM-DD>.<fmt>``.  A CSV is the column labels and then one
+    line per row, UTF-8, every cell through :func:`csv_cell`, money as plain numbers;
+    its media type is :data:`CSV_DOCUMENT_TYPE`.  A PDF is :func:`build_pdf_table` with
+    the spec's title and orientation, the applied filters as the subtitle, each
+    column's registry width, and money as dollars.  A param the report refuses raises
+    DRF's ``ValidationError``, so an endpoint answers it with a 400.
+    """
+    day = today or timezone.localdate()
+    table = spec.table(params, fmt=fmt, today=day)
+    filename = f"{spec.filename_stem}-{day.isoformat()}.{fmt}"
+    if fmt == "csv":
+        content = "".join(csv_rows(table.header, table.rows)).encode()
+        return ReportDocument(filename=filename, media_type=CSV_DOCUMENT_TYPE, content=content)
+    buffer = io.BytesIO()
+    build_pdf_table(
+        buffer,
+        title=spec.title,
+        subtitle=filter_summary(table.filters),
+        header=table.header,
+        rows=table.rows,
+        landscape=spec.landscape,
+        widths=table.widths,
+    )
+    return ReportDocument(filename=filename, media_type=PDF_MEDIA_TYPE, content=buffer.getvalue())
+
+
+def report_response(document: ReportDocument) -> HttpResponse:
+    """``document`` as a download: its bytes, its type, and its name as an attachment.
+
+    A CSV answers with :data:`CSV_MEDIA_TYPE`, which names the character set.
+    """
+    content_type = (
+        CSV_MEDIA_TYPE if document.media_type == CSV_DOCUMENT_TYPE else document.media_type
+    )
+    response = HttpResponse(document.content, content_type=content_type)
+    response["Content-Disposition"] = f'attachment; filename="{document.filename}"'
+    return response

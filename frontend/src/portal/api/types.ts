@@ -882,12 +882,6 @@ export interface RenewalRunResult {
 /** How money taken by hand was presented. */
 export type ManualMethod = 'check' | 'cash' | 'bank_transfer' | 'other';
 
-/** One entry of `GET /admin/payments/columns`, which drives the column chooser. */
-export interface ReportColumn {
-  key: string;
-  label: string;
-  default: boolean;
-}
 
 /** One row of `GET /admin/payments/reconciliation`: a period, or a provider. */
 export interface ReconciliationRow {
@@ -1122,4 +1116,22 @@ export interface Paginated<T> {
   next: string | null;
   previous: string | null;
   results: T[];
+}
+
+/* ------------------------------------------------------------------ reports */
+/** One entry of `GET /reports`: a report the caller may download. */
+export interface ReportSummary {
+  slug: string;
+  title: string;
+  /** Whether `?columns=` may choose the report's columns. */
+  choosable: boolean;
+  /** Whether the report takes `?period=`. */
+  periods: boolean;
+}
+
+/** One entry of `GET /reports/{slug}/columns`, which drives the column chooser. */
+export interface ReportColumn {
+  key: string;
+  label: string;
+  default: boolean;
 }

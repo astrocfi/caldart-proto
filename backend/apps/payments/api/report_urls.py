@@ -1,4 +1,4 @@
-"""The finance area's routes: the list, the reports, the ledger and the writes.
+"""The finance area's routes: the list, the tables, the ledger and the writes.
 
 Every route here is guarded by ``IsFinance``: a treasurer or an account
 administrator, and a system administrator through the usual rule.  The fixed
@@ -18,49 +18,14 @@ urlpatterns = [
         name="admin-summary",
     ),
     path(
-        "admin/payments/columns",
-        views.AdminPaymentColumnsView.as_view(),
-        name="admin-columns",
-    ),
-    path(
-        "admin/payments/export.csv",
-        views.AdminPaymentExportCsvView.as_view(),
-        name="admin-export-csv",
-    ),
-    path(
-        "admin/payments/export.pdf",
-        views.AdminPaymentExportPdfView.as_view(),
-        name="admin-export-pdf",
-    ),
-    path(
         "admin/payments/reconciliation",
         views.AdminReconciliationView.as_view(),
         name="admin-reconciliation",
     ),
     path(
-        "admin/payments/reconciliation/export.csv",
-        views.AdminReconciliationCsvView.as_view(),
-        name="admin-reconciliation-csv",
-    ),
-    path(
-        "admin/payments/reconciliation/export.pdf",
-        views.AdminReconciliationPdfView.as_view(),
-        name="admin-reconciliation-pdf",
-    ),
-    path(
         "admin/payments/contributions",
         views.AdminContributionsView.as_view(),
         name="admin-contributions",
-    ),
-    path(
-        "admin/payments/contributions/export.csv",
-        views.AdminContributionsCsvView.as_view(),
-        name="admin-contributions-csv",
-    ),
-    path(
-        "admin/payments/contributions/export.pdf",
-        views.AdminContributionsPdfView.as_view(),
-        name="admin-contributions-pdf",
     ),
     path(
         "admin/payments/members",

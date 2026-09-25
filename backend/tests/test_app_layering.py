@@ -32,6 +32,8 @@ APP_LAYERS: dict[str, int] = {
     "aircraft": 4,
     "payments": 4,
     "reminders": 5,
+    # Reports gathers every app's report and sends them, so it sits beside reminders.
+    "reports": 5,
     "cms": 6,
     "sysadmin": 6,
 }

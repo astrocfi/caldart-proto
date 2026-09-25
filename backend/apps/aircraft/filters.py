@@ -1,24 +1,35 @@
-"""django-filter definitions for the aircraft register.
+"""django-filter definitions and the ordering for the aircraft register.
 
-The list endpoint and both exports share this filter set, so a CSV or PDF a
-member downloads always contains exactly the rows they were looking at.
+The list endpoint and the aircraft report share this filter set and this ordering,
+so a CSV or PDF an administrator downloads always contains exactly the rows they
+were looking at, in the same order.
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 import django_filters
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Model, Q, QuerySet
 from rest_framework.filters import OrderingFilter
 
 from apps.aircraft.models import Aircraft, OwnerType, normalize_n_number
 from apps.aircraft.services import expiring_within, insurance_queryset
+from caldart.reports import ordering_terms
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
     from rest_framework.views import APIView
+
+#: The fields ``?ordering=`` accepts.  The first three are the core sorts;
+#: ``model`` and ``owner_name`` are here so every column of the admin table is
+#: genuinely sortable.
+ORDERING_FIELDS = ["n_number", "make", "insurance_expiration", "model", "owner_name"]
+
+#: The order the register takes when ``?ordering=`` names nothing it accepts.
+DEFAULT_ORDERING = ["n_number"]
 
 INSURANCE_CHOICES = (
     ("current", "Current"),
@@ -105,16 +116,34 @@ class NullsLastOrderingFilter(OrderingFilter):
     def filter_queryset(
         self, request: Request, queryset: QuerySet[Any], view: APIView
     ) -> QuerySet[Any]:
-        """Apply ``ordering``, with NULLs last and the primary key as a tiebreaker."""
+        """Apply ``ordering`` through :func:`nulls_last_order`; no ordering, no change."""
         ordering = self.get_ordering(request, queryset, view)
         if not ordering:
             return queryset
-        terms = [
-            F(term[1:]).desc(nulls_last=True)
-            if term.startswith("-")
-            else F(term).asc(nulls_last=True)
-            for term in ordering
-        ]
-        if not any(term.lstrip("-") in {"pk", "id"} for term in ordering):
-            terms.append(F("pk").asc())
-        return queryset.order_by(*terms)
+        return nulls_last_order(queryset, ordering)
+
+
+def nulls_last_order[M: Model](queryset: QuerySet[M], ordering: Sequence[str]) -> QuerySet[M]:
+    """``queryset`` ordered by ``ordering``, NULLs last either way, the key breaking ties.
+
+    Each term is a field name with an optional leading ``-`` for descending.  Unless a
+    term already names the primary key, ``pk`` ascending is appended, so rows the
+    ordering cannot separate keep a stable order from one page to the next.
+    """
+    terms = [
+        F(term[1:]).desc(nulls_last=True) if term.startswith("-") else F(term).asc(nulls_last=True)
+        for term in ordering
+    ]
+    if not any(term.lstrip("-") in {"pk", "id"} for term in ordering):
+        terms.append(F("pk").asc())
+    return queryset.order_by(*terms)
+
+
+def order_register(queryset: QuerySet[Aircraft], ordering: str) -> QuerySet[Aircraft]:
+    """The register ordered by a comma-separated ``ordering``, as the list orders it.
+
+    Terms naming a field outside :data:`ORDERING_FIELDS` are dropped, and when none is
+    left the order is :data:`DEFAULT_ORDERING`; :func:`nulls_last_order` does the rest.
+    """
+    terms = [term for term in ordering_terms(ordering) if term.removeprefix("-") in ORDERING_FIELDS]
+    return nulls_last_order(queryset, terms or DEFAULT_ORDERING)
