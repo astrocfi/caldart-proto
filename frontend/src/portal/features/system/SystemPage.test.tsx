@@ -42,7 +42,7 @@ describe('SystemPage', () => {
     vi.useRealTimers();
   });
 
-  it('shows the three panels', async () => {
+  it('shows the six panels', async () => {
     server.use(...systemHandlers());
     renderWithProviders(<SystemPage />);
 
@@ -51,6 +51,26 @@ describe('SystemPage', () => {
     expect(screen.getByRole('heading', { name: 'Backups' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Renewal reminders' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Email log' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Scheduled reports' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Automatic renewals' })).toBeInTheDocument();
+  });
+
+  it('puts the scheduled reports straight after the email log', async () => {
+    server.use(...systemHandlers());
+    renderWithProviders(<SystemPage />);
+
+    await screen.findByRole('heading', { name: 'Health' });
+    const titles = screen
+      .getAllByRole('heading', { level: 2 })
+      .map((heading) => heading.textContent);
+    expect(titles).toEqual([
+      'Health',
+      'Backups',
+      'Renewal reminders',
+      'Email log',
+      'Scheduled reports',
+      'Automatic renewals',
+    ]);
   });
 
   it('renders live data in each panel', async () => {

@@ -4,8 +4,8 @@ System administrator guide
 
 You hold the ``system_admin`` role, which means everything: every member and
 payment screen, the Wagtail admin, and one screen nobody else can see —
-``/portal/system``, where you check the server's health, take database backups
-and run the renewal reminders.
+``/portal/system``, where you check the server's health, take database backups,
+and run the renewal reminders and the scheduled reports.
 
 This guide covers that screen and the routine around it.  Anything that has to
 happen on the server itself — installing an upgrade, restoring a backup,
@@ -23,7 +23,7 @@ payment can confirm it.  In practice you can:
 
 * do everything a member, DART leader, user administrator, treasurer,
   account administrator and website administrator can do;
-* open ``/portal/system``: health, backups, reminders;
+* open ``/portal/system``: health, backups, reminders, scheduled reports;
 * sign in to the Django admin at ``/django-admin/`` — granting ``system_admin``
   in the portal also sets the account's Django superuser flag, and that flag is
   what opens the door.
@@ -43,8 +43,8 @@ The system screen
 =================
 
 Sign in and choose **System** in the sidebar, or go straight to
-``/portal/system``.  Five panels, top to bottom: health, backups, renewal
-reminders, the email log, and automatic renewals.
+``/portal/system``.  Six panels, top to bottom: health, backups, renewal
+reminders, the email log, scheduled reports, and automatic renewals.
 
 
 Health
@@ -198,6 +198,41 @@ member told?" uses the **Reminders** screen instead.  Every row the
 installation has ever written, not only the fifty shown here, is readable
 through ``GET /system/emails``, described in :doc:`/developer/api-system`,
 and in the Django admin under **Mail**, where they cannot be edited.
+
+
+Scheduled reports
+-----------------
+
+CalDART emails reports on its own: the report subscriptions an account
+administrator or a treasurer sets up on **Administration → Reports**
+(:doc:`account-administrator-guide`), and each DART's roster once a month to the
+people ticked to receive it.  A scheduled job runs every morning at 06:00 and
+sends whatever is due, so in normal operation you never touch this panel.
+
+It works like the reminders one:
+
+1. Leave **Dry run (send nothing)** ticked the first time.  It reports what
+   *would* go out without sending anything or changing any date.
+2. Press **Run now**.  The result reads, for example, "Would send 5 emails,
+   skipped 1."  When something was skipped, a line under it gives the reasons:
+   *no longer permitted* (the recipient's account has lost the role that reads
+   the report, and a live run pauses the subscription), *nobody ticked* (a DART
+   with nobody ticked to receive its roster), and *no address on file* (a
+   ticked person with no email address).  When the mail server refuses a send,
+   or a subscription's report can no longer be built, a further line reads, for
+   example, "Failed 1."; that subscription stays due and the next run tries it
+   again.
+3. If the numbers look right and you have a reason to send now rather than
+   waiting for the morning, clear the checkbox and press **Run now** again.
+
+Underneath, a table headed **What a live run would do** after a rehearsal, or
+**What this run did** after a real one, names every email: *Report* or
+*Roster*, the person and their address, and the report and its formats or the
+DART.  It is empty when nothing was due.
+
+Running it twice sends nothing twice: a subscription that has gone out is not
+due again until its next date, and a DART is sent one roster a month.  What is
+due when is in :doc:`/developer/scheduled-reports`.
 
 
 Automatic renewals

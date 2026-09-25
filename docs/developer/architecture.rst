@@ -602,7 +602,9 @@ value only once it has held still for a delay, which defaults to the
 ``SEARCH_DEBOUNCE_MS`` of 250 milliseconds that every search box uses.  The checkout panel passes 500 milliseconds instead, so
 changing the amount does not create a payment intent per keystroke.
 ``RunActionsTable`` is the table of what a scheduled run did, or would do,
-behind its summary counts: one row per email sent or charge taken.
+behind its summary counts: one row per email sent or charge taken, with a column
+for each action's ``detail`` (the report sent, or the DART whose roster went)
+when the caller names its heading.
 
 **Filters and reports.**  ``reports/`` holds what every report shares in the
 portal.  ``reports/definitions.ts`` declares ``REPORTS``, one

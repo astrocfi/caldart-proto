@@ -1,7 +1,8 @@
 /**
  * The actions table every scheduled run shows behind its summary counts: one
  * row per email sent or charge taken, so "who did this actually reach?" never
- * needs a shell.  The renewals and reminders panels of `/portal/system` use it.
+ * needs a shell.  The renewals, reminders and scheduled-reports panels of
+ * `/portal/system` use it, and so does the DART rosters card of `/admin/reports`.
  */
 import type { JSX } from 'react';
 
@@ -21,10 +22,25 @@ interface RunActionsTableProps {
   dryRun: boolean;
   /** How a run's own `kind` slug reads; the two scans name their kinds differently. */
   kindLabel: (kind: string) => string;
+  /**
+   * The heading of a column showing each action's `detail`, for a run whose
+   * actions say more than who they reached (the report sent, the DART whose
+   * roster went out).  Without it the column is left out.
+   */
+  detailHeader?: string;
 }
 
 /** What a scan did, or would do: the kind, who it reached, when, and how much. */
-export function RunActionsTable({ actions, dryRun, kindLabel }: RunActionsTableProps): JSX.Element {
+export function RunActionsTable({
+  actions,
+  dryRun,
+  kindLabel,
+  detailHeader,
+}: RunActionsTableProps): JSX.Element {
+  const detail: Column<RunAction>[] =
+    detailHeader === undefined
+      ? []
+      : [{ key: 'detail', header: detailHeader, render: (row) => row.detail }];
   const columns: Column<RunAction>[] = [
     { key: 'kind', header: 'What', render: (row) => kindLabel(row.kind) },
     {
@@ -37,6 +53,7 @@ export function RunActionsTable({ actions, dryRun, kindLabel }: RunActionsTableP
         </>
       ),
     },
+    ...detail,
     { key: 'on', header: 'When', render: (row) => <DateText value={row.on} /> },
     {
       key: 'amount_cents',

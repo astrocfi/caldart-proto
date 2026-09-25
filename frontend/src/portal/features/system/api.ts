@@ -21,7 +21,9 @@ import type {
   ReminderLogEntry,
   ReminderRunResult,
   RenewalRunResult,
+  ReportRunResult,
 } from '@/portal/api/types';
+import { ROSTERS_KEY, SUBSCRIPTIONS_KEY } from '@/portal/reports/api';
 
 export const HEALTH_KEY = ['system', 'health'] as const;
 export const BACKUPS_KEY = ['system', 'backups'] as const;
@@ -111,6 +113,28 @@ export function useRunRenewals(): UseMutationResult<RenewalRunResult, unknown, b
       if (dryRun) return;
       void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
+      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
+    },
+  });
+}
+
+/**
+ * Runs the report sender (or a rehearsal) via `POST /system/reports/run`: every
+ * subscription and DART roster that is due.
+ *
+ * A real run moves the subscriptions' dates and the rosters' last-sent times
+ * and writes to the email log, so those are read again; a dry run changes
+ * nothing.
+ */
+export function useRunScheduledReports(): UseMutationResult<ReportRunResult, unknown, boolean> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dryRun: boolean) =>
+      api.post<ReportRunResult>('/system/reports/run', { dry_run: dryRun }),
+    onSuccess: (_result, dryRun) => {
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
+      void queryClient.invalidateQueries({ queryKey: ROSTERS_KEY });
       void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
     },
   });

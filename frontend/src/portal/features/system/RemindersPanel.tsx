@@ -24,17 +24,21 @@ export function runSummary(result: ReminderRunResult, dryRun: boolean): string {
  * `Skipped: <reason> <count>, …`, one entry per reason a candidate was passed
  * over that occurred at least once, or `''` when nothing was skipped.
  *
- * The labeled reasons come first, in the guide's order; a reason the server
- * reports that {@link SKIPPED_REASON_LABELS} does not name follows by its raw
- * slug, mirroring {@link purposeLabel}'s fallback, so a new reason still shows
- * up here rather than silently dropping out of the total.
+ * The labeled reasons come first, in `labels`' order; a reason the server
+ * reports that `labels` does not name follows by its raw slug, mirroring
+ * {@link purposeLabel}'s fallback, so a new reason still shows up here rather
+ * than silently dropping out of the total.  `labels` defaults to the reminder
+ * scan's own reasons; another run passes its own vocabulary.
  */
-export function skippedBreakdown(byReason: Record<string, number>): string {
-  const labeled = Object.keys(SKIPPED_REASON_LABELS)
+export function skippedBreakdown(
+  byReason: Record<string, number>,
+  labels: Record<string, string> = SKIPPED_REASON_LABELS,
+): string {
+  const labeled = Object.keys(labels)
     .filter((reason) => (byReason[reason] ?? 0) > 0)
-    .map((reason) => `${SKIPPED_REASON_LABELS[reason]} ${byReason[reason]}`);
+    .map((reason) => `${labels[reason]} ${byReason[reason]}`);
   const unlabeled = Object.keys(byReason)
-    .filter((reason) => !(reason in SKIPPED_REASON_LABELS) && (byReason[reason] ?? 0) > 0)
+    .filter((reason) => !(reason in labels) && (byReason[reason] ?? 0) > 0)
     .map((reason) => `${reason} ${byReason[reason]}`);
   const parts = [...labeled, ...unlabeled];
   return parts.length > 0 ? `Skipped: ${parts.join(', ')}.` : '';

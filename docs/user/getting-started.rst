@@ -77,14 +77,16 @@ Role                 What it adds
 ``treasurer``        The money: every payment, fee, refund, and automatic
                      renewal; issue refunds, record payments taken by
                      check or cash, reconcile a period against the bank
-                     statement, and run the financial reports.
+                     statement, run the financial reports, and
+                     email them on a schedule.
 ``account_admin``    Create, edit, and delete members, grant membership
                      terms by hand, maintain aircraft and payments, read
-                     the renewal reminder log, run reports, and check
-                     members like a DART leader.
+                     the renewal reminder log, run reports and email
+                     them on a schedule, send each DART its roster, and
+                     check members like a DART leader.
 ``website_admin``    Edit the public site in the Wagtail admin.
-``system_admin``     Everything above, plus backups, health, and
-                     reminder runs.
+``system_admin``     Everything above, plus backups, health, and the
+                     reminder and scheduled-report runs.
 ===================  ==================================================
 
 If a menu entry you expect is missing, or you open a page and are told **"You
@@ -183,11 +185,12 @@ roles allow it:
    The DART leader's member and aircraft checks.
 
 **Administration**
-   Members, aircraft, payments, reminders, and users and roles.  DART leaders
-   see **Members** here too.
+   Members, aircraft, payments, reminders, reports by email, and users and
+   roles.  DART leaders see **Members** here too, and treasurers see **Reports**
+   beside **Payments**.
 
 **System**
-   Health, backups, and reminder runs.
+   Health, backups, and the reminder and scheduled-report runs.
 
 On a phone the menu collapses behind the **Menu** button in the top bar.  Every
 screen is keyboard-navigable, and *Skip to content* is the first stop when you

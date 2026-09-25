@@ -79,6 +79,22 @@ describe('visibleNavItems', () => {
     expect(administration?.items.map((item) => item.to)).toContain('/admin/reminders');
   });
 
+  it('gives account_admin the reports screen, straight after the reminder log', () => {
+    const administration = groupedNavItems(['member', 'account_admin']).find(
+      (bucket) => bucket.group === 'Administration',
+    );
+    const paths = administration?.items.map((item) => item.to) ?? [];
+    expect(paths.indexOf('/admin/reports')).toBe(paths.indexOf('/admin/reminders') + 1);
+  });
+
+  it('gives a treasurer the reports screen', () => {
+    expect(labels(['member', 'treasurer'])).toContain('Reports');
+  });
+
+  it('keeps the reports screen away from dart_leader', () => {
+    expect(labels(['member', 'dart_leader'])).not.toContain('Reports');
+  });
+
   it('offers the leader checks to account_admin, as the API and guards do', () => {
     const visible = labels(['member', 'account_admin']);
     expect(visible).toContain('Member check');
