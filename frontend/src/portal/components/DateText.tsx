@@ -1,5 +1,7 @@
 import type { JSX } from 'react';
 
+import type { IsoDate } from '@/portal/api/types';
+
 /**
  * Dates read `YYYY/MM/DD` everywhere in the portal, and datetimes add a
  * 24-hour clock. The portal is an administrative screen: a fixed, sortable,
@@ -8,6 +10,11 @@ import type { JSX } from 'react';
  */
 function pad(value: number): string {
   return String(value).padStart(2, '0');
+}
+
+/** Today as `YYYY-MM-DD` on the reader's own clock, for a date box. */
+export function todayIso(today: Date = new Date()): IsoDate {
+  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 }
 
 function dateParts(value: Date): string {

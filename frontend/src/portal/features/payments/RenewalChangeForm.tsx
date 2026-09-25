@@ -20,6 +20,7 @@ import type { JSX } from 'react';
 import { ApiError } from '@/portal/api/client';
 import type { RenewalMandate, RenewalPatchRequest } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
+import { todayIso } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { formatCents } from '@/portal/components/Money';
@@ -28,7 +29,7 @@ import { ContributionChooser } from '@/portal/features/checkout/ContributionChoo
 import { PlanChooser } from '@/portal/features/checkout/PlanChooser';
 import { usePaymentsConfig } from '@/portal/features/checkout/api';
 import { useUpdateRenewal } from './api';
-import { notBeforeToday, todayIso } from './chargeDate';
+import { notBeforeToday } from './chargeDate';
 import '@/portal/features/checkout/checkout.css';
 
 export interface RenewalChangeFormProps {

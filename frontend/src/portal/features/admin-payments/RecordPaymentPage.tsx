@@ -15,6 +15,7 @@ import { usePlans } from '@/portal/api/queries';
 import type { FinanceMember, ManualMethod } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { todayIso } from '@/portal/components/DateText';
 import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
 import { MembershipChip } from '@/portal/components/StatusChip';
@@ -32,13 +33,6 @@ export function contributionCents(typed: string): number {
   const dollars = Number(typed.trim());
   if (!Number.isFinite(dollars) || dollars < 0) return 0;
   return Math.round(dollars * 100);
-}
-
-/** Today as `YYYY-MM-DD` in the reader's own time zone, for the date box. */
-export function todayIso(today: Date = new Date()): string {
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${today.getFullYear()}-${month}-${day}`;
 }
 
 interface MemberPickerProps {

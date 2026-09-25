@@ -18,14 +18,14 @@ import type { JSX } from 'react';
 
 import type { IsoDate, MandateProvider } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
-import { formatDate } from '@/portal/components/DateText';
+import { formatDate, todayIso } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { formatCents } from '@/portal/components/Money';
 import { usePaymentsConfig } from '@/portal/features/checkout/api';
 import { ContributionChooser } from '@/portal/features/checkout/ContributionChooser';
 import { PlanChooser } from '@/portal/features/checkout/PlanChooser';
-import { defaultChargeDate, todayIso } from './chargeDate';
+import { defaultChargeDate } from './chargeDate';
 import { MockRenewalPanel } from './MockRenewalPanel';
 import { PayPalRenewalPanel } from './PayPalRenewalPanel';
 import { StripeRenewalPanel } from './StripeRenewalPanel';

@@ -12,12 +12,12 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { MembershipStatus, RenewalEnvelope, RenewalMandate } from '@/portal/api/types';
+import { todayIso } from '@/portal/components/DateText';
 import { makeContributionMandate, makeMandate, makePaymentsConfig } from '@test/fixtures/payments';
 import { API, CURRENT_MEMBERSHIP, LIFETIME_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { AutoRenewalCard } from './AutoRenewalCard';
-import { todayIso } from './chargeDate';
 
 /** Serve `GET /me/renewal` with `mandate` and render the card at `route`. */
 function mount(
