@@ -90,7 +90,6 @@ REASON_SYSTEM_ADMIN_TARGET = "system_admin_target"
 REASON_HAS_PAYMENTS = "has_payments"
 REASON_INACTIVE_ACCOUNT = "inactive_account"
 REASON_NO_SUCH_BACKUP = "no_such_backup"
-REASON_DART_IN_USE = "dart_in_use"
 
 log = logging.getLogger(LOGGER_NAME)
 
