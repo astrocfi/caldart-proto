@@ -249,7 +249,7 @@ class MemberProfile(TimestampedModel):
 
     # -- volunteer interests ---------------------------------------------
     vol_mission_pilot = models.BooleanField("mission pilot", default=False)
-    vol_ground_team = models.BooleanField("ground team", default=False)
+    vol_ground_team = models.BooleanField("ground support", default=False)
     vol_exercise_training = models.BooleanField("exercises and training", default=False)
     vol_member_support = models.BooleanField("member support", default=False)
     vol_fundraising = models.BooleanField("fundraising", default=False)

@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
                 ('total_hours', models.PositiveIntegerField(blank=True, null=True)),
                 ('flies_rented_aircraft', models.BooleanField(default=False, verbose_name='flies rented or borrowed aircraft')),
                 ('vol_mission_pilot', models.BooleanField(default=False, verbose_name='mission pilot')),
-                ('vol_ground_team', models.BooleanField(default=False, verbose_name='ground team')),
+                ('vol_ground_team', models.BooleanField(default=False, verbose_name='ground support')),
                 ('vol_exercise_training', models.BooleanField(default=False, verbose_name='exercises and training')),
                 ('vol_member_support', models.BooleanField(default=False, verbose_name='member support')),
                 ('vol_fundraising', models.BooleanField(default=False, verbose_name='fundraising')),

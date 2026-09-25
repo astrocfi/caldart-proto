@@ -10,8 +10,9 @@ import type { JSX } from 'react';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
-import { useMyPayments } from '@/portal/features/profile/api';
+import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { AutoRenewalCard } from './AutoRenewalCard';
+import { paymentsPageLede } from './labels';
 import { PaymentsTable } from './PaymentsTable';
 import { StatementsCard } from './StatementsCard';
 import './payments.css';
@@ -19,13 +20,11 @@ import './payments.css';
 /** The member's own payments screen: renewal, history, statements. */
 export function PaymentsPage(): JSX.Element {
   const payments = useMyPayments();
+  const membership = useMembership();
+  const isLifetime = membership.data?.is_lifetime ?? false;
 
   return (
-    <Page
-      title="Payments"
-      eyebrow="Membership"
-      lede="Your receipts, your contribution statements, and whether CalDART renews your membership for you."
-    >
+    <Page title="Payments" eyebrow="Membership" lede={paymentsPageLede(isLifetime)}>
       <AutoRenewalCard />
 
       <Card eyebrow="History" title="Your payments">
