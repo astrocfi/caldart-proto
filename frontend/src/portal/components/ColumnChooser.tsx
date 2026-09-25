@@ -204,7 +204,7 @@ interface SaveColumnSetProps {
 
 /**
  * The Save columns panel: a name box and a Save button, disabled until a name is
- * typed.
+ * typed and inert while a save runs.
  *
  * Enter in the name box saves too.  Saving under a name the user already has
  * replaces that set.  A refusal shows in the panel, which stays open.
@@ -248,7 +248,16 @@ function SaveColumnSet({
           onChange={(event) => onNameChange(event.target.value)}
           onKeyDown={handleNameKeyDown}
         />
-        <Button variant="quiet" small onClick={handleSave} disabled={!canSave}>
+        {/* Only a blank name disables Save.  While the request runs the button stays
+            focusable, marked aria-disabled, so a browser does not drop the focus to the
+            body and the closing panel can hand it back to Save columns. */}
+        <Button
+          variant="quiet"
+          small
+          onClick={handleSave}
+          disabled={trimmed === ''}
+          aria-disabled={save.isPending}
+        >
           Save
         </Button>
       </div>

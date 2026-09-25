@@ -155,7 +155,7 @@ closes.  The trashcan beside a name deletes that set.  **Save columns** keeps
 the boxes as they stand: type a name of up to 60 characters and press **Save**,
 or press Enter.  Saving under a name you already use replaces that set, and
 loading a set puts its name in the box, so a set you load and change is saved
-again under the same name.  Each of the three buttons opens its own list under
+again under the same name.  Each of the three buttons opens its own panel under
 itself, which a click outside it or Escape puts away.  Your saved sets are
 yours alone, and each report keeps its own.
 

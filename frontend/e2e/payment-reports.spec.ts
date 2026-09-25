@@ -188,6 +188,7 @@ test('a saved set of columns comes back after a reload', async ({ page }) => {
   await savePanel.getByRole('textbox', { name: 'Name for these columns' }).fill('Audit');
   await savePanel.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(savePanel).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Save columns' })).toBeFocused();
 
   // A reload starts from the default columns again.
   await page.reload();

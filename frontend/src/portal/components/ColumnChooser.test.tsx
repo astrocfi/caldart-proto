@@ -385,6 +385,20 @@ describe('ColumnChooser Save columns', () => {
     );
   });
 
+  it('keeps a pressed Save focusable while the save runs, so the focus can return', async () => {
+    const { user } = await openWithSets([], 'Save columns');
+    server.use(
+      http.post(`${API}/reports/payments/column-sets`, () => new Promise<never>(() => {})),
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Name for these columns' }), 'Audit');
+    const save = within(savePanel()).getByRole('button', { name: 'Save' });
+    await user.click(save);
+
+    await waitFor(() => expect(save).toHaveAttribute('aria-disabled', 'true'));
+    expect(save).toBeEnabled();
+  });
+
   it('saves when Enter is pressed in the name box', async () => {
     const { user, requests } = await openWithSets([], 'Save columns');
 
