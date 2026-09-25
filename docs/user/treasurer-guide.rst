@@ -80,7 +80,7 @@ Every individual payment, with a filter bar:
   receipt), or a note you wrote on a payment.
 
 Each filter applies as soon as you set it; a typed one applies once you pause.
-**Clear** empties them all.  The filters, the sort order, and the page you are
+**Reset to Defaults** empties them all.  The filters, the sort order, and the page you are
 on are kept in the page's address, so a filtered list can be bookmarked or sent
 to another treasurer, and the browser's back button steps back through the
 filters you applied.  The Overview, Reconciliation, and Contributions tabs keep
@@ -92,21 +92,23 @@ report, not just the page on screen.
 Choosing the columns
 ====================
 
-**Columns** opens a chooser that drives both the table and the exports.
+**Columns** opens a list of checkboxes that drives both the table and the
+exports.
 Twenty-one columns are on offer; sixteen of them are on to begin with.  The
 five that are off — the receipt number, the day a check was received, your own
 note, and the two dates of the term a payment bought — are the ones an audit
-wants and an everyday list does not.  Click anywhere outside the chooser, or
-press Escape, to put it away.
+wants and an everyday list does not.  **Reset to the default columns**, under
+the boxes, ticks those sixteen again.
 
-Below the boxes, **Load columns** lists the sets of columns you have saved for
-the payments report.  Pick one and its boxes are ticked; the chooser stays open,
-so you can carry on changing them.  To keep the boxes as they stand, type a name of up
-to 60 characters in the box beside **Save columns** and press it, or press Enter.
-Saving under a name you already use replaces that set, and loading a set puts
-its name in the box, so a set you load and change is saved again with one press.
-The trashcan beside **Load columns** deletes the set it shows.  Your saved sets
-are yours alone, and each report keeps its own.
+Beside **Columns**, **Load columns** lists the sets of columns you have saved
+for the payments report.  Pick a name and its columns are applied; the list
+closes.  The trashcan beside a name deletes that set.  **Save columns** keeps
+the boxes as they stand: type a name of up to 60 characters and press **Save**,
+or press Enter.  Saving under a name you already use replaces that set, and
+loading a set puts its name in the box, so a set you load and change is saved
+again under the same name.  Each of the three buttons opens its own panel under
+itself, which a click outside it or Escape puts away.  Your saved sets are
+yours alone, and each report keeps its own.
 
 **Export CSV** and **Export PDF** download exactly what the filters and the
 column chooser describe, in the order the table is sorted in.  Both files carry
@@ -311,4 +313,4 @@ When something goes wrong
    against it.  A demonstration database has everything under *Test*.
 
 **"No payments match these filters."**
-   Usually the date range.  **Clear** empties the whole bar.
+   Usually the date range.  **Reset to Defaults** empties the whole bar.

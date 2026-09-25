@@ -95,7 +95,7 @@ Expiring within      30, 60, or 90 days — cover that is still valid but is abo
 ===================  ============================================================
 
 Each filter applies as soon as you set it; a typed one applies once you pause.
-**Clear** empties them all.  The filters, the sort order, and the page you are
+**Reset to Defaults** empties them all.  The filters, the sort order, and the page you are
 on are kept in the page's address, so a filtered register can be bookmarked or
 sent to another administrator, and the browser's back button steps back through
 the filters you applied.
@@ -142,21 +142,22 @@ Three columns beyond the nine above are on offer — *Owner type*,
 *Liability / person*, and *Pilots*, the members who list the airplane on their
 profile.  They are there for an insurance review or a roster, so they are off
 until you tick them; the pilot list is as long as the number of members who fly
-the airplane, which is why it is asked for rather than assumed.  Click anywhere
-outside the chooser, or press Escape, to put it away.
+the airplane, which is why it is asked for rather than assumed.  **Reset to the
+default columns**, under the boxes, ticks the nine again.
 
 The chooser feeds the downloads, not the table: the register on screen keeps its
 five columns however many you tick.  The last column cannot be unticked, since a
 report of nothing helps nobody.
 
-Below the boxes, **Load columns** lists the sets of columns you have saved for
-the aircraft report.  Pick one and its boxes are ticked; the chooser stays open,
-so you can carry on changing them.  To keep the boxes as they stand, type a name of up
-to 60 characters in the box beside **Save columns** and press it, or press Enter.
-Saving under a name you already use replaces that set, and loading a set puts
-its name in the box, so a set you load and change is saved again with one press.
-The trashcan beside **Load columns** deletes the set it shows.  Your saved sets
-are yours alone, and each report keeps its own.
+Beside **Columns**, **Load columns** lists the sets of columns you have saved
+for the aircraft report.  Pick a name and its columns are applied; the list
+closes.  The trashcan beside a name deletes that set.  **Save columns** keeps
+the boxes as they stand: type a name of up to 60 characters and press **Save**,
+or press Enter.  Saving under a name you already use replaces that set, and
+loading a set puts its name in the box, so a set you load and change is saved
+again under the same name.  Each of the three buttons opens its own panel under
+itself, which a click outside it or Escape puts away.  Your saved sets are
+yours alone, and each report keeps its own.
 
 Editing a record
 ----------------

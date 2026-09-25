@@ -68,7 +68,7 @@ test('the list filters to the payments taken by hand', async ({ page }) => {
 
 test('a chosen column reaches the table and the export link', async ({ page }) => {
   await openPaymentList(page);
-  await page.getByRole('button', { name: 'Columns' }).click();
+  await page.getByRole('button', { name: 'Columns', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Receipt' }).check();
 
   await expect(page.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(

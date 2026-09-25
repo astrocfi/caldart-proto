@@ -5,7 +5,9 @@
  * draw their filters through this component, from the report's `FilterField`s
  * in `@/portal/reports/definitions`.  Every control applies itself: a select,
  * a date and a toggle as soon as they change, a text or number box once the
- * typing pauses.  There is no Apply button.  **Clear** empties every field.
+ * typing pauses.  There is no Apply button.  **Reset to Defaults** empties every
+ * field.  A field's hint is its control's `title` rather than a line under it, so
+ * every control in the bar stands the same height and they line up.
  *
  * The bar is one `<form role="search">`.  A bar of one box applies it at once
  * when Enter is pressed, which is how a browser submits a form of one field.
@@ -108,7 +110,7 @@ export function FilterBar({
   }, [appliedKey]);
 
   // The typed boxes apply once the draft has held still.  Only a draft that is
-  // still what the boxes hold counts, so a burst that Clear has since replaced
+  // still what the boxes hold counts, so a burst that the reset has since replaced
   // cannot come back.
   const draftKey = JSON.stringify(draft);
   const settledKey = useDebounced(draftKey);
@@ -131,7 +133,7 @@ export function FilterBar({
     send(draft);
   };
 
-  const handleClear = (): void => {
+  const handleReset = (): void => {
     const cleared = { ...draft, ...Object.fromEntries(fields.map((f) => [f.key, ''])) };
     setDraft(cleared);
     send(cleared);
@@ -148,8 +150,8 @@ export function FilterBar({
           onSet={(value) => set(field, value)}
         />
       ))}
-      <Button type="button" variant="quiet" small onClick={handleClear}>
-        Clear
+      <Button type="button" variant="quiet" small onClick={handleReset}>
+        Reset to Defaults
       </Button>
     </form>
   );
@@ -180,7 +182,12 @@ function FilterControl({
     };
     return (
       <label className="cluster">
-        <input type="checkbox" checked={value === TOGGLE_ON} onChange={handleToggle} />
+        <input
+          type="checkbox"
+          title={field.hint}
+          checked={value === TOGGLE_ON}
+          onChange={handleToggle}
+        />
         {field.label}
       </label>
     );
@@ -191,11 +198,11 @@ function FilterControl({
   };
 
   return (
-    <Field label={field.label} hint={field.hint}>
+    <Field label={field.label}>
       {(props) => {
         if (field.kind === 'select') {
           return (
-            <select {...props} value={value} onChange={handleChange}>
+            <select {...props} title={field.hint} value={value} onChange={handleChange}>
               <option value="">{field.placeholder ?? 'Any'}</option>
               {options.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -209,6 +216,7 @@ function FilterControl({
           return (
             <MaskedInput
               {...props}
+              title={field.hint}
               inputMode="numeric"
               placeholder={field.placeholder}
               mask={(raw) => maskDigits(raw, NUMBER_DIGITS)}
@@ -220,6 +228,7 @@ function FilterControl({
         return (
           <input
             {...props}
+            title={field.hint}
             type={field.kind}
             placeholder={field.placeholder}
             value={value}
