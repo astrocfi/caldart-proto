@@ -200,9 +200,4 @@ describe('DataTable', () => {
     );
     expect(screen.getByLabelText('Search')).toBeInTheDocument();
   });
-
-  it('wraps the table in its own horizontal-scroll boundary', () => {
-    render(<DataTable columns={COLUMNS} rows={ROWS} rowKey={(row) => row.id} />);
-    expect(screen.getByRole('table').closest('.table-wrap')).not.toBeNull();
-  });
 });

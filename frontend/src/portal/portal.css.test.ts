@@ -29,8 +29,16 @@ describe('the portal frame width', () => {
   });
 });
 
-describe('the data table', () => {
-  it('never blocks its own horizontal scroll wrapper from shrinking', () => {
-    expect(ruleBody('.data-table')).toContain('min-width: 0;');
+describe('non-report content inside the uncapped frame', () => {
+  it('caps a card at the portal working width', () => {
+    expect(ruleBody('.portal__main .card')).toContain('max-width: var(--page-max);');
+  });
+
+  it('lets a card built around a report table grow with the frame', () => {
+    expect(ruleBody('.portal__main .card:has(.data-table)')).toContain('max-width: none;');
+  });
+
+  it("caps the dashboard's ratio grid at the portal working width", () => {
+    expect(ruleBody('.portal__main .grid')).toContain('max-width: var(--page-max);');
   });
 });

@@ -146,10 +146,8 @@ export function DataTable<Row>({
       {sorted.length === 0 && !isLoading ? (
         <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
-        // `.table-wrap` is the horizontal-scroll boundary: the portal frame
-        // itself has no width cap, so a table with more columns than the
-        // window can hold scrolls on its own here rather than widening the
-        // page.
+        // `.table-wrap` scrolls a table that is wider than its container,
+        // rather than widening the page around it.
         <div className="table-wrap">
           <table>
             {caption ? <caption>{caption}</caption> : null}
