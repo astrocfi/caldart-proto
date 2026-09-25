@@ -60,13 +60,11 @@ for that kind.
 ``amount_cents`` is what the next charge comes to: the plan's price now, when
 there is a plan, plus ``contribution_cents``.  ``status`` is ``pending``,
 ``active``, ``paused`` or ``canceled``.  ``next_charge_on`` is the day of the
-waiting charge; failing that, for a contribution-only mandate, the anniversary of
-the last charge or of the day the mandate was made; failing that, the charge date
-computed from the member's current dated term -- the day before it ends; and
-failing that ``today``, because the term has run out and the next scan is what
-charges it.  It is ``null`` only for a mandate that is not active.  ``last_error``
-carries the reason the most recent charge was refused, which is what a paused
-mandate shows the member.  The provider's own references -- the Stripe customer
+waiting charge, and failing that the day stored on the mandate -- the day the
+member chose -- or ``today`` when that has already gone by, because the next scan
+is what takes a charge the scanner missed.  It is ``null`` only for a mandate that
+is not active.  ``last_error`` carries the reason the most recent charge was
+refused, which is what a paused mandate shows the member.  The provider's own references -- the Stripe customer
 and payment method, the PayPal vault id -- are never sent to a browser.
 
 
@@ -98,7 +96,8 @@ anything.
 
 .. code-block:: json
 
-   {"plan": "annual", "contribution_cents": 2500, "provider": "stripe"}
+   {"plan": "annual", "contribution_cents": 2500, "provider": "stripe",
+    "next_charge_on": "2027-03-14"}
 
 Creates or resets the caller's ``pending`` mandate over that plan, contribution
 and provider -- turning automatic renewal on again replaces whatever authority
@@ -107,6 +106,11 @@ was there -- and then asks the provider for what the browser needs.
 A life member leaves ``plan`` out and gives a ``contribution_cents`` above zero:
 their membership never runs out, so the only authority they can hold is over the
 contribution.  Every other member must name a plan that has a duration.
+
+``next_charge_on`` is the day of the first charge.  Leaving it out takes the day
+the membership runs out, or one year from today for a life member.  A day before
+today is refused; any later day is accepted, including one after the membership
+runs out.
 
 .. code-block:: json
 
@@ -121,7 +125,8 @@ Provider      ``client``
 ============  ===============================================
 
 Statuses: **200**; **400** naming ``plan`` for a slug no active plan carries,
-naming ``auto_renew`` for a plan that never expires, for a provider that cannot
+naming ``next_charge_on`` for a day that has already gone by, naming
+``auto_renew`` for a plan that never expires, for a provider that cannot
 charge a saved method, for a life member who names a plan or contributes nothing,
 and for a member who is not a life member and names no plan, and naming
 ``detail`` when the provider refuses to start; **401** when anonymous.
@@ -147,23 +152,25 @@ anonymous.
 ``PATCH /me/renewal``
 ---------------------
 
-Any authenticated member.  Change the plan that renews and the contribution
-taken alongside the dues.
+Any authenticated member.  Change the plan that renews, the contribution taken
+alongside the dues, and the day of the next charge.
 
 .. code-block:: json
 
-   {"plan": "annual", "contribution_cents": 5000}
+   {"plan": "annual", "contribution_cents": 5000, "next_charge_on": "2027-03-14"}
 
 ``plan`` names the plan that renews from now on; leaving it out leaves the plan
-alone.  A life member may not give one: their membership does not renew.  The
-dues are not settable: they are the plan's price at the time of each charge.  The
-answer is the mandate envelope.
+alone.  A life member may not give one: their membership does not renew.
+``next_charge_on`` moves the next charge, and leaving it out leaves the stored day
+alone.  The dues are not settable: they are the plan's price at the time of each
+charge.  The answer is the mandate envelope.
 
 What the authority may become is the rule ``POST /me/renewal/setup`` applies, so
 a patch that would leave a mandate nothing to charge again is refused.
 
 Statuses: **200**; **400** naming ``contribution_cents`` for an amount outside
-what a checkout would accept, naming ``plan`` for a slug no active plan carries,
+what a checkout would accept, naming ``next_charge_on`` for a day that has already
+gone by, naming ``plan`` for a slug no active plan carries,
 and naming ``auto_renew`` when a life member names a plan, when a life member
 contributes nothing, and when the plan named never expires; **404** when the
 caller has no mandate; **401** when anonymous.

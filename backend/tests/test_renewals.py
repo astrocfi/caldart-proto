@@ -169,9 +169,7 @@ def test_a_term_further_out_than_the_notice_window_is_left_alone(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """A membership with months to run is not scheduled or emailed yet."""
-    make_mandate(
-        member, annual_plan, ends_on=today + timedelta(days=NOTICE_DAYS + 1)
-    )
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=NOTICE_DAYS + 1))
 
     run_auto_renewals(today=today)
 

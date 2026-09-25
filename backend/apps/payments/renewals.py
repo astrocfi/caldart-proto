@@ -494,12 +494,18 @@ def begin_mandate(
     anything :func:`check_renewable` refuses, and writes nothing when it does.
     """
     renewable = check_renewable(plan, provider, user=user, contribution_cents=contribution_cents)
+    chosen = next_charge_on is not None
+    charge_on = (
+        next_charge_on
+        if next_charge_on is not None
+        else default_charge_date(user, timezone.localdate())
+    )
     mandate, _ = RenewalMandate.objects.update_or_create(
         user=user,
         defaults={
             "plan": renewable,
             "contribution_cents": contribution_cents,
-            "next_charge_on": next_charge_on or default_charge_date(user, timezone.localdate()),
+            "next_charge_on": charge_on,
             "provider": provider,
             "status": MandateStatus.PENDING,
             "customer_ref": "",
@@ -512,7 +518,7 @@ def begin_mandate(
             "failure_count": 0,
             "canceled_at": None,
             "canceled_by": None,
-            "raw": {CHOSEN_DATE_KEY: True} if next_charge_on is not None else {},
+            "raw": {CHOSEN_DATE_KEY: True} if chosen else {},
         },
     )
     return mandate

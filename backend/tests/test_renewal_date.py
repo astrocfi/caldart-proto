@@ -66,9 +66,7 @@ def expires_on(today: date) -> date:
 
 
 @pytest.fixture
-def dated_member(
-    member: User, annual_plan: MembershipPlan, today: date, expires_on: date
-) -> User:
+def dated_member(member: User, annual_plan: MembershipPlan, today: date, expires_on: date) -> User:
     """A member holding an annual term that runs out in a little under a year."""
     MembershipFactory(
         user=member,
@@ -366,7 +364,9 @@ def test_nothing_is_announced_before_the_notice_window(
     dated_member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """A stored day a day further out than the window is left for a later scan."""
-    active_mandate(dated_member, annual_plan, next_charge_on=today + timedelta(days=NOTICE_DAYS + 1))
+    active_mandate(
+        dated_member, annual_plan, next_charge_on=today + timedelta(days=NOTICE_DAYS + 1)
+    )
 
     run = run_auto_renewals(today=today)
 

@@ -3,8 +3,8 @@ Automatic renewal
 =================
 
 A member can ask CalDART to renew their membership for them: the payment method
-they used is saved with the provider, and a daily scan charges it a few days
-before each term runs out.  This page covers the mandate that authority is held
+they used is saved with the provider, and a daily scan charges it on the day the
+member chose, which is normally the day the term runs out.  This page covers the mandate that authority is held
 in, the scan that acts on it, the emails it sends, how it interacts with the
 renewal reminders, and how to operate it.  :doc:`api-renewals` is the endpoint
 reference, and :doc:`/user/payments` is what the member and the treasurer see.
@@ -23,8 +23,9 @@ price changes what renews without touching either provider.
 
 A **mandate** (``RenewalMandate``) is one member's standing authority.  A member
 has at most one: it is a ``OneToOneField`` on the account.  It carries the plan
-it renews, the contribution renewed alongside the dues, the provider, the
-provider's handles on the saved method, the label the member reads, and a status.
+it renews, the contribution renewed alongside the dues, the day of the next
+charge, the provider, the provider's handles on the saved method, the label the
+member reads, and a status.
 Its plan is null for a member who already holds a lifetime term, which is what
 makes the authority a contribution rather than a renewal.  The statuses are:
 
@@ -86,22 +87,40 @@ keyed by ``plan``.
 
 .. _renewals-next-charge:
 
-The next charge is never unknown
-================================
+The day of the charge is the member's
+=====================================
 
-``next_charge_on(mandate, today)`` is ``None`` only for a mandate that is not
-``active``.  For one that is, it answers, in order:
+A mandate stores ``next_charge_on``, and every mandate has one.  It is the day the
+member chose to be charged on, and it defaults to ``default_charge_date(user,
+today)``:
 
-1. the earliest ``scheduled`` attempt's own date, when one is waiting;
-2. for a contribution-only mandate, ``contribution_charge_date(mandate, today)``;
-3. for a member with a dated current term, that term's charge date;
-4. otherwise ``today`` -- the term has already run out, and the next scan is what
-   charges it.
+* the ``ends_on`` of the member's current dated term, so the renewal falls on the
+  day the membership runs out and the coverage carries straight on;
+* one year from today for a life member, whose membership never runs out;
+* today for a member who holds neither, since there is no later day to wait for.
 
-``contribution_charge_date`` is one year after the local date of
-``last_charged_at``, or of ``created_at`` when nothing has been charged yet.  An
-anniversary of 29 February becomes 28 February, and one that has already gone by
-is answered as ``today``.
+A mandate begun at a checkout that named no day of its own is dated again from
+the term the payment buys, when that payment succeeds, so the first automatic
+charge falls on the expiry of the term just bought rather than of the one the
+member held while paying.
+
+``POST /me/renewal/setup``, ``PATCH /me/renewal`` and ``POST /payments/checkout``
+each take an optional ``next_charge_on``.  A day before today is refused with
+``The next charge cannot be in the past.``, keyed by ``next_charge_on``.  Any
+later day is allowed, including one after the membership runs out: the member's
+Payments card says so, and their membership lapses until the charge comes round.
+
+``charge_date(mandate, today)`` is what the screens and the emails read.  It is
+``None`` only for a mandate that is not ``active``; for one that is it answers the
+earliest ``scheduled`` attempt's own date when a charge is waiting, and otherwise
+the stored ``next_charge_on``, or ``today`` when that has already gone by --
+because the next scan is what takes a charge the scanner missed.
+
+A successful charge rolls the stored day forward: to the ``ends_on`` of the term
+the charge bought for a renewal, and to the anniversary of the day the charge was
+scheduled for a contribution, which renews no term.  An anniversary of 29
+February becomes 28 February.  A refused charge leaves the stored day alone: the
+retry lives on the attempt.
 
 So an active mandate always has a date to show, on the member's payments screen,
 on the finance screens and in the emails that report a charge.
@@ -111,31 +130,29 @@ on the finance screens and in the emails that report a charge.
 The schedule
 ============
 
-Five constants in ``apps/payments/renewals.py`` set the cadence:
+Four constants in ``apps/payments/renewals.py`` set the cadence around the day
+the member chose:
 
 ====================================  =========  =============================
 Constant                              Value      Meaning
 ====================================  =========  =============================
-``CHARGE_LEAD_DAYS``                  1          Days before a term's ``ends_on``
-                                                 that its renewal is charged.
-``NOTICE_DAYS``                       14         Days before that charge that the
+``NOTICE_DAYS``                       14         Days before the charge that the
                                                  advance warning goes out.
 ``RETRY_OFFSETS``                     (1, 3, 7)  Days after a failed charge that
                                                  each retry is scheduled for.
 ``CARD_EXPIRY_WARNING_DAYS``          30         How close to a card's expiry the
                                                  member is warned it will not last.
-``CATCH_UP_DAYS``                     30         How long after a term ran out a
-                                                 scan may still renew it.
+``CATCH_UP_DAYS``                     30         How long after the stored charge
+                                                 date a scan may still take it.
 ====================================  =========  =============================
 
-The lead is a single day because a member is never charged for the coming year
-while a whole year of coverage still remains: the charge falls on the term's last
-full day.  A decline is therefore retried after the term has run out -- the next
-day, three days later, and a week after that -- and the term a late charge buys
-starts on the day the money arrives, not on the old expiry, so the days nobody
-was covered stay visible in the record.  When all three retries are refused the
-mandate is paused, the member is told automatic renewal is off, and the reminders
-take over.
+A default charge falls on the term's ``ends_on``, which that term still covers, so
+a member is never charged for the coming year while a whole year of coverage
+remains.  A decline is retried after the term has run out -- the next day, three
+days later, and a week after that -- and the term a late charge buys starts on the
+day the money arrives, not on the old expiry, so the days nobody was covered stay
+visible in the record.  When all three retries are refused the mandate is paused,
+the member is told automatic renewal is off, and the reminders take over.
 
 .. _renewals-scanner:
 
@@ -147,23 +164,24 @@ management command, ``POST /system/renewals/run`` and the systemd timer all call
 it, and it does three things in order.
 
 1. **Notice.**  For every ``active`` mandate, find the member's active term that
-   runs furthest into the future.  If its charge date -- ``ends_on`` less
-   ``CHARGE_LEAD_DAYS`` -- is within ``NOTICE_DAYS``, and no attempt for that term
-   is either waiting or already paid, create a ``scheduled`` attempt for that date
-   and send ``renewal_notice``.  A mandate that names a plan but whose member has
-   since been granted a lifetime term has no expiry left to renew and is skipped
-   as ``lifetime``.
+   runs furthest into the future.  If ``charge_date`` is within ``NOTICE_DAYS``,
+   create a ``scheduled`` attempt for that day and send ``renewal_notice``.  A
+   mandate that names a plan but whose member has since been granted a lifetime
+   term has no expiry left to renew and is skipped as ``lifetime``.
 
-   A contribution-only mandate is treated the same way, with
-   ``contribution_charge_date`` in place of the term's charge date: the notice
-   goes out ``NOTICE_DAYS`` before it and schedules an attempt against the
+   A contribution-only mandate is treated the same way: the notice goes out
+   ``NOTICE_DAYS`` before the stored day and schedules an attempt against the
    member's lifetime term.  A member who holds no lifetime term is skipped as
    ``no_term``.
 
-   Only a ``scheduled`` or ``succeeded`` attempt stands in the way, so a mandate
-   that was paused over a term and then turned back on is scheduled again rather
-   than left to lapse.  An attempt that is waiting but whose notice the mail
-   server refused is written to again on the next run.
+   A mandate carries one charge at a time, so an attempt still ``scheduled`` --
+   against this term or against the one before it, which is what a member who
+   renewed by hand leaves behind -- is the charge the run announces rather than a
+   reason to write another.  Beyond that only an attempt that has already
+   ``succeeded`` against this very term stands in the way, so a mandate that was
+   paused over a term and then turned back on is scheduled again rather than left
+   to lapse.  An attempt that is waiting but whose notice the mail server refused
+   is written to again on the next run.
 
    The notice is a window, not a day.  A charge date that has already gone by --
    because the scanner was not running on it -- is taken as today: the attempt is
@@ -331,10 +349,10 @@ renewal" at all -- "we will take your contribution on ...", "thank you for your
 contribution", "automatic contribution is on".  The templates read ``kind`` and
 ``kind_label`` out of the shared context.
 
-``renewal_enabled`` and ``renewal_charged`` each carry ``next_charge_on`` and say
+``renewal_enabled`` and ``renewal_charged`` each carry the charge date and say
 ``Your next charge will be on <date>``.  It is never blank: the date reporting a
-charge is computed after the term has been extended, so it is the charge after
-this one.
+charge is read after the stored day has been rolled forward, so it is the charge
+after this one.
 
 ``renewal_base.html`` is the shared HTML shell, the same table-and-inline-styles
 layout the reminders use.  A mail server that refuses a message is logged at
@@ -393,18 +411,21 @@ member it missed.
 For an ``active`` mandate whose member holds no term left to renew, the scan
 looks for the most recent ``active`` or ``expired`` term that has already run
 out.  A term with an attempt already against it is on the retry ladder and is
-left alone.  Otherwise:
+left alone.  Otherwise the stored ``next_charge_on`` decides:
 
-* **Within** ``CATCH_UP_DAYS`` of its ``ends_on``, the renewal is taken now: an
+* **Missed by no more than** ``CATCH_UP_DAYS``, the charge is taken now: an
   attempt dated today is created, ``renewal_notice`` goes out worded for a charge
   that happens today, and the charge step of the same run takes it.  The term the
   charge buys starts on the day the money arrives, so the gap is left in the
   record rather than papered over.
-* **Longer ago than that**, the lapse is too long for an unannounced charge.  The
-  mandate is paused, nothing is charged, and ``renewal_failed`` tells the member
-  that renewal was not taken because the membership had lapsed for more than a
-  month, with a link to renew by hand.  The run counts the mandate under
+* **Missed by longer than that**, the lapse is too long for an unannounced charge.
+  The mandate is paused, nothing is charged, and ``renewal_failed`` tells the
+  member that renewal was not taken because the membership had lapsed for more
+  than a month, with a link to renew by hand.  The run counts the mandate under
   ``paused``, and the ordinary reminders resume for that member.
+* **Still to come**, because the member chose a day beyond their expiry, nothing
+  happens until it is within ``NOTICE_DAYS``; the membership lapses in the
+  meantime and the notice then goes out as usual.
 
 A dry run reports both outcomes without making either.
 
@@ -413,7 +434,6 @@ on have no mandate here: the payment method was never handed to CalDART, and
 there is nothing to charge.  They re-authorize from the portal's Payments screen,
 and until they do the ordinary renewal reminders cover them.
 
-Changing the cadence means changing the five constants in
-``apps/payments/renewals.py`` and this page together.  A longer
-``CHARGE_LEAD_DAYS`` charges further ahead of the term the member is paying for,
-which is the thing the one-day lead exists to avoid.
+Changing the cadence means changing the four constants in
+``apps/payments/renewals.py`` and this page together.  The day of the charge
+itself is not a constant: it is stored on the mandate, and the member owns it.

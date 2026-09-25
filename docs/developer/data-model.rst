@@ -78,7 +78,7 @@ Domain schema
           Membership [label="members.Membership\l  starts_on, ends_on\l  status, source\l"];
           Payment [label="payments.Payment\l  amount_cents, fee_cents, net_cents\l  provider, wallet, status, provider_ref\l  received_on, reconciled_on, note\l"];
           Refund [label="payments.Refund\l  amount_cents, reason, note\l  status, provider_ref, refunded_at\l"];
-          Mandate [label="payments.RenewalMandate\l  provider, method_ref, method_label\l  status, failure_count\l  contribution_cents\l"];
+          Mandate [label="payments.RenewalMandate\l  provider, method_ref, method_label\l  status, failure_count\l  contribution_cents, next_charge_on\l"];
           Attempt [label="payments.RenewalAttempt\l  scheduled_on, outcome, error\l  noticed_at, attempted_at\l  result_emailed_at\l"];
           Aircraft [label="aircraft.Aircraft\l  n_number (unique)\l  make, model, insurance_*\l"];
           AircraftChange [label="aircraft.AircraftChange\l  changed_at, kind\l  fields (JSON)\l"];
@@ -190,7 +190,7 @@ Domain schema
       payments.Refund         amount_cents, reason, note, status,
                               provider_ref, refunded_at
       payments.RenewalMandate provider, method_ref, method_label, status,
-                              failure_count, contribution_cents
+                              failure_count, contribution_cents, next_charge_on
       payments.RenewalAttempt scheduled_on, outcome, error, noticed_at,
                               attempted_at, result_emailed_at
       aircraft.Aircraft       n_number (unique), make, model, insurance_*
@@ -1159,6 +1159,9 @@ holds at most one.
        the authority is over the contribution alone
    * - ``contribution_cents``
      - renewed alongside the dues
+   * - ``next_charge_on``
+     - the day the member chose to be charged on, which defaults to the day their
+       membership runs out; rolled forward by every successful charge
    * - ``provider``
      - ``stripe``, ``paypal`` or ``mock``
    * - ``customer_ref``

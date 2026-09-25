@@ -68,7 +68,7 @@ chosen provider.
 .. code-block:: json
 
    {"plan": "annual", "contribution_cents": 10000, "provider": "stripe",
-    "auto_renew": true}
+    "auto_renew": true, "next_charge_on": "2027-03-14"}
 
 ``plan`` may be ``null`` for a contribution on its own, in which case no
 membership term is created when it succeeds.  A life member -- somebody who
@@ -92,6 +92,12 @@ provider but ``stripe``, ``paypal`` and ``mock``.  A life member's authority
 names no plan and charges their contribution once a year.  A refusal deletes the pending
 payment again, exactly as a provider that will not start one does.  Turning
 automatic renewal on again replaces whatever authority was there.
+
+``next_charge_on`` is the day that authority first charges on.  Leaving it out
+takes the day the term this payment buys runs out, worked out when the payment
+succeeds.  A day before today is refused with a 400 naming ``next_charge_on``;
+any later day is accepted.  It is ignored when ``auto_renew`` is false, since
+there is no authority to date.
 
 A checkout with ``auto_renew`` false deletes any ``pending`` authority the payer
 is still carrying from a checkout they abandoned, and a pending authority is
@@ -127,7 +133,8 @@ refused connection or an error on the provider's own side, all of which answer
 ``{"detail": "<provider> could not be reached. Please try again."}``.  Nothing
 is left behind in the database when the provider rejects it or fails.
 
-Statuses: **201**; **400** for any of the above; **401** when anonymous.
+Statuses: **201**; **400** for any of the above, including a
+``next_charge_on`` that has already gone by; **401** when anonymous.
 
 ``POST /payments/stripe/confirm``
 ---------------------------------
