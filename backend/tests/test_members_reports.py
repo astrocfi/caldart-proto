@@ -174,7 +174,7 @@ def test_csv_row_content(
     assert row["name"] == "Ada Marsh"
     assert row["phone"] == "415-555-0100"
     assert row["dart"] == "Palo Alto"
-    assert row["status"] == "current"
+    assert row["status"] == "Current"
     assert row["plan"] == annual_plan.name
     assert row["expires_on"] == (today + timedelta(days=334)).isoformat()
     assert row["certificate"] == "Commercial"
@@ -194,7 +194,7 @@ def test_csv_leaves_a_lifetime_expiry_blank(
 ) -> None:
     """A lifetime member's row leaves the expiry column blank."""
     row = row_for(read_csv(account_admin_client.get(CSV_URL, ALL_COLUMNS)), "lifer@example.test")
-    assert row["status"] == "current"
+    assert row["status"] == "Current"
     assert row["plan"] == life_plan.name
     assert row["expires_on"] == ""
 
@@ -205,7 +205,7 @@ def test_csv_blanks_a_missing_certificate_and_medical(
     """A member with no certificate, medical or aircraft on file gets blank cells."""
     table = read_csv(account_admin_client.get(CSV_URL, ALL_COLUMNS))
     row = row_for(table, "lapsed@example.test")
-    assert row["status"] == "expired"
+    assert row["status"] == "Expired"
     assert row["certificate"] == ""
     assert row["medical_type"] == ""
     assert row["medical_expiration"] == ""

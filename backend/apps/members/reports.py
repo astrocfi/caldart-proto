@@ -25,7 +25,7 @@ from apps.members.filters import (
     applied_filters,
     member_admin_queryset,
 )
-from apps.members.models import MemberProfile
+from apps.members.models import MemberProfile, PilotCertificateType
 from apps.members.services import MembershipStatusDict, membership_payload
 from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec, apply_filterset
 
@@ -55,10 +55,17 @@ class RowContext(TypedDict):
 #: cell has to wrap.
 #:
 #: A lifetime membership has no expiry date, so ``expires_on`` is blank for one;
-#: the ``plan`` column ("Life") and ``status`` ("current") say what it is.
-#: ``joined_on`` is the start of the earliest term on file, and ``member_since``
-#: the day the member says they joined -- the same date until the terms before a
-#: gap, or before an import, are missing.
+#: the ``plan`` column ("Life") and ``status`` ("Current") say what it is.  The
+#: ``status`` cell is the :class:`~apps.members.models.MembershipState` label,
+#: never the slug, and the ``certificate`` cell abbreviates the airline
+#: transport pilot certificate to "ATP" through :data:`REPORT_CERTIFICATE_LABELS`.
+#: ``status`` gained width and ``certificate`` gave up exactly that much -- the
+#: abbreviation freed room a full "No membership" needs -- so the ten default
+#: columns still share the printable width they always have, and no seeded
+#: cell wraps (``test_no_default_member_cell_wraps_in_the_pdf``).  ``joined_on``
+#: is the start of the earliest term on file, and ``member_since`` the day the
+#: member says they joined -- the same date until the terms before a gap, or
+#: before an import, are missing.
 MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
     ReportColumn("name", "Name", True, lambda ctx: ctx["user"].display_name, width=2.6),
     ReportColumn("email", "Email", True, lambda ctx: ctx["user"].email, width=4.4),
@@ -70,7 +77,9 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
         width=1.9,
     ),
     ReportColumn("dart", "DART", True, lambda ctx: ctx["dart"], width=3.4),
-    ReportColumn("status", "Status", True, lambda ctx: ctx["membership"]["status"], width=1.1),
+    ReportColumn(
+        "status", "Status", True, lambda ctx: ctx["membership"]["status"].label, width=2.1
+    ),
     ReportColumn("plan", "Plan", False, lambda ctx: ctx["membership"]["plan"] or "", width=2.0),
     ReportColumn(
         "expires_on", "Expires", True, lambda ctx: _iso(ctx["membership"]["expires_on"]), width=1.6
@@ -79,8 +88,8 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
         "certificate",
         "Certificate",
         True,
-        lambda ctx: _display(ctx["profile"], "pilot_certificate_type"),
-        width=2.8,
+        lambda ctx: _certificate_display(ctx["profile"]),
+        width=1.8,
     ),
     ReportColumn(
         "certificate_number",
@@ -172,6 +181,28 @@ def _display(profile: MemberProfile | None, field: str) -> str:
         return ""
     label: str = getattr(profile, f"get_{field}_display")()
     return label
+
+
+#: A report-only override of a certificate's on-screen label, keyed by the
+#: choice's value.  The certificate column is narrow, so the report abbreviates
+#: what would otherwise wrap; the profile screens keep spelling the certificate
+#: out.
+REPORT_CERTIFICATE_LABELS: dict[str, str] = {
+    PilotCertificateType.ATP: "ATP",
+}
+
+
+def _certificate_display(profile: MemberProfile | None) -> str:
+    """The certificate column's cell: the report's abbreviation, or the choice's label.
+
+    A member without a profile, and one who holds no certificate, both read as
+    a blank cell, exactly as :func:`_display` would show them.
+    """
+    if profile is None or profile.pilot_certificate_type in _EMPTY_CHOICES:
+        return ""
+    if profile.pilot_certificate_type in REPORT_CERTIFICATE_LABELS:
+        return REPORT_CERTIFICATE_LABELS[profile.pilot_certificate_type]
+    return _display(profile, "pilot_certificate_type")
 
 
 def _row_context(user: MemberRow) -> RowContext:

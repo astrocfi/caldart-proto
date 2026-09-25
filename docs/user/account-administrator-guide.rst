@@ -83,10 +83,11 @@ alone.
    ``Ana Bracco`` finds her.
 
 **Membership**
-   *Current* (a term covers today), *Joined, not yet paid* (their only term is
-   unpaid), *Expired* (a paid term has run out) or *Never a member* (nobody has
-   ever granted or sold them a term).  The four between them account for every
-   account exactly once.
+   *Current* (a term covers today), *Unpaid* (an account whose only term was
+   never paid for), *Expired* (a paid term has run out) or *No membership*
+   (nobody has ever granted or sold them a term).  The four between them
+   account for every account exactly once, and the member report's own
+   **Status** column prints the same four words.
 
 **Certificate** and **Medical**
    The pilot certificate and medical class on the member's profile.
@@ -380,10 +381,11 @@ administrator in the Wagtail editor (:doc:`website-administrator-guide`); the
 Reminders
 =========
 
-**Reminders**, under *Administration*, is the record of the renewal emails
-CalDART has sent: one row per email, newest first, with the date and time it
-went out, which reminder it was, the member it went to and the address it was
-sent to.  It is the answer to "did we ever tell them?".
+**Reminders**, under *Administration*, lists one row per renewal email CalDART
+has sent, newest first, with the date and time it went out, which reminder it
+was, the member it went to and the address it was sent to.  Each member gets
+one email per membership per kind.  This is the record of what renewal emails
+were sent to each member.
 
 The **Reminder** box above the table narrows it to one kind: *60 days before*,
 *30 days before*, *7 days before*, *Expired* or *30 days after*.  *All

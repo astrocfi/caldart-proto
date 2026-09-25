@@ -23,7 +23,7 @@ export function AdminRemindersPage(): JSX.Element {
         <p className="muted">
           The scan runs every morning at 07:00 and mails a member 60, 30, and 7 days before their
           membership ends, on the day it ends, and 30 days after. Each member gets one email per
-          membership per kind, so this is the record of what they were told.
+          membership per kind. This is the record of what renewal emails were sent to each member.
         </p>
 
         <ReminderLog />

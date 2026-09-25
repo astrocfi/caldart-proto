@@ -34,9 +34,9 @@ export { certificateLabel, medicalLabel, roleLabel, ROLE_CHOICES } from '@/porta
 
 export const STATUS_CHOICES: Choice<'current' | 'new' | 'expired' | 'none'>[] = [
   { value: 'current', label: 'Current' },
-  { value: 'new', label: 'Joined, not yet paid' },
+  { value: 'new', label: 'Unpaid' },
   { value: 'expired', label: 'Expired' },
-  { value: 'none', label: 'Never a member' },
+  { value: 'none', label: 'No membership' },
 ];
 
 export const TERM_STATUS_CHOICES: Choice<'new' | 'active' | 'expired' | 'canceled'>[] = [

@@ -271,14 +271,17 @@ name                 Name                    yes     Full name, or the email add
 email                Email                   yes     Login address
 phone                Phone                   yes     Primary phone from the profile
 dart                 DART                    yes     DART name, blank when unaffiliated
-status               Status                  yes     ``current``, ``new``, ``expired``, or
-                                                     ``none``
+status               Status                  yes     ``Current``, ``Unpaid``, ``Expired``, or
+                                                     ``No membership`` -- the
+                                                     ``MembershipState`` choice's label,
+                                                     never its stored slug
 plan                 Plan                    no      Plan behind that status, e.g.
                                                      ``Annual`` or ``Life``
 expires_on           Expires                 yes     End of unbroken coverage; **blank for
                                                      a lifetime member**
 certificate          Certificate             yes     Pilot certificate, e.g. ``Private``;
-                                                     blank for none
+                                                     ``ATP`` for an airline transport
+                                                     pilot; blank for none
 certificate_number   Certificate number      no      Certificate number as entered
 ifr                  IFR                     no      ``Yes``, ``No``, or ``Not applicable``
 medical_type         Medical                 yes     ``BasicMed``, ``Third class``, …;
@@ -303,14 +306,19 @@ for the chooser on the member list.
 
 Dates are ISO-8601 (``YYYY-MM-DD``) so a spreadsheet sorts them correctly.
 
-Two conventions are worth knowing when you read a row:
+Three conventions are worth knowing when you read a row:
 
 * A **lifetime** member has no expiry date, so ``expires_on`` is empty while
-  ``status`` says ``current`` and ``plan`` says ``Life``.  That matches the
+  ``status`` says ``Current`` and ``plan`` says ``Life``.  That matches the
   API, where ``expires_on`` is ``null``.
 * "Nothing on file" choices — a ``none`` certificate or medical — export as an
   empty cell rather than the word "None", which reads as a value in a
   spreadsheet.
+* ``status`` always prints the ``MembershipState`` choice's label -- ``Current``,
+  ``Unpaid``, ``Expired`` or ``No membership`` -- never the stored slug the
+  member list's ``?status=`` filter takes.  ``REPORT_CERTIFICATE_LABELS``
+  overrides ``certificate`` the same way for one value: an airline transport
+  pilot certificate exports as ``ATP`` rather than spelled out in full.
 
 The PDF subtitle lists the filters that were applied.  Which query parameters
 count is ``EXPORT_FILTER_PARAMS`` in ``filters.py``; ``applied_filters(params)``
@@ -339,10 +347,13 @@ the chooser.
 The ``ctx`` dictionary a value function receives is built by ``_row_context``
 and holds ``user``, ``profile`` (which may be ``None``), ``dart``,
 ``membership`` (the computed status dictionary), ``aircraft`` (a list of
-N-numbers) and ``joined_on``.  Three helpers keep the entries short:
+N-numbers) and ``joined_on``.  Four helpers keep the entries short:
 ``_iso(date)`` formats a date or gives ``""``, ``_value(profile, field)`` reads
-a profile field safely, and ``_display(profile, field)`` gives the human label
-behind a ``choices`` field and blanks the "nothing on file" values.
+a profile field safely, ``_display(profile, field)`` gives the human label
+behind a ``choices`` field and blanks the "nothing on file" values, and
+``_certificate_display(profile)`` is the same for ``pilot_certificate_type``
+alone, with ``REPORT_CERTIFICATE_LABELS`` overriding the choice's own label
+for a value that reads better abbreviated in a report cell.
 
 Then:
 
