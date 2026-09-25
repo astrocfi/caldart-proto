@@ -10,16 +10,18 @@ and a role change.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import DART_LEADER, MEMBER
 from apps.accounts.services import update_account
 from apps.aircraft.models import Aircraft
+from apps.members.admin import MemberProfileAdmin
 from apps.members.models import MemberProfile, MembershipPlan, MembershipSource
 from apps.members.services import (
     activate_term,
@@ -135,6 +137,21 @@ def test_detaching_an_aircraft_stamps_the_profile(
     assert profile.profile_updated_at is not None
 
 
+def test_touching_a_profile_also_moves_its_generic_updated_at(profile: MemberProfile) -> None:
+    """``touch_profile`` lists ``updated_at`` in ``update_fields`` alongside the stamp.
+
+    Django skips an ``auto_now`` field left out of ``update_fields``, so without it
+    the row's own audit column would disagree with ``profile_updated_at``.
+    """
+    before = profile.updated_at
+
+    with freeze_time(timezone.now() + timedelta(days=1)):
+        touch_profile(profile)
+
+    profile.refresh_from_db()
+    assert profile.updated_at > before
+
+
 # --------------------------------------------------------------------------
 # Writes that leave it alone
 # --------------------------------------------------------------------------
@@ -217,3 +234,15 @@ def test_update_member_with_no_account_or_profile_change_leaves_the_stamp_alone(
 
     profile.refresh_from_db()
     assert profile.profile_updated_at == stamp
+
+
+# --------------------------------------------------------------------------
+# The Django admin
+# --------------------------------------------------------------------------
+def test_the_admin_cannot_edit_the_stamp() -> None:
+    """``profile_updated_at`` is read-only in the Django admin, like the other stamps.
+
+    The field is written only by ``touch_profile``; a staff user typing a value
+    into it in the admin would make the record disagree with its own history.
+    """
+    assert "profile_updated_at" in MemberProfileAdmin.readonly_fields

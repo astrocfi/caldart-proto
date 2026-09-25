@@ -130,16 +130,18 @@ _PROFILE_TOUCHING_ACCOUNT_FIELDS = frozenset({"email", "first_name", "last_name"
 
 
 def touch_profile(profile: MemberProfile) -> None:
-    """Stamp ``profile.profile_updated_at`` as now, and save exactly that field.
+    """Stamp ``profile.profile_updated_at`` as now, and save that and ``updated_at``.
 
     Called after every write of profile information: the member's own
     ``PATCH /me/profile``, an administrator's edit to the profile or to the
     account's name or email, an aircraft attached or detached, and the
     profile's creation.  Never called for a payment, a membership grant or
-    renewal, a reminder, or a role change.
+    renewal, a reminder, or a role change.  ``updated_at`` is listed in
+    ``update_fields`` alongside the stamp because Django skips an ``auto_now``
+    field that is left out, and this is a genuine write to the row.
     """
     profile.profile_updated_at = timezone.now()
-    profile.save(update_fields=["profile_updated_at"])
+    profile.save(update_fields=["profile_updated_at", "updated_at"])
 
 
 # --------------------------------------------------------------------------
