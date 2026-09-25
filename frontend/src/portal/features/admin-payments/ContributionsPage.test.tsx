@@ -8,7 +8,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { ContributionRow } from '@/portal/api/types';
 import { ContributionsPage } from './ContributionsPage';
-import { contributionsExportUrl, statementUrl } from './reports-api';
+import { statementUrl } from './api';
 
 const MARTA: ContributionRow = {
   user_id: 37,
@@ -27,20 +27,6 @@ function contributionsHandler(rows: ContributionRow[], seen: string[]) {
     return HttpResponse.json(rows);
   });
 }
-
-describe('contributionsExportUrl', () => {
-  it('names the year it exports', () => {
-    expect(contributionsExportUrl(2026, 'pdf')).toBe(
-      `${API}/admin/payments/contributions/export.pdf?year=2026`,
-    );
-  });
-});
-
-describe('statementUrl', () => {
-  it('points at a statement for one member and one year', () => {
-    expect(statementUrl(37, 2026)).toBe(`${API}/admin/payments/ledger/37/statements/2026.pdf`);
-  });
-});
 
 describe('ContributionsPage', () => {
   it('shows what a member gave, what went back and the difference', async () => {
@@ -64,18 +50,46 @@ describe('ContributionsPage', () => {
     );
   });
 
-  it('asks for this year to begin with, and for the year chosen after that', async () => {
+  it("leaves the year to the server's own current year, then asks for the one chosen", async () => {
     const seen: string[] = [];
     server.use(contributionsHandler([MARTA], seen));
     renderWithProviders(<ContributionsPage />);
     await screen.findByRole('row', { name: /Marta Reyes/ });
 
     const thisYear = new Date().getFullYear();
-    expect(seen).toEqual([String(thisYear)]);
+    expect(seen).toEqual(['']);
 
     await userEvent.selectOptions(screen.getByLabelText('Year'), String(thisYear - 1));
 
     await expect.poll(() => seen.at(-1)).toBe(String(thisYear - 1));
+  });
+
+  it('reads the year from the address, for the table, the statements and the caption', async () => {
+    const seen: string[] = [];
+    server.use(contributionsHandler([MARTA], seen));
+    renderWithProviders(<ContributionsPage />, {
+      route: '/admin/payments/contributions?year=2024',
+    });
+
+    const row = within(await screen.findByRole('row', { name: /Marta Reyes/ }));
+    expect(row.getByRole('link', { name: 'Statement' })).toHaveAttribute(
+      'href',
+      statementUrl(37, 2024),
+    );
+    expect(screen.getByRole('table', { name: 'Contributions in 2024' })).toBeInTheDocument();
+  });
+
+  it('points the exports at the contributions report for the year chosen', async () => {
+    server.use(contributionsHandler([MARTA], []));
+    renderWithProviders(<ContributionsPage />, {
+      route: '/admin/payments/contributions?year=2024',
+    });
+    await screen.findByRole('row', { name: /Marta Reyes/ });
+
+    expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
+      'href',
+      `${API}/reports/contributions/export.pdf?year=2024`,
+    );
   });
 
   it('says so when nobody gave anything that year', async () => {

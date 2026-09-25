@@ -5,12 +5,11 @@ import { createElement } from 'react';
 import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 
-import type { ReportColumn } from '@/portal/api/types';
+import type { ReportColumn, ReportSummary } from '@/portal/api/types';
 import { API } from '@test/handlers';
 import { makeTestQueryClient } from '@test/render';
 import { server } from '@test/server';
 import { reportExportUrl, useReportColumns, useReports } from './api';
-import type { ReportSummary } from './types';
 
 /** One provider tree per test, so a cached answer cannot leak between them. */
 function makeWrapper() {

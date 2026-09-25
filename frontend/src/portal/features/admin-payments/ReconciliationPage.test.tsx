@@ -8,7 +8,7 @@ import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { ReconciliationRow } from '@/portal/api/types';
 import { ReconciliationPage } from './ReconciliationPage';
-import { reconciliationExportUrl, reconciliationPeriodLabel } from './reports-api';
+import { reconciliationPeriodLabel } from './reports-api';
 
 const JANUARY: ReconciliationRow = {
   period: '2026-01',
@@ -46,27 +46,6 @@ describe('reconciliationPeriodLabel', () => {
   });
 });
 
-describe('reconciliationExportUrl', () => {
-  it('carries the range, the provider and the grouping', () => {
-    expect(
-      reconciliationExportUrl(
-        { from: '2026-01-01', to: '2026-03-31', provider: 'paypal' },
-        'year',
-        'csv',
-      ),
-    ).toBe(
-      `${API}/admin/payments/reconciliation/export.csv` +
-        '?group=year&from=2026-01-01&to=2026-03-31&provider=paypal',
-    );
-  });
-
-  it('asks for the PDF with no filters when none are set', () => {
-    expect(reconciliationExportUrl({ from: '', to: '', provider: '' }, 'month', 'pdf')).toBe(
-      `${API}/admin/payments/reconciliation/export.pdf?group=month`,
-    );
-  });
-});
-
 describe('ReconciliationPage', () => {
   it('shows a period with its gross, fees, net and what is still unmatched', async () => {
     server.use(reconciliationHandler([JANUARY], []));
@@ -85,11 +64,37 @@ describe('ReconciliationPage', () => {
     renderWithProviders(<ReconciliationPage />);
     await screen.findByRole('row', { name: /stripe/i });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Provider' }));
+    await userEvent.selectOptions(screen.getByLabelText('Rows'), 'provider');
 
-    await expect
-      .poll(() => seen.map((params) => params.get('group')))
-      .toEqual(['month', 'provider']);
+    await expect.poll(() => seen.map((params) => params.get('group'))).toEqual([null, 'provider']);
+  });
+
+  it('reads its filters from the address, so a grouping can be linked', async () => {
+    const seen: URLSearchParams[] = [];
+    server.use(reconciliationHandler([JANUARY], seen));
+    renderWithProviders(<ReconciliationPage />, {
+      route: '/admin/payments/reconciliation?group=year&provider=paypal',
+    });
+
+    expect(await screen.findByRole('table', { name: 'Takings by year' })).toBeInTheDocument();
+    expect(seen[0]!.get('provider')).toBe('paypal');
+  });
+
+  it('points the exports at the reconciliation report with the filters on screen', async () => {
+    server.use(reconciliationHandler([JANUARY], []));
+    renderWithProviders(<ReconciliationPage />, {
+      route: '/admin/payments/reconciliation?group=month&to=2026-03-31',
+    });
+    await screen.findByRole('row', { name: /Jan 2026/ });
+
+    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+      'href',
+      `${API}/reports/reconciliation/export.csv?to=2026-03-31&group=month`,
+    );
+    expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
+      'href',
+      `${API}/reports/reconciliation/export.pdf?to=2026-03-31&group=month`,
+    );
   });
 
   it('narrows the range and the exports together', async () => {

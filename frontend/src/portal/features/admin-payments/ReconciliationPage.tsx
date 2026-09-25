@@ -6,37 +6,30 @@
  * period has already been matched.  The two exports carry exactly the rows on
  * screen, so the figure a treasurer quotes is the figure they printed.
  */
-import { useState } from 'react';
 import type { JSX } from 'react';
 
-import type { PaymentProvider, ReconciliationRow } from '@/portal/api/types';
-import { Button } from '@/portal/components/Button';
+import type { ReconciliationRow } from '@/portal/api/types';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
-import { Field } from '@/portal/components/Field';
+import { FilterBar } from '@/portal/components/FilterBar';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
+import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import { reportExportUrl } from '@/portal/reports/api';
+import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import { FinanceTabs } from './FinanceTabs';
-import { PROVIDER_LABELS } from './labels';
 import {
-  EMPTY_RECONCILIATION_FILTERS,
-  RECONCILIATION_GROUPS,
-  reconciliationExportUrl,
+  DEFAULT_RECONCILIATION_GROUP,
   reconciliationPeriodLabel,
   useReconciliation,
 } from './reports-api';
-import type { ReconciliationFilterState, ReconciliationGroup } from './reports-api';
+import type { ReconciliationGroup } from './reports-api';
 import './admin-payments.css';
 
-const PROVIDERS: PaymentProvider[] = ['stripe', 'paypal', 'mock', 'manual'];
+const FILTER_FIELDS = listFilters(REPORTS.reconciliation);
+const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
 const GROUP_LABELS: Record<ReconciliationGroup, string> = {
-  month: 'Month',
-  year: 'Year',
-  provider: 'Provider',
-};
-
-const PERIOD_HEADERS: Record<ReconciliationGroup, string> = {
   month: 'Month',
   year: 'Year',
   provider: 'Provider',
@@ -51,7 +44,7 @@ function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
   return [
     {
       key: 'period',
-      header: PERIOD_HEADERS[group],
+      header: GROUP_LABELS[group],
       render: (row) => reconciliationPeriodLabel(row.period, group),
       sortValue: (row) => row.period,
     },
@@ -95,80 +88,17 @@ function columns(group: ReconciliationGroup): Column<ReconciliationRow>[] {
   ];
 }
 
+/** The grouping a `group` value asks for, the server's own when it is blank or unknown. */
+function groupOf(value: string | undefined): ReconciliationGroup {
+  return value === 'year' || value === 'provider' ? value : DEFAULT_RECONCILIATION_GROUP;
+}
+
 /** The Reconciliation tab of the finance area. */
 export function ReconciliationPage(): JSX.Element {
-  const [filters, setFilters] = useState<ReconciliationFilterState>(EMPTY_RECONCILIATION_FILTERS);
-  const [group, setGroup] = useState<ReconciliationGroup>('month');
+  const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
+  const group = groupOf(filters.group);
 
-  const rows = useReconciliation(filters, group);
-
-  function set<K extends keyof ReconciliationFilterState>(
-    key: K,
-    value: ReconciliationFilterState[K],
-  ): void {
-    setFilters({ ...filters, [key]: value });
-  }
-
-  const isFiltered = Object.values(filters).some((value) => value !== '');
-
-  const filterBar = (
-    <div className="payment-filters">
-      <Field label="From">
-        {(props) => (
-          <input
-            {...props}
-            type="date"
-            value={filters.from}
-            onChange={(event) => set('from', event.target.value)}
-          />
-        )}
-      </Field>
-      <Field label="To">
-        {(props) => (
-          <input
-            {...props}
-            type="date"
-            value={filters.to}
-            onChange={(event) => set('to', event.target.value)}
-          />
-        )}
-      </Field>
-      <Field label="Provider">
-        {(props) => (
-          <select
-            {...props}
-            value={filters.provider}
-            onChange={(event) => set('provider', event.target.value as PaymentProvider | '')}
-          >
-            <option value="">Any provider</option>
-            {PROVIDERS.map((provider) => (
-              <option key={provider} value={provider}>
-                {PROVIDER_LABELS[provider]}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
-      <div className="segmented" role="group" aria-label="Group takings by">
-        {RECONCILIATION_GROUPS.map((option) => (
-          <button
-            key={option}
-            type="button"
-            className="segmented__option"
-            aria-pressed={group === option}
-            onClick={() => setGroup(option)}
-          >
-            {GROUP_LABELS[option]}
-          </button>
-        ))}
-      </div>
-      {isFiltered ? (
-        <Button variant="quiet" small onClick={() => setFilters(EMPTY_RECONCILIATION_FILTERS)}>
-          Clear filters
-        </Button>
-      ) : null}
-    </div>
-  );
+  const rows = useReconciliation(filters);
 
   return (
     <Page
@@ -189,9 +119,16 @@ export function ReconciliationPage(): JSX.Element {
         rows={rows.data ?? []}
         rowKey={(row) => row.period}
         caption={`Takings by ${GROUP_LABELS[group].toLowerCase()}`}
-        filters={filterBar}
-        exportCsvUrl={reconciliationExportUrl(filters, group, 'csv')}
-        exportPdfUrl={reconciliationExportUrl(filters, group, 'pdf')}
+        filters={
+          <FilterBar
+            fields={FILTER_FIELDS}
+            values={filters}
+            onChange={(next) => setFilters(next)}
+            label="Filter the reconciliation"
+          />
+        }
+        exportCsvUrl={reportExportUrl('reconciliation', 'csv', filters)}
+        exportPdfUrl={reportExportUrl('reconciliation', 'pdf', filters)}
         isLoading={rows.isPending}
         emptyTitle="Nothing was taken in this range"
         emptyDescription="Widen the dates, or clear the filters to see every period."
