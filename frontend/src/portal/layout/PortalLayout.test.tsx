@@ -151,6 +151,21 @@ describe('PortalLayout', () => {
     expect(screen.queryByRole('navigation', { name: 'Portal sections' })).not.toBeInTheDocument();
   });
 
+  it('gives an anonymous visitor a single-column frame', async () => {
+    const { container } = renderWithProviders(tree(), { route: '/' });
+
+    await screen.findByText('dashboard body');
+    expect(container.querySelector('.portal__frame')).toHaveClass('portal__frame--no-rail');
+  });
+
+  it('keeps the rail column for a signed-in member', async () => {
+    server.use(signedInAs(makeUser()));
+    const { container } = renderWithProviders(tree(), { route: '/' });
+
+    await screen.findByRole('navigation', { name: 'Portal sections' });
+    expect(container.querySelector('.portal__frame')).not.toHaveClass('portal__frame--no-rail');
+  });
+
   it('offers an anonymous visitor a way to sign in instead of an identity', async () => {
     renderWithProviders(tree(), { route: '/' });
 

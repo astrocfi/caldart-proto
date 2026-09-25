@@ -210,3 +210,21 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('heading', { name: 'My profile' })).toBeInTheDocument();
   });
 });
+
+describe('LoginPage layout', () => {
+  it('puts the form in the auth card, with the button and the reset link as its actions', async () => {
+    const { container } = renderLogin();
+
+    const button = await screen.findByRole('button', { name: 'Sign in' });
+    const actions = container.querySelector('.auth-card .auth__actions');
+    expect(actions).toContainElement(button);
+    expect(actions).toContainElement(screen.getByRole('link', { name: 'Forgot your password?' }));
+  });
+
+  it('offers the join link below the card', async () => {
+    renderLogin();
+
+    const join = await screen.findByRole('link', { name: 'Join CalDART' });
+    expect(join.closest('.auth__footer')).not.toBeNull();
+  });
+});

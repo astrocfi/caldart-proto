@@ -29,6 +29,25 @@ describe('the portal frame width', () => {
   });
 });
 
+describe('the frame without a rail', () => {
+  it('is a single column', () => {
+    expect(ruleBody('.portal__frame--no-rail')).toContain('grid-template-columns: minmax(0, 1fr);');
+  });
+
+  it('stays a single column on a wide window', () => {
+    // Both rules weigh the same, so the later one wins inside the media query.
+    const twoColumns = css.indexOf('grid-template-columns: var(--rail-width) minmax(0, 1fr);');
+    expect(twoColumns).toBeGreaterThan(-1);
+    expect(css.indexOf('.portal__frame--no-rail')).toBeGreaterThan(twoColumns);
+  });
+});
+
+describe('the auth card', () => {
+  it('takes its width from the auth panel rather than a portal.css rule', () => {
+    expect(css).not.toMatch(/\.auth-card\b/);
+  });
+});
+
 describe('non-report content inside the uncapped frame', () => {
   it('caps a card at the portal working width', () => {
     expect(ruleBody('.portal__main .card')).toContain('max-width: var(--page-max);');
