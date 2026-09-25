@@ -173,6 +173,37 @@ test('a filtered export carries the filter', async ({ page }) => {
   await expect(page.getByLabel('Provider')).toHaveValue('mock');
 });
 
+test('a saved set of columns comes back after a reload', async ({ page }) => {
+  await signIn(page, DEMO.accountadmin);
+  await page.goto('/portal/admin/payments/list');
+  const header = page.locator('thead');
+  const chooser = page.getByRole('group', { name: 'Columns to show and export' });
+
+  // Tick Receipt, untick Fee, and save the boxes as they stand under a name.
+  await page.getByRole('button', { name: 'Columns' }).click();
+  await chooser.getByRole('checkbox', { name: 'Receipt' }).check();
+  await chooser.getByRole('checkbox', { name: 'Fee', exact: true }).uncheck();
+  await chooser.getByRole('textbox', { name: 'Name for these columns' }).fill('Audit');
+  await chooser.getByRole('button', { name: 'Save columns' }).click();
+  await expect(chooser.getByRole('combobox', { name: 'Load columns' })).toHaveValue(/^\d+$/);
+  await expect(chooser.getByRole('button', { name: 'Delete the saved set Audit' })).toBeVisible();
+
+  // A reload starts from the default columns again.
+  await page.reload();
+  await expect(header.getByText('Fee', { exact: true })).toBeVisible();
+  await expect(header.getByText('Receipt', { exact: true })).toHaveCount(0);
+
+  // Loading the set puts its columns back, in the table and in the exports.
+  await page.getByRole('button', { name: 'Columns' }).click();
+  await chooser.getByRole('combobox', { name: 'Load columns' }).selectOption({ label: 'Audit' });
+  await expect(header.getByText('Receipt', { exact: true })).toBeVisible();
+  await expect(header.getByText('Fee', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+    'href',
+    /columns=paid_on%2Creceipt_number%2Cname/,
+  );
+});
+
 test('a plain member cannot reach the payment reports', async ({ page }) => {
   await signIn(page, DEMO.member);
   await page.goto('/portal/admin/payments');

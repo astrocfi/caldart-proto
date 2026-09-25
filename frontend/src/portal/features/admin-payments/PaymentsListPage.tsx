@@ -160,7 +160,12 @@ export function PaymentsListPage(): JSX.Element {
               options={planOptions}
               label="Filter payments"
             />
-            <ColumnChooser columns={columns} chosen={chosenKeys} onChange={handleColumnChange} />
+            <ColumnChooser
+              report="payments"
+              columns={columns}
+              chosen={chosenKeys}
+              onChange={handleColumnChange}
+            />
           </>
         }
         exportCsvUrl={reportExportUrl('payments', 'csv', exportParams)}

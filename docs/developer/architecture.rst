@@ -589,6 +589,9 @@ and a quiet ``Button`` with the trashcan leading its words where the action is
 confirmed, with the trashcan at the text size there rather than at the larger
 size a bare icon takes.  ``ColumnChooser`` drives a report table and its two
 exports from one set of ticks, and closes on a click outside it or on Escape.
+It takes the report's slug and, under its boxes, loads, saves, and deletes the
+signed-in user's named sets of that report's columns through
+``/reports/{slug}/column-sets``, reading them only once the panel first opens.
 ``components/Loading.tsx`` sits beside them:
 the guards and the route table are its only callers, and both import it by
 name, as every file in the directory is imported -- there is no barrel.

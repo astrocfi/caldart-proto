@@ -4,13 +4,20 @@
  * Every report is read the same way: `GET /reports` lists those the caller may
  * read, `GET /reports/<slug>/columns` is a report's column registry, and
  * `/reports/<slug>/export.csv` and `export.pdf` are its downloads.  Every
- * export button in the portal takes its href from `reportExportUrl`.
+ * export button in the portal takes its href from `reportExportUrl`.  The
+ * signed-in user's own named sets of a report's columns live under
+ * `/reports/<slug>/column-sets`.
  */
-import { useQuery } from '@tanstack/react-query';
-import type { UseQueryResult } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '@/portal/api/client';
-import type { ReportColumn, ReportSummary } from '@/portal/api/types';
+import type {
+  ReportColumn,
+  ReportSummary,
+  SavedColumnSet,
+  SavedColumnSetWrite,
+} from '@/portal/api/types';
 import type { ReportFormat, ReportSlug } from './types';
 
 export const REPORTS_KEY = ['reports'] as const;
@@ -66,5 +73,66 @@ export function useReportColumns(slug: ReportSlug): UseQueryResult<ReportColumn[
     queryKey: [...REPORTS_KEY, slug, 'columns'],
     queryFn: () => api.get<ReportColumn[]>(`/reports/${slug}/columns`),
     staleTime: Infinity,
+  });
+}
+
+/** The query key of the signed-in user's saved column sets for one report. */
+function columnSetsKey(slug: ReportSlug) {
+  return [...REPORTS_KEY, slug, 'column-sets'] as const;
+}
+
+/**
+ * The signed-in user's own saved sets of one report's columns, by name, via
+ * `GET /reports/<slug>/column-sets`.
+ *
+ * @param slug the report whose sets to read.
+ */
+export function useColumnSets(slug: ReportSlug): UseQueryResult<SavedColumnSet[]> {
+  return useQuery({
+    queryKey: columnSetsKey(slug),
+    queryFn: () => api.get<SavedColumnSet[]>(`/reports/${slug}/column-sets`),
+  });
+}
+
+/**
+ * Save a named set of one report's columns via `POST /reports/<slug>/column-sets`.
+ *
+ * Saving under a name the user already has replaces that set's columns and keeps
+ * its id.  The saved set goes straight into the cached list, so a drop-down can
+ * select it at once, and the list is then read again for the server's order.
+ */
+export function useSaveColumnSet(
+  slug: ReportSlug,
+): UseMutationResult<SavedColumnSet, Error, SavedColumnSetWrite> {
+  const queryClient = useQueryClient();
+  const key = columnSetsKey(slug);
+  return useMutation({
+    mutationFn: (payload: SavedColumnSetWrite) =>
+      api.post<SavedColumnSet>(`/reports/${slug}/column-sets`, payload),
+    onSuccess: async (saved) => {
+      queryClient.setQueryData<SavedColumnSet[]>(key, (sets = []) => [
+        ...sets.filter((set) => set.id !== saved.id),
+        saved,
+      ]);
+      await queryClient.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
+/**
+ * Delete one of the user's saved column sets, by id, via
+ * `DELETE /reports/<slug>/column-sets/<id>`; the set leaves the cached list at once.
+ */
+export function useDeleteColumnSet(slug: ReportSlug): UseMutationResult<null, Error, number> {
+  const queryClient = useQueryClient();
+  const key = columnSetsKey(slug);
+  return useMutation({
+    mutationFn: (id: number) => api.delete<null>(`/reports/${slug}/column-sets/${id}`),
+    onSuccess: async (_nothing, id) => {
+      queryClient.setQueryData<SavedColumnSet[]>(key, (sets = []) =>
+        sets.filter((set) => set.id !== id),
+      );
+      await queryClient.invalidateQueries({ queryKey: key });
+    },
   });
 }
