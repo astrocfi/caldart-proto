@@ -87,6 +87,9 @@ vi.mock('../features/admin-payments/ContributionsPage', () => ({
 vi.mock('../features/admin-reminders/AdminRemindersPage', () => ({
   AdminRemindersPage: pageStub('Reminders'),
 }));
+vi.mock('../features/admin-reports/AdminReportsPage', () => ({
+  AdminReportsPage: pageStub('Reports'),
+}));
 vi.mock('../features/admin-users/UsersListPage', () => ({
   UsersListPage: pageStub('Users and roles'),
 }));
@@ -222,6 +225,11 @@ const GUARDED_PATHS: GuardedPath[] = [
     allowed: ['account_admin', 'treasurer', 'system_admin'],
   },
   { path: '/admin/reminders', heading: 'Reminders', allowed: ['account_admin', 'system_admin'] },
+  {
+    path: '/admin/reports',
+    heading: 'Reports',
+    allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
   { path: '/admin/users', heading: 'Users and roles', allowed: ['user_admin', 'system_admin'] },
   { path: '/admin/users/1', heading: 'User record', allowed: ['user_admin', 'system_admin'] },
   { path: '/system', heading: 'System', allowed: ['system_admin'] },

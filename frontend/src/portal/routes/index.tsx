@@ -25,6 +25,7 @@ import { adminDartsRoutes } from './admin-darts';
 import { adminMembersRoutes } from './admin-members';
 import { adminPaymentsRoutes } from './admin-payments';
 import { adminRemindersRoutes } from './admin-reminders';
+import { adminReportsRoutes } from './admin-reports';
 import { adminUsersRoutes } from './admin-users';
 import { authRoutes } from './auth';
 import { dashboardRoutes } from './dashboard';
@@ -49,6 +50,7 @@ export const privateRoutes: RouteObject[] = [
   ...adminDartsRoutes,
   ...adminPaymentsRoutes,
   ...adminRemindersRoutes,
+  ...adminReportsRoutes,
   ...adminUsersRoutes,
   ...systemRoutes,
 ];
