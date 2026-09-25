@@ -14,7 +14,7 @@ from factory.django import DjangoModelFactory
 from wagtail.models import Page, Site
 
 from apps.accounts.roles import MEMBER
-from apps.aircraft.models import Aircraft, OwnerType
+from apps.aircraft.models import Aircraft, AircraftChange, AircraftChangeKind, OwnerType
 from apps.cms.models import (
     ContactPage,
     DartIndexPage,
@@ -161,6 +161,18 @@ class AircraftFactory(ModelFactory[Aircraft]):
     insurance_hull_cents = 20_000_000
     insurance_expiration = factory.LazyFunction(lambda: timezone.localdate() + timedelta(days=200))
     is_active = True
+
+
+class AircraftChangeFactory(ModelFactory[AircraftChange]):
+    """Builds an ``AircraftChange``: one recorded write to a register record."""
+
+    class Meta:
+        model = AircraftChange
+
+    aircraft = factory.SubFactory(AircraftFactory)
+    changed_by = factory.SubFactory(UserFactory)
+    kind = AircraftChangeKind.UPDATED
+    fields = factory.LazyFunction(lambda: ["model"])
 
 
 class MemberProfileFactory(ModelFactory[MemberProfile]):

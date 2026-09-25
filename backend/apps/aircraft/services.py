@@ -16,7 +16,12 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from apps.accounts.models import User as UserModel
-from apps.aircraft.models import Aircraft, normalize_n_number
+from apps.aircraft.models import (
+    Aircraft,
+    AircraftChange,
+    AircraftChangeKind,
+    normalize_n_number,
+)
 from apps.members.models import (
     MedicalType,
     MembershipState,
@@ -39,6 +44,47 @@ SEARCH_LIMIT = 20
 PHONE_SEARCH_DIGITS = 7
 
 _PUNCTUATION = re.compile(r"[^A-Za-z0-9]")
+
+
+# --------------------------------------------------------------------------
+# Change history
+# --------------------------------------------------------------------------
+def changed_fields(aircraft: Aircraft, validated: dict[str, Any]) -> list[str]:
+    """The concrete column names in ``validated`` whose value differs from ``aircraft``.
+
+    ``validated`` is a serializer's validated data, so it may also carry a relation
+    or a key the table has no column for; such a key is left out.  Compare before
+    the save, while ``aircraft`` still holds the stored values: the portal's forms
+    resend every field they show, and only the ones that moved are the change.
+    """
+    columns = {field.name for field in Aircraft._meta.concrete_fields}
+    return [
+        name
+        for name, value in validated.items()
+        if name in columns and getattr(aircraft, name) != value
+    ]
+
+
+def record_change(
+    aircraft: Aircraft,
+    *,
+    actor: UserModel | None,
+    kind: AircraftChangeKind,
+    fields: list[str],
+) -> AircraftChange:
+    """Log one write to ``aircraft`` and stamp the record with who made it.
+
+    Writes ``updated_by`` (and the automatic ``updated_at``) on the record, then
+    returns the stored ``AircraftChange``.  ``actor`` is the signed-in account, or
+    ``None`` for a change nobody is signed in for; ``kind`` is ``created`` or
+    ``updated``, and ``fields`` names the columns that moved -- empty for a
+    creation, where the whole record is the change.
+    """
+    aircraft.updated_by = actor
+    aircraft.save(update_fields=["updated_by", "updated_at"])
+    return AircraftChange.objects.create(
+        aircraft=aircraft, changed_by=actor, kind=kind, fields=list(fields)
+    )
 
 
 def _cleaned(term: str) -> str:

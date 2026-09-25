@@ -37,12 +37,28 @@ class Migration(migrations.Migration):
                 ('notes', models.TextField(blank=True)),
                 ('is_active', models.BooleanField(default=True)),
                 ('created_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='aircraft_created', to=settings.AUTH_USER_MODEL)),
+                ('updated_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='aircraft_updated', to=settings.AUTH_USER_MODEL)),
             ],
             options={
                 'verbose_name': 'aircraft',
                 'verbose_name_plural': 'aircraft',
                 'ordering': ['n_number'],
                 'indexes': [models.Index(fields=['insurance_expiration'], name='aircraft_insexp_idx'), models.Index(fields=['make', 'model'], name='aircraft_make_model_idx'), models.Index(fields=['is_active'], name='aircraft_active_idx')],
+            },
+        ),
+        migrations.CreateModel(
+            name='AircraftChange',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('changed_at', models.DateTimeField(auto_now_add=True)),
+                ('kind', models.CharField(choices=[('created', 'Created'), ('updated', 'Updated')], max_length=8)),
+                ('fields', models.JSONField(blank=True, default=list)),
+                ('aircraft', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='changes', to='aircraft.aircraft')),
+                ('changed_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='aircraft_changes', to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'ordering': ['-changed_at', '-id'],
+                'indexes': [models.Index(fields=['aircraft', '-changed_at'], name='aircraft_change_idx')],
             },
         ),
     ]

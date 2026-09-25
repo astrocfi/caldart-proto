@@ -79,6 +79,13 @@ class Aircraft(TimestampedModel):
         blank=True,
         related_name="aircraft_created",
     )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="aircraft_updated",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -127,3 +134,43 @@ class Aircraft(TimestampedModel):
         """Return the N-number, with the make and model after an em dash when known."""
         descriptor = " ".join(p for p in (self.make, self.model) if p)
         return f"{self.n_number} \u2014 {descriptor}" if descriptor else self.n_number
+
+
+class AircraftChangeKind(models.TextChoices):
+    """Whether a change put a register record there or altered it."""
+
+    CREATED = "created", "Created"
+    UPDATED = "updated", "Updated"
+
+
+class AircraftChange(models.Model):
+    """One write to a register record: who made it, when, and what moved.
+
+    A register record is shared by every member who flies the airframe, so an
+    edit to its insurance is an edit to everybody's answer.  The history says
+    who last touched it and which columns they touched, which is what lets an
+    administrator tell a correction from a renewal.  ``fields`` is empty for a
+    ``created`` row: the whole record is the change.
+    """
+
+    aircraft = models.ForeignKey(Aircraft, on_delete=models.CASCADE, related_name="changes")
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="aircraft_changes",
+    )
+    changed_at = models.DateTimeField(auto_now_add=True)
+    kind = models.CharField(max_length=8, choices=AircraftChangeKind.choices)
+    fields = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        # The primary key breaks the tie between two changes written in the same
+        # instant, so a history never comes back in an undefined order.
+        ordering = ["-changed_at", "-id"]
+        indexes = [models.Index(fields=["aircraft", "-changed_at"], name="aircraft_change_idx")]
+
+    def __str__(self) -> str:
+        """Return the registration and the kind, e.g. ``N172SP updated``."""
+        return f"{self.aircraft.n_number} {self.kind}"
