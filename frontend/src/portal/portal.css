@@ -26,7 +26,9 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  max-width: var(--page-max);
+  /* Unlike the public site's `.shell`, the portal has no fixed page width: a
+   * wide report table should be able to use the whole window. */
+  max-width: none;
   margin-inline: auto;
 }
 
@@ -72,7 +74,11 @@
 .portal__frame {
   flex: 1;
   width: 100%;
-  max-width: var(--page-max);
+  /* No page-wide cap here: a report table should spread across whatever
+   * width the window gives it. Prose still keeps its measure, since `p` and
+   * `li` (and `.col-text`'s own children) cap at `--measure` regardless of
+   * how wide this grid column is. */
+  max-width: none;
   margin-inline: auto;
   padding: 0 var(--space-4) var(--space-7);
   display: grid;
@@ -225,6 +231,15 @@
 }
 
 /* ------------------------------------------------------------ data table */
+/* Now that `.portal__frame` has no width cap of its own, a report table's
+ * `.table-wrap` (base.css) is what keeps a wide table from stretching the
+ * whole page: it scrolls sideways on its own instead. `min-width: 0` here
+ * keeps `.data-table` from blocking that shrink-and-scroll if a future page
+ * ever nests it inside a flex or grid row. */
+.data-table {
+  min-width: 0;
+}
+
 .data-table__bar {
   display: flex;
   flex-wrap: wrap;
