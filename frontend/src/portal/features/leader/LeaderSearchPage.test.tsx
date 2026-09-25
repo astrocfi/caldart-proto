@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -78,6 +78,95 @@ describe('LeaderSearchPage', () => {
     expect(screen.getByText('Member current')).toBeInTheDocument();
     expect(screen.getByText('Member expired')).toBeInTheDocument();
     expect(queries).toEqual(['reyes']);
+  });
+
+  it('answers go or no-go on every row, so the list needs no click', async () => {
+    const user = setupUser();
+    server.use(
+      searchReturns([
+        MARTA,
+        {
+          ...MARTA,
+          user_id: 8,
+          name: 'Owen Delgado',
+          membership_status: 'expired',
+          medical: { type: 'third', expiration: '2026-01-31', is_current: false },
+          go_no_go: { membership: false, medical: false },
+        },
+      ]),
+    );
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'a');
+
+    const marta = await screen.findByRole('button', { name: /Marta Reyes/ });
+    expect(within(marta).getByText('GO')).toBeInTheDocument();
+    const owen = screen.getByRole('button', { name: /Owen Delgado/ });
+    expect(within(owen).getByText('NO-GO')).toBeInTheDocument();
+  });
+
+  it('prints the medical in words beside the verdict', async () => {
+    const user = setupUser();
+    server.use(searchReturns([MARTA]));
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    expect(await screen.findByText('Class 3 medical to 2027/12/01')).toBeInTheDocument();
+  });
+
+  it('says when a medical has run out', async () => {
+    const user = setupUser();
+    server.use(
+      searchReturns([
+        {
+          ...MARTA,
+          medical: { type: 'first', expiration: '2026-01-31', is_current: false },
+          go_no_go: { membership: true, medical: false },
+        },
+      ]),
+    );
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    expect(await screen.findByText('Medical expired 2026/01/31')).toBeInTheDocument();
+  });
+
+  it('says when a class was entered but the expiry date never was', async () => {
+    const user = setupUser();
+    server.use(
+      searchReturns([
+        {
+          ...MARTA,
+          medical: { type: 'third', expiration: null, is_current: false },
+          go_no_go: { membership: true, medical: false },
+        },
+      ]),
+    );
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    expect(await screen.findByText('No medical expiry on file')).toBeInTheDocument();
+  });
+
+  it('says when there is no medical at all', async () => {
+    const user = setupUser();
+    server.use(
+      searchReturns([
+        {
+          ...MARTA,
+          medical: { type: 'none', expiration: null, is_current: false },
+          go_no_go: { membership: true, medical: false },
+        },
+      ]),
+    );
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    expect(await screen.findByText('No medical on file')).toBeInTheDocument();
   });
 
   it('searches by N-number too', async () => {

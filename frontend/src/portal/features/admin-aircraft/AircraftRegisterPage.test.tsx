@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Aircraft } from '@/portal/api/types';
+import type { Aircraft, ReportColumn } from '@/portal/api/types';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { AircraftRegisterPage, orderingFor } from './AircraftRegisterPage';
 
@@ -34,6 +34,19 @@ function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
     is_active: true,
     ...overrides,
   };
+}
+
+/** The registry `GET /admin/aircraft/columns` answers with, trimmed to four. */
+const COLUMNS: ReportColumn[] = [
+  { key: 'n_number', label: 'N-number', default: true },
+  { key: 'make', label: 'Make', default: true },
+  { key: 'owner_type', label: 'Owner type', default: false },
+  { key: 'pilots', label: 'Pilots', default: false },
+];
+
+/** The columns endpoint, which every register render reads. */
+function columnsReturn() {
+  return http.get(`${API}/admin/aircraft/columns`, () => HttpResponse.json(COLUMNS));
 }
 
 /** Record every query string the list endpoint is asked for. */
@@ -99,7 +112,7 @@ describe('AircraftRegisterPage', () => {
   it('sends every filter to the API', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const seen: URLSearchParams[] = [];
-    server.use(listReturns([makeAircraft()], seen));
+    server.use(columnsReturn(), listReturns([makeAircraft()], seen));
 
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
     await screen.findByRole('link', { name: 'N172SP' });
@@ -122,7 +135,7 @@ describe('AircraftRegisterPage', () => {
   it('asks the server to re-sort when a header is clicked', async () => {
     const user = userEvent.setup();
     const seen: URLSearchParams[] = [];
-    server.use(listReturns([makeAircraft()], seen));
+    server.use(columnsReturn(), listReturns([makeAircraft()], seen));
 
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
     await screen.findByRole('link', { name: 'N172SP' });
@@ -141,14 +154,16 @@ describe('AircraftRegisterPage', () => {
   it('points the export buttons at the filtered report', async () => {
     const user = userEvent.setup();
     const seen: URLSearchParams[] = [];
-    server.use(listReturns([makeAircraft()], seen));
+    server.use(columnsReturn(), listReturns([makeAircraft()], seen));
 
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
     await screen.findByRole('link', { name: 'N172SP' });
 
-    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
-      'href',
-      '/api/v1/admin/aircraft/export.csv?ordering=n_number',
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+        'href',
+        '/api/v1/admin/aircraft/export.csv?ordering=n_number&columns=n_number%2Cmake',
+      ),
     );
 
     await user.selectOptions(screen.getByLabelText('Insurance'), 'missing');
@@ -156,8 +171,46 @@ describe('AircraftRegisterPage', () => {
     await waitFor(() =>
       expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
         'href',
-        '/api/v1/admin/aircraft/export.pdf?insurance=missing&ordering=n_number',
+        '/api/v1/admin/aircraft/export.pdf?insurance=missing&ordering=n_number' +
+          '&columns=n_number%2Cmake',
       ),
+    );
+  });
+
+  it('offers every column the register exports can carry, defaults ticked', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const seen: URLSearchParams[] = [];
+    server.use(columnsReturn(), listReturns([makeAircraft()], seen));
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+    await screen.findByRole('link', { name: 'N172SP' });
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    const panel = screen.getByRole('group', { name: /Columns to export/ });
+    expect(within(panel).getByRole('checkbox', { name: 'N-number' })).toBeChecked();
+    expect(within(panel).getByRole('checkbox', { name: 'Pilots' })).not.toBeChecked();
+  });
+
+  it('carries a chosen column into both export links', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const seen: URLSearchParams[] = [];
+    server.use(columnsReturn(), listReturns([makeAircraft()], seen));
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+    await screen.findByRole('link', { name: 'N172SP' });
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Pilots' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+        'href',
+        '/api/v1/admin/aircraft/export.csv?ordering=n_number&columns=n_number%2Cmake%2Cpilots',
+      ),
+    );
+    expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
+      'href',
+      '/api/v1/admin/aircraft/export.pdf?ordering=n_number&columns=n_number%2Cmake%2Cpilots',
     );
   });
 
@@ -188,7 +241,7 @@ describe('AircraftRegisterPage', () => {
 
   it('shows an empty state when nothing matches', async () => {
     const seen: URLSearchParams[] = [];
-    server.use(listReturns([], seen, 0));
+    server.use(columnsReturn(), listReturns([], seen, 0));
 
     renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
     expect(await screen.findByText(/No aircraft match these filters/)).toBeInTheDocument();

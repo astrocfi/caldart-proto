@@ -55,12 +55,13 @@ yourself.
 
 Click any column heading to sort by it; click again to reverse the order.
 **Pilot** sorts the way its marks read: a current medical first, then a lapsed
-one, then everybody who is not a pilot.  The sort, like the filters, is part of
-the page's address, so a sorted and filtered list is a link you can bookmark or
-send to somebody else.
+one, then everybody who is not a pilot.  Members who tie on the column you
+sorted by fall into name order, so a sorted list reads the same every time you
+open it.  The sort, like the filters, is part of the page's address, so a sorted
+and filtered list is a link you can bookmark or send to somebody else.
 
-The export still carries every field, including the ones the table leaves out:
-phone, certificate, medical class, aircraft, and the joining date.
+The five columns keep the table readable on a phone; the downloads carry as many
+as you like, under *Reports* below.
 
 
 Filtering
@@ -252,10 +253,26 @@ every matching member and not just the page in front of you.
   list of.
 
 Both carry the same ten columns unless you ask for others: name, email, phone,
-DART, status, expiry, certificate, medical class and expiry, and aircraft.
-Seven more — plan, certificate number, IFR, city, state, joined, and member
-since — are added to a download by choosing the columns.  A lifetime member has
-no expiry date, so that cell is empty and the plan column says *Life*.
+DART, status, expiry, certificate, medical class and expiry, and aircraft.  A
+lifetime member has no expiry date, so that cell is empty and the plan column
+says *Life*.
+
+Choosing the columns
+--------------------
+
+**Columns**, beside the filters, opens a chooser that drives both downloads.
+Seventeen columns are on offer; the ten above are on to begin with.  The seven
+that are off — *Plan*, *Certificate number*, *IFR*, *City*, *State*, *Joined*
+(the day the first term on file began), and *Member since* (the day the member
+says they joined) — are the ones a roster or an audit wants and an everyday
+report does not.  Click anywhere outside the chooser, or press Escape, to put it
+away.
+
+The chooser feeds the downloads, not the table: the list on screen keeps its
+five columns however many you tick.  The last column cannot be unticked, since a
+report of nothing helps nobody.  The ten default columns are sized so no cell
+has to wrap on a landscape page; add enough columns and the PDF will start
+wrapping, which is the point at which the CSV is the better file.
 
 The columns are listed field by field in the developer documentation under
 :doc:`/developer/reports`.

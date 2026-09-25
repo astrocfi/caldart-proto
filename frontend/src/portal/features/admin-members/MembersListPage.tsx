@@ -10,8 +10,12 @@
  * Every column maps onto an `?ordering=` value the API accepts, Pilot included:
  * the server ranks a current medical ahead of a lapsed one ahead of somebody
  * who is not a pilot, which is the order the column's marks read in.
+ *
+ * The membership report carries far more than those five, so the column chooser
+ * drives the two export links rather than the table: the screen stays scannable
+ * while the CSV and the PDF carry whatever the administrator asked for.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
@@ -19,13 +23,14 @@ import { useDarts } from '@/portal/api/queries';
 import type { MemberRow } from '@/portal/api/types';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import type { Column, SortDirection } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { MembershipDot, PilotMark } from '@/portal/components/StatusChip';
 import { MembersFilterBar } from './MembersFilterBar';
-import { exportUrl, useMembers } from './api';
+import { exportUrl, useMemberReportColumns, useMembers } from './api';
 import type { MemberFilters } from './types';
 import { EMPTY_FILTERS, FILTER_KEYS } from './types';
 
@@ -107,6 +112,13 @@ export function MembersListPage(): JSX.Element {
 
   const columns = useMemo(memberColumns, []);
 
+  const registry = useMemberReportColumns();
+  const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
+  // Null means "whatever the registry calls default": the chooser has not been
+  // touched, so it must follow a registry that is still loading.
+  const [chosen, setChosen] = useState<string[] | null>(null);
+  const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
+
   /** Write the filter set back to the URL, always returning to page one. */
   const setFilters = (next: MemberFilters) => {
     const updated = new URLSearchParams();
@@ -114,6 +126,10 @@ export function MembersListPage(): JSX.Element {
       if (next[key]) updated.set(key, next[key]);
     }
     setParams(updated);
+  };
+
+  const handleColumnChange = (next: string[]) => {
+    setChosen(next);
   };
 
   const setPage = (next: number) => {
@@ -147,14 +163,28 @@ export function MembersListPage(): JSX.Element {
               : `${count} member${count === 1 ? '' : 's'} match these filters`
           }
           filters={
-            <MembersFilterBar
-              value={filters}
-              onChange={(next) => setFilters(next)}
-              darts={darts.data ?? []}
-            />
+            <>
+              <MembersFilterBar
+                value={filters}
+                onChange={(next) => setFilters(next)}
+                darts={darts.data ?? []}
+              />
+              {registry.isError ? (
+                <p className="muted">
+                  The columns could not be loaded; the downloads carry the default columns.
+                </p>
+              ) : reportColumns.length > 0 ? (
+                <ColumnChooser
+                  columns={reportColumns}
+                  chosen={chosenKeys}
+                  onChange={handleColumnChange}
+                  legend="Columns to export"
+                />
+              ) : null}
+            </>
           }
-          exportCsvUrl={exportUrl('csv', filters)}
-          exportPdfUrl={exportUrl('pdf', filters)}
+          exportCsvUrl={exportUrl('csv', filters, { columns: chosenKeys })}
+          exportPdfUrl={exportUrl('pdf', filters, { columns: chosenKeys })}
           isLoading={members.isPending}
           onSortChange={(key, direction) =>
             setFilters({ ...filters, ordering: direction === 'desc' ? `-${key}` : key })

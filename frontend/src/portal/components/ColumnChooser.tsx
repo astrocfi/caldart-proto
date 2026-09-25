@@ -2,8 +2,8 @@
  * The column chooser behind a report table and its two exports.
  *
  * The registry comes from the server, so the screen and the exports can never
- * offer different columns, and the chosen set drives both at once: what is on
- * screen is what the CSV and the PDF will carry.
+ * offer different columns.  The chosen set always drives the CSV and the PDF; a
+ * screen whose table follows it too says so in the panel's legend.
  */
 import { useCallback, useRef, useState } from 'react';
 import type { JSX } from 'react';
@@ -18,6 +18,11 @@ export interface ColumnChooserProps {
   /** The chosen keys, in registry order. */
   chosen: string[];
   onChange: (chosen: string[]) => void;
+  /**
+   * The panel's legend.  The default suits a screen whose table follows the
+   * chosen columns; a screen whose table is fixed passes "Columns to export".
+   */
+  legend?: string;
 }
 
 /** The keys a fresh chooser starts with: the registry's own default columns. */
@@ -51,7 +56,12 @@ export function toggleColumn(columns: ReportColumn[], chosen: string[], key: str
  * who presses Escape carries on from the control they opened rather than from
  * the top of the page.
  */
-export function ColumnChooser({ columns, chosen, onChange }: ColumnChooserProps): JSX.Element {
+export function ColumnChooser({
+  columns,
+  chosen,
+  onChange,
+  legend = 'Columns to show and export',
+}: ColumnChooserProps): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const handleClose = useCallback(() => {
@@ -84,7 +94,7 @@ export function ColumnChooser({ columns, chosen, onChange }: ColumnChooserProps)
       </Button>
       {isOpen ? (
         <fieldset className="column-chooser__panel">
-          <legend>Columns to show and export</legend>
+          <legend>{legend}</legend>
           {columns.map((column) => (
             <label key={column.key} className="column-chooser__option">
               <input

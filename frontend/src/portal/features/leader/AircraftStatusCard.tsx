@@ -22,7 +22,7 @@ interface Verdict {
 }
 
 const VERDICT: Record<StatusTone, Verdict> = {
-  current: { word: 'INSURED', why: 'Cover is current', go: true },
+  current: { word: 'INSURED', why: 'Coverage is current', go: true },
   expiring: { word: 'INSURED', why: 'Cover expires soon', go: true },
   // Unreachable for insurance; kept so the map stays total over the tones.
   new: { word: 'NOT INSURED', why: 'No policy on file', go: false },

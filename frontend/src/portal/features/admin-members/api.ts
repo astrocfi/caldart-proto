@@ -17,6 +17,7 @@ import type {
   MemberTerm,
   MemberUpdatePayload,
   Paginated,
+  ReportColumn,
   TermUpdatePayload,
 } from '@/portal/api/types';
 import type { MemberFilters } from './types';
@@ -34,11 +35,44 @@ export function filterParams(filters: Partial<MemberFilters>): URLSearchParams {
   return params;
 }
 
-/** The href behind the Export CSV / Export PDF buttons, filters included. */
-export function exportUrl(format: 'csv' | 'pdf', filters: Partial<MemberFilters>): string {
-  const query = filterParams(filters).toString();
+export interface MemberExportOptions {
+  /** The chosen column keys; absent or empty leaves the server's defaults. */
+  columns?: string[];
+}
+
+/**
+ * The href behind the Export CSV / Export PDF buttons.
+ *
+ * It carries the filters the table is showing and the columns the chooser is
+ * showing, so the file that downloads holds the same members and the same
+ * columns the administrator chose rather than a fixed report.
+ */
+export function exportUrl(
+  format: 'csv' | 'pdf',
+  filters: Partial<MemberFilters>,
+  options: MemberExportOptions = {},
+): string {
+  const params = filterParams(filters);
+  if (options.columns !== undefined && options.columns.length > 0) {
+    params.set('columns', options.columns.join(','));
+  }
+  const query = params.toString();
   const base = `${API_BASE}/admin/members/export.${format}`;
   return query ? `${base}?${query}` : base;
+}
+
+/**
+ * Every column the membership report can carry, in export order.
+ *
+ * The registry never changes while the portal is open, so it is fetched once
+ * and kept.
+ */
+export function useMemberReportColumns(): UseQueryResult<ReportColumn[]> {
+  return useQuery({
+    queryKey: [...MEMBERS_KEY, 'columns'],
+    queryFn: () => api.get<ReportColumn[]>('/admin/members/columns'),
+    staleTime: Infinity,
+  });
 }
 
 export interface MemberListQuery extends Partial<MemberFilters> {

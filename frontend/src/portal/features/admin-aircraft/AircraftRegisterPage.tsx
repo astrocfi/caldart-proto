@@ -1,8 +1,12 @@
 /**
  * `/admin/aircraft` — the register an account administrator maintains:
  * filter, sort, export, and add a record.
+ *
+ * The exports carry more columns than the five the table shows, so the column
+ * chooser drives the two download links rather than the table: the register
+ * stays scannable while the CSV and the PDF carry whatever was asked for.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -10,6 +14,7 @@ import { ApiError } from '@/portal/api/client';
 import type { Aircraft, AircraftPatch } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import { DataTable } from '@/portal/components/DataTable';
 import type { Column, SortDirection } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
@@ -24,6 +29,7 @@ import type { AircraftFilters } from '@/portal/features/aircraft/api';
 import {
   aircraftExportUrl,
   useAircraftList,
+  useAircraftReportColumns,
   useCreateAircraft,
 } from '@/portal/features/aircraft/api';
 import {
@@ -83,6 +89,13 @@ export function AircraftRegisterPage(): JSX.Element {
   const list = useAircraftList({ ...filters, page });
   const create = useCreateAircraft();
 
+  const registry = useAircraftReportColumns();
+  const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
+  // Null means "whatever the registry calls default": the chooser has not been
+  // touched, so it must follow a registry that is still loading.
+  const [chosen, setChosen] = useState<string[] | null>(null);
+  const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
+
   const reset = (change: () => void): void => {
     change();
     setPage(1);
@@ -130,6 +143,10 @@ export function AircraftRegisterPage(): JSX.Element {
       ),
     },
   ];
+
+  const handleColumnChange = (next: string[]): void => {
+    setChosen(next);
+  };
 
   const handleSubmit = (payload: AircraftPatch): void => {
     create.mutate(payload, {
@@ -183,79 +200,93 @@ export function AircraftRegisterPage(): JSX.Element {
         isLoading={list.isPending}
         onSortChange={(key, direction) => reset(() => setOrdering(orderingFor(key, direction)))}
         initialSort={{ key: 'n_number', direction: 'asc' }}
-        exportCsvUrl={aircraftExportUrl('csv', filters)}
-        exportPdfUrl={aircraftExportUrl('pdf', filters)}
+        exportCsvUrl={aircraftExportUrl('csv', filters, { columns: chosenKeys })}
+        exportPdfUrl={aircraftExportUrl('pdf', filters, { columns: chosenKeys })}
         emptyTitle="No aircraft match these filters"
         emptyDescription="Clear a filter, or add the aircraft to the register."
         filters={
-          <div className="aircraft-filters">
-            <Field label="Search" hint="N-number, make, model, or owner.">
-              {(field) => (
-                <input
-                  {...field}
-                  type="search"
-                  value={search}
-                  onChange={(event) => reset(() => setSearch(event.target.value))}
-                />
-              )}
-            </Field>
-            <Field label="Make">
-              {(field) => (
-                <input
-                  {...field}
-                  type="search"
-                  value={make}
-                  onChange={(event) => reset(() => setMake(event.target.value))}
-                />
-              )}
-            </Field>
-            <Field label="Owner type">
-              {(field) => (
-                <select
-                  {...field}
-                  value={ownerType}
-                  onChange={(event) => reset(() => setOwnerType(event.target.value))}
-                >
-                  <option value="">Any owner type</option>
-                  {OWNER_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {OWNER_TYPE_LABELS[type]}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-            <Field label="Insurance">
-              {(field) => (
-                <select
-                  {...field}
-                  value={insurance}
-                  onChange={(event) => reset(() => setInsurance(event.target.value))}
-                >
-                  {INSURANCE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-            <Field label="Expiring within">
-              {(field) => (
-                <select
-                  {...field}
-                  value={expiring}
-                  onChange={(event) => reset(() => setExpiring(event.target.value))}
-                >
-                  {EXPIRING_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-          </div>
+          <>
+            <div className="aircraft-filters">
+              <Field label="Search" hint="N-number, make, model, or owner.">
+                {(field) => (
+                  <input
+                    {...field}
+                    type="search"
+                    value={search}
+                    onChange={(event) => reset(() => setSearch(event.target.value))}
+                  />
+                )}
+              </Field>
+              <Field label="Make">
+                {(field) => (
+                  <input
+                    {...field}
+                    type="search"
+                    value={make}
+                    onChange={(event) => reset(() => setMake(event.target.value))}
+                  />
+                )}
+              </Field>
+              <Field label="Owner type">
+                {(field) => (
+                  <select
+                    {...field}
+                    value={ownerType}
+                    onChange={(event) => reset(() => setOwnerType(event.target.value))}
+                  >
+                    <option value="">Any owner type</option>
+                    {OWNER_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {OWNER_TYPE_LABELS[type]}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+              <Field label="Insurance">
+                {(field) => (
+                  <select
+                    {...field}
+                    value={insurance}
+                    onChange={(event) => reset(() => setInsurance(event.target.value))}
+                  >
+                    {INSURANCE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+              <Field label="Expiring within">
+                {(field) => (
+                  <select
+                    {...field}
+                    value={expiring}
+                    onChange={(event) => reset(() => setExpiring(event.target.value))}
+                  >
+                    {EXPIRING_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+            </div>
+            {registry.isError ? (
+              <p className="muted">
+                The columns could not be loaded; the downloads carry the default columns.
+              </p>
+            ) : reportColumns.length > 0 ? (
+              <ColumnChooser
+                columns={reportColumns}
+                chosen={chosenKeys}
+                onChange={handleColumnChange}
+                legend="Columns to export"
+              />
+            ) : null}
+          </>
         }
       />
 

@@ -61,6 +61,11 @@ export const handlers = [
   // Every screen that carries the renewal state reads this, so the default keeps
   // a suite that is not about renewal from having to declare one.
   http.get(`${API}/me/renewal`, () => HttpResponse.json({ mandate: null })),
+  // Every report screen reads its column registry as it mounts.  An empty
+  // registry leaves the exports on the server's own default columns, so a suite
+  // that is not about columns does not have to declare one.
+  http.get(`${API}/admin/members/columns`, () => HttpResponse.json([])),
+  http.get(`${API}/admin/aircraft/columns`, () => HttpResponse.json([])),
 ];
 
 /** Convenience: make `/auth/me` answer with `user`. */

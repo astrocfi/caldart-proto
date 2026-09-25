@@ -9,17 +9,29 @@ import type { JSX } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
+import type { LeaderGoNoGo } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { Page } from '@/portal/components/Page';
-import { StatusChip } from '@/portal/components/StatusChip';
+import { StatusChip, StatusDot } from '@/portal/components/StatusChip';
 import { useDebounced } from '@/portal/components/useDebounced';
 import { looksLikeRegistration, normalizeNNumber } from '@/portal/features/aircraft/insurance';
 import { MemberStatusCard } from './MemberStatusCard';
+import { medicalSummary } from './labels';
 import { useLeaderSearch, useMemberStatus } from './api';
 import './leader.css';
+
+/**
+ * Whether a search row is a go: both counts the server reports have to be true.
+ *
+ * The same two booleans drive the verdict band on the status card, so the list
+ * and the card can never disagree about who may fly.
+ */
+function isReady(goNoGo: LeaderGoNoGo): boolean {
+  return goNoGo.membership && goNoGo.medical;
+}
 
 /** Searches members and renders the chosen one's pre-flight status card. */
 export function LeaderSearchPage(): JSX.Element {
@@ -106,37 +118,56 @@ export function LeaderSearchPage(): JSX.Element {
 
         {results.length > 0 ? (
           <ul className="leader-search__results">
-            {results.map((result) => (
-              <li key={result.user_id} className="leader-search__result">
-                <button
-                  type="button"
-                  className="leader-search__button"
-                  onClick={() => choose(result.user_id)}
-                >
-                  <span className="leader-search__name">{result.name}</span>
-                  <span className="leader-search__meta">
-                    {result.email}
-                    {result.dart ? ` · ${result.dart}` : ''}
-                  </span>
-                  <StatusChip
-                    tone={
-                      result.membership_status === 'current'
-                        ? 'current'
-                        : result.membership_status === 'expired'
-                          ? 'expired'
-                          : 'none'
-                    }
-                    label={
-                      result.membership_status === 'current'
-                        ? 'Member current'
-                        : result.membership_status === 'expired'
-                          ? 'Member expired'
-                          : 'Never joined'
-                    }
-                  />
-                </button>
-              </li>
-            ))}
+            {results.map((result) => {
+              const ready = isReady(result.go_no_go);
+              return (
+                <li key={result.user_id} className="leader-search__result">
+                  <button
+                    type="button"
+                    className="leader-search__button"
+                    onClick={() => choose(result.user_id)}
+                  >
+                    <span className="leader-search__name">{result.name}</span>
+                    <span className="leader-search__meta">
+                      {result.email}
+                      {result.dart ? ` · ${result.dart}` : ''}
+                    </span>
+                    <StatusChip
+                      tone={
+                        result.membership_status === 'current'
+                          ? 'current'
+                          : result.membership_status === 'expired'
+                            ? 'expired'
+                            : 'none'
+                      }
+                      label={
+                        result.membership_status === 'current'
+                          ? 'Member current'
+                          : result.membership_status === 'expired'
+                            ? 'Member expired'
+                            : 'Never joined'
+                      }
+                    />
+                    <span className="leader-search__readiness">
+                      <StatusDot
+                        tone={ready ? 'current' : 'expired'}
+                        label={ready ? 'Cleared to fly' : 'Not cleared to fly'}
+                      />
+                      <span
+                        className={`leader-search__verdict ${
+                          ready ? 'leader-search__verdict--go' : 'leader-search__verdict--nogo'
+                        }`}
+                      >
+                        {ready ? 'GO' : 'NO-GO'}
+                      </span>
+                      <span className="leader-search__medical">
+                        {medicalSummary(result.medical)}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         ) : null}
 
