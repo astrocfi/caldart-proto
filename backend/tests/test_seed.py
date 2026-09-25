@@ -21,6 +21,7 @@ from apps.aircraft.models import Aircraft
 from apps.cms.models import SiteSettings
 from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership, MembershipPlan, MembershipState
+from apps.members.seed import DART_SEED
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentStatus
 from apps.payments.seed import HISTORY_MONTHS, MANUAL_PAYMENT_COUNT
@@ -57,6 +58,25 @@ def test_seed_demo_does_not_reseed_the_shared_faker_generator(
     monkeypatch.setattr(Faker, "seed", guard)
     _seed()
     guard.assert_not_called()
+
+
+def test_every_seeded_town_comes_from_the_town_generator() -> None:
+    """A seeded profile's two towns are draws from the seed's own town generator.
+
+    The generator the rest of the demo data is drawn from runs on through the
+    aircraft and payment seeds, so a town taken from it would move every name,
+    number and payment drawn after it.  Two towns per profile are drawn, in the
+    order the profiles are created, so the towns on the seeded profiles are
+    exactly the first two per profile that a generator on the same seed gives.
+    """
+    _seed()
+    profiles = list(MemberProfile.objects.all())
+    towns = Faker("en_US")
+    towns.seed_instance(DART_SEED)
+    expected = Counter(towns.city() for _ in range(2 * len(profiles)))
+    found = Counter([profile.city for profile in profiles])
+    found.update(profile.home_airport_city for profile in profiles)
+    assert found == expected
 
 
 def test_seed_roles_command() -> None:

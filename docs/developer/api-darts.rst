@@ -54,7 +54,6 @@ Active DARTs in alphabetical order, each with the people who run it.
        "id": 3,
        "name": "Contra Costa",
        "airport_identifiers": "CCR, C83",
-       "city": "Concord",
        "website_url": "https://contra-costa.caldart.example.org/",
        "contacts": [
          {
@@ -82,8 +81,8 @@ to it.
 ``POST`` and ``PATCH /admin/darts``
 ===================================
 
-Both take ``name``, ``airport_identifiers``, ``city``, ``website_url``,
-``is_active`` and ``contacts``:
+Both take ``name``, ``airport_identifiers``, ``website_url``, ``is_active``
+and ``contacts``:
 
 =========================  =============================================================
 Field                      Rule
@@ -104,7 +103,11 @@ Field                      Rule
 ``website_url``            The team's own site, or blank.  A URL, checked as one.
 ``contacts``               Up to ``MAX_DART_CONTACTS`` people, each with a
                            ``name``, a ``title``, and an optional ``phone`` and
-                           ``email``.  The list given **replaces** the list
+                           ``email``.  The order given is the order stored --
+                           ``sort_order`` follows the position in the list --
+                           and it is the order the public catalog and the
+                           team's own page print them in.  The list given
+                           **replaces** the list
                            stored, because that is how the screen edits it; a
                            body that leaves ``contacts`` out keeps what is there,
                            so renaming a DART cannot lose its officers by
@@ -145,7 +148,8 @@ Tests
 
 ``backend/tests/test_darts_admin.py``
    The role matrix on the list, create and delete; the counts each row
-   carries; the airport rules, including several airports on one team and both
+   carries; the fields a row carries, and that a town is not among them;
+   the airport rules, including several airports on one team and both
    identifier forms; the people, their phone rule and the replace-on-write
    behavior; the website link; retiring a DART; and the guard that refuses to
    delete one somebody is still on.

@@ -70,7 +70,7 @@ Domain schema
           User [label="accounts.User\l  email (unique, ci)\l  first_name, last_name\l  is_active, is_superuser\l  roles: derived from groups\l"];
           Group [label="auth.Group\l  name = role slug\l"];
           Profile [label="members.MemberProfile\l  phone, address_line1, city,\l  state, postal_code\l  aviation, volunteer, admin notes\l"];
-          Dart [label="darts.Dart\l  name (unique), airport_identifiers\l  city, website_url, is_active\l"];
+          Dart [label="darts.Dart\l  name (unique), airport_identifiers\l  website_url, is_active\l"];
           Contact [label="darts.DartContact\l  name, title, phone, email\l  sort_order\l"];
           Plan [label="members.MembershipPlan\l  name (unique), slug (unique)\l  price_cents, duration_days\l"];
           Membership [label="members.Membership\l  starts_on, ends_on\l  status, source\l"];
@@ -174,7 +174,7 @@ Domain schema
       auth.Group              name = role slug
       members.MemberProfile   phone, address_line1, city, state, postal_code,
                               the aviation and volunteer fields, admin notes
-      darts.Dart              name (unique), airport_identifiers, city,
+      darts.Dart              name (unique), airport_identifiers,
                               website_url, is_active
       members.MembershipPlan  name (unique), slug (unique), price_cents,
                               duration_days
@@ -502,7 +502,7 @@ darts
 
 A local Disaster Airlift Response Team.
 
-``name`` (unique), ``airport_identifiers``, ``city``, ``website_url``,
+``name`` (unique), ``airport_identifiers``, ``website_url``,
 ``is_active``.  Ordered by ``name``, everywhere: a reader looking for their
 own team scans for its name, and no hand-kept ordering can go stale.
 ``__str__`` is ``"Angwin (2O3)"``.
@@ -521,8 +521,9 @@ entry, which is what a single-line summary shows.
 Sixteen are seeded from ``DARTS`` in ``apps/members/seed.py``, each with the
 handful of example contacts ``seed_darts`` generates.  ``cms.DartPage``
 points at this table with a nullable ``SET_NULL`` foreign key, so deleting a
-DART leaves its page in place with no DART attached, and the airports and
-city are never retyped in the CMS.
+DART leaves its page in place with no DART attached, and the airports are
+never retyped in the CMS.  A DART is identified by the fields it flies from,
+so it carries no town of its own.
 
 ``DartContact``
 ---------------
@@ -1262,7 +1263,7 @@ not use it, and the ``body_headings`` used to build the "on this page" rail):
        lists everything upcoming and paginates what has passed.
    * - ``DartIndexPage`` / ``DartPage``
      - ``DartPage`` has a nullable ``SET_NULL`` FK to ``darts.Dart`` —
-       airport identifier and city are read from it — plus ``leader_name``
+       the airport identifiers are read from it — plus ``leader_name``
        , ``leader_contact``, and a body.
    * - ``ContactPage``
      - ``intro`` and ``body``; the contact details come from site settings.

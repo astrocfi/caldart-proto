@@ -90,7 +90,6 @@ def test_darts_lists_active_darts_in_order(api_client: APIClient, db: None) -> N
         "id",
         "name",
         "airport_identifiers",
-        "city",
         "website_url",
         "contacts",
     }

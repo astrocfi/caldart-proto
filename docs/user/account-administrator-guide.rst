@@ -286,21 +286,30 @@ Everything on it shows up in the **DART** box on the join form, on a member's
 profile, and in the DART filter on the member list, so adding a team here is
 all it takes to start putting people on it.
 
-The table gives each DART's name, its airport, its town, how many members are
-on it and whether it is taking new ones.  Click a column heading to sort.
+The table gives each DART's name, its airports, its website, how many people
+run it, how many members are on it and whether it is taking new ones.  Click a
+column heading to sort, and click a member count to open the member list
+filtered to that team.
 
 **Adding one**
    **Add a DART** opens a short form: the **Name** members will see, the
-   three-character **Airport** identifier (``PAO``, ``E16`` — leave it blank
-   if the team has no home field), the **Town**, and **Position in the list**,
-   which is filled in for you and puts the new team at the end.  Lower numbers
-   come first, so give a team the same number as its neighbors' to sit beside
-   them.
+   **Airports** the team flies from as three-character identifiers separated by
+   commas (``PAO``, or ``CCR, C83`` for a team with two fields — paste ``KCRQ``
+   and the leading ``K`` comes off), and the team's own **Website** if it has
+   one.  A DART is identified by the fields it flies from, so there is no town
+   to fill in.
+
+**The people who run it**
+   **DART management** holds up to five people, each with a name, a job title
+   and a phone number or an email address.  **Move up** and **Move down** put
+   them in order, and that order is the order the team's page on the public
+   website lists them in, so the leader comes first.  The trashcan takes a
+   person off the list.  The people are saved with the rest of the form, so
+   clearing a row really does take that person off the list.
 
 **Changing one**
    **Edit** opens the same form on an existing DART.  Renaming one is safe:
-   the members on it stay on it.  The people are saved with the rest of the
-   form, so clearing a row really does take that person off the list.
+   the members on it stay on it.
 
 **Retiring one**
    Untick **Accepting members** and save.  The DART disappears from the join
@@ -309,10 +318,10 @@ on it and whether it is taking new ones.  Click a column heading to sort.
    bring the team back.
 
 **Deleting one**
-   **Delete** is offered only for a DART nobody is on and no website page is
-   linked to, and it asks before it acts.  For any other, the button is
-   grayed out and says what is still attached — retire it instead.  Deleting
-   is permanent.
+   **Delete this DART**, at the foot of the edit form, is offered only for a
+   DART nobody is on and no website page is linked to, and it asks before it
+   acts.  For any other, the button is grayed out and says what is still
+   attached — retire it instead.  Deleting is permanent.
 
 A DART's own page on the public website is a separate thing, kept by a website
 administrator in the Wagtail editor (:doc:`website-administrator-guide`); the

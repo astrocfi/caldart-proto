@@ -737,11 +737,6 @@ class DartPage(BasePage):
         return self.dart.airport_identifiers if self.dart else ""
 
     @property
-    def city(self) -> str:
-        """The linked DART's city, or an empty string when the page links to no DART."""
-        return self.dart.city if self.dart else ""
-
-    @property
     def leader_href(self) -> str:
         """``mailto:``/``tel:`` for the leader contact, or an empty string."""
         contact = self.leader_contact.strip()

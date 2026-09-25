@@ -25,3 +25,16 @@
 .dart-contacts__row .dart-contacts__phone {
   width: 100%;
 }
+
+/*
+ * The move-and-remove controls sit together at the end of a contact row, and
+ * the delete control sits apart from Save and Cancel, at the far end of the
+ * form's footer, so it is never the button a hurried hand reaches for.
+ */
+.dart-contacts__controls {
+  gap: var(--space-2);
+}
+
+.dart-form__danger {
+  margin-inline-start: auto;
+}

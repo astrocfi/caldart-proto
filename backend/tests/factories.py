@@ -136,7 +136,6 @@ class DartFactory(ModelFactory[Dart]):
 
     name = factory.Sequence(lambda n: f"Test DART {n}")
     airport_identifiers = factory.Sequence(lambda n: f"T{n:02d}")
-    city = factory.Faker("city")
     is_active = True
 
 

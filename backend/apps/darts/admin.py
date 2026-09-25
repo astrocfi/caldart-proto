@@ -25,8 +25,8 @@ class DartContactInline(ContactInlineBase):
 class DartAdmin(DartAdminBase):
     """DARTs, in the order the public catalog lists them."""
 
-    list_display = ["name", "airport_identifiers", "city", "website_url", "is_active"]
+    list_display = ["name", "airport_identifiers", "website_url", "is_active"]
     list_filter = ["is_active"]
-    search_fields = ["name", "airport_identifiers", "city"]
+    search_fields = ["name", "airport_identifiers"]
     ordering = ["name"]
     inlines = [DartContactInline]

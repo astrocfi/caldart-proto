@@ -445,7 +445,7 @@ def life_plan(db: None) -> MembershipPlan:
 @pytest.fixture
 def dart(db: None) -> Dart:
     """Return a saved ``Dart`` named "Palo Alto" with airport identifier ``PAO``."""
-    return DartFactory(name="Palo Alto", airport_identifiers="PAO", city="Palo Alto")
+    return DartFactory(name="Palo Alto", airport_identifiers="PAO")
 
 
 @pytest.fixture

@@ -24,7 +24,6 @@ test('an account administrator adds a DART and it is offered straight away', asy
   // the ICAO K so one airport is written one way everywhere.
   await page.getByLabel('Airports*').fill('o86, kcrq');
   await expect(page.getByLabel('Airports*')).toHaveValue('O86, CRQ');
-  await page.getByLabel('Town').fill('Whitethorn');
   await page.getByLabel('Name', { exact: true }).fill('Dana Whitfield');
   await page.getByLabel('Title').fill('DART leader');
   await page.getByRole('button', { name: 'Add DART' }).click();
@@ -40,8 +39,22 @@ test('a DART with members on it cannot be deleted', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
   await page.goto('/portal/admin/darts');
 
+  // Delete lives in the form, beside the team's name and its people, not in the
+  // row: opening the DART is the first step of deleting it.
   const row = page.getByRole('row').filter({ hasText: 'Palo Alto' }).first();
-  await expect(row.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  await row.getByRole('button', { name: 'Edit' }).click();
+
+  await expect(page.getByRole('button', { name: 'Delete this DART' })).toBeDisabled();
+});
+
+test('the member count opens the member list filtered to that DART', async ({ page }) => {
+  await signIn(page, DEMO.accountadmin);
+  await page.goto('/portal/admin/darts');
+
+  const row = page.getByRole('row').filter({ hasText: 'Palo Alto' }).first();
+  await row.getByRole('link', { name: /^\d+$/ }).click();
+
+  await expect(page).toHaveURL(/\/portal\/admin\/members\?dart=\d+/);
 });
 
 test('a plain member cannot reach the DART screen', async ({ page }) => {

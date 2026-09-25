@@ -1,13 +1,15 @@
 /**
  * `/admin/darts` — the teams members can join.
  *
- * One table, one button to add a DART, and the same form to edit one.  A DART
- * nobody is on can be deleted; every other one is retired instead, by turning
- * off "Accepting members", which keeps the members and the history attached to
- * it.
+ * One table, one button to add a DART, and the same form to edit one.  The
+ * table offers only Edit; deleting a team happens in the form, where its name
+ * and its people are on screen.  A DART nobody is on can be deleted; every
+ * other one is retired instead, by turning off "Accepting members", which keeps
+ * the members and the history attached to it.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
+import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import type { AdminDart, AdminDartPatch } from '@/portal/api/types';
@@ -69,6 +71,18 @@ export function inUseBy(dart: AdminDart): string | null {
   return parts.length > 0 ? parts.join(' and ') : null;
 }
 
+/**
+ * Why this DART cannot be deleted, as one sentence, or null when it can be.
+ *
+ * Both relations are `SET_NULL`, so deleting a DART that is still pointed at
+ * would quietly empty the profiles and pages naming it.
+ */
+export function deleteBlockedBy(dart: AdminDart): string | null {
+  const reason = inUseBy(dart);
+  if (reason === null) return null;
+  return `${dart.name} has ${reason} on it. Untick "Accepting members" instead.`;
+}
+
 /** The DART list, with the add-and-edit form and the delete guard. */
 export function DartsPage(): JSX.Element {
   const darts = useAdminDarts();
@@ -79,7 +93,6 @@ export function DartsPage(): JSX.Element {
 
   // `'new'` is the add form; a number is the DART open for editing.
   const [editing, setEditing] = useState<number | 'new' | null>(null);
-  const [confirming, setConfirming] = useState<number | null>(null);
 
   const rows = darts.data ?? [];
   const open = typeof editing === 'number' ? rows.find((dart) => dart.id === editing) : undefined;
@@ -111,20 +124,17 @@ export function DartsPage(): JSX.Element {
     );
   };
 
-  const handleDelete = (dart: AdminDart): void => {
-    remove.mutate(dart.id, {
-      onSuccess: () => {
-        toast.show(`${dart.name} deleted.`, 'success');
-        setConfirming(null);
-      },
-      onError: (error) => {
-        toast.show(
-          error instanceof ApiError ? error.message : 'That DART was not deleted.',
-          'error',
-        );
-        setConfirming(null);
-      },
-    });
+  // The form waits on this promise to leave its confirmation, so the failure is
+  // reported here rather than thrown on: a DART that a page was linked to
+  // between the list load and the click says so and stays.
+  const handleDelete = async (dart: AdminDart): Promise<void> => {
+    try {
+      await remove.mutateAsync(dart.id);
+      toast.show(`${dart.name} deleted.`, 'success');
+      setEditing(null);
+    } catch (error) {
+      toast.show(error instanceof ApiError ? error.message : 'That DART was not deleted.', 'error');
+    }
   };
 
   const columns: Column<AdminDart>[] = [
@@ -141,7 +151,6 @@ export function DartsPage(): JSX.Element {
         ),
       sortValue: (dart) => dart.airport_identifiers,
     },
-    { key: 'city', header: 'Town', render: (dart) => dart.city, sortValue: (dart) => dart.city },
     {
       key: 'website',
       header: 'Website',
@@ -169,7 +178,12 @@ export function DartsPage(): JSX.Element {
       header: 'Members',
       numeric: true,
       width: '6rem',
-      render: (dart) => dart.member_count,
+      render: (dart) =>
+        dart.member_count > 0 ? (
+          <Link to={`/admin/members?dart=${dart.id}`}>{dart.member_count}</Link>
+        ) : (
+          dart.member_count
+        ),
       sortValue: (dart) => dart.member_count,
     },
     {
@@ -187,43 +201,12 @@ export function DartsPage(): JSX.Element {
     {
       key: 'actions',
       header: 'Actions',
-      width: '13rem',
+      width: '6rem',
       sortable: false,
       render: (dart) => (
-        <span className="cluster">
-          <Button variant="quiet" small onClick={() => setEditing(dart.id)}>
-            Edit
-          </Button>
-          {confirming === dart.id ? (
-            <>
-              <Button
-                variant="danger"
-                small
-                disabled={remove.isPending}
-                onClick={() => handleDelete(dart)}
-              >
-                Delete for good
-              </Button>
-              <Button variant="quiet" small onClick={() => setConfirming(null)}>
-                Keep
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="quiet"
-              small
-              disabled={inUseBy(dart) !== null}
-              title={
-                inUseBy(dart) === null
-                  ? undefined
-                  : `${dart.name} has ${inUseBy(dart) ?? ''} on it. Untick "Accepting members" instead.`
-              }
-              onClick={() => setConfirming(dart.id)}
-            >
-              Delete
-            </Button>
-          )}
-        </span>
+        <Button variant="quiet" small onClick={() => setEditing(dart.id)}>
+          Edit
+        </Button>
       ),
     },
   ];
@@ -269,6 +252,9 @@ export function DartsPage(): JSX.Element {
             errors={fieldErrors(update.error)}
             onSubmit={(payload) => handleUpdate(open.id, payload)}
             onCancel={handleClose}
+            onDelete={() => handleDelete(open)}
+            deleteBlockedBy={deleteBlockedBy(open)}
+            deletePending={remove.isPending}
           />
         </Card>
       ) : null}

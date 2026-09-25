@@ -20,7 +20,6 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('name', models.CharField(max_length=120, unique=True)),
                 ('airport_identifiers', models.CharField(help_text='FAA or ICAO identifiers, separated by commas, e.g. CCR, C83', max_length=120)),
-                ('city', models.CharField(blank=True, max_length=120)),
                 ('website_url', models.URLField(blank=True, help_text="The team's own site, if it has one.", verbose_name='website')),
                 ('is_active', models.BooleanField(default=True)),
             ],

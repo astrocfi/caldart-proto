@@ -14,7 +14,6 @@ function makeDart(overrides: Partial<AdminDart> = {}): AdminDart {
     id: 1,
     name: 'Palo Alto',
     airport_identifiers: 'PAO',
-    city: 'Palo Alto',
     website_url: '',
     contacts: [],
     is_active: true,
@@ -24,7 +23,7 @@ function makeDart(overrides: Partial<AdminDart> = {}): AdminDart {
   };
 }
 
-const NAPA = makeDart({ id: 2, name: 'Napa', airport_identifiers: 'APC', city: 'Napa' });
+const NAPA = makeDart({ id: 2, name: 'Napa', airport_identifiers: 'APC' });
 
 /** Serve `rows` from `/admin/darts`, signed in as an account administrator. */
 function stubList(rows: AdminDart[] = [makeDart(), NAPA]) {
@@ -39,13 +38,29 @@ function renderPage() {
 }
 
 describe('DartsPage', () => {
-  it('lists every DART with its airport and town', async () => {
+  it('lists every DART with its airports', async () => {
     stubList();
     renderPage();
 
     const cells = await screen.findAllByRole('cell', { name: 'Napa' });
     const row = cells[0]?.closest('tr');
     expect(within(row as HTMLElement).getByText('APC')).toBeInTheDocument();
+  });
+
+  it('has no town column', async () => {
+    stubList();
+    renderPage();
+
+    await screen.findAllByRole('cell', { name: 'Napa' });
+    expect(screen.queryByRole('columnheader', { name: 'Town' })).not.toBeInTheDocument();
+  });
+
+  it('links the member count to that DART on the member list', async () => {
+    stubList([makeDart({ member_count: 4 })]);
+    renderPage();
+
+    const link = await screen.findByRole('link', { name: '4' });
+    expect(link).toHaveAttribute('href', '/admin/members?dart=1');
   });
 
   it('says which DARTs are retired', async () => {
@@ -70,17 +85,54 @@ describe('DartsPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
     await user.type(screen.getByLabelText('Name*'), 'Hayward');
     await user.type(screen.getByLabelText('Airports*'), 'hwd');
-    await user.type(screen.getByLabelText('Town'), 'Hayward');
     await user.click(screen.getByRole('button', { name: 'Add DART' }));
 
     await waitFor(() =>
       expect(posted).toMatchObject({
         name: 'Hayward',
         airport_identifiers: 'HWD',
-        city: 'Hayward',
         is_active: true,
       }),
     );
+  });
+
+  it('sends no town with a new DART', async () => {
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    stubList();
+    server.use(
+      http.post(`${API}/admin/darts`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(makeDart({ id: 3, name: 'Hayward' }), { status: 201 });
+      }),
+    );
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.type(screen.getByLabelText('Name*'), 'Hayward');
+    await user.type(screen.getByLabelText('Airports*'), 'hwd');
+    await user.click(screen.getByRole('button', { name: 'Add DART' }));
+
+    await waitFor(() => expect(posted).not.toBeNull());
+    expect(posted).not.toHaveProperty('city');
+  });
+
+  it('asks for no town', async () => {
+    const user = userEvent.setup();
+    stubList();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    expect(screen.queryByLabelText('Town')).not.toBeInTheDocument();
+  });
+
+  it('heads the contacts fieldset DART management', async () => {
+    const user = userEvent.setup();
+    stubList();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    expect(screen.getByRole('group', { name: /DART management/ })).toBeInTheDocument();
   });
 
   it('refuses to send a DART with no airport', async () => {
@@ -194,25 +246,41 @@ describe('DartsPage', () => {
     server.use(
       http.patch(`${API}/admin/darts/1`, async ({ request }) => {
         patched = await request.json();
-        return HttpResponse.json(makeDart({ city: 'Mountain View' }));
+        return HttpResponse.json(makeDart({ name: 'Mountain View' }));
       }),
     );
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    const town = screen.getByLabelText('Town');
-    await user.clear(town);
-    await user.type(town, 'Mountain View');
+    const name = screen.getByLabelText('Name*');
+    await user.clear(name);
+    await user.type(name, 'Mountain View');
     await user.click(screen.getByRole('button', { name: 'Save DART' }));
 
-    await waitFor(() => expect(patched).toMatchObject({ city: 'Mountain View' }));
+    await waitFor(() => expect(patched).toMatchObject({ name: 'Mountain View' }));
+  });
+
+  it('offers no delete from the list', async () => {
+    stubList([makeDart()]);
+    renderPage();
+
+    await screen.findByRole('button', { name: 'Edit' });
+    expect(screen.queryByRole('button', { name: 'Delete this DART' })).not.toBeInTheDocument();
   });
 
   it('will not offer to delete a DART somebody is on', async () => {
+    const user = userEvent.setup();
     stubList([makeDart({ member_count: 4 })]);
     renderPage();
 
-    expect(await screen.findByRole('button', { name: 'Delete' })).toBeDisabled();
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    const button = screen.getByRole('button', { name: 'Delete this DART' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute(
+      'title',
+      'Palo Alto has 4 members on it. Untick "Accepting members" instead.',
+    );
   });
 
   it('asks before deleting a DART nobody is on', async () => {
@@ -227,10 +295,140 @@ describe('DartsPage', () => {
     );
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
     expect(deleted).toBe(false);
 
     await user.click(screen.getByRole('button', { name: 'Delete for good' }));
     await waitFor(() => expect(deleted).toBe(true));
+  });
+
+  it('keeps the DART when the confirmation is declined', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart()]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
+    await user.click(screen.getByRole('button', { name: 'Keep' }));
+
+    expect(screen.getByRole('button', { name: 'Delete this DART' })).toBeInTheDocument();
+  });
+
+  it('offers the delete again when the delete fails', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart()]);
+    server.use(
+      http.delete(`${API}/admin/darts/1`, () =>
+        HttpResponse.json({ detail: 'A page points at Palo Alto.' }, { status: 409 }),
+      ),
+    );
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
+    await user.click(screen.getByRole('button', { name: 'Delete for good' }));
+
+    expect(await screen.findByRole('button', { name: 'Delete this DART' })).toBeInTheDocument();
+  });
+
+  it('moves a person down the list and saves the new order', async () => {
+    const user = userEvent.setup();
+    let patched: { contacts?: { name: string }[] } | null = null;
+    stubList([
+      makeDart({
+        contacts: [
+          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+        ],
+      }),
+    ]);
+    server.use(
+      http.patch(`${API}/admin/darts/1`, async ({ request }) => {
+        patched = (await request.json()) as { contacts?: { name: string }[] };
+        return HttpResponse.json(makeDart());
+      }),
+    );
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Move down person 1' }));
+    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+
+    await waitFor(() =>
+      expect(patched?.contacts?.map((one) => one.name)).toEqual(['Sam', 'Helen']),
+    );
+  });
+
+  it('moves a person up the list and saves the new order', async () => {
+    const user = userEvent.setup();
+    let patched: { contacts?: { name: string }[] } | null = null;
+    stubList([
+      makeDart({
+        contacts: [
+          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+        ],
+      }),
+    ]);
+    server.use(
+      http.patch(`${API}/admin/darts/1`, async ({ request }) => {
+        patched = (await request.json()) as { contacts?: { name: string }[] };
+        return HttpResponse.json(makeDart());
+      }),
+    );
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Move up person 2' }));
+    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+
+    await waitFor(() =>
+      expect(patched?.contacts?.map((one) => one.name)).toEqual(['Sam', 'Helen']),
+    );
+  });
+
+  it('cannot move the first person up or the last person down', async () => {
+    const user = userEvent.setup();
+    stubList([
+      makeDart({
+        contacts: [
+          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+        ],
+      }),
+    ]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByRole('button', { name: 'Move up person 1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move down person 2' })).toBeDisabled();
+  });
+
+  it('takes a person off the list with the trashcan', async () => {
+    const user = userEvent.setup();
+    let patched: { contacts?: { name: string }[] } | null = null;
+    stubList([
+      makeDart({
+        contacts: [
+          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+        ],
+      }),
+    ]);
+    server.use(
+      http.patch(`${API}/admin/darts/1`, async ({ request }) => {
+        patched = (await request.json()) as { contacts?: { name: string }[] };
+        return HttpResponse.json(makeDart());
+      }),
+    );
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Remove person 1' }));
+    await user.click(screen.getByRole('button', { name: 'Save DART' }));
+
+    await waitFor(() => expect(patched?.contacts?.map((one) => one.name)).toEqual(['Sam']));
   });
 });
