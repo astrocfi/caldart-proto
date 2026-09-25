@@ -153,7 +153,7 @@ describe('AircraftRegisterPage', () => {
     await waitFor(() => expect(seen[seen.length - 1]!.get('page')).toBe('1'));
   });
 
-  it('empties every filter with Clear', async () => {
+  it('empties every filter with Reset to Defaults', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const seen: URLSearchParams[] = [];
     server.use(columnsReturn(), listReturns([makeAircraft()], seen));
@@ -163,7 +163,7 @@ describe('AircraftRegisterPage', () => {
     });
     await screen.findByRole('link', { name: 'N172SP' });
 
-    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await user.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
 
     await waitFor(() => expect(seen[seen.length - 1]!.has('insurance')).toBe(false));
     expect(screen.getByLabelText('Make')).toHaveValue('');

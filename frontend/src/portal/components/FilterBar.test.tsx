@@ -169,7 +169,7 @@ describe('FilterBar', () => {
     expect(handleChange).toHaveBeenLastCalledWith(expect.objectContaining({ is_active: '' }));
   });
 
-  it('empties every value on Clear', async () => {
+  it('empties every value on Reset to Defaults', async () => {
     const handleChange = vi.fn();
     render(
       <Harness
@@ -178,27 +178,27 @@ describe('FilterBar', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
 
     expect(handleChange).toHaveBeenLastCalledWith(
       Object.fromEntries(FIELDS.map((field) => [field.key, ''])),
     );
   });
 
-  it('empties the typed boxes on Clear', async () => {
+  it('empties the typed boxes on Reset to Defaults', async () => {
     render(<Harness initial={{ search: 'dana' }} onChange={handleNothing} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
 
     expect(screen.getByLabelText('Search')).toHaveValue('');
   });
 
-  it('does not put back a search that was still settling when Clear was pressed', async () => {
+  it('does not put back a search that was still settling when Reset to Defaults was pressed', async () => {
     const handleChange = vi.fn();
     render(<Harness onChange={handleChange} />);
 
     await userEvent.type(screen.getByLabelText('Search'), 'dana');
-    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
     await new Promise((resolve) => setTimeout(resolve, 400));
 
     expect(handleChange).toHaveBeenLastCalledWith(expect.objectContaining({ search: '' }));
@@ -260,7 +260,7 @@ describe('FilterBar', () => {
     expect(screen.getByRole('search', { name: 'Filter members' })).toBeInTheDocument();
   });
 
-  it('shows a field’s hint under it', () => {
+  it('gives a field’s hint as its control’s title', () => {
     render(
       <FilterBar
         fields={[{ key: 'make', label: 'Make', kind: 'search', hint: 'Cessna, Piper, …' }]}
@@ -269,7 +269,19 @@ describe('FilterBar', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Make')).toHaveAccessibleDescription('Cessna, Piper, …');
+    expect(screen.getByLabelText('Make')).toHaveAttribute('title', 'Cessna, Piper, …');
+  });
+
+  it('draws no hint line under a field, so no control stands taller than its neighbors', () => {
+    const { container } = render(
+      <FilterBar
+        fields={[{ key: 'make', label: 'Make', kind: 'search', hint: 'Cessna, Piper, …' }]}
+        values={{}}
+        onChange={handleNothing}
+      />,
+    );
+
+    expect(container.querySelector('.field__hint')).toBeNull();
   });
 
   it('sends a settled search once even when the page does not adopt it', async () => {

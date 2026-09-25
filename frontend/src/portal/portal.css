@@ -234,6 +234,9 @@
   padding-bottom: var(--space-3);
 }
 
+/* Every control in the bar sits on one baseline: the items align to their
+ * bottom edge, and a field's hint is its control's title rather than a line
+ * under it, so no field stands taller than its neighbors. */
 .data-table__filters {
   display: flex;
   flex-wrap: wrap;

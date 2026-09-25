@@ -136,7 +136,7 @@ describe('PaymentsListPage', () => {
 
     await screen.findByRole('table', { name: /1 payment/ });
     await user.selectOptions(screen.getByLabelText('Status'), 'succeeded');
-    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await user.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
 
     expect(screen.getByLabelText('Status')).toHaveValue('');
   });
@@ -148,7 +148,7 @@ describe('PaymentsListPage', () => {
 
     await screen.findByRole('table', { name: /1 payment/ });
     await user.selectOptions(screen.getByLabelText('Status'), 'succeeded');
-    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await user.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
 
     await waitFor(() =>
       expect(screen.getByRole('link', { name: /Export CSV/ })).not.toHaveAttribute(

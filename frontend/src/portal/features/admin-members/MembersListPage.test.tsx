@@ -277,7 +277,7 @@ describe('MembersListPage', () => {
     await renderList('/admin/members?status=expired&search=bracco');
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await user.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
     await waitFor(() => expect(screen.getByTestId('location-search')).toHaveTextContent(''));
     expect(lastMemberQuery().get('status')).toBeNull();
   });
