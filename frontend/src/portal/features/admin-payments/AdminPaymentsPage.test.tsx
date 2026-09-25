@@ -97,6 +97,23 @@ describe('AdminPaymentsPage', () => {
     await waitFor(() => expect(urls.some((url) => url.includes('provider=paypal'))).toBe(true));
   });
 
+  it('reads its filters from the address', async () => {
+    const urls = serveOverview();
+    renderWithProviders(<AdminPaymentsPage />, { route: '/admin/payments?status=refunded' });
+
+    await screen.findByRole('table', { name: /by month/ });
+    expect(screen.getByLabelText('Status')).toHaveValue('refunded');
+    expect(urls.some((url) => url.includes('status=refunded'))).toBe(true);
+  });
+
+  it('offers only the filters an aggregate needs', async () => {
+    serveOverview();
+    renderWithProviders(<AdminPaymentsPage />);
+
+    await screen.findByRole('table', { name: /by month/ });
+    expect(screen.queryByLabelText('Reconciled')).not.toBeInTheDocument();
+  });
+
   it('links on to the payment list', async () => {
     serveOverview();
     renderWithProviders(<AdminPaymentsPage />);

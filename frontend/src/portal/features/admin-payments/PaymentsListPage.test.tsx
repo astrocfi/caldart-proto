@@ -66,6 +66,52 @@ describe('PaymentsListPage', () => {
     await waitFor(() => expect(urls.some((url) => url.includes('reconciled=no'))).toBe(true));
   });
 
+  it('reads its filters from the address, so a filtered list can be linked', async () => {
+    const urls = serveList();
+    renderWithProviders(<PaymentsListPage />, {
+      route: '/admin/payments/list?provider=paypal&reconciled=no',
+    });
+
+    await screen.findByRole('table', { name: /1 payment/ });
+    expect(screen.getByLabelText('Provider')).toHaveValue('paypal');
+    expect(urls.some((url) => url.includes('reconciled=no'))).toBe(true);
+  });
+
+  it('offers the plans from the catalog', async () => {
+    const user = userEvent.setup();
+    const urls = serveList();
+    renderWithProviders(<PaymentsListPage />);
+
+    await screen.findByRole('table', { name: /1 payment/ });
+    await screen.findByRole('option', { name: 'Annual' });
+    await user.selectOptions(screen.getByLabelText('Plan'), 'annual');
+
+    await waitFor(() => expect(urls.some((url) => url.includes('plan=annual'))).toBe(true));
+  });
+
+  it('sends an amount typed in dollars as cents', async () => {
+    const user = userEvent.setup();
+    const urls = serveList();
+    renderWithProviders(<PaymentsListPage />);
+
+    await screen.findByRole('table', { name: /1 payment/ });
+    await user.type(screen.getByLabelText('At least'), '50');
+
+    await waitFor(() => expect(urls.some((url) => url.includes('min_cents=5000'))).toBe(true));
+  });
+
+  it('points the exports at the payments report, in the order the table is sorted', async () => {
+    serveList();
+    renderWithProviders(<PaymentsListPage />);
+
+    await screen.findByRole('table', { name: /1 payment/ });
+    expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
+      'href',
+      '/api/v1/reports/payments/export.csv?ordering=-paid_at' +
+        '&columns=paid_on%2Cname%2Ctotal%2Cfee%2Cnet%2Crefunded%2Cstatus',
+    );
+  });
+
   it('carries the filters into the CSV export link', async () => {
     const user = userEvent.setup();
     serveList();
@@ -89,7 +135,7 @@ describe('PaymentsListPage', () => {
 
     await screen.findByRole('table', { name: /1 payment/ });
     await user.selectOptions(screen.getByLabelText('Status'), 'succeeded');
-    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
 
     expect(screen.getByLabelText('Status')).toHaveValue('');
   });
@@ -101,7 +147,7 @@ describe('PaymentsListPage', () => {
 
     await screen.findByRole('table', { name: /1 payment/ });
     await user.selectOptions(screen.getByLabelText('Status'), 'succeeded');
-    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
 
     await waitFor(() =>
       expect(screen.getByRole('link', { name: /Export CSV/ })).not.toHaveAttribute(
@@ -117,7 +163,7 @@ describe('PaymentsListPage', () => {
 
     expect(await screen.findByRole('link', { name: /Export PDF/ })).toHaveAttribute(
       'href',
-      expect.stringContaining('/admin/payments/export.pdf'),
+      expect.stringContaining('/api/v1/reports/payments/export.pdf'),
     );
   });
 

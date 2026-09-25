@@ -21,110 +21,32 @@ import type {
   Paginated,
   Payment,
   PaymentDetail,
-  PaymentKind,
   PaymentPatch,
   PaymentPeriodSummary,
   PaymentProvider,
-  PaymentState,
-  PaymentWallet,
   RefundIssued,
   RefundRequest,
-  ReportColumn,
 } from '@/portal/api/types';
+import type { FilterValues } from '@/portal/reports/types';
 
 export const FINANCE_KEY = ['admin-payments'] as const;
 
 export type SummaryGroup = 'month' | 'year';
 
-/** Whether a payment has been matched against a statement, as the filter spells it. */
-export type ReconciledFilter = 'yes' | 'no' | '';
-
-/** Every filter the finance list, summary and exports read, as the screen holds them. */
-export interface PaymentFilterState {
-  from: string;
-  to: string;
-  provider: PaymentProvider | '';
-  status: PaymentState | '';
-  search: string;
-  plan: string;
-  kind: PaymentKind | '';
-  wallet: PaymentWallet | '';
-  reconciled: ReconciledFilter;
-  member: string;
-  min_cents: string;
-  max_cents: string;
-}
-
-export const EMPTY_FILTERS: PaymentFilterState = {
-  from: '',
-  to: '',
-  provider: '',
-  status: '',
-  search: '',
-  plan: '',
-  kind: '',
-  wallet: '',
-  reconciled: '',
-  member: '',
-  min_cents: '',
-  max_cents: '',
-};
-
-/** The filter keys in the order the filter bar shows them. */
-export const FILTER_KEYS: (keyof PaymentFilterState)[] = [
-  'from',
-  'to',
-  'provider',
-  'status',
-  'search',
-  'plan',
-  'kind',
-  'wallet',
-  'reconciled',
-  'member',
-  'min_cents',
-  'max_cents',
-];
-
-/** Filters as query parameters, dropping everything left blank. */
-export function filterParams(filters: PaymentFilterState): Record<string, string> {
-  const params: Record<string, string> = {};
-  for (const key of FILTER_KEYS) {
-    const value = filters[key];
-    if (value !== '') params[key] = value;
-  }
-  return params;
+/**
+ * Filters as query parameters, dropping everything left blank.
+ *
+ * @param filters the values a `FilterBar` holds, by query parameter.
+ * @returns only the parameters that are set.
+ */
+export function filterParams(filters: FilterValues): Record<string, string> {
+  return Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== ''));
 }
 
 /** Turns filter parameters into a URL query string, or `''` when there are none. */
 export function queryString(params: Record<string, string>): string {
   const search = new URLSearchParams(params).toString();
   return search ? `?${search}` : '';
-}
-
-export interface ExportOptions {
-  /** The column keys to carry, in order; the default columns when empty. */
-  columns?: string[];
-  /** An `ordering` value the API accepts, e.g. `-paid_at`. */
-  ordering?: string;
-}
-
-/**
- * The href an export button points at, carrying the filters, columns and order.
- *
- * @param format `csv` or `pdf`, which is also the extension in the filename.
- * @param filters the filter bar's state, sent exactly as the list sends it.
- * @param options the chosen columns and the table's current ordering.
- */
-export function exportUrl(
-  format: 'csv' | 'pdf',
-  filters: PaymentFilterState,
-  options: ExportOptions = {},
-): string {
-  const params = filterParams(filters);
-  if (options.columns && options.columns.length > 0) params.columns = options.columns.join(',');
-  if (options.ordering) params.ordering = options.ordering;
-  return `${API_BASE}/admin/payments/export.${format}${queryString(params)}`;
 }
 
 /** The href of one payment's receipt PDF. */
@@ -146,7 +68,7 @@ export interface ListOptions {
 
 /** The paginated payment list for the Payments tab, filtered, sorted and paged. */
 export function useAdminPayments(
-  filters: PaymentFilterState,
+  filters: FilterValues,
   options: ListOptions,
 ): UseQueryResult<Paginated<Payment>> {
   const params = {
@@ -165,7 +87,7 @@ export function useAdminPayments(
 /** The payment summary grouped by month or year, honoring the filter bar. */
 export function useAdminPaymentSummary(
   group: SummaryGroup,
-  filters: PaymentFilterState,
+  filters: FilterValues,
 ): UseQueryResult<PaymentPeriodSummary[]> {
   const params = { ...filterParams(filters), group };
   return useQuery({
@@ -179,15 +101,6 @@ export function useMonthlyTotals(): UseQueryResult<PaymentPeriodSummary[]> {
   return useQuery({
     queryKey: [...FINANCE_KEY, 'summary', { group: 'month' }],
     queryFn: () => api.get<PaymentPeriodSummary[]>('/admin/payments/summary?group=month'),
-  });
-}
-
-/** The export column registry, which drives the column chooser. */
-export function useReportColumns(): UseQueryResult<ReportColumn[]> {
-  return useQuery({
-    queryKey: [...FINANCE_KEY, 'columns'],
-    queryFn: () => api.get<ReportColumn[]>('/admin/payments/columns'),
-    staleTime: Infinity,
   });
 }
 

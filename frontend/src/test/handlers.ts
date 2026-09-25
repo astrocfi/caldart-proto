@@ -122,7 +122,7 @@ export function financeHandlers({
       record(request);
       return HttpResponse.json(summary);
     }),
-    http.get(`${API}/admin/payments/columns`, ({ request }) => {
+    http.get(`${API}/reports/payments/columns`, ({ request }) => {
       record(request);
       return HttpResponse.json(columns);
     }),
