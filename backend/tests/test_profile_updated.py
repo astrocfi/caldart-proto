@@ -56,16 +56,16 @@ def detach_url(aircraft_id: int) -> str:
 # --------------------------------------------------------------------------
 # Writes that stamp it
 # --------------------------------------------------------------------------
-def test_registering_stamps_the_new_profile() -> None:
+def test_registering_stamps_the_new_profile(today: date) -> None:
     """A freshly registered member's profile is stamped the moment it is created."""
     user = register_member(email="joan.ames@example.test", password=PASSWORD)
-    assert MemberProfile.objects.get(user=user).profile_updated_at is not None
+    assert MemberProfile.objects.get(user=user).profile_updated_at == timezone.now()
 
 
-def test_creating_a_member_stamps_the_new_profile(account_admin: User) -> None:
+def test_creating_a_member_stamps_the_new_profile(account_admin: User, today: date) -> None:
     """A member an administrator creates has its profile stamped right away."""
     user = create_member(account_admin, email="joan.ames@example.test")
-    assert MemberProfile.objects.get(user=user).profile_updated_at is not None
+    assert MemberProfile.objects.get(user=user).profile_updated_at == timezone.now()
 
 
 def test_patching_my_profile_stamps_it(
@@ -82,10 +82,13 @@ def test_patching_my_profile_stamps_it(
     assert profile.profile_updated_at == timezone.now()
 
 
-def test_admin_patch_carrying_profile_stamps_it(account_admin_client: APIClient) -> None:
+def test_admin_patch_carrying_profile_stamps_it(
+    account_admin_client: APIClient, today: date
+) -> None:
     """``PATCH /admin/members/{id}`` with a ``profile`` body stamps the profile."""
     target = UserFactory(email="target@example.test", roles=[MEMBER])
-    MemberProfileFactory(user=target)
+    profile = MemberProfileFactory(user=target)
+    assert profile.profile_updated_at is None
 
     response = account_admin_client.patch(
         detail_url(target), {"profile": {"phone": "415-555-0199"}}, format="json"
@@ -93,27 +96,28 @@ def test_admin_patch_carrying_profile_stamps_it(account_admin_client: APIClient)
 
     assert response.status_code == 200
     target.profile.refresh_from_db()
-    assert target.profile.profile_updated_at is not None
+    assert target.profile.profile_updated_at == timezone.now()
 
 
 @pytest.mark.parametrize("field", ["email", "first_name", "last_name"])
 def test_admin_patch_carrying_a_name_or_email_stamps_it(
-    account_admin_client: APIClient, field: str
+    account_admin_client: APIClient, field: str, today: date
 ) -> None:
     """A body carrying only the account's name or email still stamps the profile."""
     target = UserFactory(email="target@example.test", roles=[MEMBER])
-    MemberProfileFactory(user=target)
+    profile = MemberProfileFactory(user=target)
+    assert profile.profile_updated_at is None
     value = "renamed@example.test" if field == "email" else "Marta"
 
     response = account_admin_client.patch(detail_url(target), {field: value}, format="json")
 
     assert response.status_code == 200
     target.profile.refresh_from_db()
-    assert target.profile.profile_updated_at is not None
+    assert target.profile.profile_updated_at == timezone.now()
 
 
 def test_attaching_an_aircraft_stamps_the_profile(
-    api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft
+    api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft, today: date
 ) -> None:
     """Attaching an aircraft to the caller's profile stamps it."""
     api_client.force_login(member)
@@ -123,21 +127,22 @@ def test_attaching_an_aircraft_stamps_the_profile(
 
     assert response.status_code == 200
     profile.refresh_from_db()
-    assert profile.profile_updated_at is not None
+    assert profile.profile_updated_at == timezone.now()
 
 
 def test_detaching_an_aircraft_stamps_the_profile(
-    api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft
+    api_client: APIClient, member: User, profile: MemberProfile, aircraft: Aircraft, today: date
 ) -> None:
     """Detaching an aircraft from the caller's profile stamps it too."""
     profile.aircraft.add(aircraft)
     api_client.force_login(member)
+    assert profile.profile_updated_at is None
 
     response = api_client.delete(detach_url(aircraft.id))
 
     assert response.status_code == 204
     profile.refresh_from_db()
-    assert profile.profile_updated_at is not None
+    assert profile.profile_updated_at == timezone.now()
 
 
 def test_touching_a_profile_also_moves_its_generic_updated_at(profile: MemberProfile) -> None:
