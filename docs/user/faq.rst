@@ -98,11 +98,11 @@ Can my membership renew itself?
 
 Yes.  Tick **Renew automatically each year** at the checkout, or turn it on from
 **Payments** in the portal menu, where **First charge on** opens on the day your
-membership runs out and takes any later day you would rather have.  On that day
-CalDART charges the saved card or PayPal account for that year's dues plus
-whatever contribution you asked to renew alongside them, and your coverage
-carries straight on.  You are never charged while a whole year of coverage still
-remains.
+membership runs out and takes any day from today on.  On that day CalDART charges
+the saved card or PayPal account for that year's dues plus whatever contribution
+you asked to renew alongside them, and your coverage carries straight on.  A later
+day leaves you lapsed until the charge comes round; an earlier one renews you
+before the term you hold has run out.
 
 You get an email fourteen days before every charge saying the amount, the date
 and which method will be used, and you can turn it off at any time from the same
@@ -118,9 +118,9 @@ Yes.  A life membership never expires, so there is nothing to renew, but you can
 ask CalDART to take a contribution for you once a year.  The card on the
 Payments screen is headed **Automatic contribution** rather than **Automatic
 renewal**, you choose the amount and the day in **First charge on**, and the
-charge falls a year from the day you turned it on unless you name another.  Every email about it says
-"contribution"; none of them says your membership is being renewed, because it
-is not.
+charge falls a year from the day you turned it on unless you name another.  Every
+email about it says "contribution"; none of them says your membership is being
+renewed, because it is not.
 
 The **Renew** screen offers a life member the same thing: it is headed
 **Contribute to CalDART**, and the form under it takes a contribution with no

@@ -17,6 +17,7 @@ import { API, CURRENT_MEMBERSHIP, LIFETIME_MEMBERSHIP, makeUser, signedInAs } fr
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { AutoRenewalCard } from './AutoRenewalCard';
+import { todayIso } from './chargeDate';
 
 /** Serve `GET /me/renewal` with `mandate` and render the card at `route`. */
 function mount(
@@ -94,6 +95,15 @@ describe('AutoRenewalCard', () => {
     );
   });
 
+  it('puts the warning with the day rather than after the amount', async () => {
+    mount(makeMandate({ next_charge_on: '2027-07-15', amount_cents: 7000 }));
+
+    expect(await screen.findByText('Next charge')).toBeInTheDocument();
+    expect(screen.getByText('Next charge').nextElementSibling).toHaveTextContent(
+      '2027/07/15 after your membership runs out on 2027/06/30 · $70.00',
+    );
+  });
+
   it('says nothing about running out when the charge falls on the expiry day itself', async () => {
     mount(makeMandate({ next_charge_on: '2027-06-30' }));
 
@@ -108,6 +118,42 @@ describe('AutoRenewalCard', () => {
     await user.click(await screen.findByRole('button', { name: 'Change' }));
 
     expect(screen.getByLabelText('Next charge on')).toHaveValue('2027-03-12');
+  });
+
+  it('opens the change form on today when the scheduled charge day has gone by', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate({ next_charge_on: '2020-01-01' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+
+    expect(screen.getByLabelText('Next charge on')).toHaveValue(todayIso());
+  });
+
+  it('still saves a change when the scheduled charge day has gone by', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate({ next_charge_on: '2020-01-01', contribution_cents: 2500 }));
+    const bodies = recordPatches(makeMandate({ contribution_cents: 0 }));
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+    await user.click(screen.getByRole('radio', { name: /No thank you/ }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(bodies).toEqual([
+        { plan: 'annual', contribution_cents: 0, next_charge_on: todayIso() },
+      ]),
+    );
+  });
+
+  it('will not save a change with the charge date box left empty', async () => {
+    const user = userEvent.setup();
+    mount(makeMandate());
+
+    await user.click(await screen.findByRole('button', { name: 'Change' }));
+    await user.clear(screen.getByLabelText('Next charge on'));
+
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    expect(screen.getByText('Choose the day of the next charge.')).toBeVisible();
   });
 
   it('is headed Change your renewal for a mandate that renews a plan', async () => {
@@ -284,6 +330,16 @@ describe('AutoRenewalCard', () => {
     await user.click(await screen.findByRole('button', { name: 'Change' }));
 
     expect(screen.queryByRole('radio', { name: /Life/ })).not.toBeInTheDocument();
+  });
+
+  it('offers no first charge day when the membership could not be read', async () => {
+    const user = userEvent.setup();
+    mount(null, { hasMembership: false });
+
+    await user.click(await screen.findByRole('button', { name: 'Turn on' }));
+
+    expect(await screen.findByText('Your membership could not be read')).toBeInTheDocument();
+    expect(screen.queryByLabelText('First charge on')).not.toBeInTheDocument();
   });
 
   it('never reads a failed renewal call as renewal being off', async () => {

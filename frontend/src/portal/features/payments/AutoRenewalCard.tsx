@@ -101,14 +101,33 @@ export function AutoRenewalCard(): JSX.Element {
         <>
           <MandateSummary mandate={mandate} isLifetime={isLifetime} expiresOn={expiresOn} />
 
+          {/* The setup flow opens on the day the membership runs out, so it waits
+              for the membership itself: guessing today would authorize a charge
+              that throws away coverage the member has already paid for. */}
           {mode === 'setup' ? (
-            <RenewalSetup
-              isLifetime={isLifetime}
-              expiresOn={expiresOn}
-              initialContributionCents={mandate?.contribution_cents ?? 0}
-              onCancel={() => setMode('idle')}
-              onDone={handleDone}
-            />
+            membership.isPending ? (
+              <p className="muted" role="status">
+                Checking when your membership runs out…
+              </p>
+            ) : membership.isSuccess ? (
+              <RenewalSetup
+                isLifetime={isLifetime}
+                expiresOn={expiresOn}
+                initialContributionCents={mandate?.contribution_cents ?? 0}
+                onCancel={() => setMode('idle')}
+                onDone={handleDone}
+              />
+            ) : (
+              <EmptyState
+                title="Your membership could not be read"
+                description="CalDART cannot tell which day your first charge should fall on, so it cannot offer you one yet. Try again, or contact CalDART if it keeps happening."
+                action={
+                  <Button variant="secondary" onClick={() => void membership.refetch()}>
+                    Try again
+                  </Button>
+                }
+              />
+            )
           ) : null}
 
           {mode === 'change' && mandate ? (
@@ -247,14 +266,16 @@ function MandateSummary({ mandate, isLifetime, expiresOn }: MandateSummaryProps)
         <div>
           <dt>Next charge</dt>
           <dd>
-            <DateText value={mandate.next_charge_on} /> ·{' '}
-            <span className="mono">{formatCents(mandate.amount_cents)}</span>
+            <DateText value={mandate.next_charge_on} />
             {isAfterExpiry(mandate.next_charge_on, expiresOn) ? (
+              // The phrase is about the day, so it sits with the day rather than
+              // after the amount, where it would read as a clause about money.
               <span className="muted">
                 {' '}
                 after your membership runs out on {formatDate(expiresOn)}
               </span>
-            ) : null}
+            ) : null}{' '}
+            · <span className="mono">{formatCents(mandate.amount_cents)}</span>
           </dd>
         </div>
       </dl>

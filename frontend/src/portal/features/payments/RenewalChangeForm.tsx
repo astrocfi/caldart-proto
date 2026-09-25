@@ -10,8 +10,9 @@
  * is offered and none is sent.
  *
  * The day of the next charge is the member's own, and the form opens on the day
- * the mandate already carries.  A charge already scheduled keeps its own day, so
- * moving the date inside the notice window moves the charge after it.
+ * the mandate already carries, or on today when that day has gone by without the
+ * charge being taken.  A charge already scheduled keeps its own day, so a day set
+ * while one is waiting is the day of the charge after it.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -27,7 +28,7 @@ import { ContributionChooser } from '@/portal/features/checkout/ContributionChoo
 import { PlanChooser } from '@/portal/features/checkout/PlanChooser';
 import { usePaymentsConfig } from '@/portal/features/checkout/api';
 import { useUpdateRenewal } from './api';
-import { todayIso } from './chargeDate';
+import { notBeforeToday, todayIso } from './chargeDate';
 import '@/portal/features/checkout/checkout.css';
 
 export interface RenewalChangeFormProps {
@@ -47,7 +48,7 @@ export function RenewalChangeForm({
   const { data: config, isPending } = usePaymentsConfig();
   const earliestChargeOn = todayIso();
   const [plan, setPlan] = useState<string | null>(mandate.plan);
-  const [nextChargeOn, setNextChargeOn] = useState(mandate.next_charge_on ?? earliestChargeOn);
+  const [nextChargeOn, setNextChargeOn] = useState(() => notBeforeToday(mandate.next_charge_on));
   const [contributionCents, setContributionCents] = useState(mandate.contribution_cents);
   // Null until the member picks: the amount they already hold decides which
   // control shows it, so an amount no tier matches opens its own box.
@@ -92,6 +93,9 @@ export function RenewalChangeForm({
   // The server refuses an authority with nothing to charge, so a member whose
   // authority is a contribution alone is stopped here rather than at the API.
   const needsContribution = isContributionOnly && contributionCents === 0;
+  // An empty box is valid HTML, and an empty date is not a date the API takes, so
+  // the form waits for one rather than sending it.
+  const needsChargeDate = nextChargeOn === '';
 
   async function save(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -146,6 +150,7 @@ export function RenewalChangeForm({
           <input
             {...props}
             type="date"
+            required
             min={earliestChargeOn}
             value={nextChargeOn}
             onChange={(event) => setNextChargeOn(event.target.value)}
@@ -166,6 +171,12 @@ export function RenewalChangeForm({
         </p>
       ) : null}
 
+      {needsChargeDate ? (
+        <p className="renewal-setup__blocked" role="status">
+          Choose the day of the next charge.
+        </p>
+      ) : null}
+
       {error ? (
         <p className="renewal__error" role="alert">
           {error}
@@ -173,7 +184,7 @@ export function RenewalChangeForm({
       ) : null}
 
       <div className="cluster">
-        <Button type="submit" disabled={update.isPending || needsContribution}>
+        <Button type="submit" disabled={update.isPending || needsContribution || needsChargeDate}>
           {update.isPending ? 'Saving…' : 'Save changes'}
         </Button>
         <Button variant="quiet" onClick={handleDone}>

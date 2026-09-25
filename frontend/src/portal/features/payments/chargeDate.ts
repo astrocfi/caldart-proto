@@ -1,13 +1,19 @@
 /**
  * The day a standing authority charges on, as the renewal screens handle it.
  *
- * A date box speaks `YYYY-MM-DD` in the reader's own time zone, and the API
- * takes the same, so every date here is that string: comparing two of them
- * lexicographically compares the days themselves.
+ * A date box speaks `YYYY-MM-DD` and so does the API, so every date here is that
+ * string: comparing two of them lexicographically compares the days themselves.
+ *
+ * The earliest day a box offers is read from the reader's own clock, while the
+ * server judges "already gone by" in the deployment's time zone.  A reader whose
+ * day is behind the server's can therefore be offered a day the server refuses;
+ * the refusal names the field and carries `The next charge cannot be in the
+ * past.`, which both screens show, so the member is told rather than left
+ * guessing.
  */
 import type { IsoDate } from '@/portal/api/types';
 
-/** Today as `YYYY-MM-DD` in the reader's own time zone, for a date box. */
+/** Today as `YYYY-MM-DD` on the reader's own clock, for a date box. */
 export function todayIso(today: Date = new Date()): IsoDate {
   const month = String(today.getMonth() + 1).padStart(2, '0');
   const day = String(today.getDate()).padStart(2, '0');
@@ -32,12 +38,25 @@ export function defaultChargeDate(
   { isLifetime, expiresOn }: ChargeDateDefault,
   today: Date = new Date(),
 ): IsoDate {
-  const earliest = todayIso(today);
   if (isLifetime) {
     return todayIso(new Date(today.getFullYear() + 1, today.getMonth(), today.getDate()));
   }
-  if (expiresOn === null || expiresOn < earliest) return earliest;
-  return expiresOn;
+  return notBeforeToday(expiresOn, today);
+}
+
+/**
+ * The given day, or today when it is null or has already gone by.
+ *
+ * A change form opens on the day its authority carries, and that day can be in
+ * the past: it is the day of the attempt already scheduled, which waits for the
+ * next scan rather than for the calendar.  The box refuses a day before today,
+ * so the form opens on today and the member can still change everything else it
+ * holds.
+ */
+export function notBeforeToday(day: IsoDate | null, today: Date = new Date()): IsoDate {
+  const earliest = todayIso(today);
+  if (day === null || day < earliest) return earliest;
+  return day;
 }
 
 /**

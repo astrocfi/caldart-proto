@@ -129,18 +129,20 @@ nothing of theirs renews.
 Or turn it on without paying anything: **Turn on** on the **Automatic renewal**
 card opens the same choices the checkout offers -- the plan that will renew, the
 contribution to renew beside it, and a tab per payment method -- and saves the
-method without charging it.  The card then states
-what the charge will come to and the day it falls on before you save anything,
-and promises the warning email: *CalDART will charge $70.00 on 2027/06/30, and
-each year after that. We will email you fourteen days before every charge.*
+method without charging it.  The card then states what the charge will come to and
+the day it falls on before you save anything, and promises the warning email:
+*CalDART will charge <amount> on <date>, and each year after that. We will email
+you fourteen days before every charge.*
 
 **The day you are charged on.**  It is yours to choose.  **First charge on**, the
 date box between the choosers and that sentence, opens on the day your membership
 runs out, which is the day most people want: a life member, who has no expiry,
-opens a year from the day they turn it on.  You can ask for any later day
-instead, including one after your membership runs out — the card says so on its
-**Next charge** row, the warning email says so, and your membership lapses until
-the charge comes round.  A day that has already gone by is refused: *The next
+opens a year from the day they turn it on.  The box takes any day from today on.
+An earlier day than the one it opens on charges you — and renews you — before the
+term you hold has run out, so the months still to run are not the ones you get
+back.  A later day leaves your membership lapsed from the day it runs out until
+the charge comes round; the card says so on its **Next charge** row, and the
+warning email says so too.  A day that has already gone by is refused: *The next
 charge cannot be in the past.*
 
 **What happens then.**  On that day |org| charges the saved method for that year's
@@ -168,12 +170,14 @@ after your term ends the row adds *after your membership runs out on* that day.
 **Change** opens the choosers the setup flow shows -- the plan that renews, the
 contribution beside it, and **Next charge on** -- under the heading **Change your
 renewal**, and saves all three; the dues themselves are whatever the chosen plan
-costs on the day.  A charge already scheduled keeps the day it was written for,
-so moving the date inside the fourteen days before it moves the charge after that
-one.  **Turn off**
-asks you to confirm and then stops it, immediately: nothing further is charged,
-the saved method is dropped, and your membership still runs to the end of the
-term you have paid for.  The ordinary reminders resume.
+costs on the day.  A charge already scheduled keeps its own day, whatever you set
+here, so a day you set while one is waiting is the day of the charge after it.
+After each charge the day moves to the end of the term that charge bought — a year
+on from the charge itself for a contribution — so a day you choose is the day of
+one charge, not of every charge after it.  **Turn off** asks you to confirm and
+then stops it, immediately: nothing further is charged, the saved method is
+dropped, and your membership still runs to the end of the term you have paid for.
+The ordinary reminders resume.
 
 **If a charge is refused.**  You get an email saying why — "Your card was
 declined", or whatever the bank told us — and |org| tries again the next day,

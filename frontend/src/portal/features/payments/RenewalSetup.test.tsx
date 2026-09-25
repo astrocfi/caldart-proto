@@ -147,6 +147,16 @@ describe('RenewalSetup', () => {
     );
   });
 
+  it('waits for a day rather than sending an empty one when the box is cleared', async () => {
+    const user = userEvent.setup();
+    mount({ providers: ['mock'] });
+
+    await user.clear(await screen.findByLabelText('First charge on'));
+
+    expect(screen.getByText('Choose the day of the first charge.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Save this test card' })).not.toBeInTheDocument();
+  });
+
   it('sends the day the member chose rather than the one it opened on', async () => {
     const user = userEvent.setup();
     const { setups, handleDone } = mount({ providers: ['mock'] });

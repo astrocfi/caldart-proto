@@ -31,19 +31,21 @@ async function register(page: Page, email: string): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Pay your dues' })).toBeVisible();
 }
 
-/** A day far enough out to be after any term this spec buys, as the box takes it. */
-const CHOSEN_CHARGE_DATE = '2031-02-17';
+/** How far out the day this spec chooses falls: past any term it buys. */
+const CHOSEN_CHARGE_YEARS = 5;
 
-/** The same day as the portal prints it. */
-const CHOSEN_CHARGE_DISPLAY = '2031/02/17';
-
-/** One year from today as the portal prints it, which a life member's charge falls on. */
-function oneYearOnDisplay(): string {
+/** The same day of the month `years` from today, as `YYYY-MM-DD`. */
+function yearsOnIso(years: number): string {
   const today = new Date();
-  const next = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+  const next = new Date(today.getFullYear() + years, today.getMonth(), today.getDate());
   const month = String(next.getMonth() + 1).padStart(2, '0');
   const day = String(next.getDate()).padStart(2, '0');
-  return `${next.getFullYear()}/${month}/${day}`;
+  return `${next.getFullYear()}-${month}-${day}`;
+}
+
+/** The same day `years` from today, as the portal prints it. */
+function yearsOnDisplay(years: number): string {
+  return yearsOnIso(years).replaceAll('-', '/');
 }
 
 /** The day the signed-in member's membership runs out, from the API itself. */
@@ -124,9 +126,9 @@ test('a member turns automatic renewal on from the Payments screen alone', async
   // any later day may be asked for instead.
   const firstCharge = card.getByLabel('First charge on');
   await expect(firstCharge).toHaveValue(await expiryIso(page));
-  await firstCharge.fill(CHOSEN_CHARGE_DATE);
+  await firstCharge.fill(yearsOnIso(CHOSEN_CHARGE_YEARS));
   await expect(
-    card.getByText(new RegExp(`on ${CHOSEN_CHARGE_DISPLAY}, and each year after`)),
+    card.getByText(new RegExp(`on ${yearsOnDisplay(CHOSEN_CHARGE_YEARS)}, and each year after`)),
   ).toBeVisible();
 
   await card.getByRole('tab', { name: 'Test payment method' }).click();
@@ -138,7 +140,7 @@ test('a member turns automatic renewal on from the Payments screen alone', async
 
   // The day the member chose is the day the card reads back, and it is late
   // enough that the card says the membership runs out first.
-  await expect(card.getByText(CHOSEN_CHARGE_DISPLAY)).toBeVisible();
+  await expect(card.getByText(yearsOnDisplay(CHOSEN_CHARGE_YEARS))).toBeVisible();
   await expect(card.getByText(/after your membership runs out on/)).toBeVisible();
 });
 
@@ -164,7 +166,7 @@ test('a life member reads their automatic contribution, turns it off, and turns 
   await card.getByRole('button', { name: 'Turn on' }).click();
   await expect(card.getByRole('radio', { name: /Annual/ })).toHaveCount(0);
   await expect(
-    card.getByText(new RegExp(`on ${oneYearOnDisplay()}, and each year after`)),
+    card.getByText(new RegExp(`on ${yearsOnDisplay(1)}, and each year after`)),
   ).toBeVisible();
   await card.getByRole('radio', { name: /Participating/ }).check();
   await card.getByRole('tab', { name: 'Test payment method' }).click();

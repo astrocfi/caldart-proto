@@ -10,8 +10,8 @@
  * until there is an amount.
  *
  * The day of the first charge is the member's own.  It opens on the day their
- * membership runs out, which is the day the charge is wanted on, and it may be
- * moved to any later day.
+ * membership runs out, which is the day the charge is wanted on, and it takes any
+ * other day from today on.
  */
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -117,6 +117,9 @@ export function RenewalSetup({
   // The server refuses an authority with nothing to charge, so a life member
   // who has chosen no amount is stopped here rather than at the provider.
   const needsContribution = isLifetime && contributionCents === 0;
+  // An empty box is valid HTML, and an empty date is not a date the API takes, so
+  // the provider step waits for one rather than sending it.
+  const needsChargeDate = nextChargeOn === '';
 
   const panelProps = {
     plan: isLifetime ? null : effectivePlan,
@@ -149,6 +152,7 @@ export function RenewalSetup({
           <input
             {...props}
             type="date"
+            required
             min={earliestChargeOn}
             value={nextChargeOn}
             onChange={(event) => setNextChargeOn(event.target.value)}
@@ -156,13 +160,19 @@ export function RenewalSetup({
         )}
       </Field>
 
-      <p className="renewal-setup__total">
-        CalDART will charge <strong className="mono">{formatCents(chargeCents)}</strong> on{' '}
-        {formatDate(nextChargeOn)}, and each year after that. We will email you fourteen days before
-        every charge.
-      </p>
+      {needsChargeDate ? null : (
+        <p className="renewal-setup__total">
+          CalDART will charge <strong className="mono">{formatCents(chargeCents)}</strong> on{' '}
+          {formatDate(nextChargeOn)}, and each year after that. We will email you fourteen days
+          before every charge.
+        </p>
+      )}
 
-      {needsContribution ? (
+      {needsChargeDate ? (
+        <p className="renewal-setup__blocked" role="status">
+          Choose the day of the first charge.
+        </p>
+      ) : needsContribution ? (
         <p className="renewal-setup__blocked" role="status">
           Choose a contribution to charge each year.
         </p>

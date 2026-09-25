@@ -1,7 +1,7 @@
 /** The dates the renewal screens offer, and the day they warn about. */
 import { describe, expect, it } from 'vitest';
 
-import { defaultChargeDate, isAfterExpiry, todayIso } from './chargeDate';
+import { defaultChargeDate, isAfterExpiry, notBeforeToday, todayIso } from './chargeDate';
 
 describe('todayIso', () => {
   it('writes the reader’s own day as the date box wants it', () => {
@@ -32,6 +32,20 @@ describe('defaultChargeDate', () => {
     expect(
       defaultChargeDate({ isLifetime: false, expiresOn: '2026-01-31' }, new Date(2026, 8, 24)),
     ).toBe('2026-09-24');
+  });
+});
+
+describe('notBeforeToday', () => {
+  it('keeps a day still to come, which is the day the authority carries', () => {
+    expect(notBeforeToday('2027-03-12', new Date(2026, 8, 24))).toBe('2027-03-12');
+  });
+
+  it('answers today for a day already gone by, which the box would refuse', () => {
+    expect(notBeforeToday('2026-01-31', new Date(2026, 8, 24))).toBe('2026-09-24');
+  });
+
+  it('answers today for an authority with no charge waiting at all', () => {
+    expect(notBeforeToday(null, new Date(2026, 8, 24))).toBe('2026-09-24');
   });
 });
 
