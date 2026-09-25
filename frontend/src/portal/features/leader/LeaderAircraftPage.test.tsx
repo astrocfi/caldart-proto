@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
@@ -85,6 +85,22 @@ describe('LeaderAircraftPage', () => {
 
     expect(await screen.findByText('NOT INSURED')).toBeInTheDocument();
     expect(screen.getByText('Coverage has expired')).toBeInTheDocument();
+  });
+
+  it('says INSURED with a warning when the policy expires soon', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-09-24T12:00:00Z'));
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(
+          makeDetail({ insurance_is_current: true, insurance_expiration: '2026-10-10' }),
+        ),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?n_number=N172SP' });
+
+    expect(await screen.findByText('INSURED')).toBeInTheDocument();
+    expect(screen.getByText('Coverage expires soon')).toBeInTheDocument();
   });
 
   it('says NOT INSURED when there is no policy at all', async () => {

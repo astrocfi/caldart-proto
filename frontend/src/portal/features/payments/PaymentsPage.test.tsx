@@ -8,9 +8,9 @@ import { HttpResponse, http } from 'msw';
 import type { RequestHandler } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { PaymentSummary } from '@/portal/api/types';
+import type { MembershipStatus, PaymentSummary } from '@/portal/api/types';
 import { makePaymentSummary, makePaymentsConfig } from '@test/fixtures/payments';
-import { API, CURRENT_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
+import { API, CURRENT_MEMBERSHIP, LIFETIME_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { PaymentsPage } from './PaymentsPage';
@@ -19,19 +19,19 @@ function mount({
   payments = [],
   years = [],
   extra = [],
+  membership = CURRENT_MEMBERSHIP,
 }: {
   payments?: PaymentSummary[];
   years?: number[];
   /** Handlers that take precedence over the ones below, for the failure cases. */
   extra?: RequestHandler[];
+  membership?: MembershipStatus;
 } = {}) {
   server.use(
     ...extra,
-    signedInAs(makeUser()),
+    signedInAs(makeUser({ membership })),
     http.get(`${API}/payments/config`, () => HttpResponse.json(makePaymentsConfig())),
-    http.get(`${API}/me/membership`, () =>
-      HttpResponse.json({ ...CURRENT_MEMBERSHIP, history: [] }),
-    ),
+    http.get(`${API}/me/membership`, () => HttpResponse.json({ ...membership, history: [] })),
     http.get(`${API}/me/payments`, () => HttpResponse.json(payments)),
     http.get(`${API}/me/payments/statements`, () => HttpResponse.json({ years })),
   );
@@ -46,6 +46,27 @@ function card(heading: string) {
 }
 
 describe('PaymentsPage', () => {
+  it('tells a member with a dated term the lede is about renewal', async () => {
+    mount();
+
+    expect(
+      await screen.findByText(
+        'Your receipts, your contribution statements, and whether CalDART renews your membership for you.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('tells a life member the lede is about their contribution, not a renewal', async () => {
+    mount({ membership: LIFETIME_MEMBERSHIP });
+
+    expect(
+      await screen.findByText(
+        'Your receipts, your contribution statements, and whether CalDART takes your contribution for you.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/renews your membership/)).not.toBeInTheDocument();
+  });
+
   it('lists a payment with what it bought and a link to its receipt', async () => {
     mount({ payments: [makePaymentSummary({ id: 414, plan: 'Annual', kind: 'both' })] });
 

@@ -33,3 +33,14 @@ export function automaticKindLabel(kind: MandateKind): string {
 export function automaticCardTitle(isLifetime: boolean): string {
   return isLifetime ? 'Automatic contribution' : 'Automatic renewal';
 }
+
+/**
+ * The Payments page's lede: what the screen covers, in reading order.
+ *
+ * A life member's membership never runs out, so the last clause names the
+ * contribution CalDART takes for them rather than a renewal they will not get.
+ */
+export function paymentsPageLede(isLifetime: boolean): string {
+  const authority = isLifetime ? 'takes your contribution' : 'renews your membership';
+  return `Your receipts, your contribution statements, and whether CalDART ${authority} for you.`;
+}
