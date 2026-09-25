@@ -31,8 +31,10 @@ Features
 - **Payments.** Stripe (card, Apple Pay, Google Pay, Link) and PayPal, plus a
   mock provider for demonstrations and tests, with optional donations at
   checkout and month-by-month reporting.
-- **Reminders.** Scheduled renewal email at 60, 30, and 7 days before expiry,
-  on the day, and 30 days after.
+- **Reminders.** Scheduled renewal email at five stages: two months before
+  expiry, a month before, in the last week, once it has run out, and once a
+  month later — each stage a span of the calendar, so every member reaches it
+  whichever day their term ends.
 - **Reports.** Membership and aircraft exports as CSV and PDF, payment
   exports as CSV, all with the same filters as the screen you exported them
   from.

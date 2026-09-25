@@ -49,7 +49,7 @@ describe('KIND_LABELS', () => {
       t60: '60 days before',
       t30: '30 days before',
       t7: '7 days before',
-      expired: 'Expiry day',
+      expired: 'Expired',
       post30: '30 days after',
     });
   });
@@ -106,7 +106,7 @@ describe('ReminderLog', () => {
       '60 days before',
       '30 days before',
       '7 days before',
-      'Expiry day',
+      'Expired',
       '30 days after',
     ]);
   });

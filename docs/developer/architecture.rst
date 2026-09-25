@@ -557,8 +557,11 @@ There is no task queue, worker process or scheduler daemon.  Work runs
 inside a request or a management command, and mail is sent synchronously by
 whichever one causes it.
 
-**Renewal reminders.**  ``send_renewal_reminders`` emails members 60, 30, and
-7 days before their membership expires, on the day, and 30 days after.  It
+**Renewal reminders.**  ``send_renewal_reminders`` emails members at five
+stages around expiry — two months before, a month before, in the last week,
+once the term has run out, and once a month later — each stage a span of expiry
+dates rather than one date, so every term passes through it (:ref:`the spans
+<reminders-stages>`).  It
 records every message in ``ReminderLog``, one row per user, term, and kind,
 so a second run sends nothing twice, and it marks lapsed terms expired;
 lifetime members are skipped.  ``deploy/systemd/caldart-reminders.timer``

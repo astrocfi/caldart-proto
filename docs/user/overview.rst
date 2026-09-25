@@ -59,7 +59,7 @@ does not replace the first term; it adds another one after it.
           NoMembership -> Life [label="buy the Life plan"];
 
           subgraph cluster_reminders {
-              label="Renewal email, sent once per term and kind";
+              label="Renewal email, sent once per term and stage";
               fontname="Helvetica";
               fontsize=9;
               style=dashed;
@@ -67,11 +67,11 @@ does not replace the first term; it adds another one after it.
               node [shape=box, style="rounded", fontsize=9];
               edge [color="gray50"];
 
-              T60 [label="60 days before"];
-              T30 [label="30 days before"];
-              T7 [label="7 days before"];
-              TEnd [label="the day it ends"];
-              TPost [label="30 days after"];
+              T60 [label="31 to 60 days before"];
+              T30 [label="8 to 30 days before"];
+              T7 [label="1 to 7 days before"];
+              TEnd [label="the day it ends,\lor up to 6 days after\l"];
+              TPost [label="30 to 60 days after"];
 
               T60 -> T30 -> T7 -> TEnd -> TPost;
           }
@@ -125,13 +125,13 @@ does not replace the first term; it adds another one after it.
                                                       | closes            |<--' term starts
                                                       '-------------------'    today
 
-      Renewal email, sent once per term and kind, each linking to the
+      Renewal email, sent once per term and stage, each linking to the
       renewal page:
 
-        60 days before  ->  30 days before  ->  7 days before  ->
-        the day it ends (you are still current that day; the term
-        becomes Expired the next morning)  ->
-        30 days after
+        31 to 60 days before  ->  8 to 30 days before  ->
+        1 to 7 days before  ->  the day it ends, or up to 6 days after
+        (you are still current on the end date itself; the term becomes
+        Expired the next morning)  ->  30 to 60 days after
 
       "Expiring soon" and "Life member" are drawn dashed above because neither
       is a state of its own: the first is the portal's warning inside Current,
@@ -177,9 +177,12 @@ What the site does about expiry
 -------------------------------
 
 A nightly scan does two things: it marks terms whose end date has passed as
-expired, and it sends the renewal emails.  You get one 60 days before your term
-ends, one at 30 days, one at 7 days, one on the day it ends, and one 30 days
-after it has lapsed.
+expired, and it sends the renewal emails.  There are five, each covering a
+stretch of the calendar rather than a single day: one two months before your
+term ends, one a month before, one in the last week, one once it has run out,
+and one a month later.  Because each is a stretch, you reach every one of them
+whichever day you joined — a membership bought three weeks before it expires
+still brings the last two.
 
 Each email is sent once per term, so a scan that runs twice in a day does not
 mail you twice, and renewing stops the rest of the series.  Life members,

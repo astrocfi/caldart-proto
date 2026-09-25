@@ -87,7 +87,7 @@ all call it.  In order:
 
 1. **Expire lapsed terms.**  Every ``Membership`` that is still ``active`` with
    an ``ends_on`` in the past is flipped to ``expired``.  This runs first so
-   that the ``post30`` cohort is honestly labeled.
+   that the ``post30`` stage is honestly labeled.
 2. **Walk the five stages in order.**  For each, select the memberships whose
    ``ends_on`` falls in that stage's span (:ref:`reminders-stages`), excluding
    canceled ones.  Lifetime terms have no ``ends_on`` at all, so they never
@@ -263,8 +263,9 @@ pass through one of them between two runs.  Keep the cadence daily, and let
 subject to ``SUBJECTS`` in ``apps/reminders/services.py``, give it an entry in
 ``POST_EXPIRY_REACH_DAYS`` if it sits at or after expiry, add the two
 templates, and edit the migration for the new choice.  Adding a stage before
-expiry narrows the span of the stage nearer expiry, since the spans tile.  On the frontend, add
-the kind to the ``ReminderKind`` union in ``frontend/src/portal/api/types.ts``,
+expiry narrows the span of the stage nearer expiry, since the spans tile.  On
+the frontend, add the kind to the ``ReminderKind`` union in
+``frontend/src/portal/api/types.ts``,
 then a label to ``KIND_LABELS`` and an entry to ``KIND_OPTIONS`` in
 ``frontend/src/portal/features/system/ReminderLog.tsx`` — ``KIND_LABELS``
 names the kind in the log's table, and ``KIND_OPTIONS`` is what puts it in the

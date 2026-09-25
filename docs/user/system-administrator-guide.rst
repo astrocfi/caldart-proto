@@ -121,10 +121,9 @@ When you do want to run it by hand:
 1. Leave **Dry run (send nothing)** ticked the first time.  It reports what
    *would* go out without sending anything or recording anything.
 2. Press **Run now**.  The result reads, for example, "Would send 4 emails,
-   skipped 2", and under it the reasons: already sent, the member has renewed,
-   their membership renews itself, they hold a lifetime membership, their
-   account is deactivated, or there is no address on file.  A count of sends
-   that failed appears with them when any did.
+   skipped 2."  Skipped means already sent, or the member has renewed, or their
+   membership renews itself, or they hold a lifetime membership, or their
+   account is deactivated, or there is no address on file.
 3. If the numbers look right and you have a reason to send now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
 

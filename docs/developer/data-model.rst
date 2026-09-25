@@ -1194,11 +1194,10 @@ The invariant is a single constraint::
 so a second run writes nothing, and the log row is written inside the same
 transaction as the send — a failure rolls both back rather than recording an
 email that never left.  The reminder is then still due, and a later run retries
-it for as long as the term stays in that kind's window — the rest of the three
-days, so a failure on the window's last day is the end of it.  ``expired``
-matches its own day alone, so a failed one is never retried.
+it for as long as the term stays in that stage's span.
 
-``kind`` and its offset in days from the membership's ``ends_on``:
+``kind`` and its offset in days from the membership's ``ends_on``, with the span
+of expiry dates it covers on a scan run on day D:
 
 .. list-table::
    :header-rows: 1
@@ -1209,23 +1208,25 @@ matches its own day alone, so a failed one is never retried.
      - Sent when
    * - ``t60``
      - -60
-     - the term ends in 58 to 60 days
+     - the term ends between D+31 and D+60
    * - ``t30``
      - -30
-     - the term ends in 28 to 30 days
+     - the term ends between D+8 and D+30
    * - ``t7``
      - -7
-     - the term ends in 5 to 7 days
+     - the term ends between D+1 and D+7
    * - ``expired``
      - 0
-     - the term ends today
+     - the term ended between D-6 and D
    * - ``post30``
      - +30
-     - the term ended 30 to 32 days ago
+     - the term ended between D-60 and D-30
 
-Every kind but ``expired`` matches a three-day window ending at its own date,
-so a run the daily timer missed still catches the cohort it stepped over; the
-unique constraint keeps the overlap from sending twice.  Lifetime members are
+Each kind is a stage covering a span of the calendar rather than one date, so
+every term passes through it whichever day it ends; the spans come from
+``apps.reminders.services.stage_span`` and never overlap, and the unique
+constraint keeps a term that sits in one stage for days from being written to
+twice (:ref:`reminders-stages`).  Lifetime members are
 skipped, as are deactivated accounts,
 accounts with no email address, and members whose unbroken coverage now runs
 past the term in question — which is what stops an early renewal being nagged

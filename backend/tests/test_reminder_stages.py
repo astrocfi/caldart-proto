@@ -13,10 +13,13 @@ from datetime import date, timedelta
 
 import pytest
 from django.core.mail import EmailMessage, EmailMultiAlternatives
+from pytest_django.fixtures import Settings
 
+from apps.cms.models import SiteSettings
 from apps.members.models import Membership, MembershipPlan
 from apps.reminders.models import ReminderKind
 from apps.reminders.services import KIND_ORDER, send_renewal_reminders, stage_span
+from tests.conftest import Golden
 from tests.factories import MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -230,6 +233,31 @@ def test_the_expired_body_counts_the_days_since_the_term_ran_out(
     send_renewal_reminders(today=TODAY)
 
     assert "3 days ago" in mailoutbox[0].body
+
+
+@pytest.fixture
+def named_site(settings: Settings, site_settings: SiteSettings) -> None:
+    """Pin the organization name, the contact address and the site URL in the emails."""
+    settings.SITE_URL = "https://caldart.example.org/"
+    site_settings.org_name = "The California DART Network"
+    site_settings.contact_email = "info@caldart.example.org"
+    site_settings.save()
+
+
+def test_the_late_expired_text_body_matches_the_document_recorded_for_it(
+    annual_plan: MembershipPlan,
+    mailoutbox: list[EmailMessage],
+    named_site: None,
+    golden: Golden,
+) -> None:
+    """A term that ran out three days ago renders the whole recorded plain-text body."""
+    membership = term_ending(annual_plan, -3)
+    membership.user.first_name = "Marta"
+    membership.user.save(update_fields=["first_name"])
+
+    send_renewal_reminders(today=TODAY)
+
+    golden("reminder-expired-days-ago.txt", str(mailoutbox[0].body))
 
 
 def test_the_expired_body_says_one_day_in_the_singular(

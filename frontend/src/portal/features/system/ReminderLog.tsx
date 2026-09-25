@@ -20,7 +20,7 @@ export const KIND_LABELS: Record<ReminderKind, string> = {
   t60: '60 days before',
   t30: '30 days before',
   t7: '7 days before',
-  expired: 'Expiry day',
+  expired: 'Expired',
   post30: '30 days after',
 };
 
