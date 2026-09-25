@@ -11,7 +11,6 @@ from apps.darts.models import (
     AIRPORT_IDENTIFIER_RE,
     AIRPORT_IDENTIFIERS_MESSAGE,
     MAX_AIRPORT_IDENTIFIERS,
-    MAX_DART_CONTACTS,
     Dart,
     DartContact,
     split_airport_identifiers,
@@ -48,6 +47,18 @@ class DartContactSerializer(serializers.ModelSerializer[DartContact]):
         return normalized
 
 
+class DartAdminContactSerializer(DartContactSerializer):
+    """One person on a DART as the account administrator edits them.
+
+    The public fields, plus ``receives_roster``: whether the person is sent the
+    team's roster.  The tick is the administrator's business, so the public
+    catalog leaves it out.
+    """
+
+    class Meta(DartContactSerializer.Meta):
+        fields = [*DartContactSerializer.Meta.fields, "receives_roster"]
+
+
 class DartSerializer(serializers.ModelSerializer[Dart]):
     """``GET /darts`` -- the public DART catalog, with the people who run each team."""
 
@@ -71,11 +82,14 @@ class DartRefSerializer(serializers.ModelSerializer[Dart]):
 class DartAdminSerializer(serializers.ModelSerializer[Dart]):
     """``GET/POST /admin/darts`` and ``GET/PATCH/DELETE /admin/darts/{id}``.
 
-    ``contacts`` is written with the DART: the list given replaces the list
-    stored, because that is how the screen edits it -- five rows, saved
-    together.  ``member_count`` and ``page_count`` say what a deletion would
-    leave behind: the members whose profile names this DART, and the website
-    pages linked to it.
+    ``contacts`` is written with the DART: the list given, of any length,
+    replaces the list stored, because that is how the screen edits it -- every
+    row, saved together.  ``member_count`` and ``page_count`` say what a
+    deletion would leave behind: the members whose profile names this DART, and
+    the website pages linked to it.  ``roster_recipients`` counts the people
+    ticked to receive the roster who have an email address, and
+    ``roster_sent_at`` is when the last roster went out (null when none has);
+    both are read-only.
     """
 
     #: Named here for its message: "This field may not be blank." tells an
@@ -98,9 +112,10 @@ class DartAdminSerializer(serializers.ModelSerializer[Dart]):
             "required": "Give the DART at least one airport.",
         },
     )
-    contacts = DartContactSerializer(many=True, required=False)
+    contacts = DartAdminContactSerializer(many=True, required=False)
     member_count = serializers.IntegerField(read_only=True)
     page_count = serializers.IntegerField(read_only=True)
+    roster_recipients = serializers.SerializerMethodField()
 
     class Meta:
         model = Dart
@@ -113,7 +128,10 @@ class DartAdminSerializer(serializers.ModelSerializer[Dart]):
             "contacts",
             "member_count",
             "page_count",
+            "roster_recipients",
+            "roster_sent_at",
         ]
+        read_only_fields = ["roster_sent_at"]
 
     def validate_airport_identifiers(self, value: str) -> str:
         """The airports this DART flies from, as ``"CCR, C83"``.
@@ -140,13 +158,13 @@ class DartAdminSerializer(serializers.ModelSerializer[Dart]):
             raise serializers.ValidationError(AIRPORT_IDENTIFIERS_MESSAGE)
         return ", ".join(airports)
 
-    def validate_contacts(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """At most ``MAX_DART_CONTACTS`` people, because this is not a roster."""
-        if len(value) > MAX_DART_CONTACTS:
-            raise serializers.ValidationError(
-                f"A DART may list at most {MAX_DART_CONTACTS} people."
-            )
-        return value
+    def get_roster_recipients(self, dart: Dart) -> int:
+        """How many of ``dart``'s people are ticked to receive the roster and have an email.
+
+        Counted from the contacts themselves rather than annotated on the
+        queryset, so the answer to a save counts the people that save wrote.
+        """
+        return sum(1 for contact in dart.contacts.all() if contact.receives_roster and contact.email)
 
     def create(self, validated_data: dict[str, Any]) -> Dart:
         """Create the DART and its people together."""
@@ -176,6 +194,7 @@ class DartAdminSerializer(serializers.ModelSerializer[Dart]):
 
 
 __all__ = [
+    "DartAdminContactSerializer",
     "DartAdminSerializer",
     "DartContactSerializer",
     "DartRefSerializer",
