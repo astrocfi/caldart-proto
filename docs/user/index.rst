@@ -18,6 +18,7 @@ before a flight, and administering accounts, content, and the system itself.
    :caption: For members
 
    member-guide
+   payments
    aircraft
 
 .. toctree::
@@ -27,7 +28,7 @@ before a flight, and administering accounts, content, and the system itself.
    dart-leader-guide
    user-administrator
    account-administrator-guide
-   payments
+   treasurer-guide
    website-administrator-guide
    system-administrator-guide
 

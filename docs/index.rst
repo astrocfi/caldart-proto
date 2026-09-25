@@ -35,6 +35,8 @@ around, then read the guide for what you do:
      - :doc:`user/dart-leader-guide`
    * - A user administrator
      - :doc:`user/user-administrator`
+   * - A treasurer
+     - :doc:`user/treasurer-guide`
    * - An account administrator
      - :doc:`user/account-administrator-guide`
    * - A website administrator

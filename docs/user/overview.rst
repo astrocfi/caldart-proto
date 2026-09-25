@@ -218,6 +218,8 @@ Where to go next
      - :doc:`dart-leader-guide`
    * - Look after accounts, roles, and membership terms
      - :doc:`user-administrator`, :doc:`account-administrator-guide`
+   * - Look after the money: payments, refunds, reconciliation, and reports
+     - :doc:`treasurer-guide`
    * - Edit the public site
      - :doc:`website-administrator-guide`
    * - Back up, restore, or check the health of the system

@@ -35,8 +35,8 @@ Three rules are enforced by the server, not just hidden in the interface:
 * **You cannot change the email address or the Active box of an account that
   holds a role you do not hold.**  Any role counts, not just the administrative
   ones: a user administrator may move a plain member's address, or another user
-  administrator's, but not a DART leader's, a website administrator's, an
-  account administrator's or a system administrator's.  Names are not covered:
+  administrator's, but not a DART leader's, a treasurer's, a website
+  administrator's, an account administrator's or a system administrator's.  Names are not covered:
   you can correct anybody's spelling.
 
 The last of those judges the save in front of it, not the person making it.
@@ -222,10 +222,11 @@ When something goes wrong
 
 **"You cannot change the email address of an account that holds roles you do not hold."**
    The account carries a role you do not have — ``dart_leader``,
-   ``website_admin``, ``account_admin``, or ``system_admin`` — and moving an
+   ``treasurer``, ``website_admin``, ``account_admin``, or ``system_admin`` —
+   and moving an
    address is enough to take an account over, so the server reserves it for
-   somebody who already holds every role that account holds.  On the first
-   three, grant yourself what is missing: tick the role in the Roles section of
+   somebody who already holds every role that account holds.  On all but
+   the last, grant yourself what is missing: tick the role in the Roles section of
    your own record, save, and make the change.  Only ``system_admin`` is beyond
    you, so an account holding it — including one carrying Django superuser
    access without the role — needs a system administrator to make the change.
