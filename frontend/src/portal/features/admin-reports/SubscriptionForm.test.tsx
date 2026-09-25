@@ -67,6 +67,28 @@ describe('SubscriptionForm', () => {
     expect(within(bar).getByLabelText('Status')).toBeInTheDocument();
   });
 
+  it("offers the email log's purposes in its Purpose filter", async () => {
+    server.use(
+      ...subscriptionHandlers({
+        reports: [
+          ...REPORTS,
+          { slug: 'emails', title: 'Email log', choosable: true, periods: false },
+        ],
+      }),
+    );
+    const handleDone = vi.fn();
+    renderWithProviders(<SubscriptionForm onDone={handleDone} />);
+
+    await chooseReport('Email log');
+
+    const bar = screen.getByRole('search', { name: 'Report filters' });
+    const offered = within(bar)
+      .getAllByRole('option')
+      .filter((option) => option.closest('select') === within(bar).getByLabelText('Purpose'))
+      .map((option) => option.textContent);
+    expect(offered).toEqual(['Any purpose', 'Receipt', 'Password reset']);
+  });
+
   it('offers the column chooser for a report whose columns can be chosen', async () => {
     renderForm();
 
