@@ -206,7 +206,7 @@ describe('LeaderSearchPage', () => {
     expect(await screen.findByText(/Nobody matches that/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Check N172SP/ })).toHaveAttribute(
       'href',
-      '/leader/aircraft?n_number=N172SP',
+      '/leader/aircraft?aircraft=N172SP',
     );
   });
 

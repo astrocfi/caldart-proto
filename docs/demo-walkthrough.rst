@@ -230,10 +230,10 @@ airplane for us today?" in one screen.*
    medical, or check a member who has a lapsed one.  The band turns **NO-GO**
    and states the reasons — *"Medical expired"*, *"Membership expired"* —
    in the order a leader would say them out loud.
-6. Follow **Aircraft check** (``/portal/leader/aircraft``) and enter a
-   registration, e.g. ``N419JM``.  You get the airplane's insurance card and
-   a list of the members who fly it, each with their own membership and
-   medical currency.
+6. Follow **Aircraft check** (``/portal/leader/aircraft``), type a
+   registration, e.g. ``N419JM``, and tap the result.  You get the airplane's
+   insurance card and a list of the members who fly it, each with their own
+   membership and medical currency.
 
 **What success looks like.**  The subject of the card is in the query string,
 so a card can be reloaded, backed out of, or sent to another leader as a link.

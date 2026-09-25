@@ -84,7 +84,8 @@ the member is IFR rated, and any ratings they have listed.  It does not feed
 the go/no-go verdict.
 
 **Aircraft** lists every airplane on the member's profile with its own
-insurance chip:
+insurance chip, or says "No aircraft on this member's profile." when there are
+none:
 
 ======================  =========================================================
 Chip                    Meaning
@@ -102,13 +103,22 @@ them without leaving the card.
 Checking an aircraft on its own
 ===============================
 
-**Aircraft check** (``/portal/leader/aircraft``) takes a tail number and shows
-one card: **INSURED** or **NOT INSURED**, the carrier, the liability limits per
-occurrence and per person, the hull value, the expiry date, the owner, when the
-record was last written and by whom, and every member who lists that airplane on
-their profile with their own membership and medical currency.  The policy number
-is on the record but not on this card; an account administrator can read it out
-of the register.
+**Aircraft check** (``/portal/leader/aircraft``) works the way the member check
+does: one box, **Search by N-number**, that searches the aircraft register as
+you type, with the results listed underneath it.  Each result is one line: the
+N-number, the make and model, and **GO** or **NO-GO** at the far end for its
+insurance — **GO** while a policy is current, including one about to expire.
+There is no button to press; tap a result to open its card, and **Back to
+search** returns to the list.
+
+The card shows **INSURED** or **NOT INSURED**, the carrier, the liability
+limits per occurrence and per person, the hull value, the expiry date, the
+owner, when the record was last written and by whom, and every member who lists
+that airplane on their profile with their own membership and medical currency.
+The policy number is on the record but not on this card; an account
+administrator can read it out of the register.  The address of the card ends in
+``?aircraft=`` and the N-number, so it survives a reload and can be sent to
+another leader.
 
 **Last updated** is the date of the last write to the register record, with the
 name of whoever made it — "2026/09/01 by Dana Fiske".  A record nobody has
@@ -118,14 +128,14 @@ last written two years ago is worth a phone call.
 
 Use it when the airplane in front of you is not the one on the member's
 profile — a club airplane, or one they have just started flying.  As on the
-member search, you can type the registration however you like, and aircraft
-are suggested underneath the box as you type: a make, a model, or an owner's
-name finds them too, so a half-remembered tail number is enough.  Tap one to
-open its card.
+member search, you can type the registration however you like, and a make, a
+model, or an owner's name finds the airplane too, so a half-remembered tail
+number is enough.
 
-If the registration is not in the register at all, the card says so.  Ask the
-pilot to add the airplane from **My aircraft** in their portal, or ask an
-account administrator to add it to the register.
+If nothing in the register matches, the list says so.  Ask the pilot to add
+the airplane from **My aircraft** in their portal, or ask an account
+administrator to add it to the register.  The same advice appears when a link
+names a registration the register has never seen.
 
 
 The member list

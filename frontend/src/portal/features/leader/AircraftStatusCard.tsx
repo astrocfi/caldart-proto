@@ -4,7 +4,7 @@
  */
 import type { JSX } from 'react';
 
-import type { AircraftDetail } from '@/portal/api/types';
+import type { AircraftDetail, AircraftSummary } from '@/portal/api/types';
 import { DateText } from '@/portal/components/DateText';
 import { Money } from '@/portal/components/Money';
 import { StatusChip } from '@/portal/components/StatusChip';
@@ -30,6 +30,17 @@ const VERDICT: Record<StatusTone, Verdict> = {
   none: { word: 'NOT INSURED', why: 'No policy on file', go: false },
 };
 
+/**
+ * Whether an aircraft's insurance lets it fly: a current policy, including one
+ * about to expire.  The results list and the card's band read the same answer.
+ */
+export function isInsured(
+  aircraft: Pick<AircraftSummary, 'insurance_is_current' | 'insurance_expiration'>,
+  today?: Date,
+): boolean {
+  return VERDICT[insuranceTone(aircraft, today)].go;
+}
+
 export interface AircraftStatusCardProps {
   aircraft: AircraftDetail;
   today?: Date;
@@ -37,8 +48,7 @@ export interface AircraftStatusCardProps {
 
 /** The aircraft half of the leader check: insurance status and the pilots who fly it. */
 export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps): JSX.Element {
-  const tone = insuranceTone(aircraft, today);
-  const verdict = VERDICT[tone];
+  const verdict = VERDICT[insuranceTone(aircraft, today)];
   // Only a leader or administrator is sent the pilot list.
   const pilots = aircraft.pilots ?? [];
 
