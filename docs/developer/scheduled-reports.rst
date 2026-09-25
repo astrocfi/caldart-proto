@@ -68,15 +68,21 @@ The recipient is named by address when the subscription is set up:
   confirming that the address, outside CalDART, may receive the report.  The
   subscription is then bound to the bare address.
 
-The rule is checked again at every send.  An account that has lost the role, or
-been deactivated, is skipped as ``not_permitted`` and the subscription is
-paused; resuming it is refused until the account may read the report again.
+The rule is checked again at every send, against the recipient as it is that
+day.  A subscription bound to an account is sent to the account's current
+address, and its ``recipient_email`` follows it.  A bare address that an
+account has since taken is bound to that account, so its roles decide from then
+on.  An account that has lost the role, or been deactivated, or that took a
+bare address without a role that may read the report, is skipped as
+``not_permitted`` and the subscription is paused; resuming it is refused until
+the account may read the report again.
 
 The email
 ---------
 
 The subject is ``CalDART report: <title> (<Month D, YYYY>)``.  The body names
-the report, the filters, the schedule, who set it up, and the attached files,
+the report, the filters the report applied (a ``period`` reads as the dates it
+resolved to, as the PDF's subtitle prints it), the schedule, who set it up, and the attached files,
 and says that an account administrator or a treasurer can change or stop it.
 The email log records it under the purpose ``scheduled_report``, with the
 recipient's account when there is one.
@@ -136,7 +142,15 @@ returns a ``ReportRun``:
 
 One recipient's problem never stops the run.  A dry run writes nothing — no
 email, no pause, no stamp, and no date moves on — and lists exactly the emails
-a live run would send.
+a live run would send: it builds each subscription's report, so one whose
+stored filters no longer build is counted in ``failed`` there too.
+
+Each subscription and each DART is sent inside its own transaction that holds
+its row (``select_for_update(skip_locked=True)``) and checks again that it is
+still due.  When two runs overlap — the timer and ``POST /system/reports/run``,
+say — the one that takes a row sends it and the other passes it by, so nobody
+is sent the same report twice.  **Send now** takes no such turn: it sends
+whatever the date, by design.
 
 The run ends with one ``reports.run`` audit line carrying ``dry_run``,
 ``sent``, ``skipped`` and ``failed``; a **Send now** writes one ``report.send``
@@ -171,8 +185,9 @@ Tests
 
 ``backend/tests/test_scheduled_reports.py`` covers the schedule over every
 cadence, the run on a frozen clock (what is due and nothing else, moving on,
-a refused send left due, a recipient who lost the role paused, both formats),
-the dry run, the audit line, the command, the timer and the run endpoint.
+a refused send left due, a report the stored filters no longer build left due,
+a recipient who lost the role paused, the recipient's address brought up to
+date, both formats), the dry run, two runs at once, the audit line, the command, the timer and the run endpoint.
 ``backend/tests/test_dart_rosters.py`` covers the roster's due rule across
 months and years, ``no_recipients`` and ``no_email``, the attachment, and the
 two roster endpoints; ``backend/tests/test_report_subscriptions.py`` the
