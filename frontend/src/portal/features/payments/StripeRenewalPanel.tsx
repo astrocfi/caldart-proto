@@ -22,6 +22,7 @@ import {
   appearanceFromTokens,
   stripeFor,
 } from '@/portal/features/checkout/StripePanel';
+import type { RenewalSetupFields } from './api';
 import { renewalSetupRequest, startRenewalSetup, useConfirmRenewal } from './api';
 import type { RenewalPanelProps } from './types';
 
@@ -40,8 +41,8 @@ function returnUrl(): string {
  * identity for as long as the JSON does, which is what lets the effect depend on
  * it and nothing else.
  */
-function useSettledSetup(plan: string | null, contributionCents: number): RenewalSetupRequest {
-  const wanted = JSON.stringify(renewalSetupRequest(plan, contributionCents, 'stripe'));
+function useSettledSetup(fields: Omit<RenewalSetupFields, 'provider'>): RenewalSetupRequest {
+  const wanted = JSON.stringify(renewalSetupRequest({ ...fields, provider: 'stripe' }));
   const settled = useDebounced(wanted, AMOUNT_DEBOUNCE_MS);
   return useMemo(() => JSON.parse(settled) as RenewalSetupRequest, [settled]);
 }
@@ -55,13 +56,14 @@ export function StripeRenewalPanel({
   publishableKey,
   plan,
   contributionCents,
+  nextChargeOn,
   onDone: handleDone,
 }: StripeRenewalPanelProps): JSX.Element {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const appearance = useMemo(() => appearanceFromTokens(), []);
-  const settled = useSettledSetup(plan, contributionCents);
+  const settled = useSettledSetup({ plan, contributionCents, nextChargeOn });
 
   useEffect(() => {
     const controller = new AbortController();

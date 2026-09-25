@@ -16,6 +16,7 @@ import type { RenewalPanelProps } from './types';
 export function MockRenewalPanel({
   plan,
   contributionCents,
+  nextChargeOn,
   onDone: handleDone,
 }: RenewalPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,9 @@ export function MockRenewalPanel({
   async function save(): Promise<void> {
     setError(null);
     try {
-      await start.mutateAsync(renewalSetupRequest(plan, contributionCents, 'mock'));
+      await start.mutateAsync(
+        renewalSetupRequest({ plan, contributionCents, provider: 'mock', nextChargeOn }),
+      );
       await confirm.mutateAsync({ setup_intent_id: '', setup_token: '' });
       handleDone();
     } catch (caught) {

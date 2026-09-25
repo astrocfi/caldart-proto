@@ -1,5 +1,5 @@
 /** Shapes shared by the automatic-renewal setup flow and its provider panels. */
-import type { MandateProvider } from '@/portal/api/types';
+import type { IsoDate, MandateProvider } from '@/portal/api/types';
 
 /** Every setup panel is handed the plan and contribution the member chose. */
 export interface RenewalPanelProps {
@@ -9,6 +9,8 @@ export interface RenewalPanelProps {
    */
   plan: string | null;
   contributionCents: number;
+  /** The day the saved method is first charged on, as the member chose it. */
+  nextChargeOn: IsoDate;
   /** Called once the mandate is active. */
   onDone: () => void;
 }
