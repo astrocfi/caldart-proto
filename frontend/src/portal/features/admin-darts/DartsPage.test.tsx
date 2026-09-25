@@ -662,4 +662,116 @@ describe('DartsPage', () => {
       expect(patched?.contacts?.map((one) => one.receives_roster)).toEqual([false, true]),
     );
   });
+
+  it('says a phone number and an email address are both optional', async () => {
+    const user = userEvent.setup();
+    stubList();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+
+    expect(
+      screen.getByText(
+        'Shown on the team’s page in the order you put them in. A phone number and an email address are both optional.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('greys out Add a person while the last person has no name', async () => {
+    const user = userEvent.setup();
+    stubList();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+
+    expect(screen.getByRole('button', { name: 'Add a person' })).toBeDisabled();
+  });
+
+  it('says why Add a person is greyed out', async () => {
+    const user = userEvent.setup();
+    stubList();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+
+    expect(screen.getByRole('button', { name: 'Add a person' })).toHaveAttribute(
+      'title',
+      'Give the person above a name first',
+    );
+  });
+
+  it('offers Add a person once the last person has a name', async () => {
+    const user = userEvent.setup();
+    stubList();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    await user.type(screen.getByLabelText('Name'), 'Helen Marchetti');
+
+    expect(screen.getByRole('button', { name: 'Add a person' })).toBeEnabled();
+  });
+
+  it('greys out Add a person again when the last name is only spaces', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart({ contacts: makePeople(2) })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Add a person' }));
+    await user.type(screen.getAllByLabelText('Name')[2] as HTMLElement, '   ');
+
+    expect(screen.getByRole('button', { name: 'Add a person' })).toBeDisabled();
+  });
+
+  it('offers Add a person on a DART with nobody listed', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart({ contacts: [] })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByRole('button', { name: 'Add a person' })).toBeEnabled();
+  });
+
+  it.each([['Move person 2 up'], ['Move person 2 down']])(
+    'cannot reorder a person with no name (%s)',
+    async (control) => {
+      const user = userEvent.setup();
+      stubList([makeDart({ contacts: makePeople(3) })]);
+      renderPage();
+
+      await user.click(await screen.findByRole('button', { name: 'Edit' }));
+      await user.clear(screen.getAllByLabelText('Name')[1] as HTMLElement);
+
+      expect(screen.getByRole('button', { name: control })).toBeDisabled();
+    },
+  );
+
+  it.each([
+    ['the person above cannot move down past it', 'Move person 1 down'],
+    ['the person below cannot move up past it', 'Move person 3 up'],
+  ])('keeps a nameless person in place: %s', async (_, control) => {
+    const user = userEvent.setup();
+    stubList([makeDart({ contacts: makePeople(3) })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.clear(screen.getAllByLabelText('Name')[1] as HTMLElement);
+
+    expect(screen.getByRole('button', { name: control })).toBeDisabled();
+  });
+
+  it.each([['Move person 2 up'], ['Move person 2 down']])(
+    'leaves named people free to move past each other (%s)',
+    async (control) => {
+      const user = userEvent.setup();
+      stubList([makeDart({ contacts: makePeople(4) })]);
+      renderPage();
+
+      await user.click(await screen.findByRole('button', { name: 'Edit' }));
+      await user.clear(screen.getAllByLabelText('Name')[3] as HTMLElement);
+
+      expect(screen.getByRole('button', { name: control })).toBeEnabled();
+    },
+  );
 });
