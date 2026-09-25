@@ -477,3 +477,79 @@ new unless a spec needs it.
   {"wave": 4, "package": "closeout", "model": "sonnet", "branch": "chore/reports-closeout", "database": "caldart_reports_closeout", "e2e_port": 8176, "closes": [155, 207], "refs": [], "after": ["chooser-sets", "reports-screen"]}
 ]
 ```
+
+## 9. Orchestrator notes after wave 1 (binding for waves 2 to 4)
+
+Wave 1 merged as #236 (dart-people), #235 (filter-bar) and #237 (report-core). What they
+changed against the plan's file names, and what a later package must pick up:
+
+- **Filter modules moved.** `apps/members/api/admin_filters.py` is now
+  `apps/members/filters.py`, and `apps/aircraft/api/filters.py` is `apps/aircraft/filters.py`
+  (domain code may not import `apps.<x>.api`). `member-access` edits the county filter in
+  `apps/members/filters.py`. The payment query serializers live in `apps/payments/reports.py`
+  and `apps/payments/reconciliation.py`; `RECONCILIATION_REPORT` is declared in
+  `reconciliation.py`.
+- **`ReportSummary` is declared twice.** `frontend/src/portal/reports/types.ts` (filter-bar)
+  and `frontend/src/portal/api/types.ts` (report-core, contract-tested). `list-pages` deletes
+  the copy in `reports/types.ts` and imports the one in `api/types.ts`.
+- **The finance payment list is broken on `main`** until `list-pages` merges: it still loads
+  `/admin/payments/columns`, which is gone, so its rows never render and the refund and
+  ledger e2e flows fail. `list-pages` is the first wave-2 PR to merge; `member-access` and
+  `reports-backend` are rebased onto it before their CI counts. A red End-to-end check on a
+  wave-2 PR whose failures are only `finance.spec.ts`, `finance-reports.spec.ts` and
+  `payment-reports.spec.ts` is expected until then; any other red is the package's own.
+- **Old msw handlers.** `src/test/handlers.ts` still serves `/admin/members/columns` and
+  `/admin/aircraft/columns` for the pages that still call them; `member-access` removes the
+  members one and `list-pages` the aircraft one when they move the pages.
+- **The members definition** in `reports/definitions.ts` already carries `county` and an
+  `is_active` toggle (`Active accounts only`, which the backend filter supports); the
+  members page renders whatever the definition says.
+- **`FilterBar` extras.** `FilterField.isDollars` (a number typed in whole dollars, sent as
+  cents) and a `label` prop naming the search landmark exist; use them rather than adding
+  another kind.
+- **Money cells.** `caldart/reports.py` has a `Money` cell type and `cell_text`, so a money
+  column prints plain numbers in CSV and dollars in PDF; a new money column uses it.
+- **`receives_roster`** is on `DartAdminContactSerializer` and the `AdminDartContact` type,
+  not on the public contact; `roster_recipients` is a serializer method field.
+- **Filenames.** Every report file is `<stem>-<YYYY-MM-DD>.<ext>`; the reconciliation range
+  and the contributions year are in the PDF subtitle, not the name.
+- **The treasurer guide.** The "For treasurers and account administrators" section of
+  `docs/user/payments.rst` now lives in `docs/user/treasurer-guide.rst` (PR #239);
+  `payments.rst` is the member's page. A package that owns `payments.rst#filters` or
+  `payments.rst#saved-columns` edits the same-named section of `treasurer-guide.rst`
+  instead, and a rebase that meets the move re-applies its edit there.
+
+## 10. Orchestrator notes after wave 2 (binding for waves 3 and 4)
+
+Wave 2 merged as #238 (list-pages), #241 (member-access) and #240 (reports-backend), after
+#239 moved the treasurer's material to `docs/user/treasurer-guide.rst`.
+
+- **Shared list position.** `components/useUrlListPosition.ts` holds `orderingFor`, `sortFor`
+  and the page-from-address reading every list page uses; `DataTable` has a controlled
+  `sort` prop. A page that keeps sort or page in the address uses these, never a copy.
+- **`ReportSlug`** lives in `frontend/src/portal/reports/types.ts` and `api/types.ts` imports
+  it type-only; `ReportSummary` is only in `api/types.ts`.
+- **Subscriptions API as shipped.** `POST /reports/subscriptions` validates `filters` and
+  `columns` by building the report once (errors are keyed under `filters`); a `PATCH` that
+  carries neither is not re-validated, so a broken subscription can still be paused. The
+  sender refreshes a bound recipient's address at send time and binds a bare address that
+  an account has since taken. Each due subscription and DART is claimed with
+  `select_for_update(skip_locked=True)`, so **Send now** and the timer never double-send.
+  `Dart.roster_recipients()` is a model method; `emails/report_base.html` is the shared
+  shell the two report templates extend.
+- **Members list.** `MemberFilters` and the page's own `filterParams` are gone; the keys
+  come from `REPORTS.members`. `POST /admin/members` stays `IsAccountAdmin` by method on
+  the shared list view.
+- **For reports-screen.** The system-administrator guide still says "Five panels"; the
+  Scheduled reports panel makes it six, and that package owns the wording.
+- **For closeout.** `reports/definitions.test.ts` still documents the member filter params
+  without `county` and cites the old `admin_filters.py` path; the `.aircraft-filters` rules
+  in `features/aircraft/aircraft.css` are unused; `components/DataTable.test.tsx` still
+  carries an `/admin/members/export.csv` fixture string; `data-model.rst`'s `dart_leader`
+  row should say the role also reads the member list and its report.
+- **For closeout, after wave 3.** The `system` and `admin-reports` features import from
+  each other (`ReportsPanel` reads `ReportRunOutcome` from `admin-reports`, which reads
+  `runSummary` from `system/RemindersPanel`, and `admin-reports/labels.ts` reads
+  `skippedBreakdown` from `system`). Move `runSummary` and `skippedBreakdown` next to
+  `RunActionsTable` in `components/` (a `components/runSummary.ts`), so each feature imports
+  only from `components/`. `RunActionsTable` has an optional `detailHeader` prop.

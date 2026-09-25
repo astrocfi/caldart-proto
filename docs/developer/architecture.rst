@@ -347,8 +347,8 @@ never one on the same layer or a higher one:
 Layer                                       Apps
 ==========================================  ==================================
 0, the foundation                           ``caldart.models``,
-                                            ``caldart.reports``
-                                            , ``caldart.exceptions``, and
+                                            ``caldart.reports``,
+                                            ``caldart.exceptions``, and
                                             ``caldart.pagination``, which
                                             import no app at all
 1                                           ``accounts``

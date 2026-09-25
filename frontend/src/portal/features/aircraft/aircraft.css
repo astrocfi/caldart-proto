@@ -85,23 +85,6 @@
 }
 
 /* ------------------------------------------------------------- register */
-.aircraft-filters {
-  display: grid;
-  gap: 0 var(--space-4);
-  grid-template-columns: 1fr;
-  width: 100%;
-}
-
-@media (min-width: 46rem) {
-  .aircraft-filters {
-    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-  }
-}
-
-.aircraft-filters .field {
-  margin-bottom: var(--space-3);
-}
-
 .aircraft-pager {
   display: flex;
   align-items: center;

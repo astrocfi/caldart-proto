@@ -488,7 +488,8 @@ descriptions live in ``apps/accounts/roles.py``:
        members-only content while the membership is current
    * - ``dart_leader``
      - \+ look up any member and see membership, medical, certificate, and
-       aircraft insurance currency
+       aircraft insurance currency; read the full member list, filterable by
+       DART or county, and download its report
    * - ``user_admin``
      - \+ list users, assign roles, activate or deactivate accounts, trigger
        password resets
