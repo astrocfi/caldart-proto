@@ -123,14 +123,15 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
 
       {attached.length > 0 ? (
         <p className="muted aircraft-attached">
-          {attached.map((aircraft) => aircraft.n_number).join(', ')} already on your list.
+          {joinNNumbers(attached.map((aircraft) => aircraft.n_number))}{' '}
+          {attached.length === 1 ? 'is' : 'are'} already on your list.
         </p>
       ) : null}
 
       {adding ? null : (
         <p className="cluster aircraft-add">
           <Button variant="secondary" onClick={handleStartAdding}>
-            Add an aircraft
+            Add a new aircraft
           </Button>
           <span className="muted">Not in the register? Add it yourself.</span>
         </p>
@@ -146,6 +147,15 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
       ) : null}
     </Card>
   );
+}
+
+/**
+ * Join registrations into a phrase: one alone, two with `and`, more with commas
+ * and a serial comma before the final `and`.
+ */
+function joinNNumbers(nNumbers: string[]): string {
+  if (nNumbers.length < 3) return nNumbers.join(' and ');
+  return `${nNumbers.slice(0, -1).join(', ')}, and ${nNumbers.at(-1)}`;
 }
 
 interface NewAircraftFormProps {

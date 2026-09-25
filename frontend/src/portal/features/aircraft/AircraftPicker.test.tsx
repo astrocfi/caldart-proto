@@ -143,7 +143,42 @@ describe('AircraftPicker', () => {
     expect(await screen.findByText('N9021K')).toBeInTheDocument();
     const list = screen.getByRole('list');
     expect(within(list).queryByText('N172SP')).not.toBeInTheDocument();
-    expect(screen.getByText(/already on your list/i)).toBeInTheDocument();
+    expect(screen.getByText('N172SP is already on your list.')).toBeInTheDocument();
+  });
+
+  it('names two attached aircraft with "and" between them', async () => {
+    const user = setupUser();
+    server.use(
+      ...searchOnly([
+        makeAircraft({ id: 1, n_number: 'N172SP' }),
+        makeAircraft({ id: 2, n_number: 'N9021K' }),
+      ]),
+    );
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} excludeIds={[1, 2]} />);
+    await search(user, /Search the aircraft register/i, 'cessna');
+
+    expect(
+      await screen.findByText('N172SP and N9021K are already on your list.'),
+    ).toBeInTheDocument();
+  });
+
+  it('separates three attached aircraft with commas and a final "and"', async () => {
+    const user = setupUser();
+    server.use(
+      ...searchOnly([
+        makeAircraft({ id: 1, n_number: 'N172SP' }),
+        makeAircraft({ id: 2, n_number: 'N9021K' }),
+        makeAircraft({ id: 3, n_number: 'N4321Q' }),
+      ]),
+    );
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} excludeIds={[1, 2, 3]} />);
+    await search(user, /Search the aircraft register/i, 'cessna');
+
+    expect(
+      await screen.findByText('N172SP, N9021K, and N4321Q are already on your list.'),
+    ).toBeInTheDocument();
   });
 
   it('leaves out-of-service aircraft out of the fuzzy search', async () => {
@@ -188,7 +223,7 @@ describe('AircraftPicker', () => {
     renderWithProviders(<AircraftPicker onSelect={() => {}} excludeIds={[1]} />);
     await search(user, /Search the aircraft register/i, 'n172sp');
 
-    expect(await screen.findByText(/already on your list/i)).toBeInTheDocument();
+    expect(await screen.findByText('N172SP is already on your list.')).toBeInTheDocument();
     expect(screen.queryByText(/No aircraft matches that/i)).not.toBeInTheDocument();
   });
 
@@ -200,7 +235,7 @@ describe('AircraftPicker', () => {
     await search(user, /Search the aircraft register/i, 'n4321q');
 
     expect(await screen.findByText(/No aircraft matches that/i)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Add an aircraft/i }));
+    await user.click(screen.getByRole('button', { name: /Add a new aircraft/i }));
 
     // The registration the member typed is carried into the form, normalized.
     expect(screen.getByLabelText(/^N-number/)).toHaveValue('N4321Q');
@@ -214,7 +249,7 @@ describe('AircraftPicker', () => {
     await search(user, /Search the aircraft register/i, 'n4321q');
 
     const empty = (await screen.findByText(/No aircraft matches that/i)).closest('.empty-state');
-    expect(screen.getAllByRole('button', { name: /Add an aircraft/i })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /Add a new aircraft/i })).toHaveLength(1);
     expect(empty).not.toBeNull();
     expect(within(empty as HTMLElement).queryByRole('button')).not.toBeInTheDocument();
   });
@@ -239,7 +274,7 @@ describe('AircraftPicker', () => {
     await search(user, /Search the aircraft register/i, 'cessna');
 
     const list = await screen.findByRole('list');
-    const add = screen.getByRole('button', { name: /Add an aircraft/i });
+    const add = screen.getByRole('button', { name: /Add a new aircraft/i });
     expect(list.compareDocumentPosition(add)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
@@ -276,7 +311,7 @@ describe('AircraftPicker', () => {
     const handleSelect = vi.fn();
     renderWithProviders(<AircraftPicker onSelect={handleSelect} />);
     await search(user, /Search the aircraft register/i, 'n4321q');
-    await user.click(await screen.findByRole('button', { name: /Add an aircraft/i }));
+    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
 
     await user.type(screen.getByLabelText(/^Make/), 'Cirrus');
     await user.type(screen.getByLabelText(/^Model/), 'SR22');
@@ -301,7 +336,7 @@ describe('AircraftPicker', () => {
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n4321q');
-    await user.click(await screen.findByRole('button', { name: /Add an aircraft/i }));
+    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
     expect(await screen.findByText(/Enter the make/i)).toBeInTheDocument();
@@ -323,7 +358,7 @@ describe('AircraftPicker', () => {
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n172sp');
-    await user.click(await screen.findByRole('button', { name: /Add an aircraft/i }));
+    await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await user.type(screen.getByLabelText(/^Make/), 'Cessna');
     await user.type(screen.getByLabelText(/^Model/), '172S');
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
