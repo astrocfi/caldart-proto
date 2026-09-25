@@ -8,7 +8,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
-import { API_BASE, ApiError, api } from '@/portal/api/client';
+import { ApiError, api } from '@/portal/api/client';
 import type {
   Aircraft,
   AircraftChange,
@@ -16,12 +16,11 @@ import type {
   AircraftPatch,
   OwnerType,
   Paginated,
-  ReportColumn,
 } from '@/portal/api/types';
 
 export type InsuranceState = 'current' | 'expired' | 'missing';
 
-/** Every filter the list endpoint and both exports understand. */
+/** Every filter the list endpoint understands. */
 export interface AircraftFilters {
   search?: string;
   make?: string;
@@ -42,49 +41,6 @@ export function aircraftQuery(filters: AircraftFilters): Record<string, string |
     query[key] = value as string | number;
   }
   return query;
-}
-
-export interface AircraftExportOptions {
-  /** The chosen column keys; absent or empty leaves the server's defaults. */
-  columns?: string[];
-}
-
-/**
- * A download URL for the CSV/PDF exports.
- *
- * It carries the filters the register is showing and the columns the chooser is
- * showing, so the file that downloads holds the same aircraft and the same
- * columns the administrator chose rather than a fixed report.
- */
-export function aircraftExportUrl(
-  format: 'csv' | 'pdf',
-  filters: AircraftFilters,
-  options: AircraftExportOptions = {},
-): string {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(aircraftQuery(filters))) {
-    if (key === 'page') continue;
-    params.append(key, String(value));
-  }
-  if (options.columns !== undefined && options.columns.length > 0) {
-    params.set('columns', options.columns.join(','));
-  }
-  const query = params.toString();
-  return `${API_BASE}/admin/aircraft/export.${format}${query ? `?${query}` : ''}`;
-}
-
-/**
- * Every column the register exports can carry, in export order.
- *
- * The registry never changes while the portal is open, so it is fetched once
- * and kept.
- */
-export function useAircraftReportColumns(): UseQueryResult<ReportColumn[]> {
-  return useQuery({
-    queryKey: [AIRCRAFT_KEY, 'columns'],
-    queryFn: () => api.get<ReportColumn[]>('/admin/aircraft/columns'),
-    staleTime: Infinity,
-  });
 }
 
 /**

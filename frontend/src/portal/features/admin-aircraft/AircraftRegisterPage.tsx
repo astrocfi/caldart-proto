@@ -11,53 +11,52 @@ import type { JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
-import type { Aircraft, AircraftPatch } from '@/portal/api/types';
+import type { Aircraft, AircraftPatch, OwnerType } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import { DataTable } from '@/portal/components/DataTable';
 import type { Column, SortDirection } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
-import { Field } from '@/portal/components/Field';
+import { FilterBar } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
-import { useDebounced } from '@/portal/components/useDebounced';
+import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { InsuranceDot } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
-import type { AircraftFilters } from '@/portal/features/aircraft/api';
-import {
-  aircraftExportUrl,
-  useAircraftList,
-  useAircraftReportColumns,
-  useCreateAircraft,
-} from '@/portal/features/aircraft/api';
-import {
-  OWNER_TYPES,
-  OWNER_TYPE_LABELS,
-  emptyAircraftValues,
-} from '@/portal/features/aircraft/form';
+import type { AircraftFilters, InsuranceState } from '@/portal/features/aircraft/api';
+import { useAircraftList, useCreateAircraft } from '@/portal/features/aircraft/api';
+import { OWNER_TYPE_LABELS, emptyAircraftValues } from '@/portal/features/aircraft/form';
+import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
+import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import '@/portal/features/aircraft/aircraft.css';
 
 const PAGE_SIZE = 25;
 
-const INSURANCE_OPTIONS = [
-  { value: '', label: 'Any insurance state' },
-  { value: 'current', label: 'Current' },
-  { value: 'expired', label: 'Expired' },
-  { value: 'missing', label: 'Not on file' },
-] as const;
+const FILTER_FIELDS = listFilters(REPORTS.aircraft);
+const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
-const EXPIRING_OPTIONS = [
-  { value: '', label: 'Any expiry' },
-  { value: '30', label: 'Expiring in 30 days' },
-  { value: '60', label: 'Expiring in 60 days' },
-  { value: '90', label: 'Expiring in 90 days' },
-] as const;
+/**
+ * The order and the page live in the address beside the filters, each through
+ * its own `useUrlFilters`, so a change of either filter or order returns the
+ * register to its first page.
+ */
+const ORDERING_KEYS = ['ordering'];
+const PAGE_KEYS = ['page'];
+
+const DEFAULT_ORDERING = 'n_number';
 
 /** DataTable reports a column key; the API wants an `ordering` term. */
 export function orderingFor(key: string, direction: SortDirection): string {
   return direction === 'desc' ? `-${key}` : key;
+}
+
+/** The column and direction an `ordering` term sorts by, for the table's arrow. */
+function sortFor(ordering: string): { key: string; direction: SortDirection } {
+  return ordering.startsWith('-')
+    ? { key: ordering.slice(1), direction: 'desc' }
+    : { key: ordering, direction: 'asc' };
 }
 
 /** `/admin/aircraft` page: filter, sort, export, and add aircraft register records. */
@@ -65,40 +64,36 @@ export function AircraftRegisterPage(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [search, setSearch] = useState('');
-  const [make, setMake] = useState('');
-  const [ownerType, setOwnerType] = useState('');
-  const [insurance, setInsurance] = useState('');
-  const [expiring, setExpiring] = useState('');
-  const [ordering, setOrdering] = useState('n_number');
-  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
+  const [sort, setSort] = useUrlFilters(ORDERING_KEYS);
+  const [paging, setPaging] = useUrlFilters(PAGE_KEYS);
   const [adding, setAdding] = useState(false);
 
-  const debouncedSearch = useDebounced(search.trim());
-  const debouncedMake = useDebounced(make.trim());
+  const ordering = sort.ordering || DEFAULT_ORDERING;
+  const page = Number(paging.page) || 1;
 
-  const filters: AircraftFilters = {
-    search: debouncedSearch,
-    make: debouncedMake,
-    owner_type: ownerType as AircraftFilters['owner_type'],
-    insurance: insurance as AircraftFilters['insurance'],
-    expiring_within: expiring,
+  const query: AircraftFilters = {
+    search: filters.search,
+    make: filters.make,
+    owner_type: filters.owner_type as OwnerType | '',
+    insurance: filters.insurance as InsuranceState | '',
+    expiring_within: filters.expiring_within,
     ordering,
   };
 
-  const list = useAircraftList({ ...filters, page });
+  const list = useAircraftList({ ...query, page });
   const create = useCreateAircraft();
 
-  const registry = useAircraftReportColumns();
+  const registry = useReportColumns('aircraft');
   const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
   // Null means "whatever the registry calls default": the chooser has not been
   // touched, so it must follow a registry that is still loading.
   const [chosen, setChosen] = useState<string[] | null>(null);
   const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
+  const exportParams = { ...filters, ordering, columns: chosenKeys };
 
-  const reset = (change: () => void): void => {
-    change();
-    setPage(1);
+  const setPage = (next: number): void => {
+    setPaging({ page: next > 1 ? String(next) : '' });
   };
 
   const rows = list.data?.results ?? [];
@@ -198,82 +193,20 @@ export function AircraftRegisterPage(): JSX.Element {
         rowKey={(row) => row.id}
         caption={`${count} aircraft`}
         isLoading={list.isPending}
-        onSortChange={(key, direction) => reset(() => setOrdering(orderingFor(key, direction)))}
-        initialSort={{ key: 'n_number', direction: 'asc' }}
-        exportCsvUrl={aircraftExportUrl('csv', filters, { columns: chosenKeys })}
-        exportPdfUrl={aircraftExportUrl('pdf', filters, { columns: chosenKeys })}
+        onSortChange={(key, direction) => setSort({ ordering: orderingFor(key, direction) })}
+        initialSort={sortFor(ordering)}
+        exportCsvUrl={reportExportUrl('aircraft', 'csv', exportParams)}
+        exportPdfUrl={reportExportUrl('aircraft', 'pdf', exportParams)}
         emptyTitle="No aircraft match these filters"
         emptyDescription="Clear a filter, or add the aircraft to the register."
         filters={
           <>
-            <div className="aircraft-filters">
-              <Field label="Search" hint="N-number, make, model, or owner.">
-                {(field) => (
-                  <input
-                    {...field}
-                    type="search"
-                    value={search}
-                    onChange={(event) => reset(() => setSearch(event.target.value))}
-                  />
-                )}
-              </Field>
-              <Field label="Make">
-                {(field) => (
-                  <input
-                    {...field}
-                    type="search"
-                    value={make}
-                    onChange={(event) => reset(() => setMake(event.target.value))}
-                  />
-                )}
-              </Field>
-              <Field label="Owner type">
-                {(field) => (
-                  <select
-                    {...field}
-                    value={ownerType}
-                    onChange={(event) => reset(() => setOwnerType(event.target.value))}
-                  >
-                    <option value="">Any owner type</option>
-                    {OWNER_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {OWNER_TYPE_LABELS[type]}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
-              <Field label="Insurance">
-                {(field) => (
-                  <select
-                    {...field}
-                    value={insurance}
-                    onChange={(event) => reset(() => setInsurance(event.target.value))}
-                  >
-                    {INSURANCE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
-              <Field label="Expiring within">
-                {(field) => (
-                  <select
-                    {...field}
-                    value={expiring}
-                    onChange={(event) => reset(() => setExpiring(event.target.value))}
-                  >
-                    {EXPIRING_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
-            </div>
+            <FilterBar
+              fields={FILTER_FIELDS}
+              values={filters}
+              onChange={(next) => setFilters(next)}
+              label="Filter aircraft"
+            />
             {registry.isError ? (
               <p className="muted">
                 The columns could not be loaded; the downloads carry the default columns.
@@ -296,7 +229,7 @@ export function AircraftRegisterPage(): JSX.Element {
             variant="quiet"
             small
             disabled={!list.data?.previous}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            onClick={() => setPage(page - 1)}
           >
             ← Previous
           </Button>
@@ -307,7 +240,7 @@ export function AircraftRegisterPage(): JSX.Element {
             variant="quiet"
             small
             disabled={!list.data?.next}
-            onClick={() => setPage((current) => current + 1)}
+            onClick={() => setPage(page + 1)}
           >
             Next →
           </Button>
