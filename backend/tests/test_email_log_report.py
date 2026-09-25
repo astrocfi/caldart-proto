@@ -42,13 +42,6 @@ def pacific(year: int, month: int, day: int, hour: int = 9, minute: int = 0) -> 
     return dt.datetime(year, month, day, hour, minute, tzinfo=PACIFIC)
 
 
-@pytest.fixture
-def system_admin_client(api_client: APIClient, system_admin: User) -> APIClient:
-    """A DRF client signed in as the system administrator."""
-    api_client.force_login(system_admin)
-    return api_client
-
-
 def column(rows: list[list[str]], label: str) -> list[str]:
     """The cells under ``label`` in a CSV read by ``read_csv``, header excluded."""
     index = rows[0].index(label)
