@@ -10,10 +10,10 @@ the reminder logic all stay here, in one place.
 /system/renewals/run`` and the systemd timer all call.  It does three things,
 in this order, for every mandate that is ``active``:
 
-1. **Notice.**  A term running out within :data:`NOTICE_DAYS` of its charge date
-   gets a :class:`~apps.payments.models.RenewalAttempt` scheduled
-   :data:`CHARGE_LEAD_DAYS` before it expires, and the member is emailed the
-   amount, the date and how to turn it off.
+1. **Notice.**  A mandate whose stored ``next_charge_on`` falls within
+   :data:`NOTICE_DAYS` gets a :class:`~apps.payments.models.RenewalAttempt`
+   scheduled for that day, and the member is emailed the amount, the date and how
+   to turn it off.
 2. **Card expiry.**  A card that expires before that charge earns one warning.
 3. **Charge.**  Every attempt due today or earlier is charged off-session.  A
    success activates the next term and emails the member; a decline records the
@@ -69,12 +69,6 @@ from caldart.runs import CHARGE_KIND, RunAction, action_lines
 
 log = logging.getLogger(__name__)
 
-#: How many days before a term's ``ends_on`` the renewal is charged.  One: a
-#: member is never charged for the coming year while a whole year of coverage
-#: still remains.  A decline is therefore retried after the term has run out,
-#: and the term the late charge buys starts on the day the money arrives.
-CHARGE_LEAD_DAYS = 1
-
 #: How many days before the charge the advance warning goes out.
 NOTICE_DAYS = 14
 
@@ -85,10 +79,10 @@ RETRY_OFFSETS: tuple[int, ...] = (1, 3, 7)
 #: How close to a card's expiry the member is warned that it will not last.
 CARD_EXPIRY_WARNING_DAYS = 30
 
-#: How long after a term ran out a scan may still renew it.  A scanner that was
-#: down over a charge date catches up inside this window; past it the lapse is
-#: too long for an unannounced charge to be the right thing to do, and the
-#: mandate is paused instead.
+#: How long after the stored charge date a scan may still take it.  A scanner
+#: that was down over a charge date catches up inside this window; past it the
+#: lapse is too long for an unannounced charge to be the right thing to do, and
+#: the mandate is paused instead.
 CATCH_UP_DAYS = 30
 
 #: What the member is told when their membership had lapsed too long to renew.
@@ -98,6 +92,16 @@ LAPSED_TOO_LONG_MESSAGE = (
 
 #: The field an input refusal about automatic renewal is keyed by.
 AUTO_RENEW_FIELD = "auto_renew"
+
+#: The field a refusal about the chosen charge date is keyed by.
+NEXT_CHARGE_FIELD = "next_charge_on"
+
+#: What a member is told when they ask to be charged on a day that has gone.
+PAST_CHARGE_DATE_MESSAGE = "The next charge cannot be in the past."
+
+#: The key on a pending mandate's ``raw`` that records that the member named the
+#: charge date themselves, so the checkout that activates it leaves the date alone.
+CHOSEN_DATE_KEY = "next_charge_on_chosen"
 
 #: Why a mandate produced no charge on a given scan.
 SKIP_REASONS: tuple[str, ...] = (
@@ -185,11 +189,6 @@ LIFE_MEMBER_CONTRIBUTION_MESSAGE = "A contribution to charge each year is needed
 def payments_url() -> str:
     """Absolute link to the portal's payments screen, which every email carries."""
     return f"{settings.SITE_URL.rstrip('/')}/portal/payments"
-
-
-def charge_date_for(ends_on: date) -> date:
-    """The day a renewal is charged: :data:`CHARGE_LEAD_DAYS` before ``ends_on``."""
-    return ends_on - timedelta(days=CHARGE_LEAD_DAYS)
 
 
 def card_expires_on(mandate: RenewalMandate) -> date | None:
@@ -293,29 +292,34 @@ def next_anniversary(anchor: date) -> date:
         return date(anchor.year + 1, 2, 28)
 
 
-def contribution_charge_date(mandate: RenewalMandate, today: date) -> date:
-    """The day a contribution-only mandate is next charged.
+def default_charge_date(user: User, today: date) -> date:
+    """The day a mandate for ``user`` is charged on when they name none themselves.
 
-    One year after the local date of the last charge, or of the day the mandate
-    was created when nothing has been charged yet.  An anniversary that has
-    already gone by -- because the scanner was not running on it -- is answered
-    as ``today``, since that is the day the next scan takes it.
+    The ``ends_on`` of their current dated term, so a renewal falls on the day the
+    membership runs out and the coverage carries straight on.  One year from
+    ``today`` for a life member, whose membership never runs out and whose
+    authority is a yearly contribution.  ``today`` for a member who holds neither,
+    since there is no later day to wait for.
     """
-    charged = mandate.last_charged_at or mandate.created_at
-    return max(next_anniversary(timezone.localtime(charged).date()), today)
+    term = term_to_renew(user, today)
+    if term is not None and term.ends_on is not None:
+        return term.ends_on
+    if lifetime_term(user) is not None:
+        return next_anniversary(today)
+    return today
 
 
-def next_charge_on(mandate: RenewalMandate, today: date | None = None) -> date | None:
+def charge_date(mandate: RenewalMandate, today: date | None = None) -> date | None:
     """The day ``mandate`` will next be charged, as the portal shows it.
 
     ``None`` for a mandate that is not ``active``, and a date for every mandate
-    that is: a scheduled attempt's own date when one is waiting; otherwise, for a
-    contribution-only mandate, :func:`contribution_charge_date`; otherwise the
-    charge date of the member's current dated term; and otherwise ``today``,
-    because the term has run out and the next scan is what charges it.
+    that is: the earliest ``scheduled`` attempt's own date when one is waiting, and
+    otherwise the stored ``next_charge_on``, or ``today`` when that has already
+    gone by -- because the next scan is what takes a charge the scanner missed.
 
-    The attempts are walked in Python, so a caller that has prefetched
-    ``attempts`` costs no query per mandate.
+    ``today`` defaults to the current local date.  The attempts are walked in
+    Python, so a caller that has prefetched ``attempts`` costs no query per
+    mandate.
     """
     if mandate.status != MandateStatus.ACTIVE:
         return None
@@ -328,12 +332,7 @@ def next_charge_on(mandate: RenewalMandate, today: date | None = None) -> date |
     ]
     if len(scheduled) > 0:
         return min(scheduled)
-    if mandate.plan_id is None:
-        return contribution_charge_date(mandate, today)
-    term = term_to_renew(mandate.user, today)
-    if term is None or term.ends_on is None:
-        return today
-    return charge_date_for(term.ends_on)
+    return max(mandate.next_charge_on, today)
 
 
 def renewal_amount_cents(mandate: RenewalMandate) -> int:
@@ -472,6 +471,7 @@ def begin_mandate(
     plan: MembershipPlan | None,
     contribution_cents: int,
     provider: str,
+    next_charge_on: date | None = None,
 ) -> RenewalMandate:
     """Create or reset the member's ``pending`` mandate, before anything is saved.
 
@@ -480,6 +480,12 @@ def begin_mandate(
     with a pending one carrying the plan, the contribution and the provider now
     asked for, and no saved method.  It becomes ``active`` only when the method
     is confirmed, through :func:`save_method`.
+
+    ``next_charge_on`` is the day the member asked to be charged on; leaving it
+    out takes :func:`default_charge_date`.  A mandate begun at a checkout with no
+    day of its own is dated again from the term the payment buys, in
+    :func:`activate_pending_mandate`, which is what :data:`CHOSEN_DATE_KEY`
+    records.
 
     A life member's mandate carries no plan: it is a standing authority for the
     contribution alone.
@@ -493,6 +499,7 @@ def begin_mandate(
         defaults={
             "plan": renewable,
             "contribution_cents": contribution_cents,
+            "next_charge_on": next_charge_on or default_charge_date(user, timezone.localdate()),
             "provider": provider,
             "status": MandateStatus.PENDING,
             "customer_ref": "",
@@ -505,7 +512,7 @@ def begin_mandate(
             "failure_count": 0,
             "canceled_at": None,
             "canceled_by": None,
-            "raw": {},
+            "raw": {CHOSEN_DATE_KEY: True} if next_charge_on is not None else {},
         },
     )
     return mandate
@@ -547,7 +554,7 @@ def save_method(
         # record says a field has no value: it renders as `-`.
         plan=[] if mandate.plan is None else [mandate.plan.slug],
     )
-    charge_on = next_charge_on(mandate)
+    charge_on = charge_date(mandate)
     transaction.on_commit(
         lambda: send_mandate_email(mandate, "renewal_enabled", next_charge_on=charge_on)
     )
@@ -626,6 +633,10 @@ def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:
     just paid with is read back off the provider's own record of the charge.
     Returns the activated mandate, or ``None`` when the payment saved no method
     or there was no pending mandate to activate.
+
+    A mandate whose member named no charge date is dated from the term the payment
+    has just bought, so the first automatic charge falls on the day that term runs
+    out.  A date the member did choose is left exactly as they gave it.
     """
     mandate = pending_mandate_for(payment)
     if mandate is None:
@@ -638,6 +649,10 @@ def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:
             payment.provider,
         )
         return None
+    if not (mandate.raw or {}).get(CHOSEN_DATE_KEY):
+        # The term the money just bought is what the charge follows, not the one
+        # the member held when they started the checkout.
+        mandate.next_charge_on = default_charge_date(payment.user, timezone.localdate())
     return save_method(mandate, method, actor=payment.user)
 
 
@@ -809,11 +824,14 @@ def _notice(
 ) -> list[RenewalAttempt]:
     """Schedule the charge for a term running out, and email the warning.
 
-    Only an attempt that is still ``scheduled`` or has already ``succeeded``
-    stands in the way of a fresh one, so a mandate that was paused over a term and
-    then turned back on is scheduled again rather than left to lapse quietly.  An
-    attempt that is waiting but whose notice never went out -- a mail server that
-    refused it -- is written to again here.
+    A mandate carries one charge at a time, so an attempt still ``scheduled`` --
+    against this term or against the one before it, which is what a member who
+    renewed by hand leaves behind -- is the charge this run announces rather than a
+    reason to write another.  Beyond that, only an attempt that has already
+    ``succeeded`` against this very term stands in the way of a fresh one, so a
+    mandate that was paused over a term and then turned back on is scheduled again
+    rather than left to lapse quietly.  An attempt that is waiting but whose notice
+    never went out -- a mail server that refused it -- is written to again here.
 
     Returns the attempts a rehearsal would have written and that are due today,
     for the charge step to rehearse as well; a live run returns nothing, because
@@ -830,21 +848,21 @@ def _notice(
     if term is None or term.ends_on is None:
         return _catch_up(mandate, today, run, dry_run=dry_run)
     waiting = (
-        mandate.attempts.filter(
-            membership=term,
-            outcome__in=(RenewalOutcome.SCHEDULED, RenewalOutcome.SUCCEEDED),
-        )
-        .order_by("-pk")
+        mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED)
+        .order_by("scheduled_on", "pk")
         .first()
     )
-    if waiting is not None and (
-        waiting.outcome != RenewalOutcome.SCHEDULED or waiting.noticed_at is not None
-    ):
+    if waiting is None:
+        if mandate.attempts.filter(membership=term, outcome=RenewalOutcome.SUCCEEDED).exists():
+            return []
+    elif waiting.noticed_at is not None:
         return []
-    charge_on = waiting.scheduled_on if waiting is not None else charge_date_for(term.ends_on)
+    scheduled_on = charge_date(mandate, today)
+    if scheduled_on is None:
+        return []
     # A scan that was down over the charge date takes it today rather than
     # writing to the member about a date that has already gone by.
-    charge_on = max(charge_on, today)
+    charge_on = max(scheduled_on, today)
     if (charge_on - today).days > NOTICE_DAYS:
         return []
 
@@ -867,9 +885,9 @@ def _notice_contribution(
 ) -> list[RenewalAttempt]:
     """Schedule and announce the yearly charge of a contribution-only mandate.
 
-    The charge date is :func:`contribution_charge_date`, and the attempt is
-    written against the member's lifetime term, which is what their standing
-    authority sits alongside.  A member who no longer holds one is skipped as
+    The charge date is the mandate's own, and the attempt is written against the
+    member's lifetime term, which is what their standing authority sits alongside.
+    A member who no longer holds one is skipped as
     ``no_term``: there is nothing for the contribution to accompany.  An attempt
     already waiting is reused, and one whose notice the mail server refused is
     written to again here.
@@ -889,10 +907,10 @@ def _notice_contribution(
     )
     if waiting is not None and waiting.noticed_at is not None:
         return []
-    charge_on = (
-        waiting.scheduled_on if waiting is not None else contribution_charge_date(mandate, today)
-    )
-    charge_on = max(charge_on, today)
+    scheduled_on = charge_date(mandate, today)
+    if scheduled_on is None:
+        return []
+    charge_on = max(scheduled_on, today)
     if (charge_on - today).days > NOTICE_DAYS:
         return []
 
@@ -916,12 +934,14 @@ def _catch_up(
 
     Reached for a mandate whose member holds no term left to renew.  While the
     ordinary reminders are skipped for an active mandate, this is the only thing
-    that stops such a member lapsing unnoticed, so a term that ran out within
-    :data:`CATCH_UP_DAYS` is renewed here: the attempt is dated today, the notice
-    says the charge is happening today, and the charge step of the same run takes
-    it.  A term that ran out longer ago pauses the mandate and tells the member
-    why, and the ordinary reminders resume for them.
+    that stops such a member lapsing unnoticed, so a charge date missed by no more
+    than :data:`CATCH_UP_DAYS` is taken here: the attempt is dated today, the
+    notice says the charge is happening today, and the charge step of the same run
+    takes it.  A charge date missed by longer than that pauses the mandate and
+    tells the member why, and the ordinary reminders resume for them.
 
+    A charge date still further out than :data:`NOTICE_DAYS` is left for a later
+    scan: a member who chose a day beyond their expiry lapses until it comes round.
     A term that already has an attempt against it is left alone: it is on the
     retry ladder, not behind the scanner.
 
@@ -933,16 +953,21 @@ def _catch_up(
         return []
     if mandate.attempts.filter(membership=term).exists():
         return []
-    if (today - term.ends_on).days > CATCH_UP_DAYS:
+    if (today - mandate.next_charge_on).days > CATCH_UP_DAYS:
         _abandon(mandate, run, dry_run=dry_run)
+        return []
+    charge_on = max(mandate.next_charge_on, today)
+    if (charge_on - today).days > NOTICE_DAYS:
         return []
 
     run.noticed += 1
-    run.record_action("renewal_notice", mandate, on=today)
+    run.record_action("renewal_notice", mandate, on=charge_on)
     if dry_run:
-        return _rehearsed_attempt(mandate, term, today, today)
-    attempt = RenewalAttempt.objects.create(mandate=mandate, membership=term, scheduled_on=today)
-    _send_notice(mandate, attempt, today, term.ends_on, today)
+        return _rehearsed_attempt(mandate, term, charge_on, today)
+    attempt = RenewalAttempt.objects.create(
+        mandate=mandate, membership=term, scheduled_on=charge_on
+    )
+    _send_notice(mandate, attempt, charge_on, term.ends_on, today)
     return []
 
 
@@ -988,7 +1013,7 @@ def _warn_about_card(
 ) -> None:
     """Warn once that the card on file will not last until the next charge."""
     expires_on = card_expires_on(mandate)
-    charge_on = next_charge_on(mandate, today)
+    charge_on = charge_date(mandate, today)
     if expires_on is None or charge_on is None:
         return
     if expires_on >= charge_on:
@@ -1141,19 +1166,29 @@ def _finish(attempt: RenewalAttempt, outcome: str) -> None:
 
 
 def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
-    """Mark the attempt succeeded, clear the failures, and tell the member."""
+    """Mark the attempt succeeded, roll the charge date forward, and tell the member.
+
+    The mandate's stored charge date moves on a year: to the ``ends_on`` of the
+    term the charge bought for a renewal, and to the anniversary of the day the
+    charge was scheduled for a contribution, which renews no term.
+    """
     mandate = attempt.mandate
     now = timezone.now()
-    mandate.failure_count = 0
-    mandate.last_charged_at = now
-    mandate.save(update_fields=["failure_count", "last_charged_at", "updated_at"])
+    today = timezone.localdate()
 
     attempt.outcome = RenewalOutcome.SUCCEEDED
     attempt.save(update_fields=["outcome", "updated_at"])
 
-    today = timezone.localdate()
     renewed = term_to_renew(mandate.user, today)
-    charge_on = next_charge_on(mandate, today)
+    mandate.failure_count = 0
+    mandate.last_charged_at = now
+    if mandate.plan_id is None:
+        mandate.next_charge_on = next_anniversary(attempt.scheduled_on)
+    elif renewed is not None and renewed.ends_on is not None:
+        mandate.next_charge_on = renewed.ends_on
+    mandate.save(update_fields=["failure_count", "last_charged_at", "next_charge_on", "updated_at"])
+
+    charge_on = charge_date(mandate, today)
     payment = attempt.payment
     attachments: list[Attachment] = []
     if payment is not None:

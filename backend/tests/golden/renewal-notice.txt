@@ -2,7 +2,7 @@ CalDART — we will renew your membership on <CHARGE>
 
 Hello Dana,
 
-Your Annual membership runs out on <EXPIRES>. Because you asked
+Your Annual membership runs out on <CHARGE>. Because you asked
 us to renew it automatically, we will charge $45.00 to Test card ending 4242, expires 12/2030 on
 <CHARGE>, and your coverage will carry straight on.
 

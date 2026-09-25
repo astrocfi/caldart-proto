@@ -169,6 +169,10 @@ class CheckoutView(APIView):
         provider that cannot charge a saved method -- and the pending payment is
         deleted again, exactly as it is when the provider refuses to start.
 
+        ``next_charge_on`` is the day that authority first charges on, and a day
+        before today is a 400 naming ``next_charge_on``.  Left out, the first
+        charge falls on the day the term this payment buys runs out.
+
         A checkout that does *not* ask for automatic renewal throws away any
         pending mandate the member is still carrying from a checkout they
         abandoned, so no method is ever saved against a member who said no.
@@ -197,6 +201,7 @@ class CheckoutView(APIView):
                     plan=payment.plan,
                     contribution_cents=payment.contribution_cents,
                     provider=provider_slug,
+                    next_charge_on=serializer.validated_data["next_charge_on"],
                 )
             except DomainValidationError:
                 payment.delete()

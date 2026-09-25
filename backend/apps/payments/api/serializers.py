@@ -36,9 +36,10 @@ from apps.payments.reconciliation import (
     ReconciliationRow,
 )
 from apps.payments.renewals import (
+    PAST_CHARGE_DATE_MESSAGE,
     MandateKind,
+    charge_date,
     mandate_kind,
-    next_charge_on,
     renewal_amount_cents,
 )
 from apps.payments.reports import (
@@ -89,6 +90,28 @@ class PaymentsConfigSerializer(serializers.Serializer[dict[str, Any]]):
     max_contribution_cents = serializers.IntegerField()
 
 
+def no_past_charge_date(value: dt.date) -> None:
+    """Refuse a charge date that has already gone by, with a message for the member.
+
+    Raises DRF's ``ValidationError`` carrying ``PAST_CHARGE_DATE_MESSAGE``, which the
+    endpoint answers keyed by ``next_charge_on``.  Today itself is allowed, and so is
+    any day after it.
+    """
+    if value < timezone.localdate():
+        raise serializers.ValidationError(PAST_CHARGE_DATE_MESSAGE)
+
+
+def next_charge_on_field() -> serializers.DateField:
+    """The optional day a member asks to be charged on, shared by the three endpoints.
+
+    Absent or null means "leave it to the server": a new authority takes the day the
+    membership runs out, and a change leaves the stored day alone.
+    """
+    return serializers.DateField(
+        required=False, allow_null=True, default=None, validators=[no_past_charge_date]
+    )
+
+
 class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /payments/checkout``.
 
@@ -99,7 +122,9 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     ``auto_renew`` asks for the payment method to be saved and the membership
     renewed from it each year.  It is a 400 naming ``auto_renew`` for a plan that
     never expires, for a checkout that buys no plan at all, and for a provider
-    that cannot charge a saved method.
+    that cannot charge a saved method.  ``next_charge_on`` is the day that
+    authority first charges on; leaving it out takes the day the term this payment
+    buys runs out.  A day before today is a 400 naming ``next_charge_on``.
     """
 
     plan = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
@@ -108,6 +133,7 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     )
     provider = serializers.ChoiceField(choices=PaymentProvider.choices)
     auto_renew = serializers.BooleanField(required=False, default=False)
+    next_charge_on = next_charge_on_field()
 
 
 class StripeCheckoutClientSerializer(serializers.Serializer[dict[str, str]]):
@@ -551,7 +577,7 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
 
     def get_next_charge_on(self, obj: RenewalMandate) -> dt.date | None:
         """The day of the next charge, or ``None`` for a mandate that is not active."""
-        return next_charge_on(obj)
+        return charge_date(obj)
 
     def get_last_error(self, obj: RenewalMandate) -> str:
         """The reason the most recent failed charge was refused, or an empty string.
@@ -622,7 +648,9 @@ class RenewalSetupSerializer(serializers.Serializer[dict[str, Any]]):
     lifetime plan is a 400 naming ``auto_renew``.  A life member leaves ``plan``
     out and gives a ``contribution_cents`` of more than nothing, which is the
     only standing authority they can hold.  ``provider`` must be one that can
-    charge a saved method.
+    charge a saved method.  ``next_charge_on`` is the day of the first charge;
+    leaving it out takes the day the membership runs out, or one year from today for
+    a life member.  A day before today is a 400 naming ``next_charge_on``.
     """
 
     plan = serializers.CharField(required=False, allow_blank=True, default="")
@@ -630,6 +658,7 @@ class RenewalSetupSerializer(serializers.Serializer[dict[str, Any]]):
         required=False, min_value=0, max_value=MAX_CONTRIBUTION_CENTS, default=0
     )
     provider = serializers.ChoiceField(choices=MandateProvider.choices)
+    next_charge_on = next_charge_on_field()
 
 
 class StripeRenewalSetupClientSerializer(serializers.Serializer[dict[str, str]]):
@@ -697,15 +726,17 @@ class RenewalConfirmSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 class RenewalPatchSerializer(serializers.Serializer[dict[str, Any]]):
-    """``PATCH /me/renewal`` -- the plan that renews and the contribution beside it.
+    """``PATCH /me/renewal`` -- the plan, the contribution, and the day of the charge.
 
     ``plan`` is the slug of the plan to renew from now on; leaving it out leaves
     the plan alone.  A life member may not give one, since their membership does
-    not renew.
+    not renew.  ``next_charge_on`` moves the next charge; leaving it out leaves the
+    stored day alone, and a day before today is a 400 naming ``next_charge_on``.
     """
 
     plan = serializers.CharField(required=False, allow_blank=True, default="")
     contribution_cents = serializers.IntegerField(min_value=0, max_value=MAX_CONTRIBUTION_CENTS)
+    next_charge_on = next_charge_on_field()
 
 
 class RenewalStatusFilterSerializer(serializers.Serializer[dict[str, Any]]):

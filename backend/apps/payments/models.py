@@ -348,6 +348,10 @@ class RenewalMandate(TimestampedModel):
     standing authority for the contribution alone, charged once a year.  The
     provider is always one that can charge off-session -- ``stripe``, ``paypal``
     or ``mock``, never ``manual``.
+
+    ``next_charge_on`` is the day the member chose to be charged on, which
+    defaults to the day their membership runs out.  Every mandate carries one, and
+    a successful charge rolls it forward a year.
     """
 
     user = models.OneToOneField(
@@ -365,6 +369,9 @@ class RenewalMandate(TimestampedModel):
     )
     contribution_cents = models.PositiveIntegerField(
         default=0, help_text="Renewed alongside the dues."
+    )
+    next_charge_on = models.DateField(
+        help_text="The day the member chose to be charged; rolled forward after each charge.",
     )
     provider = models.CharField(max_length=12, choices=MandateProvider.choices)
     customer_ref = models.CharField(
