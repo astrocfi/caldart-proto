@@ -64,9 +64,7 @@ def audit_log(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFix
 
 def audit_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
     """Every audit message captured, in the order it was logged."""
-    return [
-        record.getMessage() for record in caplog.records if record.name == audit.LOGGER_NAME
-    ]
+    return [record.getMessage() for record in caplog.records if record.name == audit.LOGGER_NAME]
 
 
 def names(response: ApiResponse) -> list[str]:
