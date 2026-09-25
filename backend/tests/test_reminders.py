@@ -29,8 +29,8 @@ from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from apps.reminders.services import (
     ReminderRun,
     renew_url,
-    send_renewal_reminders,
     send_reminder_email,
+    send_renewal_reminders,
 )
 from tests.conftest import Golden
 from tests.factories import (

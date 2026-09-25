@@ -81,9 +81,7 @@ def refusing_mail_server(monkeypatch: pytest.MonkeyPatch) -> None:
 # --------------------------------------------------------------------------
 # The funnel writes one row
 # --------------------------------------------------------------------------
-def test_a_send_writes_exactly_one_row(
-    email_template: str, mailoutbox: list[EmailMessage]
-) -> None:
+def test_a_send_writes_exactly_one_row(email_template: str, mailoutbox: list[EmailMessage]) -> None:
     """One call to ``send_templated`` is one email and one log row."""
     send_templated(to="marta@example.org", subject="CalDART: hello", template=email_template)
 
@@ -140,9 +138,7 @@ def test_the_row_names_the_account_the_email_concerned(email_template: str) -> N
     """``user`` is the account the caller named, so the log can be read per member."""
     member = UserFactory(email="marta@example.org")
 
-    send_templated(
-        to=member.email, subject="CalDART: hello", template=email_template, user=member
-    )
+    send_templated(to=member.email, subject="CalDART: hello", template=email_template, user=member)
 
     assert EmailLog.objects.get().user == member
 
@@ -179,9 +175,7 @@ def test_a_send_without_attachments_lists_none(email_template: str) -> None:
 # --------------------------------------------------------------------------
 # A refusal is recorded and re-raised
 # --------------------------------------------------------------------------
-def test_a_refused_send_reaches_the_caller(
-    email_template: str, refusing_mail_server: None
-) -> None:
+def test_a_refused_send_reaches_the_caller(email_template: str, refusing_mail_server: None) -> None:
     """The refusal still propagates: the funnel records it, it does not swallow it."""
     with pytest.raises(smtplib.SMTPException, match="Mailbox unavailable"):
         send_templated(to="marta@example.org", subject="CalDART: hello", template=email_template)
@@ -204,9 +198,7 @@ def test_a_refused_send_still_records_what_was_attempted(
 ) -> None:
     """A failed row carries the address and the subject, so the operator can retry."""
     with pytest.raises(smtplib.SMTPException):
-        send_templated(
-            to="marta@example.org", subject="CalDART: hello", template=email_template
-        )
+        send_templated(to="marta@example.org", subject="CalDART: hello", template=email_template)
 
     row = EmailLog.objects.get()
     assert row.to_email == "marta@example.org"
@@ -231,9 +223,7 @@ def test_a_renewal_reminder_is_logged_under_its_stage(
     assert row.user == member
 
 
-def test_a_password_reset_is_logged(
-    site_settings: object, mailoutbox: list[EmailMessage]
-) -> None:
+def test_a_password_reset_is_logged(site_settings: object, mailoutbox: list[EmailMessage]) -> None:
     """The reset link is logged as ``password_reset`` against the account."""
     member = UserFactory(email="marta@example.org")
 
@@ -373,9 +363,7 @@ def test_the_purpose_filter_selects_one_kind(api_client: APIClient, system_admin
     assert [row["purpose"] for row in body["results"]] == ["receipt"]
 
 
-def test_the_status_filter_selects_the_failures(
-    api_client: APIClient, system_admin: User
-) -> None:
+def test_the_status_filter_selects_the_failures(api_client: APIClient, system_admin: User) -> None:
     """``?status=failed`` answers the refused sends alone."""
     EmailLogFactory(purpose="receipt")
     EmailLogFactory(purpose="refund", status=EmailStatus.FAILED, error="SMTPException")
@@ -433,9 +421,7 @@ def test_the_search_matches_the_address(api_client: APIClient, system_admin: Use
     assert [row["purpose"] for row in body["results"]] == ["receipt"]
 
 
-def test_the_search_matches_the_recipient_name(
-    api_client: APIClient, system_admin: User
-) -> None:
+def test_the_search_matches_the_recipient_name(api_client: APIClient, system_admin: User) -> None:
     """``?q=`` also matches the recipient account's first and last name."""
     member = UserFactory(email="mr@example.org", first_name="Marta", last_name="Reyes")
     EmailLogFactory(user=member, purpose="receipt")

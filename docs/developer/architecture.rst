@@ -233,7 +233,7 @@ manifest stays authoritative.
 The backend apps
 ================
 
-Seven apps under ``backend/apps/``, one per domain area.  The usual files
+Nine apps under ``backend/apps/``, one per domain area.  The usual files
 are ``models.py``, ``services.py``, an ``api/`` package (``urls.py``,
 ``views.py``, ``serializers.py``, ``filters.py``), ``admin.py``,
 ``reports.py``, ``seed.py``, ``management/commands/``, and ``migrations/``;
@@ -251,6 +251,11 @@ not every app needs every one.
     ``/darts`` catalog and the account administrator's ``/admin/darts``.  The
     app sits below ``members``, because a profile names a DART and a DART
     knows nothing about any member.
+``mail``
+    ``EmailLog``: one row per email the installation tried to send, written by
+    ``caldart.mail.send_templated`` after every send, successful or refused.
+    Endpoint ``GET /system/emails``.  The app holds no sender of its own, so it
+    sits below everything that mails anybody.
 ``members``
     ``MemberProfile``, ``MembershipPlan``, and ``Membership``, and the rules
     for whether a membership is current.  Endpoints: the member's own
@@ -288,7 +293,8 @@ Code that several apps share lives in the project package:
 model ``created_at`` and ``updated_at``), ``caldart/reports.py`` (the CSV and
 PDF house style, and the report column registry), ``caldart/receipts.py`` (the
 receipt and contribution-statement PDFs, both described in :doc:`reports`),
-``caldart/mail.py`` (one templated-email sender), ``caldart/org.py`` (the
+``caldart/mail.py`` (one templated-email sender, which also writes the email
+log), ``caldart/org.py`` (the
 organization's letterhead, read from the Wagtail site settings),
 ``caldart/audit.py`` (the audit log, described in :ref:`deploy-audit-log`),
 ``caldart/pagination.py`` and ``caldart/exceptions.py``.
@@ -317,12 +323,14 @@ Layer                                       Apps
                                             ``caldart.pagination``, which
                                             import no app at all
 1                                           ``accounts``
-2                                           ``members``
-3                                           ``aircraft`` and ``payments``,
+2                                           ``darts`` and ``mail``, siblings
+                                            that never import each other
+3                                           ``members``
+4                                           ``aircraft`` and ``payments``,
                                             siblings that never import each
                                             other
-4                                           ``reminders``
-5                                           ``cms`` and ``sysadmin``
+5                                           ``reminders``
+6                                           ``cms`` and ``sysadmin``
 ==========================================  ==================================
 
 Two further rules complete it:
@@ -332,15 +340,18 @@ Two further rules complete it:
   app's models, services, and serializers.
 - An upward import is allowed only inside a function, only where it breaks an
   app-level cycle, and only with a comment on the line above saying which one.
-  There are five: ``User.membership_status`` and
-  ``User.can_access_members_content`` reaching ``members``, ``delete_member``
-  reaching ``payments.models`` for the refusal sentence, and the Wagtail
-  site-settings lookups in ``accounts.services`` and ``reminders.services``.
+  There are four in the apps: ``User.membership_status`` and
+  ``User.can_access_members_content`` reaching ``members``,
+  ``accounts.services`` reaching the Wagtail site settings, and
+  ``delete_member`` reaching ``payments.models`` for the refusal sentence.
+  Three more are in the project package, which sits below every app:
+  ``caldart.org`` and ``caldart.views`` read the Wagtail site settings, and
+  ``caldart.mail`` writes the email log.
 
 ``backend/tests/test_app_layering.py`` enforces all of this with an ``ast`` pass
-over ``backend/apps`` and ``backend/caldart``.  It lists the five inline imports
-by name and fails both when an undeclared one appears and when a declared one
-stops existing.
+over ``backend/apps`` and ``backend/caldart``.  It lists every inline import by
+name and fails both when an undeclared one appears and when a declared one stops
+existing.
 
 The services layer
 ------------------

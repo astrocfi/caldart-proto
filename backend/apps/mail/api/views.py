@@ -33,10 +33,8 @@ class EmailLogFilterSet(django_filters.FilterSet):
         model = EmailLog
         fields = ["purpose", "status"]
 
-    def filter_q(
-        self, queryset: QuerySet[EmailLog], name: str, value: str
-    ) -> QuerySet[EmailLog]:
-        """Narrow ``queryset`` to rows whose address or recipient name contains ``value``."""
+    def filter_q(self, queryset: QuerySet[EmailLog], name: str, value: str) -> QuerySet[EmailLog]:
+        """Narrow ``queryset`` to rows whose address or recipient name holds ``value``."""
         return queryset.filter(
             Q(to_email__icontains=value)
             | Q(user__first_name__icontains=value)

@@ -122,9 +122,11 @@ def _record(
     # what keeps reading caldart.mail from pulling an app in.
     from apps.mail.models import EmailLog, EmailStatus
 
+    # The account is written by id: this module sits below every app, so it knows
+    # the caller passed a model and not which one.
     EmailLog.objects.create(
         to_email=to,
-        user=user,
+        user_id=None if user is None else user.pk,
         purpose=purpose,
         subject=subject,
         sent_at=timezone.now(),

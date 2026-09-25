@@ -342,6 +342,15 @@ Read it at ``GET /admin/reminders/log`` — open to ``account_admin`` as well as
 ``system_admin``, since it is a membership question as much as an operations
 one — or on either of the two portal screens that show it.
 
+Every reminder is also recorded in the email log, under the purpose
+``reminder_<kind>``, along with every other email the system sends
+(:ref:`api-email-log`).  The two logs answer different questions: the reminder
+log is the key that keeps a stage from repeating, and the email log is the record
+of the message, with its subject and whether the mail server took it.  Because
+the reminder row and the send share one transaction, a refused reminder leaves
+neither row behind and stays due; a refusal in any other email leaves a
+``failed`` row in the email log.
+
 .. _reminders-account-admin:
 
 Both screens render the same table, the component
