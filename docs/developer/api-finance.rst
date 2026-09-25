@@ -331,8 +331,11 @@ records nothing.  A body naming neither field is refused:
 
    {"non_field_errors": ["Send reconciled_on, note, or both."]}
 
-So is a ``reconciled_on`` later than today: no statement has been issued for it
-yet.
+So is a ``reconciled_on`` later than tomorrow: no statement has been issued for
+it yet.  Tomorrow itself is allowed, because the browser filling in the date
+box reads its own clock while the server keeps the organization's time zone,
+and in the evening the two can disagree by a day (``CLOCK_GRACE_DAYS`` in
+``apps/payments/dates.py``).
 
 .. code-block:: json
 
@@ -410,13 +413,15 @@ card checkout uses — which also emails the member their receipt.
 contribution.  ``method`` is ``check``, ``cash``, ``bank_transfer`` or
 ``other``.  ``reference`` is the check number and is stored as the payment's
 ``provider_ref``; it may be empty, and two payments may both leave it blank.
-``received_on`` is the day the money arrived and becomes the ledger date.
+``received_on`` is the day the money arrived and becomes the ledger date.  It
+may run one day past the organization's own date, for the same reason
+``reconciled_on`` may: a treasurer's browser can already be on tomorrow.
 
 The response is the same body as ``GET /admin/payments/{id}``, and the act is
 recorded as ``payment.record``.
 
 Statuses: **201**; **400** keyed by the field at fault — an unknown ``method``,
-a ``received_on`` in the future, a ``reference`` another recorded payment
+a ``received_on`` later than tomorrow, a ``reference`` another recorded payment
 carries, a ``plan`` that is not active, or a plan and contribution that come to
 nothing; **401** when anonymous; **403** without a finance role; **404** for an
 unknown member.

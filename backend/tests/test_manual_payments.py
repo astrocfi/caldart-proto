@@ -15,6 +15,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import Membership, MembershipPlan
 from apps.payments import manual
+from apps.payments.dates import CLOCK_GRACE_DAYS
 from apps.payments.manual import record_manual_payment
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
 from caldart.exceptions import DomainValidationError
@@ -181,7 +182,7 @@ def test_a_method_no_hand_could_present_is_refused(
 def test_money_cannot_have_arrived_in_the_future(
     member: User, treasurer: User, annual_plan: MembershipPlan, today: dt.date
 ) -> None:
-    """A date after today is a typo, not a payment."""
+    """A date past the day's grace is a typo, not a payment."""
     with pytest.raises(DomainValidationError, match="cannot have arrived in the future"):
         record_manual_payment(
             user=member,
@@ -189,10 +190,28 @@ def test_money_cannot_have_arrived_in_the_future(
             contribution_cents=0,
             method=PaymentWallet.CHECK,
             reference="",
-            received_on=today + dt.timedelta(days=1),
+            received_on=today + dt.timedelta(days=CLOCK_GRACE_DAYS + 1),
             note="",
             actor=treasurer,
         )
+
+
+def test_money_dated_by_a_clock_a_day_ahead_is_recorded(
+    member: User, treasurer: User, annual_plan: MembershipPlan, today: dt.date
+) -> None:
+    """A browser already on tomorrow still records a check that arrived today."""
+    tomorrow = today + dt.timedelta(days=CLOCK_GRACE_DAYS)
+    payment = record_manual_payment(
+        user=member,
+        plan_slug="annual",
+        contribution_cents=0,
+        method=PaymentWallet.CHECK,
+        reference="",
+        received_on=tomorrow,
+        note="",
+        actor=treasurer,
+    )
+    assert payment.received_on == tomorrow
 
 
 def test_a_reference_another_recorded_payment_carries_is_refused(
@@ -345,9 +364,9 @@ def test_the_endpoint_refuses_a_date_in_the_future(
     treasurer_client: APIClient, member: User, annual_plan: MembershipPlan, today: dt.date
 ) -> None:
     """The service's complaint reaches the caller keyed by ``received_on``."""
-    tomorrow = (today + dt.timedelta(days=1)).isoformat()
+    too_late = (today + dt.timedelta(days=CLOCK_GRACE_DAYS + 1)).isoformat()
     response = treasurer_client.post(
-        RECORD, check_body(member, received_on=tomorrow), format="json"
+        RECORD, check_body(member, received_on=too_late), format="json"
     )
     assert response.json() == {"received_on": ["The money cannot have arrived in the future."]}
 
