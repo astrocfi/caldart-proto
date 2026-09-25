@@ -61,7 +61,7 @@ describe('LeaderSearchPage', () => {
     vi.useRealTimers();
   });
 
-  it('searches by name and lists the matches with their membership state', async () => {
+  it('searches by name and lists the matches', async () => {
     const user = setupUser();
     const queries: string[] = [];
     server.use(
@@ -75,9 +75,30 @@ describe('LeaderSearchPage', () => {
     await search(user, 'reyes');
 
     expect(await screen.findByText('Marta Reyes')).toBeInTheDocument();
-    expect(screen.getByText('Member current')).toBeInTheDocument();
-    expect(screen.getByText('Member expired')).toBeInTheDocument();
+    expect(screen.getByText('Owen Delgado')).toBeInTheDocument();
     expect(queries).toEqual(['reyes']);
+  });
+
+  it('names the member and the address and DART they were found by', async () => {
+    const user = setupUser();
+    server.use(searchReturns([MARTA]));
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    const marta = await screen.findByRole('button', { name: /Marta Reyes/ });
+    expect(within(marta).getByText('marta@example.org · Palo Alto')).toBeInTheDocument();
+  });
+
+  it('leaves the membership state to the card, so the row says go or no-go alone', async () => {
+    const user = setupUser();
+    server.use(searchReturns([{ ...MARTA, membership_status: 'expired' }]));
+
+    renderWithProviders(<LeaderSearchPage />, { route: '/leader' });
+    await search(user, 'reyes');
+
+    await screen.findByRole('button', { name: /Marta Reyes/ });
+    expect(screen.queryByText('Member expired')).not.toBeInTheDocument();
   });
 
   it('answers go or no-go on every row, so the list needs no click', async () => {
