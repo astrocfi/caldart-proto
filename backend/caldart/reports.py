@@ -732,7 +732,7 @@ def build_report(
     column's registry width, and money as dollars.  A param the report refuses raises
     DRF's ``ValidationError``, so an endpoint answers it with a 400.
     """
-    day = today or timezone.localdate()
+    day = timezone.localdate() if today is None else today
     table = spec.table(params, fmt=fmt, today=day)
     filename = f"{spec.filename_stem}-{day.isoformat()}.{fmt}"
     if fmt == "csv":

@@ -86,6 +86,7 @@ class ReportColumnsView(APIView):
         who may not read it.
         """
         spec = readable_report(request, slug)
+        # As above: the stubs do not widen the instance type to a list for ``many``.
         serializer = ReportColumnSerializer(spec.column_choices(), many=True)  # type: ignore[arg-type]
         return Response(serializer.data)
 

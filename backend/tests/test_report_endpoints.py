@@ -6,6 +6,7 @@ report and the refusals are proved here once per slug rather than once per app.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date
 
 import pytest
@@ -13,10 +14,14 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, SYSTEM_ADMIN, TREASURER
+from apps.aircraft.reports import AIRCRAFT_REPORT_COLUMNS
 from apps.members.models import MembershipPlan
+from apps.members.reports import MEMBER_REPORT_COLUMNS
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
+from apps.payments.reconciliation import RECONCILIATION_COLUMNS
+from apps.payments.reports import CONTRIBUTION_COLUMNS, PAYMENT_REPORT_COLUMNS
 from apps.reports.registry import REPORTS
-from caldart.reports import FIXED_COLUMNS_MESSAGE
+from caldart.reports import FIXED_COLUMNS_MESSAGE, ReportColumn
 from tests.conftest import PdfText, read_csv, role_matrix
 from tests.factories import PaymentFactory, UserFactory
 
@@ -44,6 +49,23 @@ MATRIX = [
     )
     for role, allowed in role_matrix(*roles)
 ]
+
+
+def column_payload[RowT](columns: Sequence[ReportColumn[RowT]]) -> list[dict[str, str | bool]]:
+    """What ``/columns`` answers for ``columns``: key, label and default, in order."""
+    return [
+        {"key": column.key, "label": column.label, "default": column.default} for column in columns
+    ]
+
+
+#: Each report's columns payload, built from the column registries themselves.
+COLUMN_PAYLOADS: dict[str, list[dict[str, str | bool]]] = {
+    "members": column_payload(MEMBER_REPORT_COLUMNS),
+    "aircraft": column_payload(AIRCRAFT_REPORT_COLUMNS),
+    "payments": column_payload(PAYMENT_REPORT_COLUMNS),
+    "reconciliation": column_payload(RECONCILIATION_COLUMNS),
+    "contributions": column_payload(CONTRIBUTION_COLUMNS),
+}
 
 
 def export_url(slug: str, fmt: str) -> str:
@@ -165,8 +187,8 @@ def test_an_unknown_format_is_a_404(account_admin_client: APIClient) -> None:
 @pytest.mark.parametrize("slug", list(READERS))
 def test_the_columns_answer_the_registry(account_admin_client: APIClient, slug: str) -> None:
     """Every column, in export order, with its key, label and whether it is a default."""
-    expected = REPORTS[slug].column_choices()
-    assert account_admin_client.get(f"/api/v1/reports/{slug}/columns").json() == expected
+    response = account_admin_client.get(f"/api/v1/reports/{slug}/columns")
+    assert response.json() == COLUMN_PAYLOADS[slug]
 
 
 # --------------------------------------------------------------------------
