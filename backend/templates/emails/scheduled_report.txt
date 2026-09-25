@@ -1,0 +1,18 @@
+{{ org_name }} — {{ report_title }}
+
+Hello{% if first_name %} {{ first_name }}{% endif %},
+
+Attached is the {{ report_title }} for {{ report_date|date:"F j, Y" }}, as {{ formats }}.
+
+Filters: {{ filters }}
+
+This report is sent to this address {{ schedule }}{% if created_by %}; {{ created_by }} set it up{% endif %}.
+A CalDART account administrator or treasurer can change it or stop it.
+
+Attached:
+{% for filename in filenames %}  {{ filename }}
+{% endfor %}
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because a CalDART report subscription names this address.

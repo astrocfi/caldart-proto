@@ -13,7 +13,7 @@ from datetime import date
 
 import pytest
 
-from apps.reports.schedule import next_due_after
+from apps.reports.schedule import next_due_after, schedule_label
 
 
 @pytest.mark.parametrize(
@@ -90,3 +90,18 @@ def test_an_unknown_cadence_is_refused() -> None:
     """A cadence the schedule does not know raises, naming it."""
     with pytest.raises(ValueError, match="Unknown cadence: daily"):
         next_due_after("daily", 0, date(2026, 9, 25))
+
+
+@pytest.mark.parametrize(
+    ("cadence", "weekday", "expected"),
+    [
+        ("weekly", 0, "weekly on Monday"),
+        ("weekly", 6, "weekly on Sunday"),
+        ("monthly", 3, "monthly"),
+        ("quarterly", 0, "quarterly"),
+        ("yearly", 0, "yearly"),
+    ],
+)
+def test_the_schedule_in_words(cadence: str, weekday: int, expected: str) -> None:
+    """A weekly schedule names its day; the others are their cadence."""
+    assert schedule_label(cadence, weekday) == expected

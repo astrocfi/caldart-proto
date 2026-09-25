@@ -55,3 +55,26 @@ def _first_of_month_after(day: date, months: tuple[int, ...]) -> date:
     if later:
         return date(day.year, later[0], 1)
     return date(day.year + 1, months[0], 1)
+
+
+#: The weekday names, Monday first, as ``weekday`` counts them.
+WEEKDAY_NAMES: tuple[str, ...] = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+)
+
+
+def schedule_label(cadence: str, weekday: int) -> str:
+    """The schedule in words, lower case: ``weekly on Monday``, ``monthly``, ``yearly``.
+
+    ``weekday`` names the day for ``weekly`` alone; every other cadence is its own
+    name.
+    """
+    if cadence == Cadence.WEEKLY:
+        return f"weekly on {WEEKDAY_NAMES[weekday]}"
+    return str(cadence)

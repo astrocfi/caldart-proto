@@ -1,32 +1,52 @@
-"""The report endpoints: the list, each report's columns, and its downloads.
+"""The report endpoints: the reports, their columns, downloads, saved sets, and email.
 
 One view per job serves every report in the registry: a report is found by the slug
 in its URL, a slug the registry does not hold is a 404, and a caller whose roles the
 report does not name is a 403.  An anonymous caller is a 401, from
 ``caldart.exceptions``.
+
+The subscriptions are the finance roles' (``treasurer`` and ``account_admin``), and a
+caller sees and touches only those for reports they may read; the DART rosters are
+the account administrator's; the manual run is the system administrator's.
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from django.db.models import QuerySet
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.permissions import IsAccountAdmin, IsFinance, IsSystemAdmin
+from apps.darts.models import Dart
 from apps.members.api.actors import acting_user
 from apps.reports.api.serializers import (
+    ReportRunRequestSerializer,
+    ReportRunResultSerializer,
+    ReportSubscriptionCreateSerializer,
+    ReportSubscriptionSerializer,
     ReportSummaryDict,
     ReportSummarySerializer,
+    RosterSerializer,
     SavedColumnSetSerializer,
 )
-from apps.reports.models import SavedColumnSet
+from apps.reports.models import ReportSubscription, SavedColumnSet
 from apps.reports.permissions import can_read_report
 from apps.reports.registry import REPORTS, report_or_404
+from apps.reports.services import (
+    ReportRun,
+    run_scheduled_reports,
+    send_rosters_now,
+    send_subscription_now,
+)
 from caldart.reports import (
     CSV_MEDIA_TYPE,
     PDF_MEDIA_TYPE,
@@ -37,6 +57,9 @@ from caldart.reports import (
     download_responses,
     report_response,
 )
+
+if TYPE_CHECKING:
+    from rest_framework.serializers import BaseSerializer
 
 
 def readable_report(request: Request, slug: str) -> Report:
@@ -141,7 +164,7 @@ class ColumnSetListView(APIView):
 
     @extend_schema(request=SavedColumnSetSerializer, responses={201: SavedColumnSetSerializer})
     def post(self, request: Request, slug: str) -> Response:
-        """201 with the set saved under ``name``: created, or replaced if the name is in use.
+        """201 with the set saved under ``name``, replacing one of that name if any.
 
         Saving under a name the caller already uses for this report replaces that
         set's columns and keeps its id.  400 for a name or columns the serializer
@@ -178,3 +201,138 @@ class ColumnSetDetailView(APIView):
         )
         saved.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def visible_subscriptions(request: Request) -> QuerySet[ReportSubscription]:
+    """The subscriptions for every report the caller may read, with their accounts."""
+    user = acting_user(request)
+    slugs = [slug for slug, spec in REPORTS.items() if can_read_report(user, spec)]
+    return ReportSubscription.objects.filter(report__in=slugs).select_related(
+        "recipient_user", "created_by"
+    )
+
+
+def run_response(run: ReportRun) -> Response:
+    """200 with ``run`` as :class:`ReportRunResultSerializer` renders it."""
+    return Response(ReportRunResultSerializer(run.as_dict()).data)
+
+
+class SubscriptionListView(APIView):
+    """``GET`` and ``POST /reports/subscriptions`` -- the reports sent by email."""
+
+    permission_classes = [IsFinance]
+
+    @extend_schema(responses={200: ReportSubscriptionSerializer(many=True)})
+    def get(self, request: Request) -> Response:
+        """200 with every subscription for a report the caller may read, unpaginated.
+
+        Ordered by report, then by address.
+        """
+        rows = visible_subscriptions(request)
+        return Response(ReportSubscriptionSerializer(rows, many=True).data)
+
+    @extend_schema(
+        request=ReportSubscriptionCreateSerializer, responses={201: ReportSubscriptionSerializer}
+    )
+    def post(self, request: Request) -> Response:
+        """201 with the subscription set up; 400 for a body the serializer refuses.
+
+        A report the caller may not read answers 403 before anything else is checked.
+        """
+        slug = request.data.get("report") if isinstance(request.data, dict) else None
+        if isinstance(slug, str) and slug in REPORTS:
+            readable_report(request, slug)
+        serializer = ReportSubscriptionCreateSerializer(
+            data=request.data, context={"creator": acting_user(request)}
+        )
+        serializer.is_valid(raise_exception=True)
+        subscription = serializer.save()
+        return Response(
+            ReportSubscriptionSerializer(subscription).data, status=status.HTTP_201_CREATED
+        )
+
+
+class SubscriptionDetailView(generics.RetrieveUpdateDestroyAPIView[ReportSubscription]):
+    """``GET``, ``PATCH`` and ``DELETE /reports/subscriptions/{id}``.
+
+    A subscription for a report the caller may not read answers 404.
+    """
+
+    permission_classes = [IsFinance]
+    serializer_class = ReportSubscriptionSerializer
+    http_method_names = ["get", "patch", "delete", "head", "options"]
+
+    def get_queryset(self) -> QuerySet[ReportSubscription]:
+        """The subscriptions the caller may see."""
+        return visible_subscriptions(self.request)
+
+    def perform_update(self, serializer: BaseSerializer[ReportSubscription]) -> None:
+        """Save the edit the serializer checked."""
+        serializer.save()
+
+
+class SubscriptionSendView(APIView):
+    """``POST /reports/subscriptions/{id}/send`` -- send one subscription now."""
+
+    permission_classes = [IsFinance]
+
+    @extend_schema(request=None, responses={200: ReportRunResultSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """200 with the run result of the one send, whatever the subscription's date.
+
+        ``next_due_on`` stays where it is.  404 for a subscription for a report the
+        caller may not read.
+        """
+        subscription = get_object_or_404(visible_subscriptions(request), pk=pk)
+        return run_response(send_subscription_now(subscription, actor=acting_user(request)))
+
+
+class RosterListView(generics.ListAPIView[Dart]):
+    """``GET /reports/rosters`` -- every active DART's roster, by name."""
+
+    permission_classes = [IsAccountAdmin]
+    serializer_class = RosterSerializer
+    pagination_class = None
+
+    def get_queryset(self) -> QuerySet[Dart]:
+        """Every active DART by name, with its people."""
+        return Dart.objects.filter(is_active=True).prefetch_related("contacts").order_by("name")
+
+
+class RosterSendView(APIView):
+    """``POST /reports/rosters/send`` -- every DART's roster, now."""
+
+    permission_classes = [IsAccountAdmin]
+
+    @extend_schema(request=ReportRunRequestSerializer, responses={200: ReportRunResultSerializer})
+    def post(self, request: Request) -> Response:
+        """200 with the run result of every active DART's roster, sent whatever the date.
+
+        With ``dry_run`` true nothing is sent and the result names who would be sent one.
+        """
+        payload = ReportRunRequestSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        run = send_rosters_now(
+            dry_run=payload.validated_data["dry_run"], actor=acting_user(request)
+        )
+        return run_response(run)
+
+
+class ReportRunView(APIView):
+    """``POST /system/reports/run`` -- the daily run of the sender, now."""
+
+    permission_classes = [IsSystemAdmin]
+
+    @extend_schema(request=ReportRunRequestSerializer, responses={200: ReportRunResultSerializer})
+    def post(self, request: Request) -> Response:
+        """200 with the run result of sending every subscription and roster that is due.
+
+        With ``dry_run`` true nothing is sent or changed and the result names who would
+        be sent what.  The caller is the audit actor.
+        """
+        payload = ReportRunRequestSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        run = run_scheduled_reports(
+            dry_run=payload.validated_data["dry_run"], actor=acting_user(request)
+        )
+        return run_response(run)
