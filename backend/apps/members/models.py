@@ -391,12 +391,15 @@ class MembershipState(models.TextChoices):
     holds, and the four values partition the member table.  ``NEW`` is somebody
     whose only term is unpaid, so they have joined but never been covered;
     ``NONE`` means nothing has started at all, not that a term was canceled.
+    These labels are what the member list's status filter, the member report,
+    and the portal's status select all show, so a change here is a change
+    everywhere at once.
     """
 
     CURRENT = "current", "Current"
-    NEW = "new", "Joined, not yet paid"
+    NEW = "new", "Unpaid"
     EXPIRED = "expired", "Expired"
-    NONE = "none", "Never a member"
+    NONE = "none", "No membership"
 
 
 class MembershipSource(models.TextChoices):

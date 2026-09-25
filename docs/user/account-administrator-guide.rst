@@ -82,10 +82,11 @@ Apply button.  **Clear** empties the whole bar and leaves the sort alone.
    ``Ana Bracco`` finds her.
 
 **Membership**
-   *Current* (a term covers today), *Joined, not yet paid* (their only term is
-   unpaid), *Expired* (a paid term has run out) or *Never a member* (nobody has
-   ever granted or sold them a term).  The four between them account for every
-   account exactly once.
+   *Current* (a term covers today), *Unpaid* (an account whose only term was
+   never paid for), *Expired* (a paid term has run out) or *No membership*
+   (nobody has ever granted or sold them a term).  The four between them
+   account for every account exactly once, and the member report's own
+   **Status** column prints the same four words.
 
 **Certificate** and **Medical**
    The pilot certificate and medical class on the member's profile.
