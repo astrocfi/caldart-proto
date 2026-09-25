@@ -9,6 +9,7 @@ reaches ``pg_dump``, and where the PayPal token is cached.
 from __future__ import annotations
 
 import csv
+import io
 import shutil
 import subprocess
 from collections.abc import Iterator
@@ -127,29 +128,24 @@ def test_escape_markup_replaces_the_three_reserved_characters() -> None:
 
 def test_a_pdf_title_may_look_like_markup() -> None:
     """A title carrying an unbalanced tag renders instead of raising."""
-    response = reports.pdf_table_response(
-        "members.pdf",
-        title="Members <b",
-        header=["Name"],
-        rows=[["Marta Reyes"]],
-    )
+    buffer = io.BytesIO()
+    reports.build_pdf_table(buffer, title="Members <b", header=["Name"], rows=[["Marta Reyes"]])
 
-    assert response.status_code == 200
-    assert response.content[:5] == b"%PDF-"
+    assert buffer.getvalue()[:5] == b"%PDF-"
 
 
 def test_a_pdf_subtitle_may_look_like_markup() -> None:
     """A subtitle built from a filter carrying an unbalanced tag renders."""
-    response = reports.pdf_table_response(
-        "members.pdf",
+    buffer = io.BytesIO()
+    reports.build_pdf_table(
+        buffer,
         title="Members",
         subtitle=reports.filter_summary({"search": "<b>"}),
         header=["Name"],
         rows=[["Marta Reyes"]],
     )
 
-    assert response.status_code == 200
-    assert response.content[:5] == b"%PDF-"
+    assert buffer.getvalue()[:5] == b"%PDF-"
 
 
 # --------------------------------------------------------------------------

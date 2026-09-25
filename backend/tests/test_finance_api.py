@@ -30,8 +30,8 @@ from tests.factories import (
 pytestmark = pytest.mark.django_db
 
 CONTRIBUTIONS = "/api/v1/admin/payments/contributions"
-CONTRIBUTIONS_CSV = "/api/v1/admin/payments/contributions/export.csv"
-CONTRIBUTIONS_PDF = "/api/v1/admin/payments/contributions/export.pdf"
+CONTRIBUTIONS_CSV = "/api/v1/reports/contributions/export.csv"
+CONTRIBUTIONS_PDF = "/api/v1/reports/contributions/export.pdf"
 
 
 def detail_url(payment: Payment) -> str:
@@ -453,13 +453,14 @@ def test_a_year_before_the_calendar_began_is_refused(treasurer_client: APIClient
     assert treasurer_client.get(CONTRIBUTIONS, {"year": 1066}).status_code == 400
 
 
-def test_the_contributions_csv_is_named_for_the_year(
-    treasurer_client: APIClient, giving: User
+def test_the_contributions_csv_is_named_for_the_day_it_was_run(
+    treasurer_client: APIClient, giving: User, today: dt.date
 ) -> None:
-    """The file a treasurer keeps says which year it covers."""
+    """The file is dated the day it was built, like every report."""
     response = treasurer_client.get(CONTRIBUTIONS_CSV, {"year": 2026})
     assert (
-        response["Content-Disposition"] == 'attachment; filename="caldart-contributions-2026.csv"'
+        response["Content-Disposition"]
+        == f'attachment; filename="caldart-contributions-{today.isoformat()}.csv"'
     )
 
 
@@ -472,28 +473,37 @@ def test_the_contributions_csv_carries_the_same_rows(
     assert len(rows) == 3
 
 
-def test_the_contributions_pdf_is_named_for_the_year(
-    treasurer_client: APIClient, giving: User
+def test_the_contributions_pdf_is_named_for_the_day_it_was_run(
+    treasurer_client: APIClient, giving: User, today: dt.date
 ) -> None:
     """The PDF downloads under the same name as the CSV."""
     response = treasurer_client.get(CONTRIBUTIONS_PDF, {"year": 2026})
     assert (
-        response["Content-Disposition"] == 'attachment; filename="caldart-contributions-2026.pdf"'
+        response["Content-Disposition"]
+        == f'attachment; filename="caldart-contributions-{today.isoformat()}.pdf"'
     )
 
 
-def test_the_contributions_pdf_titles_itself_with_the_year(
+def test_the_contributions_pdf_names_the_year_under_its_title(
     treasurer_client: APIClient, giving: User, pdf_text: PdfText
 ) -> None:
     """A printed list says on its face which year it acknowledges."""
     page = pdf_text(treasurer_client.get(CONTRIBUTIONS_PDF, {"year": 2026}).content)[0]
-    assert "CalDART contributions 2026" in page
+    assert page[:2] == ["CalDART contributions", "year: 2026"]
+
+
+def test_the_contributions_pdf_prints_money_with_its_currency(
+    treasurer_client: APIClient, giving: User, pdf_text: PdfText
+) -> None:
+    """A PDF is read by a person, so its money cells carry the dollar sign."""
+    page = pdf_text(treasurer_client.get(CONTRIBUTIONS_PDF, {"year": 2026}).content)[0]
+    assert "$100.00" in page
 
 
 # --------------------------------------------------------------------------
 # Role matrix
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize("url", [CONTRIBUTIONS, CONTRIBUTIONS_CSV, CONTRIBUTIONS_PDF])
+@pytest.mark.parametrize("url", [CONTRIBUTIONS])
 @pytest.mark.parametrize(("slug", "allowed"), role_matrix(TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_the_contributions_report_is_for_the_finance_roles_only(
     api_client: APIClient,

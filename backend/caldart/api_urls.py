@@ -71,6 +71,7 @@ urlpatterns = [
     path("", include("apps.aircraft.api.urls")),
     path("", include("apps.payments.api.urls")),
     path("", include("apps.reminders.api.urls")),
+    path("", include("apps.reports.api.urls")),
     path("", include("apps.cms.api.urls")),
     path("", include("apps.sysadmin.api.urls")),
 ]

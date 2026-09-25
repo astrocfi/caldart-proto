@@ -867,7 +867,7 @@ and its exports, ``GET /admin/users``, the DART leader's search, and the
 ``pilots`` attached to an aircraft record.
 
 The account administrator's list adds two annotations of its own, in
-``apps/members/api/admin_filters.py``:
+``apps/members/filters.py``:
 
 ``full_name``
     ``first_name`` and ``last_name`` concatenated, so ``?search=`` matches a

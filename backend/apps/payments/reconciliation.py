@@ -21,14 +21,18 @@ from collections.abc import Mapping
 from typing import Any, TypedDict
 
 from django.db.models import Count, Q, QuerySet, Sum
+from rest_framework import serializers
 
 from apps.payments.models import Payment, PaymentProvider, Refund, RefundStatus
 from apps.payments.reports import (
+    FINANCE_ROLES,
     GROUPS,
     PERIOD_FORMAT,
     RECEIVED_STATUSES,
+    ReportDateField,
     base_queryset,
 )
+from caldart.reports import Money, Params, ReportColumn, ReportQuery, ReportSpec, given_params
 
 #: How the rows may be grouped.  ``month`` and ``year`` are the periods
 #: :data:`apps.payments.reports.GROUPS` defines; ``provider`` puts every period
@@ -42,18 +46,8 @@ DEFAULT_GROUP = "month"
 #: The title on every page of the reconciliation PDF.
 REPORT_TITLE = "CalDART reconciliation"
 
-#: The header both reconciliation exports print, in column order.
-RECONCILIATION_HEADER = (
-    "Period",
-    "Payments",
-    "Gross",
-    "Fees",
-    "Net",
-    "Refunded",
-    "Net after refunds",
-    "Reconciled",
-    "Unreconciled",
-)
+#: What the reconciliation's ``?group=`` answers with for an unknown grouping.
+RECONCILIATION_GROUP_MESSAGE = "Expected 'month', 'year' or 'provider'."
 
 
 class ReconciliationRow(TypedDict):
@@ -221,17 +215,98 @@ def reconciliation_rows(
     return [buckets[key] for key in sorted(buckets)]
 
 
-def reconciliation_filename(
-    extension: str,
-    *,
-    date_from: dt.date | None,
-    date_to: dt.date | None,
-) -> str:
-    """The download name, which carries the range so two exports never collide.
+class ReconciliationQuerySerializer(serializers.Serializer[dict[str, Any]]):
+    """The query string the reconciliation table and its exports share.
 
-    An open end of the range is spelled ``all``, so a reconciliation of
-    everything downloads as ``caldart-reconciliation-all-all.csv``.
+    ``from`` and ``to`` bound the range, ``provider`` narrows to one provider, and
+    ``group`` is ``month``, ``year`` or ``provider``.  Every parameter is optional
+    and an empty one narrows nothing.
     """
-    start = date_from.isoformat() if date_from else "all"
-    end = date_to.isoformat() if date_to else "all"
-    return f"caldart-reconciliation-{start}-{end}.{extension}"
+
+    provider = serializers.CharField(required=False, allow_blank=True, default="")
+    group = serializers.CharField(required=False, allow_blank=True, default=DEFAULT_GROUP)
+
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        """The declared fields plus the date bounds, whose names are Python keywords."""
+        fields = super().get_fields()
+        fields["from"] = ReportDateField()
+        fields["to"] = ReportDateField()
+        return fields
+
+    def validate_provider(self, value: str) -> str:
+        """Return ``value``, or refuse a provider that is not one of the choices.
+
+        The message is ``Unknown provider '<value>'.``; an empty string is
+        accepted and narrows nothing.
+        """
+        if value and value not in PaymentProvider.values:
+            raise serializers.ValidationError(f"Unknown provider '{value}'.")
+        return value
+
+    def validate_group(self, value: str) -> str:
+        """Return the grouping, defaulting an empty parameter to ``month``.
+
+        Raises DRF's ``ValidationError`` with :data:`RECONCILIATION_GROUP_MESSAGE`
+        for anything but ``month``, ``year`` or ``provider``.
+        """
+        group = value or DEFAULT_GROUP
+        if group not in RECONCILIATION_GROUPS:
+            raise serializers.ValidationError(RECONCILIATION_GROUP_MESSAGE)
+        return group
+
+
+#: The reconciliation table's columns, fixed, in order.  The period label is wider
+#: than a figure, and every figure is about as wide as the next.
+RECONCILIATION_COLUMNS: tuple[ReportColumn[ReconciliationRow], ...] = (
+    ReportColumn("period", "Period", True, lambda row: row["period"], width=2.0),
+    ReportColumn("payments", "Payments", True, lambda row: row["count"], width=1.0),
+    ReportColumn("gross", "Gross", True, lambda row: Money(row["gross_cents"]), width=1.4),
+    ReportColumn("fees", "Fees", True, lambda row: Money(row["fee_cents"]), width=1.2),
+    ReportColumn("net", "Net", True, lambda row: Money(row["net_cents"]), width=1.4),
+    ReportColumn("refunded", "Refunded", True, lambda row: Money(row["refunded_cents"]), width=1.4),
+    ReportColumn(
+        "net_after_refunds",
+        "Net after refunds",
+        True,
+        lambda row: Money(row["net_after_refunds_cents"]),
+        width=1.6,
+    ),
+    ReportColumn("reconciled", "Reconciled", True, lambda row: row["reconciled_count"], width=1.2),
+    ReportColumn(
+        "unreconciled", "Unreconciled", True, lambda row: row["unreconciled_count"], width=1.3
+    ),
+)
+
+#: The query parameters the reconciliation report names in its PDF subtitle, in order.
+EXPORT_FILTER_PARAMS: tuple[str, ...] = ("from", "to", "provider", "group")
+
+
+def reconciliation_report_query(params: Params) -> ReportQuery[ReconciliationRow]:
+    """The rows the reconciliation table answers for ``params``.
+
+    The range, provider and grouping are refused as the table refuses them; the
+    applied filters are those of :data:`EXPORT_FILTER_PARAMS` given a value.
+    """
+    query = ReconciliationQuerySerializer(data=given_params(params))
+    query.is_valid(raise_exception=True)
+    data = query.validated_data
+    rows = reconciliation_rows(
+        date_from=data["from"], date_to=data["to"], provider=data["provider"], group=data["group"]
+    )
+    return ReportQuery(
+        rows=rows,
+        filters=given_params(params, EXPORT_FILTER_PARAMS),
+    )
+
+
+#: The reconciliation table, for the finance roles: fixed columns, upright.
+RECONCILIATION_REPORT: ReportSpec[ReconciliationRow] = ReportSpec(
+    slug="reconciliation",
+    title=REPORT_TITLE,
+    filename_stem="caldart-reconciliation",
+    columns=RECONCILIATION_COLUMNS,
+    roles=FINANCE_ROLES,
+    query=reconciliation_report_query,
+    landscape=False,
+    choosable=False,
+)

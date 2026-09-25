@@ -3,8 +3,9 @@ API: aircraft and leader check
 ==============================
 
 The ``apps.aircraft`` part of the ``/api/v1/`` contract: the aircraft
-register, its CSV and PDF exports (see also :doc:`reports`), and the DART
-leader check.  Conventions from :doc:`api-reference` apply throughout — session
+register and the DART leader check.  The register's CSV and PDF downloads are
+the aircraft report, served by :doc:`api-reports` and described in
+:doc:`reports`.  Conventions from :doc:`api-reference` apply throughout — session
 authentication, ``X-CSRFToken`` on unsafe methods, DRF error bodies, and
 ``401`` (not ``403``) for an unauthenticated request that reaches the
 permission check.  An unsafe method with no CSRF token is refused with ``403``
@@ -384,66 +385,16 @@ Statuses:
 * **404** — the register has never seen that registration.
 
 
-Exports
-=======
+The aircraft report
+===================
 
-``GET /admin/aircraft/columns``
--------------------------------
-
-Every column the two exports can carry, in export order, ``account_admin``
-only, so the register screen's column chooser is data-driven.  One entry per
-column::
-
-  [{"key": "n_number", "label": "N-number", "default": true}, ...]
-
-``key`` is what ``?columns=`` names, ``label`` is the header both exports print,
-and ``default`` says whether the column is in the register when the caller
-chooses none.  The full registry is in :doc:`reports`.
-
-Statuses:
-
-* **200** — the list of columns.
-* **401/403** — the usual rules.
-
-``GET /admin/aircraft/export.csv``
-----------------------------------
-
-The filtered register as a CSV download, ``account_admin`` only.  It accepts
-exactly the filter and ordering parameters of ``GET /aircraft`` and is not
-paginated.
-
-``?columns=`` is a comma-separated list of column keys, which chooses both which
-columns the export carries and the order they appear in; leaving it out gives
-the default columns.  The header row is the column labels.  :doc:`reports`
-lists every key.
-
-Rows come from the column registry in ``apps/aircraft/reports.py``, which both
-formats share so they cannot drift apart.  Money is rendered as plain decimal
-dollars (``1000000.00``), and ``pilots`` — off by default — is the attached
-members' display names joined with ``"; "``.  The file streams through
-``caldart.reports.csv_response``.
-
-Statuses:
-
-* **200** — ``text/csv``, with a ``Content-Disposition`` filename carrying
-  today's date.
-* **400** — the same filter refusals as the list, plus
-  ``{"columns": ["Unknown column: <key>"]}`` for a key no column carries and
-  ``{"columns": ["Repeated column: <key>"]}`` for one asked for twice.
-
-``GET /admin/aircraft/export.pdf``
-----------------------------------
-
-The same rows and the same ``?columns=``, ``account_admin`` only, as a
-landscape-letter table from ``pdf_table_response`` with the applied filters in
-the subtitle.  Each chosen column takes the share of the page width its registry
-entry asks for, and money is rendered as currency here (``$1,000,000``).
-
-Statuses:
-
-* **200** — ``application/pdf``, with a ``Content-Disposition`` filename
-  carrying today's date.
-* **400** — the same refusals as the CSV.
+``GET /reports/aircraft/export.csv`` and ``export.pdf``, ``account_admin`` only,
+download the register: they accept exactly the filter and ordering parameters of
+``GET /aircraft`` and are not paginated.  Money is plain decimal dollars
+(``1000000.00``) in the CSV and currency (``$1,000,000``) in the PDF, and
+``pilots`` — off by default — is the attached members' display names joined
+with ``"; "``.  The endpoints, ``?columns=`` and the refusals are in
+:doc:`api-reports`; the columns are in :doc:`reports`.
 
 
 Leader check
@@ -584,18 +535,18 @@ File                                   Contents
 ``apps/aircraft/services.py``          ``record_change``, ``changed_fields``,
                                        leader search, status card, insurance
                                        querysets
-``apps/aircraft/reports.py``           Export columns and rows
+``apps/aircraft/reports.py``           The aircraft report: columns, query
 ``apps/aircraft/api/serializers.py``   ``NNumberField`` and the API shapes
-``apps/aircraft/api/filters.py``       ``AircraftFilter``,
+``apps/aircraft/filters.py``           ``AircraftFilter``,
                                        ``NullsLastOrderingFilter``
 ``apps/aircraft/api/permissions.py``   ``AircraftPermission``
-``apps/aircraft/api/views.py``         The nine routes above
+``apps/aircraft/api/views.py``         The routes above
 =====================================  ======================================
 
 Tests: ``backend/tests/test_aircraft_api.py`` (CRUD, permissions,
 normalization, every filter), ``test_aircraft_history.py`` (the change rows the
 register's writes leave and the history endpoint),
-``test_aircraft_exports.py`` (CSV content, PDF
-validity, role matrix), ``test_leader_api.py`` (search, the membership ×
+``test_aircraft_exports.py`` (the aircraft report: CSV content, PDF
+validity, subtitle), ``test_leader_api.py`` (search, the membership ×
 medical × insurance truth table), and ``test_aircraft_models.py`` from the
 foundation.

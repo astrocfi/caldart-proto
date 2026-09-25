@@ -17,7 +17,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.aircraft.models import Aircraft, OwnerType
 from apps.aircraft.services import MAX_EXPIRING_WINDOW_DAYS as MAX_AIRCRAFT_WINDOW_DAYS
-from apps.members.api.admin_filters import MAX_EXPIRING_WINDOW_DAYS as MAX_MEMBER_WINDOW_DAYS
+from apps.members.filters import MAX_EXPIRING_WINDOW_DAYS as MAX_MEMBER_WINDOW_DAYS
 from apps.members.models import MembershipPlan
 from caldart.pagination import StandardPagination
 from tests.conftest import read_csv
@@ -28,7 +28,7 @@ pytestmark = pytest.mark.django_db
 AIRCRAFT_URL = "/api/v1/aircraft"
 PROFILE_URL = "/api/v1/me/profile"
 MEMBERS_URL = "/api/v1/admin/members"
-MEMBERS_CSV_URL = "/api/v1/admin/members/export.csv"
+MEMBERS_CSV_URL = "/api/v1/reports/members/export.csv"
 
 #: One more row than a full page, so the second page holds exactly one.
 OVER_A_PAGE = StandardPagination.page_size + 1

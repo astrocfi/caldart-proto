@@ -14,7 +14,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.members.api.admin_filters import MAX_EXPIRING_WINDOW_DAYS
+from apps.members.filters import MAX_EXPIRING_WINDOW_DAYS
 from apps.members.models import MembershipPlan
 from tests.factories import MembershipFactory
 

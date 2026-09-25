@@ -91,6 +91,7 @@ LOCAL_APPS = [
     "apps.aircraft",
     "apps.payments",
     "apps.reminders",
+    "apps.reports",
     "apps.cms",
     "apps.sysadmin",
 ]

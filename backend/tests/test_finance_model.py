@@ -337,7 +337,9 @@ def test_role_matrix_for_the_payment_export(
 ) -> None:
     """The CSV export follows the same finance rule as the list."""
     api_client.force_login(all_role_users[slug])
-    assert api_client.get(f"{PAYMENTS_URL}/export.csv").status_code == (200 if allowed else 403)
+    assert api_client.get("/api/v1/reports/payments/export.csv").status_code == (
+        200 if allowed else 403
+    )
 
 
 def test_a_treasurer_does_not_read_the_member_records(treasurer_client: APIClient) -> None:

@@ -60,8 +60,9 @@ NO_ROLE_DENIED_GETS = [
     "/api/v1/leader/search",
     "/api/v1/admin/users",
     "/api/v1/admin/members",
-    "/api/v1/admin/members/columns",
-    "/api/v1/admin/aircraft/columns",
+    "/api/v1/reports/members/columns",
+    "/api/v1/reports/aircraft/columns",
+    "/api/v1/reports/payments/export.csv",
     "/api/v1/admin/payments",
     "/api/v1/admin/reminders/log",
     "/api/v1/system/emails",
@@ -347,10 +348,10 @@ def test_no_role_user_is_refused_role_gated_endpoints(
 TREASURER_DENIED_GETS = [
     MEMBERS_LIST_URL,
     USERS_LIST_URL,
-    "/api/v1/admin/members/export.csv",
-    "/api/v1/admin/members/columns",
-    "/api/v1/admin/aircraft/export.csv",
-    "/api/v1/admin/aircraft/columns",
+    "/api/v1/reports/members/export.csv",
+    "/api/v1/reports/members/columns",
+    "/api/v1/reports/aircraft/export.csv",
+    "/api/v1/reports/aircraft/columns",
     "/api/v1/admin/darts",
     "/api/v1/admin/reminders/log",
     "/api/v1/leader/search",
@@ -370,3 +371,22 @@ def test_treasurer_is_refused_every_endpoint_outside_the_finance_area(
 def test_treasurer_reaches_the_finance_reports(treasurer_client: APIClient) -> None:
     """The payment summary is finance's own, so the treasurer reads it."""
     assert treasurer_client.get("/api/v1/admin/payments/summary").status_code == 200
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/api/v1/reports/payments/export.csv",
+        "/api/v1/reports/reconciliation/export.pdf",
+        "/api/v1/reports/contributions/columns",
+    ],
+)
+def test_treasurer_downloads_the_money_reports(treasurer_client: APIClient, url: str) -> None:
+    """The payments, reconciliation and contributions reports are finance's own."""
+    assert treasurer_client.get(url).status_code == 200
+
+
+def test_a_member_is_offered_no_report(api_client: APIClient, member: User) -> None:
+    """``GET /reports`` answers a member who may read nothing with an empty list."""
+    api_client.force_login(member)
+    assert api_client.get("/api/v1/reports").json() == []

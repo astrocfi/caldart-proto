@@ -116,12 +116,13 @@ Repository layout
                                 model inherits
         pagination.py           page-number pagination for the API
         exceptions.py           DRF error handling (401 for anonymous)
-        reports.py              CSV and PDF house style
+        reports.py              the report engine: specs, columns, and the
+                                CSV and PDF every report is built as
         audit.py                the audit log: one record per privileged
                                 action, ids, and slugs only
       apps/                     one Django app per domain area
         accounts/  darts/  mail/  members/  aircraft/
-        payments/  reminders/  cms/  sysadmin/
+        payments/  reminders/  reports/  cms/  sysadmin/
       templates/
         base.html               the public-site shell
         portal.html             the SPA mount point
@@ -245,11 +246,13 @@ manifest stays authoritative.
 The backend apps
 ================
 
-Nine apps under ``backend/apps/``, one per domain area.  The usual files
-are ``models.py``, ``services.py``, an ``api/`` package (``urls.py``,
-``views.py``, ``serializers.py``, ``filters.py``), ``admin.py``,
+Ten apps under ``backend/apps/``, one per domain area.  The usual files
+are ``models.py``, ``services.py``, ``filters.py``, an ``api/`` package
+(``urls.py``, ``views.py``, ``serializers.py``), ``admin.py``,
 ``reports.py``, ``seed.py``, ``management/commands/``, and ``migrations/``;
-not every app needs every one.
+not every app needs every one.  A list whose filters a report reuses keeps its
+filter set in the app's own ``filters.py`` rather than under ``api/``, so the
+report, a domain module, can read it.
 
 ``accounts``
     The custom ``User``, whose login is the email address; the seven roles,
@@ -272,11 +275,12 @@ not every app needs every one.
     ``MemberProfile``, ``MembershipPlan``, and ``Membership``, and the rules
     for whether a membership is current.  Endpoints: the member's own
     ``/me/...``, the public ``/plans``, and the account administrator's
-    ``/admin/members`` and ``/admin/memberships``, with the membership report.
+    ``/admin/members`` and ``/admin/memberships``.  ``reports.py`` declares the
+    membership report.
 ``aircraft``
     ``Aircraft``, the shared register with insurance data.  Endpoints
-    ``/aircraft...``, the exports under ``/admin/aircraft/``, and the DART
-    leader check under ``/leader/``.
+    ``/aircraft...`` and the DART leader check under ``/leader/``;
+    ``reports.py`` declares the aircraft report.
 ``payments``
     ``Payment``, ``Refund``, ``RenewalMandate`` and ``RenewalAttempt``; the
     provider plugins in ``providers/`` (``stripe``, ``paypal``, and
@@ -285,11 +289,19 @@ not every app needs every one.
     ``/payments/...``, ``/me/payments/...``, ``/me/renewal``, the finance
     area's ``/admin/payments...`` and ``/admin/renewals...``, and
     ``/system/renewals/run``; ``views.py`` also serves the Apple Pay
-    domain-verification file.
+    domain-verification file.  ``reports.py`` declares the payments and
+    contributions reports, and ``reconciliation.py`` the reconciliation
+    report.
 ``reminders``
     ``ReminderLog`` and the renewal-reminder scanner, with its
     ``send_renewal_reminders`` command.  Endpoints ``/admin/reminders/log``
     and ``/system/reminders/run``.
+``reports``
+    Everything that spans the reports: the registry of every app's report
+    (``registry.py``), who may read one (``permissions.py``), and the
+    endpoints under ``/reports/`` that list them, answer their columns and
+    download them (:doc:`api-reports`).  It gathers reports from the apps
+    below it, so it sits beside ``reminders``.
 ``cms``
     The Wagtail page types, the StreamField blocks, ``SiteSettings``, the
     members-only wall, the ``site_chrome`` context processor and the
@@ -302,8 +314,9 @@ not every app needs every one.
 
 Code that several apps share lives in the project package:
 ``caldart/models.py`` (``TimestampedModel``, the abstract base that gives every
-model ``created_at`` and ``updated_at``), ``caldart/reports.py`` (the CSV and
-PDF house style, and the report column registry), ``caldart/receipts.py`` (the
+model ``created_at`` and ``updated_at``), ``caldart/reports.py`` (the report
+engine: ``ReportSpec``, the column registry, and ``build_report``, which turns
+any report into a CSV or a PDF in the house style), ``caldart/receipts.py`` (the
 receipt and contribution-statement PDFs, both described in :doc:`reports`),
 ``caldart/mail.py`` (one templated-email sender, which also writes the email
 log), ``caldart/org.py`` (the
@@ -341,7 +354,9 @@ Layer                                       Apps
 4                                           ``aircraft`` and ``payments``,
                                             siblings that never import each
                                             other
-5                                           ``reminders``
+5                                           ``reminders`` and ``reports``,
+                                            siblings that never import each
+                                            other
 6                                           ``cms`` and ``sysadmin``
 ==========================================  ==================================
 

@@ -3,9 +3,11 @@ API: finance
 ============
 
 The finance area: the payment list a treasurer works through, the period
-summary, the two exports and their column chooser, the reconciliation table,
-the year-end contributions list, one member's ledger, the full detail of a
-single payment, and recording money that arrived by check or cash.
+summary, the reconciliation table, the year-end contributions list, one
+member's ledger, the full detail of a single payment, and recording money that
+arrived by check or cash.  The payment list, the reconciliation table and the
+contributions list download as the payments, reconciliation and contributions
+reports, served by :doc:`api-reports`.
 
 Every endpoint here is guarded by ``IsFinance`` — the ``treasurer`` and
 ``account_admin`` roles, with ``system_admin`` passing as it does everywhere.
@@ -22,8 +24,8 @@ a PDF cell and on screen.
 Shared query parameters
 =======================
 
-The list, the summary and both exports read one parameter set, so they refuse
-the same input the same way, with the complaint keyed by the parameter it came
+The list, the summary and the payments report read one parameter set, so they
+refuse the same input the same way, with the complaint keyed by the parameter it came
 from.  An empty parameter narrows nothing, which is what lets the filter bar
 send every one of them on every request.
 
@@ -47,14 +49,13 @@ Parameter        Meaning
 ``min_cents``    Lower bound on the total charged.
 ``max_cents``    Upper bound on the total charged.
 ``group``        ``month`` or ``year``; the summary's period.
-``columns``      Comma-separated export column keys.
 ===============  ====================================================
 
 The date bounds are applied to the ledger date — ``received_on`` for a payment
 recorded by hand, the local date of ``completed_at`` (or of ``created_at``, for
 one that never settled) otherwise — which is also what the summary groups by,
 what the reconciliation rows and the contributions list count by, and what the
-``paid_on`` export column prints.  A date the calendar does not have, such as ``2026-02-30``, is as much a
+payments report's ``paid_on`` column prints.  A date the calendar does not have, such as ``2026-02-30``, is as much a
 **400** as ``last tuesday``:
 
 .. code-block:: json
@@ -66,8 +67,8 @@ what the reconciliation rows and the contributions list count by, and what the
 ``reconciled_on``, ``status``, ``provider``, ``plan__name``,
 ``user__last_name`` and ``user__email``, each with a single ``-`` prefix for
 descending; anything else, a doubled prefix included, is a **400**.  The list
-and both exports honor it, and sort by the ledger date, newest first, when it
-is absent.
+and the payments report honor it, and sort by the ledger date, newest first,
+when it is absent.
 
 
 ``GET /admin/payments``
@@ -146,16 +147,18 @@ Statuses: **200**; **400** for an unusable filter or ``group``; **401** when
 anonymous; **403** without a finance role.
 
 
-``GET /admin/payments/columns``
-===============================
+The payments report
+===================
 
-The column registry both exports read, in export order, so the screen's column
-chooser is data-driven rather than a list typed into the portal.
+``GET /reports/payments/export.csv`` and ``export.pdf`` download the filtered,
+ordered list: they take the parameters above and ``?ordering=``, plus
+``?columns=`` and ``?period=`` (see :doc:`api-reports`), and carry every
+matching row.  ``GET /reports/payments/columns`` answers the column registry.
 
-.. code-block:: json
+.. code-block:: text
 
-   [{"key": "paid_on", "label": "Date", "default": true},
-    {"key": "receipt_number", "label": "Receipt", "default": false}]
+   Date,Name,Email,Plan,Kind,Dues,Contribution,Total,Fee,Net,Refunded,Provider,Method,Status,Reference,Reconciled
+   2026-01-08,Marta Reyes,marta@example.org,Annual,both,45.00,100.00,145.00,4.50,140.50,0.00,stripe,apple_pay,succeeded,pi_3NkP...,2026-02-02
 
 The keys, in order, are ``paid_on``, ``receipt_number``, ``name``, ``email``,
 ``plan``, ``kind``, ``plan_amount``, ``contribution``, ``total``, ``fee``,
@@ -164,33 +167,11 @@ The keys, in order, are ``paid_on``, ``receipt_number``, ``name``, ``email``,
 ``membership_ends``.  Every one is a default column except ``receipt_number``,
 ``received_on``, ``note``, ``membership_starts`` and ``membership_ends``.
 
-Statuses: **200**; **401** when anonymous; **403** without a finance role.
-
-
-``GET /admin/payments/export.csv`` and ``export.pdf``
-=====================================================
-
-The filtered, ordered list as a download, attached as
-``caldart-payments-<YYYY-MM-DD>.csv`` or ``.pdf``, dated the day the export was
-run.  ``?columns=a,b,c`` chooses which columns appear and in which order;
-leaving it out gives the default columns in registry order.  The PDF subtitle
-names the filters that were applied.
-
-.. code-block:: text
-
-   Date,Name,Email,Plan,Kind,Dues,Contribution,Total,Fee,Net,Refunded,Provider,Method,Status,Reference,Reconciled
-   2026-01-08,Marta Reyes,marta@example.org,Annual,both,45.00,100.00,145.00,4.50,140.50,0.00,stripe,apple_pay,succeeded,pi_3NkP...,2026-02-02
-
-Money is decimal dollars here rather than cents, because the file is opened in
-a spreadsheet; the PDF prints the same figures with a dollar sign, because it
-is read by a person.  The exports include **every** status, while the summary
-counts only money that arrived — so an export and a period total differ
-whenever there are failed attempts in the range, which is expected rather than
-a fault.
-
-Statuses: **200**; **400** for an unusable filter or an unknown column key
-(``{"columns": ["Unknown column: karma"]}``); **401** when anonymous; **403**
-without a finance role.
+Money is decimal dollars without a currency sign in both formats, so the CSV
+opens as numbers in a spreadsheet and the PDF lines up with it.  The report
+includes **every** status, while the summary counts only money that arrived —
+so a download and a period total differ whenever there are failed attempts in
+the range, which is expected rather than a fault.
 
 
 ``GET /admin/payments/reconciliation``
@@ -219,10 +200,11 @@ with a zero ``count``.  ``net_after_refunds_cents`` is ``net_cents`` less
 ``reconciled_count`` and ``unreconciled_count`` split the period's payments by
 whether a treasurer has set ``reconciled_on``.
 
-``reconciliation/export.csv`` and ``reconciliation/export.pdf`` carry the same
-rows, attached as ``caldart-reconciliation-<from>-<to>.csv`` or ``.pdf``.  An
-open end of the range is spelled ``all`` in the filename.  The PDF is portrait
-letter.
+The reconciliation report, ``GET /reports/reconciliation/export.{csv,pdf}``,
+carries the same rows for the same parameters, in fixed columns: Period,
+Payments, Gross, Fees, Net, Refunded, Net after refunds, Reconciled and
+Unreconciled.  Money is plain decimals in the CSV and dollars in the PDF, which
+is portrait letter and names the range under its title.
 
 Statuses: **200**; **400** for an unusable range, provider or grouping
 (``{"group": ["Expected 'month', 'year' or 'provider'."]}``); **401** when
@@ -251,8 +233,11 @@ payments, whenever the refund was taken, capped at the contribution the payment
 carried; ``net_contribution_cents`` is the difference, and is the figure an
 acknowledgment quotes.  Rows are largest net giver first, ties broken by name.
 
-``contributions/export.csv`` and ``contributions/export.pdf`` carry the same
-rows, attached as ``caldart-contributions-<year>.csv`` or ``.pdf``.
+The contributions report, ``GET /reports/contributions/export.{csv,pdf}``,
+carries the same rows for the same ``?year=``, or for the year a ``?period=``
+falls in, in fixed columns: Name, Email, Payments, Contributed, Refunded and
+Net.  Money is plain decimals in the CSV and dollars in the PDF, which is
+portrait letter and names the year under its title.
 
 Statuses: **200**; **400** for an unusable ``year``; **401** when anonymous;
 **403** without a finance role.
@@ -436,12 +421,8 @@ Endpoint                                       Who
 ``GET /admin/payments``                        ``treasurer``,
                                                ``account_admin``
 ``GET /admin/payments/summary``                Finance
-``GET /admin/payments/columns``                Finance
-``GET /admin/payments/export.{csv,pdf}``       Finance
 ``GET /admin/payments/reconciliation``         Finance
-``GET .../reconciliation/export.{csv,pdf}``    Finance
 ``GET /admin/payments/contributions``          Finance
-``GET .../contributions/export.{csv,pdf}``     Finance
 ``GET /admin/payments/ledger/{user_id}``       Finance
 ``GET | PATCH /admin/payments/{id}``           Finance
 ``POST /admin/payments/record``                Finance
@@ -450,5 +431,6 @@ Endpoint                                       Who
 =============================================  ==========================
 
 "Finance" is ``treasurer`` or ``account_admin``; ``system_admin`` passes every
-row.  The full matrix is in :doc:`api-reference`, and the report internals — the
-column registry, the shared CSV and PDF helpers — are in :doc:`reports`.
+row.  The three reports are gated the same way; the full matrix is in
+:doc:`api-reference`, and the report internals — the column registries and the
+engine that builds every download — are in :doc:`reports`.

@@ -38,8 +38,9 @@ backend/                Django 6 + Wagtail 8
                         api_urls.py, models.py, reports.py, pagination.py,
                         exceptions.py
   apps/<app>/           accounts, darts, mail, members, aircraft, payments,
-                        reminders, cms, sysadmin — each with models.py, admin.py,
-                        api/urls.py, seed.py, management/commands/
+                        reminders, reports, cms, sysadmin — each with
+                        models.py, admin.py, api/urls.py, seed.py,
+                        management/commands/
   templates/            base.html (public shell), portal.html (SPA mount),
                         cms/, emails/
   tests/                ALL backend tests: conftest.py, factories.py,
@@ -123,7 +124,9 @@ has to:
 - `src/portal/api/types.ts` already types every object the API returns.
 - `src/portal/components/` holds the shared primitives; add to them rather
   than forking them.
-- `caldart/reports.py` holds `csv_response` and `pdf_table_response`.
+- `caldart/reports.py` holds the report engine (`ReportSpec`, `build_report`,
+  `report_response`); an app declares its report as a spec in its own
+  `reports.py`.
 - `pyproject.toml` already lists every dependency the apps use.
 
 If you genuinely must change a shared file, keep the change additive and say

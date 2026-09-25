@@ -1,26 +1,33 @@
 """The membership report.
 
 One row per member, one column list shared by the CSV and the PDF so the two
-exports can never drift apart.  The house style -- streaming CSV, landscape
-letter PDF with zebra rows, a repeated header and page numbers -- lives in
-``caldart.reports``; this module only decides *what* goes in the table.
+exports can never drift apart.  The house style -- landscape letter PDF with
+zebra rows, a repeated header and page numbers -- lives in ``caldart.reports``;
+this module only decides *what* goes in the table and which members it lists.
 
 Adding a column means adding one entry to :data:`MEMBER_REPORT_COLUMNS`; the
 CSV header, the PDF header and both row builders follow from it, and so does
-the list ``GET /admin/members/columns`` answers with.
+the list ``GET /reports/members/columns`` answers with.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterator
 from datetime import date
 from typing import TYPE_CHECKING, TypedDict
 
 from django.utils import timezone
 
+from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER
+from apps.members.filters import (
+    MemberAdminFilterSet,
+    MemberOrderingFilter,
+    applied_filters,
+    member_admin_queryset,
+)
 from apps.members.models import MemberProfile
 from apps.members.services import MembershipStatusDict, membership_payload
-from caldart.reports import ReportColumn
+from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec, apply_filterset
 
 if TYPE_CHECKING:
     from apps.members.services import MemberRow
@@ -38,7 +45,7 @@ class RowContext(TypedDict):
 
 
 #: Every column the membership report can carry, in export order.  ``key`` is
-#: what ``?columns=`` names and what ``GET /admin/members/columns`` answers
+#: what ``?columns=`` names and what ``GET /reports/members/columns`` answers
 #: with, ``label`` is the header both exports print, ``default`` says whether
 #: the column appears when the caller chooses none, and ``width`` is the share
 #: of the page the PDF gives it.  The seven that are off by default -- the plan,
@@ -184,33 +191,37 @@ def _row_context(user: MemberRow) -> RowContext:
     }
 
 
-def member_report_rows(
-    users: Iterable[MemberRow], columns: Sequence[ReportColumn[RowContext]]
-) -> Iterator[list[str]]:
-    """Yield one report row per user, lazily, in the queryset's order.
-
-    Each row holds ``columns`` in the order given, every cell already text.
-    ``users`` must come from ``admin_filters.member_admin_queryset`` so the
-    membership annotations are present.
-    """
+def member_rows(users: Iterator[MemberRow]) -> Iterator[RowContext]:
+    """One :class:`RowContext` per user, lazily, in the order ``users`` arrives in."""
     for user in users:
-        context = _row_context(user)
-        yield [str(column.value(context)) for column in columns]
+        yield _row_context(user)
 
 
-def member_report_filename(extension: str, on_date: date | None = None) -> str:
-    """The download name for the report, e.g. ``caldart-members-2026-09-04.csv``.
+def member_report_query(params: Params) -> ReportQuery[RowContext]:
+    """The members the member list shows for ``params``, in the list's order.
 
-    ``on_date`` defaults to the current local date, and ``extension`` is added
-    as given.
+    ``params`` are the list's own query parameters: the filters of
+    ``MemberAdminFilterSet`` and ``ordering``, which ``MemberOrderingFilter`` reads the
+    same way the list does.  A filter the set refuses raises DRF's ``ValidationError``
+    keyed by that filter.  The rows are read from the database a chunk at a time, and
+    the applied filters are the ones :func:`apps.members.filters.applied_filters`
+    names.
     """
-    on_date = on_date or timezone.localdate()
-    return f"caldart-members-{on_date.isoformat()}.{extension}"
+    narrowed = apply_filterset(MemberAdminFilterSet, params, member_admin_queryset())
+    ordered = MemberOrderingFilter.order_queryset(narrowed, params.get("ordering", ""))
+    return ReportQuery(
+        rows=member_rows(ordered.iterator(chunk_size=200)),
+        filters=applied_filters(params),
+    )
 
 
-__all__ = [
-    "MEMBER_REPORT_COLUMNS",
-    "REPORT_TITLE",
-    "member_report_filename",
-    "member_report_rows",
-]
+#: The membership report: every member the member list shows, for DART leaders and
+#: account administrators.
+MEMBER_REPORT: ReportSpec[RowContext] = ReportSpec(
+    slug="members",
+    title=REPORT_TITLE,
+    filename_stem="caldart-members",
+    columns=MEMBER_REPORT_COLUMNS,
+    roles=(DART_LEADER, ACCOUNT_ADMIN),
+    query=member_report_query,
+)

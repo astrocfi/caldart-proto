@@ -21,7 +21,7 @@ import zlib
 from collections.abc import Callable, Iterator
 from datetime import date, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, Protocol
 
 import freezegun
 import pytest
@@ -30,7 +30,7 @@ from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMessage
 from django.core.mail.backends.locmem import EmailBackend
-from django.http import HttpResponseBase, StreamingHttpResponse
+from django.http import HttpResponse, HttpResponseBase
 from django.utils import timezone
 from django_vite.core.asset_loader import DjangoViteAssetLoader
 from pytest_django import Settings
@@ -705,25 +705,22 @@ def pdf_page_count(pdf: bytes) -> int:
 
 
 def csv_body(response: HttpResponseBase) -> str:
-    r"""Return the whole text of a streamed CSV download, separators and all.
+    r"""Return the whole text of a CSV download, separators and all.
 
-    ``response`` must be the ``StreamingHttpResponse`` that ``csv_response`` returns;
-    any other response type fails the assertion rather than an attribute lookup.  The
-    chunks are joined and decoded as UTF-8, so the result carries the exact bytes the
-    browser would save, including the ``\r\n`` line endings the ``csv`` module writes.
+    ``response`` must be the ``HttpResponse`` that ``report_response`` returns; any
+    other response type fails the assertion rather than an attribute lookup.  The body
+    is decoded as UTF-8, so the result carries the exact bytes the browser would save,
+    including the ``\r\n`` line endings the ``csv`` module writes.
     """
-    assert isinstance(response, StreamingHttpResponse)
-    # A synchronous StreamingHttpResponse yields bytes; the async branch of the
-    # declared union cannot occur here.
-    chunks = cast(Iterator[bytes], response.streaming_content)
-    return b"".join(chunks).decode()
+    assert isinstance(response, HttpResponse)
+    return response.content.decode()
 
 
 def read_csv(response: HttpResponseBase) -> list[list[str]]:
-    """Return the rows of a streamed CSV download, each a list of string cells.
+    """Return the rows of a CSV download, each a list of string cells.
 
-    ``response`` must be the ``StreamingHttpResponse`` that ``csv_response`` returns;
-    any other response type fails the assertion rather than an attribute lookup.  The
+    ``response`` must be the ``HttpResponse`` that ``report_response`` returns; any
+    other response type fails the assertion rather than an attribute lookup.  The
     body is parsed with ``csv.reader``, so a quoted cell holding a comma, a newline or
     an embedded quote comes back as the single cell it is, and the header is row 0.
     """

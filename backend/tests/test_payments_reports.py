@@ -1,8 +1,8 @@
-"""The finance payment list, the period summary and the two exports.
+"""The finance payment list, the period summary and the payments report.
 
 The role matrix, the filters, the arithmetic over a fixture spanning three
-months and two years, and the column registry that drives both exports and
-the screen's column chooser.
+months and two years, and the column registry that drives both formats of the
+report and the screen's column chooser.
 """
 
 from __future__ import annotations
@@ -33,9 +33,9 @@ pytestmark = pytest.mark.django_db
 
 LIST = "/api/v1/admin/payments"
 SUMMARY = "/api/v1/admin/payments/summary"
-EXPORT = "/api/v1/admin/payments/export.csv"
-EXPORT_PDF = "/api/v1/admin/payments/export.pdf"
-COLUMNS = "/api/v1/admin/payments/columns"
+EXPORT = "/api/v1/reports/payments/export.csv"
+EXPORT_PDF = "/api/v1/reports/payments/export.pdf"
+COLUMNS = "/api/v1/reports/payments/columns"
 
 #: The header the export prints when the caller chooses no columns.
 DEFAULT_HEADER = [
@@ -351,7 +351,7 @@ def test_summary_of_nothing_is_an_empty_list(api_client: APIClient, account_admi
 
 
 # --------------------------------------------------------------------------
-# GET /admin/payments/columns
+# The payments report columns
 # --------------------------------------------------------------------------
 def test_the_column_registry_lists_every_export_column(
     treasurer_client: APIClient,
@@ -404,7 +404,7 @@ def test_every_column_carries_the_label_the_exports_print(
 
 
 # --------------------------------------------------------------------------
-# GET /admin/payments/export.csv
+# The payments report as CSV
 # --------------------------------------------------------------------------
 def test_export_returns_a_csv_download_named_for_today(
     treasurer_client: APIClient, history: list[Payment], today: dt.date
@@ -522,7 +522,7 @@ def test_the_summary_counts_a_recorded_payment_in_the_month_it_arrived(
 
 
 # --------------------------------------------------------------------------
-# GET /admin/payments/export.pdf
+# The payments report as PDF
 # --------------------------------------------------------------------------
 def test_pdf_export_returns_a_dated_pdf_download(
     treasurer_client: APIClient, history: list[Payment], today: dt.date

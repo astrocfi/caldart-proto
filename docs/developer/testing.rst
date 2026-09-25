@@ -109,7 +109,7 @@ rendered:
 .. code-block:: python
 
    def test_export_matches_the_recorded_document(golden, api_client, history):
-       body = csv_body(api_client.get("/api/v1/admin/payments/export.csv"))
+       body = csv_body(api_client.get("/api/v1/reports/payments/export.csv"))
        golden("payments-export.csv", body, replace={history[0].provider_ref: "ref-1"})
 
 The comparison is character for character, line endings included, so a stray
@@ -278,7 +278,7 @@ module imports by name from ``tests.conftest``:
        ``(slug, allowed)`` pairs an allow/deny parametrization needs, one case
        per role
    * - ``read_csv(response)``
-     - the rows of a streamed CSV download, parsed with ``csv.reader`` so a
+     - the rows of a CSV download, parsed with ``csv.reader`` so a
        quoted cell keeps its commas, header first
    * - ``csv_body(response)``
      - the same download as one string, separators, and line endings intact, for

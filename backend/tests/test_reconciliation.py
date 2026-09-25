@@ -1,6 +1,6 @@
 """Reconciling the books against a bank or provider statement.
 
-``GET /admin/payments/reconciliation`` and its two exports answer one row per
+``GET /admin/payments/reconciliation`` and the reconciliation report answer one row per
 period, or per provider, over a range: what arrived, what the provider kept,
 what reached the bank, what went back, and how much is still unmatched.
 """
@@ -23,8 +23,8 @@ from tests.factories import PaymentFactory, RefundFactory
 pytestmark = pytest.mark.django_db
 
 TABLE = "/api/v1/admin/payments/reconciliation"
-EXPORT_CSV = "/api/v1/admin/payments/reconciliation/export.csv"
-EXPORT_PDF = "/api/v1/admin/payments/reconciliation/export.pdf"
+EXPORT_CSV = "/api/v1/reports/reconciliation/export.csv"
+EXPORT_PDF = "/api/v1/reports/reconciliation/export.pdf"
 
 
 def at_noon(year: int, month: int, day: int) -> dt.datetime:
@@ -228,26 +228,32 @@ def test_an_unknown_provider_is_refused(treasurer_client: APIClient) -> None:
 # --------------------------------------------------------------------------
 # The exports
 # --------------------------------------------------------------------------
-def test_the_csv_export_is_named_for_the_range(
-    treasurer_client: APIClient, books: list[Payment]
+def test_the_csv_export_is_named_for_the_day_it_was_run(
+    treasurer_client: APIClient, books: list[Payment], today: dt.date
 ) -> None:
-    """The filename carries both ends of the range."""
+    """The filename carries the day the report was built, whatever range it covers."""
     response = treasurer_client.get(EXPORT_CSV, {"from": "2026-01-01", "to": "2026-02-28"})
     assert (
         response["Content-Disposition"]
-        == 'attachment; filename="caldart-reconciliation-2026-01-01-2026-02-28.csv"'
+        == f'attachment; filename="caldart-reconciliation-{today.isoformat()}.csv"'
     )
 
 
-def test_an_open_ended_range_is_spelled_all_in_the_filename(
+def test_the_csv_export_prints_the_nine_columns_of_the_table(
     treasurer_client: APIClient, books: list[Payment]
 ) -> None:
-    """A reconciliation of everything still downloads under a readable name."""
-    response = treasurer_client.get(EXPORT_CSV)
-    assert (
-        response["Content-Disposition"]
-        == 'attachment; filename="caldart-reconciliation-all-all.csv"'
-    )
+    """The header is the table's columns, in the table's order."""
+    assert read_csv(treasurer_client.get(EXPORT_CSV))[0] == [
+        "Period",
+        "Payments",
+        "Gross",
+        "Fees",
+        "Net",
+        "Refunded",
+        "Net after refunds",
+        "Reconciled",
+        "Unreconciled",
+    ]
 
 
 def test_the_csv_export_carries_the_same_rows_as_the_table(
@@ -266,15 +272,28 @@ def test_the_csv_export_writes_money_a_spreadsheet_can_add_up(
     assert rows[1][2] == "150.00"
 
 
-def test_the_pdf_export_is_named_for_the_range(
-    treasurer_client: APIClient, books: list[Payment]
+def test_the_pdf_export_is_named_for_the_day_it_was_run(
+    treasurer_client: APIClient, books: list[Payment], today: dt.date
 ) -> None:
     """The PDF is an attachment under the same name as the CSV."""
     response = treasurer_client.get(EXPORT_PDF, {"from": "2026-01-01", "to": "2026-02-28"})
     assert (
         response["Content-Disposition"]
-        == 'attachment; filename="caldart-reconciliation-2026-01-01-2026-02-28.pdf"'
+        == f'attachment; filename="caldart-reconciliation-{today.isoformat()}.pdf"'
     )
+
+
+def test_the_pdf_export_names_the_range_under_its_title(
+    treasurer_client: APIClient, books: list[Payment], pdf_text: PdfText
+) -> None:
+    """The subtitle carries the range, which the filename no longer does."""
+    body = treasurer_client.get(EXPORT_PDF, {"from": "2026-01-01", "to": "2026-02-28"}).content
+    assert pdf_text(body)[0][1] == "from: 2026-01-01 \u00b7 to: 2026-02-28"
+
+
+def test_the_pdf_export_is_upright(treasurer_client: APIClient, books: list[Payment]) -> None:
+    """Nine narrow columns fit portrait letter."""
+    assert b"/MediaBox [ 0 0 612 792 ]" in treasurer_client.get(EXPORT_PDF).content
 
 
 def test_the_pdf_export_draws_its_title_and_first_row(
@@ -297,7 +316,7 @@ def test_the_pdf_export_prints_money_with_its_currency(
 # --------------------------------------------------------------------------
 # Role matrix
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize("url", [TABLE, EXPORT_CSV, EXPORT_PDF])
+@pytest.mark.parametrize("url", [TABLE])
 @pytest.mark.parametrize(("slug", "allowed"), role_matrix(TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN))
 def test_reconciliation_is_for_the_finance_roles_only(
     api_client: APIClient,
@@ -311,7 +330,7 @@ def test_reconciliation_is_for_the_finance_roles_only(
     assert api_client.get(url).status_code == (200 if allowed else 403)
 
 
-@pytest.mark.parametrize("url", [TABLE, EXPORT_CSV, EXPORT_PDF])
+@pytest.mark.parametrize("url", [TABLE])
 def test_reconciliation_rejects_anonymous_callers(api_client: APIClient, url: str) -> None:
     """An anonymous caller gets a 401 from every reconciliation endpoint."""
     assert api_client.get(url).status_code == 401

@@ -16,28 +16,45 @@ stable order.
 The exports share one column registry, :data:`PAYMENT_REPORT_COLUMNS`, so the
 CSV, the PDF and the chooser the screen draws can never drift apart.  Adding a
 column means adding one entry to that tuple.
+
+The query-string serializers the finance list, the summary and the reports read
+live here too, so the payments report and the contributions report validate their
+params exactly as the screens they belong to do.
 """
 
 from __future__ import annotations
 
 import datetime as dt
-from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db.models import Count, DateField, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce, TruncDate, TruncMonth, TruncYear
 from django.utils import timezone
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
+from apps.accounts.roles import ACCOUNT_ADMIN, TREASURER
 from apps.members.models import Membership
 from apps.payments.models import (
     Payment,
     PaymentKind,
+    PaymentProvider,
     PaymentStatus,
+    PaymentWallet,
     Refund,
     RefundStatus,
 )
-from caldart.reports import ReportColumn, money_label
+from caldart.reports import (
+    Money,
+    Params,
+    ReportColumn,
+    ReportQuery,
+    ReportSpec,
+    given_params,
+    money_label,
+    resolve_period,
+)
 
 GROUPS = {"month": TruncMonth, "year": TruncYear}
 PERIOD_FORMAT = {"month": "%Y-%m", "year": "%Y"}
@@ -51,6 +68,12 @@ DEFAULT_ORDERING = ("-paid_date", "-paid_at")
 
 #: The title on every page of the payments PDF export.
 REPORT_TITLE = "CalDART payments"
+
+#: The title on every page of the contributions PDF export.
+CONTRIBUTION_TITLE = "CalDART contributions"
+
+#: The roles that read the money reports.
+FINANCE_ROLES: tuple[str, ...] = (TREASURER, ACCOUNT_ADMIN)
 
 #: The statuses that count as money CalDART received.  A refunded payment is
 #: still money that arrived and was then given back, which is why the refunded
@@ -386,7 +409,7 @@ def _money(cents: int) -> str:
 
 
 #: Every column the payment exports can carry, in export order.  ``key`` is what
-#: ``?columns=`` names and what ``GET /admin/payments/columns`` answers with,
+#: ``?columns=`` names and what ``GET /reports/payments/columns`` answers with,
 #: ``label`` is the header both exports print, and ``default`` says whether the
 #: column appears when the caller chooses none.  The five that are off by default
 #: -- the receipt number, the date a check was received, the treasurer's note and
@@ -417,20 +440,315 @@ PAYMENT_REPORT_COLUMNS: tuple[ReportColumn[Payment], ...] = (
 )
 
 
-def report_rows(
-    payments: Iterable[Payment], columns: list[ReportColumn[Payment]]
-) -> Iterator[list[str]]:
-    """Lazily yield one export row per payment, holding ``columns`` in their order.
+#: What a report date parameter answers with when it is not a date on the calendar.
+DATE_FORMAT_MESSAGE = "Expected a date as YYYY-MM-DD."
+GROUP_MESSAGE = "Expected 'month' or 'year'."
 
-    Money is dollars with two places and no currency symbol, dates are
-    ``YYYY-MM-DD``, and a value the payment does not have -- no plan, no note,
-    no term -- is an empty cell.
+#: What ``?reconciled=`` answers with when it is neither of the two words.
+RECONCILED_MESSAGE = "Expected 'yes' or 'no'."
+
+
+#: The earliest year the contributions report will look at: CalDART's founding
+#: is long after it, so anything earlier is a typo rather than a query.
+FIRST_REPORTABLE_YEAR = 1900
+
+
+class ReportDateField(serializers.DateField):
+    """One end of a report's date range, where an empty parameter is no bound at all.
+
+    The report screen sends every parameter on every request, so ``?from=`` has to
+    mean the same as leaving ``from`` out.  Anything else that is not a date the
+    calendar has -- ``2026-02-30`` as much as ``last tuesday`` -- is a 400 naming
+    this parameter.
     """
-    for payment in payments:
-        yield [str(column.value(payment)) for column in columns]
+
+    def __init__(self, **kwargs: Any) -> None:
+        """Build the field, defaulting to optional, unbounded, and our own message."""
+        kwargs.setdefault("required", False)
+        kwargs.setdefault("default", None)
+        kwargs.setdefault("error_messages", {"invalid": DATE_FORMAT_MESSAGE})
+        super().__init__(**kwargs)
+
+    # DRF's DateField promises a date, and answering an empty parameter with
+    # ``None`` is the whole point of this field.
+    def to_internal_value(self, value: dt.date | str) -> dt.date | None:  # type: ignore[override]
+        """``None`` for an empty parameter, otherwise the date the string names.
+
+        Raises DRF's ``ValidationError`` with :data:`DATE_FORMAT_MESSAGE` for
+        anything else.
+        """
+        if value == "":
+            return None
+        return super().to_internal_value(value)
 
 
-def report_filename(extension: str, *, today: dt.date | None = None) -> str:
-    """The download name of a payments export, dated the day it was run."""
-    day = today or timezone.localdate()
-    return f"caldart-payments-{day.isoformat()}.{extension}"
+class PaymentReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
+    """The query string the finance list, summary and exports share.
+
+    Every parameter is optional and an empty one narrows nothing.  ``from`` and
+    ``to`` bound the date the money arrived; ``provider``, ``status``, ``wallet``
+    and ``kind`` must each name one of the payment choices; ``plan`` is a plan
+    slug; ``member`` is a member's id; ``reconciled`` is ``yes`` or ``no``;
+    ``min_cents`` and ``max_cents`` bound the total; ``search`` matches a name, an
+    email address, a provider reference or a treasurer's note; ``group`` is the
+    summary's period, ``month`` or ``year``.  Every endpoint therefore refuses the
+    same input the same way, with the complaint keyed by the parameter it came from.
+    """
+
+    provider = serializers.CharField(required=False, allow_blank=True, default="")
+    status = serializers.CharField(required=False, allow_blank=True, default="")
+    search = serializers.CharField(required=False, allow_blank=True, default="")
+    group = serializers.CharField(required=False, allow_blank=True, default=DEFAULT_GROUP)
+    plan = serializers.CharField(required=False, allow_blank=True, default="")
+    kind = serializers.CharField(required=False, allow_blank=True, default="")
+    wallet = serializers.CharField(required=False, allow_blank=True, default="")
+    reconciled = serializers.CharField(required=False, allow_blank=True, default="")
+    member = serializers.IntegerField(required=False, allow_null=True, default=None)
+    min_cents = serializers.IntegerField(required=False, allow_null=True, min_value=0, default=None)
+    max_cents = serializers.IntegerField(required=False, allow_null=True, min_value=0, default=None)
+
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        """The declared fields plus the date bounds, whose names are Python keywords."""
+        fields = super().get_fields()
+        fields["from"] = ReportDateField()
+        fields["to"] = ReportDateField()
+        return fields
+
+    def validate_provider(self, value: str) -> str:
+        """Return ``value``, or raise ``Unknown provider '<value>'.`` for an unknown one.
+
+        An empty string is accepted and narrows nothing.
+        """
+        if value and value not in PaymentProvider.values:
+            raise serializers.ValidationError(f"Unknown provider '{value}'.")
+        return value
+
+    def validate_status(self, value: str) -> str:
+        """Return ``value``, or raise ``Unknown status '<value>'.`` for an unknown one.
+
+        An empty string is accepted and narrows nothing.
+        """
+        if value and value not in PaymentStatus.values:
+            raise serializers.ValidationError(f"Unknown status '{value}'.")
+        return value
+
+    def validate_wallet(self, value: str) -> str:
+        """Return ``value``, or raise ``Unknown wallet '<value>'.`` for an unknown one.
+
+        An empty string is accepted and narrows nothing.
+        """
+        if value and value not in PaymentWallet.values:
+            raise serializers.ValidationError(f"Unknown wallet '{value}'.")
+        return value
+
+    def validate_kind(self, value: str) -> str:
+        """Return ``value``, or raise ``Unknown kind '<value>'.`` for an unknown one.
+
+        An empty string is accepted and narrows nothing.
+        """
+        if value and value not in PaymentKind.values:
+            raise serializers.ValidationError(f"Unknown kind '{value}'.")
+        return value
+
+    def validate_reconciled(self, value: str) -> str:
+        """Return ``value``, or raise :data:`RECONCILED_MESSAGE` for anything else.
+
+        An empty string is accepted and narrows nothing.
+        """
+        if value and value not in {"yes", "no"}:
+            raise serializers.ValidationError(RECONCILED_MESSAGE)
+        return value
+
+    def validate_group(self, value: str) -> str:
+        """Return the period to group by, defaulting an empty parameter to ``month``.
+
+        Raises DRF's ``ValidationError`` with :data:`GROUP_MESSAGE` for anything
+        but ``month`` or ``year``.
+        """
+        group = value or DEFAULT_GROUP
+        if group not in GROUPS:
+            raise serializers.ValidationError(GROUP_MESSAGE)
+        return group
+
+    def to_filters(self) -> PaymentFilters:
+        """The validated parameters as the narrowing the report functions take.
+
+        Call it after ``is_valid``.  The summary reads its period from
+        ``validated_data["group"]``, which no filter uses.
+        """
+        data = self.validated_data
+        return PaymentFilters(
+            date_from=data["from"],
+            date_to=data["to"],
+            provider=data["provider"],
+            status=data["status"],
+            search=data["search"],
+            plan=data["plan"],
+            kind=data["kind"],
+            wallet=data["wallet"],
+            reconciled=data["reconciled"],
+            member=data["member"],
+            min_cents=data["min_cents"],
+            max_cents=data["max_cents"],
+        )
+
+
+class ContributionQuerySerializer(serializers.Serializer[dict[str, Any]]):
+    """``?year=`` for the contributions list and its exports.
+
+    The parameter is optional; leaving it out reports the current calendar year.
+    A year outside :data:`FIRST_REPORTABLE_YEAR` to nine thousand is a 400.
+    """
+
+    year = serializers.IntegerField(
+        required=False, min_value=FIRST_REPORTABLE_YEAR, max_value=9_000, default=None
+    )
+
+    def chosen_year(self) -> int:
+        """The year to report on, which is this year when the caller named none."""
+        year = self.validated_data["year"]
+        return year if year is not None else timezone.localdate().year
+
+
+def requested_ordering(ordering: str) -> list[str]:
+    """The ``order_by`` arguments an ``?ordering=`` value asks for.
+
+    Newest money first when the value is blank -- by the ledger date, then by the
+    moment the payment settled -- and a single leading ``-`` reverses.  The id breaks
+    ties, so paging is stable.  Raises DRF's ``ValidationError`` keyed by ``ordering``,
+    saying ``Cannot order by '<field>'.``, for a field outside :data:`ORDERING_FIELDS`.
+    """
+    requested = ordering.strip()
+    # One leading "-" is the reversal Django understands; anything else -- a
+    # doubled prefix, a bare "-" -- is a field name the queryset cannot resolve,
+    # so it is refused here rather than raising ``FieldError`` from ``order_by``.
+    field = requested[1:] if requested.startswith("-") else requested
+    if requested and field not in ORDERING_FIELDS:
+        raise ValidationError({"ordering": f"Cannot order by '{field}'."})
+    if not requested:
+        return [*DEFAULT_ORDERING, "-id"]
+    return [requested, "-id"]
+
+
+def validated_query(params: Params) -> PaymentReportQuerySerializer:
+    """``params`` checked by :class:`PaymentReportQuerySerializer`.
+
+    A blank param is left out first, so it narrows nothing whether ``params`` is a
+    query string or a stored mapping.  Raises DRF's ``ValidationError`` -- a 400 keyed
+    by the parameter at fault -- for anything the finance endpoints will not act on.
+    """
+    query = PaymentReportQuerySerializer(data=given_params(params))
+    query.is_valid(raise_exception=True)
+    return query
+
+
+def filtered_payments(params: Params) -> QuerySet[Payment]:
+    """The payments ``params`` ask for, in the order they ask for.
+
+    The finance list and the payments report both read this, so the two can never
+    disagree about which payments a filter picks or how they are ordered.
+    """
+    queryset = apply_filters(base_queryset(), validated_query(params).to_filters())
+    return queryset.order_by(*requested_ordering(params.get("ordering", "")))
+
+
+#: The query parameters the payments report names in its PDF subtitle, in order.
+EXPORT_FILTER_PARAMS: tuple[str, ...] = (
+    "from",
+    "to",
+    "provider",
+    "status",
+    "search",
+    "plan",
+    "kind",
+    "wallet",
+    "reconciled",
+    "member",
+    "min_cents",
+    "max_cents",
+    "ordering",
+)
+
+
+def payment_report_query(params: Params) -> ReportQuery[Payment]:
+    """The payments the finance list shows for ``params``, in its order, every status.
+
+    The rows are read a chunk at a time; the applied filters are those of
+    :data:`EXPORT_FILTER_PARAMS` given a value.
+    """
+    return ReportQuery(
+        rows=filtered_payments(params).iterator(chunk_size=200),
+        filters=given_params(params, EXPORT_FILTER_PARAMS),
+    )
+
+
+def payment_period(params: Params, today: dt.date) -> Params:
+    """``params`` with ``period`` replaced by the ``from`` and ``to`` it spans."""
+    return resolve_period(
+        params, today, lambda start, end: {"from": start.isoformat(), "to": end.isoformat()}
+    )
+
+
+#: The payment list, for the finance roles: every filter the list takes, and
+#: ``period`` for the month or year a download or a subscription means.
+PAYMENT_REPORT: ReportSpec[Payment] = ReportSpec(
+    slug="payments",
+    title=REPORT_TITLE,
+    filename_stem="caldart-payments",
+    columns=PAYMENT_REPORT_COLUMNS,
+    roles=FINANCE_ROLES,
+    query=payment_report_query,
+    resolve=payment_period,
+)
+
+
+#: The contributions table's columns, fixed, in order: who gave, how many payments,
+#: what they gave, what went back, and the difference.
+CONTRIBUTION_COLUMNS: tuple[ReportColumn[ContributionRow], ...] = (
+    ReportColumn("name", "Name", True, lambda row: row["name"], width=2.4),
+    ReportColumn("email", "Email", True, lambda row: row["email"], width=3.0),
+    ReportColumn("payments", "Payments", True, lambda row: row["count"], width=1.0),
+    ReportColumn(
+        "contributed", "Contributed", True, lambda row: Money(row["contribution_cents"]), width=1.6
+    ),
+    ReportColumn("refunded", "Refunded", True, lambda row: Money(row["refunded_cents"]), width=1.4),
+    ReportColumn("net", "Net", True, lambda row: Money(row["net_contribution_cents"]), width=1.8),
+)
+
+
+def contribution_report_query(params: Params) -> ReportQuery[ContributionRow]:
+    """One row per member who gave in the ``year`` ``params`` names, or this year.
+
+    The year is refused as the contributions list refuses it, and is always named in
+    the applied filters, since the report's title does not carry it.
+    """
+    query = ContributionQuerySerializer(data=given_params(params))
+    query.is_valid(raise_exception=True)
+    year = query.chosen_year()
+    return ReportQuery(rows=contribution_rows(year), filters={"year": str(year)})
+
+
+def contribution_year(params: Params, today: dt.date) -> Params:
+    """``params`` with ``period`` replaced by the ``year`` it falls in.
+
+    Without a ``period``, a missing or blank ``year`` becomes the year ``today`` falls
+    in, so a report built for another day names and fills that day's year.
+    """
+    resolved = resolve_period(params, today, lambda start, end: {"year": str(start.year)})
+    if resolved.get("year", "") == "":
+        return {**resolved, "year": str(today.year)}
+    return resolved
+
+
+#: The year-end contributions list, for the finance roles: fixed columns, upright.
+CONTRIBUTION_REPORT: ReportSpec[ContributionRow] = ReportSpec(
+    slug="contributions",
+    title=CONTRIBUTION_TITLE,
+    filename_stem="caldart-contributions",
+    columns=CONTRIBUTION_COLUMNS,
+    roles=FINANCE_ROLES,
+    query=contribution_report_query,
+    landscape=False,
+    choosable=False,
+    resolve=contribution_year,
+)

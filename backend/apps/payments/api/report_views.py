@@ -1,9 +1,10 @@
-"""The finance area's API: the payment list, the reports and the ledger.
+"""The finance API: the payment list, the period summary, the tables and the ledger.
 
 Every view here is guarded by ``IsFinance`` -- a treasurer or an account
-administrator, with a system administrator passing as it does everywhere -- and
-every one of them answers the same question from the same filters, so the
-figures on the screen, in the CSV and in the PDF can never disagree.
+administrator, with a system administrator passing as it does everywhere.  The
+list and the tables read the same query functions the payments, reconciliation
+and contributions reports read, so the figures on the screen and in a download
+can never disagree.
 
 Two things a treasurer does rather than reads also live here: recording a
 payment taken by hand, and marking a payment reconciled against a statement.
@@ -16,7 +17,6 @@ from typing import Any
 
 from django.db.models import CharField, F, Q, QuerySet, Value
 from django.db.models.functions import Concat
-from django.http import HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status as http_status
@@ -32,7 +32,6 @@ from apps.accounts.permissions import IsFinance
 from apps.members.services import membership_status
 from apps.payments import reconciliation, reports
 from apps.payments.api.serializers import (
-    ContributionQuerySerializer,
     ContributionRowSerializer,
     FinanceMemberSerializer,
     FinancePaymentDetailSerializer,
@@ -42,47 +41,19 @@ from apps.payments.api.serializers import (
     MemberSearchQuerySerializer,
     PaymentPatchSerializer,
     PaymentPeriodSummarySerializer,
-    PaymentReportQuerySerializer,
-    ReconciliationQuerySerializer,
     ReconciliationRowSerializer,
 )
 from apps.payments.manual import record_manual_payment
 from apps.payments.models import Payment, PaymentProvider, RenewalMandate
 from apps.payments.providers.base import PaymentError
-from apps.payments.reports import PAYMENT_REPORT_COLUMNS
 from apps.payments.services import backfill_fees, fees_are_known
 from caldart import audit
-from caldart.reports import (
-    CSV_MEDIA_TYPE,
-    PDF_MEDIA_TYPE,
-    ReportColumn,
-    ReportColumnSerializer,
-    column_payload,
-    csv_response,
-    download_responses,
-    filter_summary,
-    money_label,
-    pdf_table_response,
-)
-
-#: The relative widths of the reconciliation table's nine columns.  The period
-#: label is wider than a figure, and every figure is the same width as the next.
-RECONCILIATION_WIDTHS = (2, 1, 1.4, 1.2, 1.4, 1.4, 1.6, 1.2, 1.3)
-
-#: The relative widths of the contributions table's six columns.
-CONTRIBUTION_WIDTHS = (2.4, 3, 1, 1.6, 1.4, 1.8)
-
-#: The header both contribution exports print, in column order.
-CONTRIBUTION_HEADER = ("Name", "Email", "Payments", "Contributed", "Refunded", "Net")
 
 #: What the fee refresh answers with when the provider still cannot price a payment.
 FEES_UNAVAILABLE = "The provider has no fee to report for this payment yet."
 
 #: How many members the finance area's search answers with at most.
 MEMBER_SEARCH_LIMIT = 10
-
-#: The title on every page of the contributions PDF.
-CONTRIBUTION_TITLE = "CalDART contributions"
 
 
 def acting_finance_user(request: Request) -> User:
@@ -94,56 +65,6 @@ def acting_finance_user(request: Request) -> User:
     user = request.user
     assert isinstance(user, User)  # noqa: S101 - mypy strict narrowing, not test code
     return user
-
-
-def report_query(request: Request) -> PaymentReportQuerySerializer:
-    """The validated report parameters of ``request``.
-
-    Raises DRF's ``ValidationError`` -- a 400 keyed by the parameter at fault --
-    for anything the finance endpoints will not act on.
-    """
-    serializer = PaymentReportQuerySerializer(data=request.query_params)
-    serializer.is_valid(raise_exception=True)
-    return serializer
-
-
-def requested_ordering(request: Request) -> list[str]:
-    """The ``order_by`` arguments ``?ordering=`` asks for.
-
-    Newest money first when the parameter is absent -- by the ledger date, then
-    by the moment the payment settled -- and a single leading ``-`` reverses.
-    The id breaks ties, so paging is stable.  Raises DRF's
-    ``ValidationError`` keyed by ``ordering``, saying ``Cannot order by
-    '<field>'.``, for a field outside
-    :data:`apps.payments.reports.ORDERING_FIELDS`.
-    """
-    requested = (request.query_params.get("ordering") or "").strip()
-    # One leading "-" is the reversal Django understands; anything else -- a
-    # doubled prefix, a bare "-" -- is a field name the queryset cannot resolve,
-    # so it is refused here rather than raising ``FieldError`` from ``order_by``.
-    field = requested[1:] if requested.startswith("-") else requested
-    if requested and field not in reports.ORDERING_FIELDS:
-        raise ValidationError({"ordering": f"Cannot order by '{field}'."})
-    if not requested:
-        return [*reports.DEFAULT_ORDERING, "-id"]
-    return [requested, "-id"]
-
-
-def filtered_payments(request: Request) -> QuerySet[Payment]:
-    """The payments the query string asks for, in the order it asks for."""
-    query = report_query(request)
-    queryset = reports.apply_filters(reports.base_queryset(), query.to_filters())
-    return queryset.order_by(*requested_ordering(request))
-
-
-def export_subtitle(request: Request) -> str:
-    """The filters the caller asked for, as one line under an export's title."""
-    applied = {
-        key: value
-        for key, value in request.query_params.items()
-        if key not in {"columns", "page", "page_size"}
-    }
-    return filter_summary(applied)
 
 
 class AdminPaymentListView(ListAPIView[Payment]):
@@ -162,7 +83,7 @@ class AdminPaymentListView(ListAPIView[Payment]):
         will not act on.  Only a treasurer or an account administrator reaches
         this; the page size is the project-wide default.
         """
-        return filtered_payments(self.request)
+        return reports.filtered_payments(self.request.query_params)
 
 
 class AdminPaymentSummaryView(APIView):
@@ -178,7 +99,7 @@ class AdminPaymentSummaryView(APIView):
         counts.  400 for a parameter the report will not act on, ``group``
         included.
         """
-        query = report_query(request)
+        query = reports.validated_query(request.query_params)
         queryset = reports.apply_filters(reports.base_queryset(), query.to_filters())
         rows = reports.summarize(queryset, query.validated_data["group"])
         # The stubs take the instance type from the single-object parameter, so
@@ -187,88 +108,14 @@ class AdminPaymentSummaryView(APIView):
         return Response(serializer.data)
 
 
-class AdminPaymentColumnsView(APIView):
-    """``GET /admin/payments/columns`` -- what the exports can carry."""
-
-    permission_classes = [IsAuthenticated, IsFinance]
-
-    @extend_schema(responses={200: ReportColumnSerializer(many=True)})
-    def get(self, request: Request) -> Response:
-        """200 with every export column, in export order, for the finance roles.
-
-        Each entry carries the ``key`` ``?columns=`` accepts, the ``label`` both
-        exports print, and whether it is one of the ``default`` columns.
-        """
-        rows = column_payload(PAYMENT_REPORT_COLUMNS)
-        serializer = ReportColumnSerializer(rows, many=True)  # type: ignore[arg-type]
-        return Response(serializer.data)
-
-
-class PaymentExportBaseView(APIView):
-    """What both payment exports share: the filters, the columns and the rows."""
-
-    permission_classes = [IsAuthenticated, IsFinance]
-
-    def columns(self, request: Request) -> list[ReportColumn[Payment]]:
-        """The columns ``?columns=`` asks for, or the default ones."""
-        return report_query(request).chosen_columns()
-
-    def payments(self, request: Request) -> QuerySet[Payment]:
-        """The filtered, ordered payments the export carries."""
-        return filtered_payments(request)
-
-
-class AdminPaymentExportCsvView(PaymentExportBaseView):
-    """``GET /admin/payments/export.csv`` -- the filtered list as a download."""
-
-    @extend_schema(
-        responses=download_responses(CSV_MEDIA_TYPE, "The filtered payment list as a CSV file.")
-    )
-    def get(self, request: Request) -> StreamingHttpResponse:
-        """200 with a dated ``caldart-payments-<date>.csv`` attachment.
-
-        The same filters and ordering as the list apply, and ``?columns=`` chooses
-        which columns appear and in what order.  400 for a parameter the report
-        will not act on, an unknown column key included.
-        """
-        columns = self.columns(request)
-        return csv_response(
-            reports.report_filename("csv"),
-            [column.label for column in columns],
-            reports.report_rows(self.payments(request).iterator(chunk_size=200), columns),
-        )
-
-
-class AdminPaymentExportPdfView(PaymentExportBaseView):
-    """``GET /admin/payments/export.pdf`` -- the filtered list as a download."""
-
-    @extend_schema(
-        responses=download_responses(PDF_MEDIA_TYPE, "The filtered payment list as a PDF file.")
-    )
-    def get(self, request: Request) -> HttpResponse:
-        """200 with a dated ``caldart-payments-<date>.pdf`` attachment.
-
-        The same filters, ordering and ``?columns=`` as the CSV apply, and the
-        subtitle names the filters that were applied.
-        """
-        columns = self.columns(request)
-        return pdf_table_response(
-            reports.report_filename("pdf"),
-            title=reports.REPORT_TITLE,
-            subtitle=export_subtitle(request),
-            header=[column.label for column in columns],
-            rows=reports.report_rows(self.payments(request).iterator(chunk_size=200), columns),
-        )
-
-
 class ReconciliationBaseView(APIView):
-    """What the reconciliation table and its two exports share."""
+    """The reconciliation table's permission and its validated query."""
 
     permission_classes = [IsAuthenticated, IsFinance]
 
-    def query(self, request: Request) -> ReconciliationQuerySerializer:
+    def query(self, request: Request) -> reconciliation.ReconciliationQuerySerializer:
         """The validated range, provider and grouping, or a field-keyed 400."""
-        serializer = ReconciliationQuerySerializer(data=request.query_params)
+        serializer = reconciliation.ReconciliationQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         return serializer
 
@@ -298,78 +145,14 @@ class AdminReconciliationView(ReconciliationBaseView):
         return Response(serializer.data)
 
 
-def reconciliation_cells(row: reconciliation.ReconciliationRow, *, currency: bool) -> list[str]:
-    """One reconciliation row as the exports print it, in header order."""
-    return [
-        row["period"],
-        str(row["count"]),
-        money_label(row["gross_cents"], currency=currency),
-        money_label(row["fee_cents"], currency=currency),
-        money_label(row["net_cents"], currency=currency),
-        money_label(row["refunded_cents"], currency=currency),
-        money_label(row["net_after_refunds_cents"], currency=currency),
-        str(row["reconciled_count"]),
-        str(row["unreconciled_count"]),
-    ]
-
-
-class AdminReconciliationCsvView(ReconciliationBaseView):
-    """``GET /admin/payments/reconciliation/export.csv``."""
-
-    @extend_schema(
-        responses=download_responses(CSV_MEDIA_TYPE, "The reconciliation table as a CSV file.")
-    )
-    def get(self, request: Request) -> StreamingHttpResponse:
-        """200 with ``caldart-reconciliation-<from>-<to>.csv`` as an attachment.
-
-        The cells are the same figures the table answers with, in dollars without
-        a currency symbol so a spreadsheet adds them up.  An open end of the range
-        is spelled ``all`` in the filename.
-        """
-        data = self.query(request).validated_data
-        return csv_response(
-            reconciliation.reconciliation_filename(
-                "csv", date_from=data["from"], date_to=data["to"]
-            ),
-            reconciliation.RECONCILIATION_HEADER,
-            [reconciliation_cells(row, currency=False) for row in self.rows(request)],
-        )
-
-
-class AdminReconciliationPdfView(ReconciliationBaseView):
-    """``GET /admin/payments/reconciliation/export.pdf`` -- portrait letter."""
-
-    @extend_schema(
-        responses=download_responses(PDF_MEDIA_TYPE, "The reconciliation table as a PDF file.")
-    )
-    def get(self, request: Request) -> HttpResponse:
-        """200 with ``caldart-reconciliation-<from>-<to>.pdf`` as an attachment.
-
-        The table is narrow enough for an upright page, and the subtitle names
-        the range, the provider and the grouping that were applied.
-        """
-        data = self.query(request).validated_data
-        return pdf_table_response(
-            reconciliation.reconciliation_filename(
-                "pdf", date_from=data["from"], date_to=data["to"]
-            ),
-            title=reconciliation.REPORT_TITLE,
-            subtitle=export_subtitle(request),
-            header=reconciliation.RECONCILIATION_HEADER,
-            rows=[reconciliation_cells(row, currency=True) for row in self.rows(request)],
-            landscape=False,
-            widths=RECONCILIATION_WIDTHS,
-        )
-
-
 class ContributionBaseView(APIView):
-    """What the contributions list and its two exports share."""
+    """The contributions list's permission and its validated year."""
 
     permission_classes = [IsAuthenticated, IsFinance]
 
     def year(self, request: Request) -> int:
         """The calendar year ``?year=`` asks for, defaulting to this one."""
-        serializer = ContributionQuerySerializer(data=request.query_params)
+        serializer = reports.ContributionQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         return serializer.chosen_year()
 
@@ -390,54 +173,6 @@ class AdminContributionsView(ContributionBaseView):
         rows = self.rows(self.year(request))
         serializer = ContributionRowSerializer(rows, many=True)  # type: ignore[arg-type]
         return Response(serializer.data)
-
-
-def contribution_cells(row: reports.ContributionRow, *, currency: bool) -> list[str]:
-    """One contributions row as the exports print it, in header order."""
-    return [
-        row["name"],
-        row["email"],
-        str(row["count"]),
-        money_label(row["contribution_cents"], currency=currency),
-        money_label(row["refunded_cents"], currency=currency),
-        money_label(row["net_contribution_cents"], currency=currency),
-    ]
-
-
-class AdminContributionsCsvView(ContributionBaseView):
-    """``GET /admin/payments/contributions/export.csv``."""
-
-    @extend_schema(
-        responses=download_responses(CSV_MEDIA_TYPE, "The contributions list as a CSV file.")
-    )
-    def get(self, request: Request) -> StreamingHttpResponse:
-        """200 with ``caldart-contributions-<year>.csv`` as an attachment."""
-        year = self.year(request)
-        return csv_response(
-            f"caldart-contributions-{year}.csv",
-            CONTRIBUTION_HEADER,
-            [contribution_cells(row, currency=False) for row in self.rows(year)],
-        )
-
-
-class AdminContributionsPdfView(ContributionBaseView):
-    """``GET /admin/payments/contributions/export.pdf`` -- portrait letter."""
-
-    @extend_schema(
-        responses=download_responses(PDF_MEDIA_TYPE, "The contributions list as a PDF file.")
-    )
-    def get(self, request: Request) -> HttpResponse:
-        """200 with ``caldart-contributions-<year>.pdf`` as an attachment."""
-        year = self.year(request)
-        return pdf_table_response(
-            f"caldart-contributions-{year}.pdf",
-            title=f"{CONTRIBUTION_TITLE} {year}",
-            subtitle=export_subtitle(request),
-            header=CONTRIBUTION_HEADER,
-            rows=[contribution_cells(row, currency=True) for row in self.rows(year)],
-            landscape=False,
-            widths=CONTRIBUTION_WIDTHS,
-        )
 
 
 class AdminPaymentDetailView(APIView):
