@@ -1,22 +1,35 @@
 {% extends "emails/reminder_base.html" %}
 
-{% block preheader %}Today is the last day of your {{ plan_name }} membership.{% endblock %}
+{% block preheader %}{% if days_ago > 0 %}Your {{ plan_name }} membership expired {{ days_ago }} day{{ days_ago|pluralize }} ago.{% else %}Today is the last day of your {{ plan_name }} membership.{% endif %}{% endblock %}
 
-{% block heading %}Today is the last day{% endblock %}
+{% block heading %}{% if days_ago > 0 %}Your membership has expired{% else %}Today is the last day{% endif %}{% endblock %}
 
-{% block lede %}Your {{ plan_name }} membership ends on {{ expires_on|date:"F j, Y" }} — that is today.{% endblock %}
+{% block lede %}{% if days_ago > 0 %}Your {{ plan_name }} membership ended on {{ expires_on|date:"F j, Y" }} — that was {{ days_ago }} day{{ days_ago|pluralize }} ago.{% else %}Your {{ plan_name }} membership ends on {{ expires_on|date:"F j, Y" }} — that is today.{% endif %}{% endblock %}
 
 {% block body %}
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
-  <p style="margin:0 0 14px 0;">
-    From tomorrow your membership reads as expired: the members-only pages close,
-    and DART leaders checking you before a flight will see a red chip rather than
-    a green one.
-  </p>
-  <p style="margin:0 0 14px 0;">
-    Renew today and nothing lapses at all. If you have already renewed in the
-    last few minutes, ignore this — the portal is the record that counts.
-  </p>
+  {% if days_ago > 0 %}
+    <p style="margin:0 0 14px 0;">
+      Your membership reads as expired: the members-only pages are closed, and
+      DART leaders checking you before a flight see a red chip rather than a
+      green one.
+    </p>
+    <p style="margin:0 0 14px 0;">
+      Renew now and you are covered again the same day. If you have already
+      renewed in the last few minutes, ignore this — the portal is the record
+      that counts.
+    </p>
+  {% else %}
+    <p style="margin:0 0 14px 0;">
+      From tomorrow your membership reads as expired: the members-only pages close,
+      and DART leaders checking you before a flight will see a red chip rather than
+      a green one.
+    </p>
+    <p style="margin:0 0 14px 0;">
+      Renew today and nothing lapses at all. If you have already renewed in the
+      last few minutes, ignore this — the portal is the record that counts.
+    </p>
+  {% endif %}
 {% endblock %}
 
-{% block cta_label %}Renew today{% endblock %}
+{% block cta_label %}{% if days_ago > 0 %}Renew now{% else %}Renew today{% endif %}{% endblock %}

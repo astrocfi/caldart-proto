@@ -337,7 +337,7 @@ went out, which reminder it was, the member it went to and the address it was
 sent to.  It is the answer to "did we ever tell them?".
 
 The **Reminder** box above the table narrows it to one kind: *60 days before*,
-*30 days before*, *7 days before*, *Expiry day* or *30 days after*.  *All
+*30 days before*, *7 days before*, *Expired* or *30 days after*.  *All
 kinds* puts them back.  Sort by clicking a column heading.
 
 The scan that sends them runs every morning at 07:00 and needs nobody to start
@@ -345,7 +345,7 @@ it; :doc:`overview` explains which email a member gets when.  Running it by
 hand is a system administrator's control and lives on their System page, so
 there is no button for it here.
 
-An empty table means nothing has matched a reminder window yet — on a fresh
+An empty table means no term has reached a reminder stage yet — on a fresh
 installation, or when every member renewed early.
 
 
@@ -354,8 +354,9 @@ Common tasks
 
 **Who is about to lapse?**
    Membership *Current*, Expiring within ``30``.  Export the CSV for the
-   renewal mail-out.  Automatic reminders go out at 60, 30, and 7 days before
-   expiry, on the day itself, and 30 days after.
+   renewal mail-out.  Automatic reminders go out at five stages: two months
+   before expiry, a month before, in the last week, once the term has run out,
+   and once a month later.
 
 **Who has lapsed and not come back?**
    Membership *Expired*, sort by Membership to see the longest-lapsed first.

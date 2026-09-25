@@ -9,17 +9,20 @@ from caldart.models import TimestampedModel
 
 
 class ReminderKind(models.TextChoices):
-    """The five renewal reminder emails.  ``REMINDER_OFFSETS`` dates each one."""
+    """The five renewal reminder stages.  ``REMINDER_OFFSETS`` dates each one."""
 
     T60 = "t60", "60 days before expiry"
     T30 = "t30", "30 days before expiry"
     T7 = "t7", "7 days before expiry"
-    EXPIRED = "expired", "Expired today"
+    EXPIRED = "expired", "Expired"
     POST30 = "post30", "30 days after expiry"
 
 
-#: Offset in days from the membership expiry date for each kind.  Negative
-#: values are before expiry.
+#: Offset in days from the membership expiry date for each stage, negative
+#: before expiry.  It dates the far end of the stage's span: the earliest day a
+#: term can still be in ``t60``'s span is 60 days out, and the latest day a
+#: ``post30`` note goes is 30 days after expiry.  The scanner turns the offsets
+#: into spans in ``apps.reminders.services.stage_span``.
 REMINDER_OFFSETS: dict[str, int] = {
     ReminderKind.T60: -60,
     ReminderKind.T30: -30,

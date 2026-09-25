@@ -1,8 +1,8 @@
-{{ org_name }} — {{ days }} days left
+{{ org_name }} — {{ days }} day{{ days|pluralize }} left
 
 Hello {{ first_name }},
 
-{{ days }} days left. After {{ expires_on|date:"F j, Y" }} your {{ plan_name }}
+{{ days }} day{{ days|pluralize }} left. After {{ expires_on|date:"F j, Y" }} your {{ plan_name }}
 membership shows as expired to DART leaders, and you will not be counted as
 available when a mission is being staffed.
 

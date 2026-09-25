@@ -150,9 +150,11 @@ A renewal **starts the day after your current term ends**, so there is no
 penalty for renewing early: you never lose the days you have already paid
 for.  If your membership has already lapsed, the new term starts today.
 
-CalDART emails you a reminder 60, 30, and 7 days before expiry, on the day
-it expires, and once 30 days afterwards.  Every reminder links straight to
-the renewal page.
+CalDART emails you five reminders as your term runs out: two months before
+expiry, a month before, in the last week, once it has run out, and once a
+month later.  You get each one whenever you joined, so a membership bought
+three weeks before it expires still brings the last two.  Every reminder links
+straight to the renewal page.
 
 If you are a life member there is nothing there to renew, so the same menu
 entry opens **Contribute to CalDART**: the card says **You are a life

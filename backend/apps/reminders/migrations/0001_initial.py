@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('kind', models.CharField(choices=[('t60', '60 days before expiry'), ('t30', '30 days before expiry'), ('t7', '7 days before expiry'), ('expired', 'Expired today'), ('post30', '30 days after expiry')], max_length=12)),
+                ('kind', models.CharField(choices=[('t60', '60 days before expiry'), ('t30', '30 days before expiry'), ('t7', '7 days before expiry'), ('expired', 'Expired'), ('post30', '30 days after expiry')], max_length=12)),
                 ('sent_at', models.DateTimeField()),
                 ('to_email', models.EmailField(max_length=254)),
                 ('membership', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reminder_logs', to='members.membership')),

@@ -107,18 +107,23 @@ and is a command-line job with the site stopped; see
 Renewal reminders
 -----------------
 
-CalDART emails members five times around their expiry date: 60, 30, and 7 days
-before, on the day itself, and 30 days after.  A scheduled job runs every
-morning at 07:00 and sends whatever is due, so in normal operation you never
-touch this panel.
+CalDART emails members at five stages around their expiry date.  Each stage
+covers a stretch of the calendar rather than one day, so every member passes
+through it: **60 days** reaches anyone expiring in 31 to 60 days, **30 days**
+anyone expiring in 8 to 30 days, **7 days** anyone expiring within the week,
+**expired** anyone whose term ran out in the last seven days, and **30 days
+after** anyone whose term ran out between 30 and 60 days ago.  Each member gets
+each stage once.  A scheduled job runs every morning at 07:00 and sends whatever
+is due, so in normal operation you never touch this panel.
 
 When you do want to run it by hand:
 
 1. Leave **Dry run (send nothing)** ticked the first time.  It reports what
    *would* go out without sending anything or recording anything.
 2. Press **Run now**.  The result reads, for example, "Would send 4 emails,
-   skipped 2."  Skipped means already sent, or the member has renewed, or holds
-   a lifetime membership, or their account is deactivated.
+   skipped 2."  Skipped means already sent, or the member has renewed, or their
+   membership renews itself, or they hold a lifetime membership, or their
+   account is deactivated, or there is no address on file.
 3. If the numbers look right and you have a reason to send now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
 
@@ -143,7 +148,10 @@ told?" when somebody says their membership lapsed without warning.  Account
 administrators read the same log on their own **Reminders** screen, without
 the run controls (:doc:`account-administrator-guide`).
 
-The wording of the emails and the 07:00 schedule are in
+A run the timer missed costs nothing: because the stages are stretches of the
+calendar, the next morning's run finds everybody the missed one would have.  Only
+a gap of a week or more can let a member pass through the 7-day or expired stage
+unheard.  The wording of the emails and the 07:00 schedule are in
 :doc:`/developer/reminders`.
 
 Automatic renewals
@@ -324,14 +332,12 @@ When something goes wrong
    scheduled job.
 
 **A reminder run reports everything skipped.**
-   That is the normal answer most days: a reminder is sent only when a
-   membership expires in 58 to 60, 28 to 30 or 5 to 7 days, expires today, or
-   lapsed 30 to 32 days ago.  Every kind but "expires today" covers its own day
-   and the two days after it, so a run the timer missed still catches the
-   members it stepped over.  The summary breaks the skips down by reason —
-   ``already_sent``, ``lifetime``, ``renewed``, ``inactive_user``,
-   ``no_email``.  ``already_sent`` in particular means an earlier run in that
-   three-day window already sent it.
+   That is the normal answer most days: the members in each stage were written
+   to the first morning they entered it, and every run after that finds them
+   already told.  The summary breaks the skips down by reason —
+   ``already_sent``, ``lifetime``, ``renewed``, ``auto_renew``,
+   ``inactive_user``, ``no_email``.  ``already_sent`` is the common one and
+   means an earlier run in that stage already sent it.
 
 **A reminder run sends nothing when you expected mail.**
    Check that **Dry run** is unticked: it is ticked by default, and a dry run

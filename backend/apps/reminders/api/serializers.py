@@ -37,8 +37,15 @@ class ReminderRunRequestSerializer(serializers.Serializer[Any]):
 
 
 class ReminderRunResultSerializer(serializers.Serializer[dict[str, Any]]):
-    """``{sent, skipped, actions}``: the counts, and the member behind each reminder."""
+    """What one scan did: the counts, why it passed members over, and who it wrote to.
+
+    ``skipped_by_reason`` holds one entry per reason that occurred, so a thin run
+    explains itself on the screen; ``failed`` counts the sends the mail server
+    refused.
+    """
 
     sent = serializers.IntegerField()
     skipped = serializers.IntegerField()
+    failed = serializers.IntegerField()
+    skipped_by_reason = serializers.DictField(child=serializers.IntegerField())
     actions = RunActionSerializer(many=True)

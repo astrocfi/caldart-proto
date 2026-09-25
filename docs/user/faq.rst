@@ -50,9 +50,13 @@ See :doc:`member-guide`.
 Will you remind me?
 -------------------
 
-Yes, by email: 60 days before expiry, 30 days before, 7 days before, on the day
-it expires, and 30 days after.  Each one links straight to the renewal screen.
-Life members are never reminded, because there is nothing to renew.
+Yes, by email, five times: about two months before expiry, about a month
+before, in the last week, once your membership has run out, and once about a
+month after that.  Each one links straight to the renewal screen.  You get each
+reminder whichever day you joined — if your term is 23 days from running out
+when CalDART first has it, the one-month reminder goes that day and the
+last-week one follows.  Life members are never reminded, because there is
+nothing to renew.
 
 Reminders go to the email address on your account, which is also the address
 you sign in with.  If they are not arriving, check your spam folder first, then

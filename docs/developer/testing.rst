@@ -443,8 +443,12 @@ What the backend suite covers
        , amount, and currency mismatches, idempotency
    * - ``test_reminders.py``, ``test_reminders_resilience.py``,
        ``test_reminders_api.py``
-     - each kind on its own offset, the three-day catch-up window, dedupe, dry
+     - each kind on its own offset, the five stage spans, dedupe, dry
        runs, skip reasons, and a send the mail server refuses
+   * - ``test_reminder_stages.py``
+     - the span table day by day from D-70 to D+70, a scan sending each stage
+       to the member who sits in it, and the ``expired`` wording on the expiry
+       day and after it
    * - ``test_cms_pages.py``, ``…_permissions.py``, ``…_seed_content.py``,
        ``test_cms_documents.py``, ``test_site_config.py``
      - page types, blocks, the members-only wall in every visitor state,

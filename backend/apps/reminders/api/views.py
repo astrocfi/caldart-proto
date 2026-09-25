@@ -76,9 +76,10 @@ class ReminderRunView(APIView):
 
         Validates the body against ``ReminderRunRequestSerializer`` (``dry_run``,
         defaulting to ``False``) and responds ``200`` with the serialized
-        ``ReminderRunResultSerializer`` payload: ``sent``, ``skipped``, and one
-        ``actions`` entry naming each member a reminder went to, or -- in a dry
-        run -- would have gone to. ``request.user`` is recorded as the
+        ``ReminderRunResultSerializer`` payload: ``sent``, ``skipped``,
+        ``failed``, a ``skipped_by_reason`` count per reason that occurred, and
+        one ``actions`` entry naming each member a reminder went to, or -- in a
+        dry run -- would have gone to. ``request.user`` is recorded as the
         audit actor; raises ``PermissionDenied`` if it is somehow anonymous, which
         ``IsSystemAdmin`` never lets through.
         """

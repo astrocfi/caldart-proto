@@ -1893,13 +1893,17 @@
   "ReminderRunResult": {
     "properties": {
       "actions": "array<ref:RunAction>",
+      "failed": "integer",
       "sent": "integer",
-      "skipped": "integer"
+      "skipped": "integer",
+      "skipped_by_reason": "map<integer>"
     },
     "required": [
       "actions",
+      "failed",
       "sent",
-      "skipped"
+      "skipped",
+      "skipped_by_reason"
     ]
   },
   "RenewalAttempt": {
