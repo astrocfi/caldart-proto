@@ -7,7 +7,10 @@ import type {
   PaymentPeriodSummary,
   Plan,
   ReportColumn,
+  ReportSubscription,
+  ReportSummary,
   RoleSlug,
+  Roster,
   SavedColumnSet,
   SavedColumnSetWrite,
   User,
@@ -192,4 +195,51 @@ export function columnSetHandlers(
       return new HttpResponse(null, { status: 204 });
     }),
   ];
+}
+/**
+ * What the `/admin/reports` screen reads as it mounts: the reports the caller
+ * may read, the subscriptions, the DART rosters, and the DART and plan lists
+ * the subscription form's filters offer.
+ */
+export interface ReportsStub {
+  reports?: ReportSummary[];
+  subscriptions?: ReportSubscription[];
+  rosters?: Roster[];
+}
+
+/** Handlers for the reports screen's reads, answering with whatever the caller passes. */
+export function subscriptionHandlers({
+  reports = [],
+  subscriptions = [],
+  rosters = [],
+}: ReportsStub = {}): HttpHandler[] {
+  return [
+    http.get(`${API}/reports`, () => HttpResponse.json(reports)),
+    http.get(`${API}/reports/subscriptions`, () => HttpResponse.json(subscriptions)),
+    http.get(`${API}/reports/rosters`, () => HttpResponse.json(rosters)),
+    http.get(`${API}/darts`, () => HttpResponse.json([])),
+    http.get(`${API}/plans`, () => HttpResponse.json([])),
+  ];
+}
+
+/** Build a `ReportSubscription` payload without repeating every field in each test. */
+export function makeSubscription(overrides: Partial<ReportSubscription> = {}): ReportSubscription {
+  return {
+    id: 1,
+    report: 'members',
+    report_title: 'Members',
+    recipient_user: 7,
+    recipient_name: 'Ada Admin',
+    recipient_email: 'ada@example.org',
+    filters: {},
+    columns: [],
+    formats: 'pdf',
+    cadence: 'monthly',
+    weekday: 0,
+    is_active: true,
+    created_by_name: 'Ada Admin',
+    last_sent_at: null,
+    next_due_on: '2026-10-01',
+    ...overrides,
+  };
 }

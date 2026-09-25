@@ -7,6 +7,9 @@
  * export button in the portal takes its href from `reportExportUrl`.  The
  * signed-in user's own named sets of a report's columns live under
  * `/reports/<slug>/column-sets`.
+ *
+ * The reports sent by email are read and changed here too: the subscriptions
+ * under `/reports/subscriptions` and the DART rosters under `/reports/rosters`.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
@@ -14,13 +17,20 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { API_BASE, api } from '@/portal/api/client';
 import type {
   ReportColumn,
+  ReportRunResult,
+  ReportSubscription,
+  ReportSubscriptionCreate,
+  ReportSubscriptionPatch,
   ReportSummary,
+  Roster,
   SavedColumnSet,
   SavedColumnSetWrite,
 } from '@/portal/api/types';
 import type { ReportFormat, ReportSlug } from './types';
 
 export const REPORTS_KEY = ['reports'] as const;
+export const SUBSCRIPTIONS_KEY = ['reports', 'subscriptions'] as const;
+export const ROSTERS_KEY = ['reports', 'rosters'] as const;
 
 /** A report's parameters: a value, a list of values such as the columns, or nothing. */
 export type ReportParams = Readonly<Record<string, string | readonly string[] | undefined>>;
@@ -73,6 +83,111 @@ export function useReportColumns(slug: ReportSlug): UseQueryResult<ReportColumn[
     queryKey: [...REPORTS_KEY, slug, 'columns'],
     queryFn: () => api.get<ReportColumn[]>(`/reports/${slug}/columns`),
     staleTime: Infinity,
+  });
+}
+
+/** Every subscription for a report the caller may read, via `GET /reports/subscriptions`. */
+export function useSubscriptions(): UseQueryResult<ReportSubscription[]> {
+  return useQuery({
+    queryKey: SUBSCRIPTIONS_KEY,
+    queryFn: () => api.get<ReportSubscription[]>('/reports/subscriptions'),
+  });
+}
+
+/**
+ * Sets up a subscription via `POST /reports/subscriptions`.
+ *
+ * A refusal is an `ApiError` whose body is keyed by field: `recipient_email`
+ * for an account that may not read the report, `confirmed` for an address no
+ * account holds, and `filters` holding the report's own errors by filter.
+ */
+export function useCreateSubscription(): UseMutationResult<
+  ReportSubscription,
+  unknown,
+  ReportSubscriptionCreate
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ReportSubscriptionCreate) =>
+      api.post<ReportSubscription>('/reports/subscriptions', body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
+    },
+  });
+}
+
+/** One subscription and the fields to change on it. */
+export interface SubscriptionEdit {
+  id: number;
+  patch: ReportSubscriptionPatch;
+}
+
+/** Changes a subscription, such as pausing or resuming it, via `PATCH /reports/subscriptions/{id}`. */
+export function useUpdateSubscription(): UseMutationResult<
+  ReportSubscription,
+  unknown,
+  SubscriptionEdit
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: SubscriptionEdit) =>
+      api.patch<ReportSubscription>(`/reports/subscriptions/${id}`, patch),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
+    },
+  });
+}
+
+/** Deletes a subscription via `DELETE /reports/subscriptions/{id}`. */
+export function useDeleteSubscription(): UseMutationResult<void, unknown, number> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.delete<void>(`/reports/subscriptions/${id}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
+    },
+  });
+}
+
+/**
+ * Sends one subscription at once, whatever its date, via
+ * `POST /reports/subscriptions/{id}/send`.
+ *
+ * Its next date stays where it is; its last-sent time, and whether a recipient
+ * who lost the role has been paused, change, so the list is read again.
+ */
+export function useSendSubscription(): UseMutationResult<ReportRunResult, unknown, number> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.post<ReportRunResult>(`/reports/subscriptions/${id}/send`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
+    },
+  });
+}
+
+/** Every active DART's roster: who receives it and when it last went, via `GET /reports/rosters`. */
+export function useRosters(): UseQueryResult<Roster[]> {
+  return useQuery({
+    queryKey: ROSTERS_KEY,
+    queryFn: () => api.get<Roster[]>('/reports/rosters'),
+  });
+}
+
+/**
+ * Sends every DART's roster now, or rehearses it, via `POST /reports/rosters/send`.
+ *
+ * A dry run changes nothing, so only a real one reads the rosters again.
+ */
+export function useSendRosters(): UseMutationResult<ReportRunResult, unknown, boolean> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dryRun: boolean) =>
+      api.post<ReportRunResult>('/reports/rosters/send', { dry_run: dryRun }),
+    onSuccess: (_result, dryRun) => {
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: ROSTERS_KEY });
+    },
   });
 }
 

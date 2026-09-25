@@ -33,6 +33,32 @@ describe('RunActionsTable', () => {
     expect(within(table).getByRole('row', { name: /Dana Lee/ })).toHaveTextContent('Notice');
   });
 
+  it("shows each action's detail under the heading the caller names", () => {
+    const roster = { ...ACTIONS[0]!, kind: 'roster', detail: 'Bay Area DART' };
+    render(
+      <RunActionsTable
+        actions={[roster]}
+        dryRun={true}
+        kindLabel={() => 'Roster'}
+        detailHeader="DART or report"
+      />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'DART or report' })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /Dana Lee/ })).toHaveTextContent('Bay Area DART');
+  });
+
+  it('leaves the detail out when no heading is named', () => {
+    render(<RunActionsTable actions={ACTIONS} dryRun={true} kindLabel={() => 'Notice'} />);
+
+    expect(screen.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
+      'What',
+      'Who',
+      'When',
+      'Amount',
+    ]);
+  });
+
   it('is empty when nothing was due', () => {
     render(<RunActionsTable actions={[]} dryRun={false} kindLabel={(kind) => kind} />);
 
