@@ -410,7 +410,7 @@ def send_mandate_email(
             template=template,
             context=context,
             attachments=attachments,
-            user=mandate.user,
+            user_id=mandate.user_id,
         )
     except (smtplib.SMTPException, OSError) as exc:
         log.error(

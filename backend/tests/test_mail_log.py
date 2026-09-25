@@ -4,26 +4,26 @@ Everything CalDART mails goes through ``caldart.mail.send_templated``, so these
 tests drive that funnel directly for the shape of a row, then drive each kind of
 email the application sends -- a reminder, a password link, an invitation, a
 receipt, a refund and a renewal notice -- to prove every one of them is
-recorded.  ``GET /system/emails`` is covered filter by filter and role by role.
+recorded.  ``GET /system/emails`` is covered filter by filter and role by role,
+and the Django admin's three refusals are checked as well.
 """
 
 from __future__ import annotations
 
-import copy
 import datetime as dt
 import smtplib
-from pathlib import Path
 
 import pytest
+from django.contrib.admin.sites import site as admin_site
 from django.core.mail import EmailMessage
-from django.core.mail.backends.locmem import EmailBackend
+from django.test import RequestFactory
 from django.utils import timezone
-from pytest_django import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.accounts.services import send_password_invitation, send_password_reset_email
+from apps.mail.admin import EmailLogAdmin
 from apps.mail.models import EmailLog, EmailStatus
 from apps.members.models import MembershipPlan
 from apps.payments import receipts, refunds
@@ -44,38 +44,6 @@ from tests.factories import (
 pytestmark = pytest.mark.django_db
 
 EMAILS_URL = "/api/v1/system/emails"
-
-#: The bodies the fixture below writes, so no test here depends on a template
-#: some other app owns.
-TEXT_TEMPLATE = "Dear {{ first_name }}.\n"
-HTML_TEMPLATE = "<p>Dear {{ first_name }}.</p>\n"
-
-
-@pytest.fixture
-def email_template(tmp_path: Path, settings: Settings) -> str:
-    """Write ``emails/statement_of_fact.{txt,html}`` into a template directory.
-
-    Returns the template name to hand to ``send_templated``.  The directory is
-    added to the template search path for the test alone.
-    """
-    directory = tmp_path / "emails"
-    directory.mkdir()
-    (directory / "statement_of_fact.txt").write_text(TEXT_TEMPLATE)
-    (directory / "statement_of_fact.html").write_text(HTML_TEMPLATE)
-    templates = copy.deepcopy(settings.TEMPLATES)
-    templates[0]["DIRS"] = [*templates[0]["DIRS"], tmp_path]
-    settings.TEMPLATES = templates
-    return "statement_of_fact"
-
-
-@pytest.fixture
-def refusing_mail_server(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Make every send raise ``SMTPException``, as a mail server that refuses does."""
-
-    def refuse(self: EmailBackend, email_messages: list[EmailMessage]) -> int:
-        raise smtplib.SMTPException("Mailbox unavailable")
-
-    monkeypatch.setattr(EmailBackend, "send_messages", refuse)
 
 
 # --------------------------------------------------------------------------
@@ -135,16 +103,21 @@ def test_the_row_records_when_the_email_went(email_template: str) -> None:
 
 
 def test_the_row_names_the_account_the_email_concerned(email_template: str) -> None:
-    """``user`` is the account the caller named, so the log can be read per member."""
+    """``user_id`` is the account the caller named, so the log can be read per member."""
     member = UserFactory(email="marta@example.org")
 
-    send_templated(to=member.email, subject="CalDART: hello", template=email_template, user=member)
+    send_templated(
+        to=member.email,
+        subject="CalDART: hello",
+        template=email_template,
+        user_id=member.pk,
+    )
 
     assert EmailLog.objects.get().user == member
 
 
 def test_an_email_to_nobody_in_particular_has_no_account(email_template: str) -> None:
-    """A caller that names no account leaves ``user`` null rather than guessing."""
+    """A caller that names no account leaves the row's account null, not a guess."""
     send_templated(to="stranger@example.org", subject="CalDART: hello", template=email_template)
 
     assert EmailLog.objects.get().user is None
@@ -363,6 +336,19 @@ def test_the_purpose_filter_selects_one_kind(api_client: APIClient, system_admin
     assert [row["purpose"] for row in body["results"]] == ["receipt"]
 
 
+def test_an_unknown_purpose_answers_an_empty_page(
+    api_client: APIClient, system_admin: User
+) -> None:
+    """A purpose the installation has never used is an empty page, not a 400."""
+    EmailLogFactory(purpose="receipt")
+    api_client.force_login(system_admin)
+
+    response = api_client.get(f"{EMAILS_URL}?purpose=not_a_template")
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 0
+
+
 def test_the_status_filter_selects_the_failures(api_client: APIClient, system_admin: User) -> None:
     """``?status=failed`` answers the refused sends alone."""
     EmailLogFactory(purpose="receipt")
@@ -443,3 +429,32 @@ def test_the_log_can_be_read_oldest_first(api_client: APIClient, system_admin: U
     body = api_client.get(f"{EMAILS_URL}?ordering=sent_at").json()
 
     assert [row["purpose"] for row in body["results"]] == ["receipt", "refund"]
+
+
+# --------------------------------------------------------------------------
+# The Django admin is read-only
+# --------------------------------------------------------------------------
+def test_the_admin_refuses_to_add_a_row(rf: RequestFactory, system_admin: User) -> None:
+    """Nobody writes an email log row by hand: the funnel is the only author."""
+    request = rf.get("/django-admin/mail/emaillog/")
+    request.user = system_admin
+
+    assert EmailLogAdmin(EmailLog, admin_site).has_add_permission(request) is False
+
+
+def test_the_admin_refuses_to_change_a_row(rf: RequestFactory, system_admin: User) -> None:
+    """An edited row would answer the operator's question dishonestly, so it is barred."""
+    row = EmailLogFactory(purpose="receipt")
+    request = rf.get("/django-admin/mail/emaillog/")
+    request.user = system_admin
+
+    assert EmailLogAdmin(EmailLog, admin_site).has_change_permission(request, row) is False
+
+
+def test_the_admin_refuses_to_delete_a_row(rf: RequestFactory, system_admin: User) -> None:
+    """The log is kept whole, so a row cannot be deleted from the admin either."""
+    row = EmailLogFactory(purpose="receipt")
+    request = rf.get("/django-admin/mail/emaillog/")
+    request.user = system_admin
+
+    assert EmailLogAdmin(EmailLog, admin_site).has_delete_permission(request, row) is False

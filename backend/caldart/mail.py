@@ -18,7 +18,6 @@ from collections.abc import Sequence
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-from django.db.models import Model
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -51,7 +50,7 @@ def send_templated(
     context: dict[str, object] | None = None,
     attachments: Sequence[Attachment] = (),
     purpose: str | None = None,
-    user: Model | None = None,
+    user_id: int | None = None,
 ) -> EmailMultiAlternatives:
     """Render ``emails/<template>.{txt,html}`` and send them to one address.
 
@@ -63,8 +62,8 @@ def send_templated(
 
     Every send is recorded in the email log: ``purpose`` names what the message
     was for and defaults to ``template``, which is the right answer wherever one
-    template is one kind of message; ``user`` is the account the email concerned,
-    and is left null for an address with no account behind it.
+    template is one kind of message; ``user_id`` is the primary key of the account
+    the email concerned, and is left null for an address with no account behind it.
 
     The sent message is returned, so a caller can record what went out.  A mail
     server that refuses the message is logged as a failed send, carrying the
@@ -92,7 +91,7 @@ def send_templated(
             to=to,
             subject=subject,
             purpose=purpose or template,
-            user=user,
+            user_id=user_id,
             attachments=filenames,
             error=type(exc).__name__,
         )
@@ -101,7 +100,7 @@ def send_templated(
         to=to,
         subject=subject,
         purpose=purpose or template,
-        user=user,
+        user_id=user_id,
         attachments=filenames,
         error="",
     )
@@ -113,7 +112,7 @@ def _record(
     to: str,
     subject: str,
     purpose: str,
-    user: Model | None,
+    user_id: int | None,
     attachments: str,
     error: str,
 ) -> None:
@@ -122,11 +121,9 @@ def _record(
     # what keeps reading caldart.mail from pulling an app in.
     from apps.mail.models import EmailLog, EmailStatus
 
-    # The account is written by id: this module sits below every app, so it knows
-    # the caller passed a model and not which one.
     EmailLog.objects.create(
         to_email=to,
-        user_id=None if user is None else user.pk,
+        user_id=user_id,
         purpose=purpose,
         subject=subject,
         sent_at=timezone.now(),

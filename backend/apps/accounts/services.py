@@ -474,7 +474,7 @@ def _send_password_link_email(
         subject=subject,
         template=template,
         context=context,
-        user=user,
+        user_id=user.pk,
     )
 
 

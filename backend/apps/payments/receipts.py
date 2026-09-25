@@ -184,7 +184,7 @@ def send_receipt(payment: Payment) -> bool:
             template="receipt",
             context=context,
             attachments=[(receipt_filename(payment), render_receipt_pdf(payment), PDF_MEDIA_TYPE)],
-            user=payment.user,
+            user_id=payment.user_id,
         )
     except OSError as exc:
         log.error("Receipt for payment %s could not be sent: %s", payment.pk, exc)

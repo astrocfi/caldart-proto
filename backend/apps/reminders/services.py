@@ -219,7 +219,7 @@ def send_reminder_email(user: User, membership: Membership, kind: str, today: da
         subject=subject.format(org=org, days=days, plural=pluralize(days)),
         template=f"reminder_{kind}",
         context=context,
-        user=user,
+        user_id=user.pk,
     )
 
 

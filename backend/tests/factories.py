@@ -326,7 +326,9 @@ class EmailLogFactory(ModelFactory[EmailLog]):
         model = EmailLog
 
     user = factory.SubFactory(UserFactory)
-    to_email = factory.LazyAttribute(lambda o: o.user.email if o.user else "nobody@example.test")
+    to_email = factory.LazyAttribute(
+        lambda o: o.user.email if o.user is not None else "nobody@example.test"
+    )
     purpose = "reminder_t30"
     subject = "CalDART: your membership expires in 30 days"
     sent_at = factory.LazyFunction(timezone.now)

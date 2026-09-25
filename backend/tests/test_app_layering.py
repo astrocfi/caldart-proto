@@ -297,9 +297,12 @@ def test_the_comment_block_is_read_from_its_first_line(lines: list[str], expecte
 
 
 def test_project_foundation_modules_import_nothing_from_apps() -> None:
-    """The project's models, reports, receipts, mail, exceptions and pagination sit below.
+    """The project's models, reports, receipts, exceptions and pagination sit below.
 
-    Each of them is read by several apps, so none may read an app back.
+    Each of them is read by several apps, so none may read an app back.  ``mail.py``
+    and ``org.py`` are not among them: each reaches one app through a single inline
+    import, and :func:`test_every_app_import_in_a_project_module_is_inline_and_sanctioned`
+    is what holds them to it.
     """
     offenders: list[str] = []
     for filename in FOUNDATION_MODULES:

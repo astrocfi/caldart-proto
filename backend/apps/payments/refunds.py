@@ -299,7 +299,7 @@ def send_refund_email(refund: Refund, *, term_canceled: bool) -> None:
             subject=REFUND_SUBJECT.format(org=org, amount=money_label(refund.amount_cents)),
             template="refund",
             context=context,
-            user=user,
+            user_id=user.pk,
         )
     except (smtplib.SMTPException, OSError):
         log.exception("Could not email the refund notice for refund %s", refund.pk)
