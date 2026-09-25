@@ -33,6 +33,7 @@ from apps.members.models import (
     Membership,
     PilotCertificateType,
 )
+from apps.members.services import touch_profile
 from apps.payments.models import Payment, PaymentKind
 from caldart.phone import PHONE_EXTENSION_RE, PHONE_RE, normalize_phone
 
@@ -354,7 +355,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
 
         Raises ``TypeError`` if a writable field names something other than a
         concrete model field, since only a concrete field carries the default
-        the reset needs.
+        the reset needs.  Stamps ``profile_updated_at`` once the write lands.
         """
         if not self.partial:
             for name, field in self.fields.items():
@@ -374,7 +375,9 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
                         f"default to reset {name!r} to."
                     )
                 validated_data[source] = model_field.get_default()
-        return super().update(instance, validated_data)
+        instance = super().update(instance, validated_data)
+        touch_profile(instance)
+        return instance
 
 
 class AircraftAttachSerializer(serializers.Serializer[Any]):

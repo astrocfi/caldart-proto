@@ -261,6 +261,15 @@ class MemberProfile(TimestampedModel):
     #: and never moved by a renewal or by a gap in their membership.
     member_since = models.DateField(null=True, blank=True)
 
+    #: When profile information was last written: a member's own edit, an
+    #: administrator's edit to the profile or to the account's name or email,
+    #: an aircraft attached or detached, or the profile's creation.  ``NULL``
+    #: until one of those happens, so a seeded profile nobody has touched
+    #: answers ``NULL``.  Set only by ``apps.members.services.touch_profile``;
+    #: never by a payment, a membership grant or renewal, a reminder, or a
+    #: role change.
+    profile_updated_at = models.DateTimeField(null=True, blank=True)
+
     # -- admin only -------------------------------------------------------
     notes = models.TextField(blank=True)
     how_heard = models.CharField(max_length=200, blank=True)

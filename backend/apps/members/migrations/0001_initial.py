@@ -75,6 +75,7 @@ class Migration(migrations.Migration):
                 ('vol_social_media', models.BooleanField(default=False, verbose_name='social media')),
                 ('vol_newsletter', models.BooleanField(default=False, verbose_name='newsletter')),
                 ('member_since', models.DateField(blank=True, null=True)),
+                ('profile_updated_at', models.DateTimeField(blank=True, null=True)),
                 ('notes', models.TextField(blank=True)),
                 ('how_heard', models.CharField(blank=True, max_length=200)),
                 ('aircraft', models.ManyToManyField(blank=True, related_name='pilots', to='aircraft.aircraft', verbose_name='planes commonly flown')),
