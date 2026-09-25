@@ -26,7 +26,9 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  max-width: var(--page-max);
+  /* Unlike the public site's `.shell`, the portal has no fixed page width: a
+   * wide report table should be able to use the whole window. */
+  max-width: none;
   margin-inline: auto;
 }
 
@@ -72,7 +74,10 @@
 .portal__frame {
   flex: 1;
   width: 100%;
-  max-width: var(--page-max);
+  /* No page-wide cap here: a report table should spread across whatever
+   * width the window gives it. Non-table content keeps its own working
+   * width instead, capped below where it is rendered. */
+  max-width: none;
   margin-inline: auto;
   padding: 0 var(--space-4) var(--space-7);
   display: grid;
@@ -85,6 +90,26 @@
     grid-template-columns: var(--rail-width) minmax(0, 1fr);
     gap: var(--space-7);
   }
+}
+
+/* A report table needs the room this frame gives it, but a form or a
+ * summary is not a report: `.card` (base.css) keeps to the portal's working
+ * width. A card built around a report table (`.data-table`, DataTable.tsx)
+ * is the one exception, since only a report needs the extra room. */
+.portal__main .card {
+  max-width: var(--page-max);
+}
+
+.portal__main .card:has(.data-table) {
+  max-width: none;
+}
+
+/* The dashboard's ratio grid (`.col-text` / `.col-side`, base.css) is built
+ * to read against a `--page-max`-wide container, as it does inside the
+ * public site's `.shell`. It caps itself here to match, since the frame
+ * itself carries no cap. */
+.portal__main .grid {
+  max-width: var(--page-max);
 }
 
 /* ------------------------------------------------------------------ rail */

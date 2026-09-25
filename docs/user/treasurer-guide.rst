@@ -32,6 +32,11 @@ Opening one payment, one member's ledger or the form that records a check
 leaves the bar in place, with **Payments** marked, so you always know where in
 the area you are standing.
 
+Every table in this area fills the width of your browser window: widen the
+window and the table widens with it, so more columns fit without scrolling. A
+table still wider than the window scrolls sideways on its own, inside its own
+frame, rather than crowding the rest of the page.
+
 The headline figures
 ====================
 

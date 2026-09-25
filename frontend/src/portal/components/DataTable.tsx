@@ -146,6 +146,8 @@ export function DataTable<Row>({
       {sorted.length === 0 && !isLoading ? (
         <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
+        // `.table-wrap` scrolls a table that is wider than its container,
+        // rather than widening the page around it.
         <div className="table-wrap">
           <table>
             {caption ? <caption>{caption}</caption> : null}
