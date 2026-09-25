@@ -205,6 +205,27 @@ def test_putting_an_aircraft_records_the_changed_fields(
     assert AircraftChange.objects.get(aircraft=aircraft).fields == ["model"]
 
 
+def test_a_save_that_moves_nothing_still_records_the_write(
+    api_client: APIClient, account_admin: User
+) -> None:
+    """The history records who wrote to the airframe, so an unchanged save is a row."""
+    aircraft = AircraftFactory(n_number="N36PA", model="182T Skylane")
+    api_client.force_login(account_admin)
+    response = api_client.patch(detail_url(aircraft), {"model": "182T Skylane"})
+    assert response.status_code == 200
+    assert AircraftChange.objects.get(aircraft=aircraft).fields == []
+
+
+def test_a_save_that_moves_nothing_records_an_updated_row(
+    api_client: APIClient, account_admin: User
+) -> None:
+    """That row is an ``updated`` one, with no column named."""
+    aircraft = AircraftFactory(n_number="N37PA", model="182T Skylane")
+    api_client.force_login(account_admin)
+    api_client.patch(detail_url(aircraft), {"model": "182T Skylane"})
+    assert AircraftChange.objects.get(aircraft=aircraft).kind == AircraftChangeKind.UPDATED
+
+
 def test_a_refused_edit_records_nothing(api_client: APIClient, member: User) -> None:
     """A 403 leaves no trail: nothing was changed."""
     aircraft = AircraftFactory(n_number="N34PA", created_by=UserFactory(email="other@example.test"))

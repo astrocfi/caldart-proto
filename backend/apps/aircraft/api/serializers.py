@@ -28,7 +28,7 @@ from apps.members.models import (
 NEGATIVE_MONEY_MESSAGE = "Enter an amount of $0 or more."
 
 
-def actor_payload(user: User | None) -> dict[str, Any] | None:
+def _actor_payload(user: User | None) -> dict[str, Any] | None:
     """``{"id": ..., "name": ...}`` for ``user``, or ``None`` when nobody is recorded."""
     if user is None:
         return None
@@ -181,7 +181,7 @@ class AircraftChangeSerializer(serializers.ModelSerializer[AircraftChange]):
     @extend_schema_field(AircraftActorSerializer(allow_null=True))
     def get_changed_by(self, obj: AircraftChange) -> dict[str, Any] | None:
         """The id and display name of the account that made ``obj``, or ``None``."""
-        return actor_payload(obj.changed_by)
+        return _actor_payload(obj.changed_by)
 
 
 class AircraftDetailSerializer(AircraftSerializer):
@@ -196,7 +196,7 @@ class AircraftDetailSerializer(AircraftSerializer):
     @extend_schema_field(AircraftActorSerializer(allow_null=True))
     def get_updated_by(self, obj: Aircraft) -> dict[str, Any] | None:
         """Return the id and display name of the account that last wrote ``obj``."""
-        return actor_payload(obj.updated_by)
+        return _actor_payload(obj.updated_by)
 
     @extend_schema_field(AircraftPilotSerializer(many=True))
     def get_pilots(self, obj: Aircraft) -> list[dict[str, Any]]:

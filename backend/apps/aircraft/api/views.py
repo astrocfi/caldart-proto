@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -92,8 +93,14 @@ class AircraftListCreateView(AircraftQuerysetMixin, generics.ListCreateAPIView[A
     serializer_class = AircraftSerializer
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def perform_create(self, serializer: BaseSerializer[Aircraft]) -> None:
-        """Save the new aircraft, recording who added it in the history and the log."""
+        """Save the new aircraft, recording who added it in the history and the log.
+
+        The record and its history row commit together: a failure writing the trail
+        rolls the record back with it, so no aircraft can exist without a ``created``
+        row naming who added it.
+        """
         actor = acting_user(self.request)
         aircraft = serializer.save(created_by=actor)
         services.record_change(aircraft, actor=actor, kind=AircraftChangeKind.CREATED, fields=[])
@@ -115,14 +122,17 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
         """
         return aircraft_serializer_for(self.request)
 
+    @transaction.atomic
     def perform_update(self, serializer: BaseSerializer[Aircraft]) -> None:
         """Save the edit, then record who made it and which columns moved.
 
-        The field list is worked out before the save, while the instance still
-        carries the stored values, so a form that resends every field it shows
-        names only the ones whose value actually changed.
+        The field list is worked out before the save, while ``serializer.instance``
+        still carries the stored values (a model serializer assigns the validated
+        attributes during ``save()``), so a form that resends every field it shows
+        names only the ones whose value actually changed.  The edit and its history
+        row commit together, so no write can leave the trail behind.
         """
-        instance = self.get_object()
+        instance = cast("Aircraft", serializer.instance)
         fields = services.changed_fields(instance, dict(serializer.validated_data))
         actor = acting_user(self.request)
         aircraft = serializer.save()

@@ -200,12 +200,12 @@ The envelope is DRF's standard::
 
     {"count": 137, "next": "…?page=3", "previous": "…?page=1", "results": [ … ]}
 
-Five endpoints are deliberately **unpaginated** and return a bare JSON array,
+Six endpoints are deliberately **unpaginated** and return a bare JSON array,
 because the whole list is small and bounded: ``GET /darts``, ``GET /plans``,
-``GET /roles``, ``GET /leader/search`` (hard-capped at 20 results) and
-``GET /system/backups``.  ``GET /me/membership`` and ``GET /me/payments``
-return whole objects and arrays for the same reason, as does
-``GET /admin/payments/summary``.  The CSV and PDF exports stream every matching
+``GET /roles``, ``GET /leader/search`` (hard-capped at 20 results),
+``GET /system/backups`` and ``GET /aircraft/{id}/changes`` (an aircraft has few
+changes).  ``GET /me/membership`` and ``GET /me/payments`` return whole objects
+and arrays for the same reason, as does ``GET /admin/payments/summary``.  The CSV and PDF exports stream every matching
 row and ignore ``page`` entirely.
 
 Filtering, search, and ordering

@@ -24,7 +24,9 @@ House rules that apply throughout:
   revision history behind them.  ``cms.SiteSettings`` carries no dates either,
   and Wagtail's ``BaseSiteSetting`` adds only the one-to-one to
   ``wagtailcore.Site``, so editing the settings overwrites the single row and
-  records nothing about when or by whom.
+  records nothing about when or by whom.  ``aircraft.AircraftChange`` carries its
+  own ``changed_at`` and no row is ever updated, so the inherited pair would only
+  duplicate it.
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``.**
 
 Entity relationships
