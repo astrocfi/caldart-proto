@@ -9,6 +9,7 @@ import type { ReminderKind, ReminderRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { useRunReminders } from './api';
+import { SKIPPED_REASON_LABELS } from './labels';
 import { KIND_LABELS as REMINDER_KIND_LABELS, ReminderLog } from './ReminderLog';
 import { RunActionsTable } from './RunActionsTable';
 
@@ -17,6 +18,17 @@ export function runSummary(result: ReminderRunResult, dryRun: boolean): string {
   const verb = dryRun ? 'Would send' : 'Sent';
   const emails = result.sent === 1 ? '1 email' : `${result.sent} emails`;
   return `${verb} ${emails}, skipped ${result.skipped}.`;
+}
+
+/**
+ * `Skipped: <reason> <count>, …`, one entry per reason a candidate was passed
+ * over that occurred at least once, or `''` when nothing was skipped.
+ */
+export function skippedBreakdown(byReason: Record<string, number>): string {
+  const parts = Object.keys(SKIPPED_REASON_LABELS)
+    .filter((reason) => (byReason[reason] ?? 0) > 0)
+    .map((reason) => `${SKIPPED_REASON_LABELS[reason]} ${byReason[reason]}`);
+  return parts.length > 0 ? `Skipped: ${parts.join(', ')}.` : '';
 }
 
 /** Whether `kind` is one of the reminder kinds `REMINDER_KIND_LABELS` names. */
@@ -35,6 +47,7 @@ export function RemindersPanel(): JSX.Element {
   const [lastRunWasDry, setLastRunWasDry] = useState(true);
 
   const run = useRunReminders();
+  const breakdown = run.data ? skippedBreakdown(run.data.skipped_by_reason) : '';
 
   const handleRun = (): void => {
     setLastRunWasDry(dryRun);
@@ -70,6 +83,8 @@ export function RemindersPanel(): JSX.Element {
       {run.isSuccess ? (
         <>
           <p role="status">{runSummary(run.data, lastRunWasDry)}</p>
+          {breakdown ? <p className="muted">{breakdown}</p> : null}
+          {run.data.failed > 0 ? <p className="muted">{`Failed ${run.data.failed}.`}</p> : null}
           <RunActionsTable
             actions={run.data.actions}
             dryRun={lastRunWasDry}
