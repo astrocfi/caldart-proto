@@ -34,8 +34,21 @@ test('a member signs in, edits their profile and reads members-only content', as
   // My aircraft ledes in one sentence and offers one way to add an airplane.
   await page.goto('/portal/profile/aircraft');
   await expect(page.getByText('The planes you commonly fly.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Add an aircraft' })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Add a new aircraft' })).toHaveCount(1);
   await expect(page.getByText('Not in the register? Add it yourself.')).toBeVisible();
+
+  // Attach an airplane from the picker, then search for it again: the picker
+  // leaves it out of the results and names it in a sentence underneath.
+  const search = page.getByRole('searchbox', { name: 'Search the aircraft register' });
+  await search.fill('Cessna');
+  const firstResult = page.locator('.aircraft-result__ident').first();
+  await expect(firstResult).toBeVisible();
+  const nNumber = (await firstResult.innerText()).trim();
+  await page.locator('.aircraft-result__button').first().click();
+  await expect(page.getByText(`${nNumber} added.`)).toBeVisible();
+
+  await search.fill(nNumber);
+  await expect(page.getByText(`${nNumber} is already on your list.`)).toBeVisible();
 
   // The dashboard lists the members-only pages, and one of them opens.
   await page.goto('/portal/');
