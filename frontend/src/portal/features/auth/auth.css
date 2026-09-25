@@ -1,0 +1,49 @@
+/* The sign-in, password, and email screens (AuthShell.tsx). */
+
+.auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-block: var(--space-7);
+}
+
+.auth__panel {
+  width: 100%;
+  max-width: 26rem;
+  margin-inline: auto;
+}
+
+.auth__title {
+  font-size: var(--text-2xl);
+  text-align: center;
+  margin: 0;
+}
+
+.auth__lede {
+  text-align: center;
+  margin: var(--space-2) auto 0;
+}
+
+.auth-card {
+  padding: var(--space-6);
+  margin-top: var(--space-5);
+}
+
+/* The primary button spans the card; the secondary link sits centered under it. */
+.auth__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  text-align: center;
+}
+
+.auth__actions .button {
+  width: 100%;
+}
+
+.auth__footer {
+  text-align: center;
+  margin: var(--space-4) 0 0;
+}
