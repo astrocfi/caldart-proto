@@ -156,7 +156,11 @@ const GUARDED_PATHS: GuardedPath[] = [
     heading: 'Aircraft check',
     allowed: ['dart_leader', 'account_admin', 'system_admin'],
   },
-  { path: '/admin/members', heading: 'Members', allowed: ['account_admin', 'system_admin'] },
+  {
+    path: '/admin/members',
+    heading: 'Members',
+    allowed: ['account_admin', 'dart_leader', 'system_admin'],
+  },
   {
     path: '/admin/members/new',
     heading: 'Add a member',

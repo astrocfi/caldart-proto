@@ -4,14 +4,15 @@ import { HttpResponse, http } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { ReportColumn } from '@/portal/api/types';
-import { API } from '@test/handlers';
+import type { ReportColumn, RoleSlug } from '@/portal/api/types';
+import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
+import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { MembersListPage } from './MembersListPage';
 import { LIFETIME, makeRow } from '@test/fixtures/members';
 
-/** The registry `GET /admin/members/columns` answers with, trimmed to five. */
+/** The registry `GET /reports/members/columns` answers with, trimmed to five. */
 const COLUMNS: ReportColumn[] = [
   { key: 'name', label: 'Name', default: true },
   { key: 'email', label: 'Email', default: true },
@@ -33,10 +34,15 @@ function lastMemberQuery(): URLSearchParams {
   return new URLSearchParams(last ? new URL(last).search : '');
 }
 
+/** Sign in as somebody holding `roles` on top of membership. */
+function signIn(...roles: RoleSlug[]) {
+  server.use(signedInAs(makeUser({ roles: ['member', ...roles] })));
+}
+
 function listHandlers(rows = [makeRow()], count = rows.length) {
   return [
     http.get(`${API}/darts`, () => HttpResponse.json(DARTS)),
-    http.get(`${API}/admin/members/columns`, () => HttpResponse.json(COLUMNS)),
+    http.get(`${API}/reports/members/columns`, () => HttpResponse.json(COLUMNS)),
     http.get(`${API}/admin/members`, ({ request }) => {
       requestedUrls.push(request.url);
       return HttpResponse.json({
@@ -54,8 +60,12 @@ function ShowSearch() {
   return <span data-testid="location-search">{location.search}</span>;
 }
 
-function renderList(route = '/admin/members') {
-  return renderWithProviders(
+/**
+ * Render the list at `route` and wait for the signed-in user to arrive, since
+ * what the page offers depends on the caller's roles.
+ */
+async function renderList(route = '/admin/members') {
+  const result = renderWithProviders(
     <Routes>
       <Route
         path="/admin/members"
@@ -71,16 +81,19 @@ function renderList(route = '/admin/members') {
     </Routes>,
     { route },
   );
+  await waitFor(() => expect(result.client.getQueryState(AUTH_ME_KEY)?.status).toBe('success'));
+  return result;
 }
 
 beforeEach(() => {
   requestedUrls = [];
+  signIn('account_admin');
 });
 
 describe('MembersListPage', () => {
   it('shows five columns: pilot, name, DART, membership expiry, and email', async () => {
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const headers = screen.getAllByRole('columnheader').map((cell) => cell.textContent);
@@ -95,7 +108,7 @@ describe('MembersListPage', () => {
         makeRow({ user_id: 3, name: 'Cal Dunn', pilot_certificate_type: 'none' }),
       ]),
     );
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const table = within(screen.getByRole('table'));
@@ -120,7 +133,7 @@ describe('MembersListPage', () => {
         }),
       ]),
     );
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const table = within(screen.getByRole('table'));
@@ -137,7 +150,7 @@ describe('MembersListPage', () => {
         makeRow({ email: 'ana.bracco.with.a.very.long.address@caldart.example.org' }),
       ]),
     );
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const table = screen.getByRole('table');
@@ -151,7 +164,7 @@ describe('MembersListPage', () => {
   it('sorts on every column, including Pilot and DART', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.click(screen.getByRole('button', { name: 'DART' }));
@@ -168,7 +181,7 @@ describe('MembersListPage', () => {
         makeRow({ user_id: 2, name: 'Bo Chen', email: 'bo@example.org', membership: LIFETIME }),
       ]),
     );
-    renderList();
+    await renderList();
 
     expect(await screen.findByRole('link', { name: 'Ana Bracco' })).toHaveAttribute(
       'href',
@@ -181,14 +194,14 @@ describe('MembersListPage', () => {
 
   it('shows an empty state when nothing matches', async () => {
     server.use(...listHandlers([], 0));
-    renderList();
+    await renderList();
     expect(await screen.findByText('No members match these filters')).toBeInTheDocument();
   });
 
   it('sends a dropdown filter as a query parameter and puts it in the URL', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.selectOptions(screen.getByLabelText('Membership'), 'current');
@@ -200,7 +213,7 @@ describe('MembersListPage', () => {
   it('searches as the name is typed, once the typing pauses', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.type(screen.getByLabelText('Search'), 'bracco');
@@ -213,7 +226,7 @@ describe('MembersListPage', () => {
   it('refuses a letter typed into the day count', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const days = screen.getByLabelText('Expiring within (days)');
@@ -225,13 +238,12 @@ describe('MembersListPage', () => {
   it('combines several filters', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.selectOptions(screen.getByLabelText('DART'), '5');
     await user.selectOptions(screen.getByLabelText('Certificate'), 'commercial');
     await user.type(screen.getByLabelText('Expiring within (days)'), '30');
-    await user.click(screen.getByRole('button', { name: 'Apply' }));
 
     await waitFor(() => {
       const query = lastMemberQuery();
@@ -243,9 +255,10 @@ describe('MembersListPage', () => {
 
   it('offers the DARTs the API knows about', async () => {
     server.use(...listHandlers());
-    renderList();
-    expect(await screen.findByRole('option', { name: 'Napa' })).toBeInTheDocument();
-    expect(within(screen.getByLabelText('DART')).getAllByRole('option')).toHaveLength(3);
+    await renderList();
+    const dartSelect = within(screen.getByLabelText('DART'));
+    expect(await dartSelect.findByRole('option', { name: 'Napa' })).toBeInTheDocument();
+    expect(dartSelect.getAllByRole('option')).toHaveLength(3);
   });
 
   it('still renders when the DART list is unavailable', async () => {
@@ -253,7 +266,7 @@ describe('MembersListPage', () => {
       http.get(`${API}/darts`, () => HttpResponse.json({ detail: 'Not found.' }, { status: 404 })),
       ...listHandlers().slice(1),
     );
-    renderList();
+    await renderList();
     expect(await screen.findByRole('link', { name: 'Ana Bracco' })).toBeInTheDocument();
     expect(within(await screen.findByLabelText('DART')).getAllByRole('option')).toHaveLength(1);
   });
@@ -261,7 +274,7 @@ describe('MembersListPage', () => {
   it('clears every filter', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList('/admin/members?status=expired&search=bracco');
+    await renderList('/admin/members?status=expired&search=bracco');
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.click(screen.getByRole('button', { name: 'Clear' }));
@@ -271,7 +284,7 @@ describe('MembersListPage', () => {
 
   it('reads the filters back out of the URL on first load', async () => {
     server.use(...listHandlers());
-    renderList('/admin/members?status=current&certificate=atp&ordering=-expires_on');
+    await renderList('/admin/members?status=current&certificate=atp&ordering=-expires_on');
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const query = lastMemberQuery();
@@ -284,7 +297,7 @@ describe('MembersListPage', () => {
   it('sorts server-side when a column header is clicked', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.click(screen.getByRole('button', { name: /Membership/ }));
@@ -296,34 +309,34 @@ describe('MembersListPage', () => {
 
   it('points the export buttons at the same filters', async () => {
     server.use(...listHandlers());
-    renderList('/admin/members?status=current&dart=5&expiring_within=30');
+    await renderList('/admin/members?status=current&dart=5&expiring_within=30');
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     const csv = screen.getByRole('link', { name: /Export CSV/ });
     const pdf = screen.getByRole('link', { name: /Export PDF/ });
     expect(csv).toHaveAttribute(
       'href',
-      '/api/v1/admin/members/export.csv?status=current&dart=5&expiring_within=30' +
+      '/api/v1/reports/members/export.csv?status=current&dart=5&expiring_within=30' +
         '&columns=name%2Cemail%2Cdart',
     );
-    expect(pdf.getAttribute('href')).toContain('/api/v1/admin/members/export.pdf?');
+    expect(pdf.getAttribute('href')).toContain('/api/v1/reports/members/export.pdf?');
     expect(pdf.getAttribute('href')).toContain('dart=5');
   });
 
   it('exports the default columns when nothing is filtered', async () => {
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
       'href',
-      '/api/v1/admin/members/export.csv?columns=name%2Cemail%2Cdart',
+      '/api/v1/reports/members/export.csv?columns=name%2Cemail%2Cdart',
     );
   });
 
   it('offers every column the report can carry, with the defaults ticked', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.click(screen.getByRole('button', { name: 'Columns' }));
@@ -334,12 +347,12 @@ describe('MembersListPage', () => {
 
   it('says so rather than offering an empty chooser when the columns fail to load', async () => {
     server.use(
-      http.get(`${API}/admin/members/columns`, () =>
+      http.get(`${API}/reports/members/columns`, () =>
         HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),
       ),
       ...listHandlers(),
     );
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     expect(await screen.findByText(/columns could not be loaded/i)).toBeInTheDocument();
@@ -349,7 +362,7 @@ describe('MembersListPage', () => {
   it('carries a chosen column into both export links', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.click(screen.getByRole('button', { name: 'Columns' }));
@@ -357,18 +370,18 @@ describe('MembersListPage', () => {
 
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
       'href',
-      '/api/v1/admin/members/export.csv?columns=name%2Cemail%2Cdart%2Cstate',
+      '/api/v1/reports/members/export.csv?columns=name%2Cemail%2Cdart%2Cstate',
     );
     expect(screen.getByRole('link', { name: /Export PDF/ })).toHaveAttribute(
       'href',
-      '/api/v1/admin/members/export.pdf?columns=name%2Cemail%2Cdart%2Cstate',
+      '/api/v1/reports/members/export.pdf?columns=name%2Cemail%2Cdart%2Cstate',
     );
   });
 
   it('drops a column the administrator unticks from the export links', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.click(screen.getByRole('button', { name: 'Columns' }));
@@ -376,14 +389,14 @@ describe('MembersListPage', () => {
 
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
       'href',
-      '/api/v1/admin/members/export.csv?columns=name%2Cemail',
+      '/api/v1/reports/members/export.csv?columns=name%2Cemail',
     );
   });
 
   it('pages through a long list', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers([makeRow()], 60));
-    renderList();
+    await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     expect(screen.getByText(/Showing 1–1 of 60/)).toBeInTheDocument();
@@ -393,10 +406,91 @@ describe('MembersListPage', () => {
 
   it('links to the new-member form', async () => {
     server.use(...listHandlers());
-    renderList();
+    await renderList();
     expect(await screen.findByRole('link', { name: 'New member' })).toHaveAttribute(
       'href',
       '/admin/members/new',
+    );
+  });
+
+  it('filters by county and puts it in the URL', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.selectOptions(screen.getByLabelText('County'), 'Napa');
+
+    await waitFor(() => expect(lastMemberQuery().get('county')).toBe('Napa'));
+    expect(screen.getByTestId('location-search')).toHaveTextContent('county=Napa');
+  });
+
+  it('carries the county into the export links', async () => {
+    server.use(...listHandlers());
+    await renderList('/admin/members?county=Napa');
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    expect(screen.getByRole('link', { name: /Export PDF/ })).toHaveAttribute(
+      'href',
+      '/api/v1/reports/members/export.pdf?county=Napa&columns=name%2Cemail%2Cdart',
+    );
+  });
+
+  it('keeps the sort when a filter changes', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    await renderList('/admin/members?ordering=-expires_on');
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.selectOptions(screen.getByLabelText('Membership'), 'current');
+
+    await waitFor(() => expect(lastMemberQuery().get('status')).toBe('current'));
+    expect(lastMemberQuery().get('ordering')).toBe('-expires_on');
+  });
+
+  it('lists only the active accounts when the toggle is ticked', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.click(screen.getByRole('checkbox', { name: 'Active accounts only' }));
+
+    await waitFor(() => expect(lastMemberQuery().get('is_active')).toBe('true'));
+  });
+});
+
+describe('MembersListPage for a DART leader', () => {
+  beforeEach(() => {
+    signIn('dart_leader');
+  });
+
+  it('offers no New member button', async () => {
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    expect(screen.queryByRole('link', { name: 'New member' })).not.toBeInTheDocument();
+  });
+
+  it('links each name to the member check with that member selected', async () => {
+    server.use(...listHandlers());
+    await renderList();
+
+    expect(await screen.findByRole('link', { name: 'Ana Bracco' })).toHaveAttribute(
+      'href',
+      '/leader?member=1',
+    );
+  });
+
+  it('downloads the report with the filters the leader chose', async () => {
+    server.use(...listHandlers());
+    await renderList('/admin/members?county=Napa');
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
+      'href',
+      '/api/v1/reports/members/export.csv?county=Napa&columns=name%2Cemail%2Cdart',
     );
   });
 });

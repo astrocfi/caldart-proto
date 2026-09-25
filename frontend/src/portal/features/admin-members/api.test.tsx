@@ -47,7 +47,7 @@ describe('useMembers', () => {
   it('holds the page already fetched on screen while the next one loads', async () => {
     servePages();
 
-    const { result, rerender } = renderHook(({ page }) => useMembers({ page }), {
+    const { result, rerender } = renderHook(({ page }) => useMembers({ filters: {}, page }), {
       wrapper: makeWrapper(),
       initialProps: { page: 1 },
     });
@@ -61,7 +61,7 @@ describe('useMembers', () => {
   it('holds the rows already fetched on screen while a changed filter loads', async () => {
     serveSearches();
 
-    const { result, rerender } = renderHook(({ search }) => useMembers({ search }), {
+    const { result, rerender } = renderHook(({ search }) => useMembers({ filters: { search } }), {
       wrapper: makeWrapper(),
       initialProps: { search: '' },
     });
@@ -75,7 +75,7 @@ describe('useMembers', () => {
   it('shows the rows the changed filter asked for once they arrive', async () => {
     serveSearches();
 
-    const { result, rerender } = renderHook(({ search }) => useMembers({ search }), {
+    const { result, rerender } = renderHook(({ search }) => useMembers({ filters: { search } }), {
       wrapper: makeWrapper(),
       initialProps: { search: '' },
     });
@@ -89,7 +89,7 @@ describe('useMembers', () => {
   it('marks the page it is standing in for as placeholder data', async () => {
     servePages();
 
-    const { result, rerender } = renderHook(({ page }) => useMembers({ page }), {
+    const { result, rerender } = renderHook(({ page }) => useMembers({ filters: {}, page }), {
       wrapper: makeWrapper(),
       initialProps: { page: 1 },
     });
@@ -103,7 +103,7 @@ describe('useMembers', () => {
   it('shows the page that was asked for once it arrives', async () => {
     servePages();
 
-    const { result, rerender } = renderHook(({ page }) => useMembers({ page }), {
+    const { result, rerender } = renderHook(({ page }) => useMembers({ filters: {}, page }), {
       wrapper: makeWrapper(),
       initialProps: { page: 1 },
     });

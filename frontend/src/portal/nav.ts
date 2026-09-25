@@ -51,7 +51,14 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Operations',
   },
 
-  { to: '/admin/members', label: 'Members', roles: ['account_admin'], group: 'Administration' },
+  // A DART leader reads the member list and its report too; the member record
+  // behind each name stays the account administrator's.
+  {
+    to: '/admin/members',
+    label: 'Members',
+    roles: ['account_admin', 'dart_leader'],
+    group: 'Administration',
+  },
   { to: '/admin/aircraft', label: 'Aircraft', roles: ['account_admin'], group: 'Administration' },
   { to: '/admin/darts', label: 'DARTs', roles: ['account_admin'], group: 'Administration' },
   // The finance area admits a treasurer as well as an account administrator,

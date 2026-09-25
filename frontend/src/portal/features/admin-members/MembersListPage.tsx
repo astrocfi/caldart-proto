@@ -3,7 +3,8 @@
  *
  * Filters live in the URL, so a filtered list is a link an administrator can
  * bookmark or send to a colleague, and the export buttons point at the same
- * query the table is showing.
+ * query the table is showing.  The filters are the members report's own, drawn
+ * by the shared `FilterBar` from `REPORTS.members`.
  *
  * Five columns, kept narrow enough to scan: whether the member may fly, who
  * they are, their team, when their membership runs out, and how to reach them.
@@ -14,6 +15,10 @@
  * The membership report carries far more than those five, so the column chooser
  * drives the two export links rather than the table: the screen stays scannable
  * while the CSV and the PDF carry whatever the administrator asked for.
+ *
+ * A DART leader reads the same list and downloads the same report, but the
+ * member record is the account administrator's: for a leader there is no
+ * **New member** button, and a name opens the member check instead.
  */
 import { useMemo, useState } from 'react';
 import type { JSX } from 'react';
@@ -21,38 +26,49 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { useDarts } from '@/portal/api/queries';
 import type { MemberRow } from '@/portal/api/types';
+import { useAuth } from '@/portal/auth/useAuth';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import type { Column, SortDirection } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
+import { FilterBar } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import { MembershipDot, PilotMark } from '@/portal/components/StatusChip';
-import { MembersFilterBar } from './MembersFilterBar';
-import { exportUrl, useMemberReportColumns, useMembers } from './api';
-import type { MemberFilters } from './types';
-import { EMPTY_FILTERS, FILTER_KEYS } from './types';
+import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import { hasAnyRole } from '@/portal/nav';
+import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
+import { listFilters, REPORTS } from '@/portal/reports/definitions';
+import type { FilterValues } from '@/portal/reports/types';
+import { useMembers } from './api';
 
 const PAGE_SIZE = 25;
 
-/** Read the filter set out of the query string. */
-export function filtersFromParams(params: URLSearchParams): MemberFilters {
-  const filters = { ...EMPTY_FILTERS };
-  for (const key of FILTER_KEYS) filters[key] = params.get(key) ?? '';
-  return filters;
-}
+/** The filters the list draws: the members report's, less any a subscription alone offers. */
+const FILTER_FIELDS = listFilters(REPORTS.members);
 
-function ordering(filters: MemberFilters): { key: string; direction: SortDirection } | undefined {
-  if (!filters.ordering) return undefined;
-  const descending = filters.ordering.startsWith('-');
+/** The table's sort, which the URL keeps beside the filters. */
+const ORDERING = 'ordering';
+
+/** Every query parameter the list keeps in the URL, the page number aside. */
+const URL_KEYS = [...FILTER_FIELDS.map((field) => field.key), ORDERING];
+
+function ordering(value: string): { key: string; direction: SortDirection } | undefined {
+  if (!value) return undefined;
+  const descending = value.startsWith('-');
   return {
-    key: descending ? filters.ordering.slice(1) : filters.ordering,
+    key: descending ? value.slice(1) : value,
     direction: descending ? 'desc' : 'asc',
   };
 }
 
-function memberColumns(): Column<MemberRow>[] {
+/** Where a name in the list leads: the member record, or the member check for a leader. */
+function memberHref(row: MemberRow, isAccountAdmin: boolean): string {
+  return isAccountAdmin ? `/admin/members/${row.user_id}` : `/leader?member=${row.user_id}`;
+}
+
+function memberColumns(isAccountAdmin: boolean): Column<MemberRow>[] {
   return [
     {
       key: 'pilot',
@@ -71,7 +87,7 @@ function memberColumns(): Column<MemberRow>[] {
       width: '22%',
       render: (row) => (
         <>
-          <Link to={`/admin/members/${row.user_id}`}>{row.name}</Link>
+          <Link to={memberHref(row, isAccountAdmin)}>{row.name}</Link>
           {row.is_active ? null : <small className="muted"> · account deactivated</small>}
         </>
       ),
@@ -104,28 +120,32 @@ function memberColumns(): Column<MemberRow>[] {
 /** `/admin/members` page: the filtered, sortable, exportable member list. */
 export function MembersListPage(): JSX.Element {
   const [params, setParams] = useSearchParams();
-  const filters = useMemo(() => filtersFromParams(params), [params]);
+  const [filters, setFilters] = useUrlFilters(URL_KEYS);
   const page = Number(params.get('page') ?? '1') || 1;
+  const { roles } = useAuth();
+  const isAccountAdmin = hasAnyRole(roles, ['account_admin']);
 
   const darts = useDarts();
-  const members = useMembers({ ...filters, page, page_size: PAGE_SIZE });
+  const dartOptions = useMemo(
+    () => ({
+      dart: (darts.data ?? []).map((dart) => ({ value: String(dart.id), label: dart.name })),
+    }),
+    [darts.data],
+  );
+  const members = useMembers({ filters, page, page_size: PAGE_SIZE });
 
-  const columns = useMemo(memberColumns, []);
+  const columns = useMemo(() => memberColumns(isAccountAdmin), [isAccountAdmin]);
 
-  const registry = useMemberReportColumns();
+  const registry = useReportColumns('members');
   const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
   // Null means "whatever the registry calls default": the chooser has not been
   // touched, so it must follow a registry that is still loading.
   const [chosen, setChosen] = useState<string[] | null>(null);
   const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
+  const exportParams = { ...filters, columns: chosenKeys };
 
-  /** Write the filter set back to the URL, always returning to page one. */
-  const setFilters = (next: MemberFilters) => {
-    const updated = new URLSearchParams();
-    for (const key of FILTER_KEYS) {
-      if (next[key]) updated.set(key, next[key]);
-    }
-    setParams(updated);
+  const handleFilterChange = (next: FilterValues) => {
+    setFilters(next);
   };
 
   const handleColumnChange = (next: string[]) => {
@@ -149,7 +169,9 @@ export function MembersListPage(): JSX.Element {
       title="Members"
       eyebrow="Administration"
       lede="Everyone with a CalDART account, with their membership, certificate, and medical currency."
-      actions={<ButtonLink to="/admin/members/new">New member</ButtonLink>}
+      actions={
+        isAccountAdmin ? <ButtonLink to="/admin/members/new">New member</ButtonLink> : undefined
+      }
     >
       <Card>
         <DataTable
@@ -164,10 +186,12 @@ export function MembersListPage(): JSX.Element {
           }
           filters={
             <>
-              <MembersFilterBar
-                value={filters}
-                onChange={(next) => setFilters(next)}
-                darts={darts.data ?? []}
+              <FilterBar
+                fields={FILTER_FIELDS}
+                values={filters}
+                onChange={handleFilterChange}
+                options={dartOptions}
+                label="Filter members"
               />
               {registry.isError ? (
                 <p className="muted">
@@ -183,13 +207,13 @@ export function MembersListPage(): JSX.Element {
               ) : null}
             </>
           }
-          exportCsvUrl={exportUrl('csv', filters, { columns: chosenKeys })}
-          exportPdfUrl={exportUrl('pdf', filters, { columns: chosenKeys })}
+          exportCsvUrl={reportExportUrl('members', 'csv', exportParams)}
+          exportPdfUrl={reportExportUrl('members', 'pdf', exportParams)}
           isLoading={members.isPending}
           onSortChange={(key, direction) =>
-            setFilters({ ...filters, ordering: direction === 'desc' ? `-${key}` : key })
+            setFilters({ ...filters, [ORDERING]: direction === 'desc' ? `-${key}` : key })
           }
-          initialSort={ordering(filters)}
+          initialSort={ordering(filters[ORDERING] ?? '')}
           emptyTitle="No members match these filters"
           emptyDescription="Widen the search, or clear the filters to see everyone."
         />
