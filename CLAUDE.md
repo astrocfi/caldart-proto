@@ -37,7 +37,7 @@ backend/                Django 6 + Wagtail 8
   caldart/              project: settings/{base,dev,prod,test}.py, urls.py,
                         api_urls.py, models.py, reports.py, pagination.py,
                         exceptions.py
-  apps/<app>/           accounts, darts, members, aircraft, payments,
+  apps/<app>/           accounts, darts, mail, members, aircraft, payments,
                         reminders, cms, sysadmin — each with models.py, admin.py,
                         api/urls.py, seed.py, management/commands/
   templates/            base.html (public shell), portal.html (SPA mount),

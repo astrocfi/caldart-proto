@@ -119,8 +119,8 @@ Repository layout
         audit.py                the audit log: one record per privileged
                                 action, ids, and slugs only
       apps/                     one Django app per domain area
-        accounts/  members/  aircraft/  payments/
-        reminders/  cms/  sysadmin/
+        accounts/  darts/  mail/  members/  aircraft/
+        payments/  reminders/  cms/  sysadmin/
       templates/
         base.html               the public-site shell
         portal.html             the SPA mount point

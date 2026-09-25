@@ -230,6 +230,11 @@ took it, and any file attached.  It is the answer to "what did we actually send
 this person?", and to "is our mail going out at all?": a message a mail server
 refused is on the list, marked failed, with the error beside it.
 
+A renewal reminder is the one exception.  Its send shares a transaction with the
+reminder log, so that a reminder the mail server refuses stays due and goes out
+on the next scan; a refused reminder therefore leaves no row in the email log at
+all.  The reminder run's own **Failed** count is what reports it.
+
 Two things it is not.  It is not delivery confirmation: a mail server that takes
 a message and bounces it an hour later leaves a message marked sent.  And it is
 not the reminder log above, which exists to stop a member being sent the same
