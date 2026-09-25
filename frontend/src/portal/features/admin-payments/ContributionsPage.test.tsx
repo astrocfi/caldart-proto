@@ -79,6 +79,24 @@ describe('ContributionsPage', () => {
     expect(screen.getByRole('table', { name: 'Contributions in 2024' })).toBeInTheDocument();
   });
 
+  it('treats a year the Year field does not offer as this year, everywhere on the page', async () => {
+    const seen: string[] = [];
+    server.use(contributionsHandler([MARTA], seen));
+    renderWithProviders(<ContributionsPage />, {
+      route: '/admin/payments/contributions?year=2012',
+    });
+    await screen.findByRole('row', { name: /Marta Reyes/ });
+
+    const thisYear = new Date().getFullYear();
+    expect(seen).toEqual(['']);
+    expect(screen.getByLabelText('Year')).toHaveValue('');
+    expect(screen.getByRole('table', { name: `Contributions in ${thisYear}` })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+      'href',
+      `${API}/reports/contributions/export.csv`,
+    );
+  });
+
   it('points the exports at the contributions report for the year chosen', async () => {
     server.use(contributionsHandler([MARTA], []));
     renderWithProviders(<ContributionsPage />, {

@@ -25,6 +25,13 @@ import './admin-payments.css';
 const FILTER_FIELDS = listFilters(REPORTS.contributions);
 const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
+/** The years the Year field offers; blank, its first choice, is this year. */
+const OFFERED_YEARS = new Set(
+  (FILTER_FIELDS.find((field) => field.key === 'year')?.options ?? []).map(
+    (option) => option.value,
+  ),
+);
+
 function columns(year: number): Column<ContributionRow>[] {
   return [
     { key: 'name', header: 'Member', render: (row) => row.name, sortValue: (row) => row.name },
@@ -72,7 +79,12 @@ function columns(year: number): Column<ContributionRow>[] {
 
 /** The Contributions tab of the finance area. */
 export function ContributionsPage(): JSX.Element {
-  const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
+  const [addressFilters, setFilters] = useUrlFilters(FILTER_KEYS);
+  // A year the Year field does not offer reads as blank, so the select, the
+  // rows, the caption and the downloads never disagree about the year shown.
+  const filters = OFFERED_YEARS.has(addressFilters.year ?? '')
+    ? addressFilters
+    : { ...addressFilters, year: '' };
   // A blank year is the current one, which the server reports on by default;
   // the statements and the caption need it spelled out.
   const year = Number(filters.year) || new Date().getFullYear();
