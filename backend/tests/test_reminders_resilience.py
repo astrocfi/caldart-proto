@@ -18,6 +18,7 @@ from django.core.mail import EmailMessage
 from django.core.mail.backends.locmem import EmailBackend as LocMemEmailBackend
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import DatabaseError
 from django.utils import timezone
 from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
@@ -118,7 +119,7 @@ def test_a_failed_send_leaves_no_log_row(
 def test_a_failed_send_still_leaves_a_failed_email_log_row(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage]
 ) -> None:
-    """The rolled-back ``ReminderLog`` row does not take the email log row with it."""
+    """Deleting the ``ReminderLog`` row does not take the email log row with it."""
     make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
 
     send_renewal_reminders(today=TODAY)
@@ -126,6 +127,41 @@ def test_a_failed_send_still_leaves_a_failed_email_log_row(
     row = EmailLog.objects.get(to_email=FAILING_ADDRESS)
     assert row.status == EmailStatus.FAILED
     assert row.purpose == f"reminder_{ReminderKind.T30}"
+
+
+def test_an_abort_between_the_log_and_the_send_still_frees_the_reminder(
+    annual_plan: MembershipPlan, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A ``KeyboardInterrupt`` before the send still deletes the log row."""
+    make_member(annual_plan, ends_on_for(ReminderKind.T30))
+
+    def raise_keyboard_interrupt(*args: object, **kwargs: object) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(services, "send_reminder_email", raise_keyboard_interrupt)
+
+    with pytest.raises(KeyboardInterrupt):
+        send_renewal_reminders(today=TODAY)
+
+    assert ReminderLog.objects.count() == 0
+
+
+def test_a_failed_delete_does_not_replace_the_mail_failure_or_stop_the_scan(
+    annual_plan: MembershipPlan, failing_smtp: list[EmailMessage], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A ``DatabaseError`` deleting the log row masks neither the failure nor the scan."""
+    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
+    make_member(annual_plan, ends_on_for(ReminderKind.T30), email="reachable@example.test")
+
+    def raise_database_error(self: ReminderLog, *args: object, **kwargs: object) -> None:
+        raise DatabaseError("connection reset")
+
+    monkeypatch.setattr(ReminderLog, "delete", raise_database_error)
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.failed == 1
+    assert run.sent == 1
 
 
 def test_the_failure_log_names_the_ids_but_no_address(

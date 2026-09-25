@@ -133,9 +133,9 @@ Every email the installation has tried to send, paginated, and newest first.
 operations work rather than membership work.  Each row is written by the shared
 mail funnel after the send, so a refusal is on the list beside the messages that
 went out -- which is the point of it, and true for a renewal reminder too.  A
-refused reminder still leaves its own ``ReminderLog`` row deleted, so the
-reminder stays due, but the send itself is on this list with a ``failed``
-status; the reminder run's ``failed`` count reports it as well.
+refused reminder has its ``ReminderLog`` row deleted, so the reminder stays
+due, but the send itself is on this list with a ``failed`` status; the
+reminder run's ``failed`` count reports it as well.
 
 .. code-block:: json
 

@@ -16,8 +16,7 @@
 }
 
 /*
- * A number and its extension share one column: both have a fixed format, so
- * neither needs the width of a free-text box.
+ * A number and its extension share one column.
  */
 .field-pair {
   display: flex;

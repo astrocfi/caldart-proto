@@ -12,6 +12,7 @@ address.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import smtplib
 from dataclasses import dataclass, field
@@ -19,7 +20,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models import Model, QuerySet
 from django.template.defaultfilters import pluralize
 from django.utils import timezone
@@ -411,11 +412,15 @@ def _send_one(user: User, membership: Membership, kind: str, today: date) -> Non
 
     The log row is created in its own transaction, committed before the send
     starts, so a race with another run raises ``IntegrityError`` on the unique
-    constraint without leaving the connection unusable for what follows.  A
-    send the mail server refuses is caught here, not left to an enclosing
-    transaction: the log row is deleted by hand so the reminder stays due,
-    which leaves the failure ``caldart.mail`` already wrote to the email log
-    as the only record of the attempt, rather than rolling it back too.
+    constraint without leaving the connection unusable for what follows.  The
+    send is wrapped in a ``finally``, not an ``except``, so anything that stops
+    it partway -- a mail server refusal, or an abort such as
+    ``KeyboardInterrupt`` -- still deletes the row by hand: the reminder stays
+    due, and the failure ``caldart.mail`` already wrote to the email log is
+    left as the only record of the attempt.  The delete itself is not allowed
+    to replace whatever stopped the send: a ``DatabaseError`` there is
+    swallowed rather than raised, so the original failure is what the caller
+    sees and the scan continues to the next member.
     """
     with transaction.atomic():
         log_row = ReminderLog.objects.create(
@@ -425,8 +430,11 @@ def _send_one(user: User, membership: Membership, kind: str, today: date) -> Non
             sent_at=timezone.now(),
             to_email=user.email,
         )
+    sent = False
     try:
         send_reminder_email(user, membership, kind, today)
-    except Exception:
-        log_row.delete()
-        raise
+        sent = True
+    finally:
+        if not sent:
+            with contextlib.suppress(DatabaseError):
+                log_row.delete()
