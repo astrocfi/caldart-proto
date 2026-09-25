@@ -27,19 +27,22 @@ test('the section drop-down is closed until the pointer is over its section', as
   await expect(menu).toBeHidden();
 });
 
-test("the footer's guide link asks a visitor to sign in, then opens the guide", async ({
+test("the footer's guide link opens a new tab that asks a visitor to sign in, then shows the guide", async ({
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('contentinfo').getByRole('link', { name: 'User guide' }).click();
-  await expect(page).toHaveURL(/\/portal\/login\?next=\/docs\/$/);
+  const [guide] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.getByRole('contentinfo').getByRole('link', { name: 'User guide' }).click(),
+  ]);
+  await expect(guide).toHaveURL(/\/portal\/login\?next=\/docs\/$/);
 
-  await page.getByLabel('Email address').fill(DEMO.member);
-  await page.getByLabel('Password').fill(DEMO_PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await guide.getByLabel('Email address').fill(DEMO.member);
+  await guide.getByLabel('Password').fill(DEMO_PASSWORD);
+  await guide.getByRole('button', { name: 'Sign in' }).click();
 
-  await expect(page).toHaveURL(/\/docs\/$/);
-  await expect(page.getByRole('heading', { name: 'User guide', level: 1 })).toBeVisible();
+  await expect(guide).toHaveURL(/\/docs\/$/);
+  await expect(guide.getByRole('heading', { name: 'User guide', level: 1 })).toBeVisible();
 });
 
 test('the bar opens with Home and offers one way to join', async ({ page }) => {

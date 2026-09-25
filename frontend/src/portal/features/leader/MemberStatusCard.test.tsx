@@ -173,6 +173,13 @@ describe('MemberStatusCard', () => {
     expect(screen.getByText(/No aircraft on this member's profile/)).toBeInTheDocument();
   });
 
+  it('lines the no-aircraft note up with the Aircraft header, as an aircraft row', () => {
+    renderWithProviders(<MemberStatusCard status={makeStatus({ aircraft: [] })} today={TODAY} />);
+    expect(screen.getByText(/No aircraft on this member's profile/)).toHaveClass(
+      'leader-aircraft__row',
+    );
+  });
+
   it('announces the verdict to assistive technology', () => {
     renderWithProviders(<MemberStatusCard status={makeStatus()} today={TODAY} />);
     expect(screen.getByRole('status')).toHaveTextContent('GO');

@@ -1,133 +1,123 @@
 /**
- * `/leader/aircraft` — check one tail number's insurance.
+ * `/leader/aircraft` — the aircraft check: one search box, then the insurance card.
  *
- * The box suggests aircraft as the leader types, the way the member check
- * does, so a half-remembered registration or a model name still finds the
- * airplane.  The chosen registration lives in the query string, so the card
- * survives a reload and can be sent to another leader.
+ * The search runs over the register as the leader types, so a half-remembered
+ * registration, a model name, or an owner still finds the airplane.  The chosen
+ * one is kept in the query string as `?aircraft=<n_number>`.
  */
-import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
-import { useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
+import type { Aircraft } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
-import { Field } from '@/portal/components/Field';
-import { Page } from '@/portal/components/Page';
-import { useDebounced } from '@/portal/components/useDebounced';
-import { InsuranceChip, useAircraftSearch } from '@/portal/features/aircraft';
+import { useAircraftSearch } from '@/portal/features/aircraft/api';
 import { normalizeNNumber } from '@/portal/features/aircraft/insurance';
-import { AircraftStatusCard } from './AircraftStatusCard';
+import { AircraftStatusCard, isInsured } from './AircraftStatusCard';
+import { GoMark, LeaderLookup } from './LeaderLookup';
+import type { LookupResults } from './LeaderLookup';
 import { useLeaderAircraft } from './api';
 import './leader.css';
 
-/** Suggests aircraft as the leader types, and renders the chosen one's status card. */
+/** The register's matches for `term`, as the lookup's list of results. */
+function useAircraftMatches(term: string): LookupResults<Aircraft> {
+  const search = useAircraftSearch(term);
+  return {
+    data: search.data?.matches,
+    isFetching: search.isFetching,
+    isSuccess: search.isSuccess,
+  };
+}
+
+/** `?aircraft=` in any spelling of the registration; a blank one names no aircraft. */
+function parseRegistration(raw: string): string | null {
+  const registration = normalizeNNumber(raw);
+  return registration === '' ? null : registration;
+}
+
+/** Searches the aircraft register and renders the chosen aircraft's insurance card. */
 export function LeaderAircraftPage(): JSX.Element {
-  const [params, setParams] = useSearchParams();
-  const asked = params.get('n_number') ?? '';
-  const [term, setTerm] = useState(asked);
+  return (
+    <LeaderLookup<Aircraft>
+      title="Aircraft check"
+      lede="Look up the aircraft in front of you to see whether its insurance is current."
+      param="aircraft"
+      parse={parseRegistration}
+      label="Search by N-number"
+      hint="Registration, make, model, or owner all match."
+      placeholder="N12345"
+      inputClassName="mono"
+      noun="aircraft"
+      useResults={useAircraftMatches}
+      rowKey={(aircraft) => aircraft.id}
+      rowValue={(aircraft) => aircraft.n_number}
+      renderRow={(aircraft) => {
+        const insured = isInsured(aircraft);
+        return (
+          <>
+            <span className="leader-search__aircraft">
+              <span className="leader-search__name mono">{aircraft.n_number}</span>
+              <span className="leader-search__meta">
+                {[aircraft.make, aircraft.model].filter(Boolean).join(' ')}
+              </span>
+            </span>
+            <GoMark go={insured} label={insured ? 'Insured' : 'Not insured'} />
+          </>
+        );
+      }}
+      renderEmpty={() => (
+        <EmptyState
+          title="No aircraft matches that"
+          description="Try the registration, the make or model, or the owner's name."
+        />
+      )}
+      renderSelected={(nNumber, handleBack) => (
+        <AircraftCheck nNumber={nNumber} onBack={handleBack} />
+      )}
+    />
+  );
+}
 
-  // A link from the member search arrives with the registration already set.
-  useEffect(() => {
-    setTerm(asked);
-  }, [asked]);
+interface AircraftCheckProps {
+  nNumber: string;
+  onBack: () => void;
+}
 
-  const normalized = normalizeNNumber(asked);
-  const query = useLeaderAircraft(normalized);
-
-  const debounced = useDebounced(term.trim());
-  // Once an aircraft is chosen the box holds its registration, and searching
-  // for what is already on screen would only offer it back.
-  const search = useAircraftSearch(debounced === normalized ? '' : debounced);
-  const matches = search.data?.matches ?? [];
-  const searched = debounced.length > 0 && search.isSuccess;
-
-  const choose = (nNumber: string): void => {
-    setParams(nNumber ? { n_number: nNumber } : {});
-  };
-
-  const handleSubmit = (event: React.FormEvent): void => {
-    event.preventDefault();
-    choose(normalizeNNumber(term));
-  };
-
+/** The chosen aircraft's insurance card, or why there is none. */
+function AircraftCheck({ nNumber, onBack: handleBack }: AircraftCheckProps): JSX.Element {
+  const query = useLeaderAircraft(nNumber);
   const notFound = query.error instanceof ApiError && query.error.status === 404;
+  const searchAgain = (
+    <Button variant="secondary" onClick={handleBack}>
+      Search again
+    </Button>
+  );
 
   return (
-    <Page
-      title="Aircraft check"
-      eyebrow="DART leader"
-      lede="Type the tail number of the aircraft in front of you to see whether its insurance is current."
-    >
-      <Card>
-        <form onSubmit={handleSubmit}>
-          <Field
-            label="N-number"
-            hint="Suggestions appear as you type. Registration, make, model, or owner all match."
-          >
-            {(field) => (
-              <input
-                {...field}
-                type="search"
-                autoComplete="off"
-                spellCheck={false}
-                className="mono"
-                value={term}
-                placeholder="N12345"
-                onChange={(event) => setTerm(event.target.value)}
-              />
-            )}
-          </Field>
-
-          <p className="visually-hidden" role="status">
-            {search.isFetching ? 'Searching' : searched ? `${matches.length} aircraft found` : ''}
-          </p>
-
-          {matches.length > 0 ? (
-            <ul className="leader-search__results">
-              {matches.map((aircraft) => (
-                <li key={aircraft.id} className="leader-search__result">
-                  <button
-                    type="button"
-                    className="leader-search__button"
-                    onClick={() => choose(aircraft.n_number)}
-                  >
-                    <span className="leader-search__name mono">{aircraft.n_number}</span>
-                    <span className="leader-search__meta">
-                      {[aircraft.make, aircraft.model].filter(Boolean).join(' ')}
-                      {aircraft.owner_name ? ` · ${aircraft.owner_name}` : ''}
-                    </span>
-                    <InsuranceChip aircraft={aircraft} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <Button type="submit">Check aircraft</Button>
-        </form>
-      </Card>
-
+    <>
       {query.isFetching ? (
         <p className="muted" role="status">
-          Checking {normalized}…
+          Checking {nNumber}…
         </p>
       ) : null}
 
       {notFound ? (
         <EmptyState
-          title={`${normalized} is not in the register`}
+          title={`${nNumber} is not in the register`}
           description="Nobody has added this aircraft yet. Ask the pilot to add it to their profile, or add it from the aircraft register."
+          action={searchAgain}
         />
       ) : null}
 
       {query.isError && !notFound ? (
-        <EmptyState title="That check could not be run" description={query.error.message} />
+        <EmptyState
+          title="That check could not be run"
+          description={query.error.message}
+          action={searchAgain}
+        />
       ) : null}
 
       {query.data ? <AircraftStatusCard aircraft={query.data} /> : null}
-    </Page>
+    </>
   );
 }

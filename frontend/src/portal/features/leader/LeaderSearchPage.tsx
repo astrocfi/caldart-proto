@@ -1,23 +1,17 @@
 /**
- * `/leader` — one search box, then the status card.
+ * `/leader` — the member check: one search box, then the status card.
  *
- * The chosen member lives in the query string, so a leader can send a link,
- * use the back button, and reload without losing the card.
+ * The chosen member is kept in the query string as `?member=<id>`.
  */
-import { useState } from 'react';
 import type { JSX } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
-import type { LeaderGoNoGo } from '@/portal/api/types';
+import type { LeaderGoNoGo, LeaderSearchResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
-import { Field } from '@/portal/components/Field';
-import { Page } from '@/portal/components/Page';
-import { StatusDot } from '@/portal/components/StatusChip';
-import { useDebounced } from '@/portal/components/useDebounced';
 import { looksLikeRegistration, normalizeNNumber } from '@/portal/features/aircraft/insurance';
+import { GoMark, LeaderLookup } from './LeaderLookup';
 import { MemberStatusCard } from './MemberStatusCard';
 import { useLeaderSearch, useMemberStatus } from './api';
 import './leader.css';
@@ -32,142 +26,101 @@ function isReady(goNoGo: LeaderGoNoGo): boolean {
   return goNoGo.membership && goNoGo.medical;
 }
 
+/**
+ * `?member=` comes from a link or a hand-edited URL: only a real record id
+ * opens the card, so a stray value cannot become a request for member NaN.
+ */
+function parseMemberId(raw: string): string | null {
+  const id = Number(raw);
+  return Number.isInteger(id) && id > 0 ? String(id) : null;
+}
+
 /** Searches members and renders the chosen one's pre-flight status card. */
 export function LeaderSearchPage(): JSX.Element {
-  const [params, setParams] = useSearchParams();
-  // `?member=` comes from a link or a hand-edited URL: only a real record id
-  // opens the card, so a stray value cannot become a request for member NaN.
-  const selected = Number(params.get('member'));
-  const memberId = Number.isInteger(selected) && selected > 0 ? selected : null;
-
-  const [term, setTerm] = useState('');
-  const debounced = useDebounced(term.trim());
-  const search = useLeaderSearch(memberId === null ? debounced : '');
-  const status = useMemberStatus(memberId);
-
-  const choose = (userId: number): void => {
-    setParams({ member: String(userId) });
-  };
-
-  const handleBack = (): void => {
-    setParams({});
-  };
-
-  if (memberId !== null) {
-    return (
-      <Page title="Member check" eyebrow="DART leader">
-        <div className="leader-back">
-          <Button variant="quiet" small onClick={handleBack}>
-            ← Back to search
-          </Button>
-        </div>
-        {status.isPending ? <p className="muted">Loading the status card…</p> : null}
-        {status.isError ? (
-          <EmptyState
-            title="That member could not be loaded"
-            description={
-              status.error instanceof ApiError && status.error.status === 404
-                ? 'No member with that id. They may have been removed.'
-                : status.error.message
-            }
-            action={
-              <Button variant="secondary" onClick={handleBack}>
-                Search again
-              </Button>
-            }
-          />
-        ) : null}
-        {status.data ? <MemberStatusCard status={status.data} /> : null}
-      </Page>
-    );
-  }
-
-  const results = search.data ?? [];
-  const searched = debounced.length > 0 && search.isSuccess;
-
   return (
-    <Page
+    <LeaderLookup<LeaderSearchResult>
       title="Member check"
-      eyebrow="DART leader"
       lede="Look someone up before a flight: membership, medical, certificate, and the insurance on the planes they fly."
-    >
-      <Card>
-        <Field
-          label="Name, email, phone, or N-number"
-          hint="Try “Reyes”, “marta@example.org”, “415-555-0100”, or “N172SP”."
-        >
-          {(field) => (
-            <input
-              {...field}
-              type="search"
-              autoComplete="off"
-              spellCheck={false}
-              value={term}
-              placeholder="Search members"
-              onChange={(event) => setTerm(event.target.value)}
-            />
-          )}
-        </Field>
+      param="member"
+      parse={parseMemberId}
+      label="Name, email, phone, or N-number"
+      hint="Try “Reyes”, “marta@example.org”, “415-555-0100”, or “N172SP”."
+      placeholder="Search members"
+      noun="members"
+      useResults={useLeaderSearch}
+      rowKey={(result) => result.user_id}
+      rowValue={(result) => String(result.user_id)}
+      renderRow={(result) => {
+        const ready = isReady(result.go_no_go);
+        return (
+          <>
+            <span className="leader-search__name">{result.name}</span>
+            <GoMark go={ready} label={ready ? 'Cleared to fly' : 'Not cleared to fly'} />
+          </>
+        );
+      }}
+      renderEmpty={(term) => <NoMemberFound term={term} />}
+      renderSelected={(id, handleBack) => <MemberCheck userId={Number(id)} onBack={handleBack} />}
+    />
+  );
+}
 
-        <p className="visually-hidden" role="status">
-          {search.isFetching ? 'Searching' : searched ? `${results.length} members found` : ''}
-        </p>
+interface NoMemberFoundProps {
+  term: string;
+}
 
-        {search.isFetching && !search.data ? <p className="muted">Searching…</p> : null}
+/** Nobody matched: an N-number is offered to the aircraft check instead. */
+function NoMemberFound({ term }: NoMemberFoundProps): JSX.Element {
+  const registration = looksLikeRegistration(term) ? normalizeNNumber(term) : null;
+  return (
+    <EmptyState
+      title="Nobody matches that"
+      description={
+        registration !== null
+          ? 'No member lists that aircraft. You can still check the aircraft itself.'
+          : 'Try a surname, part of an email address, a phone number, or an N-number.'
+      }
+      action={
+        registration !== null ? (
+          <Link
+            className="button button--secondary button--small"
+            to={`/leader/aircraft?aircraft=${encodeURIComponent(registration)}`}
+          >
+            Check {registration}
+          </Link>
+        ) : null
+      }
+    />
+  );
+}
 
-        {results.length > 0 ? (
-          <ul className="leader-search__results">
-            {results.map((result) => {
-              const ready = isReady(result.go_no_go);
-              return (
-                <li key={result.user_id} className="leader-search__result">
-                  <button
-                    type="button"
-                    className="leader-search__button"
-                    onClick={() => choose(result.user_id)}
-                  >
-                    <span className="leader-search__name">{result.name}</span>
-                    <span className="leader-search__readiness">
-                      <StatusDot
-                        tone={ready ? 'current' : 'expired'}
-                        label={ready ? 'Cleared to fly' : 'Not cleared to fly'}
-                      />
-                      <span
-                        className={`leader-search__verdict ${
-                          ready ? 'leader-search__verdict--go' : 'leader-search__verdict--nogo'
-                        }`}
-                      >
-                        {ready ? 'GO' : 'NO-GO'}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
+interface MemberCheckProps {
+  userId: number;
+  onBack: () => void;
+}
 
-        {searched && results.length === 0 ? (
-          <EmptyState
-            title="Nobody matches that"
-            description={
-              looksLikeRegistration(debounced)
-                ? 'No member lists that aircraft. You can still check the aircraft itself.'
-                : 'Try a surname, part of an email address, a phone number, or an N-number.'
-            }
-            action={
-              looksLikeRegistration(debounced) ? (
-                <Link
-                  className="button button--secondary button--small"
-                  to={`/leader/aircraft?n_number=${encodeURIComponent(normalizeNNumber(debounced))}`}
-                >
-                  Check {normalizeNNumber(debounced)}
-                </Link>
-              ) : null
-            }
-          />
-        ) : null}
-      </Card>
-    </Page>
+/** The chosen member's status card, or why it could not be loaded. */
+function MemberCheck({ userId, onBack: handleBack }: MemberCheckProps): JSX.Element {
+  const status = useMemberStatus(userId);
+  return (
+    <>
+      {status.isPending ? <p className="muted">Loading the status card…</p> : null}
+      {status.isError ? (
+        <EmptyState
+          title="That member could not be loaded"
+          description={
+            status.error instanceof ApiError && status.error.status === 404
+              ? 'No member with that id. They may have been removed.'
+              : status.error.message
+          }
+          action={
+            <Button variant="secondary" onClick={handleBack}>
+              Search again
+            </Button>
+          }
+        />
+      ) : null}
+      {status.data ? <MemberStatusCard status={status.data} /> : null}
+    </>
   );
 }

@@ -163,7 +163,7 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
 
       <h3 className="leader-card__subhead">Aircraft</h3>
       {status.aircraft.length === 0 ? (
-        <p className="muted">No aircraft on this member's profile.</p>
+        <p className="leader-aircraft__row muted">No aircraft on this member's profile.</p>
       ) : (
         <ul className="leader-aircraft">
           {status.aircraft.map((aircraft) => (

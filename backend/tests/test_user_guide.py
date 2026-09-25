@@ -20,6 +20,7 @@ from django.utils.http import http_date
 from pytest_django.fixtures import Settings
 
 from apps.accounts.models import User
+from apps.cms.models import SiteSettings
 from caldart.views import GUIDE_INDEX
 
 pytestmark = pytest.mark.django_db
@@ -148,3 +149,13 @@ def test_the_default_root_is_the_guide_build_directory() -> None:
     """With ``USER_GUIDE_ROOT`` unset, the root is ``docs/_build/guide``."""
     root = Path(django_settings.USER_GUIDE_ROOT)
     assert root.parts[-3:] == ("docs", "_build", "guide")
+
+
+# ------------------------------------------------------------------ footer
+def test_the_public_footer_opens_the_guide_in_a_new_tab(
+    client: Client, site_settings: SiteSettings
+) -> None:
+    """The public site's footer links the guide in a new tab, without an opener."""
+    body = client.get("/").content.decode()
+
+    assert '<a href="/docs/" target="_blank" rel="noopener">User guide</a>' in body

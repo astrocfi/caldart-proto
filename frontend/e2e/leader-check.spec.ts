@@ -92,16 +92,21 @@ test('a lapsed insurance policy is called out on the airplane, not the pilot', a
   await expect(card.getByText('Insurance expired').first()).toBeVisible();
 });
 
-test('a leader can check a tail number on its own', async ({ page }) => {
+test('a leader searches for a tail number and reads its insurance card', async ({ page }) => {
   const { name, nNumber } = SEED.leaderCheck.insuredPilot;
   await signIn(page, DEMO.leader);
 
   await page.goto('/portal/leader/aircraft');
-  await page.getByRole('searchbox', { name: 'N-number' }).fill(nNumber);
-  await page.getByRole('button', { name: /check/i }).click();
+  await expect(page.getByRole('button', { name: /Check aircraft/ })).toHaveCount(0);
+  await page.getByRole('searchbox', { name: 'Search by N-number' }).fill(nNumber);
+  // The result row answers before the card is opened.
+  const result = page.getByRole('button', { name: new RegExp(nNumber) });
+  await expect(result.getByText('GO', { exact: true })).toBeVisible();
+  await result.click();
 
   const card = page.getByRole('region', { name: `Insurance for ${nNumber}` });
   await expect(card).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/portal/leader/aircraft\\?aircraft=${nNumber}$`));
   await expect(card.getByRole('heading', { name: nNumber })).toBeVisible();
   await expect(card.getByRole('status')).toContainText('INSURED');
   await expect(card.getByRole('status')).toContainText('Coverage is current');

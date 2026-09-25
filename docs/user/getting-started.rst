@@ -201,8 +201,9 @@ opens the page for your role — a member lands on :doc:`member-guide`, a DART
 leader on :doc:`dart-leader-guide`, a treasurer on :doc:`treasurer-guide`, an
 administrator on their own guide — and
 every page links to the rest.  The public site's footer links to the guide's
-front page.  Either way you are asked to sign in first if you have not
-already: the guide is for members.
+front page.  Either link opens the guide in a new tab, so the screen you were on
+stays where you left it, and either way you are asked to sign in first if you
+have not already: the guide is for members.
 
 Where to go next:
 
