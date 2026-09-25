@@ -49,10 +49,11 @@ than every N-numbered airplane on file.
 
 The search returns at most twenty people, and every line already answers the
 question: the membership state, **GO** or **NO-GO**, and the medical in words —
-"Class 3 medical to 2027/03/31", "Medical expired 2026/01/31", or "No medical on
-file".  For a single name that is the whole check; open the card when you want
-the certificate, the ratings, or the insurance on the airplanes.  If nobody
-comes back for an N-number, the page offers to check the aircraft itself
+"Class 3 medical to 2027/03/31", "Medical expired 2026/01/31", "No medical
+expiry on file" when a class was entered but the date never was, or "No medical
+on file".  For a single name that is the whole check; open the card when you
+want the certificate, the ratings, or the insurance on the airplanes.  If
+nobody comes back for an N-number, the page offers to check the aircraft itself
 instead.
 
 
@@ -61,8 +62,8 @@ Reading the status card
 
 **The band.**  A member is a **GO** when their membership *and* their medical
 are current — the same rule the results list applies.  When either is not, the
-band reads **NO-GO** and names the reasons — "Membership expired", "No medical on file" — so you know what to ask
-them to fix.
+band reads **NO-GO** and names the reasons — "Membership expired", "No medical
+on file" — so you know what to ask them to fix.
 
 .. note::
 

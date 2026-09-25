@@ -274,11 +274,18 @@ export function AircraftRegisterPage(): JSX.Element {
                 )}
               </Field>
             </div>
-            <ColumnChooser
-              columns={reportColumns}
-              chosen={chosenKeys}
-              onChange={handleColumnChange}
-            />
+            {registry.isError ? (
+              <p className="muted">
+                The columns could not be loaded; the downloads carry the default columns.
+              </p>
+            ) : reportColumns.length > 0 ? (
+              <ColumnChooser
+                columns={reportColumns}
+                chosen={chosenKeys}
+                onChange={handleColumnChange}
+                legend="Columns to export"
+              />
+            ) : null}
           </>
         }
       />

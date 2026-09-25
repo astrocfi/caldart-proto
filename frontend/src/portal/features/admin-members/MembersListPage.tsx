@@ -169,11 +169,18 @@ export function MembersListPage(): JSX.Element {
                 onChange={(next) => setFilters(next)}
                 darts={darts.data ?? []}
               />
-              <ColumnChooser
-                columns={reportColumns}
-                chosen={chosenKeys}
-                onChange={handleColumnChange}
-              />
+              {registry.isError ? (
+                <p className="muted">
+                  The columns could not be loaded; the downloads carry the default columns.
+                </p>
+              ) : reportColumns.length > 0 ? (
+                <ColumnChooser
+                  columns={reportColumns}
+                  chosen={chosenKeys}
+                  onChange={handleColumnChange}
+                  legend="Columns to export"
+                />
+              ) : null}
             </>
           }
           exportCsvUrl={exportUrl('csv', filters, { columns: chosenKeys })}

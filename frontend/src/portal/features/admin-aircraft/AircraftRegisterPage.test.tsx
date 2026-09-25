@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { Aircraft } from '@/portal/api/types';
+import type { Aircraft, ReportColumn } from '@/portal/api/types';
 import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { AircraftRegisterPage, orderingFor } from './AircraftRegisterPage';
 
@@ -37,7 +37,7 @@ function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
 }
 
 /** The registry `GET /admin/aircraft/columns` answers with, trimmed to four. */
-const COLUMNS = [
+const COLUMNS: ReportColumn[] = [
   { key: 'n_number', label: 'N-number', default: true },
   { key: 'make', label: 'Make', default: true },
   { key: 'owner_type', label: 'Owner type', default: false },
@@ -186,7 +186,7 @@ describe('AircraftRegisterPage', () => {
     await screen.findByRole('link', { name: 'N172SP' });
 
     await user.click(screen.getByRole('button', { name: 'Columns' }));
-    const panel = screen.getByRole('group', { name: /Columns to show and export/ });
+    const panel = screen.getByRole('group', { name: /Columns to export/ });
     expect(within(panel).getByRole('checkbox', { name: 'N-number' })).toBeChecked();
     expect(within(panel).getByRole('checkbox', { name: 'Pilots' })).not.toBeChecked();
   });

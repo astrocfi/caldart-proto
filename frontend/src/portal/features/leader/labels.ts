@@ -23,7 +23,7 @@ export {
  * The profile form asks for a class, so it offers "Third class"; the ramp asks
  * which medical the pilot holds, which is "Class 3".
  */
-export const MEDICAL_PHRASES: Record<MedicalType, string> = {
+const MEDICAL_PHRASES: Record<MedicalType, string> = {
   none: 'No medical',
   basicmed: 'BasicMed',
   first: 'Class 1',
@@ -37,7 +37,8 @@ export const MEDICAL_PHRASES: Record<MedicalType, string> = {
  * A member with no medical on file reads `No medical on file`.  A medical that
  * has run out reads `Medical expired 2026/01/31`, or `No medical expiry on
  * file` when the class was entered but the date never was.  A current one
- * names the class and the date it runs to, `Class 3 medical to 2027/03/31`.
+ * names the class and the date it runs to, `Class 3 medical to 2027/03/31`; a
+ * medical is current only when it carries a date, so that date is always there.
  */
 export function medicalSummary(medical: LeaderMedical): string {
   if (medical.type === 'none') return 'No medical on file';
@@ -46,8 +47,5 @@ export function medicalSummary(medical: LeaderMedical): string {
       ? 'No medical expiry on file'
       : `Medical expired ${formatDate(medical.expiration)}`;
   }
-  const phrase = MEDICAL_PHRASES[medical.type];
-  return medical.expiration === null
-    ? `${phrase} medical`
-    : `${phrase} medical to ${formatDate(medical.expiration)}`;
+  return `${MEDICAL_PHRASES[medical.type]} medical to ${formatDate(medical.expiration)}`;
 }

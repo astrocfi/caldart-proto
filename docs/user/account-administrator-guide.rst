@@ -262,10 +262,11 @@ Choosing the columns
 
 **Columns**, beside the filters, opens a chooser that drives both downloads.
 Seventeen columns are on offer; the ten above are on to begin with.  The seven
-that are off — the plan, the certificate number, IFR, the town, the state, the
-day the first term on file began, and the day the member says they joined — are
-the ones a roster or an audit wants and an everyday report does not.  Click
-anywhere outside the chooser, or press Escape, to put it away.
+that are off — *Plan*, *Certificate number*, *IFR*, *City*, *State*, *Joined*
+(the day the first term on file began), and *Member since* (the day the member
+says they joined) — are the ones a roster or an audit wants and an everyday
+report does not.  Click anywhere outside the chooser, or press Escape, to put it
+away.
 
 The chooser feeds the downloads, not the table: the list on screen keeps its
 five columns however many you tick.  The last column cannot be unticked, since a

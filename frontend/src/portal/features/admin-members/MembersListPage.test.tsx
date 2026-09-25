@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { ReportColumn } from '@/portal/api/types';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -11,7 +12,7 @@ import { MembersListPage } from './MembersListPage';
 import { LIFETIME, makeRow } from '@test/fixtures/members';
 
 /** The registry `GET /admin/members/columns` answers with, trimmed to five. */
-const COLUMNS = [
+const COLUMNS: ReportColumn[] = [
   { key: 'name', label: 'Name', default: true },
   { key: 'email', label: 'Email', default: true },
   { key: 'dart', label: 'DART', default: true },
@@ -326,9 +327,23 @@ describe('MembersListPage', () => {
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
     await user.click(screen.getByRole('button', { name: 'Columns' }));
-    const panel = screen.getByRole('group', { name: /Columns to show and export/ });
+    const panel = screen.getByRole('group', { name: /Columns to export/ });
     expect(within(panel).getByRole('checkbox', { name: 'Name' })).toBeChecked();
     expect(within(panel).getByRole('checkbox', { name: 'State' })).not.toBeChecked();
+  });
+
+  it('says so rather than offering an empty chooser when the columns fail to load', async () => {
+    server.use(
+      http.get(`${API}/admin/members/columns`, () =>
+        HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),
+      ),
+      ...listHandlers(),
+    );
+    renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    expect(await screen.findByText(/columns could not be loaded/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Columns' })).not.toBeInTheDocument();
   });
 
   it('carries a chosen column into both export links', async () => {
