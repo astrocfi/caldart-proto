@@ -69,6 +69,8 @@ NO_ROLE_DENIED_GETS = [
     "/api/v1/admin/payments",
     "/api/v1/admin/reminders/log",
     "/api/v1/system/emails",
+    "/api/v1/system/emails/purposes",
+    "/api/v1/reports/emails/export.csv",
     "/api/v1/system/health",
 ]
 
@@ -361,6 +363,8 @@ TREASURER_DENIED_GETS = [
     "/api/v1/admin/reminders/log",
     "/api/v1/leader/search",
     "/api/v1/system/emails",
+    "/api/v1/system/emails/purposes",
+    "/api/v1/reports/emails/export.csv",
     "/api/v1/system/health",
 ]
 

@@ -73,7 +73,7 @@ test('a system administrator keeps the run controls on the System page', async (
   await expect(panel.getByRole('table', { name: /^[1-9]\d* actions?$/ })).toBeVisible();
 });
 
-test('a system administrator reads the email log and filters it by purpose', async ({ page }) => {
+test('a system administrator filters the email log and downloads it', async ({ page }) => {
   await signIn(page, DEMO.sysadmin);
   await page.goto('/portal/system');
 
@@ -82,6 +82,9 @@ test('a system administrator reads the email log and filters it by purpose', asy
     .filter({ has: page.getByRole('heading', { name: 'Email log' }) });
   await expect(panel).toBeVisible();
   await expect(panel.getByLabel('Purpose')).toBeVisible();
+  await expect(panel.getByLabel('Status')).toBeVisible();
+  await expect(panel.getByLabel('From')).toBeVisible();
+  await expect(panel.getByLabel('To', { exact: true })).toBeVisible();
   await expect(panel.getByLabel('Search')).toBeVisible();
 
   // Picking a purpose sends the filter to the API rather than trimming the
@@ -94,4 +97,12 @@ test('a system administrator reads the email log and filters it by purpose', asy
   await panel.getByLabel('Purpose').selectOption('receipt');
   expect((await filtered).status()).toBe(200);
   await expect(panel.getByLabel('Purpose')).toHaveValue('receipt');
+  await expect(page).toHaveURL(/[?&]purpose=receipt/);
+
+  // The export carries the filter the table shows, and downloads the report.
+  const csv = panel.getByRole('link', { name: 'Export CSV' });
+  await expect(csv).toHaveAttribute('href', /\/reports\/emails\/export\.csv\?.*purpose=receipt/);
+  const download = await page.request.get((await csv.getAttribute('href')) ?? '');
+  expect(download.status()).toBe(200);
+  expect(download.headers()['content-type']).toBe('text/csv; charset=utf-8');
 });

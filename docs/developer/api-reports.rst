@@ -5,8 +5,8 @@ API: reports
 ============
 
 Every report the portal downloads — the membership report, the aircraft
-register, the payment list, the reconciliation table and the contributions list
-— is served by the same three endpoints under ``/api/v1/reports/``, from
+register, the payment list, the reconciliation table, the contributions list
+and the email log — is served by the same three endpoints under ``/api/v1/reports/``, from
 ``apps.reports``.  A report is named by its **slug** in the URL; the reports,
 their columns and the code that builds them are described in :doc:`reports`.
 The same app keeps each account's saved sets of a report's columns
@@ -53,6 +53,11 @@ superuser read every one:
      - ``treasurer``, ``account_admin``
      - fixed
      - yes
+   * - ``emails``
+     - CalDART email log
+     - ``system_admin``
+     - chosen
+     - no
 
 A slug the registry does not hold answers **404** to every signed-in caller,
 before any role is checked; a caller the report's roles do not admit answers
@@ -108,8 +113,9 @@ Parameter          Effect
 =================  ============================================================
 The report's       Exactly the filters the report's own list takes, applied the
 filters            same way: :doc:`api-members` for ``members``,
-                   :doc:`api-aircraft` for ``aircraft``, and :doc:`api-finance`
-                   for the three money reports.  A value the list refuses is
+                   :doc:`api-aircraft` for ``aircraft``, :doc:`api-finance`
+                   for the three money reports, and :doc:`api-system` for
+                   ``emails``.  A value the list refuses is
                    refused here with the same **400**, keyed by the parameter.
 ``ordering``       The list's own ordering, with the list's own rules: the
                    payments report refuses an unknown field as the payment list
@@ -135,7 +141,7 @@ filters            same way: :doc:`api-members` for ``members``,
 
 The file is named ``<stem>-<YYYY-MM-DD>.<csv|pdf>``, dated the day it was built:
 ``caldart-members``, ``caldart-aircraft``, ``caldart-payments``,
-``caldart-reconciliation`` or ``caldart-contributions``.
+``caldart-reconciliation``, ``caldart-contributions`` or ``caldart-emails``.
 
 Statuses:
 
@@ -371,15 +377,19 @@ the month.  A live send writes one ``report.send`` audit line per DART.
 Tests
 =====
 
+``backend/tests/test_email_log_report.py``
+   The email log report: its columns and their cells, each filter and the date
+   range against the rows downloaded, the order, the refusals, the file name,
+   and the ``system_admin``-only role matrix.
 ``backend/tests/test_report_endpoints.py``
    The report list for every role, the role matrix on every report's columns
    and both formats, the 404 for an unknown report and format, the dated
    filenames and media types, and the refusals: a fixed report's columns, an
    unknown column, a refused filter and an unknown period.
 ``backend/tests/test_report_registry.py``
-   The five reports' roles, titles, orientation and periods, and each report's
-   query against its list: the same params give the same rows in the same
-   order.
+   The registry's six reports by slug and, for all but the email log, the
+   roles, titles, orientation and periods, and the query against its list: the
+   same params give the same rows in the same order.
 ``backend/tests/test_reports.py``
    The engine on its own: cells, periods, the CSV and PDF it builds, and the
    download it answers with.

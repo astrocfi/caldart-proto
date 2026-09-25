@@ -36,7 +36,13 @@ READERS: dict[str, tuple[str, ...]] = {
     "payments": (TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN),
     "reconciliation": (TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN),
     "contributions": (TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN),
+    "emails": (SYSTEM_ADMIN,),
 }
+
+#: The reports an account administrator reads, which the tests signed in as one cover.
+#: The email log is the system administrator's alone and is covered in
+#: ``test_email_log_report.py``.
+ACCOUNT_ADMIN_REPORTS = [slug for slug, roles in READERS.items() if ACCOUNT_ADMIN in roles]
 
 #: One case per report, per role, per URL: the whole allow/deny matrix.
 MATRIX = [
@@ -90,7 +96,10 @@ def test_the_report_list_refuses_an_anonymous_caller(api_client: APIClient) -> N
         ("treasurer", ["payments", "reconciliation", "contributions"]),
         ("account_admin", ["members", "aircraft", "payments", "reconciliation", "contributions"]),
         ("website_admin", []),
-        ("system_admin", ["members", "aircraft", "payments", "reconciliation", "contributions"]),
+        (
+            "system_admin",
+            ["members", "aircraft", "payments", "reconciliation", "contributions", "emails"],
+        ),
     ],
 )
 def test_the_report_list_names_the_reports_the_caller_may_read(
@@ -184,7 +193,7 @@ def test_an_unknown_format_is_a_404(account_admin_client: APIClient) -> None:
 # --------------------------------------------------------------------------
 # The columns of each report
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize("slug", list(READERS))
+@pytest.mark.parametrize("slug", ACCOUNT_ADMIN_REPORTS)
 def test_the_columns_answer_the_registry(account_admin_client: APIClient, slug: str) -> None:
     """Every column, in export order, with its key, label and whether it is a default."""
     response = account_admin_client.get(f"/api/v1/reports/{slug}/columns")
@@ -194,7 +203,7 @@ def test_the_columns_answer_the_registry(account_admin_client: APIClient, slug: 
 # --------------------------------------------------------------------------
 # The exports
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize("slug", list(READERS))
+@pytest.mark.parametrize("slug", ACCOUNT_ADMIN_REPORTS)
 @pytest.mark.parametrize(
     ("fmt", "content_type"), [("csv", "text/csv; charset=utf-8"), ("pdf", "application/pdf")]
 )

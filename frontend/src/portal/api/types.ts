@@ -1004,18 +1004,30 @@ export interface LeaderStatus {
 /* --------------------------------------------------------------- email log */
 export type EmailStatus = 'sent' | 'failed';
 
-/** One email the system tried to send, as `GET /system/emails` returns it. */
+/**
+ * One email the system tried to send, as `GET /system/emails` returns it.
+ *
+ * `purpose` is the template's name and `purpose_label` the words a reader sees
+ * for it, the name itself when the server has no label for the template.
+ */
 export interface EmailLogEntry {
   id: number;
   to_email: string;
   user_id: number | null;
   user_name: string;
   purpose: string;
+  purpose_label: string;
   subject: string;
   sent_at: IsoDateTime;
   status: EmailStatus;
   error: string;
   attachments: string;
+}
+
+/** One purpose the email log's filter offers, from `GET /system/emails/purposes`. */
+export interface EmailPurpose {
+  value: string;
+  label: string;
 }
 
 /* --------------------------------------------------------------- reminders */

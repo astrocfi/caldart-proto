@@ -167,11 +167,11 @@ unheard.  The wording of the emails and the 07:00 schedule are in
 Email log
 ---------
 
-Below the reminders panel sits a table of the fifty most recent emails
-CalDART has tried to send -- renewal reminders, the automatic-renewal
-notices, receipts, refund notices, invitations, and password links -- with
-when it went, what it was for, who it went to, whether the mail server took
-it, and any file attached.  It is the answer to "what did we actually send
+Below the reminders panel sits a table of every email CalDART has tried to
+send -- renewal reminders, the automatic-renewal notices, receipts, refund
+notices, invitations, password links, scheduled reports, and DART rosters --
+with when it went, what it was for, who it went to, whether the mail server
+took it, and any file attached.  It is the answer to "what did we actually send
 this person?", and to "is our mail going out at all?": a message the mail
 server refused reads, for example, "Failed: SMTPRecipientsRefused" in the
 **Status** column.  A message that went out reads simply "Sent".
@@ -181,12 +181,33 @@ own reminder-log entry is held back, so the reminder itself stays due and
 goes out on the next scan.  The reminders panel's own **Failed** count,
 above, reports it too.
 
-**Purpose** narrows the table to one kind of message -- a renewal reminder at
-a given stage, a renewal notice or charge, a receipt, a refund, an
-invitation, or a password reset -- and **Search** narrows it to a name or an
-address.  Both send the filter to the server, so the table always reads the
-fifty most recent matches, newest first, rather than fifty unfiltered rows
-trimmed on screen.
+The table shows 25 emails at a time, newest first; **Sent** turns the order
+round.  When there are more, the foot of the panel reads, for example,
+"Showing 1–25 of 412", with **Previous** and **Next** to step through the
+pages.
+
+The filters above the table narrow it, and every one is applied by the server,
+so the pages always hold the matching emails rather than one page trimmed on
+screen:
+
+**Purpose**
+   One kind of message: a renewal reminder at a given stage, a renewal notice
+   or charge, a receipt, a refund, an invitation, a password reset, a
+   scheduled report, or a DART roster.
+**Status**
+   Only the messages the mail server took, or only the ones it refused.
+**From** and **To**
+   A date range, both days included, by the day the message went.
+**Search**
+   A name or an address.
+
+The filters, the order, and the page are kept in the address, so a filtered
+view of the log can be bookmarked or sent to another system administrator.
+
+**Export CSV** and **Export PDF** download the email log report: every email the
+filters match, not only the page on screen, in the order the table shows.  The
+column chooser beside the filters picks what the downloads carry, as it does on
+the other lists; the error and the attachments are left out unless chosen.
 
 Two things it is not.  It is not delivery confirmation: a mail server that
 takes a message and bounces it an hour later leaves a row marked sent.  And
@@ -195,10 +216,10 @@ the same reminder twice; the email log is the record of the message itself.
 
 Only a system administrator sees it, because it lists every address the
 installation has written to.  An account administrator answering "was this
-member told?" uses the **Reminders** screen instead.  Every row the
-installation has ever written, not only the fifty shown here, is readable
-through ``GET /system/emails``, described in :doc:`/developer/api-system`,
-and in the Django admin under **Mail**, where they cannot be edited.
+member told?" uses the **Reminders** screen instead.  The same rows are
+readable through ``GET /system/emails``, described in
+:doc:`/developer/api-system`, and in the Django admin under **Mail**, where
+they cannot be edited.
 
 
 Scheduled reports

@@ -1,51 +1,27 @@
-"""The email log endpoint.
+"""The email log endpoints.
 
-``GET /system/emails`` is ``system_admin`` only: it carries every address the
-installation has written to, which is operations work rather than membership
-work.
+``GET /system/emails`` and ``GET /system/emails/purposes`` are ``system_admin``
+only: the log carries every address the installation has written to, which is
+operations work rather than membership work.  The filters live in
+``apps.mail.filters``, which the ``emails`` report shares.
 """
 
 from __future__ import annotations
 
-import django_filters
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
+from drf_spectacular.utils import extend_schema
 from rest_framework.generics import ListAPIView
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsSystemAdmin
-from apps.mail.api.serializers import EmailLogSerializer
-from apps.mail.models import EmailLog, EmailStatus
+from apps.mail.api.serializers import EmailLogSerializer, EmailPurposeSerializer
+from apps.mail.filters import EmailLogFilterSet
+from apps.mail.models import EmailLog
+from apps.mail.purposes import PURPOSE_LABELS
+from apps.mail.reports import order_email_log
 from caldart.pagination import StandardPagination
-
-
-class EmailLogFilterSet(django_filters.FilterSet):
-    """``?purpose=&status=&from=&to=&q=``, where the dates bound ``sent_at``.
-
-    ``q`` matches the address written to and the recipient account's first and
-    last name, case-insensitively.
-    """
-
-    purpose = django_filters.CharFilter()
-    status = django_filters.ChoiceFilter(choices=EmailStatus.choices)
-    to = django_filters.DateFilter(field_name="sent_at", lookup_expr="date__lte")
-    q = django_filters.CharFilter(method="filter_q")
-
-    class Meta:
-        model = EmailLog
-        fields = ["purpose", "status"]
-
-    def filter_q(self, queryset: QuerySet[EmailLog], name: str, value: str) -> QuerySet[EmailLog]:
-        """Narrow ``queryset`` to rows whose address or recipient name holds ``value``."""
-        return queryset.filter(
-            Q(to_email__icontains=value)
-            | Q(user__first_name__icontains=value)
-            | Q(user__last_name__icontains=value)
-        )
-
-
-# ``from`` is a Python keyword, so this one filter cannot be a class attribute.
-EmailLogFilterSet.base_filters["from"] = django_filters.DateFilter(
-    field_name="sent_at", lookup_expr="date__gte"
-)
 
 
 class EmailLogListView(ListAPIView[EmailLog]):
@@ -58,9 +34,38 @@ class EmailLogListView(ListAPIView[EmailLog]):
     ordering_fields = ["sent_at"]
 
     def get_queryset(self) -> QuerySet[EmailLog]:
-        """Return every email log row with its recipient account preloaded.
-
-        The rows come back in ``EmailLog``'s default ordering, newest ``sent_at``
-        first, unless the request asks for another ``ordering``.
-        """
+        """Return every email log row with its recipient account preloaded."""
         return EmailLog.objects.select_related("user").all()
+
+    def filter_queryset[R](self, queryset: QuerySet[EmailLog, R]) -> QuerySet[EmailLog, R]:
+        """Narrow ``queryset`` by the filters and put it in the download's order.
+
+        Newest ``sent_at`` first unless ``?ordering=sent_at`` asks for oldest first;
+        any other ``ordering`` is ignored.  Sends in the same instant follow their
+        ``id`` in the same direction, so the pages and the ``emails`` report agree
+        row for row.
+        """
+        # DRF's OrderingFilter (kept so the schema documents ``ordering``) replaces
+        # ``EmailLog``'s ``-id`` tiebreak with the bare term; the report's order
+        # puts it back.
+        narrowed = super().filter_queryset(queryset)
+        return order_email_log(narrowed, self.request.query_params.get("ordering", ""))
+
+
+class EmailPurposeListView(APIView):
+    """``GET /system/emails/purposes`` -- the purposes the log's filter offers."""
+
+    permission_classes = [IsSystemAdmin]
+
+    @extend_schema(responses={200: EmailPurposeSerializer(many=True)})
+    def get(self, request: Request) -> Response:
+        """200 with one ``{value, label}`` per labeled purpose, in the filter's order.
+
+        Unpaginated.  ``value`` is what ``?purpose=`` takes and ``label`` the words
+        the portal shows for it.
+        """
+        rows = [{"value": value, "label": label} for value, label in PURPOSE_LABELS.items()]
+        # The stubs take the instance type from the single-object parameter, so
+        # they do not widen it to a list when ``many`` is set.
+        serializer = EmailPurposeSerializer(rows, many=True)  # type: ignore[arg-type]
+        return Response(serializer.data)

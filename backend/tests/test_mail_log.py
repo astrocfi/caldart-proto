@@ -14,6 +14,7 @@ import datetime as dt
 import smtplib
 
 import pytest
+from django.conf import settings
 from django.contrib.admin.sites import site as admin_site
 from django.core.mail import EmailMessage
 from django.test import RequestFactory
@@ -25,6 +26,7 @@ from apps.accounts.roles import SYSTEM_ADMIN
 from apps.accounts.services import send_password_invitation, send_password_reset_email
 from apps.mail.admin import EmailLogAdmin
 from apps.mail.models import EmailLog, EmailStatus
+from apps.mail.purposes import PURPOSE_LABELS
 from apps.members.models import MembershipPlan
 from apps.payments import receipts, refunds
 from apps.payments.models import PaymentStatus, RefundReason
@@ -44,6 +46,7 @@ from tests.factories import (
 pytestmark = pytest.mark.django_db
 
 EMAILS_URL = "/api/v1/system/emails"
+PURPOSES_URL = "/api/v1/system/emails/purposes"
 
 
 # --------------------------------------------------------------------------
@@ -429,6 +432,62 @@ def test_the_log_can_be_read_oldest_first(api_client: APIClient, system_admin: U
     body = api_client.get(f"{EMAILS_URL}?ordering=sent_at").json()
 
     assert [row["purpose"] for row in body["results"]] == ["receipt", "refund"]
+
+
+# --------------------------------------------------------------------------
+# Purpose labels and GET /system/emails/purposes
+# --------------------------------------------------------------------------
+def test_a_row_carries_its_purpose_label(api_client: APIClient, system_admin: User) -> None:
+    """``purpose_label`` is the words a reader sees for the template."""
+    EmailLogFactory(purpose="reminder_t30")
+    api_client.force_login(system_admin)
+
+    row = api_client.get(EMAILS_URL).json()["results"][0]
+
+    assert row["purpose_label"] == "Renewal reminder (30 days)"
+
+
+def test_an_unlabeled_purpose_reads_as_its_slug(api_client: APIClient, system_admin: User) -> None:
+    """A template no label names is shown by its own name rather than hidden."""
+    EmailLogFactory(purpose="board_minutes")
+    api_client.force_login(system_admin)
+
+    row = api_client.get(EMAILS_URL).json()["results"][0]
+
+    assert row["purpose_label"] == "board_minutes"
+
+
+@pytest.mark.parametrize(("role", "allowed"), role_matrix(SYSTEM_ADMIN))
+def test_the_purposes_role_matrix(
+    api_client: APIClient, all_role_users: dict[str, User], role: str, allowed: bool
+) -> None:
+    """Only ``system_admin`` reads the purposes, as only it reads the log."""
+    api_client.force_login(all_role_users[role])
+
+    assert api_client.get(PURPOSES_URL).status_code == (200 if allowed else 403)
+
+
+def test_the_purposes_need_a_session(api_client: APIClient) -> None:
+    """An anonymous caller gets 401."""
+    assert api_client.get(PURPOSES_URL).status_code == 401
+
+
+def test_the_purposes_are_every_labeled_template_in_order(
+    api_client: APIClient, system_admin: User
+) -> None:
+    """One ``{value, label}`` per labeled purpose, in the order the filter offers them."""
+    api_client.force_login(system_admin)
+
+    body = api_client.get(PURPOSES_URL).json()
+
+    assert body == [{"value": value, "label": label} for value, label in PURPOSE_LABELS.items()]
+
+
+def test_the_purposes_name_every_template_the_application_sends() -> None:
+    """Every email template on disk has a label, so no purpose reads as a bare slug."""
+    templates = {path.stem for path in (settings.BASE_DIR / "templates" / "emails").glob("*.txt")}
+
+    assert sorted(templates - set(PURPOSE_LABELS)) == []
 
 
 # --------------------------------------------------------------------------

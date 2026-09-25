@@ -92,6 +92,13 @@ export const handlers = [
   http.get(`${API}/system/emails`, () =>
     HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
   ),
+  // The purposes its filter offers, read as it mounts too.
+  http.get(`${API}/system/emails/purposes`, () =>
+    HttpResponse.json([
+      { value: 'receipt', label: 'Receipt' },
+      { value: 'password_reset', label: 'Password reset' },
+    ]),
+  ),
 ];
 
 /** Convenience: make `/auth/me` answer with `user`. */

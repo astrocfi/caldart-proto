@@ -8,13 +8,14 @@
  * calls a `system_admin`-only endpoint, and the route guard on
  * `/portal/system` keeps anyone else from mounting it.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '@/portal/api/client';
 import type {
   Backup,
   EmailLogEntry,
+  EmailPurpose,
   Health,
   Paginated,
   ReminderKind,
@@ -24,6 +25,7 @@ import type {
   ReportRunResult,
 } from '@/portal/api/types';
 import { ROSTERS_KEY, SUBSCRIPTIONS_KEY } from '@/portal/reports/api';
+import type { FilterValues } from '@/portal/reports/types';
 
 export const HEALTH_KEY = ['system', 'health'] as const;
 export const BACKUPS_KEY = ['system', 'backups'] as const;
@@ -145,31 +147,58 @@ export function backupDownloadUrl(name: string): string {
   return `${API_BASE}/system/backups/${encodeURIComponent(name)}/download`;
 }
 
-/** How many of the most recent emails the log panel shows. */
-export const EMAIL_LOG_PAGE_SIZE = 50;
+/**
+ * How many emails one page of the log holds: the server's standard page, which
+ * the panel leaves the server to choose and only uses to count the rows shown.
+ */
+export const EMAIL_LOG_PAGE_SIZE = 25;
 
-/** Email log rows are cached per purpose and search term. `purpose` is `'all'` for no filter. */
-export function emailLogKey(
-  purpose: string,
-  search: string,
-): readonly ['system', 'emails', string, string] {
-  return ['system', 'emails', purpose, search] as const;
+/** The purposes the email log's filter offers are the server's, and never change. */
+export const EMAIL_PURPOSES_KEY = ['system', 'emails', 'purposes'] as const;
+
+/** What one page of the email log is asked for: the filters, the order and the page. */
+export interface EmailLogQuery {
+  /** `purpose`, `status`, `from`, `to` and `q`, an empty value meaning unset. */
+  filters: FilterValues;
+  /** The `ordering` term, such as `-sent_at`. */
+  ordering: string;
+  /** The page, from 1. */
+  page: number;
 }
 
-/** The newest emails the system has tried to send, via `GET /system/emails`. */
-export function useEmailLog(
-  purpose: string,
-  search: string,
-): UseQueryResult<Paginated<EmailLogEntry>> {
+/** Email log pages are cached per filter set, order and page. */
+export function emailLogKey({
+  filters,
+  ordering,
+  page,
+}: EmailLogQuery): readonly ['system', 'emails', 'log', FilterValues, string, number] {
+  return ['system', 'emails', 'log', filters, ordering, page] as const;
+}
+
+/**
+ * One page of the emails the system has tried to send, via `GET /system/emails`.
+ *
+ * @param query the filters, the order and the page to ask for; an empty filter
+ *   value is left out of the request.
+ * @returns the page, with the total count and the links to its neighbors.
+ */
+export function useEmailLog(query: EmailLogQuery): UseQueryResult<Paginated<EmailLogEntry>> {
+  const { filters, ordering, page } = query;
   return useQuery({
-    queryKey: emailLogKey(purpose, search),
+    queryKey: emailLogKey(query),
     queryFn: () =>
       api.get<Paginated<EmailLogEntry>>('/system/emails', {
-        query: {
-          purpose: purpose === 'all' ? undefined : purpose,
-          q: search === '' ? undefined : search,
-          page_size: EMAIL_LOG_PAGE_SIZE,
-        },
+        query: { ...filters, ordering, page: page > 1 ? page : undefined },
       }),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** The purposes the log's filter offers, as `{value, label}`, via `GET /system/emails/purposes`. */
+export function useEmailPurposes(): UseQueryResult<EmailPurpose[]> {
+  return useQuery({
+    queryKey: EMAIL_PURPOSES_KEY,
+    queryFn: () => api.get<EmailPurpose[]>('/system/emails/purposes'),
+    staleTime: Infinity,
   });
 }

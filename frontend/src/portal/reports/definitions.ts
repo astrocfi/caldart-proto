@@ -230,6 +230,24 @@ const CONTRIBUTION_FILTERS: FilterField[] = [
   ),
 ];
 
+const EMAIL_LOG_FILTERS: FilterField[] = [
+  // The purposes are the server's, so the panel supplies them through `options`.
+  { key: 'purpose', label: 'Purpose', kind: 'select', placeholder: 'Any purpose' },
+  {
+    key: 'status',
+    label: 'Status',
+    kind: 'select',
+    placeholder: 'Any status',
+    options: [
+      { value: 'sent', label: 'Sent' },
+      { value: 'failed', label: 'Failed' },
+    ],
+  },
+  { key: 'from', label: 'From', kind: 'date' },
+  { key: 'to', label: 'To', kind: 'date' },
+  { key: 'q', label: 'Search', kind: 'search', placeholder: 'Name or address' },
+];
+
 /** Every report, by slug. */
 export const REPORTS: Readonly<Record<ReportSlug, ReportDefinition>> = {
   members: {
@@ -266,6 +284,13 @@ export const REPORTS: Readonly<Record<ReportSlug, ReportDefinition>> = {
     filters: CONTRIBUTION_FILTERS,
     choosable: false,
     periods: true,
+  },
+  emails: {
+    slug: 'emails',
+    label: 'Email log',
+    filters: EMAIL_LOG_FILTERS,
+    choosable: true,
+    periods: false,
   },
 };
 

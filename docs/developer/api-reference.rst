@@ -949,6 +949,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - the list's rows; ``?period=`` applies
+   * - ``GET /reports/emails/columns``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
+   * - ``GET /reports/emails/export.{csv,pdf}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - the email log's rows; ``system_admin`` only
    * - ``GET | POST /reports/{slug}/column-sets``
      - ·
      - ·
@@ -1102,6 +1118,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - also ``system_admin``
    * - ``GET /system/emails``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
+   * - ``GET /system/emails/purposes``
      - ·
      - ·
      - ·
