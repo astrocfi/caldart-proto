@@ -140,7 +140,8 @@ rather than to check one person on the ramp.
 * **Filter** with the bar above the table: by name or email, membership,
   certificate, medical, DART, county, role, how soon the membership expires,
   and active accounts only.  Each filter applies as soon as you change it; the
-  text boxes follow a short pause in your typing.  **Clear** empties them all.
+  text boxes follow a short pause in your typing.  **Reset to Defaults** empties
+  them all.
   The filters are part of the page's address, so a filtered list is a link you
   can bookmark or send to another leader.
 * **Sort** by clicking a column heading; click again to reverse it.
@@ -150,8 +151,8 @@ rather than to check one person on the ramp.
   carries every member the filters match, not just the page on screen, and
   **Columns** chooses what goes in it — phone, certificate, medical, aircraft,
   county, and more.  The list on screen keeps its five columns whatever you
-  choose.  **Save columns**, under the boxes, keeps the columns you ticked under
-  a name, and **Load columns** ticks them again next time, as
+  choose.  **Save columns**, beside **Columns**, keeps the columns you ticked
+  under a name, and **Load columns** beside it applies them again next time, as
   :ref:`member-report-columns` describes.
 
 Adding a member, and the full member record behind each name, belong to the

@@ -74,7 +74,8 @@ The filter bar sits above the table.  The dropdowns and the checkbox apply the
 moment you change them, and the table narrows as you type in **Search** or
 **Expiring within (days)** — it follows a short pause, so it does not chase
 every keystroke.  **Expiring within (days)** takes digits only.  There is no
-Apply button.  **Clear** empties the whole bar and leaves the sort alone.
+Apply button.  **Reset to Defaults** empties the whole bar and leaves the sort
+alone.
 
 **Search**
    Matches a name, an email address, either phone number or a pilot
@@ -287,8 +288,8 @@ that are off — *Plan*, *Certificate number*, *IFR*, *City*, *State*, *County*,
 *Joined* (the day the first term on file began), *Member since* (the day the
 member says they joined), and *Profile updated* (the day profile information
 was last written) — are the ones a roster or an audit wants and an everyday
-report does not.  Click anywhere outside the chooser, or press Escape, to put it
-away.
+report does not.  **Reset to the default columns**, under the boxes, ticks the
+ten again.
 
 The chooser feeds the downloads, not the table: the list on screen keeps its
 five columns however many you tick.  The last column cannot be unticked, since a
@@ -296,14 +297,15 @@ report of nothing helps nobody.  The ten default columns are sized so no cell
 has to wrap on a landscape page; add enough columns and the PDF will start
 wrapping, which is the point at which the CSV is the better file.
 
-Below the boxes, **Load columns** lists the sets of columns you have saved for
-the member report.  Pick one and its boxes are ticked; the chooser stays open,
-so you can carry on changing them.  To keep the boxes as they stand, type a name of up
-to 60 characters in the box beside **Save columns** and press it, or press Enter.
-Saving under a name you already use replaces that set, and loading a set puts
-its name in the box, so a set you load and change is saved again with one press.
-The trashcan beside **Load columns** deletes the set it shows.  Your saved sets
-are yours alone, and each report keeps its own.
+Beside **Columns**, **Load columns** lists the sets of columns you have saved
+for the member report.  Pick a name and its columns are applied; the list
+closes.  The trashcan beside a name deletes that set.  **Save columns** keeps
+the boxes as they stand: type a name of up to 60 characters and press **Save**,
+or press Enter.  Saving under a name you already use replaces that set, and
+loading a set puts its name in the box, so a set you load and change is saved
+again under the same name.  Each of the three buttons opens its own list under
+itself, which a click outside it or Escape puts away.  Your saved sets are
+yours alone, and each report keeps its own.
 
 The columns are listed field by field in the developer documentation under
 :doc:`/developer/reports`.

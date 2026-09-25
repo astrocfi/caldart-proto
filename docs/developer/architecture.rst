@@ -568,7 +568,7 @@ the files they test, and an ``index.ts`` of what the route files use:
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
 every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``IconButton``,
-``DeleteButton``, ``StatusChip``, ``DataTable``, ``ColumnChooser``,
+``DeleteButton``, ``StatusChip``, ``DataTable``, ``PanelButton``, ``ColumnChooser``,
 ``FilterBar``, ``RunActionsTable``, ``Money``, ``DateText``, ``EmptyState``, and
 ``Toast``), and ``choices.ts`` holds the one set of labels for certificate,
 medical, IFR, rating, and role codes, and the list of California counties.
@@ -587,11 +587,20 @@ buttons.  ``DeleteButton`` is every Remove and Delete control in the portal: a
 bare ``IconButton`` trashcan where the control sits in a row or on a form line,
 and a quiet ``Button`` with the trashcan leading its words where the action is
 confirmed, with the trashcan at the text size there rather than at the larger
-size a bare icon takes.  ``ColumnChooser`` drives a report table and its two
-exports from one set of ticks, and closes on a click outside it or on Escape.
-It takes the report's slug and, under its boxes, loads, saves, and deletes the
-signed-in user's named sets of that report's columns through
-``/reports/{slug}/column-sets``, reading them only once the panel first opens.
+size a bare icon takes.  ``PanelButton`` is a quiet small ``Button`` with
+``aria-expanded`` and ``aria-controls`` and the captioned panel (a
+``<fieldset>`` with its ``legend``) it opens under itself.  The panel's contents
+mount only while it is open, and receive a function that closes it; the panel
+closes on a click outside it or on Escape, and closing it while the focus is
+inside hands the focus back to the button.  ``ColumnChooser`` drives a report
+table and its two exports from one set of ticks.  It is three ``PanelButton``\ s
+side by side in a ``.column-chooser`` cluster: **Columns** holds the checkboxes
+and **Reset to the default columns**; **Load columns** lists the signed-in
+user's named sets of the report's columns as buttons, each with a trashcan, and
+applies and closes on a pick; **Save columns** holds a name box and a **Save**
+button that keeps the chosen columns under that name and closes on success.
+The sets come from ``/reports/{slug}/column-sets``, read only once **Load
+columns** first opens.
 ``components/Loading.tsx`` sits beside them:
 the guards and the route table are its only callers, and both import it by
 name, as every file in the directory is imported -- there is no barrel.
@@ -626,7 +635,10 @@ fields, with choices only the server knows, such as the DARTs or the plans,
 passed in through its ``options`` prop, and applies every change itself: a
 select, a date, or a toggle at once, a text or number box once the typing has
 held still for ``SEARCH_DEBOUNCE_MS``.  There is no Apply button, and
-**Clear** empties every field.  ``components/useUrlFilters.ts`` keeps a list
+**Reset to Defaults** empties every field.  The bar aligns its controls to
+their bottom edge, and a field's ``hint`` is its control's ``title`` rather
+than a line under it, so every control stands the same height and they line
+up.  ``components/useUrlFilters.ts`` keeps a list
 page's filters in the query string, so a filtered view is a link: it reads
 the keys it is given, and writing them drops the empty ones and ``page``, so a
 change of filter returns the list to its first page, while leaving any other
