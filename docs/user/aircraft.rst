@@ -35,13 +35,14 @@ For members: adding an airplane you fly
    in the list above with its insurance chip.
 
 Airplanes already on your list are filtered out of the results and named
-underneath, so you can tell the difference between "not in the register" and
-"already attached".  A search that finds nothing says so, and points at the
-button below it.
+underneath — *N12345 is already on your list.*, or the registrations joined
+with commas and a final *and* when there are several — so you can tell the
+difference between "not in the register" and "already attached".  A search that
+finds nothing says so, and points at the button below it.
 
-One **Add an aircraft** button sits at the foot of the panel, under the results
-or the empty state, and opens the same short form whenever you want it —
-you do not have to search first.  The form needs:
+One **Add a new aircraft** button sits at the foot of the panel, under the
+results or the empty state, and opens the same short form whenever you want it
+— you do not have to search first.  The form needs:
 
 =====================  ==========================================================
 Field                  Notes
@@ -61,8 +62,8 @@ Saving adds the airplane to the register *and* attaches it to your profile.
 
 You can correct an aircraft you added: on **My aircraft**, press **Edit**
 beside it.  Only an account administrator can delete an aircraft, since
-another member may be flying it.  To correct one somebody else added, ask that
-member or an account administrator.
+another member may be flying it.  Opening **Edit** on a record somebody else
+added says so and asks you to have an account administrator correct it.
 
 .. tip::
 
