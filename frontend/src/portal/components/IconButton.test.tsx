@@ -60,13 +60,28 @@ describe('IconButton', () => {
     expect(screen.getByRole('button', { name: 'Remove N12345' }).textContent).toBe('');
   });
 
-  it('draws a different path for each icon it offers', () => {
-    const up = render(<IconButton icon="arrow-up" label="Move person 1 up" />);
-    const down = render(<IconButton icon="arrow-down" label="Move person 1 down" />);
+  it('draws the trashcan for the trashcan icon', () => {
+    const { container } = render(<IconButton icon="trashcan" label="Remove N12345" />);
 
-    expect(up.container.querySelector('svg')?.innerHTML).not.toBe(
-      down.container.querySelector('svg')?.innerHTML,
-    );
+    expect(container.querySelector('svg path[d="M4 7h16"]')).toBeInTheDocument();
+  });
+
+  it('draws the upward arrow for the arrow-up icon', () => {
+    const { container } = render(<IconButton icon="arrow-up" label="Move person 1 up" />);
+
+    expect(container.querySelector('svg path[d="M6 11l6-6 6 6"]')).toBeInTheDocument();
+  });
+
+  it('draws the downward arrow for the arrow-down icon', () => {
+    const { container } = render(<IconButton icon="arrow-down" label="Move person 1 down" />);
+
+    expect(container.querySelector('svg path[d="M6 13l6 6 6-6"]')).toBeInTheDocument();
+  });
+
+  it('draws its icon at the shared icon size', () => {
+    const { container } = render(<IconButton icon="trashcan" label="Remove N12345" />);
+
+    expect(container.querySelector('svg')).toHaveAttribute('width', '1.25em');
   });
 
   it('reports the press to the caller', async () => {

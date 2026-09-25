@@ -1,26 +1,31 @@
 /**
  * The portal's inline icons.
  *
- * Each icon is a small SVG drawn in `currentColor` at `1.25em` square, so it
- * takes the color and the scale of whatever encloses it, and each is
- * `aria-hidden`: the control around the icon carries the accessible name, and
- * an icon that announced itself as well would say the same thing twice.  They
- * are written out here rather than pulled from an icon library so the portal
- * ships no icon dependency.
+ * Each icon is a small SVG drawn in `currentColor`, square, and `1.25em` on a
+ * side unless the caller asks for another size, so it takes the color and the
+ * scale of whatever encloses it.  Each is `aria-hidden`: the control around the
+ * icon carries the accessible name, and an icon that announced itself as well
+ * would say the same thing twice.  They are written out here rather than pulled
+ * from an icon library so the portal ships no icon dependency.
  */
 import type { JSX } from 'react';
 
-const SIZE = '1.25em';
+const DEFAULT_SIZE = '1.25em';
+
+export interface IconProps {
+  /** The edge of the square, as any CSS length; `1.25em` unless given. */
+  size?: string;
+}
 
 /** A trashcan: remove or delete the thing the control names. */
-export function TrashcanIcon(): JSX.Element {
+export function TrashcanIcon({ size = DEFAULT_SIZE }: IconProps): JSX.Element {
   return (
     <svg
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 24 24"
-      width={SIZE}
-      height={SIZE}
+      width={size}
+      height={size}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.75"
@@ -37,14 +42,14 @@ export function TrashcanIcon(): JSX.Element {
 }
 
 /** An upward arrow: move the thing the control names one place earlier. */
-export function ArrowUpIcon(): JSX.Element {
+export function ArrowUpIcon({ size = DEFAULT_SIZE }: IconProps): JSX.Element {
   return (
     <svg
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 24 24"
-      width={SIZE}
-      height={SIZE}
+      width={size}
+      height={size}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.75"
@@ -58,14 +63,14 @@ export function ArrowUpIcon(): JSX.Element {
 }
 
 /** A downward arrow: move the thing the control names one place later. */
-export function ArrowDownIcon(): JSX.Element {
+export function ArrowDownIcon({ size = DEFAULT_SIZE }: IconProps): JSX.Element {
   return (
     <svg
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 24 24"
-      width={SIZE}
-      height={SIZE}
+      width={size}
+      height={size}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.75"

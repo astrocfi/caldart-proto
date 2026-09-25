@@ -10,11 +10,12 @@
 import type { ButtonHTMLAttributes, JSX } from 'react';
 
 import { ArrowDownIcon, ArrowUpIcon, TrashcanIcon } from './icons';
+import type { IconProps } from './icons';
 
 /** The icons a bare icon button can show. */
 export type IconName = 'trashcan' | 'arrow-up' | 'arrow-down';
 
-const ICONS: Record<IconName, () => JSX.Element> = {
+const ICONS: Record<IconName, (props: IconProps) => JSX.Element> = {
   trashcan: TrashcanIcon,
   'arrow-up': ArrowUpIcon,
   'arrow-down': ArrowDownIcon,

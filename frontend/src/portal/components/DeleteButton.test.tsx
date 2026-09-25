@@ -38,6 +38,12 @@ describe('DeleteButton', () => {
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('draws the trashcan rather than another icon when it shows no text', () => {
+    const { container } = render(<DeleteButton label="Remove N12345" />);
+
+    expect(container.querySelector('svg path[d="M4 7h16"]')).toBeInTheDocument();
+  });
+
   it('reads as its text rather than its label when it shows text', () => {
     render(<DeleteButton label="Delete this DART">Delete this DART</DeleteButton>);
 
@@ -64,10 +70,28 @@ describe('DeleteButton', () => {
     expect(screen.getByRole('button', { name: 'Delete this DART' })).not.toHaveClass('icon-button');
   });
 
-  it('is quiet and small unless the caller says otherwise', () => {
+  it('is quiet unless the caller asks for another variant', () => {
     render(<DeleteButton label="Delete member">Delete member</DeleteButton>);
 
     expect(screen.getByRole('button', { name: 'Delete member' })).toHaveClass('button--quiet');
+  });
+
+  it('is small unless the caller asks for a full-size button', () => {
+    render(<DeleteButton label="Delete member">Delete member</DeleteButton>);
+
+    expect(screen.getByRole('button', { name: 'Delete member' })).toHaveClass('button--small');
+  });
+
+  it('draws the trashcan at the text size when it shows words', () => {
+    const { container } = render(<DeleteButton label="Delete member">Delete member</DeleteButton>);
+
+    expect(container.querySelector('svg')).toHaveAttribute('width', '1em');
+  });
+
+  it('draws the trashcan at the shared icon size when it shows no text', () => {
+    const { container } = render(<DeleteButton label="Remove N12345" />);
+
+    expect(container.querySelector('svg')).toHaveAttribute('width', '1.25em');
   });
 
   it('takes the danger variant when the caller asks for it', () => {
