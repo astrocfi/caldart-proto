@@ -52,6 +52,10 @@ and the total.
 This is the answer to "how are we doing compared to last year?" — switch to
 **Year** and read down the total column.
 
+Above the table, **From**, **To**, **Provider**, **Status**, and **Search**
+narrow what the table adds up, exactly as they do on the payment list.  The
+tiles ignore them: "this month" is this month whatever the table shows.
+
 The payment list
 ================
 
@@ -64,10 +68,18 @@ Every individual payment, with a filter bar:
   both;
 * **Method** — card, Apple Pay, check, cash, and the rest;
 * **Reconciled** — matched to a bank statement, or still outstanding;
-* **Amount** — a lower and an upper bound on the total;
+* **At least** / **At most** — a lower and an upper bound on the total, in
+  whole dollars;
 * **Search** — a member's name or email, a provider's own reference (a Stripe
   PaymentIntent id or a PayPal order id, useful when someone forwards you a
   receipt), or a note you wrote on a payment.
+
+Each filter applies as soon as you set it; a typed one applies once you pause.
+**Clear** empties them all.  The filters, the sort order, and the page you are
+on are kept in the page's address, so a filtered list can be bookmarked or sent
+to another treasurer, and the browser's back button steps back through the
+filters you applied.  The Overview, Reconciliation, and Contributions tabs keep
+their filters in the address the same way.
 
 Click a column heading to sort by it; sorting and paging apply to the whole
 report, not just the page on screen.
@@ -137,9 +149,9 @@ Reconciling against a bank statement
 The **Reconciliation** tab answers, for a range you choose, what the books say
 arrived: one row per month, per year, or per provider, with the gross, the
 fees, the net, what went back, the net after refunds, and how many of that
-period's payments you have already matched.  A **Month** / **Year** /
-**Provider** toggle chooses which of the three you are looking at, and **From**,
-**To** and **Provider** bound what is counted.
+period's payments you have already matched.  **Rows** chooses which of the
+three you are looking at, by month unless you choose by year or by provider,
+and **From**, **To**, and **Provider** bound what is counted.
 
 Two dating rules make the rows line up with a statement.  A payment counts in
 the period the money arrived.  A refund counts in the period it was *taken*, so
@@ -150,7 +162,9 @@ Open a payment and set its **Reconciled** date once you have found it on the
 statement; |org| records that it was you.  Filtering the list to **Reconciled →
 No** is then the list of what is left to do.
 
-Both reconciliation exports are named for the range they cover.
+**Export CSV** and **Export PDF** carry the rows on screen, grouped the same
+way.  Like every report, each file is named for the day it was run; the PDF
+prints the range it covers under its title.
 
 Contributions and the year-end list
 ===================================
@@ -158,7 +172,8 @@ Contributions and the year-end list
 The **Contributions** tab is one row per member who gave something in a
 calendar year, largest giver first: how many payments they made, what they
 gave, what went back, and the difference.  That last figure is the one an
-acknowledgment letter quotes.  Export it as a CSV for a mail merge, or as a PDF
+acknowledgment letter quotes.  **Year** shows this year until you choose one of
+the nine before it.  Export it as a CSV for a mail merge, or as a PDF
 for the board.
 
 Each row carries a **Statement** link, which downloads that member's
@@ -254,7 +269,8 @@ When something goes wrong
 =========================
 
 **A member says they paid and you cannot find the payment.**
-   Widen the date filter first — it does not default to all time.  Then search
+   Clear the date filter first: a range left from an earlier search, or carried
+   in a link somebody sent you, hides every payment outside it.  Then search
    by their email address rather than their name, since a payment carries the
    account's address.  If the money is on their card statement and there is no
    row here at all, the provider took it without CalDART hearing back; the

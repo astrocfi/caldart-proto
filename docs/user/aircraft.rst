@@ -94,6 +94,12 @@ Expiring within      30, 60, or 90 days — cover that is still valid but is abo
                      to lapse.  Already-expired policies are *not* included
 ===================  ============================================================
 
+Each filter applies as soon as you set it; a typed one applies once you pause.
+**Clear** empties them all.  The filters, the sort order, and the page you are
+on are kept in the page's address, so a filtered register can be bookmarked or
+sent to another administrator, and the browser's back button steps back through
+the filters you applied.
+
 The insurance column is a colored dot beside the expiry date: green while the
 cover runs, amber in its last 30 days, red once it has lapsed, and gray when
 no policy is on file.  The column heading already says "Insurance", so the
