@@ -74,14 +74,22 @@ export function RostersCard(): JSX.Element {
         once, whatever the date.
       </p>
 
-      <DataTable
-        columns={COLUMNS}
-        rows={rows}
-        rowKey={(row) => row.dart_id}
-        caption={`${rows.length} DART${rows.length === 1 ? '' : 's'}`}
-        emptyTitle="No active DARTs"
-        isLoading={rosters.isLoading}
-      />
+      {rosters.isError ? (
+        <p className="field__error" role="alert">
+          {rosters.error instanceof Error
+            ? rosters.error.message
+            : 'The rosters could not be loaded.'}
+        </p>
+      ) : (
+        <DataTable
+          columns={COLUMNS}
+          rows={rows}
+          rowKey={(row) => row.dart_id}
+          caption={`${rows.length} DART${rows.length === 1 ? '' : 's'}`}
+          emptyTitle="No active DARTs"
+          isLoading={rosters.isLoading}
+        />
+      )}
 
       {send.isSuccess ? <ReportRunOutcome result={send.data} dryRun={lastRunWasDry} /> : null}
 

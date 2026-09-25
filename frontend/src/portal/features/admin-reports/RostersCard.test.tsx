@@ -87,4 +87,29 @@ describe('RostersCard', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Sent 2 emails, skipped 1.');
     expect(bodies).toEqual([{ dry_run: false }]);
   });
+
+  it('says the rosters could not be loaded rather than that there are no DARTs', async () => {
+    server.use(
+      http.get(`${API}/reports/rosters`, () =>
+        HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),
+      ),
+    );
+    renderWithProviders(<RostersCard />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Server error.');
+    expect(screen.queryByText('No active DARTs')).not.toBeInTheDocument();
+  });
+
+  it("shows the server's refusal when the rosters are not sent", async () => {
+    await renderCard();
+    server.use(
+      http.post(`${API}/reports/rosters/send`, () =>
+        HttpResponse.json({ detail: 'The mail server is unavailable.' }, { status: 400 }),
+      ),
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Send rosters now' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The mail server is unavailable.');
+  });
 });
