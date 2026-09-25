@@ -11,7 +11,7 @@ import { ApiError } from '@/portal/api/client';
 import type { Aircraft } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { EmptyState } from '@/portal/components/EmptyState';
-import { useAircraftSearch } from '@/portal/features/aircraft';
+import { useAircraftSearch } from '@/portal/features/aircraft/api';
 import { normalizeNNumber } from '@/portal/features/aircraft/insurance';
 import { AircraftStatusCard, isInsured } from './AircraftStatusCard';
 import { GoMark, LeaderLookup } from './LeaderLookup';

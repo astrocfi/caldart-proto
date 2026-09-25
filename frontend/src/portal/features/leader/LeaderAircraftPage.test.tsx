@@ -1,7 +1,7 @@
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API } from '@test/handlers';
 import { renderRoutes, renderWithProviders } from '@test/render';
@@ -11,6 +11,9 @@ import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { LeaderAircraftPage } from './LeaderAircraftPage';
 
 const SEARCH_LABEL = /^Search by N-number/;
+
+/** The day the search tests run on, so the list's GO/NO-GO never follows the wall clock. */
+const TODAY = new Date('2026-09-24T12:00:00Z');
 
 function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
   return {
@@ -83,12 +86,16 @@ function renderPage(route = '/leader/aircraft') {
 }
 
 describe('LeaderAircraftPage search', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(TODAY);
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
 
   it('searches the register as the leader types', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = setupUser();
     const asked: string[] = [];
     server.use(...registerFinds([makeDetail()], (term) => asked.push(term)));
@@ -101,7 +108,6 @@ describe('LeaderAircraftPage search', () => {
   });
 
   it('prints the N-number, the make and model, and the insurance verdict on one row', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = setupUser();
     server.use(...registerFinds([makeDetail()]));
 
@@ -114,7 +120,6 @@ describe('LeaderAircraftPage search', () => {
   });
 
   it('marks an aircraft whose insurance has lapsed NO-GO in the list', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = setupUser();
     server.use(
       ...registerFinds([
@@ -129,8 +134,22 @@ describe('LeaderAircraftPage search', () => {
     expect(within(row).getByText('NO-GO')).toBeInTheDocument();
   });
 
+  it('marks an aircraft whose policy is about to expire GO in the list', async () => {
+    const user = setupUser();
+    server.use(
+      ...registerFinds([
+        makeDetail({ insurance_is_current: true, insurance_expiration: '2026-10-10' }),
+      ]),
+    );
+
+    renderPage();
+    await search(user, 'cessna');
+
+    const row = await screen.findByRole('button', { name: /N172SP/ });
+    expect(within(row).getByText('GO')).toBeInTheDocument();
+  });
+
   it('opens the card for the aircraft the leader picks and keeps it in the URL', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = setupUser();
     const asked: string[] = [];
     server.use(
@@ -163,7 +182,6 @@ describe('LeaderAircraftPage search', () => {
   });
 
   it('says so when nothing in the register matches', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = setupUser();
     server.use(...registerFinds([]));
 
@@ -284,6 +302,21 @@ describe('LeaderAircraftPage card', () => {
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?aircraft=N0000X' });
 
     expect(await screen.findByText(/N0000X is not in the register/)).toBeInTheDocument();
+  });
+
+  it('goes back to the search from an unknown registration', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json({ detail: 'Not found.' }, { status: 404 }),
+      ),
+    );
+    const { router } = renderPage('/leader/aircraft?aircraft=N0000X');
+    expect(await screen.findByText(/N0000X is not in the register/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Search again' }));
+    expect(screen.getByLabelText(SEARCH_LABEL)).toBeInTheDocument();
+    expect(router.state.location.search).toBe('');
   });
 
   it('asks nothing until a registration is given', () => {
