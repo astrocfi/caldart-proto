@@ -78,6 +78,9 @@ test('the results list answers go or no-go before the card is opened', async ({ 
   // Asserted whole, not by the word "medical" that all four phrasings share, so
   // a reworded line or a date in the wrong format fails here.
   await expect(result.getByText(MEDICAL_LINE)).toBeVisible();
+  // The membership belongs to the card: the row answers go or no-go and says
+  // how the person was found, and nothing else.
+  await expect(result).not.toContainText('Member expired');
 });
 
 test('a member who is current on both counts is a GO', async ({ page }) => {
@@ -114,6 +117,10 @@ test('a leader can check a tail number on its own', async ({ page }) => {
   await expect(card.getByRole('status')).toContainText('Coverage is current');
   await expect(card.getByRole('term').filter({ hasText: /^Insurance$/ })).toBeVisible();
   await expect(card.getByRole('term').filter({ hasText: /^Liability$/ })).toBeVisible();
+  // How old the record behind the insurance is, which a leader weighs against
+  // the expiry date on it.
+  const updated = card.locator('.leader-row').filter({ hasText: 'Last updated' });
+  await expect(updated).toContainText(/\d{4}\/\d{2}\/\d{2}/);
   await expect(card.getByText(name)).toBeVisible();
 });
 
