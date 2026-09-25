@@ -110,6 +110,16 @@ describe('PortalLayout', () => {
     expect(within(rail).getByRole('link', { name: 'User guide' })).toHaveAttribute('href', href);
   });
 
+  it('opens the user guide in a new tab', async () => {
+    server.use(signedInAs(makeUser({ roles: ['member'] })));
+    renderWithProviders(tree(), { route: '/' });
+
+    const rail = await screen.findByRole('navigation', { name: 'Portal sections' });
+    const link = within(rail).getByRole('link', { name: 'User guide' });
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener');
+  });
+
   it.each<[RoleSlug, string[]]>([
     ['dart_leader', ['Member check', 'Aircraft check']],
     ['account_admin', ['Member check', 'Aircraft check', 'Members', 'Aircraft', 'Payments']],

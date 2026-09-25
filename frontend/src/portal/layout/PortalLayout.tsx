@@ -95,7 +95,9 @@ export function PortalLayout(): JSX.Element {
             ))}
             <div className="portal__rail-footer muted">
               <p>
-                <a href={guidePath(roles)}>User guide</a>
+                <a href={guidePath(roles)} target="_blank" rel="noopener">
+                  User guide
+                </a>
               </p>
               <p>
                 <a href="/">Back to caldart.org</a>
