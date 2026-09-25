@@ -31,6 +31,31 @@ async function register(page: Page, email: string): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Pay your dues' })).toBeVisible();
 }
 
+/** How far out the day this spec chooses falls: past any term it buys. */
+const CHOSEN_CHARGE_YEARS = 5;
+
+/** The same day of the month `years` from today, as `YYYY-MM-DD`. */
+function yearsOnIso(years: number): string {
+  const today = new Date();
+  const next = new Date(today.getFullYear() + years, today.getMonth(), today.getDate());
+  const month = String(next.getMonth() + 1).padStart(2, '0');
+  const day = String(next.getDate()).padStart(2, '0');
+  return `${next.getFullYear()}-${month}-${day}`;
+}
+
+/** The same day `years` from today, as the portal prints it. */
+function yearsOnDisplay(years: number): string {
+  return yearsOnIso(years).replaceAll('-', '/');
+}
+
+/** The day the signed-in member's membership runs out, from the API itself. */
+async function expiryIso(page: Page): Promise<string> {
+  const response = await page.request.get('/api/v1/me/membership');
+  const body = (await response.json()) as { expires_on: string | null };
+  expect(body.expires_on).not.toBeNull();
+  return body.expires_on ?? '';
+}
+
 /** The card on `/portal/payments` headed `title`. */
 function authorityCard(page: Page, title: string) {
   return page.locator('section').filter({ has: page.getByRole('heading', { name: title }) });
@@ -62,6 +87,11 @@ test('a member pays with renewal on, reads it, takes a receipt, and turns it off
   await expect(card.getByText('Test card ending 4242, expires 12/2030')).toBeVisible();
   await expect(card.getByText(formatCents(SEED.planPricesCents.annual))).toBeVisible();
 
+  // Nothing was chosen at the checkout, so the charge falls on the day the term
+  // it bought runs out.
+  const expiry = await expiryIso(page);
+  await expect(card.getByText(expiry.replaceAll('-', '/'))).toBeVisible();
+
   // The receipt the email carried can be fetched again, and it is a PDF.
   const receipt = page.getByRole('link', { name: 'Receipt' }).first();
   const href = await receipt.getAttribute('href');
@@ -91,12 +121,27 @@ test('a member turns automatic renewal on from the Payments screen alone', async
   await expect(card.getByText('Off', { exact: true })).toBeVisible();
 
   await card.getByRole('button', { name: 'Turn on' }).click();
+
+  // The first charge opens on the day the membership just bought runs out, and
+  // any later day may be asked for instead.
+  const firstCharge = card.getByLabel('First charge on');
+  await expect(firstCharge).toHaveValue(await expiryIso(page));
+  await firstCharge.fill(yearsOnIso(CHOSEN_CHARGE_YEARS));
+  await expect(
+    card.getByText(new RegExp(`on ${yearsOnDisplay(CHOSEN_CHARGE_YEARS)}, and each year after`)),
+  ).toBeVisible();
+
   await card.getByRole('tab', { name: 'Test payment method' }).click();
   await card.getByRole('button', { name: 'Save this test card' }).click();
 
   await expect(page.getByText('Automatic renewal is on.').first()).toBeVisible();
   await expect(card.getByText('On', { exact: true })).toBeVisible();
   await expect(card.getByText('Test card ending 4242, expires 12/2030')).toBeVisible();
+
+  // The day the member chose is the day the card reads back, and it is late
+  // enough that the card says the membership runs out first.
+  await expect(card.getByText(yearsOnDisplay(CHOSEN_CHARGE_YEARS))).toBeVisible();
+  await expect(card.getByText(/after your membership runs out on/)).toBeVisible();
 });
 
 test('a life member reads their automatic contribution, turns it off, and turns it on again', async ({
@@ -116,9 +161,13 @@ test('a life member reads their automatic contribution, turns it off, and turns 
   await expect(page.getByText('Automatic contribution is off.').first()).toBeVisible();
   await expect(card.getByText('Off', { exact: true })).toBeVisible();
 
-  // Turning it on again offers a contribution and no plan at all.
+  // Turning it on again offers a contribution and no plan at all, and the first
+  // charge falls a year out: a life membership has no expiry to take.
   await card.getByRole('button', { name: 'Turn on' }).click();
   await expect(card.getByRole('radio', { name: /Annual/ })).toHaveCount(0);
+  await expect(
+    card.getByText(new RegExp(`on ${yearsOnDisplay(1)}, and each year after`)),
+  ).toBeVisible();
   await card.getByRole('radio', { name: /Participating/ }).check();
   await card.getByRole('tab', { name: 'Test payment method' }).click();
   await card.getByRole('button', { name: 'Save this test card' }).click();

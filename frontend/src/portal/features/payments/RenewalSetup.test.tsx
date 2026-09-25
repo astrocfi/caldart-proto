@@ -11,10 +11,12 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { RenewalEnvelope, RenewalSetupRequest } from '@/portal/api/types';
+import { formatDate } from '@/portal/components/DateText';
 import { makeMandate, makePaymentsConfig } from '@test/fixtures/payments';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { defaultChargeDate } from './chargeDate';
 import { RenewalSetup } from './RenewalSetup';
 
 const confirmSetup = vi.fn();
@@ -53,13 +55,18 @@ vi.mock('@paypal/react-paypal-js', () => ({
   ),
 }));
 
+/** The day the fixture membership runs out, which the date box opens on. */
+const EXPIRES_ON = '2027-06-30';
+
 /** Serve the config and record every setup request the flow sends. */
 function mount({
   providers,
   isLifetime = false,
+  expiresOn = EXPIRES_ON,
 }: {
   providers: ('stripe' | 'paypal' | 'mock')[];
   isLifetime?: boolean;
+  expiresOn?: string | null;
 }) {
   const setups: RenewalSetupRequest[] = [];
   const confirms: unknown[] = [];
@@ -87,7 +94,12 @@ function mount({
   const handleDone = vi.fn();
   const handleCancel = vi.fn();
   renderWithProviders(
-    <RenewalSetup isLifetime={isLifetime} onCancel={handleCancel} onDone={handleDone} />,
+    <RenewalSetup
+      isLifetime={isLifetime}
+      expiresOn={expiresOn}
+      onCancel={handleCancel}
+      onDone={handleDone}
+    />,
     { route: '/payments' },
   );
   return { setups, confirms, handleDone, handleCancel };
@@ -101,13 +113,82 @@ describe('RenewalSetup', () => {
     expect(screen.queryByRole('radio', { name: /Life/ })).not.toBeInTheDocument();
   });
 
-  it('states what the yearly charge will come to, plan plus contribution', async () => {
+  it('states what the first charge comes to and the day it falls on', async () => {
     const user = userEvent.setup();
     mount({ providers: ['mock'] });
 
     await user.click(await screen.findByRole('radio', { name: /Supporter/ }));
 
-    expect(screen.getByText('$70.00')).toBeInTheDocument();
+    expect(screen.getByText(/CalDART will charge/)).toHaveTextContent(
+      'CalDART will charge $70.00 on 2027/06/30, and each year after that.',
+    );
+  });
+
+  it('opens the first charge on the day the membership runs out', async () => {
+    mount({ providers: ['mock'] });
+
+    expect(await screen.findByLabelText('First charge on')).toHaveValue('2027-06-30');
+  });
+
+  it('refuses a day that has already gone by, so the box starts at today', async () => {
+    mount({ providers: ['mock'] });
+
+    expect(await screen.findByLabelText('First charge on')).toHaveAttribute(
+      'min',
+      defaultChargeDate({ isLifetime: false, expiresOn: null }),
+    );
+  });
+
+  it('opens on today for a member whose term has already run out', async () => {
+    mount({ providers: ['mock'], expiresOn: '2020-01-01' });
+
+    expect(await screen.findByLabelText('First charge on')).toHaveValue(
+      defaultChargeDate({ isLifetime: false, expiresOn: null }),
+    );
+  });
+
+  it('waits for a day rather than sending an empty one when the box is cleared', async () => {
+    const user = userEvent.setup();
+    mount({ providers: ['mock'] });
+
+    await user.clear(await screen.findByLabelText('First charge on'));
+
+    expect(screen.getByText('Choose the day of the first charge.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Save this test card' })).not.toBeInTheDocument();
+  });
+
+  it('sends the day the member chose rather than the one it opened on', async () => {
+    const user = userEvent.setup();
+    const { setups, handleDone } = mount({ providers: ['mock'] });
+
+    await user.clear(await screen.findByLabelText('First charge on'));
+    await user.type(screen.getByLabelText('First charge on'), '2027-08-01');
+    await user.click(screen.getByRole('button', { name: 'Save this test card' }));
+
+    await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
+    expect(setups).toEqual([
+      { plan: 'annual', contribution_cents: 0, provider: 'mock', next_charge_on: '2027-08-01' },
+    ]);
+  });
+
+  it('puts the server refusal of a past day on screen', async () => {
+    const user = userEvent.setup();
+    const { handleDone } = mount({ providers: ['mock'] });
+    server.use(
+      http.post(`${API}/me/renewal/setup`, () =>
+        HttpResponse.json(
+          { next_charge_on: ['The next charge cannot be in the past.'] },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Save this test card' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The next charge cannot be in the past.',
+    );
+    expect(handleDone).not.toHaveBeenCalled();
   });
 
   it('saves the mock method with the chosen plan and contribution', async () => {
@@ -118,7 +199,9 @@ describe('RenewalSetup', () => {
     await user.click(screen.getByRole('button', { name: 'Save this test card' }));
 
     await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
-    expect(setups).toEqual([{ plan: 'annual', contribution_cents: 2500, provider: 'mock' }]);
+    expect(setups).toEqual([
+      { plan: 'annual', contribution_cents: 2500, provider: 'mock', next_charge_on: EXPIRES_ON },
+    ]);
     expect(confirms).toEqual([{ setup_intent_id: '', setup_token: '' }]);
   });
 
@@ -128,7 +211,9 @@ describe('RenewalSetup', () => {
     const { setups, confirms, handleDone } = mount({ providers: ['stripe'] });
 
     expect(await screen.findByTestId('payment-element')).toBeInTheDocument();
-    expect(setups).toEqual([{ plan: 'annual', contribution_cents: 0, provider: 'stripe' }]);
+    expect(setups).toEqual([
+      { plan: 'annual', contribution_cents: 0, provider: 'stripe', next_charge_on: EXPIRES_ON },
+    ]);
 
     await user.click(screen.getByRole('button', { name: 'Save this card' }));
 
@@ -198,14 +283,23 @@ describe('RenewalSetup', () => {
       expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
     });
 
-    it('states that the yearly charge is the contribution alone', async () => {
+    it('states the contribution alone, on the day one year from today', async () => {
       const user = userEvent.setup();
-      mount({ providers: ['mock'], isLifetime: true });
+      const expected = defaultChargeDate({ isLifetime: true, expiresOn: null });
+      mount({ providers: ['mock'], isLifetime: true, expiresOn: null });
 
       await user.click(await screen.findByRole('radio', { name: /Supporter/ }));
 
-      expect(screen.getByText(/Each year CalDART will charge/)).toHaveTextContent(
-        'Each year CalDART will charge $25.00 for your contribution.',
+      expect(screen.getByText(/CalDART will charge/)).toHaveTextContent(
+        `CalDART will charge $25.00 on ${formatDate(expected)}, and each year after that.`,
+      );
+    });
+
+    it('opens the first charge one year from today, having no expiry to take', async () => {
+      mount({ providers: ['mock'], isLifetime: true, expiresOn: null });
+
+      expect(await screen.findByLabelText('First charge on')).toHaveValue(
+        defaultChargeDate({ isLifetime: true, expiresOn: null }),
       );
     });
 
@@ -224,7 +318,13 @@ describe('RenewalSetup', () => {
       await user.click(screen.getByRole('button', { name: 'Save this test card' }));
 
       await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
-      expect(setups).toEqual([{ contribution_cents: 2500, provider: 'mock' }]);
+      expect(setups).toEqual([
+        {
+          contribution_cents: 2500,
+          provider: 'mock',
+          next_charge_on: defaultChargeDate({ isLifetime: true, expiresOn: null }),
+        },
+      ]);
     });
   });
 });

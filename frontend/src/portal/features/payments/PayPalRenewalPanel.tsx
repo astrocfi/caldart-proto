@@ -27,6 +27,7 @@ export function PayPalRenewalPanel({
   clientId,
   plan,
   contributionCents,
+  nextChargeOn,
   onDone: handleDone,
 }: PayPalRenewalPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
@@ -51,13 +52,13 @@ export function PayPalRenewalPanel({
       >
         <PayPalButtons
           style={{ layout: 'vertical', shape: 'rect', label: 'paypal' }}
-          forceReRender={[plan ?? '', contributionCents]}
+          forceReRender={[plan ?? '', contributionCents, nextChargeOn]}
           createVaultSetupToken={async () => {
             setError(null);
             hasSetupError.current = false;
             try {
               const response = await start.mutateAsync(
-                renewalSetupRequest(plan, contributionCents, 'paypal'),
+                renewalSetupRequest({ plan, contributionCents, provider: 'paypal', nextChargeOn }),
               );
               if (response.provider !== 'paypal' || !response.client.setup_token) {
                 throw new Error('PayPal did not return a setup token.');

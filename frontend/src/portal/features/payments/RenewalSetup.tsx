@@ -8,17 +8,24 @@
  * A life member chooses a contribution alone, and must choose one: an authority
  * with nothing to charge is refused by the server, so the provider step waits
  * until there is an amount.
+ *
+ * The day of the first charge is the member's own.  It opens on the day their
+ * membership runs out, which is the day the charge is wanted on, and it takes any
+ * other day from today on.
  */
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
-import type { MandateProvider } from '@/portal/api/types';
+import type { IsoDate, MandateProvider } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
+import { formatDate } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
+import { Field } from '@/portal/components/Field';
 import { formatCents } from '@/portal/components/Money';
 import { usePaymentsConfig } from '@/portal/features/checkout/api';
 import { ContributionChooser } from '@/portal/features/checkout/ContributionChooser';
 import { PlanChooser } from '@/portal/features/checkout/PlanChooser';
+import { defaultChargeDate, todayIso } from './chargeDate';
 import { MockRenewalPanel } from './MockRenewalPanel';
 import { PayPalRenewalPanel } from './PayPalRenewalPanel';
 import { StripeRenewalPanel } from './StripeRenewalPanel';
@@ -31,6 +38,13 @@ const DEFAULT_PLAN = 'annual';
 export interface RenewalSetupProps {
   /** True for a life member: no plan is offered, and the contribution stands alone. */
   isLifetime?: boolean;
+  /**
+   * The day the membership runs out, which the first charge opens on.
+   *
+   * Null for a life member, whose membership never runs out, and for a member
+   * with no term at all; both open on a day the server will accept instead.
+   */
+  expiresOn?: IsoDate | null;
   /** Abandon the flow and go back to the card as it was. */
   onCancel: () => void;
   /** The mandate is active. */
@@ -44,11 +58,16 @@ export function RenewalSetup({
   onCancel: handleCancel,
   onDone: handleDone,
   isLifetime = false,
+  expiresOn = null,
   initialContributionCents = 0,
 }: RenewalSetupProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
 
+  const earliestChargeOn = todayIso();
   const [plan, setPlan] = useState<string>(DEFAULT_PLAN);
+  const [nextChargeOn, setNextChargeOn] = useState(() =>
+    defaultChargeDate({ isLifetime, expiresOn }),
+  );
   const [contributionCents, setContributionCents] = useState(initialContributionCents);
   const [isOther, setIsOther] = useState(false);
   const [provider, setProvider] = useState<MandateProvider | null>(null);
@@ -98,10 +117,14 @@ export function RenewalSetup({
   // The server refuses an authority with nothing to charge, so a life member
   // who has chosen no amount is stopped here rather than at the provider.
   const needsContribution = isLifetime && contributionCents === 0;
+  // An empty box is valid HTML, and an empty date is not a date the API takes, so
+  // the provider step waits for one rather than sending it.
+  const needsChargeDate = nextChargeOn === '';
 
   const panelProps = {
     plan: isLifetime ? null : effectivePlan,
     contributionCents,
+    nextChargeOn,
     onDone: handleDone,
   };
 
@@ -124,15 +147,32 @@ export function RenewalSetup({
         }}
       />
 
-      <p className="renewal-setup__total">
-        Each year CalDART will charge <strong className="mono">{formatCents(chargeCents)}</strong>
-        {isLifetime
-          ? ' for your contribution.'
-          : ' — the plan price on the day, plus your contribution.'}{' '}
-        We will email you fourteen days before every charge.
-      </p>
+      <Field label="First charge on">
+        {(props) => (
+          <input
+            {...props}
+            type="date"
+            required
+            min={earliestChargeOn}
+            value={nextChargeOn}
+            onChange={(event) => setNextChargeOn(event.target.value)}
+          />
+        )}
+      </Field>
 
-      {needsContribution ? (
+      {needsChargeDate ? null : (
+        <p className="renewal-setup__total">
+          CalDART will charge <strong className="mono">{formatCents(chargeCents)}</strong> on{' '}
+          {formatDate(nextChargeOn)}, and each year after that. We will email you fourteen days
+          before every charge.
+        </p>
+      )}
+
+      {needsChargeDate ? (
+        <p className="renewal-setup__blocked" role="status">
+          Choose the day of the first charge.
+        </p>
+      ) : needsContribution ? (
         <p className="renewal-setup__blocked" role="status">
           Choose a contribution to charge each year.
         </p>

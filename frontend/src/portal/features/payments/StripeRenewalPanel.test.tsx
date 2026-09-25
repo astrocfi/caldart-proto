@@ -17,6 +17,7 @@ import { makePaymentsConfig } from '@test/fixtures/payments';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import { defaultChargeDate } from './chargeDate';
 import { RenewalSetup } from './RenewalSetup';
 
 vi.mock('@stripe/stripe-js', () => ({
@@ -62,6 +63,7 @@ function mount() {
 describe('StripeRenewalPanel', () => {
   it('asks for one SetupIntent for an amount typed digit by digit', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const chargeOn = defaultChargeDate({ isLifetime: false, expiresOn: null });
     const { setups } = mount();
 
     await user.click(await screen.findByRole('radio', { name: 'Other amount' }));
@@ -70,8 +72,8 @@ describe('StripeRenewalPanel', () => {
 
     await waitFor(() =>
       expect(setups).toEqual([
-        { plan: 'annual', contribution_cents: 0, provider: 'stripe' },
-        { plan: 'annual', contribution_cents: 25000, provider: 'stripe' },
+        { plan: 'annual', contribution_cents: 0, provider: 'stripe', next_charge_on: chargeOn },
+        { plan: 'annual', contribution_cents: 25000, provider: 'stripe', next_charge_on: chargeOn },
       ]),
     );
   });

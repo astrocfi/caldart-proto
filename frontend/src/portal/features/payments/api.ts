@@ -17,6 +17,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { API_BASE, api } from '@/portal/api/client';
 import { RENEWAL_KEY } from '@/portal/api/queries';
 import type {
+  IsoDate,
   MandateProvider,
   RenewalConfirmRequest,
   RenewalEnvelope,
@@ -46,18 +47,33 @@ export function statementUrl(year: number): string {
   return `${API_BASE}/me/payments/statements/${year}.pdf`;
 }
 
+/** What a provider panel was handed, as the setup body it sends. */
+export interface RenewalSetupFields {
+  /** The plan that renews, or null for a life member's contribution alone. */
+  plan: string | null;
+  contributionCents: number;
+  provider: MandateProvider;
+  /** The day of the first charge, which the member chose. */
+  nextChargeOn: IsoDate;
+}
+
 /**
  * The setup body for a plan that may be absent.
  *
  * A life member names no plan at all, and the field is left out rather than
  * sent as null: their authority is over the contribution alone.
  */
-export function renewalSetupRequest(
-  plan: string | null,
-  contributionCents: number,
-  provider: MandateProvider,
-): RenewalSetupRequest {
-  const request: RenewalSetupRequest = { contribution_cents: contributionCents, provider };
+export function renewalSetupRequest({
+  plan,
+  contributionCents,
+  provider,
+  nextChargeOn,
+}: RenewalSetupFields): RenewalSetupRequest {
+  const request: RenewalSetupRequest = {
+    contribution_cents: contributionCents,
+    provider,
+    next_charge_on: nextChargeOn,
+  };
   if (plan !== null) request.plan = plan;
   return request;
 }
