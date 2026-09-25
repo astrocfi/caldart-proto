@@ -20,7 +20,7 @@ test('an account administrator subscribes somebody to the member report and send
   await expect(page.getByRole('heading', { name: 'Reports', exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'New subscription' }).click();
-  await page.getByLabel('Report', { exact: true }).selectOption({ label: 'Members' });
+  await page.getByLabel('Report', { exact: true }).selectOption('members');
   const form = page.getByRole('form', { name: 'New subscription' });
 
   // The treasurer holds no role that may read the member report.
@@ -42,7 +42,7 @@ test('an account administrator subscribes somebody to the member report and send
   const subscriptions = page
     .locator('section.card')
     .filter({ has: page.getByRole('heading', { name: 'Subscriptions' }) });
-  const members = subscriptions.getByRole('row').filter({ hasText: /^Members/ });
+  const members = subscriptions.getByRole('row').filter({ hasText: /^CalDART membership report/ });
   await members.first().getByRole('button', { name: 'Send now' }).click();
   await expect(subscriptions.getByRole('status')).toHaveText(/^Sent to /);
 });
