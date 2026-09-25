@@ -465,11 +465,14 @@ legend {
 }
 
 /* ------------------------------------------------------ column chooser */
-.column-chooser {
+/* A button with a small panel under it: the column chooser's Columns, Load
+ * columns and Save columns each open one.  The panel's width suits a list of
+ * short names and stays inside a phone's screen. */
+.panel-button {
   position: relative;
 }
 
-.column-chooser__panel {
+.panel-button__panel {
   position: absolute;
   z-index: 2;
   top: 100%;
@@ -477,38 +480,40 @@ legend {
   display: grid;
   gap: var(--space-1);
   min-width: 14rem;
+  max-width: calc(100vw - 2 * var(--space-4));
   max-height: 20rem;
   overflow-y: auto;
+  margin: 0;
   padding: var(--space-3);
   border: var(--hairline) solid var(--color-rule-strong);
   background: var(--color-bg-raised);
+  font-size: var(--text-sm);
+}
+
+.column-chooser {
+  gap: var(--space-2);
 }
 
 .column-chooser__option {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-sm);
 }
 
-.column-chooser__sets {
-  display: grid;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-  padding-top: var(--space-2);
-  border-top: var(--hairline) solid var(--color-rule);
-  font-size: var(--text-sm);
-}
-
-.column-chooser__sets-row {
+.column-chooser__set {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.column-chooser__save {
+  display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.column-chooser__sets-row select,
-.column-chooser__sets-row input {
+.column-chooser__save input {
   flex: 1 1 8rem;
   min-width: 0;
 }

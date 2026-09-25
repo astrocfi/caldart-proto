@@ -3,19 +3,20 @@
  *
  * The registry comes from the server, so the screen and the exports can never
  * offer different columns.  The chosen set always drives the CSV and the PDF; a
- * screen whose table follows it too says so in the panel's legend.  Under the
- * boxes, each user keeps named sets of a report's columns: load one and keep
- * editing, or save the boxes as they stand under a name.
+ * screen whose table follows it too says so in the panel's legend.  Beside the
+ * Columns button, each user keeps named sets of a report's columns: **Load
+ * columns** applies one, **Save columns** keeps the boxes as they stand under a
+ * name.
  */
-import { useCallback, useId, useRef, useState } from 'react';
-import type { ChangeEvent, JSX, KeyboardEvent } from 'react';
+import { useId, useState } from 'react';
+import type { JSX, KeyboardEvent } from 'react';
 
-import type { ReportColumn } from '@/portal/api/types';
+import type { ReportColumn, SavedColumnSet } from '@/portal/api/types';
 import { useColumnSets, useDeleteColumnSet, useSaveColumnSet } from '@/portal/reports/api';
 import type { ReportSlug } from '@/portal/reports/types';
 import { Button } from './Button';
 import { DeleteButton } from './DeleteButton';
-import { useClickOutside } from './useClickOutside';
+import { PanelButton } from './PanelButton';
 
 /** The longest name the server keeps for a saved set of columns. */
 const MAX_SET_NAME = 60;
@@ -71,13 +72,12 @@ export function columnsOfSet(columns: ReportColumn[], saved: readonly string[]):
 }
 
 /**
- * The Columns button and the checkbox list it opens.
+ * The Columns, Load columns and Save columns buttons, side by side, each opening
+ * its own panel under itself.
  *
- * The list closes on a click anywhere outside it and on Escape, so it never
- * sits over the table a treasurer is trying to read.  Closing it while the focus
- * is still inside puts the focus back on the Columns button, so a keyboard user
- * who presses Escape carries on from the control they opened rather than from
- * the top of the page.
+ * Columns holds the checkboxes and **Reset to the default columns**.  Load
+ * columns lists the user's saved sets for this report; picking one applies it
+ * and closes the panel.  Save columns keeps the chosen columns under a name.
  */
 export function ColumnChooser({
   report,
@@ -86,127 +86,144 @@ export function ColumnChooser({
   onChange,
   legend = 'Columns to show and export',
 }: ColumnChooserProps): JSX.Element {
-  const [isOpen, setIsOpen] = useState(false);
-  // Which saved set is selected, and the name box, outlive the panel, so a set
-  // loaded before the chooser was put away is still the one selected on reopening.
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  // The name box outlives its panel, and a loaded set's name goes into it, so
+  // saving after further changes replaces the set that was loaded.
   const [name, setName] = useState('');
-  const rootRef = useRef<HTMLDivElement>(null);
-  const handleClose = useCallback(() => {
-    setIsOpen(false);
-    // The panel is about to unmount.  If the focus is inside it, it would fall to
-    // the document body, so hand it back to the button that opened the panel.  A
-    // pointer press outside then moves it on to whatever was pressed.
-    const root = rootRef.current;
-    if (root !== null && root.contains(document.activeElement)) {
-      root.querySelector<HTMLButtonElement>('.column-chooser__toggle')?.focus();
-    }
-  }, []);
-
-  useClickOutside(rootRef, handleClose, isOpen);
 
   function handleToggle(key: string) {
     onChange(toggleColumn(columns, chosen, key));
   }
 
+  function handleLoad(set: SavedColumnSet) {
+    setName(set.name);
+    onChange(columnsOfSet(columns, set.columns));
+  }
+
   return (
-    <div className="column-chooser" ref={rootRef}>
-      <Button
-        variant="quiet"
-        small
-        className="column-chooser__toggle"
-        onClick={() => setIsOpen((open) => !open)}
-        aria-expanded={isOpen}
-      >
-        Columns
-      </Button>
-      {isOpen ? (
-        <fieldset className="column-chooser__panel">
-          <legend>{legend}</legend>
-          {columns.map((column) => (
-            <label key={column.key} className="column-chooser__option">
-              <input
-                type="checkbox"
-                checked={chosen.includes(column.key)}
-                disabled={chosen.length === 1 && chosen.includes(column.key)}
-                onChange={() => handleToggle(column.key)}
-              />
-              {column.label}
-            </label>
-          ))}
-          <Button variant="quiet" small onClick={() => onChange(defaultColumnKeys(columns))}>
-            Reset to the default columns
-          </Button>
-          <SavedColumnSets
+    <div className="column-chooser cluster">
+      <PanelButton label="Columns" legend={legend}>
+        {() => (
+          <>
+            {columns.map((column) => (
+              <label key={column.key} className="column-chooser__option">
+                <input
+                  type="checkbox"
+                  checked={chosen.includes(column.key)}
+                  disabled={chosen.length === 1 && chosen.includes(column.key)}
+                  onChange={() => handleToggle(column.key)}
+                />
+                {column.label}
+              </label>
+            ))}
+            <Button variant="quiet" small onClick={() => onChange(defaultColumnKeys(columns))}>
+              Reset to the default columns
+            </Button>
+          </>
+        )}
+      </PanelButton>
+      <PanelButton label="Load columns" legend="Your saved columns">
+        {(handleClose) => (
+          <LoadColumnSets
             report={report}
-            columns={columns}
+            onLoad={(set) => {
+              handleLoad(set);
+              handleClose();
+            }}
+          />
+        )}
+      </PanelButton>
+      <PanelButton label="Save columns" legend="Save these columns">
+        {(handleClose) => (
+          <SaveColumnSet
+            report={report}
             chosen={chosen}
-            onChange={(next) => onChange(next)}
-            selectedId={selectedId}
-            onSelect={(id) => setSelectedId(id)}
             name={name}
             onNameChange={(next) => setName(next)}
+            onSaved={handleClose}
           />
-        </fieldset>
-      ) : null}
+        )}
+      </PanelButton>
     </div>
   );
 }
 
-interface SavedColumnSetsProps {
+interface LoadColumnSetsProps {
   report: ReportSlug;
-  columns: ReportColumn[];
-  chosen: string[];
-  onChange: (chosen: string[]) => void;
-  /** The saved set on show in the drop-down, or null for none. */
-  selectedId: number | null;
-  onSelect: (id: number | null) => void;
-  /** What the name box holds. */
-  name: string;
-  onNameChange: (name: string) => void;
+  /** Called with the set whose name was picked. */
+  onLoad: (set: SavedColumnSet) => void;
 }
 
 /**
- * The row under the boxes: Load columns, a name box with Save columns, and a
- * trashcan for the selected set.
+ * The Load columns panel: the user's saved sets as quiet buttons, each with a
+ * trashcan beside it.
  *
- * It mounts with the panel, so the user's sets are read only once somebody opens
- * the chooser.  Loading a set ticks its boxes and puts its name in the box, so
- * pressing Save columns after further changes replaces that set; typing another
- * name saves a new one.  Enter in the name box saves too.
+ * It mounts with the panel, so the sets are read only once somebody opens it.
+ * Deleting a set keeps the panel open, so several can go in one visit.
  */
-function SavedColumnSets({
+function LoadColumnSets({ report, onLoad: handleLoad }: LoadColumnSetsProps): JSX.Element {
+  const sets = useColumnSets(report);
+  const remove = useDeleteColumnSet(report);
+
+  if (sets.isError) return <p className="muted">Your saved columns could not be loaded.</p>;
+  if (sets.data === undefined) return <p className="muted">Loading…</p>;
+
+  return (
+    <>
+      {sets.data.length === 0 ? <p className="muted">No saved sets yet.</p> : null}
+      {sets.data.map((set) => (
+        <div key={set.id} className="column-chooser__set">
+          <Button variant="quiet" small onClick={() => handleLoad(set)}>
+            {set.name}
+          </Button>
+          <DeleteButton
+            label={`Delete the saved set ${set.name}`}
+            onClick={() => remove.mutate(set.id)}
+            disabled={remove.isPending}
+          />
+        </div>
+      ))}
+      {remove.error !== null ? (
+        <p role="alert" className="field__error">
+          {remove.error.message}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+interface SaveColumnSetProps {
+  report: ReportSlug;
+  /** The columns to save. */
+  chosen: string[];
+  /** What the name box holds. */
+  name: string;
+  onNameChange: (name: string) => void;
+  /** Called once the server has kept the set. */
+  onSaved: () => void;
+}
+
+/**
+ * The Save columns panel: a name box and a Save button, disabled until a name is
+ * typed.
+ *
+ * Enter in the name box saves too.  Saving under a name the user already has
+ * replaces that set.  A refusal shows in the panel, which stays open.
+ */
+function SaveColumnSet({
   report,
-  columns,
   chosen,
-  onChange,
-  selectedId,
-  onSelect,
   name,
   onNameChange,
-}: SavedColumnSetsProps): JSX.Element {
+  onSaved: handleSaved,
+}: SaveColumnSetProps): JSX.Element {
   const nameId = useId();
-  const sets = useColumnSets(report);
   const save = useSaveColumnSet(report);
-  const remove = useDeleteColumnSet(report);
-  const saved = sets.data ?? [];
-  const selected = saved.find((set) => set.id === selectedId) ?? null;
   const trimmed = name.trim();
   const canSave = trimmed !== '' && !save.isPending;
-  const failure = save.error ?? remove.error;
-
-  function handleLoad(event: ChangeEvent<HTMLSelectElement>) {
-    const set = saved.find((candidate) => String(candidate.id) === event.target.value);
-    if (set === undefined) return;
-    onSelect(set.id);
-    onNameChange(set.name);
-    onChange(columnsOfSet(columns, set.columns));
-  }
 
   function handleSave() {
     if (!canSave) return;
-    remove.reset();
-    save.mutate({ name: trimmed, columns: chosen }, { onSuccess: (set) => onSelect(set.id) });
+    save.mutate({ name: trimmed, columns: chosen }, { onSuccess: handleSaved });
   }
 
   function handleNameKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -216,42 +233,9 @@ function SavedColumnSets({
     handleSave();
   }
 
-  function handleDelete() {
-    if (selected === null) return;
-    save.reset();
-    remove.mutate(selected.id, {
-      onSuccess: () => {
-        onSelect(null);
-        onNameChange('');
-      },
-    });
-  }
-
   return (
-    <div className="column-chooser__sets">
-      {sets.isError ? <p className="muted">Your saved columns could not be loaded.</p> : null}
-      <div className="column-chooser__sets-row">
-        <select
-          aria-label="Load columns"
-          value={selected === null ? '' : String(selected.id)}
-          onChange={handleLoad}
-        >
-          <option value="">Load columns…</option>
-          {saved.map((set) => (
-            <option key={set.id} value={String(set.id)}>
-              {set.name}
-            </option>
-          ))}
-        </select>
-        {selected !== null ? (
-          <DeleteButton
-            label={`Delete the saved set ${selected.name}`}
-            onClick={handleDelete}
-            disabled={remove.isPending}
-          />
-        ) : null}
-      </div>
-      <div className="column-chooser__sets-row">
+    <>
+      <div className="column-chooser__save">
         <label htmlFor={nameId} className="visually-hidden">
           Name for these columns
         </label>
@@ -265,14 +249,14 @@ function SavedColumnSets({
           onKeyDown={handleNameKeyDown}
         />
         <Button variant="quiet" small onClick={handleSave} disabled={!canSave}>
-          Save columns
+          Save
         </Button>
       </div>
-      {failure !== null ? (
+      {save.error !== null ? (
         <p role="alert" className="field__error">
-          {failure.message}
+          {save.error.message}
         </p>
       ) : null}
-    </div>
+    </>
   );
 }
