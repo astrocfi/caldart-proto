@@ -107,6 +107,13 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
         lambda ctx: _iso(_date(ctx["profile"], "member_since")),
         width=1.8,
     ),
+    ReportColumn(
+        "profile_updated",
+        "Profile updated",
+        False,
+        lambda ctx: _profile_updated(ctx["profile"]),
+        width=1.8,
+    ),
 )
 
 REPORT_TITLE = "CalDART membership report"
@@ -127,6 +134,16 @@ def _date(profile: MemberProfile | None, field: str) -> date | None:
     """The date in ``field``, or ``None`` when it is unset or there is no profile."""
     value: date | None = getattr(profile, field, None) if profile is not None else None
     return value
+
+
+def _profile_updated(profile: MemberProfile | None) -> str:
+    """``profile.profile_updated_at`` as a local calendar date, or a blank cell.
+
+    Blank when the member has no profile, or the profile has never been edited.
+    """
+    if profile is None or profile.profile_updated_at is None:
+        return ""
+    return timezone.localdate(profile.profile_updated_at).isoformat()
 
 
 #: Choice values that mean "nothing on file"; they read better as a blank cell

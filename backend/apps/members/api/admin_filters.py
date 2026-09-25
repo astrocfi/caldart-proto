@@ -271,13 +271,14 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
 
     Each alias expands to real columns, so ``name`` sorts by surname then
     forename, every alias falls back to the name to settle a tie, and the
-    computed dates and the DART name keep empty values at the end whichever
-    direction is asked for (a lifetime member has no expiry to compare, and an
-    unaffiliated member has no team).
+    computed and stored dates and the DART name keep empty values at the end
+    whichever direction is asked for (a lifetime member has no expiry to
+    compare, an unaffiliated member has no team, and a profile nobody has
+    edited has no update date).
     """
 
     ordering_description = (
-        "Which field to order by: pilot, name, email, dart, expires_on, or joined."
+        "Which field to order by: pilot, name, email, dart, expires_on, joined, or updated."
     )
 
     #: Every alias ends in a key that settles a tie, so two rows the caller's
@@ -291,6 +292,7 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
         "dart": ("profile__dart__name", "last_name", "first_name"),
         "expires_on": ("effective_expiry", "last_name", "first_name"),
         "joined": ("joined_on", "last_name", "first_name"),
+        "updated": ("profile__profile_updated_at", "last_name", "first_name"),
     }
 
     def get_valid_fields(
