@@ -14,7 +14,9 @@ The code lives in ``backend/apps/darts/``:
    catalog and a member's home airport are judged by.
 ``api/serializers.py``
    ``DartSerializer`` (the public catalog), ``DartRefSerializer`` (the
-   ``{id, name}`` stub nested in a profile), ``DartContactSerializer`` and
+   ``{id, name}`` stub nested in a profile), ``DartContactSerializer`` (a
+   person in the public catalog), ``DartAdminContactSerializer`` (the same
+   person with ``receives_roster``, for the administrator) and
    ``DartAdminSerializer``.
 ``api/views.py``
    The catalog view and the three administrator views.
@@ -73,9 +75,44 @@ Active DARTs in alphabetical order, each with the people who run it.
 
 Every DART, inactive ones included, in the same order and also unpaginated:
 the list is a page long and the screen shows all of it.  Each row adds
-``is_active`` and the two counts the delete warning reads — ``member_count``,
+``is_active``; the two counts the delete warning reads — ``member_count``,
 the profiles naming this DART, and ``page_count``, the website pages linked
-to it.
+to it; and the two roster fields, both read-only — ``roster_recipients``, how
+many of the DART's people are ticked to receive the roster and have an email
+address, and ``roster_sent_at``, when the last roster went out, or ``null``
+when none has.  Each person in ``contacts`` carries ``receives_roster`` as
+well as the fields the public catalog gives.
+
+.. code-block:: json
+
+   [
+     {
+       "id": 3,
+       "name": "Contra Costa",
+       "airport_identifiers": "CCR, C83",
+       "website_url": "https://contra-costa.caldart.example.org/",
+       "is_active": true,
+       "contacts": [
+         {
+           "id": 7,
+           "name": "Helen Marchetti",
+           "title": "DART leader",
+           "phone": "707-555-0133",
+           "email": "helen.marchetti@caldart.example.org",
+           "receives_roster": true
+         }
+       ],
+       "member_count": 12,
+       "page_count": 1,
+       "roster_recipients": 1,
+       "roster_sent_at": null
+     }
+   ]
+
+``GET`` and ``PATCH /admin/darts/{id}`` answer with one row of the same
+shape.  The answer to a ``POST`` carries the same fields but for
+``member_count`` and ``page_count``: a DART just created has neither members
+nor pages.
 
 
 ``POST`` and ``PATCH /admin/darts``
@@ -101,9 +138,12 @@ Field                      Rule
                            them, or an identifier of the wrong shape are each
                            refused with their own sentence.
 ``website_url``            The team's own site, or blank.  A URL, checked as one.
-``contacts``               Up to ``MAX_DART_CONTACTS`` people, each with a
-                           ``name``, a ``title``, and an optional ``phone`` and
-                           ``email``.  The order given is the order stored --
+``contacts``               Any number of people, each with a ``name``, a
+                           ``title``, an optional ``phone`` and ``email``, and
+                           ``receives_roster`` (default ``false``), whether
+                           the person is sent the team's roster.  A person
+                           without an email address may be ticked; the sender
+                           skips them.  The order given is the order stored --
                            ``sort_order`` follows the position in the list --
                            and it is the order the public catalog and the
                            team's own page print them in.  The list given
