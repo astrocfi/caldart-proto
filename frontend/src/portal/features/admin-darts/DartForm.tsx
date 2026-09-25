@@ -50,6 +50,14 @@ function emptyContact(): AdminDartContact {
   return { name: '', title: '', phone: '', email: '', receives_roster: false };
 }
 
+/** Whether a row still waits for the person's name. */
+function isNameless(contact: AdminDartContact | undefined): boolean {
+  return contact !== undefined && contact.name.trim() === '';
+}
+
+/** Why **Add a person** is greyed out while the last row has no name. */
+const NAME_FIRST = 'Give the person above a name first';
+
 /** What a row is called aloud: the person's name, or its place in the list. */
 function personLabel(contact: AdminDartContact, index: number): string {
   return contact.name.trim() || `Person ${index + 1}`;
@@ -256,6 +264,15 @@ export function DartForm({
     );
   };
 
+  // A nameless row stays where it is: it is not yet a person to put in order,
+  // so neither its own arrows nor a neighbor's arrow that would swap with it work.
+  const canSwap = (index: number, target: number): boolean =>
+    values.contacts[target] !== undefined &&
+    !isNameless(values.contacts[index]) &&
+    !isNameless(values.contacts[target]);
+
+  const isLastNameless = isNameless(values.contacts.at(-1));
+
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     const problem = airportProblem(values.airport_identifiers);
@@ -324,7 +341,7 @@ export function DartForm({
         <legend>DART management</legend>
         <p className="muted small">
           Shown on the team&rsquo;s page in the order you put them in. A phone number and an email
-          address are both optional, but give at least one of them.
+          address are both optional.
         </p>
         {values.contacts.map((contact, index) => (
           <div className="dart-contacts__row" key={rowKeys[index] ?? `row-${index}`}>
@@ -337,13 +354,13 @@ export function DartForm({
               <IconButton
                 icon="arrow-up"
                 label={`Move person ${index + 1} up`}
-                disabled={index === 0}
+                disabled={!canSwap(index, index - 1)}
                 onClick={() => moveContact(index, -1)}
               />
               <IconButton
                 icon="arrow-down"
                 label={`Move person ${index + 1} down`}
-                disabled={index === values.contacts.length - 1}
+                disabled={!canSwap(index, index + 1)}
                 onClick={() => moveContact(index, 1)}
               />
             </span>
@@ -412,7 +429,13 @@ export function DartForm({
         <p aria-live="polite" className="visually-hidden">
           {moveAnnouncement}
         </p>
-        <Button variant="secondary" small onClick={handleAddContact}>
+        <Button
+          variant="secondary"
+          small
+          disabled={isLastNameless}
+          title={isLastNameless ? NAME_FIRST : undefined}
+          onClick={handleAddContact}
+        >
           Add a person
         </Button>
       </fieldset>
