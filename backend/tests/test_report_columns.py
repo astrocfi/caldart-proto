@@ -22,7 +22,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.aircraft.reports import AIRCRAFT_REPORT_COLUMNS, aircraft_rows, export_queryset
-from apps.members.api.admin_filters import member_admin_queryset
+from apps.members.filters import member_admin_queryset
 from apps.members.reports import MEMBER_REPORT_COLUMNS, member_report_rows
 from caldart.reports import (
     CELL_PADDING,

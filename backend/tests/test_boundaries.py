@@ -17,7 +17,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.aircraft.models import Aircraft, OwnerType
 from apps.aircraft.services import MAX_EXPIRING_WINDOW_DAYS as MAX_AIRCRAFT_WINDOW_DAYS
-from apps.members.api.admin_filters import MAX_EXPIRING_WINDOW_DAYS as MAX_MEMBER_WINDOW_DAYS
+from apps.members.filters import MAX_EXPIRING_WINDOW_DAYS as MAX_MEMBER_WINDOW_DAYS
 from apps.members.models import MembershipPlan
 from caldart.pagination import StandardPagination
 from tests.conftest import read_csv

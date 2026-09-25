@@ -190,7 +190,7 @@ def member_report_rows(
     """Yield one report row per user, lazily, in the queryset's order.
 
     Each row holds ``columns`` in the order given, every cell already text.
-    ``users`` must come from ``admin_filters.member_admin_queryset`` so the
+    ``users`` must come from ``apps.members.filters.member_admin_queryset`` so the
     membership annotations are present.
     """
     for user in users:

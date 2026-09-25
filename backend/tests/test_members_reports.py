@@ -15,8 +15,8 @@ from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
 from apps.accounts.models import User
 from apps.darts.models import Dart
-from apps.members.api.admin_filters import applied_filters
 from apps.members.api.admin_views import MemberExportPdfView
+from apps.members.filters import applied_filters
 from apps.members.models import (
     MedicalType,
     MembershipPlan,

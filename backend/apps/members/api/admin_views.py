@@ -25,12 +25,6 @@ from rest_framework.views import APIView
 from apps.accounts.models import User
 from apps.accounts.permissions import IsAccountAdmin
 from apps.members.api.actors import acting_user
-from apps.members.api.admin_filters import (
-    MemberAdminFilterSet,
-    MemberOrderingFilter,
-    applied_filters,
-    member_admin_queryset,
-)
 from apps.members.api.admin_serializers import (
     AdminMembershipSerializer,
     MemberCreateSerializer,
@@ -38,6 +32,12 @@ from apps.members.api.admin_serializers import (
     MemberListSerializer,
     MembershipGrantSerializer,
     MemberUpdateSerializer,
+)
+from apps.members.filters import (
+    MemberAdminFilterSet,
+    MemberOrderingFilter,
+    applied_filters,
+    member_admin_queryset,
 )
 from apps.members.models import Membership, MembershipSource
 from apps.members.reports import (

@@ -15,7 +15,7 @@ from datetime import date, timedelta
 import pytest
 
 from apps.accounts.models import User
-from apps.members.api.admin_filters import member_admin_queryset
+from apps.members.filters import member_admin_queryset
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
 from apps.members.services import (
     membership_of,

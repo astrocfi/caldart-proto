@@ -28,7 +28,7 @@ from apps.accounts.roles import (
     WEBSITE_ADMIN,
 )
 from apps.darts.models import Dart
-from apps.members.api.admin_filters import MemberOrderingFilter
+from apps.members.filters import MemberOrderingFilter
 from apps.members.models import (
     MedicalType,
     MemberProfile,

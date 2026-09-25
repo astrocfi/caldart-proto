@@ -586,7 +586,7 @@ File                                   Contents
                                        querysets
 ``apps/aircraft/reports.py``           Export columns and rows
 ``apps/aircraft/api/serializers.py``   ``NNumberField`` and the API shapes
-``apps/aircraft/api/filters.py``       ``AircraftFilter``,
+``apps/aircraft/filters.py``           ``AircraftFilter``,
                                        ``NullsLastOrderingFilter``
 ``apps/aircraft/api/permissions.py``   ``AircraftPermission``
 ``apps/aircraft/api/views.py``         The nine routes above

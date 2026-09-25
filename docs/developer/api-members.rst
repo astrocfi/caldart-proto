@@ -29,7 +29,7 @@ The DART catalog and the DART screen live in their own app; see
    over the dict ``services.membership_status`` builds, and ``PlanSerializer``
    over a ``MembershipPlan``.  The accounts, members, and payments APIs all
    import them from here.
-``api/admin_filters.py``
+``filters.py``
    The filter set, the ordering backend, and the queryset the list is served
    from.  The membership annotations it builds on live in ``services.py``.
 ``services.py``
@@ -235,7 +235,7 @@ states the same rules as correlated subqueries on the user queryset:
 
 ``member_admin_queryset`` hangs those on the user table through
 ``members.services.with_membership`` and adds the two the list needs of its
-own, in ``api/admin_filters.derived_annotations()``:
+own, in ``filters.derived_annotations()``:
 
 ``full_name``
    ``first_name`` and ``last_name`` concatenated, so ``?search=`` can match a
