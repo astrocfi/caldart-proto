@@ -11,8 +11,9 @@ System administrators have it implicitly.  The role also opens **Payments**
 and **Aircraft** under *Administration* in the portal menu, and **Member
 check** and **Aircraft check** under *Operations* — the pre-flight currency
 checks described in :doc:`dart-leader-guide`.  This page covers **Members**,
-at ``/portal/admin/members``, **DARTs**, at ``/portal/admin/darts``, and
-**Reminders**, at ``/portal/admin/reminders``.
+at ``/portal/admin/members``, **DARTs**, at ``/portal/admin/darts``,
+**Reminders**, at ``/portal/admin/reminders``, and **Reports**, at
+``/portal/admin/reports``.
 
 
 The member list
@@ -391,6 +392,89 @@ there is no button for it here.
 
 An empty table means no term has reached a reminder stage yet — on a fresh
 installation, or when every member renewed early.
+
+
+Reports by email
+================
+
+**Reports**, under *Administration*, is where CalDART is told to email a report
+on a schedule, and where each DART's monthly roster is sent from.  A treasurer
+opens the same screen for the money reports (:doc:`treasurer-guide`); the DART
+rosters are yours alone.
+
+Subscriptions
+-------------
+
+A subscription emails one report, filtered and with the columns chosen when it
+was set up, to one address, on its schedule.  The table lists every
+subscription for a report you may read: the **Report**, the **Recipient** (the
+account's name, or the bare address for somebody outside CalDART), the
+**Schedule** (*Weekly on Monday*, *Monthly*, *Quarterly* or *Yearly*), the
+**Formats** attached (*CSV*, *PDF* or *Both*), when it was **Last sent**, when it
+is due **Next**, and a dot in **Active**, green while it is being sent and gray
+while it is paused.  Each row carries three controls:
+
+**Send now**
+   Sends it at once, whatever the date, and leaves its next date where it was.
+   The line above the table says *Sent to* the recipient, or why it was not: the
+   report could not be built or the mail server refused it, or the recipient no
+   longer holds a role that may read the report, in which case the subscription
+   is paused.
+
+**Pause** and **Resume**
+   A paused subscription is kept, with everything it was set up with, and sent
+   nothing until it is resumed.  Resuming one whose account may no longer read
+   the report is refused, and the line above the table says why.
+
+**The trashcan**
+   Deletes the subscription.
+
+**New subscription** opens the form:
+
+1. **Report** offers the reports you may read.  Choosing one draws the same
+   filters its own list page has, plus **Period** on the payments and
+   contributions reports: *This month*, *Last month*, *This year* or *Last
+   year*, worked out on the day each email goes, so a monthly subscription for
+   *Last month* always carries the month before the one it is sent in.
+2. **Columns** chooses the columns, as on the list page; left alone, the report
+   carries its default columns.  The reconciliation and contributions reports
+   have fixed columns and offer no chooser.
+3. **Formats** attaches a CSV, a PDF, or both.
+4. **Schedule** is weekly, monthly, quarterly or yearly; a weekly one asks for
+   the **Day** it goes.  A monthly subscription goes on the first of the month,
+   a quarterly one on the first of January, April, July and October, and a
+   yearly one on the first of January.
+5. **Recipient email** is where it goes.
+
+**Save** checks the recipient.  An address that belongs to a CalDART account
+is refused, under the address, when that account holds no role that may read
+the report: a treasurer cannot be sent the membership report, whose medical and
+certificate details are not theirs to read.  An address no account holds is
+refused until you tick **This address is outside CalDART and may receive this
+report**, which appears under the address once CalDART asks for it.  A filter
+the report cannot use is named, with the reason, under the filters.
+
+The emails go out every morning at 06:00.  A subscription that could not be
+sent is tried again the next morning; one whose recipient has lost the role is
+paused instead.
+
+DART rosters
+------------
+
+Early each month every active DART's roster, the member report of that DART
+by name with each member's phone, email, certificate, medical, aircraft and
+expiry, goes as a PDF to each of the DART's people ticked **Roster** under
+**DARTs** who has an email address.  The table lists each active DART, its
+**Recipients** (the ticked people with an address), and when its roster was
+**Last sent**.  A DART with nobody
+ticked is sent nothing.
+
+**Send rosters now** sends every DART's roster at once, whatever the date.
+Leave **Dry run (send nothing)** ticked the first time: the line under the table
+says how many emails a live run *would* send and how many DARTs or people it
+would skip, and a table names each person, their address and their DART.
+Clear the box and press the button again to send them for real; the table then
+says what the run did.
 
 
 Common tasks

@@ -10,6 +10,11 @@ their medical and certificate details, stay closed to them.  An account
 administrator holds both and reads this guide for the money side of the job.
 What a member sees when they pay is in :doc:`payments`.
 
+**Administration → Reports** is open to you too: it emails the payments,
+reconciliation and contributions reports on a schedule, to you or to anyone
+else who may read them, and it is described under *Reports by email* in
+:doc:`account-administrator-guide`.
+
 Moving around the area
 ======================
 
