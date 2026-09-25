@@ -55,6 +55,7 @@ DOCUMENTED_COLUMNS = (
     "aircraft",
     "city",
     "state",
+    "county",
     "joined_on",
     "member_since",
     "profile_updated",
