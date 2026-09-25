@@ -728,10 +728,10 @@ but every step names the PayPal or mock equivalent where it differs.
    ``renewal_enabled`` arrives in Mailpit (http://localhost:8025) naming the
    plan, the amount and the next charge date.
 
-#. **Advance to the notice date and watch it fire.** The charge falls
-   ``CHARGE_LEAD_DAYS`` (one day) before the term's ``ends_on``, and the
-   notice goes out ``NOTICE_DAYS`` (fourteen days) before that
-   (:ref:`renewals-schedule`). Run the scan as of that date:
+#. **Advance to the notice date and watch it fire.** The charge falls on the
+   mandate's ``next_charge_on``, which the checkout set to the term's
+   ``ends_on``, and the notice goes out ``NOTICE_DAYS`` (fourteen days) before
+   that (:ref:`renewals-next-charge`). Run the scan as of that date:
 
    .. code-block:: console
 
@@ -741,8 +741,8 @@ but every step names the PayPal or mock equivalent where it differs.
    card. Running the same command again for the same day sends nothing a
    second time — the attempt's ``noticed_at`` is what makes it idempotent.
 
-#. **Advance to the charge date.** Run the scan again as of the day before
-   ``ends_on``:
+#. **Advance to the charge date.** Run the scan again as of ``ends_on``
+   itself:
 
    .. code-block:: console
 

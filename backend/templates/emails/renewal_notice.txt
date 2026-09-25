@@ -24,7 +24,7 @@ automatic renewal at all — change it here and write to us about the charge:
 {% else %}
 Your {{ plan_name }} membership runs out on {{ expires_on|date:"F j, Y" }}. Because you asked
 us to {% if kind == "both" %}renew your membership and take your contribution{% else %}renew it{% endif %} automatically, we will charge {{ amount }} to {{ method_label }} on
-{{ charge_on|date:"F j, Y" }}, and your coverage will carry straight on.
+{{ charge_on|date:"F j, Y" }}{% if charge_on > expires_on %}, the day you chose, so your membership lapses until then{% else %}, and your coverage will carry straight on{% endif %}.
 
 Nothing to do if that is right. If it is not — a different card, a different
 contribution, or no automatic renewal at all — change it here before that date:

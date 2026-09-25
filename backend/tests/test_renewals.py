@@ -29,12 +29,10 @@ from apps.payments.providers.base import ProviderUnavailableError
 from apps.payments.providers.mock import DECLINED_LAST4, MockProvider, mock_method
 from apps.payments.receipts import receipt_filename
 from apps.payments.renewals import (
-    CHARGE_LEAD_DAYS,
     NOTICE_DAYS,
     RETRY_OFFSETS,
     card_expires_on,
-    charge_date_for,
-    next_charge_on,
+    charge_date,
     run_auto_renewals,
     save_method,
     term_to_renew,
@@ -56,6 +54,7 @@ def make_mandate(
 ) -> RenewalMandate:
     """An active mandate for ``user`` over a term ending on ``ends_on``.
 
+    The charge falls on ``ends_on``, which is what a mandate takes by default.
     The member's first name and the method label are pinned, so the emails the
     golden files compare do not move with whatever name the factory invented.
     """
@@ -72,6 +71,7 @@ def make_mandate(
         user=user,
         plan=plan,
         contribution_cents=contribution_cents,
+        next_charge_on=ends_on,
         method_last4=last4,
         method_label=f"Test card ending {last4}, expires 12/2030",
     )
@@ -90,16 +90,6 @@ def refusing_mailer(**kwargs: object) -> None:
 # --------------------------------------------------------------------------
 # Dates
 # --------------------------------------------------------------------------
-def test_the_charge_falls_the_day_before_the_term_ends() -> None:
-    """A term ending on the 20th is renewed on the 19th, its last full day covered."""
-    assert charge_date_for(date(2026, 6, 20)) == date(2026, 6, 19)
-
-
-def test_the_lead_is_one_day() -> None:
-    """The charge lead is stated once, and it is a single day."""
-    assert CHARGE_LEAD_DAYS == 1
-
-
 def test_a_card_expires_at_the_end_of_its_printed_month(
     member: User, annual_plan: MembershipPlan
 ) -> None:
@@ -153,25 +143,25 @@ def test_a_term_running_out_earns_a_scheduled_attempt(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The scan schedules the charge three days before the term's last day."""
-    ends_on = today + timedelta(days=NOTICE_DAYS + CHARGE_LEAD_DAYS)
+    ends_on = today + timedelta(days=NOTICE_DAYS)
     make_mandate(member, annual_plan, ends_on=ends_on)
 
     run_auto_renewals(today=today)
 
     attempt = RenewalAttempt.objects.get()
-    assert attempt.scheduled_on == ends_on - timedelta(days=CHARGE_LEAD_DAYS)
+    assert attempt.scheduled_on == ends_on
 
 
 def test_the_notice_names_the_date_the_card_will_be_charged(
     member: User, annual_plan: MembershipPlan, today: date, mailoutbox: list[EmailMessage]
 ) -> None:
     """The advance warning's subject carries the charge date, not the expiry date."""
-    ends_on = today + timedelta(days=NOTICE_DAYS + CHARGE_LEAD_DAYS)
+    ends_on = today + timedelta(days=NOTICE_DAYS)
     make_mandate(member, annual_plan, ends_on=ends_on)
 
     run_auto_renewals(today=today)
 
-    charge_on = ends_on - timedelta(days=CHARGE_LEAD_DAYS)
+    charge_on = ends_on
     assert subjects(mailoutbox) == [f"CalDART: we will renew your membership on {charge_on}"]
 
 
@@ -179,9 +169,7 @@ def test_a_term_further_out_than_the_notice_window_is_left_alone(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """A membership with months to run is not scheduled or emailed yet."""
-    make_mandate(
-        member, annual_plan, ends_on=today + timedelta(days=NOTICE_DAYS + CHARGE_LEAD_DAYS + 1)
-    )
+    make_mandate(member, annual_plan, ends_on=today + timedelta(days=NOTICE_DAYS + 1))
 
     run_auto_renewals(today=today)
 
@@ -233,7 +221,7 @@ def test_a_due_attempt_is_charged_and_buys_the_next_term(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The renewal's term starts the day after the one it renews ends."""
-    ends_on = today + timedelta(days=CHARGE_LEAD_DAYS)
+    ends_on = today
     make_mandate(member, annual_plan, ends_on=ends_on)
 
     run_auto_renewals(today=today)
@@ -250,7 +238,7 @@ def test_the_renewal_charges_the_plan_price_plus_the_contribution(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         contribution_cents=2_500,
     )
 
@@ -264,7 +252,7 @@ def test_a_succeeded_renewal_marks_its_attempt_succeeded(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The attempt records the outcome, so the finance screens can read it back."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
 
     run_auto_renewals(today=today)
 
@@ -275,7 +263,7 @@ def test_the_member_is_told_the_membership_was_renewed(
     member: User, annual_plan: MembershipPlan, today: date, mailoutbox: list[EmailMessage]
 ) -> None:
     """A successful charge sends the renewed email, not another notice."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
 
     run_auto_renewals(today=today)
 
@@ -286,7 +274,7 @@ def test_a_scan_that_runs_twice_charges_once(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The attempt leaves ``scheduled`` once it is charged, so it is not charged again."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
 
     run_auto_renewals(today=today)
     run_auto_renewals(today=today)
@@ -298,7 +286,7 @@ def test_a_term_renewed_by_hand_in_the_meantime_is_skipped(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """A member who paid by hand is not charged again by the scanner."""
-    ends_on = today + timedelta(days=CHARGE_LEAD_DAYS)
+    ends_on = today
     make_mandate(member, annual_plan, ends_on=ends_on)
     run_auto_renewals(today=today - timedelta(days=1))
     MembershipFactory(
@@ -317,7 +305,7 @@ def test_a_skipped_attempt_takes_no_money(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Nothing is charged for a term somebody else already renewed."""
-    ends_on = today + timedelta(days=CHARGE_LEAD_DAYS)
+    ends_on = today
     make_mandate(member, annual_plan, ends_on=ends_on)
     run_auto_renewals(today=today - timedelta(days=1))
     MembershipFactory(
@@ -342,7 +330,7 @@ def test_a_declined_charge_records_the_providers_reason(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
 
@@ -359,7 +347,7 @@ def test_a_declined_charge_leaves_its_payment_failed(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
 
@@ -375,7 +363,7 @@ def test_the_first_retry_is_scheduled_one_day_later(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
 
@@ -392,7 +380,7 @@ def test_the_retry_chains_back_to_the_attempt_it_retries(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
 
@@ -410,7 +398,7 @@ def test_the_failure_email_names_the_day_of_the_next_attempt(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
 
@@ -438,7 +426,7 @@ def test_a_mandate_is_paused_once_its_retries_run_out(
     mandate = make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
 
@@ -455,7 +443,7 @@ def test_every_retry_is_attempted_before_the_pause(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
 
@@ -473,7 +461,7 @@ def test_the_last_failure_tells_the_member_the_reminders_resume(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
 
@@ -489,7 +477,7 @@ def test_a_paused_mandate_schedules_nothing_further(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
 
@@ -510,7 +498,7 @@ def test_the_run_counts_the_mandate_it_paused(
     make_mandate(
         member,
         annual_plan,
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         last4=DECLINED_LAST4,
     )
     run_auto_renewals(today=today)
@@ -578,7 +566,7 @@ def test_the_summary_reports_the_charge_it_took(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """``charged`` is what an operator reads to know money moved."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
 
     run = run_auto_renewals(today=today)
 
@@ -594,7 +582,7 @@ def test_the_next_charge_date_follows_the_scheduled_attempt(
 
     run_auto_renewals(today=today)
 
-    assert next_charge_on(mandate, today) == ends_on - timedelta(days=CHARGE_LEAD_DAYS)
+    assert charge_date(mandate, today) == ends_on
 
 
 def test_a_canceled_mandate_has_no_next_charge_date(
@@ -605,7 +593,7 @@ def test_a_canceled_mandate_has_no_next_charge_date(
     mandate.status = MandateStatus.CANCELED
     mandate.save(update_fields=["status"])
 
-    assert next_charge_on(mandate, today) is None
+    assert charge_date(mandate, today) is None
 
 
 # --------------------------------------------------------------------------
@@ -625,16 +613,16 @@ def test_the_renewal_emails_read_as_written(
     last4: str,
 ) -> None:
     """Every renewal email's plain-text body matches its golden file exactly."""
-    days = NOTICE_DAYS + CHARGE_LEAD_DAYS if template == "notice" else CHARGE_LEAD_DAYS
-    ends_on = today + timedelta(days=days)
+    # The charge falls on the day the term runs out, so one placeholder covers the
+    # expiry and the charge alike, and the renewed term's end is the next charge.
+    ends_on = today + timedelta(days=NOTICE_DAYS if template == "notice" else 0)
     make_mandate(member, annual_plan, ends_on=ends_on, last4=last4)
 
     run_auto_renewals(today=today)
 
-    charge_on = ends_on - timedelta(days=CHARGE_LEAD_DAYS)
     replacements = {
-        f"{ends_on.strftime('%B')} {ends_on.day}, {ends_on.year}": "<EXPIRES>",
-        f"{charge_on.strftime('%B')} {charge_on.day}, {charge_on.year}": "<CHARGE>",
+        f"{ends_on.strftime('%B')} {ends_on.day}, {ends_on.year}": "<CHARGE>",
+        str(ends_on): "<CHARGE>",
     }
     retry_on = today + timedelta(days=RETRY_OFFSETS[0])
     replacements[f"{retry_on.strftime('%B')} {retry_on.day}, {retry_on.year}"] = "<RETRY>"
@@ -642,9 +630,6 @@ def test_the_renewal_emails_read_as_written(
     replacements[f"{renewed_end.strftime('%B')} {renewed_end.day}, {renewed_end.year}"] = (
         "<RENEWED>"
     )
-    next_charge = charge_date_for(renewed_end)
-    replacements[f"{next_charge.strftime('%B')} {next_charge.day}, {next_charge.year}"] = "<NEXT>"
-    replacements[str(charge_on)] = "<CHARGE>"
     paid = Payment.objects.first()
     if paid is not None:
         replacements[paid.receipt_number] = "<RECEIPT>"
@@ -658,7 +643,7 @@ def test_an_attempt_another_run_already_took_is_not_charged_again(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Of two overlapping scans only the one that claimed the attempt charges it."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
     RenewalAttempt.objects.update(attempted_at=timezone.now())
 
@@ -671,7 +656,7 @@ def test_an_attempt_another_run_already_took_is_counted_as_in_flight(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The summary says why nothing happened, rather than reporting a charge."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
     RenewalAttempt.objects.update(attempted_at=timezone.now())
 
@@ -698,7 +683,7 @@ def test_a_provider_outage_costs_the_member_no_rung_of_the_retry_ladder(
     unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """Nothing was learned about the card, so nothing is held against it."""
-    mandate = make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    mandate = make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
 
     run_auto_renewals(today=today)
@@ -711,7 +696,7 @@ def test_a_provider_outage_leaves_the_mandate_active(
     unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """An outage never turns a member's automatic renewal off."""
-    mandate = make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    mandate = make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
 
     run_auto_renewals(today=today)
@@ -728,7 +713,7 @@ def test_a_provider_outage_tells_the_member_nothing(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """A member is not written to about a decline that never happened."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
     mailoutbox.clear()
 
@@ -741,7 +726,7 @@ def test_a_charge_a_provider_outage_stopped_is_tried_again(
     unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The attempt is released, still scheduled, so the next scan takes it up."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
 
     run_auto_renewals(today=today)
@@ -754,7 +739,7 @@ def test_a_charge_a_provider_outage_stopped_leaves_no_pending_payment(
     unreachable_provider: None, member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The payment row started for a charge nobody took is thrown away again."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
 
     run_auto_renewals(today=today)
@@ -801,7 +786,7 @@ def test_a_reactivated_mandate_charges_the_term_that_paused_it(
     save_method(mandate, mock_method(), actor=member)
     run_auto_renewals(today=today)
 
-    run = run_auto_renewals(today=charge_date_for(ends_on))
+    run = run_auto_renewals(today=ends_on)
 
     assert run.charged == 1
 
@@ -1028,7 +1013,7 @@ def test_an_automatic_charge_sends_exactly_one_email(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """The renewal email is the receipt, so the plain receipt does not go too."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
     mailoutbox.clear()
 
@@ -1044,7 +1029,7 @@ def test_the_renewal_email_is_the_one_that_goes(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """A successful automatic charge is reported by ``renewal_charged``."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
     mailoutbox.clear()
 
@@ -1060,7 +1045,7 @@ def test_the_renewal_email_carries_the_receipt_pdf(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """One PDF is attached: CalDART's own receipt for the charge."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
     mailoutbox.clear()
 
@@ -1078,7 +1063,7 @@ def test_the_attached_receipt_is_a_pdf_document(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """The bytes attached are the rendered receipt, not a placeholder."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
     mailoutbox.clear()
 
@@ -1091,7 +1076,7 @@ def test_an_automatic_charge_is_stamped_as_receipted(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The receipt went with the renewal email, so the payment records that it went."""
-    make_mandate(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    make_mandate(member, annual_plan, ends_on=today)
 
     run_auto_renewals(today=today - timedelta(days=1))
     run_auto_renewals(today=today)

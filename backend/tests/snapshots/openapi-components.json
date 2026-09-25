@@ -363,6 +363,7 @@
     "properties": {
       "auto_renew": "boolean",
       "contribution_cents": "integer",
+      "next_charge_on": "string(date)|null",
       "plan": "string|null",
       "provider": "ref:PaymentProviderEnum"
     },
@@ -1433,6 +1434,7 @@
   "PatchedRenewalPatchRequest": {
     "properties": {
       "contribution_cents": "integer",
+      "next_charge_on": "string(date)|null",
       "plan": "string"
     },
     "required": []
@@ -2089,6 +2091,7 @@
   "RenewalSetupRequest": {
     "properties": {
       "contribution_cents": "integer",
+      "next_charge_on": "string(date)|null",
       "plan": "string",
       "provider": "ref:MandateProviderEnum"
     },

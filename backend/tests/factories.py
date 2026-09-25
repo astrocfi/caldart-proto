@@ -437,8 +437,9 @@ def expire_membership(user: UserModel, plan: MembershipPlan, *, days_ago: int = 
 class RenewalMandateFactory(ModelFactory[RenewalMandate]):
     """Builds an active mock mandate on a test card ending 4242, no contribution.
 
-    Pass ``plan=None`` for a life member's contribution-only authority, which
-    renews no term and charges its contribution once a year.
+    The next charge falls today unless ``next_charge_on`` says otherwise.  Pass
+    ``plan=None`` for a life member's contribution-only authority, which renews no
+    term and charges its contribution once a year.
     """
 
     class Meta:
@@ -447,6 +448,7 @@ class RenewalMandateFactory(ModelFactory[RenewalMandate]):
     user = factory.SubFactory(UserFactory)
     plan = factory.SubFactory(MembershipPlanFactory)
     contribution_cents = 0
+    next_charge_on = factory.LazyFunction(timezone.localdate)
     provider = PaymentProvider.MOCK
     method_ref = "mock"
     method_brand = "visa"

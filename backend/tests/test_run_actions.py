@@ -18,7 +18,6 @@ from apps.accounts.models import User
 from apps.members.models import MembershipPlan, MembershipStatusChoices
 from apps.payments.renewals import (
     CATCH_UP_DAYS,
-    CHARGE_LEAD_DAYS,
     NOTICE_DAYS,
     run_auto_renewals,
 )
@@ -35,7 +34,10 @@ SAMPLE = RunAction(kind="renewal_notice", member="Dana Lee", email="dana@example
 
 
 def set_up_renewal(user: User, plan: MembershipPlan, *, ends_on: date) -> None:
-    """Give ``user`` a term ending on ``ends_on`` and an active mandate over it."""
+    """Give ``user`` a term ending on ``ends_on`` and an active mandate over it.
+
+    The mandate charges on ``ends_on``, which is the day it takes by default.
+    """
     MembershipFactory(
         user=user,
         plan=plan,
@@ -43,7 +45,7 @@ def set_up_renewal(user: User, plan: MembershipPlan, *, ends_on: date) -> None:
         ends_on=ends_on,
         status=MembershipStatusChoices.ACTIVE,
     )
-    RenewalMandateFactory(user=user, plan=plan)
+    RenewalMandateFactory(user=user, plan=plan, next_charge_on=ends_on)
 
 
 def kinds_and_emails(actions: list[RunAction]) -> list[tuple[str, str]]:
@@ -127,7 +129,7 @@ def test_a_rehearsed_notice_names_the_member_and_the_charge_date(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """A dry run says who the advance warning would go to, and when the charge falls."""
-    ends_on = today + timedelta(days=NOTICE_DAYS + CHARGE_LEAD_DAYS)
+    ends_on = today + timedelta(days=NOTICE_DAYS)
     set_up_renewal(member, annual_plan, ends_on=ends_on)
 
     run = run_auto_renewals(today=today, dry_run=True)
@@ -137,7 +139,7 @@ def test_a_rehearsed_notice_names_the_member_and_the_charge_date(
             "kind": "renewal_notice",
             "member": member.display_name,
             "email": member.email,
-            "on": (ends_on - timedelta(days=CHARGE_LEAD_DAYS)).isoformat(),
+            "on": ends_on.isoformat(),
             "amount_cents": None,
             "detail": "",
         }
@@ -148,7 +150,7 @@ def test_a_rehearsed_charge_carries_the_amount(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """The charge a dry run would take names the money, in integer cents."""
-    set_up_renewal(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    set_up_renewal(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
 
     run = run_auto_renewals(today=today, dry_run=True)
@@ -164,7 +166,7 @@ def test_a_rehearsal_names_the_people_a_live_run_then_writes_to(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """The dry run's list and the live run's list agree, action for action."""
-    set_up_renewal(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    set_up_renewal(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
 
     rehearsed = run_auto_renewals(today=today, dry_run=True)
@@ -219,7 +221,7 @@ def test_a_live_run_records_the_charge_it_took(
     mailoutbox: list[EmailMessage],
 ) -> None:
     """A live run's actions are the charge and the message reporting it."""
-    set_up_renewal(member, annual_plan, ends_on=today + timedelta(days=CHARGE_LEAD_DAYS))
+    set_up_renewal(member, annual_plan, ends_on=today)
     run_auto_renewals(today=today - timedelta(days=1))
 
     live = run_auto_renewals(today=today)
@@ -231,12 +233,12 @@ def test_the_command_prints_who_would_be_written_to(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
     """``run_auto_renewals --dry-run`` prints one line per member under the counts."""
-    ends_on = today + timedelta(days=NOTICE_DAYS + CHARGE_LEAD_DAYS)
+    ends_on = today + timedelta(days=NOTICE_DAYS)
     set_up_renewal(member, annual_plan, ends_on=ends_on)
 
     run = run_auto_renewals(today=today, dry_run=True)
 
-    charge_on = ends_on - timedelta(days=CHARGE_LEAD_DAYS)
+    charge_on = ends_on
     expected = (
         f"would email renewal_notice to {member.display_name} <{member.email}> "
         f"on {charge_on.isoformat()}"

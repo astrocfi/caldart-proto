@@ -108,14 +108,18 @@ class MyRenewalView(APIView):
         """200 with the mandate after changing what it renews and what it contributes.
 
         ``plan`` names the plan that renews from now on; leaving it out leaves the
-        plan alone.  404 when the caller has no mandate, 400 naming
-        ``contribution_cents`` for an amount outside what a checkout would accept,
-        400 naming ``plan`` for a plan that is not on offer, and 400 naming
-        ``auto_renew`` for anything the standing authority could not charge again
-        -- a life member naming a plan at all or contributing nothing, and
-        anybody naming a plan that never expires -- which is the same rule the
-        setup endpoint applies.  The dues themselves are not settable: they are
-        the plan's price at the time of each charge.
+        plan alone, and ``next_charge_on`` moves the day of the next charge,
+        leaving the stored day alone when it is absent.  A charge already scheduled
+        keeps the day it was written for, which is the day the answer carries, so
+        moving the date inside the notice window takes effect on the charge after
+        it.  404 when the caller has no mandate, 400 naming ``contribution_cents``
+        for an amount outside what a checkout would accept, 400 naming
+        ``next_charge_on`` for a day that has already gone by, 400 naming ``plan``
+        for a plan that is not on offer, and 400 naming ``auto_renew`` for anything
+        the standing authority could not charge again -- a life member naming a plan
+        at all or contributing nothing, and anybody naming a plan that never expires
+        -- which is the same rule the setup endpoint applies.  The dues themselves
+        are not settable: they are the plan's price at the time of each charge.
         """
         mandate = own_mandate(request)
         if mandate is None:
@@ -128,6 +132,10 @@ class MyRenewalView(APIView):
         # afterwards is what the rule is applied to either way.
         wanted = renewable_plan(slug) if slug else mandate.plan
         fields = ["contribution_cents", "updated_at"]
+        chosen = payload.validated_data["next_charge_on"]
+        if chosen is not None:
+            mandate.next_charge_on = chosen
+            fields.append("next_charge_on")
         mandate.plan = check_renewable(
             wanted,
             mandate.provider,
@@ -173,10 +181,14 @@ class MyRenewalSetupView(APIView):
         A life member leaves ``plan`` out: their membership never runs out, so the
         authority they hold is over the contribution alone, charged once a year.
 
-        400 naming ``plan`` for a plan that is not on offer, naming ``auto_renew``
-        for one that never expires, for a life member who names a plan or
-        contributes nothing, and for a member who is not a life member and names
-        no plan, and naming ``detail`` when the provider refuses to start.
+        ``next_charge_on`` is the day of the first charge.  Left out, it is the day
+        the membership runs out, or one year from today for a life member.
+
+        400 naming ``plan`` for a plan that is not on offer, naming
+        ``next_charge_on`` for a day that has already gone by, naming
+        ``auto_renew`` for one that never expires, for a life member who names a
+        plan or contributes nothing, and for a member who is not a life member and
+        names no plan, and naming ``detail`` when the provider refuses to start.
         """
         payload = RenewalSetupSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
@@ -190,6 +202,7 @@ class MyRenewalSetupView(APIView):
             plan=plan,
             contribution_cents=payload.validated_data["contribution_cents"],
             provider=provider_slug,
+            next_charge_on=payload.validated_data["next_charge_on"],
         )
         try:
             client = get_provider(provider_slug).start_mandate(mandate)

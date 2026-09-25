@@ -185,6 +185,9 @@ def _complete(
 ) -> tuple[Payment, bool]:
     """Move ``payment`` to succeeded, activate its term and its mandate, under one lock.
 
+    A term the payment buys also rolls the member's standing authority forward, so
+    the coverage it just paid for is never charged for twice.
+
     Returns the row as saved and whether this call is the one that moved it, so
     only the caller that did the work sends the receipt.
     """
@@ -215,17 +218,27 @@ def _complete(
         ]
     )
 
+    # Inline: renewals reads this module for create_checkout and mark_failed, so a
+    # top-level import here would close the cycle.
+    from apps.payments.renewals import (
+        activate_pending_mandate,
+        roll_charge_date_past,
+        term_to_renew,
+    )
+
     if payment.plan is not None:
+        covered = term_to_renew(payment.user, timezone.localdate())
         activate_term(
             payment.user,
             payment.plan,
             source=MembershipSource.PAYMENT,
             payment=payment,
         )
-
-    # Inline: renewals reads this module for create_checkout and mark_failed, so a
-    # top-level import here would close the cycle.
-    from apps.payments.renewals import activate_pending_mandate
+        # A standing authority dated against the coverage this payment has just
+        # extended would otherwise take a second year on the day it still holds.
+        roll_charge_date_past(
+            payment.user, covered_until=covered.ends_on if covered is not None else None
+        )
 
     activate_pending_mandate(payment)
     return payment, True

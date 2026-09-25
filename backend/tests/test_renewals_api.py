@@ -29,7 +29,6 @@ from apps.payments.models import (
     RenewalOutcome,
 )
 from apps.payments.providers.mock import MOCK_CARD_LABEL
-from apps.payments.renewals import CHARGE_LEAD_DAYS
 from tests.conftest import role_matrix
 from tests.factories import MembershipFactory, RenewalAttemptFactory, RenewalMandateFactory
 
@@ -554,7 +553,7 @@ def test_the_attempts_list_narrows_to_one_outcome(
     RenewalAttemptFactory(
         mandate=mandate,
         membership=membership,
-        scheduled_on=today - timedelta(days=CHARGE_LEAD_DAYS),
+        scheduled_on=today - timedelta(days=1),
         outcome=RenewalOutcome.FAILED,
     )
 
@@ -594,7 +593,7 @@ def test_the_run_endpoint_reports_what_it_would_charge(
         user=member,
         plan=annual_plan,
         starts_on=today - timedelta(days=364),
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         status=MembershipStatusChoices.ACTIVE,
     )
     RenewalMandateFactory(user=member, plan=annual_plan)
@@ -617,7 +616,7 @@ def test_a_dry_run_through_the_endpoint_charges_nobody(
         user=member,
         plan=annual_plan,
         starts_on=today - timedelta(days=364),
-        ends_on=today + timedelta(days=CHARGE_LEAD_DAYS),
+        ends_on=today,
         status=MembershipStatusChoices.ACTIVE,
     )
     RenewalMandateFactory(user=member, plan=annual_plan)

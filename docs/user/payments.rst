@@ -128,14 +128,20 @@ nothing of theirs renews.
 Or turn it on without paying anything: **Turn on** on the **Automatic renewal**
 card opens the same choices the checkout offers -- the plan that will renew, the
 contribution to renew beside it, and a tab per payment method -- and saves the
-method without charging it.  The card then states what each year's charge will
-come to before you save anything, and promises the warning email: *We will email
-you fourteen days before every charge.*
+method without charging it.  The card then states
+what each year's charge will come to before you save anything, and promises the
+warning email: *We will email you fourteen days before every charge.*
 
-**What happens then.**  The day before your membership runs out, |org| charges
-the saved method for that year's dues plus your contribution, and your coverage
-carries straight on — the new term starts the day the current one ends.  You are
-never charged while a whole year of coverage still remains.
+**The day you are charged on.**  It is yours to choose, and it starts as the day
+your membership runs out, which is the day most people want: a life member, who
+has no expiry, starts a year from the day they turn it on.  You can ask for any
+later day instead, including one after your membership runs out — the warning
+email says so, and your membership lapses until the charge comes round.
+
+**What happens then.**  On that day |org| charges the saved method for that year's
+dues plus your contribution, and your coverage carries straight on — the new term
+starts the day after the current one ends.  You are never charged while a whole
+year of coverage still remains.
 
 You are never charged without warning:
 
@@ -152,7 +158,7 @@ the renewal emails cover that term instead.
 **Changing or stopping it.**  The **Automatic renewal** card on the Payments
 screen shows the method, the plan, the contribution, the next charge date and
 the amount.  The date is always there while it is on: it is either the day of a
-charge already scheduled or the day the next one falls due.  **Change
+charge already scheduled or the day you chose for the next one.  **Change
 contribution** opens the choosers the setup flow shows -- the plan that renews
 and the contribution beside it -- and saves both; the dues themselves are
 whatever the chosen plan costs on the day.  **Turn off**
@@ -169,23 +175,23 @@ runs to its end date as it would have anyway.  The card on the Payments screen
 then reads **Stopped** and repeats the reason the last charge was refused;
 **Turn on again** saves another method and starts it up.
 
-**If a charge is late.**  If |org| misses a charge date — the overnight job was
-not running, say — the next run catches up: your membership is renewed on the
-spot and the email tells you the charge is happening that day.  The new term
-starts on the day the money arrives, so the days you were not covered stay in
-the record.  If you have been lapsed for more than a month, |org| does not
-charge you out of the blue: automatic renewal switches itself off, you are told
-why, and you renew by hand from the Payments screen.
+**If a charge is late.**  If |org| misses your charge date — the overnight job
+was not running, say — the next run catches up: the charge is taken on the spot
+and the email tells you it is happening that day.  The new term starts on the day
+the money arrives, so the days you were not covered stay in the record.  If you
+have been lapsed for more than a month, |org| does not charge you out of the blue:
+automatic renewal switches itself off, you are told why, and you renew by hand
+from the Payments screen.
 
 **If you are a life member.**  Your membership never runs out, so there is
 nothing to renew — but you can still ask |org| to take a contribution for you
 once a year.  The card is headed **Automatic contribution**, the emails say
-"contribution" and never "renewal", and the charge falls on the anniversary of
-the day you turned it on, or of the last contribution taken.  **Turn on** offers
-the contribution tiers and nothing else, and waits for an amount: *Choose a
-contribution to charge each year.*  **Change contribution** adjusts the amount
-and waits for one in the same words; there is no plan to choose, and the amount
-you already give is the one the form opens on.
+"contribution" and never "renewal", and the charge falls a year from the day you
+turned it on unless you chose another day, and a year on from each contribution
+taken after that.  **Turn on** offers the contribution tiers and nothing else, and
+waits for an amount: *Choose a contribution to charge each year.*  **Change
+contribution** adjusts the amount and waits for one in the same words; there is no
+plan to choose, and the amount you already give is the one the form opens on.
 
 **If your record came from the old CiviCRM system** with automatic renewal
 switched on, it did not come across: the card was never handed to |org|.  Turn

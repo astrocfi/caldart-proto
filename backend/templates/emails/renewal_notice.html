@@ -45,8 +45,7 @@
     <p style="margin:0 0 14px 0;">
       Because you asked us to {% if kind == "both" %}renew your membership and take
       your contribution{% else %}renew it{% endif %} automatically, we will charge {{ amount }} to
-      {{ method_label }} on {{ charge_on|date:"F j, Y" }}, and your coverage will carry
-      straight on.
+      {{ method_label }} on {{ charge_on|date:"F j, Y" }}{% if charge_on > expires_on %}, the day you chose, so your membership lapses until then{% else %}, and your coverage will carry straight on{% endif %}.
     </p>
     <p style="margin:0 0 14px 0;">
       Nothing to do if that is right. If it is not — a different card, a different

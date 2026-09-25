@@ -57,7 +57,6 @@ from apps.payments.refunds import apply_refund_totals
 from apps.payments.renewals import (
     NOTICE_DAYS,
     RETRY_OFFSETS,
-    charge_date_for,
 )
 
 #: How far back the payment history runs.
@@ -87,9 +86,9 @@ CANCELED_MANDATES = 1
 #: What the account administrator's standing contribution charges each year.
 CONTRIBUTION_MANDATE_CENTS = 5_000
 
-#: How long ago that authority was created.  A year less thirty days, so its
-#: next charge is a month out and the walkthrough always shows a date.
-CONTRIBUTION_MANDATE_AGE_DAYS = 335
+#: How far out that authority's next charge falls, so the walkthrough always has
+#: a date a little way off to show.
+CONTRIBUTION_MANDATE_DUE_DAYS = 30
 
 #: The saved cards the seeded mandates carry, as a provider would describe them.
 #: The saved method each seeded mandate carries, cycled through by index.  A
@@ -550,7 +549,12 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
 
         mandate, created = RenewalMandate.objects.get_or_create(
             user=user,
-            defaults={"plan": annual, "contribution_cents": contribution, **fields},
+            defaults={
+                "plan": annual,
+                "contribution_cents": contribution,
+                "next_charge_on": term.ends_on if term.ends_on is not None else today,
+                **fields,
+            },
         )
         if not created:
             continue
@@ -566,17 +570,18 @@ def _seed_contribution_mandate(ctx: dict[str, Any]) -> int:
     """Give the account administrator a standing contribution, and count it.
 
     They are a life member, so their membership never renews; their authority is
-    over the contribution alone.  It was created a year less thirty days ago, so
-    its next charge falls a month out and the walkthrough always has a date to
-    show.  Answers ``1``, which is how many such authorities it leaves behind
-    whether it created one or found one already there.
+    over the contribution alone, and its next charge falls a month out so the
+    walkthrough always has a date to show.  Answers ``1``, which is how many such
+    authorities it leaves behind whether it created one or found one already there.
     """
     user = ctx["demo_users"]["accountadmin"]
-    _, created = RenewalMandate.objects.get_or_create(
+    today: dt.date = ctx["today"]
+    RenewalMandate.objects.get_or_create(
         user=user,
         defaults={
             "plan": None,
             "contribution_cents": CONTRIBUTION_MANDATE_CENTS,
+            "next_charge_on": today + timedelta(days=CONTRIBUTION_MANDATE_DUE_DAYS),
             "status": MandateStatus.ACTIVE,
             "provider": MandateProvider.MOCK,
             "customer_ref": "",
@@ -588,12 +593,6 @@ def _seed_contribution_mandate(ctx: dict[str, Any]) -> int:
             "method_label": "Test card ending 4242, expires 12/2030",
         },
     )
-    if created:
-        # ``created_at`` is what the yearly anniversary is counted from, and
-        # ``auto_now_add`` will not take a value at creation time.
-        RenewalMandate.objects.filter(user=user).update(
-            created_at=timezone.now() - timedelta(days=CONTRIBUTION_MANDATE_AGE_DAYS)
-        )
     return 1
 
 
@@ -601,7 +600,7 @@ def _seed_scheduled_attempt(mandate: RenewalMandate, term: Membership, today: dt
     """Leave a scheduled charge behind when the term is inside the notice window."""
     if term.ends_on is None:
         return
-    charge_on = charge_date_for(term.ends_on)
+    charge_on = term.ends_on
     if (charge_on - today).days > NOTICE_DAYS:
         return
     RenewalAttempt.objects.create(
@@ -616,7 +615,7 @@ def _seed_failed_attempts(mandate: RenewalMandate, term: Membership, today: dt.d
     """The charge and the three retries that all failed, which paused this mandate."""
     if term.ends_on is None:
         return
-    day = charge_date_for(term.ends_on) - timedelta(days=sum(RETRY_OFFSETS))
+    day = term.ends_on - timedelta(days=sum(RETRY_OFFSETS))
     previous: RenewalAttempt | None = None
     for offset in (0, *RETRY_OFFSETS):
         day = day + timedelta(days=offset)

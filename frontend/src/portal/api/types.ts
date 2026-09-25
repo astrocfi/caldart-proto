@@ -669,6 +669,8 @@ export interface CheckoutRequest {
   provider: PaymentProvider;
   /** Save the method and renew the membership from it each year.  Defaults to false. */
   auto_renew?: boolean;
+  /** The day the saved method first charges on. Null takes the new term's expiry. */
+  next_charge_on?: IsoDate | null;
 }
 
 export type CheckoutResponse =
@@ -771,7 +773,8 @@ export interface RenewalMandate {
   method_exp_year: number | null;
   status: MandateStatus;
   failure_count: number;
-  /** The day of the next charge. Null only for a mandate that is not active. */
+  /** The day of the next charge: the stored day, or a waiting charge's own. Null
+   * only for a mandate that is not active. */
   next_charge_on: IsoDate | null;
   /** Why the most recent charge was refused, or an empty string. */
   last_error: string;
@@ -807,13 +810,17 @@ export interface RenewalSetupRequest {
   plan?: string;
   contribution_cents: number;
   provider: MandateProvider;
+  /** The day of the first charge. Null takes the day the membership runs out. */
+  next_charge_on?: IsoDate | null;
 }
 
-/** `PATCH /me/renewal`: the plan that renews and the contribution beside it. */
+/** `PATCH /me/renewal`: the plan, the contribution, and the day of the charge. */
 export interface RenewalPatchRequest {
   /** Leaving it out leaves the plan alone. A life member may not give one. */
   plan?: string;
   contribution_cents: number;
+  /** Moves the next charge. Null leaves the stored day alone. */
+  next_charge_on?: IsoDate | null;
 }
 
 export type RenewalSetupResponse =

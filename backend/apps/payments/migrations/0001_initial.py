@@ -55,6 +55,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('contribution_cents', models.PositiveIntegerField(default=0, help_text='Renewed alongside the dues.')),
+                ('next_charge_on', models.DateField(help_text='The day the member chose to be charged; rolled forward after each charge.')),
                 ('provider', models.CharField(choices=[('stripe', 'Stripe'), ('paypal', 'PayPal'), ('mock', 'Mock')], max_length=12)),
                 ('customer_ref', models.CharField(blank=True, help_text='Stripe customer id / PayPal payer id.', max_length=128)),
                 ('method_ref', models.CharField(help_text='Stripe payment method id / PayPal vault id.', max_length=128)),
