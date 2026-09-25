@@ -73,7 +73,7 @@ Active DARTs in alphabetical order, each with the people who run it.
 
 Every DART, retired ones included, in the same order and also unpaginated:
 the list is a page long and the screen shows all of it.  Each row adds
-``is_active`` and the two counts the delete rule reads — ``member_count``,
+``is_active`` and the two counts the delete warning reads — ``member_count``,
 the profiles naming this DART, and ``page_count``, the website pages linked
 to it.
 
@@ -125,22 +125,24 @@ A refused contact is keyed by its position in the list::
 ``DELETE /admin/darts/{id}``
 ============================
 
-Removes a DART that nothing points at and answers **204**.  A DART with
-members or website pages behind it is refused with **400** and a ``detail``
-naming what is left behind, because both relations are ``SET_NULL`` and the
-delete would quietly empty them:
+Removes the DART and answers **204**.  Nothing blocks it: both relations that
+point at a DART are ``SET_NULL``, so the members on it become unaffiliated and
+keep every other thing about their record, and a website page linked to it
+keeps its own content and loses its DART.  The team's people go with it, since
+a ``DartContact`` belongs to its DART.
 
-.. code-block:: json
-
-   {"detail": "This DART still has 24 members. Move them first, or turn off 'Accepting members' to retire it."}
+The delete cannot be undone, so the screen's confirmation counts what it will
+leave behind, from the ``member_count`` and ``page_count`` the list already
+carries.  A DART that should stop taking members but keep its history is
+turned inactive instead, with ``is_active``.
 
 
 Audit
 =====
 
 Each write records one line — ``dart.create``, ``dart.update`` or
-``dart.delete`` — and a refused delete records ``dart.delete`` at WARNING with
-``reason=dart_in_use``.  See :doc:`deployment` for the journal.
+``dart.delete``, the last carrying ``members`` and ``pages``, the counts it
+unaffiliated and unlinked.  See :doc:`deployment` for the journal.
 
 
 Tests
