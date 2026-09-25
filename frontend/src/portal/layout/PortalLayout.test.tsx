@@ -93,8 +93,21 @@ describe('PortalLayout', () => {
       'Payments',
       'Renew',
       'Change password',
+      'User guide',
       'Back to caldart.org',
     ]);
+  });
+
+  it.each<[RoleSlug[], string]>([
+    [['member'], '/docs/member-guide/'],
+    [['member', 'dart_leader'], '/docs/dart-leader-guide/'],
+    [['member', 'account_admin'], '/docs/account-administrator-guide/'],
+  ])('links %s to their own page of the user guide', async (roles, href) => {
+    server.use(signedInAs(makeUser({ roles })));
+    renderWithProviders(tree(), { route: '/' });
+
+    const rail = await screen.findByRole('navigation', { name: 'Portal sections' });
+    expect(within(rail).getByRole('link', { name: 'User guide' })).toHaveAttribute('href', href);
   });
 
   it.each<[RoleSlug, string[]]>([

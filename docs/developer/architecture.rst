@@ -109,7 +109,8 @@ Repository layout
                                 dev.py (the default), prod.py, test.py
         urls.py                 the root URLconf
         api_urls.py             /api/v1/: includes every app's api/urls.py
-        views.py                portal_shell, the page the SPA runs in
+        views.py                portal_shell, the page the SPA runs in, and
+                                user_guide, the built guide behind the login
         authentication.py       session auth, with CSRF for anonymous callers
         models.py               TimestampedModel, the abstract base every
                                 model inherits
@@ -175,6 +176,8 @@ Path                  Served by
 ``/api/v1/``          the JSON API
 ``/.well-known/``     only ``apple-developer-merchantid-domain-association``,
                       the Apple Pay domain-verification file
+``/docs/<path>``      ``caldart.views.user_guide``: the built user guide,
+                      served to signed-in users from ``USER_GUIDE_ROOT``
 ``/portal/<path>``    ``caldart.views.portal_shell``, the page the SPA runs in
 ``/media/``           uploaded files, while ``DEBUG`` is on
 anything else         Wagtail's page serving: a catch-all, so it stays last
@@ -193,6 +196,15 @@ from the site's theme and loads the portal bundle.  The server knows nothing
 of the SPA's routes and makes no access decision here; React Router picks
 the screen in the browser, so a reload or a shared link lands in the right
 place.  Django's ``LOGIN_URL`` is ``/portal/login``.
+
+**The user guide.**  ``make guide`` builds ``docs/user/`` alone into
+``docs/_build/guide``, and ``user_guide`` serves those files at ``/docs/`` to
+anyone signed in; a visitor who is not is sent to the portal's login page with
+the guide page as ``next``, and the login page hands them back to the guide
+with a full-page navigation, since the guide lives outside the SPA.  The
+portal's menu links each user to the page for their role, and the public site's
+footer links to the guide's front page.  The developer guide is not published;
+a reference into it from the user guide renders as the page's title.
 
 **The API.**  ``caldart/api_urls.py`` includes every app's ``api/urls.py``
 under ``/api/v1/``, and each app spells out its own paths, so adding an

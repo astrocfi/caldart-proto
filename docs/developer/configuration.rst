@@ -324,6 +324,20 @@ Frontend assets
    :Production: unset unless the deploy puts the bundle elsewhere.
 
 
+User guide
+==========
+
+``USER_GUIDE_ROOT``
+   The directory holding the built user guide, which ``caldart.views.user_guide``
+   serves at ``/docs/`` to signed-in users.  ``make guide`` (on a server, the
+   ``sphinx-build`` line of the deployment guide's build step) writes it.  A
+   directory with no ``index.html`` makes every ``/docs/`` page answer 404 and
+   logs a warning.
+
+   :Development: ``docs/_build/guide``, under the repository root.
+   :Production: unset unless the deploy builds the guide elsewhere.
+
+
 Backups
 =======
 
@@ -433,7 +447,11 @@ cannot admit a plaintext copy of an SDK.
 ``script-src 'self' https://js.stripe.com https://*.js.stripe.com PAYPAL``
    The portal's own bundles plus the two payment vendors' browser SDKs.
    Stripe asks for the wildcard beside the bare host so Stripe.js can start
-   frames on other origins.  No template carries an inline script.
+   frames on other origins.  No template carries an inline script.  Two
+   responses replace this directive with ``'self' 'unsafe-inline'``: the
+   Wagtail admin, whose templates inline scripts, and the user guide at
+   ``/docs/``, whose Sphinx pages inline the theme's mode switch.  Every other
+   directive holds on both.
 
 ``frame-src 'self' https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com https://link.com https://*.link.com PAYPAL``
    Stripe's Payment Element and PayPal's buttons render in vendor frames.

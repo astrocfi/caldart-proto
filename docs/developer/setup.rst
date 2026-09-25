@@ -346,7 +346,11 @@ list, in full:
    * - ``reminders``
      - ``send_renewal_reminders`` — ``make reminders [TODAY=2027-01-01] [DRY_RUN=1]``
    * - ``docs``
-     - ``sphinx-build -n -W`` into ``docs/_build/html``
+     - ``guide``, then ``sphinx-build -n -W`` of the whole tree into
+       ``docs/_build/html``
+   * - ``guide``
+     - ``sphinx-build -n -W -b dirhtml`` of ``docs/user`` alone into
+       ``docs/_build/guide``, the user guide Django serves at ``/docs/``
    * - ``clean``
      - remove ``docs/_build``, ``frontend/dist``, ``backend/staticfiles``, and
        ``__pycache__``
@@ -444,7 +448,10 @@ To read the documentation you just built, ``make read-docs`` builds it and
 opens ``docs/_build/html/index.html`` in your browser.  It runs
 ``scripts/read-docs.sh``, which takes ``--open`` to open the built pages
 without rebuilding and ``--build`` to rebuild without opening, and honors
-``BROWSER`` when you would rather not use the platform default.
+``BROWSER`` when you would rather not use the platform default.  To read the
+user guide the way a member does, ``make guide`` then sign in to the running
+site and open ``/docs/``, or follow the **User guide** link at the foot of the
+portal's menu.
 
 Troubleshooting
 ===============

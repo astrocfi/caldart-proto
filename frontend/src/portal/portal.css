@@ -144,6 +144,10 @@
   font-size: var(--text-xs);
 }
 
+.portal__rail-footer p {
+  margin: 0 0 var(--space-1);
+}
+
 /* Under 60rem the rail becomes a drawer toggled from the bar. */
 @media (max-width: 59.99rem) {
   .portal__drawer-toggle {

@@ -2,13 +2,20 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { API, makeUser } from '@test/handlers';
 import { makeTestQueryClient, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
+import type * as guide from '@/portal/guide';
+import { openGuide } from '@/portal/guide';
 import { LoginPage, safeNext } from './LoginPage';
+
+vi.mock('@/portal/guide', async (importOriginal: () => Promise<typeof guide>) => ({
+  ...(await importOriginal()),
+  openGuide: vi.fn(),
+}));
 
 function Dashboard() {
   return <h1>Dashboard</h1>;
@@ -85,6 +92,18 @@ describe('LoginPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     expect(await screen.findByRole('heading', { name: 'My profile' })).toBeInTheDocument();
+  });
+
+  it('leaves the portal for a guide page named by next', async () => {
+    server.use(http.post(`${API}/auth/login`, () => HttpResponse.json(makeUser())));
+
+    renderLogin('/login?next=%2Fdocs%2Fmember-guide%2F');
+    await userEvent.type(await screen.findByLabelText(/email address/i), 'marta@example.org');
+    await userEvent.type(screen.getByLabelText(/password/i), 'correct-horse');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => expect(openGuide).toHaveBeenCalledWith('/docs/member-guide/'));
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
   });
 
   it('shows the error the API returned and stays put', async () => {

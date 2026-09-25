@@ -63,7 +63,7 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
         coverage-frontend e2e \
         lint lint-backend \
         lint-frontend lint-spelling format check check-backend check-deploy check-frontend \
-        audit audit-backend audit-frontend backup restore reminders sandbox-check docs shell \
+        audit audit-backend audit-frontend backup restore reminders sandbox-check docs guide shell \
         superuser read-docs collectstatic clean
 
 help: ## Show this help
@@ -174,6 +174,7 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	$(E2E_ENV) $(MANAGE) seed_facts > frontend/e2e/seed-facts.json
 	cd frontend && $(NPM) run build
 	$(E2E_ENV) $(MANAGE) collectstatic --noinput
+	$(MAKE) --no-print-directory guide
 	@set -e; \
 	  $(E2E_ENV) $(MANAGE) runserver 0.0.0.0:$(E2E_PORT) --noreload > $(E2E_LOG) 2>&1 & \
 	  server=$$!; \
@@ -282,9 +283,17 @@ sandbox-check: ## Verify Stripe and PayPal sandbox credentials without moving mo
 	$(MANAGE) payments_sandbox_check
 
 # ----------------------------------------------------------------- docs
-docs: ## Build the Sphinx documentation (nitpicky; warnings are errors)
+docs: guide ## Build the Sphinx documentation and the user guide (nitpicky; warnings are errors)
 	$(UV) run sphinx-build -n -W -b html docs docs/_build/html
 	@echo "Docs at docs/_build/html/index.html"
+
+# The user guide alone, as the site serves it at /docs/ to signed-in members:
+# docs/user is the source tree, docs/conf.py the configuration, and the guide
+# tag tells conf.py which build this is.  The dirhtml builder gives every page
+# a directory, so the URLs read /docs/member-guide/ rather than
+# /docs/member-guide.html.  USER_GUIDE_ROOT points Django at the output.
+guide: ## Build the user guide the site serves at /docs/ into docs/_build/guide
+	$(UV) run sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
 
 read-docs: ## Build the documentation and open it in a browser
 	./scripts/read-docs.sh

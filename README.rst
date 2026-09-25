@@ -110,6 +110,7 @@ Everyday commands:
    $ make lint      # ruff + mypy + tsc + eslint + prettier + codespell
    $ make check     # system checks, migrations, deployment checks, build
    $ make docs      # Sphinx, nitpicky, warnings are errors
+   $ make guide     # the user guide alone, as the site serves it at /docs/
    $ make audit     # known vulnerabilities in Python and npm dependencies
    $ make reset     # destroy and re-seed the dev database
    $ make backup    # gzipped pg_dump into backups/
@@ -135,10 +136,15 @@ Documentation
 
    $ make docs
 
-builds the Sphinx documentation into ``docs/_build/html/index.html``; there
-is no hosted copy. It covers the user guide (``docs/user/``) for members,
-DART leaders and administrators, and the developer guide
-(``docs/developer/``) for setup, architecture, and the API reference.
+builds the Sphinx documentation into ``docs/_build/html/index.html``. It
+covers the user guide (``docs/user/``) for members, DART leaders and
+administrators, and the developer guide (``docs/developer/``) for setup,
+architecture, and the API reference.
+
+The site serves the user guide itself, at ``/docs/``, to anyone signed in:
+``make guide`` builds that copy into ``docs/_build/guide``, the portal's menu
+links each user to the page for their role, and the public site's footer links
+to its front page. The developer guide is not published.
 
 
 Contributing

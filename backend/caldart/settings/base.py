@@ -176,6 +176,11 @@ STATICFILES_DIRS = [REPO_ROOT / "frontend" / "dist", BASE_DIR / "static"]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# The built user guide, which ``caldart.views.user_guide`` serves at ``/docs/``
+# to signed-in users.  ``make guide`` writes it here; a deployment that builds
+# it elsewhere points this at that directory.
+USER_GUIDE_ROOT = Path(env("USER_GUIDE_ROOT", default=str(REPO_ROOT / "docs" / "_build" / "guide")))
+
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {
@@ -407,7 +412,8 @@ CONTENT_SECURITY_POLICY = {
         "img-src": [SELF, "data:", *STRIPE_IMG_ORIGINS, *PAYPAL_ORIGINS],
         # Stripe's Payment Element and Wagtail's admin both set styles from
         # JavaScript.  No template carries an inline script, so ``script-src``
-        # needs no matching relaxation outside the admin.
+        # needs no matching relaxation outside the admin and the user guide,
+        # whose Sphinx pages inline the theme's mode switch.
         "style-src": [SELF, UNSAFE_INLINE],
     }
 }

@@ -11,6 +11,7 @@ from __future__ import annotations
 import importlib
 import re
 from collections.abc import Iterator
+from pathlib import Path
 from types import ModuleType
 from urllib.parse import urlparse
 
@@ -20,6 +21,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from django.test import Client, RequestFactory
 from django.urls import set_script_prefix
+from pytest_django.fixtures import Settings
 
 from apps.accounts.models import User
 from apps.cms.models import HomePage, SiteSettings
@@ -221,6 +223,19 @@ def test_wagtail_admin_login_page_is_relaxed_too(client: Client) -> None:
     response = client.get("/admin/login/")
     assert response.status_code == 200
     assert directives(response)["script-src"] == ["'self'", "'unsafe-inline'"]
+
+
+def test_user_guide_replaces_script_src_with_unsafe_inline(
+    client: Client, member: User, tmp_path: Path, settings: Settings
+) -> None:
+    """A guide page's script-src is ``'self' 'unsafe-inline'``; the rest holds."""
+    (tmp_path / "index.html").write_text("<h1>User guide</h1>")
+    settings.USER_GUIDE_ROOT = tmp_path
+    client.force_login(member)
+    response = client.get("/docs/")
+    response.close()
+    assert response.status_code == 200
+    assert directives(response) == ADMIN_POLICY
 
 
 def test_django_admin_keeps_the_site_script_src(client: Client, superuser: User) -> None:

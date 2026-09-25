@@ -202,6 +202,10 @@ dev = [
     { name = "sphinx" },
     { name = "types-reportlab" },
 ]
+docs = [
+    { name = "furo" },
+    { name = "sphinx" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -239,6 +243,10 @@ dev = [
     { name = "ruff", specifier = ">=0.7" },
     { name = "sphinx", specifier = ">=8.0" },
     { name = "types-reportlab", specifier = ">=5.0.0.20260911" },
+]
+docs = [
+    { name = "furo", specifier = ">=2024.8.6" },
+    { name = "sphinx", specifier = ">=8.0" },
 ]
 
 [[package]]

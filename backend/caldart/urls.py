@@ -1,7 +1,8 @@
 """Root URLconf.
 
 Order matters: the Wagtail page serving view is a catch-all and must come
-last.  ``/portal/`` is itself a catch-all for the SPA's client-side routes.
+last.  ``/portal/`` is itself a catch-all for the SPA's client-side routes, and
+``/docs/`` serves the built user guide to signed-in users.
 """
 
 from django.conf import settings
@@ -14,7 +15,7 @@ from wagtail.documents import urls as wagtaildocs_urls
 
 from apps.cms.views import find_dart
 from apps.payments.views import apple_pay_domain_association
-from caldart.views import portal_shell
+from caldart.views import portal_shell, user_guide
 
 urlpatterns = [
     path("admin/", include(wagtailadmin_urls)),
@@ -27,6 +28,7 @@ urlpatterns = [
         name="apple-pay-domain-association",
     ),
     path("find-dart/", find_dart, name="find-dart"),
+    re_path(r"^docs/(?P<path>.*)$", user_guide, name="user-guide"),
     re_path(r"^portal/(?P<path>.*)$", portal_shell, name="portal"),
 ]
 

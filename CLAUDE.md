@@ -74,7 +74,8 @@ critiques/              dated review reports
 | `make test` | `pytest` (warnings are errors) + `vitest` |
 | `make lint` | `ruff check`, `ruff format --check`, `mypy`, `tsc`, `eslint --max-warnings 0`, `prettier`, `codespell` |
 | `make check` | `manage.py check --fail-level WARNING`, `makemigrations --check`, the API contract, production build |
-| `make docs` | `sphinx-build -n -W` |
+| `make docs` | `sphinx-build -n -W`, after `make guide` |
+| `make guide` | the user guide alone, served at `/docs/` to signed-in users |
 | `make audit` | `uv audit` + `npm audit` |
 
 ### Running tests

@@ -8,6 +8,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth, useSignOut } from '../auth/useAuth';
 import { Button } from '../components/Button';
+import { guidePath } from '../guide';
 import { groupedNavItems } from '../nav';
 
 /** The portal chrome: header, role-filtered navigation, and the routed page outlet. */
@@ -92,9 +93,14 @@ export function PortalLayout(): JSX.Element {
                 </ul>
               </div>
             ))}
-            <p className="portal__rail-footer muted">
-              <a href="/">Back to caldart.org</a>
-            </p>
+            <div className="portal__rail-footer muted">
+              <p>
+                <a href={guidePath(roles)}>User guide</a>
+              </p>
+              <p>
+                <a href="/">Back to caldart.org</a>
+              </p>
+            </div>
           </nav>
         ) : null}
 
