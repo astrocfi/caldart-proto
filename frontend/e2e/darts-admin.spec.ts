@@ -119,14 +119,15 @@ test('a DART takes a sixth person, and the Roster column counts the ticked ones'
     })
     .click();
 
-  // The seed lists two to four people; add rows until there are six.
+  // The seed lists two to four people; add rows until there are six.  Each row
+  // is named before the next is added, since a nameless last row holds the
+  // button back.
   const names = page.getByLabel('Name', { exact: true });
+  const addPerson = page.getByRole('button', { name: 'Add a person' });
   const seeded = await names.count();
-  for (let added = seeded; added < 6; added += 1) {
-    await page.getByRole('button', { name: 'Add a person' }).click();
-  }
-  await expect(names).toHaveCount(6);
   for (let index = seeded; index < 6; index += 1) {
+    await addPerson.click();
+    await expect(addPerson).toBeDisabled();
     await names.nth(index).fill(`Volunteer ${index + 1}`);
     await page.getByLabel('Title').nth(index).fill('Ground team');
     await page
@@ -134,6 +135,7 @@ test('a DART takes a sixth person, and the Roster column counts the ticked ones'
       .nth(index)
       .fill(`volunteer${index + 1}@example.test`);
   }
+  await expect(names).toHaveCount(6);
   await page.getByRole('checkbox', { name: 'Volunteer 5 receives the roster' }).check();
   await page.getByRole('checkbox', { name: 'Volunteer 6 receives the roster' }).check();
   await page.getByRole('button', { name: 'Save DART' }).click();
