@@ -15,6 +15,7 @@ import type {
   CaliforniaCounty,
   IfrRated,
   MedicalType,
+  MembershipState,
   PaymentProvider,
   PaymentState,
   PaymentWallet,
@@ -222,6 +223,27 @@ export const ROLE_LABELS: Record<RoleSlug, string> = {
 export const ROLE_CHOICES: Choice<RoleSlug>[] = (Object.keys(ROLE_LABELS) as RoleSlug[]).map(
   (slug) => ({ value: slug, label: ROLE_LABELS[slug] }),
 );
+
+/**
+ * What each computed membership state is called wherever a person reads it:
+ * the member list's status filter, the member report, the DART leader's
+ * status card, and the member's own status chip all show one of these four
+ * words for one and the same account.
+ */
+export const MEMBERSHIP_STATUS_LABELS: Record<MembershipState, string> = {
+  current: 'Current',
+  new: 'Unpaid',
+  expired: 'Expired',
+  none: 'No membership',
+};
+
+/**
+ * The membership states as a choice list, in the order a member's standing
+ * runs from best to worst.
+ */
+export const MEMBERSHIP_STATUS_CHOICES: Choice<MembershipState>[] = (
+  Object.keys(MEMBERSHIP_STATUS_LABELS) as MembershipState[]
+).map((state) => ({ value: state, label: MEMBERSHIP_STATUS_LABELS[state] }));
 
 /** The label for one code, or the code itself if the server invents a new one. */
 export function labelFor<Value extends string>(

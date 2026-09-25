@@ -4,8 +4,9 @@
  * The certificate and medical vocabularies the filter bar and the member list
  * share with `/profile` come from the portal's shared `choices` module through
  * `features/profile/constants`, and are re-exported here so no screen can
- * label the same code differently.  The role names come from the same shared
- * module, so the member screens and the users screens agree on them.
+ * label the same code differently.  The role names and the membership status
+ * labels come from the same shared module, so the member screens, the member
+ * report, and the DART leader's status card all agree on them.
  */
 import type { Choice } from '@/portal/choices';
 import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '@/portal/features/profile/constants';
@@ -30,14 +31,14 @@ export const MEDICAL_FILTER_CHOICES: Choice<string>[] = [
   ...MEDICAL_TYPES,
   { value: 'any', label: 'Has any medical' },
 ];
-export { certificateLabel, medicalLabel, roleLabel, ROLE_CHOICES } from '@/portal/choices';
 
-export const STATUS_CHOICES: Choice<'current' | 'new' | 'expired' | 'none'>[] = [
-  { value: 'current', label: 'Current' },
-  { value: 'new', label: 'Unpaid' },
-  { value: 'expired', label: 'Expired' },
-  { value: 'none', label: 'No membership' },
-];
+export {
+  certificateLabel,
+  medicalLabel,
+  roleLabel,
+  ROLE_CHOICES,
+  MEMBERSHIP_STATUS_CHOICES as STATUS_CHOICES,
+} from '@/portal/choices';
 
 export const TERM_STATUS_CHOICES: Choice<'new' | 'active' | 'expired' | 'canceled'>[] = [
   { value: 'new', label: 'New' },

@@ -103,8 +103,8 @@ Signing in lands you on the dashboard at ``/portal/``.  Reading down the
 page:
 
 Membership
-  A status chip — **Current**, **Expiring soon**, **Joined, not yet paid**,
-  **Expired**, or **No membership** — with the date your membership runs to and a **Renew**
+  A status chip — **Current**, **Expiring soon**, **Unpaid**, **Expired**, or
+  **No membership** — with the date your membership runs to and a **Renew**
   button.  Inside 30 days of expiry, and after it, the card takes an accent
   edge and the button leads.  A life membership reads **Never expires** and is
   never asked to renew.
