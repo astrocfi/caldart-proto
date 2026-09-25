@@ -20,10 +20,16 @@ describe('DeleteButton', () => {
     );
   });
 
-  it('marks itself as an icon-only button when it shows no text', () => {
+  it('is a bare icon button when it shows no text', () => {
     render(<DeleteButton label="Remove N12345" />);
 
-    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('button--icon');
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('icon-button');
+  });
+
+  it('carries none of the portal button classes when it shows no text', () => {
+    render(<DeleteButton label="Remove N12345" />);
+
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).not.toHaveClass('button');
   });
 
   it('draws the trashcan where a screen reader will not announce it', () => {
@@ -49,21 +55,19 @@ describe('DeleteButton', () => {
   it('is still named by its label when the words it would show are withheld', () => {
     render(<DeleteButton label="Remove N12345">{false}</DeleteButton>);
 
-    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('button--icon');
+    expect(screen.getByRole('button', { name: 'Remove N12345' })).toHaveClass('icon-button');
   });
 
-  it('is not an icon-only button when it shows text', () => {
+  it('is a portal button rather than a bare icon when it shows text', () => {
     render(<DeleteButton label="Delete this DART">Delete this DART</DeleteButton>);
 
-    expect(screen.getByRole('button', { name: 'Delete this DART' })).not.toHaveClass(
-      'button--icon',
-    );
+    expect(screen.getByRole('button', { name: 'Delete this DART' })).not.toHaveClass('icon-button');
   });
 
   it('is quiet and small unless the caller says otherwise', () => {
-    render(<DeleteButton label="Remove person 1" />);
+    render(<DeleteButton label="Delete member">Delete member</DeleteButton>);
 
-    expect(screen.getByRole('button', { name: 'Remove person 1' })).toHaveClass('button--quiet');
+    expect(screen.getByRole('button', { name: 'Delete member' })).toHaveClass('button--quiet');
   });
 
   it('takes the danger variant when the caller asks for it', () => {
