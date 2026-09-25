@@ -19,7 +19,6 @@ import { StatusDot } from '@/portal/components/StatusChip';
 import { useDebounced } from '@/portal/components/useDebounced';
 import { looksLikeRegistration, normalizeNNumber } from '@/portal/features/aircraft/insurance';
 import { MemberStatusCard } from './MemberStatusCard';
-import { medicalSummary } from './labels';
 import { useLeaderSearch, useMemberStatus } from './api';
 import './leader.css';
 
@@ -127,27 +126,20 @@ export function LeaderSearchPage(): JSX.Element {
                     className="leader-search__button"
                     onClick={() => choose(result.user_id)}
                   >
-                    <span className="leader-search__headline">
-                      <span className="leader-search__name">{result.name}</span>
-                      <span className="leader-search__readiness">
-                        <StatusDot
-                          tone={ready ? 'current' : 'expired'}
-                          label={ready ? 'Cleared to fly' : 'Not cleared to fly'}
-                        />
-                        <span
-                          className={`leader-search__verdict ${
-                            ready ? 'leader-search__verdict--go' : 'leader-search__verdict--nogo'
-                          }`}
-                        >
-                          {ready ? 'GO' : 'NO-GO'}
-                        </span>
+                    <span className="leader-search__name">{result.name}</span>
+                    <span className="leader-search__readiness">
+                      <StatusDot
+                        tone={ready ? 'current' : 'expired'}
+                        label={ready ? 'Cleared to fly' : 'Not cleared to fly'}
+                      />
+                      <span
+                        className={`leader-search__verdict ${
+                          ready ? 'leader-search__verdict--go' : 'leader-search__verdict--nogo'
+                        }`}
+                      >
+                        {ready ? 'GO' : 'NO-GO'}
                       </span>
                     </span>
-                    <span className="leader-search__meta">
-                      {result.email}
-                      {result.dart ? ` · ${result.dart}` : ''}
-                    </span>
-                    <span className="leader-search__medical">{medicalSummary(result.medical)}</span>
                   </button>
                 </li>
               );
