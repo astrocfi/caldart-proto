@@ -967,9 +967,18 @@ export interface ReminderLogEntry {
   to_email: string;
 }
 
+/**
+ * What one reminder scan did.
+ *
+ * `skipped_by_reason` carries one entry per reason a candidate was passed over,
+ * so a run that sent little can say why, and `failed` counts the sends the mail
+ * server refused.
+ */
 export interface ReminderRunResult {
   sent: number;
   skipped: number;
+  failed: number;
+  skipped_by_reason: Record<string, number>;
   actions: RunAction[];
 }
 

@@ -1,14 +1,22 @@
-{{ org_name }} — today is the last day
+{{ org_name }} — {% if days_ago > 0 %}your membership has expired{% else %}today is the last day{% endif %}
 
 Hello {{ first_name }},
+{% if days_ago > 0 %}
+Your {{ plan_name }} membership ended on {{ expires_on|date:"F j, Y" }} — that was
+{{ days_ago }} day{{ days_ago|pluralize }} ago. It reads as expired: the members-only pages are
+closed, and DART leaders checking you before a flight see a red chip rather than
+a green one.
 
+Renew now and you are covered again the same day:
+{{ renew_url }}
+{% else %}
 Your {{ plan_name }} membership ends on {{ expires_on|date:"F j, Y" }} — that is
 today. From tomorrow it reads as expired: the members-only pages close, and DART
 leaders checking you before a flight will see a red chip rather than a green one.
 
 Renew today and nothing lapses at all:
 {{ renew_url }}
-
+{% endif %}
 If you have already renewed in the last few minutes, ignore this — the portal is
 the record that counts.
 

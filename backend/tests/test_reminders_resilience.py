@@ -1,8 +1,8 @@
 """The reminder scan when something goes wrong, or when a run is late.
 
-One failed address does not stop the scan, a run that is up to two days late
-still catches its cohorts, ``expired`` is never sent late, and a late email
-states the real number of days.
+One failed address does not stop the scan, a run that is late still catches
+every member whose term is in a stage, a term that has left one stage is sent
+the next rather than nothing, and a late email states the real number of days.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ from apps.accounts.models import User
 from apps.members.models import MembershipPlan
 from apps.reminders import services
 from apps.reminders.models import ReminderKind, ReminderLog
-from apps.reminders.services import WINDOW_DAYS, send_renewal_reminders
+from apps.reminders.services import KIND_ORDER, send_renewal_reminders
 from tests.test_reminders import TODAY, ends_on_for, make_member
 
 pytestmark = pytest.mark.django_db
@@ -34,13 +34,9 @@ pytestmark = pytest.mark.django_db
 #: Mail to this address fails when ``failing_smtp`` is in play.
 FAILING_ADDRESS = "unreachable@example.test"
 
-#: The kinds that catch up after a missed run; ``expired`` never does.
-CATCH_UP_KINDS = [
-    ReminderKind.T60,
-    ReminderKind.T30,
-    ReminderKind.T7,
-    ReminderKind.POST30,
-]
+#: Every kind catches up after a missed run, because every kind is a stage
+#: several days wide.
+CATCH_UP_KINDS = list(KIND_ORDER)
 
 RUN_URL = "/api/v1/system/reminders/run"
 
@@ -152,15 +148,29 @@ def test_a_failed_send_is_retried_the_next_day(
     assert [m.to[0] for m in failing_smtp] == [FAILING_ADDRESS]
 
 
-def test_a_failed_expired_send_is_not_retried_the_next_day(
+def test_a_failed_expired_send_is_retried_the_next_day(
     annual_plan: MembershipPlan, failing_smtp: list[EmailMessage], settings: Settings
 ) -> None:
-    """``expired`` has no window, so the next run has already stepped past it."""
+    """The ``expired`` stage runs for a week, so the next run tries the address again."""
     make_member(annual_plan, ends_on_for(ReminderKind.EXPIRED), email=FAILING_ADDRESS)
 
     send_renewal_reminders(today=TODAY)
     settings.MAILERS = mailers_using("django.core.mail.backends.locmem.EmailBackend")
     run = send_renewal_reminders(today=TODAY + timedelta(days=1))
+
+    assert run.sent == 1
+    assert [m.to[0] for m in failing_smtp] == [FAILING_ADDRESS]
+
+
+def test_a_failed_send_is_given_up_on_once_the_term_leaves_the_stage(
+    annual_plan: MembershipPlan, failing_smtp: list[EmailMessage], settings: Settings
+) -> None:
+    """A week after the expiry day the term is past every stage but ``post30``."""
+    make_member(annual_plan, ends_on_for(ReminderKind.EXPIRED), email=FAILING_ADDRESS)
+
+    send_renewal_reminders(today=TODAY)
+    settings.MAILERS = mailers_using("django.core.mail.backends.locmem.EmailBackend")
+    run = send_renewal_reminders(today=TODAY + timedelta(days=7))
 
     assert run.sent == 0
     assert failing_smtp == []
@@ -223,12 +233,35 @@ def test_a_run_up_to_two_days_late_still_sends(
     assert len(mailoutbox) == 1
 
 
-@pytest.mark.parametrize("kind", CATCH_UP_KINDS)
-def test_a_run_three_days_late_sends_nothing(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], kind: str
+@pytest.mark.parametrize(
+    ("kind", "days_late", "sent_kind"),
+    [
+        (ReminderKind.T60, 30, ReminderKind.T30),
+        (ReminderKind.T30, 23, ReminderKind.T7),
+        (ReminderKind.T7, 7, ReminderKind.EXPIRED),
+        (ReminderKind.EXPIRED, 30, ReminderKind.POST30),
+    ],
+)
+def test_a_run_late_enough_to_miss_a_stage_sends_the_next_one(
+    annual_plan: MembershipPlan,
+    mailoutbox: list[EmailMessage],
+    kind: str,
+    days_late: int,
+    sent_kind: str,
 ) -> None:
-    """A run three days late has stepped past the catch-up window and sends nothing."""
-    make_member(annual_plan, late_by(kind, WINDOW_DAYS))
+    """A term that has run out of one stage is sent the stage it is in, not nothing."""
+    make_member(annual_plan, late_by(kind, days_late))
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert run.sent_by_kind == {sent_kind: 1}
+
+
+def test_a_run_a_month_after_the_last_stage_sends_nothing(
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
+) -> None:
+    """A term that lapsed more than sixty days ago is past every stage."""
+    make_member(annual_plan, late_by(ReminderKind.POST30, 31))
 
     run = send_renewal_reminders(today=TODAY)
 
@@ -236,16 +269,16 @@ def test_a_run_three_days_late_sends_nothing(
     assert mailoutbox == []
 
 
-def test_expired_is_never_sent_late(
+def test_an_expired_reminder_missed_on_the_day_goes_out_the_next(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:
-    """A missed ``expired`` reminder is dropped rather than sent a day late."""
+    """An ``expired`` reminder the timer missed is sent a day late, saying so."""
     make_member(annual_plan, late_by(ReminderKind.EXPIRED, 1))
 
     run = send_renewal_reminders(today=TODAY)
 
-    assert run.sent == 0
-    assert mailoutbox == []
+    assert run.sent_by_kind == {ReminderKind.EXPIRED: 1}
+    assert mailoutbox[0].subject.endswith("your membership expired 1 day ago")
 
 
 def test_a_missed_day_is_caught_up_the_next_day(
@@ -353,11 +386,17 @@ def test_the_run_endpoint_still_returns_sent_and_skipped(
     annual_plan: MembershipPlan,
     failing_smtp: list[EmailMessage],
 ) -> None:
-    """The run endpoint reports sent and skipped counts even when a send fails."""
+    """The run endpoint reports the failure beside the sent and skipped counts."""
     today = timezone.localdate()
     make_member(annual_plan, today + timedelta(days=30), email=FAILING_ADDRESS)
     api_client.force_login(system_admin)
 
     body = api_client.post(RUN_URL, {"dry_run": False}).json()
 
-    assert body == {"sent": 0, "skipped": 0, "actions": []}
+    assert body == {
+        "sent": 0,
+        "skipped": 0,
+        "failed": 1,
+        "skipped_by_reason": {},
+        "actions": [],
+    }

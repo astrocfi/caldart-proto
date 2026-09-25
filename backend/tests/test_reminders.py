@@ -1,10 +1,11 @@
 """The renewal reminder scanner.
 
-Every kind fires on its own offset, nothing fires early, a second run sends
-nothing, a dry run writes nothing, and members who have already renewed --
-including lifetime members and those whose membership renews itself -- are left
-alone.  Late runs and failed sends are
-covered by ``test_reminders_resilience.py``.
+Every kind fires on its own offset, nothing fires outside the five stages, a
+second run sends nothing, a dry run writes nothing, and members who have
+already renewed -- including lifetime members and those whose membership renews
+itself -- are left alone.  The stage spans day by day are covered by
+``test_reminder_stages.py`` and failed sends by
+``test_reminders_resilience.py``.
 """
 
 from __future__ import annotations
@@ -87,12 +88,12 @@ def test_each_kind_fires_on_its_own_offset(
     assert log.to_email == user.email
 
 
-@pytest.mark.parametrize("kind", ALL_KINDS)
-def test_nothing_fires_a_day_early(
-    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], kind: str
+@pytest.mark.parametrize("days_out", [61, 90, -29, -61])
+def test_nothing_fires_outside_the_stages(
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage], days_out: int
 ) -> None:
-    """A term a day further out than the cohort waits for its own day."""
-    make_member(annual_plan, ends_on_for(kind) + timedelta(days=1))
+    """A term further out than ``t60``, or older than ``post30``, hears nothing."""
+    make_member(annual_plan, TODAY + timedelta(days=days_out))
 
     run = send_renewal_reminders(today=TODAY)
 
@@ -179,7 +180,8 @@ def test_dry_run_writes_nothing(
     run = send_renewal_reminders(today=TODAY, dry_run=True)
 
     assert run.dry_run is True
-    assert run.sent == 1
+    # The term that ran out yesterday is in the ``expired`` stage beside the ``t7`` one.
+    assert run.sent == 2
     assert run.expired_flipped == 1
     assert mailoutbox == []
     assert ReminderLog.objects.count() == 0
@@ -491,6 +493,8 @@ def test_summary_lines_cover_every_kind(annual_plan: MembershipPlan) -> None:
     assert "lifetime" in lines
     assert run.as_dict()["sent"] == 1
     assert run.as_dict()["skipped"] == 1
+    assert run.as_dict()["skipped_by_reason"] == {"lifetime": 1}
+    assert run.as_dict()["failed"] == 0
 
 
 def test_a_dry_run_names_every_member_it_would_write_to(annual_plan: MembershipPlan) -> None:
