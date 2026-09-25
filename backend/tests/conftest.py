@@ -323,27 +323,35 @@ def no_role_user(db: None) -> UserModel:
 
 
 # -- one fixture per role --------------------------------------------------
-def _role_fixture(slug: str, email: str) -> Callable[..., UserModel]:
+def _role_fixture(slug: str, email: str, name: tuple[str, str]) -> Callable[..., UserModel]:
     """Return a pytest fixture function that creates a user holding role ``slug``.
 
     ``MEMBER`` gets only the member role; every other role also carries member, since
-    every non-member role in this application implies membership.
+    every non-member role in this application implies membership.  ``name`` is the
+    user's first and last name, fixed rather than drawn from Faker so a search test
+    that names its own subject can never also match the signed-in role user.
     """
 
     @pytest.fixture(name=slug if slug != MEMBER else "member")
     def _fixture(db: None) -> UserModel:
-        return UserFactory(email=email, roles=[MEMBER, slug] if slug != MEMBER else [MEMBER])
+        first_name, last_name = name
+        return UserFactory(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            roles=[MEMBER, slug] if slug != MEMBER else [MEMBER],
+        )
 
     return _fixture
 
 
-member = _role_fixture(MEMBER, "member@example.test")
-dart_leader = _role_fixture(DART_LEADER, "leader@example.test")
-user_admin = _role_fixture(USER_ADMIN, "useradmin@example.test")
-treasurer = _role_fixture(TREASURER, "treasurer@example.test")
-account_admin = _role_fixture(ACCOUNT_ADMIN, "accountadmin@example.test")
-website_admin = _role_fixture(WEBSITE_ADMIN, "webadmin@example.test")
-system_admin = _role_fixture(SYSTEM_ADMIN, "sysadmin@example.test")
+member = _role_fixture(MEMBER, "member@example.test", ("Robin", "Ashby"))
+dart_leader = _role_fixture(DART_LEADER, "leader@example.test", ("Jordan", "Keel"))
+user_admin = _role_fixture(USER_ADMIN, "useradmin@example.test", ("Sam", "Pryor"))
+treasurer = _role_fixture(TREASURER, "treasurer@example.test", ("Casey", "Lund"))
+account_admin = _role_fixture(ACCOUNT_ADMIN, "accountadmin@example.test", ("Zoe", "Yeager"))
+website_admin = _role_fixture(WEBSITE_ADMIN, "webadmin@example.test", ("Morgan", "Tate"))
+system_admin = _role_fixture(SYSTEM_ADMIN, "sysadmin@example.test", ("Avery", "Stroud"))
 
 
 @pytest.fixture

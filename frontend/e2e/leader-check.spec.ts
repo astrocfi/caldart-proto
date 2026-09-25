@@ -16,14 +16,6 @@ import type { Locator, Page } from '@playwright/test';
 
 import { DEMO, SEED, signIn } from './helpers';
 
-/**
- * The four lines a results row can print for the medical, exactly as
- * `medicalSummary` builds them.  Which one the seeded member gets depends on
- * the demo data, so the spec pins the shape rather than one phrasing.
- */
-const MEDICAL_LINE =
-  /^(No medical on file|No medical expiry on file|Medical expired \d{4}\/\d{2}\/\d{2}|(?:BasicMed|Class [123]) medical to \d{4}\/\d{2}\/\d{2})$/;
-
 /** The member card, addressed by the accessible name the card carries. */
 function memberCard(page: Page, name: string): Locator {
   return page.getByRole('region', { name: `Status for ${name}` });
@@ -75,11 +67,9 @@ test('the results list answers go or no-go before the card is opened', async ({ 
   const result = page.getByRole('button', { name: new RegExp(name) });
   await expect(result).toBeVisible();
   await expect(result).toContainText('NO-GO');
-  // Asserted whole, not by the word "medical" that all four phrasings share, so
-  // a reworded line or a date in the wrong format fails here.
-  await expect(result.getByText(MEDICAL_LINE)).toBeVisible();
-  // The membership belongs to the card: the row answers go or no-go and says
-  // how the person was found, and nothing else.
+  // The row is the name and the verdict: the membership, the medical and the
+  // rest belong to the card.
+  await expect(result).not.toContainText('medical');
   await expect(result).not.toContainText('Member expired');
 });
 

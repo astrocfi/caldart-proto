@@ -48,14 +48,11 @@ is never treated as a registration, so looking for "Nate" finds Nate rather
 than every N-numbered airplane on file.
 
 The search returns at most twenty people, and every line already answers the
-question.  A line reads in three parts: the name with **GO** or **NO-GO**
-against it, then the email address and DART the person was found by, then the
-medical in words — "Class 3 medical to 2027/03/31", "Medical expired
-2026/01/31", "No medical expiry on file" when a class was entered but the date
-never was, or "No medical on file".  For a single name that is the whole check;
-open the card when you want the membership, the certificate, the ratings, or the
-insurance on the airplanes.  If nobody comes back for an N-number, the page
-offers to check the aircraft itself instead.
+question: the name, with **GO** or **NO-GO** against it, and nothing else.  For
+a single name that is the whole check; open the card when you want the
+membership, the medical, the certificate, the ratings, or the insurance on the
+airplanes.  If nobody comes back for an N-number, the page offers to check the
+aircraft itself instead.
 
 
 Reading the status card

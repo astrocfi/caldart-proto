@@ -153,9 +153,9 @@
 
 .leader-search__button {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-1);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
   width: 100%;
   padding: var(--space-3) var(--space-2);
   background: none;
@@ -172,23 +172,15 @@
 }
 
 /*
- * A result row reads as three lines: who they are and the verdict, then how
- * they were found, then the medical.  The verdict sits at the end of the first
- * line, against the name, so a leader scanning the list reads one column of
- * GO and NO-GO rather than hunting for it behind an address.
+ * A result row is one line: the name, and the verdict at the far end of it, so
+ * a leader scanning the list reads one column of GO and NO-GO.  Everything
+ * else about the person is on the card.
  */
-.leader-search__headline {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-3);
-}
-
 .leader-search__name {
   font-weight: var(--weight-medium);
 }
 
+/* The aircraft check's suggestion list still prints a second, muted line. */
 .leader-search__meta {
   color: var(--color-muted);
   font-size: var(--text-sm);
@@ -212,11 +204,6 @@
 
 .leader-search__verdict--nogo {
   color: var(--color-bad);
-}
-
-.leader-search__medical {
-  color: var(--color-muted);
-  font-size: var(--text-sm);
 }
 
 .leader-back {
