@@ -76,7 +76,9 @@ export function RenewPage(): JSX.Element {
             ) : (
               <p>You have never held a CalDART membership.</p>
             )}
-            {status.plan ? <p className="muted">{status.plan} membership</p> : null}
+            {status.plan && !status.is_lifetime ? (
+              <p className="muted">{status.plan} membership</p>
+            ) : null}
           </div>
         ) : null}
       </Card>

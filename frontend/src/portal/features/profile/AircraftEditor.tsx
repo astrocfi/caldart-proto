@@ -71,7 +71,7 @@ export function AircraftEditor({
       <Card eyebrow="Edit" title={record.n_number}>
         <EmptyState
           title="Someone else added this aircraft"
-          description="Ask a CalDART account administrator to correct it — they can edit any record in the register."
+          description="Ask a CalDART account administrator to correct it."
           action={<Button onClick={handleClose}>Close</Button>}
         />
       </Card>
