@@ -318,6 +318,7 @@ function SubscriptionColumns({
   const columns = registry.data ?? [];
   return (
     <ColumnChooser
+      report={slug}
       columns={columns}
       chosen={chosen ?? defaultColumnKeys(columns)}
       onChange={handleChange}
