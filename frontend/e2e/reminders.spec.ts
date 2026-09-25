@@ -66,4 +66,5 @@ test('a system administrator keeps the run controls on the System page', async (
 
   await panel.getByRole('button', { name: 'Run now' }).click();
   await expect(panel.getByRole('status').filter({ hasText: /^Would send / })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'What a live run would do' })).toBeVisible();
 });

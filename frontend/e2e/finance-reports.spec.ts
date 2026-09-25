@@ -7,7 +7,7 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-import { DEMO, signIn } from './helpers';
+import { DEMO, SEED, signIn } from './helpers';
 
 /** The body rows of the one table in a region with this caption. */
 function bodyRows(page: Page, caption: RegExp): Locator {
@@ -111,6 +111,17 @@ test('a system administrator rehearses the renewal scan', async ({ page }) => {
   await panel.getByRole('button', { name: 'Run now' }).click();
 
   await expect(panel.getByRole('status').filter({ hasText: /^Would notice / })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'What a live run would do' })).toBeVisible();
+});
+
+test("a treasurer sees a life member's standing authority as a contribution", async ({ page }) => {
+  await signIn(page, DEMO.treasurer);
+  await page.goto('/portal/admin/payments/renewals');
+
+  await page.getByLabel('Search').fill(SEED.contributionMandate.name);
+  const row = bodyRows(page, /renewals?$/).first();
+  await expect(row).toContainText(SEED.contributionMandate.name);
+  await expect(row).toContainText('Contribution');
 });
 
 test('a plain member reaches none of the finance reports', async ({ page }) => {
