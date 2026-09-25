@@ -130,14 +130,12 @@ export function RenewalsPanel(): JSX.Element {
       ) : null}
 
       {run.isSuccess && !isConfirming ? (
-        <>
-          <p role="status">{renewalRunSummary(run.data, lastRunWasDry)}</p>
-          <RunActionsTable
-            actions={run.data.actions}
-            dryRun={lastRunWasDry}
-            kindLabel={renewalKindLabel}
-          />
-        </>
+        <RunActionsTable
+          actions={run.data.actions}
+          dryRun={lastRunWasDry}
+          kindLabel={renewalKindLabel}
+          summary={<p role="status">{renewalRunSummary(run.data, lastRunWasDry)}</p>}
+        />
       ) : null}
 
       {run.isError ? (

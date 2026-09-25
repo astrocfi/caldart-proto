@@ -21,16 +21,18 @@ interface ReportRunOutcomeProps {
 export function ReportRunOutcome({ result, dryRun }: ReportRunOutcomeProps): JSX.Element {
   const breakdown = reportSkippedBreakdown(result.skipped_by_reason);
   return (
-    <>
-      <p role="status">{runSummary(result, dryRun)}</p>
-      {breakdown === '' ? null : <p className="muted">{breakdown}</p>}
-      {result.failed > 0 ? <p className="muted">{`Failed ${result.failed}.`}</p> : null}
-      <RunActionsTable
-        actions={result.actions}
-        dryRun={dryRun}
-        kindLabel={reportKindLabel}
-        detailHeader="Report or DART"
-      />
-    </>
+    <RunActionsTable
+      actions={result.actions}
+      dryRun={dryRun}
+      kindLabel={reportKindLabel}
+      detailHeader="Report or DART"
+      summary={
+        <>
+          <p role="status">{runSummary(result, dryRun)}</p>
+          {breakdown === '' ? null : <p className="muted">{breakdown}</p>}
+          {result.failed > 0 ? <p className="muted">{`Failed ${result.failed}.`}</p> : null}
+        </>
+      }
+    />
   );
 }

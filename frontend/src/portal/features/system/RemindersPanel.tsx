@@ -66,16 +66,18 @@ export function RemindersPanel(): JSX.Element {
       </p>
 
       {run.isSuccess ? (
-        <>
-          <p role="status">{runSummary(run.data, lastRunWasDry)}</p>
-          {breakdown ? <p className="muted">{breakdown}</p> : null}
-          {run.data.failed > 0 ? <p className="muted">{`Failed ${run.data.failed}.`}</p> : null}
-          <RunActionsTable
-            actions={run.data.actions}
-            dryRun={lastRunWasDry}
-            kindLabel={reminderKindLabel}
-          />
-        </>
+        <RunActionsTable
+          actions={run.data.actions}
+          dryRun={lastRunWasDry}
+          kindLabel={reminderKindLabel}
+          summary={
+            <>
+              <p role="status">{runSummary(run.data, lastRunWasDry)}</p>
+              {breakdown ? <p className="muted">{breakdown}</p> : null}
+              {run.data.failed > 0 ? <p className="muted">{`Failed ${run.data.failed}.`}</p> : null}
+            </>
+          }
+        />
       ) : null}
 
       {run.isError ? (

@@ -73,7 +73,7 @@ describe('RemindersPanel', () => {
 
     expect(await screen.findByText('Would send 4 emails, skipped 2.')).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: true }]);
-    expect(screen.getByRole('heading', { name: 'What a live run would do' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'What this run would do' })).toBeInTheDocument();
     const actionsTable = screen.getByRole('table', { name: '1 action' });
     const row = within(actionsTable).getByRole('row', { name: /Marta Reyes/ });
     expect(row).toHaveTextContent('30 days before');
