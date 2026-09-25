@@ -16,12 +16,16 @@ import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import { DataTable } from '@/portal/components/DataTable';
-import type { Column, SortDirection } from '@/portal/components/DataTable';
+import type { Column } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { FilterBar } from '@/portal/components/FilterBar';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import {
+  useFirstPageWhenMissing,
+  useUrlListPosition,
+} from '@/portal/components/useUrlListPosition';
 import { AircraftForm } from '@/portal/features/aircraft/AircraftForm';
 import { InsuranceDot } from '@/portal/features/aircraft/InsuranceChip';
 import { ServiceChip } from '@/portal/features/aircraft/ServiceChip';
@@ -37,27 +41,7 @@ const PAGE_SIZE = 25;
 const FILTER_FIELDS = listFilters(REPORTS.aircraft);
 const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
 
-/**
- * The order and the page live in the address beside the filters, each through
- * its own `useUrlFilters`, so a change of either filter or order returns the
- * register to its first page.
- */
-const ORDERING_KEYS = ['ordering'];
-const PAGE_KEYS = ['page'];
-
 const DEFAULT_ORDERING = 'n_number';
-
-/** DataTable reports a column key; the API wants an `ordering` term. */
-export function orderingFor(key: string, direction: SortDirection): string {
-  return direction === 'desc' ? `-${key}` : key;
-}
-
-/** The column and direction an `ordering` term sorts by, for the table's arrow. */
-function sortFor(ordering: string): { key: string; direction: SortDirection } {
-  return ordering.startsWith('-')
-    ? { key: ordering.slice(1), direction: 'desc' }
-    : { key: ordering, direction: 'asc' };
-}
 
 /** `/admin/aircraft` page: filter, sort, export, and add aircraft register records. */
 export function AircraftRegisterPage(): JSX.Element {
@@ -65,12 +49,10 @@ export function AircraftRegisterPage(): JSX.Element {
   const toast = useToast();
 
   const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
-  const [sort, setSort] = useUrlFilters(ORDERING_KEYS);
-  const [paging, setPaging] = useUrlFilters(PAGE_KEYS);
+  // The order and the page live in the address beside the filters.
+  const position = useUrlListPosition(DEFAULT_ORDERING);
+  const { ordering, page, setPage, sort, setSort: handleSortChange } = position;
   const [adding, setAdding] = useState(false);
-
-  const ordering = sort.ordering || DEFAULT_ORDERING;
-  const page = Number(paging.page) || 1;
 
   const query: AircraftFilters = {
     search: filters.search,
@@ -83,6 +65,7 @@ export function AircraftRegisterPage(): JSX.Element {
 
   const list = useAircraftList({ ...query, page });
   const create = useCreateAircraft();
+  useFirstPageWhenMissing(position, list.error);
 
   const registry = useReportColumns('aircraft');
   const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
@@ -91,10 +74,6 @@ export function AircraftRegisterPage(): JSX.Element {
   const [chosen, setChosen] = useState<string[] | null>(null);
   const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
   const exportParams = { ...filters, ordering, columns: chosenKeys };
-
-  const setPage = (next: number): void => {
-    setPaging({ page: next > 1 ? String(next) : '' });
-  };
 
   const rows = list.data?.results ?? [];
   const count = list.data?.count ?? 0;
@@ -193,8 +172,8 @@ export function AircraftRegisterPage(): JSX.Element {
         rowKey={(row) => row.id}
         caption={`${count} aircraft`}
         isLoading={list.isPending}
-        onSortChange={(key, direction) => setSort({ ordering: orderingFor(key, direction) })}
-        initialSort={sortFor(ordering)}
+        onSortChange={handleSortChange}
+        sort={sort}
         exportCsvUrl={reportExportUrl('aircraft', 'csv', exportParams)}
         exportPdfUrl={reportExportUrl('aircraft', 'pdf', exportParams)}
         emptyTitle="No aircraft match these filters"

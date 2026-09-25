@@ -14,7 +14,7 @@ import { usePlans } from '@/portal/api/queries';
 import type { Payment, ReportColumn } from '@/portal/api/types';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
-import type { Column, SortDirection } from '@/portal/components/DataTable';
+import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { DateText } from '@/portal/components/DateText';
 import { FilterBar } from '@/portal/components/FilterBar';
@@ -22,6 +22,10 @@ import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useUrlFilters } from '@/portal/components/useUrlFilters';
+import {
+  useFirstPageWhenMissing,
+  useUrlListPosition,
+} from '@/portal/components/useUrlListPosition';
 import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
 import { REPORTS, listFilters } from '@/portal/reports/definitions';
 import { useAdminPayments } from './api';
@@ -35,14 +39,6 @@ const DEFAULT_ORDERING = '-paid_at';
 
 const FILTER_FIELDS = listFilters(REPORTS.payments);
 const FILTER_KEYS = FILTER_FIELDS.map((field) => field.key);
-
-/**
- * The order and the page live in the address beside the filters, each through
- * its own `useUrlFilters`, so a change of either filter or order returns the
- * list to its first page.
- */
-const ORDERING_KEYS = ['ordering'];
-const PAGE_KEYS = ['page'];
 
 /**
  * How the table draws each export column, and the `ordering` value behind it.
@@ -110,22 +106,13 @@ export function tableColumns(registry: ReportColumn[], chosen: string[]): Column
     });
 }
 
-/** The column and direction an `ordering` value sorts by, for the table's arrow. */
-function sortFor(ordering: string): { key: string; direction: SortDirection } {
-  return ordering.startsWith('-')
-    ? { key: ordering.slice(1), direction: 'desc' }
-    : { key: ordering, direction: 'asc' };
-}
-
 /** `/admin/payments/list`: the finance list with its filters, columns and exports. */
 export function PaymentsListPage(): JSX.Element {
   const [filters, setFilters] = useUrlFilters(FILTER_KEYS);
-  const [sort, setSort] = useUrlFilters(ORDERING_KEYS);
-  const [paging, setPaging] = useUrlFilters(PAGE_KEYS);
+  // The order and the page live in the address beside the filters.
+  const position = useUrlListPosition(DEFAULT_ORDERING);
+  const { ordering, page, setPage, sort, setSort: handleSortChange } = position;
   const [chosen, setChosen] = useState<string[] | null>(null);
-
-  const ordering = sort.ordering || DEFAULT_ORDERING;
-  const page = Number(paging.page) || 1;
 
   const plans = usePlans();
   const planOptions = useMemo(
@@ -138,6 +125,7 @@ export function PaymentsListPage(): JSX.Element {
   const chosenKeys = chosen ?? defaultColumnKeys(columns);
 
   const list = useAdminPayments(filters, { page, pageSize: PAGE_SIZE, ordering });
+  useFirstPageWhenMissing(position, list.error);
 
   const tableCells = useMemo(() => tableColumns(columns, chosenKeys), [columns, chosenKeys]);
   const rows = list.data?.results ?? [];
@@ -147,10 +135,6 @@ export function PaymentsListPage(): JSX.Element {
 
   function handleColumnChange(next: string[]) {
     setChosen(next);
-  }
-
-  function setPage(next: number) {
-    setPaging({ page: next > 1 ? String(next) : '' });
   }
 
   return (
@@ -184,10 +168,8 @@ export function PaymentsListPage(): JSX.Element {
         isLoading={list.isPending}
         emptyTitle="No payments match these filters"
         emptyDescription="Try a wider date range, or clear the filters."
-        initialSort={sortFor(ordering)}
-        onSortChange={(key, direction) =>
-          setSort({ ordering: `${direction === 'desc' ? '-' : ''}${key}` })
-        }
+        sort={sort}
+        onSortChange={handleSortChange}
       />
 
       {lastPage > 1 ? (

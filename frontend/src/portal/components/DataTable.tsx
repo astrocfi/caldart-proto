@@ -50,6 +50,12 @@ export interface DataTableProps<Row> {
   /** Take sorting server-side instead: called with key and direction. */
   onSortChange?: (key: string, direction: SortDirection) => void;
   initialSort?: { key: string; direction: SortDirection };
+  /**
+   * The order to show, for a table whose order is kept outside it (such as in
+   * the address): the arrow follows this rather than the table's own state, so
+   * it stays right when the order changes from elsewhere.  Overrides `initialSort`.
+   */
+  sort?: { key: string; direction: SortDirection };
 }
 
 function compare(a: string | number | null, b: string | number | null): number {
@@ -87,9 +93,12 @@ export function DataTable<Row>({
   singleLine = false,
   onSortChange,
   initialSort,
+  sort,
 }: DataTableProps<Row>): JSX.Element {
-  const [sortKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
-  const [direction, setDirection] = useState<SortDirection>(initialSort?.direction ?? 'asc');
+  const [ownKey, setSortKey] = useState<string | null>(initialSort?.key ?? null);
+  const [ownDirection, setDirection] = useState<SortDirection>(initialSort?.direction ?? 'asc');
+  const sortKey = sort ? sort.key : ownKey;
+  const direction = sort ? sort.direction : ownDirection;
 
   const sorted = useMemo(() => {
     if (onSortChange || !sortKey) return rows;

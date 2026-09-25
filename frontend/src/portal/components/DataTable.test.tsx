@@ -131,6 +131,29 @@ describe('DataTable', () => {
     expect(bodyNames()).toEqual(['Reyes, Marta', 'Delgado, Owen', 'Adeyemi, Kofi']);
   });
 
+  it('shows the sort it is given, and toggles from it rather than from its own state', async () => {
+    const user = userEvent.setup();
+    const handleSortChange = vi.fn();
+    const table = (sort: { key: string; direction: 'asc' | 'desc' }) => (
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(row) => row.id}
+        onSortChange={handleSortChange}
+        sort={sort}
+      />
+    );
+    const { rerender } = render(table({ key: 'hours', direction: 'asc' }));
+    rerender(table({ key: 'name', direction: 'asc' }));
+
+    expect(screen.getByRole('columnheader', { name: /Hours/ })).toHaveAttribute(
+      'aria-sort',
+      'none',
+    );
+    await user.click(screen.getByRole('button', { name: /Name/ }));
+    expect(handleSortChange).toHaveBeenCalledWith('name', 'desc');
+  });
+
   it('shows an empty state instead of an empty table', () => {
     render(
       <DataTable
