@@ -8,10 +8,10 @@ import type { ChangeEvent, JSX } from 'react';
 import type { ReminderKind, ReminderRunResult } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { RunActionsTable } from '@/portal/components/RunActionsTable';
 import { useRunReminders } from './api';
 import { SKIPPED_REASON_LABELS } from './labels';
 import { KIND_LABELS as REMINDER_KIND_LABELS, ReminderLog } from './ReminderLog';
-import { RunActionsTable } from './RunActionsTable';
 
 /** The sentence shown after a run. */
 export function runSummary(result: ReminderRunResult, dryRun: boolean): string {
