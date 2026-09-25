@@ -288,7 +288,8 @@ profile, and in the DART filter on the member list, so adding a team here is
 all it takes to start putting people on it.
 
 The table gives each DART's name, its airports, its website, how many people
-run it, how many members are on it and whether it is taking new ones.  Click a
+run it, how many members are on it and whether it is *Active* or *Inactive*.
+Click a
 column heading to sort, and click a member count to open the member list
 filtered to that team.
 
@@ -302,27 +303,35 @@ filtered to that team.
 
 **The people who run it**
    **DART management** holds up to five people, each with a name, a job title
-   and a phone number or an email address.  **Move up** and **Move down** put
-   them in order, and that order is the order the team's page on the public
-   website lists them in, so the leader comes first.  The trashcan takes a
-   person off the list.  The people are saved with the rest of the form, so
-   clearing a row really does take that person off the list.
+   and a phone number or an email address.  The arrows at the head of each row
+   put the people in order, and that order is the order the team's page on the
+   public website lists them in, so the leader comes first.  The trashcan at
+   the end of a row takes that person off the list.  The people are saved with
+   the rest of the form, so clearing a row really does take that person off the
+   list.
 
 **Changing one**
    **Edit** opens the same form on an existing DART.  Renaming one is safe:
    the members on it stay on it.
 
-**Retiring one**
-   Untick **Accepting members** and save.  The DART disappears from the join
-   form and from a member's profile box, and everybody already on it stays on
-   it, so the history and the reports still read correctly.  Tick it again to
-   bring the team back.
+**Making one inactive**
+   Untick **Active** and save.  The DART disappears from the join form and from
+   a member's profile box, and everybody already on it stays on it, so the
+   history and the reports still read correctly.  Tick it again to bring the
+   team back.
 
 **Deleting one**
-   **Delete this DART**, at the foot of the edit form, is offered only for a
-   DART nobody is on and no website page is linked to, and it asks before it
-   acts.  For any other, the button is grayed out and says what is still
-   attached — retire it instead.  Deleting is permanent.
+   **Delete this DART**, at the foot of the edit form, deletes the team for
+   good, and it asks before it acts.  The confirmation says what the delete
+   leaves behind: the members on the DART come off it and stay members, with
+   nothing else on their record touched, and a DART page on the public website
+   keeps its own words and loses only its link to the team.  Deleting is
+   permanent, so a team that has simply stopped flying is better made inactive.
+
+   One thing a delete cannot reach is an unpublished draft of that website page:
+   the draft still names the deleted team, and publishing it fails.  Ask the
+   website administrator to open the page, clear its **DART** field, and publish
+   again.
 
 A DART's own page on the public website is a separate thing, kept by a website
 administrator in the Wagtail editor (:doc:`website-administrator-guide`); the
@@ -371,8 +380,8 @@ Common tasks
    immediately, so the new team's pilots can pick it the same day.
 
 **A team has folded.**
-   Open it in **DARTs**, untick **Accepting members**, and save.  Nobody new
-   can pick it, and everyone on it keeps their record.
+   Open it in **DARTs**, untick **Active**, and save.  Nobody new can pick it,
+   and everyone on it keeps their record.
 
 **Somebody paid by check.**
    Open their record, Memberships, Grant a term, choose the plan, and note the

@@ -9,6 +9,12 @@ import { DEMO, signIn } from './helpers';
 
 const NAME = 'Shelter Cove';
 
+/** The one seeded DART with a website page and nobody on it. */
+const DELETABLE = 'San Carlos';
+
+/** That team's own page on the public site, which outlives the team. */
+const DELETABLE_PAGE = '/about/darts/sql/';
+
 test('an account administrator adds a DART and it is offered straight away', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
 
@@ -35,16 +41,29 @@ test('an account administrator adds a DART and it is offered straight away', asy
   await expect(page.getByLabel('DART').getByRole('option', { name: NAME })).toHaveCount(1);
 });
 
-test('a DART with members on it cannot be deleted', async ({ page }) => {
+test('deleting a DART leaves its website page standing', async ({ page }) => {
   await signIn(page, DEMO.accountadmin);
   await page.goto('/portal/admin/darts');
 
+  // The seed puts nobody on San Carlos and gives it a page, so the delete has a
+  // page to unlink and no member to unaffiliate.
+  const row = page.getByRole('row').filter({ hasText: DELETABLE }).first();
+  await expect(row.getByRole('cell', { name: '0', exact: true })).toBeVisible();
+
   // Delete lives in the form, beside the team's name and its people, not in the
   // row: opening the DART is the first step of deleting it.
-  const row = page.getByRole('row').filter({ hasText: 'Palo Alto' }).first();
   await row.getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('button', { name: 'Delete this DART' }).click();
+  await expect(
+    page.getByText(`Deleting ${DELETABLE} unlinks 1 website page. This cannot be undone.`),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Delete for good' }).click();
 
-  await expect(page.getByRole('button', { name: 'Delete this DART' })).toBeDisabled();
+  await expect(page.getByRole('row').filter({ hasText: DELETABLE })).toHaveCount(0);
+
+  // The page is content: it keeps its own words and loses only its DART.
+  await page.goto(DELETABLE_PAGE);
+  await expect(page.getByRole('heading', { name: DELETABLE, level: 1 })).toBeVisible();
 });
 
 test('the member count opens the member list filtered to that DART', async ({ page }) => {

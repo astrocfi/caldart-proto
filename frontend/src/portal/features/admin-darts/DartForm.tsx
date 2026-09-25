@@ -2,7 +2,7 @@
  * The DART form, used to add one and to edit one.
  *
  * It asks for the three things a DART is — its name, its airports and its
- * website — then the people who run it, then whether it is taking members.  On
+ * website — then the people who run it, then whether it is active.  On
  * an existing DART it also carries the delete control, because deleting a team
  * is a thing you do while looking at it rather than from a row in a list.
  */
@@ -13,6 +13,7 @@ import type { AdminDart, AdminDartPatch, DartContact } from '@/portal/api/types'
 import { Button } from '@/portal/components/Button';
 import { DeleteButton } from '@/portal/components/DeleteButton';
 import { Field } from '@/portal/components/Field';
+import { IconButton } from '@/portal/components/IconButton';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import {
   maskAirportIdentifier,
@@ -66,8 +67,8 @@ export interface DartFormProps {
    * A promise lets the form know the attempt is over, whether it worked or not.
    */
   onDelete?: () => void | Promise<unknown>;
-  /** Why the DART cannot be deleted, shown as the control's tooltip. */
-  deleteBlockedBy?: string | null;
+  /** What the delete will leave behind, shown in the confirmation. */
+  deleteWarning?: string | null;
   /** Whether the delete request is in flight. */
   deletePending?: boolean;
 }
@@ -172,7 +173,7 @@ export function DartForm({
   onSubmit,
   onCancel: handleCancel,
   onDelete: handleDelete,
-  deleteBlockedBy = null,
+  deleteWarning = null,
   deletePending = false,
 }: DartFormProps): JSX.Element {
   const [values, setValues] = useState<DartFormValues>(initial);
@@ -325,6 +326,25 @@ export function DartForm({
         </p>
         {values.contacts.map((contact, index) => (
           <div className="dart-contacts__row" key={rowKeys[index] ?? `row-${index}`}>
+            <span
+              className="cluster dart-contacts__controls"
+              ref={(node) => {
+                rowControls.current.set(rowKeys[index] ?? `row-${index}`, node);
+              }}
+            >
+              <IconButton
+                icon="arrow-up"
+                label={`Move person ${index + 1} up`}
+                disabled={index === 0}
+                onClick={() => moveContact(index, -1)}
+              />
+              <IconButton
+                icon="arrow-down"
+                label={`Move person ${index + 1} down`}
+                disabled={index === values.contacts.length - 1}
+                onClick={() => moveContact(index, 1)}
+              />
+            </span>
             <Field label="Name" error={contactError(errors, index, 'name')}>
               {(props) => (
                 <input
@@ -369,33 +389,10 @@ export function DartForm({
                 />
               )}
             </Field>
-            <span
-              className="cluster dart-contacts__controls"
-              ref={(node) => {
-                rowControls.current.set(rowKeys[index] ?? `row-${index}`, node);
-              }}
-            >
-              <Button
-                variant="quiet"
-                small
-                disabled={index === 0}
-                onClick={() => moveContact(index, -1)}
-              >
-                Move up<span className="visually-hidden"> person {index + 1}</span>
-              </Button>
-              <Button
-                variant="quiet"
-                small
-                disabled={index === values.contacts.length - 1}
-                onClick={() => moveContact(index, 1)}
-              >
-                Move down<span className="visually-hidden"> person {index + 1}</span>
-              </Button>
-              <DeleteButton
-                label={`Remove person ${index + 1}`}
-                onClick={() => handleRemoveContact(index)}
-              />
-            </span>
+            <DeleteButton
+              label={`Remove person ${index + 1}`}
+              onClick={() => handleRemoveContact(index)}
+            />
           </div>
         ))}
         <p aria-live="polite" className="visually-hidden">
@@ -415,7 +412,7 @@ export function DartForm({
           checked={values.is_active}
           onChange={(event) => set('is_active', event.target.checked)}
         />
-        <span>Accepting members — untick to retire the DART without losing its history</span>
+        <span>Active — untick to make the DART inactive without losing its history</span>
       </label>
 
       {errors.detail ? (
@@ -435,6 +432,11 @@ export function DartForm({
           <span className="cluster dart-form__danger">
             {isConfirmingDelete ? (
               <>
+                {deleteWarning === null ? null : (
+                  <span className="dart-form__warning" role="alert">
+                    {deleteWarning}
+                  </span>
+                )}
                 <Button variant="danger" disabled={deletePending} onClick={handleConfirmDelete}>
                   Delete for good
                 </Button>
@@ -447,8 +449,6 @@ export function DartForm({
                 label="Delete this DART"
                 variant="danger"
                 small={false}
-                disabled={deleteBlockedBy !== null}
-                title={deleteBlockedBy ?? undefined}
                 onClick={() => setIsConfirmingDelete(true)}
               >
                 Delete this DART

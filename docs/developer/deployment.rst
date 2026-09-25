@@ -668,7 +668,9 @@ Action                        Fields beyond actor and target
 ``member.delete``             --
 ``dart.create``               --
 ``dart.update``               --
-``dart.delete``               --
+``dart.delete``               ``members``, ``pages`` -- the members the
+                              delete unaffiliated and the website pages it
+                              unlinked
 ``aircraft.create``           --
 ``aircraft.update``           ``fields`` -- the register columns changed
 ``aircraft.delete``           --

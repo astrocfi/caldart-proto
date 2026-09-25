@@ -63,11 +63,18 @@ describe('DartsPage', () => {
     expect(link).toHaveAttribute('href', '/admin/members?dart=1');
   });
 
-  it('says which DARTs are retired', async () => {
+  it('says which DARTs are inactive', async () => {
     stubList([makeDart({ is_active: false })]);
     renderPage();
 
-    expect(await screen.findByText('Retired')).toBeInTheDocument();
+    expect(await screen.findByText('Inactive')).toBeInTheDocument();
+  });
+
+  it('says which DARTs are active', async () => {
+    stubList([makeDart()]);
+    renderPage();
+
+    expect(await screen.findByText('Active')).toBeInTheDocument();
   });
 
   it('posts a new DART', async () => {
@@ -124,6 +131,17 @@ describe('DartsPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
     expect(screen.queryByLabelText('Town')).not.toBeInTheDocument();
+  });
+
+  it('asks whether the DART is active', async () => {
+    const user = userEvent.setup();
+    stubList();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Add a DART' }));
+    expect(
+      screen.getByLabelText('Active — untick to make the DART inactive without losing its history'),
+    ).toBeInTheDocument();
   });
 
   it('heads the contacts fieldset DART management', async () => {
@@ -268,19 +286,69 @@ describe('DartsPage', () => {
     expect(screen.queryByRole('button', { name: 'Delete this DART' })).not.toBeInTheDocument();
   });
 
-  it('will not offer to delete a DART somebody is on', async () => {
+  it('offers the delete for a DART somebody is on', async () => {
     const user = userEvent.setup();
     stubList([makeDart({ member_count: 4 })]);
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
 
-    const button = screen.getByRole('button', { name: 'Delete this DART' });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute(
-      'title',
-      'Palo Alto has 4 members on it. Untick "Accepting members" instead.',
-    );
+    expect(screen.getByRole('button', { name: 'Delete this DART' })).toBeEnabled();
+  });
+
+  it('warns what a delete leaves behind before it is confirmed', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart({ member_count: 4, page_count: 2 })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
+
+    expect(
+      screen.getByText(
+        'Deleting Palo Alto makes its 4 members unaffiliated and unlinks 2 website pages. ' +
+          'This cannot be undone.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('warns about one member in the singular', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart({ member_count: 1, page_count: 0 })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
+
+    expect(
+      screen.getByText(
+        'Deleting Palo Alto makes its 1 member unaffiliated. This cannot be undone.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('warns about one website page in the singular', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart({ member_count: 0, page_count: 1 })]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
+
+    expect(
+      screen.getByText('Deleting Palo Alto unlinks 1 website page. This cannot be undone.'),
+    ).toBeInTheDocument();
+  });
+
+  it('warns about nothing for a DART nothing points at', async () => {
+    const user = userEvent.setup();
+    stubList([makeDart()]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this DART' }));
+
+    expect(screen.queryByText(/This cannot be undone/)).not.toBeInTheDocument();
   });
 
   it('asks before deleting a DART nobody is on', async () => {
@@ -320,7 +388,7 @@ describe('DartsPage', () => {
     stubList([makeDart()]);
     server.use(
       http.delete(`${API}/admin/darts/1`, () =>
-        HttpResponse.json({ detail: 'A page points at Palo Alto.' }, { status: 409 }),
+        HttpResponse.json({ detail: 'That DART was not deleted.' }, { status: 500 }),
       ),
     );
     renderPage();
@@ -352,7 +420,7 @@ describe('DartsPage', () => {
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    await user.click(screen.getByRole('button', { name: 'Move down person 1' }));
+    await user.click(screen.getByRole('button', { name: 'Move person 1 down' }));
     await user.click(screen.getByRole('button', { name: 'Save DART' }));
 
     await waitFor(() =>
@@ -380,7 +448,7 @@ describe('DartsPage', () => {
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
-    await user.click(screen.getByRole('button', { name: 'Move up person 2' }));
+    await user.click(screen.getByRole('button', { name: 'Move person 2 up' }));
     await user.click(screen.getByRole('button', { name: 'Save DART' }));
 
     await waitFor(() =>
@@ -402,8 +470,25 @@ describe('DartsPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }));
 
-    expect(screen.getByRole('button', { name: 'Move up person 1' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Move down person 2' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move person 1 up' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move person 2 down' })).toBeDisabled();
+  });
+
+  it('moves a person with a bare icon button', async () => {
+    const user = userEvent.setup();
+    stubList([
+      makeDart({
+        contacts: [
+          { id: 1, name: 'Helen', title: 'DART leader', phone: '', email: '' },
+          { id: 2, name: 'Sam', title: 'Deputy', phone: '', email: '' },
+        ],
+      }),
+    ]);
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByRole('button', { name: 'Move person 1 down' })).toHaveClass('icon-button');
   });
 
   it('takes a person off the list with the trashcan', async () => {

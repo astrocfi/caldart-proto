@@ -1,12 +1,15 @@
-"""The account administrator's DART screen: list, create, edit, retire, delete.
+"""The account administrator's DART screen: list, create, edit, deactivate, delete.
 
 Covers the role matrix on every endpoint, the counts the list carries, the
 fields a row does and does not carry, the airport-identifier rule the profile
-form shares, and the guard that refuses to delete a DART somebody is still on.
+form shares, and what a delete leaves behind: unaffiliated members and an
+unlinked website page.
 """
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 import pytest
@@ -15,8 +18,17 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.darts.models import MAX_AIRPORT_IDENTIFIERS, MAX_DART_CONTACTS, Dart, DartContact
+from apps.members.models import MemberProfile
+from caldart import audit
 from tests.conftest import role_matrix
-from tests.factories import DartFactory, MemberProfileFactory, UserFactory
+from tests.factories import (
+    DartFactory,
+    MemberProfileFactory,
+    UserFactory,
+    make_dart_index,
+    make_dart_page,
+    make_home_page,
+)
 
 if TYPE_CHECKING:
     # rest_framework.test.APIClient.get() is typed to return this class, but it
@@ -32,6 +44,27 @@ LIST_URL = "/api/v1/admin/darts"
 def detail_url(dart: Dart) -> str:
     """Build the detail URL for one DART."""
     return f"/api/v1/admin/darts/{dart.pk}"
+
+
+@pytest.fixture
+def audit_log(caplog: pytest.LogCaptureFixture) -> Iterator[pytest.LogCaptureFixture]:
+    """Capture the ``caldart.audit`` records a test provokes.
+
+    The audit logger does not propagate to the root logger, so ``caplog`` alone
+    sees nothing: its handler is attached to the audit logger for the test and
+    taken off again afterwards.
+    """
+    logger = logging.getLogger(audit.LOGGER_NAME)
+    logger.addHandler(caplog.handler)
+    try:
+        yield caplog
+    finally:
+        logger.removeHandler(caplog.handler)
+
+
+def audit_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
+    """Every audit message captured, in the order it was logged."""
+    return [record.getMessage() for record in caplog.records if record.name == audit.LOGGER_NAME]
 
 
 def names(response: ApiResponse) -> list[str]:
@@ -275,26 +308,55 @@ def test_deleting_a_dart_nobody_is_on_removes_it(account_admin_client: APIClient
     assert not Dart.objects.filter(pk=dart.pk).exists()
 
 
-def test_deleting_a_dart_with_members_is_refused(account_admin_client: APIClient) -> None:
-    """The guard refuses, counts who is on it, and leaves the row in place."""
+def test_deleting_a_dart_makes_its_members_unaffiliated(
+    account_admin_client: APIClient,
+) -> None:
+    """A member on a deleted DART keeps their record and loses the team."""
+    dart = DartFactory(name="Napa")
+    profile = MemberProfileFactory(user=UserFactory(email="one@example.test"), dart=dart)
+
+    assert account_admin_client.delete(detail_url(dart)).status_code == 204
+
+    profile.refresh_from_db()
+    assert profile.dart is None
+
+
+def test_deleting_a_dart_keeps_the_member_itself(account_admin_client: APIClient) -> None:
+    """Unaffiliating a member is not deleting them: the profile is still there."""
+    dart = DartFactory(name="Napa")
+    profile = MemberProfileFactory(user=UserFactory(email="one@example.test"), dart=dart)
+
+    assert account_admin_client.delete(detail_url(dart)).status_code == 204
+
+    assert MemberProfile.objects.filter(pk=profile.pk).exists()
+
+
+def test_deleting_a_dart_keeps_the_website_page_it_was_linked_to(
+    account_admin_client: APIClient,
+) -> None:
+    """The team's own page is content, so it survives the team and loses the link."""
+    dart = DartFactory(name="Napa")
+    page = make_dart_page(make_dart_index(make_home_page()), dart)
+
+    assert account_admin_client.delete(detail_url(dart)).status_code == 204
+
+    page.refresh_from_db()
+    assert page.dart is None
+
+
+def test_the_delete_audit_line_counts_the_members_and_the_pages(
+    account_admin_client: APIClient, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """The line says what the delete left behind, because it cannot be undone."""
     dart = DartFactory(name="Napa")
     MemberProfileFactory(user=UserFactory(email="one@example.test"), dart=dart)
-    response = account_admin_client.delete(detail_url(dart))
-    assert response.status_code == 400
-    assert response.json()["detail"] == (
-        "This DART still has 1 member. "
-        "Move them first, or turn off 'Accepting members' to retire it."
-    )
-    assert Dart.objects.filter(pk=dart.pk).exists()
+    make_dart_page(make_dart_index(make_home_page()), dart)
 
+    account_admin_client.delete(detail_url(dart))
 
-def test_the_refusal_counts_several_members(account_admin_client: APIClient) -> None:
-    """Two members read as "2 members", not "2 member"."""
-    dart = DartFactory(name="Napa")
-    for address in ("one@example.test", "two@example.test"):
-        MemberProfileFactory(user=UserFactory(email=address), dart=dart)
-    response = account_admin_client.delete(detail_url(dart))
-    assert response.json()["detail"].startswith("This DART still has 2 members.")
+    line = audit_messages(audit_log)[-1]
+    assert line.startswith("action=dart.delete ")
+    assert line.endswith(" members=1 pages=1")
 
 
 # --------------------------------------------------------------------------

@@ -660,7 +660,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
-     - every DART, retired ones too
+     - every DART, inactive ones too
    * - ``GET | PATCH | DELETE /admin/darts/{id}``
      - ·
      - ·
@@ -668,7 +668,7 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ·
      - ✓
-     - delete refused while anything points at it
+     - delete always succeeds; members are unaffiliated and pages unlinked
    * - ``POST /admin/members/{id}/memberships``
      - ·
      - ·

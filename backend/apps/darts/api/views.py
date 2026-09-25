@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Count, QuerySet
 from rest_framework import generics
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 
 from apps.accounts.permissions import IsAccountAdmin
@@ -22,23 +21,6 @@ from caldart import audit
 
 if TYPE_CHECKING:
     from rest_framework.serializers import BaseSerializer
-
-
-def dart_in_use_message(members: int, pages: int) -> str:
-    """Why a DART cannot be deleted, counting what still points at it.
-
-    Names the members on the DART, the website pages linked to it, or both,
-    and says what to do instead.
-    """
-    parts = []
-    if members:
-        parts.append(f"{members} member{'s' if members != 1 else ''}")
-    if pages:
-        parts.append(f"{pages} website page{'s' if pages != 1 else ''}")
-    return (
-        f"This DART still has {' and '.join(parts)}. "
-        "Move them first, or turn off 'Accepting members' to retire it."
-    )
 
 
 class DartListView(generics.ListAPIView[Dart]):
@@ -93,22 +75,21 @@ class DartAdminDetailView(DartAdminBaseView, generics.RetrieveUpdateDestroyAPIVi
         audit.record(audit.DART_UPDATE, actor=acting_user(self.request), target=dart)
 
     def perform_destroy(self, instance: Dart) -> None:
-        """Delete a DART nothing points at, and refuse one that is in use.
+        """Delete the DART, whatever still points at it, and count what that was.
 
         A member's profile and a website page both point at a DART with
-        ``SET_NULL``, so deleting one in use would quietly empty those fields.
-        The answer is a 400 naming what would be left behind, and the screen
-        offers "not accepting members" instead, which keeps the history.
+        ``SET_NULL``: the members on it become unaffiliated and keep everything
+        else about their record, and a linked page keeps its content and loses
+        its DART.  The audit line carries the ``members`` and ``pages`` counts,
+        because nothing here can be undone.
         """
         members = instance.members.count()
         pages = instance.pages.count()
-        if members or pages:
-            audit.refuse(
-                audit.DART_DELETE,
-                actor=acting_user(self.request),
-                target=instance,
-                reason=audit.REASON_DART_IN_USE,
-            )
-            raise ValidationError({"detail": dart_in_use_message(members, pages)})
-        audit.record(audit.DART_DELETE, actor=acting_user(self.request), target=instance)
+        audit.record(
+            audit.DART_DELETE,
+            actor=acting_user(self.request),
+            target=instance,
+            members=members,
+            pages=pages,
+        )
         instance.delete()

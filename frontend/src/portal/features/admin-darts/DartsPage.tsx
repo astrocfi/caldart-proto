@@ -3,9 +3,10 @@
  *
  * One table, one button to add a DART, and the same form to edit one.  The
  * table offers only Edit; deleting a team happens in the form, where its name
- * and its people are on screen.  A DART nobody is on can be deleted; every
- * other one is retired instead, by turning off "Accepting members", which keeps
- * the members and the history attached to it.
+ * and its people are on screen.  Any DART can be deleted: the members on it
+ * become unaffiliated and a linked website page keeps its content, so the
+ * confirmation says what will be left behind.  A team that has stopped flying
+ * but should keep its history is made inactive instead.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -59,28 +60,26 @@ export function fieldErrors(error: unknown): Record<string, string> {
   return out;
 }
 
-/** What still points at a DART, as one readable phrase, or null when nothing does. */
-export function inUseBy(dart: AdminDart): string | null {
-  const parts: string[] = [];
+/**
+ * What deleting this DART leaves behind, as one sentence, or null when nothing.
+ *
+ * Both relations are `SET_NULL`: the members on the DART become unaffiliated
+ * and a linked website page keeps its own content and loses its DART.  A DART
+ * nothing points at needs no warning, so the sentence is only built when a
+ * count is above zero, and it names only the counts that are.
+ */
+export function deleteWarning(dart: AdminDart): string | null {
+  const clauses: string[] = [];
   if (dart.member_count > 0) {
-    parts.push(`${dart.member_count} member${dart.member_count === 1 ? '' : 's'}`);
+    const members = `${dart.member_count} member${dart.member_count === 1 ? '' : 's'}`;
+    clauses.push(`makes its ${members} unaffiliated`);
   }
   if (dart.page_count > 0) {
-    parts.push(`${dart.page_count} website page${dart.page_count === 1 ? '' : 's'}`);
+    const pages = `${dart.page_count} website page${dart.page_count === 1 ? '' : 's'}`;
+    clauses.push(`unlinks ${pages}`);
   }
-  return parts.length > 0 ? parts.join(' and ') : null;
-}
-
-/**
- * Why this DART cannot be deleted, as one sentence, or null when it can be.
- *
- * Both relations are `SET_NULL`, so deleting a DART that is still pointed at
- * would quietly empty the profiles and pages naming it.
- */
-export function deleteBlockedBy(dart: AdminDart): string | null {
-  const reason = inUseBy(dart);
-  if (reason === null) return null;
-  return `${dart.name} has ${reason} on it. Untick "Accepting members" instead.`;
+  if (clauses.length === 0) return null;
+  return `Deleting ${dart.name} ${clauses.join(' and ')}. This cannot be undone.`;
 }
 
 /** The DART list, with the add-and-edit form and the delete guard. */
@@ -124,9 +123,10 @@ export function DartsPage(): JSX.Element {
     );
   };
 
-  // The form waits on this promise to leave its confirmation, so the failure is
-  // reported here rather than thrown on: a DART that a page was linked to
-  // between the list load and the click says so and stays.
+  // The form waits on this promise to leave its confirmation, so a failure is
+  // reported here rather than thrown on: the administrator stays in the
+  // confirmation and reads what the server said, or the fallback wording when it
+  // said nothing usable.
   const handleDelete = async (dart: AdminDart): Promise<void> => {
     try {
       await remove.mutateAsync(dart.id);
@@ -189,12 +189,12 @@ export function DartsPage(): JSX.Element {
     {
       key: 'is_active',
       header: 'Status',
-      width: '11rem',
+      width: '7rem',
       render: (dart) =>
         dart.is_active ? (
-          <StatusChip tone="current" label="Accepting members" />
+          <StatusChip tone="current" label="Active" />
         ) : (
-          <StatusChip tone="none" label="Retired" />
+          <StatusChip tone="none" label="Inactive" />
         ),
       sortValue: (dart) => (dart.is_active ? 0 : 1),
     },
@@ -253,7 +253,7 @@ export function DartsPage(): JSX.Element {
             onSubmit={(payload) => handleUpdate(open.id, payload)}
             onCancel={handleClose}
             onDelete={() => handleDelete(open)}
-            deleteBlockedBy={deleteBlockedBy(open)}
+            deleteWarning={deleteWarning(open)}
             deletePending={remove.isPending}
           />
         </Card>
