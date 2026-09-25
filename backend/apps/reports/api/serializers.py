@@ -190,13 +190,20 @@ class ReportSubscriptionSerializer(serializers.ModelSerializer[ReportSubscriptio
         return creator.display_name if creator is not None else ""
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Check the edit against the subscription's report and its recipient."""
+        """Check the edit against the subscription's report and its recipient.
+
+        The filters and columns are checked only when the edit changes one of them, so
+        a subscription whose stored filters no longer build can still be paused.
+        """
         instance = self.instance
         assert isinstance(instance, ReportSubscription)  # noqa: S101 - PATCH has an instance
         spec = REPORTS[instance.report]
-        checked_contents(
-            spec, attrs.get("filters", instance.filters), attrs.get("columns", instance.columns)
-        )
+        if "filters" in attrs or "columns" in attrs:
+            checked_contents(
+                spec,
+                attrs.get("filters", instance.filters),
+                attrs.get("columns", instance.columns),
+            )
         user = instance.recipient_user
         resuming = attrs.get("is_active") is True
         if resuming and user is not None and not recipient_may_read(instance, spec):

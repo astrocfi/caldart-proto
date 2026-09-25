@@ -2,32 +2,45 @@
 
 ``next_due_after`` over every cadence from several dates; a run on a frozen clock
 sends what is due and nothing else, moves each sent subscription on, leaves a refused
-send due, pauses a recipient who lost the role, attaches both files for ``both``, and
-writes one audit line.  The DART rosters the same run sends are covered by
-``test_dart_rosters.py``, and the endpoints by ``test_report_subscriptions.py``.
+send or a report that no longer builds due, brings the recipient up to date, pauses a
+recipient who lost the role, attaches both files for ``both``, sends nothing twice when
+two runs overlap, and writes one audit line.  The DART rosters the same run sends are
+covered by ``test_dart_rosters.py``, and the endpoints by
+``test_report_subscriptions.py``.
 """
 
 from __future__ import annotations
 
+import threading
+import time
+from collections.abc import Callable
 from datetime import date
 from io import StringIO
+from typing import Any
 
 import pytest
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import connections
 from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import SYSTEM_ADMIN
+from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.cms.models import SiteSettings
 from apps.mail.models import EmailLog, EmailStatus
 from apps.reports.schedule import next_due_after, schedule_label
-from apps.reports.services import run_scheduled_reports
+from apps.reports.services import ReportRun, run_scheduled_reports
 from caldart import audit
+from caldart.mail import send_templated
 from tests.conftest import DEPLOY_DIR, Golden, PdfText, audit_messages, role_matrix
-from tests.factories import ReportSubscriptionFactory
+from tests.factories import (
+    DartContactFactory,
+    DartFactory,
+    ReportSubscriptionFactory,
+    UserFactory,
+)
 
 RUN_URL = "/api/v1/system/reports/run"
 
@@ -206,6 +219,99 @@ def test_a_refused_send_is_in_the_email_log(refusing_mail_server: None) -> None:
 
 
 @pytest.mark.django_db
+def test_a_subscription_whose_filters_no_longer_build_fails_and_stays_due(
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """Stored filters the report now refuses fail that send alone; the run goes on."""
+    broken = ReportSubscriptionFactory(filters={"status": "sideways"}, next_due_on=TODAY)
+    ReportSubscriptionFactory(recipient_email="board@example.org", next_due_on=TODAY)
+
+    run = run_scheduled_reports(today=TODAY)
+
+    broken.refresh_from_db()
+    assert run.failed == 1
+    assert broken.next_due_on == TODAY
+    assert broken.last_sent_at is None
+    assert [message.to for message in mailoutbox] == [["board@example.org"]]
+
+
+@pytest.mark.django_db
+def test_a_dry_run_counts_a_subscription_that_would_not_build_as_failed(
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """A rehearsal builds the report, so it names no email the live run would not send."""
+    ReportSubscriptionFactory(report="payments", filters={"period": "someday"}, next_due_on=TODAY)
+
+    run = run_scheduled_reports(today=TODAY, dry_run=True)
+
+    assert (run.sent, run.failed, run.actions) == (0, 1, [])
+
+
+@pytest.mark.django_db
+def test_the_email_names_the_filters_the_report_applied(
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """The body's filters are the report's resolved ones, as the PDF's subtitle prints."""
+    ReportSubscriptionFactory(
+        report="payments", filters={"period": "this_year"}, formats="pdf", next_due_on=TODAY
+    )
+
+    run_scheduled_reports(today=TODAY)
+
+    assert "Filters: from: 2026-01-01 \u00b7 to: 2026-12-31" in str(mailoutbox[0].body)
+
+
+@pytest.mark.django_db
+def test_a_bound_subscription_follows_its_accounts_address(
+    account_admin: User, mailoutbox: list[EmailMessage]
+) -> None:
+    """The report goes to the account's address as it is on the day it is sent."""
+    subscription = ReportSubscriptionFactory(
+        recipient_user=account_admin, recipient_email=account_admin.email, next_due_on=TODAY
+    )
+    account_admin.email = "moved@example.test"
+    account_admin.save(update_fields=["email"])
+
+    run_scheduled_reports(today=TODAY)
+
+    subscription.refresh_from_db()
+    assert [message.to for message in mailoutbox] == [["moved@example.test"]]
+    assert subscription.recipient_email == "moved@example.test"
+
+
+@pytest.mark.django_db
+def test_a_bare_address_an_account_without_the_role_takes_is_paused(
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """Once an account holds the address, the account must be allowed the report."""
+    subscription = ReportSubscriptionFactory(recipient_email="board@example.org", next_due_on=TODAY)
+    member = UserFactory(email="Board@example.org")
+
+    run = run_scheduled_reports(today=TODAY)
+
+    subscription.refresh_from_db()
+    assert run.skipped_by_reason == {"not_permitted": 1}
+    assert subscription.recipient_user == member
+    assert subscription.is_active is False
+    assert mailoutbox == []
+
+
+@pytest.mark.django_db
+def test_a_bare_address_an_account_with_the_role_takes_is_bound_to_it(
+    mailoutbox: list[EmailMessage],
+) -> None:
+    """An account allowed the report takes the subscription over and is sent it."""
+    subscription = ReportSubscriptionFactory(recipient_email="board@example.org", next_due_on=TODAY)
+    admin = UserFactory(email="board@example.org", roles=[ACCOUNT_ADMIN])
+
+    run = run_scheduled_reports(today=TODAY)
+
+    subscription.refresh_from_db()
+    assert run.sent == 1
+    assert subscription.recipient_user == admin
+
+
+@pytest.mark.django_db
 def test_a_recipient_who_lost_the_role_is_skipped_and_paused(
     treasurer: User, mailoutbox: list[EmailMessage]
 ) -> None:
@@ -360,6 +466,72 @@ def test_the_run_names_each_email_in_its_lines(mailoutbox: list[EmailMessage]) -
     assert lines[-1] == (
         "emailed report to board@example.org <board@example.org> (CalDART membership report, PDF)"
     )
+
+
+# -- two runs at once --------------------------------------------------------
+#: How long each send holds its subscription before it goes out, so the second run
+#: reaches the row while the first still holds it.
+HOLD_SECONDS = 0.3
+
+#: How long the test waits for a thread before giving up rather than hanging.
+JOIN_TIMEOUT_SECONDS = 30.0
+
+
+def run_in_thread(start: threading.Barrier, runs: list[ReportRun], failures: list[str]) -> None:
+    """Run the sender as soon as the other thread is ready, recording what it did."""
+    try:
+        start.wait(timeout=JOIN_TIMEOUT_SECONDS)
+        runs.append(run_scheduled_reports(today=TODAY))
+    # A thread's exception would otherwise be printed and lost; the test asserts on
+    # what it caught instead.
+    except Exception as exc:
+        failures.append(f"{type(exc).__name__}: {exc}")
+    finally:
+        # Each thread opened its own connection; closing it lets the teardown flush.
+        connections.close_all()
+
+
+def due_subscription() -> None:
+    """One subscription due on ``TODAY``."""
+    ReportSubscriptionFactory(next_due_on=TODAY)
+
+
+def due_roster() -> None:
+    """One active DART, never sent a roster, with one person ticked to receive it."""
+    DartContactFactory(dart=DartFactory(), email="lee@example.test", receives_roster=True)
+
+
+# The threads must see each other's committed rows and locks, so this test runs
+# against a real, committing database rather than the usual wrapping transaction.
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("make_due", [due_subscription, due_roster], ids=["subscription", "roster"])
+def test_two_runs_at_once_send_once(
+    monkeypatch: pytest.MonkeyPatch,
+    mailoutbox: list[EmailMessage],
+    make_due: Callable[[], None],
+) -> None:
+    """The run that takes a due subscription or DART sends it; the other passes it by."""
+
+    def held_send(**kwargs: Any) -> None:
+        time.sleep(HOLD_SECONDS)
+        send_templated(**kwargs)
+
+    monkeypatch.setattr("apps.reports.services.send_templated", held_send)
+    make_due()
+    start = threading.Barrier(2)
+    runs: list[ReportRun] = []
+    failures: list[str] = []
+    threads = [
+        threading.Thread(target=run_in_thread, args=(start, runs, failures)) for _ in range(2)
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=JOIN_TIMEOUT_SECONDS)
+
+    assert failures == []
+    assert sorted(run.sent for run in runs) == [0, 1]
+    assert len(mailoutbox) == 1
 
 
 # -- the command and the endpoint --------------------------------------------

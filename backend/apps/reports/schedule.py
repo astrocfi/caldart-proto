@@ -52,7 +52,7 @@ def next_due_after(cadence: str, weekday: int, day: date) -> date:
 def _first_of_month_after(day: date, months: tuple[int, ...]) -> date:
     """The first day of the earliest month in ``months`` that begins after ``day``."""
     later = [month for month in months if month > day.month]
-    if later:
+    if len(later) > 0:
         return date(day.year, later[0], 1)
     return date(day.year + 1, months[0], 1)
 

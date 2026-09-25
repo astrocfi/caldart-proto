@@ -10,7 +10,9 @@ Every file attached is built by :func:`caldart.reports.build_report`, exactly as
 report's download builds it, and every email goes through
 :func:`caldart.mail.send_templated`, so the email log records each one.  One
 recipient's problem never stops a run: a send the mail server refuses is counted in
-``failed`` and left due, so the next daily run tries again.
+``failed`` and left due, so the next daily run tries again.  Each subscription and each
+DART is sent inside its own transaction holding its row, so two runs at once (the
+timer and a system administrator's run, say) never send one of them twice.
 """
 
 from __future__ import annotations
@@ -21,10 +23,12 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from typing import Any
 
+from django.db import transaction
 from django.db.models import Model, Q, QuerySet
 from django.utils import dateformat, timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.accounts.models import User
 from apps.darts.models import Dart, DartContact
 from apps.members.filters import MemberAdminFilterSet, member_admin_queryset
 from apps.members.reports import MEMBER_REPORT
@@ -42,7 +46,6 @@ from caldart.reports import (
     apply_filterset,
     build_report,
     filter_summary,
-    given_params,
 )
 from caldart.runs import RunAction, action_lines
 
@@ -89,6 +92,10 @@ FORMAT_LABELS: dict[str, str] = {
 
 #: What a refused send raises: the mail server's refusal, or a dropped connection.
 SEND_ERRORS: tuple[type[Exception], ...] = (smtplib.SMTPException, OSError)
+
+#: What a subscription's send can fail with: a refused send, or a report the stored
+#: params no longer build.
+SUBSCRIPTION_ERRORS: tuple[type[Exception], ...] = (*SEND_ERRORS, ValidationError)
 
 #: The prose date format of every email: ``October 1, 2026``.
 PROSE_DATE = "F j, Y"
@@ -156,7 +163,7 @@ class ReportRun:
         ]
         for reason in SKIP_REASONS:
             count = self.skipped_by_reason.get(reason, 0)
-            if count:
+            if count > 0:
                 lines.append(f"  {reason:<14} {count}")
         lines.append(f"failed           {self.failed}")
         return lines + action_lines(self.actions, dry_run=self.dry_run)
@@ -169,13 +176,35 @@ def recipient_may_read(subscription: ReportSubscription, spec: Report) -> bool:
     """Whether ``subscription`` may still go where it goes.
 
     A subscription bound to an account needs that account to be active and to hold a
-    role that may read ``spec``; one sent to a bare address was confirmed when it was
-    set up and always may.
+    role that may read ``spec``; one sent to a bare address no account holds was
+    confirmed when it was set up and always may.
     """
     user = subscription.recipient_user
     if user is None:
         return True
     return user.is_active and can_read_report(user, spec)
+
+
+def refresh_recipient(subscription: ReportSubscription) -> bool:
+    """Bring ``subscription``'s recipient up to date, in memory; True when it changed.
+
+    A subscription bound to an account takes the account's current address.  One sent
+    to a bare address that an account has since taken (compared without regard to
+    case) is bound to that account and takes its address, so the account's roles
+    decide whether it may still be sent.
+    """
+    user = subscription.recipient_user
+    if user is None:
+        user = User.objects.filter(email__iexact=subscription.recipient_email).first()
+        if user is None:
+            return False
+        subscription.recipient_user = user
+        subscription.recipient_email = user.email
+        return True
+    if subscription.recipient_email == user.email:
+        return False
+    subscription.recipient_email = user.email
+    return True
 
 
 def subscription_params(subscription: ReportSubscription) -> Params:
@@ -184,7 +213,7 @@ def subscription_params(subscription: ReportSubscription) -> Params:
     An empty column list leaves ``columns`` out, which is the report's defaults.
     """
     params: dict[str, str] = dict(subscription.filters)
-    if subscription.columns:
+    if len(subscription.columns) > 0:
         params["columns"] = ",".join(subscription.columns)
     return params
 
@@ -211,15 +240,29 @@ def subscription_documents(
     ]
 
 
-def send_subscription_email(subscription: ReportSubscription, spec: Report, today: date) -> None:
+def applied_filters(subscription: ReportSubscription, spec: Report, today: date) -> str:
+    """The filters ``subscription``'s report applies on ``today``, as its PDF names them.
+
+    The report is built from the stored params, so a period reads as the dates it
+    resolves to, exactly as the PDF's subtitle prints it.  Params the report no longer
+    builds from raise DRF's ``ValidationError``.
+    """
+    table = spec.table(subscription_params(subscription), fmt="pdf", today=today)
+    return filter_summary(table.filters)
+
+
+def send_subscription_email(
+    subscription: ReportSubscription, spec: Report, today: date, *, filters: str
+) -> None:
     """Build ``subscription``'s files for ``today`` and email them to its recipient.
 
     The subject reads ``CalDART report: <title> (<Month D, YYYY>)``, and the body
-    (``emails/scheduled_report.{txt,html}``) names the report, its filters, the
-    schedule and who set it up.  The email log records the send under the purpose
-    ``scheduled_report``, with the recipient's account when there is one.  A report
-    the stored params no longer build raises DRF's ``ValidationError``, and a refusing
-    mail server raises as :func:`~caldart.mail.send_templated` does.
+    (``emails/scheduled_report.{txt,html}``) names the report, ``filters`` (the
+    summary :func:`applied_filters` gives), the schedule and who set it up.  The email
+    log records the send under the purpose ``scheduled_report``, with the recipient's
+    account when there is one.  A report the stored params no longer build raises
+    DRF's ``ValidationError``, and a refusing mail server raises as
+    :func:`~caldart.mail.send_templated` does.
     """
     documents = subscription_documents(subscription, spec, today)
     attachments: list[Attachment] = [
@@ -233,7 +276,7 @@ def send_subscription_email(subscription: ReportSubscription, spec: Report, toda
         "first_name": (user.first_name or user.display_name) if user is not None else "",
         "report_title": spec.title,
         "report_date": today,
-        "filters": filter_summary(given_params(subscription.filters)),
+        "filters": filters,
         "schedule": schedule_label(subscription.cadence, subscription.weekday),
         "formats": FORMAT_LABELS[subscription.formats],
         "created_by": creator.display_name if creator is not None else "",
@@ -260,15 +303,19 @@ def send_subscription(
 ) -> None:
     """Send ``subscription`` once, recording the outcome on ``run``.
 
-    A recipient who may no longer read the report (:func:`recipient_may_read`) is
-    skipped as ``not_permitted`` and the subscription is paused.  Otherwise the email
-    goes out, ``last_sent_at`` is stamped and, when ``advance`` is set, ``next_due_on``
-    moves to the schedule's next day after ``today``.  A report that cannot be built
-    from the stored params, or a send the mail server refuses, is counted in
-    ``failed`` and changes nothing, so the subscription stays due.  A dry run records
-    what would happen and writes nothing.
+    The recipient is brought up to date first (:func:`refresh_recipient`), and saved
+    when it changed.  A recipient who may no longer read the report
+    (:func:`recipient_may_read`) is skipped as ``not_permitted`` and the subscription
+    is paused.  Otherwise the email goes out, ``last_sent_at`` is stamped and, when
+    ``advance`` is set, ``next_due_on`` moves to the schedule's next day after
+    ``today``.  A report that cannot be built from the stored params, or a send the
+    mail server refuses, is counted in ``failed`` and changes nothing else, so the
+    subscription stays due.  A dry run builds the report's table, so it fails exactly
+    the subscriptions a live run would, records what would happen, and writes nothing.
     """
     spec = REPORTS[subscription.report]
+    if refresh_recipient(subscription) and not dry_run:
+        subscription.save(update_fields=["recipient_user", "recipient_email", "updated_at"])
     if not recipient_may_read(subscription, spec):
         run.record_skipped("not_permitted")
         if not dry_run:
@@ -276,12 +323,13 @@ def send_subscription(
             subscription.save(update_fields=["is_active", "updated_at"])
         return
     action = subscription_action(subscription, spec)
-    if dry_run:
-        run.record_sent(action)
-        return
     try:
-        send_subscription_email(subscription, spec, today)
-    except (smtplib.SMTPException, OSError, ValidationError) as exc:
+        filters = applied_filters(subscription, spec, today)
+        if dry_run:
+            run.record_sent(action)
+            return
+        send_subscription_email(subscription, spec, today, filters=filters)
+    except SUBSCRIPTION_ERRORS as exc:
         # The id and the exception class only: the log is not a place to collect
         # addresses, and the email log already names the refused one.
         log.error(
@@ -304,6 +352,25 @@ def due_subscriptions(today: date) -> QuerySet[ReportSubscription]:
     """Every active subscription whose ``next_due_on`` is ``today`` or earlier."""
     return ReportSubscription.objects.select_related("recipient_user", "created_by").filter(
         is_active=True, next_due_on__lte=today
+    )
+
+
+def due_subscription_ids(today: date) -> list[int]:
+    """The ids of every subscription :func:`due_subscriptions` holds, in id order."""
+    return list(due_subscriptions(today).order_by("pk").values_list("pk", flat=True))
+
+
+def claim_due_subscription(pk: int, today: date) -> ReportSubscription | None:
+    """Lock subscription ``pk`` for the current transaction if it is still due.
+
+    ``None`` when another run holds it, or when it stopped being due since it was
+    listed (that run sent it, or it was paused or deleted).
+    """
+    return (
+        due_subscriptions(today)
+        .select_for_update(skip_locked=True, of=("self",))
+        .filter(pk=pk)
+        .first()
     )
 
 
@@ -344,6 +411,20 @@ def due_rosters(today: date) -> QuerySet[Dart]:
         .prefetch_related("contacts")
         .order_by("name")
     )
+
+
+def due_roster_ids(today: date) -> list[int]:
+    """The ids of every DART :func:`due_rosters` holds, in name order."""
+    return list(due_rosters(today).values_list("pk", flat=True))
+
+
+def claim_due_roster(pk: int, today: date) -> Dart | None:
+    """Lock DART ``pk`` for the current transaction if its roster is still due.
+
+    ``None`` when another run holds it, or when it stopped being due since it was
+    listed.
+    """
+    return due_rosters(today).select_for_update(skip_locked=True).filter(pk=pk).first()
 
 
 def roster_member_count(dart: Dart) -> int:
@@ -395,7 +476,7 @@ def send_roster(run: ReportRun, dart: Dart, *, today: date, dry_run: bool) -> No
     records the emails and writes nothing.
     """
     reachable = dart.roster_recipients()
-    if not reachable:
+    if len(reachable) == 0:
         run.record_skipped("no_recipients")
         return
     ticked = [contact for contact in dart.contacts.all() if contact.receives_roster]
@@ -468,16 +549,26 @@ def run_scheduled_reports(
     Nothing raises for one recipient: refusals are counted and retried by the next
     run.  A dry run writes nothing but records every email it would send.
 
+    Each subscription and each DART is sent in its own transaction, holding its row
+    and checking again that it is still due; one another run holds is passed by
+    (that run sends it), so two runs at once send nothing twice.
+
     Every run ends with one ``reports.run`` audit line carrying the mode and the
     three counts; ``actor`` is the account that asked for it, or ``command`` for the
     management command and the daily timer.
     """
     day = timezone.localdate() if today is None else today
     run = ReportRun(today=day, dry_run=dry_run)
-    for subscription in due_subscriptions(day):
-        send_subscription(run, subscription, today=day, dry_run=dry_run, advance=True)
-    for dart in due_rosters(day):
-        send_roster(run, dart, today=day, dry_run=dry_run)
+    for pk in due_subscription_ids(day):
+        with transaction.atomic():
+            subscription = claim_due_subscription(pk, day)
+            if subscription is not None:
+                send_subscription(run, subscription, today=day, dry_run=dry_run, advance=True)
+    for pk in due_roster_ids(day):
+        with transaction.atomic():
+            dart = claim_due_roster(pk, day)
+            if dart is not None:
+                send_roster(run, dart, today=day, dry_run=dry_run)
     audit.record(
         audit.REPORTS_RUN,
         actor=actor,

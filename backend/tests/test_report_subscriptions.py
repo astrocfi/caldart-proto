@@ -321,6 +321,19 @@ def test_pausing_a_subscription(account_admin_client: APIClient) -> None:
     assert subscription.is_active is False
 
 
+def test_a_subscription_whose_filters_no_longer_build_can_be_paused(
+    account_admin_client: APIClient,
+) -> None:
+    """Pausing checks nothing else, so a subscription failing every run can be stopped."""
+    subscription = ReportSubscriptionFactory(filters={"status": "sideways"})
+
+    response = account_admin_client.patch(
+        subscription_url(subscription), {"is_active": False}, format="json"
+    )
+
+    assert response.status_code == 200
+
+
 def test_changing_the_schedule_moves_the_next_due_day(
     account_admin_client: APIClient, today: date
 ) -> None:
