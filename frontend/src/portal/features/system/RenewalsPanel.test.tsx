@@ -76,7 +76,7 @@ describe('RenewalsPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'What a live run would do' }),
+      await screen.findByRole('heading', { name: 'What this run would do' }),
     ).toBeInTheDocument();
     const noticeRow = screen.getByRole('row', { name: /Dana Lee/ });
     expect(noticeRow).toHaveTextContent('Notice');

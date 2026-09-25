@@ -566,6 +566,11 @@ th.numeric {
   font-variant-numeric: tabular-nums;
 }
 
+/* --------------------------------------------------------- run actions */
+.run-actions {
+  margin-top: var(--space-5);
+}
+
 /* ------------------------------------------------------- status chips */
 /* A dot carries a status where a chip in every row would shout.  The meaning
  * always rides in the accessible name beside it, never in the color alone. */

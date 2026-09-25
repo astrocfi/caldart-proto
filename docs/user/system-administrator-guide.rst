@@ -122,10 +122,12 @@ When you do want to run it by hand:
 
 1. Leave **Dry run (send nothing)** ticked the first time.  It reports what
    *would* go out without sending anything or recording anything.
-2. Press **Run now**.  The result reads, for example, "Would send 4 emails,
-   skipped 2."  Skipped means already sent, or the member has renewed, or their
-   membership renews itself, or they hold a lifetime membership, or their
-   account is deactivated, or there is no address on file.
+2. Press **Run now**.  A heading reads **What this run would do**, or
+   **What this run did** after a real run, and under it the result reads, for
+   example, "Would send 4 emails, skipped 2."  Skipped means already sent, or
+   the member has renewed, or their membership renews itself, or they hold a
+   lifetime membership, or their account is deactivated, or there is no
+   address on file.
 3. If the numbers look right and you have a reason to send now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
 
@@ -136,11 +138,10 @@ on file -- for example, "Skipped: already sent 10, auto-renew on 2."  When the
 mail server refuses at least one send, a further line reads, for example,
 "Failed 2.", counting the sends that are in neither of the other two totals.
 
-Underneath the result, a table headed **What a live run would do** after a
-rehearsal, or **What this run did** after a real one, names every action
-behind those numbers: which reminder, the member and their address, the day
-their term runs out, and the amount — always empty here, since a reminder
-moves no money.  It is empty when nothing was due.
+Underneath, a table names every action behind those numbers: which reminder,
+the member and their address, the day their term runs out, and the amount —
+always empty here, since a reminder moves no money.  It is empty when nothing
+was due.
 
 A rehearsal on the server says the same thing on a shell.  ``caldart_manage
 send_renewal_reminders --dry-run`` prints one line per member under the counts --
@@ -213,22 +214,22 @@ It works like the reminders one:
 
 1. Leave **Dry run (send nothing)** ticked the first time.  It reports what
    *would* go out without sending anything or changing any date.
-2. Press **Run now**.  The result reads, for example, "Would send 5 emails,
-   skipped 1."  When something was skipped, a line under it gives the reasons:
-   *no longer permitted* (the recipient's account has lost the role that reads
-   the report, and a live run pauses the subscription), *nobody ticked* (a DART
-   with nobody ticked to receive its roster), and *no address on file* (a
-   ticked person with no email address).  When the mail server refuses a send,
-   or a subscription's report can no longer be built, a further line reads, for
-   example, "Failed 1."; that subscription stays due and the next run tries it
-   again.
+2. Press **Run now**.  A heading reads **What this run would do**, or
+   **What this run did** after a real run, and under it the result reads, for
+   example, "Would send 5 emails, skipped 1."  When something was skipped, a
+   line under it gives the reasons: *no longer permitted* (the recipient's
+   account has lost the role that reads the report, and a live run pauses the
+   subscription), *nobody ticked* (a DART with nobody ticked to receive its
+   roster), and *no address on file* (a ticked person with no email address).
+   When the mail server refuses a send, or a subscription's report can no
+   longer be built, a further line reads, for example, "Failed 1."; that
+   subscription stays due and the next run tries it again.
 3. If the numbers look right and you have a reason to send now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
 
-Underneath, a table headed **What a live run would do** after a rehearsal, or
-**What this run did** after a real one, names every email: *Report* or
-*Roster*, the person and their address, and the report and its formats or the
-DART.  It is empty when nothing was due.
+Underneath, a table names every email: *Report* or *Roster*, the person and
+their address, and the report and its formats or the DART.  It is empty when
+nothing was due.
 
 Running it twice sends nothing twice: a subscription that has gone out is not
 due again until its next date, and a DART is sent one roster a month.  What is
@@ -257,24 +258,25 @@ one:
 1. Leave **Dry run (charge nothing)** ticked the first time.  It reports what
    *would* happen without charging anybody, emailing anybody or writing
    anything.
-2. Press **Run now**.  The result reads, for example, "Would notice 2, warn 0,
-   charge 1, fail 0, pause 0, and skip 3", and a real run says the same in the
-   past tense.  *Noticed* is the fortnight's-warning emails, *warned* the
-   members whose saved card expires before their next charge,
-   *charged* the renewals taken, *failed* the charges a provider refused,
-   *paused* the members whose last retry was refused, or whose membership had
-   lapsed too long to catch up, and whose automatic renewal has therefore
-   switched itself off, and *skipped* the ones that needed nothing doing.
+2. Press **Run now**.  A heading reads **What this run would do**, or
+   **What this run did** after a real run, and under it the result reads, for
+   example, "Would notice 2, warn 0, charge 1, fail 0, pause 0, and skip 3",
+   and a real run says the same in the past tense.  *Noticed* is the
+   fortnight's-warning emails, *warned* the members whose saved card expires
+   before their next charge, *charged* the renewals taken, *failed* the
+   charges a provider refused, *paused* the members whose last retry was
+   refused, or whose membership had lapsed too long to catch up, and whose
+   automatic renewal has therefore switched itself off, and *skipped* the
+   ones that needed nothing doing.
 3. If the numbers look right and you have a reason to run now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
    A real run asks before it starts, because it charges every member whose
    renewal is due: press **Yes, charge what is due** to go ahead, or
    **Cancel** to think again.
 
-Underneath the result, a table headed **What a live run would do** after a
-rehearsal, or **What this run did** after a real one, names every email and
-every charge behind those numbers: what it was, the member and their
-address, when, and how much.  It is empty when nothing was due.
+Underneath, a table names every email and every charge behind those numbers:
+what it was, the member and their address, when, and how much.  It is empty
+when nothing was due.
 
 Here too a rehearsal on the server names the people behind the numbers.
 ``caldart_manage run_auto_renewals --dry-run`` prints one line per email it would

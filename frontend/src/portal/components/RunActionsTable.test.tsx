@@ -17,7 +17,7 @@ const ACTIONS: RunAction[] = [
 
 describe('actionsHeading', () => {
   it('names a rehearsal', () => {
-    expect(actionsHeading(true)).toBe('What a live run would do');
+    expect(actionsHeading(true)).toBe('What this run would do');
   });
 
   it('names a real run', () => {
@@ -31,6 +31,42 @@ describe('RunActionsTable', () => {
 
     const table = screen.getByRole('table', { name: '1 action' });
     expect(within(table).getByRole('row', { name: /Dana Lee/ })).toHaveTextContent('Notice');
+  });
+
+  it('wraps the heading and the table in a spaced block the caller can space from what came before', () => {
+    const { container } = render(
+      <RunActionsTable actions={ACTIONS} dryRun={false} kindLabel={() => 'Notice'} />,
+    );
+
+    const wrapper = container.querySelector('.run-actions');
+    expect(wrapper).toBeInTheDocument();
+    expect(wrapper).toHaveClass('stack-tight');
+  });
+
+  it('renders the heading first, then the summary, then the table', () => {
+    render(
+      <RunActionsTable
+        actions={ACTIONS}
+        dryRun={false}
+        kindLabel={() => 'Notice'}
+        summary={<p role="status">Sent 1 email, skipped 0.</p>}
+      />,
+    );
+
+    const heading = screen.getByRole('heading', { name: 'What this run did' });
+    const summary = screen.getByRole('status');
+    const table = screen.getByRole('table');
+
+    expect(
+      heading.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(summary.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders no summary content when the caller passes none', () => {
+    render(<RunActionsTable actions={ACTIONS} dryRun={false} kindLabel={() => 'Notice'} />);
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it("shows each action's detail under the heading the caller names", () => {

@@ -112,7 +112,7 @@ test('a system administrator rehearses the renewal scan', async ({ page }) => {
   await panel.getByRole('button', { name: 'Run now' }).click();
 
   await expect(panel.getByRole('status').filter({ hasText: /^Would notice / })).toBeVisible();
-  await expect(panel.getByRole('heading', { name: 'What a live run would do' })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'What this run would do' })).toBeVisible();
 });
 
 test("a treasurer sees a life member's standing authority as a contribution", async ({ page }) => {

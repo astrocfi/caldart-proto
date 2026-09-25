@@ -66,7 +66,7 @@ test('a system administrator keeps the run controls on the System page', async (
 
   await panel.getByRole('button', { name: 'Run now' }).click();
   await expect(panel.getByRole('status').filter({ hasText: /^Would send / })).toBeVisible();
-  await expect(panel.getByRole('heading', { name: 'What a live run would do' })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'What this run would do' })).toBeVisible();
 
   // The fresh seed always leaves at least one member inside a reminder stage
   // with no mandate covering them, so the rehearsal's table is never empty.
