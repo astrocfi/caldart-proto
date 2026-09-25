@@ -1,7 +1,7 @@
 /**
  * The renewal reminder log as each role sees it: an account administrator
  * reads and filters it, a DART leader cannot reach it, and only a system
- * administrator can start a scan.
+ * administrator can start a scan or read the email log behind it.
  */
 import { expect, test } from '@playwright/test';
 
@@ -67,4 +67,31 @@ test('a system administrator keeps the run controls on the System page', async (
   await panel.getByRole('button', { name: 'Run now' }).click();
   await expect(panel.getByRole('status').filter({ hasText: /^Would send / })).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'What a live run would do' })).toBeVisible();
+
+  // The fresh seed always leaves at least one member inside a reminder stage
+  // with no mandate covering them, so the rehearsal's table is never empty.
+  await expect(panel.getByRole('table', { name: /^[1-9]\d* actions?$/ })).toBeVisible();
+});
+
+test('a system administrator reads the email log and filters it by purpose', async ({ page }) => {
+  await signIn(page, DEMO.sysadmin);
+  await page.goto('/portal/system');
+
+  const panel = page
+    .locator('section.card')
+    .filter({ has: page.getByRole('heading', { name: 'Email log' }) });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByLabel('Purpose')).toBeVisible();
+  await expect(panel.getByLabel('Search')).toBeVisible();
+
+  // Picking a purpose sends the filter to the API rather than trimming the
+  // page, and the table renders the answer: a 403 would leave the same empty
+  // table, so the response status is what proves the log is readable here.
+  const filtered = page.waitForResponse(
+    (response) =>
+      response.url().includes('/system/emails') && response.url().includes('purpose=receipt'),
+  );
+  await panel.getByLabel('Purpose').selectOption('receipt');
+  expect((await filtered).status()).toBe(200);
+  await expect(panel.getByLabel('Purpose')).toHaveValue('receipt');
 });
