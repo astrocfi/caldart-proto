@@ -443,7 +443,7 @@ def test_the_run_endpoint_answers_the_run(
 
 
 def test_the_reports_timer_runs_daily_at_six() -> None:
-    """The reports timer fires the daily service at 06:00 and catches up after a reboot."""
+    """The reports timer fires the daily service at 06:00, catching up after a reboot."""
     service = (DEPLOY_DIR / "systemd" / "caldart-reports.service").read_text()
     timer = (DEPLOY_DIR / "systemd" / "caldart-reports.timer").read_text()
 
