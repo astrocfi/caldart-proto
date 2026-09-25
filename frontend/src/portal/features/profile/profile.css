@@ -29,10 +29,13 @@
 /* `input[type='tel']` in base.css sets width: 100%, and a single class does
  * not outrank an element-plus-attribute selector, so both widths here are
  * written with two classes.  The inputs are `border-box`, so the widths below
- * include the padding: `415-555-0100` and a six-digit extension both fit with
- * room to spare. */
+ * include the padding.  A phone box the width of the number it holds reads as
+ * an afterthought beside the address fields above it, so the boxes are wider
+ * than the number strictly needs; the same widths apply wherever
+ * `ProfileFieldsets` renders, on the member's own profile form and on the
+ * account administrator's member screens alike. */
 .field-pair .field-pair__main {
-  width: 16ch;
+  width: 32ch;
   flex: 0 0 auto;
 }
 
@@ -46,21 +49,8 @@
 }
 
 .field-pair .field-pair__extension input {
-  width: 9ch;
-  flex: 0 0 auto;
-}
-
-/* The profile form has a whole column to itself, and a phone box the width of
- * the number it holds reads as an afterthought beside the address fields above
- * it.  The widths above stay the fallback for the same fieldsets rendered
- * outside `.profile-form`, which today is the account administrator's member
- * screens, where the fields share the page with a tab strip and a sidebar. */
-.profile-form .field-pair .field-pair__main {
-  width: 32ch;
-}
-
-.profile-form .field-pair .field-pair__extension input {
   width: 14ch;
+  flex: 0 0 auto;
 }
 
 /* The ratings are read as two lines -- category and class, then instructor --
