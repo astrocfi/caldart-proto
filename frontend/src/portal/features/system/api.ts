@@ -14,6 +14,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { API_BASE, api } from '@/portal/api/client';
 import type {
   Backup,
+  EmailLogEntry,
   Health,
   Paginated,
   ReminderKind,
@@ -88,7 +89,9 @@ export function useRunReminders(): UseMutationResult<ReminderRunResult, unknown,
       api.post<ReminderRunResult>('/system/reminders/run', { dry_run: dryRun }),
     onSuccess: (_result, dryRun) => {
       // A dry run writes nothing, so there is no new log row to fetch.
-      if (!dryRun) void queryClient.invalidateQueries({ queryKey: ['system', 'reminders', 'log'] });
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: ['system', 'reminders', 'log'] });
+      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
     },
   });
 }
@@ -108,6 +111,7 @@ export function useRunRenewals(): UseMutationResult<RenewalRunResult, unknown, b
       if (dryRun) return;
       void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
+      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
     },
   });
 }
@@ -115,4 +119,33 @@ export function useRunRenewals(): UseMutationResult<RenewalRunResult, unknown, b
 /** Plain href so the browser downloads through the session cookie. */
 export function backupDownloadUrl(name: string): string {
   return `${API_BASE}/system/backups/${encodeURIComponent(name)}/download`;
+}
+
+/** How many of the most recent emails the log panel shows. */
+export const EMAIL_LOG_PAGE_SIZE = 50;
+
+/** Email log rows are cached per purpose and search term. `purpose` is `'all'` for no filter. */
+export function emailLogKey(
+  purpose: string,
+  search: string,
+): readonly ['system', 'emails', string, string] {
+  return ['system', 'emails', purpose, search] as const;
+}
+
+/** The newest emails the system has tried to send, via `GET /system/emails`. */
+export function useEmailLog(
+  purpose: string,
+  search: string,
+): UseQueryResult<Paginated<EmailLogEntry>> {
+  return useQuery({
+    queryKey: emailLogKey(purpose, search),
+    queryFn: () =>
+      api.get<Paginated<EmailLogEntry>>('/system/emails', {
+        query: {
+          purpose: purpose === 'all' ? undefined : purpose,
+          q: search === '' ? undefined : search,
+          page_size: EMAIL_LOG_PAGE_SIZE,
+        },
+      }),
+  });
 }

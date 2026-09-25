@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -7,7 +7,8 @@ import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { Paginated, ReminderLogEntry } from '@/portal/api/types';
-import { RemindersPanel, runSummary } from './RemindersPanel';
+import { EmailLogPanel } from './EmailLogPanel';
+import { RemindersPanel, runSummary, skippedBreakdown } from './RemindersPanel';
 
 const ENTRIES: ReminderLogEntry[] = [
   {
@@ -55,6 +56,28 @@ describe('runSummary', () => {
   });
 });
 
+describe('skippedBreakdown', () => {
+  it('lists every reason with a count above zero, in the order the guide gives them', () => {
+    expect(skippedBreakdown({ already_sent: 10, auto_renew: 2 })).toBe(
+      'Skipped: already sent 10, auto-renew on 2.',
+    );
+  });
+
+  it('says nothing when every reason is at zero', () => {
+    expect(skippedBreakdown({})).toBe('');
+  });
+
+  it('omits a reason present in the payload at zero', () => {
+    expect(skippedBreakdown({ already_sent: 0, lifetime: 3 })).toBe('Skipped: lifetime member 3.');
+  });
+
+  it('appends a reason it has no label for by its raw slug, rather than dropping it', () => {
+    expect(skippedBreakdown({ already_sent: 10, future_reason: 3 })).toBe(
+      'Skipped: already sent 10, future_reason 3.',
+    );
+  });
+});
+
 describe('RemindersPanel', () => {
   it('shows the reminder log under the run controls', async () => {
     server.use(logHandler(ENTRIES));
@@ -69,7 +92,13 @@ describe('RemindersPanel', () => {
       logHandler(ENTRIES),
       http.post(`${API}/system/reminders/run`, async ({ request }) => {
         bodies.push(await request.json());
-        return HttpResponse.json({ sent: 4, skipped: 2, actions: ACTIONS });
+        return HttpResponse.json({
+          sent: 4,
+          skipped: 2,
+          failed: 0,
+          skipped_by_reason: {},
+          actions: ACTIONS,
+        });
       }),
     );
     renderWithProviders(<RemindersPanel />);
@@ -91,7 +120,7 @@ describe('RemindersPanel', () => {
     server.use(
       logHandler(ENTRIES),
       http.post(`${API}/system/reminders/run`, () =>
-        HttpResponse.json({ sent: 0, skipped: 2, actions: [] }),
+        HttpResponse.json({ sent: 0, skipped: 2, failed: 0, skipped_by_reason: {}, actions: [] }),
       ),
     );
     renderWithProviders(<RemindersPanel />);
@@ -108,7 +137,13 @@ describe('RemindersPanel', () => {
       logHandler(ENTRIES),
       http.post(`${API}/system/reminders/run`, async ({ request }) => {
         bodies.push(await request.json());
-        return HttpResponse.json({ sent: 1, skipped: 0, actions: [] });
+        return HttpResponse.json({
+          sent: 1,
+          skipped: 0,
+          failed: 0,
+          skipped_by_reason: {},
+          actions: [],
+        });
       }),
     );
     renderWithProviders(<RemindersPanel />);
@@ -120,6 +155,111 @@ describe('RemindersPanel', () => {
     expect(await screen.findByText('Sent 1 email, skipped 0.')).toBeInTheDocument();
     expect(bodies).toEqual([{ dry_run: false }]);
     expect(screen.getByRole('heading', { name: 'What this run did' })).toBeInTheDocument();
+  });
+
+  it('breaks the skip count down by reason', async () => {
+    server.use(
+      logHandler(ENTRIES),
+      http.post(`${API}/system/reminders/run`, () =>
+        HttpResponse.json({
+          sent: 4,
+          skipped: 12,
+          failed: 0,
+          skipped_by_reason: { already_sent: 10, auto_renew: 2 },
+          actions: [],
+        }),
+      ),
+    );
+    renderWithProviders(<RemindersPanel />);
+    await screen.findByText('Marta Reyes');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+
+    expect(
+      await screen.findByText('Skipped: already sent 10, auto-renew on 2.'),
+    ).toBeInTheDocument();
+  });
+
+  it('reports the failed count only when it is above zero', async () => {
+    server.use(
+      logHandler(ENTRIES),
+      http.post(`${API}/system/reminders/run`, () =>
+        HttpResponse.json({
+          sent: 4,
+          skipped: 0,
+          failed: 2,
+          skipped_by_reason: {},
+          actions: [],
+        }),
+      ),
+    );
+    renderWithProviders(<RemindersPanel />);
+    await screen.findByText('Marta Reyes');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+
+    expect(await screen.findByText('Failed 2.')).toBeInTheDocument();
+  });
+
+  it('shows neither breakdown line when nothing was skipped or failed', async () => {
+    server.use(
+      logHandler(ENTRIES),
+      http.post(`${API}/system/reminders/run`, () =>
+        HttpResponse.json({
+          sent: 1,
+          skipped: 0,
+          failed: 0,
+          skipped_by_reason: {},
+          actions: [],
+        }),
+      ),
+    );
+    renderWithProviders(<RemindersPanel />);
+    await screen.findByText('Marta Reyes');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+
+    await screen.findByText('Would send 1 email, skipped 0.');
+    expect(screen.queryByText(/^Skipped:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Failed/)).not.toBeInTheDocument();
+  });
+
+  it('refreshes the email log after a live run, so its new rows show up', async () => {
+    // The email log panel sits right below this one on /portal/system (SystemPage.tsx),
+    // reading the same 'system','emails' query key a live run's onSuccess invalidates.
+    let emailRequests = 0;
+    server.use(
+      logHandler(ENTRIES),
+      http.get(`${API}/system/emails`, () => {
+        emailRequests += 1;
+        return HttpResponse.json({ count: 0, next: null, previous: null, results: [] });
+      }),
+      http.post(`${API}/system/reminders/run`, () =>
+        HttpResponse.json({
+          sent: 1,
+          skipped: 0,
+          failed: 0,
+          skipped_by_reason: {},
+          actions: [],
+        }),
+      ),
+    );
+    renderWithProviders(
+      <>
+        <RemindersPanel />
+        <EmailLogPanel />
+      </>,
+    );
+    await screen.findByText('Marta Reyes');
+    await waitFor(() => expect(emailRequests).toBe(1));
+
+    await userEvent.click(screen.getByLabelText('Dry run (send nothing)'));
+    await userEvent.click(screen.getByRole('button', { name: 'Run now' }));
+    await screen.findByText('Sent 1 email, skipped 0.');
+
+    await waitFor(() => {
+      expect(emailRequests).toBe(2);
+    });
   });
 
   it('reports a failed run', async () => {

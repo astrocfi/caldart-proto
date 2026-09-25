@@ -77,6 +77,11 @@ export const handlers = [
   // The aircraft record reads its history as it mounts.  An empty history keeps
   // a suite that is not about the history from having to declare one.
   http.get(`${API}/aircraft/:id/changes`, () => HttpResponse.json([])),
+  // The email log panel reads this as `/portal/system` mounts, so a suite that
+  // is not about the log does not have to declare one.
+  http.get(`${API}/system/emails`, () =>
+    HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
+  ),
 ];
 
 /** Convenience: make `/auth/me` answer with `user`. */

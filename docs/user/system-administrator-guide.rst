@@ -42,7 +42,8 @@ The system screen
 =================
 
 Sign in and choose **System** in the sidebar, or go straight to
-``/portal/system``.  Three panels, top to bottom.
+``/portal/system``.  Five panels, top to bottom: health, backups, renewal
+reminders, the email log, and automatic renewals.
 
 
 Health
@@ -127,6 +128,13 @@ When you do want to run it by hand:
 3. If the numbers look right and you have a reason to send now rather than
    waiting for the morning, clear the checkbox and press **Run now** again.
 
+When at least one candidate was skipped, a line under the result breaks that
+count down by reason, in the panel's own wording: already sent, already
+renewed, auto-renew on, lifetime member, account deactivated, and no address
+on file -- for example, "Skipped: already sent 10, auto-renew on 2."  When the
+mail server refuses at least one send, a further line reads, for example,
+"Failed 2.", counting the sends that are in neither of the other two totals.
+
 Underneath the result, a table headed **What a live run would do** after a
 rehearsal, or **What this run did** after a real one, names every action
 behind those numbers: which reminder, the member and their address, the day
@@ -153,6 +161,43 @@ calendar, the next morning's run finds everybody the missed one would have.  Onl
 a gap of a week or more can let a member pass through the 7-day or expired stage
 unheard.  The wording of the emails and the 07:00 schedule are in
 :doc:`/developer/reminders`.
+
+Email log
+---------
+
+Below the reminders panel sits a table of the fifty most recent emails
+CalDART has tried to send -- renewal reminders, the automatic-renewal
+notices, receipts, refund notices, invitations, and password links -- with
+when it went, what it was for, who it went to, whether the mail server took
+it, and any file attached.  It is the answer to "what did we actually send
+this person?", and to "is our mail going out at all?": a message the mail
+server refused reads, for example, "Failed: SMTPRecipientsRefused" in the
+**Status** column.  A message that went out reads simply "Sent".
+
+A renewal reminder is the one exception.  Its send shares a transaction with
+the reminder log, so that a reminder the mail server refuses stays due and
+goes out on the next scan; a refused reminder therefore leaves no row here at
+all.  The reminders panel's own **Failed** count, above, is what reports it.
+
+**Purpose** narrows the table to one kind of message -- a renewal reminder at
+a given stage, a renewal notice or charge, a receipt, a refund, an
+invitation, or a password reset -- and **Search** narrows it to a name or an
+address.  Both send the filter to the server, so the table always reads the
+fifty most recent matches, newest first, rather than fifty unfiltered rows
+trimmed on screen.
+
+Two things it is not.  It is not delivery confirmation: a mail server that
+takes a message and bounces it an hour later leaves a row marked sent.  And
+it is not the reminder log above, which exists to stop a member being sent
+the same reminder twice; the email log is the record of the message itself.
+
+Only a system administrator sees it, because it lists every address the
+installation has written to.  An account administrator answering "was this
+member told?" uses the **Reminders** screen instead.  Every row the
+installation has ever written, not only the fifty shown here, is readable
+through ``GET /system/emails``, described in :doc:`/developer/api-system`,
+and in the Django admin under **Mail**, where they cannot be edited.
+
 
 Automatic renewals
 ------------------
@@ -219,32 +264,6 @@ told why, and the ordinary reminders resume.
 
 What it charges, when, and how to change the schedule are in
 :doc:`/developer/renewals`.
-
-Email log
----------
-
-CalDART records every email it sends -- renewal reminders, the automatic-renewal
-notices, receipts, refund notices, invitations, and password links -- with the
-address it went to, the member it concerned, the subject, whether the mail server
-took it, and any file attached.  It is the answer to "what did we actually send
-this person?", and to "is our mail going out at all?": a message a mail server
-refused is on the list, marked failed, with the error beside it.
-
-A renewal reminder is the one exception.  Its send shares a transaction with the
-reminder log, so that a reminder the mail server refuses stays due and goes out
-on the next scan; a refused reminder therefore leaves no row in the email log at
-all.  The reminder run's own **Failed** count is what reports it.
-
-Two things it is not.  It is not delivery confirmation: a mail server that takes
-a message and bounces it an hour later leaves a message marked sent.  And it is
-not the reminder log above, which exists to stop a member being sent the same
-reminder twice; the email log is the record of the message itself.
-
-Only a system administrator sees it, because it lists every address the
-installation has written to.  An account administrator answering "was this member
-told?" uses the **Reminders** screen instead.  The rows are also readable through
-``GET /system/emails``, described in :doc:`/developer/api-system`, and in the
-Django admin under **Mail**, where they cannot be edited.
 
 
 Routine
