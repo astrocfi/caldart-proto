@@ -106,10 +106,17 @@ Checking an aircraft on its own
 
 **Aircraft check** (``/portal/leader/aircraft``) takes a tail number and shows
 one card: **INSURED** or **NOT INSURED**, the carrier, the liability limits per
-occurrence and per person, the hull value, the expiry date, the owner, and
-every member who lists that airplane on their profile with their own
-membership and medical currency.  The policy number is on the record but not on
-this card; an account administrator can read it out of the register.
+occurrence and per person, the hull value, the expiry date, the owner, when the
+record was last written and by whom, and every member who lists that airplane on
+their profile with their own membership and medical currency.  The policy number
+is on the record but not on this card; an account administrator can read it out
+of the register.
+
+**Last updated** is the date of the last write to the register record, with the
+name of whoever made it — "2026/09/01 by Dana Fiske".  A record nobody has
+touched since the demo data was loaded shows the date alone.  It tells you how
+old the insurance on the card is: a policy that expires next month and a record
+last written two years ago is worth a phone call.
 
 Use it when the airplane in front of you is not the one on the member's
 profile — a club airplane, or one they have just started flying.  As on the
