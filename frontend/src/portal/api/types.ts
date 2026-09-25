@@ -466,6 +466,8 @@ export interface AircraftSummary {
 
 export interface Aircraft extends AircraftSummary {
   year: number | null;
+  /** When the register record was last written, by anybody. */
+  updated_at: IsoDateTime;
   owner_type: OwnerType;
   owner_name: string;
   owner_contact: string;
@@ -483,7 +485,7 @@ export interface Aircraft extends AircraftSummary {
 export type AircraftPatch = Partial<
   Omit<
     Aircraft,
-    'id' | 'insurance_is_current' | 'insurance_summary' | 'created_by' | 'n_number'
+    'id' | 'insurance_is_current' | 'insurance_summary' | 'created_by' | 'updated_at' | 'n_number'
   > & { n_number: string }
 >;
 
@@ -496,14 +498,39 @@ export interface AircraftPilot {
   medical_is_current: boolean;
 }
 
+/** The account behind a write: its id and the name to print beside the date. */
+export interface AircraftActor {
+  id: number;
+  name: string;
+}
+
+/** What kind of write an entry of an aircraft's history records. */
+export type AircraftChangeKind = 'created' | 'updated';
+
+/**
+ * One row of `GET /aircraft/{id}/changes`.
+ *
+ * `fields` names the columns the write moved, and is empty on a `created`
+ * entry, where the whole record is the change.
+ */
+export interface AircraftChange {
+  id: number;
+  changed_at: IsoDateTime;
+  changed_by: AircraftActor | null;
+  kind: AircraftChangeKind;
+  fields: string[];
+}
+
 /**
  * `GET /aircraft/{id}`, `/aircraft/lookup` and `/leader/aircraft`.
  *
  * `pilots` names other members and reports their medical currency, so the
  * server only sends it to a `dart_leader` or `account_admin`; it is absent
- * for a plain member reading the register.
+ * for a plain member reading the register.  `updated_by` names another member
+ * too, and is sent on the same terms.
  */
 export interface AircraftDetail extends Aircraft {
+  updated_by?: AircraftActor | null;
   pilots?: AircraftPilot[];
 }
 
