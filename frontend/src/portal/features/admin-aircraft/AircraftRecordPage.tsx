@@ -99,6 +99,31 @@ export function AircraftRecordPage(): JSX.Element {
 
   const serverErrors = update.error instanceof ApiError ? update.error.fieldErrors : undefined;
 
+  // An audit card must never present a history it does not have as an empty
+  // one: a request still in flight or a request that failed each say so.
+  const history = (): JSX.Element => {
+    if (changes.isPending) {
+      return (
+        <p className="muted" role="status">
+          Loading…
+        </p>
+      );
+    }
+    if (changes.isError || changes.data === undefined) {
+      return <p className="muted">That record's history could not be loaded.</p>;
+    }
+    if (changes.data.length === 0) {
+      return <p className="muted">No change is recorded for this record.</p>;
+    }
+    return (
+      <ul className="aircraft-history">
+        {changes.data.map((change) => (
+          <li key={change.id}>{changeLine(change)}</li>
+        ))}
+      </ul>
+    );
+  };
+
   return (
     <Page
       title={aircraft.n_number}
@@ -127,15 +152,7 @@ export function AircraftRecordPage(): JSX.Element {
       </Card>
 
       <Card eyebrow="Register" title="History">
-        {changes.data === undefined || changes.data.length === 0 ? (
-          <p className="muted">No change is recorded for this record.</p>
-        ) : (
-          <ul className="aircraft-history">
-            {changes.data.map((change) => (
-              <li key={change.id}>{changeLine(change)}</li>
-            ))}
-          </ul>
-        )}
+        {history()}
       </Card>
 
       <Card eyebrow="Members" title="Pilots who fly this aircraft">

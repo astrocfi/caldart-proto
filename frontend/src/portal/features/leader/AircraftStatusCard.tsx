@@ -111,7 +111,7 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
           <dd>
             <span className="leader-row__detail">
               <DateText value={aircraft.updated_at} />
-              {aircraft.updated_by ? ` by ${aircraft.updated_by.name}` : ''}
+              {aircraft.updated_by == null ? '' : ` by ${aircraft.updated_by.name}`}
             </span>
           </dd>
         </div>

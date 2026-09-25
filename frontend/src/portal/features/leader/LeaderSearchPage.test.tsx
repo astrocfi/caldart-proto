@@ -126,7 +126,7 @@ describe('LeaderSearchPage', () => {
     expect(within(owen).getByText('NO-GO')).toBeInTheDocument();
   });
 
-  it('prints the medical in words beside the verdict', async () => {
+  it('prints the medical in words on its own line', async () => {
     const user = setupUser();
     server.use(searchReturns([MARTA]));
 

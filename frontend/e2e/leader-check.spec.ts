@@ -119,8 +119,11 @@ test('a leader can check a tail number on its own', async ({ page }) => {
   await expect(card.getByRole('term').filter({ hasText: /^Liability$/ })).toBeVisible();
   // How old the record behind the insurance is, which a leader weighs against
   // the expiry date on it.
-  const updated = card.locator('.leader-row').filter({ hasText: 'Last updated' });
-  await expect(updated).toContainText(/\d{4}\/\d{2}\/\d{2}/);
+  const updated = card.getByRole('term').filter({ hasText: /^Last updated$/ });
+  await expect(updated).toBeVisible();
+  await expect(updated.locator('xpath=following-sibling::dd[1]')).toContainText(
+    /\d{4}\/\d{2}\/\d{2}/,
+  );
   await expect(card.getByText(name)).toBeVisible();
 });
 

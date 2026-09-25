@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HttpResponse, http } from 'msw';
+import { HttpResponse, delay, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 
@@ -184,11 +184,45 @@ describe('AircraftRecordPage', () => {
   });
 
   it('says so when no change is recorded against the record', async () => {
-    server.use(http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())));
+    server.use(
+      http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())),
+      http.get(`${API}/aircraft/1/changes`, () => HttpResponse.json([])),
+    );
     renderRecord();
 
     const history = await historyCard();
     expect(within(history).getByText('No change is recorded for this record.')).toBeInTheDocument();
+  });
+
+  it('does not call an unanswered history empty', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())),
+      http.get(`${API}/aircraft/1/changes`, async () => {
+        await delay('infinite');
+        return HttpResponse.json([]);
+      }),
+    );
+    renderRecord();
+
+    const history = await historyCard();
+    expect(
+      within(history).queryByText('No change is recorded for this record.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('says so when the history could not be loaded', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())),
+      http.get(`${API}/aircraft/1/changes`, () =>
+        HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),
+      ),
+    );
+    renderRecord();
+
+    const history = await historyCard();
+    expect(
+      await within(history).findByText("That record's history could not be loaded."),
+    ).toBeInTheDocument();
   });
 
   it('lists the pilots with their membership and medical currency', async () => {

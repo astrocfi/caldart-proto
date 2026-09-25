@@ -59,7 +59,8 @@ export function actorName(actor: AircraftActor | null): string {
  */
 export function changeLine(change: AircraftChange): string {
   const labels = change.fields.map(fieldLabel).join(', ');
-  const what = change.kind === 'created' ? 'created' : `updated${labels ? ` ${labels}` : ''}`;
+  const updated = labels.length === 0 ? 'updated' : `updated ${labels}`;
+  const what = change.kind === 'created' ? 'created' : updated;
   return `${formatDateTime(change.changed_at)} · ${actorName(change.changed_by)} · ${what}`;
 }
 

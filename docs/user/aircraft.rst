@@ -171,7 +171,9 @@ date and time, the account that made it, and what it did — ``2026/09/01 12:00 
 Dana Fiske · updated carrier, insurance expiry``, or ``· created`` for the write
 that added the aircraft.  A write with no account behind it, such as the demo
 seed, reads "the seed".  A record that predates its history says no change is
-recorded for it; the next save starts the list.  The columns are named as the
+recorded for it; the next save starts the list.  If the history itself cannot be
+fetched the card says so, rather than passing the failure off as an empty
+record.  The columns are named as the
 form names them, so "insurance expiry" is the **Insurance expires** box.
 
 Underneath, **Pilots who fly this aircraft** lists every member who has
