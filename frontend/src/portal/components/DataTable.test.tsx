@@ -178,13 +178,13 @@ describe('DataTable', () => {
         columns={COLUMNS}
         rows={ROWS}
         rowKey={(row) => row.id}
-        exportCsvUrl="/api/v1/admin/members/export.csv?status=current"
-        exportPdfUrl="/api/v1/admin/members/export.pdf?status=current"
+        exportCsvUrl="/api/v1/reports/members/export.csv?status=current"
+        exportPdfUrl="/api/v1/reports/members/export.pdf?status=current"
       />,
     );
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
       'href',
-      '/api/v1/admin/members/export.csv?status=current',
+      '/api/v1/reports/members/export.csv?status=current',
     );
     expect(screen.getByRole('link', { name: /Export PDF/ })).toBeInTheDocument();
   });

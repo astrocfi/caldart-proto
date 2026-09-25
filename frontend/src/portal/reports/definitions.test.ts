@@ -9,8 +9,8 @@ const SLUGS: ReportSlug[] = ['members', 'aircraft', 'payments', 'reconciliation'
 
 /**
  * The member report's filter parameters, as `EXPORT_FILTER_PARAMS` in
- * `backend/apps/members/api/admin_filters.py` lists them, less `ordering`, which
- * is the table's sort rather than a filter.
+ * `backend/apps/members/filters.py` lists them, less `ordering`, which is the
+ * table's sort rather than a filter.
  */
 const MEMBER_EXPORT_FILTER_PARAMS = [
   'search',
@@ -18,6 +18,7 @@ const MEMBER_EXPORT_FILTER_PARAMS = [
   'certificate',
   'medical',
   'dart',
+  'county',
   'role',
   'expiring_within',
   'is_active',
@@ -41,10 +42,8 @@ describe('REPORTS', () => {
     expect(new Set(keysOf(slug)).size).toBe(keysOf(slug).length);
   });
 
-  it('filters members by every export parameter and the county', () => {
-    expect([...keysOf('members')].sort()).toEqual(
-      [...MEMBER_EXPORT_FILTER_PARAMS, 'county'].sort(),
-    );
+  it('filters members by every export parameter', () => {
+    expect([...keysOf('members')].sort()).toEqual([...MEMBER_EXPORT_FILTER_PARAMS].sort());
   });
 
   it('offers every California county on the member county filter', () => {
