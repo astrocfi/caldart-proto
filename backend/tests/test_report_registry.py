@@ -1,4 +1,4 @@
-"""The report registry: the five reports, who may read each, and what each query does.
+"""The report registry: the six reports, who may read each, and what each query does.
 
 Every report's query is the filter and ordering code its JSON list runs, so the same
 params narrow and order a download exactly as they narrow and order the screen.  The
@@ -40,13 +40,20 @@ DAY = date(2026, 9, 25)
 # --------------------------------------------------------------------------
 # The registry
 # --------------------------------------------------------------------------
-def test_the_registry_holds_the_five_reports_by_slug() -> None:
-    """Members, aircraft, payments, reconciliation and contributions, each by its slug."""
-    assert list(REPORTS) == ["members", "aircraft", "payments", "reconciliation", "contributions"]
+def test_the_registry_holds_the_six_reports_by_slug() -> None:
+    """Members, aircraft, payments, reconciliation, contributions and emails, by slug."""
+    assert list(REPORTS) == [
+        "members",
+        "aircraft",
+        "payments",
+        "reconciliation",
+        "contributions",
+        "emails",
+    ]
 
 
 @pytest.mark.parametrize(
-    "slug", ["members", "aircraft", "payments", "reconciliation", "contributions"]
+    "slug", ["members", "aircraft", "payments", "reconciliation", "contributions", "emails"]
 )
 def test_each_report_is_filed_under_its_own_slug(slug: str) -> None:
     """The key a report is registered under is the slug it declares."""

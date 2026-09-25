@@ -589,6 +589,7 @@
       "error": "string",
       "id": "integer",
       "purpose": "string",
+      "purpose_label": "string",
       "sent_at": "string(date-time)",
       "status": "ref:EmailLogStatusEnum",
       "subject": "string",
@@ -601,6 +602,7 @@
       "error",
       "id",
       "purpose",
+      "purpose_label",
       "sent_at",
       "status",
       "subject",
@@ -613,6 +615,16 @@
     "enum": [
       "sent",
       "failed"
+    ]
+  },
+  "EmailPurpose": {
+    "properties": {
+      "label": "string",
+      "value": "string"
+    },
+    "required": [
+      "label",
+      "value"
     ]
   },
   "FinanceMember": {
@@ -2213,7 +2225,8 @@
       "aircraft",
       "payments",
       "reconciliation",
-      "contributions"
+      "contributions",
+      "emails"
     ]
   },
   "ReportRunRequestRequest": {
