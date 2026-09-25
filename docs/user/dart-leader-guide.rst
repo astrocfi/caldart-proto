@@ -48,13 +48,14 @@ is never treated as a registration, so looking for "Nate" finds Nate rather
 than every N-numbered airplane on file.
 
 The search returns at most twenty people, and every line already answers the
-question: the membership state, **GO** or **NO-GO**, and the medical in words —
-"Class 3 medical to 2027/03/31", "Medical expired 2026/01/31", "No medical
-expiry on file" when a class was entered but the date never was, or "No medical
-on file".  For a single name that is the whole check; open the card when you
-want the certificate, the ratings, or the insurance on the airplanes.  If
-nobody comes back for an N-number, the page offers to check the aircraft itself
-instead.
+question.  A line reads in three parts: the name with **GO** or **NO-GO**
+against it, then the email address and DART the person was found by, then the
+medical in words — "Class 3 medical to 2027/03/31", "Medical expired
+2026/01/31", "No medical expiry on file" when a class was entered but the date
+never was, or "No medical on file".  For a single name that is the whole check;
+open the card when you want the membership, the certificate, the ratings, or the
+insurance on the airplanes.  If nobody comes back for an N-number, the page
+offers to check the aircraft itself instead.
 
 
 Reading the status card
@@ -105,10 +106,17 @@ Checking an aircraft on its own
 
 **Aircraft check** (``/portal/leader/aircraft``) takes a tail number and shows
 one card: **INSURED** or **NOT INSURED**, the carrier, the liability limits per
-occurrence and per person, the hull value, the expiry date, the owner, and
-every member who lists that airplane on their profile with their own
-membership and medical currency.  The policy number is on the record but not on
-this card; an account administrator can read it out of the register.
+occurrence and per person, the hull value, the expiry date, the owner, when the
+record was last written and by whom, and every member who lists that airplane on
+their profile with their own membership and medical currency.  The policy number
+is on the record but not on this card; an account administrator can read it out
+of the register.
+
+**Last updated** is the date of the last write to the register record, with the
+name of whoever made it — "2026/09/01 by Dana Fiske".  A record nobody has
+touched since the demo data was loaded shows the date alone.  It tells you how
+old the insurance on the card is: a policy that expires next month and a record
+last written two years ago is worth a phone call.
 
 Use it when the airplane in front of you is not the one on the member's
 profile — a club airplane, or one they have just started flying.  As on the

@@ -125,6 +125,28 @@ describe('LeaderAircraftPage', () => {
     expect(screen.getByText('Medical current')).toBeInTheDocument();
   });
 
+  it('says when the record was last written and who wrote it', async () => {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () =>
+        HttpResponse.json(makeDetail({ updated_by: { id: 4, name: 'Dana Fiske' } })),
+      ),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?n_number=N172SP' });
+
+    const row = await screen.findByText('Last updated');
+    expect(row.parentElement).toHaveTextContent('Last updated2026/09/01 by Dana Fiske');
+  });
+
+  it('gives the date alone when nobody is recorded against the last write', async () => {
+    server.use(
+      http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeDetail({ updated_by: null }))),
+    );
+    renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?n_number=N172SP' });
+
+    const row = await screen.findByText('Last updated');
+    expect(row.parentElement).toHaveTextContent('Last updated2026/09/01');
+  });
+
   it('shows the liability limits the leader has to check', async () => {
     server.use(http.get(`${API}/leader/aircraft`, () => HttpResponse.json(makeDetail())));
     renderWithProviders(<LeaderAircraftPage />, { route: '/leader/aircraft?n_number=N172SP' });

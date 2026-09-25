@@ -133,9 +133,17 @@ The member record
 =================
 
 Clicking a name opens that person's record.  A summary strip at the top
-carries their membership chip, plan, expiry, and join date; below it are four
-tabs.  Arrow keys move between the tabs, and the tab you are on is part of the
-address, so you can send a colleague straight to somebody's payment history.
+carries their membership chip, plan, expiry, join date, and the date their
+profile information was last written — "updated 2026/08/11", or "never edited"
+for a profile that predates the stamp, such as one loaded by the demo data.  A
+profile created in the portal, or by an administrator, carries the date it was
+created.  A payment, a renewal, or a membership grant is not an edit to the
+profile, so the date answers "how current are these details?" rather than "when
+did anything happen to this member?"
+
+Below the strip are four tabs.  Arrow keys move between the tabs, and the tab
+you are on is part of the address, so you can send a colleague straight to
+somebody's payment history.
 
 Profile
 -------

@@ -127,6 +127,15 @@ function MemberHeader({ member }: { member: MemberDetail }) {
         <span className="muted">
           joined <DateText value={member.joined_on} />
         </span>
+        <span className="muted">
+          {member.profile_updated_at === null ? (
+            'never edited'
+          ) : (
+            <>
+              updated <DateText value={member.profile_updated_at} />
+            </>
+          )}
+        </span>
         {member.is_active ? null : <span className="chip chip--bad">Account deactivated</span>}
       </div>
       <p className="muted">

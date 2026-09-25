@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HttpResponse, http } from 'msw';
+import { HttpResponse, delay, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 
@@ -55,6 +55,14 @@ function renderRecord(route = '/admin/aircraft/1') {
     </Routes>,
     { route },
   );
+}
+
+/** The History card, found by its heading, once the record has loaded. */
+async function historyCard(): Promise<HTMLElement> {
+  const heading = await screen.findByRole('heading', { name: 'History' });
+  const card = heading.closest('section');
+  if (card === null) throw new Error('the History heading is not inside a card');
+  return card;
 }
 
 describe('AircraftRecordPage', () => {
@@ -130,6 +138,91 @@ describe('AircraftRecordPage', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText(/Enter the make/)).toBeInTheDocument();
+  });
+
+  it('says over the details when the record was last written and by whom', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () =>
+        HttpResponse.json(makeDetail({ updated_by: { id: 4, name: 'Dana Fiske' } })),
+      ),
+    );
+    renderRecord();
+
+    expect(await screen.findByText('Last updated 2026/09/01 by Dana Fiske')).toBeInTheDocument();
+  });
+
+  it("lists the record's history, newest first", async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())),
+      http.get(`${API}/aircraft/1/changes`, () =>
+        HttpResponse.json([
+          {
+            id: 2,
+            changed_at: '2026-09-01T12:00:00',
+            changed_by: { id: 4, name: 'Dana Fiske' },
+            kind: 'updated',
+            fields: ['insurance_carrier', 'insurance_expiration'],
+          },
+          {
+            id: 1,
+            changed_at: '2026-01-04T09:15:00',
+            changed_by: null,
+            kind: 'created',
+            fields: [],
+          },
+        ]),
+      ),
+    );
+    renderRecord();
+
+    const history = await historyCard();
+    const entries = within(history).getAllByRole('listitem');
+    expect(entries[0]).toHaveTextContent(
+      '2026/09/01 12:00 · Dana Fiske · updated carrier, insurance expiry',
+    );
+    expect(entries[1]).toHaveTextContent('2026/01/04 09:15 · the seed · created');
+  });
+
+  it('says so when no change is recorded against the record', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())),
+      http.get(`${API}/aircraft/1/changes`, () => HttpResponse.json([])),
+    );
+    renderRecord();
+
+    const history = await historyCard();
+    expect(within(history).getByText('No change is recorded for this record.')).toBeInTheDocument();
+  });
+
+  it('does not call an unanswered history empty', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())),
+      http.get(`${API}/aircraft/1/changes`, async () => {
+        await delay('infinite');
+        return HttpResponse.json([]);
+      }),
+    );
+    renderRecord();
+
+    const history = await historyCard();
+    expect(
+      within(history).queryByText('No change is recorded for this record.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('says so when the history could not be loaded', async () => {
+    server.use(
+      http.get(`${API}/aircraft/1`, () => HttpResponse.json(makeDetail())),
+      http.get(`${API}/aircraft/1/changes`, () =>
+        HttpResponse.json({ detail: 'Server error.' }, { status: 500 }),
+      ),
+    );
+    renderRecord();
+
+    const history = await historyCard();
+    expect(
+      await within(history).findByText("That record's history could not be loaded."),
+    ).toBeInTheDocument();
   });
 
   it('lists the pilots with their membership and medical currency', async () => {

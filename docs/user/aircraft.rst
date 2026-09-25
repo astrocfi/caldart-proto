@@ -146,7 +146,10 @@ report of nothing helps nobody.
 Editing a record
 ----------------
 
-Click a registration to open the record.  It is in four sections:
+Click a registration to open the record.  Over the details is the line **Last
+updated 2026/09/01 by Dana Fiske**, the date of the last write and the account
+behind it; a record nobody has touched since the demo data was loaded gives the
+date alone.  The details themselves are in four sections:
 
 - **Aircraft** — registration, year, make, model, seats.  The registration is
   a US N-number: ``N`` and then up to five characters, digits first and at most
@@ -164,6 +167,16 @@ Click a registration to open the record.  It is in four sections:
   being offered to members searching for a plane to add to their profile.  A
   member who types its exact registration still sees it, labeled, so they do
   not try to add a second record for the same airplane.
+
+**History** lists every write to the record, newest first, one line each: the
+date and time, the account that made it, and what it did — ``2026/09/01 12:00 ·
+Dana Fiske · updated carrier, insurance expiry``, or ``· created`` for the write
+that added the aircraft.  A write with no account behind it, such as the demo
+seed, reads "the seed".  A record that predates its history says no change is
+recorded for it; the next save starts the list.  If the history itself cannot be
+fetched the card says so, rather than passing the failure off as an empty
+record.  The columns are named as the
+form names them, so "insurance expiry" is the **Insurance expires** box.
 
 Underneath, **Pilots who fly this aircraft** lists every member who has
 attached it, with their membership and medical currency — the same facts a

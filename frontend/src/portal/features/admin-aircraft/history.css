@@ -1,0 +1,20 @@
+/*
+ * An aircraft record's history: one line per write, newest first.  Hairlines
+ * between the lines, as the pilot list beneath it uses, and the whole line in
+ * the small face, because it is a log rather than the record itself.
+ */
+.aircraft-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.aircraft-history li {
+  padding: var(--space-2) 0;
+  border-bottom: var(--hairline) solid var(--color-rule);
+  font-size: var(--text-sm);
+}
+
+.aircraft-history li:last-child {
+  border-bottom: 0;
+}

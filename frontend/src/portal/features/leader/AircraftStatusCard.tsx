@@ -1,6 +1,6 @@
 /**
  * The aircraft half of the leader check: is the insurance on this
- * tail number current, and who flies it?
+ * tail number current, who flies it, and how fresh is the record?
  */
 import type { JSX } from 'react';
 
@@ -102,6 +102,16 @@ export function AircraftStatusCard({ aircraft, today }: AircraftStatusCardProps)
             <span className="leader-row__detail">
               {aircraft.owner_name || 'Not recorded'} ({OWNER_TYPE_LABELS[aircraft.owner_type]})
               {aircraft.owner_contact ? ` · ${aircraft.owner_contact}` : ''}
+            </span>
+          </dd>
+        </div>
+
+        <div className="leader-row">
+          <dt>Last updated</dt>
+          <dd>
+            <span className="leader-row__detail">
+              <DateText value={aircraft.updated_at} />
+              {aircraft.updated_by == null ? '' : ` by ${aircraft.updated_by.name}`}
             </span>
           </dd>
         </div>
