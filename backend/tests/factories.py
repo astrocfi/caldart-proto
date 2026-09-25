@@ -28,6 +28,7 @@ from apps.cms.models import (
     StandardPage,
 )
 from apps.darts.models import Dart
+from apps.mail.models import EmailLog, EmailStatus
 from apps.members.models import (
     IfrRated,
     MedicalType,
@@ -310,6 +311,28 @@ class ReminderLogFactory(ModelFactory[ReminderLog]):
     kind = ReminderKind.T30
     sent_at = factory.LazyFunction(timezone.now)
     to_email = factory.LazyAttribute(lambda o: o.user.email)
+
+
+class EmailLogFactory(ModelFactory[EmailLog]):
+    """Builds a sent ``reminder_t30`` email log row addressed to its own ``user``.
+
+    ``user`` defaults to a new account and ``to_email`` to that account's address, so a
+    row always names somebody; pass ``user=None`` for a message sent to an address with
+    no account behind it.  Pass ``status=EmailStatus.FAILED`` with an ``error`` to record
+    a send the mail server refused.
+    """
+
+    class Meta:
+        model = EmailLog
+
+    user = factory.SubFactory(UserFactory)
+    to_email = factory.LazyAttribute(lambda o: o.user.email if o.user else "nobody@example.test")
+    purpose = "reminder_t30"
+    subject = "CalDART: your membership expires in 30 days"
+    sent_at = factory.LazyFunction(timezone.now)
+    status = EmailStatus.SENT
+    error = ""
+    attachments = ""
 
 
 def make_home_page() -> HomePage:

@@ -26,7 +26,12 @@ from apps.cms.models import SiteSettings, get_site_settings
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
 from apps.payments.models import MandateStatus
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
-from apps.reminders.services import ReminderRun, build_email, renew_url, send_renewal_reminders
+from apps.reminders.services import (
+    ReminderRun,
+    renew_url,
+    send_renewal_reminders,
+    send_reminder_email,
+)
 from tests.conftest import Golden
 from tests.factories import (
     MemberProfileFactory,
@@ -538,7 +543,9 @@ def test_a_dry_run_prints_who_would_be_written_to(annual_plan: MembershipPlan) -
     assert f"would email t30 to {user.display_name} <{user.email}>" in out.getvalue()
 
 
-def test_reminder_email_takes_its_name_from_site_settings() -> None:
+def test_reminder_email_takes_its_name_from_site_settings(
+    mailoutbox: list[EmailMessage],
+) -> None:
     """A reminder email's subject and body carry the seeded site's organization name."""
     call_command("seed_content", stdout=StringIO(), verbosity=0)
 
@@ -547,11 +554,11 @@ def test_reminder_email_takes_its_name_from_site_settings() -> None:
         user=profile.user, ends_on=timezone.localdate() + timedelta(days=30)
     )
 
-    message = build_email(profile.user, membership, "t30", timezone.localdate())
+    send_reminder_email(profile.user, membership, "t30", timezone.localdate())
 
     site_settings = get_site_settings()
     assert site_settings is not None
     # The seeded site uses the organization's full name, not the short one.
     assert site_settings.org_name != "CalDART"
-    assert site_settings.org_name in message.subject
-    assert site_settings.org_name in message.body
+    assert site_settings.org_name in mailoutbox[0].subject
+    assert site_settings.org_name in mailoutbox[0].body

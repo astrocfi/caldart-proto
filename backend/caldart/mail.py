@@ -6,6 +6,10 @@ is the message proper, and the ``.html`` one an alternative, so a client that
 renders no markup still reads the whole thing.  :func:`send_templated` renders
 both and sends them, and :func:`org_name` and :func:`contact_email` answer the
 two pieces of the letterhead almost every template asks for.
+
+Because every email goes through :func:`send_templated`, it is also the one
+place that records what went out: each send writes an ``apps.mail.EmailLog``
+row, successful or refused, which is what the email log screen reads.
 """
 
 from __future__ import annotations
@@ -14,7 +18,9 @@ from collections.abc import Sequence
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.db.models import Model
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 from caldart.org import org_details
 
@@ -44,6 +50,8 @@ def send_templated(
     template: str,
     context: dict[str, object] | None = None,
     attachments: Sequence[Attachment] = (),
+    purpose: str | None = None,
+    user: Model | None = None,
 ) -> EmailMultiAlternatives:
     """Render ``emails/<template>.{txt,html}`` and send them to one address.
 
@@ -53,9 +61,15 @@ def send_templated(
     bytes and media type, which is how a receipt PDF rides along.  The message
     comes from ``DEFAULT_FROM_EMAIL``.
 
+    Every send is recorded in the email log: ``purpose`` names what the message
+    was for and defaults to ``template``, which is the right answer wherever one
+    template is one kind of message; ``user`` is the account the email concerned,
+    and is left null for an address with no account behind it.
+
     The sent message is returned, so a caller can record what went out.  A mail
-    server that refuses the message raises, as Django's ``send`` does; a caller
-    that must survive a refusal catches it and says so in its own log.
+    server that refuses the message is logged as a failed send, carrying the
+    exception class, and the exception then raises as Django's ``send`` does; a
+    caller that must survive a refusal catches it and says so in its own log.
     """
     rendered = context or {}
     message = EmailMultiAlternatives(
@@ -67,5 +81,54 @@ def send_templated(
     message.attach_alternative(render_to_string(f"emails/{template}.html", rendered), "text/html")
     for filename, content, mimetype in attachments:
         message.attach(filename, content, mimetype)
-    message.send()
+    filenames = ", ".join(filename for filename, _content, _mimetype in attachments)
+    try:
+        message.send()
+    except Exception as exc:
+        # Every failure is recorded before it travels on, whatever it is: the log
+        # exists to answer "did this member hear from us?", and a refusal nobody
+        # wrote down is exactly the case that leaves that unanswerable.
+        _record(
+            to=to,
+            subject=subject,
+            purpose=purpose or template,
+            user=user,
+            attachments=filenames,
+            error=type(exc).__name__,
+        )
+        raise
+    _record(
+        to=to,
+        subject=subject,
+        purpose=purpose or template,
+        user=user,
+        attachments=filenames,
+        error="",
+    )
     return message
+
+
+def _record(
+    *,
+    to: str,
+    subject: str,
+    purpose: str,
+    user: Model | None,
+    attachments: str,
+    error: str,
+) -> None:
+    """Write one email log row.  A blank ``error`` records a send that went out."""
+    # Inline: apps.mail sits above every project module, so importing it here is
+    # what keeps reading caldart.mail from pulling an app in.
+    from apps.mail.models import EmailLog, EmailStatus
+
+    EmailLog.objects.create(
+        to_email=to,
+        user=user,
+        purpose=purpose,
+        subject=subject,
+        sent_at=timezone.now(),
+        status=EmailStatus.FAILED if error else EmailStatus.SENT,
+        error=error,
+        attachments=attachments,
+    )

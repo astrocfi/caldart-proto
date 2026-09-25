@@ -555,6 +555,38 @@
       "name"
     ]
   },
+  "EmailLog": {
+    "properties": {
+      "attachments": "string",
+      "error": "string",
+      "id": "integer",
+      "purpose": "string",
+      "sent_at": "string(date-time)",
+      "status": "ref:EmailLogStatusEnum",
+      "subject": "string",
+      "to_email": "string(email)",
+      "user_id": "integer|null",
+      "user_name": "string"
+    },
+    "required": [
+      "attachments",
+      "error",
+      "id",
+      "purpose",
+      "sent_at",
+      "status",
+      "subject",
+      "to_email",
+      "user_id",
+      "user_name"
+    ]
+  },
+  "EmailLogStatusEnum": {
+    "enum": [
+      "sent",
+      "failed"
+    ]
+  },
   "FinanceMember": {
     "properties": {
       "email": "string(email)",
@@ -1190,6 +1222,18 @@
       "next": "string(uri)|null",
       "previous": "string(uri)|null",
       "results": "array<ref:Aircraft>"
+    },
+    "required": [
+      "count",
+      "results"
+    ]
+  },
+  "PaginatedEmailLogList": {
+    "properties": {
+      "count": "integer",
+      "next": "string(uri)|null",
+      "previous": "string(uri)|null",
+      "results": "array<ref:EmailLog>"
     },
     "required": [
       "count",

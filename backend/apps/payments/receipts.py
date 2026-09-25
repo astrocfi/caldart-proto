@@ -153,7 +153,8 @@ def send_receipt(payment: Payment) -> bool:
     A payment whose payer has no address on file, and one the mail server
     refuses, are logged and answer ``False`` with ``receipt_sent_at`` left as it
     was, so resending is the retry.  Nothing here raises: a receipt that cannot
-    be sent must never undo the payment that earned it.
+    be sent must never undo the payment that earned it.  Either way the attempt
+    is recorded in the email log under the purpose ``receipt``.
     """
     if not payment.user.email:
         log.warning("No address on file for the payer of payment %s; no receipt sent", payment.pk)
@@ -183,6 +184,7 @@ def send_receipt(payment: Payment) -> bool:
             template="receipt",
             context=context,
             attachments=[(receipt_filename(payment), render_receipt_pdf(payment), PDF_MEDIA_TYPE)],
+            user=payment.user,
         )
     except OSError as exc:
         log.error("Receipt for payment %s could not be sent: %s", payment.pk, exc)

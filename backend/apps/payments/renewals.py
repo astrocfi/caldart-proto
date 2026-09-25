@@ -389,7 +389,8 @@ def send_mandate_email(
     in, and the body from ``emails/<template>.{txt,html}`` rendered over
     :func:`mandate_context`.  Each entry of ``attachments`` is a filename, its
     bytes and its media type, which is how the charge report carries the
-    receipt.  A member with no email address is not written to.
+    receipt.  A member with no email address is not written to.  The send is
+    recorded in the email log under the template's name.
 
     A mail server that refuses the message is logged at ERROR and answered
     ``False`` rather than raised: one member's mail problem never stops a scan,
@@ -409,6 +410,7 @@ def send_mandate_email(
             template=template,
             context=context,
             attachments=attachments,
+            user=mandate.user,
         )
     except (smtplib.SMTPException, OSError) as exc:
         log.error(
