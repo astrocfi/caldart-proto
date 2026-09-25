@@ -677,7 +677,7 @@ describe('DartsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('greys out Add a person while the last person has no name', async () => {
+  it('grays out Add a person while the last person has no name', async () => {
     const user = userEvent.setup();
     stubList();
     renderPage();
@@ -687,7 +687,7 @@ describe('DartsPage', () => {
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeDisabled();
   });
 
-  it('says why Add a person is greyed out', async () => {
+  it('says why Add a person is grayed out', async () => {
     const user = userEvent.setup();
     stubList();
     renderPage();
@@ -711,7 +711,7 @@ describe('DartsPage', () => {
     expect(screen.getByRole('button', { name: 'Add a person' })).toBeEnabled();
   });
 
-  it('greys out Add a person again when the last name is only spaces', async () => {
+  it('grays out Add a person again when the last name is only spaces', async () => {
     const user = userEvent.setup();
     stubList([makeDart({ contacts: makePeople(2) })]);
     renderPage();

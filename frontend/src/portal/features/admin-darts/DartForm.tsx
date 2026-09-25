@@ -55,7 +55,7 @@ function isNameless(contact: AdminDartContact | undefined): boolean {
   return contact !== undefined && contact.name.trim() === '';
 }
 
-/** Why **Add a person** is greyed out while the last row has no name. */
+/** Why **Add a person** is grayed out while the last row has no name. */
 const NAME_FIRST = 'Give the person above a name first';
 
 /** What a row is called aloud: the person's name, or its place in the list. */
