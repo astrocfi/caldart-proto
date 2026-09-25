@@ -3,8 +3,9 @@ API: members administration
 ===========================
 
 The ``account_admin`` half of the members app, endpoint by endpoint, plus the
-membership-status rules the list filters on.  The exports these
-endpoints serve are described in :doc:`reports`.
+membership-status rules the list filters on.  The membership report downloads
+the list below with the same filters and ordering; it is served by
+:doc:`api-reports` and described in :doc:`reports`.
 
 Every route below requires the ``account_admin`` role.  ``system_admin``
 passes every role check, so a system administrator has them too.  An
@@ -43,7 +44,8 @@ The DART catalog and the DART screen live in their own app; see
 ``api/admin_urls.py``
    Routes, included from ``api/urls.py``.
 ``reports.py``
-   The CSV and PDF column list.
+   The membership report: its column list and the query it runs, which applies
+   the list's filter set and ordering.
 
 
 Endpoints
@@ -58,9 +60,6 @@ Endpoints
   DELETE /api/v1/admin/members/{user_id}
   POST   /api/v1/admin/members/{user_id}/memberships
   PATCH  /api/v1/admin/memberships/{id}
-  GET    /api/v1/admin/members/columns
-  GET    /api/v1/admin/members/export.csv
-  GET    /api/v1/admin/members/export.pdf
 
 ``{user_id}`` is the **user's** id, not a profile id.  Everyone in the user
 table is listed: ``member`` is granted at registration, so accounts and members
@@ -610,58 +609,14 @@ Statuses:
 * **405** — the request used ``PUT``, ``GET``, or ``DELETE``.
 
 
-``GET /admin/members/columns``
-==============================
+The membership report
+=====================
 
-Every column the two exports can carry, in export order, ``account_admin``
-only, so the screen's column chooser is data-driven.  One entry per column::
-
-  [{"key": "name", "label": "Name", "default": true}, ...]
-
-``key`` is what ``?columns=`` names, ``label`` is the header both exports print,
-and ``default`` says whether the column is in the report when the caller chooses
-none.  The full registry is in :doc:`reports`.
-
-Statuses:
-
-* **200** — the list of columns.
-* **401/403** — the usual rules.
-
-
-``GET /admin/members/export.csv``
-=================================
-
-The filtered member list as a CSV download, streamed through
-``caldart.reports.csv_response`` so a report over the entire member table never
-materializes in memory.  It takes **every filter and ordering parameter the
-list takes** and applies them to the whole result set — the export is not
-paginated.  Columns, style, and how to add one: :doc:`reports`.
-
-``?columns=`` is a comma-separated list of column keys, which chooses both which
-columns the export carries and the order they appear in.  Leaving it out gives
-the default columns.  The header row is the column labels.
-
-Statuses:
-
-* **200** — ``text/csv``, with a ``Content-Disposition`` filename carrying
-  today's date.
-* **400** — the same filter refusals as the list, plus
-  ``{"columns": ["Unknown column: <key>"]}`` for a key no column carries and
-  ``{"columns": ["Repeated column: <key>"]}`` for one asked for twice.
-
-
-``GET /admin/members/export.pdf``
-=================================
-
-The same rows and the same ``?columns=`` as the CSV, rendered as a
-landscape-letter table with the applied filters printed under the title.  Each
-chosen column takes the share of the page width its registry entry asks for.
-
-Statuses:
-
-* **200** — ``application/pdf``, with a ``Content-Disposition`` filename
-  carrying today's date.
-* **400** — the same refusals as the CSV.
+``GET /reports/members/export.csv`` and ``export.pdf`` download the list above:
+they take every filter and ordering parameter ``GET /admin/members`` takes, apply
+them to the whole result set, and are not paginated.  ``dart_leader`` reads the
+report as well as ``account_admin``.  The endpoints, ``?columns=`` and the
+refusals are in :doc:`api-reports`; the columns are in :doc:`reports`.
 
 
 Tests
@@ -689,7 +644,7 @@ Tests
    The pinned query count of every list that shows a membership status, at two
    page sizes.
 ``backend/tests/test_members_reports.py``
-   The two exports.
+   The membership report in both formats.
 ``backend/tests/test_member_services.py``
    ``members.services`` on its own: atomic registration, the invitation sent
    only without a password and only on commit, the two halves of an update, and

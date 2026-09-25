@@ -19,6 +19,7 @@ to document each app's endpoints in detail, request body by response body.
    api-finance
    api-refunds
    api-renewals
+   api-reports
    api-system
 
 Every endpoint the project serves is on one of those pages, and every one
@@ -131,7 +132,8 @@ Every successful response is therefore either a JSON body or nothing at all:
 an endpoint with nothing to say answers **204** with no body and no
 ``Content-Type``.  A client may treat any other 2xx body as a fault — an HTML
 maintenance or proxy page served with status 200, say — rather than as data.
-The exceptions are the routes that stream a file — the CSV and PDF exports and
+The exceptions are the routes that answer with a file — the report downloads
+under ``/reports/{slug}/export.{csv,pdf}``, the receipts and statements, and
 ``GET /system/backups/{name}/download`` — and those are followed as plain
 links, so their bodies never reach the API client.
 
@@ -205,8 +207,9 @@ because the whole list is small and bounded: ``GET /darts``, ``GET /plans``,
 ``GET /roles``, ``GET /leader/search`` (hard-capped at 20 results),
 ``GET /system/backups`` and ``GET /aircraft/{id}/changes`` (an aircraft has few
 changes).  ``GET /me/membership`` and ``GET /me/payments`` return whole objects
-and arrays for the same reason, as does ``GET /admin/payments/summary``.  The CSV and PDF exports stream every matching
-row and ignore ``page`` entirely.
+and arrays for the same reason, as does ``GET /admin/payments/summary``, and so
+does ``GET /reports``.  The report downloads carry every matching row and ignore
+``page`` entirely.
 
 Filtering, search, and ordering
 -------------------------------
@@ -216,8 +219,8 @@ Filtering, search, and ordering
 exactly those three with a ``filterset_class``.  Three list endpoints replace
 them, for reasons worth knowing:
 
-- ``GET /aircraft`` and the two aircraft exports use ``DjangoFilterBackend``
-  with a ``NullsLastOrderingFilter``, and no ``SearchFilter``: ``?search=``
+- ``GET /aircraft`` uses ``DjangoFilterBackend`` with a
+  ``NullsLastOrderingFilter``, and no ``SearchFilter``: ``?search=``
   is a method on ``AircraftFilter`` instead, so that it can match the
   normalized N-number as well as the stored one (see :doc:`api-aircraft`).
 - ``GET /admin/members`` uses a custom ``MemberOrderingFilter`` because its
@@ -226,8 +229,12 @@ them, for reasons worth knowing:
 - ``GET /admin/payments`` switches the backends off entirely and filters by
   hand, because its date filtering keys off a ``paid_at`` annotation —
   ``Coalesce(completed_at, created_at)`` — that the list, the summary and the
-  CSV export all share, so the three can never disagree about when a payment
-  happened.
+  payments report all share, so the three can never disagree about when a
+  payment happened.
+
+Each report download reads its list's filter and ordering code rather than a
+filter backend of its own, so a download always holds the rows its list shows,
+in the same order; see :doc:`reports`.
 
 Detail views carry no backends at all, since there is nothing to filter: the
 member record at ``/admin/members/{user_id}`` sets the list to empty for that
@@ -279,9 +286,9 @@ under the field they concern rather than a list of one:
    * - The three payment confirm endpoints
      - ``{"payment_id": "That payment is not a stripe payment."}`` when the
        payment was started with another provider
-   * - ``GET /admin/payments``
-     - ``{"ordering": "Cannot order by 'x'."}``.  The summary and the CSV
-       export take no ``?ordering=`` at all, so they never raise it
+   * - ``GET /admin/payments``, ``GET /reports/payments/export.{csv,pdf}``
+     - ``{"ordering": "Cannot order by 'x'."}``.  The summary takes no
+       ``?ordering=`` at all, so it never raises it
 
 A client that renders field errors should therefore accept either a string or
 a list of them.  Of the rows above, the two aircraft ones are the only ones a
@@ -685,22 +692,6 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - only ``ends_on``, ``status``, ``note``
-   * - ``GET /admin/members/columns``
-     - ·
-     - ·
-     - ·
-     - ·
-     - ·
-     - ✓
-     - the exports' column registry
-   * - ``GET /admin/members/export.{csv,pdf}``
-     - ·
-     - ·
-     - ·
-     - ·
-     - ·
-     - ✓
-     - ``?columns=`` applies
    * - ``GET | POST /aircraft``
      - ·
      - ✓
@@ -749,22 +740,6 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - never the creator alone
-   * - ``GET /admin/aircraft/columns``
-     - ·
-     - ·
-     - ·
-     - ·
-     - ·
-     - ✓
-     - the exports' column registry; not ``dart_leader``
-   * - ``GET /admin/aircraft/export.{csv,pdf}``
-     - ·
-     - ·
-     - ·
-     - ·
-     - ·
-     - ✓
-     - ``?columns=`` applies; not ``dart_leader``
    * - ``GET /leader/search``
      - ·
      - ·
@@ -861,30 +836,6 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - succeeded payments only
-   * - ``GET /admin/payments/export.csv``
-     - ·
-     - ·
-     - ·
-     - ·
-     - ✓
-     - ✓
-     - all statuses
-   * - ``GET /admin/payments/columns``
-     - ·
-     - ·
-     - ·
-     - ·
-     - ✓
-     - ✓
-     - the export's column registry
-   * - ``GET /admin/payments/export.pdf``
-     - ·
-     - ·
-     - ·
-     - ·
-     - ✓
-     - ✓
-     - all statuses; ``?columns=`` applies
    * - ``GET /admin/payments/reconciliation``
      - ·
      - ·
@@ -893,14 +844,6 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - one row per period or provider
-   * - ``GET /admin/payments/reconciliation/export.{csv,pdf}``
-     - ·
-     - ·
-     - ·
-     - ·
-     - ✓
-     - ✓
-     - the same rows
    * - ``GET /admin/payments/contributions``
      - ·
      - ·
@@ -909,14 +852,94 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - one row per contributing member
-   * - ``GET /admin/payments/contributions/export.{csv,pdf}``
+   * - ``GET /reports``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the reports the caller may read; empty for a member
+   * - ``GET /reports/members/columns``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ✓
+     - every member; the column registry
+   * - ``GET /reports/members/export.{csv,pdf}``
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     - ✓
+     - every member; ``?columns=`` applies
+   * - ``GET /reports/aircraft/columns``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - the column registry
+   * - ``GET /reports/aircraft/export.{csv,pdf}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ``?columns=`` applies
+   * - ``GET /reports/payments/columns``
      - ·
      - ·
      - ·
      - ·
      - ✓
      - ✓
-     - the same rows
+     - the column registry
+   * - ``GET /reports/payments/export.{csv,pdf}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - all statuses; ``?columns=`` and ``?period=`` apply
+   * - ``GET /reports/reconciliation/columns``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - fixed columns
+   * - ``GET /reports/reconciliation/export.{csv,pdf}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - the table's rows; fixed columns
+   * - ``GET /reports/contributions/columns``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - fixed columns
+   * - ``GET /reports/contributions/export.{csv,pdf}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ✓
+     - the list's rows; ``?period=`` applies
    * - ``GET | PATCH /admin/payments/{id}``
      - ·
      - ·

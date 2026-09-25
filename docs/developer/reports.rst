@@ -3,114 +3,184 @@ Reports
 =======
 
 CalDART exports data as CSV, for a spreadsheet, and as PDF, for a board pack.
-There are three reports — membership, aircraft, and payments — and all three
-are built on one set of helpers in ``backend/caldart/reports.py``.
+There are five reports, and every one of them is built by the same code: each
+app declares what its report is — its columns, who may read it, and the query
+that finds its rows — as a ``ReportSpec``, and ``build_report`` in
+``backend/caldart/reports.py`` turns any spec into either file.  The endpoints
+that list the reports, answer their columns and download them are the same
+three for every report, under ``/api/v1/reports/``; :doc:`api-reports`
+documents them.
 
 .. list-table::
    :header-rows: 1
-   :widths: 22 20 24 34
+   :widths: 16 22 30 32
 
-   * - Report
-     - Formats
-     - Code
-     - Endpoints
-   * - Membership
-     - CSV, PDF
+   * - Slug
+     - Report
+     - Declared in
+     - Readers
+   * - ``members``
+     - Membership
      - ``apps/members/reports.py``
-     - ``/admin/members/export.{csv,pdf}``
-   * - Aircraft
-     - CSV, PDF
+     - ``dart_leader``, ``account_admin``
+   * - ``aircraft``
+     - Aircraft register
      - ``apps/aircraft/reports.py``
-     - ``/admin/aircraft/export.{csv,pdf}``
-   * - Payments
-     - CSV only
+     - ``account_admin``
+   * - ``payments``
+     - Payment list
      - ``apps/payments/reports.py``
-     - ``/admin/payments/export.csv``
+     - ``treasurer``, ``account_admin``
+   * - ``reconciliation``
+     - Reconciliation table
+     - ``apps/payments/reconciliation.py``
+     - ``treasurer``, ``account_admin``
+   * - ``contributions``
+     - Contributions list
+     - ``apps/payments/reports.py``
+     - ``treasurer``, ``account_admin``
 
-All five endpoints are ``account_admin`` (and therefore ``system_admin``); none
-of them is paginated.
+A ``system_admin`` and a Django superuser read every report.
+``apps/reports/registry.py`` gathers the five specs into ``REPORTS``, keyed by
+slug, and ``apps/reports/permissions.py`` decides who may read one with
+``can_read_report(user, spec)``, which is ``user_has_any_role`` over the spec's
+roles.
 
 One rule holds everywhere:
 
-**An export is the list you are looking at.**  The export endpoints take the
-same filters as the list they belong to, so a download always matches the
-screen it came from.  ``?ordering=`` is the one exception: the members and
-aircraft exports honor it, and the payments export ignores it and always
-sorts by payment date, newest first.
-
-All three reports let the caller choose their columns.  Each one declares a
-registry of ``ReportColumn`` entries, a ``columns`` endpoint answers that
-registry so the screen's chooser is data-driven, and ``?columns=key,key`` picks
-which columns an export carries and in what order.  Leaving the parameter out
-takes the report's default columns, which are sized to fit one landscape page
-without wrapping.
+**A download is the list you are looking at.**  Each report's query is the
+filter and ordering code its list runs — the member list's filter set and
+ordering, the register's, the payment list's query serializer — so the same
+query string gives the same rows, in the same order, on the screen and in the
+file.  ``?ordering=`` is honored with the list's own rules, and nothing is
+paginated.
 
 
-Shared helpers
-==============
+The engine
+==========
 
-``backend/caldart/reports.py`` holds the house style so no app has to reinvent
-it:
+``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params)``
+   One report.  ``slug`` names it in every URL; ``title`` heads its PDF and
+   labels it in the portal; ``filename_stem`` begins its file name
+   (``caldart-members``).  ``columns`` is its registry of ``ReportColumn``
+   entries, in export order.  ``roles`` are the role slugs that may read it.
+   ``query(params)`` answers a ``ReportQuery`` — the rows, and the filters that
+   were applied, named for the PDF subtitle — and raises DRF's
+   ``ValidationError`` for a parameter it refuses, so a download answers 400 the
+   way the list does.  ``landscape`` picks the PDF's orientation.
+   ``choosable=False`` fixes the columns: every column is printed, and a
+   ``columns`` parameter is refused with ``This report's columns are fixed.``
+   ``resolve(params, today)`` turns the parameters into the ones the query
+   reads; a dated report uses it for ``period`` (below), and ``spec.periods`` is
+   true exactly when it is not ``keep_params``, the identity.
+``build_report(spec, params, *, fmt, today=None)``
+   The whole job.  It resolves the parameters for ``today`` (the local date by
+   default), chooses the columns — the ``columns`` parameter, or the defaults,
+   through ``chosen_columns`` — runs the query, and turns every cell into text
+   with ``cell_text``.  A CSV is the column labels and then one line per row,
+   every cell through ``csv_cell``; a PDF is ``build_pdf_table`` with the spec's
+   title and orientation, ``filter_summary`` of the applied filters as the
+   subtitle, and each column's registry width.  It answers a ``ReportDocument``:
+   the ``filename`` (``<stem>-<YYYY-MM-DD>.<csv|pdf>``), the ``media_type``
+   (``text/csv`` or ``application/pdf``) and the ``content`` bytes.  The whole
+   file is built in memory: every report here fits, and one path to a file is
+   worth more than a streamed one.
+``report_response(document)``
+   The document as a download: its bytes, ``text/csv; charset=utf-8`` or
+   ``application/pdf``, and an ``attachment`` ``Content-Disposition`` carrying
+   the file name.
+``Report``
+   The protocol every ``ReportSpec`` satisfies whatever its row type, which is
+   what the registry holds and ``build_report`` takes.
 
-``csv_response(filename, header, rows)``
-   A ``StreamingHttpResponse``, ``text/csv; charset=utf-8``, with a download
-   disposition.  Rows are consumed lazily — pass a generator or a queryset
-   iterator and the whole table never sits in memory at once.  ``None`` is
-   written as an empty cell; quoting is the ``csv`` module's problem.  Each
-   cell first passes through ``csv_cell``, which applies the formula policy
-   below.
-``csv_cell(value)``
-   One value as a CSV cell: ``None`` as an empty string, a formula-looking
-   string with a leading apostrophe, everything else unchanged.
-``pdf_table_response(filename, *, title, subtitle, header, rows, landscape, widths)``
-   A reportlab table in the CalDART palette: hairline rules instead of boxes,
-   zebra rows, the header repeated on every page, and a footer carrying
-   "CalDART · generated <timestamp>" and "Page n of m".  ``landscape`` defaults
-   to true, which is landscape US letter (792 × 612 points); ``landscape=False``
-   is the same page upright (612 × 792).  ``widths`` gives the columns relative
-   shares of the printable width — ``[3, 1, 1]`` makes the first column three
-   times either of the others — and is scaled to fill the page, so the units do
-   not matter; without it every column is the same width.  One width per column,
-   or ``ValueError``.  Unlike the CSV path this returns an ordinary
-   ``HttpResponse``: reportlab needs the whole document before it can write any
-   of it, so a PDF export does hold its rows in memory.
-``build_pdf_table(buffer, …)``
-   The same, into any writable binary stream, for tests and for anything that
-   is not an HTTP response.
+Periods
+-------
+
+``PERIODS`` is ``this_month``, ``last_month``, ``this_year`` and ``last_year``,
+and ``period_bounds(period, today)`` answers the first and last day of one,
+counted from ``today``; any other value is refused with
+``Unknown period '<value>'.``, keyed ``period``.  ``resolve_period(params,
+today, expand)`` replaces ``period`` with the parameters ``expand`` builds from
+those two days, which win over any the caller gave.  The payments report expands
+a period into ``from`` and ``to``, and the contributions report into ``year``;
+the other three reports keep their parameters as they are and ignore a
+``period``.  Because ``build_report`` resolves first, ``?period=`` works on a
+download as it does anywhere a report is built later, and "this year" means the
+year the report is built in.
+
+Columns and cells
+-----------------
+
 ``ReportColumn(key, label, default, value, width=1.0)``
-   One column of a report: the stable ``key`` a caller asks for, the ``label``
-   both exports print, whether it is in the report by ``default``, the ``value``
-   function that turns one row into that row's cell, and the ``width`` share the
-   PDF gives it relative to the other columns of the same export.  A report
-   declares its columns once, in export order, and both headers and both row
-   builders follow from that tuple.
+   One column: the stable ``key`` a caller asks for, the ``label`` both formats
+   print, whether it is in the report by ``default``, the ``value`` function
+   that turns one row into that row's cell, and the ``width`` share the PDF
+   gives it relative to the other columns of the same report.  A fixed report's
+   columns are all defaults.
 ``select_columns(columns, requested)``
    The columns to export.  A ``requested`` list that is ``None`` or empty means
    the caller chose nothing, and the answer is every column whose ``default``
    is true, in registry order; otherwise it is one column per requested key, in
    the order requested.  A key no column carries raises ``ValueError`` naming
-   that key, and so does a key asked for twice — a report has one cell per
-   column — and an endpoint answers either as a 400 keyed by ``columns``.
-``column_payload(columns)``
-   The registry as the screen's chooser reads it: one ``{"key", "label",
-   "default"}`` entry per column, in registry order.  It is what every
-   ``columns`` endpoint answers with, serialized by ``ReportColumnSerializer``.
+   that key, and so does a key asked for twice.
 ``chosen_columns(columns, requested)``
-   The columns a ``?columns=`` query parameter asks for.  ``requested`` is the
-   raw parameter — a comma-separated list of keys, or an empty string when the
-   caller chose nothing, which means the default columns.  An unknown or
-   repeated key raises DRF's ``ValidationError`` keyed by ``columns``, so every
-   export refuses a bad list the same way and with a 400.
+   The same for the raw ``?columns=`` parameter — a comma-separated list of
+   keys, or an empty string — raising DRF's ``ValidationError`` keyed by
+   ``columns`` instead, so every report refuses a bad list the same way.
+``column_payload(columns)``
+   The registry as the chooser reads it: one ``{"key", "label", "default"}``
+   entry per column, in registry order.  ``spec.column_choices()`` answers it
+   for a spec, serialized by ``ReportColumnSerializer``.
+``Money(cents, drop_zero_cents=False)`` and ``cell_text(value, fmt)``
+   Money is the one cell the two formats render differently.  A column whose
+   value is a ``Money`` prints ``1234.56`` in a CSV, which a spreadsheet sums,
+   and ``$1,234.56`` in a PDF, which a person reads; ``drop_zero_cents`` leaves
+   the cents off a round PDF amount, ``$1,000,000``.  ``None`` is a blank cell
+   and anything else its ``str``.
 ``money_label(cents, *, currency=True)``
    Integer cents as the dollars a reader sees: ``12345`` becomes ``$123.45``,
-   with commas between thousands.  ``currency=False`` gives ``123.45`` instead,
-   the shape a CSV cell carries so the column sums in a spreadsheet.  It is text
-   for people either way; an amount bound for Stripe or PayPal is built by the
-   provider module that speaks to that API.
+   with commas between thousands.  ``currency=False`` gives ``123.45``.  It is
+   text for people either way; an amount bound for Stripe or PayPal is built by
+   the provider module that speaks to that API.
+
+Filters
+-------
+
+``apply_filterset(filterset_class, params, queryset)``
+   Narrows a queryset by a django-filter filter set over the parameters, and
+   refuses a value the set refuses with DRF's ``ValidationError`` keyed by that
+   filter — the same 400 the list's filter backend answers.
+``given_params(params, keys=None)``
+   The parameters that carry a value, optionally only those in ``keys``, in
+   that order.  A blank value is "not given": a filter bar sends every parameter
+   it has.  A report names its applied filters with it, and the payment query
+   drops blanks with it before validating, so a blank bound narrows nothing
+   whether the parameters came from a query string or a stored mapping.
+``ordering_terms(raw)``
+   The terms of a comma-separated ``?ordering=``, stripped.  Each report checks
+   them against its own orderings.
 ``filter_summary(filters)``
    Renders ``{"status": "current", "dart": "Napa"}`` as
    ``status: current · dart: Napa``, dropping empty values, or "No filters
    applied".  It is what the PDF prints as its subtitle.
+
+The house style
+---------------
+
+``build_pdf_table(buffer, *, title, subtitle, header, rows, landscape, widths)``
+   A reportlab table in the CalDART palette, written to any binary stream:
+   hairline rules instead of boxes, zebra rows, the header repeated on every
+   page, and a footer carrying "CalDART · generated <timestamp>" and "Page n of
+   m".  ``landscape`` defaults to true, which is landscape US letter (792 × 612
+   points); ``landscape=False`` is the same page upright (612 × 792).
+   ``widths`` gives the columns relative shares of the printable width —
+   ``[3, 1, 1]`` makes the first column three times either of the others — and
+   is scaled to fill the page; without it every column is the same width.  One
+   width per column, or ``ValueError``.
+``csv_rows(header, rows)`` and ``csv_cell(value)``
+   The CSV lines, every cell through ``csv_cell``: ``None`` as an empty string,
+   a formula-looking string with a leading apostrophe, everything else
+   unchanged.
 
 Fraunces and IBM Plex are web fonts and are not embedded in the PDFs; the
 built-in Times and Helvetica families carry the same serif-display,
@@ -165,11 +235,12 @@ a single apostrophe, the OWASP treatment: every spreadsheet strips it on
 import, and the cell reads as the text it always was.  Only strings are
 treated this way; a number or a date passes through untouched.
 
-The money columns are strings — each report formats its cents itself, some of
-them through ``money_label`` — and they still never pick up an apostrophe,
-because the fields behind them (``amount_cents``, ``contribution_cents``, the insurance amounts) are
-positive integer fields, so a formatted amount never opens with a sign and
-always sums correctly in the spreadsheet.  A value a member typed is the case
+The money columns are text by the time they reach the CSV — ``cell_text``
+renders a ``Money`` cell through ``money_label`` — and they still never pick up
+an apostrophe, because the fields behind them (``amount_cents``,
+``contribution_cents``, the insurance amounts) are positive integer fields, so a
+formatted amount never opens with a sign and always sums correctly in the
+spreadsheet.  A value a member typed is the case
 the policy is for: a phone number entered as ``+1 707 555 0134`` opens with
 ``+``, so it exports with an apostrophe in front and reads as the text it is.
 
@@ -182,9 +253,11 @@ parse error.  ``escape_markup`` turns ``&``, ``<`` and ``>`` into entities, and
 The membership report
 =====================
 
-Served by ``GET /api/v1/admin/members/export.csv`` and ``export.pdf`` to
-``account_admin`` and ``system_admin`` — see :doc:`api-members` for the
-filters.  The filenames carry the date: ``caldart-members-2026-09-04.csv``.
+``members``, for ``dart_leader`` and ``account_admin``.  Its query is the member
+list's: ``MemberAdminFilterSet`` over ``member_admin_queryset()``, ordered by
+``MemberOrderingFilter.order_queryset``, which the list's ordering backend
+calls too — both in ``apps/members/filters.py``.  It takes every filter the
+list takes; see :doc:`api-members`.
 
 Columns, in order, from ``backend/apps/members/reports.py``.  The ten marked
 "default" are the report when the caller chooses none; the rest are there to be
@@ -224,8 +297,8 @@ profile_updated      Profile updated         no      Day profile information was
                                                      written; blank when never edited
 ==================== ======================= ======= ======================================
 
-``GET /api/v1/admin/members/columns`` answers the same registry as JSON, for
-the chooser on the member list.  The CSV header row is the labels.
+``GET /api/v1/reports/members/columns`` answers the same registry as JSON,
+for the chooser on the member list.
 
 Dates are ISO-8601 (``YYYY-MM-DD``) so a spreadsheet sorts them correctly.
 
@@ -239,9 +312,8 @@ Two conventions are worth knowing when you read a row:
   spreadsheet.
 
 The PDF subtitle lists the filters that were applied.  Which query parameters
-count as filters is ``EXPORT_FILTER_PARAMS`` in ``api/admin_filters.py``;
-``applied_filters(request)`` picks out the ones actually supplied, ignoring
-parameters left blank.
+count is ``EXPORT_FILTER_PARAMS`` in ``filters.py``; ``applied_filters(params)``
+picks out the ones actually supplied, ignoring parameters left blank.
 
 
 How to add a column
@@ -258,10 +330,10 @@ Everything about a column lives in one tuple.  In
        ReportColumn("county", "County", False, lambda ctx: _value(ctx["profile"], "county")),
    )
 
-Add an entry and everything picks it up: both export headers are the labels,
-``member_report_rows`` builds each row by calling the value function of every
-chosen column in order, and ``GET /admin/members/columns`` offers the new column
-to the chooser.
+Add an entry and everything picks it up: both headers are the labels,
+``build_report`` builds each row by calling the value function of every chosen
+column in order, and ``GET /reports/members/columns`` offers the new column to
+the chooser.
 
 The ``ctx`` dictionary a value function receives is built by ``_row_context``
 and holds ``user``, ``profile`` (which may be ``None``), ``dart``,
@@ -274,15 +346,27 @@ behind a ``choices`` field and blanks the "nothing on file" values.
 Then:
 
 * If the column needs data the queryset does not already carry, add it to
-  ``member_admin_queryset`` in ``api/admin_filters.py`` — as
+  ``member_admin_queryset`` in ``filters.py`` — as
   ``select_related``/``prefetch_related`` for a relation, or as an annotation.
-  Do not fetch it inside the value function: the export streams row by row, so
-  a query there is a query per member.
+  Do not fetch it inside the value function: the rows are read a chunk at a
+  time, so a query there is a query per member.
 * Update the column table above.
 * Extend ``DOCUMENTED_COLUMNS`` in ``backend/tests/test_members_reports.py``.  It is
   a deliberate copy of the column table above, and the test that compares it
   with the registry's keys is what stops the report and this page drifting
   apart.
+
+A money column returns a ``Money`` rather than formatting the cents itself, so
+each format prints it its own way.
+
+How to add a report
+-------------------
+
+Declare a ``ReportSpec`` in the app whose data it reports, next to its columns,
+with a ``query`` that reuses the filter and ordering code of the list it
+downloads, and add it to ``REPORTS`` in ``apps/reports/registry.py``.  The
+endpoints, the role check and both formats follow; document it here and in
+:doc:`api-reports`.
 
 Widths and wrapping
 -------------------
@@ -302,11 +386,11 @@ caller who asks for it asks for a different set.
 The aircraft report
 ===================
 
-Served by ``GET /api/v1/admin/aircraft/export.csv`` and ``export.pdf`` to
-``account_admin``.  Filenames carry the date: ``caldart-aircraft-2026-09-04.csv``.
-Both formats render from one column registry in
-``backend/apps/aircraft/reports.py``, so they cannot disagree about the data.
-The columns, in order:
+``aircraft``, for ``account_admin``.  Its query is the register's:
+``AircraftFilter`` from ``apps/aircraft/filters.py``, ordered by
+``order_register``, which shares ``nulls_last_order`` with the register's
+ordering backend.  The columns, in order, from
+``backend/apps/aircraft/reports.py``:
 
 ======================== ======================= ======= ==============================
 Key                      Label                   Default Contents
@@ -328,13 +412,12 @@ pilots                   Pilots                  no      Display names of the me
                                                          ``.pilot_names``
 ======================== ======================= ======= ==============================
 
-``GET /api/v1/admin/aircraft/columns`` answers the registry as JSON, for the
+``GET /api/v1/reports/aircraft/columns`` answers the registry as JSON, for the
 chooser on the register screen.  The pilot list is off by default because it is
 as long as the number of members who fly the plane, which is the one cell no
 width can promise to hold.
 
-The two formats share the header — both print the labels — but not the money
-format:
+The insured amounts are ``Money`` cells that drop round cents:
 
 .. list-table::
    :header-rows: 1
@@ -347,40 +430,33 @@ format:
      - plain decimals, ``1000000.00``
      - currency, ``$1,000,000``
 
-That split is deliberate — one file is parsed and the other is read — and it is
-why a row is built from an ``AircraftRow``, which pairs the aircraft with the
-money format its export wants.
-
-Both exports take the register's full filter set: ``search``, ``make``,
+The report takes the register's full filter set: ``search``, ``make``,
 ``owner_type``, ``insurance`` (``current`` / ``expired`` / ``missing``),
 ``expiring_within``, ``is_active``, and ``ordering``, plus ``?columns=``.  The
-PDF subtitle names every filter, through ``AircraftExportMixin.applied_filters``.
+PDF subtitle names every one given a value, from ``EXPORT_FILTER_PARAMS`` in
+``apps/aircraft/reports.py``.
 
 
 The payments reports
 ====================
 
-Four reports come out of ``backend/apps/payments/``, all of them served to the
-finance roles and documented endpoint by endpoint in :doc:`api-finance`.
+Three reports come out of ``backend/apps/payments/``, all of them for the
+finance roles, with the tables they download documented in :doc:`api-finance`.
 
 The payment list
 ----------------
 
-``GET /api/v1/admin/payments/export.csv`` and ``export.pdf``.
-``PAYMENT_REPORT_COLUMNS`` in ``backend/apps/payments/reports.py`` is a tuple of
-``ReportColumn`` entries — ``key``, ``label``, ``default`` and a value function
-— and ``select_columns`` turns ``?columns=a,b,c`` into the columns to print, in
-the order asked for.  ``GET /admin/payments/columns`` answers the same registry
-as JSON, so the screen's column chooser is data-driven; adding a column means
-adding one entry to that tuple and nothing else.
+``payments``.  ``PAYMENT_REPORT_COLUMNS`` in ``backend/apps/payments/reports.py``
+is its registry, and its query is ``filtered_payments``, which the finance list
+reads too: ``PaymentReportQuerySerializer`` validates the parameters and
+``requested_ordering`` the ordering, both in the same module.  The report takes
+every list filter **and** ``?ordering=``, and ``?period=`` becomes ``from`` and
+``to``.  Money is a plain decimal in both formats — the columns format their
+cents with ``money_label(cents, currency=False)`` — so the PDF lines up with the
+spreadsheet.  The subtitle names the filters given a value.
 
-Both exports honor every list filter **and** ``?ordering=``, and carry the date
-in the filename: ``caldart-payments-<YYYY-MM-DD>.csv`` or ``.pdf``.  The CSV
-writes money as a plain decimal a spreadsheet adds up; the PDF writes it with
-a dollar sign and names the filters in its subtitle, through ``filter_summary``.
-
-The exports include **every** status, while ``GET /admin/payments/summary``
-counts only money that arrived — so an export and a period total differ
+The report includes **every** status, while ``GET /admin/payments/summary``
+counts only money that arrived — so a download and a period total differ
 whenever there are failed attempts in the range, which is expected rather than
 a fault.
 
@@ -395,27 +471,29 @@ A second annotation, ``paid_at``, keeps the moment the payment settled, for
 The reconciliation table
 ------------------------
 
-``backend/apps/payments/reconciliation.py`` builds one row per month, year or
-provider: the count, the gross, the fees, the net, what went back, the net
-after refunds, and how many of the period's payments a treasurer has matched to
-a statement.  Two dating rules make the rows add up against a bank statement: a
-payment is dated by ``paid_date``, and a refund by ``refunded_at``, so a refund
-taken in a later period belongs to that period.  A period in which money only
-went back still gets a row.
-
-Both exports are portrait letter — nine narrow columns fit an upright page —
-and are named ``caldart-reconciliation-<from>-<to>.{csv,pdf}``.
+``reconciliation``, declared in ``backend/apps/payments/reconciliation.py``
+beside the rows it reports, with fixed columns — Period, Payments, Gross, Fees,
+Net, Refunded, Net after refunds, Reconciled and Unreconciled — on an upright
+page.  ``reconciliation_rows`` builds one row per month, year or provider: the
+count, the gross, the fees, the net, what went back, the net after refunds, and
+how many of the period's payments a treasurer has matched to a statement.  Two
+dating rules make the rows add up against a bank statement: a payment is dated
+by ``paid_date``, and a refund by ``refunded_at``, so a refund taken in a later
+period belongs to that period.  A period in which money only went back still
+gets a row.  The subtitle names the range, provider and grouping.
 
 The contributions list
 ----------------------
 
-``contribution_rows(year)`` answers one row per member who gave something in a
-calendar year, largest net giver first: the count, what they gave, what went
-back, and the difference.  It is the list the year-end acknowledgments go out
-from, and its exports are ``caldart-contributions-<year>.{csv,pdf}``, portrait
-letter.  A payment falls in the year of its ``paid_date``, so a check received
-in December and keyed in January counts in the year it arrived, the same year
-the period summary puts it in.
+``contributions``, with fixed columns — Name, Email, Payments, Contributed,
+Refunded and Net — on an upright page.  ``contribution_rows(year)`` answers one
+row per member who gave something in a calendar year, largest net giver first:
+the count, what they gave, what went back, and the difference.  It is the list
+the year-end acknowledgments go out from.  The year is ``?year=``, the year a
+``?period=`` falls in, or this year, and the subtitle always names it.  A
+payment falls in the year of its ``paid_date``, so a check received in December
+and keyed in January counts in the year it arrived, the same year the period
+summary puts it in.
 
 The period summary
 ------------------
@@ -423,14 +501,20 @@ The period summary
 ``summarize`` groups by month or year and reports the gross, the split between
 dues and contributions, the fees, the net, what went back, and a per-provider
 breakdown of the gross.  It counts succeeded, partially refunded and refunded
-payments: a payment since refunded was revenue that came and went.
+payments: a payment since refunded was revenue that came and went.  It is a
+screen, not a report: nothing downloads it.
 
 
 Testing a report
 ================
 
-``backend/tests/test_reports.py`` covers the shared helpers: streaming,
-laziness, download headers, escaping, pagination, and an empty result set.
+``backend/tests/test_reports.py`` covers the engine on a small report of its
+own: cells, periods, the fixed-column refusal, both formats, the download
+headers, escaping, pagination, and an empty result set.
+``backend/tests/test_report_registry.py`` holds each report's query to its list
+— the same parameters give the same rows in the same order — and
+``backend/tests/test_report_endpoints.py`` proves the endpoints and the role
+matrix for every report.
 
 ``backend/tests/test_members_reports.py`` covers the membership report and is
 the pattern to copy.  Assertions worth keeping:
@@ -438,17 +522,19 @@ the pattern to copy.  Assertions worth keeping:
 * the header equals the column list documented above, verbatim;
 * a fully populated member's row, cell by cell;
 * the lifetime and "nothing on file" conventions above;
-* each filter narrows the export, and ``?ordering=`` reorders it;
-* the export is not paginated;
+* each filter narrows the download, and ``?ordering=`` reorders it;
+* the download is not paginated;
 * the PDF is valid (``%PDF-`` … ``%%EOF``), is landscape letter — assert on
   ``/MediaBox [0 0 792 612]`` — and paginates a long report.
 
-PDF page content is compressed, so you cannot grep the bytes for a cell.  Test
-what the document *says* at the level above instead: the subtitle is
-``filter_summary(applied_filters(request))``, and both are ordinary functions.
+PDF page content is compressed, so you cannot grep the bytes for a cell.  Read
+it with the ``pdf_text`` fixture, which answers the strings each page draws, or
+test what the document *says* at the level above instead: the subtitle is
+``filter_summary(spec.query(params).filters)``, and both are ordinary functions.
 
 Related
 =======
 
-The export endpoints themselves are documented on the page for each app:
-:doc:`api-members`, :doc:`api-aircraft` and :doc:`api-finance`.
+The endpoints are documented in :doc:`api-reports`; the lists each report
+downloads are on the page for each app: :doc:`api-members`, :doc:`api-aircraft`
+and :doc:`api-finance`.
