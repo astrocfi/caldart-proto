@@ -1,13 +1,19 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import type { EmailLogEntry, Paginated } from '@/portal/api/types';
+import { SEARCH_DEBOUNCE_MS } from '@/portal/components/useDebounced';
 import { EmailLogPanel } from './EmailLogPanel';
+
+/** A userEvent instance whose internal waits advance the fake clock instead of sleeping. */
+function setupUser() {
+  return userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+}
 
 const ENTRIES: EmailLogEntry[] = [
   {
@@ -45,6 +51,14 @@ function emailsHandler(rows: EmailLogEntry[]) {
 }
 
 describe('EmailLogPanel', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('shows the most recent emails with their purpose, recipient and status', async () => {
     server.use(emailsHandler(ENTRIES));
     renderWithProviders(<EmailLogPanel />);
@@ -80,6 +94,31 @@ describe('EmailLogPanel', () => {
     expect(await screen.findByText('No emails sent yet')).toBeInTheDocument();
   });
 
+  it('reports a failed fetch instead of reading silently as an empty log', async () => {
+    server.use(
+      http.get(`${API}/system/emails`, () =>
+        HttpResponse.json({ detail: 'The database is unreachable.' }, { status: 500 }),
+      ),
+    );
+    renderWithProviders(<EmailLogPanel />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The database is unreachable.');
+  });
+
+  it('asks for fifty rows', async () => {
+    const captured: string[] = [];
+    server.use(
+      http.get(`${API}/system/emails`, ({ request: req }) => {
+        captured.push(new URL(req.url).searchParams.get('page_size') ?? '');
+        return HttpResponse.json(page(ENTRIES));
+      }),
+    );
+    renderWithProviders(<EmailLogPanel />);
+
+    await screen.findByText('Marta Reyes');
+    expect(captured[0]).toBe('50');
+  });
+
   it('filters by purpose', async () => {
     server.use(emailsHandler(ENTRIES));
     renderWithProviders(<EmailLogPanel />);
@@ -101,6 +140,7 @@ describe('EmailLogPanel', () => {
   });
 
   it('debounces the search box before asking the server', async () => {
+    const user = setupUser();
     server.use(emailsHandler(ENTRIES));
     renderWithProviders(<EmailLogPanel />);
     await screen.findByText('Marta Reyes');
@@ -113,10 +153,11 @@ describe('EmailLogPanel', () => {
       }),
     );
 
-    await userEvent.type(screen.getByLabelText('Search'), 'reyes');
+    await user.type(screen.getByLabelText('Search'), 'reyes');
+    await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
 
-    await waitFor(() => {
-      expect(captured.at(-1)).toBe('reyes');
-    });
+    // A single settled request, not one per keystroke: removing the debounce
+    // would fail this with five captured values ('r', 're', ..., 'reyes').
+    expect(captured).toEqual(['reyes']);
   });
 });

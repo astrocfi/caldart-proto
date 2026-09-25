@@ -23,11 +23,20 @@ export function runSummary(result: ReminderRunResult, dryRun: boolean): string {
 /**
  * `Skipped: <reason> <count>, …`, one entry per reason a candidate was passed
  * over that occurred at least once, or `''` when nothing was skipped.
+ *
+ * The labeled reasons come first, in the guide's order; a reason the server
+ * reports that {@link SKIPPED_REASON_LABELS} does not name follows by its raw
+ * slug, mirroring {@link purposeLabel}'s fallback, so a new reason still shows
+ * up here rather than silently dropping out of the total.
  */
 export function skippedBreakdown(byReason: Record<string, number>): string {
-  const parts = Object.keys(SKIPPED_REASON_LABELS)
+  const labeled = Object.keys(SKIPPED_REASON_LABELS)
     .filter((reason) => (byReason[reason] ?? 0) > 0)
     .map((reason) => `${SKIPPED_REASON_LABELS[reason]} ${byReason[reason]}`);
+  const unlabeled = Object.keys(byReason)
+    .filter((reason) => !(reason in SKIPPED_REASON_LABELS) && (byReason[reason] ?? 0) > 0)
+    .map((reason) => `${reason} ${byReason[reason]}`);
+  const parts = [...labeled, ...unlabeled];
   return parts.length > 0 ? `Skipped: ${parts.join(', ')}.` : '';
 }
 

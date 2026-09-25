@@ -70,6 +70,12 @@ export function EmailLogPanel(): JSX.Element {
 
   return (
     <Card eyebrow="Operations" title="Email log">
+      {log.isError ? (
+        <p className="field__error" role="alert">
+          {log.error instanceof Error ? log.error.message : 'Could not read the email log.'}
+        </p>
+      ) : null}
+
       <DataTable
         columns={COLUMNS}
         rows={log.data?.results ?? []}

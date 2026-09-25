@@ -172,8 +172,7 @@ when it went, what it was for, who it went to, whether the mail server took
 it, and any file attached.  It is the answer to "what did we actually send
 this person?", and to "is our mail going out at all?": a message the mail
 server refused reads, for example, "Failed: SMTPRecipientsRefused" in the
-**Status** column, with the error alongside "Sent" for the ones that went
-out.
+**Status** column.  A message that went out reads simply "Sent".
 
 A renewal reminder is the one exception.  Its send shares a transaction with
 the reminder log, so that a reminder the mail server refuses stays due and

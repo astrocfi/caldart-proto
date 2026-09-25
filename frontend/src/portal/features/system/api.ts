@@ -89,7 +89,9 @@ export function useRunReminders(): UseMutationResult<ReminderRunResult, unknown,
       api.post<ReminderRunResult>('/system/reminders/run', { dry_run: dryRun }),
     onSuccess: (_result, dryRun) => {
       // A dry run writes nothing, so there is no new log row to fetch.
-      if (!dryRun) void queryClient.invalidateQueries({ queryKey: ['system', 'reminders', 'log'] });
+      if (dryRun) return;
+      void queryClient.invalidateQueries({ queryKey: ['system', 'reminders', 'log'] });
+      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
     },
   });
 }
@@ -109,6 +111,7 @@ export function useRunRenewals(): UseMutationResult<RenewalRunResult, unknown, b
       if (dryRun) return;
       void queryClient.invalidateQueries({ queryKey: ['admin', 'renewals'] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
+      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
     },
   });
 }
