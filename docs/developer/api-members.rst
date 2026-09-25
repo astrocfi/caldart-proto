@@ -98,17 +98,21 @@ The member table, filtered, ordered, and paginated with the project's standard
          "medical_expiration": "2027-01-31",
          "medical_is_current": true,
          "aircraft": ["N172SP"],
-         "joined_on": "2024-07-01"
+         "joined_on": "2024-07-01",
+         "profile_updated_at": "2026-08-11T09:14:02.100522-07:00"
        }
      ]
    }
 
 The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.
 ``joined_on`` is the start of the earliest membership term, or ``null`` for
-somebody who has never had one.  An account with no ``MemberProfile`` row still
-appears: ``phone`` is blank, ``dart``, and ``medical_expiration`` are ``null``
-, ``pilot_certificate_type``, and ``medical_type`` read ``none``,
-``medical_is_current`` is false and ``aircraft`` is empty.
+somebody who has never had one.  ``profile_updated_at`` is when profile
+information was last written -- see :doc:`data-model` -- and ``null`` for a
+profile nobody has edited, or for an account with none.  An account with no
+``MemberProfile`` row still appears: ``phone`` is blank, ``dart``, and
+``medical_expiration`` are ``null``, ``pilot_certificate_type``, and
+``medical_type`` read ``none``, ``medical_is_current`` is false and
+``aircraft`` is empty.
 
 Statuses:
 
@@ -157,9 +161,9 @@ Filters
 Ordering
 --------
 
-``?ordering=`` takes ``pilot``, ``name``, ``email``, ``dart``, ``expires_on``
-or ``joined``, each optionally prefixed with ``-``.  Anything else falls back to
-``name`` rather than being refused.
+``?ordering=`` takes ``pilot``, ``name``, ``email``, ``dart``, ``expires_on``,
+``joined`` or ``updated``, each optionally prefixed with ``-``.  Anything else
+falls back to ``name`` rather than being refused.
 
 Every alias ends in keys that settle a tie, so two rows the caller's sort cannot
 separate — two members of one DART, two people whose membership runs out on the
@@ -174,12 +178,15 @@ email        email, surname, forename
 dart         DART name, surname, forename
 expires_on   computed expiry, surname, forename
 joined       start of the earliest term, surname, forename
+updated      ``profile_updated_at``, surname, forename
 ============ ==================================================================
 
 ``pilot_rank`` ranks a current medical ahead of a lapsed one ahead of a
 non-pilot, which is the order the list's Pilot column reads in.  The two date
-sorts, and ``dart``, keep rows with no value at the end in both directions, so
-lifetime members do not crowd out the answer to "who expires next".
+sorts, ``updated``, and ``dart``, keep rows with no value at the end in both
+directions, so lifetime members do not crowd out the answer to "who expires
+next", and a profile nobody has ever edited does not crowd out "who was
+touched most recently".
 
 
 Computed membership status
@@ -324,6 +331,7 @@ and every payment newest first.
      "roles": ["member"],
      "created_at": "2024-07-01T16:04:11.318204-07:00",
      "joined_on": "2024-07-01",
+     "profile_updated_at": "2026-08-11T09:14:02.100522-07:00",
      "membership": {
        "status": "current",
        "expires_on": "2027-05-23",
@@ -446,6 +454,12 @@ The nested profile serializer is bound to the stored row before validation, so
 a partial update is judged against the whole profile: sending only
 ``medical_type`` does not trip the "a medical class needs an expiry date" rule
 when the record already has one.
+
+``profile_updated_at`` is stamped when the body carries ``profile``, or an
+``email``, ``first_name`` or ``last_name`` -- the fields a member record shows
+alongside the rest of the profile.  A request that only flips ``is_active``
+leaves the stamp alone, and so does one for a target with no profile row to
+stamp.
 
 ``email`` and ``is_active`` go through the same account-edit guard as
 ``PATCH /admin/users/{id}`` — see :ref:`account-edit-guard`.  An account

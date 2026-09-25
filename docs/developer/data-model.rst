@@ -575,9 +575,19 @@ everything the join form collects.  Deleting the user cascades.
     flown", with ``related_name="pilots"``.
 
 *Volunteer interests*
-    Six booleans: ``vol_ground_team``, ``vol_exercise_training``,
-    ``vol_member_support``, ``vol_fundraising``, ``vol_social_media``,
-    ``vol_newsletter``.
+    Seven booleans: ``vol_mission_pilot``, ``vol_ground_team``,
+    ``vol_exercise_training``, ``vol_member_support``, ``vol_fundraising``,
+    ``vol_social_media``, ``vol_newsletter``.
+
+*Membership*
+    ``member_since`` — the day this person first joined, stamped once and
+    never moved by a renewal or a gap.  ``profile_updated_at`` — when profile
+    information was last written: a member's own edit, an administrator's
+    edit to the profile or to the account's name or email, an aircraft
+    attached or detached, or the profile's creation.  ``NULL`` until one of
+    those happens, so a seeded profile nobody has touched answers ``NULL``;
+    never moved by a payment, a membership grant or renewal, a reminder, or a
+    role change.  Written by ``apps.members.services.touch_profile``.
 
 *Admin only*
     ``notes`` (text) and ``how_heard``.  Neither is in the member-facing
@@ -626,15 +636,15 @@ that the message a person reads can be specific:
     a BasicMed expiry from the exam date.
 ``is_complete``
     ``True`` when every field in ``MemberProfile.COMPLETE_FIELDS`` has a
-    value: ``phone``, ``address_line1``, ``city``, ``postal_code``, and
-    ``pilot_certificate_type``.  This is the single definition of
-    "complete": the accounts ``UserSerializer`` delegates
+    value: ``phone``, ``address_line1``, ``city``, ``state``,
+    ``postal_code``, and ``pilot_certificate_type``.  ``state`` defaults to
+    ``CA`` and so never blocks the check on its own.  This is the single
+    definition of "complete": the accounts ``UserSerializer`` delegates
     to it for the ``profile_complete`` flag that drives the dashboard nudge and
     the join wizard's step gating, and the portal form's
     ``REQUIRED_PROFILE_FIELDS`` (``frontend/src/portal/features/profile/form.ts``)
     mirrors the same list, so a profile the form accepts is a profile the
-    server calls complete.  ``state`` is not part of the rule; see
-    :ref:`profile-completeness`.
+    server calls complete.  See :ref:`profile-completeness`.
 ``display_name``
     Full name, falling back to the email address.
 
