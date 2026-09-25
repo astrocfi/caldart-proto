@@ -9,14 +9,22 @@ report does not name is a 403.  An anonymous caller is a 401, from
 from __future__ import annotations
 
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.reports.api.serializers import ReportSummaryDict, ReportSummarySerializer
+from apps.members.api.actors import acting_user
+from apps.reports.api.serializers import (
+    ReportSummaryDict,
+    ReportSummarySerializer,
+    SavedColumnSetSerializer,
+)
+from apps.reports.models import SavedColumnSet
 from apps.reports.permissions import can_read_report
 from apps.reports.registry import REPORTS, report_or_404
 from caldart.reports import (
@@ -113,3 +121,60 @@ class ReportExportView(APIView):
         spec = readable_report(request, slug)
         document = build_report(spec, request.query_params.dict(), fmt=fmt)
         return report_response(document)
+
+
+class ColumnSetListView(APIView):
+    """``GET`` and ``POST /reports/{slug}/column-sets`` -- the caller's saved sets."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: SavedColumnSetSerializer(many=True)})
+    def get(self, request: Request, slug: str) -> Response:
+        """200 with the caller's own sets of the report's columns, by name.
+
+        Another account's sets, and the caller's sets for other reports, are never
+        listed.  404 for an unknown report, 403 for a caller who may not read it.
+        """
+        spec = readable_report(request, slug)
+        sets = SavedColumnSet.objects.filter(user=acting_user(request), report=spec.slug)
+        return Response(SavedColumnSetSerializer(sets, many=True).data)
+
+    @extend_schema(request=SavedColumnSetSerializer, responses={201: SavedColumnSetSerializer})
+    def post(self, request: Request, slug: str) -> Response:
+        """201 with the set saved under ``name``: created, or replaced if the name is in use.
+
+        Saving under a name the caller already uses for this report replaces that
+        set's columns and keeps its id.  400 for a name or columns the serializer
+        refuses; 404 and 403 as for ``GET``.
+        """
+        spec = readable_report(request, slug)
+        serializer = SavedColumnSetSerializer(data=request.data, context={"spec": spec})
+        serializer.is_valid(raise_exception=True)
+        saved, _created = SavedColumnSet.objects.update_or_create(
+            user=acting_user(request),
+            report=spec.slug,
+            name=serializer.validated_data["name"],
+            defaults={"columns": serializer.validated_data["columns"]},
+        )
+        return Response(SavedColumnSetSerializer(saved).data, status=status.HTTP_201_CREATED)
+
+
+class ColumnSetDetailView(APIView):
+    """``DELETE /reports/{slug}/column-sets/{id}`` -- remove one of the caller's sets."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={204: None})
+    def delete(self, request: Request, slug: str, pk: int) -> Response:
+        """204 once the caller's own set is gone.
+
+        A set that belongs to another account, or to another report, answers 404
+        and is left alone.  404 for an unknown report, 403 for a caller who may not
+        read it.
+        """
+        spec = readable_report(request, slug)
+        saved = get_object_or_404(
+            SavedColumnSet, pk=pk, user=acting_user(request), report=spec.slug
+        )
+        saved.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

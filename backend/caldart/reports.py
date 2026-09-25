@@ -687,6 +687,10 @@ class Report(Protocol):
         """The start of the report's file name."""
 
     @property
+    def columns(self) -> Sequence[ReportColumn[Any]]:
+        """Every column the report can carry, in export order."""
+
+    @property
     def roles(self) -> tuple[str, ...]:
         """The role slugs that may read the report."""
 

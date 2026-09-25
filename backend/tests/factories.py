@@ -52,6 +52,8 @@ from apps.payments.models import (
     RenewalMandate,
 )
 from apps.reminders.models import ReminderKind, ReminderLog
+from apps.reports.models import ReportFormats, ReportSubscription, SavedColumnSet
+from apps.reports.schedule import Cadence
 
 if TYPE_CHECKING:
     from apps.accounts.models import User as UserModel
@@ -511,3 +513,38 @@ class RenewalAttemptFactory(ModelFactory[RenewalAttempt]):
     mandate = factory.SubFactory(RenewalMandateFactory)
     membership = factory.SubFactory(MembershipFactory)
     scheduled_on = factory.LazyFunction(timezone.localdate)
+
+
+# -- reports -----------------------------------------------------------------
+class SavedColumnSetFactory(ModelFactory[SavedColumnSet]):
+    """A saved set of the members report's name and email columns, for a new user."""
+
+    class Meta:
+        model = SavedColumnSet
+
+    user = factory.SubFactory(UserFactory)
+    report = "members"
+    name = factory.Sequence(lambda n: f"Set {n}")
+    columns = factory.LazyFunction(lambda: ["name", "email"])
+
+
+class ReportSubscriptionFactory(ModelFactory[ReportSubscription]):
+    """Builds an active monthly PDF of the members report, due today, to a bare address.
+
+    ``recipient_user`` is ``None`` unless given; pass a user and their address to bind
+    the subscription to an account.
+    """
+
+    class Meta:
+        model = ReportSubscription
+
+    report = "members"
+    recipient_user = None
+    recipient_email = factory.Sequence(lambda n: f"subscriber{n}@example.test")
+    filters = factory.LazyFunction(dict)
+    columns = factory.LazyFunction(list)
+    formats = ReportFormats.PDF
+    cadence = Cadence.MONTHLY
+    weekday = 0
+    is_active = True
+    next_due_on = factory.LazyFunction(timezone.localdate)

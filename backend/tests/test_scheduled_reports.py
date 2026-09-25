@@ -25,7 +25,13 @@ from apps.reports.schedule import next_due_after
         (6, date(2026, 12, 30), date(2027, 1, 3)),
         (2, date(2026, 9, 29), date(2026, 9, 30)),
     ],
-    ids=["friday-to-monday", "monday-to-next-monday", "friday-to-friday", "across-a-year", "next-day"],
+    ids=[
+        "friday-to-monday",
+        "monday-to-next-monday",
+        "friday-to-friday",
+        "across-a-year",
+        "next-day",
+    ],
 )
 def test_weekly_is_the_next_chosen_weekday_strictly_after_the_day(
     weekday: int, day: date, expected: date
