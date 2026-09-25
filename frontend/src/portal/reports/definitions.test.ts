@@ -5,7 +5,14 @@ import { listFilters, PERIOD_OPTIONS, REPORTS } from './definitions';
 import type { ReportSlug } from './types';
 
 /** Every report in the server's registry. */
-const SLUGS: ReportSlug[] = ['members', 'aircraft', 'payments', 'reconciliation', 'contributions'];
+const SLUGS: ReportSlug[] = [
+  'members',
+  'aircraft',
+  'payments',
+  'reconciliation',
+  'contributions',
+  'emails',
+];
 
 /**
  * The member report's filter parameters, as `EXPORT_FILTER_PARAMS` in
@@ -86,11 +93,16 @@ describe('REPORTS', () => {
     expect(keysOf('contributions')).toEqual(['year', 'period']);
   });
 
-  it('lets the columns be chosen only on the three wide reports', () => {
+  it('filters the email log by purpose, status, date range and search', () => {
+    expect(keysOf('emails')).toEqual(['purpose', 'status', 'from', 'to', 'q']);
+  });
+
+  it('lets the columns be chosen on the wide reports and the email log', () => {
     expect(SLUGS.filter((slug) => REPORTS[slug].choosable)).toEqual([
       'members',
       'aircraft',
       'payments',
+      'emails',
     ]);
   });
 

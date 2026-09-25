@@ -40,6 +40,7 @@ import type {
   ContributionTier,
   Dart,
   EmailLogEntry,
+  EmailPurpose,
   EmailStatus,
   FinanceMember,
   FinancePaymentTerm,
@@ -295,6 +296,7 @@ const leaderStatus: Matches<LeaderStatus, Schemas['LeaderStatus']> = true;
 
 /* -------------------------------------------------------------- email log */
 const emailLog: Matches<EmailLogEntry, Schemas['EmailLog']> = true;
+const emailPurpose: Matches<EmailPurpose, Schemas['EmailPurpose']> = true;
 
 /* -------------------------------------------------- reminders and system */
 const reminderLog: Matches<ReminderLogEntry, Schemas['ReminderLog']> = true;
@@ -427,6 +429,7 @@ const assertions: readonly true[] = [
   leaderSearch,
   leaderStatus,
   emailLog,
+  emailPurpose,
   reminderLog,
   reminderRun,
   health,
@@ -551,6 +554,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'LeaderSearchResult',
   'LeaderStatus',
   'EmailLog',
+  'EmailPurpose',
   'ReminderLog',
   'ReminderRunResult',
   'Health',
