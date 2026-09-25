@@ -54,9 +54,7 @@ describe('columnsOfSet', () => {
   });
 
   it('falls back to the defaults when none of the keys is left', () => {
-    expect(columnsOfSet(TEST_COLUMNS, ['retired_column'])).toEqual(
-      defaultColumnKeys(TEST_COLUMNS),
-    );
+    expect(columnsOfSet(TEST_COLUMNS, ['retired_column'])).toEqual(defaultColumnKeys(TEST_COLUMNS));
   });
 });
 
@@ -177,12 +175,12 @@ const SAVED_SETS: SavedColumnSet[] = [
 /** Render the chooser over `sets`, open its panel, and return the requests it makes. */
 async function openWithSets(
   sets: SavedColumnSet[],
-  onChange: (chosen: string[]) => void = handleNothing,
+  handleChange: (chosen: string[]) => void = handleNothing,
 ) {
   const requests: ColumnSetRequest[] = [];
   server.use(...columnSetHandlers('payments', sets, requests));
   const user = userEvent.setup();
-  renderWithProviders(<Harness onChange={onChange} />);
+  renderWithProviders(<Harness onChange={handleChange} />);
   await user.click(screen.getByRole('button', { name: 'Columns' }));
   return { user, requests };
 }
@@ -263,7 +261,7 @@ describe('ColumnChooser saved sets', () => {
     await screen.findByRole('option', { name: 'Audit' });
     expect(requests.find((request) => request.method === 'POST')?.body).toEqual({
       name: 'Audit',
-      columns: defaultColumnKeys(TEST_COLUMNS).toSpliced(1, 0, 'receipt_number'),
+      columns: ['paid_on', 'receipt_number', 'name', 'total', 'fee', 'net', 'refunded', 'status'],
     });
   });
 
@@ -292,9 +290,12 @@ describe('ColumnChooser saved sets', () => {
     const { user } = await openWithSets([]);
     server.use(
       http.post(`${API}/reports/payments/column-sets`, () =>
-        HttpResponse.json({ name: ['Ensure this field has no more than 60 characters.'] }, {
-          status: 400,
-        }),
+        HttpResponse.json(
+          { name: ['Ensure this field has no more than 60 characters.'] },
+          {
+            status: 400,
+          },
+        ),
       ),
     );
 

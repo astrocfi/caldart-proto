@@ -192,6 +192,7 @@ export function AircraftRegisterPage(): JSX.Element {
               </p>
             ) : reportColumns.length > 0 ? (
               <ColumnChooser
+                report="aircraft"
                 columns={reportColumns}
                 chosen={chosenKeys}
                 onChange={handleColumnChange}

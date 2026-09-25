@@ -199,6 +199,7 @@ export function MembersListPage(): JSX.Element {
                 </p>
               ) : reportColumns.length > 0 ? (
                 <ColumnChooser
+                  report="members"
                   columns={reportColumns}
                   chosen={chosenKeys}
                   onChange={handleColumnChange}
