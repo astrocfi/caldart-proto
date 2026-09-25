@@ -23,6 +23,7 @@ from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.mail.models import EmailLog, EmailStatus
 from apps.members.models import MembershipPlan
 from apps.reminders import services
 from apps.reminders.models import ReminderKind, ReminderLog
@@ -112,6 +113,19 @@ def test_a_failed_send_leaves_no_log_row(
     send_renewal_reminders(today=TODAY)
 
     assert ReminderLog.objects.count() == 0
+
+
+def test_a_failed_send_still_leaves_a_failed_email_log_row(
+    annual_plan: MembershipPlan, failing_smtp: list[EmailMessage]
+) -> None:
+    """The rolled-back ``ReminderLog`` row does not take the email log row with it."""
+    make_member(annual_plan, ends_on_for(ReminderKind.T30), email=FAILING_ADDRESS)
+
+    send_renewal_reminders(today=TODAY)
+
+    row = EmailLog.objects.get(to_email=FAILING_ADDRESS)
+    assert row.status == EmailStatus.FAILED
+    assert row.purpose == f"reminder_{ReminderKind.T30}"
 
 
 def test_the_failure_log_names_the_ids_but_no_address(

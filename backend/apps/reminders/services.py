@@ -406,21 +406,27 @@ def send_renewal_reminders(
     return run
 
 
-@transaction.atomic
 def _send_one(user: User, membership: Membership, kind: str, today: date) -> None:
     """Log the reminder, then send it.
 
-    The log row goes in first and inside the transaction, so a send that fails
-    rolls the row back and the reminder stays due.  If two runs race, the
-    unique constraint makes the loser raise ``IntegrityError`` rather than send
-    a duplicate; whatever the mail backend raises propagates in the same way,
-    for the caller to record.
+    The log row is created in its own transaction, committed before the send
+    starts, so a race with another run raises ``IntegrityError`` on the unique
+    constraint without leaving the connection unusable for what follows.  A
+    send the mail server refuses is caught here, not left to an enclosing
+    transaction: the log row is deleted by hand so the reminder stays due,
+    which leaves the failure ``caldart.mail`` already wrote to the email log
+    as the only record of the attempt, rather than rolling it back too.
     """
-    ReminderLog.objects.create(
-        user=user,
-        membership=membership,
-        kind=kind,
-        sent_at=timezone.now(),
-        to_email=user.email,
-    )
-    send_reminder_email(user, membership, kind, today)
+    with transaction.atomic():
+        log_row = ReminderLog.objects.create(
+            user=user,
+            membership=membership,
+            kind=kind,
+            sent_at=timezone.now(),
+            to_email=user.email,
+        )
+    try:
+        send_reminder_email(user, membership, kind, today)
+    except Exception:
+        log_row.delete()
+        raise
