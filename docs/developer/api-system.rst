@@ -8,7 +8,7 @@ The endpoints that keep the installation running and the one the portal calls
 before it has a user: ``GET /admin/reminders/log`` and
 ``POST /system/reminders/run`` from ``apps.reminders``,
 ``POST /system/reports/run`` from ``apps.reports``,
-``GET /system/emails`` from ``apps.mail``, the health, backup and
+``GET /system/emails`` and ``GET /system/emails/purposes`` from ``apps.mail``, the health, backup and
 renewal-scan routes under ``/system/`` from ``apps.sysadmin``, and
 ``GET /site/config`` from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
 session authentication, the CSRF header, pagination, and the error shapes.
@@ -198,7 +198,7 @@ reminder run's ``failed`` count reports it as well.
      "previous": null,
      "results": [
        {"id": 903, "to_email": "marta.reyes@example.org", "user_id": 37,
-        "user_name": "Marta Reyes", "purpose": "receipt",
+        "user_name": "Marta Reyes", "purpose": "receipt", "purpose_label": "Receipt",
         "subject": "CalDART: your receipt for $95.00",
         "sent_at": "2026-01-08T09:00:02-08:00", "status": "sent", "error": "",
         "attachments": "receipt-2026-0041.pdf"}
@@ -210,8 +210,14 @@ reminder run's ``failed`` count reports it as well.
    ``reminder_t60``, ``reminder_t30``, ``reminder_t7``, ``reminder_expired``,
    ``reminder_post30``, ``renewal_enabled``, ``renewal_notice``,
    ``renewal_card_expiring``, ``renewal_charged``, ``renewal_failed``,
-   ``renewal_canceled``, ``receipt``, ``refund``, ``member_invitation`` or
-   ``password_reset``.
+   ``renewal_canceled``, ``receipt``, ``refund``, ``member_invitation``,
+   ``password_reset``, ``scheduled_report`` or ``dart_roster``.
+
+``purpose_label``
+   The purpose in words, such as ``Renewal reminder (30 days)`` for
+   ``reminder_t30``, from ``PURPOSE_LABELS`` in ``apps/mail/purposes.py``.  A
+   purpose that dictionary does not name reads as the purpose itself, so a
+   template added without a label still shows up.
 
 ``user_id``, ``user_name``
    The account the email concerned.  Both are empty -- ``null`` and ``""`` --
@@ -250,8 +256,33 @@ by any of this -- it is the key that keeps a reminder stage from repeating, and
 ``GET /admin/reminders/log`` still answers "was this member ever told?" for an
 account administrator, who does not hold ``system_admin``.
 
+The filters are ``EmailLogFilterSet`` in ``apps/mail/filters.py``, which the
+``emails`` report shares: ``/reports/emails/export.csv`` and ``export.pdf`` take
+the same parameters and download every matching row rather than one page (see
+:doc:`api-reports`).
+
 Statuses: **200**; **400** for an unknown ``status`` or an unparseable date;
 **401** when anonymous; **403** for every other role.
+
+``GET /system/emails/purposes``
+-------------------------------
+
+The purposes the portal's purpose filter offers, one ``{value, label}`` per
+entry of ``PURPOSE_LABELS``, in that dictionary's order.  Unpaginated;
+``system_admin`` only, as the log is.
+
+.. code-block:: json
+
+   [
+     {"value": "reminder_t60", "label": "Renewal reminder (60 days)"},
+     {"value": "reminder_t30", "label": "Renewal reminder (30 days)"},
+     {"value": "receipt", "label": "Receipt"}
+   ]
+
+``value`` is what ``?purpose=`` takes and ``label`` the words the table shows
+for it, the same ``purpose_label`` a row carries.
+
+Statuses: **200**; **401** when anonymous; **403** for every other role.
 
 
 System

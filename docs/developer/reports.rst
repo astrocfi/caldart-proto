@@ -3,7 +3,7 @@ Reports
 =======
 
 CalDART exports data as CSV, for a spreadsheet, and as PDF, for a board pack.
-There are five reports, and every one of them is built by the same code: each
+There are six reports, and every one of them is built by the same code: each
 app declares what its report is — its columns, who may read it, and the query
 that finds its rows — as a ``ReportSpec``, and ``build_report`` in
 ``backend/caldart/reports.py`` turns any spec into either file.  The endpoints
@@ -39,9 +39,13 @@ documents them.
      - Contributions list
      - ``apps/payments/reports.py``
      - ``treasurer``, ``account_admin``
+   * - ``emails``
+     - Email log
+     - ``apps/mail/reports.py``
+     - ``system_admin``
 
 A ``system_admin`` and a Django superuser read every report.
-``apps/reports/registry.py`` gathers the five specs into ``REPORTS``, keyed by
+``apps/reports/registry.py`` gathers the six specs into ``REPORTS``, keyed by
 slug, and ``apps/reports/permissions.py`` decides who may read one with
 ``can_read_report(user, spec)``, which is ``user_has_any_role`` over the spec's
 roles.
@@ -50,7 +54,7 @@ One rule holds everywhere:
 
 **A download is the list you are looking at.**  Each report's query is the
 filter and ordering code its list runs — the member list's filter set and
-ordering, the register's, the payment list's query serializer — so the same
+ordering, the register's, the payment list's query serializer, the email log's filter set — so the same
 query string gives the same rows, in the same order, on the screen and in the
 file.  ``?ordering=`` is honored with the list's own rules, and nothing is
 paginated.
@@ -506,6 +510,41 @@ payments: a payment since refunded was revenue that came and went.  It is a
 screen, not a report: nothing downloads it.
 
 
+The email log report
+====================
+
+``emails``, for ``system_admin`` alone, since the log lists every address the
+installation has written to.  ``EMAIL_LOG_REPORT`` in ``backend/apps/mail/reports.py``
+declares it, and its query is the one ``GET /system/emails`` runs:
+``EmailLogFilterSet`` from ``apps/mail/filters.py`` over
+``EmailLog.objects.select_related("user")``, newest ``sent_at`` first.
+``?ordering=sent_at`` turns it round and ``-sent_at`` is the default; any other
+ordering is ignored, as the list ignores it.  The columns, in order:
+
+============= =========== ======= ==============================================
+Key           Label       Default Contents
+============= =========== ======= ==============================================
+sent_at       Sent        yes     When the message went, local time,
+                                  ``YYYY-MM-DD HH:MM``
+purpose       Purpose     yes     The purpose's label from
+                                  ``apps/mail/purposes.py``, or the template
+                                  name when no label names it
+to_email      To          yes     The address written to
+user_name     Name        yes     The recipient account's name; blank for an
+                                  address with no account behind it
+subject       Subject     yes     The subject line
+status        Status      yes     ``Sent`` or ``Failed``
+error         Error       no      The exception class of a refused send
+attachments   Attachments no      The attached filenames, comma-separated
+============= =========== ======= ==============================================
+
+The report takes the list's filters — ``purpose``, ``status``, ``from``, ``to``
+(both inclusive, on the local date part of ``sent_at``) and ``q`` — plus
+``ordering`` and ``?columns=``.  The PDF subtitle names every one given a value,
+from ``EXPORT_FILTER_PARAMS`` in ``apps/mail/reports.py``.
+``backend/tests/test_email_log_report.py`` covers it.
+
+
 Testing a report
 ================
 
@@ -537,5 +576,5 @@ Related
 =======
 
 The endpoints are documented in :doc:`api-reports`; the lists each report
-downloads are on the page for each app: :doc:`api-members`, :doc:`api-aircraft`
-and :doc:`api-finance`.
+downloads are on the page for each app: :doc:`api-members`, :doc:`api-aircraft`,
+:doc:`api-finance` and :doc:`api-system`.
