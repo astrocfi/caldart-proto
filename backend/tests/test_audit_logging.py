@@ -30,7 +30,7 @@ from apps.reminders.services import send_renewal_reminders
 from apps.sysadmin import services as sysadmin_services
 from apps.sysadmin.management.commands import db_reset as db_reset_command
 from caldart import audit
-from tests.factories import MembershipFactory, PaymentFactory, UserFactory
+from tests.factories import AircraftFactory, MembershipFactory, PaymentFactory, UserFactory
 
 if TYPE_CHECKING:
     from pytest_django.fixtures import Settings
@@ -47,6 +47,7 @@ MEMBERS_URL = "/api/v1/admin/members"
 MEMBERSHIPS_URL = "/api/v1/admin/memberships"
 BACKUPS_URL = "/api/v1/system/backups"
 REMINDER_RUN_URL = "/api/v1/system/reminders/run"
+AIRCRAFT_URL = "/api/v1/aircraft"
 
 #: A member whose address and name would be unmistakable in a log line.
 TARGET_EMAIL = "gwen.harkness@example.test"
@@ -674,6 +675,72 @@ def test_a_correction_that_changes_nothing_records_no_field(
     assert one_message(audit_log) == (
         f"action=membership.correct actor={account_admin.pk} target={target_member.pk} "
         f"term={term.pk} fields=-"
+    )
+
+
+# --------------------------------------------------------------------------
+# The aircraft register
+# --------------------------------------------------------------------------
+def test_adding_an_aircraft_records_the_record(
+    api_client: APIClient,
+    member: UserModel,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """Adding an airframe records the id of the record it created."""
+    api_client.force_login(member)
+    response = api_client.post(
+        AIRCRAFT_URL, {"n_number": "N4321Q", "make": "Cirrus", "model": "SR22"}, format="json"
+    )
+    assert response.status_code == 201
+    assert one_message(audit_log) == (
+        f"action=aircraft.create actor={member.pk} target={response.json()['id']}"
+    )
+
+
+def test_editing_an_aircraft_records_the_columns_that_changed(
+    api_client: APIClient,
+    account_admin: UserModel,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """The register's form resends every field, so only what moved is a field name."""
+    aircraft = AircraftFactory(n_number="N77AU", make="Cessna", model="182T Skylane")
+    api_client.force_login(account_admin)
+    response = api_client.patch(
+        f"{AIRCRAFT_URL}/{aircraft.pk}", {"make": "Cessna", "model": "SR22"}, format="json"
+    )
+    assert response.status_code == 200
+    assert one_message(audit_log) == (
+        f"action=aircraft.update actor={account_admin.pk} target={aircraft.pk} fields=model"
+    )
+
+
+def test_an_edit_that_moves_no_aircraft_column_records_a_dash(
+    api_client: APIClient,
+    account_admin: UserModel,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """A save that alters nothing is still a write, with no column named."""
+    aircraft = AircraftFactory(n_number="N78AU", make="Cessna", model="182T Skylane")
+    api_client.force_login(account_admin)
+    response = api_client.patch(f"{AIRCRAFT_URL}/{aircraft.pk}", {"make": "Cessna"}, format="json")
+    assert response.status_code == 200
+    assert one_message(audit_log) == (
+        f"action=aircraft.update actor={account_admin.pk} target={aircraft.pk} fields=-"
+    )
+
+
+def test_deleting_an_aircraft_records_the_record(
+    api_client: APIClient,
+    account_admin: UserModel,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """Deleting an airframe records the id of the record that is gone."""
+    aircraft = AircraftFactory(n_number="N79AU")
+    api_client.force_login(account_admin)
+    response = api_client.delete(f"{AIRCRAFT_URL}/{aircraft.pk}")
+    assert response.status_code == 204
+    assert one_message(audit_log) == (
+        f"action=aircraft.delete actor={account_admin.pk} target={aircraft.pk}"
     )
 
 

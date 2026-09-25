@@ -669,6 +669,9 @@ Action                        Fields beyond actor and target
 ``dart.create``               --
 ``dart.update``               --
 ``dart.delete``               --
+``aircraft.create``           --
+``aircraft.update``           ``fields`` -- the register columns changed
+``aircraft.delete``           --
 ``membership.grant``          ``plan``, ``term``
 ``membership.correct``        ``term``, ``fields``
 ``password_reset.admin_sent`` --
@@ -692,10 +695,12 @@ Action                        Fields beyond actor and target
                               ``failed``, ``paused``, ``skipped``
 ============================= ===============================================
 
-An action is recorded only when it really alters the record.  The admin account
-form resends every field on each save, so ``account.update`` names just the
-columns whose stored value changed, and a save that changes nothing at all is
-not a line.
+An account edit is recorded only when it really alters the record.  The admin
+account form resends every field on each save, so ``account.update`` names just
+the columns whose stored value changed, and a save that changes nothing at all
+is not a line.  A register edit is recorded whatever it changes, because the
+history behind it is a record of who wrote to the airframe; ``aircraft.update``
+names the columns that moved, and ``fields=-`` when none did.
 
 A privileged attempt a rule turns away is logged at WARNING under the same
 action, with a ``reason`` slug saying which rule refused it: ``self_deactivation``,

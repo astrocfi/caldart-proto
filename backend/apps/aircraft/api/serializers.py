@@ -8,10 +8,13 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
+from apps.accounts.models import User
 from apps.aircraft.models import (
     N_NUMBER_MESSAGE,
     N_NUMBER_RE,
     Aircraft,
+    AircraftChange,
+    AircraftChangeKind,
     normalize_n_number,
 )
 from apps.members.models import (
@@ -23,6 +26,13 @@ from apps.members.models import (
 )
 
 NEGATIVE_MONEY_MESSAGE = "Enter an amount of $0 or more."
+
+
+def _actor_payload(user: User | None) -> dict[str, Any] | None:
+    """``{"id": ..., "name": ...}`` for ``user``, or ``None`` when nobody is recorded."""
+    if user is None:
+        return None
+    return {"id": user.pk, "name": user.display_name}
 
 
 class NNumberField(serializers.CharField):
@@ -122,9 +132,16 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
             "insurance_summary",
             "notes",
             "created_by",
+            "updated_at",
             "is_active",
         ]
-        read_only_fields = ["id", "created_by", "insurance_is_current", "insurance_summary"]
+        read_only_fields = [
+            "id",
+            "created_by",
+            "updated_at",
+            "insurance_is_current",
+            "insurance_summary",
+        ]
 
 
 class AircraftPilotSerializer(serializers.Serializer[Any]):
@@ -137,13 +154,49 @@ class AircraftPilotSerializer(serializers.Serializer[Any]):
     medical_is_current = serializers.BooleanField()
 
 
+class AircraftActorSerializer(serializers.Serializer[Any]):
+    """The account behind a write: its id and the name to print beside a date."""
+
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+
+
+class AircraftChangeSerializer(serializers.ModelSerializer[AircraftChange]):
+    """One row of ``GET /aircraft/{id}/changes``."""
+
+    changed_by = serializers.SerializerMethodField()
+    kind = serializers.ChoiceField(choices=AircraftChangeKind.choices, read_only=True)
+    # DRF's metaclass moves every declared field out of the class namespace into
+    # ``_declared_fields``, so naming one ``fields`` never shadows ``Serializer.fields``
+    # at runtime; the stubs type the class attribute as the base property.
+    fields = serializers.ListField(  # type: ignore[assignment]
+        child=serializers.CharField(), read_only=True
+    )
+
+    class Meta:
+        model = AircraftChange
+        fields = ["id", "changed_at", "changed_by", "kind", "fields"]
+        read_only_fields = fields
+
+    @extend_schema_field(AircraftActorSerializer(allow_null=True))
+    def get_changed_by(self, obj: AircraftChange) -> dict[str, Any] | None:
+        """The id and display name of the account that made ``obj``, or ``None``."""
+        return _actor_payload(obj.changed_by)
+
+
 class AircraftDetailSerializer(AircraftSerializer):
     """The record plus the members who fly it, for admin and leader screens."""
 
     pilots = serializers.SerializerMethodField()
+    updated_by = serializers.SerializerMethodField()
 
     class Meta(AircraftSerializer.Meta):
-        fields = [*AircraftSerializer.Meta.fields, "pilots"]
+        fields = [*AircraftSerializer.Meta.fields, "updated_by", "pilots"]
+
+    @extend_schema_field(AircraftActorSerializer(allow_null=True))
+    def get_updated_by(self, obj: Aircraft) -> dict[str, Any] | None:
+        """Return the id and display name of the account that last wrote ``obj``."""
+        return _actor_payload(obj.updated_by)
 
     @extend_schema_field(AircraftPilotSerializer(many=True))
     def get_pilots(self, obj: Aircraft) -> list[dict[str, Any]]:

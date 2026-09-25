@@ -24,7 +24,9 @@ House rules that apply throughout:
   revision history behind them.  ``cms.SiteSettings`` carries no dates either,
   and Wagtail's ``BaseSiteSetting`` adds only the one-to-one to
   ``wagtailcore.Site``, so editing the settings overwrites the single row and
-  records nothing about when or by whom.
+  records nothing about when or by whom.  ``aircraft.AircraftChange`` carries its
+  own ``changed_at`` and no row is ever updated, so the inherited pair would only
+  duplicate it.
 - **``DEFAULT_AUTO_FIELD`` is ``BigAutoField``.**
 
 Entity relationships
@@ -79,6 +81,7 @@ Domain schema
           Mandate [label="payments.RenewalMandate\l  provider, method_ref, method_label\l  status, failure_count\l  contribution_cents\l"];
           Attempt [label="payments.RenewalAttempt\l  scheduled_on, outcome, error\l  noticed_at, attempted_at\l  result_emailed_at\l"];
           Aircraft [label="aircraft.Aircraft\l  n_number (unique)\l  make, model, insurance_*\l"];
+          AircraftChange [label="aircraft.AircraftChange\l  changed_at, kind\l  fields (JSON)\l"];
           Reminder [label="reminders.ReminderLog\l  kind, sent_at, to_email\l  (user, membership, kind) unique\l"];
           DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
 
@@ -101,7 +104,9 @@ Domain schema
           Attempt -> Membership [label="membership (CASCADE)"];
           Attempt -> Payment [label="payment (null, SET_NULL)"];
           Attempt -> Attempt [label="retry_of (null, SET_NULL)"];
-          Aircraft -> User [label="created_by (null, SET_NULL)"];
+          Aircraft -> User [label="created_by, updated_by (null, SET_NULL)"];
+          AircraftChange -> Aircraft [label="aircraft (CASCADE)\lrelated: changes"];
+          AircraftChange -> User [label="changed_by (null, SET_NULL)"];
           Reminder -> User [label="user (CASCADE)"];
           Reminder -> Membership [label="membership (CASCADE)"];
           Contact -> Dart [label="dart (CASCADE)\lrelated: contacts"];
@@ -189,6 +194,8 @@ Domain schema
       payments.RenewalAttempt scheduled_on, outcome, error, noticed_at,
                               attempted_at, result_emailed_at
       aircraft.Aircraft       n_number (unique), make, model, insurance_*
+      aircraft.AircraftChange changed_at, kind (created | updated),
+                              fields (JSON list of column names)
       reminders.ReminderLog   kind, sent_at, to_email;
                               (user, membership, kind) unique together
       darts.DartContact       name, title, phone, email, sort_order
@@ -219,6 +226,9 @@ Domain schema
       payments.RenewalAttempt.payment    -> payments.Payment         FK, SET_NULL, nullable
       payments.RenewalAttempt.retry_of   -> payments.RenewalAttempt  FK, SET_NULL, nullable
       aircraft.Aircraft.created_by   -> accounts.User            FK, SET_NULL, nullable
+      aircraft.Aircraft.updated_by   -> accounts.User            FK, SET_NULL, nullable
+      aircraft.AircraftChange.aircraft   -> aircraft.Aircraft    FK, CASCADE, related name changes
+      aircraft.AircraftChange.changed_by -> accounts.User        FK, SET_NULL, nullable
       reminders.ReminderLog.user     -> accounts.User            FK, CASCADE
       reminders.ReminderLog.membership -> members.Membership     FK, CASCADE
       cms.DartPage.dart              -> darts.Dart               FK, SET_NULL, nullable
@@ -893,6 +903,9 @@ than copying it, so an insurance renewal entered once is right for everybody.
      - text
    * - ``created_by``
      - FK User, ``SET_NULL``; who added the record
+   * - ``updated_by``
+     - FK User, ``SET_NULL``; who last wrote the record, beside the inherited
+       ``updated_at``
    * - ``is_active``
      - "in service"
 
@@ -927,6 +940,39 @@ normalizes the query term the same way.
 an ``account_admin`` may edit any; **only** an ``account_admin`` may delete
 one, creator or not.  A record whose ``created_by`` is ``NULL`` is
 administrator-only.
+
+``AircraftChange``
+------------------
+
+One write to a register record.  A record is shared by every member who flies
+the airframe, so an edit to its insurance is an edit to everybody's answer; the
+history is what lets an administrator tell a correction from a renewal.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - Field
+     - Notes
+   * - ``aircraft``
+     - FK Aircraft, ``CASCADE``, related name ``changes``; deleting the record
+       deletes its history
+   * - ``changed_by``
+     - FK User, ``SET_NULL``; ``NULL`` for a change no signed-in account made
+   * - ``changed_at``
+     - set on insert
+   * - ``kind``
+     - ``created`` or ``updated``
+   * - ``fields``
+     - ``JSONField``, the column names the write moved; empty on a ``created``
+       row and on a save that altered nothing
+
+``aircraft.services.record_change()`` writes the row and stamps ``updated_by``
+on the record in the same call, and the register's create and update handlers
+are its only callers, so no write can leave the trail behind.  Rows read newest
+first, the primary key breaking a tie between two written in the same instant.
+:doc:`api-aircraft` covers ``GET /aircraft/{id}/changes``, which is
+``account_admin`` only.
 
 payments
 ========

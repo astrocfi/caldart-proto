@@ -11,6 +11,7 @@ urlpatterns = [
     path("aircraft", views.AircraftListCreateView.as_view(), name="list"),
     path("aircraft/lookup", views.AircraftLookupView.as_view(), name="lookup"),
     path("aircraft/<int:pk>", views.AircraftDetailView.as_view(), name="detail"),
+    path("aircraft/<int:pk>/changes", views.AircraftChangesView.as_view(), name="changes"),
     # -- exports ----------------------------------------------------------
     path(
         "admin/aircraft/columns",

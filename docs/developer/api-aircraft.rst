@@ -80,6 +80,7 @@ The register, open to any authenticated user, paginated with ``?page=`` and
          "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
          "notes": "",
          "created_by": 7,
+         "updated_at": "2026-09-20T17:04:11.512Z",
          "is_active": true
        }
      ]
@@ -89,6 +90,7 @@ The register, open to any authenticated user, paginated with ``?page=`` and
 columns: the summary reads ``No insurance on file`` when neither a liability
 figure nor an expiry date is recorded.  ``created_by`` is the id of the member
 who added the record, or ``null`` for an airframe the seed created.
+``updated_at`` is when the record was last written, by anybody.
 
 ===================  ============================================================
 Parameter            Meaning
@@ -153,7 +155,8 @@ register is filled in by the members who fly the airplanes.
      "insurance_expiration": "2027-03-01"
    }
 
-``created_by`` is taken from the session and cannot be set by the client.
+``created_by`` and ``updated_by`` are taken from the session and cannot be set
+by the client, and ``updated_at`` is the clock's.
 ``n_number`` is required and stored normalized, ``make`` and ``model`` are
 required and may not be blank, the three money fields are integer cents and
 must be ``>= 0``, and everything else is optional.
@@ -196,7 +199,9 @@ One register record, open to any authenticated user.  For a ``dart_leader``
      "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
      "notes": "",
      "created_by": 7,
+     "updated_at": "2026-09-20T17:04:11.512Z",
      "is_active": true,
+     "updated_by": {"id": 4, "name": "Marta Reyes"},
      "pilots": [
        {
          "user_id": 11,
@@ -213,9 +218,13 @@ surname then forename.  ``aircraft_pilots()`` fetches them in one query, with
 the membership annotations aboard (see :ref:`membership-status-sql`), so a
 popular airplane costs no more than a rarely-flown one.
 
-The key is **absent** for anyone else.  ``pilots`` is other members' email
-addresses, membership state and medical currency — exactly what the leader
-check below keeps to DART leaders and account administrators — so serving it
+``updated_by`` is the account that last wrote the record, as ``{"id", "name"}``,
+or ``null`` for one nobody has written since the seed created it.
+
+Both keys are **absent** for anyone else.  ``pilots`` is other members' email
+addresses, membership state and medical currency, and ``updated_by`` names
+another member — exactly what the leader check below keeps to DART leaders and
+account administrators — so serving them
 from the register to every
 signed-in member would walk around that gate.  ``aircraft_serializer_for()``
 in ``views.py`` picks the serializer per request, and the same rule applies to
@@ -223,7 +232,7 @@ in ``views.py`` picks the serializer per request, and the same rule applies to
 
 Statuses:
 
-* **200** — the record above, with or without ``pilots``.
+* **200** — the record above, with or without ``pilots`` and ``updated_by``.
 * **404** — no aircraft has that id.
 
 Object rules
@@ -240,6 +249,10 @@ Method        Allowed
 ``PATCH``     ``created_by == request.user``, or ``account_admin``
 ``DELETE``    ``account_admin`` only
 ============  ============================================================
+
+``GET /aircraft/{id}/changes`` is ``account_admin`` only and is not part of that
+object-level rule: the history names accounts, so the record's own creator does
+not read it.
 
 ``system_admin`` (and any superuser) passes every check, through
 ``accounts.permissions.user_has_any_role``.  An airplane created by the seed
@@ -297,7 +310,8 @@ Statuses:
 ``DELETE /aircraft/{id}``
 -------------------------
 
-Removes the airframe from the register, with an empty body.  Only an account
+Removes the airframe from the register, and its history with it, with an empty
+body.  Only an account
 administrator may do it: deleting an aircraft can orphan another member's
 profile entry, so it is not left to whoever happened to add the record.
 Taking an airplane out of service without losing its history is
@@ -306,6 +320,51 @@ Taking an airplane out of service without losing its history is
 Statuses:
 
 * **204** — the record is gone.
+* **403** — the caller does not hold ``account_admin``.
+* **404** — no aircraft has that id.
+
+``GET /aircraft/{id}/changes``
+------------------------------
+
+The record's history, newest first, for an account administrator.  A register
+record is shared by every member who flies the airframe, so an edit to its
+insurance is an edit to everybody's answer; the history says who last touched
+it and which columns they touched.
+
+.. code-block:: json
+
+   [
+     {
+       "id": 42,
+       "changed_at": "2026-09-20T17:04:11.512Z",
+       "changed_by": {"id": 4, "name": "Marta Reyes"},
+       "kind": "updated",
+       "fields": ["insurance_carrier", "insurance_expiration"]
+     },
+     {
+       "id": 17,
+       "changed_at": "2026-04-02T09:12:00.004Z",
+       "changed_by": null,
+       "kind": "created",
+       "fields": []
+     }
+   ]
+
+``kind`` is ``created`` or ``updated``.  ``fields`` names the columns the write
+moved and is empty on a ``created`` entry, where the whole record is the change,
+and on a save that altered nothing.  ``changed_by`` is ``null`` for a change no
+signed-in account made.  The list is unpaginated: an aircraft has few changes.
+Every write through ``POST /aircraft``, ``PUT``, and ``PATCH`` adds one entry
+and stamps ``updated_at`` and ``updated_by`` on the record, and deleting the
+record deletes its history with it.
+
+A ``dart_leader`` is refused: a leader reads the insurance card, not the trail
+of who changed it.  So is the member who created the record — editing one is
+not the same right as seeing who else has edited it.
+
+Statuses:
+
+* **200** — the array above, empty for a record nobody has written.
 * **403** — the caller does not hold ``account_admin``.
 * **404** — no aircraft has that id.
 
@@ -527,19 +586,23 @@ Where the code lives
 =====================================  ======================================
 File                                   Contents
 =====================================  ======================================
-``apps/aircraft/models.py``            ``Aircraft``, ``normalize_n_number``
-``apps/aircraft/services.py``          Leader search, status card, insurance
+``apps/aircraft/models.py``            ``Aircraft``, ``AircraftChange``,
+                                       ``normalize_n_number``
+``apps/aircraft/services.py``          ``record_change``, ``changed_fields``,
+                                       leader search, status card, insurance
                                        querysets
 ``apps/aircraft/reports.py``           Export columns and rows
 ``apps/aircraft/api/serializers.py``   ``NNumberField`` and the API shapes
 ``apps/aircraft/api/filters.py``       ``AircraftFilter``,
                                        ``NullsLastOrderingFilter``
 ``apps/aircraft/api/permissions.py``   ``AircraftPermission``
-``apps/aircraft/api/views.py``         The eight routes above
+``apps/aircraft/api/views.py``         The nine routes above
 =====================================  ======================================
 
 Tests: ``backend/tests/test_aircraft_api.py`` (CRUD, permissions,
-normalization, every filter), ``test_aircraft_exports.py`` (CSV content, PDF
+normalization, every filter), ``test_aircraft_history.py`` (the change rows the
+register's writes leave and the history endpoint),
+``test_aircraft_exports.py`` (CSV content, PDF
 validity, role matrix), ``test_leader_api.py`` (search, the membership ×
 medical × insurance truth table), and ``test_aircraft_models.py`` from the
 foundation.

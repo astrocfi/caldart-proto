@@ -200,12 +200,12 @@ The envelope is DRF's standard::
 
     {"count": 137, "next": "…?page=3", "previous": "…?page=1", "results": [ … ]}
 
-Five endpoints are deliberately **unpaginated** and return a bare JSON array,
+Six endpoints are deliberately **unpaginated** and return a bare JSON array,
 because the whole list is small and bounded: ``GET /darts``, ``GET /plans``,
-``GET /roles``, ``GET /leader/search`` (hard-capped at 20 results) and
-``GET /system/backups``.  ``GET /me/membership`` and ``GET /me/payments``
-return whole objects and arrays for the same reason, as does
-``GET /admin/payments/summary``.  The CSV and PDF exports stream every matching
+``GET /roles``, ``GET /leader/search`` (hard-capped at 20 results),
+``GET /system/backups`` and ``GET /aircraft/{id}/changes`` (an aircraft has few
+changes).  ``GET /me/membership`` and ``GET /me/payments`` return whole objects
+and arrays for the same reason, as does ``GET /admin/payments/summary``.  The CSV and PDF exports stream every matching
 row and ignore ``page`` entirely.
 
 Filtering, search, and ordering
@@ -725,6 +725,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ``pilots`` only for leaders/admins
+   * - ``GET /aircraft/{id}/changes``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - names accounts, so not the creator
    * - ``PATCH | PUT /aircraft/{id}``
      - ·
      - creator
@@ -1069,7 +1077,8 @@ Reading the matrix:
     finance roles, so a non-owner without one gets **403**.
 
 **Serializer switching on aircraft.**  ``GET /aircraft/{id}`` and
-``GET /aircraft/lookup`` return the ``pilots`` array — other members' names,
+``GET /aircraft/lookup`` return the ``pilots`` array and ``updated_by`` — other
+members' names,
 emails, membership state and medical currency — only to ``dart_leader``
 , ``account_admin``, or ``system_admin``.  Plain members get the airplane alone.
 ``GET /aircraft`` (the list) never includes it for anybody.  That is what stops

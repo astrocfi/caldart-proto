@@ -7,6 +7,7 @@ Exports live in ``test_aircraft_exports.py`` and the leader check in
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -139,6 +140,45 @@ def test_lookup_shows_the_pilots_to_a_leader(
     api_client.force_login(dart_leader)
     response = api_client.get(LOOKUP_URL, {"n_number": aircraft.n_number})
     assert [pilot["user_id"] for pilot in response.json()["pilots"]] == [profile.user_id]
+
+
+def test_a_plain_member_reads_when_a_record_was_last_written(
+    api_client: APIClient, member: User, aircraft: Aircraft
+) -> None:
+    """``updated_at`` is on the register record every signed-in member reads."""
+    api_client.force_login(member)
+    response = api_client.get(detail_url(aircraft))
+    assert datetime.fromisoformat(response.json()["updated_at"]) == aircraft.updated_at
+
+
+def test_a_plain_member_never_learns_who_last_wrote_a_record(
+    api_client: APIClient, member: User, aircraft: Aircraft
+) -> None:
+    """``updated_by`` names another member, so it is leader and administrator data."""
+    api_client.force_login(member)
+    assert "updated_by" not in api_client.get(detail_url(aircraft)).json()
+
+
+def test_an_account_admin_reads_who_last_wrote_a_record(
+    api_client: APIClient, fixed_name_admin: User, aircraft: Aircraft
+) -> None:
+    """The detail record names the last writer by id and display name."""
+    aircraft.updated_by = fixed_name_admin
+    aircraft.save(update_fields=["updated_by"])
+    api_client.force_login(fixed_name_admin)
+    response = api_client.get(detail_url(aircraft))
+    assert response.json()["updated_by"] == {
+        "id": fixed_name_admin.pk,
+        "name": fixed_name_admin.display_name,
+    }
+
+
+def test_updated_by_is_null_on_a_record_nobody_has_written(
+    api_client: APIClient, account_admin: User, aircraft: Aircraft
+) -> None:
+    """A seeded record carries no last writer until somebody edits it."""
+    api_client.force_login(account_admin)
+    assert api_client.get(detail_url(aircraft)).json()["updated_by"] is None
 
 
 def test_list_is_paginated_and_ordered_by_n_number(api_client: APIClient, member: User) -> None:

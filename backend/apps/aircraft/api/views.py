@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -27,12 +28,15 @@ from apps.aircraft import services
 from apps.aircraft.api.filters import AircraftFilter, NullsLastOrderingFilter
 from apps.aircraft.api.permissions import AircraftPermission
 from apps.aircraft.api.serializers import (
+    AircraftChangeSerializer,
     AircraftDetailSerializer,
     AircraftSerializer,
     LeaderSearchResultSerializer,
     LeaderStatusSerializer,
 )
-from apps.aircraft.models import Aircraft, normalize_n_number
+from apps.aircraft.models import Aircraft, AircraftChange, AircraftChangeKind, normalize_n_number
+from apps.members.api.actors import acting_user
+from caldart import audit
 from caldart.reports import (
     CSV_MEDIA_TYPE,
     PDF_MEDIA_TYPE,
@@ -89,9 +93,18 @@ class AircraftListCreateView(AircraftQuerysetMixin, generics.ListCreateAPIView[A
     serializer_class = AircraftSerializer
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def perform_create(self, serializer: BaseSerializer[Aircraft]) -> None:
-        """Save the new aircraft with ``created_by`` set to the requesting user."""
-        serializer.save(created_by=self.request.user)
+        """Save the new aircraft, recording who added it in the history and the log.
+
+        The record and its history row commit together: a failure writing the trail
+        rolls the record back with it, so no aircraft can exist without a ``created``
+        row naming who added it.
+        """
+        actor = acting_user(self.request)
+        aircraft = serializer.save(created_by=actor)
+        services.record_change(aircraft, actor=actor, kind=AircraftChangeKind.CREATED, fields=[])
+        audit.record(audit.AIRCRAFT_CREATE, actor=actor, target=aircraft)
 
 
 class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
@@ -108,6 +121,46 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
         the same record without that field.
         """
         return aircraft_serializer_for(self.request)
+
+    @transaction.atomic
+    def perform_update(self, serializer: BaseSerializer[Aircraft]) -> None:
+        """Save the edit, then record who made it and which columns moved.
+
+        The field list is worked out before the save, while ``serializer.instance``
+        still carries the stored values (a model serializer assigns the validated
+        attributes during ``save()``), so a form that resends every field it shows
+        names only the ones whose value actually changed.  The edit and its history
+        row commit together, so no write can leave the trail behind.
+        """
+        instance = cast("Aircraft", serializer.instance)
+        fields = services.changed_fields(instance, dict(serializer.validated_data))
+        actor = acting_user(self.request)
+        aircraft = serializer.save()
+        services.record_change(
+            aircraft, actor=actor, kind=AircraftChangeKind.UPDATED, fields=fields
+        )
+        audit.record(audit.AIRCRAFT_UPDATE, actor=actor, target=aircraft, fields=fields)
+
+    def perform_destroy(self, instance: Aircraft) -> None:
+        """Delete the record, its history with it, and log the deletion."""
+        audit.record(audit.AIRCRAFT_DELETE, actor=acting_user(self.request), target=instance)
+        instance.delete()
+
+
+class AircraftChangesView(generics.ListAPIView[AircraftChange]):
+    """``GET /aircraft/{id}/changes`` -- who changed one record, newest first."""
+
+    serializer_class = AircraftChangeSerializer
+    permission_classes = [IsAccountAdmin]
+    pagination_class = None
+
+    def get_queryset(self) -> QuerySet[AircraftChange]:
+        """The changes to the aircraft in the URL, newest first, with each actor joined.
+
+        Answers 404 when no aircraft has that id, rather than an empty history.
+        """
+        aircraft = get_object_or_404(Aircraft, pk=self.kwargs["pk"])
+        return aircraft.changes.select_related("changed_by")
 
 
 class AircraftLookupView(APIView):

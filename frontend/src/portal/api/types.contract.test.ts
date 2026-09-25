@@ -24,6 +24,9 @@ import type {
   AdminProfilePayload,
   AdminUserPatch,
   Aircraft,
+  AircraftActor,
+  AircraftChange,
+  AircraftChangeKind,
   AircraftDetail,
   AircraftPatch,
   AircraftPilot,
@@ -152,6 +155,7 @@ const ifrRated: Matches<IfrRated, Schemas['IfrRatedEnum']> = true;
 const rating: Matches<Rating, Schemas['RatingsEnum']> = true;
 const medicalType: Matches<MedicalType, Schemas['MedicalTypeEnum']> = true;
 const ownerType: Matches<OwnerType, Schemas['OwnerTypeEnum']> = true;
+const aircraftChangeKind: Matches<AircraftChangeKind, Schemas['AircraftChangeKindEnum']> = true;
 const paymentProvider: Matches<PaymentProvider, Schemas['PaymentProviderEnum']> = true;
 const paymentWallet: Matches<PaymentWallet, Schemas['WalletEnum']> = true;
 const paymentState: Matches<PaymentState, Schemas['PaymentStatusEnum']> = true;
@@ -207,6 +211,8 @@ const aircraftSummary: Matches<AircraftSummary, Schemas['AircraftSummary']> = tr
 const aircraft: Matches<Aircraft, Schemas['Aircraft']> = true;
 const aircraftPatch: Matches<AircraftPatch, Schemas['PatchedAircraftRequest']> = true;
 const aircraftPilot: Matches<AircraftPilot, Schemas['AircraftPilot']> = true;
+const aircraftActor: Matches<AircraftActor, Schemas['AircraftActor']> = true;
+const aircraftChange: Matches<AircraftChange, Schemas['AircraftChange']> = true;
 const aircraftDetail: Matches<AircraftDetail, Schemas['AircraftDetail']> = true;
 
 /* --------------------------------------------------------------- payments */
@@ -288,6 +294,7 @@ const assertions: readonly true[] = [
   rating,
   medicalType,
   ownerType,
+  aircraftChangeKind,
   paymentProvider,
   paymentKind,
   mandateProvider,
@@ -328,6 +335,8 @@ const assertions: readonly true[] = [
   aircraft,
   aircraftPatch,
   aircraftPilot,
+  aircraftActor,
+  aircraftChange,
   aircraftDetail,
   payment,
   paymentDetail,
@@ -395,6 +404,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'RatingsEnum',
   'MedicalTypeEnum',
   'OwnerTypeEnum',
+  'AircraftChangeKindEnum',
   'PaymentProviderEnum',
   'WalletEnum',
   'PaymentStatusEnum',
@@ -435,6 +445,8 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'Aircraft',
   'PatchedAircraftRequest',
   'AircraftPilot',
+  'AircraftActor',
+  'AircraftChange',
   'AircraftDetail',
   'FinancePayment',
   'FinancePaymentDetail',

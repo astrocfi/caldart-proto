@@ -21,10 +21,11 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 from apps.accounts.roles import MEMBER, SYSTEM_ADMIN
+from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile, MembershipSource, MembershipStatusChoices
 from apps.payments.models import Payment, PaymentStatus
 from tests.conftest import GOOD_PASSWORD, REGISTER_URL
-from tests.factories import PaymentFactory, UserFactory
+from tests.factories import AircraftFactory, PaymentFactory, UserFactory
 
 if TYPE_CHECKING:
     from pytest_django.fixtures import Settings
@@ -42,6 +43,7 @@ MEMBERS = "/api/v1/admin/members"
 USERS = "/api/v1/admin/users"
 PROFILE = "/api/v1/me/profile"
 CHECKOUT = "/api/v1/payments/checkout"
+AIRCRAFT = "/api/v1/aircraft"
 
 
 #: The keys an attacker would add to an account body to escalate privilege.
@@ -229,3 +231,52 @@ def test_checkout_ignores_the_owner_status_and_amount(
     assert payment.user == member
     assert payment.status == PaymentStatus.PENDING
     assert payment.amount_cents == annual_plan.price_cents
+
+
+# --------------------------------------------------------------------------
+# The aircraft register's provenance
+# --------------------------------------------------------------------------
+def test_adding_an_aircraft_ignores_a_supplied_last_writer(
+    api_client: APIClient, member: UserModel, other_member: UserModel
+) -> None:
+    """``updated_by`` is the caller, whoever the body names."""
+    api_client.force_login(member)
+    response = api_client.post(
+        AIRCRAFT,
+        {"n_number": "N4321Q", "make": "Cirrus", "model": "SR22", "updated_by": other_member.pk},
+        format="json",
+    )
+    assert response.status_code == 201
+    assert Aircraft.objects.get(pk=response.json()["id"]).updated_by == member
+
+
+def test_editing_an_aircraft_ignores_a_supplied_last_writer(
+    api_client: APIClient, account_admin: UserModel, other_member: UserModel
+) -> None:
+    """An edit stamps the account that made it, not the one the body names."""
+    aircraft = AircraftFactory(n_number="N80SC")
+    api_client.force_login(account_admin)
+    response = api_client.patch(
+        f"{AIRCRAFT}/{aircraft.pk}",
+        {"model": "SR22", "updated_by": other_member.pk},
+        format="json",
+    )
+    assert response.status_code == 200
+    aircraft.refresh_from_db()
+    assert aircraft.updated_by == account_admin
+
+
+def test_editing_an_aircraft_ignores_a_supplied_change_timestamp(
+    api_client: APIClient, account_admin: UserModel
+) -> None:
+    """``updated_at`` is the clock's, not the client's."""
+    aircraft = AircraftFactory(n_number="N81SC")
+    api_client.force_login(account_admin)
+    response = api_client.patch(
+        f"{AIRCRAFT}/{aircraft.pk}",
+        {"model": "SR22", "updated_at": "2001-01-01T00:00:00Z"},
+        format="json",
+    )
+    assert response.status_code == 200
+    aircraft.refresh_from_db()
+    assert aircraft.updated_at.year != 2001
