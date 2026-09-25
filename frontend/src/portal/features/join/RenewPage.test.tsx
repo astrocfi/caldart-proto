@@ -94,6 +94,13 @@ describe('<RenewPage/>', () => {
     expect(await screen.findByText('You are a life member. Thank you.')).toBeInTheDocument();
   });
 
+  it('leaves the plan line off a life member card', async () => {
+    renderRenew(detail({ expires_on: null, plan: 'Life', is_lifetime: true }));
+
+    await screen.findByText('You are a life member. Thank you.');
+    expect(screen.queryByText('Life membership')).not.toBeInTheDocument();
+  });
+
   it('asks a life member to contribute instead', async () => {
     renderRenew(detail({ expires_on: null, plan: 'Life', is_lifetime: true }));
 

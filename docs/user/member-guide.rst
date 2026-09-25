@@ -157,8 +157,10 @@ three weeks before it expires still brings the last two.  Every reminder links
 straight to the renewal page.
 
 If you are a life member there is nothing there to renew, so the same menu
-entry opens **Contribute to CalDART**: the card says **You are a life
-member. Thank you.**, and the form below it takes a contribution.  Tick
+entry opens **Contribute to CalDART**: the card carries the **Never expires**
+chip and the line **You are a life member. Thank you.** and nothing else — no
+expiry date and no plan, because neither applies — and the form below it takes
+a contribution.  Tick
 **Contribute this amount automatically each year** to have |org| take that
 amount once a year.
 
