@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import copy
 import smtplib
-from pathlib import Path
 
 import pytest
 from django.core.mail import EmailMessage
-from django.core.mail.backends.locmem import EmailBackend
 from pytest_django import Settings
 
 from caldart.mail import contact_email, org_name, send_templated
@@ -17,30 +14,8 @@ from tests.factories import make_site_settings
 
 pytestmark = pytest.mark.django_db
 
-#: The bodies the fixture below writes, so no test here depends on a template
-#: some other app owns.
-TEXT_TEMPLATE = "Dear {{ first_name }}, your total is {{ total }}.\n"
-HTML_TEMPLATE = "<p>Dear {{ first_name }}, your total is {{ total }}.</p>\n"
-
-#: The context both bodies render.
+#: The context both bodies of the ``email_template`` fixture render.
 CONTEXT: dict[str, object] = {"first_name": "Marta", "total": "$95.00"}
-
-
-@pytest.fixture
-def email_template(tmp_path: Path, settings: Settings) -> str:
-    """Write ``emails/statement_of_fact.{txt,html}`` into a template directory.
-
-    Returns the template name to hand to ``send_templated``.  The directory is
-    added to the template search path for the test alone.
-    """
-    directory = tmp_path / "emails"
-    directory.mkdir()
-    (directory / "statement_of_fact.txt").write_text(TEXT_TEMPLATE)
-    (directory / "statement_of_fact.html").write_text(HTML_TEMPLATE)
-    templates = copy.deepcopy(settings.TEMPLATES)
-    templates[0]["DIRS"] = [*templates[0]["DIRS"], tmp_path]
-    settings.TEMPLATES = templates
-    return "statement_of_fact"
 
 
 def test_send_templated_sends_the_text_body_of_the_named_template(
@@ -149,15 +124,9 @@ def test_send_templated_renders_both_bodies_without_a_context(
 
 
 def test_send_templated_raises_when_the_mail_server_refuses_the_message(
-    email_template: str, monkeypatch: pytest.MonkeyPatch
+    email_template: str, refusing_mail_server: None
 ) -> None:
     """A refusal reaches the caller, which is how a receipt knows it was not sent."""
-
-    def refuse(self: EmailBackend, email_messages: list[EmailMessage]) -> int:
-        raise smtplib.SMTPException("Mailbox unavailable")
-
-    monkeypatch.setattr(EmailBackend, "send_messages", refuse)
-
     with pytest.raises(smtplib.SMTPException, match="Mailbox unavailable"):
         send_templated(
             to="marta@example.org",

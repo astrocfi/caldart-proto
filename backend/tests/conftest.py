@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shutil
+import smtplib
 import tempfile
 import zlib
 from collections.abc import Callable, Iterator
@@ -26,6 +27,8 @@ import pytest
 import respx
 from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
+from django.core.mail import EmailMessage
+from django.core.mail.backends.locmem import EmailBackend
 from django.http import HttpResponseBase, StreamingHttpResponse
 from django.utils import timezone
 from django_vite.core.asset_loader import DjangoViteAssetLoader
@@ -755,3 +758,44 @@ def golden(request: pytest.FixtureRequest) -> Golden:
             assert text == handle.read()
 
     return check
+
+
+#: The bodies ``email_template`` writes, so no test that drives the mail funnel
+#: depends on a template an app owns.
+_EMAIL_TEXT_TEMPLATE = "Dear {{ first_name }}, your total is {{ total }}.\n"
+_EMAIL_HTML_TEMPLATE = "<p>Dear {{ first_name }}, your total is {{ total }}.</p>\n"
+
+
+@pytest.fixture
+def email_template(tmp_path: Path, settings: Settings) -> str:
+    r"""Write ``emails/statement_of_fact.{txt,html}`` into a template directory.
+
+    Returns the template name to hand to ``send_templated``.  Both bodies render
+    ``first_name`` and ``total``, so rendering them against
+    ``{"first_name": "Marta", "total": "$95.00"}`` gives
+    ``"Dear Marta, your total is $95.00.\n"`` and its HTML paragraph, and
+    rendering them against nothing leaves both placeholders empty.  The directory
+    is added to the template search path for the one test alone.
+    """
+    directory = tmp_path / "emails"
+    directory.mkdir()
+    (directory / "statement_of_fact.txt").write_text(_EMAIL_TEXT_TEMPLATE)
+    (directory / "statement_of_fact.html").write_text(_EMAIL_HTML_TEMPLATE)
+    templates = copy.deepcopy(settings.TEMPLATES)
+    templates[0]["DIRS"] = [*templates[0]["DIRS"], tmp_path]
+    settings.TEMPLATES = templates
+    return "statement_of_fact"
+
+
+@pytest.fixture
+def refusing_mail_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make every send raise ``SMTPException``, as a mail server that refuses does.
+
+    The message is ``Mailbox unavailable``, so a test can match on it, and the
+    exception class is what the email log records as the error.
+    """
+
+    def refuse(self: EmailBackend, email_messages: list[EmailMessage]) -> int:
+        raise smtplib.SMTPException("Mailbox unavailable")
+
+    monkeypatch.setattr(EmailBackend, "send_messages", refuse)

@@ -16,10 +16,8 @@ from typing import TypedDict
 
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.http import HttpRequest
-from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
@@ -27,6 +25,7 @@ from apps.accounts.models import User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
 from caldart import audit
 from caldart.exceptions import DomainValidationError
+from caldart.mail import send_templated
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
 RESET_PATH = "/portal/reset-password"
@@ -466,16 +465,17 @@ def _send_password_link_email(
     """Mail ``user`` both bodies of ``emails/<template>.{txt,html}``.
 
     The text body is the message proper and the HTML one an alternative, so a
-    client that renders no markup still reads the whole thing.
+    client that renders no markup still reads the whole thing.  The send goes
+    through the shared mail funnel, so it is recorded in the email log under the
+    template's name.
     """
-    message = EmailMultiAlternatives(
+    send_templated(
+        to=user.email,
         subject=subject,
-        body=render_to_string(f"emails/{template}.txt", context),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user.email],
+        template=template,
+        context=context,
+        user_id=user.pk,
     )
-    message.attach_alternative(render_to_string(f"emails/{template}.html", context), "text/html")
-    message.send()
 
 
 def send_password_reset_email(user: User, *, request: HttpRequest | None = None) -> bool:

@@ -269,7 +269,8 @@ def send_refund_email(refund: Refund, *, term_canceled: bool) -> None:
     """Tell the member money is on its way back, and never raise if the mail fails.
 
     Renders ``emails/refund.{txt,html}`` with the amount, what the payment was
-    for, and whether the membership term ended with it.  The money has already
+    for, and whether the membership term ended with it, and records the send in
+    the email log under the purpose ``refund``.  The money has already
     moved by the time this is called, so a mail server that refuses the message
     is logged at ERROR and nothing else: the treasurer can say so by hand.
     """
@@ -298,6 +299,7 @@ def send_refund_email(refund: Refund, *, term_canceled: bool) -> None:
             subject=REFUND_SUBJECT.format(org=org, amount=money_label(refund.amount_cents)),
             template="refund",
             context=context,
+            user_id=user.pk,
         )
     except (smtplib.SMTPException, OSError):
         log.exception("Could not email the refund notice for refund %s", refund.pk)

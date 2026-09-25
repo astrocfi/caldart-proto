@@ -66,6 +66,7 @@ class SessionAuthenticationScheme(OpenApiAuthenticationExtension):  # type: igno
 urlpatterns = [
     path("", include("apps.accounts.api.urls")),
     path("", include("apps.darts.api.urls")),
+    path("", include("apps.mail.api.urls")),
     path("", include("apps.members.api.urls")),
     path("", include("apps.aircraft.api.urls")),
     path("", include("apps.payments.api.urls")),

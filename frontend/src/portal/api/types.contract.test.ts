@@ -38,6 +38,8 @@ import type {
   ContributionRow,
   ContributionTier,
   Dart,
+  EmailLogEntry,
+  EmailStatus,
   FinanceMember,
   FinancePaymentTerm,
   GrantTermPayload,
@@ -159,6 +161,7 @@ const aircraftChangeKind: Matches<AircraftChangeKind, Schemas['AircraftChangeKin
 const paymentProvider: Matches<PaymentProvider, Schemas['PaymentProviderEnum']> = true;
 const paymentWallet: Matches<PaymentWallet, Schemas['WalletEnum']> = true;
 const paymentState: Matches<PaymentState, Schemas['PaymentStatusEnum']> = true;
+const emailStatus: Matches<EmailStatus, Schemas['EmailLogStatusEnum']> = true;
 const reminderKind: Matches<ReminderKind, Schemas['ReminderKindEnum']> = true;
 const navKind: Matches<NavKind, Schemas['NavKindEnum']> = true;
 const paymentKind: Matches<PaymentKind, Schemas['PaymentKindEnum']> = true;
@@ -262,6 +265,9 @@ const runAction: Matches<RunAction, Schemas['RunAction']> = true;
 const leaderSearch: Matches<LeaderSearchResult, Schemas['LeaderSearchResult']> = true;
 const leaderStatus: Matches<LeaderStatus, Schemas['LeaderStatus']> = true;
 
+/* -------------------------------------------------------------- email log */
+const emailLog: Matches<EmailLogEntry, Schemas['EmailLog']> = true;
+
 /* -------------------------------------------------- reminders and system */
 const reminderLog: Matches<ReminderLogEntry, Schemas['ReminderLog']> = true;
 const reminderRun: Matches<ReminderRunResult, Schemas['ReminderRunResult']> = true;
@@ -282,6 +288,7 @@ const paginatedReminders: Matches<
   Paginated<ReminderLogEntry>,
   Schemas['PaginatedReminderLogList']
 > = true;
+const paginatedEmails: Matches<Paginated<EmailLogEntry>, Schemas['PaginatedEmailLogList']> = true;
 
 /** Every pair above, so `noUnusedLocals` keeps each assertion referenced. */
 const assertions: readonly true[] = [
@@ -303,6 +310,7 @@ const assertions: readonly true[] = [
   manualMethod,
   paymentWallet,
   paymentState,
+  emailStatus,
   reminderKind,
   navKind,
   user,
@@ -379,6 +387,7 @@ const assertions: readonly true[] = [
   runAction,
   leaderSearch,
   leaderStatus,
+  emailLog,
   reminderLog,
   reminderRun,
   health,
@@ -391,6 +400,7 @@ const assertions: readonly true[] = [
   paginatedMembers,
   paginatedAircraft,
   paginatedReminders,
+  paginatedEmails,
 ];
 
 /** The schema component each assertion above names, in the same order. */
@@ -408,6 +418,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PaymentProviderEnum',
   'WalletEnum',
   'PaymentStatusEnum',
+  'EmailLogStatusEnum',
   'ReminderKindEnum',
   'NavKindEnum',
   'PaymentKindEnum',
@@ -489,6 +500,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'RunAction',
   'LeaderSearchResult',
   'LeaderStatus',
+  'EmailLog',
   'ReminderLog',
   'ReminderRunResult',
   'Health',
@@ -501,6 +513,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PaginatedMemberListList',
   'PaginatedAircraftList',
   'PaginatedReminderLogList',
+  'PaginatedEmailLogList',
 ];
 
 /** Vitest runs with `frontend/` as its root, so the repository root is one level up. */

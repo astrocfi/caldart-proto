@@ -23,8 +23,8 @@ to document each app's endpoints in detail, request body by response body.
 
 Every endpoint the project serves is on one of those pages, and every one
 of them appears in the :ref:`permission matrix <api-permission-matrix>` below.
-:doc:`api-system` covers the reminder, system, and site routes; the subsystem
-chapters behind them are :doc:`reminders`, :doc:`backup-restore` and
+:doc:`api-system` covers the reminder, email log, system, and site routes; the
+subsystem chapters behind them are :doc:`reminders`, :doc:`backup-restore` and
 :doc:`cms`.
 
 Conventions
@@ -1021,6 +1021,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ✓
      - also ``system_admin``
+   * - ``GET /system/emails``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
    * - ``POST /system/renewals/run``
      - ·
      - ·

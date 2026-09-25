@@ -990,6 +990,23 @@ export interface LeaderStatus {
   go_no_go: LeaderGoNoGo;
 }
 
+/* --------------------------------------------------------------- email log */
+export type EmailStatus = 'sent' | 'failed';
+
+/** One email the system tried to send, as `GET /system/emails` returns it. */
+export interface EmailLogEntry {
+  id: number;
+  to_email: string;
+  user_id: number | null;
+  user_name: string;
+  purpose: string;
+  subject: string;
+  sent_at: IsoDateTime;
+  status: EmailStatus;
+  error: string;
+  attachments: string;
+}
+
 /* --------------------------------------------------------------- reminders */
 export type ReminderKind = 't60' | 't30' | 't7' | 'expired' | 'post30';
 

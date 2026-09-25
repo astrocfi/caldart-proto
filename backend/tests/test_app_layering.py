@@ -25,6 +25,9 @@ APP_LAYERS: dict[str, int] = {
     # A DART is named by a member's profile and by a website page, and knows
     # about neither, so it sits below the app that points at it.
     "darts": 2,
+    # The email log records what was mailed to an account and nothing else, so
+    # it sits beside darts, below everything that sends an email.
+    "mail": 2,
     "members": 3,
     "aircraft": 4,
     "payments": 4,
@@ -42,14 +45,14 @@ EXEMPT_FILENAMES = frozenset({"admin.py"})
 
 #: The project modules every app builds on.  They may import no app at all.
 #: ``org.py`` is deliberately not among them: it reads the Wagtail site settings
-#: through one inline import, which is what keeps that dependency out of here and
-#: out of ``mail.py``, which calls it.  That import is declared in
-#: :data:`SANCTIONED_PROJECT_INLINE_IMPORTS` below.
+#: through one inline import.  Neither is ``mail.py``, which writes the email log
+#: through another.  Both imports are declared in
+#: :data:`SANCTIONED_PROJECT_INLINE_IMPORTS` below, which is what keeps those two
+#: dependencies to one line each.
 FOUNDATION_MODULES = (
     "models.py",
     "reports.py",
     "receipts.py",
-    "mail.py",
     "exceptions.py",
     "pagination.py",
 )
@@ -65,6 +68,7 @@ EXEMPT_PROJECT_FILENAMES = frozenset({"urls.py", "api_urls.py"})
 #: never pulls an app in.
 SANCTIONED_PROJECT_INLINE_IMPORTS: frozenset[tuple[str, str]] = frozenset(
     {
+        ("caldart.mail", "apps.mail.models"),
         ("caldart.org", "apps.cms.models"),
         ("caldart.views", "apps.cms.models"),
     }
@@ -293,9 +297,12 @@ def test_the_comment_block_is_read_from_its_first_line(lines: list[str], expecte
 
 
 def test_project_foundation_modules_import_nothing_from_apps() -> None:
-    """The project's models, reports, receipts, mail, exceptions and pagination sit below.
+    """The project's models, reports, receipts, exceptions and pagination sit below.
 
-    Each of them is read by several apps, so none may read an app back.
+    Each of them is read by several apps, so none may read an app back.  ``mail.py``
+    and ``org.py`` are not among them: each reaches one app through a single inline
+    import, and :func:`test_every_app_import_in_a_project_module_is_inline_and_sanctioned`
+    is what holds them to it.
     """
     offenders: list[str] = []
     for filename in FOUNDATION_MODULES:

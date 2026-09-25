@@ -54,7 +54,8 @@ Domain schema
                 once rather than eight times: ``Dart``, ``DartContact``,
                 ``MemberProfile``, ``MembershipPlan``, ``Membership``,
                 ``Aircraft``, ``Payment``, ``Refund``, ``RenewalMandate``,
-                ``RenewalAttempt``, and ``ReminderLog`` all inherit it.
+                ``RenewalAttempt``, ``ReminderLog``, and ``EmailLog`` all
+                inherit it.
       :alt: Entity-relationship diagram of the CalDART domain models
 
       digraph caldart_domain {
@@ -83,6 +84,7 @@ Domain schema
           Aircraft [label="aircraft.Aircraft\l  n_number (unique)\l  make, model, insurance_*\l"];
           AircraftChange [label="aircraft.AircraftChange\l  changed_at, kind\l  fields (JSON)\l"];
           Reminder [label="reminders.ReminderLog\l  kind, sent_at, to_email\l  (user, membership, kind) unique\l"];
+          Email [label="mail.EmailLog\l  to_email, purpose, subject\l  sent_at, status, error, attachments\l"];
           DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
 
           User -> Group [label="groups (m2m)", dir=none, color="black:black"];
@@ -109,6 +111,7 @@ Domain schema
           AircraftChange -> User [label="changed_by (null, SET_NULL)"];
           Reminder -> User [label="user (CASCADE)"];
           Reminder -> Membership [label="membership (CASCADE)"];
+          Email -> User [label="user (null, SET_NULL)"];
           Contact -> Dart [label="dart (CASCADE)\lrelated: contacts"];
           DartPage -> Dart [label="dart (null, SET_NULL)"];
 
@@ -132,7 +135,7 @@ Domain schema
                                  inherited by Dart, DartContact, MemberProfile,
                                  MembershipPlan, Membership, Aircraft
                                  , Payment, Refund, RenewalMandate
-                                 , RenewalAttempt, and ReminderLog
+                                 , RenewalAttempt, ReminderLog, and EmailLog
       payments.Provider          start(payment), confirm(payment, **kwargs),
                                  handle_webhook(request)
                                  implemented by StripeProvider (slug stripe),
@@ -163,6 +166,8 @@ Domain schema
                              |  '--- granted_by --> accounts.User   '- payments.Refund
                              |
                              '--- reminders.ReminderLog --> accounts.User
+
+          mail.EmailLog --- user --> accounts.User
 
           payments.RenewalMandate --- 1--1 --- accounts.User
                  ^          '--------> members.MembershipPlan
@@ -198,6 +203,8 @@ Domain schema
                               fields (JSON list of column names)
       reminders.ReminderLog   kind, sent_at, to_email;
                               (user, membership, kind) unique together
+      mail.EmailLog           to_email, purpose, subject, sent_at, status,
+                              error, attachments
       darts.DartContact       name, title, phone, email, sort_order
       cms.DartPage            leader_name, leader_contact, body
 
@@ -231,6 +238,7 @@ Domain schema
       aircraft.AircraftChange.changed_by -> accounts.User        FK, SET_NULL, nullable
       reminders.ReminderLog.user     -> accounts.User            FK, CASCADE
       reminders.ReminderLog.membership -> members.Membership     FK, CASCADE
+      mail.EmailLog.user             -> accounts.User            FK, SET_NULL, nullable
       cms.DartPage.dart              -> darts.Dart               FK, SET_NULL, nullable
 
 CMS page models
@@ -1290,6 +1298,56 @@ skipped, as are deactivated accounts,
 accounts with no email address, and members whose unbroken coverage now runs
 past the term in question — which is what stops an early renewal being nagged
 about the term it replaced.  See :doc:`reminders`.
+
+.. _data-model-email-log:
+
+mail
+====
+
+``EmailLog``
+------------
+
+One row per email the installation tried to send, written by
+``caldart.mail.send_templated`` after the send.  It is the record of what the
+system said to whom, which is what ``GET /system/emails`` reads
+(:ref:`api-email-log`).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 24 76
+
+   * - Field
+     - Meaning
+   * - ``to_email``
+     - the address written to
+   * - ``user``
+     - FK ``User``, ``SET_NULL``, nullable: the account the email concerned,
+       null for an address with no account behind it
+   * - ``purpose``
+     - the template the body came from, so ``reminder_t30``, ``receipt``,
+       ``password_reset`` and the rest
+   * - ``subject``
+     - the subject line as it was sent
+   * - ``sent_at``
+     - when the send was attempted
+   * - ``status``
+     - ``sent`` for a message the mail server took, ``failed`` for one it
+       refused
+   * - ``error``
+     - the exception class of a refusal, blank on a send that went out
+   * - ``attachments``
+     - the filenames that rode along, comma-separated, blank when none did
+
+Ordered ``["-sent_at", "-id"]``, indexed on ``(purpose, -sent_at)`` and
+``(user, -sent_at)``.  Nothing reads the table to decide what to do next, so it
+carries no constraint: a member who is written to twice has two rows, which is
+the honest record.  ``ReminderLog`` is the key that keeps a reminder from
+repeating; this is the record of the message.
+
+A reminder's send sits inside the transaction that writes its ``ReminderLog``
+row, so a reminder the mail server refuses rolls both rows back and stays due.
+Every other email is sent outside a transaction, and a refusal leaves a
+``failed`` row behind.
 
 cms
 ===

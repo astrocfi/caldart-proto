@@ -220,6 +220,32 @@ told why, and the ordinary reminders resume.
 What it charges, when, and how to change the schedule are in
 :doc:`/developer/renewals`.
 
+Email log
+---------
+
+CalDART records every email it sends -- renewal reminders, the automatic-renewal
+notices, receipts, refund notices, invitations, and password links -- with the
+address it went to, the member it concerned, the subject, whether the mail server
+took it, and any file attached.  It is the answer to "what did we actually send
+this person?", and to "is our mail going out at all?": a message a mail server
+refused is on the list, marked failed, with the error beside it.
+
+A renewal reminder is the one exception.  Its send shares a transaction with the
+reminder log, so that a reminder the mail server refuses stays due and goes out
+on the next scan; a refused reminder therefore leaves no row in the email log at
+all.  The reminder run's own **Failed** count is what reports it.
+
+Two things it is not.  It is not delivery confirmation: a mail server that takes
+a message and bounces it an hour later leaves a message marked sent.  And it is
+not the reminder log above, which exists to stop a member being sent the same
+reminder twice; the email log is the record of the message itself.
+
+Only a system administrator sees it, because it lists every address the
+installation has written to.  An account administrator answering "was this member
+told?" uses the **Reminders** screen instead.  The rows are also readable through
+``GET /system/emails``, described in :doc:`/developer/api-system`, and in the
+Django admin under **Mail**, where they cannot be edited.
+
 
 Routine
 =======

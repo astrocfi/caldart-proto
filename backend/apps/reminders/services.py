@@ -19,11 +19,9 @@ from datetime import date, timedelta
 from typing import Any
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, transaction
 from django.db.models import Model, QuerySet
 from django.template.defaultfilters import pluralize
-from django.template.loader import render_to_string
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -32,7 +30,7 @@ from apps.members.services import expire_lapsed_memberships, membership_status
 from apps.payments.models import MandateStatus, RenewalMandate, RenewalOutcome
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from caldart import audit
-from caldart.mail import contact_email, org_name
+from caldart.mail import contact_email, org_name, send_templated
 from caldart.runs import RunAction, action_lines
 
 log = logging.getLogger(__name__)
@@ -181,10 +179,8 @@ def renew_url() -> str:
     return f"{settings.SITE_URL.rstrip('/')}/portal/renew"
 
 
-def build_email(
-    user: User, membership: Membership, kind: str, today: date
-) -> EmailMultiAlternatives:
-    """Render ``emails/reminder_<kind>.{txt,html}`` for one member.
+def send_reminder_email(user: User, membership: Membership, kind: str, today: date) -> None:
+    """Render ``emails/reminder_<kind>.{txt,html}`` for one member and send them.
 
     ``days`` is counted from the dates rather than from the middle of the stage,
     so a ``t30`` email to a member whose term ends in 28 days says 28 days.
@@ -192,6 +188,10 @@ def build_email(
     still running, which is what lets the ``expired`` bodies say "today" on the
     expiry day and "N days ago" later in the stage.  The ``expired`` subject
     follows the same two forms.
+
+    The send goes through the shared mail funnel, so the email is recorded in the
+    email log under the purpose ``reminder_<kind>``.  A mail server that refuses
+    the message raises, for the caller to count.
     """
     org = org_name()
     # Lifetime terms (no ends_on) never reach here: _candidates() filters on ends_on.
@@ -214,15 +214,13 @@ def build_email(
         "renew_url": renew_url(),
         "site_url": settings.SITE_URL.rstrip("/"),
     }
-    message = EmailMultiAlternatives(
+    send_templated(
+        to=user.email,
         subject=subject.format(org=org, days=days, plural=pluralize(days)),
-        body=render_to_string(f"emails/reminder_{kind}.txt", context),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user.email],
+        template=f"reminder_{kind}",
+        context=context,
+        user_id=user.pk,
     )
-    html = render_to_string(f"emails/reminder_{kind}.html", context)
-    message.attach_alternative(html, "text/html")
-    return message
 
 
 def _skip_reason(user: User, membership: Membership, kind: str, today: date) -> str | None:
@@ -425,4 +423,4 @@ def _send_one(user: User, membership: Membership, kind: str, today: date) -> Non
         sent_at=timezone.now(),
         to_email=user.email,
     )
-    build_email(user, membership, kind, today).send()
+    send_reminder_email(user, membership, kind, today)

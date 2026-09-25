@@ -6,7 +6,8 @@ API: reminders, system, and site
 
 The endpoints that keep the installation running and the one the portal calls
 before it has a user: ``GET /admin/reminders/log`` and
-``POST /system/reminders/run`` from ``apps.reminders``, the health, backup and
+``POST /system/reminders/run`` from ``apps.reminders``,
+``GET /system/emails`` from ``apps.mail``, the health, backup and
 renewal-scan routes under ``/system/`` from ``apps.sysadmin``, and
 ``GET /site/config`` from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
 session authentication, the CSRF header, pagination, and the error shapes.
@@ -117,6 +118,87 @@ prints; see :doc:`reminders`.
 
 Statuses: **200**; **400** when ``dry_run`` is not a boolean; **401** when
 anonymous; **403** for any other role.
+
+
+.. _api-email-log:
+
+The email log
+=============
+
+``GET /system/emails``
+----------------------
+
+Every email the installation has tried to send, paginated, and newest first.
+``system_admin`` only: the rows carry every address written to, which is
+operations work rather than membership work.  Each row is written by the shared
+mail funnel after the send, so a refusal is on the list beside the messages that
+went out -- which is the point of it.  The one exception is a renewal reminder:
+its send shares a transaction with its ``ReminderLog`` row, so a refused reminder
+rolls both rows back and stays due, and the reminder run's ``failed`` count is
+what reports it.
+
+.. code-block:: json
+
+   {
+     "count": 412,
+     "next": "http://localhost:8000/api/v1/system/emails?page=2",
+     "previous": null,
+     "results": [
+       {"id": 903, "to_email": "marta.reyes@example.org", "user_id": 37,
+        "user_name": "Marta Reyes", "purpose": "receipt",
+        "subject": "CalDART: your receipt for $95.00",
+        "sent_at": "2026-01-08T09:00:02-08:00", "status": "sent", "error": "",
+        "attachments": "receipt-2026-0041.pdf"}
+     ]
+   }
+
+``purpose``
+   The template the body came from, which is what the message was for:
+   ``reminder_t60``, ``reminder_t30``, ``reminder_t7``, ``reminder_expired``,
+   ``reminder_post30``, ``renewal_enabled``, ``renewal_notice``,
+   ``renewal_card_expiring``, ``renewal_charged``, ``renewal_failed``,
+   ``renewal_canceled``, ``receipt``, ``refund``, ``member_invitation`` or
+   ``password_reset``.
+
+``user_id``, ``user_name``
+   The account the email concerned.  Both are empty -- ``null`` and ``""`` --
+   for a message sent to an address with no account behind it, and for one whose
+   account has since been deleted.
+
+``status``, ``error``
+   ``sent`` for a message the mail server took, and ``failed`` with the
+   exception class in ``error`` for one it refused.  ``error`` is blank on a
+   send that went out.
+
+``attachments``
+   The filenames that rode along, comma-separated, and blank when none did.
+
+=================  ============================================================
+Parameter          Effect
+=================  ============================================================
+``purpose``        An exact purpose, as listed above.  An unknown value answers
+                   an empty page rather than a 400: the purposes are the
+                   template names, not a fixed enumeration.
+``status``         ``sent`` or ``failed``.  Anything else is a 400 on
+                   ``status``.
+``from``, ``to``   ``YYYY-MM-DD``, compared against the date part of
+                   ``sent_at``: ``from`` is on or after, ``to`` on or before.
+``q``              Case-insensitive match on the address written to and on the
+                   recipient account's first and last name.
+``ordering``       ``sent_at``, with a ``-`` prefix for descending.  An
+                   unrecognized field is ignored.
+``page``,          Standard pagination (25 by default, 200 at most).
+``page_size``
+=================  ============================================================
+
+The log records the message, not the delivery: a mail server that accepts a
+message and bounces it later is a ``sent`` row.  ``ReminderLog`` is not replaced
+by any of this -- it is the key that keeps a reminder stage from repeating, and
+``GET /admin/reminders/log`` still answers "was this member ever told?" for an
+account administrator, who does not hold ``system_admin``.
+
+Statuses: **200**; **400** for an unknown ``status`` or an unparseable date;
+**401** when anonymous; **403** for every other role.
 
 
 System
@@ -321,6 +403,11 @@ Tests
 ``backend/tests/test_reminders_api.py``
    The role matrix on both reminder endpoints, the log filters, and that a dry
    run writes nothing while still counting the candidates it found.
+
+``backend/tests/test_mail_log.py``
+   The funnel writing one row per send, a refused send recorded and re-raised,
+   every kind of email the application sends landing in the log, and the
+   endpoint's filters and role matrix.
 
 ``backend/tests/test_sysadmin_api.py``
    The health payload field by field, the backup list and create paths, and
