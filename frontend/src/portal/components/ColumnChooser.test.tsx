@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { SavedColumnSet } from '@/portal/api/types';
@@ -206,12 +207,19 @@ describe('ColumnChooser saved sets', () => {
     expect(requests[0]?.url).toMatch(/\/reports\/payments\/column-sets$/);
   });
 
-  it('does not ask for the sets until the panel opens', () => {
+  it('does not ask for the sets until the panel opens', async () => {
     const requests: ColumnSetRequest[] = [];
     server.use(...columnSetHandlers('payments', SAVED_SETS, requests));
+    const user = userEvent.setup();
     renderWithProviders(<Harness onChange={handleNothing} />);
-
+    await screen.findByRole('button', { name: 'Columns' });
+    // Give a fetch started on mount the time to reach msw before looking.
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(requests).toEqual([]);
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+
+    await waitFor(() => expect(requests).toHaveLength(1));
   });
 
   it("loads a saved set's columns", async () => {
@@ -263,6 +271,43 @@ describe('ColumnChooser saved sets', () => {
       name: 'Audit',
       columns: ['paid_on', 'receipt_number', 'name', 'total', 'fee', 'net', 'refunded', 'status'],
     });
+  });
+
+  it('saves when Enter is pressed in the name box', async () => {
+    const { user, requests } = await openWithSets([]);
+
+    await user.type(
+      screen.getByRole('textbox', { name: 'Name for these columns' }),
+      'Audit{Enter}',
+    );
+
+    await screen.findByRole('option', { name: 'Audit' });
+    expect(requests.find((request) => request.method === 'POST')?.body).toEqual({
+      name: 'Audit',
+      columns: defaultColumnKeys(TEST_COLUMNS),
+    });
+  });
+
+  it('does not submit a surrounding form when Enter saves', async () => {
+    const requests: ColumnSetRequest[] = [];
+    server.use(...columnSetHandlers('payments', [], requests));
+    const handleSubmit = vi.fn((event: FormEvent) => event.preventDefault());
+    const user = userEvent.setup();
+    renderWithProviders(
+      <form onSubmit={handleSubmit}>
+        <Harness onChange={handleNothing} />
+        <button type="submit">Search</button>
+      </form>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Name for these columns' }),
+      'Audit{Enter}',
+    );
+
+    await screen.findByRole('option', { name: 'Audit' });
+    expect(handleSubmit).not.toHaveBeenCalled();
   });
 
   it('selects a set it has just saved in the drop-down', async () => {

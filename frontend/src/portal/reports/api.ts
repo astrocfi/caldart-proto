@@ -86,16 +86,11 @@ function columnSetsKey(slug: ReportSlug) {
  * `GET /reports/<slug>/column-sets`.
  *
  * @param slug the report whose sets to read.
- * @param isEnabled false to hold the request back until the sets are wanted.
  */
-export function useColumnSets(
-  slug: ReportSlug,
-  isEnabled = true,
-): UseQueryResult<SavedColumnSet[]> {
+export function useColumnSets(slug: ReportSlug): UseQueryResult<SavedColumnSet[]> {
   return useQuery({
     queryKey: columnSetsKey(slug),
     queryFn: () => api.get<SavedColumnSet[]>(`/reports/${slug}/column-sets`),
-    enabled: isEnabled,
   });
 }
 

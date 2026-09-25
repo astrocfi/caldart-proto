@@ -14,7 +14,7 @@ import type { ReportColumn } from '@/portal/api/types';
 import { useColumnSets, useDeleteColumnSet, useSaveColumnSet } from '@/portal/reports/api';
 import type { ReportSlug } from '@/portal/reports/types';
 import { Button } from './Button';
-import { IconButton } from './IconButton';
+import { DeleteButton } from './DeleteButton';
 import { useClickOutside } from './useClickOutside';
 
 /** The longest name the server keeps for a saved set of columns. */
@@ -244,8 +244,7 @@ function SavedColumnSets({
           ))}
         </select>
         {selected !== null ? (
-          <IconButton
-            icon="trashcan"
+          <DeleteButton
             label={`Delete the saved set ${selected.name}`}
             onClick={handleDelete}
             disabled={remove.isPending}
