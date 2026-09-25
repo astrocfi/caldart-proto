@@ -4,9 +4,15 @@
  * no new colors, no shadows.
  */
 
+/* Sits directly on the result list, which it introduces. */
+.aircraft-pick {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
 .aircraft-results {
   list-style: none;
-  margin: var(--space-4) 0 0;
+  margin: 0;
   padding: 0;
   border-top: var(--hairline) solid var(--color-rule);
 }

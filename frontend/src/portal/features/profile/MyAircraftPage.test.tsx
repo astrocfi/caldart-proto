@@ -81,6 +81,29 @@ describe('<MyAircraftPage/>', () => {
     expect(screen.getByText('$1,000,000 / $100,000 · exp 2027-03-01')).toBeInTheDocument();
   });
 
+  it('ledes with the planes a member commonly flies and nothing more', async () => {
+    server.use(http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    expect(await screen.findByText('The planes you commonly fly.')).toBeInTheDocument();
+  });
+
+  it('names the aircraft in the remove control', async () => {
+    server.use(
+      http.get(`${API}/me/profile`, () =>
+        HttpResponse.json(makeProfile({ aircraft: [TEST_AIRCRAFT] })),
+      ),
+    );
+
+    renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
+
+    expect(await screen.findByRole('button', { name: 'Remove N12345' })).toHaveAttribute(
+      'title',
+      'Remove N12345',
+    );
+  });
+
   it('flags an aircraft with no insurance on file', async () => {
     server.use(
       http.get(`${API}/me/profile`, () =>
@@ -158,7 +181,7 @@ describe('<MyAircraftPage/>', () => {
     );
 
     renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
-    await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove N12345' }));
 
     expect(await screen.findByText('N12345 removed.')).toBeInTheDocument();
     expect(deleted).toBe('7');
@@ -176,7 +199,7 @@ describe('<MyAircraftPage/>', () => {
     );
 
     renderWithProviders(<MyAircraftPage />, { route: '/profile/aircraft' });
-    await userEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove N12345' }));
 
     expect(await screen.findByText('Not found.')).toBeInTheDocument();
   });

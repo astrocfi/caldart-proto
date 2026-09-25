@@ -27,9 +27,11 @@
 
 /* `input[type='tel']` in base.css sets width: 100%, and a single class does
  * not outrank an element-plus-attribute selector, so both widths here are
- * written with two classes. */
+ * written with two classes.  The inputs are `border-box`, so the widths below
+ * include the padding: `415-555-0100` and a six-digit extension both fit with
+ * room to spare. */
 .field-pair .field-pair__main {
-  width: 13ch;
+  width: 16ch;
   flex: 0 0 auto;
 }
 
@@ -43,7 +45,7 @@
 }
 
 .field-pair .field-pair__extension input {
-  width: 6ch;
+  width: 9ch;
   flex: 0 0 auto;
 }
 
@@ -95,9 +97,12 @@
   margin-bottom: 0;
 }
 
+/* The paragraph measure in base.css wraps this sentence pair; it reads as one
+ * line under the legend, so it keeps the fieldset's width. */
 .profile-form__note {
   font-size: var(--text-sm);
   margin-bottom: var(--space-3);
+  max-width: none;
 }
 
 .profile-form__actions {

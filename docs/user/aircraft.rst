@@ -30,16 +30,18 @@ For members: adding an airplane you fly
 #. Open **My aircraft** in the portal menu.
 #. Search the register in the panel underneath: type the registration, or the
    make, model, or owner if you do not have the number to hand.
-#. Pick the airplane from the results.  It is attached to your profile
-   straight away and appears in the list above with its insurance chip.
+#. Pick the airplane from the results, which say *Click on an aircraft to add
+   it to your list*.  It is attached to your profile straight away and appears
+   in the list above with its insurance chip.
 
 Airplanes already on your list are filtered out of the results and named
 underneath, so you can tell the difference between "not in the register" and
-"already attached".
+"already attached".  A search that finds nothing says so, and points at the
+button below it.
 
-You do not have to search first: **Add an aircraft** sits under the search box
-and opens the same short form whenever you want it, and it is offered again
-under the results when a search finds nothing.  The form needs:
+One **Add an aircraft** button sits at the foot of the panel, under the results
+or the empty state, and opens the same short form whenever you want it —
+you do not have to search first.  The form needs:
 
 =====================  ==========================================================
 Field                  Notes
@@ -230,5 +232,5 @@ When something goes wrong
    commas and a leading ``$`` are accepted and stripped for you.
 
 **You removed an airplane and worry you deleted it.**
-   **Remove** on your own profile only detaches it from you.  The record, and
-   everybody else's link to it, is untouched.
+   The trashcan on your own profile only detaches the airplane from you.  The
+   record, and everybody else's link to it, is untouched.

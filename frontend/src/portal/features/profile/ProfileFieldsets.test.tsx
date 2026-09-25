@@ -49,7 +49,7 @@ const RATING_LABELS = [
 
 const VOLUNTEER_LABELS = [
   'Mission pilot',
-  'Ground team',
+  'Ground support',
   'Exercises and training',
   'Member support',
   'Fundraising',
@@ -215,6 +215,18 @@ describe('<ProfileFieldsets/>', () => {
     await user.click(screen.getByLabelText('Newsletter'));
 
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_PROFILE_FORM, vol_newsletter: true });
+  });
+
+  it('asks for the home airport without its leading K', () => {
+    renderFieldsets();
+    expect(screen.getByLabelText('Home airport')).toHaveAccessibleDescription(
+      'Three characters, omit the leading K',
+    );
+  });
+
+  it('calls the DART field a primary DART', () => {
+    renderFieldsets();
+    expect(screen.getByLabelText('DART')).toHaveAccessibleDescription('Your primary DART');
   });
 
   it('lists each DART with its airport identifier', () => {

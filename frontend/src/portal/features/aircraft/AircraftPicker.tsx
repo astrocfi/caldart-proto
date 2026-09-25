@@ -88,36 +88,37 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
             : ''}
       </p>
 
-      {adding ? null : (
-        <p className="cluster aircraft-add">
-          <Button variant="secondary" small onClick={handleStartAdding}>
-            Add an aircraft
-          </Button>
-          <span className="muted">Not in the register? Add it yourself.</span>
-        </p>
-      )}
-
       {search.isFetching && !search.data ? <p className="muted">Searching…</p> : null}
 
       {results.length > 0 ? (
-        <ul className="aircraft-results">
-          {results.map((aircraft) => (
-            <li key={aircraft.id} className="aircraft-result">
-              <button
-                type="button"
-                className="aircraft-result__button"
-                onClick={() => onSelect(aircraft)}
-              >
-                <span className="aircraft-result__ident mono">{aircraft.n_number}</span>
-                <span className="aircraft-result__name">
-                  {aircraft.make} {aircraft.model}
-                </span>
-                <InsuranceChip aircraft={aircraft} />
-                <ServiceChip aircraft={aircraft} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p className="muted aircraft-pick">Click on an aircraft to add it to your list.</p>
+          <ul className="aircraft-results">
+            {results.map((aircraft) => (
+              <li key={aircraft.id} className="aircraft-result">
+                <button
+                  type="button"
+                  className="aircraft-result__button"
+                  onClick={() => onSelect(aircraft)}
+                >
+                  <span className="aircraft-result__ident mono">{aircraft.n_number}</span>
+                  <span className="aircraft-result__name">
+                    {aircraft.make} {aircraft.model}
+                  </span>
+                  <InsuranceChip aircraft={aircraft} />
+                  <ServiceChip aircraft={aircraft} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+
+      {nothingFound && !adding ? (
+        <EmptyState
+          title="No aircraft matches that"
+          description="If the plane is not in the register yet, add it below."
+        />
       ) : null}
 
       {attached.length > 0 ? (
@@ -126,17 +127,14 @@ export function AircraftPicker({ onSelect, excludeIds = [] }: AircraftPickerProp
         </p>
       ) : null}
 
-      {nothingFound && !adding ? (
-        <EmptyState
-          title="No aircraft matches that"
-          description="If the plane is not in the register yet, add it — it takes a moment."
-          action={
-            <Button variant="secondary" onClick={handleStartAdding}>
-              Add a new aircraft
-            </Button>
-          }
-        />
-      ) : null}
+      {adding ? null : (
+        <p className="cluster aircraft-add">
+          <Button variant="secondary" onClick={handleStartAdding}>
+            Add an aircraft
+          </Button>
+          <span className="muted">Not in the register? Add it yourself.</span>
+        </p>
+      )}
 
       {adding ? (
         <NewAircraftForm

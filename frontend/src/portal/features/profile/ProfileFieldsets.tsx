@@ -298,11 +298,11 @@ export function ProfileFieldsets({
             label: 'Home airport',
             size: 4,
             placeholder: 'PAO',
-            hint: 'Three characters, as on a sectional',
+            hint: 'Three characters, omit the leading K',
             mask: maskAirportIdentifier,
           })}
           {text('home_airport_city', { label: 'Home airport city' })}
-          <Field label="DART" error={errors.dart_id} hint="The team you fly with">
+          <Field label="DART" error={errors.dart_id} hint="Your primary DART">
             {(props) => (
               <select
                 {...props}

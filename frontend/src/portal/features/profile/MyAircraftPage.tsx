@@ -14,6 +14,7 @@ import { ApiError } from '@/portal/api/client';
 import type { AircraftSummary } from '@/portal/api/types';
 import { ButtonLink, Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { DeleteButton } from '@/portal/components/DeleteButton';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { CurrencyChip } from '@/portal/components/StatusChip';
@@ -45,7 +46,7 @@ export function MyAircraftPage(): JSX.Element {
     <Page
       title="My aircraft"
       eyebrow="Membership"
-      lede="The planes you commonly fly. DART leaders check the insurance on these before a mission."
+      lede="The planes you commonly fly."
       actions={
         <ButtonLink to="/profile" variant="secondary">
           Back to profile
@@ -82,9 +83,8 @@ export function MyAircraftPage(): JSX.Element {
                   >
                     {editing === plane.id ? 'Close' : 'Edit'}
                   </Button>
-                  <Button
-                    variant="quiet"
-                    small
+                  <DeleteButton
+                    label={`Remove ${plane.n_number}`}
                     disabled={busy}
                     onClick={() =>
                       detach.mutate(plane.id, {
@@ -92,9 +92,7 @@ export function MyAircraftPage(): JSX.Element {
                         onError: (error) => fail(error, `${plane.n_number} was not removed.`),
                       })
                     }
-                  >
-                    Remove
-                  </Button>
+                  />
                 </span>
               </li>
             ))}

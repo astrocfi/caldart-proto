@@ -54,10 +54,10 @@ Everything else can wait until later.  The form is in three sections:
   of it.
 
 **Aviation**
-  Your home airport as its three-character identifier — ``PAO``, ``E16`` — the
-  DART you fly with, your Air Care Alliance number,
-  pilot certificate and number, whether you are IFR rated, ratings, medical
-  and its expiration date, last flight review and total hours.  The ratings are
+  Your home airport as its three-character identifier, with the leading ``K``
+  left off — ``PAO``, ``E16`` — your primary **DART**, your Air Care Alliance
+  number, pilot certificate and number, whether you are IFR rated, ratings,
+  medical and its expiration date, last flight review, and total hours.  The ratings are
   ASEL, AMEL, ASES, AMES, Helicopter and Instrument on one line, and CFI, CFII
   and MEI on the next.  Tick **I fly rented or borrowed aircraft** if you have
   no airframe of your own to list: a DART leader then knows that is why.
@@ -69,7 +69,7 @@ Everything else can wait until later.  The form is in three sections:
 
 **Volunteer interests**
   CalDART runs on volunteers.  Tick anything you would be willing to help
-  with: ground team, exercises and training, member support, fundraising,
+  with: ground support, exercises and training, member support, fundraising,
   social media, newsletter.
 
 Step 3 — Pay
@@ -188,9 +188,9 @@ N-number, make, and model, an insurance chip (**Current**, **Expired**, or
 
 To add one, search for it by N-number in the panel underneath and select it.
 If the aircraft is not in the CalDART register yet, the panel offers a short
-form to add it.  To take one off your profile, press **Remove** — this only
-detaches it from you; the aircraft record and anyone else's link to it are
-untouched.
+form to add it.  To take one off your profile, press the trashcan beside it —
+this only detaches it from you; the aircraft record and anyone else's link to
+it are untouched.
 
 An aircraft's insurance is what a DART leader checks before letting you fly a
 mission in it, so keep the carrier, limits, and expiration date accurate.
