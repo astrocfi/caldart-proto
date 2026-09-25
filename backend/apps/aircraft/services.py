@@ -22,10 +22,7 @@ from apps.aircraft.models import (
     AircraftChangeKind,
     normalize_n_number,
 )
-from apps.members.models import (
-    MedicalType,
-    MembershipState,
-)
+from apps.members.models import MembershipState
 from apps.members.services import (
     membership_of,
     membership_payload,
@@ -147,9 +144,8 @@ def search_result(user: UserModel) -> dict[str, Any]:
     """One row of ``GET /leader/search``.
 
     The row answers go/no-go on its own, by exactly the rule the status card
-    uses: ``go_no_go`` is a current membership and a current medical, and
-    ``medical`` carries the class, the expiry date and whether it is in date, so
-    a leader reads the list and only opens the card for the detail.  Everything
+    uses: ``go_no_go`` is a current membership and a current medical, so a
+    leader reads the list and only opens the card for the detail.  Everything
     comes from the row the search already fetched, so a result costs no query of
     its own.
     """
@@ -163,11 +159,6 @@ def search_result(user: UserModel) -> dict[str, Any]:
         "email": user.email,
         "dart": dart.name if dart is not None else None,
         "membership_status": status,
-        "medical": {
-            "type": profile.medical_type if profile is not None else MedicalType.NONE,
-            "expiration": profile.medical_expiration if profile is not None else None,
-            "is_current": medical_ok,
-        },
         "go_no_go": {
             "membership": status == MembershipState.CURRENT,
             "medical": medical_ok,

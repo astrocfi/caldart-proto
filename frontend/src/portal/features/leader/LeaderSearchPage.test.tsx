@@ -29,7 +29,6 @@ const MARTA: LeaderSearchResult = {
   email: 'marta@example.org',
   dart: 'Palo Alto',
   membership_status: 'current',
-  medical: { type: 'third', expiration: '2027-12-01', is_current: true },
   go_no_go: { membership: true, medical: true },
 };
 
@@ -111,7 +110,6 @@ describe('LeaderSearchPage', () => {
           user_id: 8,
           name: 'Owen Delgado',
           membership_status: 'expired',
-          medical: { type: 'third', expiration: '2026-01-31', is_current: false },
           go_no_go: { membership: false, medical: false },
         },
       ]),

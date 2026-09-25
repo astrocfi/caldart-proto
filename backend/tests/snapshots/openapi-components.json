@@ -823,7 +823,6 @@
       "dart": "string|null",
       "email": "string(email)",
       "go_no_go": "ref:LeaderGoNoGo",
-      "medical": "ref:LeaderMedical",
       "membership_status": "ref:MembershipStateEnum",
       "name": "string",
       "user_id": "integer"
@@ -832,7 +831,6 @@
       "dart",
       "email",
       "go_no_go",
-      "medical",
       "membership_status",
       "name",
       "user_id"

@@ -248,8 +248,8 @@ class LeaderGoNoGoSerializer(serializers.Serializer[Any]):
 class LeaderSearchResultSerializer(serializers.Serializer[Any]):
     """One row of a leader's member search, carrying its own go/no-go.
 
-    The medical and the two booleans are the same ones the status card shows, so
-    the list answers "may this member fly?" without a second request.
+    The two booleans are the same ones the status card shows, so the list
+    answers "may this member fly?" without a second request.
     """
 
     user_id = serializers.IntegerField()
@@ -257,7 +257,6 @@ class LeaderSearchResultSerializer(serializers.Serializer[Any]):
     email = serializers.EmailField()
     dart = serializers.CharField(allow_null=True)
     membership_status = serializers.ChoiceField(choices=MembershipState.choices)
-    medical = LeaderMedicalSerializer()
     go_no_go = LeaderGoNoGoSerializer()
 
 

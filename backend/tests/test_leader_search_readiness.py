@@ -1,8 +1,8 @@
-"""Go/no-go and the medical on a leader's search results.
+"""Go/no-go on a leader's search results.
 
 A leader on an activation reads the list and needs the answer there: the row
-carries the same two go/no-go booleans and the same medical as the status card,
-so opening the card is for the detail rather than for the verdict.  The card's
+carries the same two go/no-go booleans the status card computes, so a leader
+reads a verdict off the list and opens the card for the detail.  The card's
 own rule is tested in ``test_leader_api.py``; these tests prove the list agrees
 with it, case by case.
 """
@@ -165,24 +165,6 @@ def test_a_medical_that_expires_today_is_still_current(
     assert search_row(leader_client, user)["go_no_go"]["medical"] is True
 
 
-def test_the_row_carries_the_medical_class_and_its_date(
-    leader_client: APIClient, go: User, today: date
-) -> None:
-    """The row says which medical is on file and when it runs out."""
-    assert search_row(leader_client, go)["medical"] == {
-        "type": MedicalType.THIRD,
-        "expiration": (today + 120 * ONE_DAY).isoformat(),
-        "is_current": True,
-    }
-
-
-def test_a_member_with_no_profile_reads_as_a_no_go(leader_client: APIClient, today: date) -> None:
-    """An account with no profile row has no medical, so it is a no-go."""
-    user = UserFactory(email="bare@example.test", first_name="Bo", last_name=SURNAME)
-    row = search_row(leader_client, user)
-    assert row["medical"] == {"type": MedicalType.NONE, "expiration": None, "is_current": False}
-
-
 def test_a_member_with_no_profile_is_a_no_go_on_both_counts(leader_client: APIClient) -> None:
     """That same account has no term either, so both booleans are false."""
     user = UserFactory(email="bare2@example.test", first_name="Cy", last_name=SURNAME)
@@ -198,20 +180,13 @@ def test_the_list_and_the_card_give_the_same_verdict(leader_client: APIClient, g
     assert search_row(leader_client, go)["go_no_go"] == card["go_no_go"]
 
 
-def test_the_list_and_the_card_give_the_same_medical(leader_client: APIClient, go: User) -> None:
-    """The row's medical is the card's medical, field for field."""
-    card = leader_client.get(STATUS_URL.format(pk=go.pk)).json()
-    assert search_row(leader_client, go)["medical"] == card["medical"]
-
-
 def test_a_search_result_carries_exactly_these_fields(leader_client: APIClient, go: User) -> None:
-    """The row holds the seven fields the list draws and nothing else."""
+    """The row holds the six fields the list draws and nothing else."""
     assert set(search_row(leader_client, go)) == {
         "user_id",
         "name",
         "email",
         "dart",
         "membership_status",
-        "medical",
         "go_no_go",
     }
