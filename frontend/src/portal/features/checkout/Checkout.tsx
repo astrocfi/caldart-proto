@@ -1,8 +1,11 @@
 /**
- * The shared checkout widget used by both `/join` and `/renew`.
+ * The shared checkout widget used by `/join`, `/renew` and a contribution.
  *
  * Choose a plan, optionally add a contribution, then pay with whichever
- * providers this deployment has keys for.
+ * providers this deployment has keys for.  In `contribute` mode there is no
+ * plan to choose: the payment buys no membership term, which is the only thing
+ * a life member can do here, so one is shown this form whatever mode was asked
+ * for.
  *
  * A finished payment is reported through `onSuccess` and nothing else: the flow
  * that hosts the widget owns the queries a payment moves, so the refresh happens
@@ -12,6 +15,7 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { PaymentProvider } from '@/portal/api/types';
+import { useAuth } from '@/portal/auth/useAuth';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { formatCents } from '@/portal/components/Money';
@@ -21,17 +25,25 @@ import { MockPanel } from './MockPanel';
 import { PayPalPanel } from './PayPalPanel';
 import { PlanChooser } from './PlanChooser';
 import { StripePanel } from './StripePanel';
-import type { CheckoutProps, CheckoutResult } from './types';
+import type { CheckoutMode, CheckoutProps, ProviderPanelProps } from './types';
 import './checkout.css';
 
 /** Renewals default to the annual plan. */
 const DEFAULT_PLAN = 'annual';
+
+/** The eyebrow and title over each mode's form. */
+const HEADINGS: Record<CheckoutMode, { eyebrow: string; title: string }> = {
+  join: { eyebrow: 'Membership', title: 'Join CalDART' },
+  renew: { eyebrow: 'Renewal', title: 'Renew your membership' },
+  contribute: { eyebrow: 'Contribution', title: 'Make a contribution' },
+};
 
 export type { CheckoutProps, CheckoutResult } from './types';
 
 /** Choose a plan and a contribution, then pay with the configured providers. */
 export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
+  const { user } = useAuth();
 
   const [plan, setPlan] = useState<string>(DEFAULT_PLAN);
   const [contributionCents, setContributionCents] = useState(0);
@@ -45,13 +57,19 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
     [config],
   );
 
+  // A life member has nothing left to buy, and the server refuses a plan from
+  // them, so every mode collapses to the contribution form.
+  const isLifetime = user?.membership.is_lifetime ?? false;
+  const effectiveMode: CheckoutMode = isLifetime ? 'contribute' : mode;
+  const heading = HEADINGS[effectiveMode];
+
   useEffect(() => {
     if (provider === null && providers[0]) setProvider(providers[0]);
   }, [providers, provider]);
 
   if (isPending) {
     return (
-      <Card eyebrow={mode === 'renew' ? 'Renewal' : 'Membership'} title="Payment">
+      <Card eyebrow={heading.eyebrow} title="Payment">
         <p className="muted" role="status">
           Loading payment options…
         </p>
@@ -61,7 +79,7 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
 
   if (error || !config) {
     return (
-      <Card eyebrow={mode === 'renew' ? 'Renewal' : 'Membership'} title="Payment">
+      <Card eyebrow={heading.eyebrow} title="Payment">
         <EmptyState
           title="Payment options could not be loaded"
           description="Please reload the page, or contact CalDART if it keeps happening."
@@ -70,21 +88,32 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
     );
   }
 
+  const isContributing = effectiveMode === 'contribute';
+
   // "Annual" is only the default where the server offers it; anywhere else the
   // first plan on the list stands in, so the chooser always has a selection.
   const offered = config.plans.map((entry) => entry.slug);
   const effectivePlan = offered.includes(plan) ? plan : (offered[0] ?? plan);
 
-  const selectedPlan = config.plans.find((entry) => entry.slug === effectivePlan) ?? null;
+  const selectedPlan = isContributing
+    ? null
+    : (config.plans.find((entry) => entry.slug === effectivePlan) ?? null);
   const planCents = selectedPlan?.price_cents ?? 0;
   const totalCents = planCents + contributionCents;
 
-  // Only a plan with a term can renew itself, so the offer is hidden for a
-  // membership for life rather than shown and refused by the server.
-  const canAutoRenew = selectedPlan !== null && selectedPlan.duration_days !== null;
+  // Only a plan with a term can renew itself, and a contribution can only
+  // repeat once there is an amount, so the offer is hidden rather than shown
+  // and refused by the server.
+  const canAutoRenew = isContributing
+    ? contributionCents > 0
+    : selectedPlan !== null && selectedPlan.duration_days !== null;
+
+  // The server refuses a payment of nothing, so a contribution waits for an
+  // amount rather than starting a provider that cannot be paid.
+  const needsContribution = isContributing && contributionCents === 0;
 
   const panelProps = {
-    plan: effectivePlan,
+    plan: isContributing ? null : effectivePlan,
     contributionCents,
     amountCents: totalCents,
     autoRenew: canAutoRenew && autoRenew,
@@ -92,12 +121,14 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
   };
 
   return (
-    <Card
-      eyebrow={mode === 'renew' ? 'Renewal' : 'Membership'}
-      title={mode === 'renew' ? 'Renew your membership' : 'Join CalDART'}
-      className="checkout"
-    >
-      <PlanChooser plans={config.plans} value={effectivePlan} onChange={(next) => setPlan(next)} />
+    <Card eyebrow={heading.eyebrow} title={heading.title} className="checkout">
+      {isContributing ? null : (
+        <PlanChooser
+          plans={config.plans}
+          value={effectivePlan}
+          onChange={(next) => setPlan(next)}
+        />
+      )}
 
       <ContributionChooser
         tiers={config.contribution_tiers}
@@ -113,10 +144,12 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
       />
 
       <dl className="checkout__total">
-        <div>
-          <dt>{selectedPlan?.name ?? 'Membership'}</dt>
-          <dd className="mono">{formatCents(planCents)}</dd>
-        </div>
+        {isContributing ? null : (
+          <div>
+            <dt>{selectedPlan?.name ?? 'Membership'}</dt>
+            <dd className="mono">{formatCents(planCents)}</dd>
+          </div>
+        )}
         {contributionCents > 0 ? (
           <div>
             <dt>Contribution</dt>
@@ -140,7 +173,11 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
               checked={autoRenew}
               onChange={(event) => setAutoRenew(event.target.checked)}
             />
-            <span>Renew automatically each year</span>
+            <span>
+              {isContributing
+                ? 'Contribute this amount automatically each year'
+                : 'Renew automatically each year'}
+            </span>
           </label>
           <p className="checkout__fineprint muted">
             We will email you 14 days before charging this card, and you can turn it off at any time
@@ -149,7 +186,11 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
         </div>
       ) : null}
 
-      {providers.length === 0 ? (
+      {needsContribution ? (
+        <p className="checkout__blocked muted" role="status">
+          Choose a contribution to continue.
+        </p>
+      ) : providers.length === 0 ? (
         <EmptyState
           title="Online payment is not set up yet"
           description="Please contact CalDART to pay by check, or try again later."
@@ -172,13 +213,7 @@ interface ProviderTabsProps {
   active: PaymentProvider | null;
   onChange: (provider: PaymentProvider) => void;
   config: { stripe_publishable_key: string; paypal_client_id: string };
-  panelProps: {
-    plan: string;
-    contributionCents: number;
-    amountCents: number;
-    autoRenew: boolean;
-    onSuccess: (result: CheckoutResult) => void;
-  };
+  panelProps: ProviderPanelProps;
 }
 
 function ProviderTabs({ providers, active, onChange, config, panelProps }: ProviderTabsProps) {

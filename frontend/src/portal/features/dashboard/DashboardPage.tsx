@@ -11,6 +11,7 @@ import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
 import { MembershipChip, PaymentChip, membershipTone } from '@/portal/components/StatusChip';
+import { automaticCardTitle, automaticKindLabel } from '@/portal/features/payments/labels';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { groupedNavItems } from '@/portal/nav';
 import './dashboard.css';
@@ -131,7 +132,10 @@ export function DashboardPage(): JSX.Element {
             title="Recent payments"
             footer={<Link to="/payments">All payments, receipts and renewal</Link>}
           >
-            <RenewalLine mandate={renewal.data?.mandate ?? null} />
+            <RenewalLine
+              mandate={renewal.data?.mandate ?? null}
+              isLifetime={status?.is_lifetime ?? false}
+            />
             {payments.isPending ? (
               <p className="muted" role="status">
                 Loading…
@@ -198,25 +202,28 @@ export function DashboardPage(): JSX.Element {
   );
 }
 
-/** One line on the dashboard saying whether the membership renews itself. */
-function RenewalLine({ mandate }: { mandate: RenewalMandate | null }) {
+interface RenewalLineProps {
+  mandate: RenewalMandate | null;
+  /** True for a life member, whose authority is over their contribution alone. */
+  isLifetime: boolean;
+}
+
+/** One line on the dashboard saying what CalDART will charge, and when. */
+function RenewalLine({ mandate, isLifetime }: RenewalLineProps) {
   if (mandate === null || mandate.status === 'pending' || mandate.status === 'canceled') {
-    return <p className="muted">Automatic renewal is off.</p>;
+    return <p className="muted">{automaticCardTitle(isLifetime)} is off.</p>;
   }
+  const authority = automaticKindLabel(mandate.kind);
   if (mandate.status === 'paused') {
     return (
       <p className="muted">
-        Automatic renewal stopped after a payment was refused. Save another method to start it
-        again.
+        {authority} stopped after a payment was refused. Save another method to start it again.
       </p>
     );
   }
-  if (mandate.next_charge_on === null) {
-    return <p className="muted">Automatic renewal is on, with nothing due yet.</p>;
-  }
   return (
     <p className="muted">
-      Automatic renewal is on: <Money cents={mandate.amount_cents} /> on{' '}
+      {authority} is on: <Money cents={mandate.amount_cents} /> on{' '}
       <DateText value={mandate.next_charge_on} />.
     </p>
   );
