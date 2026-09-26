@@ -695,6 +695,7 @@ def test_detail_returns_the_whole_record(
         "memberships",
         "payments",
         "joined_on",
+        "email_verified_at",
     }
     assert body["profile"]["notes"] == "Called about the Napa exercise."
     assert body["profile"]["how_heard"] == "EAA chapter meeting"

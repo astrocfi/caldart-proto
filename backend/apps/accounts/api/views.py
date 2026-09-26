@@ -21,6 +21,9 @@ from rest_framework.views import APIView
 from apps.accounts.api.filters import UserFilter
 from apps.accounts.api.serializers import (
     AdminUserSerializer,
+    EmailChangeSerializer,
+    EmailVerifiedSerializer,
+    EmailVerifySerializer,
     LoginSerializer,
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
@@ -29,12 +32,25 @@ from apps.accounts.api.serializers import (
     RoleSerializer,
     SendPasswordResetResultSerializer,
     UserSerializer,
+    VerificationSentSerializer,
 )
 from apps.accounts.models import User
 from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
-from apps.accounts.services import send_password_reset_email
-from apps.accounts.throttling import LoginThrottle, PasswordResetThrottle, RegisterThrottle
+from apps.accounts.services import (
+    change_own_email,
+    confirm_email_address,
+    send_email_verification,
+    send_password_reset_email,
+    verify_email,
+)
+from apps.accounts.throttling import (
+    EmailVerifyResendThrottle,
+    EmailVerifyThrottle,
+    LoginThrottle,
+    PasswordResetThrottle,
+    RegisterThrottle,
+)
 from apps.members.services import register_member, with_membership
 from caldart import audit
 
@@ -92,9 +108,10 @@ class RegisterView(APIView):
         """Create a member account from the posted fields, sign it in, and answer 201.
 
         The body carries ``email``, ``password``, ``first_name``, and ``last_name``; the
-        response is the ``user`` payload.  Open to anonymous callers and throttled under
-        the ``auth_register`` scope.  A taken address or a password Django's validators
-        reject is a 400 naming the field.
+        response is the ``user`` payload, with ``email_verified`` false.  Once the account
+        is committed its address is mailed a verification link.  Open to anonymous
+        callers and throttled under the ``auth_register`` scope.  A taken address or a
+        password Django's validators reject is a 400 naming the field.
         """
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -249,14 +266,98 @@ class PasswordResetConfirmView(APIView):
         The body carries ``uid``, ``token``, and ``new_password``.  Open to anonymous
         callers and throttled under the ``auth_password_reset`` scope.  An unusable or
         spent link is a 400 under ``token``, and a password Django's validators reject a
-        400 under ``new_password``.
+        400 under ``new_password``.  The link was mailed to the account's address, so
+        using it also marks an unverified address verified.
         """
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         user.set_password(serializer.validated_data["new_password"])
         user.save(update_fields=["password", "updated_at"])
+        confirm_email_address(user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# --------------------------------------------------------------------------
+# Email verification and change
+# --------------------------------------------------------------------------
+def _verification_sent(user: User) -> Response:
+    """Mail ``user`` a verification link and answer 202 naming the address."""
+    send_email_verification(user)
+    return Response(
+        {"detail": f"Verification message sent to {user.email}."},
+        status=status.HTTP_202_ACCEPTED,
+    )
+
+
+class EmailVerifyView(APIView):
+    """``POST /auth/email/verify`` -- follow a verification link, 200."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [EmailVerifyThrottle]
+
+    @extend_schema(request=EmailVerifySerializer, responses={200: EmailVerifiedSerializer})
+    def post(self, request: Request) -> Response:
+        """Mark the account the posted ``token`` names verified, answering its address.
+
+        Open to anonymous callers, since the link may be opened in a browser that is
+        not signed in, and throttled under the ``auth_verify`` scope.  The answer is 200
+        ``{"email": <address>}``, also for a link followed a second time.  A token that
+        is forged, expired, for a deactivated or deleted account, or for an address the
+        account no longer holds is a 400 ``{"token": ["That verification link is invalid
+        or has expired."]}``.
+        """
+        serializer = EmailVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = verify_email(serializer.validated_data["token"])
+        return Response({"email": user.email})
+
+
+class EmailVerifyResendView(APIView):
+    """``POST /auth/email/resend`` -- mail the signed-in user a fresh link, 202."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [EmailVerifyResendThrottle]
+
+    @extend_schema(request=None, responses={202: VerificationSentSerializer})
+    def post(self, request: Request) -> Response:
+        """Mail the signed-in account's address a verification link and answer 202.
+
+        The answer is ``{"detail": "Verification message sent to <address>."}``.  An
+        address that is already verified is a 400 with "Your email address is already
+        verified." and nothing is mailed.  Throttled under the ``auth_verify_resend``
+        scope; an anonymous caller gets 401.
+        """
+        user = signed_in_user(request)
+        if user.email_verified:
+            return Response(
+                {"detail": "Your email address is already verified."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return _verification_sent(user)
+
+
+class EmailChangeView(APIView):
+    """``POST /auth/email/change`` -- change the signed-in user's own address, 200."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=EmailChangeSerializer, responses={200: UserSerializer})
+    def post(self, request: Request) -> Response:
+        """Move the signed-in account to the posted ``email``, answering the payload.
+
+        The body carries ``email`` and ``current_password``.  A wrong password, the
+        account's own address, and an address another account uses are each a 400
+        naming the field, the password checked first.  The changed address is marked
+        unverified (``email_verified`` is false in the answer) and mailed a
+        verification link once the change commits; the session survives, so the caller
+        stays signed in.  The change is recorded in the audit log as the account's own
+        ``account.update`` of ``email``.  An anonymous caller gets 401.
+        """
+        serializer = EmailChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        user = change_own_email(signed_in_user(request), email=serializer.validated_data["email"])
+        return Response(UserSerializer(user).data)
 
 
 class RolesView(APIView):
@@ -348,3 +449,36 @@ class AdminUserSendPasswordResetView(APIView):
             )
         audit.record(audit.PASSWORD_RESET_ADMIN_SENT, actor=actor, target=user)
         return Response({"detail": f"Password reset email sent to {user.email}."})
+
+
+class AdminUserSendEmailVerificationView(APIView):
+    """``POST /admin/users/{id}/send-email-verification``."""
+
+    permission_classes = [IsUserAdmin]
+
+    @extend_schema(request=None, responses={202: VerificationSentSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        """Mail the account with id ``pk`` a verification link, and answer 202.
+
+        Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone
+        else gets 403 and an unknown ``pk`` gets 404.  The answer is ``{"detail":
+        "Verification message sent to <address>."}``, and the send is recorded in the
+        audit log as ``email_verification.admin_sent``.  An address that is already
+        verified is a 400 with "That address is already verified.", and a deactivated
+        account, whose link could never be used, a 400 with "That account is
+        deactivated, so no verification message was sent."; neither mails anything.
+        """
+        actor = signed_in_user(request)
+        user = generics.get_object_or_404(User, pk=pk)
+        if user.email_verified:
+            return Response(
+                {"detail": "That address is already verified."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not user.is_active:
+            return Response(
+                {"detail": "That account is deactivated, so no verification message was sent."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        audit.record(audit.EMAIL_VERIFICATION_ADMIN_SENT, actor=actor, target=user)
+        return _verification_sent(user)

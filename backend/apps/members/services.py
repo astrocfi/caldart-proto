@@ -65,6 +65,7 @@ from apps.accounts.services import (
     AccountChanges,
     create_account,
     effective_roles,
+    send_email_verification,
     send_password_invitation,
     update_account,
 )
@@ -157,12 +158,15 @@ def register_member(
     must exist so ``/me/profile`` is a PATCH rather than a create.  Account and
     profile are written together, so a failure leaves no half-made member.  The
     new profile's ``profile_updated_at`` is stamped as the moment it was created.
+    The account starts unverified, and once the transaction commits its address is
+    mailed a verification link.
     """
     user = create_account(
         email=email, password=password, first_name=first_name, last_name=last_name
     )
     profile, _ = MemberProfile.objects.get_or_create(user=user)
     touch_profile(profile)
+    transaction.on_commit(lambda: send_email_verification(user))
     return user
 
 
@@ -181,9 +185,11 @@ def create_member(
 
     ``profile`` is the profile fields to record, which on the day somebody joins
     at an airshow may be none of them.  Without a password the account holds an
-    unusable one and is mailed an invitation to set the first; the mail is queued
-    past the commit, so a create that rolls back mails nobody.  ``request`` only
-    tells that mail which site's name and contact address to use.  The new
+    unusable one and is mailed an invitation to set the first, whose link also
+    proves the address; with one it is mailed a verification link instead.  Either
+    mail is queued past the commit, so a create that rolls back mails nobody.
+    ``request`` only tells the invitation which site's name and contact address to
+    use.  The new
     profile's ``profile_updated_at`` is stamped as the moment it was created.
     """
     user = create_account(
@@ -191,7 +197,9 @@ def create_member(
     )
     row = MemberProfile.objects.create(user=user, **(profile or {}))
     touch_profile(row)
-    if not password:
+    if password:
+        transaction.on_commit(lambda: send_email_verification(user))
+    else:
         transaction.on_commit(lambda: send_password_invitation(user, request=request))
     audit.record(audit.MEMBER_CREATE, actor=actor, target=user, invited=not password)
     return user

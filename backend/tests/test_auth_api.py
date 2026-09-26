@@ -49,6 +49,7 @@ def test_login_returns_the_user_payload(
         "is_active",
         "membership",
         "profile_complete",
+        "email_verified",
     }
 
 

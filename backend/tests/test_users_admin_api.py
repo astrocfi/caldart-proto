@@ -125,6 +125,8 @@ def test_list_returns_the_user_payload(
         "is_active",
         "membership",
         "profile_complete",
+        "email_verified",
+        "email_verified_at",
     }
     assert row["roles"] == [MEMBER]
     assert row["membership"]["status"] == "current"

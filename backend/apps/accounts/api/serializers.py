@@ -12,7 +12,12 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.accounts.roles import ROLE_SLUGS
-from apps.accounts.services import AccountChanges, update_account, user_from_uid
+from apps.accounts.services import (
+    AccountChanges,
+    normalized_email,
+    update_account,
+    user_from_uid,
+)
 from apps.members.api.serializers import MembershipStatusSerializer
 from apps.members.services import membership_of
 
@@ -23,6 +28,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
     roles = serializers.SerializerMethodField()
     membership = serializers.SerializerMethodField()
     profile_complete = serializers.SerializerMethodField()
+    email_verified = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
@@ -35,6 +41,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
             "is_active",
             "membership",
             "profile_complete",
+            "email_verified",
         ]
         read_only_fields = fields
 
@@ -205,6 +212,57 @@ class PasswordResetConfirmSerializer(serializers.Serializer[None]):
         return attrs
 
 
+class EmailVerifySerializer(serializers.Serializer[None]):
+    """``POST /auth/email/verify``: the token from a verification link."""
+
+    token = serializers.CharField()
+
+
+class EmailVerifiedSerializer(serializers.Serializer[dict[str, str]]):
+    """``POST /auth/email/verify``: the address the link verified."""
+
+    email = serializers.EmailField()
+
+
+class VerificationSentSerializer(serializers.Serializer[dict[str, str]]):
+    """The sentence a verification resend answers with, naming the address mailed."""
+
+    detail = serializers.CharField()
+
+
+class EmailChangeSerializer(serializers.Serializer[None]):
+    """``POST /auth/email/change``: the address to move to, and the current password."""
+
+    email = serializers.EmailField()
+    current_password = PasswordField()
+
+    #: The address is the login, so moving it asks for the password first.
+    WRONG_PASSWORD = "That is not your current password."  # noqa: S105 - an error message
+    SAME_ADDRESS = "That is already your email address."
+    TAKEN_ADDRESS = "Another account already uses that email address."
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """``attrs`` with the address stripped, once the change passes three checks.
+
+        They run in this order and the first failure is the only one reported: the
+        current password must be the signed-in user's (``current_password``: "That is
+        not your current password."); the address must differ from the account's own,
+        compared case-insensitively (``email``: "That is already your email
+        address."); and no other account may use it, compared the same way
+        (``email``: "Another account already uses that email address.").
+        """
+        user: User = self.context["request"].user
+        if not user.check_password(attrs["current_password"]):
+            raise serializers.ValidationError({"current_password": [self.WRONG_PASSWORD]})
+        email = attrs["email"].strip()
+        if normalized_email(email) == normalized_email(user.email):
+            raise serializers.ValidationError({"email": [self.SAME_ADDRESS]})
+        if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError({"email": [self.TAKEN_ADDRESS]})
+        attrs["email"] = email
+        return attrs
+
+
 class RoleSerializer(serializers.Serializer[dict[str, str]]):
     """``GET /roles``: one role's slug and its human description."""
 
@@ -238,10 +296,12 @@ class AdminUserSerializer(UserSerializer):
         allow_empty=True,
         required=False,
     )
+    email_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
     class Meta(UserSerializer.Meta):
-        # `membership`, `profile_complete`, and `roles` are declared fields, so
-        # only the model columns need listing here.
+        fields = [*UserSerializer.Meta.fields, "email_verified_at"]
+        # `membership`, `profile_complete`, `email_verified`, `email_verified_at`,
+        # and `roles` are declared fields, so only the model columns need listing here.
         read_only_fields = ["id"]
         extra_kwargs = {
             "email": {"required": False},

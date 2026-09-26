@@ -1,15 +1,15 @@
-"""Rate limits for the unauthenticated auth endpoints.
+"""Rate limits for the auth endpoints that mail someone or guess at a secret.
 
-Login, registration, and password-reset requests are the three places where an
-anonymous caller can burn server time or spray an inbox, so each gets its own
-DRF ``AnonRateThrottle`` scope.
+Login, registration, password-reset, and email-verification requests are where a
+caller can burn server time, guess at a token, or spray an inbox, so each gets its
+own scope.  Every scope counts by client address, signed in or not.
 
 Rates come from the ``AUTH_THROTTLE_RATES`` setting rather than DRF's
 ``DEFAULT_THROTTLE_RATES`` so they can be switched off (or turned up for one
 test) with a plain ``override_settings``.  A scope makes its throttle inert
 when it is mapped to ``None``, mapped to an empty string, or absent from the
-mapping; ``settings/test.py`` maps all three scopes to ``None`` so no test
-races a shared counter.
+mapping; ``settings/test.py`` maps every scope to ``None`` so no test races a
+shared counter.
 """
 
 from __future__ import annotations
@@ -23,6 +23,8 @@ from rest_framework.views import APIView
 LOGIN_SCOPE = "auth_login"
 REGISTER_SCOPE = "auth_register"
 PASSWORD_RESET_SCOPE = "auth_password_reset"  # noqa: S105 - a throttle scope name, not a secret
+VERIFY_SCOPE = "auth_verify"
+VERIFY_RESEND_SCOPE = "auth_verify_resend"
 
 
 class AuthScopedThrottle(AnonRateThrottle):
@@ -66,3 +68,15 @@ class PasswordResetThrottle(AuthScopedThrottle):
     """Throttles both password-reset endpoints under the ``auth_password_reset`` rate."""
 
     scope = PASSWORD_RESET_SCOPE
+
+
+class EmailVerifyThrottle(AuthScopedThrottle):
+    """Throttles ``POST /auth/email/verify`` under the ``auth_verify`` rate."""
+
+    scope = VERIFY_SCOPE
+
+
+class EmailVerifyResendThrottle(AuthScopedThrottle):
+    """Throttles ``POST /auth/email/resend`` under the ``auth_verify_resend`` rate."""
+
+    scope = VERIFY_RESEND_SCOPE

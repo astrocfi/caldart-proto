@@ -257,6 +257,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
     is_active = serializers.BooleanField(read_only=True)
     roles = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(read_only=True)
+    email_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
     joined_on = serializers.SerializerMethodField()
     profile_updated_at = serializers.SerializerMethodField()
     membership = serializers.SerializerMethodField()

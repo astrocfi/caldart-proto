@@ -1,5 +1,5 @@
 {% comment %}
-Member-invitation email.  Email clients strip <style> unevenly, so
+Email-verification email.  Email clients strip <style> unevenly, so
 every rule is inline and the palette is the `duty` theme's paper/ink/navy
 written out literally — CSS custom properties do not survive here.
 {% endcomment %}<!doctype html>
@@ -32,7 +32,7 @@ written out literally — CSS custom properties do not survive here.
                   style="margin: 0; font-family: Fraunces, Georgia, 'Times New Roman', serif;
                          font-size: 26px; font-weight: 600; line-height: 1.2; color: #1d2530;"
                 >
-                  Set your password
+                  Verify your email address
                 </h1>
               </td>
             </tr>
@@ -40,32 +40,31 @@ written out literally — CSS custom properties do not survive here.
               <td style="padding: 24px 32px 8px;">
                 <p style="margin: 0 0 16px;">Hello{% if first_name %} {{ first_name }}{% endif %},</p>
                 <p style="margin: 0 0 16px;">
-                  An account has been created for you at {{ org_name }}, registered to
-                  <strong>{{ user.email }}</strong>. Choose a password to finish setting it up:
+                  Please confirm that <strong>{{ email }}</strong> is your email address:
                 </p>
                 <p style="margin: 0 0 20px;">
                   <a
-                    href="{{ reset_url }}"
+                    href="{{ verify_url }}"
                     style="display: inline-block; padding: 10px 20px; background: #1f4e79; color: #ffffff;
                            border: 1px solid #1f4e79; border-radius: 2px; font-size: 14px;
                            font-weight: 500; text-decoration: none;"
-                    >Choose a password</a
+                    >Verify my address</a
                   >
                 </p>
                 <p style="margin: 0 0 16px; font-size: 14px; color: #55606d;">
-                  The link can be used once and expires in {{ expiry_days }} day{{ expiry_days|pluralize }}. Using
-                  the link also confirms that this address is yours. If the button does not work, paste
-                  this address into your browser:
+                  The link expires in {{ expiry_days }} day{{ expiry_days|pluralize }}. Until you open it, your
+                  address is marked unverified. If the link has expired, sign in and use Resend
+                  verification message on your dashboard to get a new one. If the button does not
+                  work, paste this address into your browser:
                 </p>
                 <p
                   style="margin: 0 0 20px; font-family: 'IBM Plex Mono', Menlo, Consolas, monospace;
                          font-size: 13px; word-break: break-all;"
                 >
-                  <a href="{{ reset_url }}" style="color: #1f4e79;">{{ reset_url }}</a>
+                  <a href="{{ verify_url }}" style="color: #1f4e79;">{{ verify_url }}</a>
                 </p>
                 <p style="margin: 0 0 8px; font-size: 14px; color: #55606d;">
-                  If you were not expecting this you can ignore this message — no account of yours
-                  changes until the link is used.{% if contact_email %}
+                  If you were not expecting this you can ignore this message.{% if contact_email %}
                   Anything that looks wrong, write to
                   <a href="mailto:{{ contact_email }}" style="color: #1f4e79;">{{ contact_email }}</a>.{% endif %}
                 </p>

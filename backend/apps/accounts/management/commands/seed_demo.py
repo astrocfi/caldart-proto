@@ -13,10 +13,12 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandParser
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from faker import Faker
 
 from apps.accounts.management.commands.seed_roles import seed_roles
+from apps.accounts.models import User
 
 #: Seed modules in dependency order.
 SEED_APPS: tuple[str, ...] = (
@@ -53,7 +55,8 @@ class Command(BaseCommand):
         Everything happens in one transaction, so a failure part-way leaves the
         database as it was.  The seeders share one context dictionary, so a later app
         can use the rows an earlier one created.  Re-running updates the existing rows
-        rather than duplicating them.
+        rather than duplicating them.  Every seeded account ends up with a verified
+        address, stamped as verified when the account was created.
         """
         seed = options["seed"]
         faker = Faker("en_US")
@@ -77,5 +80,11 @@ class Command(BaseCommand):
         for dotted in SEED_APPS:
             module = import_module(f"{dotted}.seed")
             module.run(ctx, self.stdout)
+
+        # The demo addresses are made up, so no verification link could ever reach
+        # them; the demo starts with every account already proved.
+        User.objects.filter(email_verified_at__isnull=True).update(
+            email_verified_at=F("created_at")
+        )
 
         self.stdout.write(self.style.SUCCESS("Demo data ready. Password: caldart-demo"))

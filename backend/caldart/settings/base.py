@@ -283,7 +283,7 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": "/api/v1",
 }
 
-# Rate limits for the anonymous auth endpoints, read by
+# Rate limits for the auth endpoints, read by
 # ``apps.accounts.throttling``.  A scope mapped to ``None`` is off.
 #: The period initials DRF accepts after the slash: second, minute, hour, day.
 THROTTLE_PERIOD_INITIALS = ("s", "m", "h", "d")
@@ -324,7 +324,13 @@ AUTH_THROTTLE_RATES = {
     "auth_login": _throttle_rate("AUTH_THROTTLE_LOGIN", "20/min"),
     "auth_register": _throttle_rate("AUTH_THROTTLE_REGISTER", "10/hour"),
     "auth_password_reset": _throttle_rate("AUTH_THROTTLE_PASSWORD_RESET", "10/hour"),
+    "auth_verify": _throttle_rate("AUTH_THROTTLE_VERIFY", "30/hour"),
+    "auth_verify_resend": _throttle_rate("AUTH_THROTTLE_VERIFY_RESEND", "5/hour"),
 }
+
+# How long an email verification link stays usable, in seconds: three days, the
+# same as Django's default for a password link.
+EMAIL_VERIFICATION_TIMEOUT = env.int("EMAIL_VERIFICATION_TIMEOUT", default=259_200)
 
 # --------------------------------------------------------------------------
 # Wagtail

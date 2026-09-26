@@ -73,11 +73,8 @@ def verified(db: None) -> User:
 @pytest.fixture
 def unverified(db: None) -> User:
     """A member who has never clicked a verification link."""
-    return cast(
-        User,
-        UserFactory(
-            email="unverified@example.test", first_name="Uma", last_name="Pike", roles=["member"]
-        ),
+    return UserFactory(
+        email="unverified@example.test", first_name="Uma", last_name="Pike", roles=["member"]
     )
 
 
@@ -411,7 +408,7 @@ def test_an_account_administrator_changing_an_address_unverifies_it(
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: OnCommit,
 ) -> None:
-    """``PATCH /admin/members/{id}`` with a new address marks it unverified and mails it."""
+    """An account administrator's change of address marks it unverified and mails it."""
     client = signed_in(account_admin)
     with django_capture_on_commit_callbacks(execute=True):
         response = client.patch(
@@ -637,7 +634,7 @@ def test_change_needs_a_session(api_client: APIClient) -> None:
 
 
 # --------------------------------------------------------------------------
-# POST /admin/users/{id}/send-email-verification
+# The administrator resend, send-email-verification
 # --------------------------------------------------------------------------
 def admin_resend_url(user: User) -> str:
     """``/admin/users/{id}/send-email-verification`` for ``user``."""

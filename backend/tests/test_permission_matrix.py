@@ -1,7 +1,7 @@
 """Endpoint x role combinations no other test module covers.
 
 Every case here pins down behavior that already exists: anonymous access to
-seven endpoints, ``system_admin`` writes on the members-admin API, three
+the signed-in endpoints, ``system_admin`` writes on the members-admin API, three
 roles editing another member's aircraft, profile writes by every role, the
 Wagtail admin for ``user_admin`` and ``account_admin``, and everything a
 signed-in account with no roles at all may and may not reach.
@@ -22,12 +22,14 @@ from apps.accounts.roles import (
     DART_LEADER,
     MEMBER,
     ROLE_SLUGS,
+    SYSTEM_ADMIN,
     USER_ADMIN,
     WEBSITE_ADMIN,
 )
 from apps.aircraft.models import Aircraft
 from apps.members.models import MemberProfile, Membership, MembershipPlan
 from apps.payments.models import PaymentStatus
+from tests.conftest import role_matrix
 from tests.factories import AircraftFactory, MembershipFactory, PaymentFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -105,6 +107,11 @@ def send_reset_url(user: User) -> str:
     return f"{USERS_LIST_URL}/{user.pk}/send-password-reset"
 
 
+def send_verification_url(user: User) -> str:
+    """``/admin/users/{id}/send-email-verification`` for ``user``."""
+    return f"{USERS_LIST_URL}/{user.pk}/send-email-verification"
+
+
 @pytest.fixture(autouse=True)
 def _mock_only(settings: Settings) -> None:
     """Default to "only the mock provider is configured"."""
@@ -130,7 +137,7 @@ def target_member(profile: MemberProfile, annual_plan: MembershipPlan) -> User:
 
 
 # --------------------------------------------------------------------------
-# Anonymous: 401 on seven endpoints, and nothing changes
+# Anonymous: 401 on the signed-in endpoints, and nothing changes
 # --------------------------------------------------------------------------
 def test_anonymous_cannot_read_aircraft_detail(
     api_client: APIClient, other_aircraft: Aircraft
@@ -187,6 +194,44 @@ def test_anonymous_cannot_send_a_password_reset(
     response = api_client.post(send_reset_url(target_member))
     assert response.status_code == 401
     assert len(mailoutbox) == 0
+
+
+def test_anonymous_cannot_send_an_email_verification(
+    api_client: APIClient, target_member: User, mailoutbox: list[EmailMessage]
+) -> None:
+    """The administrator's verification resend sends nothing to an anonymous caller."""
+    response = api_client.post(send_verification_url(target_member))
+    assert response.status_code == 401
+    assert len(mailoutbox) == 0
+
+
+@pytest.mark.parametrize(
+    "url", ["/api/v1/auth/email/resend", "/api/v1/auth/email/change"], ids=["resend", "change"]
+)
+def test_anonymous_cannot_reach_the_signed_in_email_endpoints(
+    api_client: APIClient, url: str
+) -> None:
+    """Resending a link and changing an address both need a session."""
+    assert api_client.post(url, {}).status_code == 401
+
+
+def test_anonymous_may_post_a_verification_token(api_client: APIClient) -> None:
+    """Following a link needs no session: a bad token is judged, not refused as 401."""
+    assert api_client.post("/api/v1/auth/email/verify", {"token": "x"}).status_code == 400
+
+
+@pytest.mark.parametrize(("role", "allowed"), role_matrix(USER_ADMIN, SYSTEM_ADMIN))
+def test_only_user_administrators_may_send_an_email_verification(
+    api_client: APIClient,
+    all_role_users: dict[str, User],
+    target_member: User,
+    role: str,
+    allowed: bool,
+) -> None:
+    """A user or system administrator may resend a verification link; others get 403."""
+    api_client.force_login(all_role_users[role])
+    response = api_client.post(send_verification_url(target_member))
+    assert response.status_code == (202 if allowed else 403)
 
 
 # --------------------------------------------------------------------------

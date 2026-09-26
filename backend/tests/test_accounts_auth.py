@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Generator
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -15,6 +16,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
 from django.core.cache import cache
 from django.core.mail.message import EmailMultiAlternatives
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from pytest_django import Settings
@@ -68,6 +70,7 @@ def test_register_creates_a_member_and_signs_them_in(api_client: APIClient) -> N
         "is_active",
         "membership",
         "profile_complete",
+        "email_verified",
     }
 
     user = User.objects.get(email="new.member@example.test")
@@ -305,6 +308,31 @@ def test_password_reset_token_works_only_once(api_client: APIClient, member: Use
     second = api_client.post(RESET_CONFIRM_URL, payload)
     assert second.status_code == 400
     assert "token" in second.json()
+
+
+def test_a_reset_link_verifies_an_unverified_address(api_client: APIClient, member: User) -> None:
+    """Using a reset link proves the address, so an unverified account is verified."""
+    api_client.post(RESET_URL, {"email": member.email})
+    uid, token = reset_link_from_outbox()
+    api_client.post(RESET_CONFIRM_URL, {"uid": uid, "token": token, "new_password": GOOD_PASSWORD})
+
+    member.refresh_from_db()
+    assert member.email_verified is True
+
+
+def test_a_reset_link_keeps_an_earlier_verification_time(
+    api_client: APIClient, member: User
+) -> None:
+    """An address verified before the reset keeps the time it was first verified."""
+    earlier = timezone.now() - timedelta(days=30)
+    member.email_verified_at = earlier
+    member.save(update_fields=["email_verified_at"])
+    api_client.post(RESET_URL, {"email": member.email})
+    uid, token = reset_link_from_outbox()
+    api_client.post(RESET_CONFIRM_URL, {"uid": uid, "token": token, "new_password": GOOD_PASSWORD})
+
+    member.refresh_from_db()
+    assert member.email_verified_at == earlier
 
 
 def test_password_reset_confirm_rejects_a_tampered_token(

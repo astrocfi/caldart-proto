@@ -20,6 +20,9 @@ urlpatterns = [
         views.PasswordResetConfirmView.as_view(),
         name="password-reset-confirm",
     ),
+    path("auth/email/verify", views.EmailVerifyView.as_view(), name="email-verify"),
+    path("auth/email/resend", views.EmailVerifyResendView.as_view(), name="email-resend"),
+    path("auth/email/change", views.EmailChangeView.as_view(), name="email-change"),
     # -- users admin ------------------------------------------------------
     path("admin/users", views.AdminUserListView.as_view(), name="admin-user-list"),
     path("admin/users/<int:pk>", views.AdminUserDetailView.as_view(), name="admin-user-detail"),
@@ -27,6 +30,11 @@ urlpatterns = [
         "admin/users/<int:pk>/send-password-reset",
         views.AdminUserSendPasswordResetView.as_view(),
         name="admin-user-send-password-reset",
+    ),
+    path(
+        "admin/users/<int:pk>/send-email-verification",
+        views.AdminUserSendEmailVerificationView.as_view(),
+        name="admin-user-send-email-verification",
     ),
     path("roles", views.RolesView.as_view(), name="roles"),
 ]

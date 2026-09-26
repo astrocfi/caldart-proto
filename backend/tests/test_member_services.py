@@ -110,10 +110,10 @@ def test_the_invitation_is_the_set_your_password_email(
 def test_create_member_with_a_password_invites_nobody(
     account_admin: User, django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks
 ) -> None:
-    """Creating a member with a password given sends no invitation."""
+    """A member created with a password is sent verification, not an invitation."""
     with django_capture_on_commit_callbacks(execute=True):
         create_member(account_admin, email="joan.ames@example.test", password=PASSWORD)
-    assert len(mail.outbox) == 0
+    assert [message.subject for message in mail.outbox] == ["CalDART: verify your email address"]
 
 
 def test_the_invitation_waits_for_the_commit(
