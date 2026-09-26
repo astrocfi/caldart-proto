@@ -156,6 +156,12 @@ function GiftForm({ configUrl, returnUrl, onGiven }: GiftFormProps): JSX.Element
   const [errors, setErrors] = useState<DonationFormErrors>({});
   // The details as they stood when the giver pressed Continue; null until then.
   const [donor, setDonor] = useState<DonorBody | null>(null);
+  // Stable across renders: PaymentStep's `endpoints` memo depends on this, and
+  // recreating it on every GiftForm render would start a new checkout each time.
+  const handleDonorError = useCallback((found: DonationFormErrors) => {
+    setErrors((current) => ({ ...current, ...found }));
+    setDonor(null);
+  }, []);
 
   if (isPending) {
     return (
@@ -182,10 +188,7 @@ function GiftForm({ configUrl, returnUrl, onGiven }: GiftFormProps): JSX.Element
         returnUrl={returnUrl}
         onChange={() => setDonor(null)}
         onGiven={() => onGiven(donor.email)}
-        onDonorError={(found) => {
-          setErrors((current) => ({ ...current, ...found }));
-          setDonor(null);
-        }}
+        onDonorError={handleDonorError}
       />
     );
   }
