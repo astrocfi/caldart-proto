@@ -33,12 +33,11 @@ interface Setup {
   become?: User;
 }
 
-/** Signs `user` in, answers the membership and renewal reads, and records kind calls. */
+/** Signs `user` in, answers the renewal read, and records the kind calls. */
 function setUp({ user = makeUser(), renewal = null, become }: Setup = {}): KindSwitchCalls {
   const calls: KindSwitchCalls = { bodies: [], undos: 0 };
   server.use(
     signedInAs(user),
-    http.get(`${API}/me/membership`, () => HttpResponse.json({ ...user.membership, history: [] })),
     http.get(`${API}/me/renewal`, () => HttpResponse.json({ mandate: renewal })),
     ...kindSwitchHandlers({
       become: become ?? makeUser({ friend_on: '2027-07-01' }),

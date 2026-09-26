@@ -127,6 +127,14 @@ export interface DeactivatePayload {
   current_password: string;
 }
 
+/**
+ * `POST /me/kind/friend`: whether the automatic renewal's contribution carries on as a
+ * yearly recurring donation.  Needed only when the renewal takes a contribution.
+ */
+export interface BecomeFriendPayload {
+  keep_contribution?: boolean;
+}
+
 /** `POST /auth/email/resend` and `/admin/users/{id}/send-email-verification`. */
 export interface VerificationSentResult {
   detail: string;

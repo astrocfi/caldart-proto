@@ -1,4 +1,7 @@
-/** `/profile` — the member's own details. */
+/**
+ * `/profile` — the member's own details, the kind of account they hold, and the way to
+ * deactivate it.
+ */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -8,6 +11,7 @@ import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
+import { KindCard } from '@/portal/features/dashboard/KindSwitch';
 import { DeactivateCard } from './DeactivateCard';
 import { ProfileForm } from './ProfileForm';
 import { useProfile, useSaveProfile } from './api';
@@ -70,6 +74,8 @@ export function ProfilePage(): JSX.Element {
           }
         />
       </Card>
+
+      <KindCard />
 
       <p className="muted">
         The planes you commonly fly are kept on <Link to="/profile/aircraft">My aircraft</Link>.

@@ -15,6 +15,7 @@ import { MembershipChip, PaymentChip, membershipTone } from '@/portal/components
 import { automaticCardTitle, automaticKindLabel } from '@/portal/features/payments/labels';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
 import { groupedNavItems } from '@/portal/nav';
+import { KindSwitch } from './KindSwitch';
 import './dashboard.css';
 
 /** How many payments the dashboard shows before sending you elsewhere. */
@@ -28,7 +29,8 @@ const RECENT_PAYMENTS = 5;
  * The renewal call to action moves to the top and takes an accent edge inside
  * 30 days.  An unverified address gates nothing; the card only asks.  A friend's
  * membership card says what being a friend means and offers membership instead
- * of a renewal.
+ * of a renewal; a member's (not a life member's) offers **Make me a friend** beside
+ * the renewal, or shows the day a change they asked for takes effect.
  */
 export function DashboardPage(): JSX.Element {
   const { user, roles } = useAuth();
@@ -115,6 +117,7 @@ export function DashboardPage(): JSX.Element {
                     {status.status === 'expired' ? 'Renew now' : 'Renew'}
                   </ButtonLink>
                 )}
+                <KindSwitch />
                 <Link to="/profile">Update your details</Link>
               </div>
             ) : null}
