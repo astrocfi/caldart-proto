@@ -57,8 +57,10 @@ Where settings are read
    start-up error: ``SECRET_KEY``, ``ALLOWED_HOSTS``, ``SITE_URL``, and
    ``EMAIL_URL``.  A ``SECRET_KEY`` equal to the published development key is a
    start-up error too.  Selected by
-   ``Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod`` in both systemd
-   units.
+   ``Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod`` in all five
+   systemd services: ``caldart-web`` and the four scheduled jobs
+   (``caldart-reminders``, ``caldart-renewals``, ``caldart-reports``, and
+   ``caldart-statements``).
 
 ``test.py``
    ``DEBUG`` off, MD5 password hashing, in-memory email and file storage, mock
@@ -240,7 +242,10 @@ Email
    SMTP connection URL.  ``smtp://`` plain, ``smtp+tls://`` for STARTTLS,
    ``smtp+ssl://`` for implicit TLS.  Credentials are URL-encoded, so an ``@``
    in the username becomes ``%40``.  ``consolemail://`` prints each message
-   instead of sending it, which is what the end-to-end run uses.
+   instead of sending it, and ``filemail:////abs/path`` writes each one to a
+   file in that directory, which is what the end-to-end run uses
+   (``frontend/e2e/.mail/``), so a spec can read the link an email carries.
+   :doc:`email` covers every backend and what a production domain needs.
 
    The settings modules translate it into the one entry in Django's ``MAILERS``
    setting, so the host, port, and credentials are options of that mailer rather
@@ -545,7 +550,7 @@ Settings that are not environment variables
    so a local command needs no ceremony.  The application servers do not:
    ``wsgi.py`` and ``asgi.py`` raise ``ImproperlyConfigured`` naming this
    variable when it is unset, because a web server that has not been told which
-   settings to load has been misconfigured.  Both systemd units set
+   settings to load has been misconfigured.  All five systemd services set
    ``caldart.settings.prod``, and ``pyproject.toml`` sets
    ``caldart.settings.test`` for ``pytest``.
 

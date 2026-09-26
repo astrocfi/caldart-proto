@@ -18,7 +18,8 @@ and gzips its output as it arrives (:ref:`backup-streaming`) into
 ``caldart-<YYYYMMDD-HHMMSS>.sql.gz``.  ``--name`` overrides that file name, for
 a dump you want to find again by hand::
 
-  manage.py db_backup --name before-the-schema-change.sql.gz
+  uv run backend/manage.py db_backup --name before-the-schema-change.sql.gz
+  caldart_manage db_backup --name before-the-schema-change.sql.gz    # production
 
 Keep the ``.sql.gz`` ending whatever you call it.  The download endpoint only
 serves names matching ``^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$``, and
@@ -219,7 +220,8 @@ left alone.  And the unit expects a local ``pg_dump`` with
 the ``caldart`` user in the ``docker`` group.
 
 A dump on the same disk as the database is not a backup.  Copy them somewhere
-else — another host, object storage, an external disk — as a second step.  The
+else — another host, object storage, an external disk — as a second step,
+together with the media files (:ref:`backup-media`).  The
 health panel warns when the newest dump is more than seven days old and turns
 red past thirty.
 
@@ -229,6 +231,43 @@ holds a token that stays valid for up to the nine hours PayPal grants it (see
 :ref:`paypal-token-cache`).  Treat a backup file as being as sensitive as the
 credentials inside it: restrict who can read it wherever you copy it to, and
 prefer an encrypted destination.
+
+
+.. _backup-media:
+
+Backing up the media files
+==========================
+
+A database dump carries every row and none of the uploaded files.  Those live
+under ``backend/media/`` (``/srv/caldart/backend/media`` in production), in
+three directories Wagtail writes:
+
+``original_images/``
+   every image an editor uploaded, as uploaded;
+``images/``
+   the resized copies (renditions) Wagtail makes of them for pages.  The
+   database lists each one, so a restored database expects these files too;
+``documents/``
+   every uploaded document, including the members-only ones.
+
+Back up the whole directory, alongside each dump.  ``rsync`` keeps a mirror
+on another machine up to date and copies only what changed::
+
+  sudo rsync -a --delete /srv/caldart/backend/media/ backup-host:/backups/caldart/media/
+
+A ``tar`` archive is a point-in-time copy to keep beside the dump of the same
+moment.  Write it outside ``BACKUP_DIR``: the backup list and the health panel
+read every ``*.sql.gz`` there, and nothing else belongs in it::
+
+  sudo tar -czf /root/caldart-media-$(date +%Y%m%d-%H%M%S).tar.gz \
+      -C /srv/caldart/backend media
+
+The files are as sensitive as the dump: the members-only documents are in
+them.  To put an archive back, unpack it over the checkout and give the files
+back to the service user::
+
+  sudo tar -xzf /root/caldart-media-20260601-033000.tar.gz -C /srv/caldart/backend
+  sudo chown -R caldart:caldart /srv/caldart/backend/media
 
 
 Downloading a backup
@@ -278,12 +317,122 @@ restores an older schema, and ``manage.py health`` will report the pending
 migrations if you forget.
 
 **Restoring onto a fresh machine** is the same, into an empty database:
-create the database, restore, migrate, ``collectstatic``.  There is no separate
-media backup — ``backend/media/`` holds Wagtail's uploads and has to be copied
-alongside the dump, with ``rsync`` or a tar.
+follow :doc:`deployment` up to its database step, restore, migrate,
+``collectstatic``, and put the media files back from the copy taken beside the
+dump (:ref:`backup-media`).  Either way, go through :ref:`backup-after-restore`
+before the site takes traffic.
 
 There is no restore button in the portal, and there will not be one.  Wiping
 the database is not a thing to do from a browser tab.
+
+
+.. _backup-rehearsal:
+
+Rehearsing a restore
+====================
+
+A backup nobody has restored is a hope.  Restore one into a scratch database
+now and then, check that it holds what the live database holds, and throw the
+scratch copy away.  None of it touches the live database.
+
+**Check the file.**  ``gzip -t`` reads the whole archive and says nothing when
+it is sound.  The dump inside is plain SQL, so ``pg_restore --list``, which
+reads only pg_dump's archive formats, refuses it with *input file appears to
+be a text format dump*; list the tables and data blocks with ``zcat``
+instead::
+
+  gzip -t backups/caldart-20260601-033000.sql.gz
+  zcat backups/caldart-20260601-033000.sql.gz | grep -c '^CREATE TABLE'
+  zcat backups/caldart-20260601-033000.sql.gz | grep '^COPY public\.' | cut -d' ' -f2
+
+**Restore it into a scratch database.**  In development, create the database
+and point ``db_restore`` at it for one command; a variable set on the command
+line wins over ``.env``::
+
+  docker compose exec -T db createdb -U caldart caldart_rehearsal
+  DATABASE_URL=postgres://caldart:caldart@localhost:5432/caldart_rehearsal \
+      uv run backend/manage.py db_restore backups/caldart-20260601-033000.sql.gz --yes
+
+On a server, the environment file wins over anything ``caldart_manage`` could
+set, so replay the dump with ``psql`` inside the container instead.  Run it
+from ``/srv/caldart``::
+
+  sudo docker compose exec -T db createdb -U caldart caldart_rehearsal
+  sudo zcat /srv/caldart/backups/caldart-20260601-033000.sql.gz \
+      | sudo docker compose exec -T db psql -U caldart -d caldart_rehearsal \
+            -v ON_ERROR_STOP=1 -q
+
+``ON_ERROR_STOP`` makes the first failing statement stop the replay with an
+error, instead of scrolling past it.
+
+**Count the rows.**  Save the query below as ``counts.sql`` and run it against
+both databases.  The two lists should match, table for table, when the dump is
+fresh; against an older dump the live numbers are the larger ones.
+
+.. code-block:: sql
+
+   SELECT 'accounts_user', count(*) FROM accounts_user
+   UNION ALL SELECT 'members_membership', count(*) FROM members_membership
+   UNION ALL SELECT 'payments_payment', count(*) FROM payments_payment
+   UNION ALL SELECT 'aircraft_aircraft', count(*) FROM aircraft_aircraft
+   UNION ALL SELECT 'mail_emaillog', count(*) FROM mail_emaillog
+   UNION ALL SELECT 'wagtailcore_page', count(*) FROM wagtailcore_page
+   UNION ALL SELECT 'django_migrations', count(*) FROM django_migrations;
+
+::
+
+  docker compose exec -T db psql -U caldart -d caldart -At < counts.sql
+  docker compose exec -T db psql -U caldart -d caldart_rehearsal -At < counts.sql
+
+(``sudo`` in front of each on a server, and the live database's name in
+place of ``caldart`` if ``DATABASE_URL`` names another.)
+
+**Throw it away.**
+
+::
+
+  docker compose exec -T db dropdb -U caldart caldart_rehearsal
+
+
+.. _backup-after-restore:
+
+After a restore
+===============
+
+Before the site takes traffic again, check that it is the site you meant to
+bring back:
+
+1. ``caldart_manage health`` says ``db`` is ``ok`` and ``pending_migrations``
+   is ``0``.  A number above zero means the ``migrate`` step was skipped.
+2. The row counts above match what you expected of a dump from that moment.
+3. ``systemctl start caldart-web``, then ``journalctl -u caldart-web -n 50``
+   shows the workers booting with no traceback.
+4. Signed in as an administrator: the member list shows the members you
+   expect, a member record opens with its memberships and payments, the
+   payment list shows the latest payments you expect, and ``/admin/`` opens.
+5. Signed out: the public home page renders with its images, and a public
+   document downloads.  A broken image or a 404 on a document means the media
+   files did not come back with the dump (:ref:`backup-media`).
+
+A restore from an older dump rolls the scheduled jobs' bookkeeping back with
+everything else.  A renewal charged after the dump was taken looks due again,
+and the next automatic renewal run would charge the card a second time.  Stop
+the four timers before restoring and check what the jobs would do before
+starting them again::
+
+  sudo systemctl stop caldart-renewals.timer caldart-reminders.timer \
+      caldart-reports.timer caldart-statements.timer
+  # ... restore, migrate, and check as above ...
+  caldart_manage run_auto_renewals --dry-run
+  caldart_manage send_renewal_reminders --dry-run
+  sudo systemctl start caldart-renewals.timer caldart-reminders.timer \
+      caldart-reports.timer caldart-statements.timer
+
+Compare every charge the dry run lists with the provider's dashboard.  For a
+member the provider already charged after the dump was taken, record that
+payment by hand (``POST /admin/payments/record``, :doc:`api-finance`) and
+turn the member's automatic renewal off (:doc:`api-renewals`) before the
+timers start again, so the next run does not charge them twice.
 
 
 Resetting a development database
