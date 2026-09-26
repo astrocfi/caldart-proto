@@ -1,0 +1,17 @@
+{{ org_name }} — your {{ year }} contribution statement
+
+Hello {{ first_name }},
+
+Thank you for everything you gave {{ org_name }} in {{ year }}. Your total
+contribution for the year was {{ total }}. Your statement is attached as a
+PDF, for your tax records.
+
+{{ org_name }} is a 501(c)(3) organization. {{ notice }}
+{% if not is_donor %}
+Your payments, receipts, and annual contribution statements are here:
+{{ payments_url }}
+{% endif %}
+--
+{{ org_name }} is a volunteer disaster air transportation network.
+{% if contact_email %}Questions? Write to {{ contact_email }}.
+{% endif %}You are receiving this because you contributed to {{ org_name }} in {{ year }}.

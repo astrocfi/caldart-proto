@@ -950,6 +950,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - one row per contributing member
+   * - ``GET /admin/payments/donors``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - one row per donor; not an ``account_admin`` endpoint
    * - ``GET /reports``
      - ·
      - ✓
@@ -1038,6 +1046,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - the list's rows; ``?period=`` applies
+   * - ``GET /reports/donors/columns``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - the column registry; not an ``account_admin`` endpoint
+   * - ``GET /reports/donors/export.{csv,pdf}``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ``?columns=`` and ``?period=`` apply; not an ``account_admin`` endpoint
    * - ``GET /reports/emails/columns``
      - ·
      - ·
@@ -1239,6 +1263,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ``system_admin`` only
    * - ``POST /system/reports/run``
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ·
+     - ``system_admin`` only
+   * - ``POST /system/statements/run``
      - ·
      - ·
      - ·

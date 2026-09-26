@@ -51,12 +51,12 @@ Domain schema
                 **dashed box** is an abstract model with no table of its own,
                 and an **empty arrowhead** points from a subclass to the
                 abstract model it inherits.  ``TimestampedModel`` is drawn
-                once rather than eight times: ``Dart``, ``DartContact``,
+                once rather than nine times: ``Dart``, ``DartContact``,
                 ``MemberProfile``, ``MembershipPlan``, ``Membership``,
                 ``Aircraft``, ``Payment``, ``Refund``, ``RenewalMandate``,
-                ``RenewalAttempt``, ``ReminderLog``, ``EmailLog``,
-                ``SavedColumnSet``, and ``ReportSubscription`` all inherit
-                it.
+                ``RenewalAttempt``, ``YearStatement``, ``ReminderLog``,
+                ``EmailLog``, ``SavedColumnSet``, and ``ReportSubscription``
+                all inherit it.
       :alt: Entity-relationship diagram of the CalDART domain models
 
       digraph caldart_domain {
@@ -82,6 +82,7 @@ Domain schema
           Refund [label="payments.Refund\l  amount_cents, reason, note\l  status, provider_ref, refunded_at\l"];
           Mandate [label="payments.RenewalMandate\l  provider, method_ref, method_label\l  status, failure_count, cadence\l  contribution_cents, next_charge_on\l"];
           Attempt [label="payments.RenewalAttempt\l  scheduled_on, outcome, error\l  noticed_at, attempted_at\l  result_emailed_at\l"];
+          Statement [label="payments.YearStatement\l  year, sent_at\l  (user, year) unique\l"];
           Aircraft [label="aircraft.Aircraft\l  n_number (unique)\l  make, model, insurance_*\l"];
           AircraftChange [label="aircraft.AircraftChange\l  changed_at, kind\l  fields (JSON)\l"];
           Reminder [label="reminders.ReminderLog\l  kind, sent_at, to_email\l  (user, membership, kind) unique\l"];
@@ -109,6 +110,7 @@ Domain schema
           Attempt -> Membership [label="membership (null, CASCADE)"];
           Attempt -> Payment [label="payment (null, SET_NULL)"];
           Attempt -> Attempt [label="retry_of (null, SET_NULL)"];
+          Statement -> User [label="user (CASCADE)\lrelated: year_statements"];
           Aircraft -> User [label="created_by, updated_by (null, SET_NULL)"];
           AircraftChange -> Aircraft [label="aircraft (CASCADE)\lrelated: changes"];
           AircraftChange -> User [label="changed_by (null, SET_NULL)"];
@@ -140,7 +142,8 @@ Domain schema
                                  inherited by Dart, DartContact, MemberProfile,
                                  MembershipPlan, Membership, Aircraft
                                  , Payment, Refund, RenewalMandate
-                                 , RenewalAttempt, ReminderLog, EmailLog
+                                 , RenewalAttempt, YearStatement
+                                 , ReminderLog, EmailLog
                                  , SavedColumnSet, and ReportSubscription
       payments.Provider          start(payment), confirm(payment, **kwargs),
                                  handle_webhook(request)
@@ -185,6 +188,8 @@ Domain schema
                  |  '-------- payment --> payments.Payment
                  '----------- retry_of --> payments.RenewalAttempt
 
+          payments.YearStatement --- user --> accounts.User (unique per year)
+
       Nodes and their key fields
       --------------------------
       accounts.User           email (unique, case-insensitive), first_name,
@@ -209,6 +214,7 @@ Domain schema
                               next_charge_on
       payments.RenewalAttempt scheduled_on, outcome, error, noticed_at,
                               attempted_at, result_emailed_at
+      payments.YearStatement  year, sent_at; (user, year) unique together
       aircraft.Aircraft       n_number (unique), make, model, insurance_*
       aircraft.AircraftChange changed_at, kind (created | updated),
                               fields (JSON list of column names)
@@ -250,6 +256,7 @@ Domain schema
       payments.RenewalAttempt.membership -> members.Membership       FK, CASCADE, nullable
       payments.RenewalAttempt.payment    -> payments.Payment         FK, SET_NULL, nullable
       payments.RenewalAttempt.retry_of   -> payments.RenewalAttempt  FK, SET_NULL, nullable
+      payments.YearStatement.user        -> accounts.User            FK, CASCADE, related name year_statements
       aircraft.Aircraft.created_by   -> accounts.User            FK, SET_NULL, nullable
       aircraft.Aircraft.updated_by   -> accounts.User            FK, SET_NULL, nullable
       aircraft.AircraftChange.aircraft   -> aircraft.Aircraft    FK, CASCADE, related name changes
@@ -1387,6 +1394,34 @@ mandate whose ``outcome`` is ``scheduled``.
 The three timestamps are what make the scanner idempotent: an email goes out
 only when its own stamp is still ``NULL``, so a scan that runs twice in one day
 sends nothing twice.
+
+.. _data-model-year-statement:
+
+``YearStatement``
+------------------
+
+One row per account, per calendar year, written once the year-end contribution
+statement email has gone out (:doc:`statements`) — the record that keeps a
+rerun for a year already sent from reaching an account twice.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 36 64
+
+   * - Field
+     - Notes
+   * - ``user``
+     - FK, ``CASCADE``, related name ``year_statements``
+   * - ``year``
+     - the calendar year the statement covers
+   * - ``sent_at``
+     - when the email went out
+
+**Invariants.**
+
+- ``(user, year)`` is unique: one statement per account, per year.
+- Written only after the email is confirmed sent, never before — a send the
+  mail server refuses leaves no row, so the account is retried the next run.
 
 reminders
 =========

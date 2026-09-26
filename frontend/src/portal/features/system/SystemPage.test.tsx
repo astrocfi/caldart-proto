@@ -42,7 +42,7 @@ describe('SystemPage', () => {
     vi.useRealTimers();
   });
 
-  it('shows the six panels', async () => {
+  it('shows the seven panels', async () => {
     server.use(...systemHandlers());
     renderWithProviders(<SystemPage />);
 
@@ -53,9 +53,10 @@ describe('SystemPage', () => {
     expect(screen.getByRole('heading', { name: 'Email log' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Scheduled reports' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Automatic renewals' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Year-end statements' })).toBeInTheDocument();
   });
 
-  it('puts the scheduled reports straight after the email log', async () => {
+  it('puts the year-end statements last, after automatic renewals', async () => {
     server.use(...systemHandlers());
     renderWithProviders(<SystemPage />);
 
@@ -70,6 +71,7 @@ describe('SystemPage', () => {
       'Email log',
       'Scheduled reports',
       'Automatic renewals',
+      'Year-end statements',
     ]);
   });
 

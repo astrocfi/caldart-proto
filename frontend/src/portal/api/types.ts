@@ -1057,6 +1057,34 @@ export interface ContributionRow {
   net_contribution_cents: number;
 }
 
+/** One row of `GET /admin/payments/donors`: one donor's giving over the reported range. */
+export interface DonorRow {
+  user_id: number;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  state: string;
+  county: string;
+  dart: string;
+  first_gift: IsoDate | null;
+  last_gift: IsoDate | null;
+  gifts: number;
+  given_cents: number;
+  refunded_cents: number;
+  net_cents: number;
+  active: boolean;
+}
+
+/** The counts one year-end statement run reports, and who they were about. */
+export interface StatementsRunResult {
+  year: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  actions: RunAction[];
+}
+
 /** One row of `GET /admin/payments/members`: a member a payment can be recorded for. */
 export interface FinanceMember {
   user_id: number;

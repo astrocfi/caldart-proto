@@ -93,12 +93,20 @@ def test_the_report_list_refuses_an_anonymous_caller(api_client: APIClient) -> N
         ("member", []),
         ("dart_leader", ["members"]),
         ("user_admin", []),
-        ("treasurer", ["payments", "reconciliation", "contributions"]),
+        ("treasurer", ["payments", "reconciliation", "contributions", "donors"]),
         ("account_admin", ["members", "aircraft", "payments", "reconciliation", "contributions"]),
         ("website_admin", []),
         (
             "system_admin",
-            ["members", "aircraft", "payments", "reconciliation", "contributions", "emails"],
+            [
+                "members",
+                "aircraft",
+                "payments",
+                "reconciliation",
+                "contributions",
+                "donors",
+                "emails",
+            ],
         ),
     ],
 )

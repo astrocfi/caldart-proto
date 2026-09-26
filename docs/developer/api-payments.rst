@@ -439,6 +439,14 @@ A receipt exists only for money that arrived.  A pending or failed payment has
 none, and every endpoint below answers **404** for one, exactly as it does for
 an id nobody holds.
 
+Every active account that gave — a member, a friend, or a donor — is mailed
+the previous calendar year's statement each January, unasked, by
+``apps.payments.statements.send_year_statements`` (see :doc:`statements`).
+The on-demand statement below is additionally for a member or a friend, who
+can sign in to ask for one at any time, the same PDF the yearly mailing
+sends; a donor cannot sign in, so the yearly mailing is the only one they
+get.
+
 ``GET /me/payments``
 --------------------
 

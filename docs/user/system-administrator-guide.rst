@@ -5,7 +5,8 @@ System administrator guide
 You hold the ``system_admin`` role, which means everything: every member and
 payment screen, the Wagtail admin, and one screen nobody else can see —
 ``/portal/system``, where you check the server's health, take database backups,
-and run the renewal reminders and the scheduled reports.
+and run the renewal reminders, the automatic renewals, the scheduled reports,
+and the year-end contribution statements.
 
 This guide covers that screen and the routine around it.  Anything that has to
 happen on the server itself — installing an upgrade, restoring a backup,
@@ -23,7 +24,8 @@ payment can confirm it.  In practice you can:
 
 * do everything a member, DART leader, user administrator, treasurer,
   account administrator and website administrator can do;
-* open ``/portal/system``: health, backups, reminders, scheduled reports;
+* open ``/portal/system``: health, backups, reminders, automatic renewals,
+  scheduled reports, and year-end statements;
 * sign in to the Django admin at ``/django-admin/`` — granting ``system_admin``
   in the portal also sets the account's Django superuser flag, and that flag is
   what opens the door.
@@ -328,6 +330,38 @@ What it charges, when, and how to change the schedule are in
 :doc:`/developer/renewals`.
 
 
+Year-end statements
+--------------------
+
+Once a year, CalDART emails every active account -- a member, a friend, or a
+donor -- a statement of what it gave that calendar year, with the statement
+PDF attached, for their tax return.  A scheduled job runs at 06:45 on
+January 15th, well after every payment provider has settled the prior
+December's payments, and sends the year before.
+
+The **Year-end statements** panel runs the same sender by hand, and works like
+the other panels:
+
+1. Check the **Year** box; it defaults to the year before this one.
+2. Leave **Dry run (send nothing)** ticked the first time.  It reports what
+   *would* go out without emailing anybody or writing anything.
+3. Press **Run now**.  The result reads, for example, "Would send 6, skip 0,
+   and fail 0", and a real run says the same in the past tense.  *Sent* is the
+   statements emailed, *skipped* the accounts already sent that year's
+   statement, and *failed* an address the mail server refused or an account
+   with none on file.
+4. If the numbers look right and you have a reason to send now rather than
+   waiting for January, clear the checkbox and press **Run now** again.
+
+Underneath, a table names every statement: the account, its address, and the
+year's net total.  It is empty when nothing was due.
+
+Running it twice for the same year sends nothing twice: an account already
+sent that year's statement is not sent it again.  Treasurers read the same
+givers on **Administration → Payments → Donors**.  Who is sent one, and when,
+is in :doc:`/developer/statements`.
+
+
 Routine
 =======
 
@@ -361,6 +395,7 @@ Restoring a backup                            :doc:`/developer/backup-restore`
 Changing configuration or secrets             :doc:`/developer/configuration`
 Changing the reminder schedule or wording     :doc:`/developer/reminders`
 Changing when the scheduled reports go out    :doc:`/developer/scheduled-reports`
+Changing when the year-end statements go out  :doc:`/developer/statements`
 Payment provider keys and webhooks            :doc:`/developer/payments-setup`
 ============================================  ==================================
 
@@ -470,6 +505,16 @@ When something goes wrong
    reads the report is paused, not sent, and a DART with nobody ticked to
    receive its roster is skipped; both are counted in the run's summary.  See
    :doc:`/developer/scheduled-reports`.
+
+**Year-end statements never arrive.**
+   The sender runs once a year, driven by ``caldart-statements.timer`` at
+   06:45 on January 15th.  Confirm the timer is enabled and running on the
+   server; ``systemctl status caldart-statements`` reads ``failed`` when the
+   last run could not send something, and ``journalctl -u caldart-statements``
+   names the account it could not reach.  ``caldart_manage send_year_statements
+   --dry-run`` lists who the run for the year before today would write to; an
+   account already sent that year's statement is skipped, not sent again.  See
+   :doc:`/developer/statements`.
 
 The quickest diagnosis from a shell on the server is ``caldart_manage
 health``, or ``caldart_manage health --json`` if you want to feed it to

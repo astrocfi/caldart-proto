@@ -10,11 +10,17 @@
 import type { JSX } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
+import type { RoleSlug } from '@/portal/api/types';
+import { useAuth } from '@/portal/auth/useAuth';
+import { hasAnyRole } from '@/portal/nav';
+
 export interface FinanceTab {
   to: string;
   label: string;
   /** Match the path exactly rather than by prefix. */
   end?: boolean;
+  /** Roles that may see the tab; every finance role when left out. */
+  roles?: RoleSlug[];
 }
 
 /** The finance area's screens, in the order the bar shows them. */
@@ -24,6 +30,8 @@ export const FINANCE_TABS: FinanceTab[] = [
   { to: '/admin/payments/renewals', label: 'Renewals' },
   { to: '/admin/payments/reconciliation', label: 'Reconciliation' },
   { to: '/admin/payments/contributions', label: 'Contributions' },
+  // The treasurer's own: an account administrator does not track donors.
+  { to: '/admin/payments/donors', label: 'Donors', roles: ['treasurer'] },
 ];
 
 /** Whether `path` is the tab's own screen, or one nested under it. */
@@ -41,10 +49,12 @@ export interface FinanceTabsProps {
 export function FinanceTabs({ current }: FinanceTabsProps): JSX.Element {
   const location = useLocation();
   const path = current ?? location.pathname;
+  const { roles } = useAuth();
+  const tabs = FINANCE_TABS.filter((tab) => hasAnyRole(roles, tab.roles ?? []));
 
   return (
     <nav className="finance-tabs" aria-label="Finance sections">
-      {FINANCE_TABS.map((tab) => (
+      {tabs.map((tab) => (
         <Link
           key={tab.to}
           to={tab.to}

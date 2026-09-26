@@ -24,6 +24,7 @@ PURPOSE_LABELS: dict[str, str] = {
     "renewal_canceled": "Renewal turned off",
     "receipt": "Receipt",
     "refund": "Refund",
+    "contribution_statement": "Contribution statement",
     "member_invitation": "Invitation",
     "password_reset": "Password reset",
     "email_verification": "Email verification",

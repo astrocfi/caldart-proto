@@ -10,12 +10,14 @@ contributions list download as the payments, reconciliation and contributions
 reports, served by :doc:`api-reports`.
 
 Every endpoint here is guarded by ``IsFinance`` — the ``treasurer`` and
-``account_admin`` roles, with ``system_admin`` passing as it does everywhere.
-A ``treasurer`` reaches the finance area and nothing else; in particular they
-do not read ``/admin/members/*``, which carries medical and certificate data.
-Checkout, the provider confirmations and the webhooks are in
-:doc:`api-payments`; general API conventions — session authentication, the CSRF
-header, pagination, error shapes — are in :doc:`api-reference`.
+``account_admin`` roles, with ``system_admin`` passing as it does everywhere —
+except ``GET /admin/payments/donors``, the treasurer's own, which an account
+administrator does not reach.  A ``treasurer`` reaches the finance area and
+nothing else; in particular they do not read ``/admin/members/*``, which
+carries medical and certificate data.  Checkout, the provider confirmations and
+the webhooks are in :doc:`api-payments`; general API conventions — session
+authentication, the CSRF header, pagination, error shapes — are in
+:doc:`api-reference`.
 
 Money is always integer cents in the JSON.  Dollars appear only in a CSV cell,
 a PDF cell and on screen.
@@ -243,6 +245,48 @@ Statuses: **200**; **400** for an unusable ``year``; **401** when anonymous;
 **403** without a finance role.
 
 
+``GET /admin/payments/donors``
+===============================
+
+One row per donor — an account of kind ``donor`` — who gave in the range
+asked for, for the Donors tab: how many gifts, the first and the last, what
+was given, what came back, the net, and the account's contact details and
+DART.  ``treasurer`` only; an account administrator, who reads every other
+endpoint on this page, is refused here.
+
+.. code-block:: json
+
+   [
+     {"user_id": 88, "name": "Dana Doe", "email": "dana@example.org",
+      "phone": "415-555-0100", "city": "Concord", "state": "CA",
+      "county": "Contra Costa", "dart": "East Bay DART",
+      "first_gift": "2026-01-10", "last_gift": "2026-06-20", "gifts": 2,
+      "given_cents": 5000, "refunded_cents": 1000, "net_cents": 4000,
+      "active": true}
+   ]
+
+=================  ============================================================
+Parameter          Effect
+=================  ============================================================
+``search``         Case-insensitive match on the donor's name or email.
+``county``         One or more California counties, comma-separated; an
+                    unrecognized one is a **400** keyed by ``county``.
+``dart``           A digit matches the DART's id, anything else a
+                    case-insensitive fragment of its name.
+``min_cents``,     Bound a donor's total ``given_cents`` over the whole range,
+``max_cents``      not any one gift.
+``from``, ``to``   ``YYYY-MM-DD``, bounding the ledger date a gift counts by.
+=================  ============================================================
+
+Rows are largest net giver first, ties broken by name.  The donors report,
+``GET /reports/donors/export.{csv,pdf}``, carries the same rows for the same
+parameters, or for the dates a ``?period=`` resolves to, with ``county``,
+``dart``, ``refunded`` and ``active`` off by default (see :doc:`reports`).
+
+Statuses: **200**; **400** for a parameter the report will not act on;
+**401** when anonymous; **403** without the treasurer role.
+
+
 ``GET /admin/payments/ledger/{user_id}``
 ========================================
 
@@ -424,6 +468,7 @@ Endpoint                                       Who
 ``GET /admin/payments/summary``                Finance
 ``GET /admin/payments/reconciliation``         Finance
 ``GET /admin/payments/contributions``          Finance
+``GET /admin/payments/donors``                  ``treasurer``
 ``GET /admin/payments/ledger/{user_id}``       Finance
 ``GET | PATCH /admin/payments/{id}``           Finance
 ``POST /admin/payments/record``                Finance
@@ -432,6 +477,7 @@ Endpoint                                       Who
 =============================================  ==========================
 
 "Finance" is ``treasurer`` or ``account_admin``; ``system_admin`` passes every
-row.  The three reports are gated the same way; the full matrix is in
-:doc:`api-reference`, and the report internals — the column registries and the
-engine that builds every download — are in :doc:`reports`.
+row.  The payments, reconciliation, and contributions reports are gated the
+same way; the donors report is ``treasurer`` only, like the screen above.  The
+full matrix is in :doc:`api-reference`, and the report internals — the column
+registries and the engine that builds every download — are in :doc:`reports`.

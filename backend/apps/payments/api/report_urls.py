@@ -1,9 +1,11 @@
 """The finance area's routes: the list, the tables, the ledger and the writes.
 
 Every route here is guarded by ``IsFinance``: a treasurer or an account
-administrator, and a system administrator through the usual rule.  The fixed
-paths come before ``admin/payments/<int:pk>`` so a word such as ``summary`` is
-never read as an id.
+administrator, and a system administrator through the usual rule -- except
+``admin/payments/donors``, the treasurer's own, which a system administrator
+still reaches but an account administrator does not.  The fixed paths come
+before ``admin/payments/<int:pk>`` so a word such as ``summary`` is never read
+as an id.
 """
 
 from django.urls import path
@@ -26,6 +28,11 @@ urlpatterns = [
         "admin/payments/contributions",
         views.AdminContributionsView.as_view(),
         name="admin-contributions",
+    ),
+    path(
+        "admin/payments/donors",
+        views.AdminDonorsView.as_view(),
+        name="admin-donors",
     ),
     path(
         "admin/payments/members",

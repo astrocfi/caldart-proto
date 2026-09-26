@@ -15,6 +15,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { API_BASE, api } from '@/portal/api/client';
 import type { ApiError } from '@/portal/api/client';
 import type {
+  DonorRow,
   FinanceMember,
   ManualPaymentPayload,
   MemberLedger,
@@ -134,6 +135,20 @@ export function useFinanceMemberSearch(term: string): UseQueryResult<FinanceMemb
     queryFn: () =>
       api.get<FinanceMember[]>(`/admin/payments/members?search=${encodeURIComponent(term)}`),
     enabled: term.length > 0,
+  });
+}
+
+/**
+ * The Donors tab's rows, via `GET /admin/payments/donors`, filtered.
+ *
+ * @param filters the donors report's filter values; blank ones are not sent.
+ */
+export function useDonors(filters: FilterValues): UseQueryResult<DonorRow[]> {
+  const params = filterParams(filters);
+  return useQuery({
+    queryKey: [...FINANCE_KEY, 'donors', params],
+    queryFn: () => api.get<DonorRow[]>(`/admin/payments/donors${queryString(params)}`),
+    placeholderData: keepPreviousData,
   });
 }
 

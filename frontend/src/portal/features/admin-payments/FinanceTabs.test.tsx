@@ -1,7 +1,10 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
+import { makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
+import { server } from '@test/server';
 import { FINANCE_TABS, FinanceTabs, isTabCurrent } from './FinanceTabs';
 
 describe('isTabCurrent', () => {
@@ -25,10 +28,30 @@ describe('isTabCurrent', () => {
 });
 
 describe('FinanceTabs', () => {
-  it('shows every screen in the finance area', () => {
-    renderWithProviders(<FinanceTabs />, { route: '/admin/payments' });
+  it('shows every screen in the finance area to a treasurer', async () => {
+    server.use(signedInAs(makeUser({ roles: ['treasurer'] })));
+    const result = renderWithProviders(<FinanceTabs />, { route: '/admin/payments' });
+    await waitFor(() => expect(result.client.getQueryState(AUTH_ME_KEY)?.status).toBe('success'));
 
-    expect(screen.getAllByRole('link')).toHaveLength(FINANCE_TABS.length);
+    expect(await screen.findAllByRole('link')).toHaveLength(FINANCE_TABS.length);
+  });
+
+  it('hides the treasurer-only Donors tab from an account administrator', async () => {
+    server.use(signedInAs(makeUser({ roles: ['account_admin'] })));
+    const result = renderWithProviders(<FinanceTabs />, { route: '/admin/payments' });
+    await waitFor(() => expect(result.client.getQueryState(AUTH_ME_KEY)?.status).toBe('success'));
+
+    await screen.findByRole('link', { name: 'Overview' });
+    expect(screen.queryByRole('link', { name: 'Donors' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link')).toHaveLength(FINANCE_TABS.length - 1);
+  });
+
+  it('shows the Donors tab to a system administrator', async () => {
+    server.use(signedInAs(makeUser({ roles: ['system_admin'] })));
+    const result = renderWithProviders(<FinanceTabs />, { route: '/admin/payments' });
+    await waitFor(() => expect(result.client.getQueryState(AUTH_ME_KEY)?.status).toBe('success'));
+
+    expect(await screen.findByRole('link', { name: 'Donors' })).toBeInTheDocument();
   });
 
   it('marks the tab the reader is standing on', () => {

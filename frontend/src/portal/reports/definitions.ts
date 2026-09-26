@@ -236,6 +236,25 @@ const CONTRIBUTION_FILTERS: FilterField[] = [
   ),
 ];
 
+const DONOR_FILTERS: FilterField[] = [
+  { key: 'from', label: 'From', kind: 'date' },
+  { key: 'to', label: 'To', kind: 'date' },
+  { key: 'search', label: 'Search', kind: 'search', placeholder: 'Name or email' },
+  // Several counties at once, as the member list's own county filter takes them.
+  {
+    key: 'county',
+    label: 'County',
+    kind: 'multiselect',
+    options: COUNTY_OPTIONS,
+    hint: 'Hold Ctrl (or Command) to choose more than one county.',
+  },
+  // The DARTs are the server's, so the page supplies them through `options`.
+  { key: 'dart', label: 'DART', kind: 'select', placeholder: 'Any DART' },
+  { key: 'min_cents', label: 'At least', kind: 'number', placeholder: 'Dollars', isDollars: true },
+  { key: 'max_cents', label: 'At most', kind: 'number', placeholder: 'Dollars', isDollars: true },
+  periodField(PERIOD_OPTIONS, 'Any date'),
+];
+
 const EMAIL_LOG_FILTERS: FilterField[] = [
   // The purposes are the server's, so the panel supplies them through `options`.
   { key: 'purpose', label: 'Purpose', kind: 'select', placeholder: 'Any purpose' },
@@ -289,6 +308,13 @@ export const REPORTS: Readonly<Record<ReportSlug, ReportDefinition>> = {
     label: 'Contributions',
     filters: CONTRIBUTION_FILTERS,
     choosable: false,
+    periods: true,
+  },
+  donors: {
+    slug: 'donors',
+    label: 'Donors',
+    filters: DONOR_FILTERS,
+    choosable: true,
     periods: true,
   },
   emails: {

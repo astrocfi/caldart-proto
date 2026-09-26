@@ -8,14 +8,15 @@ The endpoints that keep the installation running and the one the portal calls
 before it has a user: ``GET /admin/reminders/log`` and
 ``POST /system/reminders/run`` from ``apps.reminders``,
 ``POST /system/reports/run`` from ``apps.reports``,
-``GET /system/emails`` and ``GET /system/emails/purposes`` from ``apps.mail``, the health, backup and
-renewal-scan routes under ``/system/`` from ``apps.sysadmin``, and
+``GET /system/emails`` and ``GET /system/emails/purposes`` from ``apps.mail``, the health, backup,
+renewal-scan and year-end-statement routes under ``/system/`` from ``apps.sysadmin``, and
 ``GET /site/config`` from ``apps.cms``.  :doc:`api-reference` covers the conventions they share —
 session authentication, the CSRF header, pagination, and the error shapes.
 
 The subsystem chapters behind them are :doc:`reminders` (what the scan sends
 and when), :doc:`scheduled-reports` (which reports and rosters go out, and
 when), :doc:`renewals` (what the automatic-renewal scan charges and when),
+:doc:`statements` (who is sent a year-end statement and when),
 :doc:`backup-restore` (what a dump contains and how to restore one) and
 :doc:`cms` (where the navigation and the members-only pages come from).
 
@@ -442,6 +443,47 @@ The full description of the request, the counts and what each one means is on
 Statuses: **200**; **400** when ``dry_run`` is not a boolean; **401** when
 anonymous; **403** for any other role.
 
+``POST /system/statements/run``
+--------------------------------
+
+Runs the year-end contribution statement sender immediately instead of
+waiting for the timer on January 15th: it emails every active account — a
+member, a friend, or a donor — that made a settled contribution in the chosen
+year, with that year's statement PDF attached, and skips an account already
+sent that year's statement.  The body is optional; ``dry_run`` defaults to
+``false`` and ``year`` to the calendar year before today.
+
+.. code-block:: json
+
+   {"dry_run": true, "year": 2025}
+
+.. code-block:: json
+
+   {
+     "year": 2025,
+     "sent": 1,
+     "skipped": 2,
+     "failed": 0,
+     "actions": [
+       {"kind": "contribution_statement", "member": "Dana Doe",
+        "email": "dana@example.org", "on": null, "amount_cents": 5000, "detail": ""}
+     ]
+   }
+
+``actions`` names the account behind every statement the run sent, with the
+year's net total — given, less anything refunded — as ``amount_cents``; ``on``
+is always ``null``, since a statement concerns a year rather than a day.  A
+dry run writes and emails nothing, and reports the accounts and totals a live
+run would reach.  ``skipped`` counts an account that already holds a
+``YearStatement`` for the year; ``failed`` counts an address the mail server
+refused and an account with no address on file.
+
+The full description of who is sent one and when is on :doc:`statements`.
+
+Statuses: **200**; **400** when ``dry_run`` is not a boolean, or ``year`` is
+not an integer between 1900 and 9000; **401** when anonymous; **403** for any
+other role.
+
 
 Site
 ====
@@ -507,3 +549,8 @@ Tests
 ``backend/tests/test_site_config.py``
    The payload with and without a settings row, the navigation entries, and
    that ``members_pages`` is empty for a caller who may not read them.
+
+``backend/tests/test_year_statements.py``
+   Who counts as a giver in a year, the run's counts and actions, a dry run
+   writing nothing, a rerun sending nothing twice, the command, and the
+   endpoint's role matrix.

@@ -34,8 +34,9 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from apps.accounts.models import AccountKind
 from apps.accounts.roles import ACCOUNT_ADMIN, TREASURER
-from apps.members.models import Membership
+from apps.members.models import CALIFORNIA_COUNTIES, MemberProfile, Membership
 from apps.payments.models import (
     Payment,
     PaymentKind,
@@ -751,4 +752,293 @@ CONTRIBUTION_REPORT: ReportSpec[ContributionRow] = ReportSpec(
     landscape=False,
     choosable=False,
     resolve=contribution_year,
+)
+
+
+# --------------------------------------------------------------------------
+# Donors
+# --------------------------------------------------------------------------
+class DonorRow(TypedDict):
+    """One row of :func:`donor_rows`: one donor's giving over the reported range."""
+
+    user_id: int
+    name: str
+    email: str
+    phone: str
+    city: str
+    state: str
+    county: str
+    dart: str
+    first_gift: dt.date | None
+    last_gift: dt.date | None
+    gifts: int
+    given_cents: int
+    refunded_cents: int
+    net_cents: int
+    active: bool
+
+
+#: The California counties the donor report's ``county`` filter accepts.
+DONOR_COUNTIES = frozenset(CALIFORNIA_COUNTIES)
+
+#: What ``?county=`` answers with for a county California does not have.
+DONOR_COUNTY_MESSAGE = "Unknown county '{county}'."
+
+
+@dataclass(frozen=True)
+class DonorFilters:
+    """The narrowing the donor report and its screen share.
+
+    ``county`` is every county named, already split on commas and stripped; an
+    empty tuple narrows nothing.  ``min_cents`` and ``max_cents`` bound a
+    donor's total ``given_cents`` over the whole range, not any one gift.
+    """
+
+    date_from: dt.date | None = None
+    date_to: dt.date | None = None
+    search: str = ""
+    county: tuple[str, ...] = ()
+    dart: str = ""
+    min_cents: int | None = None
+    max_cents: int | None = None
+
+
+def donor_queryset() -> QuerySet[Payment]:
+    """Every settled, contribution-bearing payment from a donor account.
+
+    Joined to the payer's profile and DART, so :func:`donor_rows` reads them
+    without a query per row.
+    """
+    return (
+        base_queryset()
+        .filter(
+            user__kind=AccountKind.DONOR, status__in=RECEIVED_STATUSES, contribution_cents__gt=0
+        )
+        .select_related("user__profile", "user__profile__dart")
+    )
+
+
+def _split_counties(value: str) -> tuple[str, ...]:
+    """``value`` split on commas, each county stripped, blanks dropped."""
+    return tuple(county.strip() for county in value.split(",") if county.strip())
+
+
+def apply_donor_filters(queryset: QuerySet[Payment], filters: DonorFilters) -> QuerySet[Payment]:
+    """Narrow ``queryset`` (which must carry ``paid_date``) by ``filters``."""
+    # django-stubs resolves field names against the model, so it cannot see the
+    # ``paid_date`` annotation :func:`base_queryset` adds.
+    if filters.date_from:
+        queryset = queryset.filter(paid_date__gte=filters.date_from)  # type: ignore[misc]
+    if filters.date_to:
+        queryset = queryset.filter(paid_date__lte=filters.date_to)  # type: ignore[misc]
+    if len(filters.county) > 0:
+        queryset = queryset.filter(user__profile__county__in=filters.county)
+    if filters.dart:
+        if filters.dart.isdigit():
+            queryset = queryset.filter(user__profile__dart_id=int(filters.dart))
+        else:
+            queryset = queryset.filter(user__profile__dart__name__icontains=filters.dart)
+    if filters.search:
+        term = filters.search
+        queryset = queryset.filter(
+            Q(user__email__icontains=term)
+            | Q(user__first_name__icontains=term)
+            | Q(user__last_name__icontains=term)
+        )
+    return queryset
+
+
+def _donor_profile(payment: Payment) -> MemberProfile | None:
+    """``payment``'s payer's profile, or ``None`` for the one that has none yet.
+
+    Every donor gets a profile at registration, so this is defensive rather
+    than an expected case, the same way :func:`term_of` reads a reverse
+    one-to-one that may not exist.
+    """
+    try:
+        return payment.user.profile
+    except MemberProfile.DoesNotExist:
+        return None
+
+
+def _within_cents_bounds(cents: int, filters: DonorFilters) -> bool:
+    """Whether a donor's total ``cents`` given satisfies ``filters``'s bounds."""
+    if filters.min_cents is not None and cents < filters.min_cents:
+        return False
+    return not (filters.max_cents is not None and cents > filters.max_cents)
+
+
+def donor_rows(filters: DonorFilters) -> list[DonorRow]:
+    """One row per donor who gave in the range ``filters`` narrows to, largest net first.
+
+    Every settled contribution from a ``donor`` account counts, aggregated by
+    account: ``gifts`` is how many, ``given_cents`` and ``refunded_cents`` their
+    sums -- a refund applied to the contribution first, as
+    :func:`contribution_rows` also reads it -- ``net_cents`` the difference, and
+    ``first_gift``/``last_gift`` the earliest and latest ledger date among them.
+    ``min_cents`` and ``max_cents`` bound a donor's ``given_cents`` over the
+    whole range, applied once every gift has been counted, not any one gift.
+    """
+    payments = apply_donor_filters(donor_queryset(), filters).order_by()
+    rows: dict[int, DonorRow] = {}
+    for payment in payments:
+        profile = _donor_profile(payment)
+        # ``paid_date`` is the annotation the filtering above and every other
+        # report reads; using it here too keeps a row's first and last gift
+        # dates agreeing with why the row was picked up in the first place.
+        paid_on: dt.date | None = payment.paid_date  # type: ignore[attr-defined]
+        row = rows.setdefault(
+            payment.user_id,
+            {
+                "user_id": payment.user_id,
+                "name": display_name(payment),
+                "email": payment.user.email,
+                "phone": profile.phone if profile is not None else "",
+                "city": profile.city if profile is not None else "",
+                "state": profile.state if profile is not None else "",
+                "county": profile.county if profile is not None else "",
+                "dart": profile.dart.name if profile is not None and profile.dart else "",
+                "first_gift": paid_on,
+                "last_gift": paid_on,
+                "gifts": 0,
+                "given_cents": 0,
+                "refunded_cents": 0,
+                "net_cents": 0,
+                "active": payment.user.is_active,
+            },
+        )
+        row["gifts"] += 1
+        row["given_cents"] += payment.contribution_cents
+        row["refunded_cents"] += min(payment.refunded_cents, payment.contribution_cents)
+        if paid_on is not None:
+            if row["first_gift"] is None or paid_on < row["first_gift"]:
+                row["first_gift"] = paid_on
+            if row["last_gift"] is None or paid_on > row["last_gift"]:
+                row["last_gift"] = paid_on
+
+    for row in rows.values():
+        row["net_cents"] = row["given_cents"] - row["refunded_cents"]
+
+    kept = [row for row in rows.values() if _within_cents_bounds(row["given_cents"], filters)]
+    return sorted(kept, key=lambda row: (-row["net_cents"], row["name"]))
+
+
+class DonorReportQuerySerializer(serializers.Serializer[dict[str, Any]]):
+    """The query string the Donors screen and its exports share.
+
+    Every parameter is optional and an empty one narrows nothing.  ``county``
+    is one or more California counties, comma-separated; ``dart`` matches a
+    DART by id or by a fragment of its name, as the member list's own DART
+    filter does; ``min_cents`` and ``max_cents`` bound a donor's total giving
+    over the range, not any one gift.
+    """
+
+    search = serializers.CharField(required=False, allow_blank=True, default="")
+    county = serializers.CharField(required=False, allow_blank=True, default="")
+    dart = serializers.CharField(required=False, allow_blank=True, default="")
+    min_cents = serializers.IntegerField(required=False, allow_null=True, min_value=0, default=None)
+    max_cents = serializers.IntegerField(required=False, allow_null=True, min_value=0, default=None)
+
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        """The declared fields plus the date bounds, whose names are Python keywords."""
+        fields = super().get_fields()
+        fields["from"] = ReportDateField()
+        fields["to"] = ReportDateField()
+        return fields
+
+    def validate_county(self, value: str) -> str:
+        """Return ``value``, or raise for a county California does not have.
+
+        An empty string is accepted and narrows nothing.
+        """
+        for county in _split_counties(value):
+            if county not in DONOR_COUNTIES:
+                raise serializers.ValidationError(DONOR_COUNTY_MESSAGE.format(county=county))
+        return value
+
+    def to_filters(self) -> DonorFilters:
+        """The validated parameters as the narrowing :func:`donor_rows` takes.
+
+        Call it after ``is_valid``.
+        """
+        data = self.validated_data
+        return DonorFilters(
+            date_from=data["from"],
+            date_to=data["to"],
+            search=data["search"],
+            county=_split_counties(data["county"]),
+            dart=data["dart"],
+            min_cents=data["min_cents"],
+            max_cents=data["max_cents"],
+        )
+
+
+def validated_donor_query(params: Params) -> DonorReportQuerySerializer:
+    """``params`` checked by :class:`DonorReportQuerySerializer`.
+
+    Raises DRF's ``ValidationError`` -- a 400 keyed by the parameter at fault --
+    for anything the Donors screen and its exports will not act on.
+    """
+    query = DonorReportQuerySerializer(data=given_params(params))
+    query.is_valid(raise_exception=True)
+    return query
+
+
+#: The query parameters the donors report names in its PDF subtitle, in order.
+DONOR_EXPORT_FILTER_PARAMS: tuple[str, ...] = (
+    "from",
+    "to",
+    "search",
+    "county",
+    "dart",
+    "min_cents",
+    "max_cents",
+)
+
+
+def donor_report_query(params: Params) -> ReportQuery[DonorRow]:
+    """The donor rows ``params`` ask for, and the filters applied, for the subtitle.
+
+    Several counties read as a list, ``Alameda, Marin``, rather than as the bare
+    ``Alameda,Marin`` the URL carries, the same as the member report's subtitle.
+    """
+    rows = donor_rows(validated_donor_query(params).to_filters())
+    filters = given_params(params, DONOR_EXPORT_FILTER_PARAMS)
+    if "county" in filters:
+        filters["county"] = ", ".join(_split_counties(filters["county"]))
+    return ReportQuery(rows=rows, filters=filters)
+
+
+#: The donors report's columns, in export order.  ``county``, ``dart``,
+#: ``refunded`` and ``active`` are off by default: the everyday view is who
+#: gave, how much, and when, while the rest is there for a mailing list or an
+#: audit.
+DONOR_REPORT_COLUMNS: tuple[ReportColumn[DonorRow], ...] = (
+    ReportColumn("name", "Name", True, lambda row: row["name"]),
+    ReportColumn("email", "Email", True, lambda row: row["email"]),
+    ReportColumn("phone", "Phone", True, lambda row: row["phone"]),
+    ReportColumn("city", "City", True, lambda row: row["city"]),
+    ReportColumn("state", "State", True, lambda row: row["state"]),
+    ReportColumn("county", "County", False, lambda row: row["county"]),
+    ReportColumn("dart", "DART", False, lambda row: row["dart"]),
+    ReportColumn("first_gift", "First gift", True, lambda row: _iso(row["first_gift"])),
+    ReportColumn("last_gift", "Last gift", True, lambda row: _iso(row["last_gift"])),
+    ReportColumn("gifts", "Gifts", True, lambda row: row["gifts"]),
+    ReportColumn("given", "Given", True, lambda row: Money(row["given_cents"])),
+    ReportColumn("refunded", "Refunded", False, lambda row: Money(row["refunded_cents"])),
+    ReportColumn("net", "Net", True, lambda row: Money(row["net_cents"])),
+    ReportColumn("active", "Active", False, lambda row: "Yes" if row["active"] else "No"),
+)
+
+
+#: The donor list, for the treasurer alone: everyone who gave through the
+#: public donation page in the reported range.
+DONOR_REPORT: ReportSpec[DonorRow] = ReportSpec(
+    slug="donors",
+    title="Donors",
+    filename_stem="caldart-donors",
+    columns=DONOR_REPORT_COLUMNS,
+    roles=(TREASURER,),
+    query=donor_report_query,
+    resolve=payment_period,
 )

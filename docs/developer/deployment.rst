@@ -28,7 +28,7 @@ What you are deploying
                 (``deploy/nginx/caldart.conf``) takes Apache's place unchanged
                 when you deploy it instead.
       :alt: Topology of a CalDART production server: Apache, gunicorn,
-            Postgres in Docker and the reminder timer
+            Postgres in Docker and the four scheduled timers
 
       digraph caldart_topology {
           rankdir=TB;
@@ -54,6 +54,7 @@ What you are deploying
               Timer [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
               Renewals [label="caldart-renewals.timer\l  daily 06:30 ->\l  caldart-renewals.service\l  manage.py run_auto_renewals\l"];
               Reports [label="caldart-reports.timer\l  daily 06:00 ->\l  caldart-reports.service\l  manage.py send_scheduled_reports\l"];
+              Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py send_year_statements\l"];
               Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to the\l  web server\l", shape=folder, style=""];
               Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for both units\l", shape=note, style=""];
 
@@ -63,12 +64,14 @@ What you are deploying
               Timer -> Postgres [label="reads terms,\lwrites ReminderLog"];
               Renewals -> Postgres [label="reads mandates,\lwrites payments and terms"];
               Reports -> Postgres [label="reads subscriptions and DARTs,\lwrites their send dates"];
+              Statements -> Postgres [label="reads payments,\lwrites YearStatement"];
               Apache -> Media [label="/media/ off disk", style=dotted];
               Django -> Media [label="/documents/<id>/<name>\lafter the members-only check", style=dotted];
               Env -> Gunicorn [label="settings", style=dashed, arrowhead=none];
               Env -> Timer [label="settings", style=dashed, arrowhead=none];
               Env -> Renewals [label="settings", style=dashed, arrowhead=none];
               Env -> Reports [label="settings", style=dashed, arrowhead=none];
+              Env -> Statements [label="settings", style=dashed, arrowhead=none];
           }
 
           Browser -> Apache [label="HTTPS :443\lHTTP :80 redirected"];
@@ -79,6 +82,7 @@ What you are deploying
           Renewals -> Stripe [label="off-session charges", style=dashed];
           Renewals -> Smtp [label="renewal notices and receipts", style=dashed];
           Reports -> Smtp [label="reports and DART rosters", style=dashed];
+          Statements -> Smtp [label="contribution statements", style=dashed];
       }
 
 .. only:: not graphviz
@@ -115,9 +119,14 @@ What you are deploying
         -> caldart-reports.service                    |
            manage.py send_scheduled_reports ----------'
            -> the SMTP server, for the report subscriptions
-              and the DART rosters
+              and the DART rosters                    |
+                                                      |
+      caldart-statements.timer, yearly Jan 15, 06:45  |
+        -> caldart-statements.service                 |
+           manage.py send_year_statements ------------'
+           -> the SMTP server, for the contribution statements
 
-   Apache, gunicorn, Postgres, and the three timers run on one Linux server with
+   Apache, gunicorn, Postgres, and the four timers run on one Linux server with
    the deploy root ``/srv/caldart``, and every systemd unit reads its settings
    from ``/etc/caldart/caldart.env`` (``root:caldart``, mode ``0640``).  Django
    calls out to ``api.stripe.com`` and ``api-m.paypal.com`` during a checkout,
@@ -126,9 +135,10 @@ What you are deploying
    deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
-``caldart-web`` gunicorn unit, and Apache.  Three things run daily: the
-``caldart-reports`` timer at 06:00, the ``caldart-renewals`` timer at 06:30 and
-the ``caldart-reminders`` timer at 07:00.
+``caldart-web`` gunicorn unit, and Apache.  Four jobs run on a schedule: the
+``caldart-reports`` timer daily at 06:00, the ``caldart-renewals`` timer daily
+at 06:30, the ``caldart-reminders`` timer daily at 07:00, and the
+``caldart-statements`` timer yearly at 06:45 on January 15th.
 
 The application is a **Django 6** project with Wagtail 8 on top, and step 6
 installs it with ``uv sync --frozen``, so the box runs the exact versions
@@ -555,7 +565,30 @@ the same ``/etc/caldart/caldart.env``.  Rehearse the first of next month with
 :doc:`scheduled-reports` for what it sends, and when.
 
 
-13. Backups
+.. _deploy-statements:
+
+13. Year-end statements
+========================
+
+::
+
+  sudo cp deploy/systemd/caldart-statements.service \
+          deploy/systemd/caldart-statements.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now caldart-statements.timer
+  systemctl list-timers caldart-statements.timer
+
+Yearly at 06:45 on January 15th, with catch-up if the machine was off: a year
+already sent reaches nobody again, so a late run costs nothing.  It emails
+every active account -- a member, a friend, or a donor -- that made a settled
+contribution the year before, with that year's statement PDF attached; it
+needs the database and the SMTP server, from the same
+``/etc/caldart/caldart.env``.  Rehearse it any time with
+``caldart_manage send_year_statements --dry-run --today <YYYY-01-15>``.  See
+:doc:`statements` for who is sent one, and when.
+
+
+14. Backups
 ===========
 
 Take one now and schedule them::
@@ -571,7 +604,7 @@ Checking it worked
 ::
 
   systemctl status caldart-web caldart-reminders.timer caldart-renewals.timer \
-      caldart-reports.timer
+      caldart-reports.timer caldart-statements.timer
   sudo docker compose ps
   curl -sI https://caldart.example.org/ | head -1
   caldart_manage health --json
@@ -668,6 +701,7 @@ Application, gunicorn        ``journalctl -u caldart-web -f``
 Reminder runs                ``journalctl -u caldart-reminders -n 50``
 Renewal runs                 ``journalctl -u caldart-renewals -n 50``
 Scheduled report runs        ``journalctl -u caldart-reports -n 50``
+Year-end statement runs      ``journalctl -u caldart-statements -n 50``
 Apache :443 access / error   ``/var/log/apache2/caldart-{access,error}.log``
 Apache :80 access / error    ``/var/log/apache2/caldart-http-{access,error}.log``
                              — the redirect vhost, and therefore where a
@@ -697,6 +731,7 @@ The lines go to the journal with everything else, so a filter picks them out::
   journalctl -u caldart-reminders | grep 'action=reminders.run'
   journalctl -u caldart-renewals | grep 'action=renewals.run'
   journalctl -u caldart-reports | grep 'action=reports.run'
+  journalctl -u caldart-statements | grep 'action=statements.run'
 
 Each line is ``key=value`` pairs in a fixed order::
 
