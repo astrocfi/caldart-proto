@@ -70,6 +70,11 @@ chosen provider.
    {"plan": "annual", "contribution_cents": 10000, "provider": "stripe",
     "auto_renew": true, "next_charge_on": "2027-03-14"}
 
+.. code-block:: json
+
+   {"plan": null, "contribution_cents": 2500, "provider": "stripe",
+    "auto_renew": true, "cadence": "monthly", "remove_renewal_contribution": false}
+
 ``plan`` may be ``null`` for a contribution on its own, in which case no
 membership term is created when it succeeds.  A life member -- somebody who
 already holds a term that never expires -- has nothing left to buy, so a ``plan``
@@ -84,18 +89,30 @@ outside that range is refused before a payment row is created.
 ``pending`` standing authority before the provider is started -- Stripe needs a
 customer on the intent and PayPal a vault instruction on the order, and neither
 can be added afterwards -- and the method they pay with becomes the one CalDART
-renews from once the payment succeeds.  It is refused, with a 400 naming
-``auto_renew``, for a plan that never expires, for a checkout by a member who is
-not a life member that buys no plan at all, for a life member who contributes
-nothing, and for a provider that cannot charge a saved method, which is every
-provider but ``stripe``, ``paypal`` and ``mock``.  A life member's authority
-names no plan and charges their contribution once a year.  A refusal deletes the pending
-payment again, exactly as a provider that will not start one does.  Turning
-automatic renewal on again replaces whatever authority was there.
+charges again once the payment succeeds.  With a ``plan`` that authority is an
+automatic renewal, once a year; with no plan it is a recurring donation of
+``contribution_cents``, on ``cadence``.
+
+``cadence`` is ``monthly``, ``quarterly`` or ``yearly``, the default.  A checkout
+that buys a plan with ``auto_renew`` takes only ``yearly``, and anything else is a
+400 naming ``cadence``: ``Automatic renewal is charged once a year.``
+
+``auto_renew`` is refused, with a 400 naming ``auto_renew``, for a plan that never
+expires, for a donation of nothing, and for a provider that cannot charge a saved
+method, which is every provider but ``stripe``, ``paypal`` and ``mock``.  A
+renewal that takes a contribution while the payer holds a recurring donation is
+a 400 naming ``contribution_cents``; a donation while the payer's renewal takes a
+contribution is ``400 {"detail": ..., "code": "renewal_contribution"}`` unless
+``remove_renewal_contribution`` is true, which moves the renewal's contribution
+off it first (see :ref:`renewals-one-contribution`).  A refusal of any of these,
+and a provider that will not start the payment, writes nothing: no pending
+payment is left, and the payer's mandates, contribution included, stay as they
+were.  Asking again replaces whatever authority of that kind was there.
 
 ``next_charge_on`` is the day that authority first charges on.  Leaving it out
-takes the day the term this payment buys runs out, worked out when the payment
-succeeds.  A day before today is refused with a 400 naming ``next_charge_on``,
+takes, for a renewal, the day the term this payment buys runs out, worked out
+when the payment succeeds, and for a donation one cadence after today, since the
+payment is its first gift.  A day before today is refused with a 400 naming ``next_charge_on``,
 whatever ``auto_renew`` says; any later day is accepted.  Nothing acts on it when
 ``auto_renew`` is false, since there is then no authority to date.
 

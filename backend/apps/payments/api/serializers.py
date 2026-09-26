@@ -15,6 +15,7 @@ from apps.payments.dates import is_in_the_future
 from apps.payments.manual import MANUAL_METHOD_CHOICES
 from apps.payments.models import (
     MAX_CONTRIBUTION_CENTS,
+    MandateCadence,
     MandateProvider,
     MandateStatus,
     Payment,
@@ -30,6 +31,8 @@ from apps.payments.models import (
 from apps.payments.reconciliation import ReconciliationRow
 from apps.payments.renewals import (
     PAST_CHARGE_DATE_MESSAGE,
+    RENEWAL_PLAN_MESSAGE,
+    YEARLY_ONLY_MESSAGE,
     MandateKind,
     charge_date,
     mandate_kind,
@@ -75,12 +78,59 @@ def no_past_charge_date(value: dt.date) -> None:
 def next_charge_on_field() -> serializers.DateField:
     """The optional day a member asks to be charged on, shared by the three endpoints.
 
-    Absent or null means "leave it to the server": a new authority takes the day the
-    membership runs out, and a change leaves the stored day alone.
+    Absent or null means "leave it to the server": a new renewal takes the day the
+    membership runs out, a new recurring donation takes today, and a change leaves
+    the stored day alone.
     """
     return serializers.DateField(
         required=False, allow_null=True, default=None, validators=[no_past_charge_date]
     )
+
+
+def cadence_field(*, default: str | None) -> serializers.ChoiceField:
+    """How often a standing authority charges, shared by every endpoint that sets one.
+
+    ``default`` is what an absent field reads as: ``yearly`` where an authority is
+    being made, and ``None`` -- leave it alone -- where one is being changed.
+    """
+    return serializers.ChoiceField(
+        choices=MandateCadence.choices, required=False, allow_null=default is None, default=default
+    )
+
+
+def remove_renewal_contribution_field() -> serializers.BooleanField:
+    """The member's agreement to move their renewal's contribution to a donation.
+
+    Only a recurring donation reads it.  Without it, a donation asked for by a member
+    whose renewal takes a contribution is refused with the code
+    ``renewal_contribution``; with it, the renewal's contribution becomes nothing
+    first.
+    """
+    return serializers.BooleanField(required=False, default=False)
+
+
+def refuse_non_yearly_renewal(cadence: str | None) -> None:
+    """Refuse a renewal on any cadence but yearly, keyed by ``cadence``.
+
+    Dues are charged once a year, so ``monthly`` and ``quarterly`` are a 400 carrying
+    ``Automatic renewal is charged once a year.``; an absent cadence passes.
+    """
+    if cadence is not None and cadence != MandateCadence.YEARLY:
+        raise serializers.ValidationError({"cadence": [YEARLY_ONLY_MESSAGE]})
+
+
+class MandateScopedSerializer(serializers.Serializer[dict[str, Any]]):
+    """A request body read differently for an automatic renewal and a recurring donation.
+
+    The views behind ``/me/renewal*`` and ``/me/donation*`` are one set, told which
+    kind they serve; they hand the same flag to their serializer as the ``donation``
+    context key, which is ``False`` when absent.
+    """
+
+    @property
+    def is_donation(self) -> bool:
+        """Whether this body is for the recurring donation rather than the renewal."""
+        return bool(self.context.get("donation", False))
 
 
 class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
@@ -90,12 +140,17 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     the plan price plus the contribution.  A contribution outside
     ``0..MAX_CONTRIBUTION_CENTS`` is a 400 naming ``contribution_cents``.
 
-    ``auto_renew`` asks for the payment method to be saved and the membership
-    renewed from it each year.  It is a 400 naming ``auto_renew`` for a plan that
-    never expires, for a checkout that buys no plan at all, and for a provider
-    that cannot charge a saved method.  ``next_charge_on`` is the day that
-    authority first charges on; leaving it out takes the day the term this payment
-    buys runs out.  A day before today is a 400 naming ``next_charge_on``.
+    ``auto_renew`` asks for the payment method to be saved and charged again on a
+    schedule.  With a plan, that is an automatic renewal, which is always yearly:
+    any other ``cadence`` is a 400 naming ``cadence``, and a plan that never expires
+    or a provider that cannot charge a saved method is a 400 naming ``auto_renew``.
+    With no plan, it is a recurring donation of ``contribution_cents`` on
+    ``cadence`` (``monthly``, ``quarterly`` or ``yearly``, which is the default).
+    ``remove_renewal_contribution`` agrees to move the renewal's contribution off it
+    to make room for the donation.  ``next_charge_on`` is the day that authority
+    first charges on; leaving it out takes the day the term this payment buys runs
+    out for a renewal, and one cadence after today for a donation.  A day before
+    today is a 400 naming ``next_charge_on``.
     """
 
     plan = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
@@ -105,6 +160,14 @@ class CheckoutSerializer(serializers.Serializer[dict[str, Any]]):
     provider = serializers.ChoiceField(choices=PaymentProvider.choices)
     auto_renew = serializers.BooleanField(required=False, default=False)
     next_charge_on = next_charge_on_field()
+    cadence = cadence_field(default=MandateCadence.YEARLY)
+    remove_renewal_contribution = remove_renewal_contribution_field()
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Refuse an automatic renewal on any cadence but yearly, keyed by ``cadence``."""
+        if attrs["auto_renew"] and attrs["plan"]:
+            refuse_non_yearly_renewal(attrs["cadence"])
+        return attrs
 
 
 class StripeCheckoutClientSerializer(serializers.Serializer[dict[str, str]]):
@@ -337,6 +400,7 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
             "plan",
             "plan_name",
             "kind",
+            "cadence",
             "contribution_cents",
             "amount_cents",
             "provider",
@@ -365,17 +429,17 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_plan(self, obj: RenewalMandate) -> str | None:
-        """The slug of the plan that renews, or ``None`` for a contribution alone."""
+        """The slug of the plan that renews, or ``None`` for a recurring donation."""
         return obj.plan.slug if obj.plan is not None else None
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_plan_name(self, obj: RenewalMandate) -> str | None:
-        """The name of the plan that renews, or ``None`` for a contribution alone."""
+        """The name of the plan that renews, or ``None`` for a recurring donation."""
         return obj.plan.name if obj.plan is not None else None
 
     @extend_schema_field(serializers.ChoiceField(choices=MandateKind.choices))
     def get_kind(self, obj: RenewalMandate) -> str:
-        """What this authority charges for: a renewal, a contribution, or both."""
+        """What this authority charges for: a renewal, a donation, or both at once."""
         return mandate_kind(obj)
 
     def get_amount_cents(self, obj: RenewalMandate) -> int:
@@ -401,10 +465,10 @@ class RenewalMandateSerializer(serializers.ModelSerializer[RenewalMandate]):
 
 
 class RenewalEnvelopeSerializer(serializers.Serializer[dict[str, Any]]):
-    """``GET | PATCH /me/renewal`` and ``POST /me/renewal/confirm``.
+    """``GET | PATCH /me/renewal`` and ``/me/donation``, and their ``POST .../confirm``.
 
-    One key, ``mandate``, which is ``null`` for a member who has never turned
-    automatic renewal on.  The envelope is what carries that null: a bare null
+    One key, ``mandate``, which is ``null`` for a member who has never set that
+    kind of authority up.  The envelope is what carries that null: a bare null
     body is indistinguishable from an empty one.
     """
 
@@ -415,8 +479,8 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
     """One scheduled charge, as ``GET /admin/renewals/attempts`` lists it."""
 
     mandate_id = serializers.IntegerField(read_only=True)
-    membership_id = serializers.IntegerField(read_only=True)
     payment_id = serializers.IntegerField(read_only=True, allow_null=True)
+    membership_id = serializers.IntegerField(read_only=True, allow_null=True)
     user_id = serializers.SerializerMethodField()
     user_name = serializers.SerializerMethodField()
 
@@ -448,16 +512,19 @@ class RenewalAttemptSerializer(serializers.ModelSerializer[RenewalAttempt]):
         return obj.mandate.user.display_name
 
 
-class RenewalSetupSerializer(serializers.Serializer[dict[str, Any]]):
-    """``POST /me/renewal/setup`` -- what to save a payment method for.
+class RenewalSetupSerializer(MandateScopedSerializer):
+    """``POST /me/renewal/setup`` and ``/me/donation/setup``: what to save a method for.
 
-    ``plan`` is the slug of the plan to renew and must have a duration; a
-    lifetime plan is a 400 naming ``auto_renew``.  A life member leaves ``plan``
-    out and gives a ``contribution_cents`` of more than nothing, which is the
-    only standing authority they can hold.  ``provider`` must be one that can
-    charge a saved method.  ``next_charge_on`` is the day of the first charge;
-    leaving it out takes the day the membership runs out, or one year from today for
-    a life member.  A day before today is a 400 naming ``next_charge_on``.
+    For the renewal, ``plan`` is the slug of the plan to renew and must be given
+    (a 400 naming ``auto_renew`` otherwise) and have a duration, and ``cadence``
+    may only be ``yearly`` (a 400 naming ``cadence`` otherwise).  For the donation,
+    ``plan`` is not read, ``contribution_cents`` must be more than nothing, and
+    ``cadence`` is ``monthly``, ``quarterly`` or ``yearly``, which is the default;
+    ``remove_renewal_contribution`` agrees to move the renewal's contribution to it.
+    ``provider`` must be one that can charge a saved method.  ``next_charge_on`` is
+    the day of the first charge; leaving it out takes the day the membership runs
+    out for a renewal, and today for a donation.  A day before today is a 400 naming
+    ``next_charge_on``.
     """
 
     plan = serializers.CharField(required=False, allow_blank=True, default="")
@@ -466,6 +533,17 @@ class RenewalSetupSerializer(serializers.Serializer[dict[str, Any]]):
     )
     provider = serializers.ChoiceField(choices=MandateProvider.choices)
     next_charge_on = next_charge_on_field()
+    cadence = cadence_field(default=MandateCadence.YEARLY)
+    remove_renewal_contribution = remove_renewal_contribution_field()
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Drop the plan from a donation; refuse a renewal with no plan or not yearly."""
+        if self.is_donation:
+            return {**attrs, "plan": ""}
+        refuse_non_yearly_renewal(attrs["cadence"])
+        if not attrs["plan"]:
+            raise serializers.ValidationError({"auto_renew": [RENEWAL_PLAN_MESSAGE]})
+        return attrs
 
 
 class StripeRenewalSetupClientSerializer(serializers.Serializer[dict[str, str]]):
@@ -532,29 +610,51 @@ class RenewalConfirmSerializer(serializers.Serializer[dict[str, Any]]):
     setup_token = serializers.CharField(required=False, allow_blank=True, default="")
 
 
-class RenewalPatchSerializer(serializers.Serializer[dict[str, Any]]):
-    """``PATCH /me/renewal`` -- the plan, the contribution, and the day of the charge.
+class RenewalPatchSerializer(MandateScopedSerializer):
+    """``PATCH /me/renewal`` and ``PATCH /me/donation``: what the authority charges.
 
-    ``plan`` is the slug of the plan to renew from now on; leaving it out leaves
-    the plan alone.  A life member may not give one, since their membership does
-    not renew.  ``next_charge_on`` moves the next charge; leaving it out leaves the
-    stored day alone, and a day before today is a 400 naming ``next_charge_on``.
+    ``contribution_cents`` is required.  ``plan`` is the slug of the plan a renewal
+    renews from now on; leaving it out leaves the plan alone, and a donation does
+    not read it.  ``cadence`` changes how often a donation charges, and a renewal
+    takes only ``yearly`` (a 400 naming ``cadence`` otherwise); leaving it out
+    leaves the cadence alone.  ``next_charge_on`` moves the next charge; leaving it
+    out leaves the stored day alone, and a day before today is a 400 naming
+    ``next_charge_on``.
     """
 
     plan = serializers.CharField(required=False, allow_blank=True, default="")
     contribution_cents = serializers.IntegerField(min_value=0, max_value=MAX_CONTRIBUTION_CENTS)
     next_charge_on = next_charge_on_field()
+    cadence = cadence_field(default=None)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Drop the plan from a donation, and refuse a renewal that is not yearly."""
+        if self.is_donation:
+            return {**attrs, "plan": ""}
+        refuse_non_yearly_renewal(attrs["cadence"])
+        return attrs
 
 
 class RenewalStatusFilterSerializer(serializers.Serializer[dict[str, Any]]):
-    """``GET /admin/renewals?status=`` -- an empty status narrows nothing."""
+    """``GET /admin/renewals?status=&kind=`` -- an empty value narrows nothing.
+
+    ``kind`` is one of the mandate kinds the rows carry: ``renewal``, ``both`` or
+    ``contribution`` (a recurring donation).
+    """
 
     status = serializers.CharField(required=False, allow_blank=True, default="")
+    kind = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate_status(self, value: str) -> str:
         """Return ``value``, or raise ``Unknown status '<value>'.`` for an unknown one."""
         if value and value not in MandateStatus.values:
             raise serializers.ValidationError(f"Unknown status '{value}'.")
+        return value
+
+    def validate_kind(self, value: str) -> str:
+        """Return ``value``, or raise ``Unknown kind '<value>'.`` for an unknown one."""
+        if value and value not in MandateKind.values:
+            raise serializers.ValidationError(f"Unknown kind '{value}'.")
         return value
 
 

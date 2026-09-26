@@ -20,7 +20,9 @@ renewals screens show is on screen with no clicking.  Two of the active ones
 are pinned to a term ending today, with the scheduled attempt the daily scan
 would already have noticed two weeks out, and one more is pinned to a term
 that lapsed ten days ago with no attempt yet, so the daily renewal job always
-has an ordinary charge and a catch-up one waiting the day the seed runs.
+has an ordinary charge and a catch-up one waiting the day the seed runs.  Two
+more give on a schedule of their own: the account administrator a yearly
+recurring donation, and one generated member a monthly one.
 """
 
 from __future__ import annotations
@@ -48,6 +50,7 @@ from apps.members.services import (
 )
 from apps.payments.models import (
     CONTRIBUTION_TIERS,
+    MandateCadence,
     MandateProvider,
     MandateStatus,
     Payment,
@@ -88,7 +91,7 @@ RECONCILED_LAG_DAYS = 5
 
 #: How many members hold a standing automatic-renewal authority: ten active, one
 #: paused after every retry was refused, and one the member turned off.  The
-#: account administrator's contribution-only authority is seeded on top of these.
+#: account administrator's yearly recurring donation is seeded on top of these.
 #: Among the active ones, ``ctx["renewal_due_today_users"]`` and
 #: ``ctx["catch_up_user"]`` (:func:`apps.members.seed._renewal_seed_subjects`)
 #: are pinned to a renewal already due; the rest spread across the coming year.
@@ -101,12 +104,19 @@ CANCELED_MANDATES = 1
 #: renews it instead of pausing the mandate.
 CATCH_UP_MANDATE_DAYS_AGO = 10
 
-#: What the account administrator's standing contribution charges each year.
+#: What the account administrator's yearly recurring donation charges.
 CONTRIBUTION_MANDATE_CENTS = 5_000
 
 #: How far out that authority's next charge falls, so the walkthrough always has
 #: a date a little way off to show.
 CONTRIBUTION_MANDATE_DUE_DAYS = 30
+
+#: What the generated member with a monthly recurring donation gives each month.
+MONTHLY_DONATION_CENTS = 2_500
+
+#: How far out that donation's next charge falls: inside the month, but not today,
+#: so the scan run on the day of the seed takes nothing.
+MONTHLY_DONATION_DUE_DAYS = 9
 
 #: What the demo friend gave: one contribution by card, with no plan behind it.
 FRIEND_CONTRIBUTION_CENTS = 5_000
@@ -513,7 +523,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             f"  payments: {payments} succeeded payments, {terms} terms, "
             f"{expired} lapsed terms marked expired, {manual} recorded by hand, "
             f"{reconciled} reconciled, {refunds} refunds, "
-            f"{mandates} renewal mandates"
+            f"{mandates} mandates"
         )
     return ctx
 
@@ -661,6 +671,7 @@ def _seed_due_today_mandates(users: list[User], plan: MembershipPlan, today: dt.
             continue
         mandate, created = RenewalMandate.objects.get_or_create(
             user=user,
+            plan__isnull=False,
             defaults={
                 "plan": plan,
                 "contribution_cents": 0,
@@ -691,6 +702,7 @@ def _seed_catch_up_mandate(user: User, plan: MembershipPlan, today: dt.date) -> 
     """
     RenewalMandate.objects.get_or_create(
         user=user,
+        plan__isnull=False,
         defaults={
             "plan": plan,
             "contribution_cents": 0,
@@ -713,8 +725,9 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
     :func:`_seed_catch_up_mandate`).  The remaining active mandates are spread
     across the coming year as before, one is paused after a charge and all
     three of its retries were refused, and one turned automatic renewal off.
-    The account administrator, a life member, holds a contribution-only
-    authority on top of those.  Each spread active mandate whose charge falls
+    The account administrator, a life member, holds a yearly recurring donation
+    on top of those, and one generated member a monthly one
+    (:func:`_seed_donation_mandates`).  Each spread active mandate whose charge falls
     inside the notice window already carries a scheduled attempt with its
     warning sent, which is what the daily scan would have left behind.  Running
     it twice over the same database changes nothing.
@@ -770,6 +783,7 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
 
         mandate, created = RenewalMandate.objects.get_or_create(
             user=user,
+            plan__isnull=False,
             defaults={
                 "plan": annual,
                 "contribution_cents": contribution,
@@ -784,30 +798,73 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
         elif mandate.status == MandateStatus.ACTIVE:
             _seed_scheduled_attempt(mandate, term, today)
 
-    return written + len(candidates) + _seed_contribution_mandate(ctx)
+    return written + len(candidates) + _seed_donation_mandates(ctx)
 
 
-def _seed_contribution_mandate(ctx: dict[str, Any]) -> int:
-    """Give the account administrator a standing contribution, and count it.
+def _seed_donation_mandates(ctx: dict[str, Any]) -> int:
+    """Leave two recurring donations behind, and count them.
 
-    They are a life member, so their membership never renews; their authority is
-    over the contribution alone, and its next charge falls a month out so the
-    walkthrough always has a date to show.  Answers ``1``, which is how many such
-    authorities it leaves behind whether it created one or found one already there.
+    The account administrator is a life member, so their membership never renews;
+    theirs is a yearly donation of :data:`CONTRIBUTION_MANDATE_CENTS` whose next
+    charge falls a month out, so the walkthrough always has a date to show.  The
+    first generated member with a current term and no mandate at all gives
+    :data:`MONTHLY_DONATION_CENTS` each month, next charged
+    :data:`MONTHLY_DONATION_DUE_DAYS` days out, so no scan on the day of the seed
+    takes it.  Answers how many it leaves behind, whether it created them or found
+    them already there.
     """
-    user = ctx["demo_users"]["accountadmin"]
     today: dt.date = ctx["today"]
-    RenewalMandate.objects.get_or_create(
-        user=user,
-        defaults={
-            "plan": None,
-            "contribution_cents": CONTRIBUTION_MANDATE_CENTS,
-            "next_charge_on": today + timedelta(days=CONTRIBUTION_MANDATE_DUE_DAYS),
-            "status": MandateStatus.ACTIVE,
-            **_mock_succeeding_card(),
-        },
-    )
-    return 1
+    written = 0
+    donors = [
+        (
+            ctx["demo_users"]["accountadmin"],
+            MandateCadence.YEARLY,
+            CONTRIBUTION_MANDATE_CENTS,
+            CONTRIBUTION_MANDATE_DUE_DAYS,
+        )
+    ]
+    monthly = _monthly_donor(ctx)
+    if monthly is not None:
+        donors.append(
+            (monthly, MandateCadence.MONTHLY, MONTHLY_DONATION_CENTS, MONTHLY_DONATION_DUE_DAYS)
+        )
+    for user, cadence, cents, due_days in donors:
+        RenewalMandate.objects.get_or_create(
+            user=user,
+            plan__isnull=True,
+            defaults={
+                "plan": None,
+                "cadence": cadence,
+                "contribution_cents": cents,
+                "next_charge_on": today + timedelta(days=due_days),
+                "status": MandateStatus.ACTIVE,
+                **_mock_succeeding_card(),
+            },
+        )
+        written += 1
+    return written
+
+
+def _monthly_donor(ctx: dict[str, Any]) -> User | None:
+    """The generated member who gives each month, or ``None`` when nobody fits.
+
+    The first generated member, by id, with a current dated term and no mandate of
+    either kind, so their donation never shares a contribution with a renewal.  A
+    second seed run finds the same member again through the donation they hold.
+    """
+    today: dt.date = ctx["today"]
+    held = RenewalMandate.objects.filter(
+        plan__isnull=True, cadence=MandateCadence.MONTHLY, user__in=ctx["generated_users"]
+    ).first()
+    if held is not None:
+        return held.user
+    generated: list[User] = sorted(ctx["generated_users"], key=lambda user: user.pk)
+    for user in generated:
+        if RenewalMandate.objects.filter(user=user).exists():
+            continue
+        if term_to_renew(user, today) is not None:
+            return user
+    return None
 
 
 def _seed_scheduled_attempt(mandate: RenewalMandate, term: Membership, today: dt.date) -> None:

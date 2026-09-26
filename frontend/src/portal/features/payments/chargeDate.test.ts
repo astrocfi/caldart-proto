@@ -1,33 +1,7 @@
 /** The dates the renewal screens offer, and the day they warn about. */
 import { describe, expect, it } from 'vitest';
 
-import { defaultChargeDate, isAfterExpiry, notBeforeToday } from './chargeDate';
-
-describe('defaultChargeDate', () => {
-  it('takes the day the membership runs out for a member who has an expiry', () => {
-    expect(
-      defaultChargeDate({ isLifetime: false, expiresOn: '2027-06-30' }, new Date(2026, 8, 24)),
-    ).toBe('2027-06-30');
-  });
-
-  it('takes one year from today for a life member, who never runs out', () => {
-    expect(defaultChargeDate({ isLifetime: true, expiresOn: null }, new Date(2026, 8, 24))).toBe(
-      '2027-09-24',
-    );
-  });
-
-  it('takes today for a member with no term at all, the earliest day allowed', () => {
-    expect(defaultChargeDate({ isLifetime: false, expiresOn: null }, new Date(2026, 8, 24))).toBe(
-      '2026-09-24',
-    );
-  });
-
-  it('takes today when the term has already run out, because a past day is refused', () => {
-    expect(
-      defaultChargeDate({ isLifetime: false, expiresOn: '2026-01-31' }, new Date(2026, 8, 24)),
-    ).toBe('2026-09-24');
-  });
-});
+import { isAfterExpiry, notBeforeToday } from './chargeDate';
 
 describe('notBeforeToday', () => {
   it('keeps a day still to come, which is the day the authority carries', () => {

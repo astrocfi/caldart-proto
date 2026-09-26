@@ -17,6 +17,7 @@ const ACTIVE: RenewalMandate = {
   plan: 'annual',
   plan_name: 'Annual',
   kind: 'renewal',
+  cadence: 'yearly',
   contribution_cents: 2500,
   amount_cents: 7000,
   provider: 'stripe',
@@ -57,6 +58,7 @@ const CONTRIBUTION_ONLY: RenewalMandate = {
   plan: null,
   plan_name: null,
   kind: 'contribution',
+  cadence: 'monthly',
   contribution_cents: 5000,
   amount_cents: 5000,
 };
@@ -131,12 +133,20 @@ describe('RenewalsPage', () => {
     expect(row.getByText('2027/03/14')).toBeInTheDocument();
   });
 
-  it('reads Contribution in the plan column for a mandate with no plan', async () => {
+  it('names a mandate with no plan a recurring donation, with its cadence', async () => {
     server.use(...renewalHandlers([CONTRIBUTION_ONLY], [], record()));
     renderWithProviders(<RenewalsPage />);
 
     const row = within(await screen.findByRole('row', { name: /Dana Field/ }));
-    expect(row.getByText('Contribution')).toBeInTheDocument();
+    expect(row.getByText('Recurring donation')).toHaveTextContent('Recurring donation · Monthly');
+  });
+
+  it('names a renewal by its kind', async () => {
+    server.use(...renewalHandlers([ACTIVE], [], record()));
+    renderWithProviders(<RenewalsPage />);
+
+    const row = within(await screen.findByRole('row', { name: /Maria Alvarez/ }));
+    expect(row.getByText('Automatic renewal')).toBeInTheDocument();
   });
 
   it('shows why a paused mandate stopped', async () => {
@@ -171,7 +181,7 @@ describe('RenewalsPage', () => {
     await userEvent.click(row.getByRole('button', { name: 'Yes, turn it off' }));
 
     expect(
-      await screen.findByText('Automatic contribution is off for Dana Field.'),
+      await screen.findByText('Recurring donation is off for Dana Field.'),
     ).toBeInTheDocument();
   });
 
@@ -181,6 +191,17 @@ describe('RenewalsPage', () => {
 
     const row = within(await screen.findByRole('row', { name: /Iris Kwan/ }));
     expect(row.queryByRole('button', { name: 'Turn off' })).not.toBeInTheDocument();
+  });
+
+  it('narrows the mandates to one kind', async () => {
+    const seen = record();
+    server.use(...renewalHandlers([ACTIVE], [], seen));
+    renderWithProviders(<RenewalsPage />);
+    await screen.findByRole('row', { name: /Maria Alvarez/ });
+
+    await userEvent.selectOptions(screen.getByLabelText('Kind'), 'contribution');
+
+    await expect.poll(() => seen.mandateQueries.at(-1)?.get('kind')).toBe('contribution');
   });
 
   it('narrows the mandates to one status', async () => {

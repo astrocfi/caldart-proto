@@ -1,8 +1,8 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}{% if kind == "contribution" %}{% if charge_on == today %}We are taking your contribution of {{ amount }} today.{% else %}We will take your contribution of {{ amount }} on {{ charge_on|date:"F j, Y" }}.{% endif %}{% elif charge_on == today %}We are charging {{ amount }} today to renew your {{ plan_name }} membership.{% else %}We will charge {{ amount }} on {{ charge_on|date:"F j, Y" }} to renew your {{ plan_name }} membership.{% endif %}{% endblock %}
+{% block preheader %}{% if kind == "contribution" %}{% if charge_on == today %}We are taking your recurring donation of {{ amount }} today.{% else %}We will take your recurring donation of {{ amount }} on {{ charge_on|date:"F j, Y" }}.{% endif %}{% elif charge_on == today %}We are charging {{ amount }} today to renew your {{ plan_name }} membership.{% else %}We will charge {{ amount }} on {{ charge_on|date:"F j, Y" }} to renew your {{ plan_name }} membership.{% endif %}{% endblock %}
 
-{% block heading %}{% if kind == "contribution" %}{% if charge_on == today %}Your contribution today{% else %}Your contribution on {{ charge_on|date:"F j, Y" }}{% endif %}{% elif charge_on == today %}Renewing today{% else %}Renewing on {{ charge_on|date:"F j, Y" }}{% endif %}{% endblock %}
+{% block heading %}{% if kind == "contribution" %}{% if charge_on == today %}Your donation today{% else %}Your donation on {{ charge_on|date:"F j, Y" }}{% endif %}{% elif charge_on == today %}Renewing today{% else %}Renewing on {{ charge_on|date:"F j, Y" }}{% endif %}{% endblock %}
 
 {% block lede %}{% if kind == "contribution" %}{{ amount }} to {{ method_label }}.{% else %}Your {{ plan_name }} membership term ends {{ expires_on|date:"F j, Y" }}.{% endif %}{% endblock %}
 
@@ -11,23 +11,23 @@
   {% if kind == "contribution" %}
     {% if charge_on == today %}
       <p style="margin:0 0 14px 0;">
-        Because you asked us to take your contribution automatically each year, we
-        are charging it today: {{ amount }} to {{ method_label }}.
+        Because you asked us for a recurring donation {{ cadence_label }}, we are
+        charging it today: {{ amount }} to {{ method_label }}.
       </p>
       <p style="margin:0 0 14px 0;">
-        If that is not what you want — a different card, a different contribution,
-        or no automatic contribution at all — change it here and write to us about
-        the charge.
+        If that is not what you want — a different card, a different amount, or no
+        recurring donation at all — change it here and write to us about the
+        charge.
       </p>
     {% else %}
       <p style="margin:0 0 14px 0;">
-        Because you asked us to take your contribution automatically each year, we
-        will charge {{ amount }} to {{ method_label }} on {{ charge_on|date:"F j, Y" }}.
+        Because you asked us for a recurring donation {{ cadence_label }}, we will
+        charge {{ amount }} to {{ method_label }} on {{ charge_on|date:"F j, Y" }}.
       </p>
       <p style="margin:0 0 14px 0;">
         Nothing to do if that is right. If it is not — a different card, a
-        different contribution, or no automatic contribution at all — change it
-        before that date.
+        different amount, or no recurring donation at all — change it before that
+        date.
       </p>
     {% endif %}
   {% elif charge_on == today %}

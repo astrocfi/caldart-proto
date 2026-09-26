@@ -382,15 +382,15 @@ describe('DashboardPage · payments and renewal', () => {
     expect(within(line).getByText('2027/03/12')).toBeInTheDocument();
   });
 
-  it('says the contribution is off for a life member who has no mandate', async () => {
+  it('says the recurring donation is off for a life member who has none', async () => {
     mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
 
-    expect(await screen.findByText('Automatic contribution is off.')).toBeInTheDocument();
+    expect(await screen.findByText('Recurring donation is off.')).toBeInTheDocument();
   });
 
-  it('names the next contribution and its amount for a life member', async () => {
+  it('names the next gift and its amount for a life member', async () => {
     server.use(
-      http.get(`${API}/me/renewal`, () =>
+      http.get(`${API}/me/donation`, () =>
         HttpResponse.json({
           mandate: makeContributionMandate({ next_charge_on: '2027-08-20' }),
         }),
@@ -398,8 +398,8 @@ describe('DashboardPage · payments and renewal', () => {
     );
     mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
 
-    const line = await screen.findByText(/Automatic contribution is on/);
-    expect(line).toHaveTextContent('Automatic contribution is on: $50.00 on 2027/08/20.');
+    const line = await screen.findByText(/Recurring donation is on/);
+    expect(line).toHaveTextContent('Recurring donation is on: $50.00 on 2027/08/20.');
   });
 
   it('says renewal stopped when a mandate has run out of retries', async () => {

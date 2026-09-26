@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useRenewal, useSiteConfig } from '@/portal/api/queries';
+import { useDonation, useRenewal, useSiteConfig } from '@/portal/api/queries';
 import type { RenewalMandate } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ButtonLink } from '@/portal/components/Button';
@@ -35,6 +35,9 @@ export function DashboardPage(): JSX.Element {
   const membership = useMembership();
   const payments = useMyPayments();
   const renewal = useRenewal();
+  // A life member renews nothing, so the authority their line states is their
+  // recurring donation.
+  const donation = useDonation();
   const siteConfig = useSiteConfig();
 
   const status = membership.data ?? user?.membership ?? null;
@@ -160,7 +163,7 @@ export function DashboardPage(): JSX.Element {
             footer={<Link to="/payments">All payments, receipts and renewal</Link>}
           >
             <RenewalLine
-              mandate={renewal.data?.mandate ?? null}
+              mandate={(status?.is_lifetime ? donation : renewal).data?.mandate ?? null}
               isLifetime={status?.is_lifetime ?? false}
             />
             {payments.isPending ? (

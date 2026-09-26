@@ -80,7 +80,7 @@ Domain schema
           Membership [label="members.Membership\l  starts_on, ends_on\l  status, source\l"];
           Payment [label="payments.Payment\l  amount_cents, fee_cents, net_cents\l  provider, wallet, status, provider_ref\l  received_on, reconciled_on, note\l"];
           Refund [label="payments.Refund\l  amount_cents, reason, note\l  status, provider_ref, refunded_at\l"];
-          Mandate [label="payments.RenewalMandate\l  provider, method_ref, method_label\l  status, failure_count\l  contribution_cents, next_charge_on\l"];
+          Mandate [label="payments.RenewalMandate\l  provider, method_ref, method_label\l  status, failure_count, cadence\l  contribution_cents, next_charge_on\l"];
           Attempt [label="payments.RenewalAttempt\l  scheduled_on, outcome, error\l  noticed_at, attempted_at\l  result_emailed_at\l"];
           Aircraft [label="aircraft.Aircraft\l  n_number (unique)\l  make, model, insurance_*\l"];
           AircraftChange [label="aircraft.AircraftChange\l  changed_at, kind\l  fields (JSON)\l"];
@@ -103,10 +103,10 @@ Domain schema
           Payment -> User [label="reconciled_by, recorded_by (null, SET_NULL)"];
           Refund -> Payment [label="payment (PROTECT)\lrelated: refunds"];
           Refund -> User [label="requested_by (null, SET_NULL)"];
-          Mandate -> User [label="user  1--1, CASCADE", arrowhead=none];
+          Mandate -> User [label="user (CASCADE)\lone with a plan, one without"];
           Mandate -> Plan [label="plan (null, PROTECT)"];
           Attempt -> Mandate [label="mandate (CASCADE)\lrelated: attempts"];
-          Attempt -> Membership [label="membership (CASCADE)"];
+          Attempt -> Membership [label="membership (null, CASCADE)"];
           Attempt -> Payment [label="payment (null, SET_NULL)"];
           Attempt -> Attempt [label="retry_of (null, SET_NULL)"];
           Aircraft -> User [label="created_by, updated_by (null, SET_NULL)"];
@@ -178,10 +178,10 @@ Domain schema
           reports.SavedColumnSet --- user --> accounts.User
           reports.ReportSubscription --- recipient_user, created_by --> accounts.User
 
-          payments.RenewalMandate --- 1--1 --- accounts.User
+          payments.RenewalMandate --- user --> accounts.User (one with a plan, one without)
                  ^          '--------> members.MembershipPlan
                  | mandate
-          payments.RenewalAttempt --- membership --> members.Membership
+          payments.RenewalAttempt --- membership (null) --> members.Membership
                  |  '-------- payment --> payments.Payment
                  '----------- retry_of --> payments.RenewalAttempt
 
@@ -205,7 +205,8 @@ Domain schema
       payments.Refund         amount_cents, reason, note, status,
                               provider_ref, refunded_at
       payments.RenewalMandate provider, method_ref, method_label, status,
-                              failure_count, contribution_cents, next_charge_on
+                              failure_count, cadence, contribution_cents,
+                              next_charge_on
       payments.RenewalAttempt scheduled_on, outcome, error, noticed_at,
                               attempted_at, result_emailed_at
       aircraft.Aircraft       n_number (unique), make, model, insurance_*
@@ -243,10 +244,10 @@ Domain schema
       payments.Payment.recorded_by   -> accounts.User            FK, SET_NULL, nullable
       payments.Refund.payment        -> payments.Payment         FK, PROTECT, related name refunds
       payments.Refund.requested_by   -> accounts.User            FK, SET_NULL, nullable
-      payments.RenewalMandate.user   -> accounts.User            1--1, CASCADE
+      payments.RenewalMandate.user   -> accounts.User            FK, CASCADE, related name renewal_mandates
       payments.RenewalMandate.plan   -> members.MembershipPlan   FK, PROTECT, nullable
       payments.RenewalAttempt.mandate    -> payments.RenewalMandate  FK, CASCADE, related name attempts
-      payments.RenewalAttempt.membership -> members.Membership       FK, CASCADE
+      payments.RenewalAttempt.membership -> members.Membership       FK, CASCADE, nullable
       payments.RenewalAttempt.payment    -> payments.Payment         FK, SET_NULL, nullable
       payments.RenewalAttempt.retry_of   -> payments.RenewalAttempt  FK, SET_NULL, nullable
       aircraft.Aircraft.created_by   -> accounts.User            FK, SET_NULL, nullable
@@ -1273,10 +1274,13 @@ several.
 ``RenewalMandate``
 ------------------
 
-One member's standing authority for CalDART to charge a saved payment method
-once a year: their membership renewal, a contribution, or both.
-``OneToOneField`` on the user, related name ``renewal_mandate``, so a member
-holds at most one.
+One person's standing authority for CalDART to charge a saved payment method on a
+schedule.  With a plan it is an automatic renewal, charged once a year for the
+dues and any contribution beside them; with no plan it is a recurring donation,
+charged monthly, quarterly or yearly for the contribution alone.  A foreign key
+on the user, related name ``renewal_mandates``, held to one of each kind by two
+conditional unique constraints: ``renewal_mandate_one_plan_per_user`` (``plan``
+set) and ``renewal_mandate_one_donation_per_user`` (``plan`` null).
 
 .. list-table::
    :header-rows: 1
@@ -1285,16 +1289,19 @@ holds at most one.
    * - Field
      - Notes
    * - ``user``
-     - one-to-one, ``CASCADE``
+     - FK, ``CASCADE``, related name ``renewal_mandates``
    * - ``plan``
      - FK, ``PROTECT``, nullable — a plan with a duration, since a lifetime plan
-       never renews, or null when the member already holds a lifetime term and
-       the authority is over the contribution alone
+       never renews, or null for a recurring donation
    * - ``contribution_cents``
-     - renewed alongside the dues
+     - taken beside the dues, or on its own for a recurring donation
+   * - ``cadence``
+     - ``monthly``, ``quarterly`` or ``yearly`` (the default); a renewal is always
+       ``yearly``
    * - ``next_charge_on``
-     - the day the member chose to be charged on, which defaults to the day their
-       membership runs out; rolled forward by every successful charge
+     - the day of the next charge, which defaults to the day the membership runs
+       out for a renewal and to today for a donation; rolled forward by every
+       successful charge, to the end of the term bought or by the cadence
    * - ``provider``
      - ``stripe``, ``paypal`` or ``mock``
    * - ``customer_ref``
@@ -1322,7 +1329,9 @@ holds at most one.
 ------------------
 
 One scheduled charge against a mandate, and the row every renewal email is
-keyed on.
+keyed on.  A mandate waits on one charge at a time: the conditional unique
+constraint ``renewal_attempt_one_scheduled_per_mandate`` allows one attempt per
+mandate whose ``outcome`` is ``scheduled``.
 
 .. list-table::
    :header-rows: 1
@@ -1333,7 +1342,8 @@ keyed on.
    * - ``mandate``
      - FK, ``CASCADE``, related name ``attempts``
    * - ``membership``
-     - FK, ``CASCADE`` — the term whose expiry this charge renews
+     - FK, ``CASCADE``, nullable — the term whose expiry this charge renews; null
+       for a recurring donation, which renews nothing
    * - ``scheduled_on``
      - the day the charge is due
    * - ``retry_of``

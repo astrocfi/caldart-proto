@@ -1,9 +1,9 @@
-{% if kind == "contribution" %}{{ org_name }} — thank you for your contribution{% else %}{{ org_name }} — your membership has been renewed{% endif %}
+{% if kind == "contribution" %}{{ org_name }} — thank you for your recurring donation{% else %}{{ org_name }} — your membership has been renewed{% endif %}
 
 Hello {{ first_name }},
 {% if kind == "contribution" %}
 We have charged {{ amount }} to {{ method_label }}. Thank you for your
-contribution to {{ org_name }}.
+recurring donation to {{ org_name }}.
 {% elif kind == "both" %}
 We have charged {{ amount }} to {{ method_label }}, renewed your {{ plan_name }}
 membership and taken your contribution.{% if expires_on %} Your membership is now good through
@@ -21,4 +21,4 @@ the portal:
 --
 {{ org_name }} is a volunteer disaster air transportation network.
 {% if contact_email %}Questions? Write to {{ contact_email }}.
-{% endif %}You are receiving this because you are a member of {{ org_name }}.
+{% endif %}{% if kind == "contribution" %}You are receiving this because you give to {{ org_name }}.{% else %}You are receiving this because you are a member of {{ org_name }}.{% endif %}

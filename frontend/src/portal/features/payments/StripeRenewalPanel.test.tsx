@@ -12,12 +12,12 @@ import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { RenewalSetupRequest } from '@/portal/api/types';
+import { todayIso } from '@/portal/components/DateText';
 import { AMOUNT_DEBOUNCE_MS } from '@/portal/features/checkout/StripePanel';
 import { makePaymentsConfig } from '@test/fixtures/payments';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { defaultChargeDate } from './chargeDate';
 import { RenewalSetup } from './RenewalSetup';
 
 vi.mock('@stripe/stripe-js', () => ({
@@ -63,7 +63,7 @@ function mount() {
 describe('StripeRenewalPanel', () => {
   it('asks for one SetupIntent for an amount typed digit by digit', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const chargeOn = defaultChargeDate({ isLifetime: false, expiresOn: null });
+    const chargeOn = todayIso();
     const { setups } = mount();
 
     await user.click(await screen.findByRole('radio', { name: 'Other amount' }));

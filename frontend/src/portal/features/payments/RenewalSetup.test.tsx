@@ -11,12 +11,11 @@ import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { RenewalEnvelope, RenewalSetupRequest } from '@/portal/api/types';
-import { formatDate } from '@/portal/components/DateText';
+import { todayIso } from '@/portal/components/DateText';
 import { makeMandate, makePaymentsConfig } from '@test/fixtures/payments';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import { defaultChargeDate } from './chargeDate';
 import { RenewalSetup } from './RenewalSetup';
 
 const confirmSetup = vi.fn();
@@ -61,11 +60,9 @@ const EXPIRES_ON = '2027-06-30';
 /** Serve the config and record every setup request the flow sends. */
 function mount({
   providers,
-  isLifetime = false,
   expiresOn = EXPIRES_ON,
 }: {
   providers: ('stripe' | 'paypal' | 'mock')[];
-  isLifetime?: boolean;
   expiresOn?: string | null;
 }) {
   const setups: RenewalSetupRequest[] = [];
@@ -94,12 +91,7 @@ function mount({
   const handleDone = vi.fn();
   const handleCancel = vi.fn();
   renderWithProviders(
-    <RenewalSetup
-      isLifetime={isLifetime}
-      expiresOn={expiresOn}
-      onCancel={handleCancel}
-      onDone={handleDone}
-    />,
+    <RenewalSetup expiresOn={expiresOn} onCancel={handleCancel} onDone={handleDone} />,
     { route: '/payments' },
   );
   return { setups, confirms, handleDone, handleCancel };
@@ -133,18 +125,13 @@ describe('RenewalSetup', () => {
   it('refuses a day that has already gone by, so the box starts at today', async () => {
     mount({ providers: ['mock'] });
 
-    expect(await screen.findByLabelText('First charge on')).toHaveAttribute(
-      'min',
-      defaultChargeDate({ isLifetime: false, expiresOn: null }),
-    );
+    expect(await screen.findByLabelText('First charge on')).toHaveAttribute('min', todayIso());
   });
 
   it('opens on today for a member whose term has already run out', async () => {
     mount({ providers: ['mock'], expiresOn: '2020-01-01' });
 
-    expect(await screen.findByLabelText('First charge on')).toHaveValue(
-      defaultChargeDate({ isLifetime: false, expiresOn: null }),
-    );
+    expect(await screen.findByLabelText('First charge on')).toHaveValue(todayIso());
   });
 
   it('waits for a day rather than sending an empty one when the box is cleared', async () => {
@@ -273,58 +260,5 @@ describe('RenewalSetup', () => {
     await user.click(await screen.findByRole('button', { name: 'Cancel' }));
 
     expect(handleCancel).toHaveBeenCalledOnce();
-  });
-
-  describe('for a life member', () => {
-    it('offers no plan, because their membership never runs out', async () => {
-      mount({ providers: ['mock'], isLifetime: true });
-
-      expect(await screen.findByRole('radio', { name: /Supporter/ })).toBeInTheDocument();
-      expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
-    });
-
-    it('states the contribution alone, on the day one year from today', async () => {
-      const user = userEvent.setup();
-      const expected = defaultChargeDate({ isLifetime: true, expiresOn: null });
-      mount({ providers: ['mock'], isLifetime: true, expiresOn: null });
-
-      await user.click(await screen.findByRole('radio', { name: /Supporter/ }));
-
-      expect(screen.getByText(/CalDART will charge/)).toHaveTextContent(
-        `CalDART will charge $25.00 on ${formatDate(expected)}, and each year after that.`,
-      );
-    });
-
-    it('opens the first charge one year from today, having no expiry to take', async () => {
-      mount({ providers: ['mock'], isLifetime: true, expiresOn: null });
-
-      expect(await screen.findByLabelText('First charge on')).toHaveValue(
-        defaultChargeDate({ isLifetime: true, expiresOn: null }),
-      );
-    });
-
-    it('asks for a contribution before it offers to save a method', async () => {
-      mount({ providers: ['mock'], isLifetime: true });
-
-      expect(await screen.findByText('Choose a contribution to charge each year.')).toBeVisible();
-      expect(screen.queryByRole('button', { name: 'Save this test card' })).not.toBeInTheDocument();
-    });
-
-    it('saves the method with no plan once an amount is chosen', async () => {
-      const user = userEvent.setup();
-      const { setups, handleDone } = mount({ providers: ['mock'], isLifetime: true });
-
-      await user.click(await screen.findByRole('radio', { name: /Supporter/ }));
-      await user.click(screen.getByRole('button', { name: 'Save this test card' }));
-
-      await waitFor(() => expect(handleDone).toHaveBeenCalledOnce());
-      expect(setups).toEqual([
-        {
-          contribution_cents: 2500,
-          provider: 'mock',
-          next_charge_on: defaultChargeDate({ isLifetime: true, expiresOn: null }),
-        },
-      ]);
-    });
   });
 });

@@ -1,11 +1,19 @@
 /**
- * The shared checkout widget used by `/join`, `/renew` and a contribution.
+ * The shared checkout widget used by `/join`, `/renew`, and `/donate`.
  *
  * Choose a plan, optionally add a contribution, then pay with whichever
  * providers this deployment has keys for.  In `contribute` mode there is no
  * plan to choose: the payment buys no membership term, which is the only thing
  * a life member can do here, so one is shown this form whatever mode was asked
  * for.
+ *
+ * A contribution can be made a recurring donation, monthly, quarterly, or
+ * yearly.  With the first charge today it is paid now and the method saved for
+ * the charges after it; with a later day nothing is paid now, and the method is
+ * saved through the setup flow instead (`onScheduled` reports that).  A member
+ * whose automatic renewal already takes a contribution is refused the donation by
+ * the server, and the widget then asks, in the server's words, whether to move it:
+ * a contribution lives in one place.
  *
  * A finished payment is reported through `onSuccess` and nothing else: the flow
  * that hosts the widget owns the queries a payment moves, so the refresh happens
@@ -16,17 +24,21 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
-import type { PaymentProvider } from '@/portal/api/types';
+import type { IsoDate, PaymentProvider } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { formatDate, todayIso } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { formatCents } from '@/portal/components/Money';
+import { MandateSetupTabs } from '@/portal/features/payments/MandateSetupTabs';
 import { PROVIDER_LABELS, PROVIDER_ORDER, usePaymentsConfig } from './api';
 import { ContributionChooser } from './ContributionChooser';
 import { MockPanel } from './MockPanel';
 import { PayPalPanel } from './PayPalPanel';
 import { PlanChooser } from './PlanChooser';
+import { RecurringDonationFields } from './RecurringDonationFields';
+import type { RecurringDonation } from './RecurringDonationFields';
 import { StripePanel } from './StripePanel';
 import type { CheckoutMode, CheckoutProps, ProviderPanelProps } from './types';
 import './checkout.css';
@@ -56,6 +68,7 @@ export interface SkippableCheckoutProps extends CheckoutProps {
 export function Checkout({
   mode,
   onSuccess,
+  onScheduled: handleScheduled,
   onSkip: handleSkip,
 }: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
@@ -66,6 +79,16 @@ export function Checkout({
   const [isOther, setIsOther] = useState(false);
   const [provider, setProvider] = useState<PaymentProvider | null>(null);
   const [autoRenew, setAutoRenew] = useState(false);
+  const [recurring, setRecurring] = useState<RecurringDonation>(() => ({
+    isRecurring: false,
+    cadence: 'monthly',
+    firstChargeOn: todayIso(),
+  }));
+  const [isMoveAgreed, setIsMoveAgreed] = useState(false);
+  // The server's sentence when it refused the donation because the member's
+  // renewal already takes a contribution; null until it has.
+  const [moveMessage, setMoveMessage] = useState<string | null>(null);
+  const [scheduledOn, setScheduledOn] = useState<IsoDate | null>(null);
   const autoRenewId = useId();
 
   const providers = useMemo(
@@ -130,13 +153,33 @@ export function Checkout({
   // amount rather than starting a provider that cannot be paid.
   const needsContribution = isContributing && contributionCents === 0;
 
-  const panelProps = {
+  const isDonating = isContributing && canAutoRenew && recurring.isRecurring;
+  const needsChargeDate = isDonating && recurring.firstChargeOn === '';
+  const isScheduledLater = isDonating && recurring.firstChargeOn > todayIso();
+  // A contribution lives in one place: the server refuses a donation while the
+  // renewal takes one, and the member agrees to move it before the request is sent
+  // again with that agreement.
+  const needsMove = isDonating && moveMessage !== null && !isMoveAgreed;
+
+  const panelProps: ProviderPanelProps = {
     plan: isContributing ? null : effectivePlan,
     contributionCents,
     amountCents: totalCents,
-    autoRenew: canAutoRenew && autoRenew,
+    autoRenew: isContributing ? isDonating : canAutoRenew && autoRenew,
+    ...(isDonating
+      ? {
+          cadence: recurring.cadence,
+          removeRenewalContribution: isMoveAgreed,
+          onRenewalContribution: setMoveMessage,
+        }
+      : {}),
     onSuccess,
   };
+
+  function handleSetUp(): void {
+    setScheduledOn(recurring.firstChargeOn);
+    handleScheduled?.(recurring.firstChargeOn);
+  }
 
   return (
     <Card eyebrow={heading.eyebrow} title={heading.title} className="checkout">
@@ -177,12 +220,20 @@ export function Checkout({
         <div className="checkout__total-row">
           <dt>Total today</dt>
           <dd className="mono" data-testid="checkout-total">
-            {formatCents(totalCents)}
+            {formatCents(isScheduledLater ? 0 : totalCents)}
           </dd>
         </div>
       </dl>
 
-      {canAutoRenew ? (
+      {isContributing && canAutoRenew ? (
+        <RecurringDonationFields
+          value={recurring}
+          onChange={(next) => setRecurring(next)}
+          amountCents={contributionCents}
+        />
+      ) : null}
+
+      {!isContributing && canAutoRenew ? (
         <div className="checkout__auto-renew">
           <label className="checkout__auto-renew-label" htmlFor={autoRenewId}>
             <input
@@ -191,11 +242,7 @@ export function Checkout({
               checked={autoRenew}
               onChange={(event) => setAutoRenew(event.target.checked)}
             />
-            <span>
-              {isContributing
-                ? 'Contribute this amount automatically each year'
-                : 'Renew automatically each year'}
-            </span>
+            <span>Renew automatically each year</span>
           </label>
           <p className="checkout__fineprint muted">
             We will email you 14 days before charging this card, and you can turn it off at any time
@@ -208,10 +255,39 @@ export function Checkout({
         <p className="checkout__blocked muted" role="status">
           Choose a contribution to continue.
         </p>
+      ) : scheduledOn !== null ? (
+        <p className="checkout__notice" role="status">
+          Your recurring donation is set up. The first charge is on {formatDate(scheduledOn)}.
+        </p>
+      ) : needsMove ? (
+        <div className="checkout__notice stack">
+          <p>{moveMessage}</p>
+          <div className="cluster">
+            <Button onClick={() => setIsMoveAgreed(true)}>Continue</Button>
+          </div>
+        </div>
+      ) : needsChargeDate ? (
+        <p className="checkout__blocked muted" role="status">
+          Choose the day of the first charge.
+        </p>
       ) : providers.length === 0 ? (
         <EmptyState
           title="Online payment is not set up yet"
           description="Please contact CalDART to pay by check, or try again later."
+        />
+      ) : isScheduledLater ? (
+        <MandateSetupTabs
+          config={config}
+          panelProps={{
+            scope: 'donation',
+            plan: null,
+            contributionCents,
+            nextChargeOn: recurring.firstChargeOn,
+            cadence: recurring.cadence,
+            removeRenewalContribution: isMoveAgreed,
+            onRenewalContribution: setMoveMessage,
+            onDone: handleSetUp,
+          }}
         />
       ) : (
         <ProviderTabs

@@ -2,9 +2,9 @@
  * The Automatic renewal card, one test per state the mandate can be in.
  *
  * The card is the only thing on the screen that says whether CalDART is going
- * to take money, so each state is checked for the sentence that answers that
- * and for the control that changes it.  A life member's card is about their
- * contribution: their membership never runs out, so nothing of theirs renews.
+ * to renew a membership, so each state is checked for the sentence that answers
+ * that and for the control that changes it.  The recurring donation, which is the
+ * same card over the other authority, has its own suite.
  */
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -13,8 +13,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { MembershipStatus, RenewalEnvelope, RenewalMandate } from '@/portal/api/types';
 import { todayIso } from '@/portal/components/DateText';
-import { makeContributionMandate, makeMandate, makePaymentsConfig } from '@test/fixtures/payments';
-import { API, CURRENT_MEMBERSHIP, LIFETIME_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
+import { makeMandate, makePaymentsConfig } from '@test/fixtures/payments';
+import { API, CURRENT_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { AutoRenewalCard } from './AutoRenewalCard';
@@ -345,7 +345,9 @@ describe('AutoRenewalCard', () => {
   it('never reads a failed renewal call as renewal being off', async () => {
     mountUnreadable();
 
-    expect(await screen.findByText('Your renewal settings could not be read')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Your automatic renewal settings could not be read'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Off')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Turn on' })).not.toBeInTheDocument();
   });
@@ -397,112 +399,5 @@ describe('AutoRenewalCard', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('That is more than we can take.');
-  });
-
-  describe('for a life member', () => {
-    const lifetime = { membership: LIFETIME_MEMBERSHIP };
-
-    it('is headed Change your contribution when nothing of theirs renews', async () => {
-      const user = userEvent.setup();
-      mount(makeContributionMandate(), lifetime);
-
-      await user.click(await screen.findByRole('button', { name: 'Change' }));
-
-      expect(screen.getByRole('heading', { name: 'Change your contribution' })).toBeInTheDocument();
-    });
-
-    it('is headed Automatic contribution, because nothing of theirs renews', async () => {
-      mount(null, lifetime);
-
-      expect(
-        await screen.findByRole('heading', { name: 'Automatic contribution' }),
-      ).toBeInTheDocument();
-    });
-
-    it('offers to charge the contribution once a year, on a day of their own', async () => {
-      mount(null, lifetime);
-
-      expect(
-        await screen.findByText(
-          /once a year, on the day you choose, for the contribution you choose\./,
-        ),
-      ).toBeInTheDocument();
-    });
-
-    it('names the amount and the date of the next contribution', async () => {
-      mount(makeContributionMandate({ next_charge_on: '2027-08-20' }), lifetime);
-
-      expect(await screen.findByText('Next charge')).toBeInTheDocument();
-      expect(screen.getByText('Next charge').nextElementSibling).toHaveTextContent(
-        '2027/08/20 · $50.00',
-      );
-    });
-
-    it('names the contribution rather than a plan it does not renew', async () => {
-      mount(makeContributionMandate(), lifetime);
-
-      expect(await screen.findByText('Contribution charged each year')).toBeInTheDocument();
-      expect(screen.queryByText('Plan')).not.toBeInTheDocument();
-    });
-
-    it('says the contribution stopped, not the renewal, when the charge was refused', async () => {
-      mount(
-        makeContributionMandate({ status: 'paused', last_error: 'Your card was declined' }),
-        lifetime,
-      );
-
-      expect(await screen.findByText(/Automatic contribution stopped/)).toBeInTheDocument();
-    });
-
-    it('changes the contribution without naming a plan', async () => {
-      const user = userEvent.setup();
-      mount(makeContributionMandate(), lifetime);
-      const bodies = recordPatches(makeContributionMandate({ contribution_cents: 2500 }));
-
-      await user.click(await screen.findByRole('button', { name: 'Change' }));
-      expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
-      await user.click(screen.getByRole('radio', { name: /Supporter/ }));
-      await user.click(screen.getByRole('button', { name: 'Save changes' }));
-
-      await waitFor(() =>
-        expect(bodies).toEqual([{ contribution_cents: 2500, next_charge_on: '2027-03-12' }]),
-      );
-    });
-
-    it('names no plan even when the membership could not be read', async () => {
-      const user = userEvent.setup();
-      mount(makeContributionMandate(), { ...lifetime, hasMembership: false });
-      const bodies = recordPatches(makeContributionMandate());
-
-      await user.click(await screen.findByRole('button', { name: 'Change' }));
-      await user.click(screen.getByRole('radio', { name: /Supporter/ }));
-      await user.click(screen.getByRole('button', { name: 'Save changes' }));
-
-      await waitFor(() =>
-        expect(bodies).toEqual([{ contribution_cents: 2500, next_charge_on: '2027-03-12' }]),
-      );
-    });
-
-    it('will not save an authority with nothing to charge', async () => {
-      const user = userEvent.setup();
-      mount(makeContributionMandate(), lifetime);
-
-      await user.click(await screen.findByRole('button', { name: 'Change' }));
-      await user.click(screen.getByRole('radio', { name: /No thank you/ }));
-
-      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
-      expect(screen.getByText('Choose a contribution to charge each year.')).toBeVisible();
-    });
-
-    it('reports the contribution, not the renewal, when it is turned off', async () => {
-      const user = userEvent.setup();
-      mount(makeContributionMandate(), lifetime);
-      server.use(http.delete(`${API}/me/renewal`, () => new HttpResponse(null, { status: 204 })));
-
-      await user.click(await screen.findByRole('button', { name: 'Turn off' }));
-      await user.click(screen.getByRole('button', { name: 'Yes, turn it off' }));
-
-      expect(await screen.findByText('Automatic contribution is off.')).toBeInTheDocument();
-    });
   });
 });

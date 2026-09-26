@@ -739,10 +739,21 @@ export interface CheckoutRequest {
   plan: string | null;
   contribution_cents: number;
   provider: PaymentProvider;
-  /** Save the method and renew the membership from it each year.  Defaults to false. */
+  /**
+   * Save the method and charge it again on a schedule.  With a plan, the membership
+   * renews each year; with none, the contribution is a recurring donation.  Defaults
+   * to false.
+   */
   auto_renew?: boolean;
-  /** The day the saved method first charges on. Null takes the new term's expiry. */
+  /**
+   * The day the saved method first charges on. Null takes the new term's expiry for a
+   * renewal, and one cadence after today for a donation.
+   */
   next_charge_on?: IsoDate | null;
+  /** How often a recurring donation charges. A renewal takes only `yearly`, the default. */
+  cadence?: MandateCadence;
+  /** Move the renewal's contribution to this donation. Defaults to false. */
+  remove_renewal_contribution?: boolean;
 }
 
 export type CheckoutResponse =
@@ -820,20 +831,30 @@ export type MandateStatus = 'pending' | 'active' | 'paused' | 'canceled';
 
 export type RenewalOutcome = 'scheduled' | 'succeeded' | 'failed' | 'skipped';
 
-/** What a standing authority charges for. `contribution` renews nothing. */
+/**
+ * What a standing authority charges for. `contribution` is a recurring donation, which
+ * renews nothing; `both` is an automatic renewal with a contribution beside the dues.
+ */
 export type MandateKind = 'renewal' | 'both' | 'contribution';
 
-/** One member's standing authority for CalDART to renew their membership. */
+/** How often a standing authority charges. An automatic renewal is always `yearly`. */
+export type MandateCadence = 'monthly' | 'quarterly' | 'yearly';
+
+/**
+ * One person's standing authority for CalDART to charge them on a schedule: an
+ * automatic renewal, which names a plan, or a recurring donation, which names none.
+ */
 export interface RenewalMandate {
   id: number;
   user_id: number;
   user_name: string;
   user_email: string;
-  /** The slug of the plan that renews, or null for a contribution alone. */
+  /** The slug of the plan that renews, or null for a recurring donation. */
   plan: string | null;
   plan_name: string | null;
-  /** A renewal, a contribution, or both. A life member's is always `contribution`. */
+  /** A renewal, a recurring donation (`contribution`), or a renewal with a contribution. */
   kind: MandateKind;
+  cadence: MandateCadence;
   contribution_cents: number;
   /** The plan's price plus the contribution: what the next charge comes to. */
   amount_cents: number;
@@ -855,7 +876,7 @@ export interface RenewalMandate {
   created_at: IsoDateTime;
 }
 
-/** `GET | PATCH /me/renewal`: `mandate` is null when renewal has never been turned on. */
+/** `GET | PATCH /me/renewal` and `/me/donation`: `mandate` is null when there is none. */
 export interface RenewalEnvelope {
   mandate: RenewalMandate | null;
 }
@@ -864,7 +885,8 @@ export interface RenewalEnvelope {
 export interface RenewalAttempt {
   id: number;
   mandate_id: number;
-  membership_id: number;
+  /** The term the charge renews; null for a recurring donation. */
+  membership_id: number | null;
   payment_id: number | null;
   user_id: number;
   user_name: string;
@@ -877,22 +899,32 @@ export interface RenewalAttempt {
   created_at: IsoDateTime;
 }
 
+/** `POST /me/renewal/setup` and `POST /me/donation/setup`. */
 export interface RenewalSetupRequest {
-  /** The plan to renew. A life member leaves it out: nothing of theirs renews. */
+  /** The plan to renew, which a renewal needs. A donation leaves it out. */
   plan?: string;
   contribution_cents: number;
   provider: MandateProvider;
-  /** The day of the first charge. Null takes the day the membership runs out. */
+  /**
+   * The day of the first charge. Null takes the day the membership runs out for a
+   * renewal, and today for a donation.
+   */
   next_charge_on?: IsoDate | null;
+  /** How often a donation charges. A renewal takes only `yearly`, the default. */
+  cadence?: MandateCadence;
+  /** Move the renewal's contribution to this donation. Defaults to false. */
+  remove_renewal_contribution?: boolean;
 }
 
-/** `PATCH /me/renewal`: the plan, the contribution, and the day of the charge. */
+/** `PATCH /me/renewal` and `/me/donation`: what the authority charges, how often, when. */
 export interface RenewalPatchRequest {
-  /** Leaving it out leaves the plan alone. A life member may not give one. */
+  /** Leaving it out leaves the plan alone. A donation does not read it. */
   plan?: string;
   contribution_cents: number;
   /** Moves the next charge. Null leaves the stored day alone. */
   next_charge_on?: IsoDate | null;
+  /** How often a donation charges. Null leaves it alone; a renewal takes only `yearly`. */
+  cadence?: MandateCadence | null;
 }
 
 export type RenewalSetupResponse =

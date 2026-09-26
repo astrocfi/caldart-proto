@@ -63,12 +63,12 @@ export const MANDATE_STATUS_LABELS: Record<MandateStatus, string> = {
 
 /**
  * What a standing renewal authority is called on the finance screens, by what
- * it charges for.  A life member's authority is always `contribution`.
+ * it charges for.  `contribution` is a recurring donation, which names no plan.
  */
 export const MANDATE_KIND_LABELS: Record<MandateKind, string> = {
   renewal: 'Automatic renewal',
   both: 'Automatic renewal and contribution',
-  contribution: 'Automatic contribution',
+  contribution: 'Recurring donation',
 };
 
 /**
@@ -78,5 +78,5 @@ export const MANDATE_KIND_LABELS: Record<MandateKind, string> = {
 export const PAYMENT_AUTOMATIC_LABELS: Record<PaymentKind, string> = {
   membership: 'Automatic renewal',
   both: 'Automatic renewal and contribution',
-  contribution: 'Automatic contribution',
+  contribution: 'Recurring donation',
 };

@@ -39,6 +39,7 @@ pytestmark = pytest.mark.django_db
 type CaptureOnCommit = Callable[..., ContextManager[list[Callable[[], None]]]]
 
 ME = "/api/v1/me/renewal"
+DONATION = "/api/v1/me/donation"
 SETUP = "/api/v1/me/renewal/setup"
 CONFIRM = "/api/v1/me/renewal/confirm"
 ADMIN = "/api/v1/admin/renewals"
@@ -248,10 +249,10 @@ def test_a_plan_nobody_offers_is_refused(
     assert response.json()["plan"] == "Unknown membership plan 'nonesuch'."
 
 
-def test_a_life_member_may_not_patch_a_plan_in(
+def test_a_donation_patch_never_takes_a_plan_in(
     member_client: APIClient, member: User, life_plan: MembershipPlan, annual_plan: MembershipPlan
 ) -> None:
-    """A life member's authority stays over the contribution alone."""
+    """A life member's recurring donation stays over the contribution alone."""
     MembershipFactory(
         user=member,
         plan=life_plan,
@@ -261,12 +262,10 @@ def test_a_life_member_may_not_patch_a_plan_in(
     RenewalMandateFactory(user=member, plan=None, contribution_cents=5_000)
 
     response = member_client.patch(
-        ME, {"plan": annual_plan.slug, "contribution_cents": 5_000}, format="json"
+        DONATION, {"plan": annual_plan.slug, "contribution_cents": 5_000}, format="json"
     )
 
-    assert response.json()["auto_renew"] == [
-        "A life member's membership does not renew; choose a contribution instead."
-    ]
+    assert response.json()["mandate"]["plan"] is None
 
 
 def test_a_plan_that_never_expires_may_not_be_patched_in(
@@ -296,9 +295,9 @@ def test_a_life_member_may_not_patch_their_contribution_away(
     )
     RenewalMandateFactory(user=member, plan=None, contribution_cents=5_000)
 
-    response = member_client.patch(ME, {"contribution_cents": 0}, format="json")
+    response = member_client.patch(DONATION, {"contribution_cents": 0}, format="json")
 
-    assert response.json()["auto_renew"] == ["A contribution to charge each year is needed."]
+    assert response.json()["auto_renew"] == ["A recurring donation needs an amount to give."]
 
 
 def test_a_negative_contribution_is_refused(
@@ -447,12 +446,12 @@ def test_a_checkout_refused_for_renewal_leaves_no_pending_payment(
     assert Payment.objects.filter(user=member).count() == 0
 
 
-def test_a_checkout_cannot_ask_to_renew_a_pure_contribution(
-    member_client: APIClient, annual_plan: MembershipPlan
+def test_a_checkout_for_no_plan_asks_for_a_recurring_donation(
+    member_client: APIClient, member: User, annual_plan: MembershipPlan
 ) -> None:
-    """There is no membership to renew when the payment buys no plan."""
-    body = checkout(member_client, plan="", contribution_cents=1_000)
-    assert body["auto_renew"] == ["Automatic renewal needs a membership plan to renew."]
+    """With no plan to renew, ``auto_renew`` leaves a pending donation behind."""
+    checkout(member_client, plan="", contribution_cents=1_000)
+    assert RenewalMandate.objects.get(user=member).plan_id is None
 
 
 # --------------------------------------------------------------------------

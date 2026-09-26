@@ -115,14 +115,16 @@ test('a system administrator rehearses the renewal scan', async ({ page }) => {
   await expect(panel.getByRole('heading', { name: 'What this run would do' })).toBeVisible();
 });
 
-test("a treasurer sees a life member's standing authority as a contribution", async ({ page }) => {
+test("a treasurer sees a life member's standing authority as a recurring donation", async ({
+  page,
+}) => {
   await signIn(page, DEMO.treasurer);
   await page.goto('/portal/admin/payments/renewals');
 
   await page.getByLabel('Search').fill(SEED.contributionMandate.name);
   const row = bodyRows(page, /renewals?$/).first();
   await expect(row).toContainText(SEED.contributionMandate.name);
-  await expect(row).toContainText('Contribution');
+  await expect(row).toContainText('Recurring donation · Yearly');
 });
 
 test('a plain member reaches none of the finance reports', async ({ page }) => {

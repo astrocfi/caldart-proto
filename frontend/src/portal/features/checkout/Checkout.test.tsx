@@ -4,7 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CheckoutRequest, PaymentsConfig } from '@/portal/api/types';
+import type { CheckoutRequest, PaymentsConfig, RenewalSetupRequest } from '@/portal/api/types';
+import { todayIso } from '@/portal/components/DateText';
+import { makeContributionMandate } from '@test/fixtures/payments';
 import {
   API,
   CURRENT_MEMBERSHIP,
@@ -694,42 +696,6 @@ describe('Checkout · contributing', () => {
     expect(screen.queryByRole('button', { name: 'Succeed' })).not.toBeInTheDocument();
   });
 
-  it('offers to take the same amount every year, in the words of a contribution', async () => {
-    const user = userEvent.setup();
-    serveConfig(config());
-    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
-
-    await user.click(await screen.findByRole('radio', { name: /Participating/ }));
-
-    expect(
-      screen.getByRole('checkbox', { name: 'Contribute this amount automatically each year' }),
-    ).not.toBeChecked();
-  });
-
-  it('asks for a standing contribution when the box is ticked', async () => {
-    const user = userEvent.setup();
-    serveConfig(config());
-    const requests = serveCheckout();
-    server.use(
-      http.post(`${API}/payments/mock/complete`, () =>
-        HttpResponse.json({ status: 'succeeded', membership: CURRENT_MEMBERSHIP }),
-      ),
-    );
-
-    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
-    await user.click(await screen.findByRole('radio', { name: /Participating/ }));
-    await user.click(
-      screen.getByRole('checkbox', { name: 'Contribute this amount automatically each year' }),
-    );
-    await user.click(screen.getByRole('button', { name: 'Succeed' }));
-
-    await waitFor(() =>
-      expect(requests).toEqual([
-        { plan: null, contribution_cents: 2000, provider: 'mock', auto_renew: true },
-      ]),
-    );
-  });
-
   it('shows a life member the contribution form even where a renewal was asked for', async () => {
     signInAsLifeMember();
     serveConfig(config());
@@ -803,5 +769,211 @@ describe('Checkout · a way to skip', () => {
     expect(handleSkip).toHaveBeenCalledOnce();
     expect(handleSuccess).not.toHaveBeenCalled();
     expect(requests).toEqual([]);
+  });
+});
+
+describe('Checkout · recurring donation', () => {
+  /** A day certain to be after today, for a first charge that waits. */
+  const LATER = '2099-01-15';
+
+  /** Answer the mock completion as succeeded. */
+  function serveMockSuccess(): void {
+    server.use(
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT_MEMBERSHIP }),
+      ),
+    );
+  }
+
+  /** Record every donation setup, and confirm each one. */
+  function serveDonationSetup(): RenewalSetupRequest[] {
+    const setups: RenewalSetupRequest[] = [];
+    server.use(
+      http.post(`${API}/me/donation/setup`, async ({ request }) => {
+        setups.push((await request.json()) as RenewalSetupRequest);
+        return HttpResponse.json({ provider: 'mock', client: {} });
+      }),
+      http.post(`${API}/me/donation/confirm`, () =>
+        HttpResponse.json({ mandate: makeContributionMandate({ cadence: 'monthly' }) }),
+      ),
+    );
+    return setups;
+  }
+
+  /** Render the contribution form, choose Participating, and tick the box. */
+  async function tickRecurring(
+    props: Partial<Parameters<typeof Checkout>[0]> = {},
+  ): Promise<ReturnType<typeof userEvent.setup>> {
+    const user = userEvent.setup();
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} {...props} />);
+    await user.click(await screen.findByRole('radio', { name: /Participating/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'Make this a recurring donation' }));
+    return user;
+  }
+
+  it('offers to make the contribution a recurring donation, unticked', async () => {
+    const user = userEvent.setup();
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    await user.click(await screen.findByRole('radio', { name: /Participating/ }));
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Make this a recurring donation' }),
+    ).not.toBeChecked();
+  });
+
+  it('opens on a monthly donation whose first charge is today', async () => {
+    await tickRecurring();
+
+    expect(screen.getByRole('radio', { name: 'Monthly' })).toBeChecked();
+    expect(screen.getByLabelText('First charge on')).toHaveValue(todayIso());
+  });
+
+  it('says a first charge today is taken now, and receipted each month', async () => {
+    await tickRecurring();
+
+    expect(
+      screen.getByText(/CalDART charges \$20\.00 today, and each month after that\./),
+    ).toHaveTextContent('We email you a receipt after every charge.');
+  });
+
+  it('pays today and asks for the donation on the chosen cadence', async () => {
+    serveMockSuccess();
+    const requests = serveCheckout();
+    const user = await tickRecurring();
+
+    await user.click(screen.getByRole('radio', { name: 'Quarterly' }));
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() =>
+      expect(requests).toEqual([
+        {
+          plan: null,
+          contribution_cents: 2000,
+          provider: 'mock',
+          auto_renew: true,
+          cadence: 'quarterly',
+        },
+      ]),
+    );
+  });
+
+  it('takes nothing today when the first charge is on a later day', async () => {
+    const user = await tickRecurring();
+
+    await user.clear(screen.getByLabelText('First charge on'));
+    await user.type(screen.getByLabelText('First charge on'), LATER);
+
+    expect(screen.getByTestId('checkout-total')).toHaveTextContent('$0.00');
+  });
+
+  it('saves the method for a later first charge instead of paying', async () => {
+    const setups = serveDonationSetup();
+    const requests = serveCheckout();
+    const user = await tickRecurring();
+
+    await user.clear(screen.getByLabelText('First charge on'));
+    await user.type(screen.getByLabelText('First charge on'), LATER);
+    await user.click(screen.getByRole('button', { name: 'Save this test card' }));
+
+    await waitFor(() =>
+      expect(setups).toEqual([
+        { contribution_cents: 2000, provider: 'mock', next_charge_on: LATER, cadence: 'monthly' },
+      ]),
+    );
+    expect(requests).toEqual([]);
+  });
+
+  it('reports the first charge day once a later donation is set up', async () => {
+    serveDonationSetup();
+    const handleScheduled = vi.fn();
+    const user = await tickRecurring({ onScheduled: handleScheduled });
+
+    await user.clear(screen.getByLabelText('First charge on'));
+    await user.type(screen.getByLabelText('First charge on'), LATER);
+    await user.click(screen.getByRole('button', { name: 'Save this test card' }));
+
+    await waitFor(() => expect(handleScheduled).toHaveBeenCalledWith(LATER));
+  });
+
+  /** The sentence the server refuses a donation with while the renewal gives $20.00. */
+  const MOVE_MESSAGE =
+    'Your automatic renewal already includes a contribution of $20.00 a year. Set up a ' +
+    'recurring donation and that contribution comes off the renewal; your dues still renew ' +
+    'automatically.';
+
+  /** The server's refusal of a donation while the renewal takes a contribution. */
+  function moveRefusal(): Response {
+    return HttpResponse.json(
+      { detail: MOVE_MESSAGE, code: 'renewal_contribution' },
+      { status: 400 },
+    );
+  }
+
+  /** Refuse every checkout that does not agree to the move, and record them all. */
+  function serveCheckoutRefusingTheMove(): CheckoutRequest[] {
+    const requests: CheckoutRequest[] = [];
+    server.use(
+      http.post(`${API}/payments/checkout`, async ({ request }) => {
+        const body = (await request.json()) as CheckoutRequest;
+        requests.push(body);
+        if (body.remove_renewal_contribution !== true) return moveRefusal();
+        return HttpResponse.json(
+          { payment_id: 77, provider: body.provider, client: {} },
+          { status: 201 },
+        );
+      }),
+    );
+    return requests;
+  }
+
+  it("shows the server's sentence when the renewal already takes a contribution", async () => {
+    serveCheckoutRefusingTheMove();
+    const user = await tickRecurring();
+
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    expect(await screen.findByText(MOVE_MESSAGE)).toBeVisible();
+  });
+
+  it('holds the payment back until the member continues', async () => {
+    serveCheckoutRefusingTheMove();
+    const user = await tickRecurring();
+
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    expect(await screen.findByRole('button', { name: 'Continue' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Succeed' })).not.toBeInTheDocument();
+  });
+
+  it('sends the agreement to move the contribution once the member continues', async () => {
+    serveMockSuccess();
+    const requests = serveCheckoutRefusingTheMove();
+    const user = await tickRecurring();
+
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+    await user.click(await screen.findByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    await waitFor(() => expect(requests.at(-1)?.remove_renewal_contribution).toBe(true));
+  });
+
+  it('asks before moving the contribution when a later donation is saved', async () => {
+    const setups: RenewalSetupRequest[] = [];
+    server.use(
+      http.post(`${API}/me/donation/setup`, async ({ request }) => {
+        setups.push((await request.json()) as RenewalSetupRequest);
+        return moveRefusal();
+      }),
+    );
+    const user = await tickRecurring();
+
+    await user.clear(screen.getByLabelText('First charge on'));
+    await user.type(screen.getByLabelText('First charge on'), LATER);
+    await user.click(screen.getByRole('button', { name: 'Save this test card' }));
+
+    expect(await screen.findByRole('button', { name: 'Continue' })).toBeInTheDocument();
   });
 });

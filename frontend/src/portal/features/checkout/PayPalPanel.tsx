@@ -13,7 +13,7 @@ import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import { useToast } from '@/portal/components/Toast';
-import { capturePayPalOrder, createCheckout } from './api';
+import { capturePayPalOrder, checkoutRequest, createCheckout, panelErrorMessage } from './api';
 import type { ProviderPanelProps } from './types';
 
 /** What a member is told when they close PayPal's window without paying. */
@@ -26,11 +26,10 @@ export interface PayPalPanelProps extends ProviderPanelProps {
 /** PayPal's buttons: creates an order on our server, then captures it. */
 export function PayPalPanel({
   clientId,
-  plan,
-  contributionCents,
   amountCents,
-  autoRenew,
   onSuccess,
+  onRenewalContribution,
+  ...fields
 }: PayPalPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const paymentId = useRef<number | null>(null);
@@ -52,17 +51,12 @@ export function PayPalPanel({
       >
         <PayPalButtons
           style={{ layout: 'vertical', shape: 'rect', label: 'paypal' }}
-          forceReRender={[amountCents, plan, autoRenew]}
+          forceReRender={[amountCents, fields.plan, fields.autoRenew, fields.cadence ?? '']}
           createOrder={async () => {
             setError(null);
             hasOrderError.current = false;
             try {
-              const checkout = await createCheckout({
-                plan,
-                contribution_cents: contributionCents,
-                provider: 'paypal',
-                auto_renew: autoRenew,
-              });
+              const checkout = await createCheckout(checkoutRequest(fields, 'paypal'));
               paymentId.current = checkout.payment_id;
               if (checkout.provider !== 'paypal' || !checkout.client.order_id) {
                 throw new Error('PayPal did not return an order.');
@@ -73,9 +67,11 @@ export function PayPalPanel({
               // reason is put on screen here before the rejection goes back to it.
               hasOrderError.current = true;
               setError(
-                caught instanceof ApiError
-                  ? caught.message
-                  : 'That PayPal payment could not be started.',
+                panelErrorMessage(
+                  caught,
+                  'That PayPal payment could not be started.',
+                  onRenewalContribution,
+                ),
               );
               throw caught;
             }

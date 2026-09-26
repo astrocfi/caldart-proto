@@ -1,4 +1,4 @@
-"""``manage.py run_auto_renewals`` -- the daily automatic-renewal scan.
+"""``manage.py run_auto_renewals`` -- the daily scan of renewals and recurring donations.
 
 Run by ``deploy/systemd/caldart-renewals.timer`` at 06:30, half an hour before
 the reminder scan, so a membership renewed automatically is never also sent a
@@ -21,7 +21,10 @@ from apps.payments.renewals import run_auto_renewals
 class Command(BaseCommand):
     """Runs the automatic-renewal scan and reports its results to stdout."""
 
-    help = "Send renewal notices, charge the renewals due, and retry or pause failures."
+    help = (
+        "Send renewal notices, charge the renewals and recurring donations due, "
+        "and retry or pause failures."
+    )
 
     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
         """Register ``--dry-run`` and ``--today`` on the command's argument parser."""

@@ -1,8 +1,8 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}{% if kind == "contribution" %}We have taken your contribution of {{ amount }}. Thank you.{% else %}We have renewed your {{ plan_name }} membership and charged {{ amount }}.{% endif %}{% endblock %}
+{% block preheader %}{% if kind == "contribution" %}We have taken your recurring donation of {{ amount }}. Thank you.{% else %}We have renewed your {{ plan_name }} membership and charged {{ amount }}.{% endif %}{% endblock %}
 
-{% block heading %}{% if kind == "contribution" %}Thank you for your contribution{% else %}Your membership has been renewed{% endif %}{% endblock %}
+{% block heading %}{% if kind == "contribution" %}Thank you for your recurring donation{% else %}Your membership has been renewed{% endif %}{% endblock %}
 
 {% block lede %}{{ amount }} charged to {{ method_label }}.{% endblock %}
 
@@ -11,7 +11,7 @@
   {% if kind == "contribution" %}
     <p style="margin:0 0 14px 0;">
       We have charged {{ amount }} to {{ method_label }}. Thank you for your
-      contribution to {{ org_name }}.
+      recurring donation to {{ org_name }}.
     </p>
   {% elif kind == "both" %}
     <p style="margin:0 0 14px 0;">

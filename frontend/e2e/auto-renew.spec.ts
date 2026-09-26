@@ -6,7 +6,7 @@
  * The account is created here rather than borrowed from the seed, because the
  * seeded members already carry mandates of their own and this flow is about a
  * member who has never had one.  The life member at the end is the seeded one:
- * their authority is over a contribution, since nothing of theirs renews.
+ * their authority is a recurring donation, since nothing of theirs renews.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
@@ -146,35 +146,26 @@ test('a member turns automatic renewal on from the Payments screen alone', async
   await expect(card.getByText(/after your membership runs out on/)).toBeVisible();
 });
 
-test('a life member reads their automatic contribution, turns it off, and turns it on again', async ({
+test('a life member reads their recurring donation, turns it off, and is sent to set one up', async ({
   page,
 }) => {
   await signIn(page, SEED.contributionMandate.email);
   await page.goto('/portal/payments');
 
-  // The card is about the contribution: their membership never runs out.
-  const card = authorityCard(page, 'Automatic contribution');
+  // Nothing of theirs renews, so the only card is their recurring donation.
+  await expect(page.getByRole('heading', { name: 'Automatic renewal' })).toHaveCount(0);
+  const card = authorityCard(page, 'Recurring donation');
   await expect(card.getByText('On', { exact: true })).toBeVisible();
-  await expect(card.getByText('Contribution charged each year')).toBeVisible();
+  await expect(card.getByText('Yearly')).toBeVisible();
   await expect(card.locator('dd').filter({ hasText: /\d{4}\/\d{2}\/\d{2} · \$/ })).toBeVisible();
 
   await card.getByRole('button', { name: 'Turn off' }).click();
   await page.getByRole('button', { name: 'Yes, turn it off' }).click();
-  await expect(page.getByText('Automatic contribution is off.').first()).toBeVisible();
+  await expect(page.getByText('Recurring donation is off.').first()).toBeVisible();
   await expect(card.getByText('Off', { exact: true })).toBeVisible();
 
-  // Turning it on again offers a contribution and no plan at all, and the first
-  // charge falls a year out: a life membership has no expiry to take.
-  await card.getByRole('button', { name: 'Turn on' }).click();
-  await expect(card.getByRole('radio', { name: /Annual/ })).toHaveCount(0);
-  await expect(
-    card.getByText(new RegExp(`on ${yearsOnDisplay(1)}, and each year after`)),
-  ).toBeVisible();
-  await card.getByRole('radio', { name: /Participating/ }).check();
-  await card.getByRole('tab', { name: 'Test payment method' }).click();
-  await card.getByRole('button', { name: 'Save this test card' }).click();
-
-  await expect(page.getByText('Automatic contribution is on.').first()).toBeVisible();
-  await expect(card.getByText('On', { exact: true })).toBeVisible();
-  await expect(card.locator('dd').filter({ hasText: /\d{4}\/\d{2}\/\d{2} · \$/ })).toBeVisible();
+  // A donation is set up on the Donate screen, where the first gift can be taken.
+  await card.getByRole('link', { name: 'Set up' }).click();
+  await expect(page.getByRole('heading', { name: 'Donate', level: 1 })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /Annual/ })).toHaveCount(0);
 });

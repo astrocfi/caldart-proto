@@ -28,6 +28,7 @@ describe('visibleNavItems', () => {
       'My profile',
       'My aircraft',
       'Payments',
+      'Donate',
       'Renew',
       'Change password',
       'Change email',

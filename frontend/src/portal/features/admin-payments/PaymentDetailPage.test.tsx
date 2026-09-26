@@ -74,7 +74,7 @@ describe('PaymentDetailPage', () => {
 
   it.each<[PaymentDetail['kind'], string]>([
     ['membership', 'Automatic renewal'],
-    ['contribution', 'Automatic contribution'],
+    ['contribution', 'Recurring donation'],
     ['both', 'Automatic renewal and contribution'],
   ])('names the automatic row by what a %s payment bought: %s', async (kind, label) => {
     servePayment(makeDetail({ kind }));

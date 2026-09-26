@@ -18,6 +18,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
 from apps.payments.models import (
+    MandateCadence,
     MandateProvider,
     MandateStatus,
     Payment,
@@ -30,10 +31,10 @@ from apps.payments.renewals import (
     NOTICE_DAYS,
     PAST_CHARGE_DATE_MESSAGE,
     RETRY_OFFSETS,
+    advance_by_cadence,
     begin_mandate,
     charge_date,
     default_charge_date,
-    next_anniversary,
     run_auto_renewals,
 )
 from tests.factories import MembershipFactory, RenewalAttemptFactory, RenewalMandateFactory
@@ -132,15 +133,20 @@ def test_the_default_charge_day_is_the_day_the_membership_runs_out(
     assert default_charge_date(dated_member, today) == expires_on
 
 
-def test_a_life_members_default_charge_day_is_a_year_from_today(
-    life_member: User, today: date
-) -> None:
-    """Nothing of a life member's runs out, so the yearly charge is dated from today."""
-    assert default_charge_date(life_member, today) == next_anniversary(today)
+def test_a_donation_begun_with_no_day_is_charged_today(life_member: User, today: date) -> None:
+    """A recurring donation renews nothing, so with no day of its own it starts today."""
+    mandate = begin_mandate(
+        life_member,
+        plan=None,
+        contribution_cents=CONTRIBUTION_CENTS,
+        provider=MandateProvider.MOCK,
+    )
+
+    assert mandate.next_charge_on == today
 
 
 def test_a_member_with_no_term_at_all_is_charged_today(member: User, today: date) -> None:
-    """With neither an expiry nor a lifetime term there is no later day to wait for."""
+    """With no expiry there is no later day to wait for."""
     assert default_charge_date(member, today) == today
 
 
@@ -419,10 +425,8 @@ def test_a_successful_charge_rolls_the_stored_day_to_the_new_expiry(
     assert mandate.next_charge_on == renewed.ends_on
 
 
-def test_a_contributions_stored_day_rolls_to_its_next_anniversary(
-    life_member: User, today: date
-) -> None:
-    """A contribution has no term, so it moves a year on from the day it was taken."""
+def test_a_yearly_donations_stored_day_rolls_on_a_year(life_member: User, today: date) -> None:
+    """A donation has no term, so it moves one cadence on from the day it was taken."""
     mandate = active_mandate(
         life_member, None, next_charge_on=today, contribution_cents=CONTRIBUTION_CENTS
     )
@@ -430,7 +434,7 @@ def test_a_contributions_stored_day_rolls_to_its_next_anniversary(
     run_auto_renewals(today=today)
 
     mandate.refresh_from_db()
-    assert mandate.next_charge_on == next_anniversary(today)
+    assert mandate.next_charge_on == advance_by_cadence(today, MandateCadence.YEARLY)
 
 
 def test_a_refused_charge_leaves_the_stored_day_alone(

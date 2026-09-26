@@ -64,13 +64,11 @@ describe('MemberLedgerPage', () => {
     expect(await screen.findByText('Visa ending 4242, expires 03/2028')).toBeInTheDocument();
   });
 
-  it('titles the card Automatic contribution for a life member', async () => {
+  it('titles the card Recurring donation for a mandate that names no plan', async () => {
     serveLedger(makeLedger({ mandate: makeContributionMandate() }));
     renderLedger();
 
-    expect(
-      await screen.findByRole('heading', { name: 'Automatic contribution' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Recurring donation' })).toBeInTheDocument();
     expect(screen.getByText('Charges')).toBeInTheDocument();
     expect(screen.getByText('Contribution · $50.00')).toBeInTheDocument();
   });

@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from django.conf import settings
+from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -35,6 +36,7 @@ from apps.accounts.permissions import user_has_any_role
 from apps.accounts.roles import ACCOUNT_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
 from apps.members.services import membership_status
+from apps.payments.api.renewal_views import RenewalContributionConflictError
 from apps.payments.api.serializers import (
     CheckoutResponseSerializer,
     CheckoutSerializer,
@@ -52,9 +54,12 @@ from apps.payments.models import (
 )
 from apps.payments.providers import available_providers, get_provider
 from apps.payments.providers.base import PaymentError
-from apps.payments.renewals import begin_mandate, discard_pending_mandate
+from apps.payments.renewals import (
+    RenewalContributionError,
+    begin_mandate,
+    discard_pending_mandate,
+)
 from apps.payments.services import create_checkout
-from caldart.exceptions import DomainValidationError
 
 #: What the webhook endpoints answer with.  The provider chooses the body, and
 #: neither portal screen reads it, so the schema describes only the status.
@@ -153,25 +158,30 @@ class CheckoutView(APIView):
         ``client`` is whatever the chosen provider's browser SDK needs.  400 when
         the provider is not configured, when the plan or the contribution is one
         the server will not charge for, or when the provider refuses to start the
-        payment -- in which case the pending payment is deleted again.
+        payment -- in which case no pending payment is left behind.
 
         A life member has nothing to renew, so a ``plan`` from one is a 400 naming
         ``plan``: their checkout is a contribution, with or without a standing
         authority behind it.
 
-        ``auto_renew`` asks for the method to be saved and the membership renewed
-        from it each year: a ``pending`` mandate is created before the provider is
-        started, so the provider knows to save the method, and it becomes active
-        when the payment succeeds.  A life member's mandate carries no plan and
-        charges the contribution once a year.  400 naming ``auto_renew`` for a plan
-        that never expires, for a checkout by a member who is not a life member
-        that buys no plan, for a life member who contributes nothing, and for a
-        provider that cannot charge a saved method -- and the pending payment is
-        deleted again, exactly as it is when the provider refuses to start.
+        ``auto_renew`` asks for the method to be saved and charged again on a
+        schedule: a ``pending`` mandate is created before the provider is started,
+        so the provider knows to save the method, and it becomes active when the
+        payment succeeds.  With a plan it is an automatic renewal, once a year;
+        with no plan it is a recurring donation of the contribution on ``cadence``.
+        400 naming ``auto_renew`` for a plan that never expires, for a donation of
+        nothing, and for a provider that cannot charge a saved method; 400 naming
+        ``contribution_cents`` for a renewal that takes a contribution while the
+        member holds a recurring donation; and ``400 {"detail": ..., "code":
+        "renewal_contribution"}`` for a donation while the member's renewal takes a
+        contribution, unless ``remove_renewal_contribution`` moves it off the
+        renewal first.  Any of these, and a provider that refuses to start, writes
+        nothing: no pending payment, and the member's mandates as they were.
 
         ``next_charge_on`` is the day that authority first charges on, and a day
         before today is a 400 naming ``next_charge_on``.  Left out, the first
-        charge falls on the day the term this payment buys runs out.
+        charge falls on the day the term this payment buys runs out for a renewal,
+        and one cadence after today for a donation.
 
         A checkout that does *not* ask for automatic renewal throws away any
         pending mandate the member is still carrying from a checkout they
@@ -185,34 +195,40 @@ class CheckoutView(APIView):
             raise ValidationError({"provider": f"'{provider_slug}' is not configured."})
 
         user = signed_in_user(request)
-        payment = create_checkout(
-            user,
-            serializer.validated_data.get("plan") or None,
-            serializer.validated_data["contribution_cents"],
-            provider_slug,
-        )
-        if serializer.validated_data["auto_renew"]:
-            # Before the provider is started: Stripe needs a customer on the
-            # intent and PayPal a vault instruction on the order, and neither can
-            # be added after the fact.
+        # One transaction: a refusal anywhere below leaves no pending payment and
+        # the member's mandates -- and a contribution moved off the renewal -- as
+        # they were.
+        with transaction.atomic():
+            payment = create_checkout(
+                user,
+                serializer.validated_data.get("plan") or None,
+                serializer.validated_data["contribution_cents"],
+                provider_slug,
+            )
+            if serializer.validated_data["auto_renew"]:
+                # Before the provider is started: Stripe needs a customer on the
+                # intent and PayPal a vault instruction on the order, and neither
+                # can be added after the fact.
+                try:
+                    begin_mandate(
+                        user,
+                        plan=payment.plan,
+                        contribution_cents=payment.contribution_cents,
+                        provider=provider_slug,
+                        next_charge_on=serializer.validated_data["next_charge_on"],
+                        cadence=serializer.validated_data["cadence"],
+                        remove_renewal_contribution=serializer.validated_data[
+                            "remove_renewal_contribution"
+                        ],
+                    )
+                except RenewalContributionError as exc:
+                    raise RenewalContributionConflictError(exc) from exc
+            else:
+                discard_pending_mandate(user)
             try:
-                begin_mandate(
-                    user,
-                    plan=payment.plan,
-                    contribution_cents=payment.contribution_cents,
-                    provider=provider_slug,
-                    next_charge_on=serializer.validated_data["next_charge_on"],
-                )
-            except DomainValidationError:
-                payment.delete()
-                raise
-        else:
-            discard_pending_mandate(user)
-        try:
-            client = get_provider(provider_slug).start(payment)
-        except PaymentError as exc:
-            payment.delete()
-            raise ValidationError({"detail": str(exc)}) from exc
+                client = get_provider(provider_slug).start(payment)
+            except PaymentError as exc:
+                raise ValidationError({"detail": str(exc)}) from exc
 
         return Response(
             {"payment_id": payment.pk, "provider": provider_slug, "client": client},

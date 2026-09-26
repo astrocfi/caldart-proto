@@ -1,21 +1,21 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}{% if kind == "contribution" %}Your automatic contribution is off; your lifetime membership is untouched.{% else %}Automatic renewal is off; your membership runs to the end of its term.{% endif %}{% endblock %}
+{% block preheader %}{% if kind == "contribution" %}Your recurring donation is off; nothing further will be charged.{% else %}Automatic renewal is off; your membership runs to the end of its term.{% endif %}{% endblock %}
 
-{% block heading %}Automatic {{ kind_label }} is off{% endblock %}
+{% block heading %}{{ kind_label|capfirst }} is off{% endblock %}
 
-{% block lede %}{% if kind == "contribution" %}Nothing further will be charged for your contribution.{% else %}Nothing further will be charged for your {{ plan_name }} membership.{% endif %}{% endblock %}
+{% block lede %}{% if kind == "contribution" %}Nothing further will be charged for your donation.{% else %}Nothing further will be charged for your {{ plan_name }} membership.{% endif %}{% endblock %}
 
 {% block body %}
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
   {% if kind == "contribution" %}
     <p style="margin:0 0 14px 0;">
-      Your automatic contribution to {{ org_name }} has been turned off, and the
+      Your recurring donation to {{ org_name }} has been turned off, and the
       payment method we had saved has been dropped.
     </p>
     <p style="margin:0 0 14px 0;">
-      Your lifetime membership is untouched. You can contribute by hand at any
-      time, or turn the automatic contribution back on.
+      Your account is untouched. You can give by hand at any time, or set up a
+      recurring donation again.
     </p>
   {% else %}
     <p style="margin:0 0 14px 0;">

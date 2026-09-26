@@ -1,16 +1,19 @@
 /**
- * `/admin/payments/renewals` — the automatic renewals members have set up
- * CalDART to renew their membership, and the charges scheduled against them.
+ * `/admin/payments/renewals` — the standing authorities people have given
+ * CalDART, automatic renewals and recurring donations alike, and the charges
+ * scheduled against them.
  *
  * Two tables: the mandates, which is where a support call is answered and
  * where one can be turned off on a member's behalf, and the recent attempts,
- * which is where "why was I not renewed?" is answered.  Turning a mandate off
- * asks first, because the member is emailed about it.
+ * which is where "why was I not charged?" is answered.  The mandates narrow by
+ * status and by kind.  Turning a mandate off asks first, because the member is
+ * emailed about it.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
 
 import type {
+  MandateKind,
   MandateStatus,
   RenewalAttempt,
   RenewalMandate,
@@ -26,6 +29,7 @@ import { Page } from '@/portal/components/Page';
 import { StatusChip } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
 import { useDebounced } from '@/portal/components/useDebounced';
+import { CADENCE_LABELS } from '@/portal/features/payments/labels';
 import { FinanceTabs } from './FinanceTabs';
 import { MANDATE_KIND_LABELS } from './labels';
 import {
@@ -41,6 +45,7 @@ import {
 import './admin-payments.css';
 
 const STATUSES: MandateStatus[] = ['active', 'pending', 'paused', 'canceled'];
+const KINDS: MandateKind[] = ['renewal', 'both', 'contribution'];
 const OUTCOMES: RenewalOutcome[] = ['scheduled', 'succeeded', 'failed', 'skipped'];
 
 /** A mandate can still be turned off while it is pending, active or paused. */
@@ -84,6 +89,7 @@ export function RenewalsPage(): JSX.Element {
   const toast = useToast();
 
   const [status, setStatus] = useState<MandateStatus | ''>('');
+  const [kind, setKind] = useState<MandateKind | ''>('');
   const [term, setTerm] = useState('');
   const [outcome, setOutcome] = useState<RenewalOutcome | ''>('');
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
@@ -91,7 +97,7 @@ export function RenewalsPage(): JSX.Element {
   const [attemptPage, setAttemptPage] = useState(1);
 
   const search = useDebounced(term.trim());
-  const mandates = useRenewalMandates(status, search, mandatePage);
+  const mandates = useRenewalMandates({ status, kind, search }, mandatePage);
   const attempts = useRenewalAttempts(outcome, attemptPage);
   const cancel = useCancelMandate();
 
@@ -125,7 +131,24 @@ export function RenewalsPage(): JSX.Element {
       ),
       sortValue: (row) => row.user_name,
     },
-    { key: 'plan_name', header: 'Plan', render: (row) => row.plan_name ?? 'Contribution' },
+    {
+      key: 'kind',
+      header: 'Kind',
+      render: (row) => (
+        <>
+          {MANDATE_KIND_LABELS[row.kind]}
+          {row.kind === 'contribution' ? (
+            <span className="muted"> · {CADENCE_LABELS[row.cadence]}</span>
+          ) : null}
+        </>
+      ),
+      sortValue: (row) => row.kind,
+    },
+    {
+      key: 'plan_name',
+      header: 'Plan',
+      render: (row) => row.plan_name ?? <span className="muted">&mdash;</span>,
+    },
     {
       key: 'amount_cents',
       header: 'Next charge',
@@ -240,6 +263,25 @@ export function RenewalsPage(): JSX.Element {
           </select>
         )}
       </Field>
+      <Field label="Kind">
+        {(props) => (
+          <select
+            {...props}
+            value={kind}
+            onChange={(event) => {
+              setKind(event.target.value as MandateKind | '');
+              setMandatePage(1);
+            }}
+          >
+            <option value="">Any kind</option>
+            {KINDS.map((option) => (
+              <option key={option} value={option}>
+                {MANDATE_KIND_LABELS[option]}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
       <Field label="Search">
         {(props) => (
           <input
@@ -290,12 +332,12 @@ export function RenewalsPage(): JSX.Element {
     <Page
       title="Renewals"
       eyebrow="Payments"
-      lede="Who has asked CalDART to renew their membership, contribute automatically, or both, and how those charges went."
+      lede="Who has asked CalDART to renew their membership, to give on a schedule, or both, and how those charges went."
     >
       <FinanceTabs />
 
       <section className="stack">
-        <h2 className="period-table__title">Automatic renewals</h2>
+        <h2 className="period-table__title">Automatic renewals and recurring donations</h2>
         <DataTable
           columns={mandateColumns}
           rows={mandateRows}
@@ -304,7 +346,7 @@ export function RenewalsPage(): JSX.Element {
           filters={mandateFilters}
           isLoading={mandates.isPending}
           emptyTitle="No renewals match"
-          emptyDescription="Clear the status filter, or search for a different member."
+          emptyDescription="Clear the status and kind filters, or search for a different member."
         />
         {mandates.isError ? (
           <p role="alert" className="field__error">

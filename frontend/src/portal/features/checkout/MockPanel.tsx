@@ -7,17 +7,16 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 
-import { ApiError } from '@/portal/api/client';
 import { Button } from '@/portal/components/Button';
-import { completeMockPayment, createCheckout } from './api';
+import { checkoutRequest, completeMockPayment, createCheckout, panelErrorMessage } from './api';
 import type { ProviderPanelProps } from './types';
 
 /** Succeed / Fail buttons that drive the mock payment provider directly. */
 export function MockPanel({
-  plan,
-  contributionCents,
-  autoRenew,
+  amountCents: _amountCents,
   onSuccess,
+  onRenewalContribution,
+  ...fields
 }: ProviderPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,12 +25,7 @@ export function MockPanel({
     setError(null);
     setBusy(true);
     try {
-      const checkout = await createCheckout({
-        plan,
-        contribution_cents: contributionCents,
-        provider: 'mock',
-        auto_renew: autoRenew,
-      });
+      const checkout = await createCheckout(checkoutRequest(fields, 'mock'));
       const result = await completeMockPayment(checkout.payment_id, outcome);
       if (result.status === 'succeeded') {
         onSuccess({ paymentId: checkout.payment_id, membership: result.membership });
@@ -40,7 +34,11 @@ export function MockPanel({
       }
     } catch (caught) {
       setError(
-        caught instanceof ApiError ? caught.message : 'The test payment could not be completed.',
+        panelErrorMessage(
+          caught,
+          'The test payment could not be completed.',
+          onRenewalContribution,
+        ),
       );
     } finally {
       setBusy(false);
