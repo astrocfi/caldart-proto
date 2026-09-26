@@ -20,21 +20,25 @@ What you are deploying
 .. only:: graphviz
 
    .. graphviz::
-      :caption: One server, from the outside in.  A **solid arrow** is a
-                request, labeled with the protocol and the port it arrives on;
-                a **dashed arrow** is an outbound call the application makes; a
-                **dotted arrow** is a file read straight off disk.  The
-                **dashed box** is the one machine.  ``nginx``
+      :caption: One server, from the outside in: the web request path.  A
+                **solid arrow** is a request, labeled with the protocol and the
+                port it arrives on; a **dashed arrow** is an outbound call the
+                application makes; a **dotted arrow** is a file read straight
+                off disk.  The **dashed box** is the one machine.  ``nginx``
                 (``deploy/nginx/caldart.conf``) takes Apache's place unchanged
                 when you deploy it instead.
       :alt: Topology of a CalDART production server: Apache, gunicorn,
-            Postgres in Docker and the four scheduled timers
+            Django, Postgres in Docker, the media directory, and the
+            environment file, with the browser, the payment providers, and
+            the SMTP server outside it
 
-      digraph caldart_topology {
+      digraph caldart_web {
           rankdir=TB;
           bgcolor="transparent";
-          node [shape=box, style="rounded", fontname="Helvetica", fontsize=10];
-          edge [fontname="Helvetica", fontsize=9];
+          nodesep=0.35;
+          ranksep=0.45;
+          node [shape=box, style="rounded", fontname="Helvetica", fontsize=11];
+          edge [fontname="Helvetica", fontsize=11];
 
           Browser [label="Browser\l  member portal, public site,\l  Wagtail admin\l"];
           Stripe [label="Stripe and PayPal\l  api.stripe.com,\l  api-m.paypal.com\l"];
@@ -43,7 +47,7 @@ What you are deploying
           subgraph cluster_server {
               label="One Linux server, deploy root /srv/caldart";
               fontname="Helvetica";
-              fontsize=10;
+              fontsize=11;
               style=dashed;
               color="gray";
 
@@ -51,44 +55,73 @@ What you are deploying
               Gunicorn [label="gunicorn 127.0.0.1:8001\l  caldart-web.service\l  deploy/gunicorn.conf.py\l  2 x CPU + 1 workers, max 12\l  timeout 60, preload\l"];
               Django [label="Django 6 + Wagtail 8\l  caldart.settings.prod\l  /static/ via whitenoise\l"];
               Postgres [label="Postgres in Docker :5432\l  compose service db\l"];
-              Timer [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
-              Renewals [label="caldart-renewals.timer\l  daily 06:30 ->\l  caldart-renewals.service\l  manage.py run_auto_renewals\l"];
-              Reports [label="caldart-reports.timer\l  daily 06:00 ->\l  caldart-reports.service\l  manage.py send_scheduled_reports\l"];
-              Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py send_year_statements\l"];
-              Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to the\l  web server\l", shape=folder, style=""];
-              Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for both units\l", shape=note, style=""];
+              Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to\l  the web server\l", shape=folder, style=""];
+              Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all five services\l", shape=note, style=""];
 
-              Apache -> Gunicorn [label="HTTP 127.0.0.1:8001\lX-Forwarded-Proto: https"];
-              Gunicorn -> Django [label="WSGI\lcaldart.wsgi:application", arrowhead=none];
-              Django -> Postgres [label="DATABASE_URL"];
-              Timer -> Postgres [label="reads terms,\lwrites ReminderLog"];
-              Renewals -> Postgres [label="reads mandates,\lwrites payments and terms"];
-              Reports -> Postgres [label="reads subscriptions and DARTs,\lwrites their send dates"];
-              Statements -> Postgres [label="reads payments,\lwrites YearStatement"];
-              Apache -> Media [label="/media/ off disk", style=dotted];
-              Django -> Media [label="/documents/<id>/<name>\lafter the members-only check", style=dotted];
-              Env -> Gunicorn [label="settings", style=dashed, arrowhead=none];
-              Env -> Timer [label="settings", style=dashed, arrowhead=none];
-              Env -> Renewals [label="settings", style=dashed, arrowhead=none];
-              Env -> Reports [label="settings", style=dashed, arrowhead=none];
-              Env -> Statements [label="settings", style=dashed, arrowhead=none];
+              Apache -> Gunicorn [label="HTTP 127.0.0.1:8001\lX-Forwarded-Proto: https\l"];
+              Gunicorn -> Django [label="WSGI\lcaldart.wsgi:application\l", arrowhead=none];
+              Django -> Postgres [label="DATABASE_URL\l"];
+              Apache -> Media [label="/media/ off disk\l", style=dotted];
+              Django -> Media [label="/documents/<id>/<name>\lafter the members-only\lcheck\l", style=dotted];
+              Env -> Gunicorn [label="settings\l", style=dashed, arrowhead=none];
           }
 
-          Browser -> Apache [label="HTTPS :443\lHTTP :80 redirected"];
-          Django -> Stripe [label="checkout and confirm", style=dashed];
-          Stripe -> Apache [label="webhooks, HTTPS :443"];
-          Django -> Smtp [label="password resets,\linvitations", style=dashed];
-          Timer -> Smtp [label="renewal reminders", style=dashed];
-          Renewals -> Stripe [label="off-session charges", style=dashed];
-          Renewals -> Smtp [label="renewal notices and receipts", style=dashed];
-          Reports -> Smtp [label="reports and DART rosters", style=dashed];
-          Statements -> Smtp [label="contribution statements", style=dashed];
+          Browser -> Apache [label="HTTPS :443\lHTTP :80 redirected\l"];
+          Django -> Stripe [label="checkout and\lconfirm\l", style=dashed];
+          Stripe -> Apache [label="webhooks,\lHTTPS :443\l"];
+          Django -> Smtp [label="password resets,\linvitations\l", style=dashed];
+      }
+
+   .. graphviz::
+      :caption: The same server's four scheduled jobs.  Each timer starts its
+                service, which runs one management command and exits.  A
+                **solid arrow** is the job reading and writing the database; a
+                **dashed arrow** is an outbound call.  Every job service reads
+                its settings from the same environment file as
+                ``caldart-web.service``, so the server runs five services in
+                all.
+      :alt: The four CalDART timers and their services, each writing to
+            Postgres and sending mail, with the renewals job also charging
+            through Stripe and PayPal
+
+      digraph caldart_jobs {
+          rankdir=LR;
+          bgcolor="transparent";
+          nodesep=0.35;
+          ranksep=0.9;
+          node [shape=box, style="rounded", fontname="Helvetica", fontsize=11];
+          edge [fontname="Helvetica", fontsize=11];
+
+          Env [label="/etc/caldart/caldart.env\l  EnvironmentFile for\l  every job service\l", shape=note, style=""];
+          Reports [label="caldart-reports.timer\l  daily 06:00 ->\l  caldart-reports.service\l  manage.py send_scheduled_reports\l"];
+          Renewals [label="caldart-renewals.timer\l  daily 06:30 ->\l  caldart-renewals.service\l  manage.py run_auto_renewals\l"];
+          Reminders [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
+          Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py send_year_statements\l"];
+          Stripe [label="Stripe and PayPal\l  off-session charges\l"];
+          Postgres [label="Postgres in Docker :5432\l"];
+          Smtp [label="SMTP server\l  from EMAIL_URL\l"];
+
+          {rank=same; Stripe; Postgres; Smtp;}
+          {rank=same; Reports; Renewals; Reminders; Statements;}
+          Stripe -> Postgres -> Smtp [style=invis];
+          Reports -> Renewals -> Reminders -> Statements [style=invis];
+
+          Env -> {Reports Renewals Reminders Statements} [style=dashed, arrowhead=none];
+          Renewals -> Stripe [style=dashed];
+          Reports -> Postgres;
+          Renewals -> Postgres;
+          Reminders -> Postgres;
+          Statements -> Postgres;
+          Reports -> Smtp [style=dashed];
+          Renewals -> Smtp [style=dashed];
+          Reminders -> Smtp [style=dashed];
+          Statements -> Smtp [style=dashed];
       }
 
 .. only:: not graphviz
 
-   Install Graphviz and rebuild for a drawn version of this diagram.  The
-   drawing and the sketch below carry the same pieces and the same traffic.
+   Install Graphviz and rebuild for drawn versions of these diagrams.  The two
+   drawings and the sketch below carry the same pieces and the same traffic.
 
    .. code-block:: text
 
@@ -104,22 +137,23 @@ What you are deploying
       Stripe / PayPal webhooks arrive                 |
       through Apache like any other request           v
                                                 Postgres in Docker :5432
-      caldart-reminders.timer, daily 07:00            ^
-        -> caldart-reminders.service                  |
-           manage.py send_renewal_reminders ----------'
-           -> the SMTP server from EMAIL_URL          |
+      caldart-reports.timer, daily 06:00              ^
+        -> caldart-reports.service                    |
+           manage.py send_scheduled_reports ----------|
+           -> the SMTP server, for the report         |
+              subscriptions and the DART rosters      |
                                                       |
       caldart-renewals.timer, daily 06:30             |
         -> caldart-renewals.service                   |
-           manage.py run_auto_renewals ---------------'
-           -> Stripe / PayPal for the off-session charges,|
-              and the SMTP server for the renewal emails
+           manage.py run_auto_renewals ---------------|
+           -> Stripe / PayPal for the off-session     |
+              charges, and the SMTP server for the    |
+              renewal notices and receipts            |
                                                       |
-      caldart-reports.timer, daily 06:00              |
-        -> caldart-reports.service                    |
-           manage.py send_scheduled_reports ----------'
-           -> the SMTP server, for the report subscriptions
-              and the DART rosters                    |
+      caldart-reminders.timer, daily 07:00            |
+        -> caldart-reminders.service                  |
+           manage.py send_renewal_reminders ----------|
+           -> the SMTP server from EMAIL_URL          |
                                                       |
       caldart-statements.timer, yearly Jan 15, 06:45  |
         -> caldart-statements.service                 |
@@ -127,12 +161,12 @@ What you are deploying
            -> the SMTP server, for the contribution statements
 
    Apache, gunicorn, Postgres, and the four timers run on one Linux server with
-   the deploy root ``/srv/caldart``, and every systemd unit reads its settings
-   from ``/etc/caldart/caldart.env`` (``root:caldart``, mode ``0640``).  Django
-   calls out to ``api.stripe.com`` and ``api-m.paypal.com`` during a checkout,
-   and to the same SMTP server for password resets and invitations.  ``nginx``
-   (``deploy/nginx/caldart.conf``) takes Apache's place unchanged when you
-   deploy it instead.
+   the deploy root ``/srv/caldart``, and all five services (``caldart-web`` and
+   the four job services) read their settings from ``/etc/caldart/caldart.env``
+   (``root:caldart``, mode ``0640``).  Django calls out to ``api.stripe.com``
+   and ``api-m.paypal.com`` during a checkout, and to the same SMTP server for
+   password resets and invitations.  ``nginx`` (``deploy/nginx/caldart.conf``)
+   takes Apache's place unchanged when you deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
 ``caldart-web`` gunicorn unit, and Apache.  Four jobs run on a schedule: the
