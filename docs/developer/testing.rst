@@ -824,7 +824,10 @@ disagree with it, and one that hard-codes a *generated* member's name disagrees
 sooner than that: ``leaderCheck`` names one member per case the leader check
 reads differently -- an insured pilot, an aircraft whose cover has lapsed, and a
 member whose membership has -- found in the seeded data rather than typed into
-the spec.
+the spec.  ``SEED.autoRenewal.activeMandate`` is picked the same way: the first
+active mandate whose ``next_charge_on`` is still ahead of today, so a spec that
+reads it is never handed a member the renewal scan is about to charge or has
+already charged out from under it.
 Running Playwright against a server you started yourself means writing the file
 yourself first, with the same command.
 

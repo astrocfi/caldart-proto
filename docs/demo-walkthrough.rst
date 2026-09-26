@@ -335,9 +335,11 @@ roles; press *Send password reset* and watch the email arrive in Mailpit.  See
 Health shows database connectivity, pending migrations, free disk and the last
 backup; Backups lists the dumps in ``backups/`` and can make a new one;
 Reminders runs the renewal scan — leave *dry run* ticked the first time — and
-lists what was recently sent.  Then try the scan from the command line against
-a future date, which is how you rehearse a year's worth of reminders in a
-second:
+lists what was recently sent.  The seed leaves two members with an ordinary
+automatic renewal due today and one more with a catch-up renewal overdue, so
+this first scan always charges three.  Then try the scan from the command line
+against a future date, which is how you rehearse a year's worth of reminders in
+a second:
 
 .. code-block:: console
 
@@ -345,6 +347,10 @@ second:
 
 See :doc:`user/system-administrator-guide` and
 :doc:`developer/reminders`.
+
+The seed also leaves three report subscriptions and every DART's roster due
+the day it runs, so ``uv run backend/manage.py send_scheduled_reports`` always
+has real mail to send; see :doc:`developer/scheduled-reports`.
 
 When you are finished, stop Django with :kbd:`Ctrl-C`.  Leave the containers
 running, or stop them with ``make down`` — the data survives in the

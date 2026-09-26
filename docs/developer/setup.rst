@@ -103,7 +103,12 @@ Step by step:
 4. **``make seed``** runs ``seed_roles``, then ``seed_demo`` (demo accounts,
    about forty generated members, twenty-five aircraft, two years of
    payments), then ``seed_content`` (the example Wagtail site).  All three are
-   idempotent — running ``make seed`` twice changes nothing.
+   idempotent — running ``make seed`` twice changes nothing.  The day it runs,
+   ``seed_demo`` leaves three report subscriptions due, every DART's roster
+   due, two members with an ordinary automatic renewal due, and one more with
+   a catch-up renewal due, so ``send_scheduled_reports`` and
+   ``run_auto_renewals`` always have real work waiting (see
+   :doc:`scheduled-reports` and :doc:`renewals`).
 
 5. **``make build``** compiles the frontend into ``frontend/dist`` and writes
    ``frontend/dist/.vite/manifest.json``.  **This step is not optional.**  With

@@ -325,7 +325,9 @@ The label is the payer's masked email address, such as ``PayPal
 12/2030``.  A mandate whose ``method_last4`` is ``0002`` is refused every time it
 is charged with "Your card was declined", which is how the decline, the retries
 and the pause are demonstrated and tested; the seed uses it for its paused
-mandate.
+mandate.  The succeeding card seeds the three mandates the daily scan always
+has work on: two due for an ordinary renewal today, and one due for a catch-up
+renewal.
 
 .. _renewals-emails:
 
@@ -441,6 +443,12 @@ left alone.  Otherwise the stored ``next_charge_on`` decides:
   meantime and the notice then goes out as usual.
 
 A dry run reports both outcomes without making either.
+
+The demo seed leaves both paths ready to exercise the day it runs: two
+generated members have a term ending today with an ordinary renewal already
+due, and one more has a term that lapsed ten days ago with no attempt against
+it yet, so ``run_auto_renewals`` takes the catch-up path for that member and
+charges all three.
 
 Members whose records were imported from CiviCRM with automatic renewal switched
 on have no mandate here: the payment method was never handed to CalDART, and
