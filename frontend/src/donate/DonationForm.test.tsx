@@ -68,7 +68,7 @@ function renderForm(handleGiven = vi.fn(), search = '') {
 }
 
 /** Choose $100 and fill in the four required fields. */
-async function fillIn(user: ReturnType<typeof userEvent.setup>) {
+async function fillInGift(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole('radio', { name: /Bronze/ }));
   await user.type(screen.getByLabelText(/First name/), 'Pat');
   await user.type(screen.getByLabelText(/Last name/), 'Giver');
@@ -107,7 +107,7 @@ describe('DonationForm', () => {
     serveGift();
     const user = userEvent.setup();
     renderForm();
-    await fillIn(user);
+    await fillInGift(user);
     await user.clear(screen.getByLabelText(/^Phone/));
     await user.type(screen.getByLabelText(/^Phone/), '555');
 
@@ -131,7 +131,7 @@ describe('DonationForm', () => {
     serveGift();
     const user = userEvent.setup();
     renderForm();
-    await fillIn(user);
+    await fillInGift(user);
 
     await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
 
@@ -144,7 +144,7 @@ describe('DonationForm', () => {
     serveGift();
     const user = userEvent.setup();
     renderForm();
-    await fillIn(user);
+    await fillInGift(user);
     await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
 
     await user.click(screen.getByRole('button', { name: 'Change' }));
@@ -156,7 +156,7 @@ describe('DonationForm', () => {
     const served = serveGift();
     const user = userEvent.setup();
     renderForm();
-    await fillIn(user);
+    await fillInGift(user);
     await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
 
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
@@ -179,7 +179,7 @@ describe('DonationForm', () => {
     const served = serveGift();
     const user = userEvent.setup();
     renderForm();
-    await fillIn(user);
+    await fillInGift(user);
     await user.click(screen.getByText('Tell us more (optional)'));
     await user.selectOptions(screen.getByLabelText('California county'), 'Marin');
     await user.selectOptions(screen.getByLabelText('DART'), 'Bay Area');
@@ -201,7 +201,7 @@ describe('DonationForm', () => {
     const served = serveGift();
     const user = userEvent.setup();
     renderForm();
-    await fillIn(user);
+    await fillInGift(user);
     await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
 
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
@@ -215,7 +215,7 @@ describe('DonationForm', () => {
     serveGift();
     const user = userEvent.setup();
     renderForm();
-    await fillIn(user);
+    await fillInGift(user);
     await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
 
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
@@ -230,7 +230,7 @@ describe('DonationForm', () => {
     const onGiven = vi.fn();
     const user = userEvent.setup();
     renderForm(onGiven);
-    await fillIn(user);
+    await fillInGift(user);
     await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
 
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
@@ -253,7 +253,7 @@ describe('DonationForm', () => {
     );
     const user = userEvent.setup();
     renderForm();
-    await fillIn(user);
+    await fillInGift(user);
     await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
 
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
