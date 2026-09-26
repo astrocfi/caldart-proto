@@ -43,11 +43,13 @@ describe('daysUntil', () => {
 });
 
 describe('membershipTone', () => {
-  it('never gives a membership the `new` tone', () => {
-    const tones = (['current', 'expired', 'friend', 'donor'] as const).map((status) =>
-      membershipTone(membership({ status, expires_on: null }), TODAY),
-    );
-    expect(tones).not.toContain('new');
+  it.each([
+    ['current', 'current'],
+    ['expired', 'expired'],
+    ['friend', 'none'],
+    ['donor', 'none'],
+  ] as const)('gives a `%s` membership with no end date the `%s` tone', (status, tone) => {
+    expect(membershipTone(membership({ status, expires_on: null }), TODAY)).toBe(tone);
   });
 
   it('is `expired` for a lapsed membership', () => {

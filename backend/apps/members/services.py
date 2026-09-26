@@ -446,13 +446,15 @@ NO_PENDING_CHANGE = "You have no pending change."
 def check_can_become_friend(user: User, today: date) -> None:
     """Refuse, with ``DomainError``, a request from ``user`` to become a friend.
 
-    A donor is refused with :data:`DONOR_KIND_REFUSED`, an account already a friend on
-    ``today`` with :data:`ALREADY_FRIEND`, and a current lifetime member with
-    :data:`LIFETIME_STAYS_MEMBER`.  A member whose change is pending may ask again.
+    A donor is refused with :data:`DONOR_KIND_REFUSED`; an account stored as a friend,
+    or whose ``friend_on`` is on or before ``today``, with :data:`ALREADY_FRIEND`; and a
+    current lifetime member with :data:`LIFETIME_STAYS_MEMBER`.  A member whose change
+    is pending may ask again, and so may a member who has not paid: they count as a
+    friend already, but their stored kind still says ``member``.
     """
     if is_donor(user):
         raise DomainError(DONOR_KIND_REFUSED)
-    if account_kind(user, today) == AccountKind.FRIEND:
+    if user.kind == AccountKind.FRIEND or (user.friend_on is not None and user.friend_on <= today):
         raise DomainError(ALREADY_FRIEND)
     if membership_status(user, today)["is_lifetime"]:
         raise DomainError(LIFETIME_STAYS_MEMBER)

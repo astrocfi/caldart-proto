@@ -410,6 +410,24 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
     await waitFor(() => expect(path()).toBe('/join/done'));
   });
 
+  it('says a member is almost there while their paid membership is not visible yet', async () => {
+    const user = makeUser({ profile_complete: true, membership: UNPAID });
+    server.use(
+      signedInAs(user),
+      // The settled term has not reached the membership read yet, so it still says friend.
+      http.get(`${API}/me/membership`, () => HttpResponse.json({ ...UNPAID, history: [] })),
+      http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)),
+      http.post(`${API}/payments/stripe/confirm`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: CURRENT }),
+      ),
+    );
+
+    renderWizard(RETURN);
+
+    await screen.findByText('Your membership is not active yet.');
+    expect(screen.getByRole('heading', { name: 'Almost there' })).toBeInTheDocument();
+  });
+
   it('offers a way back to paying when the payment was declined', async () => {
     server.use(
       signedInAs(makeUser({ profile_complete: true, membership: UNPAID })),

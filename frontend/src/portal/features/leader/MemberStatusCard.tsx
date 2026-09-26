@@ -108,8 +108,7 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
                   <DateText value={status.membership.expires_on} />
                 </>
               ) : status.membership.status === 'current' ? (
-                // Current with no end date is a lifetime membership; a friend, an
-                // unpaid term, and no membership have no date for another reason.
+                // Current with no end date is a lifetime membership; a friend has no date at all.
                 ' · lifetime'
               ) : null}
             </span>

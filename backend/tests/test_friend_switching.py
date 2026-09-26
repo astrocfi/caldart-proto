@@ -223,11 +223,16 @@ def test_an_expired_member_becomes_a_friend_at_once(
     assert (fresh(member).kind, member.friend_on) == (AccountKind.FRIEND, None)
 
 
-def test_a_member_who_never_paid_is_told_they_already_are_a_friend(
+def test_a_member_who_never_paid_is_stored_as_a_friend_at_once(
     member_client: APIClient, member: User
 ) -> None:
-    """A member with no term at all is a friend already, so there is nothing to change."""
-    assert become_friend(member_client) == (400, ALREADY_FRIEND)
+    """A member with no term, a friend in effect already, is stored as a friend too."""
+    status, body = become_friend(member_client)
+    assert (status, body["membership"]["status"], fresh(member).kind) == (
+        200,
+        "friend",
+        AccountKind.FRIEND,
+    )
 
 
 def test_an_immediate_change_is_audited_with_today(

@@ -380,7 +380,9 @@ class MembershipStatusChoices(models.TextChoices):
     ``SUSPENDED`` is a term whose holder deactivated their own account while it still
     had time to run.  It counts for nothing -- it never covers a day and never makes
     anybody expired -- until the account is reactivated, when it becomes ``ACTIVE``
-    again, or ``EXPIRED`` if it ran out in the meantime.
+    again, or ``EXPIRED`` if it ran out in the meantime.  It still makes its holder a
+    member for ``members.services.account_kind`` once it has started, so a deactivated
+    member's kind stays ``member`` while their membership state reads ``friend``.
     """
 
     ACTIVE = "active", "Active"
