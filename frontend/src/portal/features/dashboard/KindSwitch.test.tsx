@@ -174,9 +174,7 @@ describe('<KindSwitch/>', () => {
     renderWithProviders(<KindSwitch />);
     await openPanel();
     await userEvent.click(screen.getByRole('button', { name: 'Make me a friend' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'A lifetime member stays a member.',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('A lifetime member stays a member.');
   });
 
   it('shows a pending change with its day', async () => {

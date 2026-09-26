@@ -77,9 +77,7 @@ describe('<JoinAsMemberPage/>', () => {
   it('welcomes the new member and returns to the dashboard once they have paid', async () => {
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: 'Pretend to pay' }));
-    expect(
-      await screen.findByText('Thank you — you are a member of CalDART.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Thank you — you are a member of CalDART.')).toBeInTheDocument();
     expect(screen.getByTestId('path')).toHaveTextContent(/^\/$/);
   });
 });
