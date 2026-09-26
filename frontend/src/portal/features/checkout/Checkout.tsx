@@ -53,7 +53,11 @@ export interface SkippableCheckoutProps extends CheckoutProps {
  * Choose a plan and a contribution, then pay with the configured providers, or
  * press **Not now** when the host passed `onSkip`.
  */
-export function Checkout({ mode, onSuccess, onSkip }: SkippableCheckoutProps): JSX.Element {
+export function Checkout({
+  mode,
+  onSuccess,
+  onSkip: handleSkip,
+}: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
   const { user } = useAuth();
 
@@ -85,6 +89,7 @@ export function Checkout({ mode, onSuccess, onSkip }: SkippableCheckoutProps): J
         <p className="muted" role="status">
           Loading payment options…
         </p>
+        <SkipFooter onSkip={handleSkip} />
       </Card>
     );
   }
@@ -96,6 +101,7 @@ export function Checkout({ mode, onSuccess, onSkip }: SkippableCheckoutProps): J
           title="Payment options could not be loaded"
           description="Please reload the page, or contact CalDART if it keeps happening."
         />
+        <SkipFooter onSkip={handleSkip} />
       </Card>
     );
   }
@@ -217,14 +223,23 @@ export function Checkout({ mode, onSuccess, onSkip }: SkippableCheckoutProps): J
         />
       )}
 
-      {onSkip === undefined ? null : (
-        <div className="cluster card__footer">
-          <Button variant="quiet" onClick={() => onSkip()}>
-            Not now
-          </Button>
-        </div>
-      )}
+      <SkipFooter onSkip={handleSkip} />
     </Card>
+  );
+}
+
+/**
+ * The **Not now** button, drawn whether or not the payment options loaded, so a host
+ * where paying is optional is never left without a way on.
+ */
+function SkipFooter({ onSkip }: { onSkip: (() => void) | undefined }) {
+  if (onSkip === undefined) return null;
+  return (
+    <div className="cluster card__footer">
+      <Button variant="quiet" onClick={() => onSkip()}>
+        Not now
+      </Button>
+    </div>
   );
 }
 
