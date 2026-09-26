@@ -65,6 +65,25 @@ describe('the join wizard card', () => {
   });
 });
 
+describe('the join shell header and step list', () => {
+  const joinCss = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), 'features/join/join.css'),
+    'utf8',
+  );
+
+  // Without this, the header and the step list span the full frame while
+  // `.join-card` (46rem, centered) sits underneath, so they look flush left
+  // above a centered card on a wide, signed-out screen.
+  it.each(['.join-shell .page__header', '.join-shell .join-steps'])(
+    "%s keeps the join card's width and centering",
+    (selector) => {
+      const body = ruleBody(selector, joinCss);
+      expect(body).toContain('max-width: 46rem;');
+      expect(body).toContain('margin-inline: auto;');
+    },
+  );
+});
+
 describe('the auth card', () => {
   const authCss = readFileSync(
     join(dirname(fileURLToPath(import.meta.url)), 'features/auth/auth.css'),
