@@ -39,8 +39,7 @@ from django.utils.text import slugify
 from wagtail.images.models import Image
 from wagtail.models import Page, Site
 
-from apps.cms.management.commands import seed_content_data as content
-from apps.cms.management.commands.seed_content_data import BlockSpec, PageSpec
+from apps.cms import seed_content_data as content
 from apps.cms.models import (
     ContactPage,
     DartIndexPage,
@@ -56,6 +55,7 @@ from apps.cms.models import (
 )
 from apps.cms.permissions import grant_website_admin_permissions
 from apps.cms.seed import ensure_site_root
+from apps.cms.seed_content_data import BlockSpec, PageSpec
 from apps.darts.models import Dart
 from apps.members.seed import seed_darts
 

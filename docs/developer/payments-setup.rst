@@ -25,32 +25,57 @@ mock switch, which ``backend/caldart/settings/prod.py`` reads.
 
 .. list-table::
    :header-rows: 1
-   :widths: 40 60
+   :widths: 27 33 40
 
    * - Variable
      - What it is
+     - Where the value comes from
    * - ``STRIPE_PUBLISHABLE_KEY``
      - ``pk_test_…`` / ``pk_live_…``; sent to the browser, safe to expose.
+     - Stripe: **Developers → API keys**, *Publishable key*.  Test mode for
+       ``pk_test_``, live mode for ``pk_live_``.
    * - ``STRIPE_SECRET_KEY``
      - ``sk_test_…`` / ``sk_live_…``; server only.  **Never** commit it.
+     - Stripe: **Developers → API keys**, *Secret key* (**Reveal**), in the
+       same mode as the publishable key.
    * - ``STRIPE_WEBHOOK_SECRET``
      - ``whsec_…``; signs webhook payloads.
+     - Stripe: **Developers → Webhooks →** the endpoint **→ Signing secret**
+       in production; the line ``stripe listen`` prints in development.  The
+       two are different secrets.
    * - ``STRIPE_APPLE_PAY_DOMAIN_ASSOCIATION``
      - Absolute path to the association file Stripe issues for Apple Pay.
+     - Stripe: the file offered when you add the domain under **Apple Pay**
+       (see `Apple Pay`_), saved on the server.  The value is the path you
+       saved it to.
    * - ``PAYPAL_CLIENT_ID``
      - REST app client id; sent to the browser to load the PayPal SDK.
+     - PayPal developer dashboard: **Apps & Credentials →** the app,
+       *Client ID*, under the **Sandbox** or the **Live** tab.
    * - ``PAYPAL_CLIENT_SECRET``
      - REST app secret; server only.
+     - The same app's *Secret* (**Show**), under the same tab.
    * - ``PAYPAL_ENV``
      - ``sandbox`` (default) or ``live``.
+     - Not from a dashboard: ``sandbox`` with Sandbox-tab credentials,
+       ``live`` with Live-tab ones.
    * - ``PAYPAL_WEBHOOK_ID``
      - Optional.  Set it and the PayPal webhook verifies its signature; leave
        it blank and the webhook only records payloads.
+     - **Apps & Credentials →** the app **→ Webhooks**, the *Webhook ID*
+       shown once the webhook exists, under the same tab.
    * - ``PAYMENTS_MOCK_ENABLED``
      - ``true`` in development and tests.  ``prod.py`` does not read it.
+     - Not from a dashboard.
    * - ``PAYMENTS_MOCK_ENABLED_IN_PRODUCTION``
      - The only switch that turns the mock provider on under ``prod.py``.
        Leave it unset unless you mean to demonstrate the checkout without keys.
+     - Not from a dashboard.
+
+Every Stripe value comes from one mode, test or live, and every PayPal value
+from one tab, Sandbox or Live: a live key beside a test webhook secret fails
+every webhook, and a Live client id with ``PAYPAL_ENV=sandbox`` fails every
+token request.
 
 Both Stripe keys must be present for Stripe to appear in the provider list;
 both PayPal credentials must be present for PayPal.  Restart Django after
@@ -340,8 +365,12 @@ In production, create the endpoint in the dashboard instead
 (**Developers → Webhooks → Add endpoint**), pointing at
 ``https://<your-domain>/api/v1/payments/stripe/webhook`` and subscribing to:
 
-* ``payment_intent.succeeded``
-* ``payment_intent.payment_failed``
+* ``payment_intent.succeeded`` and ``payment_intent.payment_failed``, the
+  checkout safety net;
+* ``charge.updated``, which carries a fee Stripe could not report at the
+  moment of the charge;
+* ``charge.refunded``, which records a refund taken in the Stripe dashboard
+  (:doc:`api-refunds`).
 
 The dashboard shows the endpoint's signing secret once it exists.
 
@@ -579,8 +608,9 @@ up if you want a belt-and-braces record:
 
 1. **Apps & Credentials → your app → Add Webhook**, URL
    ``https://<your-domain>/api/v1/payments/paypal/webhook``, subscribed to
-   ``PAYMENT.CAPTURE.COMPLETED``, ``PAYMENT.CAPTURE.DENIED``, and
-   ``PAYMENT.CAPTURE.REVERSED``.
+   ``PAYMENT.CAPTURE.COMPLETED``, ``PAYMENT.CAPTURE.DENIED``,
+   ``PAYMENT.CAPTURE.REVERSED``, and ``PAYMENT.CAPTURE.REFUNDED`` (a refund
+   taken in the PayPal dashboard, :doc:`api-refunds`).
 2. Copy the webhook id PayPal shows into ``PAYPAL_WEBHOOK_ID``.
 
 With that id set, each delivery is verified through
@@ -882,21 +912,26 @@ Going live: checklist
 
    [ ] Stripe account activated (business details submitted and approved)
    [ ] STRIPE_PUBLISHABLE_KEY / STRIPE_SECRET_KEY swapped to pk_live_ / sk_live_
-   [ ] Live-mode webhook endpoint created; STRIPE_WEBHOOK_SECRET is the live one
+   [ ] Live-mode webhook endpoint created with payment_intent.succeeded,
+       payment_intent.payment_failed, charge.updated and charge.refunded;
+       STRIPE_WEBHOOK_SECRET is its signing secret
    [ ] Apple Pay: production domain registered, association file deployed,
        /.well-known/... returns 200 over HTTPS, dashboard shows "Verified"
    [ ] Google Pay enabled in live-mode payment methods
    [ ] PayPal live REST app created; PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET
        swapped; PAYPAL_ENV=live
-   [ ] PAYPAL_WEBHOOK_ID set if the PayPal webhook is in use
+   [ ] PAYPAL_WEBHOOK_ID set if the PayPal webhook is in use, and the live
+       webhook subscribed to PAYMENT.CAPTURE.REFUNDED as well
    [ ] PAYMENTS_MOCK_ENABLED_IN_PRODUCTION unset, so the mock provider is off
    [ ] DEBUG=false, HTTPS enforced, SITE_URL, and ALLOWED_HOSTS correct
    [ ] Secrets are in /etc/caldart/caldart.env, not in git
    [ ] systemctl restart caldart-web after the last edit to that file
    [ ] Both webhook paths reachable unauthenticated through the proxy
-   [ ] One real payment taken, refunded in the provider's dashboard, and the
-       membership term corrected by hand (CalDART does not record refunds)
-   [ ] One real payment made and refunded from the Stripe dashboard
+   [ ] One real payment taken and refunded from its payment screen in the
+       portal: the provider shows the refund and the refund email arrives
+   [ ] One real payment refunded in the provider's dashboard instead: the
+       refund appears on its payment screen once the webhook arrives, and
+       the treasurer decides there whether the membership term ends
    [ ] Receipt email arrives (CalDART sends it, with the PDF attached, to the
        address on the member's account)
 

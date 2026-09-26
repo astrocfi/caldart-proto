@@ -817,21 +817,51 @@ waits for the thing itself, and says what went wrong when it never appears.
 **Take the seed's own values from** ``frontend/e2e/seed-facts.json``.  ``make
 e2e`` writes it with ``manage.py seed_facts`` straight after seeding the
 database, and ``e2e/helpers.ts`` reads it once per run and exports
-``DEMO_PASSWORD``, ``DEMO`` (the demo key to address map) and ``SEED``
-(``planPricesCents`` and ``leaderCheck`` among them).  A spec that hard-codes
-``caldart-demo`` or ``$45.00`` is a copy of ``apps/*/seed.py`` that will one day
-disagree with it, and one that hard-codes a *generated* member's name disagrees
-sooner than that: ``leaderCheck`` names one member per case the leader check
-reads differently -- a current member with a current medical whose every
-aircraft is insured beyond the portal's 30-day warning, a current member with an
-aircraft whose cover has lapsed, and a member whose membership has expired
-(never somebody who has not joined, nor a friend) -- found in the seeded data
-rather than typed into the spec.  ``SEED.autoRenewal.activeMandate`` is picked the same way: the first
-active mandate whose ``next_charge_on`` is still ahead of today, so a spec that
-reads it is never handed a member the renewal scan is about to charge or has
-already charged out from under it.
-Running Playwright against a server you started yourself means writing the file
-yourself first, with the same command.
+``DEMO_PASSWORD``, ``DEMO`` (the demo key to address map), and ``SEED``, the
+whole document.  A spec that hard-codes ``caldart-demo`` or ``$45.00`` is a
+copy of ``apps/*/seed.py`` that will one day disagree with it, and one that
+hard-codes a *generated* member's name disagrees sooner than that.  The
+document has seven keys:
+
+``demoPassword``
+   The password every demo account shares.
+``accounts``
+   Each demo key (``member``, ``expired``, ``friend``, ``leader``,
+   ``useradmin``, ``treasurer``, ``accountadmin``, ``webadmin``,
+   ``sysadmin``) mapped to that account's address.
+``planPricesCents``
+   Each membership plan's slug mapped to its price in cents, read from the
+   database.
+``leaderCheck``
+   One member per case the leader check reads differently, each as a name and
+   the N-number of the aircraft that makes the case (empty for the expired
+   member): ``insuredPilot``, a current member with a current medical whose
+   every aircraft is insured beyond the portal's 30-day warning;
+   ``lapsedInsurance``, a current member with an aircraft whose cover has
+   lapsed; and ``expiredMember``, a member whose membership has expired (never
+   somebody who has not joined, nor a friend).
+``manualPaymentCount``
+   How many payments the seed recorded by hand, which a spec filtering the
+   payment list to them expects to find.
+``refundedPayment``
+   The name, address, and receipt number of the first payment the seed
+   refunded in part.
+``autoRenewal``
+   Three members with a standing authority to charge, each as a name and an
+   address (``activeMandate`` adds the payment method's label):
+   ``activeMandate``, the
+   first active mandate whose ``next_charge_on`` is still ahead of today, so a
+   spec that reads it is never handed a member the renewal scan is about to
+   charge or has already charged out from under it; ``pausedMandate``, one
+   paused after every retry was refused; and ``contributionMandate``, a life
+   member whose authority charges a contribution alone.
+
+Every member is found in the seeded data rather than typed into the spec, and
+a fact the seed cannot supply comes back as empty strings, so the spec fails
+on the missing name.  Running Playwright against a server you started yourself
+means writing the file yourself first, with the same command::
+
+  uv run backend/manage.py seed_facts > frontend/e2e/seed-facts.json
 
 **Derive a row count rather than asserting "more than none".**  The payments
 report counts its rows against the CSV export downloaded in the same test, so

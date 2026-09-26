@@ -54,8 +54,10 @@ New to the codebase?  :doc:`setup` gets it running, the
    :maxdepth: 1
    :caption: Building and running
 
+   local-development
    testing
    documentation
    deployment
+   email
    backup-restore
    roadmap
