@@ -361,22 +361,22 @@ def test_deactivating_is_recorded_as_a_self_service_cancellation(
 def test_a_suspended_term_does_not_make_a_member_current(
     member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A suspended term running past today does not cover."""
+    """A suspended term running past today does not cover: the member reads as friend."""
     suspended(member, annual_plan, ends_on=timezone.localdate() + timedelta(days=100))
-    assert membership_status(member)["status"] == MembershipState.NONE
+    assert membership_status(member)["status"] == MembershipState.FRIEND
 
 
 def test_a_suspended_term_does_not_count_as_past(member: User, annual_plan: MembershipPlan) -> None:
     """A suspended term that has run out does not make a member expired."""
     suspended(member, annual_plan, ends_on=timezone.localdate() - timedelta(days=10))
-    assert membership_status(member)["status"] == MembershipState.NONE
+    assert membership_status(member)["status"] == MembershipState.FRIEND
 
 
 @pytest.mark.parametrize("days_left", [100, -10], ids=["running", "run-out"])
 def test_the_list_annotations_agree_on_a_suspended_term(
     member: User, annual_plan: MembershipPlan, days_left: int
 ) -> None:
-    """The SQL rule answers ``none`` for a suspended-only history, as Python does."""
+    """The SQL rule reads a suspended-only history as neither current nor expired."""
     suspended(member, annual_plan, ends_on=timezone.localdate() + timedelta(days=days_left))
     row = with_membership(User.objects.filter(pk=member.pk)).get()
     assert (row.covers_today, row.has_started_term) == (False, False)

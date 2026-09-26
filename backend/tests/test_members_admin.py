@@ -306,7 +306,7 @@ def test_list_is_paginated(account_admin_client: APIClient, population: dict[str
     [
         ("current", {"current@example.test", "expiring@example.test", "lifetime@example.test"}),
         ("expired", {"expired@example.test"}),
-        ("none", {"never@example.test"}),
+        ("friend", {"never@example.test"}),
     ],
 )
 def test_status_filter_puts_each_member_in_one_bucket(
@@ -323,11 +323,11 @@ def test_status_filter_puts_each_member_in_one_bucket(
 def test_status_filter_partitions_the_table(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """The four status buckets add up to the whole table, with no member in two."""
+    """The three status buckets add up to the whole table, with no member in two."""
     total = account_admin_client.get(LIST_URL).json()["count"]
     counts = [
         account_admin_client.get(LIST_URL, {"status": value}).json()["count"]
-        for value in ("current", "new", "expired", "none")
+        for value in ("current", "expired", "friend")
     ]
     assert sum(counts) == total
 
@@ -371,27 +371,18 @@ def test_ordering_by_pilot_ranks_current_medicals_first(
     assert order.index("lapsed@example.test") < order.index("nonpilot@example.test")
 
 
-def test_an_unpaid_term_reads_as_new_and_not_as_expired(
-    account_admin_client: APIClient, annual_plan: MembershipPlan, user_factory: type[UserFactory]
+def test_a_member_who_never_paid_is_listed_under_friend_alone(
+    account_admin_client: APIClient, user_factory: type[UserFactory]
 ) -> None:
-    """Somebody who joined but has not paid is ``new``, whatever the term's dates."""
-    joiner = user_factory(email="unpaid@example.test", roles=["member"])
-    today = timezone.localdate()
-    MembershipFactory(
-        user=joiner,
-        plan=annual_plan,
-        starts_on=today - timedelta(days=2),
-        ends_on=today + timedelta(days=363),
-        status=MembershipStatusChoices.NEW,
-    )
+    """Somebody who chose member and has not paid is a friend, in no other bucket."""
+    user_factory(email="unpaid@example.test", roles=["member"])
 
-    rows = account_admin_client.get(LIST_URL, {"status": "new", "page_size": "200"}).json()
-    assert [row["email"] for row in rows["results"]] == ["unpaid@example.test"]
-    assert rows["results"][0]["membership"]["status"] == "new"
-
-    for other in ("current", "expired", "none"):
-        emails_in_bucket = emails(account_admin_client.get(LIST_URL, {"status": other}))
-        assert "unpaid@example.test" not in emails_in_bucket
+    buckets = {
+        value: "unpaid@example.test"
+        in emails(account_admin_client.get(LIST_URL, {"status": value}))
+        for value in ("current", "expired", "friend")
+    }
+    assert buckets == {"current": False, "expired": False, "friend": True}
 
 
 def test_expiring_within_uses_the_computed_expiry(
@@ -741,7 +732,8 @@ def test_create_with_a_password(account_admin_client: APIClient, dart: Dart) -> 
     assert body["profile"]["phone"] == "408-555-0199"
     assert body["profile"]["ratings"] == ["instrument", "cfi"]
     assert body["profile"]["notes"] == "Joined at the Watsonville airshow."
-    assert body["membership"]["status"] == "none"
+    # A created account holds no term, so it is a friend until one is granted.
+    assert body["membership"]["status"] == "friend"
 
     user = User.objects.get(email="newbie@example.test")
     assert user.check_password("correct-horse-battery")
@@ -1089,7 +1081,7 @@ def test_patch_a_term_changes_its_end_date_status_and_note(
 def test_patch_a_term_to_canceled_drops_the_membership(
     account_admin_client: APIClient, population: dict[str, User]
 ) -> None:
-    """Patching a term's status to canceled drops it from the reported membership."""
+    """Canceling the only term drops it, so the member reads as a friend again."""
     term = first_membership(population["current"])
     response = account_admin_client.patch(
         membership_url(term), {"status": "canceled"}, format="json"
@@ -1100,7 +1092,7 @@ def test_patch_a_term_to_canceled_drops_the_membership(
     listed = account_admin_client.get(LIST_URL, {"search": "current@example.test"}).json()[
         "results"
     ][0]
-    assert listed["membership"]["status"] == "none"
+    assert listed["membership"]["status"] == "friend"
 
 
 def test_patch_a_term_rejects_an_end_before_the_start(

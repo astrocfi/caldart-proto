@@ -10,7 +10,7 @@ reader sees.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 from rest_framework.test import APIClient
@@ -41,40 +41,43 @@ def row_by_email(table: list[list[str]], email: str) -> list[str]:
     return next(row for row in table[1:] if row[0] == email)
 
 
-def test_membership_state_choices_are_the_five_report_words() -> None:
-    """The five ``MembershipState`` labels, in order.
+def test_membership_state_choices_are_the_four_report_words() -> None:
+    """The four ``MembershipState`` labels, in order.
 
     The report, the member list's status filter, and the portal's status select all
-    read their labels from here, so this is the one place the five words live.
+    read their labels from here, so this is the one place the words live.
     """
     assert MembershipState.choices == [
         ("current", "Current"),
-        ("new", "Unpaid"),
         ("expired", "Expired"),
-        ("none", "No membership"),
         ("friend", "Friend"),
+        ("donor", "Donor"),
     ]
 
 
-def test_member_report_prints_no_membership_never_the_slug(
+def test_member_report_prints_friend_for_a_member_who_never_paid(
     account_admin_client: APIClient,
 ) -> None:
-    """A member who has never held a term reads "No membership", never "none"."""
+    """A member who has never held a term is a friend: "Friend", never the slug."""
     UserFactory(email="never-a-member@example.test")
     table = read_csv(account_admin_client.get(CSV_URL, STATUS_COLUMNS))
-    assert row_by_email(table, "never-a-member@example.test")[1] == "No membership"
+    assert row_by_email(table, "never-a-member@example.test")[1] == "Friend"
 
 
-def test_member_report_prints_unpaid_for_a_joined_but_uncovered_member(
+def test_member_report_prints_expired_for_a_lapsed_member(
     account_admin_client: APIClient, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """A member whose only term is unpaid reads "Unpaid", not the "new" slug."""
-    user = UserFactory(email="unpaid@example.test")
+    """A member whose term ran out reads "Expired", not the "expired" slug."""
+    user = UserFactory(email="lapsed@example.test")
     MembershipFactory(
-        user=user, plan=annual_plan, starts_on=today, status=MembershipStatusChoices.NEW
+        user=user,
+        plan=annual_plan,
+        starts_on=today - timedelta(days=400),
+        ends_on=today - timedelta(days=35),
+        status=MembershipStatusChoices.EXPIRED,
     )
     table = read_csv(account_admin_client.get(CSV_URL, STATUS_COLUMNS))
-    assert row_by_email(table, "unpaid@example.test")[1] == "Unpaid"
+    assert row_by_email(table, "lapsed@example.test")[1] == "Expired"
 
 
 def test_member_report_abbreviates_the_atp_certificate(
@@ -105,7 +108,7 @@ def test_report_certificate_labels_overrides_only_the_atp_certificate() -> None:
 def test_member_report_pdf_prints_the_label_and_the_abbreviation(
     account_admin_client: APIClient, pdf_text: PdfText
 ) -> None:
-    """The rendered PDF shows "No membership" and "ATP", never the raw codes."""
+    """The rendered PDF shows "Friend" and "ATP", never the raw codes."""
     UserFactory(email="never-pdf-label@example.test")
     pilot = UserFactory(email="atp-pdf-label@example.test")
     MemberProfileFactory(user=pilot, pilot_certificate_type=PilotCertificateType.ATP)
@@ -113,6 +116,6 @@ def test_member_report_pdf_prints_the_label_and_the_abbreviation(
         PDF_URL, {"columns": "email,status,certificate", "search": "pdf-label"}
     ).content
     text = " ".join(cell for page in pdf_text(body) for cell in page)
-    assert "No membership" in text
+    assert "Friend" in text
     assert "ATP" in text
     assert "none" not in text.lower()

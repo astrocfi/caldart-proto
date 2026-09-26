@@ -192,7 +192,7 @@ def test_a_dart_leader_without_a_membership_is_served_the_file(
     dart_leader: User,
 ) -> None:
     """A DART leader with no membership of their own still downloads the file."""
-    assert dart_leader.membership_status["status"] == "none"
+    assert dart_leader.membership_status["status"] == "friend"
     client.force_login(dart_leader)
 
     assert body_of(client.get(members_document.url)) == SECRET

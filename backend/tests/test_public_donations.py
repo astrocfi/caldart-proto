@@ -588,17 +588,17 @@ def test_an_existing_donors_stored_details_stay_put_until_a_new_gift_settles(
     )
 
 
-def test_a_completed_gift_reads_no_membership(
+def test_a_completed_gift_reads_donor(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
-    """A donor holds no membership, so the answer's ``membership`` reads ``none``."""
+    """A donor holds no membership, so the answer's ``membership`` reads ``donor``."""
     body = give()
 
     response = api_client.post(
         MOCK_COMPLETE_URL, {"payment_id": body["payment_id"], "token": body["token"]}, format="json"
     )
 
-    assert response.json()["membership"]["status"] == "none"
+    assert response.json()["membership"]["status"] == "donor"
 
 
 def test_a_completed_gift_emails_the_donor_a_receipt(
@@ -781,7 +781,7 @@ def test_a_stripe_gift_is_confirmed_with_its_token(
         response.json()["status"],
         response.json()["membership"]["status"],
         [message.to for message in mail.outbox],
-    ) == (200, "succeeded", "none", [[DONOR_EMAIL]])
+    ) == (200, "succeeded", "donor", [[DONOR_EMAIL]])
 
 
 @respx.mock
@@ -824,7 +824,7 @@ def test_a_paypal_gift_is_captured_with_its_token(
         response.json()["status"],
         response.json()["membership"]["status"],
         [message.to for message in mail.outbox],
-    ) == (200, "succeeded", "none", [[DONOR_EMAIL]])
+    ) == (200, "succeeded", "donor", [[DONOR_EMAIL]])
 
 
 # --------------------------------------------------------------------------

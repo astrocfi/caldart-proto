@@ -30,13 +30,13 @@ The translation, term by term:
     so "earliest boundary" and "end of the walk" are the same date.  NULL means
     the chain reaches a lifetime term (or that nothing covers today).
 ``past_end`` / ``past_plan``
-    The most recent term that has started and is neither canceled, unpaid, nor
+    The most recent term that has started and is neither canceled nor
     suspended, which ``membership_status`` reports for an expired member.
 
 ``effective_kind``
     :func:`kind_annotation`, the SQL statement of :func:`account_kind`.  A row
-    whose effective kind is ``friend`` reads as ``friend`` before any term is
-    looked at, exactly as ``membership_status`` answers it.
+    whose effective kind is ``friend`` or ``donor`` reads as that before any term
+    is looked at, exactly as ``membership_status`` answers it.
 
 ``tests/test_members_admin_status.py`` checks the two implementations agree
 over a deliberately awkward set of histories, including early renewals, gaps,
@@ -115,9 +115,6 @@ class MembershipAnnotations(TypedDict):
 
     covers_today: bool
     has_started_term: bool
-    has_unpaid_term: bool
-    unpaid_end: date | None
-    unpaid_plan: str | None
     coverage_end: date | None
     coverage_plan: str | None
     lifetime_plan: str | None
@@ -340,20 +337,40 @@ def _refuse_delete(actor: User, target: User, reason: str, message: str) -> NoRe
 # --------------------------------------------------------------------------
 # The kind of account, in Python and in SQL
 # --------------------------------------------------------------------------
+#: The term states that make somebody a member once the term has started: a paid or
+#: granted term, current or run out, and one a self-deactivation set aside.  A
+#: canceled term, or one still to start, makes nobody a member.
+MEMBER_MAKING_STATUSES = (
+    MembershipStatusChoices.ACTIVE,
+    MembershipStatusChoices.EXPIRED,
+    MembershipStatusChoices.SUSPENDED,
+)
+
+
 def account_kind(user: User, today: date | None = None) -> AccountKind:
     """The kind ``user`` counts as on ``today``, which defaults to the local date.
 
-    ``friend`` for an account stored as a friend, and for a member whose
-    ``friend_on`` date is on or before ``today``: the conversion has come, whether or
-    not :func:`convert_due_friends` has written it down yet.  Otherwise the stored
-    kind.  :func:`kind_annotation` states the same rule in SQL.
+    The stored kind is what the person asked for; this is what they are.  ``friend``
+    for an account stored as a friend; for a member whose ``friend_on`` date is on or
+    before ``today`` (the conversion has come, whether or not
+    :func:`convert_due_friends` has written it down yet); and for a member who holds
+    no term that started on or before ``today`` with the status ``active``,
+    ``expired``, or ``suspended``, which is somebody who chose to be a member and has
+    not yet paid, or whose only terms were canceled or are still to start.  A donor
+    is ``donor``, and anybody else a ``member``.  :func:`kind_annotation` states the
+    same rule in SQL.  The terms are read through ``user.memberships.all()``, so a
+    prefetched set costs no query.
     """
     today = today or timezone.localdate()
-    if user.kind == AccountKind.FRIEND:
-        return AccountKind.FRIEND
+    if user.kind != AccountKind.MEMBER:
+        return AccountKind(user.kind)
     if user.friend_on is not None and user.friend_on <= today:
         return AccountKind.FRIEND
-    return AccountKind(user.kind)
+    has_term = any(
+        term.status in MEMBER_MAKING_STATUSES and term.starts_on <= today
+        for term in user.memberships.all()
+    )
+    return AccountKind.MEMBER if has_term else AccountKind.FRIEND
 
 
 def kind_annotation(today: date | None = None) -> Case:
@@ -363,10 +380,14 @@ def kind_annotation(today: date | None = None) -> Case:
     ``User`` queryset with it to filter or order on the effective kind.
     """
     today = today or timezone.localdate()
+    member_making = Membership.objects.filter(
+        user=OuterRef("pk"), status__in=MEMBER_MAKING_STATUSES, starts_on__lte=today
+    )
     return Case(
-        When(kind=AccountKind.FRIEND, then=Value(AccountKind.FRIEND.value)),
+        When(~Q(kind=AccountKind.MEMBER), then=F("kind")),
         When(friend_on__lte=today, then=Value(AccountKind.FRIEND.value)),
-        default=F("kind"),
+        When(~Exists(member_making), then=Value(AccountKind.FRIEND.value)),
+        default=Value(AccountKind.MEMBER.value),
         output_field=CharField(),
     )
 
@@ -478,17 +499,20 @@ def undo_become_friend(user: User, today: date | None = None) -> User:
 
 
 #: The term states that never make anybody expired: a canceled term counts for
-#: nothing, an unpaid one never covered anybody, and a suspended one belongs to an
-#: account its holder deactivated.
+#: nothing, and a suspended one belongs to an account its holder deactivated.
 NOT_PAST_STATUSES = (
     MembershipStatusChoices.CANCELED,
-    MembershipStatusChoices.NEW,
     MembershipStatusChoices.SUSPENDED,
 )
 
 
 def _friend_membership() -> MembershipStatusDict:
-    """The status of a friend: ``friend``, with no expiry, no plan, and never lifetime."""
+    """The status of a friend: ``friend``, with no expiry, no plan, and never lifetime.
+
+    A fresh dictionary each call, so a caller that adds its own keys -- the
+    ``/me/membership`` payload hangs the term history off it -- cannot reach
+    the next caller's answer.
+    """
     return {
         "status": MembershipState.FRIEND,
         "expires_on": None,
@@ -497,15 +521,10 @@ def _friend_membership() -> MembershipStatusDict:
     }
 
 
-def _no_membership() -> MembershipStatusDict:
-    """The status of an account nothing has ever covered.
-
-    A fresh dictionary each call, so a caller that adds its own keys -- the
-    ``/me/membership`` payload hangs the term history off it -- cannot reach
-    the next caller's answer.
-    """
+def _donor_membership() -> MembershipStatusDict:
+    """The status of a donor: ``donor``, with no expiry, no plan, and never lifetime."""
     return {
-        "status": MembershipState.NONE,
+        "status": MembershipState.DONOR,
         "expires_on": None,
         "plan": None,
         "is_lifetime": False,
@@ -588,15 +607,14 @@ def membership_status(
 ) -> MembershipStatusDict:
     """Summarize a user's membership, reading the terms out of the database.
 
-    Returns ``{"status", "expires_on", "plan", "is_lifetime"}`` where status is
-    ``friend`` (the account's kind on ``on_date``, by :func:`account_kind`, is
-    friend -- decided before any term is looked at, so a friend's past or even live
-    terms never make them current or expired, and ``expires_on`` and ``plan`` are
-    ``None``), ``current`` (a term covers ``on_date``), ``expired`` (a paid term has
-    started and run out), ``new`` (the only term is unpaid, so the member joined but
-    has never been covered) or ``none`` (nothing at all).  ``on_date`` defaults to
-    the current local date.  An anonymous caller, or none at all, is answered
-    ``none`` with no expiry, no plan and ``is_lifetime`` false, so a signed-out
+    Returns ``{"status", "expires_on", "plan", "is_lifetime"}`` where status is one
+    of four.  ``donor`` for a donor account and ``friend`` when the account's kind on
+    ``on_date``, by :func:`account_kind`, is friend -- both decided before any term
+    is looked at, so a friend's past or even live terms never make them current or
+    expired, and ``expires_on`` and ``plan`` are ``None``.  Otherwise ``current``
+    (a term covers ``on_date``) or ``expired`` (a paid or granted term has started
+    and run out).  ``on_date`` defaults to the current local date.  An anonymous
+    caller, or none at all, is answered with the friend shape, so a signed-out
     visitor is never mistaken for a lapsed member.
 
     ``expires_on`` is the end of the member's unbroken coverage, so a renewal
@@ -605,13 +623,16 @@ def membership_status(
 
     A canceled or a suspended term counts for nothing: it never covers a day and
     never makes anybody expired, so an account whose only terms are suspended reads
-    as ``none`` while it is deactivated.
+    as ``friend`` while it is deactivated.
     """
     on_date = on_date or timezone.localdate()
 
     if not isinstance(user, User):
-        return _no_membership()
-    if account_kind(user, on_date) == AccountKind.FRIEND:
+        return _friend_membership()
+    kind = account_kind(user, on_date)
+    if kind == AccountKind.DONOR:
+        return _donor_membership()
+    if kind == AccountKind.FRIEND:
         return _friend_membership()
 
     covering = _coverage(user, on_date)
@@ -637,21 +658,7 @@ def membership_status(
             "plan": past.plan.name,
             "is_lifetime": False,
         }
-
-    unpaid = (
-        user.memberships.select_related("plan")
-        .filter(status=MembershipStatusChoices.NEW)
-        .order_by("-starts_on")
-        .first()
-    )
-    if unpaid is not None:
-        return {
-            "status": MembershipState.NEW,
-            "expires_on": unpaid.ends_on,
-            "plan": unpaid.plan.name,
-            "is_lifetime": False,
-        }
-    return _no_membership()
+    return _friend_membership()
 
 
 def membership_annotations(today: date | None = None) -> dict[str, Exists | Subquery | Case]:
@@ -687,10 +694,6 @@ def membership_annotations(today: date | None = None) -> dict[str, Exists | Subq
     )
     past = started.order_by(F("ends_on").desc(nulls_first=True), "-starts_on")
 
-    unpaid = Membership.objects.filter(
-        user=OuterRef("pk"), status=MembershipStatusChoices.NEW
-    ).order_by("-starts_on")
-
     return {
         "covers_today": Exists(
             active.filter(user=OuterRef("pk"), starts_on__lte=today).filter(
@@ -698,9 +701,6 @@ def membership_annotations(today: date | None = None) -> dict[str, Exists | Subq
             )
         ),
         "has_started_term": Exists(started),
-        "has_unpaid_term": Exists(unpaid),
-        "unpaid_end": Subquery(unpaid.values("ends_on")[:1], output_field=DateField()),
-        "unpaid_plan": Subquery(unpaid.values("plan__name")[:1], output_field=CharField()),
         "coverage_end": Subquery(boundaries.values("ends_on")[:1], output_field=DateField()),
         "coverage_plan": Subquery(boundaries.values("plan__name")[:1], output_field=CharField()),
         "lifetime_plan": Subquery(lifetime.values("plan__name")[:1], output_field=CharField()),
@@ -737,6 +737,8 @@ def membership_payload(user: MemberRow) -> MembershipStatusDict:
     read raises ``AttributeError``; reach for :func:`membership_of` when that is
     not guaranteed.
     """
+    if user.effective_kind == AccountKind.DONOR:
+        return _donor_membership()
     if user.effective_kind == AccountKind.FRIEND:
         return _friend_membership()
     if user.covers_today:
@@ -754,14 +756,7 @@ def membership_payload(user: MemberRow) -> MembershipStatusDict:
             "plan": user.past_plan,
             "is_lifetime": False,
         }
-    if user.has_unpaid_term:
-        return {
-            "status": MembershipState.NEW,
-            "expires_on": user.unpaid_end,
-            "plan": user.unpaid_plan,
-            "is_lifetime": False,
-        }
-    return _no_membership()
+    return _friend_membership()
 
 
 def membership_of(user: User) -> MembershipStatusDict:
@@ -927,8 +922,8 @@ def suspend_terms(user: User, *, today: date | None = None) -> list[Membership]:
 
     That is the term covering ``today`` (defaulting to the current local date), a
     lifetime term, and any renewal already paid for that starts later: everything the
-    member would lose by leaving.  A term that has run out, and one canceled or
-    unpaid, is left alone.  Each suspension is recorded as ``membership.correct`` with
+    member would lose by leaving.  A term that has run out, and a canceled one, is
+    left alone.  Each suspension is recorded as ``membership.correct`` with
     ``status=suspended``, the account itself as the actor.  Called when a person
     deactivates their own account; :func:`restore_terms` undoes it.
     """

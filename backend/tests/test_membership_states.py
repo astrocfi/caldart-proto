@@ -260,7 +260,7 @@ def test_a_friend_reads_with_no_expiry_and_no_plan(
     build: Callable[[Builder], User], today: date, label: str
 ) -> None:
     """Every friend answer is the same shape: no expiry, no plan, never lifetime."""
-    builder = dict((case[0], case[1]) for case in CASES)[label]
+    builder = {case[0]: case[1] for case in CASES}[label]
     assert membership_status(build(builder), today) == {
         "status": MembershipState.FRIEND,
         "expires_on": None,

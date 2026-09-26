@@ -3,7 +3,7 @@
 {% comment %}
   The members-only wall.  Served with HTTP 403 in place of a page
   flagged `members_only`.  `wall_state` decides the single next step: sign in,
-  renew, become a member, or join.  The page title is still shown — knowing a page exists is not
+  renew, or become a member.  The page title is still shown — knowing a page exists is not
   the secret; its content is.
 {% endcomment %}
 
@@ -48,15 +48,6 @@
           <a class="button button--secondary" href="/portal/">Member portal</a>
         </p>
 
-      {% else %}
-        <p class="lede">
-          You are signed in, but your account has no current membership, so this page is
-          closed. Joining takes a minute and reopens it immediately.
-        </p>
-        <p class="cluster">
-          <a class="button" href="/portal/join">Join CalDART</a>
-          <a class="button button--secondary" href="/portal/">Member portal</a>
-        </p>
       {% endif %}
 
       <p class="small">

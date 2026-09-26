@@ -127,7 +127,7 @@ def test_a_dart_leader_without_a_membership_gets_the_members_pages(
     api_client: APIClient, site_tree: Page, dart_leader: User
 ) -> None:
     """A DART leader with no membership of their own still gets the members pages."""
-    assert dart_leader.membership_status["status"] == "none"
+    assert dart_leader.membership_status["status"] == "friend"
     api_client.force_login(dart_leader)
     assert api_client.get(URL).json()["members_pages"]
 

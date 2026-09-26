@@ -125,30 +125,17 @@ def build_histories(annual: MembershipPlan, life: MembershipPlan, today: date) -
     term(ends_today, annual, today - 364 * day, today)
     histories["ends-today"] = ends_today
 
-    # Joined but never paid: the only term is "new", so nothing has ever
-    # covered them and they are not a lapsed member either.
-    unpaid = user("unpaid")
-    term(unpaid, annual, today - 2 * day, today + 363 * day, MembershipStatusChoices.NEW)
-    histories["joined-unpaid"] = unpaid
-
-    # An unpaid term after a paid one that ran out: still expired, because the
-    # history is what "new" is meant to distinguish.
-    lapsed_then_unpaid = user("lapsedunpaid")
+    # A deactivated account whose only term is suspended: nothing covers it, and
+    # nothing has run out, so it reads as a friend until the term is restored.
+    suspended = user("suspended")
     term(
-        lapsed_then_unpaid,
+        suspended,
         annual,
-        today - 500 * day,
         today - 100 * day,
-        MembershipStatusChoices.EXPIRED,
+        today + 265 * day,
+        MembershipStatusChoices.SUSPENDED,
     )
-    term(
-        lapsed_then_unpaid,
-        annual,
-        today - day,
-        today + 364 * day,
-        MembershipStatusChoices.NEW,
-    )
-    histories["lapsed-then-unpaid"] = lapsed_then_unpaid
+    histories["suspended-only"] = suspended
 
     # A friend is a friend whatever terms they held, lapsed or even live.
     friend = user("friend")
@@ -200,7 +187,7 @@ def test_annotations_match_the_membership_status_service(histories: dict[str, Us
 @pytest.mark.parametrize(
     ("label", "expected_status", "is_lifetime"),
     [
-        ("never", "none", False),
+        ("never", "friend", False),
         ("current", "current", False),
         ("expired", "expired", False),
         ("stale-active", "expired", False),
@@ -209,13 +196,12 @@ def test_annotations_match_the_membership_status_service(histories: dict[str, Us
         ("future-term-after-a-gap", "current", False),
         ("lifetime", "current", True),
         ("annual-then-life", "current", True),
-        ("canceled-only", "none", False),
-        ("starts-in-the-future", "none", False),
+        ("canceled-only", "friend", False),
+        ("starts-in-the-future", "friend", False),
         ("overlapping", "current", False),
         ("expired-with-a-future-term", "expired", False),
         ("ends-today", "current", False),
-        ("joined-unpaid", "new", False),
-        ("lapsed-then-unpaid", "expired", False),
+        ("suspended-only", "friend", False),
         ("friend-once-a-member", "friend", False),
         ("friend-with-a-live-term", "friend", False),
         ("friend-on-today", "friend", False),
@@ -286,7 +272,18 @@ def test_membership_of_falls_back_to_the_service(histories: dict[str, User], lab
 @pytest.mark.parametrize(
     ("status", "labels"),
     [
-        ("friend", {"friend-once-a-member", "friend-with-a-live-term", "friend-on-today"}),
+        (
+            "friend",
+            {
+                "never",
+                "canceled-only",
+                "starts-in-the-future",
+                "suspended-only",
+                "friend-once-a-member",
+                "friend-with-a-live-term",
+                "friend-on-today",
+            },
+        ),
         (
             "current",
             {
@@ -303,7 +300,7 @@ def test_membership_of_falls_back_to_the_service(histories: dict[str, User], lab
         ),
         (
             "expired",
-            {"expired", "stale-active", "expired-with-a-future-term", "lapsed-then-unpaid"},
+            {"expired", "stale-active", "expired-with-a-future-term"},
         ),
     ],
 )

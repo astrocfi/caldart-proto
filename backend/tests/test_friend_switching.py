@@ -223,18 +223,22 @@ def test_an_expired_member_becomes_a_friend_at_once(
     assert (fresh(member).kind, member.friend_on) == (AccountKind.FRIEND, None)
 
 
-def test_a_member_who_never_paid_becomes_a_friend_at_once(
+def test_a_member_who_never_paid_is_told_they_already_are_a_friend(
     member_client: APIClient, member: User
 ) -> None:
-    """A member with no term at all becomes a friend at once too."""
-    status, body = become_friend(member_client)
-    assert (status, body["kind"], body["membership"]["status"]) == (200, "friend", "friend")
+    """A member with no term at all is a friend already, so there is nothing to change."""
+    assert become_friend(member_client) == (400, ALREADY_FRIEND)
 
 
 def test_an_immediate_change_is_audited_with_today(
-    member_client: APIClient, member: User, today: date, audit_log: pytest.LogCaptureFixture
+    member_client: APIClient,
+    member: User,
+    annual_plan: MembershipPlan,
+    today: date,
+    audit_log: pytest.LogCaptureFixture,
 ) -> None:
     """The record's ``on`` is today."""
+    expire_membership(member, annual_plan)
     become_friend(member_client)
     assert audit_messages(audit_log) == [
         f"action=account.kind actor={member.pk} target={member.pk} to=friend on={today}"

@@ -118,12 +118,14 @@ HOW_HEARD: tuple[str, ...] = (
 )
 
 #: Membership targets and their weights, so the demo shows mixed statuses.
+#: ``unpaid`` is somebody who chose to join as a member and never paid, so holds
+#: no term and reads as a friend; ``friend`` is somebody who joined as a friend.
 MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
     ("current", 18),
     ("expiring", 7),
     ("expired", 8),
     ("lifetime", 4),
-    ("none", 4),
+    ("unpaid", 4),
     ("friend", 5),
 )
 

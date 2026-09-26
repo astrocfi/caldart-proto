@@ -132,7 +132,7 @@ def test_mock_provider_failure_leaves_no_membership(
     assert get_provider("mock").confirm(payment, outcome="fail") is False
     payment.refresh_from_db()
     assert payment.status == PaymentStatus.FAILED
-    assert membership_status(member)["status"] == "none"
+    assert membership_status(member)["status"] == "friend"
 
 
 def test_mark_succeeded_is_idempotent(member: User, annual_plan: MembershipPlan) -> None:
