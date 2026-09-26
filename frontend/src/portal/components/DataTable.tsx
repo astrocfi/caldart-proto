@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 
+import { Button } from './Button';
 import { EmptyState } from './EmptyState';
 
 export type SortDirection = 'asc' | 'desc';
@@ -38,6 +39,12 @@ export interface DataTableProps<Row> {
   /** Export hrefs; the buttons only appear when a URL is given. */
   exportCsvUrl?: string;
   exportPdfUrl?: string;
+  /**
+   * Why the exports cannot be had right now.  When set, each export given a URL
+   * is drawn as a disabled button carrying this as its `title`, in the place the
+   * link would take, so the control stays where the eye expects it.
+   */
+  exportDisabledReason?: string;
   emptyTitle?: string;
   emptyDescription?: ReactNode;
   isLoading?: boolean;
@@ -78,6 +85,30 @@ export function sortRows<Row>(
   return direction === 'asc' ? sorted : sorted.reverse();
 }
 
+/** One export: a link to the download, or a disabled button saying why there is none. */
+function ExportLink({
+  href,
+  disabledReason,
+  children,
+}: {
+  href: string;
+  disabledReason: string | undefined;
+  children: string;
+}): JSX.Element {
+  if (disabledReason !== undefined) {
+    return (
+      <Button variant="quiet" small disabled title={disabledReason}>
+        {children}
+      </Button>
+    );
+  }
+  return (
+    <a className="button button--quiet button--small" href={href}>
+      {children}
+    </a>
+  );
+}
+
 /** A sortable table with an optional filter bar and CSV/PDF export buttons. */
 export function DataTable<Row>({
   columns,
@@ -87,6 +118,7 @@ export function DataTable<Row>({
   filters,
   exportCsvUrl,
   exportPdfUrl,
+  exportDisabledReason,
   emptyTitle = 'Nothing to show',
   emptyDescription,
   isLoading = false,
@@ -129,14 +161,14 @@ export function DataTable<Row>({
           {hasExports ? (
             <div className="cluster data-table__exports">
               {exportCsvUrl ? (
-                <a className="button button--quiet button--small" href={exportCsvUrl}>
+                <ExportLink href={exportCsvUrl} disabledReason={exportDisabledReason}>
                   Export CSV
-                </a>
+                </ExportLink>
               ) : null}
               {exportPdfUrl ? (
-                <a className="button button--quiet button--small" href={exportPdfUrl}>
+                <ExportLink href={exportPdfUrl} disabledReason={exportDisabledReason}>
                   Export PDF
-                </a>
+                </ExportLink>
               ) : null}
             </div>
           ) : null}

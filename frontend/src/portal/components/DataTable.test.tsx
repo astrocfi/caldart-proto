@@ -189,6 +189,26 @@ describe('DataTable', () => {
     expect(screen.getByRole('link', { name: /Export PDF/ })).toBeInTheDocument();
   });
 
+  it('draws disabled export buttons carrying the reason in place of the links', () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(row) => row.id}
+        exportCsvUrl="/api/v1/reports/roles/export.csv"
+        exportPdfUrl="/api/v1/reports/roles/export.pdf"
+        exportDisabledReason="Nothing to export."
+      />,
+    );
+    const buttons = ['Export CSV', 'Export PDF'].map((name) =>
+      screen.getByRole('button', { name }),
+    );
+    expect(buttons.map((button) => [button.hasAttribute('disabled'), button.title])).toEqual([
+      [true, 'Nothing to export.'],
+      [true, 'Nothing to export.'],
+    ]);
+  });
+
   it('renders a filter bar', () => {
     render(
       <DataTable

@@ -15,10 +15,11 @@ administrator and the treasurer.
 What you see
 ============
 
-A row of role buttons, **Filter by role**, sits at the top, then the filters and the table.
-The table shows 25 accounts at a time, in order of surname. Its caption counts the accounts
-your filters match, and adds the page when there is more than one, such as *212 accounts ·
-page 1 of 9*. **Previous** and **Next** under the table step through the pages.
+A row of role buttons, **Filter by role**, sits at the top, then the filters with
+**Columns** beside them and the two export buttons at the right, and then the table. The
+table shows 25 accounts at a time, in order of surname. Its caption counts the accounts your
+filters match, and adds the page when there is more than one, such as *212 accounts · page 1
+of 9*. **Previous** and **Next** under the table step through the pages.
 
 - **Name**: the person's name, or their address when no name is on file. Click it to open
   the :doc:`user-record`.
@@ -36,22 +37,54 @@ administrator.
 Finding an account
 ==================
 
-**Search**
-   A first name, a last name, or an email address, searched as you type. Every word has to
-   match, so *Ada Lovelace* finds one person and leaves out everyone else called Ada.
-
 **Filter by role**
    Press a role to list the holders of that role; resting the pointer on it shows what the
    role grants. Press it again, or **Any role**, to clear it.
 
-**Account status**
-   **Active and deactivated**, the first choice, **Active only**, or **Deactivated only**.
+**Search**
+   A first name, a last name, or an email address, searched as you type. Every word has to
+   match, so *Ada Lovelace* finds one person and leaves out everyone else called Ada.
 
 **Kind of account**
-   **Every kind**, the first choice, **Member**, **Friend**, or **Donor**.
+   **Every kind**, the first choice, **Member**, **Friend**, or **Donor**. This is the kind
+   the account was given, as its record shows it.
+
+**Account status**
+   **Active and deactivated**, **Active only**, or **Deactivated only**. The list opens on
+   **Active only**, so choose **Active and deactivated** or **Deactivated only** to find an
+   account that has been deactivated.
 
 Changing a filter takes you back to the first page. With nothing to show the table reads *No
 accounts match those filters*.
+
+
+Exporting the roles report
+==========================
+
+**Export CSV** and **Export PDF**, beside the filters, download the CalDART roles report:
+the people who hold each role other than member, with a section per role from DART leader to
+System administrator. A section nobody holds still appears, and the PDF says *Nobody holds
+this role.* under it. A person holding two such roles is listed in both sections.
+
+The report lists active accounts only, whatever **Account status** shows. It follows the
+screen's **Search**, the role chosen under **Filter by role**, which leaves that one
+section, and **Member** or **Friend** under **Kind of account**. The report's Kind follows
+the membership it shows for today: an account given the kind member reads as a friend there
+until one of its membership terms has started, and again once its change to a friend has
+come.
+
+**Columns**, beside the filters, chooses what the two downloads carry; the table keeps its
+own columns. It starts on Role, Name, Email, Phone, DART, Kind, and Membership, and adds
+City, County, and Home airport when you tick them. **Load columns** and **Save columns**
+keep a set of columns under a name, as :ref:`saved-column-sets` describes.
+
+With **Donor** chosen under **Kind of account**, or **Member** under **Filter by role**, the
+report has nobody to list, so the two export buttons and **Columns** are grayed out, and
+**Load columns** and **Save columns** are put away until you choose another kind or role;
+rest the pointer on a grayed-out button to see why.
+
+An account administrator can have the same report emailed on a schedule, to themselves or to
+a user administrator, from :doc:`reports`.
 
 
 Donor accounts
@@ -88,8 +121,9 @@ If something looks wrong
 
 If you cannot find an account you are sure exists, search for one word, or for part of the
 email address: every word you type has to match, so a middle name or a typo leaves everybody
-out. Check **Account status** and **Kind of account** too, and press **Any role**. If a
-person has two accounts, open each one and compare the membership chips at the top to decide
-which to keep, then deactivate the other; an account administrator can say whether the
-records need merging. If somebody says a page shows *You do not have access to this page*,
-the message names the role the page needs; open their :doc:`user-record` and tick it.
+out. Check **Kind of account** and **Account status** too, remembering that the list opens
+on **Active only**, and press **Any role**. If a person has two accounts, open each one and
+compare the membership chips at the top to decide which to keep, then deactivate the other;
+an account administrator can say whether the records need merging. If somebody says a page
+shows *You do not have access to this page*, the message names the role the page needs; open
+their :doc:`user-record` and tick it.
