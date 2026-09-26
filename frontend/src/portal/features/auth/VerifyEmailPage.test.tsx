@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { Route, Routes, useLocation } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { describe, expect, it } from 'vitest';
 import { API, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
+import type { User } from '@/portal/api/types';
+import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 import { VerifyEmailPage } from './VerifyEmailPage';
 
 const LINK = '/verify-email?token=signed-token';
@@ -82,6 +84,37 @@ describe('<VerifyEmailPage/>', () => {
     renderPage();
 
     expect(await screen.findByRole('link', { name: 'Continue' })).toHaveAttribute('href', '/');
+  });
+
+  it('asks who is signed in again when the first check crossed the verification', async () => {
+    let isVerified = false;
+    let releaseFirstCheck: () => void = () => undefined;
+    const firstCheckHeld = new Promise<void>((settle) => {
+      releaseFirstCheck = settle;
+    });
+    let checks = 0;
+    server.use(
+      http.get(`${API}/auth/me`, async () => {
+        checks += 1;
+        // The server read the account before the verification committed, so the
+        // first answer is stale by the time it arrives.
+        const snapshot = makeUser({ profile_complete: false, email_verified: isVerified });
+        if (checks === 1) await firstCheckHeld;
+        return HttpResponse.json(snapshot);
+      }),
+      http.post(`${API}/auth/email/verify`, () => {
+        isVerified = true;
+        releaseFirstCheck();
+        return HttpResponse.json({ email: 'marta@example.org' });
+      }),
+    );
+    const { client } = renderPage();
+
+    await screen.findByRole('heading', { name: 'Email verified' });
+    await waitFor(() =>
+      expect(client.getQueryData<User | null>(AUTH_ME_KEY)?.email_verified).toBe(true),
+    );
+    expect(screen.getByRole('link', { name: 'Continue' })).toHaveAttribute('href', '/join');
   });
 
   it('shows the refusal and how to get a new link', async () => {

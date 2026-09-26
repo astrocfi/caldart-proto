@@ -199,15 +199,20 @@ export function usePasswordResetConfirm(): UseMutationResult<
 }
 
 /**
- * Follows a verification link through `POST /auth/email/verify`, then refetches
- * `/auth/me`, so a signed-in visitor's own payload says verified straight away.
+ * Follows a verification link through `POST /auth/email/verify`, then asks
+ * `/auth/me` again before the mutation settles, so a signed-in visitor's own
+ * payload already says verified when the page shows the result.
  */
 export function useEmailVerify(): UseMutationResult<EmailVerifyResult, Error, string> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (token: string) => api.post<EmailVerifyResult>('/auth/email/verify', { token }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: AUTH_ME_KEY });
+    onSuccess: async () => {
+      // The page opens with its first `/auth/me` in flight, and the server may
+      // have read the account before the verification committed.  Invalidating
+      // alone would join that request rather than replace it, so cancel it first.
+      await queryClient.cancelQueries({ queryKey: AUTH_ME_KEY });
+      await queryClient.invalidateQueries({ queryKey: AUTH_ME_KEY });
     },
   });
 }
