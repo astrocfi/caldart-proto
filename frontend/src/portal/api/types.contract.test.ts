@@ -35,6 +35,7 @@ import type {
   AircraftSummary,
   AttachedAircraft,
   Backup,
+  BecomeFriendPayload,
   CheckoutRequest,
   CheckoutResponse,
   ContributionRow,
@@ -208,6 +209,7 @@ const emailVerified: Matches<EmailVerifyResult, Schemas['EmailVerified']> = true
 const emailChange: Matches<EmailChangePayload, Schemas['EmailChangeRequest']> = true;
 const verificationSent: Matches<VerificationSentResult, Schemas['VerificationSent']> = true;
 const deactivate: Matches<DeactivatePayload, Schemas['DeactivateRequest']> = true;
+const becomeFriend: Matches<BecomeFriendPayload, Schemas['BecomeFriendRequest']> = true;
 
 /* ------------------------------------------------------------- membership */
 const membershipStatus: Matches<MembershipStatus, Schemas['MembershipStatus']> = true;
@@ -370,6 +372,7 @@ const assertions: readonly true[] = [
   emailChange,
   verificationSent,
   deactivate,
+  becomeFriend,
   membershipStatus,
   membershipTerm,
   membershipDetail,
@@ -501,6 +504,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'EmailChangeRequest',
   'VerificationSent',
   'DeactivateRequest',
+  'BecomeFriendRequest',
   'MembershipStatus',
   'MembershipTerm',
   'MembershipDetail',

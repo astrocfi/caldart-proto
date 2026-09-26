@@ -90,6 +90,19 @@ deactivated, the wizard offers **Sign in to reactivate** instead.
 
 See :ref:`joining`.
 
+How do I stop being a member but keep supporting CalDART?
+---------------------------------------------------------
+
+Press **Make me a friend** on your dashboard or on **My profile**.  A membership
+that is still current runs to its end and you become a friend the day after;
+otherwise you become one at once.  Automatic renewal is turned off, and if it also
+gave a contribution you can keep that gift going as a yearly recurring donation.
+Until the day comes, **Undo** keeps you a member.  A life member stays a member.
+
+To become a member again, press **Make me a member** and pay for a plan.
+
+See :ref:`becoming-a-friend`.
+
 Can I have more than one membership at once?
 --------------------------------------------
 

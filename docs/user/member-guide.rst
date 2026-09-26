@@ -175,7 +175,8 @@ Membership
   **No membership** — with the date your membership runs to and a **Renew**
   button.  Inside 30 days of expiry, and after it, the card takes an accent
   edge and the button leads.  A life membership reads **Never expires** and is
-  never asked to renew.
+  never asked to renew.  Any other member also sees **Make me a friend** beside
+  **Renew** (see :ref:`becoming-a-friend`).
 
   A friend's card is headed **You are a friend of CalDART** under the label
   **Friend of CalDART**.  It reads "You are a friend of CalDART: no dues, no
@@ -238,6 +239,51 @@ expiry date and no plan, because neither applies — and the form below it takes
 a contribution.  Tick
 **Contribute this amount automatically each year** to have |org| take that
 amount once a year.
+
+
+.. _becoming-a-friend:
+
+Becoming a friend, becoming a member
+====================================
+
+A member who would rather support CalDART without paying dues can become a
+friend, and a friend can become a member again whenever they like.  The buttons
+are on the dashboard's membership card and on the **Your kind of account** card
+below the form on **My profile**, which also says which kind of account you hold.
+A life member stays a member and is offered neither.
+
+Make me a friend
+  Opens a short confirmation.  While your membership is current it reads "Your
+  membership stays current through YYYY/MM/DD. On YYYY/MM/DD you become a friend
+  of CalDART: no dues, no expiry, and no renewal reminders."  You keep everything
+  you paid for, and the change happens the day after your membership runs out.
+  If nothing is current (your membership has expired, or you never paid), you
+  become a friend straight away, and the card turns into a friend's card.
+
+  Your automatic renewal is turned off either way, and CalDART emails you that it
+  is off.  If it is on and also gives a contribution each year, the confirmation
+  asks "Your automatic renewal also gives $X each year. Keep giving $X a year as a
+  recurring donation?"  **Keep the contribution** carries that gift on as a
+  yearly recurring donation with the same card, first charged on the day your
+  renewal would have been (today, if that day has passed); **Stop it** ends it
+  with the renewal.  If you already have a recurring donation, **Keep the
+  contribution** is refused and asks you to change that donation on the
+  **Donate** screen instead.  A renewal that is paused, because its card kept
+  failing, stops with its contribution and nothing is asked.  Otherwise the
+  confirmation has a single **Make me a friend** button.  **Cancel** closes it
+  and changes nothing.
+
+Undo
+  While the change is waiting for its day, the card reads "You become a friend
+  on YYYY/MM/DD." with an **Undo** button, which keeps you a member.  It does
+  not turn automatic renewal back on: do that on the Payments screen, or simply
+  renew.
+
+Make me a member
+  A friend's button.  It opens **Become a member**, the same checkout you would
+  use to join: choose a plan and pay, and you are a member as soon as the
+  payment goes through.  Leaving the page changes nothing.  Renewing while a
+  change to friend is waiting also keeps you a member.
 
 
 Your profile

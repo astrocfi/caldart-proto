@@ -26,6 +26,7 @@ Endpoint                                     Methods                  Who
 ``/api/v1/me/profile/aircraft``              ``POST``                 any signed-in user
 ``/api/v1/me/profile/aircraft/{id}``         ``DELETE``               any signed-in user
 ``/api/v1/me/membership``                    ``GET``                  any signed-in user
+``/api/v1/me/kind/friend``                   ``POST DELETE``          any signed-in user
 ``/api/v1/me/payments``                      ``GET``                  any signed-in user
 ``/api/v1/darts``                            ``GET``                  public
 ``/api/v1/plans``                            ``GET``                  public
@@ -334,6 +335,79 @@ Statuses:
 * **200** — the dict above.
 
 
+.. _api-kind-switch:
+
+``POST /me/kind/friend``
+========================
+
+The caller asks to become a friend of CalDART (:ref:`kinds of account
+<account-kinds>`).
+
+.. code-block:: json
+
+   {"keep_contribution": true}
+
+``keep_contribution`` is needed only when the caller's automatic renewal is
+``active`` and takes a contribution; it is ignored otherwise, and an empty body is
+enough.  A ``paused`` renewal's contribution is never kept: its card has already
+failed every retry, or the member was told it is off, so it stops with the renewal.
+
+* A member whose membership is current keeps it: ``friend_on`` becomes the day
+  after the unbroken coverage ends (``expires_on`` plus one day) and ``kind`` stays
+  ``member`` until then.
+* Any other member (expired, unpaid, or never covered) has ``kind`` set to
+  ``friend`` at once, with ``friend_on`` null.
+
+Either way the automatic renewal ends: a live one is canceled with
+``cancel_mandate`` under the caller's name (``renewal.cancel`` with
+``self_service=true``, and the "automatic renewal is off" email), and a pending
+one is deleted.  With ``keep_contribution: true`` the renewal's contribution
+carries on as a yearly recurring donation on the renewal's provider and saved
+method, first charged on the renewal's ``next_charge_on`` (today when that has
+gone by), started through ``begin_mandate`` and ``save_method`` so it is audited
+as ``renewal.enable`` and announced with the "your recurring donation is on"
+email.  With ``false`` the contribution stops with the renewal.  The change is
+recorded as ``account.kind`` with ``to=friend`` and ``on=<date>`` (the day it takes
+effect), actor and target the caller.
+
+Statuses:
+
+* **200** — the ``user`` payload (:doc:`api-auth`), with ``friend_on`` set or
+  ``kind: "friend"``.
+* **400** — ``{"keep_contribution": ["This field is required."]}`` when the active
+  renewal takes a contribution and the body does not say.
+* **400** — ``{"keep_contribution": ["You already have a recurring donation. Change
+  it on the Donate screen."]}`` for ``keep_contribution: true`` while the caller's
+  recurring donation is ``active`` or ``paused``.
+* **400** — ``{"detail": "A lifetime member stays a member."}`` for a current
+  life member, ``{"detail": "You are already a friend of CalDART."}`` for a friend
+  (or a member whose ``friend_on`` has arrived), and ``{"detail": "A donor becomes
+  a member or a friend only by registering."}`` for a donor.
+
+Nothing is written on any refusal.  A member whose change is pending may post
+again; the date is worked out afresh.  The caller's account and renewal are
+locked for the request, so two overlapping posts take turns and the second finds
+the renewal already canceled.
+
+
+``DELETE /me/kind/friend``
+==========================
+
+The **Undo**: clears a pending ``friend_on``, so the caller stays a member.  A
+renewal the change canceled stays canceled.  Recorded as ``account.kind`` with
+``to=member`` and ``undo=true``.
+
+Statuses:
+
+* **200** — the ``user`` payload, ``friend_on`` null.
+* **400** — ``{"detail": "You have no pending change."}`` when ``friend_on`` is
+  null, when its day has come, or when the caller is a friend.
+
+There is no endpoint for becoming a member: a friend pays for a plan at
+``/portal/membership/join``, and ``activate_term`` makes them a member when the
+payment succeeds.
+
+
 ``GET /me/payments``
 ====================
 
@@ -413,6 +487,11 @@ Module                                                      Holds
 ``backend/tests/test_profile_api.py``                       profile, membership,
                                                             payments, catalogs
 ``backend/tests/test_profile_aircraft_api.py``              attach and detach
+``backend/tests/test_friend_switching.py``                  ``/me/kind/friend``
+``backend/apps/members/services.py``                        ``become_friend``,
+                                                            ``undo_become_friend``
+``backend/apps/payments/renewals.py``                       ``switch_to_friend``,
+                                                            ``keep_renewal_contribution``
 ``frontend/src/portal/features/profile/api.ts``             the TanStack Query hooks
 ==========================================================  ==========================
 

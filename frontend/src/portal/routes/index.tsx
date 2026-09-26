@@ -32,6 +32,7 @@ import { dashboardRoutes } from './dashboard';
 import { donateRoutes } from './donate';
 import { joinRoutes, renewRoutes } from './join';
 import { leaderRoutes } from './leader';
+import { membershipRoutes } from './membership';
 import { paymentsRoutes } from './payments';
 import { profileRoutes } from './profile';
 import { systemRoutes } from './system';
@@ -43,6 +44,7 @@ export const publicRoutes: RouteObject[] = [...authRoutes, ...joinRoutes];
 export const privateRoutes: RouteObject[] = [
   ...dashboardRoutes,
   ...renewRoutes,
+  ...membershipRoutes,
   ...profileRoutes,
   ...paymentsRoutes,
   ...donateRoutes,

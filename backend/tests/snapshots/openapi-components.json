@@ -369,6 +369,12 @@
       "size_bytes"
     ]
   },
+  "BecomeFriendRequest": {
+    "properties": {
+      "keep_contribution": "boolean"
+    },
+    "required": []
+  },
   "BlankEnum": {
     "enum": [
       ""

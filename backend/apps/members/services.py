@@ -70,6 +70,7 @@ from django.utils import timezone
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import SYSTEM_ADMIN
 from apps.accounts.services import (
+    DONOR_KIND_REFUSED,
     AccountChanges,
     DonorUpgrade,
     create_account,
@@ -89,7 +90,7 @@ from apps.members.models import (
     MembershipStatusChoices,
 )
 from caldart import audit
-from caldart.exceptions import DomainPermissionError
+from caldart.exceptions import DomainError, DomainPermissionError
 
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
@@ -414,6 +415,66 @@ def convert_due_friends(today: date | None = None) -> int:
             on=str(user.friend_on),
         )
     return converted
+
+
+LIFETIME_STAYS_MEMBER = "A lifetime member stays a member."
+ALREADY_FRIEND = "You are already a friend of CalDART."
+NO_PENDING_CHANGE = "You have no pending change."
+
+
+def check_can_become_friend(user: User, today: date) -> None:
+    """Refuse, with ``DomainError``, a request from ``user`` to become a friend.
+
+    A donor is refused with :data:`DONOR_KIND_REFUSED`, an account already a friend on
+    ``today`` with :data:`ALREADY_FRIEND`, and a current lifetime member with
+    :data:`LIFETIME_STAYS_MEMBER`.  A member whose change is pending may ask again.
+    """
+    if is_donor(user):
+        raise DomainError(DONOR_KIND_REFUSED)
+    if account_kind(user, today) == AccountKind.FRIEND:
+        raise DomainError(ALREADY_FRIEND)
+    if membership_status(user, today)["is_lifetime"]:
+        raise DomainError(LIFETIME_STAYS_MEMBER)
+
+
+def become_friend(user: User, today: date | None = None) -> User:
+    """Make ``user`` a friend when their membership runs out, or at once, and return them.
+
+    A membership current on ``today`` (the local date by default) is kept: ``friend_on``
+    becomes the day after the unbroken coverage ends and the stored kind stays
+    ``member`` until then.  Anybody else is stored as a friend at once.  One
+    ``account.kind`` record, under the account itself, names ``to=friend`` and the day
+    the change takes effect as ``on``.  Raises what :func:`check_can_become_friend`
+    raises, before writing anything.  The automatic renewal is the caller's to end.
+    """
+    today = today or timezone.localdate()
+    check_can_become_friend(user, today)
+    status = membership_status(user, today)
+    if status["status"] == MembershipState.CURRENT and status["expires_on"] is not None:
+        user.friend_on = effective_on = status["expires_on"] + timedelta(days=1)
+    else:
+        user.kind, user.friend_on, effective_on = AccountKind.FRIEND, None, today
+    user.save(update_fields=["kind", "friend_on", "updated_at"])
+    audit.record(
+        audit.ACCOUNT_KIND, actor=user, target=user, to=AccountKind.FRIEND, on=str(effective_on)
+    )
+    return user
+
+
+def undo_become_friend(user: User, today: date | None = None) -> User:
+    """Clear ``user``'s pending ``friend_on`` so they stay a member, and return them.
+
+    Recorded as ``account.kind``, ``to=member`` and ``undo=true``; a canceled renewal
+    stays canceled.  Raises ``DomainError`` with :data:`NO_PENDING_CHANGE` when nothing
+    is pending on ``today`` (the local date by default).
+    """
+    today = today or timezone.localdate()
+    if user.friend_on is None or account_kind(user, today) == AccountKind.FRIEND:
+        raise DomainError(NO_PENDING_CHANGE)
+    user.friend_on = None
+    user.save(update_fields=["friend_on", "updated_at"])
+    audit.record(audit.ACCOUNT_KIND, actor=user, target=user, to=AccountKind.MEMBER, undo=True)
+    return user
 
 
 #: The term states that never make anybody expired: a canceled term counts for

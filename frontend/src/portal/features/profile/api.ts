@@ -11,13 +11,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
+import { DONATION_KEY, RENEWAL_KEY } from '@/portal/api/queries';
 import type {
   AttachedAircraft,
+  BecomeFriendPayload,
   DeactivatePayload,
   MembershipDetail,
   PaymentSummary,
   Profile,
   ProfilePatch,
+  User,
 } from '@/portal/api/types';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 
@@ -95,5 +98,38 @@ export function useDeactivate(): UseMutationResult<null, Error, DeactivatePayloa
       queryClient.clear();
       queryClient.setQueryData(AUTH_ME_KEY, null);
     },
+  });
+}
+
+/** Where the kind of account is read: the user payload, the membership, both mandates. */
+function useKindChanged(): (user: User) => void {
+  const queryClient = useQueryClient();
+  return (user: User) => {
+    queryClient.setQueryData(AUTH_ME_KEY, user);
+    void queryClient.invalidateQueries({ queryKey: MEMBERSHIP_KEY });
+    void queryClient.invalidateQueries({ queryKey: RENEWAL_KEY });
+    void queryClient.invalidateQueries({ queryKey: DONATION_KEY });
+  };
+}
+
+/**
+ * Asks to become a friend of CalDART through `POST /me/kind/friend`: the day after a
+ * current membership runs out, or at once.  The server cancels the automatic renewal,
+ * so the renewal and donation queries are refreshed along with the membership.
+ */
+export function useBecomeFriend(): UseMutationResult<User, Error, BecomeFriendPayload> {
+  const handleChanged = useKindChanged();
+  return useMutation({
+    mutationFn: (payload: BecomeFriendPayload) => api.post<User>('/me/kind/friend', payload),
+    onSuccess: handleChanged,
+  });
+}
+
+/** Takes back a pending change to friend through `DELETE /me/kind/friend`. */
+export function useUndoBecomeFriend(): UseMutationResult<User, Error, void> {
+  const handleChanged = useKindChanged();
+  return useMutation({
+    mutationFn: () => api.delete<User>('/me/kind/friend'),
+    onSuccess: handleChanged,
   });
 }
