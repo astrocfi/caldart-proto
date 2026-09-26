@@ -36,11 +36,11 @@ around, then read the guide for what you do:
    * - A user administrator
      - :doc:`user/admin/users`
    * - A treasurer
-     - :doc:`user/treasurer-guide`
+     - :doc:`user/finance/index`
    * - An account administrator
      - :doc:`user/admin/index`
    * - A website administrator
-     - :doc:`user/website-administrator-guide`
+     - :doc:`user/website/index`
    * - A system administrator
      - :doc:`user/admin/system`
 

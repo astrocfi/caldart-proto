@@ -256,8 +256,8 @@ Where to go next
    * - Look after accounts, roles, and membership terms
      - :doc:`admin/users`, :doc:`admin/index`
    * - Look after the money: payments, refunds, reconciliation, and reports
-     - :doc:`treasurer-guide`
+     - :doc:`finance/index`
    * - Edit the public site
-     - :doc:`website-administrator-guide`
+     - :doc:`website/index`
    * - Back up, restore, or check the health of the system
      - :doc:`admin/system`
