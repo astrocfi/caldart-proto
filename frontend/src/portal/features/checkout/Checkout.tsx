@@ -9,13 +9,16 @@
  *
  * A finished payment is reported through `onSuccess` and nothing else: the flow
  * that hosts the widget owns the queries a payment moves, so the refresh happens
- * once, where the keys are known.
+ * once, where the keys are known.  A host where paying is optional passes
+ * `onSkip`, and the widget offers a quiet **Not now** button under the provider
+ * tabs that calls it.
  */
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { PaymentProvider } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
+import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { formatCents } from '@/portal/components/Money';
@@ -40,8 +43,17 @@ const HEADINGS: Record<CheckoutMode, { eyebrow: string; title: string }> = {
 
 export type { CheckoutProps, CheckoutResult } from './types';
 
-/** Choose a plan and a contribution, then pay with the configured providers. */
-export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
+/** `CheckoutProps`, plus the way out a host offers where paying is optional. */
+export interface SkippableCheckoutProps extends CheckoutProps {
+  /** Called by the **Not now** button; the button is shown only when this is given. */
+  onSkip?: () => void;
+}
+
+/**
+ * Choose a plan and a contribution, then pay with the configured providers, or
+ * press **Not now** when the host passed `onSkip`.
+ */
+export function Checkout({ mode, onSuccess, onSkip }: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
   const { user } = useAuth();
 
@@ -203,6 +215,14 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
           config={config}
           panelProps={panelProps}
         />
+      )}
+
+      {onSkip === undefined ? null : (
+        <div className="cluster card__footer">
+          <Button variant="quiet" onClick={() => onSkip()}>
+            Not now
+          </Button>
+        </div>
       )}
     </Card>
   );
