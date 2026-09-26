@@ -150,7 +150,7 @@ export function SubscriptionsCard(): JSX.Element {
       key: 'actions',
       header: '',
       render: (row) => (
-        <span className="cluster">
+        <span className="cluster cluster--nowrap">
           <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>
             Edit
           </Button>

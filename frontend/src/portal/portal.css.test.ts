@@ -106,6 +106,24 @@ describe('the auth card', () => {
   });
 });
 
+describe('a row-actions cluster kept on one line', () => {
+  // The production build code-splits this rule into whichever page chunk
+  // first reaches it, so it can land in a `<link>` that loads before
+  // `.cluster`'s own chunk. Repeating `.cluster` in the selector keeps its
+  // `flex-wrap: nowrap` ahead of `.cluster`'s `flex-wrap: wrap` on
+  // specificity, so the fix holds regardless of chunk load order.
+  it('outweighs .cluster on specificity rather than relying on source order', () => {
+    expect(css).not.toMatch(/(?:^|\n)\.cluster--nowrap\s*\{/);
+    expect(css).toMatch(/(?:^|\n)\.cluster\.cluster--nowrap\s*\{/);
+  });
+
+  it('keeps a button label from wrapping once the row itself cannot', () => {
+    const body = ruleBody('.cluster.cluster--nowrap');
+    expect(body).toContain('flex-wrap: nowrap;');
+    expect(body).toContain('white-space: nowrap;');
+  });
+});
+
 describe('non-report content inside the uncapped frame', () => {
   it('caps a card at the portal working width', () => {
     expect(ruleBody('.portal__main .card')).toContain('max-width: var(--page-max);');
