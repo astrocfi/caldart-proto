@@ -1,6 +1,6 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}The card saved for your automatic {{ kind_label }} expires before the next charge is due.{% endblock %}
+{% block preheader %}The card saved for your {{ kind_label }} expires before the next charge is due.{% endblock %}
 
 {% block heading %}Your saved card expires soon{% endblock %}
 
@@ -9,7 +9,7 @@
 {% block body %}
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
   <p style="margin:0 0 14px 0;">
-    The next charge for your automatic {{ kind_label }} is due on
+    The next charge for your {{ kind_label }} is due on
     {{ charge_on|date:"F j, Y" }}, which is after the card expires, so it would be
     declined.
   </p>

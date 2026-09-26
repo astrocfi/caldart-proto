@@ -286,7 +286,7 @@ report, a domain module, can read it.
     provider plugins in ``providers/`` (``stripe``, ``paypal``, and
     ``mock``); checkout, confirmation, webhooks, receipts, refunds, payment
     reporting, reconciliation, and automatic renewal.  Endpoints
-    ``/payments/...``, ``/me/payments/...``, ``/me/renewal``, the finance
+    ``/payments/...``, ``/me/payments/...``, ``/me/renewal``, ``/me/donation``, the finance
     area's ``/admin/payments...`` and ``/admin/renewals...``, and
     ``/system/renewals/run``; ``views.py`` also serves the Apple Pay
     domain-verification file.  ``reports.py`` declares the payments and

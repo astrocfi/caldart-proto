@@ -1,19 +1,18 @@
-{% if kind == "contribution" %}{{ org_name }} — we will take your contribution on {{ charge_on|date:"F j, Y" }}{% else %}{{ org_name }} — we will renew your membership on {{ charge_on|date:"F j, Y" }}{% endif %}
+{% if kind == "contribution" %}{{ org_name }} — we will take your recurring donation on {{ charge_on|date:"F j, Y" }}{% else %}{{ org_name }} — we will renew your membership on {{ charge_on|date:"F j, Y" }}{% endif %}
 
 Hello {{ first_name }},
 {% if kind == "contribution" %}{% if charge_on == today %}
-Because you asked us to take your contribution automatically each year, we are
-charging it today: {{ amount }} to {{ method_label }}.
+Because you asked us for a recurring donation {{ cadence_label }}, we are charging
+it today: {{ amount }} to {{ method_label }}.
 
-If that is not what you want — a different card, a different contribution, or no
-automatic contribution at all — change it here and write to us about the charge:
+If that is not what you want — a different card, a different amount, or no
+recurring donation at all — change it here and write to us about the charge:
 {% else %}
-Because you asked us to take your contribution automatically each year, we will
-charge {{ amount }} to {{ method_label }} on {{ charge_on|date:"F j, Y" }}.
+Because you asked us for a recurring donation {{ cadence_label }}, we will charge
+{{ amount }} to {{ method_label }} on {{ charge_on|date:"F j, Y" }}.
 
 Nothing to do if that is right. If it is not — a different card, a different
-contribution, or no automatic contribution at all — change it here before that
-date:
+amount, or no recurring donation at all — change it here before that date:
 {% endif %}{% elif charge_on == today %}
 Your {{ plan_name }} membership term ends {{ expires_on|date:"F j, Y" }}. Because you asked us
 to {% if kind == "both" %}renew your membership and take your contribution{% else %}renew it{% endif %} automatically, we are charging it today: {{ amount }} to
@@ -33,4 +32,4 @@ contribution, or no automatic renewal at all — change it here before that date
 --
 {{ org_name }} is a volunteer disaster air transportation network.
 {% if contact_email %}Questions? Write to {{ contact_email }}.
-{% endif %}You are receiving this because you are a member of {{ org_name }}.
+{% endif %}{% if kind == "contribution" %}You are receiving this because you give to {{ org_name }}.{% else %}You are receiving this because you are a member of {{ org_name }}.{% endif %}

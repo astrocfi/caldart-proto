@@ -54,8 +54,9 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('contribution_cents', models.PositiveIntegerField(default=0, help_text='Renewed alongside the dues.')),
-                ('next_charge_on', models.DateField(help_text='The day the member chose to be charged; rolled forward after each charge.')),
+                ('contribution_cents', models.PositiveIntegerField(default=0, help_text='Taken beside the dues, or on its own for a recurring donation.')),
+                ('cadence', models.CharField(choices=[('monthly', 'Monthly'), ('quarterly', 'Quarterly'), ('yearly', 'Yearly')], default='yearly', help_text='How often the mandate charges; a renewal is always yearly.', max_length=12)),
+                ('next_charge_on', models.DateField(help_text='The day of the next charge; moved on after each charge.')),
                 ('provider', models.CharField(choices=[('stripe', 'Stripe'), ('paypal', 'PayPal'), ('mock', 'Mock')], max_length=12)),
                 ('customer_ref', models.CharField(blank=True, help_text='Stripe customer id / PayPal payer id.', max_length=128)),
                 ('method_ref', models.CharField(help_text='Stripe payment method id / PayPal vault id.', max_length=128)),
@@ -70,8 +71,8 @@ class Migration(migrations.Migration):
                 ('last_charged_at', models.DateTimeField(blank=True, null=True)),
                 ('raw', models.JSONField(blank=True, default=dict)),
                 ('canceled_by', models.ForeignKey(blank=True, help_text='The member themselves, or the administrator who turned it off.', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='renewal_mandates_canceled', to=settings.AUTH_USER_MODEL)),
-                ('plan', models.ForeignKey(blank=True, help_text='Null when the member is a life member and only the contribution renews.', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='renewal_mandates', to='members.membershipplan')),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='renewal_mandate', to=settings.AUTH_USER_MODEL)),
+                ('plan', models.ForeignKey(blank=True, help_text='The plan that renews; null for a recurring donation.', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='renewal_mandates', to='members.membershipplan')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='renewal_mandates', to=settings.AUTH_USER_MODEL)),
             ],
             options={
                 'ordering': ['-created_at', '-id'],
@@ -89,7 +90,7 @@ class Migration(migrations.Migration):
                 ('noticed_at', models.DateTimeField(blank=True, help_text='When the advance-warning email went out.', null=True)),
                 ('attempted_at', models.DateTimeField(blank=True, null=True)),
                 ('result_emailed_at', models.DateTimeField(blank=True, help_text='When the charged or failed email went out.', null=True)),
-                ('membership', models.ForeignKey(help_text='The term whose expiry this charge renews.', on_delete=django.db.models.deletion.CASCADE, related_name='renewal_attempts', to='members.membership')),
+                ('membership', models.ForeignKey(blank=True, help_text='The term whose expiry this charge renews; null for a recurring donation.', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='renewal_attempts', to='members.membership')),
                 ('payment', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='renewal_attempts', to='payments.payment')),
                 ('retry_of', models.ForeignKey(blank=True, help_text='The attempt this one retries.', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='retries', to='payments.renewalattempt')),
                 ('mandate', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='attempts', to='payments.renewalmandate')),
@@ -123,6 +124,14 @@ class Migration(migrations.Migration):
             model_name='renewalmandate',
             index=models.Index(fields=['status', '-created_at'], name='payments_mandate_status_idx'),
         ),
+        migrations.AddConstraint(
+            model_name='renewalmandate',
+            constraint=models.UniqueConstraint(condition=models.Q(('plan__isnull', False)), fields=('user',), name='renewal_mandate_one_plan_per_user'),
+        ),
+        migrations.AddConstraint(
+            model_name='renewalmandate',
+            constraint=models.UniqueConstraint(condition=models.Q(('plan__isnull', True)), fields=('user',), name='renewal_mandate_one_donation_per_user'),
+        ),
         migrations.AddIndex(
             model_name='renewalattempt',
             index=models.Index(fields=['mandate', '-scheduled_on'], name='payments_attempt_man_idx'),
@@ -130,5 +139,9 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name='renewalattempt',
             index=models.Index(fields=['outcome', 'scheduled_on'], name='payments_attempt_out_idx'),
+        ),
+        migrations.AddConstraint(
+            model_name='renewalattempt',
+            constraint=models.UniqueConstraint(condition=models.Q(('outcome', 'scheduled')), fields=('mandate',), name='renewal_attempt_one_scheduled_per_mandate'),
         ),
     ]

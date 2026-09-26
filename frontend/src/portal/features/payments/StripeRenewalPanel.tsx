@@ -5,18 +5,19 @@
  * SetupIntent, which is what gives CalDART permission to charge it again when
  * the membership runs out.  `confirmSetup` runs with `redirect: 'if_required'`,
  * so a card that needs no bank confirmation never leaves the page; one that does
- * comes back to `/portal/payments` with the SetupIntent in the query string, and
- * the Automatic renewal card confirms it there.
+ * comes back to `/portal/payments` with the SetupIntent and the authority it was
+ * for in the query string, and that authority's card confirms it there.
  */
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
+import type { MandateScope } from '@/portal/api/queries';
 import type { RenewalSetupRequest } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { useDebounced } from '@/portal/components/useDebounced';
-import { isAbortError } from '@/portal/features/checkout/api';
+import { isAbortError, panelErrorMessage } from '@/portal/features/checkout/api';
 import {
   AMOUNT_DEBOUNCE_MS,
   appearanceFromTokens,
@@ -24,12 +25,18 @@ import {
 } from '@/portal/features/checkout/StripePanel';
 import type { RenewalSetupFields } from './api';
 import { renewalSetupRequest, startRenewalSetup, useConfirmRenewal } from './api';
+import { SETUP_SCOPE_PARAM } from './setupReturn';
 import type { RenewalPanelProps } from './types';
 
-/** Where Stripe sends the browser back for a card that needs a bank confirmation. */
-function returnUrl(): string {
+/**
+ * Where Stripe sends the browser back for a card that needs a bank confirmation.
+ *
+ * The Payments screen, told which authority the card was for, so the right card
+ * there finishes the setup.
+ */
+function returnUrl(scope: MandateScope): string {
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
-  return `${origin}/portal/payments`;
+  return `${origin}/portal/payments?${SETUP_SCOPE_PARAM}=${scope}`;
 }
 
 /**
@@ -54,23 +61,23 @@ export interface StripeRenewalPanelProps extends RenewalPanelProps {
 /** Starts a SetupIntent for the chosen plan, then mounts the Payment Element. */
 export function StripeRenewalPanel({
   publishableKey,
-  plan,
-  contributionCents,
-  nextChargeOn,
+  scope,
   onDone: handleDone,
+  onRenewalContribution,
+  ...fields
 }: StripeRenewalPanelProps): JSX.Element {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const appearance = useMemo(() => appearanceFromTokens(), []);
-  const settled = useSettledSetup({ plan, contributionCents, nextChargeOn });
+  const settled = useSettledSetup(fields);
 
   useEffect(() => {
     const controller = new AbortController();
     setClientSecret(null);
     setError(null);
 
-    startRenewalSetup(settled, controller.signal)
+    startRenewalSetup(scope, settled, controller.signal)
       .then((response) => {
         if (controller.signal.aborted) return;
         if (response.provider !== 'stripe' || !response.client.client_secret) {
@@ -82,7 +89,11 @@ export function StripeRenewalPanel({
       .catch((caught: unknown) => {
         if (isAbortError(caught) || controller.signal.aborted) return;
         setError(
-          caught instanceof ApiError ? caught.message : 'Stripe could not start saving that card.',
+          panelErrorMessage(
+            caught,
+            'Stripe could not start saving that card.',
+            onRenewalContribution,
+          ),
         );
       });
 
@@ -92,7 +103,7 @@ export function StripeRenewalPanel({
     return () => {
       controller.abort();
     };
-  }, [settled]);
+  }, [scope, settled, onRenewalContribution]);
 
   if (error) {
     return (
@@ -117,17 +128,23 @@ export function StripeRenewalPanel({
   return (
     <div className="checkout__panel">
       <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret, appearance }}>
-        <StripeSetupForm onDone={handleDone} />
+        <StripeSetupForm scope={scope} onDone={handleDone} />
       </Elements>
     </div>
   );
 }
 
 /** The Payment Element plus its submit button, confirming the SetupIntent on submit. */
-function StripeSetupForm({ onDone }: { onDone: () => void }): JSX.Element {
+function StripeSetupForm({
+  scope,
+  onDone,
+}: {
+  scope: MandateScope;
+  onDone: () => void;
+}): JSX.Element {
   const stripe = useStripe();
   const elements = useElements();
-  const confirm = useConfirmRenewal();
+  const confirm = useConfirmRenewal(scope);
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const isMounted = useRef(true);
@@ -148,7 +165,7 @@ function StripeSetupForm({ onDone }: { onDone: () => void }): JSX.Element {
     try {
       const confirmation = await stripe.confirmSetup({
         elements,
-        confirmParams: { return_url: returnUrl() },
+        confirmParams: { return_url: returnUrl(scope) },
         redirect: 'if_required',
       });
       if (confirmation.error) {

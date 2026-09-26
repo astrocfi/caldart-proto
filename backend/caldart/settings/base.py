@@ -271,6 +271,8 @@ SPECTACULAR_SETTINGS = {
         "PaymentKindEnum": "apps.payments.models.PaymentKind.choices",
         "MandateProviderEnum": "apps.payments.models.MandateProvider.choices",
         "MandateStatusEnum": "apps.payments.models.MandateStatus.choices",
+        "MandateCadenceEnum": "apps.payments.models.MandateCadence.choices",
+        "CadenceEnum": "apps.reports.schedule.Cadence.choices",
         "RefundStatusEnum": "apps.payments.models.RefundStatus.choices",
         "RenewalOutcomeEnum": "apps.payments.models.RenewalOutcome.choices",
         "ManualMethodEnum": "apps.payments.manual.MANUAL_METHOD_CHOICES",

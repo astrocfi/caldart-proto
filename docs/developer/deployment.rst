@@ -739,9 +739,12 @@ Action                        Fields beyond actor and target
 ``payment.receipt_resend``    --
 ``payment.note``              --
 ``renewal.enable``            ``provider``, ``plan`` -- ``-`` for a
-                              contribution-only authority, which renews nothing
+                              recurring donation, which renews nothing
 ``renewal.cancel``            ``provider``, ``self_service`` -- whether the
                               member turned it off themselves
+``renewal.change``            ``contribution_cents``, ``removed_cents`` -- the
+                              contribution taken off a renewal to make room
+                              for a recurring donation
 ``renewals.run``              ``dry_run``, ``noticed``, ``charged``,
                               ``failed``, ``paused``, ``skipped``
 ``reports.run``               ``dry_run``, ``sent``, ``skipped``, ``failed``

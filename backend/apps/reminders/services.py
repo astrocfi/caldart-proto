@@ -257,12 +257,13 @@ def _skip_reason(user: User, membership: Membership, kind: str, today: date) -> 
 def _renews_itself(user: User) -> bool:
     """Whether automatic renewal is covering this member, so a reminder would confuse.
 
-    True for an active mandate, and for a pending one that already has a
-    scheduled charge: in both cases the renewal emails tell the member what is
-    happening to their membership.  A paused or canceled mandate covers nothing,
-    so the ordinary reminders resume.
+    True for an active renewal, and for a pending one that already has a scheduled
+    charge: in both cases the renewal emails tell the member what is happening to
+    their membership.  A paused or canceled renewal covers nothing, so the ordinary
+    reminders resume, and a recurring donation never covers anything: it renews no
+    membership.
     """
-    mandate = RenewalMandate.objects.filter(user=user).first()
+    mandate = RenewalMandate.objects.filter(user=user, plan__isnull=False).first()
     if mandate is None:
         return False
     if mandate.status == MandateStatus.ACTIVE:

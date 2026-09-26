@@ -200,10 +200,10 @@ def test_a_mandate_is_described_by_its_member_and_method() -> None:
     assert str(mandate) == f"{mandate.user} \u00b7 Visa ending 4242, expires 03/2028 (active)"
 
 
-def test_a_member_holds_at_most_one_mandate() -> None:
-    """The mandate is reached from the member as ``renewal_mandate``."""
+def test_a_mandate_is_reached_from_its_member() -> None:
+    """The mandate is among the member's ``renewal_mandates``."""
     mandate = RenewalMandateFactory()
-    assert mandate.user.renewal_mandate == mandate
+    assert list(mandate.user.renewal_mandates.all()) == [mandate]
 
 
 def test_a_new_mandate_is_pending_until_a_payment_activates_it(member: User) -> None:
@@ -296,7 +296,9 @@ def test_an_attempt_belongs_to_the_term_it_renews(
 def test_attempts_read_back_newest_first(member: User) -> None:
     """A mandate's attempts come back with the latest scheduled day first."""
     mandate = RenewalMandateFactory(user=member)
-    early = RenewalAttemptFactory(mandate=mandate, scheduled_on=date(2026, 1, 1))
+    early = RenewalAttemptFactory(
+        mandate=mandate, scheduled_on=date(2026, 1, 1), outcome=RenewalOutcome.FAILED
+    )
     late = RenewalAttemptFactory(mandate=mandate, scheduled_on=date(2026, 6, 1))
     assert list(mandate.attempts.all()) == [late, early]
 

@@ -11,10 +11,19 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
+import type { MandateScope } from '@/portal/api/queries';
 import { useConfirmRenewal } from './api';
 
-/** What Stripe appends to the return URL once the bank has answered. */
-const RETURN_PARAMS = ['setup_intent', 'setup_intent_client_secret', 'redirect_status'] as const;
+/** The query parameter the return URL names the authority in; absent means the renewal. */
+export const SETUP_SCOPE_PARAM = 'mandate';
+
+/** What Stripe appends to the return URL once the bank has answered, and our own scope. */
+const RETURN_PARAMS = [
+  'setup_intent',
+  'setup_intent_client_secret',
+  'redirect_status',
+  SETUP_SCOPE_PARAM,
+] as const;
 
 export interface SetupReturn {
   /** True while the returned SetupIntent is being confirmed with CalDART. */
@@ -26,17 +35,20 @@ export interface SetupReturn {
 /**
  * Confirm the SetupIntent named in the query string, once, on return.
  *
+ * Only the card for the authority the return names acts on it: the recurring
+ * donation's when the address carries `mandate=donation`, the renewal's otherwise.
  * The parameters are dropped from the address afterwards, whether the
  * confirmation was accepted or refused, so a reload does not send it again.
  * A visit carrying no `setup_intent` does nothing at all.
  */
-export function useSetupReturn(): SetupReturn {
+export function useSetupReturn(scope: MandateScope): SetupReturn {
   const [params, setParams] = useSearchParams();
-  const confirm = useConfirmRenewal();
+  const confirm = useConfirmRenewal(scope);
   const [error, setError] = useState<string | null>(null);
   const confirmed = useRef<string | null>(null);
 
-  const setupIntentId = params.get(RETURN_PARAMS[0]);
+  const returnedScope = params.get(SETUP_SCOPE_PARAM) ?? 'renewal';
+  const setupIntentId = returnedScope === scope ? params.get(RETURN_PARAMS[0]) : null;
   const { mutateAsync } = confirm;
 
   useEffect(() => {

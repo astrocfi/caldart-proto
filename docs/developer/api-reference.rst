@@ -683,6 +683,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - turns automatic renewal on without paying
+   * - ``GET | PATCH | DELETE /me/donation``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - your own recurring donation
+   * - ``POST /me/donation/setup``, ``POST /me/donation/confirm``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - sets a recurring donation up without paying today
    * - ``GET /admin/members``
      - ·
      - ·

@@ -12,6 +12,7 @@ import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import { useToast } from '@/portal/components/Toast';
+import { panelErrorMessage } from '@/portal/features/checkout/api';
 import { renewalSetupRequest, useConfirmRenewal, useStartRenewalSetup } from './api';
 import type { RenewalPanelProps } from './types';
 
@@ -25,18 +26,18 @@ export interface PayPalRenewalPanelProps extends RenewalPanelProps {
 /** PayPal's buttons over a vault setup token, saving the account for later charges. */
 export function PayPalRenewalPanel({
   clientId,
-  plan,
-  contributionCents,
-  nextChargeOn,
+  scope,
   onDone: handleDone,
+  onRenewalContribution,
+  ...fields
 }: PayPalRenewalPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const setupToken = useRef<string | null>(null);
   // The SDK hands a `createVaultSetupToken` rejection to `onError`, which would
   // otherwise replace the server's reason with the generic notice.
   const hasSetupError = useRef(false);
-  const start = useStartRenewalSetup();
-  const confirm = useConfirmRenewal();
+  const start = useStartRenewalSetup(scope);
+  const confirm = useConfirmRenewal(scope);
   const toast = useToast();
 
   return (
@@ -52,13 +53,18 @@ export function PayPalRenewalPanel({
       >
         <PayPalButtons
           style={{ layout: 'vertical', shape: 'rect', label: 'paypal' }}
-          forceReRender={[plan ?? '', contributionCents, nextChargeOn]}
+          forceReRender={[
+            fields.plan ?? '',
+            fields.contributionCents,
+            fields.nextChargeOn,
+            fields.cadence ?? '',
+          ]}
           createVaultSetupToken={async () => {
             setError(null);
             hasSetupError.current = false;
             try {
               const response = await start.mutateAsync(
-                renewalSetupRequest({ plan, contributionCents, provider: 'paypal', nextChargeOn }),
+                renewalSetupRequest({ ...fields, provider: 'paypal' }),
               );
               if (response.provider !== 'paypal' || !response.client.setup_token) {
                 throw new Error('PayPal did not return a setup token.');
@@ -68,9 +74,11 @@ export function PayPalRenewalPanel({
             } catch (caught) {
               hasSetupError.current = true;
               setError(
-                caught instanceof ApiError
-                  ? caught.message
-                  : 'PayPal could not start saving that account.',
+                panelErrorMessage(
+                  caught,
+                  'PayPal could not start saving that account.',
+                  onRenewalContribution,
+                ),
               );
               throw caught;
             }
@@ -105,7 +113,7 @@ export function PayPalRenewalPanel({
 
       <p className="checkout__fineprint muted">
         You will be asked to sign in to PayPal in a secure window. Nothing is charged today; the
-        account is saved so next year&rsquo;s dues can be taken from it.
+        account is saved so the charges you chose can be taken from it.
       </p>
     </div>
   );

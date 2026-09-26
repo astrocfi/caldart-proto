@@ -7,17 +7,22 @@
  * calls that change the mandate, the contribution statements, and the two
  * download addresses.
  *
- * Every mutation writes the mandate it was answered with straight into the
- * renewal query, so the card redraws from the server's own view of the
- * authority rather than from a guess made in the browser.
+ * A person holds at most one automatic renewal and one recurring donation, and
+ * the two live at `/me/renewal` and `/me/donation`; every call here takes the
+ * {@link MandateScope} it is about.  Every mutation writes the mandate it was
+ * answered with straight into that scope's query, so the card redraws from the
+ * server's own view of the authority rather than from a guess made in the
+ * browser.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '@/portal/api/client';
-import { RENEWAL_KEY } from '@/portal/api/queries';
+import { MANDATE_PATHS, mandateKey } from '@/portal/api/queries';
+import type { MandateScope } from '@/portal/api/queries';
 import type {
   IsoDate,
+  MandateCadence,
   MandateProvider,
   RenewalConfirmRequest,
   RenewalEnvelope,
@@ -49,25 +54,32 @@ export function statementUrl(year: number): string {
 
 /** What a provider panel was handed, as the setup body it sends. */
 export interface RenewalSetupFields {
-  /** The plan that renews, or null for a life member's contribution alone. */
+  /** The plan that renews, or null for a recurring donation. */
   plan: string | null;
   contributionCents: number;
   provider: MandateProvider;
   /** The day of the first charge, which the member chose. */
   nextChargeOn: IsoDate;
+  /** How often a recurring donation charges; left out for a renewal. */
+  cadence?: MandateCadence;
+  /** The member agreed to move their renewal's contribution to this donation. */
+  removeRenewalContribution?: boolean;
 }
 
 /**
  * The setup body for a plan that may be absent.
  *
- * A life member names no plan at all, and the field is left out rather than
- * sent as null: their authority is over the contribution alone.
+ * A donation names no plan at all, and the field is left out rather than sent as
+ * null.  `cadence` and `remove_renewal_contribution` travel only when they say
+ * something: the server's defaults are a yearly authority and no move.
  */
 export function renewalSetupRequest({
   plan,
   contributionCents,
   provider,
   nextChargeOn,
+  cadence,
+  removeRenewalContribution = false,
 }: RenewalSetupFields): RenewalSetupRequest {
   const request: RenewalSetupRequest = {
     contribution_cents: contributionCents,
@@ -75,11 +87,13 @@ export function renewalSetupRequest({
     next_charge_on: nextChargeOn,
   };
   if (plan !== null) request.plan = plan;
+  if (cadence !== undefined) request.cadence = cadence;
+  if (removeRenewalContribution) request.remove_renewal_contribution = true;
   return request;
 }
 
 /**
- * Start saving a payment method, via `POST /me/renewal/setup`.
+ * Start saving a payment method, via `POST /me/renewal/setup` or `/me/donation/setup`.
  *
  * The answer carries whatever the chosen provider's browser SDK needs: a Stripe
  * SetupIntent secret, a PayPal vault setup token, or nothing at all for the mock
@@ -92,62 +106,67 @@ export function renewalSetupRequest({
  * rather than two.
  */
 export function startRenewalSetup(
+  scope: MandateScope,
   request: RenewalSetupRequest,
   signal?: AbortSignal,
 ): Promise<RenewalSetupResponse> {
-  return api.post<RenewalSetupResponse>('/me/renewal/setup', request, { signal });
+  return api.post<RenewalSetupResponse>(`${MANDATE_PATHS[scope]}/setup`, request, { signal });
 }
 
 /** {@link startRenewalSetup} as a mutation, for a panel that starts on a click. */
-export function useStartRenewalSetup(): UseMutationResult<
-  RenewalSetupResponse,
-  Error,
-  RenewalSetupRequest
-> {
-  return useMutation({ mutationFn: (request: RenewalSetupRequest) => startRenewalSetup(request) });
+export function useStartRenewalSetup(
+  scope: MandateScope,
+): UseMutationResult<RenewalSetupResponse, Error, RenewalSetupRequest> {
+  return useMutation({
+    mutationFn: (request: RenewalSetupRequest) => startRenewalSetup(scope, request),
+  });
 }
 
 /**
  * Save the method the browser collected and make the mandate active, via
- * `POST /me/renewal/confirm`.
+ * `POST /me/renewal/confirm` or `/me/donation/confirm`.
  *
  * Both provider references travel on every request because the body carries
  * both fields; the one the provider does not use is an empty string.
  */
-export function useConfirmRenewal(): UseMutationResult<
-  RenewalEnvelope,
-  Error,
-  RenewalConfirmRequest
-> {
+export function useConfirmRenewal(
+  scope: MandateScope,
+): UseMutationResult<RenewalEnvelope, Error, RenewalConfirmRequest> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (request: RenewalConfirmRequest) =>
-      api.post<RenewalEnvelope>('/me/renewal/confirm', request),
+      api.post<RenewalEnvelope>(`${MANDATE_PATHS[scope]}/confirm`, request),
     onSuccess: (envelope) => {
-      queryClient.setQueryData(RENEWAL_KEY, envelope);
+      queryClient.setQueryData(mandateKey(scope), envelope);
     },
   });
 }
 
-/** Change the plan that renews and the contribution beside it, via `PATCH /me/renewal`. */
-export function useUpdateRenewal(): UseMutationResult<RenewalEnvelope, Error, RenewalPatchRequest> {
+/**
+ * Change what an authority charges, via `PATCH /me/renewal` or `/me/donation`: the
+ * plan and contribution of a renewal, or the amount and cadence of a donation, and
+ * the day of the next charge.
+ */
+export function useUpdateRenewal(
+  scope: MandateScope,
+): UseMutationResult<RenewalEnvelope, Error, RenewalPatchRequest> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (request: RenewalPatchRequest) =>
-      api.patch<RenewalEnvelope>('/me/renewal', request),
+      api.patch<RenewalEnvelope>(MANDATE_PATHS[scope], request),
     onSuccess: (envelope) => {
-      queryClient.setQueryData(RENEWAL_KEY, envelope);
+      queryClient.setQueryData(mandateKey(scope), envelope);
     },
   });
 }
 
-/** Turn automatic renewal off, via `DELETE /me/renewal`. */
-export function useCancelRenewal(): UseMutationResult<null, Error, void> {
+/** Turn an authority off, via `DELETE /me/renewal` or `/me/donation`. */
+export function useCancelRenewal(scope: MandateScope): UseMutationResult<null, Error, void> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => api.delete<null>('/me/renewal'),
+    mutationFn: () => api.delete<null>(MANDATE_PATHS[scope]),
     onSuccess: () => {
-      queryClient.setQueryData(RENEWAL_KEY, { mandate: null } satisfies RenewalEnvelope);
+      queryClient.setQueryData(mandateKey(scope), { mandate: null } satisfies RenewalEnvelope);
     },
   });
 }

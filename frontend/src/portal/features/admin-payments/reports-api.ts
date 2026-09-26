@@ -14,6 +14,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { api } from '@/portal/api/client';
 import type {
   ContributionRow,
+  MandateKind,
   MandateStatus,
   Paginated,
   PaymentProvider,
@@ -67,10 +68,12 @@ export function useContributions(year: string): UseQueryResult<ContributionRow[]
 /** How many mandates and attempts one page of the Renewals tab holds. */
 export const RENEWAL_PAGE_SIZE = 50;
 
-/** The standing renewal authorities, via `GET /admin/renewals`, one page at a time. */
+/**
+ * The standing authorities of both kinds, via `GET /admin/renewals`, one page at a
+ * time, narrowed by status, by kind, and by a search.
+ */
 export function useRenewalMandates(
-  status: MandateStatus | '',
-  search: string,
+  { status, kind, search }: { status: MandateStatus | ''; kind: MandateKind | ''; search: string },
   page: number,
 ): UseQueryResult<Paginated<RenewalMandate>> {
   const params: Record<string, string> = {
@@ -78,6 +81,7 @@ export function useRenewalMandates(
     page_size: String(RENEWAL_PAGE_SIZE),
   };
   if (status !== '') params.status = status;
+  if (kind !== '') params.kind = kind;
   if (search !== '') params.search = search;
   return useQuery({
     queryKey: ['admin', 'renewals', 'mandates', params],

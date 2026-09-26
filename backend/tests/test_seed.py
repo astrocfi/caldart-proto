@@ -320,7 +320,9 @@ def test_seed_demo_leaves_two_renewals_due_for_an_ordinary_charge() -> None:
     _seed()
     today = timezone.localdate()
     attempts = _due_attempts(today)
-    assert [attempt.membership.ends_on for attempt in attempts] == [today, today]
+    assert [
+        None if attempt.membership is None else attempt.membership.ends_on for attempt in attempts
+    ] == [today, today]
 
 
 def test_seed_demo_leaves_a_catch_up_mandate_with_no_attempt() -> None:

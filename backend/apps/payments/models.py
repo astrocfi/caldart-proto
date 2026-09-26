@@ -325,7 +325,7 @@ class Refund(TimestampedModel):
 
 
 class MandateStatus(models.TextChoices):
-    """Where a member's standing authority to be charged each year got to."""
+    """Where a standing authority to be charged on a schedule got to."""
 
     PENDING = "pending", "Pending"
     ACTIVE = "active", "Active"
@@ -333,31 +333,45 @@ class MandateStatus(models.TextChoices):
     CANCELED = "canceled", "Canceled"
 
 
+class MandateCadence(models.TextChoices):
+    """How often a standing authority charges.  A renewal is always yearly."""
+
+    MONTHLY = "monthly", "Monthly"
+    QUARTERLY = "quarterly", "Quarterly"
+    YEARLY = "yearly", "Yearly"
+
+
 class RenewalMandate(TimestampedModel):
-    """One member's standing authority for CalDART to renew their membership.
+    """One person's standing authority for CalDART to charge them on a schedule.
 
-    A mandate holds the saved payment method, the plan and contribution it renews,
-    and how the member sees the method described.  It is created ``pending`` at a
-    checkout that asked for automatic renewal and becomes ``active`` when that
-    payment succeeds; three failed charges in a row pause it, and the member or an
-    administrator can cancel it at any time.
+    A mandate holds the saved payment method, what it charges for, and how the
+    person sees the method described.  It is created ``pending`` when somebody asks
+    for a scheduled charge -- at a checkout or from the portal -- and becomes
+    ``active`` when the method is confirmed; three failed charges in a row pause it,
+    and the person or an administrator can cancel it at any time.
 
-    ``plan`` is the plan that renews, and it always has a duration: a lifetime
-    plan never renews.  ``plan`` is null instead for a member who already holds a
-    lifetime term: their membership needs no renewing, so the mandate is a
-    standing authority for the contribution alone, charged once a year.  The
-    provider is always one that can charge off-session -- ``stripe``, ``paypal``
-    or ``mock``, never ``manual``.
+    A mandate comes in two kinds, and a person holds at most one of each:
 
-    ``next_charge_on`` is the day the member chose to be charged on, which
-    defaults to the day their membership runs out.  Every mandate carries one, and
-    a successful charge rolls it forward a year.
+    * A **renewal** names a ``plan``, which always has a duration (a lifetime plan
+      never renews), and renews the membership once a year, with
+      ``contribution_cents`` taken alongside the dues.  Its ``cadence`` is always
+      ``yearly``.
+    * A **recurring donation** names no plan.  It charges ``contribution_cents``
+      alone, monthly, quarterly or yearly as ``cadence`` says, and accompanies no
+      membership: a member, a life member and a friend may each hold one.
+
+    The provider is always one that can charge off-session -- ``stripe``,
+    ``paypal`` or ``mock``, never ``manual``.
+
+    ``next_charge_on`` is the day of the next charge.  A renewal's defaults to the
+    day the membership runs out, and a successful charge rolls it on to the end of
+    the term it bought; a donation's moves on by its cadence after each charge.
     """
 
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="renewal_mandate",
+        related_name="renewal_mandates",
     )
     plan = models.ForeignKey(
         "members.MembershipPlan",
@@ -365,13 +379,19 @@ class RenewalMandate(TimestampedModel):
         null=True,
         blank=True,
         related_name="renewal_mandates",
-        help_text="Null when the member is a life member and only the contribution renews.",
+        help_text="The plan that renews; null for a recurring donation.",
     )
     contribution_cents = models.PositiveIntegerField(
-        default=0, help_text="Renewed alongside the dues."
+        default=0, help_text="Taken beside the dues, or on its own for a recurring donation."
+    )
+    cadence = models.CharField(
+        max_length=12,
+        choices=MandateCadence.choices,
+        default=MandateCadence.YEARLY,
+        help_text="How often the mandate charges; a renewal is always yearly.",
     )
     next_charge_on = models.DateField(
-        help_text="The day the member chose to be charged; rolled forward after each charge.",
+        help_text="The day of the next charge; moved on after each charge.",
     )
     provider = models.CharField(max_length=12, choices=MandateProvider.choices)
     customer_ref = models.CharField(
@@ -408,6 +428,18 @@ class RenewalMandate(TimestampedModel):
 
     class Meta:
         ordering = ["-created_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(plan__isnull=False),
+                name="renewal_mandate_one_plan_per_user",
+            ),
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(plan__isnull=True),
+                name="renewal_mandate_one_donation_per_user",
+            ),
+        ]
         indexes = [
             models.Index(fields=["status", "-created_at"], name="payments_mandate_status_idx"),
         ]
@@ -429,11 +461,12 @@ class RenewalOutcome(models.TextChoices):
 class RenewalAttempt(TimestampedModel):
     """One scheduled charge against a mandate, and every email keyed on it.
 
-    An attempt is created when the scanner notices that a term is running out.  It
-    carries the day the charge is due, the membership whose expiry it renews, the
-    payment it created once it ran, and the provider's decline reason when it
-    failed.  The three timestamps say which emails have gone out, so a scan that
-    runs twice in one day sends nothing twice.  ``retry_of`` chains a retry back to
+    An attempt is created when the scanner reaches a charge that is coming due.  It
+    carries the day the charge is due, the membership whose expiry it renews (none
+    for a recurring donation, which renews nothing), the payment it created once it
+    ran, and the provider's decline reason when it failed.  The three timestamps say
+    which emails have gone out, so a scan that runs twice in one day sends nothing
+    twice.  ``retry_of`` chains a retry back to
     the attempt that failed.
     """
 
@@ -441,8 +474,10 @@ class RenewalAttempt(TimestampedModel):
     membership = models.ForeignKey(
         "members.Membership",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="renewal_attempts",
-        help_text="The term whose expiry this charge renews.",
+        help_text="The term whose expiry this charge renews; null for a recurring donation.",
     )
     scheduled_on = models.DateField(help_text="The day the charge is due.")
     retry_of = models.ForeignKey(
@@ -479,6 +514,15 @@ class RenewalAttempt(TimestampedModel):
         indexes = [
             models.Index(fields=["mandate", "-scheduled_on"], name="payments_attempt_man_idx"),
             models.Index(fields=["outcome", "scheduled_on"], name="payments_attempt_out_idx"),
+        ]
+        constraints = [
+            # A mandate waits on one charge at a time, so two scans running at once
+            # can never each write, and then each take, the same charge.
+            models.UniqueConstraint(
+                fields=["mandate"],
+                condition=models.Q(outcome="scheduled"),
+                name="renewal_attempt_one_scheduled_per_mandate",
+            ),
         ]
 
     def __str__(self) -> str:

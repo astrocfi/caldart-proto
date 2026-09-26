@@ -141,28 +141,28 @@ I am a life member — can I still give every year?
 --------------------------------------------------
 
 Yes.  A life membership never expires, so there is nothing to renew, but you can
-ask CalDART to take a contribution for you once a year.  The card on the
-Payments screen is headed **Automatic contribution** rather than **Automatic
-renewal**, you choose the amount and the day in **First charge on**, and the
-charge falls a year from the day you turned it on unless you name another.  Every
-email about it says "contribution"; none of them says your membership is being
-renewed, because it is not.
+set up a recurring donation: the same amount monthly, quarterly, or yearly.  On
+the **Donate** screen choose the amount, tick **Make this a recurring donation**,
+and choose how often and the day of the first charge.  The Payments screen then
+shows it on the **Recurring donation** card.  Every email about it says
+"recurring donation"; none of them says your membership is being renewed,
+because it is not.
 
 The **Renew** screen offers a life member the same thing: it is headed
 **Contribute to CalDART**, and the form under it takes a contribution with no
-plan to buy.  Tick **Contribute this amount automatically each year** there to
-set the yearly charge up while you give.
+plan to buy, with the same **Make this a recurring donation** box.
 
 See :doc:`payments`.
 
 How do I change the card on file?
 ---------------------------------
 
-If your membership renews itself, **Payments** in the portal menu shows the card
-or PayPal account on file; turn automatic renewal off and on again to save a
-different one.  Otherwise there is no card on file at all: CalDART stores a
-payment method only when you ask it to renew your membership for you, and
-otherwise you enter your details afresh each time you pay.
+If your membership renews itself, or you give on a schedule, **Payments** in the
+portal menu shows the card or PayPal account on file; turn the authority off and
+set it up again to save a different one.  Otherwise there is no card on file at
+all: CalDART stores a payment method only when you ask it to renew your
+membership or to take a recurring donation, and otherwise you enter your details
+afresh each time you pay.
 
 See :doc:`payments`.
 
@@ -170,7 +170,8 @@ How do I stop being charged automatically?
 ------------------------------------------
 
 **Payments** in the portal menu, then **Turn off** on the **Automatic renewal**
-card -- **Automatic contribution**, if you are a life member.  It takes effect immediately: nothing further is charged and the saved
+card, or on the **Recurring donation** card for a gift on a schedule.  It takes
+effect immediately: nothing further is charged and the saved
 payment method is dropped.  Your membership is untouched and runs to the end of
 the term you have already paid for, and the ordinary renewal reminders resume.
 If you would rather someone did it for you, ask the office.

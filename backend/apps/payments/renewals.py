@@ -1,19 +1,24 @@
-"""Automatic renewal: the standing authority, the scanner, and its emails.
+"""Scheduled charges: the standing authority, the scanner, and its emails.
 
-A member who turns automatic renewal on gives CalDART a *mandate*: a payment
-method saved with their provider, together with the plan and the contribution
-it renews.  Nothing about the schedule lives at the provider -- no Stripe
-subscription, no PayPal billing plan -- so the plan, the price, the term and
-the reminder logic all stay here, in one place.
+Somebody who asks CalDART to charge them on a schedule gives it a *mandate*: a
+payment method saved with their provider, together with what it pays for.  A
+mandate comes in two kinds, and a person holds at most one of each: an
+**automatic renewal** names a plan and renews the membership once a year, with a
+contribution beside the dues if they chose one, and a **recurring donation** names
+no plan and gives a contribution alone, monthly, quarterly or yearly.  Nothing
+about the schedule lives at the provider -- no Stripe subscription, no PayPal
+billing plan -- so the plan, the price, the term, the cadence and the reminder
+logic all stay here, in one place.
 
 :func:`run_auto_renewals` is the one entry point the management command, ``POST
 /system/renewals/run`` and the systemd timer all call.  It does three things,
 in this order, for every mandate that is ``active``:
 
-1. **Notice.**  A mandate whose stored ``next_charge_on`` falls within
+1. **Notice.**  A yearly mandate whose stored ``next_charge_on`` falls within
    :data:`NOTICE_DAYS` gets a :class:`~apps.payments.models.RenewalAttempt`
    scheduled for that day, and the member is emailed the amount, the date and how
-   to turn it off.
+   to turn it off.  A monthly or quarterly donation is written its attempt on the
+   day of the charge, and sends no notice: its charged email is the one message.
 2. **Card expiry.**  A card that expires before that charge earns one warning.
 3. **Charge.**  Every attempt due today or earlier is charged off-session.  A
    success activates the next term and emails the member; a decline records the
@@ -37,13 +42,15 @@ from datetime import date, timedelta
 from typing import Any
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models import Model
 from django.utils import timezone
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
+from apps.members.services import account_kind
 from apps.payments.models import (
+    MandateCadence,
     MandateProvider,
     MandateStatus,
     Payment,
@@ -62,7 +69,7 @@ from apps.payments.providers.base import (
 from apps.payments.receipts import receipt_filename, render_receipt_pdf
 from apps.payments.services import create_checkout, mark_failed
 from caldart import audit
-from caldart.exceptions import DomainValidationError
+from caldart.exceptions import DomainError, DomainValidationError
 from caldart.mail import Attachment, contact_email, org_name, send_templated
 from caldart.reports import PDF_MEDIA_TYPE, money_label
 from caldart.runs import CHARGE_KIND, RunAction, action_lines
@@ -102,6 +109,7 @@ CHOSEN_DATE_KEY = "next_charge_on_chosen"
 
 #: Why a mandate produced no charge on a given scan.
 SKIP_REASONS: tuple[str, ...] = (
+    "friend",
     "lifetime",
     "no_term",
     "not_active",
@@ -116,58 +124,75 @@ class MandateKind(models.TextChoices):
     """What a standing authority charges for, which is what every email says.
 
     ``renewal`` renews a membership term and nothing else, ``both`` renews the
-    term and takes a contribution alongside it, and ``contribution`` takes a
-    contribution alone -- the only kind a life member can hold, since their
-    membership never runs out.
+    term and takes a contribution alongside it, and ``contribution`` is a
+    recurring donation: a contribution alone, on its own schedule, which is the only
+    kind a life member or a friend holds, since neither has dues to renew.
     """
 
-    RENEWAL = "renewal", "Renewal"
-    BOTH = "both", "Renewal and contribution"
-    CONTRIBUTION = "contribution", "Contribution"
+    RENEWAL = "renewal", "Automatic renewal"
+    BOTH = "both", "Automatic renewal and contribution"
+    CONTRIBUTION = "contribution", "Recurring donation"
 
 
 #: The words every email and screen uses for each kind, in running prose.
 KIND_LABELS: dict[str, str] = {
-    MandateKind.RENEWAL: "renewal",
-    MandateKind.BOTH: "renewal and contribution",
-    MandateKind.CONTRIBUTION: "contribution",
+    MandateKind.RENEWAL: "automatic renewal",
+    MandateKind.BOTH: "automatic renewal and contribution",
+    MandateKind.CONTRIBUTION: "recurring donation",
+}
+
+#: How often each cadence charges, in running prose: "we will charge $25.00 each
+#: month".
+CADENCE_PHRASES: dict[str, str] = {
+    MandateCadence.MONTHLY: "each month",
+    MandateCadence.QUARTERLY: "each quarter",
+    MandateCadence.YEARLY: "each year",
+}
+
+#: How many months each cadence moves the next charge on by.
+CADENCE_MONTHS: dict[str, int] = {
+    MandateCadence.MONTHLY: 1,
+    MandateCadence.QUARTERLY: 3,
+    MandateCadence.YEARLY: 12,
 }
 
 #: Subject lines, in the house voice: plain, specific, no exclamation marks.
-#: Keyed by template and then by the mandate's kind, because a contribution-only
-#: mandate renews nothing and must never say it does.
+#: Keyed by template and then by the mandate's kind, because a recurring donation
+#: renews nothing and must never say it does.
 SUBJECTS: dict[str, dict[str, str]] = {
     "renewal_enabled": {
         MandateKind.RENEWAL: "{org}: automatic renewal is on",
         MandateKind.BOTH: "{org}: automatic renewal is on",
-        MandateKind.CONTRIBUTION: "{org}: automatic contribution is on",
+        MandateKind.CONTRIBUTION: "{org}: your recurring donation is on",
     },
     "renewal_notice": {
         MandateKind.RENEWAL: "{org}: we will renew your membership on {charge_on}",
         MandateKind.BOTH: (
             "{org}: we will renew your membership and take your contribution on {charge_on}"
         ),
-        MandateKind.CONTRIBUTION: "{org}: we will take your contribution on {charge_on}",
+        MandateKind.CONTRIBUTION: "{org}: we will take your recurring donation on {charge_on}",
     },
     "renewal_card_expiring": {
         MandateKind.RENEWAL: "{org}: the card we renew your membership with expires soon",
         MandateKind.BOTH: "{org}: the card we renew your membership with expires soon",
-        MandateKind.CONTRIBUTION: "{org}: the card we take your contribution with expires soon",
+        MandateKind.CONTRIBUTION: (
+            "{org}: the card we take your recurring donation with expires soon"
+        ),
     },
     "renewal_charged": {
         MandateKind.RENEWAL: "{org}: your membership has been renewed",
         MandateKind.BOTH: "{org}: your membership has been renewed",
-        MandateKind.CONTRIBUTION: "{org}: thank you for your contribution",
+        MandateKind.CONTRIBUTION: "{org}: thank you for your recurring donation",
     },
     "renewal_failed": {
         MandateKind.RENEWAL: "{org}: we could not renew your membership",
         MandateKind.BOTH: "{org}: we could not renew your membership",
-        MandateKind.CONTRIBUTION: "{org}: we could not take your contribution",
+        MandateKind.CONTRIBUTION: "{org}: we could not take your recurring donation",
     },
     "renewal_canceled": {
         MandateKind.RENEWAL: "{org}: automatic renewal is off",
         MandateKind.BOTH: "{org}: automatic renewal is off",
-        MandateKind.CONTRIBUTION: "{org}: automatic contribution is off",
+        MandateKind.CONTRIBUTION: "{org}: your recurring donation is off",
     },
 }
 
@@ -176,8 +201,49 @@ LIFE_MEMBER_PLAN_MESSAGE = (
     "A life member's membership does not renew; choose a contribution instead."
 )
 
-#: What a life member is told when they ask for a standing authority over nothing.
-LIFE_MEMBER_CONTRIBUTION_MESSAGE = "A contribution to charge each year is needed."
+#: What somebody is told when they ask for a recurring donation of nothing.
+DONATION_AMOUNT_MESSAGE = "A recurring donation needs an amount to give."
+
+#: What somebody is told when they ask for an automatic renewal with no plan.
+RENEWAL_PLAN_MESSAGE = "Automatic renewal needs a membership plan to renew."
+
+#: What somebody is told when they ask for a renewal on any cadence but yearly.
+YEARLY_ONLY_MESSAGE = "Automatic renewal is charged once a year."
+
+#: What a member holding a recurring donation is told when they ask for a
+#: contribution on their renewal as well: a contribution lives in one place.
+HAS_DONATION_MESSAGE = "You already have a recurring donation. Change it on the Donate screen."
+
+#: The field the refusal above is keyed by.
+CONTRIBUTION_FIELD = "contribution_cents"
+
+#: What a member whose renewal already takes a contribution is told when they ask
+#: for a recurring donation, with the amount filled in.
+RENEWAL_CONTRIBUTION_MESSAGE = (
+    "Your automatic renewal already includes a contribution of {amount} a year. Set up a "
+    "recurring donation and that contribution comes off the renewal; your dues still "
+    "renew automatically."
+)
+
+#: The ``code`` the refusal above carries, which the portal answers with a
+#: **Continue** button that resends the request with the renewal's contribution
+#: removed.
+RENEWAL_CONTRIBUTION_CODE = "renewal_contribution"
+
+
+class RenewalContributionError(DomainError):
+    """A recurring donation asked for while the member's renewal takes a contribution.
+
+    ``contribution_cents`` is what the renewal takes each year.  The API renders
+    this as ``400 {"detail": <message>, "code": "renewal_contribution"}``.
+    """
+
+    def __init__(self, contribution_cents: int) -> None:
+        """Build the refusal for a renewal that takes ``contribution_cents`` a year."""
+        super().__init__(
+            RENEWAL_CONTRIBUTION_MESSAGE.format(amount=money_label(contribution_cents))
+        )
+        self.contribution_cents = contribution_cents
 
 
 # --------------------------------------------------------------------------
@@ -271,38 +337,37 @@ def mandate_kind(mandate: RenewalMandate) -> str:
 
 
 def kind_label(kind: str) -> str:
-    """The words for ``kind`` in running prose: ``renewal and contribution`` and so on.
+    """The words for ``kind`` in running prose: ``recurring donation`` and so on.
 
     Raises ``KeyError`` for anything outside :class:`MandateKind`.
     """
     return KIND_LABELS[kind]
 
 
-def next_anniversary(anchor: date) -> date:
-    """One year after ``anchor``, with 29 February answered as 28 February.
+def advance_by_cadence(day: date, cadence: str) -> date:
+    """``day`` moved on by one ``cadence``: one month, three months, or twelve.
 
-    Every other date keeps its day and month, so 3 March 2026 gives 3 March 2027.
+    The day of the month is kept where the later month has it, and clamped to that
+    month's last day where it does not: 31 January 2026 monthly gives 28 February
+    2026, and 29 February 2028 yearly gives 28 February 2029.  Raises ``KeyError``
+    for anything outside :class:`~apps.payments.models.MandateCadence`.
     """
-    try:
-        return anchor.replace(year=anchor.year + 1)
-    except ValueError:
-        return date(anchor.year + 1, 2, 28)
+    months = day.month - 1 + CADENCE_MONTHS[cadence]
+    year = day.year + months // 12
+    month = months % 12 + 1
+    return date(year, month, min(day.day, calendar.monthrange(year, month)[1]))
 
 
 def default_charge_date(user: User, today: date) -> date:
-    """The day a mandate for ``user`` is charged on when they name none themselves.
+    """The day a renewal for ``user`` is charged on when they name none themselves.
 
     The ``ends_on`` of their current dated term, so a renewal falls on the day the
-    membership runs out and the coverage carries straight on.  One year from
-    ``today`` for a life member, whose membership never runs out and whose
-    authority is a yearly contribution.  ``today`` for a member who holds neither,
-    since there is no later day to wait for.
+    membership runs out and the coverage carries straight on, and ``today`` for a
+    member who holds none, since there is no later day to wait for.
     """
     term = term_to_renew(user, today)
     if term is not None and term.ends_on is not None:
         return term.ends_on
-    if lifetime_term(user) is not None:
-        return next_anniversary(today)
     return today
 
 
@@ -335,7 +400,7 @@ def charge_date(mandate: RenewalMandate, today: date | None = None) -> date | No
 def renewal_amount_cents(mandate: RenewalMandate) -> int:
     """What the next charge comes to: the plan's price plus the contribution.
 
-    A contribution-only mandate names no plan, so its next charge is the
+    A recurring donation names no plan, so its next charge is the
     contribution alone.
     """
     plan_cents = mandate.plan.price_cents if mandate.plan is not None else 0
@@ -352,8 +417,9 @@ def mandate_context(mandate: RenewalMandate, **extra: Any) -> dict[str, Any]:
     address, the plan, the amount as the member reads it, the saved method's
     label and the link to the portal's payments screen.  ``kind`` is the
     mandate's :class:`MandateKind` and ``kind_label`` the words for it, which is
-    how each template tells a renewal from a contribution.  ``plan_name`` is an
-    empty string for a contribution-only mandate, which names no plan.
+    how each template tells a renewal from a recurring donation.  ``plan_name`` is
+    an empty string for a recurring donation, which names no plan, and
+    ``cadence_label`` says how often the mandate charges ("each month").
     """
     amount_cents = renewal_amount_cents(mandate)
     kind = mandate_kind(mandate)
@@ -368,6 +434,8 @@ def mandate_context(mandate: RenewalMandate, **extra: Any) -> dict[str, Any]:
         "amount_cents": amount_cents,
         "contribution": money_label(mandate.contribution_cents),
         "contribution_cents": mandate.contribution_cents,
+        "cadence": mandate.cadence,
+        "cadence_label": CADENCE_PHRASES[mandate.cadence],
         "method_label": mandate.method_label,
         "payments_url": payments_url(),
         "site_url": settings.SITE_URL.rstrip("/"),
@@ -431,36 +499,87 @@ def check_renewable(
 ) -> MembershipPlan | None:
     """Refuse a mandate that could never be charged again, and return its plan.
 
-    A member who already holds an active lifetime term may hold a
-    contribution-only mandate and nothing else: ``plan`` must be ``None`` and
-    ``contribution_cents`` must be more than nothing, and ``None`` comes back.
-    Every other member needs a plan with a duration, which comes back as given.
+    A ``plan`` of ``None`` asks for a recurring donation, which anybody may hold and
+    which needs only a ``contribution_cents`` of more than nothing; ``None`` comes
+    back.  A plan asks for an automatic renewal: it must have a duration, and the
+    member must not already hold a lifetime term, which never needs renewing.  The
+    plan comes back as given.
 
     Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` when the
     provider cannot charge again without the member -- which is every provider
-    outside :class:`~apps.payments.models.MandateProvider` -- when a life member
-    asks for a plan or for no contribution, when a member who is not a life
-    member gives no plan, and when the plan is a lifetime one.
+    outside :class:`~apps.payments.models.MandateProvider` -- when a donation gives
+    nothing, when a life member asks for a plan, and when the plan is a lifetime one.
     """
     if provider not in MandateProvider.values:
         raise DomainValidationError(
             AUTO_RENEW_FIELD, f"'{provider}' cannot charge a saved payment method."
         )
-    if lifetime_term(user) is not None:
-        if plan is not None:
-            raise DomainValidationError(AUTO_RENEW_FIELD, LIFE_MEMBER_PLAN_MESSAGE)
-        if contribution_cents <= 0:
-            raise DomainValidationError(AUTO_RENEW_FIELD, LIFE_MEMBER_CONTRIBUTION_MESSAGE)
-        return None
     if plan is None:
-        raise DomainValidationError(
-            AUTO_RENEW_FIELD, "Automatic renewal needs a membership plan to renew."
-        )
+        if contribution_cents <= 0:
+            raise DomainValidationError(AUTO_RENEW_FIELD, DONATION_AMOUNT_MESSAGE)
+        return None
+    if lifetime_term(user) is not None:
+        raise DomainValidationError(AUTO_RENEW_FIELD, LIFE_MEMBER_PLAN_MESSAGE)
     if plan.duration_days is None:
         raise DomainValidationError(
             AUTO_RENEW_FIELD, "A lifetime membership never expires, so it cannot renew itself."
         )
     return plan
+
+
+def renewal_of(user: User) -> RenewalMandate | None:
+    """``user``'s automatic renewal -- the mandate that names a plan -- or ``None``."""
+    return RenewalMandate.objects.filter(user=user, plan__isnull=False).first()
+
+
+def donation_of(user: User) -> RenewalMandate | None:
+    """``user``'s recurring donation -- the mandate that names no plan -- or ``None``."""
+    return RenewalMandate.objects.filter(user=user, plan__isnull=True).first()
+
+
+def refuse_renewal_contribution(user: User, contribution_cents: int) -> None:
+    """Refuse a contribution on a renewal while ``user`` holds a recurring donation.
+
+    A contribution lives in one place: a member who already gives on a schedule
+    changes that gift on the Donate screen rather than adding a second one to their
+    renewal.  A canceled donation gives nothing and stands in nobody's way, and a
+    renewal of the dues alone is always fine.  Raises ``DomainValidationError`` keyed
+    by :data:`CONTRIBUTION_FIELD` carrying :data:`HAS_DONATION_MESSAGE`.
+    """
+    if contribution_cents <= 0:
+        return
+    held = donation_of(user)
+    if held is not None and held.status != MandateStatus.CANCELED:
+        raise DomainValidationError(CONTRIBUTION_FIELD, HAS_DONATION_MESSAGE)
+
+
+def take_contribution_off_renewal(user: User, *, remove: bool, actor: Model | str) -> None:
+    """Make room for a recurring donation by taking the renewal's contribution off it.
+
+    A member whose renewal (anything but canceled) takes a contribution is refused
+    a recurring donation with :class:`RenewalContributionError`, naming the amount,
+    unless ``remove`` says they agreed to move it: then the renewal's contribution
+    becomes nothing, its dues renew as before, and one ``renewal.change`` audit
+    record names the amount taken off.  A member with no such renewal passes
+    straight through.
+    """
+    renewal = renewal_of(user)
+    if renewal is None or renewal.status == MandateStatus.CANCELED:
+        return
+    if renewal.contribution_cents <= 0:
+        return
+    if not remove:
+        raise RenewalContributionError(renewal.contribution_cents)
+    removed = renewal.contribution_cents
+    renewal.contribution_cents = 0
+    renewal.save(update_fields=["contribution_cents", "updated_at"])
+    audit.record(
+        audit.RENEWAL_CHANGE,
+        actor=actor,
+        target=user,
+        contribution_cents=0,
+        removed_cents=removed,
+    )
 
 
 @transaction.atomic
@@ -471,39 +590,54 @@ def begin_mandate(
     contribution_cents: int,
     provider: str,
     next_charge_on: date | None = None,
+    cadence: str = MandateCadence.YEARLY,
+    remove_renewal_contribution: bool = False,
 ) -> RenewalMandate:
-    """Create or reset the member's ``pending`` mandate, before anything is saved.
+    """Create or reset ``user``'s ``pending`` mandate, before anything is saved.
 
-    A member has at most one mandate, so turning automatic renewal on again --
-    at a checkout, or from the portal -- replaces whatever authority was there
-    with a pending one carrying the plan, the contribution and the provider now
-    asked for, and no saved method.  It becomes ``active`` only when the method
-    is confirmed, through :func:`save_method`.
+    A person holds at most one renewal and one recurring donation, so asking for
+    one again -- at a checkout, or from the portal -- replaces whatever authority of
+    that kind was there with a pending one carrying the plan, the contribution, the
+    cadence and the provider now asked for, and no saved method.  It becomes
+    ``active`` only when the method is confirmed, through :func:`save_method`.
+    ``plan`` of ``None`` asks for the recurring donation; any plan, for the renewal.
 
-    ``next_charge_on`` is the day the member asked to be charged on; leaving it
-    out takes :func:`default_charge_date`.  A mandate begun at a checkout with no
-    day of its own is dated again from the term the payment buys, in
-    :func:`activate_pending_mandate`, which is what :data:`CHOSEN_DATE_KEY`
-    records.
+    ``next_charge_on`` is the day of the first charge.  Left out, a renewal takes
+    :func:`default_charge_date` and a donation takes today.  A mandate begun at a
+    checkout with no day of its own is dated again from the payment, in
+    :func:`activate_pending_mandate`, which is what :data:`CHOSEN_DATE_KEY` records.
+    ``cadence`` is what the caller checked: a renewal is always yearly.
 
-    A life member's mandate carries no plan: it is a standing authority for the
-    contribution alone.
+    A contribution lives in one place.  A recurring donation for a member whose
+    renewal takes a contribution raises :class:`RenewalContributionError` unless
+    ``remove_renewal_contribution`` moves that contribution off the renewal first
+    (:func:`take_contribution_off_renewal`), and a renewal that takes a contribution
+    beside a recurring donation is refused by :func:`refuse_renewal_contribution`.
 
     Raises ``DomainValidationError`` keyed by :data:`AUTO_RENEW_FIELD` for
-    anything :func:`check_renewable` refuses, and writes nothing when it does.
+    anything :func:`check_renewable` refuses, and writes nothing when anything
+    is refused.
     """
     renewable = check_renewable(plan, provider, user=user, contribution_cents=contribution_cents)
+    if renewable is None:
+        take_contribution_off_renewal(user, remove=remove_renewal_contribution, actor=user)
+    else:
+        refuse_renewal_contribution(user, contribution_cents)
     chosen = next_charge_on is not None
-    charge_on = (
-        next_charge_on
-        if next_charge_on is not None
-        else default_charge_date(user, timezone.localdate())
-    )
+    today = timezone.localdate()
+    if next_charge_on is not None:
+        charge_on = next_charge_on
+    elif renewable is None:
+        charge_on = today
+    else:
+        charge_on = default_charge_date(user, today)
     mandate, _ = RenewalMandate.objects.update_or_create(
         user=user,
+        plan__isnull=renewable is None,
         defaults={
             "plan": renewable,
             "contribution_cents": contribution_cents,
+            "cadence": cadence,
             "next_charge_on": charge_on,
             "provider": provider,
             "status": MandateStatus.PENDING,
@@ -532,7 +666,7 @@ def save_method(
     Clears the failure count and any cancellation, writes one ``renewal.enable``
     audit record, and emails the member that the authority is on, naming the amount,
     the method and the next charge date.  The plan is named where there is one; a
-    contribution-only authority renews nothing, so it names none and the record's
+    recurring donation renews nothing, so it names none and the record's
     ``plan`` field renders ``-``.  The email is sent after the transaction commits,
     so a rollback tells nobody anything.
     """
@@ -555,7 +689,7 @@ def save_method(
         actor=actor,
         target=mandate.user,
         provider=mandate.provider,
-        # A contribution-only authority names no plan, and an empty list is how a
+        # A recurring donation names no plan, and an empty list is how a
         # record says a field has no value: it renders as `-`.
         plan=[] if mandate.plan is None else [mandate.plan.slug],
     )
@@ -608,7 +742,9 @@ def pending_mandate_for(payment: Payment) -> RenewalMandate | None:
     checkout, never one left over from another.
     """
     mandate = RenewalMandate.objects.filter(
-        user_id=payment.user_id, status=MandateStatus.PENDING
+        user_id=payment.user_id,
+        status=MandateStatus.PENDING,
+        plan__isnull=payment.plan_id is None,
     ).first()
     if mandate is None or mandate.provider != payment.provider:
         return None
@@ -620,7 +756,7 @@ def pending_mandate_for(payment: Payment) -> RenewalMandate | None:
 
 
 def discard_pending_mandate(user: User) -> None:
-    """Throw away the member's ``pending`` mandate, if they hold one.
+    """Throw away the member's ``pending`` mandates, of either kind, if they hold any.
 
     A pending mandate has no saved method, has charged nothing and has never been
     announced to anybody, so a checkout that declines automatic renewal deletes it
@@ -656,9 +792,13 @@ def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:
     Returns the activated mandate, or ``None`` when the payment saved no method
     or there was no pending mandate to activate.
 
-    A mandate whose member named no charge date is dated from the term the payment
+    A renewal whose member named no charge date is dated from the term the payment
     has just bought, so the first automatic charge falls on the day that term runs
-    out.  A date the member did choose is left exactly as they gave it.
+    out.  A recurring donation whose member named no later day has just taken its
+    first gift, so its next charge falls one cadence after today.  A date the member
+    did choose is left exactly as they gave it, except that a donation's chosen day
+    that is not after today moves on by its cadence too: the payment is that day's
+    gift, and it is never taken twice.
     """
     mandate = pending_mandate_for(payment)
     if mandate is None:
@@ -671,10 +811,15 @@ def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:
             payment.provider,
         )
         return None
-    if mandate.raw.get(CHOSEN_DATE_KEY) is not True:
+    today = timezone.localdate()
+    chosen = mandate.raw.get(CHOSEN_DATE_KEY) is True
+    if mandate.plan_id is None:
+        if not chosen or mandate.next_charge_on <= today:
+            mandate.next_charge_on = advance_by_cadence(today, mandate.cadence)
+    elif not chosen:
         # The term the money just bought is what the charge follows, not the one
         # the member held when they started the checkout.
-        mandate.next_charge_on = default_charge_date(payment.user, timezone.localdate())
+        mandate.next_charge_on = default_charge_date(payment.user, today)
     return save_method(mandate, method, actor=payment.user)
 
 
@@ -692,7 +837,7 @@ def roll_charge_date_past(user: User, *, covered_until: date | None) -> RenewalM
     year on a day their coverage already reaches past.
 
     Does nothing, and answers ``None``, for a member with no active authority, for
-    a contribution-only authority, which renews no term, when the coverage did not
+    a recurring donation, which renews no term, when the coverage did not
     move, and when the stored day already falls on or after the day the coverage now
     runs to -- which is what makes it safe to call twice for one term.  Otherwise
     answers the mandate as saved.
@@ -866,7 +1011,7 @@ def run_auto_renewals(
 
 
 def _rehearsed_attempt(
-    mandate: RenewalMandate, term: Membership, charge_on: date, today: date
+    mandate: RenewalMandate, term: Membership | None, charge_on: date, today: date
 ) -> list[RenewalAttempt]:
     """The unsaved attempt a rehearsal hands to its charge step, or nothing.
 
@@ -899,7 +1044,11 @@ def _notice(
     it has written them to the database the charge step reads.
     """
     if mandate.plan_id is None:
-        return _notice_contribution(mandate, today, run, dry_run=dry_run)
+        return _notice_donation(mandate, today, run, dry_run=dry_run)
+    if account_kind(mandate.user, today) == AccountKind.FRIEND:
+        # A friend pays no dues, so a renewal they still hold renews nothing.
+        run.record_skipped("friend")
+        return []
     if lifetime_term(mandate.user) is not None:
         # The member has been granted a lifetime term since the mandate was made,
         # so there is no expiry left for it to renew.
@@ -927,62 +1076,68 @@ def _notice(
     if (charge_on - today).days > NOTICE_DAYS:
         return []
 
+    attempt = waiting
+    if attempt is None and not dry_run:
+        attempt = _schedule(mandate, term, charge_on)
+        if attempt is None:
+            return []
     run.noticed += 1
     run.record_action("renewal_notice", mandate, on=charge_on)
+    if attempt is None:
+        # Only a rehearsal gets here with nothing written.
+        return _rehearsed_attempt(mandate, term, charge_on, today)
     if dry_run:
         # An attempt already waiting is one the charge step finds by itself.
-        if waiting is not None:
-            return []
-        return _rehearsed_attempt(mandate, term, charge_on, today)
-    attempt = waiting or RenewalAttempt.objects.create(
-        mandate=mandate, membership=term, scheduled_on=charge_on
-    )
+        return []
     _send_notice(mandate, attempt, charge_on, term.ends_on, today)
     return []
 
 
-def _notice_contribution(
+def _notice_donation(
     mandate: RenewalMandate, today: date, run: RenewalRun, *, dry_run: bool
 ) -> list[RenewalAttempt]:
-    """Schedule and announce the yearly charge of a contribution-only mandate.
+    """Schedule, and for a yearly gift announce, the next charge of a recurring donation.
 
-    The charge date is the mandate's own, and the attempt is written against the
-    member's lifetime term, which is what their standing authority sits alongside.
-    A member who no longer holds one is skipped as ``no_term``: there is nothing for
-    the contribution to accompany.  An attempt already waiting is reused, and one
-    whose notice the mail server refused is written to again here.
+    The charge date is the mandate's own, and the attempt names no term: a donation
+    accompanies no membership, so anybody's is charged whatever their membership.
+    A yearly donation is scheduled and announced :data:`NOTICE_DAYS` ahead, exactly
+    as a renewal is, and one whose notice the mail server refused is written to
+    again here.  A monthly or quarterly donation sends no notice: its attempt is
+    written on the day of the charge, for the charge step of the same run to take.
 
     Returns what :func:`_notice` returns, for the same reason.
     """
-    term = lifetime_term(mandate.user)
-    if term is None:
-        run.record_skipped("no_term")
-        return []
-    waiting = next(
-        (
-            attempt
-            for attempt in mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED).order_by("pk")
-        ),
-        None,
-    )
-    if waiting is not None and waiting.noticed_at is not None:
+    waiting = (
+        mandate.attempts.filter(outcome=RenewalOutcome.SCHEDULED).order_by("scheduled_on", "pk")
+    ).first()
+    is_yearly = mandate.cadence == MandateCadence.YEARLY
+    if waiting is not None and (not is_yearly or waiting.noticed_at is not None):
         return []
     scheduled_on = charge_date(mandate, today)
     if scheduled_on is None:
         return []
     charge_on = max(scheduled_on, today)
+    if not is_yearly:
+        if charge_on > today:
+            return []
+        if dry_run:
+            return _rehearsed_attempt(mandate, None, charge_on, today)
+        _schedule(mandate, None, charge_on)
+        return []
     if (charge_on - today).days > NOTICE_DAYS:
         return []
 
+    attempt = waiting
+    if attempt is None and not dry_run:
+        attempt = _schedule(mandate, None, charge_on)
+        if attempt is None:
+            return []
     run.noticed += 1
     run.record_action("renewal_notice", mandate, on=charge_on)
+    if attempt is None:
+        return _rehearsed_attempt(mandate, None, charge_on, today)
     if dry_run:
-        if waiting is not None:
-            return []
-        return _rehearsed_attempt(mandate, term, charge_on, today)
-    attempt = waiting or RenewalAttempt.objects.create(
-        mandate=mandate, membership=term, scheduled_on=charge_on
-    )
+        return []
     _send_notice(mandate, attempt, charge_on, None, today)
     return []
 
@@ -1020,15 +1175,47 @@ def _catch_up(
     if (charge_on - today).days > NOTICE_DAYS:
         return []
 
+    attempt = None
+    if not dry_run:
+        attempt = _schedule(mandate, term, charge_on)
+        if attempt is None:
+            return []
     run.noticed += 1
     run.record_action("renewal_notice", mandate, on=charge_on)
-    if dry_run:
+    if attempt is None:
         return _rehearsed_attempt(mandate, term, charge_on, today)
-    attempt = RenewalAttempt.objects.create(
-        mandate=mandate, membership=term, scheduled_on=charge_on
-    )
     _send_notice(mandate, attempt, charge_on, term.ends_on, today)
     return []
+
+
+def _schedule(
+    mandate: RenewalMandate,
+    term: Membership | None,
+    charge_on: date,
+    *,
+    retry_of: RenewalAttempt | None = None,
+) -> RenewalAttempt | None:
+    """Write the mandate's one scheduled charge, or ``None`` when another scan has.
+
+    ``renewal_attempt_one_scheduled_per_mandate`` allows a mandate one charge
+    waiting at a time.  Two scans running at once -- the timer and a system
+    administrator pressing "Run now" -- can both find none waiting and both try to
+    write one; the second write is refused, and that scan leaves the charge, its
+    notice and its taking to the scan that wrote it.  A retry carries the notice
+    time of the attempt it retries.
+    """
+    try:
+        with transaction.atomic():
+            return RenewalAttempt.objects.create(
+                mandate=mandate,
+                membership=term,
+                scheduled_on=charge_on,
+                retry_of=retry_of,
+                noticed_at=retry_of.noticed_at if retry_of is not None else None,
+            )
+    except IntegrityError:
+        log.info("mandate %s already has a charge scheduled by another scan", mandate.pk)
+        return None
 
 
 def _send_notice(
@@ -1114,15 +1301,12 @@ def _charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: b
         if not dry_run:
             _finish(attempt, RenewalOutcome.SKIPPED)
         return
-    if mandate.plan_id is not None and lifetime_term(mandate.user) is not None:
-        run.record_skipped("lifetime")
+    skip = _renewal_skip_reason(attempt, today)
+    if skip is not None:
+        run.record_skipped(skip)
         if not dry_run:
             _finish(attempt, RenewalOutcome.SKIPPED)
-        return
-    if _already_renewed(attempt, today):
-        run.record_skipped("already_renewed")
-        if not dry_run:
-            _finish(attempt, RenewalOutcome.SKIPPED)
+        if not dry_run and skip == "already_renewed" and attempt.membership is not None:
             # The coverage this charge was for arrived from somewhere else, so the
             # stored day follows it rather than waiting a year where it is.
             roll_charge_date_past(mandate.user, covered_until=attempt.membership.ends_on)
@@ -1170,6 +1354,38 @@ def _charge(attempt: RenewalAttempt, today: date, run: RenewalRun, *, dry_run: b
     _record_success(attempt, run)
 
 
+def _renewal_skip_reason(attempt: RenewalAttempt, today: date) -> str | None:
+    """Why a renewal's attempt should not be charged after all, or ``None``.
+
+    ``friend`` when the member has become a friend of CalDART, who pays no dues;
+    ``lifetime`` when they have been granted a lifetime term since the attempt was
+    written; ``already_renewed`` when their coverage has already moved past the
+    term the charge was for.  A recurring donation is never skipped for any of
+    these: it charges whatever the giver's membership.  It is skipped as
+    ``already_charged`` when its next charge, read afresh, already lies beyond the
+    day the attempt was for, which is what a second attempt for a day another scan
+    has already charged looks like.  A retry is dated after that next charge, so it
+    is never skipped this way.
+    """
+    mandate = attempt.mandate
+    if mandate.plan_id is None:
+        next_charge_on = (
+            RenewalMandate.objects.filter(pk=mandate.pk)
+            .values_list("next_charge_on", flat=True)
+            .get()
+        )
+        if next_charge_on > attempt.scheduled_on:
+            return "already_charged"
+        return None
+    if account_kind(mandate.user, today) == AccountKind.FRIEND:
+        return "friend"
+    if lifetime_term(mandate.user) is not None:
+        return "lifetime"
+    if _already_renewed(attempt, today):
+        return "already_renewed"
+    return None
+
+
 def _claim(attempt: RenewalAttempt) -> bool:
     """Take an attempt for this run, and say whether this run got it.
 
@@ -1211,10 +1427,10 @@ def _already_renewed(attempt: RenewalAttempt, today: date) -> bool:
 
     True when another term has been bought or granted since the attempt was
     scheduled, which is what a member paying by hand in the meantime looks like.
-    Always false for a contribution-only mandate, which renews no term and so can
-    never be overtaken by one.
+    Always false for a recurring donation, which renews no term and so can never be
+    overtaken by one.
     """
-    if attempt.mandate.plan_id is None:
+    if attempt.mandate.plan_id is None or attempt.membership is None:
         return False
     term = term_to_renew(attempt.mandate.user, today)
     if term is None or term.ends_on is None or attempt.membership.ends_on is None:
@@ -1231,9 +1447,9 @@ def _finish(attempt: RenewalAttempt, outcome: str) -> None:
 def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
     """Mark the attempt succeeded, roll the charge date forward, and tell the member.
 
-    The mandate's stored charge date moves on a year: to the ``ends_on`` of the
-    term the charge bought for a renewal, and to the anniversary of the day the
-    charge was scheduled for a contribution, which renews no term.
+    The mandate's stored charge date moves on: to the ``ends_on`` of the term the
+    charge bought for a renewal, and by the mandate's cadence from the day the
+    charge was scheduled for a recurring donation, which renews no term.
     """
     mandate = attempt.mandate
     now = timezone.now()
@@ -1246,7 +1462,7 @@ def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
     mandate.failure_count = 0
     mandate.last_charged_at = now
     if mandate.plan_id is None:
-        mandate.next_charge_on = next_anniversary(attempt.scheduled_on)
+        mandate.next_charge_on = advance_by_cadence(attempt.scheduled_on, mandate.cadence)
     elif renewed is not None and renewed.ends_on is not None:
         mandate.next_charge_on = renewed.ends_on
     mandate.save(update_fields=["failure_count", "last_charged_at", "next_charge_on", "updated_at"])
@@ -1259,7 +1475,7 @@ def _record_success(attempt: RenewalAttempt, run: RenewalRun) -> None:
     if send_mandate_email(
         mandate,
         "renewal_charged",
-        expires_on=renewed.ends_on if renewed is not None else None,
+        expires_on=renewed.ends_on if renewed is not None and mandate.plan_id else None,
         next_charge_on=charge_on,
         receipt_number=payment.receipt_number if payment is not None else "",
         attachments=attachments,
@@ -1305,11 +1521,5 @@ def _record_failure(
     attempt.save(update_fields=["outcome", "error", "result_emailed_at", "updated_at"])
 
     if next_on is not None:
-        RenewalAttempt.objects.create(
-            mandate=mandate,
-            membership=attempt.membership,
-            scheduled_on=next_on,
-            retry_of=attempt,
-            noticed_at=attempt.noticed_at,
-        )
+        _schedule(mandate, attempt.membership, next_on, retry_of=attempt)
     run.failed += 1

@@ -84,6 +84,7 @@ PAYMENT_RECEIPT_RESEND = "payment.receipt_resend"
 PAYMENT_NOTE = "payment.note"
 RENEWAL_ENABLE = "renewal.enable"
 RENEWAL_CANCEL = "renewal.cancel"
+RENEWAL_CHANGE = "renewal.change"
 RENEWALS_RUN = "renewals.run"
 
 # -- why an attempt was turned away -----------------------------------------

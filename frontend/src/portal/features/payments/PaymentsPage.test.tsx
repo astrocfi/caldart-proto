@@ -9,7 +9,7 @@ import type { RequestHandler } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import type { MembershipStatus, PaymentSummary } from '@/portal/api/types';
-import { makePaymentSummary, makePaymentsConfig } from '@test/fixtures/payments';
+import { makeMandate, makePaymentSummary, makePaymentsConfig } from '@test/fixtures/payments';
 import { API, CURRENT_MEMBERSHIP, LIFETIME_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -38,6 +38,9 @@ function mount({
   return renderWithProviders(<PaymentsPage />, { route: '/payments' });
 }
 
+/** The lede once the membership is known to have nothing to renew. */
+const NO_RENEWAL_LEDE = 'Your recurring donation, your receipts, and your contribution statements.';
+
 /** Queries scoped to one `<Card>`, found by its heading. */
 function card(heading: string) {
   const section = screen.getByRole('heading', { name: heading }).closest('section');
@@ -51,20 +54,73 @@ describe('PaymentsPage', () => {
 
     expect(
       await screen.findByText(
-        'Your receipts, your contribution statements, and whether CalDART renews your membership for you.',
+        'Your recurring donation, whether CalDART renews your membership for you, your receipts, and your contribution statements.',
       ),
     ).toBeInTheDocument();
   });
 
-  it('tells a life member the lede is about their contribution, not a renewal', async () => {
+  it('shows a member with a dated term both authorities', async () => {
+    mount();
+
+    expect(await screen.findByRole('heading', { name: 'Automatic renewal' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Recurring donation' })).toBeInTheDocument();
+  });
+
+  it('tells a life member the lede is about their donation, not a renewal', async () => {
     mount({ membership: LIFETIME_MEMBERSHIP });
 
     expect(
       await screen.findByText(
-        'Your receipts, your contribution statements, and whether CalDART takes your contribution for you.',
+        'Your recurring donation, your receipts, and your contribution statements.',
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/renews your membership/)).not.toBeInTheDocument();
+  });
+
+  it('offers a life member no automatic renewal, since nothing of theirs renews', async () => {
+    mount({ membership: LIFETIME_MEMBERSHIP });
+
+    expect(await screen.findByText(NO_RENEWAL_LEDE)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Automatic renewal' })).not.toBeInTheDocument();
+  });
+
+  it('offers a friend no automatic renewal, since a friend pays no dues', async () => {
+    mount({
+      membership: { ...CURRENT_MEMBERSHIP, status: 'friend', plan: null, expires_on: null },
+    });
+
+    expect(await screen.findByText(NO_RENEWAL_LEDE)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Automatic renewal' })).not.toBeInTheDocument();
+  });
+
+  it('shows a life member a renewal they still hold, so they can turn it off', async () => {
+    mount({
+      membership: LIFETIME_MEMBERSHIP,
+      extra: [http.get(`${API}/me/renewal`, () => HttpResponse.json({ mandate: makeMandate() }))],
+    });
+
+    expect(await screen.findByRole('heading', { name: 'Automatic renewal' })).toBeInTheDocument();
+  });
+
+  it('hides a canceled renewal from a friend', async () => {
+    mount({
+      membership: { ...CURRENT_MEMBERSHIP, status: 'friend', plan: null, expires_on: null },
+      extra: [
+        http.get(`${API}/me/renewal`, () =>
+          HttpResponse.json({ mandate: makeMandate({ status: 'canceled' }) }),
+        ),
+      ],
+    });
+
+    expect(await screen.findByText(NO_RENEWAL_LEDE)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Automatic renewal' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the renewal card when the membership could not be read', async () => {
+    mount({
+      extra: [http.get(`${API}/me/membership`, () => new HttpResponse(null, { status: 500 }))],
+    });
+
+    expect(await screen.findByRole('heading', { name: 'Automatic renewal' })).toBeInTheDocument();
   });
 
   it('lists a payment with what it bought and a link to its receipt', async () => {

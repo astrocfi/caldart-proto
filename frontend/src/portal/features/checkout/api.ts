@@ -7,7 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 
-import { api } from '@/portal/api/client';
+import { ApiError, api } from '@/portal/api/client';
 import type {
   CheckoutRequest,
   CheckoutResponse,
@@ -15,6 +15,7 @@ import type {
   PaymentResult,
   PaymentsConfig,
 } from '@/portal/api/types';
+import type { ProviderPanelProps } from './types';
 
 export const PAYMENTS_CONFIG_KEY = ['payments', 'config'] as const;
 
@@ -26,6 +27,81 @@ export const PAYMENTS_CONFIG_KEY = ['payments', 'config'] as const;
  */
 export function isAbortError(caught: unknown): boolean {
   return caught instanceof DOMException && caught.name === 'AbortError';
+}
+
+/** The `code` a donation is refused with while the member's renewal takes a contribution. */
+const RENEWAL_CONTRIBUTION_CODE = 'renewal_contribution';
+
+/** Whether `caught` is the server refusing a donation while the renewal takes a contribution. */
+function isRenewalContribution(caught: ApiError): boolean {
+  const { body } = caught;
+  return (
+    caught.status === 400 &&
+    typeof body === 'object' &&
+    body !== null &&
+    (body as Record<string, unknown>).code === RENEWAL_CONTRIBUTION_CODE
+  );
+}
+
+/**
+ * What a payment panel shows for a request that failed, or null for nothing.
+ *
+ * The server's refusal of a donation because the member's renewal already takes a
+ * contribution is a question, not an error: its sentence goes to
+ * `onRenewalContribution`, for the checkout to ask whether to move the contribution,
+ * and the panel shows nothing.  Any other `ApiError` shows the server's message, and
+ * anything else `fallback`.
+ *
+ * @param caught - What the request rejected with.
+ * @param fallback - The panel's own wording for a failure that carries none.
+ * @param onRenewalContribution - Handed the server's sentence for that one refusal.
+ * @returns The message to show, or null.
+ */
+export function panelErrorMessage(
+  caught: unknown,
+  fallback: string,
+  onRenewalContribution?: (detail: string) => void,
+): string | null {
+  if (!(caught instanceof ApiError)) return fallback;
+  if (onRenewalContribution !== undefined && isRenewalContribution(caught)) {
+    onRenewalContribution(caught.message);
+    return null;
+  }
+  return caught.message;
+}
+
+/** What a checkout request is built from: the panel's choices, less the display total. */
+export type CheckoutFields = Pick<
+  ProviderPanelProps,
+  'plan' | 'contributionCents' | 'autoRenew' | 'cadence' | 'removeRenewalContribution'
+>;
+
+/**
+ * The `POST /payments/checkout` body for `fields`, paid with `provider`.
+ *
+ * `cadence` travels only with a standing authority, and
+ * `remove_renewal_contribution` only when the member agreed to it: the server's
+ * defaults are a yearly authority and no move.
+ */
+export function checkoutRequest(
+  {
+    plan,
+    contributionCents,
+    autoRenew,
+    cadence,
+    removeRenewalContribution = false,
+  }: CheckoutFields,
+  provider: PaymentProvider,
+): CheckoutRequest {
+  const request: CheckoutRequest = {
+    plan,
+    contribution_cents: contributionCents,
+    provider,
+    auto_renew: autoRenew,
+  };
+  if (autoRenew && cadence !== undefined) request.cadence = cadence;
+  if (autoRenew && removeRenewalContribution) request.remove_renewal_contribution = true;
+  return request;
 }
 
 /** Fetch the plans, contribution tiers and providers this deployment can offer. */

@@ -18,7 +18,13 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN, TREASURER
 from apps.members.models import MembershipPlan
-from apps.payments.models import Payment, PaymentProvider, PaymentStatus, PaymentWallet
+from apps.payments.models import (
+    Payment,
+    PaymentProvider,
+    PaymentStatus,
+    PaymentWallet,
+    RenewalOutcome,
+)
 from tests.conftest import Golden, PdfText, csv_body, read_csv, role_matrix
 from tests.factories import (
     MembershipFactory,
@@ -228,12 +234,12 @@ def test_list_runs_the_same_queries_however_many_payments_it_holds(
     """Serializing one more payment, renewal attempt and all, costs no more queries."""
     mandate = RenewalMandateFactory(user=member)
     first = make_payment(member, annual_plan, when=paid_at(2026, 2, 2))
-    RenewalAttemptFactory(mandate=mandate, payment=first)
+    RenewalAttemptFactory(mandate=mandate, payment=first, outcome=RenewalOutcome.SUCCEEDED)
     with CaptureQueriesContext(connection) as one_row:
         assert treasurer_client.get(LIST).status_code == 200
 
     second = make_payment(member, annual_plan, when=paid_at(2026, 2, 3))
-    RenewalAttemptFactory(mandate=mandate, payment=second)
+    RenewalAttemptFactory(mandate=mandate, payment=second, outcome=RenewalOutcome.SUCCEEDED)
     with CaptureQueriesContext(connection) as two_rows:
         assert treasurer_client.get(LIST).status_code == 200
 

@@ -1,12 +1,12 @@
-{{ org_name }} — automatic {{ kind_label }} is off
+{{ org_name }} — {{ kind_label }} is off
 
 Hello {{ first_name }},
 {% if kind == "contribution" %}
-Your automatic contribution to {{ org_name }} has been turned off, and the
-payment method we had saved has been dropped. Nothing further will be charged.
+Your recurring donation to {{ org_name }} has been turned off, and the payment
+method we had saved has been dropped. Nothing further will be charged.
 
-Your lifetime membership is untouched. You can contribute by hand at any time,
-or turn the automatic contribution back on here:
+Your account is untouched. You can give by hand at any time, or set up a
+recurring donation again here:
 {% else %}
 Automatic renewal of your {{ plan_name }} membership has been turned off, and the
 payment method we had saved has been dropped. Nothing further will be charged.
@@ -19,4 +19,4 @@ turn automatic renewal back on here:
 --
 {{ org_name }} is a volunteer disaster air transportation network.
 {% if contact_email %}Questions? Write to {{ contact_email }}.
-{% endif %}You are receiving this because you are a member of {{ org_name }}.
+{% endif %}{% if kind == "contribution" %}You are receiving this because you give to {{ org_name }}.{% else %}You are receiving this because you are a member of {{ org_name }}.{% endif %}

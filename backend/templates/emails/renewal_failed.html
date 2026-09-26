@@ -1,8 +1,8 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}{% if lapsed %}Automatic renewal is off: {{ error }}.{% else %}The card saved for your automatic {{ kind_label }} was refused: {{ error }}.{% endif %}{% endblock %}
+{% block preheader %}{% if lapsed %}Automatic renewal is off: {{ error }}.{% else %}The card saved for your {{ kind_label }} was refused: {{ error }}.{% endif %}{% endblock %}
 
-{% block heading %}{% if kind == "contribution" %}We could not take your contribution{% else %}We could not renew your membership{% endif %}{% endblock %}
+{% block heading %}{% if kind == "contribution" %}We could not take your recurring donation{% else %}We could not renew your membership{% endif %}{% endblock %}
 
 {% block lede %}{% if lapsed %}{{ error|capfirst }}.{% else %}{{ method_label }} was refused: {{ error }}.{% endif %}{% endblock %}
 
@@ -22,8 +22,8 @@
   {% else %}
   {% if kind == "contribution" %}
     <p style="margin:0 0 14px 0;">
-      We tried to charge {{ amount }} to {{ method_label }} for your contribution,
-      and it was refused.
+      We tried to charge {{ amount }} to {{ method_label }} for your recurring
+      donation, and it was refused.
     </p>
   {% elif kind == "both" %}
     <p style="margin:0 0 14px 0;">
@@ -44,8 +44,8 @@
     </p>
   {% elif kind == "contribution" %}
     <p style="margin:0 0 14px 0;">
-      That was the last attempt, so your automatic contribution is off. You can
-      contribute by hand, or turn it back on with another card.
+      That was the last attempt, so your recurring donation is off. You can give
+      by hand, or turn it back on with another card.
     </p>
   {% else %}
     <p style="margin:0 0 14px 0;">

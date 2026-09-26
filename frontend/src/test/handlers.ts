@@ -77,7 +77,7 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
   };
 }
 
-/** Default handlers: CSRF works, nobody is signed in, renewal is off. */
+/** Default handlers: CSRF works, nobody is signed in, renewal and donation are off. */
 export const handlers = [
   http.get(
     `${API}/auth/csrf`,
@@ -93,6 +93,9 @@ export const handlers = [
   // Every screen that carries the renewal state reads this, so the default keeps
   // a suite that is not about renewal from having to declare one.
   http.get(`${API}/me/renewal`, () => HttpResponse.json({ mandate: null })),
+  // The same for the recurring donation, which the Payments screen, the checkout
+  // and a life member's dashboard read.
+  http.get(`${API}/me/donation`, () => HttpResponse.json({ mandate: null })),
   // Every report screen reads its column registry as it mounts.  An empty
   // registry leaves the exports on the server's own default columns, so a suite
   // that is not about columns does not have to declare one.

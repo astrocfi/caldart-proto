@@ -7,36 +7,36 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 
-import { ApiError } from '@/portal/api/client';
 import { Button } from '@/portal/components/Button';
+import { panelErrorMessage } from '@/portal/features/checkout/api';
 import { renewalSetupRequest, useConfirmRenewal, useStartRenewalSetup } from './api';
 import type { RenewalPanelProps } from './types';
 
-/** Saves the mock provider's test card as the method CalDART renews from. */
+/** Saves the mock provider's test card as the method CalDART charges from. */
 export function MockRenewalPanel({
-  plan,
-  contributionCents,
-  nextChargeOn,
+  scope,
   onDone: handleDone,
+  onRenewalContribution,
+  ...fields
 }: RenewalPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
-  const start = useStartRenewalSetup();
-  const confirm = useConfirmRenewal();
+  const start = useStartRenewalSetup(scope);
+  const confirm = useConfirmRenewal(scope);
   const isBusy = start.isPending || confirm.isPending;
 
   async function save(): Promise<void> {
     setError(null);
     try {
-      await start.mutateAsync(
-        renewalSetupRequest({ plan, contributionCents, provider: 'mock', nextChargeOn }),
-      );
+      await start.mutateAsync(renewalSetupRequest({ ...fields, provider: 'mock' }));
       await confirm.mutateAsync({ setup_intent_id: '', setup_token: '' });
       handleDone();
     } catch (caught) {
       setError(
-        caught instanceof ApiError
-          ? caught.message
-          : 'That payment method could not be saved. Please try again.',
+        panelErrorMessage(
+          caught,
+          'That payment method could not be saved. Please try again.',
+          onRenewalContribution,
+        ),
       );
     }
   }

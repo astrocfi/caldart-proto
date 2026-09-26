@@ -385,10 +385,12 @@
   "CheckoutRequest": {
     "properties": {
       "auto_renew": "boolean",
+      "cadence": "ref:MandateCadenceEnum",
       "contribution_cents": "integer",
       "next_charge_on": "string(date)|null",
       "plan": "string|null",
-      "provider": "ref:PaymentProviderEnum"
+      "provider": "ref:PaymentProviderEnum",
+      "remove_renewal_contribution": "boolean"
     },
     "required": [
       "provider"
@@ -994,6 +996,13 @@
       "password"
     ]
   },
+  "MandateCadenceEnum": {
+    "enum": [
+      "monthly",
+      "quarterly",
+      "yearly"
+    ]
+  },
   "MandateProviderEnum": {
     "enum": [
       "stripe",
@@ -1300,6 +1309,11 @@
       "portal"
     ]
   },
+  "NullEnum": {
+    "enum": [
+      null
+    ]
+  },
   "OwnerTypeEnum": {
     "enum": [
       "individual",
@@ -1581,6 +1595,7 @@
   },
   "PatchedRenewalPatchRequest": {
     "properties": {
+      "cadence": "unknown|null",
       "contribution_cents": "integer",
       "next_charge_on": "string(date)|null",
       "plan": "string"
@@ -2123,7 +2138,7 @@
       "error": "string",
       "id": "integer",
       "mandate_id": "integer",
-      "membership_id": "integer",
+      "membership_id": "integer|null",
       "noticed_at": "string(date-time)|null",
       "outcome": "ref:RenewalOutcomeEnum",
       "payment_id": "integer|null",
@@ -2166,6 +2181,7 @@
   "RenewalMandate": {
     "properties": {
       "amount_cents": "integer",
+      "cadence": "ref:MandateCadenceEnum",
       "canceled_at": "string(date-time)|null",
       "contribution_cents": "integer",
       "created_at": "string(date-time)",
@@ -2190,6 +2206,7 @@
     },
     "required": [
       "amount_cents",
+      "cadence",
       "canceled_at",
       "contribution_cents",
       "created_at",
@@ -2256,10 +2273,12 @@
   },
   "RenewalSetupRequest": {
     "properties": {
+      "cadence": "ref:MandateCadenceEnum",
       "contribution_cents": "integer",
       "next_charge_on": "string(date)|null",
       "plan": "string",
-      "provider": "ref:MandateProviderEnum"
+      "provider": "ref:MandateProviderEnum",
+      "remove_renewal_contribution": "boolean"
     },
     "required": [
       "provider"

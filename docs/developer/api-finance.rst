@@ -277,8 +277,9 @@ member screen and for the Payments tab of the member record.
 ``payments`` holds the same rows as ``GET /admin/payments/{id}`` below, newest
 money first, including the attempts that failed.  ``totals`` counts only money
 that arrived.  ``mandate`` is the same object ``GET /me/renewal`` answers with,
-described in :doc:`api-renewals`, and is ``null`` for a member with no standing
-renewal authority.  ``statement_years`` names the years the member can download a
+described in :doc:`api-renewals`: the member's most recently created standing
+authority, an automatic renewal or a recurring donation, and ``null`` for a
+member with neither.  ``statement_years`` names the years the member can download a
 contribution statement for — a year qualifies when at least one payment
 carrying a contribution arrived in it — newest first.
 

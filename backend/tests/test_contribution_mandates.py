@@ -1,11 +1,11 @@
-"""A life member's standing authority: a contribution, charged once a year.
+"""A life member's standing authority: a recurring donation, charged once a year.
 
-A member holding a lifetime term has nothing to renew, so their mandate names no
-plan.  These tests drive one through setup, the advance notice, the charge, a
-decline, the retries and the pause, and check that the endpoints refuse a plan
-anywhere a life member could offer one.  They also cover the words a mandate
-that both renews and contributes uses, which neither a plain renewal nor a
-contribution alone would say.
+A member holding a lifetime term has nothing to renew, so the only mandate they
+hold names no plan: a recurring donation.  These tests drive a yearly one through
+setup, the advance notice, the charge, a decline, the retries and the pause, and
+check that the endpoints refuse a plan anywhere a life member could offer one.
+They also cover the words a mandate that both renews and contributes uses, which
+neither a plain renewal nor a donation alone would say.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.members.models import MembershipPlan, MembershipStatusChoices
 from apps.payments.models import (
+    MandateCadence,
     MandateProvider,
     MandateStatus,
     Payment,
@@ -33,11 +34,11 @@ from apps.payments.renewals import (
     NOTICE_DAYS,
     RETRY_OFFSETS,
     MandateKind,
+    advance_by_cadence,
     charge_date,
     check_renewable,
     kind_label,
     mandate_kind,
-    next_anniversary,
     run_auto_renewals,
     save_method,
 )
@@ -65,16 +66,17 @@ def make_life_member(user: User, plan: MembershipPlan, *, started: date) -> User
 def make_contribution_mandate(
     user: User, *, last4: str = "4242", contribution_cents: int = CONTRIBUTION_CENTS
 ) -> RenewalMandate:
-    """An active mandate for ``user`` that names no plan and charges a contribution.
+    """An active yearly recurring donation for ``user``, which names no plan.
 
-    Its charge falls one year from today, which is the day a life member's authority
-    takes when they name none of their own.
+    Its charge falls one year from today, the day a donation first set up at a
+    checkout today next charges on.
     """
     return RenewalMandateFactory(
         user=user,
         plan=None,
         contribution_cents=contribution_cents,
-        next_charge_on=next_anniversary(timezone.localdate()),
+        cadence=MandateCadence.YEARLY,
+        next_charge_on=advance_by_cadence(timezone.localdate(), MandateCadence.YEARLY),
         method_last4=last4,
         method_label=f"Test card ending {last4}, expires 12/2030",
     )
@@ -83,10 +85,10 @@ def make_contribution_mandate(
 # --------------------------------------------------------------------------
 # Kind
 # --------------------------------------------------------------------------
-def test_a_mandate_with_no_plan_reads_as_a_contribution(
+def test_a_mandate_with_no_plan_reads_as_a_donation(
     member: User, life_plan: MembershipPlan, today: date
 ) -> None:
-    """A life member's authority charges a contribution and renews nothing."""
+    """A life member's authority is a recurring donation and renews nothing."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
 
     assert mandate_kind(make_contribution_mandate(member)) == MandateKind.CONTRIBUTION
@@ -113,9 +115,9 @@ def test_a_mandate_with_a_plan_alone_reads_as_a_renewal(
 @pytest.mark.parametrize(
     ("kind", "words"),
     [
-        (MandateKind.RENEWAL, "renewal"),
-        (MandateKind.BOTH, "renewal and contribution"),
-        (MandateKind.CONTRIBUTION, "contribution"),
+        (MandateKind.RENEWAL, "automatic renewal"),
+        (MandateKind.BOTH, "automatic renewal and contribution"),
+        (MandateKind.CONTRIBUTION, "recurring donation"),
     ],
 )
 def test_each_kind_has_the_words_the_emails_use(kind: str, words: str) -> None:
@@ -126,24 +128,14 @@ def test_each_kind_has_the_words_the_emails_use(kind: str, words: str) -> None:
 # --------------------------------------------------------------------------
 # Dates
 # --------------------------------------------------------------------------
-def test_a_leap_day_anniversary_falls_on_the_twenty_eighth() -> None:
-    """29 February 2028 comes round again on 28 February 2029."""
-    assert next_anniversary(date(2028, 2, 29)) == date(2029, 2, 28)
-
-
-def test_an_anniversary_keeps_its_day_and_month() -> None:
-    """3 March 2026 comes round again on 3 March 2027."""
-    assert next_anniversary(date(2026, 3, 3)) == date(2027, 3, 3)
-
-
-def test_an_active_contribution_mandate_always_names_its_next_charge(
+def test_an_active_donation_always_names_its_next_charge(
     member: User, life_plan: MembershipPlan, today: date
 ) -> None:
-    """A life member is never told there is nothing due: the anniversary is the date."""
+    """A life member is never told there is nothing due: the stored day is the date."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
     mandate = make_contribution_mandate(member)
 
-    assert charge_date(mandate, today) == next_anniversary(today)
+    assert charge_date(mandate, today) == advance_by_cadence(today, MandateCadence.YEARLY)
 
 
 def test_a_member_whose_charge_date_went_by_is_charged_today(
@@ -185,7 +177,7 @@ def test_a_life_member_must_name_a_contribution_to_charge(
     """An authority over nothing at all is refused."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
 
-    with pytest.raises(DomainValidationError, match="A contribution to charge each year is needed"):
+    with pytest.raises(DomainValidationError, match="A recurring donation needs an amount"):
         check_renewable(None, MandateProvider.MOCK, user=member, contribution_cents=0)
 
 
@@ -203,16 +195,17 @@ def test_a_life_member_holding_a_contribution_needs_no_plan(
     )
 
 
-def test_a_member_with_a_dated_term_still_needs_a_plan(
+def test_a_member_with_a_dated_term_may_hold_a_donation(
     member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """Somebody who is not a life member cannot hold a contribution-only authority."""
+    """A recurring donation accompanies no membership, so a dated term is no bar."""
     MembershipFactory(
         user=member, plan=annual_plan, starts_on=today, ends_on=today + timedelta(days=365)
     )
 
-    with pytest.raises(DomainValidationError, match="needs a membership plan to renew"):
-        check_renewable(None, MandateProvider.MOCK, user=member, contribution_cents=2_000)
+    assert (
+        check_renewable(None, MandateProvider.MOCK, user=member, contribution_cents=2_000) is None
+    )
 
 
 # --------------------------------------------------------------------------
@@ -229,7 +222,9 @@ def test_the_notice_goes_out_a_fortnight_before_the_contribution(
     with freeze_time(timezone.now() + timedelta(days=(due - today).days - NOTICE_DAYS)):
         run_auto_renewals()
 
-    assert str(mailoutbox[-1].subject) == "CalDART: we will take your contribution on " + str(due)
+    assert str(mailoutbox[-1].subject) == (
+        "CalDART: we will take your recurring donation on " + str(due)
+    )
 
 
 def test_the_notice_never_says_the_word_renew(
@@ -265,10 +260,10 @@ def test_the_charge_takes_the_contribution_and_extends_no_term(
     assert member.memberships.count() == 1
 
 
-def test_the_charge_email_thanks_the_member_for_the_contribution(
+def test_the_charge_email_thanks_the_member_for_the_donation(
     member: User, life_plan: MembershipPlan, today: date, mailoutbox: list[EmailMessage]
 ) -> None:
-    """The message reporting a contribution charge says thank you, not renewed."""
+    """The message reporting a donation charge says thank you, not renewed."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
     mandate = make_contribution_mandate(member)
     due = mandate.next_charge_on
@@ -278,7 +273,7 @@ def test_the_charge_email_thanks_the_member_for_the_contribution(
     with freeze_time(timezone.now() + timedelta(days=(due - today).days)):
         run_auto_renewals()
 
-    assert str(mailoutbox[-1].subject) == "CalDART: thank you for your contribution"
+    assert str(mailoutbox[-1].subject) == "CalDART: thank you for your recurring donation"
 
 
 def test_a_refused_contribution_is_retried_and_then_paused(
@@ -393,7 +388,7 @@ def test_setup_refuses_a_plan_from_a_life_member(
     ]
 
 
-def test_setup_without_a_plan_saves_a_contribution_only_authority(
+def test_donation_setup_saves_a_life_members_donation(
     api_client: APIClient, member: User, life_plan: MembershipPlan
 ) -> None:
     """A life member who names a contribution alone gets a mandate with no plan."""
@@ -401,7 +396,7 @@ def test_setup_without_a_plan_saves_a_contribution_only_authority(
     api_client.force_login(member)
 
     api_client.post(
-        "/api/v1/me/renewal/setup",
+        "/api/v1/me/donation/setup",
         {"contribution_cents": 5_000, "provider": MandateProvider.MOCK},
         format="json",
     )
@@ -412,30 +407,30 @@ def test_setup_without_a_plan_saves_a_contribution_only_authority(
 def test_the_mandate_envelope_names_the_kind_and_a_date(
     api_client: APIClient, member: User, life_plan: MembershipPlan
 ) -> None:
-    """``GET /me/renewal`` tells a life member their authority is a contribution."""
+    """``GET /me/donation`` tells a life member their authority is a donation."""
     make_life_member(member, life_plan, started=timezone.localdate() - timedelta(days=400))
     make_contribution_mandate(member)
     api_client.force_login(member)
 
-    mandate = api_client.get("/api/v1/me/renewal").json()["mandate"]
+    mandate = api_client.get("/api/v1/me/donation").json()["mandate"]
 
     assert mandate["kind"] == MandateKind.CONTRIBUTION
 
 
-def test_a_contribution_only_mandate_reports_no_plan(
+def test_a_donation_reports_no_plan(
     api_client: APIClient, member: User, life_plan: MembershipPlan
 ) -> None:
-    """``plan`` and ``plan_name`` are null for an authority that renews nothing."""
+    """``plan`` is null for an authority that renews nothing."""
     make_life_member(member, life_plan, started=timezone.localdate() - timedelta(days=400))
     make_contribution_mandate(member)
     api_client.force_login(member)
 
-    mandate = api_client.get("/api/v1/me/renewal").json()["mandate"]
+    mandate = api_client.get("/api/v1/me/donation").json()["mandate"]
 
     assert mandate["plan"] is None
 
 
-def test_a_contribution_only_mandate_charges_the_contribution_alone(
+def test_a_donation_charges_the_contribution_alone(
     api_client: APIClient, member: User, life_plan: MembershipPlan
 ) -> None:
     """The amount the member is shown is the contribution, with no dues added."""
@@ -443,21 +438,20 @@ def test_a_contribution_only_mandate_charges_the_contribution_alone(
     make_contribution_mandate(member)
     api_client.force_login(member)
 
-    mandate = api_client.get("/api/v1/me/renewal").json()["mandate"]
+    mandate = api_client.get("/api/v1/me/donation").json()["mandate"]
 
     assert mandate["amount_cents"] == CONTRIBUTION_CENTS
 
 
-def test_the_seeded_attempt_hangs_off_the_lifetime_term(
+def test_a_life_members_scheduled_donation_names_no_term(
     member: User, life_plan: MembershipPlan, today: date
 ) -> None:
-    """The scheduled charge names the lifetime term the contribution sits beside."""
+    """The scheduled charge accompanies no membership, the lifetime term included."""
     make_life_member(member, life_plan, started=today - timedelta(days=400))
-    term = member.memberships.get()
     mandate = make_contribution_mandate(member)
     due = mandate.next_charge_on
 
     with freeze_time(timezone.now() + timedelta(days=(due - today).days - NOTICE_DAYS)):
         run_auto_renewals()
 
-    assert mandate.attempts.get(outcome=RenewalOutcome.SCHEDULED).membership_id == term.pk
+    assert mandate.attempts.get(outcome=RenewalOutcome.SCHEDULED).membership_id is None

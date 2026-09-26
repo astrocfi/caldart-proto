@@ -1,9 +1,9 @@
-{{ org_name }} — automatic {{ kind_label }} is on
+{{ org_name }} — {{ kind_label }} is on
 
 Hello {{ first_name }},
 {% if kind == "contribution" %}
-Your contribution to {{ org_name }} will be taken automatically from now on. We
-will charge {{ amount }} to {{ method_label }} once a year.
+Thank you for giving to {{ org_name }} on a schedule. We will charge {{ amount }}
+to {{ method_label }} {{ cadence_label }}.
 {% elif kind == "both" %}
 From now on we will renew your {{ plan_name }} membership and take your
 contribution. We will charge {{ amount }} to {{ method_label }}, and again each
@@ -14,12 +14,12 @@ Your {{ plan_name }} membership will renew itself from now on. We will charge
 {% endif %}
 Your next charge will be on {{ next_charge_on|date:"F j, Y" }}.
 
-We will email you fourteen days before every charge, so nothing happens without
-warning. You can change the contribution or turn automatic {{ kind_label }} off
+{% if cadence == "yearly" %}We will email you fourteen days before every charge, so nothing happens without
+warning. {% else %}We will email you a receipt after every charge. {% endif %}You can change the contribution or turn your {{ kind_label }} off
 at any time:
 {{ payments_url }}
 
 --
 {{ org_name }} is a volunteer disaster air transportation network.
 {% if contact_email %}Questions? Write to {{ contact_email }}.
-{% endif %}You are receiving this because you are a member of {{ org_name }}.
+{% endif %}{% if kind == "contribution" %}You are receiving this because you give to {{ org_name }}.{% else %}You are receiving this because you are a member of {{ org_name }}.{% endif %}

@@ -1,8 +1,8 @@
 {% extends "emails/renewal_base.html" %}
 
-{% block preheader %}{% if kind == "contribution" %}We will take your contribution automatically and email you before every charge.{% elif kind == "both" %}We will renew your {{ plan_name }} membership, take your contribution and email you before every charge.{% else %}We will renew your {{ plan_name }} membership automatically and email you before every charge.{% endif %}{% endblock %}
+{% block preheader %}{% if kind == "contribution" %}We will take your recurring donation {{ cadence_label }}.{% elif kind == "both" %}We will renew your {{ plan_name }} membership, take your contribution and email you before every charge.{% else %}We will renew your {{ plan_name }} membership automatically and email you before every charge.{% endif %}{% endblock %}
 
-{% block heading %}Automatic {{ kind_label }} is on{% endblock %}
+{% block heading %}{{ kind_label|capfirst }} is on{% endblock %}
 
 {% block lede %}{{ amount }} to {{ method_label }}, next on {{ next_charge_on|date:"F j, Y" }}.{% endblock %}
 
@@ -10,8 +10,8 @@
   <p style="margin:0 0 14px 0;">Hello {{ first_name }},</p>
   {% if kind == "contribution" %}
     <p style="margin:0 0 14px 0;">
-      Your contribution to {{ org_name }} will be taken automatically from now on.
-      We will charge {{ amount }} to {{ method_label }} once a year.
+      Thank you for giving to {{ org_name }} on a schedule. We will charge
+      {{ amount }} to {{ method_label }} {{ cadence_label }}.
     </p>
   {% elif kind == "both" %}
     <p style="margin:0 0 14px 0;">
@@ -29,10 +29,10 @@
     Your next charge will be on {{ next_charge_on|date:"F j, Y" }}.
   </p>
   <p style="margin:0 0 14px 0;">
-    We will email you fourteen days before every charge, so nothing happens
-    without warning. You can change the contribution or turn automatic
-    {{ kind_label }} off at any time.
+    {% if cadence == "yearly" %}We will email you fourteen days before every charge, so nothing
+    happens without warning.{% else %}We will email you a receipt after every charge.{% endif %}
+    You can change the contribution or turn your {{ kind_label }} off at any time.
   </p>
 {% endblock %}
 
-{% block cta_label %}Manage automatic {{ kind_label }}{% endblock %}
+{% block cta_label %}Manage {{ kind_label }}{% endblock %}

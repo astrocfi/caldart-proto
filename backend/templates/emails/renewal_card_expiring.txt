@@ -1,8 +1,8 @@
-{% if kind == "contribution" %}{{ org_name }} — the card we take your contribution with expires soon{% else %}{{ org_name }} — the card we renew your membership with expires soon{% endif %}
+{% if kind == "contribution" %}{{ org_name }} — the card we take your recurring donation with expires soon{% else %}{{ org_name }} — the card we renew your membership with expires soon{% endif %}
 
 Hello {{ first_name }},
 
-The card we have on file for your automatic {{ kind_label }}, {{ method_label }},
+The card we have on file for your {{ kind_label }}, {{ method_label }},
 expires on {{ expires_on|date:"F j, Y" }}. The next charge is due on
 {{ charge_on|date:"F j, Y" }}, which is after that, so it would be declined.
 
@@ -12,4 +12,4 @@ Save a new card here and the charge will go through as planned:
 --
 {{ org_name }} is a volunteer disaster air transportation network.
 {% if contact_email %}Questions? Write to {{ contact_email }}.
-{% endif %}You are receiving this because you are a member of {{ org_name }}.
+{% endif %}{% if kind == "contribution" %}You are receiving this because you give to {{ org_name }}.{% else %}You are receiving this because you are a member of {{ org_name }}.{% endif %}

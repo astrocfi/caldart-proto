@@ -21,7 +21,14 @@ import type { CheckoutRequest } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { formatCents } from '@/portal/components/Money';
 import { useDebounced } from '@/portal/components/useDebounced';
-import { confirmStripePayment, createCheckout, isAbortError } from './api';
+import type { CheckoutFields } from './api';
+import {
+  checkoutRequest,
+  confirmStripePayment,
+  createCheckout,
+  isAbortError,
+  panelErrorMessage,
+} from './api';
 import type { ProviderPanelProps } from './types';
 
 /** Stripe.js is a singleton per publishable key. */
@@ -93,17 +100,8 @@ export const AMOUNT_DEBOUNCE_MS = 500;
  * identity for as long as the JSON does, which is what lets the caller depend on it
  * and nothing else.
  */
-function useSettledCheckout(
-  plan: string | null,
-  contributionCents: number,
-  autoRenew: boolean,
-): CheckoutRequest {
-  const wanted = JSON.stringify({
-    plan,
-    contribution_cents: contributionCents,
-    provider: 'stripe',
-    auto_renew: autoRenew,
-  } satisfies CheckoutRequest);
+function useSettledCheckout(fields: CheckoutFields): CheckoutRequest {
+  const wanted = JSON.stringify(checkoutRequest(fields, 'stripe'));
   const settled = useDebounced(wanted, AMOUNT_DEBOUNCE_MS);
   return useMemo(() => JSON.parse(settled) as CheckoutRequest, [settled]);
 }
@@ -120,15 +118,14 @@ export interface StripePanelProps extends ProviderPanelProps {
 /** Creates a PaymentIntent for the current amount, then mounts the Payment Element. */
 export function StripePanel({
   publishableKey,
-  plan,
-  contributionCents,
   amountCents,
-  autoRenew,
   onSuccess: handleSuccess,
+  onRenewalContribution,
+  ...fields
 }: StripePanelProps): JSX.Element {
   const [intent, setIntent] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const settled = useSettledCheckout(plan, contributionCents, autoRenew);
+  const settled = useSettledCheckout(fields);
 
   const stripePromise = useMemo(() => stripeFor(publishableKey), [publishableKey]);
   const appearance = useMemo(() => appearanceFromTokens(), []);
@@ -149,7 +146,9 @@ export function StripePanel({
       })
       .catch((caught: unknown) => {
         if (isAbortError(caught) || controller.signal.aborted) return;
-        setError(caught instanceof ApiError ? caught.message : 'Could not start a Stripe payment.');
+        setError(
+          panelErrorMessage(caught, 'Could not start a Stripe payment.', onRenewalContribution),
+        );
       });
 
     // Abandon the request rather than only ignore its answer. A StrictMode remount
@@ -159,7 +158,7 @@ export function StripePanel({
     return () => {
       controller.abort();
     };
-  }, [settled]);
+  }, [settled, onRenewalContribution]);
 
   if (error) {
     return (

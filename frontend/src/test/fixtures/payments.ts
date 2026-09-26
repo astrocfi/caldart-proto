@@ -64,6 +64,7 @@ export function makeMandate(overrides: Partial<RenewalMandate> = {}): RenewalMan
     plan: 'annual',
     plan_name: 'Annual',
     kind: 'both',
+    cadence: 'yearly',
     contribution_cents: 2500,
     amount_cents: 7000,
     provider: 'stripe',
@@ -84,10 +85,11 @@ export function makeMandate(overrides: Partial<RenewalMandate> = {}): RenewalMan
 }
 
 /**
- * A life member's authority: a contribution alone, with no plan to renew.
+ * A recurring donation: a contribution alone, yearly unless `overrides` say
+ * otherwise, with no plan to renew.
  *
  * `plan`, `plan_name` and the plan half of `amount_cents` are all absent, which
- * is what the server sends for a mandate whose member holds a lifetime term.
+ * is what the server sends for a mandate that names no plan.
  */
 export function makeContributionMandate(overrides: Partial<RenewalMandate> = {}): RenewalMandate {
   return makeMandate({
