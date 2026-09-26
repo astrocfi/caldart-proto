@@ -216,7 +216,16 @@ nitpicky = True
 html_theme = "furo"
 html_title = "CalDART user guide" if tags.has("guide") else "CalDART"  # noqa: F821 - Sphinx injects ``tags``
 
-# No custom static assets or templates.  Pointing at directories that do not
-# exist raises a warning, and warnings are errors.
-html_static_path: list[str] = []
+# ``docs/_static`` holds the one set of hand-written assets both builds ship:
+# ``figure-zoom.css``, which puts every diagram on a light panel so it stays
+# readable in furo's dark mode, and ``figure-zoom.js``, which adds the
+# **Open full size** and **Zoom** toolbar under every figure.  The path is
+# relative to this file, so ``make guide``, whose source tree is ``docs/user``,
+# finds the same directory.  The script is deferred and loads from the site's
+# own origin, so the guide's ``script-src`` needs nothing more.  There are no
+# custom templates; pointing ``templates_path`` at a directory that does not
+# exist would raise a warning, and warnings are errors.
+html_static_path = ["_static"]
+html_css_files = ["figure-zoom.css"]
+html_js_files = [("figure-zoom.js", {"defer": "defer"})]
 templates_path: list[str] = []

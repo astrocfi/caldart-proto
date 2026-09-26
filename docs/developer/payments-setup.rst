@@ -81,15 +81,15 @@ anything is activated.  Only the provider calls in acts one and three differ.
           rankdir=TB;
           bgcolor="transparent";
           splines=false;
-          ranksep=0.30;
-          nodesep=0.60;
-          edge [fontname="Helvetica", fontsize=9];
+          ranksep=0.62;
+          nodesep=0.5;
+          edge [fontname="Helvetica", fontsize=11];
 
-          node [shape=box, style="rounded", fontname="Helvetica", fontsize=10];
-          browser [label="Browser\l(checkout screen)\l"];
-          api [label="CalDART API\l(payments/api/views.py)\l"];
-          provider [label="Stripe or PayPal\l(payments/providers/)\l"];
-          db [label="Database\l(Payment, Membership)\l"];
+          node [shape=box, style="rounded", fontname="Helvetica", fontsize=11];
+          browser [group=b, label="Browser\l(checkout screen)\l"];
+          api [group=a, label="CalDART API\l(payments/api/views.py)\l"];
+          provider [group=p, label="Stripe or PayPal\l(payments/providers/)\l"];
+          db [group=d, label="Database\l(Payment, Membership)\l"];
 
           // Flat edges fix the left-to-right order of the four lifelines.
           {
@@ -99,10 +99,10 @@ anything is activated.  Only the provider calls in acts one and three differ.
           }
 
           node [shape=point, width=0.03, color="gray40", label=""];
-          b1; b2; b3; b4; b5; b6; b7; b8; b9; b10; b11; b12;
-          a1; a2; a3; a4; a5; a6; a7; a8; a9; a10; a11; a12;
-          p1; p2; p3; p4; p5; p6; p7; p8; p9; p10; p11; p12;
-          d1; d2; d3; d4; d5; d6; d7; d8; d9; d10; d11; d12;
+          b1 [group=b]; b2 [group=b]; b3 [group=b]; b4 [group=b]; b5 [group=b]; b6 [group=b]; b7 [group=b]; b8 [group=b]; b9 [group=b]; b10 [group=b]; b11 [group=b]; b12 [group=b];
+          a1 [group=a]; a2 [group=a]; a3 [group=a]; a4 [group=a]; a5 [group=a]; a6 [group=a]; a7 [group=a]; a8 [group=a]; a9 [group=a]; a10 [group=a]; a11 [group=a]; a12 [group=a];
+          p1 [group=p]; p2 [group=p]; p3 [group=p]; p4 [group=p]; p5 [group=p]; p6 [group=p]; p7 [group=p]; p8 [group=p]; p9 [group=p]; p10 [group=p]; p11 [group=p]; p12 [group=p];
+          d1 [group=d]; d2 [group=d]; d3 [group=d]; d4 [group=d]; d5 [group=d]; d6 [group=d]; d7 [group=d]; d8 [group=d]; d9 [group=d]; d10 [group=d]; d11 [group=d]; d12 [group=d];
 
           edge [arrowhead=none, style=dashed, color="gray60"];
           browser -> b1 -> b2 -> b3 -> b4 -> b5 -> b6 -> b7 -> b8 -> b9 -> b10 -> b11 -> b12;
@@ -124,22 +124,25 @@ anything is activated.  Only the provider calls in acts one and three differ.
           {rank=same; b12; a12; p12; d12;}
 
           edge [arrowhead=vee, style=solid, color="black", constraint=false];
-          b1 -> a1 [label="1  POST /payments/checkout {plan, contribution_cents, provider}"];
-          a2 -> d2 [label="2  INSERT Payment (pending), amount = plan price + contribution"];
-          a3 -> p3 [label="3  start(payment): create the PaymentIntent / the CAPTURE order"];
-          b6 -> p6 [label="6  the member pays in the Payment Element / the PayPal buttons"];
-          b7 -> a7 [label="7  POST /payments/stripe/confirm or /payments/paypal/capture"];
-          a8 -> p8 [label="8  retrieve the intent / capture the order"];
-          a10 -> d10 [label="10  status succeeded, completed_at, wallet; INSERT Membership"];
+          b1 -> a1 [label="1  POST /payments/checkout\l    {plan, contribution_cents, provider}\l"];
+          a2 -> p2 [arrowhead=none, label="2  INSERT Payment (pending),\l    amount = plan price + contribution\l"];
+          p2 -> d2;
+          a3 -> p3 [label="3  start(payment): create the\l    PaymentIntent / the CAPTURE order\l"];
+          b6 -> a6 [arrowhead=none, label="6  the member pays in the Payment\l    Element / the PayPal buttons\l"];
+          a6 -> p6;
+          b7 -> a7 [label="7  POST /payments/stripe/confirm\l    or /payments/paypal/capture\l"];
+          a8 -> p8 [label="8  retrieve the intent /\l    capture the order\l"];
+          a10 -> p10 [arrowhead=none, label="10  status succeeded, completed_at,\l      wallet; INSERT Membership\l"];
+          p10 -> d10;
 
           edge [arrowhead=vee, style=dashed, color="black", constraint=false];
-          p4 -> a4 [label="4  client_secret / order id: into provider_ref, reply into raw"];
-          a5 -> b5 [label="5  201 {payment_id, provider, client}"];
-          p9 -> a9 [label="9  status, amount, currency, payment id -- all four checked"];
-          a11 -> b11 [label="11  200 {status, membership}"];
+          p4 -> a4 [label="4  client_secret / order id: into\l    provider_ref, reply into raw\l"];
+          a5 -> b5 [label="5  201 {payment_id,\l    provider, client}\l"];
+          p9 -> a9 [label="9  status, amount, currency, payment\l    id: all four checked\l"];
+          a11 -> b11 [label="11  200 {status, membership}\l"];
 
           edge [arrowhead=vee, style=dotted, color="black", constraint=false];
-          p12 -> a12 [label="12  webhook, later or instead: the same idempotent activation"];
+          p12 -> a12 [label="12  webhook, later or instead: the\l      same idempotent activation\l"];
       }
 
 .. only:: not graphviz

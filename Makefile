@@ -302,11 +302,13 @@ docs: guide ## Build the Sphinx documentation and the user guide (nitpicky; warn
 	$(UV) run sphinx-build -n -W -b html docs docs/_build/html
 	@echo "Docs at docs/_build/html/index.html"
 
-# The user guide alone, as the site serves it at /docs/ to signed-in members:
+# The user guide alone, as the site serves it at /docs/ to signed-in users:
 # docs/user is the source tree, docs/conf.py the configuration, and the guide
 # tag tells conf.py which build this is.  The dirhtml builder gives every page
-# a directory, so the URLs read /docs/member-guide/ rather than
-# /docs/member-guide.html.  USER_GUIDE_ROOT points Django at the output.
+# a directory, so the URLs read /docs/member/profile/ rather than
+# /docs/member/profile.html, and the portal's Help button opens those.  Both
+# builds ship docs/_static (the figure toolbar), found relative to conf.py.
+# USER_GUIDE_ROOT points Django at the output.
 guide: ## Build the user guide the site serves at /docs/ into docs/_build/guide
 	$(UV) run sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
 
