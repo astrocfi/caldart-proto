@@ -38,8 +38,8 @@ The DART catalog and the DART screen live in their own app; see
    The filter set, the ordering backend, and the queryset the list is served
    from.  The membership annotations it builds on live in ``services.py``.
 ``services.py``
-   The member record itself: ``register_member``, ``create_member``
-   , ``update_member``, and ``delete_member`` own the rules the endpoints below
+   The member record itself: ``register_member``, ``create_member``,
+   ``update_member``, and ``delete_member`` own the rules the endpoints below
    state, and the account half of each goes to ``accounts.services``.  The
    membership status and ``activate_term`` live here too.
 ``api/actors.py``

@@ -21,8 +21,8 @@ anonymous ones on this page: register, login, logout, the two password-reset
 endpoints, and the email-verify endpoint all refuse a POST that carries no
 token.  Call
 ``GET /api/v1/auth/csrf`` whenever you have no ``csrftoken`` cookie to echo;
-the SPA's ``api/client.ts`` does this automatically before every POST, PUT
-, PATCH, or DELETE that finds the cookie missing.
+the SPA's ``api/client.ts`` does this automatically before every POST, PUT,
+PATCH, or DELETE that finds the cookie missing.
 
 **401, not 403, for anonymous callers.**  Session authentication has no
 ``WWW-Authenticate`` challenge, so DRF would normally answer 403.

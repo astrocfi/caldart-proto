@@ -175,8 +175,8 @@ Statuses:
 ``GET /aircraft/{id}``
 ----------------------
 
-One register record, open to any authenticated user.  For a ``dart_leader``
-, ``account_admin``, or ``system_admin`` the response also carries ``pilots``:
+One register record, open to any authenticated user.  For a ``dart_leader``,
+``account_admin``, or ``system_admin`` the response also carries ``pilots``:
 
 .. code-block:: json
 

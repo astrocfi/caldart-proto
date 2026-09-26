@@ -342,6 +342,9 @@ one scope, so asking for links and spending them draw on the same budget:
    * - ``POST /auth/login``
      - ``auth_login``
      - ``AUTH_THROTTLE_LOGIN`` (``20/min``)
+   * - ``POST /auth/reactivate``
+     - ``auth_login``
+     - ``AUTH_THROTTLE_LOGIN`` (``20/min``), shared with sign-in
    * - ``POST /auth/register``
      - ``auth_register``
      - ``AUTH_THROTTLE_REGISTER`` (``10/hour``)
@@ -418,8 +421,8 @@ rules govern every gate in the matrix below:
 
 Views declare their gates with the permission classes in
 ``apps/accounts/permissions.py``.  ``HasRole(slug)`` and ``HasAnyRole(*slugs)``
-are factories that return a DRF permission class; ``IsUserAdmin``
-, ``IsAccountAdmin``, ``IsFinance``, and ``IsSystemAdmin`` are ready-made ones,
+are factories that return a DRF permission class; ``IsUserAdmin``,
+``IsAccountAdmin``, ``IsFinance``, and ``IsSystemAdmin`` are ready-made ones,
 and ``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check and
 ``GET /admin/members``, whose ``POST`` stays ``IsAccountAdmin``.
 ``IsFinance`` is ``HasAnyRole(TREASURER, ACCOUNT_ADMIN)`` and guards every
@@ -558,6 +561,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - asks for the current password
+   * - ``POST /auth/deactivate``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - asks for the current password; a system administrator or a donor is refused with 400; ends the session
+   * - ``POST /auth/reactivate``
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - throttled; a deactivated account's own email and password; signs the caller in
    * - ``GET /roles``
      - ·
      - ✓
@@ -638,6 +657,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - 204 even if never attached
+   * - ``POST | DELETE /me/kind/friend``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - become a friend, or take back a change still ahead (see :doc:`api-profile`)
    * - ``GET /me/membership``, ``GET /me/payments``
      - ·
      - ✓
@@ -966,6 +993,22 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - the reports the caller may read; empty for a member
+   * - ``GET /reports/{slug}/columns``
+     - ·
+     - per report
+     - per report
+     - per report
+     - per report
+     - per report
+     - any signed-in caller reaches it; the report's readers are its rows below; 403 for a report the caller may not read, 404 for an unknown slug
+   * - ``GET /reports/{slug}/export.{csv,pdf}``
+     - ·
+     - per report
+     - per report
+     - per report
+     - per report
+     - per report
+     - as ``/columns``; the rows below give each report's readers and parameters
    * - ``GET /reports/members/columns``
      - ·
      - ·
@@ -1318,15 +1361,15 @@ Reading the matrix:
     finance roles, so a non-owner without one gets **403**.
 
 **Serializer switching on aircraft.**  ``GET /aircraft/{id}`` and
-``GET /aircraft/lookup`` return the ``pilots`` array and ``updated_by`` — other
-members' names,
-emails, membership state and medical currency — only to ``dart_leader``
-, ``account_admin``, or ``system_admin``.  Plain members get the airplane alone.
-``GET /aircraft`` (the list) never includes it for anybody.  That is what stops
-the register from being a way around the leader-check gate.
+``GET /aircraft/lookup`` return the ``pilots`` array and ``updated_by`` (other
+members' names, emails, membership state, and medical currency) only to
+``dart_leader``, ``account_admin``, or ``system_admin``.  Plain members get the
+airplane alone.  ``GET /aircraft`` (the list) never includes it for anybody.
+That is what stops the register from being a way around the leader-check gate.
 
 **Restricted methods.**  ``/admin/users/{id}`` accepts ``GET`` and ``PATCH``;
-``/admin/members/{id}`` accepts ``GET``, ``PATCH``, and ``DELETE``;
+``/admin/members/{id}``, ``/admin/darts/{id}``, and
+``/reports/subscriptions/{id}`` accept ``GET``, ``PATCH``, and ``DELETE``;
 ``/admin/memberships/{id}`` accepts ``PATCH`` only.  Everything else on those
 paths is 405.
 
@@ -1336,7 +1379,7 @@ Testing the API
 Every endpoint has role-matrix coverage — allow *and* deny — in
 ``backend/tests/``.  ``conftest.py`` provides an ``api_client`` fixture, one
 user fixture per role (``member``, ``dart_leader``, ``user_admin``,
-``account_admin``, ``website_admin``, ``system_admin``) and an
+``treasurer``, ``account_admin``, ``website_admin``, ``system_admin``) and an
 ``all_role_users`` dict keyed by slug, so a new endpoint's permission test is a
 short parametrized loop over the roles that should pass and the roles that
 should not.  ``backend/tests/test_domain_errors.py`` pins the two shapes above

@@ -400,8 +400,8 @@ provider that refuses to start (``detail``); **403** without a CSRF token;
 **429** past the ``donate`` rate.  A refusal writes nothing: no donor, no
 payment.
 
-``POST /donations/stripe/confirm``, ``/paypal/capture``, ``/mock/complete``
----------------------------------------------------------------------------
+``POST /donations/stripe/confirm``, ``POST /donations/paypal/capture``, ``POST /donations/mock/complete``
+---------------------------------------------------------------------------------------------------------
 
 Anyone holding the payment's token.  The bodies are the portal's (see
 `POST /payments/stripe/confirm`_, `POST /payments/paypal/capture`_, and

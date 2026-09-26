@@ -172,12 +172,17 @@ from the middleware stack, and everything else goes through
 Path                  Served by
 ====================  ========================================================
 ``/admin/``           the Wagtail admin
-``/django-admin/``    Django's model admin, for the accounts, members,
-                      aircraft, payments, and reminders models
+``/django-admin/``    Django's model admin, for the accounts, darts,
+                      members, aircraft, payments, reminders, mail, and
+                      reports models
 ``/documents/``       Wagtail's document downloads
 ``/api/v1/``          the JSON API
 ``/.well-known/``     only ``apple-developer-merchantid-domain-association``,
                       the Apple Pay domain-verification file
+``/find-dart/``       ``apps.cms.views.find_dart``: the home page's DART
+                      finder, which redirects ``?dart=<id>`` to that team's
+                      live page, or to the DART directory (the site root
+                      when none is published) for a missing or unknown team
 ``/docs/<path>``      ``caldart.views.user_guide``: the built user guide,
                       served to signed-in users from ``USER_GUIDE_ROOT``
 ``/portal/<path>``    ``caldart.views.portal_shell``, the page the SPA runs in
