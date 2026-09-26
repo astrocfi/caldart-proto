@@ -375,3 +375,50 @@ and the button.
   {"wave": 3, "package": "closeout", "model": "sonnet", "branch": "chore/fourth-walkthrough-closeout", "database": "caldart_fourth_closeout", "e2e_port": 8194, "closes": [256], "refs": [], "after": ["auth-layout", "email-log-names", "seed-ready", "email-verification", "verification-screens"]}
 ]
 ```
+
+## 9. Orchestrator notes after wave 1 (binding for waves 2 and 3)
+
+Wave 1 merged as #258 auth-layout, #259 email-log-names, #260 seed-ready, #261
+email-verification. `main` is `688bc2b` and green. What the later packages must know:
+
+- **AuthShell** lives at `frontend/src/portal/features/auth/AuthShell.tsx` with `auth.css`.
+  Props: `title`, optional `lede`, `children`, optional `footer`. Inside the card an
+  `auth__actions` block holds the full-width submit button above a centered secondary link;
+  use that block in `VerifyEmailPage` and `ChangeEmailPage` when moving them onto the shell.
+  `portal.css.test.ts` has an "auth card" block that reads `auth.css`.
+- **Shared resend control.** `frontend/src/portal/components/ResendVerificationButton.tsx`
+  already exists (used by the dashboard card and the verify step). `verification-screens`
+  reuses it for the administrator's button if its API fits (it calls `POST /auth/email/resend`
+  for the signed-in user; the admin button needs `POST /admin/users/{id}/send-email-verification`,
+  so add a prop or a sibling that takes the endpoint rather than a copy).
+- **Admin resend** also answers `400 {"detail": "That account is deactivated, so no
+  verification message was sent."}` for a deactivated account; the button on the user detail
+  screen is hidden or disabled for a deactivated account and the docs say so.
+- **Payload names:** `User.email_verified` (bool) on `/auth/me`; `email_verified_at` (ISO
+  datetime or null) on `/admin/users/{id}` and on the member record.
+- **Residue for the closeout:** on `/portal/join` signed out at 1600px, the page header
+  ("Join CalDART", eyebrow, lede) and the `.join-steps` list sit flush left above the centered
+  join card; center or cap them to match the card. The renew page and the done step now share
+  the 46rem centered `.join-card`; confirm they look right. The join step eyebrows read
+  "Step N of 5" through `joinStepEyebrow`.
+- **e2e mail:** `EMAIL_URL=filemail:///$(abspath frontend/e2e/.mail)` (four slashes, because
+  django-environ strips one). Helpers `latestEmailTo`, `verificationLink`,
+  `followVerificationLink` are in `frontend/e2e/helpers.ts`. `pyproject.toml`'s codespell
+  skips `frontend/e2e/.mail`.
+- **Seed:** three subscriptions due on the seed day (the third is the aircraft register,
+  weekly, to the account administrator); two renewals charge and one catches up; every
+  seeded account is verified. `seed_facts` picks an auto-renew subject whose charge date is
+  after today.
+
+## 10. Orchestrator notes after wave 2 (binding for the closeout)
+
+Wave 2 merged as #262 verification-screens; `main` is `863d9d1`. The closeout PR body lists
+every item of #256 with its PR: item 1 (centered, attractive sign-in pages) #258; item 2
+(change your own email, an administrator changes someone else's) #261 and #262; item 3
+(verification message on creation and change, new members click to continue) #261; item 4
+(unverified until verified, resend, dashboard notice) #261 and #262; item 5 (email report
+name empty) #259; item 6 (seed data ready to fire) #260. Shared pieces added since wave 1:
+`components/EmailVerifiedText.tsx` (Verified date or Unverified), `AccountFields`'s
+`emailHint` prop, `ResendVerificationButton`'s `mutation` and `disabled` props. The join
+page residue from §9 (header and steps flush left above the centered card at 1600px) is the
+closeout's to fix, in `features/join/**` and `join.css`.
