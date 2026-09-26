@@ -329,8 +329,8 @@ Throttling
 
 There is no project-wide throttle.  The anonymous auth endpoints, and the start
 of a gift on the public donation page, are rate limited by client IP address,
-one scope each, with the rates read from the environment.  Both password-reset endpoints share one scope, so asking for
-links and spending them draw on the same budget:
+with the rates read from the environment.  Both password-reset endpoints share
+one scope, so asking for links and spending them draw on the same budget:
 
 .. list-table::
    :header-rows: 1
