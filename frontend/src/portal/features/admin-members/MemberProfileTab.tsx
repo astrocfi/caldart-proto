@@ -58,7 +58,8 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
         first_name: account.first_name,
         last_name: account.last_name,
         is_active: account.is_active,
-        ...kindPayload(account),
+        // An unchanged kind is left out: resending it would cancel a pending conversion.
+        ...(account.kind === member.kind ? {} : kindPayload(account)),
         profile: adminProfilePayload(formToPatch(profile), adminOnly),
       },
       { onSuccess: () => toast.show('Member saved.', 'success') },

@@ -161,7 +161,8 @@ Filters
    does not include a system administrator who lacks the ``member`` group.
 ``expiring_within``
    A number of days.  Selects current members whose computed expiry falls on
-   or before ``today + N``.  Lifetime members are never matched.  ``N`` is
+   or before ``today + N``.  Lifetime members and friends are never matched,
+   whatever terms a friend holds.  ``N`` is
    clamped to ``0..3650`` (ten years): a negative value behaves like ``0``,
    and a value past the limit like the limit, so an oversized or negative
    query string never produces a server error.
@@ -257,9 +258,10 @@ own, in ``filters.derived_annotations()``:
    ``first_name`` and ``last_name`` concatenated, so ``?search=`` can match a
    full name in one ``icontains``.
 ``effective_expiry``
-   ``coverage_end`` when ``covers_today``, else ``past_end``.  This is the
-   column ``?ordering=expires_on`` actually sorts on, with ``NULL`` — lifetime
-   members and people who never joined — forced to the end in both directions.
+   ``NULL`` for a friend (whose row shows no date), else ``coverage_end`` when
+   ``covers_today``, else ``past_end``.  This is the column
+   ``?ordering=expires_on`` actually sorts on, with ``NULL`` — friends, lifetime
+   members, and people who never joined — forced to the end in both directions.
 
 ``members.services.membership_payload(user)`` reads those annotations back into
 the ``membership_status`` dictionary, and the whole page costs one query.
@@ -481,10 +483,12 @@ The body takes ``email``, ``first_name``, ``last_name``, ``is_active``,
 ``kind``, and a partial ``profile`` object.  A profile is created if the account
 somehow has none.  ``PUT`` is not offered.
 
-``kind`` is ``member`` or ``friend``, and makes the account that kind at once
-through ``accounts.services.set_kind``: any pending ``friend_on`` is cleared,
-and a real change of kind is audited as ``account.kind`` with ``to=<kind>``
-under the administrator.  A donor's kind is never changed by hand — a donor
+``kind`` is ``member`` or ``friend``.  A kind other than the stored one makes
+the account that kind at once through ``accounts.services.set_kind``: any
+pending ``friend_on`` is cleared, and the change is audited as ``account.kind``
+with ``to=<kind>`` under the administrator.  The stored kind sent again is no
+change, so a pending ``friend_on`` survives a save that only corrects a phone
+number; the portal sends ``kind`` only when the administrator changed it.  A donor's kind is never changed by hand — a donor
 becomes a member or a friend only by registering — so ``kind`` on a donor's
 record is a **400** ``{"kind": ["A donor becomes a member or a friend only by
 registering."]}``, and ``donor`` is not a value the field takes.
