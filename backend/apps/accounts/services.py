@@ -630,7 +630,13 @@ def verify_email(token: str) -> User:
     user = _verification_target(payload)
     if user is None:
         raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
-    confirm_email_address(user)
+    if confirm_email_address(user):
+        return user
+    # Nothing was stamped: the account was verified already, or its address changed
+    # after it was read above.  Read it again to tell the two apart.
+    user = _verification_target(payload)
+    if user is None:
+        raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
     return user
 
 
@@ -656,15 +662,22 @@ def _verification_target(payload: object) -> User | None:
 def confirm_email_address(user: User) -> bool:
     """Record that ``user``'s owner has proved the address, unless that is known already.
 
-    Following a verification link and following a password link both prove it.  An
-    unverified account is stamped verified now, saved, and recorded in the audit log
-    as ``account.email_verified`` with the account as actor and target; the return is
-    True.  An account already verified is left alone and the return is False.
+    Following a verification link and following a password link both prove it, for the
+    address ``user`` held when the caller checked the link.  The stored account is
+    stamped verified now, in one conditional update, only while it is unverified and
+    still holds that address (ignoring case); the stamp is copied onto ``user``,
+    recorded in the audit log as ``account.email_verified`` with the account as actor
+    and target, and the return is True.  An account already verified, or moved to
+    another address since ``user`` was read, is left alone and the return is False.
     """
-    if user.email_verified_at is not None:
+    now = timezone.now()
+    stamped = User.objects.filter(
+        pk=user.pk, email__iexact=user.email, email_verified_at__isnull=True
+    ).update(email_verified_at=now, updated_at=now)
+    if stamped == 0:
         return False
-    user.email_verified_at = timezone.now()
-    user.save(update_fields=["email_verified_at", "updated_at"])
+    user.email_verified_at = now
+    user.updated_at = now
     audit.record(audit.ACCOUNT_EMAIL_VERIFIED, actor=user, target=user)
     return True
 

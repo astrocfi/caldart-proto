@@ -1,5 +1,5 @@
 /**
- * Step 3 — pay.
+ * Step 4 — pay.
  *
  * The payment UI itself is `<Checkout/>` from `@/portal/features/checkout`:
  * it offers the plans, the optional contribution and the card / Apple Pay /
@@ -20,7 +20,7 @@ export interface PayStepProps {
   onDone: () => void;
 }
 
-/** Step 3 of the join wizard: collects payment through `<Checkout/>`. */
+/** Step 4 of the join wizard: collects payment through `<Checkout/>`. */
 export function PayStep({ onDone }: PayStepProps): JSX.Element {
   const queryClient = useQueryClient();
 

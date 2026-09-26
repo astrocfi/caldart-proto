@@ -4,7 +4,7 @@
  * Stripe's `return_url` is `/portal/join/done?payment_id=…&payment_intent=…`,
  * so a 3-D Secure card or a redirecting wallet comes back *here* rather than
  * to the pay step.  `<CheckoutReturn/>` confirms with our server and polls
- * until the payment settles; only then does the wizard show step 4.
+ * until the payment settles; only then does the wizard show step 5.
  */
 import { CheckoutReturn } from '@/portal/features/checkout';
 import type { CheckoutResult } from '@/portal/features/checkout';

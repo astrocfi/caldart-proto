@@ -25,12 +25,14 @@ from pytest_django import Settings
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from rest_framework.test import APIClient
 
+from apps.accounts import services as account_services
 from apps.accounts.models import User
 from apps.accounts.services import (
     EMAIL_VERIFICATION_SALT,
     EmailVerificationError,
     build_email_verification_url,
     change_own_email,
+    confirm_email_address,
     make_email_verification_token,
     send_email_verification,
     verify_email,
@@ -235,6 +237,49 @@ def test_a_token_survives_a_change_of_case_only(unverified: User) -> None:
     assert unverified.email_verified is True
 
 
+def test_an_address_changed_while_the_link_is_checked_stays_unverified(
+    unverified: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A change of address committed after the token's account is read is not verified."""
+    token = make_email_verification_token(unverified)
+    real_target = account_services._verification_target
+
+    def target_then_change_address(payload: object) -> User | None:
+        """Read the token's account, then move the stored row to another address."""
+        user = real_target(payload)
+        User.objects.filter(pk=unverified.pk).update(email="moved@example.test")
+        return user
+
+    monkeypatch.setattr(account_services, "_verification_target", target_then_change_address)
+
+    with pytest.raises(EmailVerificationError, match=INVALID_LINK):
+        verify_email(token)
+
+    unverified.refresh_from_db()
+    assert unverified.email_verified is False
+
+
+def test_confirming_a_stale_address_leaves_the_account_unverified(unverified: User) -> None:
+    """``confirm_email_address`` stamps only the address the caller checked."""
+    stale = User.objects.get(pk=unverified.pk)
+    User.objects.filter(pk=unverified.pk).update(email="moved@example.test")
+
+    assert confirm_email_address(stale) is False
+    unverified.refresh_from_db()
+    assert unverified.email_verified is False
+
+
+def test_confirming_an_account_verified_meanwhile_writes_no_audit_line(
+    unverified: User, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """Two concurrent confirmations stamp and audit the account once between them."""
+    stale = User.objects.get(pk=unverified.pk)
+    User.objects.filter(pk=unverified.pk).update(email_verified_at=timezone.now())
+
+    assert confirm_email_address(stale) is False
+    assert audit_messages(audit_log) == []
+
+
 def test_a_malformed_payload_is_refused(unverified: User) -> None:
     """A correctly signed value that is not the expected payload is still refused."""
     token = signing.dumps(["not", "a", "dict"], salt=EMAIL_VERIFICATION_SALT)
@@ -247,9 +292,11 @@ def test_the_link_is_built_from_site_url(unverified: User, settings: Settings) -
     """The link points at the portal's verify page on ``SITE_URL``."""
     settings.SITE_URL = "https://caldart.example.org/"
 
-    url = build_email_verification_url(unverified)
+    with freezegun.freeze_time("2026-09-25 12:00:00"):
+        url = build_email_verification_url(unverified)
+        token = make_email_verification_token(unverified)
 
-    assert url.startswith("https://caldart.example.org/portal/verify-email?token=")
+    assert url == f"https://caldart.example.org/portal/verify-email?token={token}"
 
 
 # --------------------------------------------------------------------------
@@ -694,6 +741,7 @@ def test_admin_resend_refuses_a_deactivated_account(
     assert response.json() == {
         "detail": "That account is deactivated, so no verification message was sent."
     }
+    assert mail.outbox == []
 
 
 def test_admin_resend_answers_404_for_an_unknown_account(

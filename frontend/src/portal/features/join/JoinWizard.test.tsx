@@ -368,7 +368,7 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
 
     renderWizard(RETURN);
 
-    // Step 4 arrives only once the payment has settled.
+    // Step 5 arrives only once the payment has settled.
     expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
     expect(confirmed).toEqual({ payment_id: 42, payment_intent_id: 'pi_1' });
     // …and the payment reference is spent, so a refresh cannot replay it.
