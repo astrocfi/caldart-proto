@@ -149,13 +149,24 @@ payload's ``email_verified`` is false.
     "profile_complete": false, "email_verified": false, "kind": "friend",
     "friend_on": null}
 
-**A donor's address upgrades the donor.**  When the address belongs to an
-active donor (:ref:`kinds of account <account-kinds>`), no second account is made: the donor's
-account takes the password, the names, and the ``kind`` posted, gains the
-``member`` role and a profile, has ``email_verified_at`` cleared, and is mailed
-the verification message.  The donations already on the account stay on it,
-and the answer carries the donor's own ``id``.  The change of kind is audited
-as ``account.kind``.
+**A donor's address upgrades the donor, once the address is proved.**  When the
+address belongs to an active donor (:ref:`kinds of account <account-kinds>`), no
+second account is made and nobody is signed in: the gifts on that account are
+not shown to anyone who has not proved the address is theirs.  The donor's
+account takes the password at once (a donor cannot sign in with it) and gets a
+profile, and the address is mailed a verification link that carries the names
+and the ``kind`` posted.  The answer is a 202 naming the address:
+
+.. code-block:: json
+
+   {"detail": "Verification message sent to giver@example.org."}
+
+Following the link (`POST /auth/email/verify`_) completes the upgrade: the
+account takes the names and the ``kind``, gains the ``member`` role, and is
+verified, so the password chosen at registration then signs in.  Until then the
+account is still a donor, and login answers it with the generic refusal.  The
+donations already on the account stay on it, and the change of kind is audited
+as ``account.kind``.  Registering again with the address mails a fresh link.
 
 Rejections, all 400:
 
@@ -178,8 +189,9 @@ Rejections, all 400:
 ``{"<field>": ["This field is required."]}``
    A field was missing.  All four of the account's fields are mandatory.
 
-Statuses: **201** with the user payload; **400** for any rejection above;
-**429** when the ``auth_register`` throttle is exhausted.
+Statuses: **201** with the user payload; **202** for a donor's address; **400**
+for any rejection above; **429** when the ``auth_register`` throttle is
+exhausted.
 
 ``POST /auth/login``
 --------------------
@@ -361,7 +373,10 @@ client may open the link in a browser that has no session.
    {"email": "marta.reyes@example.org"}
 
 The account the token names is stamped verified and an
-``account.email_verified`` audit line is written.  Following a link a second
+``account.email_verified`` audit line is written.  A link mailed when somebody
+registered with a donor's address first upgrades the donor to the member or
+friend that registration asked for (see `POST /auth/register`_); a donor's
+link that carries no upgrade is refused like a forged one.  Following a link a second
 time answers 200 again and changes nothing.  Every way a link can be unusable —
 a forged or mangled token, one older than the timeout, a deactivated or deleted
 account, an address the account no longer holds — returns the same

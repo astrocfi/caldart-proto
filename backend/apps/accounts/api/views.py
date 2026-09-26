@@ -109,7 +109,10 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [RegisterThrottle]
 
-    @extend_schema(request=RegisterSerializer, responses={201: UserSerializer})
+    @extend_schema(
+        request=RegisterSerializer,
+        responses={201: UserSerializer, 202: VerificationSentSerializer},
+    )
     def post(self, request: Request) -> Response:
         """Create an account from the posted fields, sign it in, and answer 201.
 
@@ -119,10 +122,12 @@ class RegisterView(APIView):
         address is mailed a verification link.  Open to anonymous callers and throttled
         under the ``auth_register`` scope.
 
-        An active donor's address upgrades that donor's account in place, keeping its
-        gifts.  A deactivated account's address is a 400 ``{"email": [...], "code":
-        "deactivated"}``; any other taken address, or a password Django's validators
-        reject, is a 400 naming the field.
+        An active donor's address signs nobody in: the answer is a 202 ``{"detail":
+        "Verification message sent to <address>."}``, and following the link mailed
+        there upgrades the donor in place, keeping its gifts, after which the password
+        given here signs in.  A deactivated account's address is a 400 ``{"email":
+        [...], "code": "deactivated"}``; any other taken address, or a password
+        Django's validators reject, is a 400 naming the field.
         """
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -134,6 +139,11 @@ class RegisterView(APIView):
             last_name=data["last_name"],
             kind=AccountKind(data["kind"]),
         )
+        if is_donor(user):
+            return Response(
+                {"detail": f"Verification message sent to {user.email}."},
+                status=status.HTTP_202_ACCEPTED,
+            )
         login(request, user)
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 

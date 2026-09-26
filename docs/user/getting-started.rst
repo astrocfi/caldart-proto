@@ -49,9 +49,11 @@ Every account belongs to one of three kinds of person:
   Somebody who gave to |org| without joining.  A donor's account holds the
   gifts and the receipts, but no password and no role: a donor cannot sign in,
   cannot ask for a password reset, and appears in no member list.  A donor who
-  later joins, as a member or a friend, registers with the same email address:
-  the account is kept, gifts and all, and gains the password chosen at
-  registration.
+  later joins, as a member or a friend, registers with the same email address
+  and then follows the link |org| emails there: the account is kept, gifts and
+  all, and signs in with the password chosen at registration.  Until the link
+  is followed nobody is signed in, so only the owner of the address can see
+  the gifts.
 
 Members and friends both hold the ``member`` role, which is what opens the
 portal to them.

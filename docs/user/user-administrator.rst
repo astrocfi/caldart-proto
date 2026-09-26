@@ -84,7 +84,8 @@ A donor's record says **Donor** at the top.  It offers no **Send password
 reset** and no **Resend verification message**, because neither link would
 lead anywhere, and the server refuses both if asked directly.  The kind itself
 is not yours to change: a donor becomes a member or a friend by registering
-with the same email address, which keeps the account and its gifts.
+with the same email address and following the link emailed there, which keeps
+the account and its gifts.
 
 
 Changing what someone may do

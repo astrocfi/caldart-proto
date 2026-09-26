@@ -498,7 +498,7 @@ def test_registering_a_donors_address_signs_nobody_in(
     api_client: APIClient, donor_registration: ApiResponse
 ) -> None:
     """Whoever registered is not signed in, so the donor's gifts stay out of reach."""
-    assert api_client.get(MY_PAYMENTS_URL).status_code == 403
+    assert api_client.get(MY_PAYMENTS_URL).status_code == 401
 
 
 def test_a_donor_upgrade_cannot_sign_in_before_the_address_is_proved(

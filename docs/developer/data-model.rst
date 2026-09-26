@@ -485,7 +485,8 @@ address and a password and nothing else.
 
 ``PERSON_KINDS`` (``member`` and ``friend``) are the kinds registration and an
 administrator may choose; nobody is made a donor by hand, and a donor changes
-kind only by registering, which upgrades the account in place.
+kind only by registering and then following the verification link, which
+upgrades the account in place.
 
 The **effective kind** adds the pending change: ``members.services.account_kind(user,
 today)`` is ``friend`` when ``kind`` is ``friend`` or ``friend_on`` is on or before
@@ -494,9 +495,11 @@ today)`` is ``friend`` when ``kind`` is ``friend`` or ``friend_on`` is on or bef
 ``effective_kind``.  ``convert_due_friends(today)`` writes the due conversions
 down (``kind = friend``, ``friend_on = null``, audit ``account.kind``); the daily
 reminder run calls it.  ``accounts.services.set_kind`` is the one way a kind is
-written by hand — by an administrator's edit, a registration that upgrades a
-donor, or ``activate_term`` making a friend a member — and it always clears
-``friend_on``.
+written by hand — by an administrator's edit that changes the kind, the
+verification link that upgrades a donor, or ``activate_term`` making a friend a
+member — and it always clears ``friend_on``.  ``convert_due_friends`` writes each
+row only while it still qualifies, so a member whose payment cleared
+``friend_on`` after the list was read stays a member.
 
 **Derived properties.**
 

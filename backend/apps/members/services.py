@@ -68,9 +68,10 @@ from django.http import HttpRequest
 from django.utils import timezone
 
 from apps.accounts.models import AccountKind, User
-from apps.accounts.roles import MEMBER, SYSTEM_ADMIN
+from apps.accounts.roles import SYSTEM_ADMIN
 from apps.accounts.services import (
     AccountChanges,
+    DonorUpgrade,
     create_account,
     effective_roles,
     is_donor,
@@ -177,46 +178,36 @@ def register_member(
     it was written.  The account starts unverified, and once the transaction commits
     its address is mailed a verification link.
 
-    An address that belongs to a donor is not a new account: the donor is upgraded
-    in place (:func:`_upgrade_donor`), so the gifts already made stay on it.
+    An address that belongs to a donor is not a new account, and the donor is
+    returned still a donor: only the password is written, which a donor cannot sign
+    in with.  The verification link mailed to the donor's address carries the names
+    and the kind, and following it upgrades the donor in place
+    (:func:`apps.accounts.services.verify_email`), so the gifts already made stay on
+    the account and nobody reaches them without proving the address.
     """
     donor = User.objects.filter(email__iexact=email.strip(), kind=AccountKind.DONOR).first()
     if donor is not None:
-        user = _upgrade_donor(
-            donor, password=password, first_name=first_name, last_name=last_name, kind=kind
-        )
-    else:
-        user = create_account(
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-            kind=kind,
-        )
+        donor.set_password(password)
+        donor.save(update_fields=["password", "updated_at"])
+        upgrade: DonorUpgrade = {
+            "first_name": first_name.strip(),
+            "last_name": last_name.strip(),
+            "kind": kind.value,
+        }
+        MemberProfile.objects.get_or_create(user=donor)
+        transaction.on_commit(lambda: send_email_verification(donor, upgrade=upgrade))
+        return donor
+    user = create_account(
+        email=email,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        kind=kind,
+    )
     profile, _ = MemberProfile.objects.get_or_create(user=user)
     touch_profile(profile)
     transaction.on_commit(lambda: send_email_verification(user))
     return user
-
-
-def _upgrade_donor(
-    donor: User, *, password: str, first_name: str, last_name: str, kind: AccountKind
-) -> User:
-    """Turn ``donor`` into a ``kind`` who can sign in with ``password``, and return it.
-
-    The names are replaced by the ones given, stripped; the account gains the
-    ``member`` role; and ``email_verified_at`` is cleared, since whoever registered
-    has not yet proved the address is theirs.  The change of kind is recorded as
-    ``account.kind`` with the account as its own actor.
-    """
-    donor.set_password(password)
-    donor.first_name = first_name.strip()
-    donor.last_name = last_name.strip()
-    donor.email_verified_at = None
-    donor.save(update_fields=["password", "first_name", "last_name", "email_verified_at"])
-    donor.add_role(MEMBER)
-    set_kind(donor, kind, actor=donor)
-    return donor
 
 
 @transaction.atomic
@@ -378,6 +369,18 @@ def kind_annotation(today: date | None = None) -> Case:
     )
 
 
+def due_conversions(today: date) -> list[User]:
+    """The accounts not stored as friends whose ``friend_on`` has come by ``today``."""
+    return list(_due_conversions(today))
+
+
+def _due_conversions(today: date) -> QuerySet[User]:
+    """The accounts :func:`due_conversions` lists, as a queryset to filter or update."""
+    return User.objects.filter(friend_on__isnull=False, friend_on__lte=today).exclude(
+        kind=AccountKind.FRIEND
+    )
+
+
 def convert_due_friends(today: date | None = None) -> int:
     """Write down every conversion to friend whose day has come, and return how many.
 
@@ -386,17 +389,22 @@ def convert_due_friends(today: date | None = None) -> int:
     as ``account.kind`` with ``to=friend`` and ``on=<friend_on>`` under ``command``.
     The daily reminder run calls this, so the stored kind catches up with the one
     :func:`account_kind` already reports.  A date still ahead is left alone.
+
+    Each row is written only while it still qualifies, so an account that became a
+    member again after the list was read -- a payment landing meanwhile clears its
+    ``friend_on`` -- is left a member, counted out, and recorded nowhere.
     """
     today = today or timezone.localdate()
-    due = list(
-        User.objects.filter(friend_on__isnull=False, friend_on__lte=today).exclude(
-            kind=AccountKind.FRIEND
+    converted = 0
+    for user in due_conversions(today):
+        written = (
+            _due_conversions(today)
+            .filter(pk=user.pk)
+            .update(kind=AccountKind.FRIEND, friend_on=None, updated_at=timezone.now())
         )
-    )
-    for user in due:
-        User.objects.filter(pk=user.pk).update(
-            kind=AccountKind.FRIEND, friend_on=None, updated_at=timezone.now()
-        )
+        if written == 0:
+            continue
+        converted += 1
         audit.record(
             audit.ACCOUNT_KIND,
             actor=audit.COMMAND_ACTOR,
@@ -404,7 +412,7 @@ def convert_due_friends(today: date | None = None) -> int:
             to=AccountKind.FRIEND.value,
             on=str(user.friend_on),
         )
-    return len(due)
+    return converted
 
 
 def _friend_membership() -> MembershipStatusDict:
