@@ -660,7 +660,8 @@ def test_the_donate_page_loads_the_donation_script(client: Client, donate_page: 
     """The page asks Vite for its own entry, not inline script."""
     body = client.get(donate_page.url).content.decode()
 
-    assert "assets/donate-stub.js" in body
+    # The stub manifest names ``donate-stub.js``; a real build names a hashed file.
+    assert re.search(r'<script type="module" [^>]*src="/static/assets/donate-[^"]+\.js"', body)
 
 
 @pytest.mark.parametrize("parent_model", [HomePage, StandardPage])
