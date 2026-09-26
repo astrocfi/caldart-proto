@@ -71,9 +71,10 @@ phone number, whatever you told us in the optional section, and every gift.
   contribution*, and has no link to the portal, because a donor cannot sign in.
 * **One record, however often you give.**  A second gift from the same email
   address, in any mix of capitals, goes on the same record.  The names and phone
-  number you give replace the ones stored; anything in the optional section
-  that you fill in replaces what you told us before, and anything you leave
-  blank keeps it.
+  number you give with a completed gift replace the ones stored; anything in the
+  optional section that you fill in on a completed gift replaces what you told
+  us before, and anything you leave blank keeps it.  Starting, but not
+  finishing, a gift changes nothing on the record.
 * **No sign-in, no password, no lists.**  A donor has no password and cannot
   ask for one, and appears in no member list, roster, or report of members.  The
   treasurer sees your gifts on the books, and a user administrator can correct a

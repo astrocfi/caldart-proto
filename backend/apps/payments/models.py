@@ -165,6 +165,16 @@ class Payment(TimestampedModel):
         help_text="The administrator who recorded a payment taken by hand.",
     )
     raw = models.JSONField(default=dict, blank=True)
+    donor_fields = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "The public donation form's fields, kept here rather than on the donor's "
+            "account until the gift settles, so an unauthenticated checkout can never "
+            "overwrite an existing donor's stored details.  Empty for every payment "
+            "but a public gift."
+        ),
+    )
 
     class Meta:
         ordering = ["-created_at", "-id"]

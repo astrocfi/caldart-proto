@@ -827,6 +827,193 @@ def test_a_paypal_gift_is_captured_with_its_token(
     ) == (200, "succeeded", "none", [[DONOR_EMAIL]])
 
 
+# --------------------------------------------------------------------------
+# The details survive the provider's own start() call, which replaces `raw`
+# --------------------------------------------------------------------------
+class _FakeIntents:
+    """Stand-in for ``v1.payment_intents``: records ``create``, then reports success.
+
+    Unlike :func:`stripe_intent`, this exercises ``StripeProvider.start`` for real,
+    which is what overwrites ``payment.raw`` with the created intent -- the exact
+    step a donor's own details must survive on their own column.
+    """
+
+    def __init__(self) -> None:
+        """Start having created nothing."""
+        self.created: dict[str, Any] = {}
+
+    def create(
+        self, params: dict[str, Any], options: dict[str, Any] | None = None
+    ) -> stripe.PaymentIntent:
+        """Record ``params`` and answer a fresh, unconfirmed intent."""
+        self.created = params
+        return stripe.PaymentIntent.construct_from(
+            {
+                "id": "pi_full_checkout",
+                "object": "payment_intent",
+                "client_secret": "pi_full_checkout_secret",
+                "status": "requires_payment_method",
+                "amount": params["amount"],
+                "currency": params["currency"],
+                "metadata": params["metadata"],
+            },
+            "sk_test_123",
+        )
+
+    def retrieve(
+        self,
+        intent_id: str,
+        params: dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> stripe.PaymentIntent:
+        """Answer the intent :meth:`create` made, reported as succeeded."""
+        return stripe.PaymentIntent.construct_from(
+            {
+                "id": intent_id,
+                "object": "payment_intent",
+                "status": "succeeded",
+                "amount": self.created["amount"],
+                "currency": self.created["currency"],
+                "metadata": self.created["metadata"],
+                "latest_charge": {
+                    "id": "ch_full_checkout",
+                    "object": "charge",
+                    "payment_method_details": {"type": "card", "card": {"brand": "visa"}},
+                },
+            },
+            "sk_test_123",
+        )
+
+
+@pytest.fixture
+def fake_stripe_intents(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> _FakeIntents:
+    """Configure Stripe and replace ``stripe_client`` with a recording fake."""
+    settings.STRIPE_SECRET_KEY = "sk_test_123"  # noqa: S105 - test fixture
+    settings.STRIPE_PUBLISHABLE_KEY = "pk_test_123"
+    fake = _FakeIntents()
+
+    def client() -> SimpleNamespace:
+        return SimpleNamespace(v1=SimpleNamespace(payment_intents=fake))
+
+    monkeypatch.setattr(stripe_provider, "stripe_client", client)
+    return fake
+
+
+def test_a_full_stripe_checkout_writes_the_donors_details_after_confirm(
+    api_client: APIClient, fake_stripe_intents: _FakeIntents
+) -> None:
+    """A gift started through checkout, Stripe's own start() included, still settles.
+
+    ``StripeProvider.start`` overwrites ``payment.raw`` with the created intent
+    before the giver's details would ever be read back from it; keeping them on
+    ``donor_fields`` instead is what lets this settle correctly.
+    """
+    started = api_client.post(CHECKOUT_URL, gift(provider="stripe", city="Petaluma"), format="json")
+    assert started.status_code == 201, started.content
+    body = started.json()
+
+    response = api_client.post(
+        STRIPE_CONFIRM_URL,
+        {
+            "payment_id": body["payment_id"],
+            "token": body["token"],
+            "payment_intent_id": "pi_full_checkout",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200, response.content
+    donor = User.objects.get(email=DONOR_EMAIL)
+    profile = MemberProfile.objects.get(user=donor)
+    assert (donor.first_name, donor.last_name, profile.phone, profile.city) == (
+        "Pat",
+        "Giver",
+        "415-555-0100",
+        "Petaluma",
+    )
+
+
+@respx.mock
+def test_a_full_paypal_checkout_writes_the_donors_details_after_capture(
+    api_client: APIClient, settings: Settings
+) -> None:
+    """A gift started through checkout, PayPal's own start() included, still settles.
+
+    ``PayPalProvider.start`` overwrites ``payment.raw`` with the created order
+    before the giver's details would ever be read back from it; keeping them on
+    ``donor_fields`` instead is what lets this settle correctly.
+    """
+    settings.PAYPAL_CLIENT_ID = "client-id"
+    settings.PAYPAL_CLIENT_SECRET = "client-secret"  # noqa: S105 - test fixture
+    settings.PAYPAL_ENV = "sandbox"
+    respx.post(PAYPAL_OAUTH_URL).mock(
+        return_value=httpx.Response(200, json={"access_token": "token", "expires_in": 3_600})
+    )
+    respx.post(PAYPAL_ORDERS_URL).mock(
+        return_value=httpx.Response(
+            201, json={"id": "ORDER-FULL-CHECKOUT", "status": "CREATED", "links": []}
+        )
+    )
+
+    started = api_client.post(CHECKOUT_URL, gift(provider="paypal", city="Petaluma"), format="json")
+    assert started.status_code == 201, started.content
+    body = started.json()
+    payment = Payment.objects.get(pk=body["payment_id"])
+
+    respx.post(f"{PAYPAL_ORDERS_URL}/ORDER-FULL-CHECKOUT/capture").mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": "ORDER-FULL-CHECKOUT",
+                "status": "COMPLETED",
+                "purchase_units": [
+                    {
+                        "payments": {
+                            "captures": [
+                                {
+                                    "id": "CAPTURE-FULL-CHECKOUT",
+                                    "status": "COMPLETED",
+                                    "custom_id": str(payment.pk),
+                                    "amount": {
+                                        "currency_code": "USD",
+                                        "value": f"{payment.amount_cents / 100:.2f}",
+                                    },
+                                }
+                            ]
+                        }
+                    }
+                ],
+            },
+        )
+    )
+
+    response = api_client.post(
+        PAYPAL_CAPTURE_URL,
+        {"payment_id": payment.pk, "token": body["token"], "order_id": "ORDER-FULL-CHECKOUT"},
+        format="json",
+    )
+
+    assert response.status_code == 200, response.content
+    donor = User.objects.get(email=DONOR_EMAIL)
+    profile = MemberProfile.objects.get(user=donor)
+    assert (donor.first_name, donor.last_name, profile.phone, profile.city) == (
+        "Pat",
+        "Giver",
+        "415-555-0100",
+        "Petaluma",
+    )
+
+
+def test_completing_a_gift_stamps_the_donors_profile(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """Settling a gift stamps ``profile_updated_at`` on the donor's new profile."""
+    complete(api_client, give())
+
+    profile = MemberProfile.objects.get(user__email=DONOR_EMAIL)
+    assert profile.profile_updated_at is not None
+
+
 def test_the_status_reads_back_with_the_token(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:

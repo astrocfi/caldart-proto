@@ -118,11 +118,13 @@ class DonationCheckoutView(APIView):
     def post(self, request: Request) -> Response:
         """201 with ``{payment_id, provider, client, token}`` for anyone.
 
-        The donor behind the address is found or made and given the details sent
-        (:func:`apps.payments.donations.donor_for`), then a pending contribution of
-        ``contribution_cents`` is started with the provider.  ``client`` is what the
-        provider's browser SDK needs, as the portal checkout answers it; ``token``
-        proves the caller for the calls that finish the payment.
+        The donor behind the address is found or made, and a pending contribution
+        of ``contribution_cents`` is started with the provider
+        (:func:`apps.payments.donations.start_donation`).  The details sent are kept
+        on the pending payment and written to the donor's account only once the gift
+        settles.  ``client`` is what the provider's browser SDK needs, as the portal
+        checkout answers it; ``token`` proves the caller for the calls that finish the
+        payment.
 
         400 ``{"email": [...], "code": "has_account"}`` when the address belongs to a
         member or a friend, active or not; 400 by field for a detail the profile's rules
