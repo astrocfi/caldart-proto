@@ -18,6 +18,8 @@ import { DashboardPage } from './DashboardPage';
 
 const NOW = new Date('2026-06-15T12:00:00Z');
 
+const OPS_MANUAL = { title: 'Ops manual', url: '/members/ops-manual/' };
+
 const SITE_CONFIG: SiteConfig = {
   org_name: 'CalDART',
   theme: 'sierra',
@@ -174,6 +176,79 @@ describe('<DashboardPage/>', () => {
     // The headline already says it is a life membership; the plan line would
     // be the third time on one card.
     expect(status.queryByText(/membership$/)).not.toBeInTheDocument();
+  });
+
+  describe('for a friend', () => {
+    const FRIEND: MembershipStatus = { ...NONE, status: 'friend' };
+
+    function mountFriend() {
+      return mount({ user: makeUser({ kind: 'friend', membership: FRIEND }), status: FRIEND });
+    }
+
+    it('heads the card as a friend of CalDART', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      expect(card('You are a friend of CalDART').getByText('Friend of CalDART')).toBeVisible();
+    });
+
+    it('says what being a friend means', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      expect(
+        card('You are a friend of CalDART').getByText(
+          'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+        ),
+      ).toBeVisible();
+    });
+
+    it('offers membership rather than a renewal or the join wizard', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      const status = card('You are a friend of CalDART');
+      expect(status.getByRole('link', { name: 'Make me a member' })).toHaveAttribute(
+        'href',
+        '/membership/join',
+      );
+      expect(status.queryByRole('link', { name: /Renew/ })).not.toBeInTheDocument();
+      expect(status.queryByRole('link', { name: 'Join CalDART' })).not.toBeInTheDocument();
+    });
+
+    it('gives the card no urgent edge', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      const section = screen
+        .getByRole('heading', { name: 'You are a friend of CalDART' })
+        .closest('section');
+      expect(section).not.toHaveClass('dashboard__card--urgent');
+    });
+
+    it('does not list the members-only pages the wall refuses a friend', async () => {
+      mount({
+        user: makeUser({ kind: 'friend', membership: FRIEND }),
+        status: FRIEND,
+        config: { ...SITE_CONFIG, members_pages: [OPS_MANUAL] },
+      });
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      expect(screen.queryByRole('heading', { name: 'Member content' })).not.toBeInTheDocument();
+    });
+
+    it('lists them for a friend whose staff role lets them read', async () => {
+      mount({
+        user: makeUser({ kind: 'friend', membership: FRIEND, roles: ['member', 'dart_leader'] }),
+        status: FRIEND,
+        config: { ...SITE_CONFIG, members_pages: [OPS_MANUAL] },
+      });
+
+      expect(await screen.findByRole('link', { name: 'Ops manual' })).toHaveAttribute(
+        'href',
+        OPS_MANUAL.url,
+      );
+    });
   });
 
   it('nudges a member whose profile is incomplete', async () => {

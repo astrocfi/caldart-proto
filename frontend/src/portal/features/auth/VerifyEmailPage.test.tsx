@@ -58,13 +58,13 @@ describe('<VerifyEmailPage/>', () => {
     expect(await screen.findByText('marta@example.org is verified.')).toBeInTheDocument();
   });
 
-  it('continues to sign in when nobody is signed in', async () => {
+  it('continues to sign in, then the join wizard, when nobody is signed in', async () => {
     verifySucceeds();
     renderPage();
 
     expect(await screen.findByRole('link', { name: 'Continue' })).toHaveAttribute(
       'href',
-      '/login?next=/',
+      '/login?next=/join&email=marta%40example.org',
     );
   });
 

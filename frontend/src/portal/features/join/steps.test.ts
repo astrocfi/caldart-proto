@@ -26,6 +26,8 @@ const NONE: MembershipStatus = {
   is_lifetime: false,
 };
 
+const FRIEND: MembershipStatus = { ...NONE, status: 'friend' };
+
 describe('furthestJoinStep', () => {
   it('starts a visitor with no session at the account step', () => {
     expect(furthestJoinStep(null)).toBe('account');
@@ -55,6 +57,16 @@ describe('furthestJoinStep', () => {
 
   it('sends a current member straight to done', () => {
     expect(furthestJoinStep(makeUser())).toBe('done');
+  });
+
+  it('never holds a friend with a complete profile at the pay step', () => {
+    expect(furthestJoinStep(makeUser({ kind: 'friend', membership: FRIEND }))).toBe('done');
+  });
+
+  it('still asks a friend with a thin profile for it first', () => {
+    expect(
+      furthestJoinStep(makeUser({ kind: 'friend', membership: FRIEND, profile_complete: false })),
+    ).toBe('profile');
   });
 });
 
@@ -99,6 +111,11 @@ describe('step helpers', () => {
 
   it('numbers a step out of all five', () => {
     expect(joinStepEyebrow('profile')).toBe('Step 3 of 5');
+  });
+
+  it('names the kind being joined as when it is given', () => {
+    expect(joinStepEyebrow('verify', 'friend')).toBe('Step 2 of 5 · Joining as a friend');
+    expect(joinStepEyebrow('verify', 'member')).toBe('Step 2 of 5 · Joining as a member');
   });
 
   it('takes the later of two steps', () => {

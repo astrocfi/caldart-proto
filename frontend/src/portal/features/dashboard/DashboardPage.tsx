@@ -26,7 +26,9 @@ const RECENT_PAYMENTS = 5;
  * Reading order is the order things matter: is my address verified, is my
  * membership current, is my profile usable, what can I read, what have I paid.
  * The renewal call to action moves to the top and takes an accent edge inside
- * 30 days.  An unverified address gates nothing; the card only asks.
+ * 30 days.  An unverified address gates nothing; the card only asks.  A friend's
+ * membership card says what being a friend means and offers membership instead
+ * of a renewal.
  */
 export function DashboardPage(): JSX.Element {
   const { user, roles } = useAuth();
@@ -37,7 +39,12 @@ export function DashboardPage(): JSX.Element {
 
   const status = membership.data ?? user?.membership ?? null;
   const tone = status ? membershipTone(status) : 'none';
-  const urgent = tone === 'expiring' || tone === 'expired' || tone === 'none';
+  // A friend owes nothing, so their card never takes the urgent edge.
+  const isFriend = status?.status === 'friend';
+  const urgent = !isFriend && (tone === 'expiring' || tone === 'expired' || tone === 'none');
+  // The members-only pages answer a friend with the wall unless a staff role lets
+  // them read, so the card is not offered to a friend who would be refused.
+  const isWalledOut = isFriend && roles.every((slug) => slug === 'member');
   const greeting = user?.first_name ? `Welcome, ${user.first_name}` : 'Welcome';
 
   const linkGroups = groupedNavItems(roles).map((bucket) => ({
@@ -68,10 +75,12 @@ export function DashboardPage(): JSX.Element {
 
           <Card
             className={urgent ? 'dashboard__card--urgent' : undefined}
-            eyebrow="Membership"
+            eyebrow={isFriend ? 'Friend of CalDART' : 'Membership'}
             title={<MembershipHeadline status={status} />}
           >
-            {status ? (
+            {isFriend ? (
+              <FriendStatus />
+            ) : status ? (
               <div className="dashboard__status">
                 <MembershipChip membership={status} />
                 {status.is_lifetime && status.status === 'current' ? (
@@ -94,7 +103,7 @@ export function DashboardPage(): JSX.Element {
               </p>
             )}
 
-            {status && !(status.is_lifetime && status.status === 'current') ? (
+            {status && !isFriend && !(status.is_lifetime && status.status === 'current') ? (
               <div className="cluster card__footer">
                 {status.status === 'none' ? (
                   <ButtonLink to="/join">Join CalDART</ButtonLink>
@@ -122,26 +131,28 @@ export function DashboardPage(): JSX.Element {
             </Card>
           ) : null}
 
-          <Card eyebrow="Members only" title="Member content">
-            {siteConfig.isPending ? (
-              <p className="muted" role="status">
-                Loading…
-              </p>
-            ) : membersPages.length === 0 ? (
-              <EmptyState
-                title="Nothing published yet"
-                description="Members-only pages will appear here as soon as CalDART publishes them."
-              />
-            ) : (
-              <ul className="dashboard__links" role="list">
-                {membersPages.map((page) => (
-                  <li key={page.url}>
-                    <a href={page.url}>{page.title}</a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+          {isWalledOut ? null : (
+            <Card eyebrow="Members only" title="Member content">
+              {siteConfig.isPending ? (
+                <p className="muted" role="status">
+                  Loading…
+                </p>
+              ) : membersPages.length === 0 ? (
+                <EmptyState
+                  title="Nothing published yet"
+                  description="Members-only pages will appear here as soon as CalDART publishes them."
+                />
+              ) : (
+                <ul className="dashboard__links" role="list">
+                  {membersPages.map((page) => (
+                    <li key={page.url}>
+                      <a href={page.url}>{page.title}</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
 
           <Card
             eyebrow="History"
@@ -245,12 +256,30 @@ function RenewalLine({ mandate, isLifetime }: RenewalLineProps) {
   );
 }
 
+/** A friend's membership card: what being one means, and the way to membership. */
+function FriendStatus() {
+  return (
+    <>
+      <div className="dashboard__status">
+        <p>You are a friend of CalDART: no dues, no expiry. Become a member any time.</p>
+      </div>
+      <div className="cluster card__footer">
+        <ButtonLink to="/membership/join" variant="secondary">
+          Make me a member
+        </ButtonLink>
+        <Link to="/profile">Update your details</Link>
+      </div>
+    </>
+  );
+}
+
 function MembershipHeadline({
   status,
 }: {
   status: { status: string; is_lifetime: boolean } | null;
 }) {
   if (!status) return <>Your membership</>;
+  if (status.status === 'friend') return <>You are a friend of CalDART</>;
   if (status.status === 'current') {
     return <>{status.is_lifetime ? 'Lifetime member' : 'Your membership is current'}</>;
   }

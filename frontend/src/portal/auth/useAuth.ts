@@ -108,16 +108,31 @@ export function useLogin(): UseMutationResult<User, Error, LoginPayload> {
 }
 
 /**
- * Registers against `POST /auth/register`, drops every query cached for whoever was here
- * before, and seeds the auth-me cache with the result.
+ * What `POST /auth/register` answers: the new account's user payload, signed in (201),
+ * or, for an address that belongs to a donor, only word that a verification message
+ * went there (202), with nobody signed in until the link is followed.
  */
-export function useRegister(): UseMutationResult<User, Error, RegisterPayload> {
+export type RegisterResult = User | VerificationSentResult;
+
+/** True when registering mailed a donor's address instead of signing anybody in. */
+export function isVerificationSent(result: RegisterResult): result is VerificationSentResult {
+  return !('id' in result);
+}
+
+/**
+ * Registers against `POST /auth/register`.  When an account was created and signed
+ * in, it drops every query cached for whoever was here before and seeds the auth-me
+ * cache with the new user; when the address belonged to a donor, nobody is signed in
+ * and the cache is left alone.
+ */
+export function useRegister(): UseMutationResult<RegisterResult, Error, RegisterPayload> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: RegisterPayload) => api.post<User>('/auth/register', payload),
-    onSuccess: (user) => {
+    mutationFn: (payload: RegisterPayload) => api.post<RegisterResult>('/auth/register', payload),
+    onSuccess: (result) => {
+      if (isVerificationSent(result)) return;
       queryClient.clear();
-      queryClient.setQueryData(AUTH_ME_KEY, user);
+      queryClient.setQueryData(AUTH_ME_KEY, result);
     },
   });
 }

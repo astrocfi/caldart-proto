@@ -739,3 +739,69 @@ describe('Checkout · contributing', () => {
     expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
   });
 });
+
+describe('Checkout · a way to skip', () => {
+  it('offers no way out unless the host asks for one', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} />);
+
+    await screen.findByRole('radio', { name: /Participating/ });
+    expect(screen.queryByRole('button', { name: 'Not now' })).not.toBeInTheDocument();
+  });
+
+  it('puts a quiet Not now button under the provider tabs', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} onSkip={() => {}} />);
+    await userEvent.click(await screen.findByRole('radio', { name: /Participating/ }));
+
+    const skip = screen.getByRole('button', { name: 'Not now' });
+    expect(skip).toHaveClass('button--quiet');
+    expect(
+      screen.getByRole('tablist', { name: 'Payment method' }).compareDocumentPosition(skip) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('offers it before an amount is chosen too', async () => {
+    serveConfig(config());
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} onSkip={() => {}} />);
+
+    await screen.findByText('Choose a contribution to continue.');
+    expect(screen.getByRole('button', { name: 'Not now' })).toBeInTheDocument();
+  });
+
+  it('offers it while the payment options load', () => {
+    server.use(http.get(`${API}/payments/config`, () => new Promise<never>(() => {})));
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} onSkip={() => {}} />);
+
+    expect(screen.getByRole('button', { name: 'Not now' })).toBeInTheDocument();
+  });
+
+  it('offers it when the payment options fail to load', async () => {
+    server.use(http.get(`${API}/payments/config`, () => HttpResponse.json({}, { status: 500 })));
+    const handleSkip = vi.fn();
+    renderWithProviders(<Checkout mode="contribute" onSuccess={() => {}} onSkip={handleSkip} />);
+
+    await screen.findByText('Payment options could not be loaded');
+    await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
+
+    expect(handleSkip).toHaveBeenCalledOnce();
+  });
+
+  it('hands the skip to the host without paying', async () => {
+    serveConfig(config());
+    const requests = serveCheckout();
+    const handleSkip = vi.fn();
+    const handleSuccess = vi.fn();
+    renderWithProviders(
+      <Checkout mode="contribute" onSuccess={handleSuccess} onSkip={handleSkip} />,
+    );
+
+    await screen.findByRole('radio', { name: /Participating/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
+
+    expect(handleSkip).toHaveBeenCalledOnce();
+    expect(handleSuccess).not.toHaveBeenCalled();
+    expect(requests).toEqual([]);
+  });
+});

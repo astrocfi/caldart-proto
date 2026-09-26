@@ -9,13 +9,16 @@
  *
  * A finished payment is reported through `onSuccess` and nothing else: the flow
  * that hosts the widget owns the queries a payment moves, so the refresh happens
- * once, where the keys are known.
+ * once, where the keys are known.  A host where paying is optional passes
+ * `onSkip`, and the widget offers a quiet **Not now** button under the provider
+ * tabs that calls it.
  */
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { PaymentProvider } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
+import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { formatCents } from '@/portal/components/Money';
@@ -40,8 +43,21 @@ const HEADINGS: Record<CheckoutMode, { eyebrow: string; title: string }> = {
 
 export type { CheckoutProps, CheckoutResult } from './types';
 
-/** Choose a plan and a contribution, then pay with the configured providers. */
-export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
+/** `CheckoutProps`, plus the way out a host offers where paying is optional. */
+export interface SkippableCheckoutProps extends CheckoutProps {
+  /** Called by the **Not now** button; the button is shown only when this is given. */
+  onSkip?: () => void;
+}
+
+/**
+ * Choose a plan and a contribution, then pay with the configured providers, or
+ * press **Not now** when the host passed `onSkip`.
+ */
+export function Checkout({
+  mode,
+  onSuccess,
+  onSkip: handleSkip,
+}: SkippableCheckoutProps): JSX.Element {
   const { data: config, isPending, error } = usePaymentsConfig();
   const { user } = useAuth();
 
@@ -73,6 +89,7 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
         <p className="muted" role="status">
           Loading payment options…
         </p>
+        <SkipFooter onSkip={handleSkip} />
       </Card>
     );
   }
@@ -84,6 +101,7 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
           title="Payment options could not be loaded"
           description="Please reload the page, or contact CalDART if it keeps happening."
         />
+        <SkipFooter onSkip={handleSkip} />
       </Card>
     );
   }
@@ -204,7 +222,24 @@ export function Checkout({ mode, onSuccess }: CheckoutProps): JSX.Element {
           panelProps={panelProps}
         />
       )}
+
+      <SkipFooter onSkip={handleSkip} />
     </Card>
+  );
+}
+
+/**
+ * The **Not now** button, drawn whether or not the payment options loaded, so a host
+ * where paying is optional is never left without a way on.
+ */
+function SkipFooter({ onSkip }: { onSkip: (() => void) | undefined }) {
+  if (onSkip === undefined) return null;
+  return (
+    <div className="cluster card__footer">
+      <Button variant="quiet" onClick={() => onSkip()}>
+        Not now
+      </Button>
+    </div>
   );
 }
 

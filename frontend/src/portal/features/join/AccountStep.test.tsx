@@ -77,4 +77,125 @@ describe('<AccountStep/>', () => {
 
     await waitFor(() => expect(logouts).toBe(1));
   });
+
+  it('offers the two kinds of account above the name fields, a member by default', async () => {
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    const member = await screen.findByRole('radio', { name: /Join as a member/ });
+    const friend = screen.getByRole('radio', { name: /Join as a friend/ });
+    expect(member).toBeChecked();
+    expect(friend).not.toBeChecked();
+    expect(
+      member.compareDocumentPosition(screen.getByLabelText(/^First name/)) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('describes each kind in the words the site uses', async () => {
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+
+    expect(
+      await screen.findByText('Pay annual dues now and be counted as a current member.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('No dues. Support CalDART when you like, and become a member any time.'),
+    ).toBeInTheDocument();
+  });
+
+  it('registers the kind that was chosen', async () => {
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API}/auth/register`, async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(makeUser({ kind: 'friend' }), { status: 201 });
+      }),
+    );
+
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+    await userEvent.click(await screen.findByRole('radio', { name: /Join as a friend/ }));
+    await fillAndSubmit();
+
+    await waitFor(() => expect(posted).toMatchObject({ kind: 'friend' }));
+  });
+
+  describe('when the address belongs to a donor', () => {
+    function serveDonorUpgrade(): void {
+      server.use(
+        http.post(`${API}/auth/register`, () =>
+          HttpResponse.json(
+            { detail: 'Verification message sent to marta@example.org.' },
+            { status: 202 },
+          ),
+        ),
+      );
+    }
+
+    it('asks for the address to be verified without signing anybody in', async () => {
+      serveDonorUpgrade();
+      const handleDone = vi.fn();
+      const { client } = renderWithProviders(<AccountStep onDone={handleDone} />, {
+        client: makeRetainingQueryClient(),
+      });
+
+      await fillAndSubmit();
+
+      expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
+      expect(
+        screen.getByText(/We sent a verification message to marta@example.org\./),
+      ).toBeInTheDocument();
+      expect(handleDone).not.toHaveBeenCalled();
+      expect(client.getQueryData(AUTH_ME_KEY)).toBeNull();
+    });
+
+    it('names the kind being joined as on the verify eyebrow', async () => {
+      serveDonorUpgrade();
+      renderWithProviders(<AccountStep onDone={() => {}} />);
+
+      await userEvent.click(await screen.findByRole('radio', { name: /Join as a friend/ }));
+      await fillAndSubmit();
+
+      expect(await screen.findByText('Step 2 of 5 · Joining as a friend')).toBeInTheDocument();
+    });
+  });
+
+  it('offers a deactivated account the way back through the sign-in page', async () => {
+    server.use(
+      http.post(`${API}/auth/register`, () =>
+        HttpResponse.json(
+          {
+            email: ['This email belongs to a deactivated account. Sign in to reactivate it.'],
+            code: 'deactivated',
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+    await fillAndSubmit();
+
+    expect(
+      await screen.findByText(
+        'This email belongs to a deactivated account. Sign in to reactivate it.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign in to reactivate' })).toHaveAttribute(
+      'href',
+      '/login?email=marta%40example.org',
+    );
+  });
+
+  it('offers no reactivation link for any other refusal', async () => {
+    server.use(
+      http.post(`${API}/auth/register`, () =>
+        HttpResponse.json({ email: ['That address is already registered.'] }, { status: 400 }),
+      ),
+    );
+
+    renderWithProviders(<AccountStep onDone={() => {}} />);
+    await fillAndSubmit();
+
+    await screen.findByText('That address is already registered.');
+    expect(screen.queryByRole('link', { name: 'Sign in to reactivate' })).not.toBeInTheDocument();
+  });
 });
