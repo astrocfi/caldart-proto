@@ -23,7 +23,7 @@ export interface PayStepProps {
 }
 
 /** Step 4 of the join wizard: dues through `<Checkout/>`, or a friend's contribution. */
-export function PayStep({ onDone }: PayStepProps): JSX.Element {
+export function PayStep({ onDone: handleDone }: PayStepProps): JSX.Element {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -31,7 +31,7 @@ export function PayStep({ onDone }: PayStepProps): JSX.Element {
     // Membership, payment history, and `profile_complete`/`membership` on the
     // user payload have all just moved.
     refreshAfterPayment(queryClient);
-    onDone();
+    handleDone();
   }
 
   if (joiningAs(user) === 'friend') {
@@ -41,7 +41,7 @@ export function PayStep({ onDone }: PayStepProps): JSX.Element {
           Friends pay no dues. A contribution of any size helps, and you can skip this step if now
           is not the time.
         </p>
-        <Checkout mode="contribute" onSuccess={handleSuccess} onSkip={onDone} />
+        <Checkout mode="contribute" onSuccess={handleSuccess} onSkip={handleDone} />
       </Card>
     );
   }

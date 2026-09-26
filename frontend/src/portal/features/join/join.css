@@ -120,9 +120,10 @@
 }
 
 .join-kind__card {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  align-items: baseline;
   padding: var(--space-4);
   border: var(--hairline) solid var(--color-rule);
   border-radius: var(--radius);
@@ -145,18 +146,15 @@
 }
 
 .join-kind__card input {
-  margin-top: 0.2rem;
   width: auto;
-  flex: none;
   accent-color: var(--color-primary);
-}
-
-.join-kind__body {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
 }
 
 .join-kind__title {
   font-weight: var(--weight-semibold);
+}
+
+/* The description sits under the title, in the column beside the radio. */
+.join-kind__description {
+  grid-column: 2;
 }

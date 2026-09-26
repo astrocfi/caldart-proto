@@ -137,10 +137,8 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
                 checked={choice.kind === kind}
                 onChange={() => setKind(choice.kind)}
               />
-              <span className="join-kind__body">
-                <span className="join-kind__title">{choice.title}</span>
-                <span className="join-kind__description muted">{choice.description}</span>
-              </span>
+              <span className="join-kind__title">{choice.title}</span>
+              <span className="join-kind__description muted">{choice.description}</span>
             </label>
           ))}
         </fieldset>
