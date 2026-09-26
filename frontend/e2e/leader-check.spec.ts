@@ -75,14 +75,14 @@ test('the results list answers go or no-go before the card is opened', async ({ 
 });
 
 test('a friend of CalDART is a NO-GO, called a friend rather than expired', async ({ page }) => {
-  // The seed's demo friend; `DemoAccount` lists the accounts every spec signs in
-  // as, and nobody signs in as the friend here.
-  const email = (DEMO as Record<string, string>).friend ?? '';
   await signIn(page, DEMO.leader);
-  const [found] = (await (
-    await page.request.get(`/api/v1/leader/search?q=${encodeURIComponent(email)}`)
-  ).json()) as { name: string }[];
-  const name = found?.name ?? email;
+  // Any seeded friend will do: the member list's kind selector names them.
+  const friends = (await (
+    await page.request.get('/api/v1/admin/members?kind=friend&ordering=name')
+  ).json()) as { results: { name: string; email: string }[] };
+  const friend = friends.results[0];
+  expect(friend).toBeDefined();
+  const { name, email } = friend ?? { name: '', email: '' };
 
   const card = await lookUp(page, email, name);
   await expect(card.getByRole('status')).toContainText('NO-GO');
