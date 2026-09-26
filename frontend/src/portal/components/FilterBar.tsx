@@ -7,8 +7,9 @@
  * a multiselect, a date and a toggle as soon as they change, a text or number
  * box once the typing pauses.  There is no Apply button.  **Reset to Defaults**
  * empties every field.  A field's hint is its control's `title` rather than a
- * line under it, so the controls of a row line up.  A multiselect is a list box
- * six rows tall, so it takes several choices without a second click.
+ * line under it, so the controls of a row line up.  A multiselect is a one-line
+ * `MultiSelect` box that opens a panel of checkboxes, so it takes several
+ * choices and gives any of them back on its own.
  *
  * The bar is one `<form role="search">`.  A bar of one box applies it at once
  * when Enter is pressed, which is how a browser submits a form of one field.
@@ -21,6 +22,7 @@ import type { FilterField, FilterValues, Option } from '@/portal/reports/types';
 import { Button } from './Button';
 import { Field } from './Field';
 import { MaskedInput } from './MaskedInput';
+import { MultiSelect } from './MultiSelect';
 import { useDebounced } from './useDebounced';
 
 export interface FilterBarProps {
@@ -40,9 +42,6 @@ const NUMBER_DIGITS = 6;
 
 /** The value a ticked toggle sends. */
 const TOGGLE_ON = 'true';
-
-/** How many rows a multiselect's list box shows before it scrolls. */
-const MULTISELECT_ROWS = 6;
 
 /** What separates the values of a multiselect in the URL and in a subscription. */
 const MULTISELECT_SEPARATOR = ',';
@@ -202,27 +201,22 @@ function FilterControl({
 
   if (field.kind === 'multiselect') {
     const chosen = value === '' ? [] : value.split(MULTISELECT_SEPARATOR);
-    const handleMultiple = (event: ChangeEvent<HTMLSelectElement>): void => {
-      const picked = Array.from(event.target.selectedOptions, (option) => option.value);
+    const handleMultiple = (picked: string[]): void => {
       handleSet(picked.join(MULTISELECT_SEPARATOR));
     };
     return (
       <Field label={field.label}>
-        {(props) => (
-          <select
-            {...props}
-            multiple
-            size={MULTISELECT_ROWS}
+        {({ id, 'aria-describedby': describedBy }) => (
+          <MultiSelect
+            id={id}
+            aria-describedby={describedBy}
+            legend={field.label}
             title={field.hint}
+            placeholder={field.placeholder}
+            options={options}
             value={chosen}
             onChange={handleMultiple}
-          >
-            {options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         )}
       </Field>
     );

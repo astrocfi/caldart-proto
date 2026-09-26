@@ -91,10 +91,10 @@ the page's address, so a filtered list is a link you can bookmark or send to a c
    The team the person belongs to.
 
 **County**
-   The California counties on people's profiles. The box shows six at a time. Hold Ctrl
-   (Command on a Mac) and click to choose more than one, and the list shows the people of
-   any county you chose. Click a chosen county with Ctrl held to take it back. With no
-   county chosen the filter narrows nothing.
+   The California counties on people's profiles. Click the box to open the list of
+   counties and tick as many as you like; the list shows the people of any county you
+   ticked. Untick a county to take it back, or press **Clear** to take them all back at
+   once. With no county ticked the filter narrows nothing.
 
 **Role**
    People who hold one role, such as DART leader or Treasurer. A system administrator is

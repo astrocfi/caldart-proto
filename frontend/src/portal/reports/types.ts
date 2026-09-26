@@ -21,9 +21,9 @@ export type ReportFormat = 'csv' | 'pdf';
  *
  * - `search`: a text box, applied once the typing pauses;
  * - `select`: a drop-down whose first option is blank, meaning "any";
- * - `multiselect`: a list box six rows tall that takes several choices, sent as
- *   their values joined with commas in the order the box lists them; choosing
- *   none means "any";
+ * - `multiselect`: a one-line drop-down that opens a checkbox per choice and takes
+ *   several, sent as their values joined with commas in the order the panel lists
+ *   them; ticking none means "any";
  * - `number`: a box that holds digits only, applied once the typing pauses;
  * - `date`: a date picker, sent as `YYYY-MM-DD`;
  * - `toggle`: a checkbox that sends `true` when ticked and nothing when not.

@@ -662,10 +662,10 @@ with its label, whether its columns can be chosen, whether it takes
 fields.  A ``FilterField`` names the query parameter it sends as its ``key``,
 and its ``kind`` says how it is drawn: ``search`` (a text box), ``select`` (a
 drop-down whose blank first option reads *Any*, or the field's
-``placeholder``), ``multiselect`` (a ``<select multiple>`` six rows tall with no
-blank option, whose chosen values travel joined with commas, in the order the
-box lists them, both in the address and in a subscription's ``filters``;
-choosing none sends nothing), ``number`` (digits only; with ``isDollars`` the box takes
+``placeholder``), ``multiselect`` (a one-line drop-down that opens a checkbox
+per choice with no blank one, whose ticked values travel joined with commas, in
+the order the panel lists them, both in the address and in a subscription's
+``filters``; ticking none sends nothing), ``number`` (digits only; with ``isDollars`` the box takes
 whole dollars and sends cents), ``date``, or ``toggle`` (a checkbox that sends
 ``true`` or nothing).  A field marked ``subscriptionOnly``, the period of the
 payments and contributions reports, belongs to the form that subscribes
@@ -678,9 +678,13 @@ select, a multiselect, a date, or a toggle at once, a text or number box once th
 held still for ``SEARCH_DEBOUNCE_MS``.  There is no Apply button, and
 **Reset to Defaults** empties every field.  The bar aligns its controls to
 their bottom edge, and a field's ``hint`` is its control's ``title`` rather
-than a line under it, so the controls of a row line up.  The member county
-filter is the one ``multiselect``, so a DART that covers two counties can ask
-for both.  ``components/useUrlFilters.ts`` keeps a list
+than a line under it, so the controls of a row line up.  The county filter of
+the member list and the donors report is the one ``multiselect``, so a DART
+that covers two counties can ask for both; ``components/MultiSelect.tsx`` draws
+it as a button that reads as the ticked choices and opens a panel of checkboxes
+under itself, each applying as it is ticked or unticked, with **Clear** beneath
+them, shut by a click outside or Escape through
+``components/useClickOutside.ts``.  ``components/useUrlFilters.ts`` keeps a list
 page's filters in the query string, so a filtered view is a link: it reads
 the keys it is given, and writing them drops the empty ones and ``page``, so a
 change of filter returns the list to its first page, while leaving any other

@@ -48,8 +48,8 @@ Filter the list
 
 * **From** and **To**, the range of gift dates counted.
 * **Search**, a name or an email address.
-* **County**, one county or several: hold Ctrl (or Command on a Mac) to choose more than
-  one.
+* **County**, one county or several: click the box, tick each county you want, and press
+  **Clear** to take them all back.
 * **DART**, the donors whose record names that DART.
 * **At least** and **At most**, bounds on what a donor gave over the whole range, in
   whole dollars.
