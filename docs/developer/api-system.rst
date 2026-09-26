@@ -224,8 +224,8 @@ reminder run's ``failed`` count reports it as well.
    to an address with no account behind it and for one whose account has since
    been deleted.  ``user_name`` is the recipient's name as it was at send
    time -- a DART contact's own name, for example, which needs no account --
-   falling back to the linked account's current name for a row written before
-   that was recorded, and empty when neither names anybody.
+   falling back to the linked account's current name when that was not
+   recorded, and empty when neither names anybody.
 
 ``status``, ``error``
    ``sent`` for a message the mail server took, and ``failed`` with the

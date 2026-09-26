@@ -70,8 +70,8 @@ class EmailLog(TimestampedModel):
     def recipient_name(self) -> str:
         """The name to show for this row: ``to_name``, or the account's own name.
 
-        Falls back to the linked account's ``display_name`` for a row written before
-        ``to_name`` existed, and to ``""`` when neither names anybody.
+        Falls back to the linked account's current ``display_name`` when ``to_name``
+        is blank, and to ``""`` when there is no account either.
         """
         if self.to_name:
             return self.to_name

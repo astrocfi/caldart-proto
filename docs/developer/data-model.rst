@@ -1382,8 +1382,8 @@ recipient who may hold no account at all.  A caller that names an account
 (``user_id``) but no ``to_name`` has the account's ``display_name`` written in
 instead, so the row keeps the name its recipient had at send time even after
 the account is later renamed.  ``EmailLog.recipient_name`` reads ``to_name``,
-falling back to the linked account's own ``display_name`` for a row written
-before the field existed, and to ``""`` when neither names anybody; it is what
+falling back to the linked account's current ``display_name`` when ``to_name``
+is blank, and to ``""`` when there is no account either; it is what
 ``GET /system/emails``' ``user_name`` (:ref:`api-email-log`) and the email log
 report's ``Name`` column read.
 

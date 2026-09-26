@@ -335,8 +335,8 @@ class EmailLogFactory(ModelFactory[EmailLog]):
     ``user`` defaults to a new account and ``to_email`` and ``to_name`` to that
     account's own address and display name, so a row always names somebody; pass
     ``user=None`` for a message sent to an address with no account behind it.  Pass
-    ``to_name=""`` with a ``user`` to build a row written before the field existed,
-    which falls back to the account's own name when read.  Pass
+    ``to_name=""`` with a ``user`` to build a row that names nobody of its own,
+    which falls back to the account's current name when read.  Pass
     ``status=EmailStatus.FAILED`` with an ``error`` to record a send the mail server
     refused.
     """

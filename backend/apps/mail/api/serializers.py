@@ -12,8 +12,8 @@ class EmailLogSerializer(serializers.ModelSerializer[EmailLog]):
     """One row of ``GET /system/emails``.
 
     ``user_id`` is null for a message sent to an address with no account behind it.
-    ``user_name`` is the recipient's name as it was at send time, or the linked
-    account's own name for a row written before that was recorded; it is empty
+    ``user_name`` is the recipient's name as it was at send time, falling back to
+    the linked account's current name when that was not recorded; it is empty
     when neither names anybody.  ``error`` is blank unless ``status`` is
     ``failed``, and ``attachments`` is a comma-separated list of filenames,
     blank when the message carried none.  ``purpose_label`` is the purpose in words,
