@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 
 import { ApiError, api } from '../api/client';
 import type {
+  EmailChangePayload,
+  EmailVerifyResult,
   LoginPayload,
   PasswordChangePayload,
   PasswordResetConfirmPayload,
@@ -19,6 +21,7 @@ import type {
   Role,
   RoleSlug,
   User,
+  VerificationSentResult,
 } from '../api/types';
 
 export const AUTH_ME_KEY = ['auth', 'me'] as const;
@@ -192,5 +195,40 @@ export function usePasswordResetConfirm(): UseMutationResult<
   return useMutation({
     mutationFn: (payload: PasswordResetConfirmPayload) =>
       api.post<null>('/auth/password/reset/confirm', payload),
+  });
+}
+
+/**
+ * Follows a verification link through `POST /auth/email/verify`, then refetches
+ * `/auth/me`, so a signed-in visitor's own payload says verified straight away.
+ */
+export function useEmailVerify(): UseMutationResult<EmailVerifyResult, Error, string> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) => api.post<EmailVerifyResult>('/auth/email/verify', { token }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: AUTH_ME_KEY });
+    },
+  });
+}
+
+/** Mails the signed-in user a fresh verification link through `POST /auth/email/resend`. */
+export function useResendVerification(): UseMutationResult<VerificationSentResult, Error, void> {
+  return useMutation({
+    mutationFn: () => api.post<VerificationSentResult>('/auth/email/resend'),
+  });
+}
+
+/**
+ * Changes the signed-in user's address through `POST /auth/email/change` and seeds
+ * the auth-me cache with the answer, whose address is unverified.
+ */
+export function useEmailChange(): UseMutationResult<User, Error, EmailChangePayload> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: EmailChangePayload) => api.post<User>('/auth/email/change', payload),
+    onSuccess: (user) => {
+      queryClient.setQueryData(AUTH_ME_KEY, user);
+    },
   });
 }

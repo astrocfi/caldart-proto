@@ -9,6 +9,7 @@ import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { useMembership } from '@/portal/features/profile/api';
+import { joinStepEyebrow } from './steps';
 import './join.css';
 
 /** Step 4 of the join wizard: membership status and links to members-only pages. */
@@ -22,7 +23,7 @@ export function DoneStep(): JSX.Element {
     <>
       <Card
         className="join-card"
-        eyebrow="Step 4 of 4"
+        eyebrow={joinStepEyebrow('done')}
         title={status?.status === 'current' ? 'Welcome to CalDART' : 'Almost there'}
         footer={
           <>

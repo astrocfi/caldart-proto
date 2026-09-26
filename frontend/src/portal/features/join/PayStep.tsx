@@ -13,6 +13,7 @@ import type { JSX } from 'react';
 
 import { Card } from '@/portal/components/Card';
 import { refreshAfterPayment } from './refresh';
+import { joinStepEyebrow } from './steps';
 import './join.css';
 
 export interface PayStepProps {
@@ -31,7 +32,7 @@ export function PayStep({ onDone }: PayStepProps): JSX.Element {
   }
 
   return (
-    <Card className="join-card" eyebrow="Step 3 of 4" title="Pay your dues">
+    <Card className="join-card" eyebrow={joinStepEyebrow('pay')} title="Pay your dues">
       <p className="muted">
         Membership starts the moment the payment clears. You can add a contribution on top if you
         would like to support CalDART further.

@@ -12,6 +12,7 @@ import type { JSX } from 'react';
 
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { joinStepEyebrow } from './steps';
 import './join.css';
 
 export interface ReturnStepProps {
@@ -21,7 +22,7 @@ export interface ReturnStepProps {
 /** Confirms a redirect-based payment method and settles it via `<CheckoutReturn/>`. */
 export function ReturnStep({ onSettled: handleSettled }: ReturnStepProps): JSX.Element {
   return (
-    <Card className="join-card" eyebrow="Step 3 of 4" title="Finishing your payment">
+    <Card className="join-card" eyebrow={joinStepEyebrow('pay')} title="Finishing your payment">
       <CheckoutReturn
         onSuccess={handleSettled}
         action={

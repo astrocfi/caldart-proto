@@ -12,6 +12,7 @@ import {
   profileToForm,
   saveErrorMessage,
 } from '@/portal/features/profile/form';
+import { joinStepEyebrow } from './steps';
 import './join.css';
 
 export interface ProfileStepProps {
@@ -26,7 +27,7 @@ export function ProfileStep({ onDone }: ProfileStepProps): JSX.Element {
 
   if (profile.isPending) {
     return (
-      <Card className="join-card" eyebrow="Step 2 of 4" title="About you">
+      <Card className="join-card" eyebrow={joinStepEyebrow('profile')} title="About you">
         <p className="muted" role="status">
           Loading your profile…
         </p>
@@ -36,7 +37,7 @@ export function ProfileStep({ onDone }: ProfileStepProps): JSX.Element {
 
   if (profile.isError) {
     return (
-      <Card className="join-card" eyebrow="Step 2 of 4" title="About you">
+      <Card className="join-card" eyebrow={joinStepEyebrow('profile')} title="About you">
         <EmptyState
           title="We could not load your profile"
           description={
@@ -52,7 +53,7 @@ export function ProfileStep({ onDone }: ProfileStepProps): JSX.Element {
   const serverErrors = save.error instanceof ApiError ? save.error.fieldErrors : undefined;
 
   return (
-    <Card className="join-card" eyebrow="Step 2 of 4" title="About you">
+    <Card className="join-card" eyebrow={joinStepEyebrow('profile')} title="About you">
       <p className="muted">
         CalDART needs a way to reach you during an activation. Everything except your phone and
         address can wait until later.
