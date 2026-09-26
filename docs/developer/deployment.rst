@@ -7,11 +7,18 @@ systemd, Apache in front terminating TLS.  Apache is the primary target because
 the machines this is aimed at already run it; an nginx configuration ships as
 the alternative and is called out where the two differ.
 
-Every path below assumes the deploy root
-``/srv/caldart``.  If you use another, change it in all six files that name it:
-``deploy/gunicorn.conf.py``, ``deploy/apache/caldart.conf``
-, ``deploy/nginx/caldart.conf``, and all three units under ``deploy/systemd/``.
-``grep -rn /srv/caldart deploy/`` finds every occurrence.
+Every path below assumes the deploy root ``/srv/caldart``.  If you use
+another, change it in every file under ``deploy/`` that names it, which is all
+thirteen of them: ``deploy/gunicorn.conf.py``, ``deploy/apache/caldart.conf``,
+``deploy/nginx/caldart.conf``, ``deploy/caldart.env.example``, and the five
+services and four timers under ``deploy/systemd/`` (a timer names the path
+only in its ``Documentation=`` line).  ``grep -rn /srv/caldart deploy/`` finds
+every occurrence.
+
+The steps run in the order written, and none depends on a later one.  Commands
+that start with ``sudo`` run on the server as an administrator; the few that
+use ``caldart_manage`` need the shell function defined in
+:ref:`deploy-manage-commands` first.
 
 
 What you are deploying
@@ -142,7 +149,7 @@ at 06:30, the ``caldart-reminders`` timer daily at 07:00, and the
 
 The application is a **Django 6** project with Wagtail 8 on top, and step 6
 installs it with ``uv sync --frozen``, so the box runs the exact versions
-``uv.lock`` pins and the ones the test suite ran against.  Django 6 configures
+``uv.lock`` pins, the ones the test suite ran against.  Django 6 configures
 outgoing mail through its ``MAILERS`` setting, which ``prod.py`` builds from
 ``EMAIL_URL`` and ``EMAIL_TIMEOUT``; both are in the environment file written
 in step 5 and documented in :doc:`configuration`.
@@ -163,56 +170,92 @@ document is only ever reachable at ``/documents/<id>/<filename>``.
 1. Operating system packages
 ============================
 
-On Debian or Ubuntu::
+The steps below are written for Debian 13 (trixie) and Ubuntu 24.04 (noble),
+and every package they name comes from those distributions' own archives.
+Everything runs as a user with ``sudo``.
+
+::
 
   sudo apt update
-  sudo apt install -y \
-      apache2 \
-      docker.io docker-compose-plugin \
-      git curl ca-certificates \
-      postgresql-client
+  sudo apt install -y git curl ca-certificates postgresql-client docker.io
 
-  # Node 20+ for the frontend build, and uv for the Python side.
-  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  # Debian 13: the Compose v2 plugin is the docker-compose package
+  sudo apt install -y docker-compose
+  # Ubuntu 24.04: it is docker-compose-v2 (docker-compose there is the old v1)
+  sudo apt install -y docker-compose-v2
+
+  # The web server, certbot, and certbot's plugin for that server.  The plugin
+  # is what writes the TLS options file the vhost includes (step 9).
+  sudo apt install -y apache2 certbot python3-certbot-apache
+  # ... or, for nginx instead of Apache:
+  sudo apt install -y nginx certbot python3-certbot-nginx
+
+  # Node 22 for the frontend build, from NodeSource: Debian and Ubuntu ship
+  # older releases than the build needs.
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
   sudo apt install -y nodejs
-  curl -LsSf https://astral.sh/uv/install.sh | sudo sh
+
+  # uv, installed where sudo can find it.
+  curl -LsSf https://astral.sh/uv/install.sh \
+      | sudo env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh
+
+Install one of the two Compose packages and one of the two web servers.
+``docker compose version`` should then print a v2 version.
+
+``uv`` goes to ``/usr/local/bin`` because ``sudo`` resets ``PATH`` to a
+fixed list that does not include root's ``~/.local/bin``, where the installer
+puts it by default.
 
 ``postgresql-client`` is optional but recommended: ``db_backup`` and
 ``db_restore`` prefer a local ``pg_dump``/``psql`` and fall back to running them
 inside the container.  Set ``DB_BACKUP_VIA_DOCKER=false`` once the client is
 installed.
 
-uv installs its own Python 3.12 if the system has none, so no ``python3.12``
-package is needed.
+The project pins Python 3.12, and uv downloads that interpreter itself when
+the system has another version.  Step 6 tells it to put the download in
+``/opt/uv/python``, where the service user can read it, instead of under
+``/root``.
 
 
-2. Service user and directories
-===============================
+2. Service user
+===============
 
 ::
 
   sudo useradd --system --home-dir /srv/caldart --shell /usr/sbin/nologin caldart
   sudo usermod -aG docker caldart          # only if the app must talk to compose
-  sudo install -d -o root -g caldart -m 0755 /srv/caldart
   sudo install -d -o root -g caldart -m 0750 /etc/caldart
 
-The checkout is owned by root and readable by the service user; the unit file
+``useradd --system`` does not create the home directory, so ``/srv/caldart``
+does not exist yet; the clone in the next step creates it.
+
+
+.. _deploy-checkout:
+
+3. The checkout
+===============
+
+Clone into ``/srv/caldart`` while it does not exist or is still empty, since
+``git clone`` refuses a directory with anything in it::
+
+  sudo git clone https://github.com/astrocfi/caldart-proto.git /srv/caldart
+  cd /srv/caldart
+
+The checkout is owned by root and readable by the service user.  The web unit
 mounts everything read-only except three directories, which the service user
-owns::
+owns.  Create them now, inside the checkout; ``caldart-web.service`` refuses to
+start when a directory it lists in ``ReadWritePaths`` is missing::
 
   sudo install -d -o caldart -g caldart \
       /srv/caldart/backend/media \
       /srv/caldart/backend/staticfiles \
       /srv/caldart/backups
 
+``backend/media`` holds Wagtail's uploads, ``backend/staticfiles`` what
+``collectstatic`` writes, and ``backups`` the database dumps.  All three are
+gitignored, so a later ``git pull`` never touches them.
 
-3. The checkout
-===============
-
-::
-
-  sudo git clone https://github.com/astrocfi/caldart-proto.git /srv/caldart
-  cd /srv/caldart
+Every command from here on runs from ``/srv/caldart``.
 
 
 4. Postgres in Docker
@@ -226,7 +269,9 @@ and container upgrades::
   sudo docker compose ps
 
 ``docker-compose.yml`` publishes the database as ``"127.0.0.1:5432:5432"``, so
-it listens on loopback only and nothing off the box can reach port 5432.
+it listens on loopback only and nothing off the box can reach port 5432.  The
+container has ``restart: unless-stopped``, so Docker starts it again after a
+reboot.
 
 .. warning::
 
@@ -240,9 +285,10 @@ Change it with::
 
 and put the same password in ``DATABASE_URL`` in the next step.
 
-Create the production database if it is not the default ``caldart``::
+The container creates a database named ``caldart`` on its first start.  To
+use another name, create it and name it in ``DATABASE_URL``::
 
-  sudo docker compose exec -T db createdb -U caldart -O caldart caldart
+  sudo docker compose exec -T db createdb -U caldart -O caldart caldart_live
 
 
 5. Configuration
@@ -283,10 +329,11 @@ Generate a secret key with::
   python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 
 Then work down the rest of the template: ``CSRF_TRUSTED_ORIGINS``,
-``DEFAULT_FROM_EMAIL``, the Stripe and PayPal keys, ``BACKUP_DIR``, and
-``DB_BACKUP_VIA_DOCKER``.  :doc:`configuration` documents every variable, what
-reads it, and its development and production values.  The Stripe and PayPal
-keys are covered in :doc:`payments-setup`.
+``DEFAULT_FROM_EMAIL``, the throttle rates, the Stripe and PayPal keys,
+``BACKUP_DIR``, and ``DB_BACKUP_VIA_DOCKER``.  :doc:`configuration` documents
+every variable, what reads it, and its development and production values.  The
+Stripe and PayPal keys are covered in :doc:`payments-setup`, and what the mail
+domain needs before ``EMAIL_URL`` delivers anything in :doc:`email`.
 
 The file is root-owned, mode 0640, group ``caldart``.  It contains the database
 password, the Django secret key and the payment provider secrets; it should
@@ -301,20 +348,29 @@ never be world-readable and never be committed.
 ::
 
   cd /srv/caldart
-  sudo uv sync --frozen --no-dev --group docs
+  sudo env UV_PYTHON_INSTALL_DIR=/opt/uv/python uv sync --frozen --no-dev --group docs
   cd frontend && sudo npm ci && sudo npm run build && cd ..
-  sudo uv run sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
+  sudo .venv/bin/sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
+
+``uv sync --frozen`` installs the exact versions ``uv.lock`` pins, the ones the
+test suite ran against, into ``/srv/caldart/.venv``.  ``--no-dev`` leaves out
+the test and lint tools, and ``--group docs`` adds Sphinx and its theme for the
+last line.  ``UV_PYTHON_INSTALL_DIR`` matters only when uv has to download
+Python 3.12: the virtualenv links to that interpreter, and under ``/root`` the
+service user could not reach it.
 
 ``npm run build`` writes ``frontend/dist`` including
 ``.vite/manifest.json``, which django-vite reads to find the hashed asset
 names.  Without it every page raises at render time.
 
-``--group docs`` installs Sphinx and its theme, which the last line uses to
-build the user guide into ``docs/_build/guide``, the directory Django serves at
-``/docs/`` to signed-in users (it is ``make guide`` on a checkout).  The
-developer guide is not published: the build reads ``docs/user`` alone.  Without
-this step ``/docs/`` answers 404 and the journal says the guide has not been
-built.  A deployment that keeps the guide elsewhere sets ``USER_GUIDE_ROOT``.
+The last line builds the user guide into ``docs/_build/guide``, the directory
+Django serves at ``/docs/`` to signed-in users (it is ``make guide`` on a
+checkout).  It calls the virtualenv's ``sphinx-build`` directly: ``uv run``
+would first sync the default dependency groups, development tools included.
+The developer guide is not published: the build reads ``docs/user`` alone.
+Without this step ``/docs/`` answers 404 and the journal says the guide has not
+been built.  A deployment that keeps the guide elsewhere sets
+``USER_GUIDE_ROOT``.
 
 
 7. Database and static files
@@ -360,10 +416,10 @@ through when the output is redirected.
 the settings, and it is not optional: a transient unit otherwise takes
 systemd's system default of ``0022``, and ``caldart_manage db_backup`` would
 write a full dump of the database — member records, password hashes, payment
-history — world-readable at mode 0644.  ``caldart-web.service``
-, ``caldart-reminders.service``, and the ``caldart-backup.service`` in
-:doc:`backup-restore` set the same mask, so every path that writes a dump
-writes it readable by the ``caldart`` group and no wider.
+history — world-readable at mode 0644.  All five shipped services and the
+``caldart-backup.service`` in :doc:`backup-restore` set the same mask, so every
+path that writes a dump writes it readable by the ``caldart`` group and no
+wider.
 
 Confirm the environment file is being read before relying on it::
 
@@ -419,7 +475,8 @@ the Wagtail admin.
   sudo systemctl daemon-reload
   sudo systemctl enable --now caldart-web.service
   systemctl status caldart-web
-  curl -sI http://127.0.0.1:8001/ | head -1
+  curl -sI -H 'Host: caldart.example.org' -H 'X-Forwarded-Proto: https' \
+      http://127.0.0.1:8001/ | head -1
 
 The unit runs ``/srv/caldart/.venv/bin/gunicorn --config
 /srv/caldart/deploy/gunicorn.conf.py`` as ``caldart``, with
@@ -437,28 +494,106 @@ It is hardened with the usual systemd sandbox — ``ProtectSystem=strict``,
 the new path to ``ReadWritePaths`` or backups will fail with a permission
 error.
 
-9. Apache
-=========
+The ``curl`` stands in for the web server of step 9, which is not there yet,
+and should answer ``200 OK``.  It needs both headers.  Without the ``Host``
+of a name in ``ALLOWED_HOSTS`` Django answers ``400 Bad Request``, and
+without ``X-Forwarded-Proto: https`` ``SECURE_SSL_REDIRECT`` answers ``301``
+with a redirect to ``https://``.
 
-Enable the modules the vhost needs, install it, and check the syntax::
+
+.. _deploy-web-server:
+
+9. The web server and TLS
+=========================
+
+The shipped vhosts, ``deploy/apache/caldart.conf`` and
+``deploy/nginx/caldart.conf``, each hold two hosts: one on port 80 that
+answers certbot's challenges and redirects everything else to HTTPS, and one
+on port 443 that terminates TLS and proxies to gunicorn.  The port-443 host
+names the certificate files and certbot's TLS options file, and neither
+server loads a configuration that names a file that does not exist.  So the
+order is fixed:
+
+1. serve the challenge directory over plain HTTP with a small bootstrap host;
+2. obtain the certificate with ``certbot certonly --webroot``;
+3. have certbot's plugin write its options file;
+4. replace the bootstrap host with the shipped vhost.
+
+Use Apache or nginx, never both on the same host.  In every file and command
+below, replace ``caldart.example.org`` with the real hostname; it must also be
+in ``ALLOWED_HOSTS``, and its ``https://`` form in ``CSRF_TRUSTED_ORIGINS``.
+Its DNS ``A`` (and ``AAAA``) records must already point at this server, and
+ports 80 and 443 must be open, or the certificate step fails.
+
+Apache
+------
+
+Enable the modules the vhost needs::
 
   sudo a2enmod proxy proxy_http headers ssl rewrite deflate expires http2
-  sudo cp deploy/apache/caldart.conf /etc/apache2/sites-available/caldart.conf
-  sudoedit /etc/apache2/sites-available/caldart.conf   # set ServerName
-  sudo a2ensite caldart
+
+**The bootstrap host.**  Write a port-80 host that serves nothing but the
+challenge directory, enable it, and check the syntax::
+
+  sudo install -d /var/www/certbot
+  sudo tee /etc/apache2/sites-available/caldart-acme.conf >/dev/null <<'EOF'
+  <VirtualHost *:80>
+      ServerName caldart.example.org
+      ServerAlias www.caldart.example.org
+      Alias /.well-known/acme-challenge/ /var/www/certbot/.well-known/acme-challenge/
+      <Directory "/var/www/certbot/.well-known/acme-challenge">
+          Require all granted
+      </Directory>
+  </VirtualHost>
+  EOF
+  sudo a2ensite caldart-acme
   sudo apachectl configtest
   sudo systemctl reload apache2
 
+**The certificate.**  certbot writes a token under ``/var/www/certbot``, the
+certificate authority fetches it over port 80, and the certificate lands in
+``/etc/letsencrypt/live/caldart.example.org/``::
+
+  sudo certbot certonly --webroot -w /var/www/certbot \
+       -d caldart.example.org -d www.caldart.example.org
+
+**The TLS options file.**  The port-443 host includes
+``/etc/letsencrypt/options-ssl-apache.conf``, certbot's recommended protocols
+and ciphers.  ``python3-certbot-apache`` ships that file and copies it into
+``/etc/letsencrypt/`` when its Apache plugin is prepared, which
+``certonly --webroot`` never does.  Prepare it once, and check the file is
+there::
+
+  sudo certbot plugins --init --prepare --installers
+  ls /etc/letsencrypt/options-ssl-apache.conf
+
+**The vhost.**  Swap the bootstrap host for the shipped one, set the hostname,
+and check the syntax before reloading::
+
+  sudo a2dissite caldart-acme
+  sudo cp deploy/apache/caldart.conf /etc/apache2/sites-available/caldart.conf
+  sudoedit /etc/apache2/sites-available/caldart.conf   # ServerName, ServerAlias
+  sudo a2ensite caldart
+  sudo apachectl configtest
+  sudo systemctl reload apache2
+  sudo rm /etc/apache2/sites-available/caldart-acme.conf
+
 The vhost:
 
-* redirects port 80 to HTTPS, except ``/.well-known/acme-challenge/``;
+* keeps port 80 answering ``/.well-known/acme-challenge/`` from
+  ``/var/www/certbot`` and redirects everything else to HTTPS with a 301;
+* speaks HTTP/2 and HTTP/1.1 on port 443, with the certbot certificate and
+  ``options-ssl-apache.conf``;
 * proxies everything to ``http://127.0.0.1:8001/`` with
-  ``ProxyPreserveHost On``;
-* sets ``X-Forwarded-Proto: https`` — this is what ``SECURE_PROXY_SSL_HEADER``
-  in ``prod.py`` reads, and gunicorn only accepts it from loopback, so a client
-  cannot forge it;
+  ``ProxyPreserveHost On`` and a 60-second ``ProxyTimeout``, matching
+  gunicorn's worker timeout;
+* sets ``X-Forwarded-Proto: https`` and ``X-Forwarded-Port: 443`` and drops any
+  inbound ``X-Forwarded-Ssl``.  ``X-Forwarded-Proto`` is what
+  ``SECURE_PROXY_SSL_HEADER`` in ``prod.py`` reads, and gunicorn only accepts
+  it from loopback, so a client cannot forge it;
 * serves ``/media/`` from ``/srv/caldart/backend/media/`` with a one-week cache
-  and ``X-Content-Type-Options: nosniff``, and excludes it from the proxy;
+  and ``X-Content-Type-Options: nosniff``, never runs a script from there, and
+  excludes it from the proxy;
 * denies ``/srv/caldart/backend/media/documents``, the directory Wagtail writes
   document uploads to, with ``Require all denied``.  The deeper ``<Directory>``
   section is applied after the one above it, so it wins;
@@ -468,45 +603,134 @@ The vhost:
   copy from the vhost would both duplicate the header and override the
   settings.  ``/media/`` is the one exception, because Apache serves it without
   asking Django;
-* caps request bodies at 25 MB, matching ``DATA_UPLOAD_MAX_MEMORY_SIZE``.
-
-TLS with certbot::
-
-  sudo apt install -y certbot
-  sudo install -d /var/www/certbot
-  sudo certbot certonly --webroot -w /var/www/certbot \
-       -d caldart.example.org -d www.caldart.example.org
-  sudo systemctl reload apache2
-
-Renewal is handled by certbot's own timer; the port-80 vhost keeps the ACME
-path reachable, so nothing else is needed.  Check it with
-``sudo certbot renew --dry-run``.
-
-Turn HSTS off for the first deploy of a new hostname: set
-``SECURE_HSTS_SECONDS=0`` in ``/etc/caldart/caldart.env`` and restart
-``caldart-web``, until HTTPS is known good.  That one setting is the whole
-switch — the vhost sets no ``Strict-Transport-Security`` header of its own.
-Browsers honor the header for its full duration and there is no way to take it
-back early.  ``SECURE_HSTS_PRELOAD`` stays off unless you mean to join the
-browser preload list; :doc:`configuration` explains what that commits the site
-to.
+* caps request bodies at 25 MB, matching ``DATA_UPLOAD_MAX_MEMORY_SIZE``;
+* compresses HTML, JSON, and the other text responses gunicorn returns;
+* logs to ``/var/log/apache2/caldart-access.log`` and ``caldart-error.log``,
+  and the port-80 host to ``caldart-http-access.log`` and
+  ``caldart-http-error.log``.
 
 nginx instead
 -------------
 
-Use one or the other, never both on the same host::
+The same four steps, with nginx's own file layout.
 
+**The bootstrap host.**  Debian's stock ``default`` site also listens on
+port 80; it can stay, because a request for the CalDART hostname matches the
+``server_name`` below first::
+
+  sudo install -d /var/www/certbot
+  sudo tee /etc/nginx/sites-available/caldart-acme >/dev/null <<'EOF'
+  server {
+      listen 80;
+      listen [::]:80;
+      server_name caldart.example.org www.caldart.example.org;
+      location /.well-known/acme-challenge/ {
+          root /var/www/certbot;
+      }
+      location / {
+          return 404;
+      }
+  }
+  EOF
+  sudo ln -s /etc/nginx/sites-available/caldart-acme /etc/nginx/sites-enabled/
+  sudo nginx -t
+  sudo systemctl reload nginx
+
+**The certificate.**  Exactly as for Apache::
+
+  sudo certbot certonly --webroot -w /var/www/certbot \
+       -d caldart.example.org -d www.caldart.example.org
+
+**The TLS options files.**  The port-443 server includes
+``/etc/letsencrypt/options-ssl-nginx.conf`` and reads
+``/etc/letsencrypt/ssl-dhparams.pem``.  ``python3-certbot-nginx`` ships the
+first and writes both into ``/etc/letsencrypt/`` when its nginx plugin is
+prepared, which ``certonly --webroot`` never does.  Prepare it once, and check
+both files are there::
+
+  sudo certbot plugins --init --prepare --installers
+  ls /etc/letsencrypt/options-ssl-nginx.conf /etc/letsencrypt/ssl-dhparams.pem
+
+**The vhost.**  Swap the bootstrap server for the shipped one::
+
+  sudo rm /etc/nginx/sites-enabled/caldart-acme /etc/nginx/sites-available/caldart-acme
   sudo cp deploy/nginx/caldart.conf /etc/nginx/sites-available/caldart
+  sudoedit /etc/nginx/sites-available/caldart          # server_name, both servers
   sudo ln -s /etc/nginx/sites-available/caldart /etc/nginx/sites-enabled/
-  sudo nginx -t && sudo systemctl reload nginx
+  sudo nginx -t
+  sudo systemctl reload nginx
 
-It is the same shape: ACME on port 80, TLS, and proxying on 443,
-``proxy_set_header X-Forwarded-Proto $scheme``, ``/media/`` from disk,
-``client_max_body_size 25m``, and the security headers left to Django.  nginx's
-``add_header`` does not replace what the upstream sent, so a copy here would
-reach the browser alongside Django's.  ``/media/documents/`` gets a
-``return 404;`` of its own; it is the longer prefix, so nginx matches it ahead
-of ``/media/``.
+The file turns HTTP/2 on with ``http2 on;``, a directive nginx has had since
+1.25.1; Debian 13 ships 1.26.  Ubuntu 24.04 ships 1.24, where ``nginx -t``
+stops on ``unknown directive "http2"``.  There, move HTTP/2 onto the two
+``listen 443`` lines after the ``cp`` and before ``nginx -t``::
+
+  sudo sed -i -e '/^ *http2 *on;/d' \
+      -e 's/listen\( *\)443 ssl;/listen\1443 ssl http2;/' \
+      -e 's/listen\( *\)\[::\]:443 ssl;/listen\1[::]:443 ssl http2;/' \
+      /etc/nginx/sites-available/caldart
+
+The shipped file:
+
+* keeps port 80 answering ``/.well-known/acme-challenge/`` from
+  ``/var/www/certbot`` and redirects everything else to HTTPS with a 301;
+* speaks HTTP/2 and HTTP/1.1 on port 443, IPv4 and IPv6, with the certbot
+  certificate, ``options-ssl-nginx.conf``, and ``ssl-dhparams.pem``;
+* proxies everything to ``http://127.0.0.1:8001`` over HTTP/1.1, passing
+  ``Host``, ``X-Real-IP``, ``X-Forwarded-For``, ``X-Forwarded-Proto``,
+  ``X-Forwarded-Host``, and ``X-Forwarded-Port``.  ``X-Forwarded-Proto`` is
+  ``$scheme``, which is ``https`` on this server; gunicorn only accepts it
+  from loopback, so a client cannot forge it.  ``$proxy_add_x_forwarded_for``
+  appends the address nginx saw to whatever the client sent, which is why the
+  auth throttles count the last entry (:doc:`configuration`);
+* allows 10 seconds to connect and 60 seconds to send or read, matching
+  gunicorn's worker timeout, and buffers the responses;
+* serves ``/media/`` from ``/srv/caldart/backend/media/`` with a one-week
+  cache, ``Cache-Control: public``, and ``X-Content-Type-Options: nosniff``,
+  without directory listings or access logging;
+* answers ``/media/documents/`` with ``return 404;``.  It is the longer prefix,
+  so nginx matches it ahead of ``/media/``, and a document is only reachable
+  through Django's members-only check;
+* sets no security header on proxied responses.  nginx's ``add_header`` does
+  not replace what the upstream sent, so a copy here would reach the browser
+  alongside Django's;
+* caps request bodies at 25 MB (``client_max_body_size 25m``) with a 60-second
+  body timeout;
+* logs to ``/var/log/nginx/caldart-access.log`` and ``caldart-error.log``,
+  and the port-80 server to ``caldart-http-access.log`` and
+  ``caldart-http-error.log``.
+
+The file leaves compression to the ``http`` block of ``/etc/nginx/nginx.conf``,
+where Debian's stock configuration already turns ``gzip`` on for HTML; its
+header comment lists the lines that extend it to JSON, CSS, and JavaScript.
+
+Renewal and HSTS
+----------------
+
+certbot's own systemd timer renews the certificate twice a day when it is
+within 30 days of expiry, over the same webroot, which the port-80 host keeps
+reachable.  Rehearse a renewal with::
+
+  sudo certbot renew --dry-run
+
+The certificate files are replaced in place, but the web server reads them
+only at start-up, so reload it after a renewal.  certbot runs every script in
+``/etc/letsencrypt/renewal-hooks/deploy/`` after a successful renewal::
+
+  sudo tee /etc/letsencrypt/renewal-hooks/deploy/reload-web-server >/dev/null <<'EOF'
+  #!/bin/sh
+  systemctl reload apache2 2>/dev/null || systemctl reload nginx
+  EOF
+  sudo chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/reload-web-server
+
+Turn HSTS off for the first deploy of a new hostname: set
+``SECURE_HSTS_SECONDS=0`` in ``/etc/caldart/caldart.env`` and restart
+``caldart-web``, until HTTPS is known good.  That one setting is the whole
+switch — neither vhost sets a ``Strict-Transport-Security`` header of its own.
+Browsers honor the header for its full duration and there is no way to take it
+back early.  ``SECURE_HSTS_PRELOAD`` stays off unless you mean to join the
+browser preload list; :doc:`configuration` explains what that commits the site
+to.
 
 
 10. Renewal reminders
@@ -616,9 +840,8 @@ free space on the backup filesystem, the last backup, the version from
 ``debug`` is ``false`` and ``pending_migrations`` is ``0``.
 
 Then, in a browser: the public site loads and is styled, ``/portal/`` signs you
-in, ``/admin/`` opens Wagtail, ``/portal/system`` shows three green panels, and
-the **User guide** link at the foot of the portal's menu opens your role's
-page of the guide.
+in, ``/admin/`` opens Wagtail, every check on the health panel of
+``/portal/system`` is green, and the **User guide** link at the foot of the portal's menu opens the user guide.
 
 
 Deployment checks
@@ -820,9 +1043,9 @@ Take a backup first, always.  ``caldart_manage`` is the function from
 
   cd /srv/caldart
   sudo git pull
-  sudo uv sync --frozen --no-dev --group docs
+  sudo env UV_PYTHON_INSTALL_DIR=/opt/uv/python uv sync --frozen --no-dev --group docs
   cd frontend && sudo npm ci && sudo npm run build && cd ..
-  sudo uv run sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
+  sudo .venv/bin/sphinx-build -n -W -b dirhtml -t guide -c docs docs/user docs/_build/guide
 
   caldart_manage migrate
   caldart_manage createcachetable
@@ -834,10 +1057,13 @@ Take a backup first, always.  ``caldart_manage`` is the function from
 Order matters: build the frontend before ``collectstatic``, and restart the web
 unit last.  The guide is rebuilt in the same sequence, so the copy at ``/docs/``
 is always the one the running code describes; Django reads it off disk on every
-request, so it needs no restart of its own.  ``createcachetable`` is idempotent: it does nothing when
-``caldart_cache`` is already there, and it is in the list so that no upgrade
-can leave a box without it.  ``preload_app`` is on, so a restart — not a reload — is what picks
-up new code.
+request, so it needs no restart of its own.  ``createcachetable`` is
+idempotent: it does nothing when ``caldart_cache`` is already there, and it is
+in the list so that no upgrade can leave a box without it.  ``preload_app`` is
+on, so a restart, and not a reload, is what picks up new code.  The timers
+start a fresh process on every run, so they pick up the new code by
+themselves; copy a unit file again, and ``systemctl daemon-reload``, only when
+``git pull`` changed one under ``deploy/systemd/``.
 
 Rolling back is the same sequence against the previous commit, plus a
 ``db_restore`` if the schema the previous commit expects differs from the
@@ -851,6 +1077,26 @@ Troubleshooting
 
 **502 from Apache.**  gunicorn is not running or not on 8001.  ``systemctl
 status caldart-web``, then ``journalctl -u caldart-web -n 50``.
+
+**``caldart-web`` fails with ``status=226/NAMESPACE``.**  A directory named in
+``ReadWritePaths`` does not exist.  Create ``backend/media``,
+``backend/staticfiles``, and ``backups`` as in :ref:`step 3 <deploy-checkout>`, owned
+by ``caldart``, and start the unit again.
+
+**``git clone`` says the destination already exists and is not empty.**
+Something created a directory under ``/srv/caldart`` before the clone.  Move
+it aside, clone, then create the three writable directories.
+
+**``apachectl configtest`` or ``nginx -t`` says a certificate or
+``options-ssl`` file does not exist.**  The shipped vhost went in before its
+files did.  Put the bootstrap host back, then run the certificate and
+options-file steps of :ref:`step 9 <deploy-web-server>` in order.
+
+**certbot says the challenge failed, or reports a 404.**  The hostname's DNS
+does not point at this server, port 80 is closed, or the bootstrap host is not
+the one answering.  ``curl -I http://caldart.example.org/.well-known/acme-challenge/x``
+from another machine should reach this server and answer 404 from the
+bootstrap host; the port-80 error log names the path it looked for.
 
 **``DisallowedHost`` in the log.**  The hostname is missing from
 ``ALLOWED_HOSTS``.  Add it and restart.
