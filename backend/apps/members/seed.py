@@ -408,6 +408,8 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     plans = seed_plans()
     ctx["darts"] = darts
     ctx["plans"] = {plan.slug: plan for plan in plans}
+    # A later seed that writes a profile draws its towns from the same generator.
+    ctx["towns"] = towns
 
     profiles: list[MemberProfile] = []
     # One generated member is dealt each certificate type, so the demo data

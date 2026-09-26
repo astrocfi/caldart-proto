@@ -252,11 +252,15 @@ class PayPalCaptureSerializer(serializers.Serializer[dict[str, Any]]):
     order_id = serializers.CharField(required=False, allow_blank=True, default="")
 
 
+#: What a mock payment can be told to do.
+MOCK_OUTCOMES: tuple[str, ...] = ("succeed", "fail")
+
+
 class MockCompleteSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /payments/mock/complete``, whose ``outcome`` is ``succeed`` or ``fail``."""
 
     payment_id = serializers.IntegerField()
-    outcome = serializers.ChoiceField(choices=["succeed", "fail"], default="succeed")
+    outcome = serializers.ChoiceField(choices=MOCK_OUTCOMES, default="succeed")
 
 
 class PaymentResultSerializer(serializers.Serializer[dict[str, Any]]):

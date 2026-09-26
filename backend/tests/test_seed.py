@@ -27,7 +27,12 @@ from apps.members.seed import DART_SEED, EMPTY_DART
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentStatus, RenewalMandate
 from apps.payments.renewals import _due_attempts, lapsed_term_to_renew, run_auto_renewals
-from apps.payments.seed import CATCH_UP_MANDATE_DAYS_AGO, HISTORY_MONTHS, MANUAL_PAYMENT_COUNT
+from apps.payments.seed import (
+    CATCH_UP_MANDATE_DAYS_AGO,
+    DONOR_GIFT_COUNTS,
+    HISTORY_MONTHS,
+    MANUAL_PAYMENT_COUNT,
+)
 from apps.reports.models import ReportSubscription
 from apps.reports.services import due_subscriptions, run_scheduled_reports
 
@@ -36,9 +41,14 @@ User = get_user_model()
 #: The demo friend's one contribution, which buys no term.
 SEEDED_FRIEND_GIFTS = 1
 
+#: The donors ``seed_demo`` makes, and the gifts they gave between them.
+SEEDED_DONORS = len(DONOR_GIFT_COUNTS)
+SEEDED_DONOR_GIFTS = sum(DONOR_GIFT_COUNTS)
+
 #: The payments ``seed_demo`` creates from its fixed random seed: one per term,
-#: plus the ones recorded by hand and the demo friend's gift, all succeeded.
-SEEDED_PAYMENTS = 54 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS
+#: plus the ones recorded by hand, the demo friend's gift and the donors' gifts, all
+#: succeeded.
+SEEDED_PAYMENTS = 54 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
 
 #: How many of them the seed refunds: two in full and four contributions, which
 #: leaves the first two ``refunded`` and the other four ``partially_refunded``.
@@ -126,7 +136,7 @@ def test_seed_demo_shapes() -> None:
     assert MembershipPlan.objects.count() == 2
     assert MembershipPlan.objects.get(slug="annual").price_cents == 4_500
     assert MembershipPlan.objects.get(slug="life").duration_days is None
-    assert User.objects.count() == len(DEMO_ACCOUNTS) + GENERATED_MEMBER_COUNT
+    assert User.objects.count() == len(DEMO_ACCOUNTS) + GENERATED_MEMBER_COUNT + SEEDED_DONORS
     assert MemberProfile.objects.count() == User.objects.count()
     assert Aircraft.objects.count() == 25
     still_whole = SEEDED_PAYMENTS - SEEDED_FULL_REFUNDS - SEEDED_PARTIAL_REFUNDS
@@ -142,7 +152,8 @@ def test_seed_demo_covers_every_membership_status() -> None:
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
     assert counts[MembershipState.CURRENT] == 33
     assert counts[MembershipState.EXPIRED] == 5
-    assert counts[MembershipState.NONE] == 6
+    # A donor holds no membership, so each one reads as ``none``.
+    assert counts[MembershipState.NONE] == 6 + SEEDED_DONORS
     assert counts[MembershipState.FRIEND] == 5
     lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
     assert len(lifetime) == 6
@@ -181,7 +192,9 @@ def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
     providers = set(Payment.objects.values_list("provider", flat=True))
     assert providers == {"stripe", "paypal", "manual"}
     with_contribution = Payment.objects.filter(contribution_cents__gt=0).count()
-    assert with_contribution == 19 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS
+    assert with_contribution == (
+        19 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR_GIFTS
+    )
     months = Payment.objects.dates("created_at", "month")
     oldest, newest = min(months), max(months)
     span = (newest.year - oldest.year) * 12 + newest.month - oldest.month
@@ -398,3 +411,54 @@ def test_seed_demo_leaves_the_empty_dart_with_nobody_on_it() -> None:
     """Nobody's profile names ``EMPTY_DART``, so deleting it unaffiliates nobody."""
     _seed()
     assert MemberProfile.objects.filter(dart__name=EMPTY_DART).count() == 0
+
+
+# -- donors -----------------------------------------------------------------
+def test_seed_demo_makes_six_donors_at_the_numbered_addresses() -> None:
+    """The donors are ``donor1@example.org`` through ``donor6@example.org``."""
+    _seed()
+    emails = sorted(User.objects.filter(kind=AccountKind.DONOR).values_list("email", flat=True))
+    assert emails == [f"donor{number}@example.org" for number in range(1, 7)]
+
+
+def test_seed_demo_gives_no_donor_a_role_or_a_password() -> None:
+    """A seeded donor cannot sign in: no role, and no usable password."""
+    _seed()
+    donors = User.objects.filter(kind=AccountKind.DONOR)
+    assert {(tuple(donor.roles), donor.has_usable_password()) for donor in donors} == {((), False)}
+
+
+def test_seed_demo_gives_each_donor_its_settled_gifts() -> None:
+    """Each donor gave one to three settled contributions, and bought no term."""
+    _seed()
+    gifts = [
+        User.objects.get(email=f"donor{number}@example.org")
+        .payments.filter(
+            plan__isnull=True, contribution_cents__gt=0, status=PaymentStatus.SUCCEEDED
+        )
+        .count()
+        for number in range(1, 7)
+    ]
+    assert gifts == list(DONOR_GIFT_COUNTS)
+
+
+def test_seed_demo_dates_every_donor_gift_within_two_years() -> None:
+    """The donors' gifts fall within the last two years."""
+    _seed()
+    earliest = timezone.now() - timedelta(days=2 * 365)
+    dates = Payment.objects.filter(user__kind=AccountKind.DONOR).values_list(
+        "completed_at", flat=True
+    )
+    assert [paid for paid in dates if paid is None or paid < earliest] == []
+
+
+def test_seed_demo_puts_one_donor_on_a_dart() -> None:
+    """Exactly one donor names a DART, and it is not the empty one."""
+    _seed()
+    names = list(
+        MemberProfile.objects.filter(user__kind=AccountKind.DONOR, dart__isnull=False).values_list(
+            "dart__name", flat=True
+        )
+    )
+    assert len(names) == 1
+    assert EMPTY_DART not in names

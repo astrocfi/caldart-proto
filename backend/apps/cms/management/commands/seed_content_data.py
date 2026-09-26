@@ -758,33 +758,47 @@ CONTRIBUTION_TIERS: tuple[tuple[str, str], ...] = (
     ("$10,000 \u2014 Platinum", "Sponsors a season of statewide training and outreach."),
 )
 
-DONATE = PageSpec(
+
+@dataclass(frozen=True)
+class DonatePageSpec:
+    """The donation page: its slug and title, the intro above the form, and the thanks.
+
+    Both texts are rich text, because the page's ``intro`` and ``thanks`` are.
+    """
+
+    slug: str
+    title: str
+    intro: str
+    thanks: str
+    show_in_menus: bool = True
+
+
+DONATE = DonatePageSpec(
     slug="donate",
     title="Donate",
-    show_in_menus=True,
     intro=(
-        "Dues cover the basics. Contributions pay for the exercises, radios, training material "
-        "and insurance that make a DART useful to a county on the worst day of its year."
+        "<p>Dues cover the basics. Contributions pay for the exercises, radios, training "
+        "material and insurance that make a DART useful to a county on the worst day of "
+        "its year. You do not need an account to give: choose an amount below.</p>"
+        "<h3>Contribution levels</h3>"
+        f"{definition_list(CONTRIBUTION_TIERS)}"
+        "<p>Members and friends can also give from the "
+        '<a href="/portal/donate">Donate screen</a> in the portal, where a gift can repeat '
+        "monthly, quarterly, or yearly, or add a contribution to their dues when they join "
+        "or renew \u2014 one payment, one receipt.</p>"
+        "<h3>Other ways to give</h3>"
+        "<ul>"
+        "<li><b>Employer matching</b> \u2014 many California employers match charitable "
+        "gifts. Ask us for our EIN and determination letter.</li>"
+        "<li><b>In kind</b> \u2014 fuel, hangar space, radios, cargo restraint, and "
+        "avionics work are all as useful as cash.</li>"
+        "<li><b>Sponsorship</b> \u2014 businesses that support a season of training are "
+        "listed on our sponsors page.</li>"
+        "</ul>"
     ),
-    body=(
-        heading("Contribution levels"),
-        rich(definition_list(CONTRIBUTION_TIERS)),
-        rich(
-            "<p>Any amount helps, and you can add a contribution to your dues when you "
-            "join or renew \u2014 one payment, one receipt.</p>"
-        ),
-        heading("Other ways to give"),
-        rich(
-            "<ul>"
-            "<li><b>Employer matching</b> \u2014 many California employers match charitable "
-            "gifts. Ask us for our EIN and determination letter.</li>"
-            "<li><b>In kind</b> \u2014 fuel, hangar space, radios, cargo restraint, and "
-            "avionics work are all as useful as cash.</li>"
-            "<li><b>Sponsorship</b> \u2014 businesses that support a season of training are "
-            "listed on our sponsors page.</li>"
-            "</ul>"
-        ),
-        cta("Give with your renewal", "/portal/renew", "secondary"),
+    thanks=(
+        "<p>Thank you. Your gift keeps CalDART's teams trained, equipped and insured for "
+        "the day a county calls.</p>"
     ),
 )
 
