@@ -8,8 +8,10 @@ can do, and ``docs/developer/data-model.rst`` how the kind is stored and worked 
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from datetime import date, timedelta
+from typing import TYPE_CHECKING
 
 import pytest
 from django.contrib.auth.tokens import default_token_generator
@@ -28,6 +30,7 @@ from apps.accounts.services import (
     send_password_reset_email,
 )
 from apps.cms.models import SiteSettings, StandardPage, members_wall_state
+from apps.members import services as members_services
 from apps.members.models import MemberProfile, MembershipPlan, MembershipState
 from apps.members.services import (
     account_kind,
@@ -61,11 +64,19 @@ from tests.factories import (
     make_standard_page,
 )
 
+if TYPE_CHECKING:
+    # rest_framework.test.APIClient.post() is typed to return this class, but it
+    # exists only in the stub: rest_framework monkey-patches Django's test response
+    # at runtime rather than defining a real subclass.
+    from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
+
 pytestmark = pytest.mark.django_db
 
 USERS_URL = "/api/v1/admin/users"
 MEMBERS_URL = "/api/v1/admin/members"
 MEMBERSHIP_URL = "/api/v1/me/membership"
+MY_PAYMENTS_URL = "/api/v1/me/payments"
+VERIFY_URL = "/api/v1/auth/email/verify"
 
 TAKEN = "An account already uses that email address. Sign in, or reset your password."
 DEACTIVATED_AT_REGISTER = "This email belongs to a deactivated account. Sign in to reactivate it."
@@ -216,6 +227,25 @@ def test_convert_due_friends_records_each_conversion(
         f"action={audit.ACCOUNT_KIND} actor=command target={user.pk} to=friend "
         f"on={today.isoformat()}"
     ]
+
+
+def test_convert_due_friends_leaves_a_member_who_paid_after_the_list_was_read(
+    monkeypatch: pytest.MonkeyPatch, audit_log: pytest.LogCaptureFixture, today: date
+) -> None:
+    """A payment that lands between the read and the write keeps the member a member."""
+    user = UserFactory(email="due@example.test", friend_on=today)
+    listed = members_services.due_conversions
+
+    def listed_then_paid(day: date) -> list[User]:
+        due = listed(day)
+        User.objects.filter(pk=user.pk).update(kind=AccountKind.MEMBER, friend_on=None)
+        return due
+
+    monkeypatch.setattr(members_services, "due_conversions", listed_then_paid)
+    assert convert_due_friends(today) == 0
+    user.refresh_from_db()
+    assert user.kind == AccountKind.MEMBER
+    assert audit_messages(audit_log) == []
 
 
 def test_the_reminder_run_writes_down_due_conversions(today: date) -> None:
@@ -425,20 +455,83 @@ def test_register_refuses_to_make_a_donor(api_client: APIClient) -> None:
     """Nobody registers as a donor: that kind comes from giving on the public site."""
     response = api_client.post(REGISTER_URL, register_payload(kind="donor"), format="json")
     assert response.status_code == 400
-    assert "kind" in response.json()
+    assert response.json() == {"kind": ['"donor" is not a valid choice.']}
 
 
-def test_register_upgrades_a_donor_in_place(
+def _verification_token() -> str:
+    """The ``token`` of the one verification link in the outbox."""
+    [message] = mail.outbox
+    match = re.search(r"/portal/verify-email\?token=(\S+)", str(message.body))
+    assert match, f"no verification link in:\n{message.body}"
+    return match.group(1)
+
+
+@pytest.fixture
+def donor_registration(
     api_client: APIClient, donor: User, django_capture_on_commit_callbacks: OnCommit
-) -> None:
-    """A donor who registers keeps the account, and with it the gifts made so far."""
+) -> ApiResponse:
+    """Somebody registers as a friend with the donor's address, not yet proving it."""
     payload = register_payload(email="GIVER@example.test", kind="friend")
     with django_capture_on_commit_callbacks(execute=True):
-        response = api_client.post(REGISTER_URL, payload, format="json")
-    assert response.status_code == 201
-    assert response.json()["id"] == donor.pk
+        return api_client.post(REGISTER_URL, payload, format="json")
+
+
+@pytest.fixture
+def upgraded_donor(donor: User, donor_registration: ApiResponse) -> User:
+    """The donor, once the verification link mailed at registration is followed."""
+    Client().post(VERIFY_URL, {"token": _verification_token()}, content_type="application/json")
     donor.refresh_from_db()
-    assert donor.payments.count() == 1
+    return donor
+
+
+def test_registering_a_donors_address_asks_for_the_address_to_be_proved(
+    donor: User, donor_registration: ApiResponse
+) -> None:
+    """The answer is a 202 naming the address the link went to, not a signed-in user."""
+    assert donor_registration.status_code == 202
+    assert donor_registration.json() == {
+        "detail": "Verification message sent to giver@example.test."
+    }
+
+
+def test_registering_a_donors_address_signs_nobody_in(
+    api_client: APIClient, donor_registration: ApiResponse
+) -> None:
+    """Whoever registered is not signed in, so the donor's gifts stay out of reach."""
+    assert api_client.get(MY_PAYMENTS_URL).status_code == 403
+
+
+def test_a_donor_upgrade_cannot_sign_in_before_the_address_is_proved(
+    api_client: APIClient, donor: User, donor_registration: ApiResponse
+) -> None:
+    """The password chosen at registration opens nothing until the link is followed."""
+    response = api_client.post(
+        LOGIN_URL, {"email": donor.email, "password": GOOD_PASSWORD}, format="json"
+    )
+    assert response.status_code == 400
+    assert response.json() == {"detail": WRONG_CREDENTIALS}
+
+
+@pytest.mark.parametrize(
+    ("field", "expected"),
+    [
+        ("kind", AccountKind.DONOR),
+        ("first_name", "Gil"),
+        ("last_name", "Ivers"),
+        ("roles", []),
+    ],
+)
+def test_registering_a_donors_address_leaves_the_donor_as_it_was(
+    donor: User, donor_registration: ApiResponse, field: str, expected: object
+) -> None:
+    """Until the address is proved, the kind, the names, and the roles are untouched."""
+    donor.refresh_from_db()
+    assert getattr(donor, field) == expected
+
+
+def test_the_upgraded_donor_keeps_the_gifts(upgraded_donor: User) -> None:
+    """Following the link upgrades the donor in place, keeping the gifts made so far."""
+    assert upgraded_donor.payments.count() == 1
 
 
 @pytest.mark.parametrize(
@@ -448,39 +541,35 @@ def test_register_upgrades_a_donor_in_place(
         ("first_name", "Nora"),
         ("last_name", "Bright"),
         ("roles", [MEMBER]),
-        ("email_verified_at", None),
+        ("email_verified", True),
     ],
 )
 def test_the_upgraded_donor_takes_what_the_form_gave(
-    api_client: APIClient, donor: User, field: str, expected: object
+    upgraded_donor: User, field: str, expected: object
 ) -> None:
-    """The upgrade writes the kind, the names, and the ``member`` role, unverified."""
-    api_client.post(REGISTER_URL, register_payload(email=donor.email, kind="friend"), format="json")
-    donor.refresh_from_db()
-    assert getattr(donor, field) == expected
+    """The link writes the kind, the names, and the role, and proves the address."""
+    assert getattr(upgraded_donor, field) == expected
 
 
 def test_the_upgraded_donor_signs_in_with_the_new_password(
-    api_client: APIClient, donor: User
+    api_client: APIClient, upgraded_donor: User
 ) -> None:
-    """The password chosen at registration is the one the account now holds."""
-    api_client.post(REGISTER_URL, register_payload(email=donor.email), format="json")
-    donor.refresh_from_db()
-    assert donor.check_password(GOOD_PASSWORD) is True
+    """Once the address is proved, the password chosen at registration signs in."""
+    response = api_client.post(
+        LOGIN_URL, {"email": upgraded_donor.email, "password": GOOD_PASSWORD}, format="json"
+    )
+    assert response.status_code == 200
 
 
-def test_the_upgraded_donor_is_mailed_a_verification_link(
-    api_client: APIClient, donor: User, django_capture_on_commit_callbacks: OnCommit
+def test_the_donor_upgrade_is_mailed_to_the_donors_address(
+    donor: User, donor_registration: ApiResponse
 ) -> None:
-    """The upgrade sends the verification message a new account gets."""
-    with django_capture_on_commit_callbacks(execute=True):
-        api_client.post(REGISTER_URL, register_payload(email=donor.email), format="json")
+    """The registration mails one verification link, to the address the donor holds."""
     assert [message.to for message in mail.outbox] == [[donor.email]]
 
 
-def test_the_upgraded_donor_gets_a_profile(api_client: APIClient, donor: User) -> None:
+def test_the_upgraded_donor_gets_a_profile(donor: User, donor_registration: ApiResponse) -> None:
     """The join wizard patches ``/me/profile``, so the upgraded account has one."""
-    api_client.post(REGISTER_URL, register_payload(email=donor.email), format="json")
     assert MemberProfile.objects.filter(user=donor).exists()
 
 
@@ -571,6 +660,20 @@ def test_an_administrator_cannot_send_a_donor_a_reset(
     assert response.json() == {"detail": "A donor cannot sign in, so no reset email was sent."}
 
 
+def test_the_refused_reset_for_a_donor_is_audited(
+    signed_in: Callable[[User], APIClient],
+    user_admin: User,
+    donor: User,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """The send-reset refusal is an audit line with the ``donor_account`` reason."""
+    signed_in(user_admin).post(f"{USERS_URL}/{donor.pk}/send-password-reset")
+    assert audit_messages(audit_log) == [
+        f"action={audit.PASSWORD_RESET_ADMIN_SENT} actor={user_admin.pk} target={donor.pk} "
+        f"reason={audit.REASON_DONOR_ACCOUNT}"
+    ]
+
+
 def test_an_administrator_cannot_send_a_donor_a_verification_message(
     signed_in: Callable[[User], APIClient], user_admin: User, donor: User
 ) -> None:
@@ -613,6 +716,17 @@ def test_the_user_list_filters_by_kind(
     assert [row["email"] for row in rows] == emails
 
 
+def test_the_user_list_refuses_an_unknown_kind(
+    signed_in: Callable[[User], APIClient], user_admin: User
+) -> None:
+    """``?kind=`` with anything but the three kinds is a 400 naming the choice."""
+    response = signed_in(user_admin).get(USERS_URL, {"kind": "bogus"})
+    assert response.status_code == 400
+    assert response.json() == {
+        "kind": ["Select a valid choice. bogus is not one of the available choices."]
+    }
+
+
 def test_the_user_administrator_cannot_change_a_kind(
     signed_in: Callable[[User], APIClient], user_admin: User, friend: User
 ) -> None:
@@ -651,7 +765,7 @@ def test_an_administrator_cannot_create_a_donor(account_admin_client: APIClient)
         MEMBERS_URL, {"email": "new.donor@example.test", "kind": "donor"}, format="json"
     )
     assert response.status_code == 400
-    assert "kind" in response.json()
+    assert response.json() == {"kind": ['"donor" is not a valid choice.']}
 
 
 def test_an_administrator_turns_a_member_into_a_friend(
@@ -710,3 +824,43 @@ def test_a_friend_with_a_live_term_still_reads_as_friend(
     """A term written straight to the table does not overrule the kind."""
     MembershipFactory(user=friend, plan=annual_plan)
     assert membership_status(friend)["status"] == MembershipState.FRIEND
+
+
+def test_saving_a_pending_friend_with_the_same_kind_keeps_the_pending_date(
+    account_admin_client: APIClient, pending_friend: User
+) -> None:
+    """A ``PATCH`` that repeats the stored kind leaves a pending ``friend_on`` alone."""
+    friend_on = pending_friend.friend_on
+    response = account_admin_client.patch(
+        f"{MEMBERS_URL}/{pending_friend.pk}",
+        {"kind": "member", "first_name": "Renamed"},
+        format="json",
+    )
+    assert response.status_code == 200
+    pending_friend.refresh_from_db()
+    assert pending_friend.friend_on == friend_on
+
+
+def test_a_friend_with_a_live_term_is_never_listed_as_expiring(
+    account_admin_client: APIClient, friend: User, annual_plan: MembershipPlan
+) -> None:
+    """``?expiring_within=`` lists members only: a friend has nothing to expire."""
+    grant_membership(friend, annual_plan, days_left=10)
+    rows = account_admin_client.get(MEMBERS_URL, {"expiring_within": 30}).json()["results"]
+    assert [row["email"] for row in rows] == []
+
+
+def test_a_friend_with_a_live_term_sorts_with_those_who_have_no_expiry(
+    account_admin_client: APIClient,
+    friend: User,
+    member: User,
+    annual_plan: MembershipPlan,
+) -> None:
+    """``?ordering=expires_on`` puts a friend with a live term after a dated member."""
+    grant_membership(friend, annual_plan, days_left=10)
+    grant_membership(member, annual_plan, days_left=100)
+    rows = account_admin_client.get(
+        MEMBERS_URL, {"ordering": "expires_on", "search": "@example.test"}
+    ).json()["results"]
+    emails = [row["email"] for row in rows]
+    assert emails.index(member.email) < emails.index(friend.email)

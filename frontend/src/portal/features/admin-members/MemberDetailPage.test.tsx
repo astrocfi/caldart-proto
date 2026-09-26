@@ -318,6 +318,18 @@ describe('MemberDetailPage', () => {
     await waitFor(() => expect(captured.patchedMember?.kind).toBe('member'));
   });
 
+  it('sends no kind when a save leaves the kind as it was', async () => {
+    const user = userEvent.setup();
+    server.use(...detailHandlers(makeDetail({ kind: 'member' })));
+    renderDetail();
+
+    await screen.findByLabelText('Kind of account');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(captured.patchedMember).not.toBeNull());
+    expect(captured.patchedMember).not.toHaveProperty('kind');
+  });
+
   it('marks a donor as a donor and offers no change of kind', async () => {
     server.use(...detailHandlers(makeDetail({ kind: 'donor', roles: [] })));
     renderDetail();
