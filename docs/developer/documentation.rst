@@ -69,10 +69,11 @@ first:
 Both run nitpicky (``-n``: every cross-reference must resolve) with warnings
 as errors (``-W``), locally and in CI.  A page the guide build cannot resolve
 fails it just as the whole-tree build would, so a user page links only to
-other user pages.  ``docs/conf.py`` carries a ``missing-reference`` handler
-that renders a reference into ``docs/developer/`` from the guide build as the
-target page's title in italics; the user guide's own rules below still forbid
-such a reference, and the tests in :ref:`documentation-tests` enforce them.
+other user pages, with a relative ``:doc:`` target (``profile``,
+``../faq``) that resolves the same way in both builds.  ``docs/conf.py`` has
+no special case for the guide build: a reference into ``docs/developer/``
+from a user page is an unresolved reference there, and fails it.  The tests in
+:ref:`documentation-tests` catch such a reference before the build does.
 
 Graphviz is optional.  ``conf.py`` enables ``sphinx.ext.graphviz`` and adds
 the ``graphviz`` build tag only when ``dot`` is on ``PATH``, since the
@@ -227,30 +228,46 @@ against the code on every run.
 - every concrete model in the apps, and every concrete field of it, appears
   in :doc:`data-model`, the field name in a literal within its model's
   section;
-- every environment variable the settings read (``env(``, ``env.int(``,
-  ``env.bool(``, ``env.list(``, ``env.str(``, and ``_throttle_rate(`` in
-  ``caldart/settings/*.py``) appears in :doc:`configuration`;
-- every management command module appears in the command table in
-  :doc:`setup`, and every target ``make help`` lists appears in its make
-  target table;
-- every unit under ``deploy/systemd/`` appears in :doc:`deployment`.
+- every environment variable the settings read appears in a literal in
+  :doc:`configuration`: every name passed as the first argument to ``env(``
+  or any of its typed readers (``env.int(``, ``env.bool(``, ``env.list(``,
+  ``env.db(``, ``env.email_url(``, and the rest) or to ``_throttle_rate(`` in
+  ``caldart/settings/*.py``, including a call split across lines;
+- every management command module (one under an app's
+  ``management/commands/`` that defines ``Command``) has a row in the
+  command table in :doc:`setup`, and every target ``make help`` lists (a rule
+  with a ``##`` summary in the ``Makefile``) has a row in its make target
+  table;
+- every unit under ``deploy/systemd/`` is named in :doc:`deployment`, in
+  prose or in the commands that install it.
 
 ``backend/tests/test_docs_user.py`` checks that:
 
-- no ``:doc:`` or ``:ref:`` in ``docs/user/`` targets anything outside it,
-  and no user page contains ``/developer/`` or the words "developer guide";
+- every ``:doc:`` in ``docs/user/`` names a page under ``docs/user/`` (a
+  relative target is read from the page's own directory, an absolute one
+  from ``docs/``), every ``:ref:`` names a label defined there, and no user
+  page contains ``/developer/`` or the words "developer guide";
 - no user page uses a banned word (case-insensitive, whole words) or the
   contrast construction, matched as ``,\s+not\s``, ``—\s*not\s``, and
-  ``\brather than\b``;
-- no user page contains a double hyphen, more than two em dashes, a line
-  beginning with a comma, or more than 250 lines;
+  ``\brather than\b``.  Text in bold or italics is left out of both checks,
+  because it quotes the software's own words: the member check's reason
+  *Friend of CalDART, not a member* is shown exactly as the portal prints it;
+- no user page contains a double hyphen outside a code block or a section
+  adornment made only of hyphens, more than two em dashes, a line beginning
+  with a comma, or more than 250 lines;
 - every email purpose label in ``apps/mail/purposes.py`` appears somewhere in
-  the user guide.
+  the user guide;
+- ``docs/conf.py`` connects no ``missing-reference`` handler, so a link from
+  a user page into the developer guide fails the guide build instead of
+  rendering there.
 
-``frontend/src/portal/help.test.ts`` checks that every route path in
-``routes/index.tsx`` matches a ``HELP_PAGES`` entry and that every slug in
-``HELP_PAGES`` is a file ``docs/user/<slug>.rst``, read from the repository,
-so a Help button never opens a missing page.
+``frontend/src/portal/help.test.ts`` walks the route table exported by
+``routes/index.tsx`` and checks that every screen's path pattern is a
+``HELP_PAGES`` entry, that every ``HELP_PAGES`` pattern is a screen that
+exists, that a concrete address for each screen (``/admin/payments/42``)
+opens that screen's own page and not an earlier entry's, and that every slug
+in ``HELP_PAGES`` is a file ``docs/user/<slug>.rst`` read from the
+repository, so a Help button never opens a missing page.
 
 ``backend/tests/test_user_guide.py`` checks how ``/docs/`` is served: the
 redirect to sign in, the directory index, the private revalidated caching,

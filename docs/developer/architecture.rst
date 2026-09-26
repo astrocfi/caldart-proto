@@ -215,8 +215,7 @@ signed in, that opens the guide page for the screen the visitor is on:
 match order, and ``helpPath`` returns the first match's page, or the guide's
 front page for a route with none.  The rail's **User guide** link and the
 public site's footer link both open that front page.  The developer guide is
-not published; a reference into it from the user guide renders as the page's
-title.
+not published, and no user page links into it (:doc:`documentation`).
 
 **The API.**  ``caldart/api_urls.py`` includes every app's ``api/urls.py``
 under ``/api/v1/``, and each app spells out its own paths, so adding an
