@@ -104,6 +104,22 @@ def load_payment(payment_id: int, user: User, *, provider: str | None = None) ->
     return payment
 
 
+def confirmed(payment: Payment, provider: str, **arguments: str) -> Response:
+    """Ask ``provider`` to confirm ``payment`` with ``arguments``, then answer its result.
+
+    Every confirm endpoint, the portal's and the public donation page's, ends here once
+    it has loaded the payment.  Answers 200 with ``{status, membership}`` as the payment
+    stands afterwards; a provider that refuses or cannot be reached is a 400 carrying
+    its reason as ``detail``.
+    """
+    try:
+        get_provider(provider).confirm(payment, **arguments)
+    except PaymentError as exc:
+        raise ValidationError({"detail": str(exc)}) from exc
+    payment.refresh_from_db()
+    return Response(PaymentResultSerializer(payment_result(payment)).data)
+
+
 class IsPaymentOwnerOrFinance(BasePermission):
     """Object permission for ``GET /payments/{id}``."""
 
@@ -257,16 +273,11 @@ class StripeConfirmView(APIView):
             signed_in_user(request),
             provider=PaymentProvider.STRIPE,
         )
-        try:
-            get_provider(PaymentProvider.STRIPE).confirm(
-                payment,
-                payment_intent_id=serializer.validated_data["payment_intent_id"],
-            )
-        except PaymentError as exc:
-            raise ValidationError({"detail": str(exc)}) from exc
-
-        payment.refresh_from_db()
-        return Response(PaymentResultSerializer(payment_result(payment)).data)
+        return confirmed(
+            payment,
+            PaymentProvider.STRIPE,
+            payment_intent_id=serializer.validated_data["payment_intent_id"],
+        )
 
 
 class PayPalCaptureView(APIView):
@@ -290,15 +301,9 @@ class PayPalCaptureView(APIView):
             signed_in_user(request),
             provider=PaymentProvider.PAYPAL,
         )
-        try:
-            get_provider(PaymentProvider.PAYPAL).confirm(
-                payment, order_id=serializer.validated_data["order_id"]
-            )
-        except PaymentError as exc:
-            raise ValidationError({"detail": str(exc)}) from exc
-
-        payment.refresh_from_db()
-        return Response(PaymentResultSerializer(payment_result(payment)).data)
+        return confirmed(
+            payment, PaymentProvider.PAYPAL, order_id=serializer.validated_data["order_id"]
+        )
 
 
 class MockCompleteView(APIView):
@@ -329,11 +334,9 @@ class MockCompleteView(APIView):
             signed_in_user(request),
             provider=PaymentProvider.MOCK,
         )
-        get_provider(PaymentProvider.MOCK).confirm(
-            payment, outcome=serializer.validated_data["outcome"]
+        return confirmed(
+            payment, PaymentProvider.MOCK, outcome=serializer.validated_data["outcome"]
         )
-        payment.refresh_from_db()
-        return Response(PaymentResultSerializer(payment_result(payment)).data)
 
 
 class PaymentDetailView(RetrieveAPIView[Payment]):

@@ -40,7 +40,7 @@ from apps.payments.api.donation_serializers import (
     DonationStripeConfirmSerializer,
 )
 from apps.payments.api.serializers import PaymentResultSerializer
-from apps.payments.api.views import payment_result
+from apps.payments.api.views import confirmed, payment_result
 from apps.payments.donations import (
     HAS_ACCOUNT_CODE,
     HAS_ACCOUNT_MESSAGE,
@@ -78,21 +78,6 @@ def proven_payment(data: dict[str, Any], *, provider: str | None = None) -> Paym
     if provider is not None and payment.provider != provider:
         raise ValidationError({"payment_id": f"That payment is not a {provider} payment."})
     return payment
-
-
-def confirmed(payment: Payment, provider: str, **arguments: str) -> Response:
-    """Ask ``provider`` to confirm ``payment`` with ``arguments``, then answer its result.
-
-    Answers 200 with ``{status, membership}`` as the payment stands afterwards; a
-    provider that refuses or cannot be reached is a 400 carrying its reason as
-    ``detail``.
-    """
-    try:
-        get_provider(provider).confirm(payment, **arguments)
-    except PaymentError as exc:
-        raise ValidationError({"detail": str(exc)}) from exc
-    payment.refresh_from_db()
-    return Response(PaymentResultSerializer(payment_result(payment)).data)
 
 
 class DonationsConfigView(APIView):
