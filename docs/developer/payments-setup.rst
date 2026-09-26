@@ -81,7 +81,7 @@ anything is activated.  Only the provider calls in acts one and three differ.
           rankdir=TB;
           bgcolor="transparent";
           splines=false;
-              ranksep=0.62;
+          ranksep=0.62;
           nodesep=0.5;
           edge [fontname="Helvetica", fontsize=11];
 

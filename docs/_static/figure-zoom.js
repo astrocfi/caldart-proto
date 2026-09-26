@@ -5,7 +5,8 @@
  * gains two controls: "Open full size", a link that opens the SVG or image on
  * its own in a new tab, and "Zoom", which opens a full-window overlay showing
  * it at its natural size in a scrollable panel.  "Close" or the Escape key
- * closes the overlay and returns focus to the Zoom button.
+ * closes the overlay and returns focus to the Zoom button.  While the overlay is
+ * open, Tab and Shift+Tab move focus between Close and the panel only.
  *
  * Loaded by docs/conf.py through html_js_files, for both builds.  It uses no
  * inline handlers, so it runs under a script-src of 'self', and it needs no
@@ -75,9 +76,16 @@
 
     close.addEventListener('click', hide);
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && !overlay.hidden) {
+      if (overlay.hidden) {
+        return;
+      }
+      if (event.key === 'Escape') {
         event.preventDefault();
         hide();
+      } else if (event.key === 'Tab') {
+        // Keep focus inside the modal overlay: Tab cycles between Close and the panel.
+        event.preventDefault();
+        (document.activeElement === close ? panel : close).focus();
       }
     });
 

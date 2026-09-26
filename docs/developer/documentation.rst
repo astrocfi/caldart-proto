@@ -108,7 +108,10 @@ relative to ``conf.py``, so the guide build, whose source tree is
      new tab (``target="_blank" rel="noopener"``).
    - **Zoom**, a button that opens a full-window overlay showing the drawing
      at its natural size in a scrollable panel.  **Close**, or the Escape
-     key, closes it and returns focus to the button that opened it.
+     key, closes it and returns focus to the button that opened it.  While
+     it is open, Tab and Shift+Tab move focus between **Close** and the
+     panel only, so keyboard focus never lands on a control hidden behind
+     the overlay.
 
    The overlay is built once per page and reused.  The script sets no inline
    handlers and loads from the site's own origin, so it runs under the
@@ -188,7 +191,8 @@ is not a computer expert.  In brief:
   page for the screen that causes it.
 - A fact lives on one page and other pages link to it.
 
-The ``doc-user-guide`` skill in ``.claude/skills/`` carries the full rules.
+These rules are the user guide's rules in full, and the tests in
+:ref:`documentation-tests` hold the pages to them.
 
 
 The developer guide's rules
