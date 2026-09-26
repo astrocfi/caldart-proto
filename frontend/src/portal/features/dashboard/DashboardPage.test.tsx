@@ -226,6 +226,13 @@ describe('<DashboardPage/>', () => {
       expect(section).not.toHaveClass('dashboard__card--urgent');
     });
 
+    it('hides Renew from the quick links, having no membership to renew', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      expect(card('Quick links').queryByRole('link', { name: 'Renew' })).not.toBeInTheDocument();
+    });
+
     it('does not list the members-only pages the wall refuses a friend', async () => {
       mount({
         user: makeUser({ kind: 'friend', membership: FRIEND }),

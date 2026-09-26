@@ -52,7 +52,7 @@ export function DashboardPage(): JSX.Element {
   const isWalledOut = isFriend && roles.every((slug) => slug === 'member');
   const greeting = user?.first_name ? `Welcome, ${user.first_name}` : 'Welcome';
 
-  const linkGroups = groupedNavItems(roles).map((bucket) => ({
+  const linkGroups = groupedNavItems(roles, isFriend).map((bucket) => ({
     ...bucket,
     items: bucket.items.filter((item) => item.to !== '/'),
   }));

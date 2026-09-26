@@ -12,10 +12,10 @@ import { Route, Routes } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { API, makeUser, signedInAs } from '@test/handlers';
+import { API, NO_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
 import { renderRoutes, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { RoleSlug } from '../api/types';
+import type { MembershipStatus, RoleSlug } from '../api/types';
 import { useAuth } from '../auth/useAuth';
 import { PortalLayout } from './PortalLayout';
 
@@ -98,6 +98,15 @@ describe('PortalLayout', () => {
       'User guide',
       'Back to caldart.org',
     ]);
+  });
+
+  it('hides Renew from an effective friend, who has no membership to renew', async () => {
+    const friend: MembershipStatus = { ...NO_MEMBERSHIP, status: 'friend' };
+    server.use(signedInAs(makeUser({ roles: ['member'], kind: 'friend', membership: friend })));
+    renderWithProviders(tree(), { route: '/' });
+
+    await screen.findByRole('navigation', { name: 'Portal sections' });
+    expect(railLinkNames()).not.toContain('Renew');
   });
 
   it.each<[RoleSlug[], string]>([
