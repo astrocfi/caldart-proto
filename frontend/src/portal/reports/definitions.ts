@@ -8,6 +8,7 @@
  * the query parameter the report's list and export endpoints read.
  */
 import {
+  ACCOUNT_KIND_LABELS,
   CA_COUNTIES,
   PAYMENT_PROVIDER_LABELS,
   PAYMENT_STATUS_LABELS,
@@ -98,6 +99,26 @@ const MEMBER_FILTERS: FilterField[] = [
   },
   { key: 'role', label: 'Role', kind: 'select', options: ROLE_CHOICES },
   { key: 'expiring_within', label: 'Expiring within (days)', kind: 'number' },
+];
+
+// The roles report has a section for every role but member, so member is no choice.
+const ROLE_FILTERS: FilterField[] = [
+  { key: 'search', label: 'Search', kind: 'search', placeholder: 'Name or email' },
+  {
+    key: 'role',
+    label: 'Role',
+    kind: 'select',
+    placeholder: 'Every role',
+    options: ROLE_CHOICES.filter((choice) => choice.value !== 'member'),
+  },
+  // A donor never holds a role.
+  {
+    key: 'kind',
+    label: 'Kind',
+    kind: 'select',
+    placeholder: 'Any kind',
+    options: optionsFor(['member', 'friend'], ACCOUNT_KIND_LABELS),
+  },
 ];
 
 const AIRCRAFT_FILTERS: FilterField[] = [
@@ -279,6 +300,13 @@ export const REPORTS: Readonly<Record<ReportSlug, ReportDefinition>> = {
     slug: 'members',
     label: 'Members',
     filters: MEMBER_FILTERS,
+    choosable: true,
+    periods: false,
+  },
+  roles: {
+    slug: 'roles',
+    label: 'Roles',
+    filters: ROLE_FILTERS,
     choosable: true,
     periods: false,
   },

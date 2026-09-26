@@ -4,8 +4,8 @@
 API: reports
 ============
 
-Every report the portal downloads — the membership report, the aircraft
-register, the payment list, the reconciliation table, the contributions list,
+Every report the portal downloads — the membership report, the roles report, the
+aircraft register, the payment list, the reconciliation table, the contributions list,
 the donors report and the email log — is served by the same three endpoints under ``/api/v1/reports/``, from
 ``apps.reports``.  A report is named by its **slug** in the URL; the reports,
 their columns and the code that builds them are described in :doc:`reports`.
@@ -31,6 +31,11 @@ superuser read every one:
    * - ``members``
      - CalDART membership report
      - ``dart_leader``, ``account_admin``
+     - chosen
+     - no
+   * - ``roles``
+     - CalDART roles report
+     - ``user_admin``, ``account_admin``
      - chosen
      - no
    * - ``aircraft``

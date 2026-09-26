@@ -53,11 +53,14 @@ Setting one up
 
 **New subscription** opens the form:
 
-#. **Report** offers the reports you may read: the membership report, the aircraft register,
-   the payments, the reconciliation, and the contributions for an account administrator;
-   the payments, the reconciliation, the contributions, and the donors for the treasurer;
-   and every one of them plus the email log for a system administrator. Choosing one draws
-   the same filters its own screen has. The payments, contributions, and donors reports add
+#. **Report** offers the reports you may read: the membership report, the roles report, the
+   aircraft register, the payments, the reconciliation, and the contributions for an account
+   administrator; the payments, the reconciliation, the contributions, and the donors for the
+   treasurer; and every one of them plus the email log for a system administrator. The roles
+   report lists the people who hold each role other than member, in a section per role that
+   says *Nobody holds this role.* when it is empty; it filters by name or email, by role, and
+   by kind, and it can go to a user administrator as well as an account administrator.
+   Choosing a report draws the same filters its own screen has. The payments, contributions, and donors reports add
    **Period**: **This month**, **Last month**, **This year**, or **Last year**, worked out on
    the day each email goes, so a monthly subscription for **Last month** always carries the
    month before the one it is sent in.

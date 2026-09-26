@@ -80,6 +80,7 @@ PRIMARY = colors.HexColor("#1F4E79")
 MARGIN = 0.5 * inch
 BODY_FONT = "Helvetica"
 BODY_FONT_BOLD = "Helvetica-Bold"
+BODY_FONT_ITALIC = "Helvetica-Oblique"
 DISPLAY_FONT = "Times-Bold"
 
 TITLE_STYLE = ParagraphStyle(
@@ -112,6 +113,28 @@ HEADER_CELL_STYLE = ParagraphStyle(
     fontSize=7.5,
     leading=9,
     textColor=INK,
+)
+#: A section's title, above that section's own table: the subtitle's face, larger
+#: and heavier, in the house blue.  The built-in Helvetica has no semibold, so bold
+#: stands in for it.
+SECTION_STYLE = ParagraphStyle(
+    "CalDartSection",
+    fontName=BODY_FONT_BOLD,
+    fontSize=10,
+    leading=13,
+    textColor=PRIMARY,
+    alignment=TA_LEFT,
+    spaceBefore=8,
+    spaceAfter=4,
+)
+#: The line an empty section draws under its title, when its report gives one.
+EMPTY_SECTION_STYLE = ParagraphStyle(
+    "CalDartEmptySection",
+    fontName=BODY_FONT_ITALIC,
+    fontSize=8,
+    leading=11,
+    textColor=MUTED,
+    alignment=TA_LEFT,
 )
 
 #: The padding a table cell carries on each side, in points.  It is width the
@@ -398,6 +421,10 @@ def _as_cells(values: Sequence[Any], style: ParagraphStyle) -> list[Paragraph]:
     ]
 
 
+#: One section of a PDF: its title and its rows, one list of cells per row.
+type PdfSection = tuple[str, Sequence[Sequence[Any]]]
+
+
 def build_pdf_table(
     buffer: IO[bytes],
     *,
@@ -408,6 +435,8 @@ def build_pdf_table(
     landscape: bool = True,
     widths: Sequence[float] | None = None,
     generated_at: datetime | None = None,
+    sections: Sequence[PdfSection] | None = None,
+    empty_section: str = "",
 ) -> None:
     """Render the report into ``buffer`` (any writable binary stream).
 
@@ -418,6 +447,12 @@ def build_pdf_table(
     matter.  Without it every column is the same width.  One width per column,
     or ``ValueError`` reading ``<n> columns but <m> widths`` before anything is
     drawn.
+
+    Without ``sections``, the title and subtitle head one table of ``rows``.  With
+    them, ``rows`` is not read: each section draws its title in
+    :data:`SECTION_STYLE` and then its own table, header repeated on every page it
+    runs onto.  A section with no rows draws its title and then ``empty_section`` in
+    italics, or its title alone when ``empty_section`` is blank.
     """
     if widths is not None and len(widths) != len(header):
         raise ValueError(f"{len(header)} columns but {len(widths)} widths")
@@ -448,9 +483,6 @@ def build_pdf_table(
     )
     doc.addPageTemplates([PageTemplate(id="report", frames=[frame])])
 
-    data = [_as_cells(header, HEADER_CELL_STYLE)]
-    data.extend(_as_cells(row, CELL_STYLE) for row in rows)
-
     columns = len(header) or 1
     if widths is None:
         col_widths = [doc.width / columns] * columns
@@ -458,6 +490,32 @@ def build_pdf_table(
         share = doc.width / sum(widths)
         col_widths = [width * share for width in widths]
 
+    story: list[Flowable] = [Paragraph(escape_markup(title), TITLE_STYLE)]
+    if subtitle:
+        story.append(Paragraph(escape_markup(subtitle), SUBTITLE_STYLE))
+    story.append(Spacer(1, 10))
+    if sections is None:
+        story.append(_pdf_table(header, rows, col_widths))
+    else:
+        for section_title, section_rows in sections:
+            story.append(Paragraph(escape_markup(section_title), SECTION_STYLE))
+            if len(section_rows) > 0:
+                story.append(_pdf_table(header, section_rows, col_widths))
+            elif empty_section:
+                story.append(Paragraph(escape_markup(empty_section), EMPTY_SECTION_STYLE))
+
+    def make_canvas(*args: Any, **kwargs: Any) -> _NumberedCanvas:
+        return _NumberedCanvas(*args, footer_left=footer_left, **kwargs)
+
+    doc.build(story, canvasmaker=make_canvas)
+
+
+def _pdf_table(
+    header: Sequence[str], rows: Iterable[Sequence[Any]], col_widths: list[float]
+) -> LongTable:
+    """One house-style table of ``rows`` under ``header``, repeated on every page."""
+    data = [_as_cells(header, HEADER_CELL_STYLE)]
+    data.extend(_as_cells(row, CELL_STYLE) for row in rows)
     style = TableStyle(
         [
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -471,20 +529,9 @@ def build_pdf_table(
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, ZEBRA]),
         ]
     )
-
     table = LongTable(data, colWidths=col_widths, repeatRows=1)
     table.setStyle(style)
-
-    story: list[Flowable] = [Paragraph(escape_markup(title), TITLE_STYLE)]
-    if subtitle:
-        story.append(Paragraph(escape_markup(subtitle), SUBTITLE_STYLE))
-    story.append(Spacer(1, 10))
-    story.append(table)
-
-    def make_canvas(*args: Any, **kwargs: Any) -> _NumberedCanvas:
-        return _NumberedCanvas(*args, footer_left=footer_left, **kwargs)
-
-    doc.build(story, canvasmaker=make_canvas)
+    return table
 
 
 def filter_summary(filters: dict[str, Any]) -> str:
@@ -589,21 +636,58 @@ class ReportQuery[RowT]:
 
     ``rows`` may be a one-shot iterator, such as a queryset's ``iterator()``; it is
     read once.  ``filters`` maps each applied filter's name to its value, and is what
-    the PDF subtitle prints through :func:`filter_summary`.
+    the PDF subtitle prints through :func:`filter_summary`.  ``sections`` lists every
+    section title of a sectioned report, in the order they are drawn, so a section no
+    row falls in still appears; ``None`` takes the titles in the order the rows first
+    name them.
     """
 
     rows: Iterable[RowT]
     filters: dict[str, str] = field(default_factory=dict)
+    sections: Sequence[str] | None = None
+
+
+@dataclass(frozen=True)
+class ReportSection:
+    """One section of a report's table: its title and its text rows."""
+
+    title: str
+    rows: list[list[str]]
 
 
 @dataclass(frozen=True)
 class ReportTable:
-    """A report's cells, ready for either format: labels, widths, text rows, filters."""
+    """A report's cells, ready for either format: labels, widths, text rows, filters.
+
+    ``rows`` is every row in the order the query answered, which the CSV writes;
+    ``sections`` groups the same rows under their section titles, which the PDF draws.
+    A report without sections has one section, titled ``""``, holding every row.
+    """
 
     header: list[str]
     widths: list[float]
     rows: list[list[str]]
     filters: dict[str, str]
+    sections: list[ReportSection]
+
+
+def group_sections(
+    titled_rows: Sequence[tuple[str, list[str]]], listed: Sequence[str] | None
+) -> list[ReportSection]:
+    """``titled_rows`` -- ``(section title, cells)`` pairs -- grouped into sections.
+
+    With ``listed``, there is one section per listed title in that order, each holding
+    its rows in their given order, an empty one included; a row whose title is not
+    listed raises ``ValueError`` reading ``Row in unlisted section '<title>'``.
+    Without it, the sections are the distinct titles in the order first seen.
+    """
+    titles = list(listed) if listed is not None else list(dict.fromkeys(t for t, _ in titled_rows))
+    grouped: dict[str, list[list[str]]] = {title: [] for title in titles}
+    for title, cells in titled_rows:
+        if title not in grouped:
+            raise ValueError(f"Row in unlisted section '{title}'")
+        grouped[title].append(cells)
+    return [ReportSection(title=title, rows=rows) for title, rows in grouped.items()]
 
 
 @dataclass(frozen=True)
@@ -620,7 +704,10 @@ class ReportSpec[RowT]:
     :data:`FIXED_COLUMNS_MESSAGE`.  ``resolve`` turns the params into the ones the
     query reads, given the day the report is built on; a dated report uses it to
     expand ``period`` (see :func:`resolve_period`), and every other report keeps
-    :func:`keep_params`.
+    :func:`keep_params`.  ``section`` names the section a row belongs to, which
+    groups the table's rows under titled headings (see :meth:`table`), and
+    ``empty_section`` is the line the PDF draws under a section with no rows; blank,
+    such a section is its title alone.
     """
 
     slug: str
@@ -632,6 +719,8 @@ class ReportSpec[RowT]:
     landscape: bool = True
     choosable: bool = True
     resolve: Callable[[Params, date], Params] = keep_params
+    section: Callable[[RowT], str] | None = None
+    empty_section: str = ""
 
     @property
     def periods(self) -> bool:
@@ -649,6 +738,12 @@ class ReportSpec[RowT]:
         every column of a fixed report, otherwise the ``columns`` param or the
         defaults, refused as :func:`chosen_columns` refuses them -- and only then is
         the query run, so a bad column list is refused before any row is read.
+
+        Without a ``section`` function, the table is one section titled ``""`` holding
+        every row.  With one, the rows are grouped by the title it gives each, as
+        :func:`group_sections` groups them over the query's ``sections``: a listed
+        section with no rows still appears, and a row in an unlisted section raises
+        ``ValueError``.
         """
         resolved = self.resolve(params, today)
         requested = resolved.get("columns", "")
@@ -659,11 +754,20 @@ class ReportSpec[RowT]:
         else:
             columns = self.columns
         query = self.query(resolved)
+        section = self.section
+        titled_rows = [
+            (
+                "" if section is None else section(row),
+                [cell_text(column.value(row), fmt) for column in columns],
+            )
+            for row in query.rows
+        ]
         return ReportTable(
             header=[column.label for column in columns],
             widths=[column.width for column in columns],
-            rows=[[cell_text(column.value(row), fmt) for column in columns] for row in query.rows],
+            rows=[cells for _title, cells in titled_rows],
             filters=query.filters,
+            sections=group_sections(titled_rows, [""] if section is None else query.sections),
         )
 
 
@@ -706,6 +810,10 @@ class Report(Protocol):
     def periods(self) -> bool:
         """Whether the report takes ``?period=``."""
 
+    @property
+    def empty_section(self) -> str:
+        """The line the PDF draws under a section with no rows, or blank for none."""
+
     def column_choices(self) -> list[ColumnDict]:
         """The registry as the ``columns`` endpoint answers it."""
 
@@ -733,8 +841,10 @@ def build_report(
     line per row, UTF-8, every cell through :func:`csv_cell`, money as plain numbers;
     its media type is :data:`CSV_DOCUMENT_TYPE`.  A PDF is :func:`build_pdf_table` with
     the spec's title and orientation, the applied filters as the subtitle, each
-    column's registry width, and money as dollars.  A param the report refuses raises
-    DRF's ``ValidationError``, so an endpoint answers it with a 400.
+    column's registry width, and money as dollars; a table of more than one section, or
+    of one titled section, is drawn section by section, each under its title.  A param
+    the report refuses raises DRF's ``ValidationError``, so an endpoint answers it with
+    a 400.
     """
     day = timezone.localdate() if today is None else today
     table = spec.table(params, fmt=fmt, today=day)
@@ -743,6 +853,7 @@ def build_report(
         content = "".join(csv_rows(table.header, table.rows)).encode()
         return ReportDocument(filename=filename, media_type=CSV_DOCUMENT_TYPE, content=content)
     buffer = io.BytesIO()
+    is_sectioned = len(table.sections) > 1 or any(s.title != "" for s in table.sections)
     build_pdf_table(
         buffer,
         title=spec.title,
@@ -751,6 +862,10 @@ def build_report(
         rows=table.rows,
         landscape=spec.landscape,
         widths=table.widths,
+        sections=(
+            [(section.title, section.rows) for section in table.sections] if is_sectioned else None
+        ),
+        empty_section=spec.empty_section,
     )
     return ReportDocument(filename=filename, media_type=PDF_MEDIA_TYPE, content=buffer.getvalue())
 

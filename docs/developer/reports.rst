@@ -3,7 +3,7 @@ Reports
 =======
 
 CalDART exports data as CSV, for a spreadsheet, and as PDF, for a board pack.
-There are seven reports, and every one of them is built by the same code: each
+There are eight reports, and every one of them is built by the same code: each
 app declares what its report is — its columns, who may read it, and the query
 that finds its rows — as a ``ReportSpec``, and ``build_report`` in
 ``backend/caldart/reports.py`` turns any spec into either file.  The endpoints
@@ -23,6 +23,10 @@ documents them.
      - Membership
      - ``apps/members/reports.py``
      - ``dart_leader``, ``account_admin``
+   * - ``roles``
+     - Roles
+     - ``apps/members/roles_report.py``
+     - ``user_admin``, ``account_admin``
    * - ``aircraft``
      - Aircraft register
      - ``apps/aircraft/reports.py``
@@ -49,7 +53,7 @@ documents them.
      - ``system_admin``
 
 A ``system_admin`` and a Django superuser read every report.
-``apps/reports/registry.py`` gathers the seven specs into ``REPORTS``, keyed by
+``apps/reports/registry.py`` gathers the eight specs into ``REPORTS``, keyed by
 slug, and ``apps/reports/permissions.py`` decides who may read one with
 ``can_read_report(user, spec)``, which is ``user_has_any_role`` over the spec's
 roles.
@@ -61,13 +65,15 @@ filter and ordering code its list runs — the member list's filter set and
 ordering, the register's, the payment list's query serializer, the email log's filter set — so the same
 query string gives the same rows, in the same order, on the screen and in the
 file.  ``?ordering=`` is honored with the list's own rules, and nothing is
-paginated.
+paginated.  The roles report, which no list backs, is the exception: it reads its
+own search, role, and kind filters (see :ref:`reports-roles`), lists active
+accounts only, and is always in name order.
 
 
 The engine
 ==========
 
-``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params)``
+``ReportSpec(slug, title, filename_stem, columns, roles, query, landscape=True, choosable=True, resolve=keep_params, section=None, empty_section="")``
    One report.  ``slug`` names it in every URL; ``title`` heads its PDF and
    labels it in the portal; ``filename_stem`` begins its file name
    (``caldart-members``).  ``columns`` is its registry of ``ReportColumn``
@@ -80,7 +86,9 @@ The engine
    ``columns`` parameter is refused with ``This report's columns are fixed.``
    ``resolve(params, today)`` turns the parameters into the ones the query
    reads; a dated report uses it for ``period`` (below), and ``spec.periods`` is
-   true exactly when it is not ``keep_params``, the identity.
+   true exactly when it is not ``keep_params``, the identity.  ``section(row)``
+   names the section a row is drawn in, and ``empty_section`` is the line the PDF
+   draws under a section with no rows (see `Sections`_ below).
 ``build_report(spec, params, *, fmt, today=None)``
    The whole job.  It resolves the parameters for ``today`` (the local date by
    default), chooses the columns — the ``columns`` parameter, or the defaults,
@@ -88,7 +96,8 @@ The engine
    with ``cell_text``.  A CSV is the column labels and then one line per row,
    every cell through ``csv_cell``; a PDF is ``build_pdf_table`` with the spec's
    title and orientation, ``filter_summary`` of the applied filters as the
-   subtitle, and each column's registry width.  It answers a ``ReportDocument``:
+   subtitle, each column's registry width, and the table's sections when it has
+   more than one or its one section has a title.  It answers a ``ReportDocument``:
    the ``filename`` (``<stem>-<YYYY-MM-DD>.<csv|pdf>``), the ``media_type``
    (``text/csv`` or ``application/pdf``) and the ``content`` bytes.  The whole
    file is built in memory: every report here fits, and one path to a file is
@@ -100,6 +109,31 @@ The engine
 ``Report``
    The protocol every ``ReportSpec`` satisfies whatever its row type, which is
    what the registry holds and ``build_report`` takes.
+
+Sections
+--------
+
+A report can group its rows under titled headings.  A spec whose ``section``
+function is set names each row's section, and its query answers
+``ReportQuery.sections``, every title in the order they are drawn, so a section no
+row falls in still appears.  ``spec.table()`` answers a ``ReportTable`` whose
+``rows`` are every row in the order the query answered them and whose ``sections``
+are ``ReportSection(title, rows)`` entries grouping the same rows:
+
+* with no ``section`` function, one section titled ``""`` holds every row, and the
+  PDF is drawn exactly as a report without sections;
+* with one and a list of titles, one section per listed title, in that order; a
+  row whose title is not listed raises ``ValueError`` reading
+  ``Row in unlisted section '<title>'``;
+* with one and no list, the distinct titles in the order the rows first name them.
+
+The CSV is one flat table, the header and then ``ReportTable.rows``, so a
+sectioned report carries its section as a column too, and the spreadsheet loses
+nothing.  The PDF draws each section's title in ``SECTION_STYLE`` (the subtitle's
+Helvetica at 10pt, bold, in the house blue, 8pt above and 4pt below) and then that
+section's own table, its header repeated on every page it runs onto.  A section
+with no rows draws its title and then the spec's ``empty_section`` in italics, or
+its title alone when ``empty_section`` is blank.
 
 Periods
 -------
@@ -175,7 +209,7 @@ Filters
 The house style
 ---------------
 
-``build_pdf_table(buffer, *, title, subtitle, header, rows, landscape, widths)``
+``build_pdf_table(buffer, *, title, subtitle, header, rows, landscape, widths, sections, empty_section)``
    A reportlab table in the CalDART palette, written to any binary stream:
    hairline rules instead of boxes, zebra rows, the header repeated on every
    page, and a footer carrying "CalDART · generated <timestamp>" and "Page n of
@@ -184,7 +218,9 @@ The house style
    ``widths`` gives the columns relative shares of the printable width —
    ``[3, 1, 1]`` makes the first column three times either of the others — and
    is scaled to fill the page; without it every column is the same width.  One
-   width per column, or ``ValueError``.
+   width per column, or ``ValueError``.  ``sections``, a list of
+   ``(title, rows)`` pairs, replaces ``rows`` with one titled table per section,
+   drawn as `Sections`_ describes.
 ``csv_rows(header, rows)`` and ``csv_cell(value)``
    The CSV lines, every cell through ``csv_cell``: ``None`` as an empty string,
    a formula-looking string with a leading apostrophe, everything else
@@ -340,6 +376,73 @@ count is ``EXPORT_FILTER_PARAMS`` in ``filters.py``, ``kind`` first and never
 ``include_inactive``; ``applied_filters(params)`` picks out the ones actually
 supplied, ignoring parameters left blank, and prints several counties as a
 list: ``county=Alameda,Marin`` reads ``county: Alameda, Marin``.
+
+
+.. _reports-roles:
+
+The roles report
+================
+
+``roles``, for ``user_admin`` and ``account_admin``, titled "CalDART roles
+report" and saved as ``caldart-roles-<YYYY-MM-DD>``.  ``ROLES_REPORT`` in
+``backend/apps/members/roles_report.py`` declares it; it sits in the members app
+because its rows read the membership state, which the accounts app sits below.
+It is the sectioned report: one section per staff role, every role but
+``member``, in the privilege order of ``ROLE_SLUGS`` (DART leader, User
+administrator, Treasurer, Account administrator, Website administrator, System
+administrator), each drawn even when nobody holds that role, with the line
+"Nobody holds this role." under an empty one.  ``ROLE_LABELS`` and
+``STAFF_ROLE_LABELS`` in ``apps/accounts/roles.py`` name the roles, and the
+section titles are those names.
+
+A row is one role held by one account: ``role_holders`` finds every active
+account in a staff role's group, and ``role_rows`` answers a ``RoleRow`` for each
+staff role each of them holds, role by role.  A system administrator who is also
+an account administrator is listed in both sections, and a deactivated account in
+none, whatever roles it still holds.  Within a section the rows are ordered by
+last name, first name, then address.
+
+``RolesReportFilterSet``, in the same module, reads three filters, which the PDF
+subtitle names when given a value:
+
+``search``
+   Every word must match part of the first name, the last name, or the address,
+   case-insensitively, the way the users list's search matches.
+``role``
+   One staff role's slug.  The report then draws that role's section alone.  The
+   member role, or any other slug, is refused with a 400 keyed by ``role``.
+``kind``
+   ``member`` or ``friend``, matched against the effective kind for today, the
+   kind the **Kind** column prints.  This is not the users list's ``kind``, which
+   matches the stored kind: an account stored as ``member`` with no started term is
+   a member there and a friend here.  A donor never holds a role, so ``donor`` is
+   refused with a 400 keyed by ``kind``.
+
+Any other parameter is ignored, as the users list ignores it, apart from
+``columns``.  The columns, in order:
+
+============= ============== ======= =============================================
+Key           Label          Default Contents
+============= ============== ======= =============================================
+role          Role           yes     The role's name, which is also its section's
+                                     title, so the CSV keeps the grouping
+name          Name           yes     Full name, or the address when no name is on
+                                     file
+email         Email          yes     Login address
+phone         Phone          yes     Primary phone from the profile
+dart          DART           yes     DART name, blank when unaffiliated
+kind          Kind           yes     ``Member`` or ``Friend``: the effective kind
+                                     for today, as the membership report reads it
+membership    Membership     yes     ``Current``, ``Expired``, or ``Friend``, the
+                                     ``MembershipState`` label the membership
+                                     report's Status column prints
+city          City           no      City from the profile
+county        County         no      California county from the profile
+home_airport  Home airport   no      Home airport identifier from the profile
+============= ============== ======= =============================================
+
+An account with no profile leaves the phone, DART, city, county, and airport
+cells blank.  ``backend/tests/test_roles_report.py`` covers the report.
 
 
 How to add a column
@@ -603,6 +706,7 @@ headers, escaping, pagination, and an empty result set.
 ``backend/tests/test_report_endpoints.py`` proves the endpoints and the role
 matrix for every report.
 
+``backend/tests/test_report_sections.py`` covers sections.
 ``backend/tests/test_members_reports.py`` covers the membership report and is
 the pattern to copy.  Assertions worth keeping:
 

@@ -1,4 +1,4 @@
-"""The report registry: the six reports, who may read each, and what each query does.
+"""The report registry: the eight reports, who may read each, and what each query does.
 
 Every report's query is the filter and ordering code its JSON list runs, so the same
 params narrow and order a download exactly as they narrow and order the screen.  The
@@ -16,7 +16,14 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER, ROLE_SLUGS, SYSTEM_ADMIN, TREASURER
+from apps.accounts.roles import (
+    ACCOUNT_ADMIN,
+    DART_LEADER,
+    ROLE_SLUGS,
+    SYSTEM_ADMIN,
+    TREASURER,
+    USER_ADMIN,
+)
 from apps.aircraft.models import Aircraft
 from apps.aircraft.reports import AIRCRAFT_REPORT
 from apps.darts.models import Dart
@@ -46,10 +53,11 @@ DAY = date(2026, 9, 25)
 # --------------------------------------------------------------------------
 # The registry
 # --------------------------------------------------------------------------
-def test_the_registry_holds_the_seven_reports_by_slug() -> None:
-    """Members, aircraft, payments, reconciliation, contributions, donors, and emails."""
+def test_the_registry_holds_the_eight_reports_by_slug() -> None:
+    """The eight reports, in the order the portal lists them, the roles report second."""
     assert list(REPORTS) == [
         "members",
+        "roles",
         "aircraft",
         "payments",
         "reconciliation",
@@ -61,7 +69,16 @@ def test_the_registry_holds_the_seven_reports_by_slug() -> None:
 
 @pytest.mark.parametrize(
     "slug",
-    ["members", "aircraft", "payments", "reconciliation", "contributions", "donors", "emails"],
+    [
+        "members",
+        "roles",
+        "aircraft",
+        "payments",
+        "reconciliation",
+        "contributions",
+        "donors",
+        "emails",
+    ],
 )
 def test_each_report_is_filed_under_its_own_slug(slug: str) -> None:
     """The key a report is registered under is the slug it declares."""
@@ -83,6 +100,7 @@ def test_report_or_404_refuses_an_unknown_slug() -> None:
     ("slug", "roles"),
     [
         ("members", (DART_LEADER, ACCOUNT_ADMIN)),
+        ("roles", (USER_ADMIN, ACCOUNT_ADMIN)),
         ("aircraft", (ACCOUNT_ADMIN,)),
         ("payments", (TREASURER, ACCOUNT_ADMIN)),
         ("reconciliation", (TREASURER, ACCOUNT_ADMIN)),
@@ -99,6 +117,7 @@ def test_each_report_names_the_roles_that_may_read_it(slug: str, roles: tuple[st
     ("slug", "shape"),
     [
         ("members", (True, True, False)),
+        ("roles", (True, True, False)),
         ("aircraft", (True, True, False)),
         ("payments", (True, True, True)),
         ("reconciliation", (False, False, False)),
@@ -118,6 +137,7 @@ def test_each_report_declares_its_columns_orientation_and_periods(
     ("slug", "title", "stem"),
     [
         ("members", "CalDART membership report", "caldart-members"),
+        ("roles", "CalDART roles report", "caldart-roles"),
         ("aircraft", "CalDART aircraft register", "caldart-aircraft"),
         ("payments", "CalDART payments", "caldart-payments"),
         ("reconciliation", "CalDART reconciliation", "caldart-reconciliation"),
@@ -135,6 +155,7 @@ def test_each_report_carries_its_title_and_file_name(slug: str, title: str, stem
     ("slug", "allowed"),
     [
         ("members", {DART_LEADER, ACCOUNT_ADMIN, SYSTEM_ADMIN}),
+        ("roles", {USER_ADMIN, ACCOUNT_ADMIN, SYSTEM_ADMIN}),
         ("aircraft", {ACCOUNT_ADMIN, SYSTEM_ADMIN}),
         ("payments", {TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN}),
         ("reconciliation", {TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN}),

@@ -92,14 +92,18 @@ def test_the_report_list_refuses_an_anonymous_caller(api_client: APIClient) -> N
     [
         ("member", []),
         ("dart_leader", ["members"]),
-        ("user_admin", []),
+        ("user_admin", ["roles"]),
         ("treasurer", ["payments", "reconciliation", "contributions", "donors"]),
-        ("account_admin", ["members", "aircraft", "payments", "reconciliation", "contributions"]),
+        (
+            "account_admin",
+            ["members", "roles", "aircraft", "payments", "reconciliation", "contributions"],
+        ),
         ("website_admin", []),
         (
             "system_admin",
             [
                 "members",
+                "roles",
                 "aircraft",
                 "payments",
                 "reconciliation",
@@ -127,6 +131,7 @@ def test_the_report_list_describes_each_report(account_admin_client: APIClient) 
             "choosable": True,
             "periods": False,
         },
+        {"slug": "roles", "title": "CalDART roles report", "choosable": True, "periods": False},
         {
             "slug": "aircraft",
             "title": "CalDART aircraft register",
