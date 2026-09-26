@@ -173,6 +173,19 @@ describe('<JoinWizard/> resume logic', () => {
   });
 });
 
+describe('<JoinWizard/> layout', () => {
+  it('wraps the header and the step list in the centered join shell', async () => {
+    stubApi(null);
+    const { container } = renderWizard('/join/account');
+
+    await screen.findByRole('heading', { name: 'Create your account' });
+    const shell = container.querySelector('.join-shell');
+    expect(shell).not.toBeNull();
+    expect(shell?.querySelector('.page__header')).not.toBeNull();
+    expect(shell?.querySelector('.join-steps')).not.toBeNull();
+  });
+});
+
 describe('<JoinWizard/> progress', () => {
   beforeEach(() => stubApi(null));
 
