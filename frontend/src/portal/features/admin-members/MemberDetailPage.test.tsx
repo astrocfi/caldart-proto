@@ -237,6 +237,37 @@ describe('MemberDetailPage', () => {
     expect(captured.patchedTerm).toMatchObject({ ends_on: '2027-12-31', status: 'canceled' });
   });
 
+  it('offers Suspended when editing a term a self-deactivation suspended', async () => {
+    const user = userEvent.setup();
+    server.use(
+      ...detailHandlers(
+        makeDetail({
+          memberships: [
+            {
+              id: 11,
+              plan: 'Annual',
+              plan_slug: 'annual',
+              starts_on: '2026-07-01',
+              ends_on: '2027-06-30',
+              status: 'suspended',
+              source: 'payment',
+              note: '',
+              granted_by: null,
+              payment: 21,
+              created_at: '2026-07-01T12:00:00Z',
+            },
+          ],
+        }),
+      ),
+    );
+    renderDetail('/admin/members/1?tab=memberships');
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByLabelText('Term status')).toHaveValue('suspended');
+    expect(screen.getByRole('option', { name: 'Suspended' })).toBeInTheDocument();
+  });
+
   it('requires the email address to be typed before deleting', async () => {
     const user = userEvent.setup();
     // Only a member who never paid can be deleted at all.

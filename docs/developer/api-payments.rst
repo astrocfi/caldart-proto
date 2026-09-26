@@ -357,21 +357,26 @@ name, and under the profile's own rules (see :doc:`api-profile`): ``address_line
 seven ``vol_*`` volunteer interests.  A pilot certificate needs no number here.
 ``contribution_cents`` runs from 1 to ``max_contribution_cents``.
 
-The address is matched case-insensitively.  A new address becomes a donor with a
-profile holding everything sent.  An existing donor has its names and phone
-replaced, and each optional field that was sent filled in (a non-blank value, a
-DART, a ticked box) written over the stored one; a field left out keeps what an
-earlier gift said.  Nothing is mailed to the donor but the receipt.  Two first
-gifts from one address arriving together wait on one lock on the address, so they
-make one donor between them.
+The address is matched case-insensitively.  A new address becomes a bare donor
+account with no name yet and no profile; an existing donor is only found, never
+touched.  Either way, the details sent are filed on the pending payment rather
+than written to the account, so that an unauthenticated caller who only knows a
+donor's address can never overwrite what an earlier, completed gift recorded.
+Two first gifts from one address arriving together wait on one lock on the
+address, so they make one donor between them.
 
-The details are written when the checkout starts, before any money moves, so
-anyone who knows a donor's address can change that donor's names, phone, and
-profile, within the ``donate`` rate.  The page's Stripe tab starts a checkout as
-soon as it shows, to load Stripe's card form, and again each time the giver comes
-back to it with changed details; each one counts against the rate.  A visitor who
-opens the Stripe tab and leaves is therefore a donor with a pending payment and no
-gifts, and nothing cleans either up.
+The names, the phone, and the profile fields land on the account only once this
+payment settles: a new donor's names and profile are then written for the first
+time, and an existing donor's names and phone are replaced, with each optional
+field that was sent filled in (a non-blank value, a DART, a ticked box) written
+over the stored one and a field left out keeping what an earlier, completed gift
+said (``apps.payments.donations.apply_donor_fields``, called from
+``mark_succeeded``).  Nothing is mailed to the donor but the receipt.  The page's
+Stripe tab starts a checkout as soon as it shows, to load Stripe's card form, and
+again each time the giver comes back to it with changed details; each one counts
+against the ``donate`` rate.  A visitor who opens the Stripe tab and leaves is
+therefore a donor account with a pending payment and no gifts, and nothing
+cleans either up.
 
 **201** is the portal checkout's answer for the provider (see
 `POST /payments/checkout`_) plus the token:

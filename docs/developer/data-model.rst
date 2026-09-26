@@ -1198,6 +1198,9 @@ One attempt to pay for a membership term, make a contribution, or both.
        payment taken by hand
    * - ``raw``
      - ``JSONField`` — the last provider payload, for forensics
+   * - ``donor_fields``
+     - ``JSONField`` — a public gift's details, kept here until the payment
+       settles; empty for every other payment (:doc:`api-payments`)
 
 **Derived, not stored.**  ``refunded_cents`` is the sum of the payment's
 succeeded refunds; ``kind`` is ``membership``, ``contribution`` or ``both``,

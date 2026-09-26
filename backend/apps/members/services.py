@@ -528,11 +528,22 @@ def _current_term(user: User, on_date: date) -> Membership | None:
     return terms[0]
 
 
+#: The term states :func:`_latest_expiry` chains a new term after: an active term
+#: covers today or later, and a suspended one is coverage a self-deactivation set
+#: aside rather than lost, restored by :func:`restore_terms` on reactivation.
+COVERING_STATUSES = (MembershipStatusChoices.ACTIVE, MembershipStatusChoices.SUSPENDED)
+
+
 def _latest_expiry(user: User) -> date | None:
-    """Latest ``ends_on`` across active terms, or ``None`` if any is lifetime."""
+    """Latest ``ends_on`` across active or suspended terms, ``None`` if any is lifetime.
+
+    A checkout that settles while the account is deactivated buys a term
+    :func:`activate_term` places by this same rule, so it chains after coverage a
+    self-deactivation suspended rather than starting today and overlapping it.
+    """
     ends: list[date] = []
     for m in user.memberships.all():
-        if m.status != MembershipStatusChoices.ACTIVE:
+        if m.status not in COVERING_STATUSES:
             continue
         if m.ends_on is None:
             return None
@@ -781,11 +792,14 @@ def activate_term(
 ) -> Membership:
     """Create (or return) the membership term for ``plan``.
 
-    A renewal starts the day after the current expiry when the member is
-    already current; otherwise it starts today, and ``starts_on`` overrides both.
-    ``ends_on`` is ``starts_on + duration_days - 1``, or ``None`` for a lifetime
-    plan.  ``source`` records how the term was come by, ``granted_by`` the
-    administrator behind a manual grant, and ``note`` their reason.
+    A renewal starts the day after the current expiry when the member is already
+    current, counting a term a self-deactivation suspended as covering too, so a
+    checkout that settles while the account is deactivated still chains after it
+    rather than overlapping it; otherwise it starts today, and ``starts_on``
+    overrides both.  ``ends_on`` is ``starts_on + duration_days - 1``, or ``None``
+    for a lifetime plan.  ``source`` records how the term was come by,
+    ``granted_by`` the administrator behind a manual grant, and ``note`` their
+    reason.
 
     The member's ``member_since`` is stamped with this term's start the first
     time they hold one, and never moved afterwards: a renewal does not change
@@ -796,6 +810,12 @@ def activate_term(
     granting administrator, or ``command``), and a member with a pending
     ``friend_on`` date keeps being a member, the date cleared.  A donor's kind is
     left alone.
+
+    A deactivated account's term is created ``SUSPENDED`` rather than ``ACTIVE``:
+    a checkout a provider confirms after the payer deactivated in the meantime
+    must not stand as coverage for an account that cannot sign in to use it.
+    Reactivating restores it exactly as it restores a term suspended by
+    deactivation itself, back-to-back with the coverage it chained after.
 
     Idempotent on ``payment``: calling twice with the same payment returns the
     term created the first time.
@@ -809,8 +829,8 @@ def activate_term(
 
     if starts_on is None:
         expiry = _latest_expiry(user)
-        has_active = user.memberships.filter(status=MembershipStatusChoices.ACTIVE).exists()
-        if has_active and expiry is None:
+        has_covering_term = user.memberships.filter(status__in=COVERING_STATUSES).exists()
+        if has_covering_term and expiry is None:
             # Already a lifetime member: a new term simply starts today.
             starts_on = today
         elif expiry is not None and expiry >= today:
@@ -823,12 +843,13 @@ def activate_term(
     else:
         ends_on = starts_on + timedelta(days=plan.duration_days - 1)
 
+    status = MembershipStatusChoices.ACTIVE if user.is_active else MembershipStatusChoices.SUSPENDED
     term = Membership.objects.create(
         user=user,
         plan=plan,
         starts_on=starts_on,
         ends_on=ends_on,
-        status=MembershipStatusChoices.ACTIVE,
+        status=status,
         source=source,
         payment=payment,
         granted_by=granted_by,

@@ -2,10 +2,16 @@
 
 A gift made on the public site belongs to a **donor**: an account found or made by
 email address, with no role and no usable password, so it can never sign in and
-appears in no member list.  :func:`donor_for` finds or makes that account and writes
-what the giver told us onto its profile; :func:`start_donation` then starts a
-contribution for it through the same :func:`~apps.payments.services.create_checkout`
-a member's own checkout uses.
+appears in no member list.  :func:`donor_for` finds or makes that bare account;
+:func:`start_donation` starts a contribution for it through the same
+:func:`~apps.payments.services.create_checkout` a member's own checkout uses, keeping
+what the giver typed on the payment's own ``donor_fields`` column rather than
+writing it at once, so an unauthenticated checkout can never overwrite an existing
+donor's stored details.  A dedicated column, rather than ``Payment.raw``, is what
+survives to settlement: every provider's ``start`` and ``confirm`` -- and its
+webhook -- replace ``raw`` wholesale with their own payload.
+:func:`apply_donor_fields` writes those details once -- and only once -- the gift
+succeeds.
 
 The caller is anonymous, so what proves that the browser finishing a payment is the
 one that started it is a signed token over the payment's id
@@ -16,7 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.core import signing
 from django.db import connection, transaction
@@ -147,17 +153,19 @@ def _lock_address(email: str) -> None:
 
 @transaction.atomic
 def donor_for(fields: DonorFields) -> User:
-    """The donor account for ``fields["email"]``, found or made, with the giver's details.
+    """The donor account for ``fields["email"]``, found or made.
 
     The address is matched case-insensitively, under a lock on the address held until
     the caller's transaction ends, so two first gifts from one address arriving
-    together make one donor between them.  An existing donor has its names and
-    its profile's phone replaced by what was given, and each optional profile field
-    the giver filled in (a non-blank value, a DART, or a ticked box) written over the
-    stored one; an optional field left blank or unticked keeps what an earlier gift
-    told us.  A new address becomes a donor (``create_account`` with the ``donor``
-    kind: no role, an unusable password, the address unverified) with a profile
-    holding everything given, stamped as written.  Nothing is mailed either way.
+    together make one donor between them.  A new address becomes a bare donor
+    account (``create_account`` with the ``donor`` kind: no name yet, no role, an
+    unusable password, the address unverified).  Nothing is mailed either way.
+
+    The names, the phone, and the profile fields the giver typed are not written
+    here: an unauthenticated caller who only knows a donor's address must not be
+    able to overwrite what an earlier, completed gift recorded.  :func:`start_donation`
+    keeps them on the pending payment's ``donor_fields`` column instead, and
+    :func:`apply_donor_fields` writes them once that payment settles.
 
     Raises :class:`HasAccountError` when the address belongs to a member or a friend,
     whether their account is active or deactivated: that person gives from the portal.
@@ -168,17 +176,66 @@ def donor_for(fields: DonorFields) -> User:
     if user is not None and user.kind != AccountKind.DONOR:
         raise HasAccountError
     if user is None:
-        user = create_account(
-            email=email,
-            first_name=fields["first_name"],
-            last_name=fields["last_name"],
-            kind=AccountKind.DONOR,
-        )
+        user = create_account(email=email, kind=AccountKind.DONOR)
         log.info("Donor account %s created for a gift on the public site", user.pk)
-    else:
-        user.first_name = fields["first_name"].strip()
-        user.last_name = fields["last_name"].strip()
-        user.save(update_fields=["first_name", "last_name", "updated_at"])
+    return user
+
+
+def _fields_for_storage(fields: DonorFields) -> dict[str, Any]:
+    """``fields`` as plain JSON: a :class:`~apps.darts.models.Dart` becomes its id."""
+    data: dict[str, Any] = dict(fields)
+    dart = data.get("dart")
+    if isinstance(dart, Dart):
+        data["dart"] = dart.pk
+    return data
+
+
+def _fields_from_storage(data: dict[str, Any]) -> DonorFields:
+    """The reverse of :func:`_fields_for_storage`: a stored dart id becomes a Dart."""
+    fields = dict(data)
+    dart_id = fields.get("dart")
+    fields["dart"] = Dart.objects.filter(pk=dart_id).first() if dart_id is not None else None
+    return cast(DonorFields, fields)
+
+
+@transaction.atomic
+def start_donation(fields: DonorFields, contribution_cents: int, provider: str) -> Payment:
+    """A ``pending`` gift of ``contribution_cents`` from the giver behind ``fields``.
+
+    The donor comes from :func:`donor_for` and the payment from ``create_checkout`` with
+    no plan, so the amount is the contribution alone and a gift of nothing is refused
+    there.  ``fields`` are then filed on the payment's own ``donor_fields`` column --
+    never ``raw``, which the provider's ``start`` call that follows is about to
+    overwrite -- for :func:`apply_donor_fields` to write onto the donor's account once
+    -- and only once -- this payment succeeds.  Raises what either call raises, and
+    writes nothing when it does.
+    """
+    donor = donor_for(fields)
+    payment = create_checkout(donor, None, contribution_cents, provider)
+    payment.donor_fields = _fields_for_storage(fields)
+    payment.save(update_fields=["donor_fields", "updated_at"])
+    return payment
+
+
+def apply_donor_fields(payment: Payment) -> None:
+    """Write the giver's details onto ``payment.user``, once the gift has settled.
+
+    Reads them from ``payment.donor_fields``, as :func:`start_donation` left them.
+    The names and the phone are replaced outright, and each optional profile field
+    the giver filled in (a non-blank value, a DART, or a ticked box) is written over
+    the stored one, while a field left blank or unticked keeps what an earlier gift
+    told us.  A payment that carries no such fields -- every payment but a public
+    gift -- is left alone, which is what lets
+    :func:`apps.payments.services.mark_succeeded` call this unconditionally for
+    every payment that settles.
+    """
+    if not payment.donor_fields:
+        return
+    fields = _fields_from_storage(payment.donor_fields)
+    user = payment.user
+    user.first_name = fields["first_name"].strip()
+    user.last_name = fields["last_name"].strip()
+    user.save(update_fields=["first_name", "last_name", "updated_at"])
 
     profile, _ = MemberProfile.objects.get_or_create(user=user)
     profile.phone = fields["phone"]
@@ -188,19 +245,6 @@ def donor_for(fields: DonorFields) -> User:
             setattr(profile, name, value)
     profile.save()
     touch_profile(profile)
-    return user
-
-
-@transaction.atomic
-def start_donation(fields: DonorFields, contribution_cents: int, provider: str) -> Payment:
-    """A ``pending`` gift of ``contribution_cents`` from the giver behind ``fields``.
-
-    The donor comes from :func:`donor_for` and the payment from ``create_checkout`` with
-    no plan, so the amount is the contribution alone and a gift of nothing is refused
-    there.  Raises what either raises, and writes nothing when it does.
-    """
-    donor = donor_for(fields)
-    return create_checkout(donor, None, contribution_cents, provider)
 
 
 def donation_token(payment: Payment) -> str:

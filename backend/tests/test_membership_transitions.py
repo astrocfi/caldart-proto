@@ -22,6 +22,7 @@ from apps.members.models import (
     MembershipState,
     MembershipStatusChoices,
 )
+from apps.members.services import restore_terms, suspend_terms
 from apps.payments.models import Payment, PaymentStatus, PaymentWallet
 from apps.payments.services import (
     create_checkout,
@@ -29,6 +30,7 @@ from apps.payments.services import (
     mark_succeeded,
     record_provider_event,
 )
+from tests.factories import MembershipFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -115,6 +117,65 @@ def test_a_webhook_after_the_capture_only_files_the_payload(checkout: Payment) -
     assert recorded.status == PaymentStatus.SUCCEEDED
     assert recorded.raw["last_webhook"] == {"event_type": "PAYMENT.CAPTURE.COMPLETED"}
     assert Membership.objects.count() == 1
+
+
+# --------------------------------------------------------------------------
+# A checkout that settles after the payer deactivated
+# --------------------------------------------------------------------------
+def test_a_payment_confirmed_after_deactivation_buys_a_suspended_term(
+    checkout: Payment, member: User, annual_plan: MembershipPlan
+) -> None:
+    """A provider confirming a checkout after a self-deactivation buys no coverage.
+
+    The confirmation can outrun the deactivation that happened in the browser
+    meanwhile, so the term it buys is created ``suspended`` rather than
+    ``active``: an account that cannot sign in gets no membership to use until
+    it reactivates.  It also chains after the term the deactivation suspended
+    rather than starting today and overlapping it, so reactivating does not cost
+    the member most of the year they already paid for.
+    """
+    current = MembershipFactory(user=member, plan=annual_plan)
+    assert current.ends_on is not None  # the annual plan always has one
+    member.is_active = False
+    member.save(update_fields=["is_active"])
+    suspend_terms(member)
+    current.refresh_from_db()
+    assert current.status == MembershipStatusChoices.SUSPENDED
+
+    mark_succeeded(checkout, provider_ref="pi_after_deactivation")
+
+    term = Membership.objects.get(payment=checkout)
+    assert term.status == MembershipStatusChoices.SUSPENDED
+    assert term.starts_on == current.ends_on + timedelta(days=1)
+
+    restore_terms(member)
+    current.refresh_from_db()
+    term.refresh_from_db()
+    assert (current.status, term.status) == (
+        MembershipStatusChoices.ACTIVE,
+        MembershipStatusChoices.ACTIVE,
+    )
+    assert term.starts_on == current.ends_on + timedelta(days=1)
+
+
+def test_a_manual_grant_to_a_deactivated_account_is_suspended(
+    account_admin_client: APIClient, member: User, annual_plan: MembershipPlan
+) -> None:
+    """An administrator's grant to a deactivated account is suspended, not active.
+
+    A grant is placed by the same rule a payment is, so an account that cannot
+    sign in gets no membership to use from it until it reactivates.
+    """
+    member.is_active = False
+    member.save(update_fields=["is_active"])
+
+    response = account_admin_client.post(
+        f"/api/v1/admin/members/{member.pk}/memberships",
+        {"plan": annual_plan.slug},
+        format="json",
+    )
+
+    assert (response.status_code, response.json()["status"]) == (201, "suspended")
 
 
 # --------------------------------------------------------------------------

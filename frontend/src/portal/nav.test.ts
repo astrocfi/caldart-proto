@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { RoleSlug } from './api/types';
 import { NAV_ITEMS, groupedNavItems, hasAnyRole, visibleNavItems } from './nav';
 
-const labels = (roles: RoleSlug[]): string[] => visibleNavItems(roles).map((item) => item.label);
+const labels = (roles: RoleSlug[], isEffectiveFriend = false): string[] =>
+  visibleNavItems(roles, isEffectiveFriend).map((item) => item.label);
 
 describe('hasAnyRole', () => {
   it('grants entries with no role requirement to any user', () => {
@@ -128,6 +129,26 @@ describe('visibleNavItems', () => {
   it('preserves declaration order', () => {
     const visible = visibleNavItems(['system_admin']).map((item) => item.to);
     expect(visible).toEqual(NAV_ITEMS.map((item) => item.to));
+  });
+
+  it('hides Renew from an effective friend, who has no membership to renew', () => {
+    expect(labels(['member'], true)).not.toContain('Renew');
+  });
+
+  it('leaves every other membership entry for an effective friend', () => {
+    expect(labels(['member'], true)).toEqual([
+      'Dashboard',
+      'My profile',
+      'My aircraft',
+      'Payments',
+      'Donate',
+      'Change password',
+      'Change email',
+    ]);
+  });
+
+  it('keeps Renew for a member who is not an effective friend', () => {
+    expect(labels(['member'], false)).toContain('Renew');
   });
 });
 

@@ -8,6 +8,7 @@
  * labels come from the same shared module, so the member screens, the member
  * report, and the DART leader's status card all agree on them.
  */
+import type { MembershipTermStatus } from '@/portal/api/types';
 import type { Choice } from '@/portal/choices';
 import { CERTIFICATE_TYPES, MEDICAL_TYPES } from '@/portal/features/profile/constants';
 
@@ -49,9 +50,10 @@ export {
   MEMBERSHIP_STATUS_CHOICES as STATUS_CHOICES,
 } from '@/portal/choices';
 
-export const TERM_STATUS_CHOICES: Choice<'new' | 'active' | 'expired' | 'canceled'>[] = [
+export const TERM_STATUS_CHOICES: Choice<MembershipTermStatus>[] = [
   { value: 'new', label: 'New' },
   { value: 'active', label: 'Active' },
   { value: 'expired', label: 'Expired' },
   { value: 'canceled', label: 'Canceled' },
+  { value: 'suspended', label: 'Suspended' },
 ];

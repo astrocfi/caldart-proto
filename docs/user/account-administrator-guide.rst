@@ -243,7 +243,8 @@ Leave the start date blank and the term starts itself correctly:
 * a **lifetime** plan has no end date at all.
 
 Granting a term to a friend makes them a member, exactly as paying for one
-does.
+does.  Granting one to a deactivated account creates it *Suspended*: it
+becomes active on its own once the account is reactivated.
 
 Fill the start date in only when you are recording something that happened on
 a particular day — a check that arrived last month, say.
@@ -288,9 +289,11 @@ address into the confirmation box.  Two further deletions are refused outright:
 
 If somebody has simply left, clearing **Account is active** on the Profile tab
 is the answer: it stops them signing in until the account is reactivated and
-keeps the record for the accounts.  The member list still shows the account,
-marked *account deactivated*; the **Active accounts only** filter hides it.
-That box is guarded like the email address, so on a record carrying a
+keeps the record for the accounts.  The member list hides a deactivated
+account unless you tick **Include deactivated**, and even then it is marked
+*account deactivated*; the member report, the rosters, and the DART leader's
+member check never show one.  That box is guarded like the email address, so
+on a record carrying a
 role you do not hold — a DART leader's, say — the save is refused; ask a system
 administrator, or a colleague who holds every role that account holds.
 

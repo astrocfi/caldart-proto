@@ -109,6 +109,16 @@ def give(api_client: APIClient) -> Callable[..., dict[str, Any]]:
     return start
 
 
+def complete(api_client: APIClient, body: dict[str, Any]) -> None:
+    """Settle the mock gift ``give`` started, ignoring the response body."""
+    response = api_client.post(
+        MOCK_COMPLETE_URL,
+        {"payment_id": body["payment_id"], "token": body["token"]},
+        format="json",
+    )
+    assert response.status_code == 200, response.content
+
+
 # ---------------------------------------------------------------- donor_for
 def test_donor_for_creates_a_donor_with_no_role_and_no_password() -> None:
     """A new address becomes a donor account that holds no role and cannot sign in."""
@@ -135,34 +145,23 @@ def test_donor_for_sends_the_new_donor_no_email() -> None:
     assert mail.outbox == []
 
 
-def test_donor_for_records_the_phone_in_its_canonical_form() -> None:
-    """The donor's number is stored on their profile as ``XXX-XXX-XXXX``."""
+def test_donor_for_leaves_a_new_donor_unnamed() -> None:
+    """A new donor's names are not written until a gift naming them settles.
+
+    ``donor_for`` only finds or makes the account: it is not the unauthenticated
+    caller's word alone that should ever land on the account, so the names wait
+    for :func:`apps.payments.donations.apply_donor_fields`.
+    """
     donor = donor_for(donor_fields())
 
-    assert MemberProfile.objects.get(user=donor).phone == "415-555-0100"
+    assert (donor.first_name, donor.last_name) == ("", "")
 
 
-def test_donor_for_stores_the_optional_profile_fields() -> None:
-    """Whatever the donor told us beyond the four required fields lands on the profile."""
-    dart = DartFactory()
-    donor = donor_for(
-        donor_fields(city="Petaluma", county="Sonoma", dart=dart, vol_fundraising=True)
-    )
-
-    profile = MemberProfile.objects.get(user=donor)
-    assert (profile.city, profile.county, profile.dart, profile.vol_fundraising) == (
-        "Petaluma",
-        "Sonoma",
-        dart,
-        True,
-    )
-
-
-def test_donor_for_stamps_the_new_profile() -> None:
-    """A donor's profile is stamped as written when it is created."""
+def test_donor_for_writes_no_profile_yet() -> None:
+    """A new donor gets no profile row until a gift naming them settles."""
     donor = donor_for(donor_fields())
 
-    assert MemberProfile.objects.get(user=donor).profile_updated_at is not None
+    assert MemberProfile.objects.filter(user=donor).exists() is False
 
 
 def test_donor_for_finds_an_existing_donor_whatever_the_case_of_the_address() -> None:
@@ -193,25 +192,27 @@ def test_gifts_from_one_address_in_any_case_wait_on_one_lock() -> None:
     assert (len(advisory_locks(first)), advisory_locks(first)) == (1, advisory_locks(second))
 
 
-def test_donor_for_updates_the_names_and_phone_of_an_existing_donor() -> None:
-    """The names and the phone a returning donor gives replace what was stored."""
-    donor_for(donor_fields())
-    donor = donor_for(donor_fields(first_name="Patricia", phone="707-555-0199"))
+def test_donor_for_does_not_touch_an_existing_donors_stored_details() -> None:
+    """Finding an existing donor writes nothing: it takes no details to be found.
 
-    donor.refresh_from_db()
-    assert (donor.first_name, MemberProfile.objects.get(user=donor).phone) == (
+    An unauthenticated caller who only knows a donor's address must not be able to
+    overwrite what an earlier, completed gift recorded merely by starting a new
+    checkout; see the settle-time tests below for when the new details do land.
+    """
+    first = donor_for(donor_fields())
+    first.first_name = "Patricia"
+    first.save(update_fields=["first_name"])
+    MemberProfile.objects.create(user=first, phone="415-555-0100", city="Petaluma")
+
+    donor_for(donor_fields(first_name="Someone Else", phone="707-555-0199", city=""))
+
+    first.refresh_from_db()
+    profile = MemberProfile.objects.get(user=first)
+    assert (first.first_name, profile.phone, profile.city) == (
         "Patricia",
-        "707-555-0199",
+        "415-555-0100",
+        "Petaluma",
     )
-
-
-def test_donor_for_keeps_an_optional_field_the_returning_donor_left_blank() -> None:
-    """A returning donor who skips the optional section keeps what they told us before."""
-    donor_for(donor_fields(city="Petaluma", vol_newsletter=True))
-    donor = donor_for(donor_fields(city="", vol_newsletter=False))
-
-    profile = MemberProfile.objects.get(user=donor)
-    assert (profile.city, profile.vol_newsletter) == ("Petaluma", True)
 
 
 @pytest.mark.parametrize("kind", [AccountKind.MEMBER, AccountKind.FRIEND])
@@ -419,19 +420,23 @@ def test_a_phone_that_is_not_ten_digits_is_refused(api_client: APIClient) -> Non
 
 
 def test_a_pilot_certificate_needs_no_number_from_a_donor(
-    give: Callable[..., dict[str, Any]],
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
     """A donor may name their certificate without giving its number."""
     body = give(pilot_certificate_type="private")
+    complete(api_client, body)
 
     donor = Payment.objects.get(pk=body["payment_id"]).user
     assert MemberProfile.objects.get(user=donor).pilot_certificate_type == "private"
 
 
-def test_a_gift_names_its_dart_by_id(give: Callable[..., dict[str, Any]]) -> None:
-    """``dart_id`` puts the donor on a DART."""
+def test_a_gift_names_its_dart_by_id(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """``dart_id`` puts the donor on a DART, once the gift that named it settles."""
     dart = DartFactory()
     body = give(dart_id=dart.pk)
+    complete(api_client, body)
 
     donor = Payment.objects.get(pk=body["payment_id"]).user
     assert MemberProfile.objects.get(user=donor).dart == dart
@@ -503,6 +508,84 @@ def test_completing_a_mock_gift_succeeds(
     )
 
     assert (response.status_code, response.json()["status"]) == (200, "succeeded")
+
+
+def test_a_pending_gift_leaves_the_new_donors_account_unwritten(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """Starting a gift makes the donor account, but writes no name or profile yet."""
+    give()
+
+    donor = User.objects.get(email=DONOR_EMAIL)
+    assert (donor.first_name, MemberProfile.objects.filter(user=donor).exists()) == ("", False)
+
+
+def test_completing_a_gift_writes_the_new_donors_name_and_profile(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """Settling the gift writes the name and the optional profile fields it named."""
+    dart = DartFactory()
+    body = give(city="Petaluma", dart_id=dart.pk)
+
+    complete(api_client, body)
+
+    donor = User.objects.get(email=DONOR_EMAIL)
+    profile = MemberProfile.objects.get(user=donor)
+    assert (donor.first_name, donor.last_name, profile.phone, profile.city, profile.dart) == (
+        "Pat",
+        "Giver",
+        "415-555-0100",
+        "Petaluma",
+        dart,
+    )
+
+
+def test_completing_a_second_gift_updates_an_existing_donors_details(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """A second, completed gift replaces the names and the phone the first gave."""
+    complete(api_client, give())
+
+    second = give(email=DONOR_EMAIL.upper(), first_name="Patricia", phone="707-555-0199")
+    complete(api_client, second)
+
+    donor = User.objects.get(email=DONOR_EMAIL)
+    assert (donor.first_name, MemberProfile.objects.get(user=donor).phone) == (
+        "Patricia",
+        "707-555-0199",
+    )
+
+
+def test_completing_a_gift_keeps_an_optional_field_the_giver_left_blank(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """A returning donor who skips the optional section keeps what they told us before."""
+    complete(api_client, give(city="Petaluma", vol_newsletter=True))
+
+    complete(api_client, give(email=DONOR_EMAIL.upper(), city="", vol_newsletter=False))
+
+    profile = MemberProfile.objects.get(user__email=DONOR_EMAIL)
+    assert (profile.city, profile.vol_newsletter) == ("Petaluma", True)
+
+
+def test_an_existing_donors_stored_details_stay_put_until_a_new_gift_settles(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """Starting, but not completing, a second gift cannot overwrite a donor's record.
+
+    Anyone who knows a donor's email address can start a checkout in their name;
+    until that checkout is actually paid, it must not be able to change what an
+    earlier, completed gift recorded.
+    """
+    complete(api_client, give())
+
+    give(email=DONOR_EMAIL.upper(), first_name="Someone Else", phone="707-555-0199")
+
+    donor = User.objects.get(email=DONOR_EMAIL)
+    assert (donor.first_name, MemberProfile.objects.get(user=donor).phone) == (
+        "Pat",
+        "415-555-0100",
+    )
 
 
 def test_a_completed_gift_reads_no_membership(
@@ -742,6 +825,193 @@ def test_a_paypal_gift_is_captured_with_its_token(
         response.json()["membership"]["status"],
         [message.to for message in mail.outbox],
     ) == (200, "succeeded", "none", [[DONOR_EMAIL]])
+
+
+# --------------------------------------------------------------------------
+# The details survive the provider's own start() call, which replaces `raw`
+# --------------------------------------------------------------------------
+class _FakeIntents:
+    """Stand-in for ``v1.payment_intents``: records ``create``, then reports success.
+
+    Unlike :func:`stripe_intent`, this exercises ``StripeProvider.start`` for real,
+    which is what overwrites ``payment.raw`` with the created intent -- the exact
+    step a donor's own details must survive on their own column.
+    """
+
+    def __init__(self) -> None:
+        """Start having created nothing."""
+        self.created: dict[str, Any] = {}
+
+    def create(
+        self, params: dict[str, Any], options: dict[str, Any] | None = None
+    ) -> stripe.PaymentIntent:
+        """Record ``params`` and answer a fresh, unconfirmed intent."""
+        self.created = params
+        return stripe.PaymentIntent.construct_from(
+            {
+                "id": "pi_full_checkout",
+                "object": "payment_intent",
+                "client_secret": "pi_full_checkout_secret",
+                "status": "requires_payment_method",
+                "amount": params["amount"],
+                "currency": params["currency"],
+                "metadata": params["metadata"],
+            },
+            "sk_test_123",
+        )
+
+    def retrieve(
+        self,
+        intent_id: str,
+        params: dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> stripe.PaymentIntent:
+        """Answer the intent :meth:`create` made, reported as succeeded."""
+        return stripe.PaymentIntent.construct_from(
+            {
+                "id": intent_id,
+                "object": "payment_intent",
+                "status": "succeeded",
+                "amount": self.created["amount"],
+                "currency": self.created["currency"],
+                "metadata": self.created["metadata"],
+                "latest_charge": {
+                    "id": "ch_full_checkout",
+                    "object": "charge",
+                    "payment_method_details": {"type": "card", "card": {"brand": "visa"}},
+                },
+            },
+            "sk_test_123",
+        )
+
+
+@pytest.fixture
+def fake_stripe_intents(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> _FakeIntents:
+    """Configure Stripe and replace ``stripe_client`` with a recording fake."""
+    settings.STRIPE_SECRET_KEY = "sk_test_123"  # noqa: S105 - test fixture
+    settings.STRIPE_PUBLISHABLE_KEY = "pk_test_123"
+    fake = _FakeIntents()
+
+    def client() -> SimpleNamespace:
+        return SimpleNamespace(v1=SimpleNamespace(payment_intents=fake))
+
+    monkeypatch.setattr(stripe_provider, "stripe_client", client)
+    return fake
+
+
+def test_a_full_stripe_checkout_writes_the_donors_details_after_confirm(
+    api_client: APIClient, fake_stripe_intents: _FakeIntents
+) -> None:
+    """A gift started through checkout, Stripe's own start() included, still settles.
+
+    ``StripeProvider.start`` overwrites ``payment.raw`` with the created intent
+    before the giver's details would ever be read back from it; keeping them on
+    ``donor_fields`` instead is what lets this settle correctly.
+    """
+    started = api_client.post(CHECKOUT_URL, gift(provider="stripe", city="Petaluma"), format="json")
+    assert started.status_code == 201, started.content
+    body = started.json()
+
+    response = api_client.post(
+        STRIPE_CONFIRM_URL,
+        {
+            "payment_id": body["payment_id"],
+            "token": body["token"],
+            "payment_intent_id": "pi_full_checkout",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200, response.content
+    donor = User.objects.get(email=DONOR_EMAIL)
+    profile = MemberProfile.objects.get(user=donor)
+    assert (donor.first_name, donor.last_name, profile.phone, profile.city) == (
+        "Pat",
+        "Giver",
+        "415-555-0100",
+        "Petaluma",
+    )
+
+
+@respx.mock
+def test_a_full_paypal_checkout_writes_the_donors_details_after_capture(
+    api_client: APIClient, settings: Settings
+) -> None:
+    """A gift started through checkout, PayPal's own start() included, still settles.
+
+    ``PayPalProvider.start`` overwrites ``payment.raw`` with the created order
+    before the giver's details would ever be read back from it; keeping them on
+    ``donor_fields`` instead is what lets this settle correctly.
+    """
+    settings.PAYPAL_CLIENT_ID = "client-id"
+    settings.PAYPAL_CLIENT_SECRET = "client-secret"  # noqa: S105 - test fixture
+    settings.PAYPAL_ENV = "sandbox"
+    respx.post(PAYPAL_OAUTH_URL).mock(
+        return_value=httpx.Response(200, json={"access_token": "token", "expires_in": 3_600})
+    )
+    respx.post(PAYPAL_ORDERS_URL).mock(
+        return_value=httpx.Response(
+            201, json={"id": "ORDER-FULL-CHECKOUT", "status": "CREATED", "links": []}
+        )
+    )
+
+    started = api_client.post(CHECKOUT_URL, gift(provider="paypal", city="Petaluma"), format="json")
+    assert started.status_code == 201, started.content
+    body = started.json()
+    payment = Payment.objects.get(pk=body["payment_id"])
+
+    respx.post(f"{PAYPAL_ORDERS_URL}/ORDER-FULL-CHECKOUT/capture").mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": "ORDER-FULL-CHECKOUT",
+                "status": "COMPLETED",
+                "purchase_units": [
+                    {
+                        "payments": {
+                            "captures": [
+                                {
+                                    "id": "CAPTURE-FULL-CHECKOUT",
+                                    "status": "COMPLETED",
+                                    "custom_id": str(payment.pk),
+                                    "amount": {
+                                        "currency_code": "USD",
+                                        "value": f"{payment.amount_cents / 100:.2f}",
+                                    },
+                                }
+                            ]
+                        }
+                    }
+                ],
+            },
+        )
+    )
+
+    response = api_client.post(
+        PAYPAL_CAPTURE_URL,
+        {"payment_id": payment.pk, "token": body["token"], "order_id": "ORDER-FULL-CHECKOUT"},
+        format="json",
+    )
+
+    assert response.status_code == 200, response.content
+    donor = User.objects.get(email=DONOR_EMAIL)
+    profile = MemberProfile.objects.get(user=donor)
+    assert (donor.first_name, donor.last_name, profile.phone, profile.city) == (
+        "Pat",
+        "Giver",
+        "415-555-0100",
+        "Petaluma",
+    )
+
+
+def test_completing_a_gift_stamps_the_donors_profile(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """Settling a gift stamps ``profile_updated_at`` on the donor's new profile."""
+    complete(api_client, give())
+
+    profile = MemberProfile.objects.get(user__email=DONOR_EMAIL)
+    assert profile.profile_updated_at is not None
 
 
 def test_the_status_reads_back_with_the_token(

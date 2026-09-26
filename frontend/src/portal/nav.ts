@@ -23,6 +23,11 @@ export interface NavItem {
    * pages at once.
    */
   end?: boolean;
+  /**
+   * Hide this entry from an effective friend: a friend by `kind` or by a
+   * `friend_on` date that has arrived has no membership to renew.
+   */
+  hideForFriend?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -31,7 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/profile/aircraft', label: 'My aircraft', roles: [], group: 'Membership' },
   { to: '/payments', label: 'Payments', roles: [], group: 'Membership' },
   { to: '/donate', label: 'Donate', roles: [], group: 'Membership' },
-  { to: '/renew', label: 'Renew', roles: [], group: 'Membership' },
+  { to: '/renew', label: 'Renew', roles: [], group: 'Membership', hideForFriend: true },
   // `/change-password` is a real route with a real screen; without an entry
   // here nothing in the portal linked to it.
   { to: '/change-password', label: 'Change password', roles: [], group: 'Membership' },
@@ -105,16 +110,28 @@ export function hasAnyRole(userRoles: readonly RoleSlug[], required: readonly Ro
   return required.some((role) => userRoles.includes(role));
 }
 
-/** The nav entries a user with `userRoles` may see, in declaration order. */
-export function visibleNavItems(userRoles: readonly RoleSlug[]): NavItem[] {
-  return NAV_ITEMS.filter((item) => hasAnyRole(userRoles, item.roles));
+/**
+ * The nav entries a user with `userRoles` may see, in declaration order.
+ *
+ * `isEffectiveFriend` drops an entry marked `hideForFriend`, such as Renew: a
+ * friend by kind or by an arrived `friend_on` date has no membership to renew.
+ */
+export function visibleNavItems(
+  userRoles: readonly RoleSlug[],
+  isEffectiveFriend = false,
+): NavItem[] {
+  return NAV_ITEMS.filter(
+    (item) =>
+      hasAnyRole(userRoles, item.roles) && !(item.hideForFriend === true && isEffectiveFriend),
+  );
 }
 
 /** Visible entries bucketed by group, empty groups dropped. */
 export function groupedNavItems(
   userRoles: readonly RoleSlug[],
+  isEffectiveFriend = false,
 ): { group: NavItem['group']; items: NavItem[] }[] {
-  const visible = visibleNavItems(userRoles);
+  const visible = visibleNavItems(userRoles, isEffectiveFriend);
   return NAV_GROUPS.map((group) => ({
     group,
     items: visible.filter((item) => item.group === group),

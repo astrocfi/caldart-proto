@@ -238,7 +238,7 @@ describe('DonationForm', () => {
     await waitFor(() => expect(onGiven).toHaveBeenCalledTimes(1));
   });
 
-  it('shows why an address that belongs to a member is refused', async () => {
+  it('shows why an address that belongs to a member is refused beside the field', async () => {
     serveGift();
     server.use(
       http.post(`${API}/donations/checkout`, () =>
@@ -258,9 +258,31 @@ describe('DonationForm', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Succeed' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'An account already uses that email address. Sign in to donate.',
+    // The refusal takes the giver back to the details, with the message beside
+    // the field it named rather than only in the payment panel.
+    const email = await screen.findByLabelText(/^Email/);
+    expect(email).toHaveAccessibleDescription(
+      'An account already uses that email address. Sign in to donate. Your receipt goes here',
     );
+    expect(screen.getByRole('button', { name: 'Continue to payment' })).toBeInTheDocument();
+  });
+
+  it('keeps what was typed when a field refusal sends the giver back', async () => {
+    serveGift();
+    server.use(
+      http.post(`${API}/donations/checkout`, () =>
+        HttpResponse.json({ phone: ['Use a ten-digit number.'] }, { status: 400 }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderForm();
+    await fillInGift(user);
+    await user.click(screen.getByRole('button', { name: 'Continue to payment' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Succeed' }));
+
+    await screen.findByRole('button', { name: 'Continue to payment' });
+    expect(screen.getByLabelText(/^Email/)).toHaveValue('pat@example.org');
   });
 
   it('confirms a gift a redirect brought back, with its token', async () => {

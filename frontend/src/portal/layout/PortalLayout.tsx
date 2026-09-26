@@ -1,6 +1,6 @@
 /**
  * The portal chrome: a left rail on desktop, a hamburger drawer on
- * mobile, filtered by the signed-in user's roles.
+ * mobile, filtered by the signed-in user's roles and, for Renew, their kind.
  */
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
@@ -26,7 +26,8 @@ export function PortalLayout(): JSX.Element {
     window.scrollTo({ top: 0, left: 0 });
   }, [location.pathname]);
 
-  const groups = isAuthenticated ? groupedNavItems(roles) : [];
+  const isEffectiveFriend = user?.membership.status === 'friend';
+  const groups = isAuthenticated ? groupedNavItems(roles, isEffectiveFriend) : [];
   const hasRail = groups.length > 0;
 
   return (

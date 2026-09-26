@@ -24,12 +24,13 @@ import { formatCents } from '@/portal/components/Money';
 import { PROVIDER_ORDER } from '@/portal/features/checkout/api';
 import { useSettledPayment } from '@/portal/features/checkout/CheckoutReturn';
 import { ContributionChooser } from '@/portal/features/checkout/ContributionChooser';
+import type { PaymentEndpoints } from '@/portal/features/checkout/endpoints';
 import { ProviderTabs } from '@/portal/features/checkout/ProviderTabs';
 import { maskEmail, maskPhone } from '@/portal/masks';
 import { donationEndpoints, useDonationsConfig } from './api';
 import type { DonorBody } from './api';
 import { DonorDetails } from './DonorDetails';
-import { EMPTY_DONATION_FORM, donorBody, validateDonation } from './form';
+import { EMPTY_DONATION_FORM, donorBody, donorFieldErrors, validateDonation } from './form';
 import type { DonationFormErrors, DonationFormValues } from './form';
 import './donate.css';
 
@@ -155,6 +156,12 @@ function GiftForm({ configUrl, returnUrl, onGiven }: GiftFormProps): JSX.Element
   const [errors, setErrors] = useState<DonationFormErrors>({});
   // The details as they stood when the giver pressed Continue; null until then.
   const [donor, setDonor] = useState<DonorBody | null>(null);
+  // Stable across renders: PaymentStep's `endpoints` memo depends on this, and
+  // recreating it on every GiftForm render would start a new checkout each time.
+  const handleDonorError = useCallback((found: DonationFormErrors) => {
+    setErrors((current) => ({ ...current, ...found }));
+    setDonor(null);
+  }, []);
 
   if (isPending) {
     return (
@@ -181,6 +188,7 @@ function GiftForm({ configUrl, returnUrl, onGiven }: GiftFormProps): JSX.Element
         returnUrl={returnUrl}
         onChange={() => setDonor(null)}
         onGiven={() => onGiven(donor.email)}
+        onDonorError={handleDonorError}
       />
     );
   }
@@ -289,6 +297,12 @@ interface PaymentStepProps {
   returnUrl: string;
   onChange: () => void;
   onGiven: () => void;
+  /**
+   * The server refused the checkout on one of the details form's own fields; handed
+   * the message for each one, so the giver sees it beside the field that earned it
+   * rather than only in the payment panel.
+   */
+  onDonorError: (found: Partial<Record<keyof DonationFormValues, string>>) => void;
 }
 
 /** What is being given and by whom, with a way back, then the provider tabs. */
@@ -299,13 +313,31 @@ function PaymentStep({
   returnUrl,
   onChange: handleChange,
   onGiven,
+  onDonorError,
 }: PaymentStepProps): JSX.Element {
   const providers = useMemo(
     () => PROVIDER_ORDER.filter((slug) => config.providers.includes(slug)),
     [config],
   );
   const [provider, setProvider] = useState<PaymentProvider | null>(null);
-  const endpoints = useMemo(() => donationEndpoints({ returnUrl, donor }), [returnUrl, donor]);
+  // Wraps the ordinary donation endpoints so a field-level refusal reaches the
+  // giver beside the field it named, in addition to whatever the payment panel
+  // itself shows: the panel does not know the donation form's own fields.
+  const endpoints = useMemo<PaymentEndpoints>(() => {
+    const base = donationEndpoints({ returnUrl, donor });
+    return {
+      ...base,
+      createCheckout: async (request, signal) => {
+        try {
+          return await base.createCheckout(request, signal);
+        } catch (caught) {
+          const found = donorFieldErrors(caught);
+          if (Object.keys(found).length > 0) onDonorError(found);
+          throw caught;
+        }
+      },
+    };
+  }, [returnUrl, donor, onDonorError]);
 
   useEffect(() => {
     if (provider === null && providers[0]) setProvider(providers[0]);

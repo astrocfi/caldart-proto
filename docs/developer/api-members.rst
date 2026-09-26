@@ -603,11 +603,11 @@ A grant to a friend makes them a member, audited as ``account.kind`` under the
 caller.
 
 With no ``starts_on``, that rule reads the largest ``ends_on`` across the
-member's **active** terms — terms whose stored status is ``expired`` or
-``canceled`` are ignored:
+member's **active or suspended** terms — terms whose stored status is
+``expired`` or ``canceled`` are ignored:
 
-* if one of those active terms is a lifetime term, and so has no end date, the
-  grant starts **today**;
+* if one of those terms is a lifetime term, and so has no end date, the grant
+  starts **today**;
 * otherwise, if the largest end date is today or later, the grant starts the
   **day after** it.  A term dated in the future therefore moves the start even
   though it is not covering the member today: granting an annual term to
@@ -619,6 +619,12 @@ member's **active** terms — terms whose stored status is ``expired`` or
 ``ends_on`` is then ``starts_on + duration_days - 1``, or ``null`` for a
 lifetime plan.  Passing ``starts_on`` overrides the whole rule and the end date
 is measured from the date given.
+
+A grant to a deactivated account is created ``suspended`` rather than
+``active``, exactly as a checkout confirmed after the payer deactivated is (see
+:ref:`api-deactivation`): the account does not read as covered while nobody
+can sign in to it, and the term becomes ``active`` when the account is
+reactivated.
 
 .. code-block:: json
 

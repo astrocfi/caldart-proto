@@ -37,6 +37,7 @@ class Migration(migrations.Migration):
                 ('reconciled_on', models.DateField(blank=True, help_text='The day a treasurer matched this to a statement.', null=True)),
                 ('note', models.CharField(blank=True, help_text="A treasurer's note: the check number, the reason for a manual entry.", max_length=255)),
                 ('raw', models.JSONField(blank=True, default=dict)),
+                ('donor_fields', models.JSONField(blank=True, default=dict, help_text="The public donation form's fields, kept here rather than on the donor's account until the gift settles, so an unauthenticated checkout can never overwrite an existing donor's stored details.  Empty for every payment but a public gift.")),
                 ('plan', models.ForeignKey(blank=True, help_text='Null for a pure donation.', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='payments', to='members.membershipplan')),
                 ('reconciled_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='payments_reconciled', to=settings.AUTH_USER_MODEL)),
                 ('recorded_by', models.ForeignKey(blank=True, help_text='The administrator who recorded a payment taken by hand.', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='payments_recorded', to=settings.AUTH_USER_MODEL)),

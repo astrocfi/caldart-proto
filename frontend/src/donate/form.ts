@@ -5,6 +5,7 @@
  * The required four are checked here the way the server checks them, so the giver
  * hears about a typo before anything is paid; the server still has the last word.
  */
+import { ApiError } from '@/portal/api/client';
 import type { IfrRated, PilotCertificateType } from '@/portal/api/types';
 import { normalizePhone } from '@/portal/features/profile/form';
 import { VOLUNTEER_INTERESTS } from '@/portal/features/profile/constants';
@@ -128,4 +129,50 @@ export function donorBody(values: DonationFormValues): DonorBody {
     if (values.volunteer[field]) body[field] = true;
   }
   return body;
+}
+
+/**
+ * The form fields the server can refuse a checkout on, keyed as it keys them.
+ *
+ * `dart_id`, unlike the other form fields, is already the request body's own name,
+ * so no renaming is needed to read the server's refusal back onto the field.
+ */
+const DONOR_FORM_FIELDS: readonly (keyof DonationFormValues)[] = [
+  'first_name',
+  'last_name',
+  'email',
+  'phone',
+  'address_line1',
+  'address_line2',
+  'city',
+  'state',
+  'postal_code',
+  'county',
+  'home_airport_identifier',
+  'home_airport_city',
+  'dart_id',
+  'air_care_alliance_number',
+  'pilot_certificate_type',
+  'ifr_rated',
+];
+
+/**
+ * The message for each of the form's own fields that `caught` refused, if any.
+ *
+ * `ApiError.fieldErrors` reads every string-valued key of the response body, which
+ * would also pick up a sibling ``code`` such as ``has_account``; this narrows that
+ * down to the fields the donation form can show an error beside.  Anything else --
+ * a refusal with no such field, or a rejection that is not an `ApiError` at all --
+ * answers empty.
+ */
+export function donorFieldErrors(
+  caught: unknown,
+): Partial<Record<keyof DonationFormValues, string>> {
+  if (!(caught instanceof ApiError)) return {};
+  const found: Partial<Record<keyof DonationFormValues, string>> = {};
+  for (const field of DONOR_FORM_FIELDS) {
+    const message = caught.fieldErrors[field];
+    if (message !== undefined) found[field] = message;
+  }
+  return found;
 }
