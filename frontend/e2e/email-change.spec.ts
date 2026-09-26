@@ -14,7 +14,7 @@ test('a member changes their address and verifies the new one', async ({ page })
 
   // Register; the wizard stops to ask for the first address to be verified.
   await page.goto('/portal/join');
-  await page.getByRole('textbox', { name: 'First name' }).fill('Ines');
+  await page.getByRole('textbox', { name: 'First name' }).fill('Irena');
   await page.getByRole('textbox', { name: 'Last name' }).fill('Varga');
   await page.getByRole('textbox', { name: 'Email address' }).fill(first);
   await page.getByLabel(/^Password/).fill(PASSWORD);
@@ -41,6 +41,6 @@ test('a member changes their address and verifies the new one', async ({ page })
   await expect(page.getByText(`${second} is verified.`)).toBeVisible();
 
   await page.goto('/portal/');
-  await expect(page.getByRole('heading', { name: /Welcome, Ines/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Welcome, Irena/ })).toBeVisible();
   await expect(nudge).toHaveCount(0);
 });

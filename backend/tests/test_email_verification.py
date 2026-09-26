@@ -368,9 +368,9 @@ def test_creating_a_member_with_a_password_sends_the_message(
 ) -> None:
     """A member created with a password is mailed a verification message."""
     with django_capture_on_commit_callbacks(execute=True):
-        create_member(account_admin, email="walkin@example.test", password=GOOD_PASSWORD)
+        create_member(account_admin, email="walk.in@example.test", password=GOOD_PASSWORD)
 
-    assert [m.to for m in verification_mails()] == [["walkin@example.test"]]
+    assert [m.to for m in verification_mails()] == [["walk.in@example.test"]]
 
 
 def test_creating_a_member_without_a_password_sends_no_verification(
