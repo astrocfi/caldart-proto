@@ -383,8 +383,10 @@ The session is then logged out.  The kind, the roles, the profile and every
 payment are kept.
 
 A checkout already in progress is left alone.  If its payment is confirmed after
-the account is deactivated, the term it buys is created ``active`` as usual, not
-suspended, so the account reads as ``current`` although nobody can sign in to it.
+the account is deactivated, the term it buys is created ``suspended``
+(``members.services.activate_term``), exactly as if it had been suspended by the
+deactivation itself: the account does not read as ``current`` while nobody can
+sign in to it, and reactivating restores the term the same way.
 
 * **400** ``{"current_password": ["That is not your current password."]}``.
 * **400** ``{"detail": "A system administrator cannot deactivate their own

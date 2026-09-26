@@ -797,6 +797,12 @@ def activate_term(
     ``friend_on`` date keeps being a member, the date cleared.  A donor's kind is
     left alone.
 
+    A deactivated account's term is created ``SUSPENDED`` rather than ``ACTIVE``:
+    a checkout a provider confirms after the payer deactivated in the meantime
+    must not stand as coverage for an account that cannot sign in to use it.
+    Reactivating restores it exactly as it restores a term suspended by
+    deactivation itself.
+
     Idempotent on ``payment``: calling twice with the same payment returns the
     term created the first time.
     """
@@ -823,12 +829,13 @@ def activate_term(
     else:
         ends_on = starts_on + timedelta(days=plan.duration_days - 1)
 
+    status = MembershipStatusChoices.ACTIVE if user.is_active else MembershipStatusChoices.SUSPENDED
     term = Membership.objects.create(
         user=user,
         plan=plan,
         starts_on=starts_on,
         ends_on=ends_on,
-        status=MembershipStatusChoices.ACTIVE,
+        status=status,
         source=source,
         payment=payment,
         granted_by=granted_by,

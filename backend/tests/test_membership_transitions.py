@@ -118,6 +118,28 @@ def test_a_webhook_after_the_capture_only_files_the_payload(checkout: Payment) -
 
 
 # --------------------------------------------------------------------------
+# A checkout that settles after the payer deactivated
+# --------------------------------------------------------------------------
+def test_a_payment_confirmed_after_deactivation_buys_a_suspended_term(
+    checkout: Payment, member: User
+) -> None:
+    """A provider confirming a checkout after a self-deactivation buys no coverage.
+
+    The confirmation can outrun the deactivation that happened in the browser
+    meanwhile, so the term it buys is created ``suspended`` rather than
+    ``active``: an account that cannot sign in gets no membership to use until
+    it reactivates.
+    """
+    member.is_active = False
+    member.save(update_fields=["is_active"])
+
+    mark_succeeded(checkout, provider_ref="pi_after_deactivation")
+
+    term = Membership.objects.get(payment=checkout)
+    assert term.status == MembershipStatusChoices.SUSPENDED
+
+
+# --------------------------------------------------------------------------
 # A canceled term, and the one bought after it
 # --------------------------------------------------------------------------
 @pytest.fixture
