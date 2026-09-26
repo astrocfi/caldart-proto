@@ -1,6 +1,12 @@
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import type { RouteObject } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { HELP_PAGES, helpPath } from './help';
+import { routes } from './routes';
 
 /**
  * Every route pattern the Help button must recognize, transcribed by hand rather than
@@ -110,5 +116,57 @@ describe('helpPath', () => {
 
   it('does not let /admin/members/:id swallow /admin/members/new', () => {
     expect(helpPath('/admin/members/new')).toBe('/docs/admin/new-member/');
+  });
+});
+
+/** The user guide's source directory, `docs/user/` at the repository root. */
+const USER_GUIDE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../docs/user');
+
+/**
+ * Every screen path in the route table, as a pattern rooted at `/`.
+ *
+ * A route with a `path` or `index: true` is a screen; a pathless route (a role guard or
+ * the session guard) only groups its children, and the `*` catch-all is the not-found
+ * page, which has no Help page of its own.
+ */
+function screenPatterns(tree: readonly RouteObject[], parent = ''): string[] {
+  return tree.flatMap((route) => {
+    const own = route.path === undefined ? parent : join(parent === '' ? '/' : parent, route.path);
+    const children = screenPatterns(route.children ?? [], own);
+    const isScreen = (route.index === true || route.path !== undefined) && route.path !== '*';
+    return isScreen && route.children === undefined ? [own, ...children] : children;
+  });
+}
+
+/** `pattern` with each `:param` segment replaced by a concrete value. */
+function concretePath(pattern: string): string {
+  return pattern.replace(/:[A-Za-z]+/g, '42');
+}
+
+const SCREEN_PATTERNS = screenPatterns(routes);
+
+describe('the Help pages and the route table', () => {
+  it('finds the screens in the route table', () => {
+    expect(SCREEN_PATTERNS).toContain('/admin/payments/:id');
+  });
+
+  it.each(SCREEN_PATTERNS)('gives the route %s a Help page', (pattern) => {
+    expect(HELP_PAGES.map((page) => page.pattern)).toContain(pattern);
+  });
+
+  it.each(SCREEN_PATTERNS)('sends a visitor at %s to the page mapped to that route', (pattern) => {
+    const page = HELP_PAGES.find((candidate) => candidate.pattern === pattern);
+    expect(helpPath(concretePath(pattern))).toBe(`/docs/${page?.slug ?? '(none)'}/`);
+  });
+
+  it.each(HELP_PAGES.map((page) => page.pattern))(
+    'maps the Help pattern %s to a route that exists',
+    (pattern) => {
+      expect(SCREEN_PATTERNS).toContain(pattern);
+    },
+  );
+
+  it.each(HELP_PAGES.map((page) => page.slug))('finds docs/user/%s.rst', (slug) => {
+    expect(existsSync(join(USER_GUIDE_DIR, `${slug}.rst`))).toBe(true);
   });
 });
