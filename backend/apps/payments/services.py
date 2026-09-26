@@ -158,6 +158,12 @@ def mark_succeeded(
     active, from the payment method the provider has just recorded against the
     charge.  A payment with no such mandate activates nothing.
 
+    A gift started on the public donation page carries the giver's details on
+    ``payment.raw`` rather than on the account, so that an unauthenticated checkout
+    can never overwrite an existing donor's stored details before it is paid; this
+    is also where :func:`apps.payments.donations.apply_donor_fields` writes them,
+    once the payment settles.  A payment that carries no such details is unaffected.
+
     A payment taken by the renewal scanner gets no receipt here.  The renewal
     email that reports the charge carries the same receipt and the same PDF, and
     the member is owed one message per charge, not two; the scanner sends it and
@@ -195,6 +201,13 @@ def _complete(
 
     if payment.status == PaymentStatus.SUCCEEDED:
         return payment, False
+
+    # Inline: donations reads this module for create_checkout, so a top-level
+    # import here would close the cycle.  Read before `raw` below replaces
+    # whatever start_donation filed here with the provider's own payload.
+    from apps.payments.donations import apply_donor_fields
+
+    apply_donor_fields(payment)
 
     payment.status = PaymentStatus.SUCCEEDED
     payment.completed_at = timezone.now()

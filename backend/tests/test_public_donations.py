@@ -109,6 +109,16 @@ def give(api_client: APIClient) -> Callable[..., dict[str, Any]]:
     return start
 
 
+def complete(api_client: APIClient, body: dict[str, Any]) -> None:
+    """Settle the mock gift ``give`` started, ignoring the response body."""
+    response = api_client.post(
+        MOCK_COMPLETE_URL,
+        {"payment_id": body["payment_id"], "token": body["token"]},
+        format="json",
+    )
+    assert response.status_code == 200, response.content
+
+
 # ---------------------------------------------------------------- donor_for
 def test_donor_for_creates_a_donor_with_no_role_and_no_password() -> None:
     """A new address becomes a donor account that holds no role and cannot sign in."""
@@ -135,34 +145,23 @@ def test_donor_for_sends_the_new_donor_no_email() -> None:
     assert mail.outbox == []
 
 
-def test_donor_for_records_the_phone_in_its_canonical_form() -> None:
-    """The donor's number is stored on their profile as ``XXX-XXX-XXXX``."""
+def test_donor_for_leaves_a_new_donor_unnamed() -> None:
+    """A new donor's names are not written until a gift naming them settles.
+
+    ``donor_for`` only finds or makes the account: it is not the unauthenticated
+    caller's word alone that should ever land on the account, so the names wait
+    for :func:`apps.payments.donations.apply_donor_fields`.
+    """
     donor = donor_for(donor_fields())
 
-    assert MemberProfile.objects.get(user=donor).phone == "415-555-0100"
+    assert (donor.first_name, donor.last_name) == ("", "")
 
 
-def test_donor_for_stores_the_optional_profile_fields() -> None:
-    """Whatever the donor told us beyond the four required fields lands on the profile."""
-    dart = DartFactory()
-    donor = donor_for(
-        donor_fields(city="Petaluma", county="Sonoma", dart=dart, vol_fundraising=True)
-    )
-
-    profile = MemberProfile.objects.get(user=donor)
-    assert (profile.city, profile.county, profile.dart, profile.vol_fundraising) == (
-        "Petaluma",
-        "Sonoma",
-        dart,
-        True,
-    )
-
-
-def test_donor_for_stamps_the_new_profile() -> None:
-    """A donor's profile is stamped as written when it is created."""
+def test_donor_for_writes_no_profile_yet() -> None:
+    """A new donor gets no profile row until a gift naming them settles."""
     donor = donor_for(donor_fields())
 
-    assert MemberProfile.objects.get(user=donor).profile_updated_at is not None
+    assert MemberProfile.objects.filter(user=donor).exists() is False
 
 
 def test_donor_for_finds_an_existing_donor_whatever_the_case_of_the_address() -> None:
@@ -193,25 +192,27 @@ def test_gifts_from_one_address_in_any_case_wait_on_one_lock() -> None:
     assert (len(advisory_locks(first)), advisory_locks(first)) == (1, advisory_locks(second))
 
 
-def test_donor_for_updates_the_names_and_phone_of_an_existing_donor() -> None:
-    """The names and the phone a returning donor gives replace what was stored."""
-    donor_for(donor_fields())
-    donor = donor_for(donor_fields(first_name="Patricia", phone="707-555-0199"))
+def test_donor_for_does_not_touch_an_existing_donors_stored_details() -> None:
+    """Finding an existing donor writes nothing: it takes no details to be found.
 
-    donor.refresh_from_db()
-    assert (donor.first_name, MemberProfile.objects.get(user=donor).phone) == (
+    An unauthenticated caller who only knows a donor's address must not be able to
+    overwrite what an earlier, completed gift recorded merely by starting a new
+    checkout; see the settle-time tests below for when the new details do land.
+    """
+    first = donor_for(donor_fields())
+    first.first_name = "Patricia"
+    first.save(update_fields=["first_name"])
+    MemberProfile.objects.create(user=first, phone="415-555-0100", city="Petaluma")
+
+    donor_for(donor_fields(first_name="Someone Else", phone="707-555-0199", city=""))
+
+    first.refresh_from_db()
+    profile = MemberProfile.objects.get(user=first)
+    assert (first.first_name, profile.phone, profile.city) == (
         "Patricia",
-        "707-555-0199",
+        "415-555-0100",
+        "Petaluma",
     )
-
-
-def test_donor_for_keeps_an_optional_field_the_returning_donor_left_blank() -> None:
-    """A returning donor who skips the optional section keeps what they told us before."""
-    donor_for(donor_fields(city="Petaluma", vol_newsletter=True))
-    donor = donor_for(donor_fields(city="", vol_newsletter=False))
-
-    profile = MemberProfile.objects.get(user=donor)
-    assert (profile.city, profile.vol_newsletter) == ("Petaluma", True)
 
 
 @pytest.mark.parametrize("kind", [AccountKind.MEMBER, AccountKind.FRIEND])
@@ -419,19 +420,23 @@ def test_a_phone_that_is_not_ten_digits_is_refused(api_client: APIClient) -> Non
 
 
 def test_a_pilot_certificate_needs_no_number_from_a_donor(
-    give: Callable[..., dict[str, Any]],
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
     """A donor may name their certificate without giving its number."""
     body = give(pilot_certificate_type="private")
+    complete(api_client, body)
 
     donor = Payment.objects.get(pk=body["payment_id"]).user
     assert MemberProfile.objects.get(user=donor).pilot_certificate_type == "private"
 
 
-def test_a_gift_names_its_dart_by_id(give: Callable[..., dict[str, Any]]) -> None:
-    """``dart_id`` puts the donor on a DART."""
+def test_a_gift_names_its_dart_by_id(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """``dart_id`` puts the donor on a DART, once the gift that named it settles."""
     dart = DartFactory()
     body = give(dart_id=dart.pk)
+    complete(api_client, body)
 
     donor = Payment.objects.get(pk=body["payment_id"]).user
     assert MemberProfile.objects.get(user=donor).dart == dart
@@ -503,6 +508,84 @@ def test_completing_a_mock_gift_succeeds(
     )
 
     assert (response.status_code, response.json()["status"]) == (200, "succeeded")
+
+
+def test_a_pending_gift_leaves_the_new_donors_account_unwritten(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """Starting a gift makes the donor account, but writes no name or profile yet."""
+    give()
+
+    donor = User.objects.get(email=DONOR_EMAIL)
+    assert (donor.first_name, MemberProfile.objects.filter(user=donor).exists()) == ("", False)
+
+
+def test_completing_a_gift_writes_the_new_donors_name_and_profile(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """Settling the gift writes the name and the optional profile fields it named."""
+    dart = DartFactory()
+    body = give(city="Petaluma", dart_id=dart.pk)
+
+    complete(api_client, body)
+
+    donor = User.objects.get(email=DONOR_EMAIL)
+    profile = MemberProfile.objects.get(user=donor)
+    assert (donor.first_name, donor.last_name, profile.phone, profile.city, profile.dart) == (
+        "Pat",
+        "Giver",
+        "415-555-0100",
+        "Petaluma",
+        dart,
+    )
+
+
+def test_completing_a_second_gift_updates_an_existing_donors_details(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """A second, completed gift replaces the names and the phone the first gave."""
+    complete(api_client, give())
+
+    second = give(email=DONOR_EMAIL.upper(), first_name="Patricia", phone="707-555-0199")
+    complete(api_client, second)
+
+    donor = User.objects.get(email=DONOR_EMAIL)
+    assert (donor.first_name, MemberProfile.objects.get(user=donor).phone) == (
+        "Patricia",
+        "707-555-0199",
+    )
+
+
+def test_completing_a_gift_keeps_an_optional_field_the_giver_left_blank(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """A returning donor who skips the optional section keeps what they told us before."""
+    complete(api_client, give(city="Petaluma", vol_newsletter=True))
+
+    complete(api_client, give(email=DONOR_EMAIL.upper(), city="", vol_newsletter=False))
+
+    profile = MemberProfile.objects.get(user__email=DONOR_EMAIL)
+    assert (profile.city, profile.vol_newsletter) == ("Petaluma", True)
+
+
+def test_an_existing_donors_stored_details_stay_put_until_a_new_gift_settles(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """Starting, but not completing, a second gift cannot overwrite a donor's record.
+
+    Anyone who knows a donor's email address can start a checkout in their name;
+    until that checkout is actually paid, it must not be able to change what an
+    earlier, completed gift recorded.
+    """
+    complete(api_client, give())
+
+    give(email=DONOR_EMAIL.upper(), first_name="Someone Else", phone="707-555-0199")
+
+    donor = User.objects.get(email=DONOR_EMAIL)
+    assert (donor.first_name, MemberProfile.objects.get(user=donor).phone) == (
+        "Pat",
+        "415-555-0100",
+    )
 
 
 def test_a_completed_gift_reads_no_membership(
