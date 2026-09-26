@@ -362,8 +362,13 @@ Deactivates the signed-in account and ends its session, answering with no body.
 
    {"current_password": "..."}
 
-In one transaction:
+In one transaction, holding a lock on the account's row so that a second,
+concurrent request waits and then finds the account already inactive and does
+nothing:
 
+#. a system administrator or a donor is refused (below), which changes nothing;
+   otherwise ``is_active`` is cleared and ``account.deactivate`` is recorded with
+   ``self_service=true`` (``accounts.services.deactivate_own_account``);
 #. every active or paused renewal mandate — automatic renewal or recurring
    donation — is canceled by ``payments.renewals.cancel_mandate`` with the account
    as its own actor (a self-service ``renewal.cancel``, and the usual "automatic
@@ -372,12 +377,14 @@ In one transaction:
 #. every active term that is lifetime or ends on or after today — the covering
    term and any renewal already paid for that starts later — is set to
    ``suspended``, each recorded as ``membership.correct`` with
-   ``status=suspended`` (``members.services.suspend_terms``);
-#. ``is_active`` is cleared and ``account.deactivate`` is recorded with
-   ``self_service=true``.
+   ``status=suspended`` (``members.services.suspend_terms``).
 
 The session is then logged out.  The kind, the roles, the profile and every
 payment are kept.
+
+A checkout already in progress is left alone.  If its payment is confirmed after
+the account is deactivated, the term it buys is created ``active`` as usual, not
+suspended, so the account reads as ``current`` although nobody can sign in to it.
 
 * **400** ``{"current_password": ["That is not your current password."]}``.
 * **400** ``{"detail": "A system administrator cannot deactivate their own
@@ -403,7 +410,8 @@ payload.  It takes the same body as a sign-in, and shares its throttle scope,
 
 Only an inactive account that is not a donor's, whose password matches, is
 reactivated (``accounts.services.deactivated_account``; the address is compared
-case-insensitively).  Then:
+case-insensitively).  The account's row is locked for the transaction, so of two
+concurrent requests the second finds the account active and is refused.  Then:
 
 #. ``is_active`` is set and ``account.activate`` is recorded with
    ``self_service=true``; the kind and the roles are exactly as they were;
@@ -415,7 +423,22 @@ case-insensitively).  Then:
    once the transaction commits.
 
 Canceled mandates stay canceled.  This works for an account an administrator
-deactivated as well as one its owner deactivated.
+deactivated as well as one its owner deactivated.  The answer is the user
+payload, as a sign-in gives it, with ``is_active`` true:
+
+.. code-block:: json
+
+   {"id": 12, "email": "marta.reyes@example.org", "first_name": "Marta",
+    "last_name": "Reyes", "roles": ["member"], "is_active": true,
+    "membership": {"status": "current", "expires_on": "2027-06-30",
+                   "plan": "Annual", "is_lifetime": false},
+    "profile_complete": true, "email_verified": true, "kind": "member",
+    "friend_on": null}
+
+An administrator who sets ``is_active`` back to true — ``PATCH /admin/users/{id}``
+or ``PATCH /admin/members/{id}`` — brings the suspended terms back the same way
+(``members.services.apply_account_changes``), each ``membership.correct`` recorded
+under the administrator.
 
 * **400** ``{"detail": "Incorrect email address or password."}`` — a wrong
   password, an active account, an unknown address, or a donor, all answered

@@ -17,11 +17,10 @@ from apps.accounts.services import (
     AccountChanges,
     is_donor,
     normalized_email,
-    update_account,
     user_from_uid,
 )
 from apps.members.api.serializers import MembershipStatusSerializer
-from apps.members.services import membership_of
+from apps.members.services import apply_account_changes, membership_of
 
 
 class UserSerializer(serializers.ModelSerializer[User]):
@@ -380,6 +379,8 @@ class AdminUserSerializer(UserSerializer):
         """Hand the change to ``accounts.services.update_account`` and return the account.
 
         That is where the rules needing both accounts live, so a refusal surfaces as the
-        ``DomainValidationError`` it raises rather than as a serializer error.
+        ``DomainValidationError`` it raises rather than as a serializer error.  It goes
+        through ``members.services.apply_account_changes``, so ticking the active flag
+        on a deactivated account also brings back its suspended membership terms.
         """
-        return update_account(self._actor, instance, validated_data)
+        return apply_account_changes(self._actor, instance, validated_data)

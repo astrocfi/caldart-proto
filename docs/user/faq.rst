@@ -309,10 +309,9 @@ Can I close my account?
 -----------------------
 
 You can deactivate it yourself: **Deactivate my account** at the foot of **My
-profile**, confirmed with your current password.  You are signed out, you
-disappear from every member list and report, and automatic renewal and any
-recurring donation are turned off.  Nothing is deleted, and your payment history
-is kept.
+profile**, confirmed with your current password.  You are signed out and cannot
+sign in again until you reactivate, and automatic renewal and any recurring
+donation are turned off.  Nothing is deleted, and your payment history is kept.
 
 To come back, sign in with the same address and password and press **Reactivate
 my account**, or reset your password.  A membership that still had time to run

@@ -258,10 +258,11 @@ def update_member(
     """Apply an administrator's edit to a member, and return the account.
 
     ``account`` goes to :func:`apps.accounts.services.update_account`, which owns
-    every rule about who may change what, and ``profile`` is written over the
-    member's profile row, creating it if the account somehow has none.  Both
-    halves are written together, so a refused account edit leaves the profile
-    alone.
+    every rule about who may change what, through :func:`apply_account_changes`, so
+    an edit that makes a deactivated account active brings back its suspended terms.
+    ``profile`` is written over the member's profile row, creating it if the account
+    somehow has none.  Both halves are written together, so a refused account edit
+    leaves the profile alone.
 
     :func:`touch_profile` stamps the profile whenever the request carries
     ``profile``, or an account ``email``, ``first_name`` or ``last_name`` --
@@ -269,7 +270,7 @@ def update_member(
     request that only flips ``is_active`` leaves the stamp alone, and so does
     one for a target with no profile row to stamp.
     """
-    update_account(actor, target, account or {})
+    apply_account_changes(actor, target, account or {})
     if profile is not None:
         row, _ = MemberProfile.objects.get_or_create(user=target)
         for field, value in profile.items():
@@ -861,15 +862,19 @@ def suspend_terms(user: User, *, today: date | None = None) -> list[Membership]:
 
 
 @transaction.atomic
-def restore_terms(user: User, *, today: date | None = None) -> list[Membership]:
+def restore_terms(
+    user: User, *, actor: User | None = None, today: date | None = None
+) -> list[Membership]:
     """Bring back every suspended term of ``user``'s, and return them.
 
     A term that is lifetime or ends on or after ``today`` (defaulting to the current
     local date) is ``active`` again, so a membership resumes through its old date; one
     that ran out while the account was deactivated is ``expired``.  Each change is
-    recorded as ``membership.correct`` with the new status, the account itself as the
-    actor.  Called when a person reactivates their own account.
+    recorded as ``membership.correct`` with the new status under ``actor``, the account
+    itself when none is given.  Called whenever a deactivated account is active again:
+    the person reactivating it, or an administrator ticking **Account is active**.
     """
+    actor = actor or user
     today = today or timezone.localdate()
     terms = list(
         user.memberships.filter(status=MembershipStatusChoices.SUSPENDED).order_by(
@@ -879,8 +884,24 @@ def restore_terms(user: User, *, today: date | None = None) -> list[Membership]:
     for held in terms:
         running = held.ends_on is None or held.ends_on >= today
         status = MembershipStatusChoices.ACTIVE if running else MembershipStatusChoices.EXPIRED
-        _set_term_status(held, status, actor=user)
+        _set_term_status(held, status, actor=actor)
     return terms
+
+
+@transaction.atomic
+def apply_account_changes(actor: User, target: User, changes: AccountChanges) -> User:
+    """Apply an administrator's account edit through ``update_account``, and return it.
+
+    Every rule is ``update_account``'s.  An edit that makes a deactivated account
+    active again also brings back its suspended membership through
+    :func:`restore_terms` under ``actor``, as the person's own reactivation would, so
+    a membership suspended when they deactivated is not lost for good.
+    """
+    was_active = target.is_active
+    user = update_account(actor, target, changes)
+    if not was_active and user.is_active:
+        restore_terms(user, actor=actor)
+    return user
 
 
 def _set_term_status(term: Membership, status: MembershipStatusChoices, *, actor: User) -> None:

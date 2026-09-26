@@ -334,6 +334,15 @@ class PasswordResetConfirmView(APIView):
 # --------------------------------------------------------------------------
 # Deactivating and reactivating your own account
 # --------------------------------------------------------------------------
+def _locked_is_active(user: User) -> bool:
+    """Lock ``user``'s row until the transaction ends, and read its stored active flag.
+
+    Two requests racing to deactivate or reactivate one account run one after the
+    other, and the second sees what the first wrote.
+    """
+    return User.objects.select_for_update().values_list("is_active", flat=True).get(pk=user.pk)
+
+
 @transaction.atomic
 def deactivate(user: User) -> None:
     """Deactivate ``user`` at their own request, withdrawing everything that runs on.
@@ -341,21 +350,29 @@ def deactivate(user: User) -> None:
     The account is refused or deactivated by ``deactivate_own_account`` first, so a
     refusal changes nothing; then every mandate is canceled or discarded and every
     term with time left is suspended.  Raises the ``DomainError`` a refusal raises.
+    An account already inactive when its row is locked is left alone.
     """
+    if not _locked_is_active(user):
+        return
     deactivate_own_account(user)
     cancel_all_mandates(user)
     suspend_terms(user)
 
 
 @transaction.atomic
-def reactivate(user: User) -> None:
+def reactivate(user: User) -> bool:
     """Bring ``user``'s deactivated account back, with any membership still running.
 
     Kind and roles are untouched; each suspended term is active again, or expired if
-    it ran out meanwhile.  Canceled mandates stay canceled.
+    it ran out meanwhile.  Canceled mandates stay canceled.  ``False``, changing
+    nothing, when the account is already active once its row is locked; ``True``
+    otherwise.
     """
+    if _locked_is_active(user):
+        return False
     reactivate_own_account(user)
     restore_terms(user)
+    return True
 
 
 class DeactivateView(APIView):
@@ -412,12 +429,11 @@ class ReactivateView(APIView):
         user = deactivated_account(
             serializer.validated_data["email"], serializer.validated_data["password"]
         )
-        if user is None:
+        if user is None or not reactivate(user):
             return Response(
                 {"detail": WRONG_CREDENTIALS_MESSAGE},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        reactivate(user)
         login(request, user)
         return Response(UserSerializer(user).data)
 

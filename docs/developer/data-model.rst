@@ -803,8 +803,9 @@ started, and either it is lifetime or it has not run out.
 A ``suspended`` term belongs to an account its holder deactivated
 (:ref:`api-deactivation`).  Deactivating suspends every ``active`` term that is
 lifetime or ends on or after that day — the covering term and any renewal already
-paid for — and reactivating turns each back to ``active``, or to ``expired`` if
-its end passed in the meantime.  While suspended, a term counts for nothing: it
+paid for — and reactivating, by the person or by an administrator ticking the
+account active again, turns each back to ``active``, or to ``expired`` if its end
+passed in the meantime.  While suspended, a term counts for nothing: it
 never covers a day and is never the past term an expired member is reported
 from, and the renewal reminders skip it.
 

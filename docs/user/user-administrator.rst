@@ -189,7 +189,10 @@ account**, which switches it back on and signs them in; completing a password
 reset they asked for does the same.  They can also deactivate their own account
 from their profile (see :ref:`deactivating-your-account`), which cancels their
 automatic renewal and recurring donations and sets their membership aside until
-they return.  Unticking **Active** yourself does neither of those.
+they return.  Unticking **Active** yourself does neither of those.  Ticking
+**Active** again on an account the person deactivated themselves brings back
+their membership as their own reactivation would: a term with time left is
+active again, and one whose end date passed in the meantime is expired.
 
 Deactivation is the right tool for someone who has left.  It does not keep out
 someone who knows the password, so for an account you suspect has been
