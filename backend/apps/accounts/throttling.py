@@ -1,8 +1,9 @@
-"""Rate limits for the auth endpoints that mail someone or guess at a secret.
+"""Rate limits for the anonymous endpoints that mail someone, guess at a secret, or write.
 
 Login, registration, password-reset, and email-verification requests are where a
-caller can burn server time, guess at a token, or spray an inbox, so each gets its
-own scope.  Every scope counts by client address, signed in or not.
+caller can burn server time, guess at a token, or spray an inbox, and a gift on the
+public donation page writes an account and a payment for a caller nobody signed in,
+so each gets its own scope.  Every scope counts by client address, signed in or not.
 
 Rates come from the ``AUTH_THROTTLE_RATES`` setting rather than DRF's
 ``DEFAULT_THROTTLE_RATES`` so they can be switched off (or turned up for one
@@ -25,6 +26,7 @@ REGISTER_SCOPE = "auth_register"
 PASSWORD_RESET_SCOPE = "auth_password_reset"  # noqa: S105 - a throttle scope name, not a secret
 VERIFY_SCOPE = "auth_verify"
 VERIFY_RESEND_SCOPE = "auth_verify_resend"
+DONATE_SCOPE = "donate"
 
 
 class AuthScopedThrottle(AnonRateThrottle):
@@ -80,3 +82,14 @@ class EmailVerifyResendThrottle(AuthScopedThrottle):
     """Throttles ``POST /auth/email/resend`` under the ``auth_verify_resend`` rate."""
 
     scope = VERIFY_RESEND_SCOPE
+
+
+class DonateThrottle(AuthScopedThrottle):
+    """Throttles ``POST /donations/checkout`` under the ``donate`` rate.
+
+    Each gift on the public donation page can make a donor account and a pending
+    payment for a caller nobody has signed in, so the start of one is counted by
+    client address like the auth endpoints.
+    """
+
+    scope = DONATE_SCOPE

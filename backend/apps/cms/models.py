@@ -1,8 +1,8 @@
 """Wagtail content models for the public site.
 
 The page tree is deliberately small: a home page, a general-purpose standard
-page, a news index plus posts, a DART index plus one page per team, and a
-contact page.  Anything an editor needs beyond that they build with the
+page, a news index plus posts, a DART index plus one page per team, a contact
+page, and the donation page.  Anything an editor needs beyond that they build with the
 StreamField blocks in :mod:`apps.cms.blocks`.
 
 ``MembersOnlyMixin`` is the members-only wall: a page flagged ``members_only``
@@ -768,20 +768,56 @@ class ContactPage(BasePage):
         verbose_name = "contact page"
 
 
+class DonatePage(BasePage):
+    """The public donation page: the editor's words around the donation form.
+
+    ``intro`` sits above the form and ``thanks`` replaces the form once a gift has
+    gone through.  The form itself is the ``src/site/donate.tsx`` script, mounted on
+    the page's ``#donate-app`` element, which gives through the ``/donations/``
+    endpoints; anyone may use it, signed in or not.
+    """
+
+    intro = RichTextField(
+        blank=True,
+        features=RICH_TEXT_FEATURES,
+        help_text="Shown above the donation form.",
+    )
+    thanks = RichTextField(
+        blank=True,
+        features=RICH_TEXT_FEATURES,
+        help_text="Shown in place of the form once a gift has gone through.",
+    )
+
+    content_panels = [*Page.content_panels, FieldPanel("intro"), FieldPanel("thanks")]
+    search_fields = [*Page.search_fields, index.SearchField("intro")]
+
+    template = "cms/donate_page.html"
+
+    class Meta:
+        verbose_name = "donate page"
+
+    def __str__(self) -> str:
+        """The page title, which is how Wagtail lists and chooses the page."""
+        return str(self.title)
+
+
 # Allowed children.  Declared after the classes so the names resolve.
 HomePage.subpage_types = [
     "cms.StandardPage",
     "cms.NewsIndexPage",
     "cms.DartIndexPage",
     "cms.ContactPage",
+    "cms.DonatePage",
 ]
 StandardPage.subpage_types = [
     "cms.StandardPage",
     "cms.NewsIndexPage",
     "cms.DartIndexPage",
     "cms.ContactPage",
+    "cms.DonatePage",
 ]
 ContactPage.subpage_types = []
+DonatePage.subpage_types = []
 
 
 @register_setting

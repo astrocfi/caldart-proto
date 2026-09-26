@@ -53,3 +53,15 @@ test('the bar opens with Home and offers one way to join', async ({ page }) => {
   expect(titles[0]).toBe('Home');
   expect(titles.filter((title) => title.startsWith('Join'))).toEqual(['Join CalDART']);
 });
+
+test("the menu's Donate entry opens the donation form", async ({ page }) => {
+  await page.goto('/');
+
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Donate', exact: true })
+    .click();
+
+  await expect(page).toHaveURL(/\/donate\/$/);
+  await expect(page.getByRole('group', { name: 'Amount' })).toBeVisible();
+});

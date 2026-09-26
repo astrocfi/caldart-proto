@@ -10,10 +10,10 @@ Membership: {{ plan_name }}{% if term_detail %} ({{ term_detail }}){% endif %} â
 
 {{ org_name }} is a 501(c)(3) organization. No goods or services were provided
 in exchange for this contribution.
-{% endif %}
+{% endif %}{% if user.kind != "donor" %}
 Your payments, receipts and annual contribution statements are here:
 {{ payments_url }}
-
+{% endif %}
 --
 {{ org_name }} is a volunteer disaster air transportation network.
 {% if contact_email %}Questions? Write to {{ contact_email }}.

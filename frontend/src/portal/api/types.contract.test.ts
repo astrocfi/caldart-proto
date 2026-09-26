@@ -42,6 +42,9 @@ import type {
   ContributionTier,
   Dart,
   DeactivatePayload,
+  DonationCheckoutRequest,
+  DonationCheckoutResponse,
+  DonationsConfig,
   EmailChangePayload,
   EmailLogEntry,
   EmailVerifyPayload,
@@ -139,6 +142,7 @@ import type {
   RoleSlug,
   SendPasswordResetResult,
   SiteConfig,
+  StateChoice,
   StatementYears,
   TermUpdatePayload,
   User,
@@ -265,6 +269,16 @@ const contributionTier: Matches<ContributionTier, Schemas['ContributionTier']> =
 const paymentsConfig: Matches<PaymentsConfig, Schemas['PaymentsConfig']> = true;
 const checkoutRequest: Matches<CheckoutRequest, Schemas['CheckoutRequest']> = true;
 const checkoutResponse: Matches<CheckoutResponse, Schemas['CheckoutResponse']> = true;
+const stateChoice: Matches<StateChoice, Schemas['StateChoice']> = true;
+const donationsConfig: Matches<DonationsConfig, Schemas['DonationsConfig']> = true;
+const donationCheckoutRequest: Matches<
+  DonationCheckoutRequest,
+  Schemas['DonationCheckoutRequest']
+> = true;
+const donationCheckoutResponse: Matches<
+  DonationCheckoutResponse,
+  Schemas['DonationCheckoutResponse']
+> = true;
 const periodSummary: Matches<PaymentPeriodSummary, Schemas['PaymentPeriodSummary']> = true;
 const reportColumn: Matches<ReportColumn, Schemas['ReportColumn']> = true;
 const reportSummary: Matches<ReportSummary, Schemas['ReportSummary']> = true;
@@ -417,6 +431,10 @@ const assertions: readonly true[] = [
   paymentsConfig,
   checkoutRequest,
   checkoutResponse,
+  stateChoice,
+  donationsConfig,
+  donationCheckoutRequest,
+  donationCheckoutResponse,
   periodSummary,
   reportColumn,
   reportSummary,
@@ -549,6 +567,10 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PaymentsConfig',
   'CheckoutRequest',
   'CheckoutResponse',
+  'StateChoice',
+  'DonationsConfig',
+  'DonationCheckoutRequest',
+  'DonationCheckoutResponse',
   'PaymentPeriodSummary',
   'ReportColumn',
   'ReportSummary',

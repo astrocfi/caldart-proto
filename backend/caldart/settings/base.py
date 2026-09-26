@@ -278,6 +278,8 @@ SPECTACULAR_SETTINGS = {
         "ManualMethodEnum": "apps.payments.manual.MANUAL_METHOD_CHOICES",
         "AccountKindEnum": "apps.accounts.models.AccountKind.choices",
         "PersonKindEnum": "apps.accounts.models.PERSON_KIND_CHOICES",
+        # The portal's and the public donation page's mock completions share one set.
+        "MockCompleteOutcomeEnum": "apps.payments.api.serializers.MOCK_OUTCOMES",
     },
     # A read-only field and a write-only one describe different objects, so the
     # request body gets its own component; that is the split the portal's
@@ -330,6 +332,8 @@ AUTH_THROTTLE_RATES = {
     "auth_password_reset": _throttle_rate("AUTH_THROTTLE_PASSWORD_RESET", "10/hour"),
     "auth_verify": _throttle_rate("AUTH_THROTTLE_VERIFY", "30/hour"),
     "auth_verify_resend": _throttle_rate("AUTH_THROTTLE_VERIFY_RESEND", "5/hour"),
+    # Starting a gift on the public donation page, which may make a donor account.
+    "donate": _throttle_rate("AUTH_THROTTLE_DONATE", "10/hour"),
 }
 
 # How long an email verification link stays usable, in seconds: three days, the

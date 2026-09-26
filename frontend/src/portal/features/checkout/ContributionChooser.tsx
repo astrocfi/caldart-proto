@@ -48,7 +48,16 @@ export interface ContributionChooserProps {
   isOther: boolean;
   onOther: (isOther: boolean) => void; // codespell:ignore onother
   disabled?: boolean;
+  /** The fieldset's legend; a checkout adds a contribution to its dues. */
+  legend?: string;
+  /** The line under the legend; null for none. */
+  hint?: string | null;
 }
+
+/** What the chooser says over a contribution added to dues. */
+const DUES_HINT =
+  'CalDART is a 501(c)(3); a contribution on top of your dues is tax deductible and pays for ' +
+  'training, fuel, and equipment.';
 
 function label(tier: ContributionTier): string {
   if (tier.cents === 0) return 'No thank you';
@@ -64,6 +73,8 @@ export function ContributionChooser({
   isOther,
   onOther, // codespell:ignore onother
   disabled = false,
+  legend = 'Add a contribution',
+  hint = DUES_HINT,
 }: ContributionChooserProps): JSX.Element {
   const otherId = useId();
 
@@ -71,11 +82,8 @@ export function ContributionChooser({
 
   return (
     <fieldset className="checkout__section">
-      <legend>Add a contribution</legend>
-      <p className="muted checkout__hint">
-        CalDART is a 501(c)(3); a contribution on top of your dues is tax deductible and pays for
-        training, fuel, and equipment.
-      </p>
+      <legend>{legend}</legend>
+      {hint === null ? null : <p className="muted checkout__hint">{hint}</p>}
       <div className="tier-grid">
         {tiers.map((tier) => (
           <label

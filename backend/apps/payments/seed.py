@@ -23,6 +23,9 @@ that lapsed ten days ago with no attempt yet, so the daily renewal job always
 has an ordinary charge and a catch-up one waiting the day the seed runs.  Two
 more give on a schedule of their own: the account administrator a yearly
 recurring donation, and one generated member a monthly one.
+
+Six donors -- people who gave through the public donation page and hold no
+portal account -- close the set, each with one to three settled contributions.
 """
 
 from __future__ import annotations
@@ -34,14 +37,18 @@ from typing import Any
 
 from django.core.management.base import OutputWrapper
 from django.utils import timezone
+from faker import Faker
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
+from apps.accounts.services import create_account
 from apps.members.models import (
+    MemberProfile,
     Membership,
     MembershipPlan,
     MembershipSource,
     MembershipStatusChoices,
 )
+from apps.members.seed import EMPTY_DART
 from apps.members.services import (
     activate_term,
     cancel_term,
@@ -71,6 +78,23 @@ from apps.payments.renewals import (
     RETRY_OFFSETS,
     term_to_renew,
 )
+
+#: How many gifts each seeded donor made, in the order of their addresses:
+#: ``donor1@example.org`` made the first count's worth, and so on.
+DONOR_GIFT_COUNTS: tuple[int, ...] = (1, 2, 3, 1, 3, 2)
+
+#: The address each seeded donor gave from, numbered from one.
+DONOR_EMAIL = "donor{number}@example.org"
+
+#: The seed of the donors' own random source and name generator, so their names,
+#: gifts and dates never move whatever the rest of the demo data draws.
+DONOR_SEED = 20260925
+
+#: How far back a seeded donor's gifts may go, in days: two years.
+DONOR_HISTORY_DAYS = 730
+
+#: The donor, by position, whose profile names a DART.
+DONOR_ON_A_DART = 2
 
 #: How far back the payment history runs.
 HISTORY_MONTHS = 24
@@ -513,8 +537,9 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     mandates = _seed_mandates(ctx)
     friend_gifts = _seed_friend_contribution(ctx)
     _seed_pending_friend(ctx)
+    donor_gifts = _seed_donors(ctx)
 
-    ctx["payment_count"] = payments + manual + friend_gifts
+    ctx["payment_count"] = payments + manual + friend_gifts + donor_gifts
     ctx["manual_payment_count"] = manual
     ctx["refund_count"] = refunds
     ctx["mandate_count"] = mandates
@@ -523,7 +548,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             f"  payments: {payments} succeeded payments, {terms} terms, "
             f"{expired} lapsed terms marked expired, {manual} recorded by hand, "
             f"{reconciled} reconciled, {refunds} refunds, "
-            f"{mandates} mandates"
+            f"{mandates} mandates, {donor_gifts} gifts from {len(DONOR_GIFT_COUNTS)} donors"
         )
     return ctx
 
@@ -591,6 +616,98 @@ def _seed_pending_friend(ctx: dict[str, Any]) -> User | None:
         user.save(update_fields=["friend_on", "updated_at"])
         return user
     return None
+
+
+def _seed_donors(ctx: dict[str, Any]) -> int:
+    """Make the six donors and their gifts, and return how many gifts there are.
+
+    Donor ``n`` (from one) gives from :data:`DONOR_EMAIL` and makes
+    ``DONOR_GIFT_COUNTS[n - 1]`` settled contributions of a tier's amount, on days
+    within the last :data:`DONOR_HISTORY_DAYS`, through the seed's usual provider mix,
+    each with its fee and its receipt recorded.  Names, amounts and days come from a
+    source of their own (:data:`DONOR_SEED`), so the rest of the demo data draws the
+    same whether or not the donors are there; the two towns on each profile come from
+    the members seed's town generator, which runs on.  The donor at
+    :data:`DONOR_ON_A_DART` names the first DART that is not the empty one.  A second
+    run finds every row it made before.
+    """
+    rng = random.Random(DONOR_SEED)  # noqa: S311 - demo data, not security-sensitive
+    names = Faker("en_US")
+    names.seed_instance(DONOR_SEED)
+    towns: Faker = ctx["towns"]
+    today: dt.date = ctx["today"]
+    dart = next(dart for dart in ctx["darts"] if dart.name != EMPTY_DART)
+    tiers = [tier["cents"] for tier in CONTRIBUTION_TIERS if tier["cents"] > 0]
+
+    gifts = 0
+    for index, count in enumerate(DONOR_GIFT_COUNTS):
+        number = index + 1
+        first, last = names.first_name(), names.last_name()
+        email = DONOR_EMAIL.format(number=number)
+        donor = User.objects.filter(email=email).first() or create_account(
+            email=email, first_name=first, last_name=last, kind=AccountKind.DONOR
+        )
+        MemberProfile.objects.update_or_create(
+            user=donor,
+            defaults={
+                "phone": f"415-555-{number:04d}",
+                "city": towns.city(),
+                "home_airport_city": towns.city(),
+                "state": "CA",
+                "dart": dart if number == DONOR_ON_A_DART else None,
+            },
+        )
+        for gift in range(count):
+            _donor_gift(
+                donor,
+                gift,
+                rng.choice(tiers),
+                today - timedelta(days=rng.randint(1, DONOR_HISTORY_DAYS)),
+                rng,
+            )
+            gifts += 1
+    return gifts
+
+
+def _donor_gift(
+    donor: User, index: int, cents: int, paid_on: dt.date, rng: random.Random
+) -> Payment:
+    """The settled contribution ``donor`` made on ``paid_on``, found or made.
+
+    Keyed on the provider reference built from the donor and ``index``; a row this
+    makes is backdated to a daytime moment on ``paid_on``, with its receipt stamped
+    as sent then.
+    """
+    provider = _pick(rng, PROVIDER_MIX)
+    wallet = (
+        _pick(rng, STRIPE_WALLETS) if provider == PaymentProvider.STRIPE else PaymentWallet.PAYPAL
+    )
+    paid_at = timezone.make_aware(
+        dt.datetime.combine(paid_on, dt.time(hour=rng.randint(8, 20), minute=rng.randint(0, 59)))
+    )
+    fee = provider_fee_cents(provider, cents)
+    payment, created = Payment.objects.get_or_create(
+        provider=provider,
+        provider_ref=f"seed_donor_{donor.pk}_{index}",
+        defaults={
+            "user": donor,
+            "plan": None,
+            "amount_cents": cents,
+            "plan_amount_cents": 0,
+            "contribution_cents": cents,
+            "currency": "usd",
+            "wallet": wallet,
+            "status": PaymentStatus.SUCCEEDED,
+            "fee_cents": fee,
+            "net_cents": cents - fee,
+            "raw": {"seeded": True, "provider": provider},
+        },
+    )
+    if created:
+        Payment.objects.filter(pk=payment.pk).update(
+            created_at=paid_at, completed_at=paid_at, receipt_sent_at=paid_at
+        )
+    return payment
 
 
 def _card(index: int) -> dict[str, Any]:

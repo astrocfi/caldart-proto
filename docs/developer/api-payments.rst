@@ -4,7 +4,8 @@ API: payments
 
 Every endpoint under ``/api/v1/payments/``: checkout and its confirmation for
 each provider, the webhooks, and the receipts and contribution statements a
-member downloads for themselves.  The finance area under
+member downloads for themselves; and the endpoints under ``/api/v1/donations/``
+the public donation page gives through.  The finance area under
 ``/api/v1/admin/payments`` is in :doc:`api-finance`.  General API conventions
 — session authentication, the CSRF header, pagination, error shapes — are in
 :doc:`api-reference`; the two worth repeating here are that an
@@ -279,6 +280,151 @@ neither owns the payment nor holds a finance role; **404** for an unknown
 id.
 
 
+.. _api-public-donations:
+
+Public donations
+================
+
+The public donation page (``/donate/``, :doc:`cms`) takes gifts from people who
+are not signed in.  Each gift belongs to a **donor**: an account found or made by
+email address, with no role and no usable password, which can never sign in and
+appears in no member list (:ref:`kinds of account <account-kinds>`).  The
+endpoints are open to anyone, and three rules stand in for a session:
+
+* **CSRF is enforced** by the session authentication class for an anonymous
+  caller as for a signed-in one, so only a page this site served can start or
+  finish a gift.
+* **Starting a gift is throttled** by client address under the ``donate`` scope
+  (``AUTH_THROTTLE_DONATE``, ``10/hour``; see :doc:`configuration`).  Reading the
+  config and finishing a payment are not.
+* **A token proves the payment.**  The checkout answers ``token``, a value signed
+  with ``django.core.signing`` under the salt ``payments.donation`` that names the
+  payment and is good for an hour.  Every call that finishes or reads that payment
+  sends it back; a missing, forged, expired, or mismatched token is a **404**,
+  exactly as an unknown id is.
+
+A signed-in member or friend gets nothing extra here: the token is the only proof,
+and a member gives from the portal's Donate screen instead.  The amount is never
+taken from the client: the payment is ``contribution_cents`` and nothing else,
+made through the same ``create_checkout`` and settled through the same
+``mark_succeeded`` as the portal's checkout, so the receipt is emailed the moment
+the payment clears.
+
+``GET /donations/config``
+-------------------------
+
+Anyone.  What the donation form offers.
+
+.. code-block:: json
+
+   {
+     "providers": ["stripe", "paypal", "mock"],
+     "stripe_publishable_key": "pk_test_51ABC...",
+     "paypal_client_id": "AXy1...",
+     "contribution_tiers": [{"label": "No contribution", "cents": 0},
+                            {"label": "Participating", "cents": 2000}],
+     "max_contribution_cents": 9999900,
+     "counties": ["Alameda", "Alpine"],
+     "darts": [{"id": 3, "name": "Bay Area"}],
+     "states": [{"value": "AL", "label": "Alabama"}]
+   }
+
+``providers``, the keys, the tiers, and the ceiling are the portal config's own
+(see `GET /payments/config`_); the form leaves out the tier of nothing.
+``counties`` is every California county by name, ``darts`` every active DART in
+name order, and ``states`` every state as a two-letter code and its name.
+
+Statuses: **200**.
+
+``POST /donations/checkout``
+----------------------------
+
+Anyone, with a CSRF token, under the ``donate`` throttle.  Finds or makes the
+donor, then starts a pending contribution with the provider.
+
+.. code-block:: json
+
+   {"first_name": "Rosa", "last_name": "Delgado", "email": "rosa@example.org",
+    "phone": "707-555-0142", "contribution_cents": 10000, "provider": "stripe",
+    "city": "Petaluma", "county": "Sonoma", "dart_id": 3, "vol_fundraising": true}
+
+``first_name``, ``last_name``, ``email``, and ``phone`` are required.  The rest
+are optional profile fields, each written onto the donor's profile under its own
+name, and under the profile's own rules (see :doc:`api-profile`): ``address_line1``,
+``address_line2``, ``city``, ``state``, ``postal_code``, ``county``,
+``home_airport_identifier``, ``home_airport_city``, ``dart_id``,
+``air_care_alliance_number``, ``pilot_certificate_type``, ``ifr_rated``, and the
+seven ``vol_*`` volunteer interests.  A pilot certificate needs no number here.
+``contribution_cents`` runs from 1 to ``max_contribution_cents``.
+
+The address is matched case-insensitively.  A new address becomes a donor with a
+profile holding everything sent.  An existing donor has its names and phone
+replaced, and each optional field that was sent filled in (a non-blank value, a
+DART, a ticked box) written over the stored one; a field left out keeps what an
+earlier gift said.  Nothing is mailed to the donor but the receipt.  Two first
+gifts from one address arriving together wait on one lock on the address, so they
+make one donor between them.
+
+The details are written when the checkout starts, before any money moves, so
+anyone who knows a donor's address can change that donor's names, phone, and
+profile, within the ``donate`` rate.  The page's Stripe tab starts a checkout as
+soon as it shows, to load Stripe's card form, and again each time the giver comes
+back to it with changed details; each one counts against the rate.  A visitor who
+opens the Stripe tab and leaves is therefore a donor with a pending payment and no
+gifts, and nothing cleans either up.
+
+**201** is the portal checkout's answer for the provider (see
+`POST /payments/checkout`_) plus the token:
+
+.. code-block:: json
+
+   {"payment_id": 415, "provider": "stripe",
+    "client": {"client_secret": "pi_3Nk..._secret_..."},
+    "token": "eyJwYXltZW50Ijo0MTV9:1tQ..."}
+
+An address that belongs to a member or a friend, active or deactivated, is
+refused with a code the page reads::
+
+    400 {"email": ["An account already uses that email address. Sign in to donate."],
+         "code": "has_account"}
+
+Statuses: **201**; **400** for that address, a missing or malformed field, a gift
+of nothing (``{"contribution_cents": ["Choose an amount to give."]}``), a provider
+that is not configured (``{"provider": "'stripe' is not configured."}``), or a
+provider that refuses to start (``detail``); **403** without a CSRF token;
+**429** past the ``donate`` rate.  A refusal writes nothing: no donor, no
+payment.
+
+``POST /donations/stripe/confirm``, ``/paypal/capture``, ``/mock/complete``
+---------------------------------------------------------------------------
+
+Anyone holding the payment's token.  The bodies are the portal's (see
+`POST /payments/stripe/confirm`_, `POST /payments/paypal/capture`_, and
+`POST /payments/mock/complete`_) plus ``token``:
+
+.. code-block:: json
+
+   {"payment_id": 415, "payment_intent_id": "pi_3Nk...", "token": "eyJwYXltZW50Ijo0MTV9:1tQ..."}
+
+The provider is asked exactly as the portal's endpoint asks it, and the answer is
+the same ``{status, membership}`` body; a donor's ``membership`` reads ``none``.
+``/mock/complete`` is **404** while ``PAYMENTS_MOCK_ENABLED`` is off.
+
+Statuses: **200**; **400** for a missing field, a payment started with another
+provider (``{"payment_id": "That payment is not a stripe payment."}``), or the
+provider's refusal (``detail``); **403** without a CSRF token; **404** without the
+payment's token.
+
+``GET /donations/{id}?token=``
+------------------------------
+
+Anyone holding the payment's token.  The payment's ``{status, membership}``, read
+by the page when a payment method that left it (a card that asked for 3-D Secure)
+sends the browser back to ``/donate/?payment_id=<id>&token=<token>``.
+
+Statuses: **200**; **404** without the payment's token.
+
+
 Receipts and statements
 =======================
 
@@ -535,6 +681,10 @@ Endpoint                               Who
 ``GET /me/payments/{id}/receipt.pdf``  The payment's owner
 ``GET /me/payments/statements*``       Any authenticated user, own giving
 ``POST /payments/*/webhook``           Nobody — signature verified instead
+``GET /donations/config``              Anyone
+``POST /donations/checkout``           Anyone, CSRF token and ``donate`` rate
+``POST /donations/*`` (confirm)        Anyone holding the payment's token
+``GET /donations/{id}``                Anyone holding the payment's token
 ``GET /admin/payments*``               See :doc:`api-finance`
 =====================================  ==========================================
 

@@ -327,10 +327,10 @@ An exception the handler does not recognize is left to Django, so a bug stays a
 Throttling
 ----------
 
-There is no project-wide throttle.  Four anonymous auth endpoints are rate
-limited by client IP address across three scopes, with the rates read from the
-environment.  Both password-reset endpoints share one scope, so asking for
-links and spending them draw on the same budget:
+There is no project-wide throttle.  The anonymous auth endpoints, and the start
+of a gift on the public donation page, are rate limited by client IP address,
+with the rates read from the environment.  Both password-reset endpoints share
+one scope, so asking for links and spending them draw on the same budget:
 
 .. list-table::
    :header-rows: 1
@@ -354,6 +354,9 @@ links and spending them draw on the same budget:
    * - ``POST /auth/email/resend``
      - ``auth_verify_resend``
      - ``AUTH_THROTTLE_VERIFY_RESEND`` (``5/hour``)
+   * - ``POST /donations/checkout``
+     - ``donate``
+     - ``AUTH_THROTTLE_DONATE`` (``10/hour``)
 
 Setting a rate to empty turns that throttle off, and a value that is neither
 empty nor a readable rate stops start-up; see :doc:`configuration`.  The test
@@ -883,6 +886,38 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - unauthenticated; signature is the gate
+   * - ``GET /donations/config``
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the public donation form; not throttled
+   * - ``POST /donations/checkout``
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - CSRF enforced; ``donate`` throttle; refuses a member's or friend's address
+   * - ``POST /donations/{stripe/confirm,paypal/capture,mock/complete}``
+     - token
+     - token
+     - token
+     - token
+     - token
+     - token
+     - the token the checkout answered; 404 without it
+   * - ``GET /donations/{id}``
+     - token
+     - token
+     - token
+     - token
+     - token
+     - token
+     - ``?token=``; 404 without it
    * - ``GET /admin/payments``
      - ·
      - ·

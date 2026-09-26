@@ -45,6 +45,7 @@ from apps.cms.models import (
     ContactPage,
     DartIndexPage,
     DartPage,
+    DonatePage,
     EventIndexPage,
     EventPage,
     HomePage,
@@ -331,9 +332,25 @@ def seed_join(home: HomePage) -> StandardPage:
     return upsert_spec(home, StandardPage, content.JOIN)
 
 
-def seed_donate(home: HomePage) -> StandardPage:
-    """Create or update ``/donate/``, the contribution page, in the menu."""
-    return upsert_spec(home, StandardPage, content.DONATE)
+def seed_donate(home: HomePage) -> DonatePage:
+    """Create or update ``/donate/``, the public donation page, in the menu.
+
+    A page of another type left at that slug -- a standard page from an older copy
+    of the example site -- is deleted first, so the donation form takes its place.
+    """
+    spec = content.DONATE
+    for page in home.get_children().filter(slug=spec.slug):
+        if page.specific_class is not DonatePage:
+            page.delete()
+    return upsert_page(
+        home,
+        DonatePage,
+        spec.slug,
+        title=spec.title,
+        show_in_menus=spec.show_in_menus,
+        intro=spec.intro,
+        thanks=spec.thanks,
+    )
 
 
 def seed_sponsors(about: StandardPage) -> StandardPage:

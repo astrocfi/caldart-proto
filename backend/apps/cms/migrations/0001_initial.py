@@ -30,6 +30,18 @@ class Migration(migrations.Migration):
             bases=('wagtailcore.page',),
         ),
         migrations.CreateModel(
+            name='DonatePage',
+            fields=[
+                ('page_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to=settings.WAGTAIL_PAGE_MODEL)),
+                ('intro', wagtail.fields.RichTextField(blank=True, help_text='Shown above the donation form.')),
+                ('thanks', wagtail.fields.RichTextField(blank=True, help_text='Shown in place of the form once a gift has gone through.')),
+            ],
+            options={
+                'verbose_name': 'donate page',
+            },
+            bases=('wagtailcore.page',),
+        ),
+        migrations.CreateModel(
             name='DartIndexPage',
             fields=[
                 ('page_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to=settings.WAGTAIL_PAGE_MODEL)),

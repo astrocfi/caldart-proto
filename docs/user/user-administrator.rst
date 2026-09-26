@@ -74,8 +74,11 @@ chip, and whether the account is active.  Click their name to open the record.
 Donor accounts
 --------------
 
-A donor gave through the public site without joining.  The account keeps the
-gifts and receipts, but holds no password and no role, and cannot sign in.
+A donor gave through the public site without joining (see
+:ref:`public-donation-page`): each gift from a new email address makes a donor
+account, and a later gift from the same address goes on the same one.  The
+account keeps the gifts and receipts, but holds no password and no role, and
+cannot sign in.
 Donors appear nowhere but here and in the treasurer's reports, so this list is
 where you find one — filter by *Donor* — when a receipt went to a mistyped
 address and the email needs correcting.

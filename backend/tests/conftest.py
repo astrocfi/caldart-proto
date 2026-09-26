@@ -112,7 +112,8 @@ def register_payload(**overrides: str) -> dict[str, str]:
 # --------------------------------------------------------------------------
 # Vite manifest
 #
-# `templates/base.html` and `templates/portal.html` call `{% vite_asset %}`,
+# `templates/base.html`, `templates/portal.html` and `templates/cms/donate_page.html`
+# call `{% vite_asset %}`,
 # which raises when the entry is missing from the manifest django-vite loads.
 # Backend tests must not depend on `npm run build` having been run -- CI runs
 # the two suites in separate jobs.
@@ -146,6 +147,12 @@ STUB_MANIFEST = {
         "src": "src/portal/main.tsx",
         "isEntry": True,
         "css": ["assets/index-stub.css", "assets/portal-stub.css"],
+    },
+    "src/site/donate.tsx": {
+        "file": "assets/donate-stub.js",
+        "src": "src/site/donate.tsx",
+        "isEntry": True,
+        "css": ["assets/donate-stub.css"],
     },
 }
 

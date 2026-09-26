@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags django_vite %}
+
+{% comment %}
+  The public donation page: the editor's intro, then the donation form, which
+  `src/site/donate.tsx` mounts on `#donate-app` and which talks to the
+  `/api/v1/donations/` endpoints.  `data-return-url` is where a payment method
+  that leaves the page (a card that asks for 3-D Secure) sends the browser back.
+
+  The thanks text is rendered here, hidden, and the script shows it once a gift
+  has gone through: the page's words stay the editor's, and no inline script is
+  needed (the Content Security Policy forbids one).  Without JavaScript the form
+  cannot run, so the page says how else to give.
+{% endcomment %}
+
+{% block extra_head %}{% vite_asset 'src/site/donate.tsx' %}{% endblock %}
+
+{% block body_class %}donate{% endblock %}
+
+{% block content %}
+  <section class="box">
+    {% include "cms/includes/page_header.html" %}
+    <div class="box__body">
+      {% if page.intro %}<div class="lede richtext">{{ page.intro|richtext }}</div>{% endif %}
+      <div class="richtext donate__thanks" data-donate-thanks hidden>{{ page.thanks|richtext }}</div>
+      <div id="donate-app" data-config-url="/api/v1/donations/config" data-return-url="{{ page.url }}"></div>
+      <noscript>
+        <p>The donation form needs JavaScript. To give another way, write to us at the address on the contact page.</p>
+      </noscript>
+    </div>
+  </section>
+{% endblock %}

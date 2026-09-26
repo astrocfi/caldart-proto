@@ -614,6 +614,106 @@
       "current_password"
     ]
   },
+  "DonationCheckoutRequest": {
+    "properties": {
+      "address_line1": "string",
+      "address_line2": "string",
+      "air_care_alliance_number": "string",
+      "city": "string",
+      "contribution_cents": "integer",
+      "county": "unknown",
+      "dart_id": "integer|null",
+      "email": "string(email)",
+      "first_name": "string",
+      "home_airport_city": "string",
+      "home_airport_identifier": "string",
+      "ifr_rated": "ref:IfrRatedEnum",
+      "last_name": "string",
+      "phone": "string",
+      "pilot_certificate_type": "ref:PilotCertificateTypeEnum",
+      "postal_code": "string",
+      "provider": "ref:PaymentProviderEnum",
+      "state": "unknown",
+      "vol_exercise_training": "boolean",
+      "vol_fundraising": "boolean",
+      "vol_ground_team": "boolean",
+      "vol_member_support": "boolean",
+      "vol_mission_pilot": "boolean",
+      "vol_newsletter": "boolean",
+      "vol_social_media": "boolean"
+    },
+    "required": [
+      "contribution_cents",
+      "email",
+      "first_name",
+      "last_name",
+      "phone",
+      "provider"
+    ]
+  },
+  "DonationCheckoutResponse": {
+    "discriminator": "provider",
+    "one_of": [
+      "MockDonationCheckoutResponse",
+      "PayPalDonationCheckoutResponse",
+      "StripeDonationCheckoutResponse"
+    ]
+  },
+  "DonationMockCompleteRequest": {
+    "properties": {
+      "outcome": "ref:MockCompleteOutcomeEnum",
+      "payment_id": "integer",
+      "token": "string"
+    },
+    "required": [
+      "payment_id",
+      "token"
+    ]
+  },
+  "DonationPayPalCaptureRequest": {
+    "properties": {
+      "order_id": "string",
+      "payment_id": "integer",
+      "token": "string"
+    },
+    "required": [
+      "payment_id",
+      "token"
+    ]
+  },
+  "DonationStripeConfirmRequest": {
+    "properties": {
+      "payment_id": "integer",
+      "payment_intent_id": "string",
+      "token": "string"
+    },
+    "required": [
+      "payment_id",
+      "token"
+    ]
+  },
+  "DonationsConfig": {
+    "properties": {
+      "contribution_tiers": "array<ref:ContributionTier>",
+      "counties": "array<string>",
+      "darts": "array<ref:DartRef>",
+      "max_contribution_cents": "integer",
+      "paypal_client_id": "string",
+      "providers": "array<ref:PaymentProviderEnum>",
+      "states": "array<ref:StateChoice>",
+      "stripe_publishable_key": "string"
+    },
+    "required": [
+      "contribution_tiers",
+      "counties",
+      "darts",
+      "max_contribution_cents",
+      "paypal_client_id",
+      "providers",
+      "states",
+      "stripe_publishable_key"
+    ]
+  },
   "EmailChangeRequest": {
     "properties": {
       "current_password": "string",
@@ -1273,6 +1373,20 @@
       "payment_id"
     ]
   },
+  "MockDonationCheckoutResponse": {
+    "properties": {
+      "client": "object",
+      "payment_id": "integer",
+      "provider": "ref:Provider3f1Enum",
+      "token": "string"
+    },
+    "required": [
+      "client",
+      "payment_id",
+      "provider",
+      "token"
+    ]
+  },
   "MockRenewalSetupResponse": {
     "properties": {
       "client": "object",
@@ -1646,6 +1760,20 @@
       "client",
       "payment_id",
       "provider"
+    ]
+  },
+  "PayPalDonationCheckoutResponse": {
+    "properties": {
+      "client": "ref:PayPalCheckoutClient",
+      "payment_id": "integer",
+      "provider": "ref:Provider278Enum",
+      "token": "string"
+    },
+    "required": [
+      "client",
+      "payment_id",
+      "provider",
+      "token"
     ]
   },
   "PayPalRenewalSetupClient": {
@@ -2512,6 +2640,16 @@
       "seed"
     ]
   },
+  "StateChoice": {
+    "properties": {
+      "label": "string",
+      "value": "string"
+    },
+    "required": [
+      "label",
+      "value"
+    ]
+  },
   "StateEnum": {
     "enum": [
       "AL",
@@ -2607,6 +2745,20 @@
     },
     "required": [
       "payment_id"
+    ]
+  },
+  "StripeDonationCheckoutResponse": {
+    "properties": {
+      "client": "ref:StripeCheckoutClient",
+      "payment_id": "integer",
+      "provider": "ref:ProviderEc9Enum",
+      "token": "string"
+    },
+    "required": [
+      "client",
+      "payment_id",
+      "provider",
+      "token"
     ]
   },
   "StripeRenewalSetupClient": {

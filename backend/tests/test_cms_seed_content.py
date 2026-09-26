@@ -20,6 +20,7 @@ from apps.cms.models import (
     ContactPage,
     DartIndexPage,
     DartPage,
+    DonatePage,
     EventPage,
     HomePage,
     NewsIndexPage,
@@ -164,11 +165,43 @@ def test_join_page_states_the_dues_and_eligibility_rules(client: Client) -> None
 def test_donate_page_lists_the_contribution_tiers(client: Client) -> None:
     """The seeded donate page lists every contribution tier, including Platinum."""
     seed()
-    page = StandardPage.objects.get(slug="donate")
+    page = DonatePage.objects.get(slug="donate")
     body = client.get(page.url).content.decode()
     for tier in ("$20", "$100", "$300", "$1,000", "$3,000", "$10,000"):
         assert tier in body
     assert "Platinum" in body
+
+
+def test_the_seeded_donate_page_is_the_donation_form(client: Client) -> None:
+    """``/donate/`` is a donate page, so it carries the donation form's mount."""
+    seed()
+
+    body = client.get("/donate/").content.decode()
+
+    assert 'id="donate-app"' in body
+
+
+def test_the_seeded_donate_page_says_thank_you() -> None:
+    """The seeded donate page carries its spec's intro and thanks text."""
+    seed()
+
+    page = DonatePage.objects.get(slug="donate")
+
+    assert (page.intro, page.thanks) == (content.DONATE.intro, content.DONATE.thanks)
+
+
+def test_seed_content_replaces_a_standard_page_at_the_donate_slug() -> None:
+    """A standard page left at ``/donate/`` gives way to the donate page."""
+    seed()
+    home = HomePage.objects.get()
+    DonatePage.objects.get(slug="donate").delete()
+    home.add_child(instance=StandardPage(title="Donate", slug="donate"))
+
+    seed()
+
+    assert [type(page.specific) for page in home.get_children().filter(slug="donate")] == [
+        DonatePage
+    ]
 
 
 def test_history_page_covers_2011_to_2022(client: Client) -> None:
@@ -260,7 +293,6 @@ STANDARD_PAGE_SPECS = (
     content.HISTORY,
     content.DIRECTORS,
     content.JOIN,
-    content.DONATE,
     content.SPONSORS,
     content.MEMBERS,
     content.MEMBERS_ONLY,

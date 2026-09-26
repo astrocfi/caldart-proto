@@ -15,7 +15,8 @@ import { useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '@/portal/api/client';
 import { EmptyState } from '@/portal/components/EmptyState';
-import { confirmStripePayment, fetchPayment } from './api';
+import { PORTAL_ENDPOINTS } from './endpoints';
+import type { PaymentEndpoints } from './endpoints';
 import type { CheckoutResult } from './types';
 
 /** How long to keep asking before giving up, and how often. */
@@ -49,10 +50,49 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
 /** Confirms a redirect-based payment, polling until it settles or fails. */
 export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps): JSX.Element {
   const [params] = useSearchParams();
-  const [error, setError] = useState<string | null>(null);
+  const error = useSettledPayment({
+    paymentId: Number.parseInt(params.get('payment_id') ?? '', 10),
+    paymentIntentId: params.get('payment_intent') ?? '',
+    endpoints: PORTAL_ENDPOINTS,
+    onSuccess,
+  });
 
-  const paymentId = Number.parseInt(params.get('payment_id') ?? '', 10);
-  const paymentIntentId = params.get('payment_intent') ?? '';
+  if (error) {
+    return <EmptyState title="Payment not confirmed" description={error} action={action} />;
+  }
+
+  return (
+    <p className="muted" role="status" aria-live="polite">
+      Confirming your payment…
+    </p>
+  );
+}
+
+export interface SettledPaymentOptions {
+  /** The payment the browser came back for; `NaN` when the link carried none. */
+  paymentId: number;
+  /** Stripe's intent, as the redirect named it; empty when it named none. */
+  paymentIntentId: string;
+  /** The calls that confirm and read the payment. */
+  endpoints: PaymentEndpoints;
+  onSuccess: (result: CheckoutResult) => void;
+}
+
+/**
+ * Confirm a payment a redirect method has sent the browser back for, then poll until
+ * it settles.
+ *
+ * Calls `onSuccess` once the payment has succeeded, and answers the sentence to show
+ * when it cannot be confirmed (declined, still processing after `POLL_TIMEOUT_MS`, or
+ * a link with no payment), or null while it is still being confirmed.
+ */
+export function useSettledPayment({
+  paymentId,
+  paymentIntentId,
+  endpoints,
+  onSuccess,
+}: SettledPaymentOptions): string | null {
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!Number.isFinite(paymentId)) {
@@ -69,7 +109,7 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps): JSX.
       // The confirm call is what actually activates the membership; a failure
       // here is not fatal, because the webhook may have got there first.
       try {
-        const confirmed = await confirmStripePayment(paymentId, paymentIntentId, signal);
+        const confirmed = await endpoints.confirmStripe(paymentId, paymentIntentId, signal);
         if (signal.aborted) return;
         if (confirmed.status === 'succeeded') {
           onSuccess({ paymentId, membership: confirmed.membership });
@@ -82,7 +122,7 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps): JSX.
       const deadline = Date.now() + POLL_TIMEOUT_MS;
       while (!signal.aborted && Date.now() < deadline) {
         try {
-          const result = await fetchPayment(paymentId, signal);
+          const result = await endpoints.fetchPayment(paymentId, signal);
           if (signal.aborted) return;
           if (result.status === 'succeeded') {
             onSuccess({ paymentId, membership: result.membership });
@@ -114,15 +154,7 @@ export function CheckoutReturn({ onSuccess, action }: CheckoutReturnProps): JSX.
     return () => {
       controller.abort();
     };
-  }, [paymentId, paymentIntentId, onSuccess]);
+  }, [paymentId, paymentIntentId, endpoints, onSuccess]);
 
-  if (error) {
-    return <EmptyState title="Payment not confirmed" description={error} action={action} />;
-  }
-
-  return (
-    <p className="muted" role="status" aria-live="polite">
-      Confirming your payment…
-    </p>
-  );
+  return error;
 }

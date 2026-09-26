@@ -1,6 +1,6 @@
 {% comment %}
 The receipt email, sent for every payment that succeeds, with the receipt PDF
-attached.
+attached.  A donor cannot sign in, so their copy leaves out the link to Payments.
 
 Table layout and inline styles because email clients support little else.  The
 palette is the `duty` theme -- paper #EEF2F7, ink #1D2530, navy #1F4E79,
@@ -68,6 +68,7 @@ system sans for IBM Plex Sans, since webfonts do not load in most mail clients.
               </td>
             </tr>
 
+            {% if user.kind != "donor" %}
             <tr>
               <td style="padding:10px 32px 8px 32px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
@@ -83,6 +84,8 @@ system sans for IBM Plex Sans, since webfonts do not load in most mail clients.
                 </p>
               </td>
             </tr>
+
+            {% endif %}
 
             <tr>
               <td style="padding:20px 32px 28px 32px;">

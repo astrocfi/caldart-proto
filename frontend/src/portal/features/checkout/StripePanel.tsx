@@ -22,13 +22,9 @@ import { Button } from '@/portal/components/Button';
 import { formatCents } from '@/portal/components/Money';
 import { useDebounced } from '@/portal/components/useDebounced';
 import type { CheckoutFields } from './api';
-import {
-  checkoutRequest,
-  confirmStripePayment,
-  createCheckout,
-  isAbortError,
-  panelErrorMessage,
-} from './api';
+import { checkoutRequest, isAbortError, panelErrorMessage } from './api';
+import { PORTAL_ENDPOINTS } from './endpoints';
+import type { PaymentEndpoints } from './endpoints';
 import type { ProviderPanelProps } from './types';
 
 /** Stripe.js is a singleton per publishable key. */
@@ -82,12 +78,6 @@ export function appearanceFromTokens(): Appearance {
   };
 }
 
-/** Where Stripe sends the browser back for redirect-based methods. */
-function returnUrl(paymentId: number): string {
-  const origin = typeof window === 'undefined' ? '' : window.location.origin;
-  return `${origin}/portal/join/done?payment_id=${paymentId}`;
-}
-
 /** Wait for the member to stop changing the amount before re-creating an intent. */
 export const AMOUNT_DEBOUNCE_MS = 500;
 
@@ -121,6 +111,7 @@ export function StripePanel({
   amountCents,
   onSuccess: handleSuccess,
   onRenewalContribution,
+  endpoints = PORTAL_ENDPOINTS,
   ...fields
 }: StripePanelProps): JSX.Element {
   const [intent, setIntent] = useState<Intent | null>(null);
@@ -135,7 +126,8 @@ export function StripePanel({
     setIntent(null);
     setError(null);
 
-    createCheckout(settled, controller.signal)
+    endpoints
+      .createCheckout(settled, controller.signal)
       .then((checkout) => {
         if (controller.signal.aborted) return;
         if (checkout.provider !== 'stripe' || !checkout.client.client_secret) {
@@ -158,7 +150,7 @@ export function StripePanel({
     return () => {
       controller.abort();
     };
-  }, [settled, onRenewalContribution]);
+  }, [settled, onRenewalContribution, endpoints]);
 
   if (error) {
     return (
@@ -190,6 +182,7 @@ export function StripePanel({
         <StripeForm
           paymentId={intent.paymentId}
           amountCents={amountCents}
+          endpoints={endpoints}
           onSuccess={handleSuccess}
         />
       </Elements>
@@ -200,11 +193,17 @@ export function StripePanel({
 interface StripeFormProps {
   paymentId: number;
   amountCents: number;
+  endpoints: PaymentEndpoints;
   onSuccess: ProviderPanelProps['onSuccess'];
 }
 
 /** The Payment Element plus its submit button, confirming the intent on submit. */
-function StripeForm({ paymentId, amountCents, onSuccess }: StripeFormProps): JSX.Element {
+function StripeForm({
+  paymentId,
+  amountCents,
+  endpoints,
+  onSuccess,
+}: StripeFormProps): JSX.Element {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -227,7 +226,7 @@ function StripeForm({ paymentId, amountCents, onSuccess }: StripeFormProps): JSX
     try {
       const confirmation = await stripe.confirmPayment({
         elements,
-        confirmParams: { return_url: returnUrl(paymentId) },
+        confirmParams: { return_url: endpoints.stripeReturnUrl(paymentId) },
         redirect: 'if_required',
       });
 
@@ -237,7 +236,7 @@ function StripeForm({ paymentId, amountCents, onSuccess }: StripeFormProps): JSX
       }
 
       const intentId = confirmation.paymentIntent?.id ?? '';
-      const result = await confirmStripePayment(paymentId, intentId);
+      const result = await endpoints.confirmStripe(paymentId, intentId);
       if (result.status === 'succeeded') {
         onSuccess({ paymentId, membership: result.membership });
         return;

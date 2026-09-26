@@ -13,7 +13,8 @@ import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import { useToast } from '@/portal/components/Toast';
-import { capturePayPalOrder, checkoutRequest, createCheckout, panelErrorMessage } from './api';
+import { checkoutRequest, panelErrorMessage } from './api';
+import { PORTAL_ENDPOINTS } from './endpoints';
 import type { ProviderPanelProps } from './types';
 
 /** What a member is told when they close PayPal's window without paying. */
@@ -29,6 +30,7 @@ export function PayPalPanel({
   amountCents,
   onSuccess,
   onRenewalContribution,
+  endpoints = PORTAL_ENDPOINTS,
   ...fields
 }: PayPalPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export function PayPalPanel({
             setError(null);
             hasOrderError.current = false;
             try {
-              const checkout = await createCheckout(checkoutRequest(fields, 'paypal'));
+              const checkout = await endpoints.createCheckout(checkoutRequest(fields, 'paypal'));
               paymentId.current = checkout.payment_id;
               if (checkout.provider !== 'paypal' || !checkout.client.order_id) {
                 throw new Error('PayPal did not return an order.');
@@ -83,7 +85,7 @@ export function PayPalPanel({
               return;
             }
             try {
-              const result = await capturePayPalOrder(id, data.orderID);
+              const result = await endpoints.capturePayPal(id, data.orderID);
               if (result.status === 'succeeded') {
                 onSuccess({ paymentId: id, membership: result.membership });
                 return;
@@ -109,8 +111,10 @@ export function PayPalPanel({
       </PayPalScriptProvider>
 
       <p className="checkout__fineprint muted">
-        You will be asked to sign in to PayPal in a secure window. Your membership starts the moment
-        the payment clears.
+        You will be asked to sign in to PayPal in a secure window.{' '}
+        {fields.plan === null
+          ? 'Your gift is recorded the moment the payment clears.'
+          : 'Your membership starts the moment the payment clears.'}
       </p>
     </div>
   );
