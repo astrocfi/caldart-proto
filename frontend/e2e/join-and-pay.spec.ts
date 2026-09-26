@@ -9,7 +9,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { SEED, formatCents, signIn, uniqueEmail } from './helpers';
+import { SEED, followVerificationLink, formatCents, signIn, uniqueEmail } from './helpers';
 
 /**
  * Walk the public site the way a visitor does: the Join CalDART page from the
@@ -34,13 +34,20 @@ async function joinFromPublicSite(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/portal\/join/);
 }
 
-/** Steps 1 and 2: an account, then the fields that make the profile complete. */
+/**
+ * Steps 1 to 3: an account, the link mailed to its address, then the fields that
+ * make the profile complete.
+ */
 async function register(page: Page, first: string, email: string): Promise<void> {
   await page.getByRole('textbox', { name: 'First name' }).fill(first);
   await page.getByRole('textbox', { name: 'Last name' }).fill('Okonkwo');
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
   await page.getByLabel(/^Password/).fill('a-long-demo-passphrase');
   await page.getByRole('button', { name: 'Create account' }).click();
+
+  await expect(page).toHaveURL(/\/portal\/join\/verify/);
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  await followVerificationLink(page, email);
 
   await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Phone', exact: true }).fill('650-555-0142');
@@ -58,14 +65,14 @@ test('a visitor joins from the public site and pays their dues', async ({ page }
   await expect(page).toHaveURL(/\/portal\/join\/account/);
   await register(page, 'Wilma', email);
 
-  // Step 3 — pay with the mock provider.
+  // Step 4 — pay with the mock provider.
   await page.getByRole('tab', { name: 'Test payment' }).click();
   await expect(page.getByTestId('checkout-total')).toHaveText(
     formatCents(SEED.planPricesCents.annual),
   );
   await page.getByRole('button', { name: 'Succeed', exact: true }).click();
 
-  // Step 4 — done, and the membership is live.
+  // Step 5 — done, and the membership is live.
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
   await expect(page.getByText(/Your membership runs until/)).toBeVisible();
 

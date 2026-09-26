@@ -1,5 +1,5 @@
 /** Shared plumbing for the end-to-end specs. */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -257,4 +257,86 @@ export async function signInToWagtail(page: Page, email: string): Promise<void> 
   await page.getByLabel(/password/i).fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: /sign in/i }).click();
   await expect(page).toHaveURL(/\/admin\/?$/);
+}
+
+/**
+ * Where `make e2e` has Django write every message it sends: one file per message,
+ * through the file mail backend.  The directory is emptied at the start of each run.
+ */
+const MAIL_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '.mail');
+
+/** How long `latestEmailTo` waits for a message to arrive before giving up. */
+const MAIL_WAIT_MS = 10_000;
+const MAIL_POLL_MS = 200;
+
+/**
+ * Undo quoted-printable: join the soft line breaks, then turn every `=XX` back into
+ * its byte.  The bodies are UTF-8, so the bytes are decoded as UTF-8 at the end.
+ */
+function decodeQuotedPrintable(text: string): string {
+  const joined = text.replace(/=\r?\n/g, '');
+  const bytes: number[] = [];
+  for (let i = 0; i < joined.length; i += 1) {
+    const hex = joined.slice(i + 1, i + 3);
+    if (joined[i] === '=' && /^[0-9A-F]{2}$/.test(hex)) {
+      bytes.push(Number.parseInt(hex, 16));
+      i += 2;
+    } else {
+      bytes.push(joined.charCodeAt(i));
+    }
+  }
+  return Buffer.from(bytes).toString('utf8');
+}
+
+/** The newest message file addressed to `address`, decoded, or null when there is none. */
+function newestMessageTo(address: string): string | null {
+  if (!existsSync(MAIL_DIR)) return null;
+  const names = readdirSync(MAIL_DIR);
+  const header = `to: ${address}`.toLowerCase();
+  const newestFirst = names
+    .map((name) => ({ path: resolve(MAIL_DIR, name), name }))
+    .map((file) => ({ ...file, mtime: statSync(file.path).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime || b.name.localeCompare(a.name));
+  for (const file of newestFirst) {
+    const raw = readFileSync(file.path, 'utf8');
+    const isToAddress = raw.split(/\r?\n/).some((line) => line.toLowerCase() === header);
+    if (isToAddress) return decodeQuotedPrintable(raw);
+  }
+  return null;
+}
+
+/**
+ * The newest email sent to `address`, as text with its bodies decoded.
+ *
+ * Waits up to ten seconds for one to arrive, since the server writes it after the
+ * request that caused it; throws naming the address when none does.
+ */
+export async function latestEmailTo(address: string): Promise<string> {
+  const deadline = Date.now() + MAIL_WAIT_MS;
+  for (;;) {
+    const message = newestMessageTo(address);
+    if (message !== null) return message;
+    if (Date.now() > deadline) {
+      throw new Error(`No email to ${address} in ${MAIL_DIR}. Is EMAIL_URL the file backend?`);
+    }
+    await new Promise((settle) => setTimeout(settle, MAIL_POLL_MS));
+  }
+}
+
+/** The first `/portal/verify-email?token=` link in an email's text. */
+export function verificationLink(text: string): string {
+  const match = /https?:\/\/\S+?\/portal\/verify-email\?token=[^\s"<&]+/.exec(text);
+  if (match === null) throw new Error(`No verification link in:\n${text}`);
+  return match[0];
+}
+
+/**
+ * Follow the newest verification link mailed to `email`, as its owner would, and
+ * press `Continue` on the page it opens.  A signed-in joiner lands back in the join
+ * wizard at the profile step.
+ */
+export async function followVerificationLink(page: Page, email: string): Promise<void> {
+  await page.goto(verificationLink(await latestEmailTo(email)));
+  await expect(page.getByRole('heading', { name: 'Email verified' })).toBeVisible();
+  await page.getByRole('link', { name: 'Continue' }).click();
 }

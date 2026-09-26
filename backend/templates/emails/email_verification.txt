@@ -6,9 +6,9 @@ Please confirm that {{ email }} is your email address by opening this link:
 
 {{ verify_url }}
 
-The link expires in {{ expiry_days }} day{{ expiry_days|pluralize }}. Until you open it, your address
-is marked unverified. If the link has expired, sign in and use Resend verification
-message on your dashboard to get a new one.
+The link expires in {{ expiry_days }} day{{ expiry_days|pluralize }}. Until you open it, your address is
+marked unverified. If the link has expired, sign in and use Resend
+verification message on your dashboard to get a new one.
 
 If you were not expecting this you can ignore this message.{% if contact_email %} Anything that looks wrong, write to {{ contact_email }}.{% endif %}
 

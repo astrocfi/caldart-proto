@@ -11,9 +11,9 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { SEED, formatCents, signIn, uniqueEmail } from './helpers';
+import { SEED, followVerificationLink, formatCents, signIn, uniqueEmail } from './helpers';
 
-/** Steps 1 and 2 of the join wizard: an account, then a usable profile. */
+/** Steps 1 to 3 of the join wizard: an account, its verified address, then a usable profile. */
 async function register(page: Page, email: string): Promise<void> {
   await page.goto('/portal/join');
   await page.getByRole('textbox', { name: 'First name' }).fill('Rosa');
@@ -21,6 +21,8 @@ async function register(page: Page, email: string): Promise<void> {
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
   await page.getByLabel(/^Password/).fill('a-long-demo-passphrase');
   await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  await followVerificationLink(page, email);
 
   await expect(page.getByRole('heading', { name: 'About you' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Phone', exact: true }).fill('650-555-0177');
