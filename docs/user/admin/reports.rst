@@ -14,8 +14,8 @@ reports; the DART rosters belong to account administrators alone.
 Subscriptions
 =============
 
-A subscription emails one report, with the filters and columns chosen when it was set up, to
-one address on its schedule. The **Subscriptions** card lists every subscription for a report
+A subscription emails one report, with the filters and columns chosen for it, to one address
+on its schedule. The **Subscriptions** card lists every subscription for a report
 you may read:
 
 - **Report**: the report's title, such as *CalDART membership report*.
@@ -25,7 +25,11 @@ you may read:
 - **Last sent** and **Next**: when it last went and when it is due.
 - **Active**: a green dot while it is being sent, and a gray one while it is paused.
 
-Each row carries three controls. The line above the table says what each one did.
+Each row carries four controls. The line above the table says what the last three did.
+
+**Edit**
+   Opens the subscription's form under the table, to change its filters, columns, formats,
+   and schedule, as **Changing one** below describes.
 
 **Send now**
    Sends the report at once, whatever the date, and leaves its next date alone. The line
@@ -74,6 +78,25 @@ medical and certificate details are not theirs to read. An address no account ho
 refused until you tick **This address is outside CalDART and may receive this report**, which
 appears once CalDART asks for it. A filter the report cannot use is named, with the reason,
 under the filters.
+
+
+Changing one
+~~~~~~~~~~~~
+
+**Edit** on a row opens the same form under the table, headed **Edit subscription** and filled
+with everything the subscription was set up with: its filters, its columns, its formats, and
+its schedule and day. A subscription on the report's default columns opens with the defaults
+ticked. The **Report** and the **Recipient** are shown as plain text, since neither can
+change: to send a different report, or to send it to somebody else, delete the subscription
+and set up another.
+
+Change what you need and press **Save**; the form closes and the row shows the change. A
+changed schedule moves **Next** to the schedule's next day after today. **Cancel** closes the
+form and changes nothing. A filter the report cannot use is named, with the reason, under the
+filters, as when setting one up.
+
+One form is open at a time. **New subscription** closes an open edit, **Edit** on another row
+opens that row's subscription in its place, and **Edit** on the row being edited closes it.
 
 
 What happens next

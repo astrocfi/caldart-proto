@@ -1,14 +1,14 @@
 /**
  * Reports by email as an account administrator uses them: a subscription the
  * server refuses because its recipient may not read the report, the same one
- * accepted for somebody who may and sent at once, and every DART's roster
- * rehearsed.
+ * accepted for somebody who may, sent at once, and edited to go weekly, and
+ * every DART's roster rehearsed.
  */
 import { expect, test } from '@playwright/test';
 
 import { DEMO, signIn } from './helpers';
 
-test('an account administrator subscribes somebody to the member report and sends it', async ({
+test('an account administrator subscribes somebody to the member report, sends it, and edits it', async ({
   page,
 }) => {
   await signIn(page, DEMO.accountadmin);
@@ -31,6 +31,8 @@ test('an account administrator subscribes somebody to the member report and send
   );
 
   await form.getByLabel(/^Recipient email/).fill(DEMO.accountadmin);
+  // CSV tells this subscription apart from the seeded one, which sends a PDF.
+  await form.getByLabel('CSV').check();
   const saved = page.waitForResponse(
     (response) =>
       response.url().endsWith('/reports/subscriptions') && response.request().method() === 'POST',
@@ -42,9 +44,28 @@ test('an account administrator subscribes somebody to the member report and send
   const subscriptions = page
     .locator('section.card')
     .filter({ has: page.getByRole('heading', { name: 'Subscriptions' }) });
-  const members = subscriptions.getByRole('row').filter({ hasText: /^CalDART membership report/ });
-  await members.first().getByRole('button', { name: 'Send now' }).click();
+  const created = subscriptions
+    .getByRole('row')
+    .filter({ hasText: /^CalDART membership report/ })
+    .filter({ hasText: 'CSV' });
+  await expect(created).toHaveCount(1);
+  await created.getByRole('button', { name: 'Send now' }).click();
   await expect(subscriptions.getByRole('status')).toHaveText(/^Sent to /);
+
+  // Edit the same row: its schedule becomes weekly on Thursday.
+  await created.getByRole('button', { name: 'Edit' }).click();
+  const edit = page.getByRole('form', { name: 'Edit subscription' });
+  await edit.getByLabel('Schedule').selectOption('weekly');
+  await edit.getByLabel('Day').selectOption('Thursday');
+  const patched = page.waitForResponse(
+    (response) =>
+      /\/reports\/subscriptions\/\d+$/.test(response.url()) &&
+      response.request().method() === 'PATCH',
+  );
+  await edit.getByRole('button', { name: 'Save' }).click();
+  expect((await patched).status()).toBe(200);
+  await expect(edit).toHaveCount(0);
+  await expect(created.filter({ hasText: 'Weekly on Thursday' })).toHaveCount(1);
 });
 
 test('an account administrator rehearses the DART rosters', async ({ page }) => {

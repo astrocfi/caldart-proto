@@ -1,6 +1,10 @@
 /**
- * The form behind **New subscription**: which report, filtered how, with which
- * columns, in which formats, how often, and to whom.
+ * The form behind **New subscription** and each row's **Edit**: which report,
+ * filtered how, with which columns, in which formats, how often, and to whom.
+ *
+ * Editing changes everything but the report and the recipient, which the
+ * server keeps fixed, so the form draws those two as plain text and sends the
+ * rest as a `PATCH`.
  *
  * The report's filters are drawn by the one `FilterBar` from the report's own
  * definition, the fields only a subscription offers (the period a dated report
@@ -10,34 +14,37 @@
  * account holds must be confirmed with a checkbox that appears once the server
  * has asked for it.
  */
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent, JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
 import { useDarts, usePlans } from '@/portal/api/queries';
-import type { ReportCadence, ReportFormats } from '@/portal/api/types';
+import type { ReportCadence, ReportFormats, ReportSubscription } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import { Field } from '@/portal/components/Field';
 import { FilterBar } from '@/portal/components/FilterBar';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { useEmailPurposes } from '@/portal/features/system/api';
-import { useCreateSubscription, useReportColumns, useReports } from '@/portal/reports/api';
+import {
+  useCreateSubscription,
+  useReportColumns,
+  useReports,
+  useUpdateSubscription,
+} from '@/portal/reports/api';
 import { REPORTS } from '@/portal/reports/definitions';
 import type { FilterField, FilterValues, ReportSlug } from '@/portal/reports/types';
-import { CADENCE_LABELS, FORMAT_LABELS, WEEKDAY_OPTIONS } from './labels';
+import { CADENCE_LABELS, FORMAT_LABELS, WEEKDAY_OPTIONS, recipientLabel } from './labels';
 
-/** The fields the form shows errors for itself, so the form-level alert leaves them be. */
-const HANDLED_FIELDS = [
-  'report',
-  'recipient_email',
-  'confirmed',
-  'filters',
-  'columns',
-  'formats',
-  'cadence',
-  'weekday',
-];
+/**
+ * The fields an edit shows errors for itself, so the form-level alert leaves
+ * them be.  The report and the recipient are fixed text while editing, so a
+ * refusal of either reaches the alert.
+ */
+const EDIT_HANDLED_FIELDS = ['filters', 'columns', 'formats', 'cadence', 'weekday'];
+
+/** The fields a new subscription shows errors for itself. */
+const CREATE_HANDLED_FIELDS = ['report', 'recipient_email', 'confirmed', ...EDIT_HANDLED_FIELDS];
 
 const FORMATS: readonly ReportFormats[] = ['csv', 'pdf', 'both'];
 const CADENCES: readonly ReportCadence[] = ['weekly', 'monthly', 'quarterly', 'yearly'];
@@ -79,24 +86,45 @@ function setValues(values: FilterValues): Record<string, string> {
 }
 
 interface SubscriptionFormProps {
+  /** The subscription to edit; without one the form sets up a new subscription. */
+  subscription?: ReportSubscription;
   /** Called once the subscription is saved, or when the form is canceled. */
   onDone: () => void;
 }
 
-/** Sets up one report subscription. */
-export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps): JSX.Element {
-  const [slug, setSlug] = useState<ReportSlug | ''>('');
-  const [filters, setFilters] = useState<FilterValues>({});
-  const [columns, setColumns] = useState<string[] | null>(null);
-  const [formats, setFormats] = useState<ReportFormats>('pdf');
-  const [cadence, setCadence] = useState<ReportCadence>('monthly');
-  const [weekday, setWeekday] = useState(0);
+/**
+ * Sets up one report subscription, or edits `subscription` when it is given.
+ *
+ * Editing starts from the subscription's filters, columns, formats, schedule
+ * and day; a stored column list that is empty (the report's defaults) fills the
+ * chooser with the defaults and is sent back empty unless the chooser changes.
+ * A report the portal has no definition for draws no filters or chooser, and
+ * Save sends its stored filters and columns back with the schedule and formats.
+ */
+export function SubscriptionForm({
+  subscription,
+  onDone: handleDone,
+}: SubscriptionFormProps): JSX.Element {
+  const isEditing = subscription !== undefined;
+  const [slug, setSlug] = useState<ReportSlug | ''>(() =>
+    subscription !== undefined && isReportSlug(subscription.report) ? subscription.report : '',
+  );
+  const [filters, setFilters] = useState<FilterValues>(() => ({ ...subscription?.filters }));
+  const [columns, setColumns] = useState<string[] | null>(() =>
+    subscription === undefined || subscription.columns.length === 0 ? null : subscription.columns,
+  );
+  const [formats, setFormats] = useState<ReportFormats>(subscription?.formats ?? 'pdf');
+  const [cadence, setCadence] = useState<ReportCadence>(subscription?.cadence ?? 'monthly');
+  const [weekday, setWeekday] = useState(subscription?.weekday ?? 0);
   const [email, setEmail] = useState('');
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const reports = useReports();
   const create = useCreateSubscription();
+  const update = useUpdateSubscription();
+  const save = isEditing ? update : create;
+  const title = isEditing ? 'Edit subscription' : 'New subscription';
   const darts = useDarts();
   const plans = usePlans();
   // Only the emails report's Purpose filter reads these, and only a
@@ -113,7 +141,7 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
   );
 
   const definition = slug === '' ? null : REPORTS[slug];
-  const refusedFilters = filterErrors(create.error, definition?.filters ?? []);
+  const refusedFilters = filterErrors(save.error, definition?.filters ?? []);
 
   const handleReportChange = (event: ChangeEvent<HTMLSelectElement>): void => {
     const next = event.target.value;
@@ -133,6 +161,22 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
+    if (subscription !== undefined) {
+      update.mutate(
+        {
+          id: subscription.id,
+          patch: {
+            filters: setValues(filters),
+            columns: columns ?? [],
+            formats,
+            cadence,
+            weekday,
+          },
+        },
+        { onSuccess: handleDone },
+      );
+      return;
+    }
     if (slug === '') return;
     create.mutate(
       {
@@ -159,20 +203,24 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
 
   return (
     <section className="subscription-form stack">
-      <h3>New subscription</h3>
+      <h3>{title}</h3>
 
-      <Field label="Report" error={fieldError(create.error, 'report')}>
-        {(props) => (
-          <select {...props} value={slug} onChange={handleReportChange}>
-            <option value="">Choose a report…</option>
-            {(reports.data ?? []).map((report) => (
-              <option key={report.slug} value={report.slug}>
-                {report.title}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
+      {subscription !== undefined ? (
+        <FixedValue label="Report" value={subscription.report_title} />
+      ) : (
+        <Field label="Report" error={fieldError(create.error, 'report')}>
+          {(props) => (
+            <select {...props} value={slug} onChange={handleReportChange}>
+              <option value="">Choose a report…</option>
+              {(reports.data ?? []).map((report) => (
+                <option key={report.slug} value={report.slug}>
+                  {report.title}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      )}
 
       {definition === null ? null : (
         <>
@@ -195,15 +243,15 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
               onChange={handleColumnsChange}
             />
           ) : null}
-          {fieldError(create.error, 'columns') === null ? null : (
+          {fieldError(save.error, 'columns') === null ? null : (
             <p className="field__error" role="alert">
-              {fieldError(create.error, 'columns')}
+              {fieldError(save.error, 'columns')}
             </p>
           )}
         </>
       )}
 
-      <form aria-label="New subscription" className="stack" onSubmit={handleSubmit}>
+      <form aria-label={title} className="stack" onSubmit={handleSubmit}>
         <fieldset>
           <legend>Formats</legend>
           <div className="cluster">
@@ -223,7 +271,7 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
         </fieldset>
 
         <div className="cluster">
-          <Field label="Schedule" error={fieldError(create.error, 'cadence')}>
+          <Field label="Schedule" error={fieldError(save.error, 'cadence')}>
             {(props) => (
               <select
                 {...props}
@@ -242,7 +290,7 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
             )}
           </Field>
           {cadence === 'weekly' ? (
-            <Field label="Day" error={fieldError(create.error, 'weekday')}>
+            <Field label="Day" error={fieldError(save.error, 'weekday')}>
               {(props) => (
                 <select
                   {...props}
@@ -260,17 +308,21 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
           ) : null}
         </div>
 
-        <Field label="Recipient email" error={recipientError} required>
-          {(props) => (
-            <input
-              {...props}
-              type="email"
-              autoComplete="off"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          )}
-        </Field>
+        {subscription !== undefined ? (
+          <FixedValue label="Recipient" value={recipientLabel(subscription)} />
+        ) : (
+          <Field label="Recipient email" error={recipientError} required>
+            {(props) => (
+              <input
+                {...props}
+                type="email"
+                autoComplete="off"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            )}
+          </Field>
+        )}
 
         {needsConfirmation ? (
           <div className="field">
@@ -291,12 +343,15 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
         ) : null}
 
         {refusedFilters.length > 0 ? null : (
-          <FormAlert error={create.error} handled={HANDLED_FIELDS} />
+          <FormAlert
+            error={save.error}
+            handled={isEditing ? EDIT_HANDLED_FIELDS : CREATE_HANDLED_FIELDS}
+          />
         )}
 
         <div className="cluster">
-          <Button type="submit" disabled={slug === '' || create.isPending}>
-            {create.isPending ? 'Saving…' : 'Save'}
+          <Button type="submit" disabled={(!isEditing && slug === '') || save.isPending}>
+            {save.isPending ? 'Saving…' : 'Save'}
           </Button>
           <Button variant="quiet" onClick={handleDone}>
             Cancel
@@ -304,6 +359,24 @@ export function SubscriptionForm({ onDone: handleDone }: SubscriptionFormProps):
         </div>
       </form>
     </section>
+  );
+}
+
+interface FixedValueProps {
+  label: string;
+  value: string;
+}
+
+/** A labeled value the form shows but does not let anyone change. */
+function FixedValue({ label, value }: FixedValueProps): JSX.Element {
+  const id = useId();
+  return (
+    <div className="field" role="group" aria-labelledby={id}>
+      <span className="field__label" id={id}>
+        {label}
+      </span>
+      <span>{value}</span>
+    </div>
   );
 }
 

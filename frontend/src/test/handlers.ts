@@ -303,15 +303,29 @@ export interface ReportsStub {
   rosters?: Roster[];
 }
 
-/** Handlers for the reports screen's reads, answering with whatever the caller passes. */
+/**
+ * Handlers for the reports screen's reads, answering with whatever the caller
+ * passes.  A `PATCH` of a listed subscription merges its body into that one and
+ * answers with it, so the list read after an edit shows the change.
+ */
 export function subscriptionHandlers({
   reports = [],
   subscriptions = [],
   rosters = [],
 }: ReportsStub = {}): HttpHandler[] {
+  let store = [...subscriptions];
   return [
     http.get(`${API}/reports`, () => HttpResponse.json(reports)),
-    http.get(`${API}/reports/subscriptions`, () => HttpResponse.json(subscriptions)),
+    http.get(`${API}/reports/subscriptions`, () => HttpResponse.json(store)),
+    http.patch(`${API}/reports/subscriptions/:id`, async ({ params, request }) => {
+      const id = Number(params.id);
+      const current = store.find((subscription) => subscription.id === id);
+      if (current === undefined) return new HttpResponse(null, { status: 404 });
+      const patch = (await request.json()) as Partial<ReportSubscription>;
+      const changed = { ...current, ...patch };
+      store = store.map((subscription) => (subscription.id === id ? changed : subscription));
+      return HttpResponse.json(changed);
+    }),
     http.get(`${API}/reports/rosters`, () => HttpResponse.json(rosters)),
     http.get(`${API}/darts`, () => HttpResponse.json([])),
     http.get(`${API}/plans`, () => HttpResponse.json([])),
