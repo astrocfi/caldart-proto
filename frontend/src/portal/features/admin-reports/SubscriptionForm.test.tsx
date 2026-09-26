@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { API, makeSubscription, subscriptionHandlers } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
-import type { ReportColumn, ReportSummary } from '@/portal/api/types';
+import type { ReportColumn, ReportSubscription, ReportSummary } from '@/portal/api/types';
 import { SubscriptionForm } from './SubscriptionForm';
 
 const REPORTS: ReportSummary[] = [
@@ -275,6 +275,157 @@ describe('SubscriptionForm', () => {
     await chooseReport('Members');
 
     await userEvent.click(within(form()).getByRole('button', { name: 'Cancel' }));
+
+    expect(onDone).toHaveBeenCalled();
+    expect(bodies).toEqual([]);
+  });
+});
+
+/** A weekly subscription to the member report, filtered and with two columns chosen. */
+const STORED = makeSubscription({
+  id: 5,
+  report: 'members',
+  report_title: 'CalDART membership report',
+  recipient_name: 'Ada Admin',
+  recipient_email: 'ada@example.org',
+  filters: { kind: 'friend', expiring_within: '30' },
+  columns: ['name', 'county'],
+  formats: 'both',
+  cadence: 'weekly',
+  weekday: 3,
+});
+
+/** Render the form editing `subscription`; every PATCH body lands in `bodies`. */
+function renderEdit(
+  subscription: ReportSubscription = STORED,
+  bodies: unknown[] = [],
+  handleDone = vi.fn(),
+) {
+  server.use(
+    ...subscriptionHandlers({ reports: REPORTS, subscriptions: [subscription] }),
+    http.get(`${API}/reports/members/columns`, () => HttpResponse.json(MEMBER_COLUMNS)),
+    http.patch(`${API}/reports/subscriptions/${subscription.id}`, async ({ request }) => {
+      bodies.push(await request.json());
+      return HttpResponse.json(subscription);
+    }),
+  );
+  renderWithProviders(<SubscriptionForm subscription={subscription} onDone={handleDone} />);
+  return handleDone;
+}
+
+/** The edit form's own controls, outside the filter bar. */
+function editForm(): HTMLElement {
+  return screen.getByRole('form', { name: 'Edit subscription' });
+}
+
+describe('SubscriptionForm editing a subscription', () => {
+  it('is headed Edit subscription', () => {
+    renderEdit();
+
+    expect(screen.getByRole('heading', { name: 'Edit subscription' })).toBeInTheDocument();
+  });
+
+  it('shows the report as fixed text rather than a choice', () => {
+    renderEdit();
+
+    expect(screen.getByRole('group', { name: 'Report' })).toHaveTextContent(
+      'CalDART membership report',
+    );
+    expect(screen.queryByRole('combobox', { name: 'Report' })).not.toBeInTheDocument();
+  });
+
+  it('shows the recipient as fixed text rather than an address box', () => {
+    renderEdit();
+
+    expect(within(editForm()).getByRole('group', { name: 'Recipient' })).toHaveTextContent(
+      'Ada Admin',
+    );
+    expect(within(editForm()).queryByLabelText(/^Recipient email/)).not.toBeInTheDocument();
+  });
+
+  it("fills the report's filters from the subscription", () => {
+    renderEdit();
+
+    const bar = screen.getByRole('search', { name: 'Report filters' });
+    expect(within(bar).getByLabelText('Kind')).toHaveValue('friend');
+    expect(within(bar).getByLabelText('Expiring within (days)')).toHaveValue('30');
+  });
+
+  it('ticks the stored columns in the chooser', async () => {
+    renderEdit();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Columns' }));
+
+    const ticked = MEMBER_COLUMNS.filter(
+      (column) => screen.getByRole<HTMLInputElement>('checkbox', { name: column.label }).checked,
+    ).map((column) => column.label);
+    expect(ticked).toEqual(['Name', 'County']);
+  });
+
+  it('fills the formats, the schedule and the day', () => {
+    renderEdit();
+
+    expect(within(editForm()).getByLabelText('Both')).toBeChecked();
+    expect(within(editForm()).getByLabelText('Schedule')).toHaveValue('weekly');
+    expect(within(editForm()).getByLabelText('Day')).toHaveValue('3');
+  });
+
+  it('patches the filters, columns, formats, schedule and day on Save', async () => {
+    const bodies: unknown[] = [];
+    const onDone = renderEdit(STORED, bodies);
+    await screen.findByRole('button', { name: 'Columns' });
+
+    await userEvent.selectOptions(screen.getByLabelText('Kind'), 'Members only');
+    await userEvent.click(within(editForm()).getByLabelText('PDF'));
+    await userEvent.selectOptions(within(editForm()).getByLabelText('Schedule'), 'Monthly');
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalled());
+    expect(bodies).toEqual([
+      {
+        filters: { kind: 'member', expiring_within: '30' },
+        columns: ['name', 'county'],
+        formats: 'pdf',
+        cadence: 'monthly',
+        weekday: 3,
+      },
+    ]);
+  });
+
+  it('sends a subscription on the default columns back with none chosen', async () => {
+    const bodies: unknown[] = [];
+    renderEdit(makeSubscription({ id: 6, columns: [] }), bodies);
+    await screen.findByRole('button', { name: 'Columns' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await vi.waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toMatchObject({ columns: [] });
+  });
+
+  it('shows a refused filter by its label', async () => {
+    renderEdit();
+    server.use(
+      http.patch(`${API}/reports/subscriptions/5`, () =>
+        HttpResponse.json(
+          { filters: { expiring_within: ['Enter a whole number.'] } },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Expiring within (days): Enter a whole number.',
+    );
+  });
+
+  it('closes on Cancel without saving', async () => {
+    const bodies: unknown[] = [];
+    const onDone = renderEdit(STORED, bodies);
+
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Cancel' }));
 
     expect(onDone).toHaveBeenCalled();
     expect(bodies).toEqual([]);
