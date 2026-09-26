@@ -6,8 +6,7 @@ import { ApiError } from '@/portal/api/client';
 import type { User } from '@/portal/api/types';
 import { useAuth, useEmailVerify } from '@/portal/auth/useAuth';
 import { ButtonLink } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
-import { Page } from '@/portal/components/Page';
+import { AuthShell } from './AuthShell';
 
 /** What the server says about every unusable link, shown too for a link with no token. */
 const INVALID_LINK = 'That verification link is invalid or has expired.';
@@ -41,23 +40,21 @@ export function VerifyEmailPage(): JSX.Element {
 
   if (!verify.isSuccess) {
     return (
-      <Page title="Verifying your email address" eyebrow="Your account">
+      <AuthShell title="Verifying your email address">
         <p className="muted" role="status">
           Checking the link…
         </p>
-      </Page>
+      </AuthShell>
     );
   }
 
   return (
-    <Page title="Email verified" eyebrow="Your account">
-      <Card className="auth-card">
-        <p>{verify.data.email} is verified.</p>
-        <div className="cluster card__footer">
-          <ButtonLink to={continueTo(user)}>Continue</ButtonLink>
-        </div>
-      </Card>
-    </Page>
+    <AuthShell title="Email verified">
+      <p>{verify.data.email} is verified.</p>
+      <div className="auth__actions">
+        <ButtonLink to={continueTo(user)}>Continue</ButtonLink>
+      </div>
+    </AuthShell>
   );
 }
 
@@ -75,16 +72,14 @@ function failureMessage(error: unknown): string {
 
 function VerifyFailed({ message }: { message: string }): JSX.Element {
   return (
-    <Page title="Email not verified" eyebrow="Your account">
-      <Card className="auth-card">
-        <p className="field__error" role="alert">
-          {message}
-        </p>
-        <p>
-          <Link to="/login">Sign in</Link> and use Resend verification message on your dashboard to
-          get a new one.
-        </p>
-      </Card>
-    </Page>
+    <AuthShell title="Email not verified">
+      <p className="field__error" role="alert">
+        {message}
+      </p>
+      <p>
+        <Link to="/login">Sign in</Link> and use Resend verification message on your dashboard to
+        get a new one.
+      </p>
+    </AuthShell>
   );
 }

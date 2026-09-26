@@ -4,8 +4,8 @@ import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
-import type { User } from '@/portal/api/types';
-import { API, makeUser, signedInAs } from '@test/handlers';
+import type { AdminUser, User } from '@/portal/api/types';
+import { API, makeAdminUser, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { UserDetailPage } from './UserDetailPage';
@@ -16,7 +16,7 @@ const ROLES = [
   { slug: 'system_admin', description: 'Everything, plus backups and health.' },
 ];
 
-const TARGET = makeUser({
+const TARGET = makeAdminUser({
   id: 7,
   email: 'priya@example.org',
   first_name: 'Priya',
@@ -25,7 +25,7 @@ const TARGET = makeUser({
 });
 
 interface StubOptions {
-  target?: User;
+  target?: AdminUser;
   me?: User;
   patch?: Parameters<typeof http.patch>[1];
 }
@@ -171,5 +171,84 @@ describe('UserDetailPage', () => {
     renderDetail('404');
 
     expect(await screen.findByText(/could not be loaded/i)).toBeInTheDocument();
+  });
+
+  it('shows when the email address was verified, with no resend button', async () => {
+    stubDetail();
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    expect(screen.getByText('Verified')).toHaveTextContent('Verified 2024/07/01');
+    expect(
+      screen.queryByRole('button', { name: /resend verification message/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers to resend a verification message for an unverified address', async () => {
+    stubDetail({ target: { ...TARGET, email_verified: false, email_verified_at: null } });
+    server.use(
+      http.post(`${API}/admin/users/${TARGET.id}/send-email-verification`, () =>
+        HttpResponse.json({ detail: 'Verification message sent to priya@example.org.' }),
+      ),
+    );
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    expect(screen.getByText('Unverified')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /resend verification message/i }));
+
+    expect(
+      await screen.findByText('Verification message sent to priya@example.org.'),
+    ).toBeInTheDocument();
+  });
+
+  it('disables the resend button for a deactivated, unverified account', async () => {
+    stubDetail({
+      target: { ...TARGET, email_verified: false, email_verified_at: null, is_active: false },
+    });
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    expect(screen.getByRole('button', { name: /resend verification message/i })).toBeDisabled();
+  });
+
+  it('reports the reason an admin resend is refused', async () => {
+    stubDetail({ target: { ...TARGET, email_verified: false, email_verified_at: null } });
+    server.use(
+      http.post(`${API}/admin/users/${TARGET.id}/send-email-verification`, () =>
+        HttpResponse.json({ detail: 'That address is already verified.' }, { status: 400 }),
+      ),
+    );
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+
+    await userEvent.click(screen.getByRole('button', { name: /resend verification message/i }));
+
+    expect(await screen.findByText('That address is already verified.')).toBeInTheDocument();
+  });
+
+  it('refetches the account after a refused resend, so the indicator cannot go stale', async () => {
+    let requests = 0;
+    server.use(
+      signedInAs(makeUser({ id: 1, roles: ['member', 'user_admin'] })),
+      http.get(`${API}/roles`, () => HttpResponse.json(ROLES)),
+      http.get(`${API}/admin/users/${TARGET.id}`, () => {
+        requests += 1;
+        const target =
+          requests === 1 ? { ...TARGET, email_verified: false, email_verified_at: null } : TARGET;
+        return HttpResponse.json(target);
+      }),
+      http.post(`${API}/admin/users/${TARGET.id}/send-email-verification`, () =>
+        HttpResponse.json({ detail: 'That address is already verified.' }, { status: 400 }),
+      ),
+    );
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Priya Raman' });
+    expect(screen.getByText('Unverified')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /resend verification message/i }));
+    await screen.findByText('That address is already verified.');
+
+    expect(await screen.findByText('Verified')).toHaveTextContent('Verified 2024/07/01');
   });
 });

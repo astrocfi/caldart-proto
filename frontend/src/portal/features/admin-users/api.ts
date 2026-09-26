@@ -4,11 +4,13 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
 import type {
+  AdminUser,
   AdminUserPatch,
   Paginated,
   RoleSlug,
   SendPasswordResetResult,
   User,
+  VerificationSentResult,
 } from '@/portal/api/types';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 
@@ -53,11 +55,11 @@ export function useAdminUsers(filters: AdminUserFilters): UseQueryResult<Paginat
   });
 }
 
-/** One account's detail record by id. */
-export function useAdminUser(id: string | number): UseQueryResult<User> {
+/** One account's detail record by id, including when its email address was verified. */
+export function useAdminUser(id: string | number): UseQueryResult<AdminUser> {
   return useQuery({
     queryKey: adminUserKey(id),
-    queryFn: () => api.get<User>(`/admin/users/${id}`),
+    queryFn: () => api.get<AdminUser>(`/admin/users/${id}`),
   });
 }
 
@@ -69,10 +71,10 @@ export function useAdminUser(id: string | number): UseQueryResult<User> {
  */
 export function useUpdateAdminUser(
   id: string | number,
-): UseMutationResult<User, Error, AdminUserPatch> {
+): UseMutationResult<AdminUser, Error, AdminUserPatch> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: AdminUserPatch) => api.patch<User>(`/admin/users/${id}`, patch),
+    mutationFn: (patch: AdminUserPatch) => api.patch<AdminUser>(`/admin/users/${id}`, patch),
     onSuccess: (user) => {
       queryClient.setQueryData(adminUserKey(id), user);
       void queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY });
@@ -88,5 +90,25 @@ export function useSendPasswordReset(
 ): UseMutationResult<SendPasswordResetResult, Error, void> {
   return useMutation({
     mutationFn: () => api.post<SendPasswordResetResult>(`/admin/users/${id}/send-password-reset`),
+  });
+}
+
+/**
+ * Mails the account a fresh verification link for its current address.
+ *
+ * Refetches the account on settling either way, since a refusal (the address was
+ * verified since the page loaded) would otherwise leave the indicator beside it
+ * showing stale, contradicting data.
+ */
+export function useSendEmailVerification(
+  id: string | number,
+): UseMutationResult<VerificationSentResult, Error, void> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.post<VerificationSentResult>(`/admin/users/${id}/send-email-verification`),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: adminUserKey(id) });
+    },
   });
 }

@@ -10,6 +10,7 @@ import { useDarts } from '@/portal/api/queries';
 import type { MemberDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
 import { useToast } from '@/portal/components/Toast';
 import { ProfileFieldsets } from '@/portal/features/profile/ProfileFieldsets';
 import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '@/portal/features/profile/form';
@@ -75,6 +76,7 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
           onChange={(next) => setAccount(next)}
           errors={errors.account}
           withActive
+          emailHint={<EmailVerifiedText verifiedAt={member.email_verified_at} />}
         />
         <ProfileFieldsets
           value={profile}

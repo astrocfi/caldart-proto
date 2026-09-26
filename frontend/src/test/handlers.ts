@@ -2,6 +2,7 @@ import { HttpResponse, http } from 'msw';
 import type { HttpHandler } from 'msw';
 
 import type {
+  AdminUser,
   MembershipStatus,
   Payment,
   PaymentPeriodSummary,
@@ -57,6 +58,20 @@ export function makeUser(overrides: Partial<User> = {}): User {
     profile_complete: true,
     email_verified: true,
     ...overrides,
+  };
+}
+
+/**
+ * Build an `/admin/users/{id}` payload: `makeUser`, plus when the address was
+ * verified, keeping `email_verified` in step with `email_verified_at` the way
+ * the server does.
+ */
+export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
+  const { email_verified_at = '2024-07-01T12:05:00Z', ...userOverrides } = overrides;
+  return {
+    ...makeUser(userOverrides),
+    email_verified: email_verified_at !== null,
+    email_verified_at,
   };
 }
 

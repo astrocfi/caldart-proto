@@ -171,6 +171,11 @@ The same fields as the new-member form, plus:
 * **How they heard about CalDART** and **Administrator notes** — visible only
   to account administrators.  Members never see them, on any screen.
 
+Under the email field, the record shows **Verified** with the date it was
+confirmed, or **Unverified**, with no button to resend from here: a user
+administrator can send a fresh message from the Users & roles screen, or the
+member can send themselves one from their own dashboard.
+
 **Save changes** writes the account and the profile in one request.
 
 Two of those fields are guarded, because between them they are enough to take an

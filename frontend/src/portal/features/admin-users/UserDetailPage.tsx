@@ -3,20 +3,27 @@ import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import type { RoleSlug, User } from '@/portal/api/types';
+import type { AdminUser, RoleSlug } from '@/portal/api/types';
 import { useAuth, useRoles } from '@/portal/auth/useAuth';
 import { roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { MembershipChip } from '@/portal/components/StatusChip';
 import { Page } from '@/portal/components/Page';
+import { ResendVerificationButton } from '@/portal/components/ResendVerificationButton';
 import { useToast } from '@/portal/components/Toast';
 import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
-import { useAdminUser, useSendPasswordReset, useUpdateAdminUser } from './api';
+import {
+  useAdminUser,
+  useSendEmailVerification,
+  useSendPasswordReset,
+  useUpdateAdminUser,
+} from './api';
 
 interface FormState {
   first_name: string;
@@ -26,7 +33,7 @@ interface FormState {
   roles: RoleSlug[];
 }
 
-function formFor(user: User): FormState {
+function formFor(user: AdminUser): FormState {
   return {
     first_name: user.first_name,
     last_name: user.last_name,
@@ -36,7 +43,7 @@ function formFor(user: User): FormState {
   };
 }
 
-function displayName(user: User): string {
+function displayName(user: AdminUser): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
 }
 
@@ -47,6 +54,7 @@ export function UserDetailPage(): JSX.Element {
   const roles = useRoles();
   const update = useUpdateAdminUser(id);
   const sendReset = useSendPasswordReset(id);
+  const sendVerification = useSendEmailVerification(id);
   const toast = useToast();
   const { user: me } = useAuth();
 
@@ -155,7 +163,12 @@ export function UserDetailPage(): JSX.Element {
           <Field
             label="Email address"
             error={emailError ?? fieldError(update.error, 'email')}
-            hint="This is also how they sign in."
+            hint={
+              <>
+                This is also how they sign in.{' '}
+                <EmailVerifiedText verifiedAt={user.email_verified_at} />
+              </>
+            }
           >
             {(props) => (
               <MaskedInput
@@ -169,6 +182,15 @@ export function UserDetailPage(): JSX.Element {
               />
             )}
           </Field>
+          {user.email_verified ? null : (
+            <div className="cluster">
+              <ResendVerificationButton
+                variant="secondary"
+                disabled={!user.is_active}
+                mutation={sendVerification}
+              />
+            </div>
+          )}
 
           <fieldset>
             <legend>Account status</legend>

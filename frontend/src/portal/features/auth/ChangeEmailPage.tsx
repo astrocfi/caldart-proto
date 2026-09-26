@@ -4,10 +4,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useEmailChange } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
-import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
+import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
 import { safeNext } from './LoginPage';
 
@@ -29,71 +28,68 @@ export function ChangeEmailPage(): JSX.Element {
   const next = safeNext(params.get('next'));
 
   return (
-    <Page
+    <AuthShell
       title="Change your email address"
-      eyebrow="Your account"
       lede="You sign in with the new address, and we send it a verification message."
     >
-      <Card className="auth-card">
-        <form
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
-            change.mutate(
-              { email, current_password: password },
-              {
-                onSuccess: (user) => {
-                  toast.show(
-                    `Your email is now ${user.email}. We sent a verification message to it.`,
-                    'success',
-                  );
-                  void navigate(next, { replace: true });
-                },
+      <form
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          change.mutate(
+            { email, current_password: password },
+            {
+              onSuccess: (user) => {
+                toast.show(
+                  `Your email is now ${user.email}. We sent a verification message to it.`,
+                  'success',
+                );
+                void navigate(next, { replace: true });
               },
-            );
-          }}
+            },
+          );
+        }}
+      >
+        <Field label="New email address" required error={fieldError(change.error, 'email')}>
+          {(props) => (
+            <input
+              {...props}
+              type="email"
+              name="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          )}
+        </Field>
+        <Field
+          label="Current password"
+          required
+          error={fieldError(change.error, 'current_password')}
         >
-          <Field label="New email address" required error={fieldError(change.error, 'email')}>
-            {(props) => (
-              <input
-                {...props}
-                type="email"
-                name="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            )}
-          </Field>
-          <Field
-            label="Current password"
-            required
-            error={fieldError(change.error, 'current_password')}
-          >
-            {(props) => (
-              <input
-                {...props}
-                type="password"
-                name="current_password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            )}
-          </Field>
+          {(props) => (
+            <input
+              {...props}
+              type="password"
+              name="current_password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          )}
+        </Field>
 
-          <FormAlert error={change.error} handled={['email', 'current_password']} />
+        <FormAlert error={change.error} handled={['email', 'current_password']} />
 
-          <div className="cluster">
-            <Button type="submit" disabled={change.isPending}>
-              {change.isPending ? 'Saving…' : 'Change email'}
-            </Button>
-            <Link to="/">Back to the dashboard</Link>
-          </div>
-        </form>
-      </Card>
-    </Page>
+        <div className="auth__actions">
+          <Button type="submit" disabled={change.isPending}>
+            {change.isPending ? 'Saving…' : 'Change email'}
+          </Button>
+          <Link to="/">Back to the dashboard</Link>
+        </div>
+      </form>
+    </AuthShell>
   );
 }

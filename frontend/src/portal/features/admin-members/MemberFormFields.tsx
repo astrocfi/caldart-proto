@@ -12,7 +12,7 @@
  * and do no client-side insistence that a half-known record be completed.  The
  * server's rules still apply to both.
  */
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 
 import type { AdminProfile, AdminProfilePayload } from '@/portal/api/types';
 import { Field } from '@/portal/components/Field';
@@ -64,6 +64,8 @@ export interface AccountFieldsProps {
   withPassword?: boolean;
   /** Offer the active/inactive switch (editing only). */
   withActive?: boolean;
+  /** Extra hint content under the email field, such as its verification status. */
+  emailHint?: ReactNode;
 }
 
 /** The account fieldset: email, name, and optionally a password and active switch. */
@@ -73,6 +75,7 @@ export function AccountFields({
   errors = {},
   withPassword = false,
   withActive = false,
+  emailHint,
 }: AccountFieldsProps): JSX.Element {
   const set = <Key extends keyof AccountDraft>(key: Key, next: AccountDraft[Key]) =>
     onChange({ ...value, [key]: next });
@@ -82,7 +85,7 @@ export function AccountFields({
       <legend>Account</legend>
       <div className="grid">
         <div className="col-half">
-          <Field label="Email address" required error={errors.email}>
+          <Field label="Email address" required error={errors.email} hint={emailHint}>
             {(props) => (
               <MaskedInput
                 {...props}

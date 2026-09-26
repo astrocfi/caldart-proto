@@ -88,6 +88,12 @@ once they open the link in it.  A change of capitalization alone is not a
 change of address and leaves the verification alone.  People can also change
 their own address, from **Change email** in the portal's menu.
 
+Under the email field, the record shows **Verified** with the date it was
+confirmed, or **Unverified**.  On an unverified address a **Resend
+verification message** button sends a fresh link; it is disabled on a
+deactivated account, since the message would go unread until it is
+reactivated.
+
 An address you may not move is refused for a different reason.  The email
 address is where a password reset link goes, so moving somebody's address is
 enough to take their account over, and the server allows it only when you
@@ -180,6 +186,13 @@ they take too long, send another.
 If somebody asks you to *tell* them their password, or to set a particular
 password for them, you cannot: passwords are stored hashed, and the API has no
 endpoint that sets one directly.  The reset link is the whole mechanism.
+
+**Resend verification message**, next to the email field, emails a fresh
+verification link to the address on the account; the toast names that
+address, and the button is disabled on a deactivated account.  Unlike the
+password reset link, clicking the verification link a second time is not an
+error — the address is already verified, so it does nothing more — so send
+another whenever someone says the message never arrived.
 
 
 A few common tasks

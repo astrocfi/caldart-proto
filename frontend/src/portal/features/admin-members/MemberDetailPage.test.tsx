@@ -108,6 +108,26 @@ describe('MemberDetailPage', () => {
     expect(screen.getByRole('tab', { name: 'Profile' })).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('shows when the email address was verified', async () => {
+    server.use(...detailHandlers());
+    renderDetail();
+
+    await screen.findByLabelText('Administrator notes');
+    // The member also joined on 2024/07/01, so scope past that coincidence.
+    expect(screen.getByText('Verified')).toHaveTextContent('Verified 2024/07/01');
+  });
+
+  it('shows an unverified email address with no resend button', async () => {
+    server.use(...detailHandlers(makeDetail({ email_verified_at: null })));
+    renderDetail();
+
+    await screen.findByLabelText('Administrator notes');
+    expect(screen.getByText('Unverified')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /resend verification message/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('moves between tabs with the arrow keys', async () => {
     const user = userEvent.setup();
     server.use(...detailHandlers());
