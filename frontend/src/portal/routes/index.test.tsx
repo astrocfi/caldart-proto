@@ -31,6 +31,12 @@ vi.mock('../features/auth', () => ({
   LoginPage: pageStub('Sign in'),
   ResetPasswordPage: pageStub('Reset password'),
 }));
+vi.mock('../features/auth/ChangeEmailPage', () => ({
+  ChangeEmailPage: pageStub('Change email'),
+}));
+vi.mock('../features/auth/VerifyEmailPage', () => ({
+  VerifyEmailPage: pageStub('Verify email'),
+}));
 vi.mock('../features/dashboard/DashboardPage', () => ({
   DashboardPage: pageStub('Dashboard'),
 }));
@@ -149,6 +155,7 @@ const GUARDED_PATHS: GuardedPath[] = [
   { path: '/payments', heading: 'My payments', allowed: ANY_SIGNED_IN },
   { path: '/renew', heading: 'Renew', allowed: ANY_SIGNED_IN },
   { path: '/change-password', heading: 'Change password', allowed: ANY_SIGNED_IN },
+  { path: '/change-email', heading: 'Change email', allowed: ANY_SIGNED_IN },
   {
     path: '/leader',
     heading: 'Member check',
@@ -296,6 +303,12 @@ describe('the paths outside the session', () => {
     renderRoutes(routes, { route: '/login' });
 
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  it('renders the verify-email page for an anonymous visitor', async () => {
+    renderRoutes(routes, { route: '/verify-email?token=abc' });
+
+    expect(await screen.findByRole('heading', { name: 'Verify email' })).toBeInTheDocument();
   });
 
   it('renders the join wizard for an anonymous visitor', async () => {

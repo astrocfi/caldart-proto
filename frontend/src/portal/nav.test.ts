@@ -30,6 +30,7 @@ describe('visibleNavItems', () => {
       'Payments',
       'Renew',
       'Change password',
+      'Change email',
     ]);
   });
 

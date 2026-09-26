@@ -93,6 +93,7 @@ describe('PortalLayout', () => {
       'Payments',
       'Renew',
       'Change password',
+      'Change email',
       'User guide',
       'Back to caldart.org',
     ]);
