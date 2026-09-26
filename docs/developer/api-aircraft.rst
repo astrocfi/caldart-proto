@@ -431,8 +431,9 @@ normalizes to ``NATE`` and matches every US registration on file.
      }
    ]
 
-``membership_status`` is the ``current`` / ``expired`` / ``none`` string of the
-``members.services`` membership summary.
+``membership_status`` is the ``current`` / ``expired`` / ``friend`` string of the
+``members.services`` membership summary; a member who has never paid reads
+``friend``.
 
 ``go_no_go`` is computed by the same rule the status card uses, so a leader
 reads the verdict off the list and opens the card for the detail rather than

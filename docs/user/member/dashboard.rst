@@ -21,22 +21,18 @@ The cards read down the page in this order. Each appears only when it applies.
 
 **Membership**
   A chip with your membership's state, and the date it runs to or ran out on. The
-  six chips are:
+  four chips are:
 
   * **Current**: a term covers today.
   * **Expiring soon**: current, with 30 days or fewer to run.
-  * **Unpaid**: you joined, but the only term on your account is not paid for yet.
   * **Expired**: your last term has run out.
-  * **No membership**: no term has ever started.
   * **Friend**: you are a friend of CalDART, so nothing expires.
 
   The card's heading says the same in words, such as **Your membership is
-  current**, **Your membership has expired**, or **You are not a member yet**.
-  Inside 30 days of expiry, and after it, the card takes a colored edge and the
-  **Renew** button leads; after expiry it reads **Renew now**. With no membership
-  at all the button is **Join CalDART**. **Update your details** opens
-  :doc:`profile`, and **Make me a friend** appears beside the button (see
-  :doc:`profile`).
+  current** or **Your membership has expired**. Inside 30 days of expiry, and
+  after it, the card takes a colored edge and the **Renew** button leads; after
+  expiry it reads **Renew now**. **Update your details** opens :doc:`profile`, and
+  **Make me a friend** appears beside the button (see :doc:`profile`).
 
   A life member's card is headed **Lifetime member**, carries the **Never
   expires** chip, and reads *Nothing to renew* with thanks for joining for life.
@@ -45,7 +41,8 @@ The cards read down the page in this order. Each appears only when it applies.
   A friend's card is labeled **Friend of CalDART** and headed **You are a friend of
   CalDART**. It reads *You are a friend of CalDART: no dues, no expiry. Become a
   member any time.* and offers **Make me a member** (see :doc:`become-a-member`).
-  It never takes the colored edge.
+  It never takes the colored edge. You see this card too if you joined as a member
+  and stopped before paying: you are a friend until your first payment clears.
 
 **Finish your profile**
   Shown while your profile lacks a detail CalDART counts as essential: your phone,
@@ -107,8 +104,8 @@ When a screen will not open
 If something looks wrong
 ========================
 
-If you paid and the chip still says **Expired** or **No membership**, reload the
-page first. Then look at **Recent payments**: a payment marked **Failed** moved no
+If you paid and the chip still says **Expired** or **Friend**, reload the page
+first. Then look at **Recent payments**: a payment marked **Failed** moved no
 money, so try again from :doc:`renew`. A payment marked **Succeeded** with no
 membership behind it is a fault; tell the office the date and the amount. If a menu
 entry you expect is missing, you lack the role; a user administrator can grant it.

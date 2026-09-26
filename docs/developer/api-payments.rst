@@ -269,11 +269,13 @@ The payment's **owner**, or a finance role (``treasurer`` or
 .. code-block:: json
 
    {"status": "pending",
-    "membership": {"status": "none", "expires_on": null,
+    "membership": {"status": "friend", "expires_on": null,
                    "plan": null, "is_lifetime": false}}
 
 ``status`` is ``pending``, ``succeeded``, ``failed``, ``partially_refunded``
-or ``refunded``.
+or ``refunded``.  ``membership`` is the payer's membership summary (see
+:ref:`membership-status`): a joiner whose first payment is still pending reads
+``friend``, and ``current`` once it has succeeded.
 
 Statuses: **200**; **401** when anonymous; **403** for a signed-in caller who
 neither owns the payment nor holds a finance role; **404** for an unknown
@@ -412,7 +414,7 @@ Anyone holding the payment's token.  The bodies are the portal's (see
    {"payment_id": 415, "payment_intent_id": "pi_3Nk...", "token": "eyJwYXltZW50Ijo0MTV9:1tQ..."}
 
 The provider is asked exactly as the portal's endpoint asks it, and the answer is
-the same ``{status, membership}`` body; a donor's ``membership`` reads ``none``.
+the same ``{status, membership}`` body; a donor's ``membership`` reads ``donor``.
 ``/mock/complete`` is **404** while ``PAYMENTS_MOCK_ENABLED`` is off.
 
 Statuses: **200**; **400** for a missing field, a payment started with another

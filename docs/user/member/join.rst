@@ -24,6 +24,11 @@ The wizard works out how far you got from your account, your profile, and your
 membership, and puts you back on that step. You can always go back to an earlier
 step, but you cannot skip ahead of one you have not finished.
 
+You are a member once you pay. If you chose **Join as a member** and stop before
+paying, you are a friend of CalDART until your first payment clears: your dashboard
+shows the friend card with **Make me a member**, and members-only pages stay closed.
+Open the wizard again and it puts you back on **Pay your dues**.
+
 
 Step 1: Account
 ===============
@@ -159,7 +164,9 @@ Two buttons take you on: **Go to my dashboard** and **Add the planes I fly** (se
 :doc:`my-aircraft`). A member also sees **What you can read now**, the
 members-only pages the membership opens (see :doc:`members-only-content`).
 
-If the step is headed **Almost there**, your payment has not made you a member yet.
+If the step is headed **Almost there**, your payment has not cleared yet, and you are
+a friend until it does. CalDART emails you when it clears, and you are a member from
+that moment.
 
 
 If something looks wrong

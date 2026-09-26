@@ -20,7 +20,8 @@ these is true:
   administrator. They read these pages whatever their own membership is doing.
 
 Nobody else can: a visitor who is not signed in, a member whose membership has
-expired or never started, and a friend of CalDART (a supporter who pays no dues).
+expired, and a friend of CalDART (a supporter who pays no dues). Somebody who joined
+as a member and has not paid yet is a friend until the payment clears.
 
 
 Where you find them
@@ -58,15 +59,9 @@ membership includes**, lists what the pages hold.
   *Friends of CalDART can read this page by becoming a member.* Buttons: **Make me a
   member** (see :doc:`become-a-member`) and **Member portal**.
 
-**Signed in with no current membership**
-  *You are signed in, but your account has no current membership, so this page is
-  closed. Joining takes a minute and reopens it immediately.* Buttons: **Join
-  CalDART** (see :doc:`join`) and **Member portal**.
-
 A members-only document shows the same wall when you open its link.
 
-Renewing, joining, or becoming a member opens the pages the moment the payment
-clears.
+Renewing or becoming a member opens the pages the moment the payment clears.
 
 
 If something looks wrong

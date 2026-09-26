@@ -51,9 +51,18 @@ they like, and becomes a member by paying for a plan. See :doc:`overview`.
 Can I join without paying dues?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes. Choose **Join as a friend** on the first step of the join wizard. The payment
-step then offers a contribution you may skip with **Not now**. See
-:doc:`member/join`.
+Yes, as a friend of CalDART. Choose **Join as a friend** on the first step of the
+join wizard. The payment step then offers a contribution you may skip with **Not
+now**. A member pays dues: you are a member from the moment your first payment
+clears. See :doc:`member/join`.
+
+I registered as a member but did not pay. What am I?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A friend of CalDART, until you pay. Your dashboard shows the friend card with
+**Make me a member**, and the join wizard, opened again from **Join CalDART**, puts
+you back on **Pay your dues**. Either way, you are a member as soon as the payment
+clears. See :doc:`member/dashboard` and :doc:`member/join`.
 
 How do I stop being a member but keep supporting CalDART?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

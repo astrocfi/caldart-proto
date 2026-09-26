@@ -14,8 +14,11 @@ What you see
 
 The **Where you stand** card comes first. It shows your membership chip, then
 *Expires* and the date with the days to go, or *Expired* and the date it ran out
-on, and the plan you hold, such as *Annual membership*. If you have never held a
-membership it says *You have never held a CalDART membership.*
+on, and the plan you hold, such as *Annual membership*.
+
+Renewing is for a member. A friend of CalDART, including somebody who joined as a
+member and has not paid yet, has nothing to renew: opening **Renew** takes a friend
+to :doc:`become-a-member` instead.
 
 Below it is the checkout, headed **Renew your membership**. It works the same way
 as the join wizard's payment step (see :doc:`join`): choose the plan, with Annual

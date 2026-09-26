@@ -77,8 +77,10 @@ Every endpoint that returns an account returns the same object:
 
 ``membership``
    The membership summary from ``apps.members.services``.  ``status`` is one of
-   ``current``, ``new``, ``expired``, ``none``, and ``friend``; a friend's is
-   always ``friend``, with ``expires_on`` and ``plan`` null.  ``expires_on`` is
+   ``current``, ``expired``, ``friend``, and ``donor``; an effective friend's is
+   always ``friend``, with ``expires_on`` and ``plan`` null, and that includes a
+   member who has never paid or been granted a term (see :ref:`kinds of account
+   <account-kinds>`).  ``expires_on`` is
    the end of the member's *unbroken* coverage, so an early renewal shows next
    year's date immediately, and it is ``null`` for a lifetime membership.
    A single-user endpoint such as ``/auth/me`` calls ``membership_status``,
@@ -100,9 +102,12 @@ Every endpoint that returns an account returns the same object:
    nothing else in the portal is gated on it.
 
 ``kind``
-   ``member``, ``friend``, or ``donor``, as stored (:ref:`kinds of account <account-kinds>`).  A
-   member with a pending ``friend_on`` still reads ``member`` here until the
-   day comes; ``membership.status`` already reads ``friend`` from that day.
+   ``member``, ``friend``, or ``donor``, as stored (:ref:`kinds of account <account-kinds>`):
+   what the person asked to be.  A member with a pending ``friend_on`` still
+   reads ``member`` here until the day comes; ``membership.status`` already
+   reads ``friend`` from that day.  A member who registered and has not paid
+   reads ``kind: "member"`` with ``membership.status: "friend"``, and the join
+   wizard reads the pair to put them back on its payment step.
 
 ``friend_on``
    The date a member who asked to become a friend becomes one, or ``null``.
@@ -128,7 +133,10 @@ Statuses: **204**, for anybody.
 
 Creates a member's or a friend's account, signs it in and returns the user
 payload.  ``email``, ``password``, ``first_name``, and ``last_name`` are
-required; ``kind`` is ``member`` (the default) or ``friend``.  In one transaction
+required; ``kind`` is ``member`` (the default) or ``friend``, stored as given.
+A member is an effective friend until a paid or granted term starts, so the
+account reads ``membership.status: "friend"`` until the first payment clears.
+In one transaction
 the endpoint creates the ``User`` of that kind, grants the ``member`` role and
 creates an empty ``MemberProfile``, then calls ``django.contrib.auth.login``.  If
 any part fails, none of it is written.  Once the transaction commits, the new
@@ -351,7 +359,7 @@ path.
 While an account is deactivated, every membership term it held with time left is
 ``suspended`` (see :doc:`data-model`).  A suspended term never covers a day and
 never counts as a past term, so an account whose only terms are suspended reads
-as ``none``; the reminder scan leaves suspended terms out altogether.
+as ``friend``; the reminder scan leaves suspended terms out altogether.
 
 ``POST /auth/deactivate``
 -------------------------

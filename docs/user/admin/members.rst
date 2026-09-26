@@ -33,9 +33,8 @@ list reads, for example, *Showing 1–25 of 212*, with **Previous** and **Next**
 
 **Membership Exp.**
    A colored dot and the date the membership runs out. The dot is green while the membership
-   is current, amber in its last 30 days, red once it has run out, blue for somebody who has
-   joined and not paid, and gray for somebody who has never been a member and for a friend.
-   A life member's date reads **Never**, and a friend's reads **Friend**.
+   is current, amber in its last 30 days, red once it has run out, and gray for a friend. A
+   life member's date reads **Never**, and a friend's reads **Friend**.
 
 **Email**
    Their address. Click it to write to them.
@@ -69,17 +68,18 @@ the page's address, so a filtered list is a link you can bookmark or send to a c
 **Kind**
    **All**, the first choice, lists members and friends together. **Members only** and
    **Friends only** list one kind. A member who has asked to become a friend at the end of
-   their term is a member until that day comes.
+   their term is a member until that day comes. Somebody who joined as a member and has
+   never paid is a friend: nobody is a member until a paid or granted term has started.
 
 **Search**
    A name, an email address, either phone number, or a pilot certificate number. A full name
    works: *Ana Bracco* finds her.
 
 **Membership**
-   **Current** (a term covers today), **Unpaid** (their only term was never paid for),
-   **Expired** (a paid term has run out), **No membership** (nobody has ever granted or sold
-   them a term), or **Friend**. Between them the five words cover every person exactly once,
-   and the report's **Status** column prints the same five.
+   **Any**, the blank choice, takes in everybody. **Current** (a term covers today),
+   **Expired** (a paid term has run out), and **Friend** (a friend of CalDART, including
+   somebody who joined as a member and has never paid) between them cover every person
+   exactly once, and the report's **Status** column prints the same three words.
 
 **Certificate** and **Medical**
    The pilot certificate and the medical on the person's profile. **Certificate** also
