@@ -261,11 +261,15 @@ Make me a friend
   become a friend straight away, and the card turns into a friend's card.
 
   Your automatic renewal is turned off either way, and CalDART emails you that it
-  is off.  If it also gives a contribution each year, the confirmation asks "Your
-  automatic renewal also gives $X each year. Keep giving $X a year as a recurring
-  donation?"  **Keep the contribution** carries that gift on as a yearly
-  recurring donation with the same card, first charged on the day your renewal
-  would have been; **Stop it** ends it with the renewal.  Otherwise the
+  is off.  If it is on and also gives a contribution each year, the confirmation
+  asks "Your automatic renewal also gives $X each year. Keep giving $X a year as a
+  recurring donation?"  **Keep the contribution** carries that gift on as a
+  yearly recurring donation with the same card, first charged on the day your
+  renewal would have been (today, if that day has passed); **Stop it** ends it
+  with the renewal.  If you already have a recurring donation, **Keep the
+  contribution** is refused and asks you to change that donation on the
+  **Donate** screen instead.  A renewal that is paused, because its card kept
+  failing, stops with its contribution and nothing is asked.  Otherwise the
   confirmation has a single **Make me a friend** button.  **Cancel** closes it
   and changes nothing.
 

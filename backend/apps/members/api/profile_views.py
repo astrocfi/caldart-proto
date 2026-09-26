@@ -172,10 +172,14 @@ class MyKindFriendView(APIView):
 
         A member whose membership is current becomes a friend the day after it runs out
         (``friend_on``); anybody else becomes one at once (``kind`` is ``friend``).  The
-        automatic renewal is canceled either way.  When it takes a contribution the body
-        must carry ``keep_contribution``: true keeps the contribution as a yearly
-        recurring donation charged on the renewal's next charge day, false lets it stop,
-        and leaving it out is 400 ``{"keep_contribution": ["This field is required."]}``.
+        automatic renewal is canceled either way.  When it is active and takes a
+        contribution the body must carry ``keep_contribution``: true keeps the
+        contribution as a yearly recurring donation charged on the renewal's next charge
+        day (today when that has passed), false lets it stop, and leaving it out is 400
+        ``{"keep_contribution": ["This field is required."]}``.  True while a recurring
+        donation is already active or paused is 400 ``{"keep_contribution": ["You
+        already have a recurring donation. Change it on the Donate screen."]}``.  A
+        paused renewal's contribution stops with it and needs no answer.
         A lifetime member, a friend, and a donor are each a 400 ``{"detail": ...}``;
         nothing changes on any refusal.  An anonymous caller gets 401.
         """

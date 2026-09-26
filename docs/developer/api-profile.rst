@@ -347,9 +347,10 @@ The caller asks to become a friend of CalDART (:ref:`kinds of account
 
    {"keep_contribution": true}
 
-``keep_contribution`` is needed only when the caller's automatic renewal is live
-(``active`` or ``paused``) and takes a contribution; it is ignored otherwise, and
-an empty body is enough.
+``keep_contribution`` is needed only when the caller's automatic renewal is
+``active`` and takes a contribution; it is ignored otherwise, and an empty body is
+enough.  A ``paused`` renewal's contribution is never kept: its card has already
+failed every retry, or the member was told it is off, so it stops with the renewal.
 
 * A member whose membership is current keeps it: ``friend_on`` becomes the day
   after the unbroken coverage ends (``expires_on`` plus one day) and ``kind`` stays
@@ -365,8 +366,7 @@ carries on as a yearly recurring donation on the renewal's provider and saved
 method, first charged on the renewal's ``next_charge_on`` (today when that has
 gone by), started through ``begin_mandate`` and ``save_method`` so it is audited
 as ``renewal.enable`` and announced with the "your recurring donation is on"
-email.  A recurring donation that is already ``active`` or ``paused`` is left as
-it is.  With ``false`` the contribution stops with the renewal.  The change is
+email.  With ``false`` the contribution stops with the renewal.  The change is
 recorded as ``account.kind`` with ``to=friend`` and ``on=<date>`` (the day it takes
 effect), actor and target the caller.
 
@@ -374,15 +374,20 @@ Statuses:
 
 * **200** — the ``user`` payload (:doc:`api-auth`), with ``friend_on`` set or
   ``kind: "friend"``.
-* **400** — ``{"keep_contribution": ["This field is required."]}`` when the live
+* **400** — ``{"keep_contribution": ["This field is required."]}`` when the active
   renewal takes a contribution and the body does not say.
+* **400** — ``{"keep_contribution": ["You already have a recurring donation. Change
+  it on the Donate screen."]}`` for ``keep_contribution: true`` while the caller's
+  recurring donation is ``active`` or ``paused``.
 * **400** — ``{"detail": "A lifetime member stays a member."}`` for a current
   life member, ``{"detail": "You are already a friend of CalDART."}`` for a friend
   (or a member whose ``friend_on`` has arrived), and ``{"detail": "A donor becomes
   a member or a friend only by registering."}`` for a donor.
 
 Nothing is written on any refusal.  A member whose change is pending may post
-again; the date is worked out afresh.
+again; the date is worked out afresh.  The caller's account and renewal are
+locked for the request, so two overlapping posts take turns and the second finds
+the renewal already canceled.
 
 
 ``DELETE /me/kind/friend``

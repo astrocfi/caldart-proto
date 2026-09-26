@@ -56,10 +56,13 @@ function dayAfter(iso: IsoDate): IsoDate {
   return todayIso(next);
 }
 
-/** What a live automatic renewal gives on top of the dues, in cents; 0 for none. */
+/**
+ * What an active automatic renewal gives on top of the dues, in cents; 0 for none.  A
+ * paused renewal's contribution is not offered: its card already failed, or its member
+ * was told it is off, so switching simply stops it.
+ */
 function renewalContribution(mandate: RenewalMandate | null | undefined): number {
-  if (mandate === null || mandate === undefined) return 0;
-  if (mandate.status !== 'active' && mandate.status !== 'paused') return 0;
+  if (mandate?.status !== 'active') return 0;
   return mandate.contribution_cents;
 }
 
@@ -139,6 +142,9 @@ function BecomeFriend({ expiresOn }: { expiresOn: IsoDate | null }) {
     );
   }
 
+  // Until the renewal has loaded nobody knows whether there is a contribution to ask
+  // about, so the confirm buttons wait for it.
+  const isBusy = become.isPending || renewal.isPending;
   const contribution = renewalContribution(renewal.data?.mandate);
   const amount = formatCents(contribution, { whole: true });
   const handleConfirm = (keepContribution?: boolean) =>
@@ -162,19 +168,15 @@ function BecomeFriend({ expiresOn }: { expiresOn: IsoDate | null }) {
       <div className="cluster">
         {contribution > 0 ? (
           <>
-            <Button disabled={become.isPending} onClick={() => handleConfirm(true)}>
+            <Button disabled={isBusy} onClick={() => handleConfirm(true)}>
               Keep the contribution
             </Button>
-            <Button
-              variant="secondary"
-              disabled={become.isPending}
-              onClick={() => handleConfirm(false)}
-            >
+            <Button variant="secondary" disabled={isBusy} onClick={() => handleConfirm(false)}>
               Stop it
             </Button>
           </>
         ) : (
-          <Button disabled={become.isPending} onClick={() => handleConfirm()}>
+          <Button disabled={isBusy} onClick={() => handleConfirm()}>
             Make me a friend
           </Button>
         )}

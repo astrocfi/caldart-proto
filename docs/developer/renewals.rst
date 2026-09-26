@@ -129,16 +129,21 @@ When a member becomes a friend
 
 A friend has no dues to renew, so ``switch_to_friend(user, *,
 keep_contribution)`` ends the automatic renewal in the same transaction that sets
-the kind (``POST /me/kind/friend``, :ref:`api-kind-switch`): a live renewal is
-canceled through ``cancel_mandate`` under the member's name and a pending one is
-deleted.  When the live renewal takes a contribution the member must say what
-becomes of it.  ``keep_contribution`` true calls
+the kind (``POST /me/kind/friend``, :ref:`api-kind-switch`): an active or paused
+renewal is canceled through ``cancel_mandate`` under the member's name and a
+pending one is deleted.  The account and the renewal are locked with
+``select_for_update`` first, so overlapping requests cannot both cancel it.  When
+an active renewal takes a contribution the member must say what becomes of it; a
+paused renewal's contribution simply stops, since its card already failed every
+retry or its member was told it is off.  ``keep_contribution`` true calls
 ``keep_renewal_contribution(renewal)`` after the cancellation: a recurring
 donation of the same amount, yearly, on the renewal's provider, customer and
 saved method, first charged on the renewal's ``next_charge_on`` (or today when that
 has passed), begun with ``begin_mandate`` and made active with ``save_method``.
 The renewal is canceled first, so the one-contribution rule above has nothing to
-refuse.  A recurring donation already ``active`` or ``paused`` is left alone.
+refuse.  Keeping it while a recurring donation is already ``active`` or
+``paused`` is refused on ``keep_contribution`` before anything changes: the member
+changes that donation on the Donate screen instead.
 Undoing the change (``DELETE /me/kind/friend``) restores no mandate.  A friend who
 still holds a renewal, which an administrator's change of kind can leave behind, is
 skipped by the scan with the reason ``friend``.

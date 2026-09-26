@@ -40,6 +40,9 @@ NO_PENDING_CHANGE = {"detail": "You have no pending change."}
 ALREADY_FRIEND = {"detail": "You are already a friend of CalDART."}
 DONOR_REFUSED = {"detail": "A donor becomes a member or a friend only by registering."}
 KEEP_REQUIRED = {"keep_contribution": ["This field is required."]}
+DONATION_HELD = {
+    "keep_contribution": ["You already have a recurring donation. Change it on the Donate screen."]
+}
 
 #: The contribution the renewal in these tests carries, in cents.
 CONTRIBUTION = 2500
@@ -60,12 +63,15 @@ def current_member(member: User, annual_plan: MembershipPlan) -> User:
 
 
 def renewal(user: User, plan: MembershipPlan, **fields: object) -> RenewalMandate:
-    """An active automatic renewal of ``plan`` for ``user``, charged on its expiry."""
+    """An active automatic renewal of ``plan`` for ``user``, charged on its expiry.
+
+    ``fields`` override the factory's, ``next_charge_on`` included.
+    """
     expires_on = membership_status(user)["expires_on"]
+    fields.setdefault("next_charge_on", expires_on or timezone.localdate())
     return RenewalMandateFactory(
         user=user,
         plan=plan,
-        next_charge_on=expires_on or timezone.localdate(),
         provider="stripe",
         customer_ref="cus_123",
         method_ref="pm_456",
@@ -166,6 +172,21 @@ def test_the_date_follows_an_early_renewal(
     )
     become_friend(member_client)
     assert fresh(current_member).friend_on == today + timedelta(days=566)
+
+
+def test_a_pending_member_may_ask_again(
+    member_client: APIClient, current_member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """Asking again while a change is pending works the date out afresh."""
+    become_friend(member_client)
+    MembershipFactory(
+        user=current_member,
+        plan=annual_plan,
+        starts_on=today + timedelta(days=201),
+        ends_on=today + timedelta(days=565),
+    )
+    status, body = become_friend(member_client)
+    assert (status, body["friend_on"]) == (200, str(today + timedelta(days=566)))
 
 
 def test_the_pending_friend_becomes_a_friend_on_the_day(
@@ -380,15 +401,77 @@ def test_keeping_the_contribution_emails_both_changes(
     ]
 
 
-def test_a_live_donation_is_left_as_it_is(
+def test_keeping_beside_a_live_donation_is_refused(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A recurring donation already running is not overwritten by the kept one."""
-    held = RenewalMandateFactory(user=current_member, plan=None, contribution_cents=1000)
+    """A member who already gives by recurring donation cannot keep a second one."""
+    RenewalMandateFactory(user=current_member, plan=None, contribution_cents=1000)
     renewal(current_member, annual_plan, contribution_cents=CONTRIBUTION)
+    assert become_friend(member_client, keep_contribution=True) == (400, DONATION_HELD)
+
+
+def test_a_refused_keep_changes_nothing(
+    member_client: APIClient, current_member: User, annual_plan: MembershipPlan
+) -> None:
+    """The refusal leaves the renewal on, the donation as it was, and the kind alone."""
+    held = RenewalMandateFactory(user=current_member, plan=None, contribution_cents=1000)
+    mandate = renewal(current_member, annual_plan, contribution_cents=CONTRIBUTION)
     become_friend(member_client, keep_contribution=True)
+    mandate.refresh_from_db()
     held.refresh_from_db()
-    assert held.contribution_cents == 1000
+    assert (mandate.status, held.contribution_cents, fresh(current_member).friend_on) == (
+        MandateStatus.ACTIVE,
+        1000,
+        None,
+    )
+
+
+def test_a_kept_contribution_from_a_lapsed_renewal_is_first_charged_today(
+    member_client: APIClient, member: User, annual_plan: MembershipPlan, today: date
+) -> None:
+    """A renewal whose charge day has gone by gives a donation first charged today."""
+    expire_membership(member, annual_plan, days_ago=5)
+    renewal(
+        member,
+        annual_plan,
+        contribution_cents=CONTRIBUTION,
+        next_charge_on=today - timedelta(days=5),
+    )
+    become_friend(member_client, keep_contribution=True)
+    donation = RenewalMandate.objects.get(user=member, plan__isnull=True)
+    assert donation.next_charge_on == today
+
+
+def test_a_paused_renewals_contribution_needs_no_answer(
+    member_client: APIClient, current_member: User, annual_plan: MembershipPlan
+) -> None:
+    """A paused renewal's contribution is not offered, so no answer is asked for."""
+    renewal(
+        current_member,
+        annual_plan,
+        contribution_cents=CONTRIBUTION,
+        status=MandateStatus.PAUSED,
+    )
+    status, _ = become_friend(member_client)
+    assert status == 200
+
+
+def test_a_paused_renewal_is_canceled_and_leaves_no_donation(
+    member_client: APIClient, current_member: User, annual_plan: MembershipPlan
+) -> None:
+    """A paused renewal is canceled and its contribution stops, whatever the body says."""
+    mandate = renewal(
+        current_member,
+        annual_plan,
+        contribution_cents=CONTRIBUTION,
+        status=MandateStatus.PAUSED,
+    )
+    become_friend(member_client, keep_contribution=True)
+    mandate.refresh_from_db()
+    assert (
+        mandate.status,
+        RenewalMandate.objects.filter(user=current_member, plan__isnull=True).exists(),
+    ) == (MandateStatus.CANCELED, False)
 
 
 # --------------------------------------------------------------------------

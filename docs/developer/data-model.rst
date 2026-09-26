@@ -507,8 +507,9 @@ A member sets ``friend_on`` themselves with ``POST /me/kind/friend``
 (:ref:`api-kind-switch`): ``members.services.become_friend(user, today)`` stores
 the day after a current membership's unbroken coverage ends, or makes a member
 with nothing current a friend at once, and ``undo_become_friend`` clears a date
-still ahead.  Both refuse a donor, and ``become_friend`` refuses a current life
-member and a friend.  ``payments.renewals.switch_to_friend`` wraps
+still ahead.  ``become_friend`` refuses a donor, a current life member, and a
+friend; ``undo_become_friend`` refuses anybody with nothing pending, a donor
+included.  ``payments.renewals.switch_to_friend`` wraps
 ``become_friend`` with the end of the automatic renewal (see
 :ref:`renewals-friend-switch`).
 

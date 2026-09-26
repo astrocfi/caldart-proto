@@ -791,6 +791,13 @@ KEEP_CONTRIBUTION_FIELD = "keep_contribution"
 KEEP_CONTRIBUTION_REQUIRED = "This field is required."
 
 
+#: What a member is told when they ask to keep their renewal's contribution while a
+#: recurring donation of theirs is already active or paused.
+KEEP_CONTRIBUTION_DONATION_HELD = (
+    "You already have a recurring donation. Change it on the Donate screen."
+)
+
+
 @transaction.atomic
 def switch_to_friend(user: User, *, keep_contribution: bool | None) -> User:
     """Make ``user`` a friend of CalDART at their own request, and return the account.
@@ -799,43 +806,66 @@ def switch_to_friend(user: User, *, keep_contribution: bool | None) -> User:
     the day after a current membership runs out, or at once.  Their automatic renewal
     ends with it (a friend has no dues to renew): an active or paused one is canceled
     through :func:`cancel_mandate` under their own name, and a pending one is thrown
-    away.  When a live renewal takes a contribution, ``keep_contribution`` must say
+    away.  When an active renewal takes a contribution, ``keep_contribution`` must say
     what becomes of it: true keeps it as a yearly recurring donation through
     :func:`keep_renewal_contribution`, false lets it stop.  Left as ``None`` there,
-    ``DomainValidationError`` is raised keyed by :data:`KEEP_CONTRIBUTION_FIELD`; it is
-    ignored when there is no contribution.  Every refusal of ``become_friend`` is raised
-    too, and nothing is written when anything is refused.
+    ``DomainValidationError`` is raised keyed by :data:`KEEP_CONTRIBUTION_FIELD`, and
+    true is refused the same way with :data:`KEEP_CONTRIBUTION_DONATION_HELD` while a
+    recurring donation of theirs is active or paused.  ``keep_contribution`` is ignored
+    when there is nothing to keep: no contribution, or a paused renewal, whose method
+    already failed or whose member was told it is off, so its contribution simply
+    stops.  Every refusal of ``become_friend`` is raised too, and nothing is written
+    when anything is refused.  The account and its renewal are locked for the
+    transaction, so two overlapping requests take turns: the second sees the first's
+    work.  The account returned is the freshly locked copy.
     """
+    user = User.objects.select_for_update().get(pk=user.pk)
     check_can_become_friend(user, timezone.localdate())
-    renewal = renewal_of(user)
+    renewal = (
+        RenewalMandate.objects.select_for_update().filter(user=user, plan__isnull=False).first()
+    )
     if renewal is not None and renewal.status == MandateStatus.PENDING:
         renewal.delete()
     elif renewal is not None and renewal.status != MandateStatus.CANCELED:
-        has_contribution = renewal.contribution_cents > 0
-        if has_contribution and keep_contribution is None:
-            raise DomainValidationError(KEEP_CONTRIBUTION_FIELD, KEEP_CONTRIBUTION_REQUIRED)
+        is_kept = _keeps_contribution(renewal, keep_contribution)
         cancel_mandate(renewal, actor=user)
-        if has_contribution and keep_contribution:
+        if is_kept:
             keep_renewal_contribution(renewal)
     return become_friend(user)
 
 
-def keep_renewal_contribution(renewal: RenewalMandate) -> RenewalMandate | None:
-    """Carry ``renewal``'s contribution on as a yearly recurring donation.
+def _keeps_contribution(renewal: RenewalMandate, keep_contribution: bool | None) -> bool:
+    """Whether switching to friend keeps ``renewal``'s contribution as a donation.
+
+    Only an active renewal with a contribution offers one to keep; for it, a missing
+    answer, or true while a recurring donation is already active or paused, raises
+    ``DomainValidationError`` keyed by :data:`KEEP_CONTRIBUTION_FIELD`.
+    """
+    if renewal.status != MandateStatus.ACTIVE or renewal.contribution_cents == 0:
+        return False
+    if keep_contribution is None:
+        raise DomainValidationError(KEEP_CONTRIBUTION_FIELD, KEEP_CONTRIBUTION_REQUIRED)
+    if not keep_contribution:
+        return False
+    held = donation_of(renewal.user)
+    if held is not None and held.status in (MandateStatus.ACTIVE, MandateStatus.PAUSED):
+        raise DomainValidationError(KEEP_CONTRIBUTION_FIELD, KEEP_CONTRIBUTION_DONATION_HELD)
+    return True
+
+
+def keep_renewal_contribution(renewal: RenewalMandate) -> RenewalMandate:
+    """Carry ``renewal``'s contribution on as a yearly recurring donation, and return it.
 
     The donation takes the renewal's contribution, provider, and saved method, and is
     first charged on the renewal's next charge day (today when that has gone by), so
     the member gives what they gave, on the day they gave it, with the card they gave
-    it with.  It is begun through :func:`begin_mandate` and activated through
-    :func:`save_method`, so it is audited as ``renewal.enable`` and announced like any
-    other.  A recurring donation already active or paused is left exactly as it is,
-    and ``None`` comes back; otherwise the donation does.  The renewal must already be
-    canceled: a contribution lives in one place, so :func:`begin_mandate` refuses a
-    donation beside a live renewal that takes one.
+    it with.  It is begun through :func:`begin_mandate`, reusing a canceled donation
+    row when there is one, and activated through :func:`save_method`, so it is audited
+    as ``renewal.enable`` and announced like any other.  The renewal must already be
+    canceled, and the member must hold no active or paused donation: a contribution
+    lives in one place, so :func:`begin_mandate` refuses a donation beside a live
+    renewal that takes one.
     """
-    held = donation_of(renewal.user)
-    if held is not None and held.status in (MandateStatus.ACTIVE, MandateStatus.PAUSED):
-        return None
     donation = begin_mandate(
         renewal.user,
         plan=None,
