@@ -66,8 +66,24 @@ describe('the join wizard card', () => {
 });
 
 describe('the auth card', () => {
+  const authCss = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), 'features/auth/auth.css'),
+    'utf8',
+  );
+
   it('takes its width from the auth panel rather than a portal.css rule', () => {
     expect(css).not.toMatch(/\.auth-card\b/);
+  });
+
+  it.each(['max-width: 26rem;', 'margin-inline: auto;'])(
+    'gives the auth panel %s so the card sits centered and narrow',
+    (declaration) => {
+      expect(ruleBody('.auth__panel', authCss)).toContain(declaration);
+    },
+  );
+
+  it('pads the auth card more roomily than a plain card', () => {
+    expect(ruleBody('.auth-card', authCss)).toContain('padding: var(--space-6);');
   });
 });
 

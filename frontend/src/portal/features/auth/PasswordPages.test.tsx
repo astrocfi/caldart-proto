@@ -168,8 +168,12 @@ describe('password page layout', () => {
     expect(container.querySelector('.auth-card')).toHaveTextContent(/that link is incomplete/i);
   });
 
-  it('gives each screen a single top-level heading', () => {
-    renderWithProviders(<ForgotPasswordPage />);
+  it.each([
+    ['forgot password', <ForgotPasswordPage key="f" />, '/forgot-password'],
+    ['reset password', <ResetPasswordPage key="r" />, '/reset-password?uid=MQ&token=abc-123'],
+    ['change password', <ChangePasswordPage key="c" />, '/change-password'],
+  ])('gives the %s screen a single top-level heading', (_name, page, route) => {
+    renderWithProviders(page, { route });
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
