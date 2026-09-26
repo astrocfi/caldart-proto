@@ -5,8 +5,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 /**
- * Two entries: the public site's progressive enhancement and the
- * portal SPA.  Django reads `dist/.vite/manifest.json` through django-vite,
+ * Three entries: the public site's progressive enhancement, the donation
+ * form the public donation page mounts, and the portal SPA.  Django reads `dist/.vite/manifest.json` through django-vite,
  * and `frontend/dist` is on STATICFILES_DIRS so `collectstatic` picks the
  * built assets up unchanged.
  */
@@ -30,6 +30,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         site: resolve(__dirname, 'src/site/main.ts'),
+        donate: resolve(__dirname, 'src/site/donate.tsx'),
         portal: resolve(__dirname, 'src/portal/main.tsx'),
       },
     },
