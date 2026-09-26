@@ -171,11 +171,14 @@ The table names each email and each charge: **What** (*Notice*, *Card expiring w
 *Charge taken notice*, *Charge failed notice*, or *Charge*), **Who**, **When**, and
 **Amount**. Running it twice charges nobody twice.
 
-A refused charge is tried again the next day, three days later, and a week after that. After
-the fourth refusal the automatic renewal turns itself off, the member is told with the
-subject *automatic renewal is off*, and the ordinary reminders take over. After a gap, a
-member whose membership ran out within the last month is renewed on the spot; one lapsed
-longer is not charged, and their automatic renewal turns itself off.
+A refused charge is tried again the next day, three days later, and a week after that. Each
+refusal emails the member with the subject *CalDART: we could not renew your membership*, or
+*CalDART: we could not take your recurring donation* for a recurring donation. After the
+fourth refusal the automatic renewal turns itself off, and that last email tells the member
+so and says the ordinary reminders take over. After a gap, a member whose membership ran out
+within the last month is renewed on the spot. One lapsed longer is not charged, their
+automatic renewal turns itself off, and they get the same *we could not renew your
+membership* email.
 
 
 Year-end statements

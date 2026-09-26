@@ -45,7 +45,7 @@ With none set up the table reads *No reports are sent by email yet*.
 
 
 Setting one up
---------------
+~~~~~~~~~~~~~~
 
 **New subscription** opens the form:
 
@@ -77,7 +77,7 @@ under the filters.
 
 
 What happens next
------------------
+~~~~~~~~~~~~~~~~~
 
 The emails go out every morning at 06:00. The subject reads *CalDART report:* with the
 report's title and the date, and the files are attached. A subscription that could not be

@@ -61,8 +61,8 @@ Granting and removing roles
 
 Things worth knowing:
 
-- Roles add up. Leave **Member** ticked when you add **DART leader**: taking it away removes
-  their own profile and renewal screens.
+- Roles add up. **Member** opens no screen of its own, because every signed-in account has
+  the member screens.
 - **Treasurer** opens the payment screens and nothing that shows a member's medical or
   certificate, so a volunteer who keeps the books needs no access to anybody's medical
   details.
@@ -124,8 +124,8 @@ the address on the account, which may differ from the one they wrote to you from
 
 The button is disabled on a deactivated account, whose card reads *Reactivate the account
 before sending a reset link.* The link stops working after three days, or as soon as it is
-used; send another if they take too long. Nobody can tell a person their password or set
-one for them: the reset link is the only way.
+used; send another if they take too long. Nobody can read an existing password, and this
+screen cannot set one. The reset link is the way back in.
 
 
 If something looks wrong

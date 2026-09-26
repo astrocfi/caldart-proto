@@ -128,7 +128,7 @@ an empty **Expires** cell.
 
 
 Choosing the columns
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 **Columns**, beside the filters, opens a list of every column the report offers, with a box
 to tick for each. Nine more are on offer: **Plan**, **Certificate number**, **IFR**,
@@ -143,7 +143,7 @@ point at which the CSV is the better file.
 .. _saved-column-sets:
 
 Saved column sets
------------------
+~~~~~~~~~~~~~~~~~
 
 Beside **Columns**, **Load columns** lists the sets of columns you have saved for this
 report. Pick a name and its columns are ticked for you. The trashcan beside a name deletes
