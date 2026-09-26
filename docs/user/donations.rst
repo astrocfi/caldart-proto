@@ -5,7 +5,7 @@ Donations
 How to give to |org|: from the portal if you are a member or a friend, or from
 the public donation page if you are not.  Either way the money reaches the same
 books, and a receipt reaches your inbox the moment the payment clears.  What
-happens to money after it arrives is in the :doc:`treasurer-guide`.
+happens to money after it arrives is in :doc:`finance/index`.
 
 
 Giving to CalDART

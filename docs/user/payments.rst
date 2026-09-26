@@ -7,7 +7,7 @@ join, renew, or give, what happens to your membership the moment a payment
 clears, how to give on a schedule, and how to find a receipt or a statement
 afterwards.  The other side of the ledger — every
 payment, refunds, reconciliation, and the financial reports — is the
-:doc:`treasurer-guide`.
+:doc:`treasurer's screens <finance/index>`.
 
 
 For members

@@ -23,13 +23,6 @@ before a flight, and administering accounts, content, and the system itself.
 
 .. toctree::
    :maxdepth: 1
-   :caption: For leaders and administrators
-
-   treasurer-guide
-   website-administrator-guide
-
-.. toctree::
-   :maxdepth: 1
    :caption: Screens
 
    member/index

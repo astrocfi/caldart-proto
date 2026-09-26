@@ -290,7 +290,7 @@ start tabbing.
 
 This guide is on the site too.  **User guide** at the foot of the portal's menu
 opens the page for your role — a member lands on :doc:`member-guide`, a DART
-leader on :doc:`admin/member-check`, a treasurer on :doc:`treasurer-guide`, an
+leader on :doc:`admin/member-check`, a treasurer on :doc:`finance/index`, an
 administrator on their own guide — and
 every page links to the rest.  The public site's footer links to the guide's
 front page.  Either link opens the guide in a new tab, so the screen you were on
@@ -302,5 +302,5 @@ Where to go next:
 * :doc:`member-guide` — your profile, membership, and renewals.
 * :doc:`admin/member-check` — checking another member before a flight.
 * :doc:`admin/users` — running accounts and roles.
-* :doc:`treasurer-guide` — the money.
+* :doc:`finance/index` — the money.
 * :doc:`faq` — the short answers.
