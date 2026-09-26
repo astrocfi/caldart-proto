@@ -55,10 +55,12 @@ tell them the password yourself. They are sent an email with the subject *CalDAR
 your email address*, and their address shows **Unverified** on their record until they open
 the link in it.
 
-Either way the account can use the portal as an ordinary member, with an empty profile ready
-to fill in. Creating an account does not give anybody a membership. Grant a term on the
-**Memberships** tab of the :doc:`member-record`, or let the member pay online. A friend
-needs neither, because a friend pays no dues.
+Either way the account can use the portal, with an empty profile ready to fill in.
+Creating an account does not give anybody a membership: the account is a friend of CalDART
+until a term starts, and reads **Friend** on :doc:`members` and on its record whichever
+kind you chose. Grant a term on the **Memberships** tab of the :doc:`member-record`, or let
+the member pay online, and they are a member from that moment. A friend needs neither,
+because a friend pays no dues.
 
 
 If something looks wrong

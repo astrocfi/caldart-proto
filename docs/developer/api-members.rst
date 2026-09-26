@@ -113,7 +113,11 @@ The member table, filtered, ordered, and paginated with the project's standard
 
 The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.  ``kind`` is
 ``member`` or ``friend``, as stored (:ref:`kinds of account <account-kinds>`): a donor is
-never a row.  A friend's ``membership.status`` is always ``friend``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
+never a row.  An effective friend's ``membership.status`` is always ``friend``,
+and that includes a row whose stored ``kind`` is ``member`` but who holds no
+started term that is active, expired, or suspended: nobody is a member until a
+paid or granted term has started.  A member whose only started terms are
+suspended also reads ``friend``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
 somebody who has never had one.  ``profile_updated_at`` is when profile
 information was last written -- see :doc:`data-model` -- and ``null`` for a
 profile nobody has edited, or for an account with none.  An account with no
@@ -137,17 +141,19 @@ Filters
 ``kind``
    ``member`` | ``friend``, matched against the effective kind worked out for
    today: a member whose ``friend_on`` date has arrived is a ``friend``, and one
-   whose date is still to come a ``member``.  Absent or blank lists both;
+   whose date is still to come a ``member``; a member who has never paid or been
+   granted a term is a ``friend``.  Absent or blank lists both;
    ``donor`` and anything else is a 400, since a donor is never listed.
 ``search``
    Case-insensitive substring of the full name, the email address, either
    phone number, or the pilot certificate number.  The full name is matched as
    one string, so ``Ana Bracco`` works.
 ``status``
-   ``current`` | ``new`` | ``expired`` | ``none`` | ``friend``.  The five
-   partition the table.  ``new`` is a member whose only term is unpaid;
-   ``friend`` is every account whose effective kind is friend, whatever its
-   terms, and no other status lists one.
+   ``current`` | ``expired`` | ``friend`` | ``donor``.  The first three
+   partition the table; ``donor`` is accepted and lists nobody, since a donor
+   is never a row.  ``friend`` is every account whose effective kind is
+   friend, whatever its terms, and also any member whose only started terms
+   are suspended; no other status lists either.
 ``certificate``
    A ``pilot_certificate_type`` value: ``none``, ``student``, ``sport``,
    ``recreational``, ``private``, ``commercial``, ``atp``; or ``licensed``,
@@ -234,12 +240,10 @@ states the same rules as correlated subqueries on the user queryset:
    either null or ``>= today``.  This is what ``?status=current`` filters on.
 ``has_started_term``
    ``EXISTS`` a term with ``starts_on <= today`` that is neither canceled nor
-   ``new``.  Paired with ``covers_today`` it separates the other statuses: not
-   covering but started is ``expired``.
-``has_unpaid_term`` / ``unpaid_end`` / ``unpaid_plan``
-   ``EXISTS`` a term stored as ``new``, and its end date and plan.  A row that
-   covers nothing and has started nothing, but holds one of these, is ``new``:
-   the member joined and has not paid.  With none of them it is ``none``.
+   suspended.  Paired with ``covers_today`` it separates the other statuses: a
+   member not covering but started is ``expired``.  A member row with nothing
+   covering today and no started term that is neither canceled nor suspended
+   (only suspended terms) reads ``friend``.
 ``coverage_end`` / ``coverage_plan``
    The earliest active term ending on or after today that **no** other active
    term continues — where "continues" means starting no later than
@@ -253,13 +257,14 @@ states the same rules as correlated subqueries on the user queryset:
    ``coverage_plan`` when ``coverage_end`` is ``NULL`` — because a lifetime
    member has no boundary row to take a name from.
 ``past_end`` / ``past_plan``
-   The most recent non-canceled term that has started, reported when nothing
-   covers today.
+   The most recent term that has started and is neither canceled nor
+   suspended, reported when nothing covers today.
 ``joined_on``
    The earliest term's ``starts_on``.
 ``effective_kind``
-   ``friend`` when the stored ``kind`` is ``friend`` or ``friend_on`` has
-   arrived, the stored kind otherwise.  A ``friend`` row reads as ``friend``
+   ``friend`` when the stored ``kind`` is ``friend``, ``friend_on`` has
+   arrived, or the stored ``kind`` is ``member`` and no term that is active,
+   expired, or suspended has started; the stored kind otherwise.  A ``friend`` row reads as ``friend``
    before any term annotation is looked at, and is what ``?status=friend``
    filters on.
 
@@ -274,7 +279,8 @@ own, in ``filters.derived_annotations()``:
    ``NULL`` for a friend (whose row shows no date), else ``coverage_end`` when
    ``covers_today``, else ``past_end``.  This is the column
    ``?ordering=expires_on`` actually sorts on, with ``NULL`` — friends, lifetime
-   members, and people who never joined — forced to the end in both directions.
+   members, and people with no started term — forced to the end in both
+   directions.
 
 ``members.services.membership_payload(user)`` reads those annotations back into
 the ``membership_status`` dictionary, and the whole page costs one query.

@@ -76,17 +76,15 @@ first thing a DART leader checks before letting you fly a mission.
           edge [fontname="Helvetica", fontsize=11];
 
           Visitor [label="Visitor\nno account yet", style="rounded,dashed"];
-          NoMembership [label="No membership\naccount and profile,\nno term has started"];
           Friend [label="Friend\nno dues, no expiry"];
           Current [label="Current\na term covers today"];
           Life [label="Life member\nnever expires", style="rounded,dashed"];
           Expiring [label="Expiring soon\n30 days or fewer left", style="rounded,dashed"];
           Expired [label="Expired\nthe last term ran out"];
 
-          Visitor -> NoMembership [label=" join as a member"];
-          Visitor -> Friend [label=" join as a friend"];
-          NoMembership -> Current [label=" payment clears, or\n an administrator\n grants a term"];
-          Friend -> Current [label=" pays for a plan"];
+          Visitor -> Current [label=" join as a member\n and pay"];
+          Visitor -> Friend [label=" join as a friend, or\n stop before paying"];
+          Friend -> Current [label=" pays for a plan, or\n an administrator\n grants a term"];
           Current -> Life [label=" buys the Life plan"];
           Current -> Expiring [label=" 30 days left", style=dashed];
           Expiring -> Expired [label=" end date passes"];
@@ -122,13 +120,14 @@ first thing a DART leader checks before letting you fly a mission.
 
       Visitor (no account yet)
         |                         \
-        | join as a member         \ join as a friend
-        v                           v
-      No membership               Friend (no dues, no expiry)
-        |                           |
-        | payment clears, or an     | pays for a plan
-        | administrator grants one  |
-        v                           v
+        | join as a member         \ join as a friend,
+        | and pay                   \ or stop before paying
+        |                            v
+        |                         Friend (no dues, no expiry)
+        |                            |
+        |                            | pays for a plan, or an
+        |                            | administrator grants a term
+        v                            v
       Current (a term covers today) <=====================.
         |            \                                     |
         | 30 days     \ buys the Life plan                 |
@@ -155,11 +154,6 @@ first thing a DART leader checks before letting you fly a mission.
 
 What each state means:
 
-**No membership**
-  You have an account and can sign in, but no term has started. The portal works;
-  members-only pages do not. You land here if you stop the join wizard before
-  paying.
-
 **Current**
   A term covers today. Members-only pages open, and the membership half of a DART
   leader's check passes.
@@ -177,8 +171,11 @@ What each state means:
   A Life term never runs out, so you are never asked to renew or sent a reminder.
 
 **Friend**
-  No dues, so nothing expires and nothing reminds you. Terms you held as a member
-  stay in your history but no longer count.
+  No dues, so nothing expires and nothing reminds you. You are a member once you
+  pay: if you join as a member and stop the join wizard before paying, you are a
+  friend until your first payment clears or an administrator grants you a term.
+  The portal works; members-only pages do not. Terms you held as a member stay in
+  your history but no longer count.
 
 
 What CalDART does about expiry

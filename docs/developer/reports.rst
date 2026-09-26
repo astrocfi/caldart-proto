@@ -281,14 +281,15 @@ name                 Name                    yes     Full name, or the email add
 email                Email                   yes     Login address
 phone                Phone                   yes     Primary phone from the profile
 dart                 DART                    yes     DART name, blank when unaffiliated
-status               Status                  yes     ``Current``, ``Unpaid``, ``Expired``,
-                                                     ``No membership``, or ``Friend`` --
-                                                     the ``MembershipState`` choice's
+status               Status                  yes     ``Current``, ``Expired``, or
+                                                     ``Friend`` -- the
+                                                     ``MembershipState`` choice's
                                                      label, never its stored slug
 kind                 Kind                    yes     ``Member`` or ``Friend``: the
                                                      effective kind for today, so a
-                                                     member whose ``friend_on`` has come
-                                                     reads ``Friend``
+                                                     member whose ``friend_on`` has come,
+                                                     or who has never paid, reads
+                                                     ``Friend``
 plan                 Plan                    no      Plan behind that status, e.g.
                                                      ``Annual`` or ``Life``
 expires_on           Expires                 yes     End of unbroken coverage; **blank for
@@ -329,7 +330,7 @@ Three conventions are worth knowing when you read a row:
   empty cell rather than the word "None", which reads as a value in a
   spreadsheet.
 * ``status`` always prints the ``MembershipState`` choice's label -- ``Current``,
-  ``Unpaid``, ``Expired``, ``No membership`` or ``Friend`` -- never the stored slug the
+  ``Expired``, or ``Friend`` -- never the stored slug the
   member list's ``?status=`` filter takes.  ``REPORT_CERTIFICATE_LABELS``
   overrides ``certificate`` the same way for one value: an airline transport
   pilot certificate exports as ``ATP`` rather than spelled out in full.

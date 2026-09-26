@@ -14,8 +14,10 @@ What you see
 The person's name heads the page, with **Back to members** beside it. A summary strip under
 the name carries:
 
-- their membership chip: **Current**, **Expiring soon**, **Unpaid**, **Expired**, **No
-  membership**, **Friend**, or **Never expires** for a life member;
+- their membership chip: **Current**, **Expiring soon**, **Expired**, **Friend**, or
+  **Never expires** for a life member. Somebody who joined as a member and has no term that
+  has started, only a canceled one, or only suspended ones reads **Friend**: nobody is a
+  member until a paid or granted term has started;
 - the plan, the expiry date (left out for a life member), and *joined* with the date their
   first term began;
 - *updated* with the date their profile was last changed, or *never edited* for a profile
@@ -64,7 +66,7 @@ Memberships
 ===========
 
 **Membership history** lists every term: **Plan**, **Starts**, **Ends** (*Lifetime* for a
-life membership), **Status** (new, active, expired, canceled, or suspended), **Source** (a
+life membership), **Status** (active, expired, canceled, or suspended), **Source** (a
 payment, a manual grant, or the demo data), and **Note**, with the name of whoever granted
 it.
 
@@ -83,7 +85,7 @@ Leave the start date blank and the term starts in the right place:
 
 - a current member's new term starts the day after their present one ends, so granting a
   year to somebody with four months left gives them sixteen months;
-- a lapsed member's, or a new member's, starts today;
+- a lapsed member's, or a friend's, starts today;
 - a life plan has no end date.
 
 Fill in the start date only for something that happened on a particular day, such as a

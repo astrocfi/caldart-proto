@@ -60,8 +60,9 @@ to another leader.
 current, with *Membership and medical are current* beside it. Otherwise it reads **NO-GO**
 and names each reason:
 
-- *Membership expired*, *No CalDART membership*, or, for a friend, *Friend of CalDART, not
-  a member*. A friend pays no dues, so a friend is always a NO-GO on membership.
+- *Membership expired*, or, for a friend, *Friend of CalDART, not a member*. A friend pays
+  no dues, so a friend is always a NO-GO on membership. Somebody who joined as a member and
+  has never paid is a friend until their first payment clears.
 - *Medical expired*, *No medical on file*, or *No medical expiry on file* when the member
   chose a class of medical and never entered its date.
 
@@ -71,9 +72,9 @@ with a lapsed policy on one airplane may fly another. Read both before you launc
 Under the band is the person's name, their DART (or *No DART*), their phone number, and
 their email address. Tap the number to call them, or the address to write to them.
 
-**Membership** shows a chip (**Current**, **Expiring soon**, **Unpaid**, **Expired**, **No
-membership**, **Friend**, or **Never expires** for a life member), then the plan and the
-expiry date. A membership counts as current up to and including its last day.
+**Membership** shows a chip (**Current**, **Expiring soon**, **Expired**, **Friend**, or
+**Never expires** for a life member), then the plan and the expiry date. A membership
+counts as current up to and including its last day.
 
 **Medical** shows **Current** or **Not current**, the kind of medical (BasicMed or the
 class), and its expiry date. A medical expiring today still counts as current.

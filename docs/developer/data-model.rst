@@ -427,7 +427,9 @@ administrator may choose.
 
 The answer ``members.services.membership_status`` gives (see
 :ref:`membership-status`).  The labels are what the member list's status
-filter, the member report, and the portal's status select show.
+filter, the member report, and the portal's status select show.  ``donor`` is
+what a donor account reads; donors appear in no member list, report, roster, or
+member check, so no chip for it is drawn anywhere.
 
 .. list-table::
    :header-rows: 1
@@ -437,23 +439,20 @@ filter, the member report, and the portal's status select show.
      - Label
    * - ``current``
      - Current
-   * - ``new``
-     - Unpaid
    * - ``expired``
      - Expired
-   * - ``none``
-     - No membership
    * - ``friend``
      - Friend
+   * - ``donor``
+     - Donor
 
 .. _choices-membership-status-choices:
 
 ``MembershipStatusChoices`` (``apps/members/models.py``)
 --------------------------------------------------------
 
-The state stored on one term (``Membership.status``).  ``new`` is a term
-joined and not yet paid for; ``suspended`` belongs to an account its holder
-deactivated while the term still had time to run.
+The state stored on one term (``Membership.status``).  ``suspended`` belongs
+to an account its holder deactivated while the term still had time to run.
 
 .. list-table::
    :header-rows: 1
@@ -461,8 +460,6 @@ deactivated while the term still had time to run.
 
    * - Value
      - Label
-   * - ``new``
-     - New
    * - ``active``
      - Active
    * - ``expired``
@@ -1172,7 +1169,9 @@ and ``PermissionsMixin`` classes it builds on.
 :ref:`AccountKind <choices-account-kind>` values:
 
 ``member``
-    Pays dues and is expected to keep paying, or holds a lifetime term.
+    Chose to join as a member: pays dues and is expected to keep paying, or
+    holds a lifetime term.  The stored kind is what the person asked for; until
+    a paid or granted term has started, the effective kind below is ``friend``.
 ``friend``
     Holds a portal account and pays no dues.  A friend's membership state is
     always ``friend``, never current and never expired, and a friend is never
@@ -1195,11 +1194,28 @@ administrator may choose; nobody is made a donor by hand, and a donor changes
 kind only by registering and then following the verification link, which
 upgrades the account in place.
 
-The **effective kind** adds the pending change: ``members.services.account_kind(user,
-today)`` is ``friend`` when ``kind`` is ``friend`` or ``friend_on`` is on or before
-``today``, and ``kind`` otherwise.  ``kind_annotation(today)`` is the same rule as a
-``Case`` expression, and ``membership_annotations`` carries it as
-``effective_kind``.  ``convert_due_friends(today)`` writes the due conversions
+The **effective kind** is what the person is, as against what they asked for:
+nobody is a member until they have paid or been granted a term.
+``members.services.account_kind(user, today)`` is ``donor`` for a donor, and
+``friend`` when any of these holds:
+
+- ``kind`` is ``friend``;
+- ``friend_on`` is set and on or before ``today``;
+- ``kind`` is ``member`` and the account holds no term with ``starts_on <= today``
+  whose status is ``active``, ``expired``, or ``suspended``.
+
+Otherwise it is ``member``.  So a member who registered and never paid, one
+whose only term was canceled, and one whose only term starts in the future all
+read as ``friend`` until a term covers them.  A deactivated account whose
+started terms are all suspended keeps the effective kind ``member``, since a
+suspended term still makes somebody a member: it is listed under
+``?kind=member`` and its **Kind** column reads Member, while its membership
+status reads ``friend`` (see :ref:`membership-status`).  ``kind_annotation(today)`` is the same rule as a ``Case``
+expression, and ``membership_annotations`` carries it as ``effective_kind``;
+everything that reads the effective kind (the membership state, the member list
+and its **Kind** column, the member report, the rosters, the member check, the
+reminder and renewal scans, the members-only wall, the dashboard, and the
+portal's **Renew** entry) treats a member who has never paid as a friend.  ``convert_due_friends(today)`` writes the due conversions
 down (``kind = friend``, ``friend_on = null``, audit ``account.kind``); the daily
 reminder run calls it.  ``accounts.services.set_kind`` is the one way a kind is
 written by hand (by an administrator's edit that changes the kind, the
@@ -1888,40 +1904,43 @@ The service
 ``apps.members.services.membership_status(user, on_date=None)`` returns::
 
     {
-        "status": "current" | "new" | "expired" | "none" | "friend",
-        "expires_on": date | None,     # None for lifetime and for a friend
+        "status": "current" | "expired" | "friend" | "donor",
+        "expires_on": date | None,     # None for lifetime, a friend, and a donor
         "plan": str | None,
         "is_lifetime": bool,
     }
 
 ``friend``
     The account's effective kind on ``on_date`` is friend (see
-    :ref:`kinds of account <account-kinds>`).  Decided before any term is looked at, so a friend's
-    past terms — or a live one — never make them current or expired.
-    ``expires_on`` and ``plan`` are ``None`` and ``is_lifetime`` is ``False``.
+    :ref:`kinds of account <account-kinds>`), which includes a member who has
+    never paid.  Decided before any term is looked at, so a friend's past terms
+    — or a live one — never make them current or expired.  ``expires_on`` and
+    ``plan`` are ``None`` and ``is_lifetime`` is ``False``.  An anonymous
+    caller, or none at all, gets the same answer.
+``donor``
+    The account is a donor's.  ``expires_on`` and ``plan`` are ``None`` and
+    ``is_lifetime`` is ``False``.
 ``current``
     Some active term covers ``on_date``.
 ``expired``
-    No term covers ``on_date``, but at least one term that is neither canceled,
-    ``new``, nor suspended has started.  ``expires_on`` and ``plan`` come from the most
+    No term covers ``on_date``, but at least one term that is neither canceled
+    nor suspended has started.  ``expires_on`` and ``plan`` come from the most
     recent such term.
-``new``
-    Nothing has ever covered them and nothing paid has started, but a term is
-    on file stored as ``new``: they joined and have not paid.  Somebody who
-    lapsed and has since started an unpaid term stays ``expired``, because the
-    history is what this value distinguishes.
-``none``
-    Nothing at all — which is also what an account whose only terms are
-    suspended reads as while it is deactivated.  Everything else is ``None`` /
-    ``False``.
 
-Those five values are ``apps.members.models.MembershipState``, a
+``membership_status`` answers ``friend``, too, for an effective member with
+nothing covering ``on_date`` and no started term that counts as past: one whose
+only started terms are suspended.  Suspended terms make somebody a member but
+neither cover a day nor count as past, so ``membership_status`` reaches that
+answer by its closing fallback, and the member list's ``?status=friend`` filter
+lists such a row by an explicit branch.
+
+Those four values are ``apps.members.models.MembershipState``, a
 ``TextChoices`` nothing stores: it is the computed answer, as against
 ``MembershipStatusChoices``, which is the state written on a term.  Every
 serializer that offers the status, the ``?status=`` filter on the member list
 and the payload builders take their values from it, so the backend spells them
 in exactly one place.  The portal's ``MembershipState`` union, in
-``frontend/src/portal/api/types.ts``, is the same five values.
+``frontend/src/portal/api/types.ts``, is the same four values.
 
 The subtlety is ``expires_on`` for a current member.  Renewing early creates a
 term that starts the day *after* the present one ends, and the member is
@@ -2008,7 +2027,7 @@ The translation, term by term:
     ``coverage_end`` is ``NULL``.
 
 ``has_started_term`` / ``past_end`` / ``past_plan``
-    Terms that are neither canceled, ``new``, nor suspended with
+    Terms that are neither canceled nor suspended with
     ``starts_on <= today``, ordered by ``ends_on``
     descending with ``NULL`` first and then ``starts_on`` descending.  The
     first row is what ``membership_status`` reports for an expired member.
@@ -2018,11 +2037,14 @@ The translation, term by term:
     included.
 
 ``effective_kind``
-    ``kind_annotation(today)``: ``friend`` when ``kind`` is ``friend`` or
-    ``friend_on <= today``, else ``kind``.  ``membership_payload`` answers
-    ``friend`` from it before reading any term annotation, and the member
-    list's ``?status=`` filter puts every effective friend under ``friend`` and
-    under no other status.
+    ``kind_annotation(today)``: ``donor`` for a donor; ``friend`` when ``kind``
+    is ``friend``, ``friend_on <= today``, or ``kind`` is ``member`` and no
+    term that is ``active``, ``expired``, or ``suspended`` has
+    ``starts_on <= today``; else ``member``.  ``membership_payload`` answers
+    ``friend`` or ``donor`` from it before reading any term annotation, and the
+    member list's ``?status=`` filter puts every effective friend under
+    ``friend`` and under no other status.  An effective member whose only
+    started terms are suspended is listed under ``friend`` as well.
 
 ``with_membership(queryset, today=None)`` hangs the lot on any ``User``
 queryset, and ``today`` is read when it is called, so a queryset built inside a
@@ -2049,7 +2071,7 @@ The account administrator's list adds two annotations of its own, in
 ``effective_expiry``
     ``coverage_end`` when ``covers_today``, else ``past_end``.  This is what
     ``?ordering=expires_on`` sorts on, with ``NULL`` — lifetime members and
-    people who never joined — forced to the end in both directions.
+    people with no started term — forced to the end in both directions.
 
 .. important::
 
@@ -3244,7 +3266,7 @@ least three of them.
 not pass ``user_can_access_members_content`` (the test behind
 ``User.can_access_members_content``), it renders
 ``cms/members_only_wall.html`` with **HTTP 403** and a call to action chosen
-from the visitor's state: sign in, renew (naming the date), or join.
+from the visitor's state: sign in, renew (naming the date), or become a member.
 ``StandardPage`` and ``NewsPage`` mix it in.
 
 ``HomePage``

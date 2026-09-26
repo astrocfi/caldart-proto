@@ -318,17 +318,17 @@ full term history, newest first.
      ]
    }
 
-``status`` is ``current``, ``new``, ``expired``, ``none``, or ``friend``.
-``expires_on`` is the end of the member's *unbroken* coverage, so a renewal
-bought today shows next year's date immediately; it is ``null`` for a lifetime
-membership.  A member who has never held a term gets ``status: "none"`` and an
-empty ``history`` rather than a 404.
+``status`` is ``current``, ``expired``, or ``friend`` (``donor`` is the fourth
+value of the enum, and a donor cannot sign in to ask).  ``expires_on`` is the end
+of the member's *unbroken* coverage, so a renewal bought today shows next year's
+date immediately; it is ``null`` for a lifetime membership.
 
 A friend of CalDART (:ref:`kinds of account <account-kinds>`) gets ``status: "friend"`` with
 ``expires_on`` and ``plan`` null and ``is_lifetime`` false, whatever terms they
 held as a member; those terms are still listed in ``history``.  So does a member
 whose ``friend_on`` date has arrived, before the nightly run writes the change
-down.
+down, and a member who has never paid or been granted a term, whose ``history``
+is empty (or holds only canceled, suspended, or future terms) rather than a 404.
 
 Statuses:
 
@@ -355,8 +355,8 @@ failed every retry, or the member was told it is off, so it stops with the renew
 * A member whose membership is current keeps it: ``friend_on`` becomes the day
   after the unbroken coverage ends (``expires_on`` plus one day) and ``kind`` stays
   ``member`` until then.
-* Any other member (expired, unpaid, or never covered) has ``kind`` set to
-  ``friend`` at once, with ``friend_on`` null.
+* Any other member (expired, or never covered) has ``kind`` set to ``friend`` at
+  once, with ``friend_on`` null.
 
 Either way the automatic renewal ends: a live one is canceled with
 ``cancel_mandate`` under the caller's name (``renewal.cancel`` with
