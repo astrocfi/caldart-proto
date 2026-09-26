@@ -327,7 +327,7 @@ An aircraft's insurance is what a DART leader checks before letting you fly a
 mission in it, so keep the carrier, limits, and expiration date accurate.
 Every aircraft here has an **Edit** action.  On one you added, it opens the
 aircraft's details for editing; on one somebody else added, it tells you to
-ask an account administrator.  :doc:`aircraft` covers the shared register in
+ask an account administrator.  :doc:`admin/aircraft-record` covers the shared register in
 more depth, including how insurance currency is worked out.
 
 

@@ -148,7 +148,7 @@ Role                 What it adds
 If a menu entry you expect is missing, or you open a page and are told **"You
 do not have access to this page"** under a **403**, you are missing the role
 rather than doing something wrong.  The page names the role it wanted.  Ask a
-user administrator (see :doc:`user-administrator`).
+user administrator (see :doc:`admin/users`).
 
 
 Signing in
@@ -290,7 +290,7 @@ start tabbing.
 
 This guide is on the site too.  **User guide** at the foot of the portal's menu
 opens the page for your role — a member lands on :doc:`member-guide`, a DART
-leader on :doc:`dart-leader-guide`, a treasurer on :doc:`treasurer-guide`, an
+leader on :doc:`admin/member-check`, a treasurer on :doc:`treasurer-guide`, an
 administrator on their own guide — and
 every page links to the rest.  The public site's footer links to the guide's
 front page.  Either link opens the guide in a new tab, so the screen you were on
@@ -300,7 +300,7 @@ have not already: the guide is for members.
 Where to go next:
 
 * :doc:`member-guide` — your profile, membership, and renewals.
-* :doc:`dart-leader-guide` — checking another member before a flight.
-* :doc:`user-administrator` — running accounts and roles.
+* :doc:`admin/member-check` — checking another member before a flight.
+* :doc:`admin/users` — running accounts and roles.
 * :doc:`treasurer-guide` — the money.
 * :doc:`faq` — the short answers.

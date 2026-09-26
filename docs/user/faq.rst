@@ -271,7 +271,7 @@ card distinguishes them — but both fail the currency check.
 
 Anyone may add an airplane to the register, and the member who added a record
 may keep it up to date.  If somebody else added the one you fly, ask an account
-administrator to correct it.  See :doc:`aircraft`.
+administrator to correct it.  See :doc:`admin/aircraft-record`.
 
 Somebody else already added the airplane I fly. Should I add another?
 ---------------------------------------------------------------------
@@ -283,7 +283,7 @@ you.  The register normalizes registrations, so ``N12345``, ``n-12345``, and
 ``12345`` all find the same airplane and a duplicate cannot be created by
 typing it differently.
 
-See :doc:`aircraft`.
+See :doc:`admin/aircraft-record`.
 
 Access and sign-in
 ==================
@@ -319,7 +319,7 @@ A menu entry I expect is missing, or I get "403 — you do not have access"
 
 You are missing the role, not doing something wrong.  The portal only shows
 what your roles open.  Ask a user administrator to grant it; see
-:doc:`user-administrator`.
+:doc:`admin/users`.
 
 Can I change my email address?
 ------------------------------
@@ -362,4 +362,4 @@ notes field, your membership history and your payment history.  They cannot see
 your password: it is stored only as a hash, and nobody can read it or tell it
 to you.
 
-See :doc:`account-administrator-guide`.
+See :doc:`admin/index`.

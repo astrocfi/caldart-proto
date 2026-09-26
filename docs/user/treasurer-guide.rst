@@ -13,7 +13,7 @@ What a member sees when they pay is in :doc:`payments`.
 **Administration → Reports** is open to you too: it emails the payments,
 reconciliation and contributions reports on a schedule, to you or to anyone
 else who may read them, and it is described under *Reports by email* in
-:doc:`account-administrator-guide`.
+:doc:`admin/index`.
 
 Moving around the area
 ======================
@@ -222,7 +222,7 @@ too.
 A donor never appears in a member list, a roster, or the member report.  The
 record holds the giver's name, phone number, and anything else they chose to
 tell |org|; a user administrator corrects a mistyped address from the donor's
-account (:doc:`user-administrator`).  The public page refuses an address that
+account (:doc:`admin/users`).  The public page refuses an address that
 already belongs to a member or a friend, and sends that person to sign in and
 give from the portal, so their gifts stay on their own record.
 
@@ -248,9 +248,9 @@ them. Export it as a CSV for a mailing list, or as a PDF for the board.
 A donor's giving also counts toward the year-end contribution statement every
 active account is sent, the same one a member downloads from their own
 Payments screen; the sender itself is a system administrator's job, described
-in :doc:`system-administrator-guide`.  A donor's account can be found and its
+in :doc:`admin/system`.  A donor's account can be found and its
 address fixed by a user administrator, who sees it flagged **Donor** on the
-account (:doc:`user-administrator`).
+account (:doc:`admin/users`).
 
 A member's ledger
 =================

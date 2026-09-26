@@ -275,7 +275,7 @@ Administration screens as well: **Members** (``/portal/admin/members``) with
 the full filter set — status, certificate, medical, DART, role, *expiring
 within N days* — and its CSV and PDF exports, and **Aircraft**
 (``/portal/admin/aircraft``) with the insurance filters and the same pair of
-exports.  Both are covered in :doc:`user/account-administrator-guide`.
+exports.  Both are covered in :doc:`user/admin/index`.
 
 .. _walkthrough-flow-e:
 
@@ -335,7 +335,7 @@ Two more screens are worth a look, neither of them one of the five flows:
 **Users and roles** — sign in as ``useradmin@example.org`` and open
 ``/portal/admin/users``.  Search for a member, open them, and add or remove
 roles; press *Send password reset* and watch the email arrive in Mailpit.  See
-:doc:`user/user-administrator`.
+:doc:`user/admin/users`.
 
 **System** — sign in as ``sysadmin@example.org`` and open ``/portal/system``.
 Health shows database connectivity, pending migrations, free disk and the last
@@ -353,7 +353,7 @@ The Renewals panel runs the automatic-renewal scan: the seed leaves two
 members with an ordinary renewal due today and one with a catch-up renewal
 overdue, so a dry run there reports three charges and a real run makes them.
 
-See :doc:`user/system-administrator-guide` and
+See :doc:`user/admin/system` and
 :doc:`developer/reminders`.
 
 The seed also leaves three report subscriptions and every DART's roster due
@@ -436,9 +436,9 @@ Related material
 - :doc:`/developer/setup` — bring the application up from a clean checkout.
 - :doc:`/developer/payments-setup` — configure Stripe or PayPal instead of the
   mock provider.
-- :doc:`/user/account-administrator-guide` — the full member, aircraft, and
+- :doc:`/user/admin/index` — the full member, aircraft, and
   payment filters and exports.
-- :doc:`/user/user-administrator` — manage accounts and roles.
-- :doc:`/user/system-administrator-guide` — health, backups, and reminders from
+- :doc:`/user/admin/users` — manage accounts and roles.
+- :doc:`/user/admin/system` — health, backups, and reminders from
   the portal.
 - :doc:`/developer/reminders` — how the renewal scan decides what to send.

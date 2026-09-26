@@ -20,18 +20,13 @@ before a flight, and administering accounts, content, and the system itself.
    member-guide
    payments
    donations
-   aircraft
 
 .. toctree::
    :maxdepth: 1
    :caption: For leaders and administrators
 
-   dart-leader-guide
-   user-administrator
-   account-administrator-guide
    treasurer-guide
    website-administrator-guide
-   system-administrator-guide
 
 .. toctree::
    :maxdepth: 1
