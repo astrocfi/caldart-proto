@@ -103,3 +103,60 @@
   align-items: baseline;
   gap: var(--space-3) var(--space-4);
 }
+
+/* The account step's choice between joining as a member and as a friend: two
+ * radio cards, stacked, since the account step is a narrow card. */
+.join-kind {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  border: 0;
+}
+
+.join-kind legend {
+  margin-bottom: var(--space-2);
+  font-weight: var(--weight-semibold);
+}
+
+.join-kind__card {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4);
+  border: var(--hairline) solid var(--color-rule);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: border-color var(--duration) var(--ease);
+}
+
+.join-kind__card:hover {
+  border-color: var(--color-rule-strong);
+}
+
+.join-kind__card[data-selected='true'] {
+  border-color: var(--color-primary);
+}
+
+.join-kind__card:focus-within {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.join-kind__card input {
+  margin-top: 0.2rem;
+  width: auto;
+  flex: none;
+  accent-color: var(--color-primary);
+}
+
+.join-kind__body {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.join-kind__title {
+  font-weight: var(--weight-semibold);
+}

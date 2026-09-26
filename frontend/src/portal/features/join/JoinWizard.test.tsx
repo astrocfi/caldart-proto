@@ -254,6 +254,7 @@ describe('<JoinWizard/> step progression', () => {
       last_name: 'Reyes',
       email: 'marta@example.org',
       password: 'a-good-password',
+      kind: 'member',
     });
   });
 

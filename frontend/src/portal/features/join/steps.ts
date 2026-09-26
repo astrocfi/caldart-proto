@@ -5,7 +5,7 @@
  * signed-in user (or nobody), which step should the visitor be on, and may
  * they be on the step the URL asks for?
  */
-import type { User } from '@/portal/api/types';
+import type { PersonKind, User } from '@/portal/api/types';
 
 export const JOIN_STEPS = ['account', 'verify', 'profile', 'pay', 'done'] as const;
 
@@ -29,9 +29,19 @@ export function joinStepIndex(step: JoinStep): number {
   return JOIN_STEPS.indexOf(step);
 }
 
-/** The eyebrow over a step's card, e.g. `Step 3 of 5`. */
-export function joinStepEyebrow(step: JoinStep): string {
-  return `Step ${joinStepIndex(step) + 1} of ${JOIN_STEPS.length}`;
+/** What the eyebrow says the visitor is joining as. */
+const JOINING_AS: Record<PersonKind, string> = {
+  member: 'Joining as a member',
+  friend: 'Joining as a friend',
+};
+
+/**
+ * The eyebrow over a step's card, e.g. `Step 3 of 5`, followed by the kind of
+ * account being joined as when `kind` is given: `Step 2 of 5 · Joining as a friend`.
+ */
+export function joinStepEyebrow(step: JoinStep, kind?: PersonKind): string {
+  const position = `Step ${joinStepIndex(step) + 1} of ${JOIN_STEPS.length}`;
+  return kind === undefined ? position : `${position} · ${JOINING_AS[kind]}`;
 }
 
 /** The step after `step`, or `step` itself when it is the last one. */
@@ -46,12 +56,15 @@ export function nextJoinStep(step: JoinStep): JoinStep {
  * verified yet means they still have to click the link we mailed; a session
  * without a usable profile means the profile step; a complete profile without a
  * current membership means they still owe us the fee; anything else means they
- * have joined.
+ * have joined.  A friend owes nothing, so a friend with a complete profile has
+ * joined: the wizard offers them the pay step only on the way through from the
+ * profile step, never as the place to resume.
  */
 export function furthestJoinStep(user: User | null): JoinStep {
   if (!user) return 'account';
   if (!user.email_verified) return 'verify';
   if (!user.profile_complete) return 'profile';
+  if (user.membership.status === 'friend') return 'done';
   if (user.membership.status !== 'current') return 'pay';
   return 'done';
 }
