@@ -18,7 +18,7 @@ from django.core.management.base import OutputWrapper
 from django.utils.text import slugify
 from faker import Faker
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.darts.models import Dart, DartContact
 from apps.members.models import (
     RATING_VALUES,
@@ -119,6 +119,7 @@ MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
     ("expired", 8),
     ("lifetime", 4),
     ("none", 4),
+    ("friend", 5),
 )
 
 #: How many generated "expiring" members ``apps.payments.seed`` ends exactly
@@ -327,6 +328,7 @@ def _assign_targets(rng: random.Random, ctx: dict[str, Any]) -> dict[int, str]:
     demo = ctx["demo_users"]
     targets[demo["member"].pk] = "current"
     targets[demo["expired"].pk] = "expired"
+    targets[demo["friend"].pk] = "friend"
     targets[demo["leader"].pk] = "current"
     targets[demo["useradmin"].pk] = "current"
     targets[demo["accountadmin"].pk] = "lifetime"
@@ -341,6 +343,18 @@ def _assign_targets(rng: random.Random, ctx: dict[str, Any]) -> dict[int, str]:
     for index, user in enumerate(ctx["generated_users"]):
         targets[user.pk] = pool[index % len(pool)]
     return targets
+
+
+def _mark_friends(users: list[User], targets: dict[int, str]) -> None:
+    """Store every user whose target is ``friend`` as a friend of CalDART.
+
+    A friend holds no terms, which the payments seed sees from the same target.
+    """
+    for user in users:
+        if targets.get(user.pk) == "friend":
+            user.kind = AccountKind.FRIEND
+            user.friend_on = None
+            user.save(update_fields=["kind", "friend_on", "updated_at"])
 
 
 def _renewal_seed_subjects(
@@ -413,6 +427,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     ctx["profiles"] = profiles
     targets = _assign_targets(rng, ctx)
     ctx["membership_targets"] = targets
+    _mark_friends(ctx["users"], targets)
     due_today, catch_up = _renewal_seed_subjects(ctx["generated_users"], targets)
     ctx["renewal_due_today_users"] = due_today
     ctx["catch_up_user"] = catch_up

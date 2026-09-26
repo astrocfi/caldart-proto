@@ -40,7 +40,12 @@ from apps.members.models import (
     MembershipSource,
     MembershipStatusChoices,
 )
-from apps.members.services import activate_term, cancel_term, expire_lapsed_memberships
+from apps.members.services import (
+    activate_term,
+    cancel_term,
+    expire_lapsed_memberships,
+    membership_status,
+)
 from apps.payments.models import (
     CONTRIBUTION_TIERS,
     MandateProvider,
@@ -102,6 +107,12 @@ CONTRIBUTION_MANDATE_CENTS = 5_000
 #: How far out that authority's next charge falls, so the walkthrough always has
 #: a date a little way off to show.
 CONTRIBUTION_MANDATE_DUE_DAYS = 30
+
+#: What the demo friend gave: one contribution by card, with no plan behind it.
+FRIEND_CONTRIBUTION_CENTS = 5_000
+
+#: How many days ago the demo friend gave it.
+FRIEND_CONTRIBUTION_DAYS_AGO = 45
 
 #: The saved cards the seeded mandates carry, as a provider would describe them.
 #: The saved method each seeded mandate carries, cycled through by index.  A
@@ -188,8 +199,11 @@ def _contribution(rng: random.Random) -> int:
 
 
 def _term_starts(rng: random.Random, target: str, today: dt.date) -> list[dt.date]:
-    """Start dates for a user's terms, oldest first, matching ``target``."""
-    if target == "none":
+    """Start dates for a user's terms, oldest first, matching ``target``.
+
+    A ``friend`` holds no terms, exactly as ``none`` does.
+    """
+    if target in ("none", "friend"):
         return []
     if target == "lifetime":
         return [today - timedelta(days=rng.randint(120, HISTORY_MONTHS * 30))]
@@ -294,7 +308,7 @@ def _refund(payment: Payment, amount_cents: int, reason: str, note: str) -> bool
     return created
 
 
-def _seed_refunds(today: dt.date, generated: list[User]) -> int:
+def _seed_refunds(today: dt.date, generated: list[User], pinned: set[int]) -> int:
     """Refund a few of ``generated``'s payments, and return how many were written.
 
     Two payments are given back in full and the terms they bought are canceled;
@@ -306,9 +320,11 @@ def _seed_refunds(today: dt.date, generated: list[User]) -> int:
 
     Only the generated members are touched.  The named demo accounts are the
     fixed cast the guides and the end-to-end specs drive, and a canceled term
-    would change the membership each of them is there to demonstrate.
+    would change the membership each of them is there to demonstrate.  The
+    members in ``pinned`` -- the renewal-seed subjects, whose terms the renewal
+    scan is meant to find -- are left alone for the same reason.
     """
-    member_ids = [user.pk for user in generated]
+    member_ids = [user.pk for user in generated if user.pk not in pinned]
     terms = list(
         Membership.objects.filter(
             user_id__in=member_ids,
@@ -438,8 +454,11 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     contiguous history instead of an overlapping or gapped one.  One payment is
     created per term, every term
     is activated through the same service a real checkout uses, and lapsed terms
-    are then marked expired.  ``ctx["payment_count"]`` is set to the number of
-    payments, and a one-line summary is written to ``stdout`` when one is given.
+    are then marked expired.  A ``friend`` target holds no terms; the demo friend's
+    one contribution is recorded (:func:`_seed_friend_contribution`) and one
+    expiring member is left waiting to become a friend (:func:`_seed_pending_friend`).
+    ``ctx["payment_count"]`` is set to the number of payments, and a one-line summary
+    is written to ``stdout`` when one is given.
     Running it twice over the same database changes nothing.
     """
     rng = ctx["rng"]
@@ -476,10 +495,12 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     expired = expire_lapsed_memberships(today)
     manual = _manual_payments(ctx)
     reconciled = _reconcile_settled_payments(ctx)
-    refunds = _seed_refunds(today, ctx["generated_users"])
+    refunds = _seed_refunds(today, ctx["generated_users"], set(forced_ends))
     mandates = _seed_mandates(ctx)
+    friend_gifts = _seed_friend_contribution(ctx)
+    _seed_pending_friend(ctx)
 
-    ctx["payment_count"] = payments + manual
+    ctx["payment_count"] = payments + manual + friend_gifts
     ctx["manual_payment_count"] = manual
     ctx["refund_count"] = refunds
     ctx["mandate_count"] = mandates
@@ -491,6 +512,71 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             f"{mandates} renewal mandates"
         )
     return ctx
+
+
+def _seed_friend_contribution(ctx: dict[str, Any]) -> int:
+    """Record the demo friend's one contribution, and return how many there are.
+
+    A settled Stripe card payment of :data:`FRIEND_CONTRIBUTION_CENTS` with no plan,
+    made :data:`FRIEND_CONTRIBUTION_DAYS_AGO` days ago, with its fee and its receipt
+    recorded.  Keyed on the provider reference, so a second seed run finds the row it
+    made before.
+    """
+    friend: User = ctx["demo_users"]["friend"]
+    paid_at = timezone.make_aware(
+        dt.datetime.combine(
+            ctx["today"] - timedelta(days=FRIEND_CONTRIBUTION_DAYS_AGO), dt.time(hour=10)
+        )
+    )
+    fee = provider_fee_cents(PaymentProvider.STRIPE, FRIEND_CONTRIBUTION_CENTS)
+    payment, created = Payment.objects.get_or_create(
+        provider=PaymentProvider.STRIPE,
+        provider_ref=f"seed_friend_{friend.pk}",
+        defaults={
+            "user": friend,
+            "plan": None,
+            "amount_cents": FRIEND_CONTRIBUTION_CENTS,
+            "plan_amount_cents": 0,
+            "contribution_cents": FRIEND_CONTRIBUTION_CENTS,
+            "currency": "usd",
+            "wallet": PaymentWallet.CARD,
+            "status": PaymentStatus.SUCCEEDED,
+            "fee_cents": fee,
+            "net_cents": FRIEND_CONTRIBUTION_CENTS - fee,
+            "raw": {"seeded": True, "provider": PaymentProvider.STRIPE.value},
+        },
+    )
+    if created:
+        Payment.objects.filter(pk=payment.pk).update(
+            created_at=paid_at, completed_at=paid_at, receipt_sent_at=paid_at
+        )
+    return 1
+
+
+def _seed_pending_friend(ctx: dict[str, Any]) -> User | None:
+    """Leave one generated member waiting to become a friend, and return them.
+
+    The first generated member targeted ``expiring`` who holds no renewal mandate and
+    is not pinned for the renewal scan gets ``friend_on`` set to the day after their
+    coverage ends, a date within the coming month: until then they stay a current
+    member.  ``None`` when the draw left nobody who fits.
+    """
+    today: dt.date = ctx["today"]
+    targets: dict[int, str] = ctx["membership_targets"]
+    pinned = {user.pk for user in ctx["renewal_due_today_users"]}
+    generated: list[User] = ctx["generated_users"]
+    for user in generated:
+        if targets.get(user.pk) != "expiring" or user.pk in pinned:
+            continue
+        if RenewalMandate.objects.filter(user=user).exists():
+            continue
+        expires_on = membership_status(user, today)["expires_on"]
+        if expires_on is None:
+            continue
+        user.friend_on = expires_on + timedelta(days=1)
+        user.save(update_fields=["friend_on", "updated_at"])
+        return user
+    return None
 
 
 def _card(index: int) -> dict[str, Any]:

@@ -11,7 +11,7 @@ from typing import Any
 
 from django.core.management.base import OutputWrapper
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
@@ -28,6 +28,7 @@ DEMO_PASSWORD = "caldart-demo"  # noqa: S105 - demo data, documented in the READ
 DEMO_ACCOUNTS: tuple[tuple[str, str, str, str, tuple[str, ...], bool], ...] = (
     ("member", "member@example.org", "Marta", "Reyes", (MEMBER,), False),
     ("expired", "expired@example.org", "Owen", "Delgado", (MEMBER,), False),
+    ("friend", "friend@example.org", "Frances", "Lee", (MEMBER,), False),
     ("leader", "leader@example.org", "Priya", "Raman", (MEMBER, DART_LEADER), False),
     ("useradmin", "useradmin@example.org", "Nina", "Kowalski", (MEMBER, USER_ADMIN), False),
     ("treasurer", "treasurer@example.org", "Lucia", "Ferreira", (MEMBER, TREASURER), False),
@@ -49,6 +50,10 @@ DEMO_ACCOUNTS: tuple[tuple[str, str, str, str, tuple[str, ...], bool], ...] = (
         True,
     ),
 )
+
+#: The demo accounts that are not members, keyed as in ``DEMO_ACCOUNTS``: every
+#: other one is a member.
+DEMO_KINDS: dict[str, AccountKind] = {"friend": AccountKind.FRIEND}
 
 #: How many synthetic members to generate on top of the named demo accounts.
 GENERATED_MEMBER_COUNT = 40
@@ -75,12 +80,14 @@ def upsert_user(
     *,
     is_superuser: bool = False,
     password: str = DEMO_PASSWORD,
+    kind: AccountKind = AccountKind.MEMBER,
 ) -> tuple[User, bool]:
     """Create or refresh the demo user with ``email``, returning ``(user, created)``.
 
-    The names, the password and the role list are written every time, the account is
-    left active, and the Django staff and superuser flags both follow
-    ``is_superuser``.  ``created`` is True only on the call that first inserted the row.
+    The names, the password, the kind and the role list are written every time, the
+    account is left active with no pending change of kind, and the Django staff and
+    superuser flags both follow ``is_superuser``.  ``created`` is True only on the
+    call that first inserted the row.
     """
     user, created = User.objects.get_or_create(
         email=email,
@@ -89,6 +96,8 @@ def upsert_user(
     user.first_name = first_name
     user.last_name = last_name
     user.is_active = True
+    user.kind = kind
+    user.friend_on = None
     user.is_superuser = is_superuser
     user.is_staff = is_superuser
     user.set_password(password)
@@ -109,7 +118,14 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
 
     demo: dict[str, User] = {}
     for key, email, first, last, roles, is_superuser in DEMO_ACCOUNTS:
-        user, _ = upsert_user(email, first, last, roles, is_superuser=is_superuser)
+        user, _ = upsert_user(
+            email,
+            first,
+            last,
+            roles,
+            is_superuser=is_superuser,
+            kind=DEMO_KINDS.get(key, AccountKind.MEMBER),
+        )
         demo[key] = user
 
     generated: list[User] = []
