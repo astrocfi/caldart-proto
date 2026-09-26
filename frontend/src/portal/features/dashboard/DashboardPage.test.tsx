@@ -18,6 +18,8 @@ import { DashboardPage } from './DashboardPage';
 
 const NOW = new Date('2026-06-15T12:00:00Z');
 
+const OPS_MANUAL = { title: 'Ops manual', url: '/members/ops-manual/' };
+
 const SITE_CONFIG: SiteConfig = {
   org_name: 'CalDART',
   theme: 'sierra',
@@ -222,6 +224,30 @@ describe('<DashboardPage/>', () => {
         .getByRole('heading', { name: 'You are a friend of CalDART' })
         .closest('section');
       expect(section).not.toHaveClass('dashboard__card--urgent');
+    });
+
+    it('does not list the members-only pages the wall refuses a friend', async () => {
+      mount({
+        user: makeUser({ kind: 'friend', membership: FRIEND }),
+        status: FRIEND,
+        config: { ...SITE_CONFIG, members_pages: [OPS_MANUAL] },
+      });
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      expect(screen.queryByRole('heading', { name: 'Member content' })).not.toBeInTheDocument();
+    });
+
+    it('lists them for a friend whose staff role lets them read', async () => {
+      mount({
+        user: makeUser({ kind: 'friend', membership: FRIEND, roles: ['member', 'dart_leader'] }),
+        status: FRIEND,
+        config: { ...SITE_CONFIG, members_pages: [OPS_MANUAL] },
+      });
+
+      expect(await screen.findByRole('link', { name: 'Ops manual' })).toHaveAttribute(
+        'href',
+        OPS_MANUAL.url,
+      );
     });
   });
 

@@ -42,6 +42,9 @@ export function DashboardPage(): JSX.Element {
   // A friend owes nothing, so their card never takes the urgent edge.
   const isFriend = status?.status === 'friend';
   const urgent = !isFriend && (tone === 'expiring' || tone === 'expired' || tone === 'none');
+  // The members-only pages answer a friend with the wall unless a staff role lets
+  // them read, so the card is not offered to a friend who would be refused.
+  const isWalledOut = isFriend && roles.every((slug) => slug === 'member');
   const greeting = user?.first_name ? `Welcome, ${user.first_name}` : 'Welcome';
 
   const linkGroups = groupedNavItems(roles).map((bucket) => ({
@@ -128,26 +131,28 @@ export function DashboardPage(): JSX.Element {
             </Card>
           ) : null}
 
-          <Card eyebrow="Members only" title="Member content">
-            {siteConfig.isPending ? (
-              <p className="muted" role="status">
-                Loading…
-              </p>
-            ) : membersPages.length === 0 ? (
-              <EmptyState
-                title="Nothing published yet"
-                description="Members-only pages will appear here as soon as CalDART publishes them."
-              />
-            ) : (
-              <ul className="dashboard__links" role="list">
-                {membersPages.map((page) => (
-                  <li key={page.url}>
-                    <a href={page.url}>{page.title}</a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+          {isWalledOut ? null : (
+            <Card eyebrow="Members only" title="Member content">
+              {siteConfig.isPending ? (
+                <p className="muted" role="status">
+                  Loading…
+                </p>
+              ) : membersPages.length === 0 ? (
+                <EmptyState
+                  title="Nothing published yet"
+                  description="Members-only pages will appear here as soon as CalDART publishes them."
+                />
+              ) : (
+                <ul className="dashboard__links" role="list">
+                  {membersPages.map((page) => (
+                    <li key={page.url}>
+                      <a href={page.url}>{page.title}</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
 
           <Card
             eyebrow="History"
