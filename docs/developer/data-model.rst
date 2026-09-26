@@ -468,7 +468,8 @@ address and a password and nothing else.
   edit really changes the address (a change of case alone does not), and mails
   the new address a verification link once the transaction commits.  Following
   that link, or a password reset or invitation link, sets it again.
-  ``seed_demo`` stamps every seeded account verified as of its ``created_at``.
+  ``seed_demo`` stamps every seeded account but a donor verified as of its
+  ``created_at``.
 - Default ordering is ``["last_name", "first_name", "email"]``, with a matching
   index.
 

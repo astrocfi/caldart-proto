@@ -18,7 +18,7 @@ from django.utils import timezone
 from faker import Faker
 
 from apps.accounts.management.commands.seed_roles import seed_roles
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 
 #: Seed modules in dependency order.
 SEED_APPS: tuple[str, ...] = (
@@ -55,8 +55,9 @@ class Command(BaseCommand):
         Everything happens in one transaction, so a failure part-way leaves the
         database as it was.  The seeders share one context dictionary, so a later app
         can use the rows an earlier one created.  Re-running updates the existing rows
-        rather than duplicating them.  Every seeded account ends up with a verified
-        address, stamped as verified when the account was created.
+        rather than duplicating them.  Every seeded account but a donor ends up with a
+        verified address, stamped as verified when the account was created; a donor's
+        stays unverified, as a real donor's does.
         """
         seed = options["seed"]
         faker = Faker("en_US")
@@ -82,8 +83,8 @@ class Command(BaseCommand):
             module.run(ctx, self.stdout)
 
         # The demo addresses are made up, so no verification link could ever reach
-        # them; the demo starts with every account already proved.
-        User.objects.filter(email_verified_at__isnull=True).update(
+        # them; the demo starts with every account already proved, but a donor's.
+        User.objects.filter(email_verified_at__isnull=True).exclude(kind=AccountKind.DONOR).update(
             email_verified_at=F("created_at")
         )
 
