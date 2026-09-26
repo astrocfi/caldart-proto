@@ -228,15 +228,15 @@ export const ROLE_CHOICES: Choice<RoleSlug>[] = (Object.keys(ROLE_LABELS) as Rol
 /**
  * What each computed membership state is called wherever a person reads it:
  * the member list's status filter, the member report, the DART leader's
- * status card, and the member's own status chip all show one of these five
- * words for one and the same account.
+ * status card, and the member's own status chip all show one of these words
+ * for one and the same account.  `donor` is here for the type alone: a donor
+ * is never in a member list, a report, or the member check.
  */
 export const MEMBERSHIP_STATUS_LABELS: Record<MembershipState, string> = {
   current: 'Current',
-  new: 'Unpaid',
   expired: 'Expired',
-  none: 'No membership',
   friend: 'Friend',
+  donor: 'Donor',
 };
 
 /** What each kind of account is called: a member pays dues, a friend does not. */
@@ -246,13 +246,16 @@ export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
   donor: 'Donor',
 };
 
+/** The membership states a member list can hold: every state but a donor's. */
+const LISTED_MEMBERSHIP_STATES: readonly MembershipState[] = ['current', 'expired', 'friend'];
+
 /**
  * The membership states as a choice list, in the order the member list's
  * status filter offers them.
  */
-export const MEMBERSHIP_STATUS_CHOICES: Choice<MembershipState>[] = (
-  Object.keys(MEMBERSHIP_STATUS_LABELS) as MembershipState[]
-).map((state) => ({ value: state, label: MEMBERSHIP_STATUS_LABELS[state] }));
+export const MEMBERSHIP_STATUS_CHOICES: Choice<MembershipState>[] = LISTED_MEMBERSHIP_STATES.map(
+  (state) => ({ value: state, label: MEMBERSHIP_STATUS_LABELS[state] }),
+);
 
 /** The label for one code, or the code itself if the server invents a new one. */
 export function labelFor<Value extends string>(

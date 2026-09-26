@@ -32,8 +32,9 @@ const CURRENT: MembershipStatus = {
   is_lifetime: false,
 };
 
-const NONE: MembershipStatus = {
-  status: 'none',
+/** What a joiner who has not paid reads as, whichever kind they chose: a friend. */
+const UNPAID: MembershipStatus = {
+  status: 'friend',
   expires_on: null,
   plan: null,
   is_lifetime: false,
@@ -113,7 +114,7 @@ describe('<JoinWizard/> resume logic', () => {
   });
 
   it('resumes a signed-in visitor with an unverified address on the verify step', async () => {
-    stubApi(makeUser({ email_verified: false, profile_complete: false, membership: NONE }));
+    stubApi(makeUser({ email_verified: false, profile_complete: false, membership: UNPAID }));
     renderWizard('/join');
 
     expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
@@ -121,7 +122,7 @@ describe('<JoinWizard/> resume logic', () => {
   });
 
   it('skips the verify step for an address that is already verified', async () => {
-    stubApi(makeUser({ profile_complete: false, membership: NONE }));
+    stubApi(makeUser({ profile_complete: false, membership: UNPAID }));
     renderWizard('/join/verify');
 
     expect(await screen.findByRole('heading', { name: 'About you' })).toBeInTheDocument();
@@ -129,19 +130,27 @@ describe('<JoinWizard/> resume logic', () => {
   });
 
   it('resumes a signed-in member with a thin profile on the profile step', async () => {
-    stubApi(makeUser({ profile_complete: false, membership: NONE }));
+    stubApi(makeUser({ profile_complete: false, membership: UNPAID }));
     renderWizard('/join');
 
     expect(await screen.findByRole('heading', { name: 'About you' })).toBeInTheDocument();
     expect(path()).toBe('/join/profile');
   });
 
-  it('resumes a complete profile without a membership on the pay step', async () => {
-    stubApi(makeUser({ profile_complete: true, membership: NONE }));
+  it('resumes a member-intent joiner who has not paid on the pay step', async () => {
+    stubApi(makeUser({ kind: 'member', profile_complete: true, membership: UNPAID }));
     renderWizard('/join');
 
     expect(await screen.findByRole('heading', { name: 'Pay your dues' })).toBeInTheDocument();
     expect(path()).toBe('/join/pay');
+  });
+
+  it('offers a member-intent joiner no Not now on the pay step', async () => {
+    stubApi(makeUser({ kind: 'member', profile_complete: true, membership: UNPAID }));
+    renderWizard('/join/pay');
+
+    await screen.findByRole('heading', { name: 'Pay your dues' });
+    expect(screen.queryByRole('button', { name: 'Not now' })).not.toBeInTheDocument();
   });
 
   it('resumes a paid-up member on the done step', async () => {
@@ -236,7 +245,7 @@ describe('<JoinWizard/> step progression', () => {
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
       http.post(`${API}/auth/register`, async ({ request }) => {
         registered = await request.json();
-        user = makeUser({ email_verified: false, profile_complete: false, membership: NONE });
+        user = makeUser({ email_verified: false, profile_complete: false, membership: UNPAID });
         return HttpResponse.json(user, { status: 201 });
       }),
     );
@@ -262,7 +271,7 @@ describe('<JoinWizard/> step progression', () => {
   });
 
   it('moves on to the profile step once the address is verified', async () => {
-    let user = makeUser({ email_verified: false, profile_complete: false, membership: NONE });
+    let user = makeUser({ email_verified: false, profile_complete: false, membership: UNPAID });
     server.use(
       http.get(`${API}/auth/me`, () => HttpResponse.json(user)),
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
@@ -300,7 +309,7 @@ describe('<JoinWizard/> step progression', () => {
   });
 
   it('offers to continue when the visitor is already signed in', async () => {
-    stubApi(makeUser({ profile_complete: false, membership: NONE }));
+    stubApi(makeUser({ profile_complete: false, membership: UNPAID }));
     renderWizard('/join/account');
 
     await screen.findByRole('heading', { name: 'Your account' });
@@ -313,7 +322,7 @@ describe('<JoinWizard/> step progression', () => {
   it('saves the profile and moves on to paying', async () => {
     let saved: Record<string, unknown> | null = null;
     server.use(
-      signedInAs(makeUser({ profile_complete: false, membership: NONE })),
+      signedInAs(makeUser({ profile_complete: false, membership: UNPAID })),
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
       http.put(`${API}/me/profile`, async ({ request }) => {
         saved = (await request.json()) as Record<string, unknown>;
@@ -333,7 +342,7 @@ describe('<JoinWizard/> step progression', () => {
 
   it('stays on the profile step while the form is invalid', async () => {
     server.use(
-      signedInAs(makeUser({ profile_complete: false, membership: NONE })),
+      signedInAs(makeUser({ profile_complete: false, membership: UNPAID })),
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
     );
 
@@ -379,7 +388,7 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
     let confirmed: Record<string, unknown> | null = null;
     // The server has not activated the membership yet — exactly the state the
     // wizard used to read as "you still owe us the fee".
-    let user = makeUser({ profile_complete: true, membership: NONE });
+    let user = makeUser({ profile_complete: true, membership: UNPAID });
     server.use(
       http.get(`${API}/auth/me`, () => HttpResponse.json(user)),
       http.get(`${API}/me/membership`, () => HttpResponse.json(CURRENT_DETAIL)),
@@ -403,14 +412,14 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
 
   it('offers a way back to paying when the payment was declined', async () => {
     server.use(
-      signedInAs(makeUser({ profile_complete: true, membership: NONE })),
+      signedInAs(makeUser({ profile_complete: true, membership: UNPAID })),
       http.get(`${API}/me/membership`, () => HttpResponse.json(CURRENT_DETAIL)),
       http.get(`${API}/site/config`, () => HttpResponse.json(SITE_CONFIG)),
       http.post(`${API}/payments/stripe/confirm`, () =>
         HttpResponse.json({ detail: 'Not confirmed' }, { status: 400 }),
       ),
       http.get(`${API}/payments/42`, () =>
-        HttpResponse.json({ status: 'failed', membership: NONE }),
+        HttpResponse.json({ status: 'failed', membership: UNPAID }),
       ),
     );
 
@@ -433,7 +442,7 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
 });
 
 describe('<JoinWizard/> for a friend', () => {
-  const FRIEND: MembershipStatus = { ...NONE, status: 'friend' };
+  const FRIEND: MembershipStatus = UNPAID;
   const FRIEND_DETAIL: MembershipDetail = { ...FRIEND, history: [] };
 
   /** The pay step's config with a tier to give, since a friend's checkout has no plan. */
@@ -466,7 +475,7 @@ describe('<JoinWizard/> for a friend', () => {
   });
 
   it('names a member on the verify step too', async () => {
-    stubApi(makeUser({ email_verified: false, profile_complete: false, membership: NONE }));
+    stubApi(makeUser({ email_verified: false, profile_complete: false, membership: UNPAID }));
     renderWizard('/join');
 
     await screen.findByRole('heading', { name: 'Check your email' });

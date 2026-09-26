@@ -43,8 +43,11 @@ describe('daysUntil', () => {
 });
 
 describe('membershipTone', () => {
-  it('is `none` when there is no membership', () => {
-    expect(membershipTone(membership({ status: 'none', expires_on: null }), TODAY)).toBe('none');
+  it('never gives a membership the `new` tone', () => {
+    const tones = (['current', 'expired', 'friend', 'donor'] as const).map((status) =>
+      membershipTone(membership({ status, expires_on: null }), TODAY),
+    );
+    expect(tones).not.toContain('new');
   });
 
   it('is `expired` for a lapsed membership', () => {
@@ -86,14 +89,14 @@ describe('StatusChip', () => {
     expect(screen.getByText('Insured')).toHaveClass('chip--ok');
   });
 
-  it('labels the `new` tone "Unpaid", the same word the member report uses', () => {
-    render(<StatusChip tone="new" />);
-    expect(screen.getByText('Unpaid')).toHaveClass('chip--info');
+  it('labels the `none` tone "Friend", the same word the member report uses', () => {
+    render(<StatusChip tone="none" />);
+    expect(screen.getByText('Friend')).toHaveClass('chip--neutral');
   });
 
-  it('labels the `none` tone "No membership", the same word the member report uses', () => {
-    render(<StatusChip tone="none" />);
-    expect(screen.getByText('No membership')).toHaveClass('chip--neutral');
+  it('keeps the `new` tone in its own color for the features that pass a label', () => {
+    render(<StatusChip tone="new" label="Pending" />);
+    expect(screen.getByText('Pending')).toHaveClass('chip--info');
   });
 });
 
@@ -130,7 +133,7 @@ describe('CurrencyChip', () => {
 describe('a friend of CalDART', () => {
   const FRIEND = membership({ status: 'friend', expires_on: null, plan: null });
 
-  it('takes the quiet tone of no membership, never current or expired', () => {
+  it('takes the quiet `none` tone, never current or expired', () => {
     expect(membershipTone(FRIEND, TODAY)).toBe('none');
   });
 

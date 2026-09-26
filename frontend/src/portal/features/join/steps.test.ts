@@ -8,6 +8,7 @@ import {
   isJoinStep,
   joinStepEyebrow,
   joinStepIndex,
+  joiningAs,
   laterJoinStep,
   nextJoinStep,
 } from './steps';
@@ -19,14 +20,13 @@ const EXPIRED: MembershipStatus = {
   is_lifetime: false,
 };
 
-const NONE: MembershipStatus = {
-  status: 'none',
+/** What anybody who has not paid reads as, whichever kind they chose. */
+const FRIEND: MembershipStatus = {
+  status: 'friend',
   expires_on: null,
   plan: null,
   is_lifetime: false,
 };
-
-const FRIEND: MembershipStatus = { ...NONE, status: 'friend' };
 
 describe('furthestJoinStep', () => {
   it('starts a visitor with no session at the account step', () => {
@@ -40,15 +40,19 @@ describe('furthestJoinStep', () => {
   });
 
   it('holds an unverified address at the verify step even with a complete profile', () => {
-    expect(furthestJoinStep(makeUser({ email_verified: false, membership: NONE }))).toBe('verify');
+    expect(furthestJoinStep(makeUser({ email_verified: false, membership: FRIEND }))).toBe(
+      'verify',
+    );
   });
 
   it('sends a signed-in member with a thin profile to the profile step', () => {
     expect(furthestJoinStep(makeUser({ profile_complete: false }))).toBe('profile');
   });
 
-  it('sends a complete profile without a membership to the pay step', () => {
-    expect(furthestJoinStep(makeUser({ profile_complete: true, membership: NONE }))).toBe('pay');
+  it('sends a member-intent joiner who has not paid to the pay step', () => {
+    expect(
+      furthestJoinStep(makeUser({ kind: 'member', profile_complete: true, membership: FRIEND })),
+    ).toBe('pay');
   });
 
   it('treats an expired membership as still owing the fee', () => {
@@ -67,6 +71,20 @@ describe('furthestJoinStep', () => {
     expect(
       furthestJoinStep(makeUser({ kind: 'friend', membership: FRIEND, profile_complete: false })),
     ).toBe('profile');
+  });
+});
+
+describe('joiningAs', () => {
+  it('walks a member-intent joiner through as a member, though they read as a friend', () => {
+    expect(joiningAs(makeUser({ kind: 'member', membership: FRIEND }))).toBe('member');
+  });
+
+  it('walks a friend-intent joiner through as a friend', () => {
+    expect(joiningAs(makeUser({ kind: 'friend', membership: FRIEND }))).toBe('friend');
+  });
+
+  it('walks nobody at all through as a member', () => {
+    expect(joiningAs(null)).toBe('member');
   });
 });
 

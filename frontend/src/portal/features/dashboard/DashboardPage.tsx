@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useDonation, useRenewal, useSiteConfig } from '@/portal/api/queries';
-import type { RenewalMandate } from '@/portal/api/types';
+import type { MembershipStatus, RenewalMandate } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
@@ -43,10 +43,11 @@ export function DashboardPage(): JSX.Element {
   const siteConfig = useSiteConfig();
 
   const status = membership.data ?? user?.membership ?? null;
-  const tone = status ? membershipTone(status) : 'none';
-  // A friend owes nothing, so their card never takes the urgent edge.
+  const tone = status ? membershipTone(status) : null;
+  // A friend owes nothing, so their card never takes the urgent edge.  A member who
+  // registered and has not yet paid reads as a friend, and gets the friend's card.
   const isFriend = status?.status === 'friend';
-  const urgent = !isFriend && (tone === 'expiring' || tone === 'expired' || tone === 'none');
+  const urgent = !isFriend && (tone === 'expiring' || tone === 'expired');
   // The members-only pages answer a friend with the wall unless a staff role lets
   // them read, so the card is not offered to a friend who would be refused.
   const isWalledOut = isFriend && roles.every((slug) => slug === 'member');
@@ -110,13 +111,9 @@ export function DashboardPage(): JSX.Element {
 
             {status && !isFriend && !(status.is_lifetime && status.status === 'current') ? (
               <div className="cluster card__footer">
-                {status.status === 'none' ? (
-                  <ButtonLink to="/join">Join CalDART</ButtonLink>
-                ) : (
-                  <ButtonLink to="/renew" variant={urgent ? 'primary' : 'secondary'}>
-                    {status.status === 'expired' ? 'Renew now' : 'Renew'}
-                  </ButtonLink>
-                )}
+                <ButtonLink to="/renew" variant={urgent ? 'primary' : 'secondary'}>
+                  {status.status === 'expired' ? 'Renew now' : 'Renew'}
+                </ButtonLink>
                 <KindSwitch />
                 <Link to="/profile">Update your details</Link>
               </div>
@@ -279,16 +276,16 @@ function FriendStatus() {
   );
 }
 
+/** The membership card's title: current, expired, or a friend of CalDART. */
 function MembershipHeadline({
   status,
 }: {
-  status: { status: string; is_lifetime: boolean } | null;
+  status: Pick<MembershipStatus, 'status' | 'is_lifetime'> | null;
 }) {
   if (!status) return <>Your membership</>;
-  if (status.status === 'friend') return <>You are a friend of CalDART</>;
   if (status.status === 'current') {
     return <>{status.is_lifetime ? 'Lifetime member' : 'Your membership is current'}</>;
   }
   if (status.status === 'expired') return <>Your membership has expired</>;
-  return <>You are not a member yet</>;
+  return <>You are a friend of CalDART</>;
 }
