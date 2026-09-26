@@ -187,9 +187,12 @@ If somebody asks you to *tell* them their password, or to set a particular
 password for them, you cannot: passwords are stored hashed, and the API has no
 endpoint that sets one directly.  The reset link is the whole mechanism.
 
-**Resend verification message**, next to the email field, works the same way
-for an unverified address: it does not touch the password, so use it when
-someone can already sign in but says the verification message never arrived.
+**Resend verification message**, next to the email field, emails a fresh
+verification link to the address on the account; the toast names that
+address, and the button is disabled on a deactivated account.  Unlike the
+password reset link, clicking the verification link a second time is not an
+error — the address is already verified, so it does nothing more — so send
+another whenever someone says the message never arrived.
 
 
 A few common tasks

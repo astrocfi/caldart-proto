@@ -8,7 +8,7 @@ import { useAuth, useRoles } from '@/portal/auth/useAuth';
 import { roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
-import { DateText } from '@/portal/components/DateText';
+import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
@@ -163,7 +163,12 @@ export function UserDetailPage(): JSX.Element {
           <Field
             label="Email address"
             error={emailError ?? fieldError(update.error, 'email')}
-            hint="This is also how they sign in."
+            hint={
+              <>
+                This is also how they sign in.{' '}
+                <EmailVerifiedText verifiedAt={user.email_verified_at} />
+              </>
+            }
           >
             {(props) => (
               <MaskedInput
@@ -177,24 +182,15 @@ export function UserDetailPage(): JSX.Element {
               />
             )}
           </Field>
-          <div className="cluster">
-            <p className="field__hint">
-              {user.email_verified_at ? (
-                <>
-                  Verified <DateText value={user.email_verified_at} />
-                </>
-              ) : (
-                'Unverified'
-              )}
-            </p>
-            {user.email_verified ? null : (
+          {user.email_verified ? null : (
+            <div className="cluster">
               <ResendVerificationButton
                 variant="secondary"
                 disabled={!user.is_active}
                 mutation={sendVerification}
               />
-            )}
-          </div>
+            </div>
+          )}
 
           <fieldset>
             <legend>Account status</legend>

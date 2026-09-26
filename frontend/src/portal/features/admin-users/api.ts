@@ -93,12 +93,22 @@ export function useSendPasswordReset(
   });
 }
 
-/** Mails the account a fresh verification link for its current address. */
+/**
+ * Mails the account a fresh verification link for its current address.
+ *
+ * Refetches the account on settling either way, since a refusal (the address was
+ * verified since the page loaded) would otherwise leave the indicator beside it
+ * showing stale, contradicting data.
+ */
 export function useSendEmailVerification(
   id: string | number,
 ): UseMutationResult<VerificationSentResult, Error, void> {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
       api.post<VerificationSentResult>(`/admin/users/${id}/send-email-verification`),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: adminUserKey(id) });
+    },
   });
 }
