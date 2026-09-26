@@ -151,6 +151,32 @@ def test_the_default_root_is_the_guide_build_directory() -> None:
     assert root.parts[-3:] == ("docs", "_build", "guide")
 
 
+# ------------------------------------------------------------------ assets
+@pytest.mark.parametrize(
+    ("path", "content_type"),
+    [
+        ("_static/figure-zoom.js", "text/javascript"),
+        ("_static/figure-zoom.css", "text/css"),
+        ("_images/x.svg", "image/svg+xml"),
+    ],
+    ids=["zoom-script", "zoom-stylesheet", "diagram"],
+)
+def test_a_figure_asset_carries_the_type_a_browser_needs(
+    reader: Client, guide_root: Path, path: str, content_type: str
+) -> None:
+    """The lightbox's script and stylesheet, and a diagram's SVG, carry their own types.
+
+    A browser refuses to run a script, apply a stylesheet or draw an ``object`` whose
+    type is wrong, so each asset the diagram toolbar depends on is served with its type.
+    """
+    asset = guide_root / path
+    asset.parent.mkdir(exist_ok=True)
+    asset.write_text("x")
+    response = reader.get(f"/docs/{path}")
+    response.close()
+    assert response.headers["Content-Type"] == content_type
+
+
 # ------------------------------------------------------------------ footer
 def test_the_public_footer_opens_the_guide_in_a_new_tab(
     client: Client, site_settings: SiteSettings
