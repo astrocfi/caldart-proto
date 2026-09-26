@@ -498,10 +498,12 @@ visitor who is not signed in gets no rail, so ``PortalLayout`` adds the
 ``portal__frame--no-rail`` class to the frame, which makes it a single column
 at every width; the page therefore has the whole window to center in.  The
 join wizard's cards center themselves in it, and a ``.join-shell`` wrapper
-around ``JoinWizard`` and ``RenewPage`` (``features/join/join.css``) caps the
-page header and the step list to the same 46rem as the card below them, so
-the two line up rather than the header spanning the full window above a
-narrower, centered card.
+around ``JoinWizard`` (``features/join/join.css``) caps the page header and
+the step list at 46rem, centered on the same axis as the join card below,
+rather than the header spanning the full window above a narrower, centered
+card.  The account and verify steps use a narrower, 30rem card on that same
+axis, so the header sits wider than the card on those two steps; every
+other step's card is the full 46rem, so the edges line up there.
 
 **Code splitting.**  A route names its page with React Router's ``lazy``
 property rather than an ``element``, so the page's code is a chunk of its own
