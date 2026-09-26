@@ -165,7 +165,7 @@ def test_the_member_role_describes_members_and_friends() -> None:
 def _kind_cases(today: date) -> dict[str, User]:
     """One account per case the two statements of the kind rule must agree on."""
     day = timedelta(days=1)
-    return {
+    cases = {
         "member": UserFactory(email="k-member@example.test"),
         "friend": UserFactory(email="k-friend@example.test", kind=AccountKind.FRIEND),
         "donor": UserFactory(email="k-donor@example.test", kind=AccountKind.DONOR),
@@ -173,6 +173,10 @@ def _kind_cases(today: date) -> dict[str, User]:
         "due-today": UserFactory(email="k-due0@example.test", friend_on=today),
         "due-tomorrow": UserFactory(email="k-due2@example.test", friend_on=today + day),
     }
+    # Every member case has paid: a member who never has is a friend by another rule.
+    for label in ("member", "due-yesterday", "due-today", "due-tomorrow"):
+        MembershipFactory(user=cases[label], starts_on=today - 30 * day)
+    return cases
 
 
 @pytest.mark.parametrize(

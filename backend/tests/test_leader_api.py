@@ -370,15 +370,15 @@ def test_no_medical_on_file_is_never_current(api_client: APIClient, dart_leader:
     assert data["go_no_go"]["medical"] is False
 
 
-def test_a_member_with_no_membership_at_all_is_a_no_go(
+def test_a_member_who_never_paid_reads_as_a_friend_and_is_a_no_go(
     api_client: APIClient, dart_leader: User
 ) -> None:
-    """A member who has never held a membership term is a no-go for membership."""
+    """A member who has never held a term reads ``friend``, a no-go for membership."""
     user = UserFactory(email="never@example.test", first_name="Never", last_name="Joined")
     MemberProfileFactory(user=user)
     api_client.force_login(dart_leader)
     data = api_client.get(status_url(user)).json()
-    assert data["membership"] == {"status": "none", "expires_on": None, "plan": None}
+    assert data["membership"] == {"status": "friend", "expires_on": None, "plan": None}
     assert data["go_no_go"]["membership"] is False
 
 

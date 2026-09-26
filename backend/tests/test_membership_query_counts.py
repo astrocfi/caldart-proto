@@ -52,7 +52,7 @@ PAGE_SIZES: tuple[int, int] = (3, 20)
 SEARCH_TERM = "Querycount"
 
 #: The histories the population cycles through, one member each.
-HISTORIES: tuple[str, ...] = ("current", "expired", "lifetime", "none")
+HISTORIES: tuple[str, ...] = ("current", "expired", "lifetime", "unpaid")
 
 #: Queries per request, whatever the page size.
 ADMIN_USERS_QUERIES = 6

@@ -51,14 +51,6 @@ describe('isGo / noGoReasons', () => {
     expect(noGoReasons(status)).toEqual(expectedReasons);
   });
 
-  it('says "never joined" rather than "expired" when there is no membership', () => {
-    const status = makeStatus({
-      membership: { status: 'none', expires_on: null, plan: null },
-      go_no_go: { membership: false, medical: true },
-    });
-    expect(noGoReasons(status)).toEqual(['No CalDART membership']);
-  });
-
   it('says a friend is a friend of CalDART, not a member', () => {
     const status = makeStatus({
       membership: { status: 'friend', expires_on: null, plan: null },
@@ -124,32 +116,6 @@ describe('MemberStatusCard', () => {
     renderWithProviders(<MemberStatusCard status={makeStatus()} today={TODAY} />);
     const row = screen.getByText('Certificate').closest('.leader-row');
     expect(row).toHaveTextContent('Private · 3181234 · IFR · Instrument');
-  });
-
-  it('labels an unpaid membership "Unpaid", the same word the member report uses', () => {
-    renderWithProviders(
-      <MemberStatusCard
-        status={makeStatus({
-          membership: { status: 'new', expires_on: null, plan: null },
-          go_no_go: { membership: false, medical: true },
-        })}
-        today={TODAY}
-      />,
-    );
-    expect(screen.getByText('Unpaid')).toBeInTheDocument();
-  });
-
-  it('labels no membership "No membership", the same word the member report uses', () => {
-    renderWithProviders(
-      <MemberStatusCard
-        status={makeStatus({
-          membership: { status: 'none', expires_on: null, plan: null },
-          go_no_go: { membership: false, medical: true },
-        })}
-        today={TODAY}
-      />,
-    );
-    expect(screen.getByText('No membership')).toBeInTheDocument();
   });
 
   it('labels a friend "Friend" and invents neither a plan nor a lifetime', () => {

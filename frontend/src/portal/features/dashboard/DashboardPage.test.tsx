@@ -85,8 +85,8 @@ const EXPIRED: MembershipStatus = {
   is_lifetime: false,
 };
 
-const NONE: MembershipStatus = {
-  status: 'none',
+const FRIEND: MembershipStatus = {
+  status: 'friend',
   expires_on: null,
   plan: null,
   is_lifetime: false,
@@ -156,13 +156,16 @@ describe('<DashboardPage/>', () => {
     ).toHaveAttribute('href', '/renew');
   });
 
-  it('sends someone who has never joined to the wizard', async () => {
-    mount({ user: makeUser({ membership: NONE }), status: NONE });
+  it('gives a member who registered and never paid the friend card', async () => {
+    mount({ user: makeUser({ kind: 'member', membership: FRIEND }), status: FRIEND });
 
-    await screen.findByRole('heading', { name: 'You are not a member yet' });
-    const status = card('You are not a member yet');
-    expect(status.getByRole('link', { name: 'Join CalDART' })).toHaveAttribute('href', '/join');
-    expect(status.queryByRole('link', { name: /Renew/ })).not.toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+    const status = card('You are a friend of CalDART');
+    expect(status.getByRole('link', { name: 'Make me a member' })).toHaveAttribute(
+      'href',
+      '/membership/join',
+    );
+    expect(status.queryByRole('link', { name: 'Join CalDART' })).not.toBeInTheDocument();
   });
 
   it('never asks a life member to renew', async () => {
@@ -179,8 +182,6 @@ describe('<DashboardPage/>', () => {
   });
 
   describe('for a friend', () => {
-    const FRIEND: MembershipStatus = { ...NONE, status: 'friend' };
-
     function mountFriend() {
       return mount({ user: makeUser({ kind: 'friend', membership: FRIEND }), status: FRIEND });
     }

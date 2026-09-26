@@ -114,9 +114,9 @@ class User(AbstractUser):
     #: When the account's owner last proved the address is theirs, by following a
     #: verification or password link sent to it; ``None`` while it is unverified.
     email_verified_at = models.DateTimeField(null=True, blank=True)
-    #: The kind of person the account belongs to, as stored.  A member with a
-    #: ``friend_on`` date that has arrived already counts as a friend: see
-    #: ``apps.members.services.account_kind``.
+    #: The kind of person the account belongs to, as stored: what they asked for.  A
+    #: member with a ``friend_on`` date that has arrived, or who has not yet paid,
+    #: already counts as a friend: see ``apps.members.services.account_kind``.
     kind = models.CharField(max_length=8, choices=AccountKind.choices, default=AccountKind.MEMBER)
     #: The day a member who asked to become a friend becomes one; ``None`` when no
     #: change is pending.
@@ -226,7 +226,7 @@ class User(AbstractUser):
     def membership_status(self) -> MembershipStatusDict:
         """The membership summary for this account, worked out for today.
 
-        Carries ``status`` (``current``, ``new``, ``expired``, ``none``, or ``friend``),
+        Carries ``status`` (``current``, ``expired``, ``friend``, or ``donor``),
         ``expires_on``, ``plan``, and ``is_lifetime``, and costs a query or two each time
         it is read.
         """

@@ -13,15 +13,16 @@ const TONE_CLASS: Record<StatusTone, string> = {
   none: 'chip--neutral',
 };
 
-// The `current`, `new`, `expired` and `none` tones read the same four words as
-// the member report and the member list's status filter; `expiring` is a tone
-// of its own, with no membership-state code behind it.  A friend shares the
-// quiet `none` tone -- never current, never expired -- but is called a friend.
+// The `current`, `expired` and `none` tones read the same words as the member
+// report and the member list's status filter: `none` is the quiet tone of a
+// friend, never current and never expired.  `expiring` is a tone of its own,
+// with no membership-state code behind it, and `new` is a palette tone other
+// features give their own label; no membership takes it.
 const TONE_LABEL: Record<StatusTone, string> = {
   current: MEMBERSHIP_STATUS_LABELS.current,
-  new: MEMBERSHIP_STATUS_LABELS.new,
+  new: 'Pending',
   expired: MEMBERSHIP_STATUS_LABELS.expired,
-  none: MEMBERSHIP_STATUS_LABELS.none,
+  none: MEMBERSHIP_STATUS_LABELS.friend,
   expiring: 'Expiring soon',
 };
 
@@ -42,8 +43,7 @@ export function membershipTone(
   membership: Pick<MembershipStatus, 'status' | 'expires_on' | 'is_lifetime'>,
   today: Date = new Date(),
 ): StatusTone {
-  if (membership.status === 'friend' || membership.status === 'none') return 'none';
-  if (membership.status === 'new') return 'new';
+  if (membership.status === 'friend' || membership.status === 'donor') return 'none';
   if (membership.status === 'expired') return 'expired';
   if (membership.is_lifetime) return 'current';
   const days = daysUntil(membership.expires_on, today);

@@ -235,9 +235,9 @@ def _contribution(rng: random.Random) -> int:
 def _term_starts(rng: random.Random, target: str, today: dt.date) -> list[dt.date]:
     """Start dates for a user's terms, oldest first, matching ``target``.
 
-    A ``friend`` holds no terms, exactly as ``none`` does.
+    A ``friend`` holds no terms, and neither does an ``unpaid`` joiner.
     """
-    if target in ("none", "friend"):
+    if target in ("unpaid", "friend"):
         return []
     if target == "lifetime":
         return [today - timedelta(days=rng.randint(120, HISTORY_MONTHS * 30))]
@@ -483,8 +483,8 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     """Seed each user's payments and terms, and return the shared seed context.
 
     ``ctx`` carries the seed run's ``rng``, ``today``, ``plans``, and ``users``, plus
-    the ``membership_targets`` that say which of ``none``, ``current``, ``expiring``
-    , ``expired``, or ``lifetime`` each user should end up in, and the
+    the ``membership_targets`` that say which of ``unpaid``, ``friend``, ``current``,
+    ``expiring``, ``expired``, or ``lifetime`` each user should end up in, and the
     ``renewal_due_today_users``/``catch_up_user`` subjects (:func:`_forced_term_ends`)
     whose current term's end date is pinned rather than drawn, so a renewal is
     always due the day the seed runs.  Pinning shifts every one of that user's
@@ -511,7 +511,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     payments = 0
     terms = 0
     for user in ctx["users"]:
-        target = targets.get(user.pk, "none")
+        target = targets.get(user.pk, "unpaid")
         starts = _term_starts(rng, target, today)
         plan = life if target == "lifetime" else annual
         if user.pk in forced_ends and len(starts) > 0 and plan.duration_days is not None:

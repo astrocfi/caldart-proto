@@ -341,7 +341,7 @@ def test_mock_complete_failure_grants_nothing(
     )
     assert response.status_code == 200
     assert response.json()["status"] == "failed"
-    assert response.json()["membership"]["status"] == "none"
+    assert response.json()["membership"]["status"] == "friend"
     assert Membership.objects.count() == 0
 
 
@@ -459,7 +459,7 @@ def test_owner_may_read_their_payment(
     response = api_client.get(f"/api/v1/payments/{checkout['payment_id']}")
     assert response.status_code == 200
     assert response.json()["status"] == "pending"
-    assert response.json()["membership"]["status"] == "none"
+    assert response.json()["membership"]["status"] == "friend"
 
 
 def test_account_admin_may_read_any_payment(

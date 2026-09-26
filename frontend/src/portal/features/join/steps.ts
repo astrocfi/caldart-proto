@@ -54,27 +54,30 @@ export function nextJoinStep(step: JoinStep): JoinStep {
  *
  * No session at all means they still need an account; an address nobody has
  * verified yet means they still have to click the link we mailed; a session
- * without a usable profile means the profile step; a complete profile without a
- * current membership means they still owe us the fee; anything else means they
- * have joined.  A friend owes nothing, so a friend with a complete profile has
- * joined: the wizard offers them the pay step only on the way through from the
+ * without a usable profile means the profile step.  After that it turns on the
+ * kind they chose (`joiningAs`): somebody joining as a member without a current
+ * membership still owes the fee, so is at the pay step however often they leave
+ * and come back, while a friend owes nothing, so a friend with a complete profile
+ * has joined: the wizard offers them the pay step only on the way through from the
  * profile step, never as the place to resume.
  */
 export function furthestJoinStep(user: User | null): JoinStep {
   if (!user) return 'account';
   if (!user.email_verified) return 'verify';
   if (!user.profile_complete) return 'profile';
-  if (user.membership.status === 'friend') return 'done';
+  if (joiningAs(user) === 'friend') return 'done';
   if (user.membership.status !== 'current') return 'pay';
   return 'done';
 }
 
 /**
- * The kind of account the wizard is walking `user` through: a friend when their
- * membership reads as a friend's, a member otherwise (and for nobody at all).
+ * The kind of account the wizard is walking `user` through: the kind they chose
+ * when they registered, which is stored as `user.kind`.  A member who has not yet
+ * paid reads as a friend everywhere else, but is still joining as a member here.
+ * Nobody at all is joining as a member, the wizard's default.
  */
 export function joiningAs(user: User | null): PersonKind {
-  return user?.membership.status === 'friend' ? 'friend' : 'member';
+  return user?.kind === 'friend' ? 'friend' : 'member';
 }
 
 /** Later of two steps — used to hold ground while `/auth/me` catches up. */

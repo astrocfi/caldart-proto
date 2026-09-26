@@ -52,8 +52,11 @@ DEMO_ACCOUNTS: tuple[tuple[str, str, str, str, tuple[str, ...], bool], ...] = (
 )
 
 #: The demo accounts that are not members, keyed as in ``DEMO_ACCOUNTS``: every
-#: other one is a member.
-DEMO_KINDS: dict[str, AccountKind] = {"friend": AccountKind.FRIEND}
+#: other one is a member.  The treasurer holds no term, so is a friend.
+DEMO_KINDS: dict[str, AccountKind] = {
+    "friend": AccountKind.FRIEND,
+    "treasurer": AccountKind.FRIEND,
+}
 
 #: How many synthetic members to generate on top of the named demo accounts.
 GENERATED_MEMBER_COUNT = 40

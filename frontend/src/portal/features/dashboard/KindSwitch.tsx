@@ -36,8 +36,9 @@ export type KindState =
 /**
  * Works out what the kind control offers `user`, whose membership reads `status`.
  *
- * A friend by the membership state, a current life member, a member with a pending
- * `friend_on`, and otherwise a member.
+ * A friend by the membership state (which includes a member who registered and has
+ * not yet paid, so they are offered **Make me a member**), a current life member, a
+ * member with a pending `friend_on`, and otherwise a member.
  */
 export function kindState(user: User, status: MembershipStatus): KindState {
   if (status.status === 'friend') return { kind: 'friend' };

@@ -26,7 +26,8 @@ export interface Role {
 }
 
 /* -------------------------------------------------------------- membership */
-export type MembershipState = 'current' | 'new' | 'expired' | 'none' | 'friend';
+/** A donor's membership reads `donor`; no screen draws it, since a donor cannot sign in. */
+export type MembershipState = 'current' | 'expired' | 'friend' | 'donor';
 
 export interface MembershipStatus {
   status: MembershipState;
@@ -36,7 +37,7 @@ export interface MembershipStatus {
 }
 
 /** A `suspended` term belongs to an account its holder deactivated; it counts for nothing. */
-export type MembershipTermStatus = 'new' | 'active' | 'expired' | 'canceled' | 'suspended';
+export type MembershipTermStatus = 'active' | 'expired' | 'canceled' | 'suspended';
 export type MembershipSource = 'payment' | 'manual' | 'seed';
 
 export interface MembershipTerm {

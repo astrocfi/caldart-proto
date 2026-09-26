@@ -59,7 +59,7 @@ def test_register_creates_a_member_and_signs_them_in(api_client: APIClient) -> N
     body = response.json()
     assert body["email"] == "new.member@example.test"
     assert body["roles"] == [MEMBER]
-    assert body["membership"]["status"] == "none"
+    assert body["membership"]["status"] == "friend"
     assert body["profile_complete"] is False
     assert set(body) == {
         "id",

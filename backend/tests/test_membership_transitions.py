@@ -49,13 +49,13 @@ def checkout(member: User, annual_plan: MembershipPlan) -> Payment:
 # A payment that fails and is tried again
 # --------------------------------------------------------------------------
 def test_a_failed_payment_activates_nothing(checkout: Payment, member: User) -> None:
-    """A failure leaves the payment failed, uncompleted, and the member not a member."""
+    """A failure leaves the payment failed and uncompleted, and the member a friend."""
     failed = mark_failed(checkout, raw={"code": "card_declined"})
 
     assert failed.status == PaymentStatus.FAILED
     assert failed.completed_at is None
     assert Membership.objects.count() == 0
-    assert member.membership_status["status"] == MembershipState.NONE
+    assert member.membership_status["status"] == MembershipState.FRIEND
 
 
 def test_a_failed_payment_that_later_succeeds_activates_the_term(
@@ -200,7 +200,7 @@ def canceled_term(
 def test_a_canceled_term_ends_the_membership(canceled_term: Membership, member: User) -> None:
     """Cancellation takes the member out of coverage without deleting the term."""
     assert canceled_term.status == MembershipStatusChoices.CANCELED
-    assert member.membership_status["status"] == MembershipState.NONE
+    assert member.membership_status["status"] == MembershipState.FRIEND
 
 
 def test_buying_again_after_a_cancellation_starts_a_term_today(

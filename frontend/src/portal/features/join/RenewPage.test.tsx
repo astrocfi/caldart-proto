@@ -65,6 +65,7 @@ function renderRenew(membership: MembershipDetail) {
       <Routes>
         <Route path="/renew" element={<RenewPage />} />
         <Route path="/" element={<p>Dashboard</p>} />
+        <Route path="/membership/join" element={<p>Become a member</p>} />
       </Routes>
     </>,
     { route: '/renew' },
@@ -145,5 +146,12 @@ describe('<RenewPage/>', () => {
     expect(await screen.findByText('Thank you — your membership is renewed.')).toBeInTheDocument();
     expect(screen.getByTestId('path')).toHaveTextContent('/');
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
+  });
+
+  it('sends a friend, who has nothing to renew, to become a member', async () => {
+    renderRenew(detail({ status: 'friend', expires_on: null, plan: null }));
+
+    expect(await screen.findByText('Become a member')).toBeInTheDocument();
+    expect(screen.getByTestId('path')).toHaveTextContent('/membership/join');
   });
 });

@@ -380,10 +380,11 @@ class MembershipStatusChoices(models.TextChoices):
     ``SUSPENDED`` is a term whose holder deactivated their own account while it still
     had time to run.  It counts for nothing -- it never covers a day and never makes
     anybody expired -- until the account is reactivated, when it becomes ``ACTIVE``
-    again, or ``EXPIRED`` if it ran out in the meantime.
+    again, or ``EXPIRED`` if it ran out in the meantime.  It still makes its holder a
+    member for ``members.services.account_kind`` once it has started, so a deactivated
+    member's kind stays ``member`` while their membership state reads ``friend``.
     """
 
-    NEW = "new", "New"
     ACTIVE = "active", "Active"
     EXPIRED = "expired", "Expired"
     CANCELED = "canceled", "Canceled"
@@ -395,21 +396,20 @@ class MembershipState(models.TextChoices):
 
     Unlike ``MembershipStatusChoices`` this is never stored: it is what
     ``members.services.membership_status`` works out from every term an account
-    holds and from the account's kind, and the five values partition the member
-    table.  ``NEW`` is somebody whose only term is unpaid, so they have joined but
-    never been covered; ``NONE`` means nothing has started at all, not that a term
-    was canceled; ``FRIEND`` is a friend of CalDART, who pays no dues and so is
-    never current and never expired, whatever terms they held as a member.  These
-    labels are what the member list's status filter, the member report, and the
-    portal's status select all show, so a change here is a change everywhere at
-    once.
+    holds and from the account's effective kind (``members.services.account_kind``).
+    ``CURRENT`` is a term covering today and ``EXPIRED`` a term that has started and
+    run out.  ``FRIEND`` is a friend of CalDART, who pays no dues and so is never
+    current and never expired, whatever terms they held as a member; that includes
+    anybody who chose to be a member and has not yet paid.  ``DONOR`` is what a
+    donor account reads, and a donor never appears in a member list.  These labels
+    are what the member list's status filter, the member report, and the portal's
+    status select all show, so a change here is a change everywhere at once.
     """
 
     CURRENT = "current", "Current"
-    NEW = "new", "Unpaid"
     EXPIRED = "expired", "Expired"
-    NONE = "none", "No membership"
     FRIEND = "friend", "Friend"
+    DONOR = "donor", "Donor"
 
 
 class MembershipSource(models.TextChoices):

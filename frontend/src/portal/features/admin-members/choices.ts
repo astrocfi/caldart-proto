@@ -51,7 +51,6 @@ export {
 } from '@/portal/choices';
 
 export const TERM_STATUS_CHOICES: Choice<MembershipTermStatus>[] = [
-  { value: 'new', label: 'New' },
   { value: 'active', label: 'Active' },
   { value: 'expired', label: 'Expired' },
   { value: 'canceled', label: 'Canceled' },

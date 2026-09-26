@@ -4,8 +4,11 @@
  * The payment UI itself is `<Checkout/>` from `@/portal/features/checkout`:
  * it offers the plans, the optional contribution and the card / Apple Pay /
  * Google Pay / PayPal buttons, then calls `onSuccess` once the server has
- * activated the membership.  A friend owes no dues, so a friend's step offers a
- * contribution alone, and its **Not now** button moves on without paying.
+ * activated the membership.  The step follows the kind the visitor chose when they
+ * registered.  A friend owes no dues, so a friend's step offers a contribution
+ * alone, and its **Not now** button moves on without paying.  A member's step has
+ * no **Not now**: paying is what makes a member, and somebody who leaves before
+ * paying is a friend until they come back and pay.
  */
 import { Checkout } from '@/portal/features/checkout';
 import type { CheckoutResult } from '@/portal/features/checkout';

@@ -4,11 +4,13 @@
  * The new term starts the day after the current one ends, so renewing early
  * costs nothing; the status card above the checkout says exactly what the
  * member has now.  A life member has nothing to renew, so the page asks for a
- * contribution instead.
+ * contribution instead.  A friend has no membership to renew either (that includes a
+ * member who registered and has not yet paid), so the page sends them on to
+ * `/membership/join`.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import type { JSX } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 import { Checkout } from '@/portal/features/checkout';
 
@@ -17,6 +19,7 @@ import { DateText } from '@/portal/components/DateText';
 import { Page } from '@/portal/components/Page';
 import { MembershipChip, daysUntil } from '@/portal/components/StatusChip';
 import { useToast } from '@/portal/components/Toast';
+import { JOIN_AS_MEMBER_PATH } from '@/portal/features/dashboard/KindSwitch';
 import { useMembership } from '@/portal/features/profile/api';
 import { refreshAfterPayment } from './refresh';
 import './join.css';
@@ -32,6 +35,10 @@ export function RenewPage(): JSX.Element {
   const days = status ? daysUntil(status.expires_on) : null;
 
   const isLifetime = status?.is_lifetime ?? false;
+
+  if (status?.status === 'friend') {
+    return <Navigate to={JOIN_AS_MEMBER_PATH} replace />;
+  }
 
   function handleSuccess() {
     refreshAfterPayment(queryClient);
@@ -73,9 +80,7 @@ export function RenewPage(): JSX.Element {
                   </span>
                 ) : null}
               </p>
-            ) : (
-              <p>You have never held a CalDART membership.</p>
-            )}
+            ) : null}
             {status.plan && !status.is_lifetime ? (
               <p className="muted">{status.plan} membership</p>
             ) : null}

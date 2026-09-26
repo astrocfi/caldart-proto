@@ -3,8 +3,10 @@
  * member again by paying.
  *
  * A member whose membership is current becomes a friend the day after it runs out, and
- * can undo that until then; a member with nothing current becomes one at once.
- * Payment goes through the mock provider, which is what `PAYMENTS_MOCK_ENABLED` is for.
+ * can undo that until then.  Somebody who registers as a member and leaves the pay step
+ * is a friend until they pay: the dashboard shows the friend card, and the join wizard
+ * resumes at the pay step.  Payment goes through the mock provider, which is what
+ * `PAYMENTS_MOCK_ENABLED` is for.
  */
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
@@ -64,24 +66,23 @@ test('a current member asks to become a friend, then undoes it', async ({ page }
   await expect(card.getByRole('button', { name: 'Make me a friend' })).toBeVisible();
 });
 
-test('a member with nothing current becomes a friend at once, then a member', async ({ page }) => {
+test('a member who leaves the pay step is a friend until they pay', async ({ page }) => {
   await registerMember(page, 'Tomas', uniqueEmail('unpaid'));
   // Leave the pay step without paying.
   await page.goto('/portal/');
 
-  await membershipCard(page, 'You are not a member yet')
-    .getByRole('button', { name: 'Make me a friend' })
-    .click();
-  await expect(
-    page.getByText(
-      'You become a friend of CalDART today: no dues, no expiry, and no renewal reminders.',
-    ),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'Make me a friend' }).click();
-
   const friendCard = membershipCard(page, 'You are a friend of CalDART');
-  await expect(friendCard).toBeVisible();
-  await friendCard.getByRole('link', { name: 'Make me a member' }).click();
+  await expect(friendCard.getByRole('link', { name: 'Make me a member' })).toBeVisible();
+  await expect(friendCard.getByRole('link', { name: /Renew/ })).toHaveCount(0);
+
+  // The wizard remembers the kind they chose, and picks up at the pay step.
+  await page.goto('/portal/join');
+  await expect(page.getByRole('heading', { name: 'Pay your dues' })).toBeVisible();
+
+  await page.goto('/portal/');
+  await membershipCard(page, 'You are a friend of CalDART')
+    .getByRole('link', { name: 'Make me a member' })
+    .click();
 
   await expect(page).toHaveURL(/\/portal\/membership\/join/);
   await expect(page.getByRole('heading', { name: 'Become a member', level: 1 })).toBeVisible();

@@ -7,7 +7,6 @@ import {
   API,
   CURRENT_MEMBERSHIP,
   LIFETIME_MEMBERSHIP,
-  NO_MEMBERSHIP,
   kindSwitchHandlers,
   makeUser,
   signedInAs,
@@ -23,6 +22,14 @@ const FRIEND_MEMBERSHIP: MembershipStatus = {
   status: 'friend',
   expires_on: null,
   plan: null,
+  is_lifetime: false,
+};
+
+/** A member whose membership ran out: nothing is current, and they are still a member. */
+const EXPIRED_MEMBERSHIP: MembershipStatus = {
+  status: 'expired',
+  expires_on: '2025-06-30',
+  plan: 'Annual',
   is_lifetime: false,
 };
 
@@ -83,7 +90,7 @@ describe('kindState', () => {
   });
 
   it('gives a member with nothing current no end date', () => {
-    expect(kindState(makeUser(), NO_MEMBERSHIP)).toEqual({ kind: 'member', expiresOn: null });
+    expect(kindState(makeUser(), EXPIRED_MEMBERSHIP)).toEqual({ kind: 'member', expiresOn: null });
   });
 });
 
@@ -107,7 +114,7 @@ describe('<KindSwitch/>', () => {
   });
 
   it('says a member with nothing current becomes a friend today', async () => {
-    setUp({ user: makeUser({ membership: NO_MEMBERSHIP }) });
+    setUp({ user: makeUser({ membership: EXPIRED_MEMBERSHIP }) });
     renderWithProviders(<KindSwitch />);
     await openPanel();
     expect(

@@ -62,10 +62,12 @@ class RowContext(TypedDict):
 #: ``status`` cell is the :class:`~apps.members.models.MembershipState` label,
 #: never the slug, and the ``certificate`` cell abbreviates the airline
 #: transport pilot certificate to "ATP" through :data:`REPORT_CERTIFICATE_LABELS`,
-#: which frees the room a full "No membership" status needs.  ``kind`` is the
-#: effective kind's label, Member or Friend, so a member whose change to friend
-#: has come reads Friend.  The eleven default widths are balanced so that no
-#: seeded cell or heading wraps (``test_no_default_member_cell_wraps_in_the_pdf``).
+#: which keeps that column narrow.  The status is Current, Expired, or
+#: Friend: a donor is never in the report.  ``kind`` is the effective kind's
+#: label, Member or Friend, so a member whose change to friend has come, or
+#: who chose to be a member and has not yet paid, reads Friend.  The eleven
+#: default widths are balanced so that no seeded cell or heading wraps
+#: (``test_no_default_member_cell_wraps_in_the_pdf``).
 #: ``joined_on``
 #: is the start of the earliest term on file, and ``member_since`` the day the
 #: member says they joined -- the same date until the terms before a gap, or

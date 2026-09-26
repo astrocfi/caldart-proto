@@ -41,6 +41,15 @@ User = get_user_model()
 #: The demo friend's one contribution, which buys no term.
 SEEDED_FRIEND_GIFTS = 1
 
+#: The accounts ``seed_demo`` stores as friends: the demo friend, the treasurer, and
+#: the four generated friends.
+SEEDED_STORED_FRIENDS = 6
+
+#: The accounts whose membership reads ``friend``: the stored friends, the four
+#: generated joiners who chose member and never paid, and the one member whose only
+#: term the seeded full refunds canceled.
+SEEDED_EFFECTIVE_FRIENDS = SEEDED_STORED_FRIENDS + 4 + 1
+
 #: The donors ``seed_demo`` makes, and the gifts they gave between them.
 SEEDED_DONORS = len(DONOR_GIFT_COUNTS)
 SEEDED_DONOR_GIFTS = sum(DONOR_GIFT_COUNTS)
@@ -153,9 +162,8 @@ def test_seed_demo_covers_every_membership_status() -> None:
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
     assert counts[MembershipState.CURRENT] == 33
     assert counts[MembershipState.EXPIRED] == 5
-    # A donor holds no membership, so each one reads as ``none``.
-    assert counts[MembershipState.NONE] == 6 + SEEDED_DONORS
-    assert counts[MembershipState.FRIEND] == 5
+    assert counts[MembershipState.DONOR] == SEEDED_DONORS
+    assert counts[MembershipState.FRIEND] == SEEDED_EFFECTIVE_FRIENDS
     lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
     assert len(lifetime) == 6
 
@@ -390,12 +398,12 @@ def test_seed_demo_makes_the_demo_friend_a_friend_with_one_gift() -> None:
 
 
 def test_seed_demo_gives_every_friend_a_profile_and_no_terms() -> None:
-    """Every seeded friend has a profile and has never held a term."""
+    """Every seeded friend, the treasurer among them, has a profile and no term."""
     _seed()
     friends = User.objects.filter(kind=AccountKind.FRIEND)
-    assert friends.count() == 5
+    assert friends.count() == SEEDED_STORED_FRIENDS
     assert Membership.objects.filter(user__in=friends).count() == 0
-    assert MemberProfile.objects.filter(user__in=friends).count() == 5
+    assert MemberProfile.objects.filter(user__in=friends).count() == SEEDED_STORED_FRIENDS
 
 
 def test_seed_demo_leaves_one_member_waiting_to_become_a_friend() -> None:
