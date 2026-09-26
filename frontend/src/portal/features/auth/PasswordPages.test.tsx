@@ -144,3 +144,37 @@ describe('ChangePasswordPage', () => {
     expect(await screen.findByText('That is not your current password.')).toBeInTheDocument();
   });
 });
+
+describe('password page layout', () => {
+  it.each([
+    ['forgot password', <ForgotPasswordPage key="f" />, '/forgot-password', 'Email me a link'],
+    [
+      'reset password',
+      <ResetPasswordPage key="r" />,
+      '/reset-password?uid=MQ&token=abc-123',
+      'Save new password',
+    ],
+    ['change password', <ChangePasswordPage key="c" />, '/change-password', 'Change password'],
+  ])('renders the %s form in the auth card', (_name, page, route, submit) => {
+    const { container } = renderWithProviders(page, { route });
+
+    const actions = container.querySelector('.auth-card .auth__actions');
+    expect(actions).toContainElement(screen.getByRole('button', { name: submit }));
+  });
+
+  it('shows an incomplete reset link in the auth card too', () => {
+    const { container } = renderWithProviders(<ResetPasswordPage />, { route: '/reset-password' });
+
+    expect(container.querySelector('.auth-card')).toHaveTextContent(/that link is incomplete/i);
+  });
+
+  it.each([
+    ['forgot password', <ForgotPasswordPage key="f" />, '/forgot-password'],
+    ['reset password', <ResetPasswordPage key="r" />, '/reset-password?uid=MQ&token=abc-123'],
+    ['change password', <ChangePasswordPage key="c" />, '/change-password'],
+  ])('gives the %s screen a single top-level heading', (_name, page, route) => {
+    renderWithProviders(page, { route });
+
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+});

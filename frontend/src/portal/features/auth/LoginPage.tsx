@@ -4,13 +4,12 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAuth, useLogin } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
-import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { isGuidePath, openGuide } from '@/portal/guide';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { maskEmail } from '@/portal/masks';
 import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
-import { Page } from '@/portal/components/Page';
+import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
 
 /** Only same-site paths are followed, so `?next=` cannot bounce off-site. */
@@ -47,81 +46,79 @@ export function LoginPage(): JSX.Element {
   if (isSignedIn) return isGuide ? <></> : <Navigate to={next} replace />;
 
   return (
-    <Page
+    <AuthShell
       title="Sign in"
-      eyebrow="CalDART members"
       lede="Use the email address CalDART has on file."
+      footer={
+        <>
+          Not a member yet? <Link to="/join">Join CalDART</Link>.
+        </>
+      }
     >
-      <Card className="auth-card">
-        <form
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!isEmailAddress(email)) {
-              setEmailError(EMAIL_MESSAGE);
-              return;
-            }
-            setEmailError(null);
-            login.mutate(
-              { email, password },
-              {
-                onSuccess: () => {
-                  if (isGuide) {
-                    openGuide(next);
-                    return;
-                  }
-                  void navigate(next, { replace: true });
-                },
+      <form
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!isEmailAddress(email)) {
+            setEmailError(EMAIL_MESSAGE);
+            return;
+          }
+          setEmailError(null);
+          login.mutate(
+            { email, password },
+            {
+              onSuccess: () => {
+                if (isGuide) {
+                  openGuide(next);
+                  return;
+                }
+                void navigate(next, { replace: true });
               },
-            );
-          }}
+            },
+          );
+        }}
+      >
+        <Field
+          label="Email address"
+          required
+          error={emailError ?? fieldError(login.error, 'email')}
         >
-          <Field
-            label="Email address"
-            required
-            error={emailError ?? fieldError(login.error, 'email')}
-          >
-            {(props) => (
-              <MaskedInput
-                {...props}
-                type="email"
-                name="email"
-                autoComplete="username"
-                required
-                mask={maskEmail}
-                value={email}
-                onValueChange={(next) => setEmail(next)}
-              />
-            )}
-          </Field>
-          <Field label="Password" required error={fieldError(login.error, 'password')}>
-            {(props) => (
-              <input
-                {...props}
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            )}
-          </Field>
+          {(props) => (
+            <MaskedInput
+              {...props}
+              type="email"
+              name="email"
+              autoComplete="username"
+              required
+              mask={maskEmail}
+              value={email}
+              onValueChange={(next) => setEmail(next)}
+            />
+          )}
+        </Field>
+        <Field label="Password" required error={fieldError(login.error, 'password')}>
+          {(props) => (
+            <input
+              {...props}
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          )}
+        </Field>
 
-          <FormAlert error={login.error} handled={['email', 'password']} />
+        <FormAlert error={login.error} handled={['email', 'password']} />
 
-          <div className="cluster">
-            <Button type="submit" disabled={login.isPending}>
-              {login.isPending ? 'Signing in…' : 'Sign in'}
-            </Button>
-            <Link to="/forgot-password">Forgot your password?</Link>
-          </div>
-        </form>
-      </Card>
-
-      <p className="muted">
-        Not a member yet? <Link to="/join">Join CalDART</Link>.
-      </p>
-    </Page>
+        <div className="auth__actions">
+          <Button type="submit" disabled={login.isPending}>
+            {login.isPending ? 'Signing in…' : 'Sign in'}
+          </Button>
+          <Link to="/forgot-password">Forgot your password?</Link>
+        </div>
+      </form>
+    </AuthShell>
   );
 }

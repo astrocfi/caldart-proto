@@ -486,6 +486,18 @@ File                      Routes, and who may open them
 ``not-found.tsx``         any other path
 ========================  ======================================================
 
+**Auth screens.**  Every screen ``auth.tsx`` routes to renders through
+``AuthShell`` (``features/auth/AuthShell.tsx``, styled by ``auth.css`` beside
+it): a panel no wider than 26rem, centered in the frame, holding a centered
+``h1`` title, an optional lede, one ``Card`` with the ``auth-card`` class for
+the form, and an optional footer line below the card, such as the sign-in
+page's link to join.  Inside the card, an ``auth__actions`` block stacks the
+submit button at the card's full width above a centered secondary link.  A
+visitor who is not signed in gets no rail, so ``PortalLayout`` adds the
+``portal__frame--no-rail`` class to the frame, which makes it a single column
+at every width; the page therefore has the whole window to center in, and
+the join wizard's cards center themselves in it too.
+
 **Code splitting.**  A route names its page with React Router's ``lazy``
 property rather than an ``element``, so the page's code is a chunk of its own
 that the browser fetches the first time somebody opens that path.  The route
