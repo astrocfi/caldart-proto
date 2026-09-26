@@ -10,6 +10,7 @@ change.  The API contract is ``docs/developer/api-profile.rst``.
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Any
 
 import pytest
 from django.core import mail
@@ -72,7 +73,7 @@ def renewal(user: User, plan: MembershipPlan, **fields: object) -> RenewalMandat
     )
 
 
-def become_friend(client: APIClient, **body: object) -> tuple[int, dict[str, object]]:
+def become_friend(client: APIClient, **body: object) -> tuple[int, dict[str, Any]]:
     """Post ``body`` to ``POST /me/kind/friend`` and return the status and the JSON."""
     response = client.post(FRIEND_URL, body, format="json")
     return response.status_code, response.json()
@@ -156,7 +157,7 @@ def test_a_current_member_stays_current_until_then(
 def test_the_date_follows_an_early_renewal(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan, today: date
 ) -> None:
-    """A renewal bought early carries the coverage on, and the change waits for its end."""
+    """A renewal bought early carries the coverage on, and the change waits for it."""
     MembershipFactory(
         user=current_member,
         plan=annual_plan,
@@ -367,7 +368,7 @@ def test_keeping_the_contribution_emails_both_changes(
     member_client: APIClient,
     current_member: User,
     annual_plan: MembershipPlan,
-    django_capture_on_commit_callbacks: type[DjangoCaptureOnCommitCallbacks],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
     """The member hears that renewal is off and that the recurring donation is on."""
     renewal(current_member, annual_plan, contribution_cents=CONTRIBUTION)
@@ -382,7 +383,7 @@ def test_keeping_the_contribution_emails_both_changes(
 def test_a_live_donation_is_left_as_it_is(
     member_client: APIClient, current_member: User, annual_plan: MembershipPlan
 ) -> None:
-    """A recurring donation already running is not overwritten by the kept contribution."""
+    """A recurring donation already running is not overwritten by the kept one."""
     held = RenewalMandateFactory(user=current_member, plan=None, contribution_cents=1000)
     renewal(current_member, annual_plan, contribution_cents=CONTRIBUTION)
     become_friend(member_client, keep_contribution=True)
@@ -405,7 +406,11 @@ def test_undo_clears_the_pending_date(
     current_member.friend_on = today + timedelta(days=201)
     current_member.save(update_fields=["friend_on"])
     response = member_client.delete(FRIEND_URL)
-    assert (response.status_code, response.json()["friend_on"], fresh(current_member).friend_on) == (
+    assert (
+        response.status_code,
+        response.json()["friend_on"],
+        fresh(current_member).friend_on,
+    ) == (
         200,
         None,
         None,
@@ -448,7 +453,7 @@ def test_undo_without_a_pending_change_is_refused(member_client: APIClient) -> N
 def test_undo_after_the_day_has_come_is_refused(
     member_client: APIClient, member: User, today: date
 ) -> None:
-    """A change whose day has come is no longer pending, even before it is written down."""
+    """A change whose day has come is not pending, even before it is written down."""
     member.friend_on = today
     member.save(update_fields=["friend_on"])
     response = member_client.delete(FRIEND_URL)

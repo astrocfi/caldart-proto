@@ -48,7 +48,7 @@ from django.utils import timezone
 
 from apps.accounts.models import AccountKind, User
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
-from apps.members.services import account_kind
+from apps.members.services import account_kind, become_friend, check_can_become_friend
 from apps.payments.models import (
     MandateCadence,
     MandateProvider,
@@ -781,6 +781,80 @@ def cancel_all_mandates(user: User) -> None:
     for mandate in standing:
         cancel_mandate(mandate, actor=user)
     discard_pending_mandate(user)
+
+
+#: The field a member switching to friend answers whether to keep their contribution in.
+KEEP_CONTRIBUTION_FIELD = "keep_contribution"
+
+#: What a member is told when their renewal takes a contribution and they did not say
+#: whether to keep it, in DRF's own words for a missing field.
+KEEP_CONTRIBUTION_REQUIRED = "This field is required."
+
+
+@transaction.atomic
+def switch_to_friend(user: User, *, keep_contribution: bool | None) -> User:
+    """Make ``user`` a friend of CalDART at their own request, and return the account.
+
+    The account becomes a friend through :func:`apps.members.services.become_friend`:
+    the day after a current membership runs out, or at once.  Their automatic renewal
+    ends with it (a friend has no dues to renew): an active or paused one is canceled
+    through :func:`cancel_mandate` under their own name, and a pending one is thrown
+    away.  When a live renewal takes a contribution, ``keep_contribution`` must say
+    what becomes of it: true keeps it as a yearly recurring donation through
+    :func:`keep_renewal_contribution`, false lets it stop.  Left as ``None`` there,
+    ``DomainValidationError`` is raised keyed by :data:`KEEP_CONTRIBUTION_FIELD`; it is
+    ignored when there is no contribution.  Every refusal of ``become_friend`` is raised
+    too, and nothing is written when anything is refused.
+    """
+    check_can_become_friend(user, timezone.localdate())
+    renewal = renewal_of(user)
+    if renewal is not None and renewal.status == MandateStatus.PENDING:
+        renewal.delete()
+    elif renewal is not None and renewal.status != MandateStatus.CANCELED:
+        has_contribution = renewal.contribution_cents > 0
+        if has_contribution and keep_contribution is None:
+            raise DomainValidationError(KEEP_CONTRIBUTION_FIELD, KEEP_CONTRIBUTION_REQUIRED)
+        cancel_mandate(renewal, actor=user)
+        if has_contribution and keep_contribution:
+            keep_renewal_contribution(renewal)
+    return become_friend(user)
+
+
+def keep_renewal_contribution(renewal: RenewalMandate) -> RenewalMandate | None:
+    """Carry ``renewal``'s contribution on as a yearly recurring donation.
+
+    The donation takes the renewal's contribution, provider, and saved method, and is
+    first charged on the renewal's next charge day (today when that has gone by), so
+    the member gives what they gave, on the day they gave it, with the card they gave
+    it with.  It is begun through :func:`begin_mandate` and activated through
+    :func:`save_method`, so it is audited as ``renewal.enable`` and announced like any
+    other.  A recurring donation already active or paused is left exactly as it is,
+    and ``None`` comes back; otherwise the donation does.  The renewal must already be
+    canceled: a contribution lives in one place, so :func:`begin_mandate` refuses a
+    donation beside a live renewal that takes one.
+    """
+    held = donation_of(renewal.user)
+    if held is not None and held.status in (MandateStatus.ACTIVE, MandateStatus.PAUSED):
+        return None
+    donation = begin_mandate(
+        renewal.user,
+        plan=None,
+        contribution_cents=renewal.contribution_cents,
+        provider=renewal.provider,
+        next_charge_on=max(renewal.next_charge_on, timezone.localdate()),
+        cadence=MandateCadence.YEARLY,
+    )
+    method = MandateMethod(
+        method_ref=renewal.method_ref,
+        label=renewal.method_label,
+        customer_ref=renewal.customer_ref,
+        brand=renewal.method_brand,
+        last4=renewal.method_last4,
+        exp_month=renewal.method_exp_month,
+        exp_year=renewal.method_exp_year,
+        raw=renewal.raw,
+    )
+    return save_method(donation, method, actor=renewal.user)
 
 
 def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:

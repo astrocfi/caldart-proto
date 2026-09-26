@@ -390,3 +390,13 @@ class AttachedAircraftSerializer(serializers.Serializer[dict[str, Any]]):
     """``POST /me/profile/aircraft`` response: the aircraft the profile now lists."""
 
     aircraft = AircraftSummarySerializer(many=True, read_only=True)
+
+
+class BecomeFriendSerializer(serializers.Serializer[None]):
+    """``POST /me/kind/friend``: whether a renewal's contribution carries on.
+
+    ``keep_contribution`` is needed only when the member's automatic renewal takes a
+    contribution: true keeps it as a yearly recurring donation, false lets it stop.
+    """
+
+    keep_contribution = serializers.BooleanField(required=False)

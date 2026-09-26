@@ -19,6 +19,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.api.serializers import UserSerializer
 from apps.accounts.models import User
 from apps.aircraft.api.serializers import AircraftSummarySerializer
 from apps.aircraft.models import Aircraft
@@ -26,6 +27,7 @@ from apps.members.api.actors import acting_user
 from apps.members.api.profile_serializers import (
     AircraftAttachSerializer,
     AttachedAircraftSerializer,
+    BecomeFriendSerializer,
     MembershipDetailSerializer,
     MembershipTermSerializer,
     PaymentSummarySerializer,
@@ -33,7 +35,9 @@ from apps.members.api.profile_serializers import (
 )
 from apps.members.api.serializers import PlanSerializer
 from apps.members.models import MemberProfile, MembershipPlan
-from apps.members.services import membership_status, touch_profile
+from apps.members.services import membership_status, touch_profile, undo_become_friend
+from apps.payments.renewals import switch_to_friend
+from caldart.exceptions import DomainError, DomainValidationError
 
 
 def get_or_create_profile(user: User) -> MemberProfile:
@@ -155,3 +159,48 @@ class PlanListView(ListAPIView[MembershipPlan]):
     permission_classes = [AllowAny]
     pagination_class = None
     queryset = MembershipPlan.objects.filter(is_active=True)
+
+
+class MyKindFriendView(APIView):
+    """``POST /me/kind/friend`` to become a friend, ``DELETE`` to take that back."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=BecomeFriendSerializer, responses={200: UserSerializer})
+    def post(self, request: Request) -> Response:
+        """200 with the ``user`` payload once the caller has asked to become a friend.
+
+        A member whose membership is current becomes a friend the day after it runs out
+        (``friend_on``); anybody else becomes one at once (``kind`` is ``friend``).  The
+        automatic renewal is canceled either way.  When it takes a contribution the body
+        must carry ``keep_contribution``: true keeps the contribution as a yearly
+        recurring donation charged on the renewal's next charge day, false lets it stop,
+        and leaving it out is 400 ``{"keep_contribution": ["This field is required."]}``.
+        A lifetime member, a friend, and a donor are each a 400 ``{"detail": ...}``;
+        nothing changes on any refusal.  An anonymous caller gets 401.
+        """
+        serializer = BecomeFriendSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        keep = serializer.validated_data.get("keep_contribution")
+        try:
+            user = switch_to_friend(acting_user(request), keep_contribution=keep)
+        except DomainValidationError:
+            raise
+        except DomainError as error:
+            return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(UserSerializer(user).data)
+
+    @extend_schema(request=None, responses={200: UserSerializer})
+    def delete(self, request: Request) -> Response:
+        """200 with the ``user`` payload once a pending change to friend is taken back.
+
+        ``friend_on`` is cleared, so the caller stays a member; a renewal the change
+        canceled stays canceled.  With nothing pending -- no date, a date that has come,
+        or a caller who is a friend -- the answer is 400 ``{"detail": "You have no
+        pending change."}``.  An anonymous caller gets 401.
+        """
+        try:
+            user = undo_become_friend(acting_user(request))
+        except DomainError as error:
+            return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(UserSerializer(user).data)

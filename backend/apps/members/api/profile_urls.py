@@ -21,6 +21,7 @@ urlpatterns = [
         name="me-profile-aircraft-detail",
     ),
     path("me/membership", views.MyMembershipView.as_view(), name="me-membership"),
+    path("me/kind/friend", views.MyKindFriendView.as_view(), name="me-kind-friend"),
     path("me/payments", views.MyPaymentsView.as_view(), name="me-payments"),
     path("plans", views.PlanListView.as_view(), name="plans"),
 ]
