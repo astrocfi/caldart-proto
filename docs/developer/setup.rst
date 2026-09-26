@@ -233,6 +233,8 @@ TypeScript with no React in it.
    are declared as Rollup inputs in ``frontend/vite.config.ts``, and both must
    appear in the manifest for the site to render.
 
+.. _setup-per-worker:
+
 Per-worker databases
 ====================
 
