@@ -243,14 +243,16 @@ against the code on every run.
 
 ``backend/tests/test_docs_user.py`` checks that:
 
-- every ``:doc:`` in ``docs/user/`` names a page under ``docs/user/`` (a
-  relative target is read from the page's own directory, an absolute one
-  from ``docs/``), every ``:ref:`` names a label defined there, and no user
-  page contains ``/developer/`` or the words "developer guide";
-- no user page uses a banned word (case-insensitive, whole words) or the
-  contrast construction, matched as ``,\s+not\s``, ``—\s*not\s``, and
-  ``\brather than\b``.  Text in bold or italics is left out of both checks,
-  because it quotes the software's own words: the member check's reason
+- every ``:doc:`` in ``docs/user/`` has a relative target, read from the
+  page's own directory, that names a page under ``docs/user/`` (an absolute
+  target fails, because the guide build reads it from ``docs/user/``), every
+  ``:ref:`` names a label defined there, and no user page contains
+  ``/developer/`` or the words "developer guide";
+- no user page uses a banned word (case-insensitive, whole words, even in
+  bold or italics) or the contrast construction, matched as ``,\s+not\s``,
+  ``—\s*not\s``, and ``\brather than\b``.  Text in bold or italics is
+  left out of the contrast check, because it quotes the software's own
+  words: the member check's reason
   *Friend of CalDART, not a member* is shown exactly as the portal prints it;
 - no user page contains a double hyphen outside a code block or a section
   adornment made only of hyphens, more than two em dashes, a line beginning

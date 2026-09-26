@@ -69,13 +69,13 @@ LITERAL = re.compile(r"``([^`]+)``")
 
 
 def _walk_routes(
-    patterns: list[URLPattern | URLResolver], prefix: str = ""
+    patterns: list[URLPattern | URLResolver], *, prefix: str = ""
 ) -> Iterator[tuple[str, ViewCallback]]:
     """Yield ``(route, callback)`` for every URL pattern under ``patterns``, recursing."""
     for pattern in patterns:
         route = prefix + str(pattern.pattern)
         if isinstance(pattern, URLResolver):
-            yield from _walk_routes(pattern.url_patterns, route)
+            yield from _walk_routes(pattern.url_patterns, prefix=route)
         else:
             yield route, pattern.callback
 

@@ -129,13 +129,10 @@ def _reference_cases() -> list[tuple[str, str, str]]:
 
 
 def _doc_target(page: str, target: str) -> Path:
-    """The source file a ``:doc:`` target on ``page`` names.
+    """The source file a relative ``:doc:`` target on ``page`` names.
 
-    An absolute target is read from the documentation root, as the full build reads
-    it; a relative one from the page's own directory.
+    The target is read from the page's own directory, as both builds read it.
     """
-    if target.startswith("/"):
-        return (DOCS / f"{target.lstrip('/')}.rst").resolve()
     return (USER_GUIDE / page).parent.joinpath(f"{target}.rst").resolve()
 
 
@@ -149,10 +146,16 @@ def test_the_guide_has_references_to_check() -> None:
 
 @pytest.mark.parametrize(("page", "role", "target"), _reference_cases())
 def test_every_reference_stays_inside_the_user_guide(page: str, role: str, target: str) -> None:
-    """Each ``:doc:`` names a page under ``docs/user/``; each ``:ref:`` a label there."""
+    """Each ``:doc:`` names a page under ``docs/user/``; each ``:ref:`` a label there.
+
+    A ``:doc:`` target must be relative: the full build reads an absolute one from
+    ``docs/`` and the guide build from ``docs/user/``, so no absolute target resolves
+    in both.
+    """
     if role == "ref":
         assert target in _labels()
         return
+    assert not target.startswith("/")
     resolved = _doc_target(page, target)
     assert resolved.is_relative_to(USER_GUIDE.resolve())
     assert resolved.is_file()
@@ -172,9 +175,10 @@ def test_no_page_mentions_the_developer_guide(page: Path) -> None:
 @pytest.mark.parametrize("page", USER_PAGES, ids=_page_id)
 @pytest.mark.parametrize("word", BANNED_WORDS)
 def test_no_page_uses_a_banned_word(page: Path, word: str) -> None:
-    """None of the banned words appears in a page's prose, in any case."""
+    """None of the banned words appears in a page's prose, in any case, even quoted."""
     pattern = r"\b" + re.escape(word).replace(r"\ ", r"\s+") + r"\b"
-    assert re.findall(pattern, _prose(page), re.IGNORECASE) == []
+    prose = "\n".join(_prose_lines(page))
+    assert re.findall(pattern, prose, re.IGNORECASE) == []
 
 
 @pytest.mark.parametrize("page", USER_PAGES, ids=_page_id)
