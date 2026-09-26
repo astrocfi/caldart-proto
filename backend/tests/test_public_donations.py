@@ -3,7 +3,7 @@
 A visitor who is not signed in gives through ``/donate/``.  The gift makes (or
 finds) a donor account by email address, and the anonymous caller proves it started
 the payment with a signed token.  The docs page is ``docs/developer/api-payments.rst``
-("Public donations") and ``docs/user/donations.rst``.
+("Public donations") and ``docs/user/member/public-website.rst``.
 """
 
 from __future__ import annotations

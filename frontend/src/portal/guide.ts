@@ -13,7 +13,7 @@ export const GUIDE_PREFIX = '/docs/';
 /**
  * Each role's own page, in the order that decides between a user's roles:
  * the most specific role a user holds picks the page, and a member with
- * nothing else lands on the member guide. Every page links to the rest.
+ * nothing else lands on the guide's front page. Every page links to the rest.
  */
 const GUIDE_PAGES: readonly [RoleSlug, string][] = [
   ['system_admin', 'system-administrator-guide'],
@@ -22,10 +22,9 @@ const GUIDE_PAGES: readonly [RoleSlug, string][] = [
   ['treasurer', 'treasurer-guide'],
   ['user_admin', 'user-administrator'],
   ['dart_leader', 'dart-leader-guide'],
-  ['member', 'member-guide'],
 ];
 
-/** The guide page for a user holding `roles`; the guide's front page for none. */
+/** The guide page for a user holding `roles`; the guide's front page for a plain member. */
 export function guidePath(roles: readonly RoleSlug[]): string {
   const match = GUIDE_PAGES.find(([role]) => roles.includes(role));
   return match ? `${GUIDE_PREFIX}${match[1]}/` : GUIDE_PREFIX;

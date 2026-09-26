@@ -110,7 +110,7 @@ describe('PortalLayout', () => {
   });
 
   it.each<[RoleSlug[], string]>([
-    [['member'], '/docs/member-guide/'],
+    [['member'], '/docs/'],
     [['member', 'dart_leader'], '/docs/dart-leader-guide/'],
     [['member', 'account_admin'], '/docs/account-administrator-guide/'],
   ])('links %s to their own page of the user guide', async (roles, href) => {

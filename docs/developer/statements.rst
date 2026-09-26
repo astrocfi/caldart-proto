@@ -37,7 +37,7 @@ The statement
 =============
 
 Each giver's statement is the same PDF a member downloads from Payments at any
-time (:doc:`/user/payments`): a line per settled contribution, netted against
+time (:doc:`/user/member/payments`): a line per settled contribution, netted against
 whatever of it was refunded, and the year's total.  The email names the total,
 carries the "no goods or services were provided in exchange for these
 contributions" sentence a 501(c)(3) receipt requires, and, for a member or a

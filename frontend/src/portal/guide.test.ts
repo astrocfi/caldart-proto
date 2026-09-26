@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { guidePath, isGuidePath } from './guide';
 
 describe('guidePath', () => {
-  it('sends a plain member to the member guide', () => {
-    expect(guidePath(['member'])).toBe('/docs/member-guide/');
+  it("sends a plain member to the guide's front page", () => {
+    expect(guidePath(['member'])).toBe('/docs/');
   });
 
   it('sends each administrator to their own guide', () => {

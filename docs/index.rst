@@ -20,8 +20,8 @@ Where to start
 
 **If you use CalDART** — you are a member, a DART leader, or one of the
 administrators — read the :doc:`user/index`.  Begin with
-:doc:`user/getting-started`, which covers signing in and finding your way
-around, then read the guide for what you do:
+:doc:`user/quick-start`, which walks through the first things most people
+do, then read the guide for what you do:
 
 .. list-table::
    :header-rows: 1
@@ -30,7 +30,7 @@ around, then read the guide for what you do:
    * - You are
      - Read
    * - A member
-     - :doc:`user/member-guide`, :doc:`user/payments`
+     - :doc:`user/member/index`, :doc:`user/member/my-aircraft`
    * - A DART leader
      - :doc:`user/admin/member-check`
    * - A user administrator

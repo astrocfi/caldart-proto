@@ -9,7 +9,7 @@ can also give on a schedule -- monthly, quarterly, or yearly -- through the same
 machinery: a recurring donation.  This page covers the mandate that either
 authority is held in, the scan that acts on it, the emails it sends, how it
 interacts with the renewal reminders, and how to operate it.
-:doc:`api-renewals` is the endpoint reference, and :doc:`/user/payments` is what
+:doc:`api-renewals` is the endpoint reference, and :doc:`/user/member/payments` is what
 the member and the treasurer see.
 
 .. _renewals-mechanism:
