@@ -109,14 +109,14 @@ well as the fields the public catalog gives.
      }
    ]
 
-``GET`` and ``PATCH /admin/darts/{id}`` answer with one row of the same
-shape.  The answer to a ``POST`` carries the same fields but for
+``GET /admin/darts/{id}`` and ``PATCH /admin/darts/{id}`` answer with one row
+of the same shape.  The answer to a ``POST`` carries the same fields but for
 ``member_count`` and ``page_count``: a DART just created has neither members
 nor pages.
 
 
-``POST`` and ``PATCH /admin/darts``
-===================================
+``POST /admin/darts`` and ``PATCH /admin/darts/{id}``
+=====================================================
 
 Both take ``name``, ``airport_identifiers``, ``website_url``, ``is_active``
 and ``contacts``:

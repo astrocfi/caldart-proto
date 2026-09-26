@@ -238,6 +238,11 @@ an endpoint never edits the router.
    the portal has not seen before, and a query hook in the feature that calls
    it.
 
+The code below is a worked example, not code in the repository:
+``GET /admin/aircraft/uninsured``, its view, and the ``uninsured`` portal feature
+the next section adds do not exist.  It lists the aircraft whose insurance has
+lapsed, which is small enough to show every step.
+
 .. code-block:: python
 
    # backend/apps/aircraft/api/views.py
