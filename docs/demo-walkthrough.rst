@@ -63,7 +63,7 @@ The demo accounts all use the password ``caldart-demo``:
      - ``member``, ``user_admin``; current
    * - ``treasurer@example.org``
      - Lucia Ferreira
-     - ``member``, ``treasurer``; no membership term
+     - ``member``, ``treasurer``; a friend of CalDART, no membership term
    * - ``accountadmin@example.org``
      - Curtis Whitfield
      - ``member``, ``account_admin``; lifetime
@@ -221,7 +221,8 @@ airplane for us today?" in one screen.*
 
    Below it, one row each for:
 
-   - **Membership** — current, expired, or none, with the expiry date and plan.
+   - **Membership** — current, expiring soon, expired, or friend, with the expiry date
+     and plan.
    - **Medical** — the class and expiry, and whether it is current.  BasicMed
      and class medicals both use the stored expiration date.
    - **Certificate** — type, number, IFR rating and any ratings on file.
