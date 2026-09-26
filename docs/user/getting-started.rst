@@ -33,8 +33,23 @@ Creating one
    address, and a password.
 #. Submit.  You are signed in immediately, an empty member profile is waiting
    for you, and you hold the ``member`` role.
+#. Check your email.  |org| sends a **verification message** to the address you
+   gave, with a link that proves the address is yours.  The wizard waits on its
+   **Check your email** step until you open that link.
 
-The wizard then moves on to your profile and to payment.
+The link opens a page that says **Email verified**; its **Continue** button
+takes you back to the wizard, which moves on to your profile and to payment.  On
+the **Check your email** step you can also:
+
+* press **Resend verification message** if the first one has not arrived;
+* press **I've clicked the link** if you opened the link in another browser or
+  on another device, so the wizard checks again;
+* follow **Use a different email address** if you mistyped it.  You change the
+  address there (see `Changing your email address`_) and a fresh message goes to
+  the corrected one.
+
+The link is good for three days.  If it has expired, sign in and use **Resend
+verification message** on the step, or on your dashboard, to get a new one.
 
 Paying for a membership term is a later step in the same wizard.  You can stop
 after creating the account and come back to pay: you will have a portal login,
@@ -162,13 +177,27 @@ Changing a password you still know
 Go to ``/portal/change-password``.  You need your current password, then the new
 one twice.  You stay signed in on the device you changed it from.
 
+Changing your email address
+---------------------------
+
+Choose **Change email** in the portal's menu, or go to ``/portal/change-email``.
+Type the new address and your current password, then press **Change email**.
+From then on you sign in with the new address, and you stay signed in on the
+device you changed it from.
+
+The new address is **unverified** until you open the link in the verification
+message |org| sends to it; your dashboard says so, and offers **Resend
+verification message**, until you do.  An unverified address does not lock you
+out of anything.  The site refuses an address another account already uses, and
+the address you already have.
+
 Too many attempts
 -----------------
 
-Signing in, registering, and asking for reset links are all rate limited per
-network address.  If you have been hammering the form you may see **Request was
-throttled**; wait a minute (an hour, for registration and reset requests) and
-try again.
+Signing in, registering, asking for reset links, following verification links,
+and resending verification messages are all rate limited per network address.
+If you have been hammering the form you may see **Request was throttled**; wait
+a minute (an hour, for everything but signing in) and try again.
 
 
 Finding your way around
@@ -179,7 +208,7 @@ roles allow it:
 
 **Membership**
    Your dashboard, your profile, the aircraft you fly, renewal, and
-   changing your password.
+   changing your password or your email address.
 
 **Operations**
    The DART leader's member and aircraft checks.

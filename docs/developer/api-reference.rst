@@ -348,10 +348,16 @@ links and spending them draw on the same budget:
    * - ``POST /auth/password/reset`` and ``…/reset/confirm``
      - ``auth_password_reset``
      - ``AUTH_THROTTLE_PASSWORD_RESET`` (``10/hour``)
+   * - ``POST /auth/email/verify``
+     - ``auth_verify``
+     - ``AUTH_THROTTLE_VERIFY`` (``30/hour``)
+   * - ``POST /auth/email/resend``
+     - ``auth_verify_resend``
+     - ``AUTH_THROTTLE_VERIFY_RESEND`` (``5/hour``)
 
 Setting a rate to empty turns that throttle off, and a value that is neither
 empty nor a readable rate stops start-up; see :doc:`configuration`.  The test
-settings switch all three off in Python rather than through the environment.
+settings switch every one off in Python rather than through the environment.
 The classes subclass ``AnonRateThrottle`` but override
 ``get_cache_key`` so they bucket by address even for an authenticated caller —
 registration signs the new account in, and every request after the first would
@@ -524,7 +530,31 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - ✓
+     - throttled; also verifies the address
+   * - ``POST /auth/email/verify``
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
      - throttled
+   * - ``POST /auth/email/resend``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - throttled
+   * - ``POST /auth/email/change``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - asks for the current password
    * - ``GET /roles``
      - ·
      - ✓
@@ -550,6 +580,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ·
      - ``PUT`` → 405
    * - ``POST /admin/users/{id}/send-password-reset``
+     - ·
+     - ·
+     - ·
+     - ✓
+     - ·
+     - ·
+     -
+   * - ``POST /admin/users/{id}/send-email-verification``
      - ·
      - ·
      - ·

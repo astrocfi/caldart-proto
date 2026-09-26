@@ -96,14 +96,17 @@ clears.*
    recent news posts, and the missions CalDART has flown.
 2. Follow **Join** in the top navigation — the button on the right-hand side,
    not the *Join CalDART* content page beside it.  You land on
-   ``/portal/join`` at step 1 of 4, **Account**.
+   ``/portal/join`` at step 1 of 5, **Account**.
 3. Fill in a first name, a last name, an email address that is not already in
    use, and a password.  Choose something that is not obviously derived from
    the name you just typed: the password is checked against Django's
    validators *with the new account's own details*, so ``marta-reyes-2026``
    for a Marta Reyes is refused.  Submit.
 
-   You are now signed in.  The wizard advances to step 2, **Profile**.
+   You are now signed in.  The wizard advances to step 2, **Verify**, and
+   waits.  Open Mailpit at http://localhost:8025, open the *verify your email
+   address* message, and follow its link.  The page says **Email verified**;
+   press **Continue** and the wizard moves on to step 3, **Profile**.
 
 4. Fill in the profile.  Phone, street address, city, and ZIP code are what the
    form insists on, along with the certificate box, which always holds a value
@@ -116,7 +119,7 @@ clears.*
    you enter a certificate type you must also give the certificate number.
    The form says so inline rather than at submit time.
 
-5. Step 3, **Pay**.  Choose **Annual** ($45.00) or **Life** ($650.00), then a
+5. Step 4, **Pay**.  Choose **Annual** ($45.00) or **Life** ($650.00), then a
    contribution if you want one — the tiers run from *Participating* at $20 to
    *Platinum* at $10,000, with an *Other amount* box and a *No thank you*.
    The total updates as you choose.
@@ -131,7 +134,7 @@ clears.*
       with your choices intact.  Nothing is written except a ``Payment`` row
       with status ``failed``.
 
-6. Step 4, **Done**.  The membership is already active — the server activated
+6. Step 5, **Done**.  The membership is already active — the server activated
    the term inside the same request that recorded the payment, not on a
    webhook or a nightly job.  The page links on to the dashboard and to the
    members-only pages.

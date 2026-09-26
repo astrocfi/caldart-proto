@@ -71,7 +71,7 @@ Domain schema
           PayPal [label="PayPalProvider\l  slug = paypal\l"];
           Mock [label="MockProvider\l  slug = mock\l"];
 
-          User [label="accounts.User\l  email (unique, ci)\l  first_name, last_name\l  is_active, is_superuser\l  roles: derived from groups\l"];
+          User [label="accounts.User\l  email (unique, ci)\l  first_name, last_name\l  is_active, is_superuser\l  email_verified_at\l  roles: derived from groups\l"];
           Group [label="auth.Group\l  name = role slug\l"];
           Profile [label="members.MemberProfile\l  phone, address_line1, city,\l  state, postal_code\l  aviation, volunteer, admin notes\l"];
           Dart [label="darts.Dart\l  name (unique), airport_identifiers\l  website_url, is_active\l  roster_sent_at\l"];
@@ -188,8 +188,8 @@ Domain schema
       Nodes and their key fields
       --------------------------
       accounts.User           email (unique, case-insensitive), first_name,
-                              last_name, is_active, is_superuser;
-                              roles is derived from groups
+                              last_name, is_active, is_superuser,
+                              email_verified_at; roles is derived from groups
       auth.Group              name = role slug
       members.MemberProfile   phone, address_line1, city, state, postal_code,
                               the aviation and volunteer fields, admin notes
@@ -435,6 +435,10 @@ address and a password and nothing else.
    * - ``created_at``, ``updated_at``
      - ``DateTimeField``
      - ``created_at`` defaults to ``timezone.now`` and is not editable
+   * - ``email_verified_at``
+     - ``DateTimeField``, null
+     - when the owner last proved the address by following a verification or
+       password link sent to it; null while the address is unverified
 
 **Invariants.**
 
@@ -444,6 +448,11 @@ address and a password and nothing else.
   ``Marta@example.org`` and ``marta@example.org`` are one account for sign-in
   as well as for creation.
 - ``save()`` strips surrounding whitespace from the email.
+- ``accounts.services.update_account`` clears ``email_verified_at`` whenever an
+  edit really changes the address (a change of case alone does not), and mails
+  the new address a verification link once the transaction commits.  Following
+  that link, or a password reset or invitation link, sets it again.
+  ``seed_demo`` stamps every seeded account verified as of its ``created_at``.
 - Default ordering is ``["last_name", "first_name", "email"]``, with a matching
   index.
 
@@ -468,6 +477,8 @@ address and a password and nothing else.
     whose own membership has lapsed still reads members-only pages.
 ``display_name``
     Full name, falling back to the email address.
+``email_verified``
+    ``True`` when ``email_verified_at`` is set.
 
 Roles
 -----
