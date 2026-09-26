@@ -35,6 +35,8 @@ Layout
   frontend/src/
     site/main.ts         nav toggle, current page, theme preview
     site/nav.ts          the pure helpers those use
+    site/donate.tsx      mounts the donation form on the donate page
+    donate/              the donation form itself (React)
     styles/site.css      public-site styles (imports styles/index.css)
   backend/static/img/caldart-logo.png   the masthead logo
 
@@ -86,12 +88,45 @@ Model                Notes
                      Deleting the DART leaves the page with no DART attached.
 ``ContactPage``      ``intro`` + ``body``; the address block comes from
                      ``SiteSettings``.
+``DonatePage``       The public donation page (see `The donation page`_).
+                     ``intro`` (rich text) above the form and ``thanks``
+                     (rich text) shown in its place once a gift has gone
+                     through.  Allowed under the home page or a standard
+                     page; takes no children.
 ===================  ========================================================
 
 ``subpage_types`` and ``parent_page_types`` are declared so editors cannot
 build a nonsensical tree — a news post only fits under a news index, a DART
 page only under a DART index.
 
+
+.. _cms-donate-page:
+
+The donation page
+=================
+
+``cms/donate_page.html`` renders the page's ``intro``, then the page's ``thanks``
+inside ``<div data-donate-thanks hidden>``, then the mount point::
+
+    <div id="donate-app" data-config-url="/api/v1/donations/config"
+         data-return-url="/donate/"></div>
+
+``data-return-url`` is the page's own URL: a payment method that leaves the page
+(a card that asks for 3-D Secure) comes back to it with ``payment_id`` and
+``token`` in the query string.  The template loads a third Vite entry,
+``src/site/donate.tsx``, through ``{% vite_asset %}`` in ``extra_head``; nothing is
+inline, because the Content Security Policy forbids an inline script.  A
+``<noscript>`` line says how else to give.
+
+The script mounts ``DonationForm`` (``frontend/src/donate/``) with a TanStack
+Query client and a toast queue of its own and no router.  The form reads
+``GET /donations/config``, takes the amount and the giver's details, and pays
+through the portal's own provider tabs and Stripe, PayPal, and mock panels, which
+take their endpoints as a prop (``PaymentEndpoints``) so the page's calls go to
+``/donations/`` with the token rather than to ``/payments/``.  Once a gift has gone
+through it replaces itself with the receipt sentence and un-hides the thanks.
+The endpoints are in :ref:`api-public-donations`; what a giver sees is in
+:doc:`/user/donations`.
 
 The members-only wall
 =====================
@@ -364,7 +399,8 @@ Builds the example site, and is safe to run repeatedly::
 
 ``upsert_page`` looks each page up by slug under its parent, updates it in
 place and publishes a revision, and the DART section deletes any page whose
-team has gone.  ``make seed`` runs it after ``seed_demo``.
+team has gone.  ``/donate/`` is a ``DonatePage``; a page of another type left at
+that slug is deleted first so the donation page takes its place.  ``make seed`` runs it after ``seed_demo``.
 
 .. _cms-seed-data:
 
@@ -374,7 +410,9 @@ members-only flags and a tuple of ``BlockSpec`` body blocks, built by the
 ``rich``, ``heading``, ``quote``, and ``cta`` helpers; a news post pairs a
 ``PageSpec`` with how many days ago it was posted.  The command reads the specs
 and writes the pages, so changing a sentence never touches the code that builds
-the tree.  Site settings come from the same module's ``SITE_SETTINGS``.
+the tree.  The donation page's rich-text intro and thanks are a
+``DonatePageSpec`` of their own.  Site settings come from the same module's
+``SITE_SETTINGS``.
 
 It also calls ``ensure_members_only_collection``, so the ``Members only``
 document collection exists on a fresh site and the members-area copy can tell

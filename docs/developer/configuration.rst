@@ -131,8 +131,9 @@ Core
 Authentication rate limits
 ==========================
 
-Five groups of auth endpoints are throttled per client address, signed in or
-not, counted as described below.  Each takes a DRF rate as ``<count>/<period>``, where the
+Five groups of auth endpoints, and the start of a gift on the public donation
+page, are throttled per client address, signed in or not, counted as described
+below.  Each takes a DRF rate as ``<count>/<period>``, where the
 period is ``second``, ``minute``, ``hour``, or ``day`` (or their initials).
 Setting one to an empty value turns that throttle **off**.  A value that is
 neither empty nor a readable rate — ``AUTH_THROTTLE_LOGIN=lots``, say —
@@ -177,6 +178,15 @@ rate is a **429**.
 
    :Development: ``5/hour``
    :Production: ``5/hour``
+
+``AUTH_THROTTLE_DONATE``
+   ``POST /donations/checkout``, which starts a gift on the public donation page
+   and may make a donor account for a caller nobody has signed in.  Reading the
+   form's config and finishing a payment are not counted.
+
+   :Development: ``10/hour``
+   :Production: ``10/hour``.  Plenty for a household giving more than once,
+      tight enough that a script cannot fill the books with donors.
 
 The rates land in the ``AUTH_THROTTLE_RATES`` setting, one key per scope, and
 are read by ``apps.accounts.throttling``.  A scope mapped to ``None``, mapped

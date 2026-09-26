@@ -19,6 +19,7 @@ before a flight, and administering accounts, content, and the system itself.
 
    member-guide
    payments
+   donations
    aircraft
 
 .. toctree::

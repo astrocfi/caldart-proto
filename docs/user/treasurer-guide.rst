@@ -202,6 +202,27 @@ Each row carries a **Statement** link, which downloads that member's
 contribution statement for the year on screen -- the same document the member
 can download for themselves.
 
+.. _treasurer-donors:
+
+Gifts from the public donation page
+===================================
+
+Anybody can give through the public site's donation page without an account
+(see :ref:`public-donation-page`).  Each gift is recorded against a **donor**: an
+account made from the giver's email address the first time they give, and found
+again by that address every time after.  A donor's gift is an ordinary
+contribution payment with no plan, so it appears in the payment list, the
+headline figures, **Payments by period**, and **Contributions** like any other,
+and it earns the same receipt the moment it clears.  Refund it the same way,
+too.
+
+A donor never appears in a member list, a roster, or the member report.  The
+record holds the giver's name, phone number, and anything else they chose to
+tell |org|; a user administrator corrects a mistyped address from the donor's
+account (:doc:`user-administrator`).  The public page refuses an address that
+already belongs to a member or a friend, and sends that person to sign in and
+give from the portal, so their gifts stay on their own record.
+
 A member's ledger
 =================
 

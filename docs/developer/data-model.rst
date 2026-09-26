@@ -295,6 +295,7 @@ CMS page models
           DartIndex [label="cms.DartIndexPage\l  intro, body\l"];
           DartPage [label="cms.DartPage\l  leader_name, leader_contact, body\l"];
           Contact [label="cms.ContactPage\l  intro, body\l"];
+          Donate [label="cms.DonatePage\l  intro, thanks\l"];
           Settings [label="cms.SiteSettings\l  (wagtail BaseSiteSetting)\l  org_name, tagline, contact_email,\l  duty_phone, ein, donate_url,\l  theme, footer_text\l"];
 
           Image [label="wagtailimages.Image"];
@@ -313,6 +314,7 @@ CMS page models
           DartIndex -> BasePage [arrowhead=empty];
           DartPage -> BasePage [arrowhead=empty];
           Contact -> BasePage [arrowhead=empty];
+          Donate -> BasePage [arrowhead=empty];
 
           Home -> Image [label="hero_image (null, SET_NULL)"];
           News -> Image [label="image (null, SET_NULL)"];
@@ -336,7 +338,7 @@ CMS page models
                              inherits wagtailcore.Page; inherited by HomePage,
                              StandardPage, NewsIndexPage, NewsPage,
                              EventIndexPage, EventPage, DartIndexPage,
-                             DartPage, and ContactPage
+                             DartPage, ContactPage, and DonatePage
       cms.MembersOnlyMixin   members_only; serve() renders the members-only
                              wall with HTTP 403
                              mixed into StandardPage and NewsPage
@@ -359,12 +361,13 @@ CMS page models
           |        |                    DartPage --> darts.Dart
           |        |                                 (dart, SET_NULL)
           |        |
-          |     EventIndexPage, EventPage, and ContactPage inherit
-          |     cms.BasePage too, with no members-only mixin
+          |     EventIndexPage, EventPage, ContactPage, and DonatePage
+          |     inherit cms.BasePage too, with no members-only mixin
           |        '--> wagtailimages.Image  (image, SET_NULL)
           '-----------> wagtailimages.Image  (hero_image, SET_NULL)
 
                      ContactPage  (intro, body; details from site settings)
+                     DonatePage   (intro, thanks; the donation form between)
 
                      cms.SiteSettings --- 1--1 ---> wagtailcore.Site
 
@@ -382,6 +385,7 @@ CMS page models
       cms.DartIndexPage    intro, body
       cms.DartPage         leader_name, leader_contact, body
       cms.ContactPage      intro, body
+      cms.DonatePage       intro, thanks
       cms.SiteSettings     org_name, tagline, contact_email, duty_phone,
                            mailing_address, ein,
                            donate_url, facebook_url, twitter_url, theme,
@@ -399,6 +403,7 @@ CMS page models
       cms.DartIndexPage        inherits cms.BasePage
       cms.DartPage             inherits cms.BasePage
       cms.ContactPage          inherits cms.BasePage
+      cms.DonatePage           inherits cms.BasePage
       cms.HomePage.hero_image  -> wagtailimages.Image   FK, SET_NULL, nullable
       cms.NewsPage.image       -> wagtailimages.Image   FK, SET_NULL, nullable
       cms.DartPage.dart        -> darts.Dart          FK, SET_NULL, nullable
@@ -484,6 +489,12 @@ address and a password and nothing else.
     wrong-credentials refusal, and the password-reset, invitation and
     verification emails are never sent to one.  ``PasswordResetConfirmSerializer``
     refuses a donor's reset link as it refuses a forged one.
+    ``payments.donations.donor_for`` finds a donor by email address
+    (case-insensitively) for each gift on the public donation page, or makes one
+    with ``create_account(kind=donor)`` and a ``MemberProfile`` holding the phone
+    and whatever else the giver told us; the email address stays unverified.  A
+    donor's gifts are ordinary ``Payment`` rows with no plan (see
+    :ref:`api-public-donations`).
 
 ``PERSON_KINDS`` (``member`` and ``friend``) are the kinds registration and an
 administrator may choose; nobody is made a donor by hand, and a donor changes
@@ -1602,6 +1613,11 @@ not use it, and the ``body_headings`` used to build the "on this page" rail):
        , ``leader_contact``, and a body.
    * - ``ContactPage``
      - ``intro`` and ``body``; the contact details come from site settings.
+   * - ``DonatePage``
+     - ``intro`` and ``thanks``, both rich text: the words above the public
+       donation form and the words shown in its place once a gift has gone
+       through.  May live under the home page or a standard page, and takes
+       no children (see :ref:`cms-donate-page`).
 
 ``MembersOnlyMixin`` adds one field, ``members_only``, and overrides ``serve``:
 when the flag is set and ``request.user.can_access_members_content`` is false,

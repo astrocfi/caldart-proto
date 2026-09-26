@@ -132,10 +132,11 @@ Repository layout
       media/                    Wagtail uploads (gitignored)
       staticfiles/              collectstatic output (gitignored)
     frontend/
-      vite.config.ts            two entry points: site and portal
+      vite.config.ts            three entry points: site, donate, and portal
       src/
         styles/                 tokens, base, and site styles, themes/
-        site/                   public-site enhancements
+        site/                   public-site enhancements and the donate mount
+        donate/                 the public donation form
         portal/                 the member portal SPA
         test/                   msw server, default handlers, render helpers
       e2e/                      Playwright specs, one per flow
@@ -230,8 +231,9 @@ tried again by the next write rather than leaving the page unable to save.
 That is why production keeps the CSRF cookie readable from JavaScript while
 the session cookie is HttpOnly (:doc:`configuration`).
 
-**Static files.**  Vite builds two entry points, ``src/site/main.ts`` and
-``src/portal/main.tsx``, into ``frontend/dist/`` with hashed names under
+**Static files.**  Vite builds three entry points, ``src/site/main.ts``,
+``src/site/donate.tsx``, and ``src/portal/main.tsx``, into ``frontend/dist/`` with
+hashed names under
 ``/static/`` and a manifest at ``frontend/dist/.vite/manifest.json``, from
 which ``{% vite_asset %}`` writes a template's tags.  ``frontend/dist/`` is
 on ``STATICFILES_DIRS``, so after ``make build`` the development server
@@ -438,6 +440,14 @@ from the skip link, and ``?theme=<slug>`` to preview a theme, which works
 only where the template has set ``data-theme-preview="allowed"`` for a
 website or system administrator.  Its pure helpers are in ``site/nav.ts``
 so they can be unit tested.  :doc:`cms` and :doc:`theming` have the rest.
+
+The donation page loads a second bundle beside it, ``src/site/donate.tsx``, which
+mounts the React donation form from ``frontend/src/donate/`` on the page's
+``#donate-app``: the one place the public site runs React.  The form lives beside
+``site/`` and ``portal/`` rather than inside the portal, and reaches the portal's
+components, its API client, and the checkout's provider tabs and payment panels
+through the ``@/`` alias; it gets a query client and a toast queue of its own and
+no router.  :ref:`cms-donate-page` has the details.
 
 
 The portal SPA
