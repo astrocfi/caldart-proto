@@ -170,11 +170,14 @@ Email log
 Below the reminders panel sits a table of every email CalDART has tried to
 send -- renewal reminders, the automatic-renewal notices, receipts, refund
 notices, invitations, password links, scheduled reports, and DART rosters --
-with when it went, what it was for, who it went to, whether the mail server
-took it, and any file attached.  It is the answer to "what did we actually send
-this person?", and to "is our mail going out at all?": a message the mail
-server refused reads, for example, "Failed: SMTPRecipientsRefused" in the
-**Status** column.  A message that went out reads simply "Sent".
+with when it went, what it was for, who it went to, by name and address,
+whether the mail server took it, and any file attached.  The **Name** column
+reads the recipient's name even when the message went to somebody with no
+CalDART account, such as a DART contact on a roster.  It is the answer to
+"what did we actually send this person?", and to "is our mail going out at
+all?": a message the mail server refused reads, for example, "Failed:
+SMTPRecipientsRefused" in the **Status** column.  A message that went out reads
+simply "Sent".
 
 A renewal reminder still leaves a row here even when it is refused: only its
 own reminder-log entry is held back, so the reminder itself stays due and
@@ -199,7 +202,7 @@ screen:
 **From** and **To**
    A date range, both days included, by the day the message went.
 **Search**
-   A name or an address.
+   A name or an address, including a recipient with no account of their own.
 
 The filters, the order, and the page are kept in the address, so a filtered
 view of the log can be bookmarked or sent to another system administrator.

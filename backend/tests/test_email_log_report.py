@@ -133,9 +133,18 @@ def test_a_message_to_nobody_in_particular_has_a_blank_name(
     system_admin_client: APIClient,
 ) -> None:
     """A send to an address with no account behind it leaves ``Name`` empty."""
-    EmailLogFactory(user=None, to_email="info@example.org")
+    EmailLogFactory(user=None, to_email="info@example.org", to_name="")
 
     assert column(read_csv(system_admin_client.get(CSV_URL)), "Name") == [""]
+
+
+def test_a_roster_row_shows_the_contacts_recorded_name(system_admin_client: APIClient) -> None:
+    """``Name`` reads a row's own recorded name even with no account behind it."""
+    EmailLogFactory(
+        user=None, to_email="lee@example.test", to_name="Lee Park", purpose="dart_roster"
+    )
+
+    assert column(read_csv(system_admin_client.get(CSV_URL)), "Name") == ["Lee Park"]
 
 
 def test_a_refused_send_reads_failed_with_its_error(system_admin_client: APIClient) -> None:

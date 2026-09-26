@@ -220,9 +220,12 @@ reminder run's ``failed`` count reports it as well.
    template added without a label still shows up.
 
 ``user_id``, ``user_name``
-   The account the email concerned.  Both are empty -- ``null`` and ``""`` --
-   for a message sent to an address with no account behind it, and for one whose
-   account has since been deleted.
+   ``user_id`` is the account the email concerned, ``null`` for a message sent
+   to an address with no account behind it and for one whose account has since
+   been deleted.  ``user_name`` is the recipient's name as it was at send
+   time -- a DART contact's own name, for example, which needs no account --
+   falling back to the linked account's current name when that was not
+   recorded, and empty when neither names anybody.
 
 ``status``, ``error``
    ``sent`` for a message the mail server took, and ``failed`` with the
@@ -242,8 +245,9 @@ Parameter          Effect
                    ``status``.
 ``from``, ``to``   ``YYYY-MM-DD``, compared against the date part of
                    ``sent_at``: ``from`` is on or after, ``to`` on or before.
-``q``              Case-insensitive match on the address written to and on the
-                   recipient account's first and last name.
+``q``              Case-insensitive match on the address written to, the name
+                   recorded on the row, and the recipient account's first and
+                   last name.
 ``ordering``       ``sent_at``, with a ``-`` prefix for descending.  An
                    unrecognized field is ignored.  Sends in the same instant
                    follow their ``id`` in the same direction, as they do in the

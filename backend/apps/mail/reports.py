@@ -45,8 +45,8 @@ def _sent_at(row: EmailLog) -> str:
 
 
 def _user_name(row: EmailLog) -> str:
-    """The recipient account's display name, or ``""`` when no account is behind it."""
-    return row.user.display_name if row.user is not None else ""
+    """The recipient's name at send time, or ``""`` when nobody was named."""
+    return row.recipient_name
 
 
 #: Every column the email log can carry, in export order.  The error and the

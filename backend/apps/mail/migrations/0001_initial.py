@@ -21,6 +21,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('to_email', models.EmailField(max_length=254)),
+                ('to_name', models.CharField(blank=True, max_length=200)),
                 ('purpose', models.SlugField(max_length=64)),
                 ('subject', models.CharField(max_length=255)),
                 ('sent_at', models.DateTimeField()),

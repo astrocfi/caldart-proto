@@ -260,9 +260,9 @@ def send_subscription_email(
     (``emails/scheduled_report.{txt,html}``) names the report, ``filters`` (the
     summary :func:`applied_filters` gives), the schedule and who set it up.  The email
     log records the send under the purpose ``scheduled_report``, with the recipient's
-    account when there is one.  A report the stored params no longer build raises
-    DRF's ``ValidationError``, and a refusing mail server raises as
-    :func:`~caldart.mail.send_templated` does.
+    account and its display name when there is one, and no name for a bare address.
+    A report the stored params no longer build raises DRF's ``ValidationError``, and
+    a refusing mail server raises as :func:`~caldart.mail.send_templated` does.
     """
     documents = subscription_documents(subscription, spec, today)
     attachments: list[Attachment] = [
@@ -290,6 +290,7 @@ def send_subscription_email(
         attachments=attachments,
         purpose="scheduled_report",
         user_id=user.pk if user is not None else None,
+        to_name=user.display_name if user is not None else "",
     )
 
 
@@ -442,8 +443,9 @@ def send_roster_email(
     The subject reads ``<DART name> roster (<Month D, YYYY>)`` and the body
     (``emails/dart_roster.{txt,html}``) says how many members the roster lists and
     that the DART's leaders may ask a CalDART account administrator to change who
-    receives it.  The email log records it under the purpose ``dart_roster``.  A
-    refusing mail server raises as :func:`~caldart.mail.send_templated` does.
+    receives it.  The email log records it under the purpose ``dart_roster``, naming
+    ``contact`` as the row's recipient.  A refusing mail server raises as
+    :func:`~caldart.mail.send_templated` does.
     """
     context: dict[str, object] = {
         "org_name": org_name(),
@@ -461,6 +463,7 @@ def send_roster_email(
         context=context,
         attachments=[(document.filename, document.content, document.media_type)],
         purpose="dart_roster",
+        to_name=contact.name,
     )
 
 

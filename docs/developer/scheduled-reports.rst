@@ -85,7 +85,8 @@ the report, the filters the report applied (a ``period`` reads as the dates it
 resolved to, as the PDF's subtitle prints it), the schedule, who set it up, and the attached files,
 and says that an account administrator or a treasurer can change or stop it.
 The email log records it under the purpose ``scheduled_report``, with the
-recipient's account when there is one.
+recipient's account and its display name as the row's name when there is one,
+and no name for a bare address.
 
 
 DART rosters
@@ -111,7 +112,9 @@ everyone else is sent the roster.  The subject is
 ``<DART name> roster (<Month D, YYYY>)``, and the body says how many members it
 lists and that the DART's leaders may ask a CalDART account administrator to
 change who receives it.  The email log records it under the purpose
-``dart_roster``.
+``dart_roster``, naming the contact as the row's own name -- a DART contact
+holds no account, so this is the only way its recipient's name reaches the
+log.
 
 ``POST /reports/rosters/send`` sends every active DART's roster at once,
 whatever the date, for the account administrator's **Send rosters now** button.

@@ -308,13 +308,25 @@ def test_a_row_for_an_unknown_address_names_no_account(
     api_client: APIClient, system_admin: User
 ) -> None:
     """A message to an address with no account reads ``null`` and an empty name."""
-    EmailLogFactory(user=None, to_email="stranger@example.org")
+    EmailLogFactory(user=None, to_email="stranger@example.org", to_name="")
     api_client.force_login(system_admin)
 
     row = api_client.get(EMAILS_URL).json()["results"][0]
 
     assert row["user_id"] is None
     assert row["user_name"] == ""
+
+
+def test_a_row_for_a_named_recipient_with_no_account_carries_that_name(
+    api_client: APIClient, system_admin: User
+) -> None:
+    """``user_name`` reads the row's own recorded name, such as a DART contact's."""
+    EmailLogFactory(user=None, to_email="lee@example.test", to_name="Lee Park")
+    api_client.force_login(system_admin)
+
+    row = api_client.get(EMAILS_URL).json()["results"][0]
+
+    assert row["user_name"] == "Lee Park"
 
 
 def test_a_failed_row_carries_its_error(api_client: APIClient, system_admin: User) -> None:
@@ -420,6 +432,23 @@ def test_the_search_matches_the_recipient_name(api_client: APIClient, system_adm
     body = api_client.get(f"{EMAILS_URL}?q=reyes").json()
 
     assert [row["purpose"] for row in body["results"]] == ["receipt"]
+
+
+def test_the_search_finds_a_roster_row_by_the_contacts_recorded_name(
+    api_client: APIClient, system_admin: User
+) -> None:
+    """``?q=`` also matches the name recorded on a row with no account behind it."""
+    EmailLogFactory(
+        user=None, to_email="lee@example.test", to_name="Lee Park", purpose="dart_roster"
+    )
+    EmailLogFactory(
+        user=None, to_email="ana@example.test", to_name="Ana Cruz", purpose="dart_roster"
+    )
+    api_client.force_login(system_admin)
+
+    body = api_client.get(f"{EMAILS_URL}?q=park").json()
+
+    assert [row["to_email"] for row in body["results"]] == ["lee@example.test"]
 
 
 def test_the_log_can_be_read_oldest_first(api_client: APIClient, system_admin: User) -> None:
