@@ -31,6 +31,8 @@ test('an account administrator subscribes somebody to the member report, sends i
   );
 
   await form.getByLabel(/^Recipient email/).fill(DEMO.accountadmin);
+  // CSV tells this subscription apart from the seeded one, which sends a PDF.
+  await form.getByLabel('CSV').check();
   const saved = page.waitForResponse(
     (response) =>
       response.url().endsWith('/reports/subscriptions') && response.request().method() === 'POST',
@@ -42,12 +44,16 @@ test('an account administrator subscribes somebody to the member report, sends i
   const subscriptions = page
     .locator('section.card')
     .filter({ has: page.getByRole('heading', { name: 'Subscriptions' }) });
-  const members = subscriptions.getByRole('row').filter({ hasText: /^CalDART membership report/ });
-  await members.first().getByRole('button', { name: 'Send now' }).click();
+  const created = subscriptions
+    .getByRole('row')
+    .filter({ hasText: /^CalDART membership report/ })
+    .filter({ hasText: 'CSV' });
+  await expect(created).toHaveCount(1);
+  await created.getByRole('button', { name: 'Send now' }).click();
   await expect(subscriptions.getByRole('status')).toHaveText(/^Sent to /);
 
   // Edit the same row: its schedule becomes weekly on Thursday.
-  await members.first().getByRole('button', { name: 'Edit' }).click();
+  await created.getByRole('button', { name: 'Edit' }).click();
   const edit = page.getByRole('form', { name: 'Edit subscription' });
   await edit.getByLabel('Schedule').selectOption('weekly');
   await edit.getByLabel('Day').selectOption('Thursday');
@@ -59,7 +65,7 @@ test('an account administrator subscribes somebody to the member report, sends i
   await edit.getByRole('button', { name: 'Save' }).click();
   expect((await patched).status()).toBe(200);
   await expect(edit).toHaveCount(0);
-  await expect(members.filter({ hasText: 'Weekly on Thursday' })).toHaveCount(1);
+  await expect(created.filter({ hasText: 'Weekly on Thursday' })).toHaveCount(1);
 });
 
 test('an account administrator rehearses the DART rosters', async ({ page }) => {

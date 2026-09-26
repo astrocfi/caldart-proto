@@ -421,6 +421,50 @@ describe('SubscriptionForm editing a subscription', () => {
     );
   });
 
+  it('shows a refused column list under the chooser rather than above Save', async () => {
+    renderEdit();
+    await screen.findByRole('button', { name: 'Columns' });
+    server.use(
+      http.patch(`${API}/reports/subscriptions/5`, () =>
+        HttpResponse.json({ columns: ['Unknown column: fax.'] }, { status: 400 }),
+      ),
+    );
+
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unknown column: fax.');
+    expect(within(editForm()).queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows a refusal that names no field above Save', async () => {
+    renderEdit();
+    server.use(
+      http.patch(`${API}/reports/subscriptions/5`, () =>
+        HttpResponse.json({ detail: 'You may not change this subscription.' }, { status: 403 }),
+      ),
+    );
+
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+
+    expect(await within(editForm()).findByRole('alert')).toHaveTextContent(
+      'You may not change this subscription.',
+    );
+  });
+
+  it('saves the schedule of a subscription to a report the portal does not describe', async () => {
+    const bodies: unknown[] = [];
+    renderEdit(
+      makeSubscription({ id: 7, report: 'retired', report_title: 'Retired report' }),
+      bodies,
+    );
+
+    await userEvent.selectOptions(within(editForm()).getByLabelText('Schedule'), 'Yearly');
+    await userEvent.click(within(editForm()).getByRole('button', { name: 'Save' }));
+
+    await vi.waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toMatchObject({ cadence: 'yearly' });
+  });
+
   it('closes on Cancel without saving', async () => {
     const bodies: unknown[] = [];
     const onDone = renderEdit(STORED, bodies);

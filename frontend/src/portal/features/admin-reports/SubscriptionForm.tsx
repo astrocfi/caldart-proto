@@ -98,6 +98,8 @@ interface SubscriptionFormProps {
  * Editing starts from the subscription's filters, columns, formats, schedule
  * and day; a stored column list that is empty (the report's defaults) fills the
  * chooser with the defaults and is sent back empty unless the chooser changes.
+ * A report the portal has no definition for draws no filters or chooser, and
+ * Save sends its stored filters and columns back with the schedule and formats.
  */
 export function SubscriptionForm({
   subscription,
@@ -348,7 +350,7 @@ export function SubscriptionForm({
         )}
 
         <div className="cluster">
-          <Button type="submit" disabled={slug === '' || save.isPending}>
+          <Button type="submit" disabled={(!isEditing && slug === '') || save.isPending}>
             {save.isPending ? 'Saving…' : 'Save'}
           </Button>
           <Button variant="quiet" onClick={handleDone}>
