@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { User } from '@/portal/api/types';
+import type { ReportColumn, User } from '@/portal/api/types';
 import { API, CURRENT_MEMBERSHIP, NO_MEMBERSHIP, makeUser, signedInAs } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -45,12 +45,27 @@ const GIL = makeUser({
   kind: 'donor',
 });
 
+/** The registry `GET /reports/roles/columns` answers with, trimmed to four. */
+const COLUMNS: ReportColumn[] = [
+  { key: 'role', label: 'Role', default: true },
+  { key: 'name', label: 'Name', default: true },
+  { key: 'email', label: 'Email', default: true },
+  { key: 'city', label: 'City', default: false },
+];
+
+/** The title the disabled export controls carry while Donor is chosen. */
+const DONOR_TITLE = 'A donor holds no role, so the roles report lists nobody.';
+
+/** The title the disabled export controls carry while Member is the role. */
+const MEMBER_TITLE = 'The roles report has no section for Member, so it lists nobody.';
+
 /** Records every `/admin/users` query the page issues, and answers from `rows`. */
 function stubList(rows: User[] = [MARTA, PRIYA]) {
   const seen: URLSearchParams[] = [];
   server.use(
     signedInAs(makeUser({ roles: ['member', 'user_admin'] })),
     http.get(`${API}/roles`, () => HttpResponse.json(ROLES)),
+    http.get(`${API}/reports/roles/columns`, () => HttpResponse.json(COLUMNS)),
     http.get(`${API}/admin/users`, ({ request }) => {
       const url = new URL(request.url);
       seen.push(url.searchParams);
@@ -84,15 +99,180 @@ describe('UsersListPage', () => {
   it('lists accounts with their roles, membership, and status', async () => {
     stubList();
     renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    await userEvent.selectOptions(screen.getByLabelText(/account status/i), '');
 
     expect(await screen.findByRole('link', { name: 'Marta Reyes' })).toHaveAttribute(
       'href',
       '/admin/users/1',
     );
-    const priyaRow = screen.getByRole('link', { name: 'Priya Raman' }).closest('tr')!;
+    const priyaRow = (await screen.findByRole('link', { name: 'Priya Raman' })).closest('tr')!;
     expect(within(priyaRow).getByText('DART leader')).toBeInTheDocument();
     expect(within(priyaRow).getByText('Deactivated')).toBeInTheDocument();
     expect(screen.getByText('2 accounts')).toBeInTheDocument();
+  });
+
+  it('starts on active accounts only', async () => {
+    const seen = stubList();
+    renderWithProviders(<UsersListPage />);
+
+    await waitFor(() => expect(seen[0]?.get('is_active')).toBe('true'));
+  });
+
+  it('shows Active only as the chosen account status', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+
+    expect(await screen.findByLabelText(/account status/i)).toHaveDisplayValue('Active only');
+  });
+
+  it('offers the account statuses in order', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+
+    const options = within(await screen.findByLabelText(/account status/i)).getAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual([
+      'Active and deactivated',
+      'Active only',
+      'Deactivated only',
+    ]);
+  });
+
+  it('draws Search, then Kind of account, then Account status', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    const fields = [
+      screen.getByLabelText(/search/i),
+      screen.getByLabelText(/kind of account/i),
+      screen.getByLabelText(/account status/i),
+    ];
+    const order = fields.map((field) =>
+      Array.from(document.querySelectorAll('input, select')).indexOf(field),
+    );
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it('exports the roles report with the default columns when nothing is filtered', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('button', { name: 'Columns' });
+
+    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+      'href',
+      '/api/v1/reports/roles/export.csv?columns=role%2Cname%2Cemail',
+    );
+  });
+
+  it('carries the search, role, kind, and columns into both export links', async () => {
+    stubList();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('button', { name: 'Columns' });
+
+    await user.type(screen.getByLabelText(/search/i), 'reyes');
+    await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
+    await user.click(screen.getByRole('button', { name: 'DART leader' }));
+    await user.selectOptions(screen.getByLabelText(/kind of account/i), 'friend');
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('checkbox', { name: 'City' }));
+
+    const query = '?search=reyes&role=dart_leader&kind=friend&columns=role%2Cname%2Cemail%2Ccity';
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+        'href',
+        `/api/v1/reports/roles/export.csv${query}`,
+      ),
+    );
+    expect(screen.getByRole('link', { name: 'Export PDF' })).toHaveAttribute(
+      'href',
+      `/api/v1/reports/roles/export.pdf${query}`,
+    );
+  });
+
+  it('leaves the account status out of the export links', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('button', { name: 'Columns' });
+
+    await userEvent.selectOptions(screen.getByLabelText(/account status/i), 'false');
+
+    const href = screen.getByRole('link', { name: 'Export PDF' }).getAttribute('href') ?? '';
+    expect(new URL(href, 'http://localhost').searchParams.has('is_active')).toBe(false);
+  });
+
+  it('disables both exports and the column chooser while Donor is chosen', async () => {
+    stubList([MARTA, GIL]);
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('button', { name: 'Columns' });
+
+    await userEvent.selectOptions(screen.getByLabelText(/kind of account/i), 'donor');
+
+    const controls = ['Export CSV', 'Export PDF', 'Columns'].map((name) =>
+      screen.getByRole('button', { name }),
+    );
+    expect(controls.map((control) => [control.hasAttribute('disabled'), control.title])).toEqual([
+      [true, DONOR_TITLE],
+      [true, DONOR_TITLE],
+      [true, DONOR_TITLE],
+    ]);
+  });
+
+  it('offers no export link while Donor is chosen', async () => {
+    stubList([MARTA, GIL]);
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('button', { name: 'Columns' });
+
+    await userEvent.selectOptions(screen.getByLabelText(/kind of account/i), 'donor');
+
+    expect(screen.queryByRole('link', { name: /Export/ })).not.toBeInTheDocument();
+  });
+
+  it('disables both exports and the column chooser while Member is the role', async () => {
+    stubList();
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('button', { name: 'Columns' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Member' }));
+
+    const controls = ['Export CSV', 'Export PDF', 'Columns'].map((name) =>
+      screen.getByRole('button', { name }),
+    );
+    expect(controls.map((control) => [control.hasAttribute('disabled'), control.title])).toEqual([
+      [true, MEMBER_TITLE],
+      [true, MEMBER_TITLE],
+      [true, MEMBER_TITLE],
+    ]);
+  });
+
+  it('says the columns could not be loaded when the registry fails', async () => {
+    stubList();
+    server.use(
+      http.get(`${API}/reports/roles/columns`, () => new HttpResponse(null, { status: 500 })),
+    );
+    renderWithProviders(<UsersListPage />);
+
+    expect(
+      await screen.findByText(
+        'The columns could not be loaded; the downloads carry the default columns.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('exports without a columns parameter when the registry fails', async () => {
+    stubList();
+    server.use(
+      http.get(`${API}/reports/roles/columns`, () => new HttpResponse(null, { status: 500 })),
+    );
+    renderWithProviders(<UsersListPage />);
+    await screen.findByText(/the columns could not be loaded/i);
+
+    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+      'href',
+      '/api/v1/reports/roles/export.csv',
+    );
   });
 
   it('sends the search box to the API and narrows the table', async () => {
@@ -100,6 +280,7 @@ describe('UsersListPage', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWithProviders(<UsersListPage />);
     await screen.findByRole('link', { name: 'Marta Reyes' });
+    await user.selectOptions(screen.getByLabelText(/account status/i), '');
 
     await user.type(screen.getByLabelText(/search/i), 'priya');
     await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));

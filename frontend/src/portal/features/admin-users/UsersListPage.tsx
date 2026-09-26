@@ -1,5 +1,16 @@
-/** `/admin/users` — find an account and see what it may do. */
-import { useEffect, useState } from 'react';
+/**
+ * `/admin/users` — find an account and see what it may do.
+ *
+ * The list opens on active accounts, since a deactivated one is rarely what
+ * anybody is looking for.  Its two export links download the CalDART roles
+ * report, which has a section for every role but member and lists active
+ * accounts only: the links carry the screen's search, role, and kind, never its
+ * account status.  The report cannot follow two of the screen's choices, Donor
+ * under Kind of account (a donor holds no role) and the Member role (the report
+ * has no section for it), so while either is chosen the exports and the column
+ * chooser are disabled and say why.
+ */
+import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -7,15 +18,34 @@ import type { AccountKind, RoleSlug, User } from '@/portal/api/types';
 import { useRoles } from '@/portal/auth/useAuth';
 import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
+import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
 import { Field } from '@/portal/components/Field';
 import { MembershipChip, StatusChip } from '@/portal/components/StatusChip';
 import { Page } from '@/portal/components/Page';
 import { useDebounced } from '@/portal/components/useDebounced';
+import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
 import { useAdminUsers } from './api';
 
 const PAGE_SIZE = 25;
+
+type AccountStatus = 'true' | 'false' | '';
+
+/** The status the list opens on: active accounts only. */
+const INITIAL_STATUS: AccountStatus = 'true';
+
+const DONOR_EXPORT_REASON = 'A donor holds no role, so the roles report lists nobody.';
+const MEMBER_EXPORT_REASON = 'The roles report has no section for Member, so it lists nobody.';
+
+/**
+ * Why the roles report cannot follow the screen's filters, or `undefined` when it can.
+ */
+function exportDisabledReason(role: RoleSlug | '', kind: AccountKind | ''): string | undefined {
+  if (kind === 'donor') return DONOR_EXPORT_REASON;
+  if (role === 'member') return MEMBER_EXPORT_REASON;
+  return undefined;
+}
 
 function displayName(user: User): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.email;
@@ -74,7 +104,7 @@ const columns: Column<User>[] = [
 export function UsersListPage(): JSX.Element {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<RoleSlug | ''>('');
-  const [isActive, setIsActive] = useState<'true' | 'false' | ''>('');
+  const [isActive, setIsActive] = useState<AccountStatus>(INITIAL_STATUS);
   const [kind, setKind] = useState<AccountKind | ''>('');
   const [page, setPage] = useState(1);
 
@@ -89,6 +119,37 @@ export function UsersListPage(): JSX.Element {
   const count = query.data?.count ?? 0;
   const lastPage = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
+  const registry = useReportColumns('roles');
+  const reportColumns = useMemo(() => registry.data ?? [], [registry.data]);
+  // Null means "whatever the registry calls default": the chooser has not been
+  // touched, so it must follow a registry that is still loading.
+  const [chosen, setChosen] = useState<string[] | null>(null);
+  const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
+  const disabledReason = exportDisabledReason(role, kind);
+  const exportParams = { search: debouncedSearch, role, kind, columns: chosenKeys };
+
+  const handleColumnChange = (next: string[]) => {
+    setChosen(next);
+  };
+
+  const columnChooser = registry.isError ? (
+    <p className="muted">
+      The columns could not be loaded; the downloads carry the default columns.
+    </p>
+  ) : reportColumns.length === 0 ? null : disabledReason !== undefined ? (
+    <Button variant="quiet" small disabled title={disabledReason}>
+      Columns
+    </Button>
+  ) : (
+    <ColumnChooser
+      report="roles"
+      columns={reportColumns}
+      chosen={chosenKeys}
+      onChange={handleColumnChange}
+      legend="Columns to export"
+    />
+  );
+
   const filters = (
     <>
       <Field label="Search">
@@ -101,20 +162,6 @@ export function UsersListPage(): JSX.Element {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-        )}
-      </Field>
-      <Field label="Account status">
-        {(props) => (
-          <select
-            {...props}
-            name="is_active"
-            value={isActive}
-            onChange={(event) => setIsActive(event.target.value as 'true' | 'false' | '')}
-          >
-            <option value="">Active and deactivated</option>
-            <option value="true">Active only</option>
-            <option value="false">Deactivated only</option>
-          </select>
         )}
       </Field>
       <Field label="Kind of account">
@@ -134,6 +181,21 @@ export function UsersListPage(): JSX.Element {
           </select>
         )}
       </Field>
+      <Field label="Account status">
+        {(props) => (
+          <select
+            {...props}
+            name="is_active"
+            value={isActive}
+            onChange={(event) => setIsActive(event.target.value as AccountStatus)}
+          >
+            <option value="">Active and deactivated</option>
+            <option value="true">Active only</option>
+            <option value="false">Deactivated only</option>
+          </select>
+        )}
+      </Field>
+      {columnChooser}
     </>
   );
 
@@ -179,6 +241,9 @@ export function UsersListPage(): JSX.Element {
             : undefined
         }
         filters={filters}
+        exportCsvUrl={reportExportUrl('roles', 'csv', exportParams)}
+        exportPdfUrl={reportExportUrl('roles', 'pdf', exportParams)}
+        exportDisabledReason={disabledReason}
         isLoading={query.isPending}
         emptyTitle="No accounts match those filters"
         emptyDescription="Try a shorter search, or clear the role filter."
