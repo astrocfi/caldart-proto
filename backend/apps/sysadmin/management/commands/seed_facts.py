@@ -13,6 +13,7 @@ import json
 from typing import Any
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
@@ -70,11 +71,18 @@ def _auto_renewing_member() -> dict[str, str]:
     """A seeded member whose membership renews itself, for the renewal specs.
 
     Returns ``{"name", "email", "methodLabel"}`` for the first member holding an
-    active mandate, and empty strings when the seed has none -- the specs then
-    fail on the name they were given, which says what is missing.
+    active mandate whose next charge is still ahead of today, and empty strings
+    when the seed has none -- the specs then fail on the name they were given,
+    which says what is missing.  A mandate already due today or overdue is
+    skipped, so a renewal spec is never handed a member the daily scan is about
+    to charge out from under it.
     """
     mandate = (
-        RenewalMandate.objects.filter(status=MandateStatus.ACTIVE, plan__isnull=False)
+        RenewalMandate.objects.filter(
+            status=MandateStatus.ACTIVE,
+            plan__isnull=False,
+            next_charge_on__gt=timezone.localdate(),
+        )
         .select_related("user")
         .order_by("pk")
         .first()
