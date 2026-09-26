@@ -36,6 +36,7 @@ from django_vite.core.asset_loader import DjangoViteAssetLoader
 from pytest_django import Settings
 from rest_framework.test import APIClient
 
+from apps.accounts.models import AccountKind
 from apps.accounts.roles import (
     ACCOUNT_ADMIN,
     DART_LEADER,
@@ -354,6 +355,18 @@ treasurer = _role_fixture(TREASURER, "treasurer@example.test", ("Casey", "Lund")
 account_admin = _role_fixture(ACCOUNT_ADMIN, "accountadmin@example.test", ("Zoe", "Yeager"))
 website_admin = _role_fixture(WEBSITE_ADMIN, "webadmin@example.test", ("Morgan", "Tate"))
 system_admin = _role_fixture(SYSTEM_ADMIN, "sysadmin@example.test", ("Avery", "Stroud"))
+
+
+@pytest.fixture
+def friend(db: None) -> UserModel:
+    """Return a friend of CalDART: the ``member`` role, the ``friend`` kind, no terms."""
+    return UserFactory(
+        email="friend@example.test",
+        first_name="Frances",
+        last_name="Lee",
+        kind=AccountKind.FRIEND,
+        roles=[MEMBER],
+    )
 
 
 @pytest.fixture

@@ -18,6 +18,28 @@ if TYPE_CHECKING:
     from apps.members.services import MembershipStatusDict
 
 
+class AccountKind(models.TextChoices):
+    """What kind of person an account belongs to.
+
+    A ``MEMBER`` pays dues and is expected to keep paying; a ``FRIEND`` has a portal
+    account and no dues, so is never current and never expired; a ``DONOR`` gave
+    through the public site, holds no password and no role, and cannot sign in.
+    """
+
+    MEMBER = "member", "Member"
+    FRIEND = "friend", "Friend"
+    DONOR = "donor", "Donor"
+
+
+#: The kinds a person may choose at registration and an administrator may set by
+#: hand.  Nobody is made a donor by hand, and a donor changes kind only by
+#: registering.
+PERSON_KINDS: tuple[AccountKind, ...] = (AccountKind.MEMBER, AccountKind.FRIEND)
+
+#: ``PERSON_KINDS`` as a choice list, for the serializers that accept one.
+PERSON_KIND_CHOICES: list[tuple[str, str]] = [(kind.value, kind.label) for kind in PERSON_KINDS]
+
+
 class UserManager(DjangoUserManager["User"]):
     """Manager for a user model whose natural key is ``email``."""
 
@@ -92,6 +114,13 @@ class User(AbstractUser):
     #: When the account's owner last proved the address is theirs, by following a
     #: verification or password link sent to it; ``None`` while it is unverified.
     email_verified_at = models.DateTimeField(null=True, blank=True)
+    #: The kind of person the account belongs to, as stored.  A member with a
+    #: ``friend_on`` date that has arrived already counts as a friend: see
+    #: ``apps.members.services.account_kind``.
+    kind = models.CharField(max_length=8, choices=AccountKind.choices, default=AccountKind.MEMBER)
+    #: The day a member who asked to become a friend becomes one; ``None`` when no
+    #: change is pending.
+    friend_on = models.DateField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: ClassVar[list[str]] = []
@@ -197,8 +226,9 @@ class User(AbstractUser):
     def membership_status(self) -> MembershipStatusDict:
         """The membership summary for this account, worked out for today.
 
-        Carries ``status`` (``current``, ``expired``, or ``none``), ``expires_on``
-        , ``plan``, and ``is_lifetime``, and costs a query or two each time it is read.
+        Carries ``status`` (``current``, ``new``, ``expired``, ``none``, or ``friend``),
+        ``expires_on``, ``plan``, and ``is_lifetime``, and costs a query or two each time
+        it is read.
         """
         # Inline: members sits above accounts and apps.members.services imports
         # apps.accounts.services, so a top-level import here would close the cycle.
@@ -208,7 +238,10 @@ class User(AbstractUser):
 
     @property
     def can_access_members_content(self) -> bool:
-        """Current membership, or any role beyond plain ``member``."""
+        """Current membership, or any role beyond plain ``member``.
+
+        A friend is never current, so a friend without a staff role is refused.
+        """
         # Inline: members sits above accounts in the app order, so this module may
         # not depend on it at the top level even though apps.members.models itself
         # imports nothing from accounts.

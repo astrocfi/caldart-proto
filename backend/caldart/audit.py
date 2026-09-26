@@ -57,6 +57,7 @@ ACCOUNT_ROLES = "account.roles"
 ACCOUNT_ACTIVATE = "account.activate"
 ACCOUNT_DEACTIVATE = "account.deactivate"
 ACCOUNT_EMAIL_VERIFIED = "account.email_verified"
+ACCOUNT_KIND = "account.kind"
 MEMBER_CREATE = "member.create"
 MEMBER_DELETE = "member.delete"
 DART_CREATE = "dart.create"
@@ -94,6 +95,8 @@ REASON_SYSTEM_ADMIN_TARGET = "system_admin_target"
 REASON_HAS_PAYMENTS = "has_payments"
 REASON_INACTIVE_ACCOUNT = "inactive_account"
 REASON_NO_SUCH_BACKUP = "no_such_backup"
+REASON_DONOR_KIND = "donor_kind"
+REASON_DONOR_ACCOUNT = "donor_account"
 
 log = logging.getLogger(LOGGER_NAME)
 

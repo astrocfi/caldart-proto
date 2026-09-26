@@ -15,7 +15,7 @@ from django.contrib.auth import password_validation
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from apps.accounts.models import User
+from apps.accounts.models import PERSON_KIND_CHOICES, AccountKind, User
 from apps.accounts.roles import ROLE_SLUGS
 from apps.accounts.services import AccountChanges
 from apps.members.api.profile_serializers import (
@@ -173,6 +173,7 @@ class MemberListSerializer(serializers.Serializer["MemberRow"]):
     phone = serializers.SerializerMethodField()
     dart = serializers.SerializerMethodField()
     is_active = serializers.BooleanField(read_only=True)
+    kind = serializers.ChoiceField(choices=AccountKind.choices, read_only=True)
     membership = serializers.SerializerMethodField()
     pilot_certificate_type = serializers.SerializerMethodField()
     medical_type = serializers.SerializerMethodField()
@@ -255,6 +256,7 @@ class MemberDetailSerializer(serializers.Serializer[User]):
     last_name = serializers.CharField(read_only=True)
     name = serializers.CharField(source="display_name", read_only=True)
     is_active = serializers.BooleanField(read_only=True)
+    kind = serializers.ChoiceField(choices=AccountKind.choices, read_only=True)
     roles = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(read_only=True)
     email_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
@@ -315,12 +317,19 @@ class MemberDetailSerializer(serializers.Serializer[User]):
 # Write serializers
 # --------------------------------------------------------------------------
 class MemberCreateSerializer(serializers.Serializer[User]):
-    """``POST /admin/members`` -- account plus nested profile."""
+    """``POST /admin/members`` -- account plus nested profile.
+
+    ``kind`` is ``member`` (the default) or ``friend``: an administrator never makes a
+    donor by hand.
+    """
 
     email = serializers.EmailField()
     first_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
     last_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    kind = serializers.ChoiceField(
+        choices=PERSON_KIND_CHOICES, required=False, default=AccountKind.MEMBER.value
+    )
     profile = AdminProfileSerializer(required=False)
 
     def validate_email(self, value: str) -> str:
@@ -358,6 +367,7 @@ class MemberCreateSerializer(serializers.Serializer[User]):
             password=validated_data.get("password", "") or "",
             first_name=validated_data.get("first_name", ""),
             last_name=validated_data.get("last_name", ""),
+            kind=AccountKind(validated_data.get("kind", AccountKind.MEMBER)),
             profile=validated_data.get("profile") or {},
             request=request,
         )
@@ -370,12 +380,17 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
     obeys the same edit guard: changing the email address or the active flag of an
     account that holds roles the caller does not hold is a field-keyed 400, and so is
     deactivating yourself.  It therefore needs the request in its context.
+
+    ``kind`` (``member`` or ``friend``) makes the account that kind at once and clears
+    any pending ``friend_on`` date; a donor's kind is never changed by hand, which is
+    a 400 against ``kind``.
     """
 
     email = serializers.EmailField(required=False)
     first_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
     last_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
     is_active = serializers.BooleanField(required=False)
+    kind = serializers.ChoiceField(choices=PERSON_KIND_CHOICES, required=False)
     profile = AdminProfileSerializer(required=False, partial=True)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -422,6 +437,8 @@ class MemberUpdateSerializer(serializers.Serializer[User]):
             account["last_name"] = validated_data["last_name"]
         if "is_active" in validated_data:
             account["is_active"] = validated_data["is_active"]
+        if "kind" in validated_data:
+            account["kind"] = AccountKind(validated_data["kind"])
         return update_member(
             self.context["request"].user,
             instance,

@@ -14,8 +14,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from apps.accounts.models import User
-from apps.members.filters import member_admin_queryset
+from apps.accounts.models import AccountKind, User
+from apps.members.filters import MemberAdminFilterSet, member_admin_queryset
 from apps.members.models import Membership, MembershipPlan, MembershipStatusChoices
 from apps.members.services import (
     membership_of,
@@ -150,6 +150,33 @@ def build_histories(annual: MembershipPlan, life: MembershipPlan, today: date) -
     )
     histories["lapsed-then-unpaid"] = lapsed_then_unpaid
 
+    # A friend is a friend whatever terms they held, lapsed or even live.
+    friend = user("friend")
+    friend.kind = AccountKind.FRIEND
+    friend.save(update_fields=["kind"])
+    term(friend, annual, today - 500 * day, today - 100 * day, MembershipStatusChoices.EXPIRED)
+    histories["friend-once-a-member"] = friend
+
+    live_friend = user("livefriend")
+    live_friend.kind = AccountKind.FRIEND
+    live_friend.save(update_fields=["kind"])
+    term(live_friend, annual, today - 100 * day, today + 200 * day)
+    histories["friend-with-a-live-term"] = live_friend
+
+    # A member whose conversion to friend has come but is not yet written down.
+    converting = user("converting")
+    term(converting, annual, today - 400 * day, today - day)
+    converting.friend_on = today
+    converting.save(update_fields=["friend_on"])
+    histories["friend-on-today"] = converting
+
+    # A member whose conversion is still ahead is current until then.
+    pending = user("pending")
+    term(pending, annual, today - 300 * day, today + 30 * day)
+    pending.friend_on = today + 31 * day
+    pending.save(update_fields=["friend_on"])
+    histories["friend-on-ahead"] = pending
+
     return histories
 
 
@@ -189,6 +216,10 @@ def test_annotations_match_the_membership_status_service(histories: dict[str, Us
         ("ends-today", "current", False),
         ("joined-unpaid", "new", False),
         ("lapsed-then-unpaid", "expired", False),
+        ("friend-once-a-member", "friend", False),
+        ("friend-with-a-live-term", "friend", False),
+        ("friend-on-today", "friend", False),
+        ("friend-on-ahead", "current", False),
     ],
 )
 def test_expected_status_per_history(
@@ -250,3 +281,36 @@ def test_membership_of_falls_back_to_the_service(histories: dict[str, User], lab
     """A row fetched without the annotations still gets the same answer."""
     plain = User.objects.get(pk=histories[label].pk)
     assert membership_of(plain) == membership_status(histories[label])
+
+
+@pytest.mark.parametrize(
+    ("status", "labels"),
+    [
+        ("friend", {"friend-once-a-member", "friend-with-a-live-term", "friend-on-today"}),
+        (
+            "current",
+            {
+                "current",
+                "renewed-early",
+                "three-back-to-back",
+                "future-term-after-a-gap",
+                "lifetime",
+                "annual-then-life",
+                "overlapping",
+                "ends-today",
+                "friend-on-ahead",
+            },
+        ),
+        (
+            "expired",
+            {"expired", "stale-active", "expired-with-a-future-term", "lapsed-then-unpaid"},
+        ),
+    ],
+)
+def test_the_status_filter_puts_every_friend_under_friend(
+    histories: dict[str, User], status: str, labels: set[str]
+) -> None:
+    """``?status=friend`` lists the friends, and no other status lists any of them."""
+    by_pk = {user.pk: label for label, user in histories.items()}
+    queryset = MemberAdminFilterSet({"status": status}, queryset=member_admin_queryset()).qs
+    assert {by_pk[user.pk] for user in queryset if user.pk in by_pk} == labels

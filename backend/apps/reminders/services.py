@@ -25,9 +25,13 @@ from django.db.models import Model, QuerySet
 from django.template.defaultfilters import pluralize
 from django.utils import timezone
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.members.models import Membership, MembershipState, MembershipStatusChoices
-from apps.members.services import expire_lapsed_memberships, membership_status
+from apps.members.services import (
+    convert_due_friends,
+    expire_lapsed_memberships,
+    membership_status,
+)
 from apps.payments.models import MandateStatus, RenewalMandate, RenewalOutcome
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from caldart import audit
@@ -307,13 +311,18 @@ def _candidates(kind: str, today: date) -> QuerySet[Membership]:
     part of the calendar is a candidate rather than only the ones landing on an
     exact date.  The ``ReminderLog`` constraint keeps a member who sits in one
     stage for days from being written to twice.  Canceled terms are left out,
-    and lifetime terms have no ``ends_on`` and so never appear here.
+    and lifetime terms have no ``ends_on`` and so never appear here.  A friend is
+    never nagged to renew, and neither is a member who has asked to become one, so
+    the terms of an account stored as a friend or carrying a ``friend_on`` date are
+    left out too.
     """
     earliest, latest = stage_span(kind, today)
     return (
         Membership.objects.select_related("user", "plan")
         .filter(ends_on__gte=earliest, ends_on__lte=latest)
         .exclude(status=MembershipStatusChoices.CANCELED)
+        .exclude(user__kind=AccountKind.FRIEND)
+        .exclude(user__friend_on__isnull=False)
         .order_by("user_id", "id")
     )
 
@@ -326,8 +335,10 @@ def send_renewal_reminders(
 ) -> ReminderRun:
     """Scan for due reminders and send them.
 
-    Flips memberships whose ``ends_on`` has passed to ``expired`` first, so the
-    ``post30`` stage is honestly labeled, then walks the five stages in order,
+    Flips memberships whose ``ends_on`` has passed to ``expired`` and writes down
+    every conversion to friend whose day has come
+    (:func:`~apps.members.services.convert_due_friends`) first, so the ``post30``
+    stage is honestly labeled, then walks the five stages in order,
     each covering the span of expiry dates :func:`stage_span` gives it.  A
     member is in at most one stage on any day, and gets each stage once.  A dry
     run writes nothing at all: no email, no log rows, no status flips.
@@ -358,6 +369,8 @@ def send_renewal_reminders(
         ends_on__lt=today,
     )
     run.expired_flipped = lapsed.count() if dry_run else expire_lapsed_memberships(today)
+    if not dry_run:
+        convert_due_friends(today)
 
     for kind in KIND_ORDER:
         for membership in _candidates(kind, today):

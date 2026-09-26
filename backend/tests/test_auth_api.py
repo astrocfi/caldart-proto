@@ -50,6 +50,8 @@ def test_login_returns_the_user_payload(
         "membership",
         "profile_complete",
         "email_verified",
+        "kind",
+        "friend_on",
     }
 
 

@@ -33,9 +33,14 @@ The translation, term by term:
     The most recent non-canceled term that has started, which
     ``membership_status`` reports for an expired member.
 
+``effective_kind``
+    :func:`kind_annotation`, the SQL statement of :func:`account_kind`.  A row
+    whose effective kind is ``friend`` reads as ``friend`` before any term is
+    looked at, exactly as ``membership_status`` answers it.
+
 ``tests/test_members_admin_status.py`` checks the two implementations agree
 over a deliberately awkward set of histories, including early renewals, gaps,
-and canceled terms.
+canceled terms, and friends.
 """
 
 from __future__ import annotations
@@ -46,6 +51,7 @@ from typing import TYPE_CHECKING, Any, NoReturn, TypedDict, cast
 from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
 from django.db.models import (
+    Case,
     CharField,
     DateField,
     Exists,
@@ -54,19 +60,23 @@ from django.db.models import (
     Q,
     QuerySet,
     Subquery,
+    Value,
+    When,
 )
 from django.db.models.deletion import ProtectedError
 from django.http import HttpRequest
 from django.utils import timezone
 
-from apps.accounts.models import User
-from apps.accounts.roles import SYSTEM_ADMIN
+from apps.accounts.models import AccountKind, User
+from apps.accounts.roles import MEMBER, SYSTEM_ADMIN
 from apps.accounts.services import (
     AccountChanges,
     create_account,
     effective_roles,
+    is_donor,
     send_email_verification,
     send_password_invitation,
+    set_kind,
     update_account,
 )
 from apps.members.models import (
@@ -112,6 +122,7 @@ class MembershipAnnotations(TypedDict):
     past_end: date | None
     past_plan: str | None
     joined_on: date | None
+    effective_kind: str
 
 
 if TYPE_CHECKING:
@@ -150,24 +161,62 @@ def touch_profile(profile: MemberProfile) -> None:
 # --------------------------------------------------------------------------
 @transaction.atomic
 def register_member(
-    *, email: str, password: str, first_name: str = "", last_name: str = ""
+    *,
+    email: str,
+    password: str,
+    first_name: str = "",
+    last_name: str = "",
+    kind: AccountKind = AccountKind.MEMBER,
 ) -> User:
-    """Create the member account ``POST /auth/register`` signs in, and return it.
+    """Create the account ``POST /auth/register`` signs in, and return it.
 
-    The profile starts blank on purpose -- the join wizard fills it in -- but it
-    must exist so ``/me/profile`` is a PATCH rather than a create.  Account and
-    profile are written together, so a failure leaves no half-made member.  The
-    new profile's ``profile_updated_at`` is stamped as the moment it was created.
-    The account starts unverified, and once the transaction commits its address is
-    mailed a verification link.
+    ``kind`` is a member or a friend.  The profile starts blank on purpose -- the
+    join wizard fills it in -- but it must exist so ``/me/profile`` is a PATCH rather
+    than a create.  Account and profile are written together, so a failure leaves no
+    half-made member.  The profile's ``profile_updated_at`` is stamped as the moment
+    it was written.  The account starts unverified, and once the transaction commits
+    its address is mailed a verification link.
+
+    An address that belongs to a donor is not a new account: the donor is upgraded
+    in place (:func:`_upgrade_donor`), so the gifts already made stay on it.
     """
-    user = create_account(
-        email=email, password=password, first_name=first_name, last_name=last_name
-    )
+    donor = User.objects.filter(email__iexact=email.strip(), kind=AccountKind.DONOR).first()
+    if donor is not None:
+        user = _upgrade_donor(
+            donor, password=password, first_name=first_name, last_name=last_name, kind=kind
+        )
+    else:
+        user = create_account(
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            kind=kind,
+        )
     profile, _ = MemberProfile.objects.get_or_create(user=user)
     touch_profile(profile)
     transaction.on_commit(lambda: send_email_verification(user))
     return user
+
+
+def _upgrade_donor(
+    donor: User, *, password: str, first_name: str, last_name: str, kind: AccountKind
+) -> User:
+    """Turn ``donor`` into a ``kind`` who can sign in with ``password``, and return it.
+
+    The names are replaced by the ones given, stripped; the account gains the
+    ``member`` role; and ``email_verified_at`` is cleared, since whoever registered
+    has not yet proved the address is theirs.  The change of kind is recorded as
+    ``account.kind`` with the account as its own actor.
+    """
+    donor.set_password(password)
+    donor.first_name = first_name.strip()
+    donor.last_name = last_name.strip()
+    donor.email_verified_at = None
+    donor.save(update_fields=["password", "first_name", "last_name", "email_verified_at"])
+    donor.add_role(MEMBER)
+    set_kind(donor, kind, actor=donor)
+    return donor
 
 
 @transaction.atomic
@@ -178,12 +227,14 @@ def create_member(
     password: str = "",
     first_name: str = "",
     last_name: str = "",
+    kind: AccountKind = AccountKind.MEMBER,
     profile: ProfileChanges | None = None,
     request: HttpRequest | None = None,
 ) -> User:
-    """Create a member an administrator is entering, and return the account.
+    """Create a member or a friend an administrator is entering, and return the account.
 
-    ``profile`` is the profile fields to record, which on the day somebody joins
+    ``kind`` is the kind of person, a member unless it says friend.  ``profile`` is
+    the profile fields to record, which on the day somebody joins
     at an airshow may be none of them.  Without a password the account holds an
     unusable one and is mailed an invitation to set the first, whose link also
     proves the address; with one it is mailed a verification link instead.  Either
@@ -193,7 +244,7 @@ def create_member(
     profile's ``profile_updated_at`` is stamped as the moment it was created.
     """
     user = create_account(
-        email=email, password=password, first_name=first_name, last_name=last_name
+        email=email, password=password, first_name=first_name, last_name=last_name, kind=kind
     )
     row = MemberProfile.objects.create(user=user, **(profile or {}))
     touch_profile(row)
@@ -293,6 +344,79 @@ def _refuse_delete(actor: User, target: User, reason: str, message: str) -> NoRe
     raise DomainPermissionError(message)
 
 
+# --------------------------------------------------------------------------
+# The kind of account, in Python and in SQL
+# --------------------------------------------------------------------------
+def account_kind(user: User, today: date | None = None) -> AccountKind:
+    """The kind ``user`` counts as on ``today``, which defaults to the local date.
+
+    ``friend`` for an account stored as a friend, and for a member whose
+    ``friend_on`` date is on or before ``today``: the conversion has come, whether or
+    not :func:`convert_due_friends` has written it down yet.  Otherwise the stored
+    kind.  :func:`kind_annotation` states the same rule in SQL.
+    """
+    today = today or timezone.localdate()
+    if user.kind == AccountKind.FRIEND:
+        return AccountKind.FRIEND
+    if user.friend_on is not None and user.friend_on <= today:
+        return AccountKind.FRIEND
+    return AccountKind(user.kind)
+
+
+def kind_annotation(today: date | None = None) -> Case:
+    """:func:`account_kind` as a ``Case`` expression over a ``User`` row.
+
+    ``today`` defaults to the local date, read when this is called.  Annotate a
+    ``User`` queryset with it to filter or order on the effective kind.
+    """
+    today = today or timezone.localdate()
+    return Case(
+        When(kind=AccountKind.FRIEND, then=Value(AccountKind.FRIEND.value)),
+        When(friend_on__lte=today, then=Value(AccountKind.FRIEND.value)),
+        default=F("kind"),
+        output_field=CharField(),
+    )
+
+
+def convert_due_friends(today: date | None = None) -> int:
+    """Write down every conversion to friend whose day has come, and return how many.
+
+    Each member whose ``friend_on`` is on or before ``today`` (the local date by
+    default) is stored as a friend with no pending date, and the change is recorded
+    as ``account.kind`` with ``to=friend`` and ``on=<friend_on>`` under ``command``.
+    The daily reminder run calls this, so the stored kind catches up with the one
+    :func:`account_kind` already reports.  A date still ahead is left alone.
+    """
+    today = today or timezone.localdate()
+    due = list(
+        User.objects.filter(friend_on__isnull=False, friend_on__lte=today).exclude(
+            kind=AccountKind.FRIEND
+        )
+    )
+    for user in due:
+        User.objects.filter(pk=user.pk).update(
+            kind=AccountKind.FRIEND, friend_on=None, updated_at=timezone.now()
+        )
+        audit.record(
+            audit.ACCOUNT_KIND,
+            actor=audit.COMMAND_ACTOR,
+            target=user,
+            to=AccountKind.FRIEND.value,
+            on=str(user.friend_on),
+        )
+    return len(due)
+
+
+def _friend_membership() -> MembershipStatusDict:
+    """The status of a friend: ``friend``, with no expiry, no plan, and never lifetime."""
+    return {
+        "status": MembershipState.FRIEND,
+        "expires_on": None,
+        "plan": None,
+        "is_lifetime": False,
+    }
+
+
 def _no_membership() -> MembershipStatusDict:
     """The status of an account nothing has ever covered.
 
@@ -374,10 +498,13 @@ def membership_status(
     """Summarize a user's membership, reading the terms out of the database.
 
     Returns ``{"status", "expires_on", "plan", "is_lifetime"}`` where status is
-    ``current`` (a term covers ``on_date``), ``expired`` (a paid term has started
-    and run out), ``new`` (the only term is unpaid, so the member joined but has
-    never been covered) or ``none`` (nothing at all).  ``on_date`` defaults to the
-    current local date.  An anonymous caller, or none at all, is answered
+    ``friend`` (the account's kind on ``on_date``, by :func:`account_kind`, is
+    friend -- decided before any term is looked at, so a friend's past or even live
+    terms never make them current or expired, and ``expires_on`` and ``plan`` are
+    ``None``), ``current`` (a term covers ``on_date``), ``expired`` (a paid term has
+    started and run out), ``new`` (the only term is unpaid, so the member joined but
+    has never been covered) or ``none`` (nothing at all).  ``on_date`` defaults to
+    the current local date.  An anonymous caller, or none at all, is answered
     ``none`` with no expiry, no plan and ``is_lifetime`` false, so a signed-out
     visitor is never mistaken for a lapsed member.
 
@@ -389,6 +516,8 @@ def membership_status(
 
     if not isinstance(user, User):
         return _no_membership()
+    if account_kind(user, on_date) == AccountKind.FRIEND:
+        return _friend_membership()
 
     covering = _coverage(user, on_date)
     if covering is not None:
@@ -430,10 +559,11 @@ def membership_status(
     return _no_membership()
 
 
-def membership_annotations(today: date | None = None) -> dict[str, Exists | Subquery]:
+def membership_annotations(today: date | None = None) -> dict[str, Exists | Subquery | Case]:
     """Annotations restating :func:`membership_status` as correlated subqueries.
 
-    The keys are the eight names in ``MembershipAnnotations``.  ``today``
+    The keys are the names in ``MembershipAnnotations``, ``effective_kind`` among
+    them (:func:`kind_annotation`).  ``today``
     defaults to the current local date, which is read when this is called, so a
     queryset built per request always answers for the day of the request.  Splat
     the result into ``QuerySet.annotate`` on a ``User`` queryset, or use
@@ -487,6 +617,7 @@ def membership_annotations(today: date | None = None) -> dict[str, Exists | Subq
             .values("starts_on")[:1],
             output_field=DateField(),
         ),
+        "effective_kind": kind_annotation(today),
     }
 
 
@@ -511,6 +642,8 @@ def membership_payload(user: MemberRow) -> MembershipStatusDict:
     read raises ``AttributeError``; reach for :func:`membership_of` when that is
     not guaranteed.
     """
+    if user.effective_kind == AccountKind.FRIEND:
+        return _friend_membership()
     if user.covers_today:
         lifetime = user.coverage_end is None
         return {
@@ -574,6 +707,12 @@ def activate_term(
     time they hold one, and never moved afterwards: a renewal does not change
     it, and neither does a gap and a return, which is what the date means.
 
+    Paying dues, or an administrator's grant, is what membership is: a friend who
+    is given a term becomes a member (recorded as ``account.kind`` under the
+    granting administrator, or ``command``), and a member with a pending
+    ``friend_on`` date keeps being a member, the date cleared.  A donor's kind is
+    left alone.
+
     Idempotent on ``payment``: calling twice with the same payment returns the
     term created the first time.
     """
@@ -612,6 +751,12 @@ def activate_term(
         note=note,
     )
     stamp_member_since(user, starts_on)
+    if not is_donor(user):
+        set_kind(
+            user,
+            AccountKind.MEMBER,
+            actor=granted_by if granted_by is not None else audit.COMMAND_ACTOR,
+        )
     return term
 
 

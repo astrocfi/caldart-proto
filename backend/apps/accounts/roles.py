@@ -16,10 +16,7 @@ SYSTEM_ADMIN = "system_admin"
 #: Ordered slug -> human description.  Order is least to most privileged and is
 #: the order used by ``GET /api/v1/roles``.
 ROLE_DESCRIPTIONS: dict[str, str] = {
-    MEMBER: (
-        "Own profile, own payments and membership, join and renew, and "
-        "members-only content while the membership is current."
-    ),
+    MEMBER: "A member or a friend with a portal account.",
     DART_LEADER: (
         "Look up any member and see membership, medical, certificate, and "
         "aircraft insurance currency."

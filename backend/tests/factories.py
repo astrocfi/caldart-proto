@@ -13,6 +13,7 @@ from django.utils import timezone
 from factory.django import DjangoModelFactory
 from wagtail.models import Page, Site
 
+from apps.accounts.models import AccountKind
 from apps.accounts.roles import MEMBER
 from apps.aircraft.models import Aircraft, AircraftChange, AircraftChangeKind, OwnerType
 from apps.cms.models import (
@@ -110,6 +111,7 @@ class UserFactory(ModelFactory["UserModel"]):
     first_name = factory.Faker("first_name")
     last_name = factory.Faker("last_name")
     is_active = True
+    kind = AccountKind.MEMBER
 
     # factory.post_generation is untyped (a factory_boy stub gap), which otherwise
     # makes the decorated function untyped too under strict mode.

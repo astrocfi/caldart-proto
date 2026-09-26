@@ -33,7 +33,7 @@ from rest_framework import filters as drf_filters
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ROLE_SLUGS
 from apps.members.models import (
     CALIFORNIA_COUNTIES,
@@ -215,21 +215,23 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     ) -> QuerySet[MemberRow]:
         """Rows whose computed membership status is ``value``.
 
-        ``current`` is a term covering today, ``expired`` a paid term that has
-        started and run out, ``new`` an account whose only term is unpaid, and
-        ``none`` an account with no term at all.  Anything else leaves the
+        ``friend`` is an account whose effective kind is friend, whatever its terms;
+        among the rest, ``current`` is a term covering today, ``expired`` a paid term
+        that has started and run out, ``new`` an account whose only term is unpaid,
+        and ``none`` an account with no term at all.  Anything else leaves the
         queryset alone.
         """
+        if value == MembershipState.FRIEND:
+            return queryset.filter(effective_kind=AccountKind.FRIEND)
+        members = queryset.exclude(effective_kind=AccountKind.FRIEND)
         if value == MembershipState.CURRENT:
-            return queryset.filter(covers_today=True)
+            return members.filter(covers_today=True)
         if value == MembershipState.EXPIRED:
-            return queryset.filter(covers_today=False, has_started_term=True)
+            return members.filter(covers_today=False, has_started_term=True)
         if value == MembershipState.NEW:
-            return queryset.filter(covers_today=False, has_started_term=False, has_unpaid_term=True)
+            return members.filter(covers_today=False, has_started_term=False, has_unpaid_term=True)
         if value == MembershipState.NONE:
-            return queryset.filter(
-                covers_today=False, has_started_term=False, has_unpaid_term=False
-            )
+            return members.filter(covers_today=False, has_started_term=False, has_unpaid_term=False)
         return queryset
 
     def filter_dart(
