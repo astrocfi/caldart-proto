@@ -176,6 +176,55 @@ describe('<DashboardPage/>', () => {
     expect(status.queryByText(/membership$/)).not.toBeInTheDocument();
   });
 
+  describe('for a friend', () => {
+    const FRIEND: MembershipStatus = { ...NONE, status: 'friend' };
+
+    function mountFriend() {
+      return mount({ user: makeUser({ kind: 'friend', membership: FRIEND }), status: FRIEND });
+    }
+
+    it('heads the card as a friend of CalDART', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      expect(card('You are a friend of CalDART').getByText('Friend of CalDART')).toBeVisible();
+    });
+
+    it('says what being a friend means', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      expect(
+        card('You are a friend of CalDART').getByText(
+          'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+        ),
+      ).toBeVisible();
+    });
+
+    it('offers membership rather than a renewal or the join wizard', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      const status = card('You are a friend of CalDART');
+      expect(status.getByRole('link', { name: 'Make me a member' })).toHaveAttribute(
+        'href',
+        '/membership/join',
+      );
+      expect(status.queryByRole('link', { name: /Renew/ })).not.toBeInTheDocument();
+      expect(status.queryByRole('link', { name: 'Join CalDART' })).not.toBeInTheDocument();
+    });
+
+    it('gives the card no urgent edge', async () => {
+      mountFriend();
+
+      await screen.findByRole('heading', { name: 'You are a friend of CalDART' });
+      const section = screen
+        .getByRole('heading', { name: 'You are a friend of CalDART' })
+        .closest('section');
+      expect(section).not.toHaveClass('dashboard__card--urgent');
+    });
+  });
+
   it('nudges a member whose profile is incomplete', async () => {
     mount({
       user: makeUser({ membership: CURRENT, profile_complete: false }),
