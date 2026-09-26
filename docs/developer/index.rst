@@ -55,6 +55,7 @@ New to the codebase?  :doc:`setup` gets it running, the
    :caption: Building and running
 
    testing
+   documentation
    deployment
    backup-restore
    roadmap
