@@ -24,13 +24,17 @@ const MEMBERSHIP_TONE: Record<MembershipState, StatusTone> = {
   friend: 'none',
 };
 
+/** Why the membership is a no-go, in the words a leader would say out loud. */
+const MEMBERSHIP_NO_GO: Partial<Record<MembershipState, string>> = {
+  expired: 'Membership expired',
+  friend: 'Friend of CalDART, not a member',
+};
+
 /** Why the member is a no-go, in the order a leader would say them out loud. */
 export function noGoReasons(status: LeaderStatus): string[] {
   const reasons: string[] = [];
   if (!status.go_no_go.membership) {
-    reasons.push(
-      status.membership.status === 'expired' ? 'Membership expired' : 'No CalDART membership',
-    );
+    reasons.push(MEMBERSHIP_NO_GO[status.membership.status] ?? 'No CalDART membership');
   }
   if (!status.go_no_go.medical) {
     // A medical can also fail because the member picked a class but never
@@ -97,15 +101,15 @@ export function MemberStatusCard({ status, today }: MemberStatusCardProps): JSX.
             />
             <span className="leader-row__detail">
               {status.membership.plan ?? '—'}
-              {status.membership.status !== 'none' ? (
-                status.membership.expires_on ? (
-                  <>
-                    {' · expires '}
-                    <DateText value={status.membership.expires_on} />
-                  </>
-                ) : (
-                  ' · lifetime'
-                )
+              {status.membership.expires_on ? (
+                <>
+                  {' · expires '}
+                  <DateText value={status.membership.expires_on} />
+                </>
+              ) : status.membership.status === 'current' ? (
+                // Current with no end date is a lifetime membership; a friend, an
+                // unpaid term, and no membership have no date for another reason.
+                ' · lifetime'
               ) : null}
             </span>
           </dd>

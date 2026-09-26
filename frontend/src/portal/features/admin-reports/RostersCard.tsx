@@ -1,7 +1,8 @@
 /**
  * The DART rosters card of `/admin/reports`: each active DART, how many of its
  * people receive its roster, when the last one went, and a button that sends
- * every roster now, whatever the date.
+ * every roster now, whatever the date.  A roster lists the DART's members and
+ * friends alike, with a Kind column.
  *
  * Who receives a DART's roster is ticked on the DART itself, under **DARTs**.
  */
@@ -70,8 +71,9 @@ export function RostersCard(): JSX.Element {
     >
       <p className="muted">
         Early each month every active DART&rsquo;s roster goes as a PDF to each of its people ticked
-        to receive it who has an email address. <strong>Send rosters now</strong> sends every one at
-        once, whatever the date.
+        to receive it who has an email address. A roster lists the DART&rsquo;s members and friends,
+        its Kind column saying which each one is, and never a deactivated account.{' '}
+        <strong>Send rosters now</strong> sends every one at once, whatever the date.
       </p>
 
       {rosters.isError ? (

@@ -9,7 +9,8 @@
  * The three demo accounts used here are seeded deliberately: the leader is
  * current with a current medical and an insured airplane (a GO), the expired
  * account is expired on both counts (a NO-GO), and the website administrator
- * is a GO whose airplane's insurance has lapsed.
+ * is a GO whose airplane's insurance has lapsed.  The demo friend is a NO-GO
+ * whose card calls them a friend of CalDART, never expired.
  */
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
@@ -71,6 +72,23 @@ test('the results list answers go or no-go before the card is opened', async ({ 
   // rest belong to the card.
   await expect(result).not.toContainText('medical');
   await expect(result).not.toContainText('Member expired');
+});
+
+test('a friend of CalDART is a NO-GO, called a friend rather than expired', async ({ page }) => {
+  // The seed's demo friend; `DemoAccount` lists the accounts every spec signs in
+  // as, and nobody signs in as the friend here.
+  const email = (DEMO as Record<string, string>).friend ?? '';
+  await signIn(page, DEMO.leader);
+  const [found] = (await (
+    await page.request.get(`/api/v1/leader/search?q=${encodeURIComponent(email)}`)
+  ).json()) as { name: string }[];
+  const name = found?.name ?? email;
+
+  const card = await lookUp(page, email, name);
+  await expect(card.getByRole('status')).toContainText('NO-GO');
+  await expect(card.getByRole('status')).toContainText('Friend of CalDART, not a member');
+  const membership = card.getByRole('term').filter({ hasText: /^Membership$/ });
+  await expect(membership.locator('xpath=following-sibling::dd[1]')).toContainText('Friend');
 });
 
 test('a member who is current on both counts is a GO', async ({ page }) => {

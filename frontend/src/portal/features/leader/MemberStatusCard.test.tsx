@@ -59,6 +59,14 @@ describe('isGo / noGoReasons', () => {
     expect(noGoReasons(status)).toEqual(['No CalDART membership']);
   });
 
+  it('says a friend is a friend of CalDART, not a member', () => {
+    const status = makeStatus({
+      membership: { status: 'friend', expires_on: null, plan: null },
+      go_no_go: { membership: false, medical: true },
+    });
+    expect(noGoReasons(status)).toEqual(['Friend of CalDART, not a member']);
+  });
+
   it('does not call a medical expired when no expiry was ever entered', () => {
     const status = makeStatus({
       medical: { type: 'third', expiration: null, is_current: false },
@@ -142,6 +150,20 @@ describe('MemberStatusCard', () => {
       />,
     );
     expect(screen.getByText('No membership')).toBeInTheDocument();
+  });
+
+  it('labels a friend "Friend" and invents neither a plan nor a lifetime', () => {
+    renderWithProviders(
+      <MemberStatusCard
+        status={makeStatus({
+          membership: { status: 'friend', expires_on: null, plan: null },
+          go_no_go: { membership: false, medical: true },
+        })}
+        today={TODAY}
+      />,
+    );
+    const row = screen.getByText('Membership').closest('.leader-row') as HTMLElement;
+    expect(row).toHaveTextContent(/^MembershipFriend—$/);
   });
 
   it('shows a lifetime membership without inventing an expiry', () => {
