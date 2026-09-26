@@ -35,8 +35,8 @@ The box searches as you type, and one box takes four kinds of search:
   work.
 - **An email address.** Part of an address is enough.
 - **A phone number.** Type at least seven digits. The punctuation does not matter, so
-  (415) 555-0100, 415-555-0100, and 4155550100 all find the same person, and so do the
-  first three digits and the last four.
+  (415) 555-0100, 415-555-0100, and 4155550100 all find the same person, whether it is
+  their phone or their alternate phone.
 - **An N-number.** Every member who lists that airplane on their profile. The leading N is
   optional, and spaces, dashes, and capitals are ignored. A search with no digits in it is
   never read as a registration, so looking for "Nate" finds Nate.
