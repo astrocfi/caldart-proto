@@ -361,7 +361,17 @@ The address is matched case-insensitively.  A new address becomes a donor with a
 profile holding everything sent.  An existing donor has its names and phone
 replaced, and each optional field that was sent filled in (a non-blank value, a
 DART, a ticked box) written over the stored one; a field left out keeps what an
-earlier gift said.  Nothing is mailed to the donor but the receipt.
+earlier gift said.  Nothing is mailed to the donor but the receipt.  Two first
+gifts from one address arriving together wait on one lock on the address, so they
+make one donor between them.
+
+The details are written when the checkout starts, before any money moves, so
+anyone who knows a donor's address can change that donor's names, phone, and
+profile, within the ``donate`` rate.  The page's Stripe tab starts a checkout as
+soon as it shows, to load Stripe's card form, and again each time the giver comes
+back to it with changed details; each one counts against the rate.  A visitor who
+opens the Stripe tab and leaves is therefore a donor with a pending payment and no
+gifts, and nothing cleans either up.
 
 **201** is the portal checkout's answer for the provider (see
 `POST /payments/checkout`_) plus the token:
