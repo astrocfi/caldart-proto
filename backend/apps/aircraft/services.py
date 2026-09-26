@@ -15,6 +15,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
+from apps.accounts.models import AccountKind
 from apps.accounts.models import User as UserModel
 from apps.aircraft.models import (
     Aircraft,
@@ -98,8 +99,19 @@ def looks_like_registration(term: str) -> bool:
     return any(character.isdigit() for character in term)
 
 
+def checkable_people() -> QuerySet[UserModel]:
+    """Every account the leader's member check can find: active members and friends.
+
+    A deactivated account and a donor are never checked, searched for, or listed
+    as the pilot of an aircraft.
+    """
+    return User.objects.filter(is_active=True).exclude(kind=AccountKind.DONOR)
+
+
 def search_members(query: str, limit: int = SEARCH_LIMIT) -> QuerySet[UserModel]:
-    """Members matching ``query`` by name, email, phone number, or N-number.
+    """Members and friends matching ``query`` by name, email, phone number, or N-number.
+
+    Only :func:`checkable_people` are searched.
 
     A phone number matches on its digits, so ``(415) 555-0100``, ``415-555-0100``
     and ``4155550100`` all find the same person: on an activation a ten-digit
@@ -133,7 +145,8 @@ def search_members(query: str, limit: int = SEARCH_LIMIT) -> QuerySet[UserModel]
         matches |= Q(profile__aircraft__n_number__icontains=_cleaned(term))
 
     return with_membership(
-        User.objects.filter(matches)
+        checkable_people()
+        .filter(matches)
         .select_related("profile", "profile__dart")
         .distinct()
         .order_by("last_name", "first_name", "email")
@@ -205,13 +218,13 @@ def leader_status(user: UserModel) -> dict[str, Any]:
 
 
 def aircraft_pilots(aircraft: Aircraft) -> list[dict[str, Any]]:
-    """The members who list ``aircraft`` among the planes they commonly fly.
+    """The members and friends who list ``aircraft`` among the planes they commonly fly.
 
-    One query whatever the number of pilots: the membership annotations ride
-    along with the row.
+    Only :func:`checkable_people` are listed.  One query whatever the number of
+    pilots: the membership annotations ride along with the row.
     """
     pilots = with_membership(
-        User.objects.filter(profile__aircraft=aircraft).select_related("profile")
+        checkable_people().filter(profile__aircraft=aircraft).select_related("profile")
     ).order_by("last_name", "first_name")
     return [
         {

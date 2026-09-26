@@ -51,6 +51,7 @@ MEMBER_DEFAULTS = (
     "phone",
     "dart",
     "status",
+    "kind",
     "expires_on",
     "certificate",
     "medical_type",
@@ -104,8 +105,8 @@ def wrapped_headers[T](columns: Sequence[ReportColumn[T]]) -> list[str]:
 # --------------------------------------------------------------------------
 # The registries
 # --------------------------------------------------------------------------
-def test_the_member_defaults_are_the_ten_columns_of_the_everyday_report() -> None:
-    """With no choice made, the membership report carries its ten default columns."""
+def test_the_member_defaults_are_the_eleven_columns_of_the_everyday_report() -> None:
+    """With no choice made, the membership report carries its eleven default columns."""
     chosen = select_columns(MEMBER_REPORT_COLUMNS, None)
     assert tuple(column.key for column in chosen) == MEMBER_DEFAULTS
 

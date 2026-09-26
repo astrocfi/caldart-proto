@@ -502,17 +502,17 @@ def test_role_filter(
     assert emails(response) == {account_admin.email}
 
 
-def test_is_active_filter(account_admin_client: APIClient, population: dict[str, User]) -> None:
-    """The ``is_active`` filter separates active from deactivated accounts."""
+def test_include_inactive_filter(
+    account_admin_client: APIClient, population: dict[str, User]
+) -> None:
+    """A deactivated account is listed only when ``include_inactive`` is true."""
     never = population["never"]
     never.is_active = False
     never.save(update_fields=["is_active"])
     assert "never@example.test" in emails(
-        account_admin_client.get(LIST_URL, {"is_active": "false"})
+        account_admin_client.get(LIST_URL, {"include_inactive": "true"})
     )
-    assert "never@example.test" not in emails(
-        account_admin_client.get(LIST_URL, {"is_active": "true"})
-    )
+    assert "never@example.test" not in emails(account_admin_client.get(LIST_URL))
 
 
 def test_filters_combine(

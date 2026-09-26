@@ -205,7 +205,7 @@ def test_the_kind_column_follows_the_status_and_is_on_by_default() -> None:
 def test_the_kind_cell_names_the_effective_kind(
     account_admin_client: APIClient, reportable: dict[str, User], friend: User, today: date
 ) -> None:
-    """A member reads Member, a friend Friend, and so does a member whose change has come."""
+    """Member for a member; Friend for a friend and for a member whose change has come."""
     lapsed = reportable["lapsed"]
     lapsed.friend_on = today
     lapsed.save(update_fields=["friend_on"])

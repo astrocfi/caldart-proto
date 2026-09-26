@@ -112,6 +112,15 @@ class MemberAdminDetailView(
     http_method_names = ["get", "patch", "delete", "head", "options"]
     filter_backends = []
 
+    def get_queryset(self) -> QuerySet[MemberRow]:
+        """Every account, a donor's included: the list leaves donors out, not the record.
+
+        An administrator never reaches a donor from the member list, but a request
+        naming one is answered from the record, so an edit that would make a donor a
+        member or a friend is refused with the reason rather than a 404.
+        """
+        return member_admin_queryset(include_donors=True)
+
     def get_serializer_class(self) -> type[BaseSerializer[Any]]:
         """The update serializer for a PATCH, the detail serializer otherwise."""
         return MemberUpdateSerializer if self.request.method == "PATCH" else MemberDetailSerializer

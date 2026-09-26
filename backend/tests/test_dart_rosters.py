@@ -230,14 +230,16 @@ def test_the_roster_lists_friends_and_leaves_out_deactivated_accounts_and_donors
 ) -> None:
     """A friend is on the roster; a deactivated account and a donor never are."""
     dart = ticked_dart()
-    people = {
+    people: dict[str, dict[str, object]] = {
         "Fay Friend": {"kind": AccountKind.FRIEND},
         "Ian Inactive": {"is_active": False},
         "Dee Donor": {"kind": AccountKind.DONOR},
     }
     for name, fields in people.items():
         first, last = name.split()
-        MemberProfileFactory(user=UserFactory(first_name=first, last_name=last, **fields), dart=dart)
+        MemberProfileFactory(
+            user=UserFactory(first_name=first, last_name=last, **fields), dart=dart
+        )
 
     run_scheduled_reports(today=TODAY)
 

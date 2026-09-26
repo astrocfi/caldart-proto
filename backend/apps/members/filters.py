@@ -105,20 +105,36 @@ def derived_annotations() -> dict[str, Concat | Case]:
     }
 
 
-def member_admin_queryset(today: date | None = None) -> QuerySet[MemberRow]:
-    """Every account, annotated with its membership status.
+def member_admin_queryset(
+    today: date | None = None, *, include_donors: bool = False
+) -> QuerySet[MemberRow]:
+    """Every member and friend, annotated with its membership status.
 
-    Everyone in the table is listed: ``member`` is granted at registration, so
-    "members" and "accounts" are the same population, and ``?role=`` narrows it.
-    The status is worked out for ``today``, defaulting to the current local
-    date, and each row arrives with its profile, DART, and aircraft fetched.
+    A donor is left out: a donor gives through the public site, cannot sign in, and
+    appears in no member list.  Only the single member record passes
+    ``include_donors=True``, so that an administrator's edit to a donor is answered
+    with the reason it is refused.  Deactivated accounts are here, so a member
+    record can still be opened to reactivate one; :class:`MemberAdminFilterSet`
+    hides them from the list unless it is asked for them.  The status is worked out
+    for ``today``, defaulting to the current local date, and each row arrives with
+    its profile, DART, and aircraft fetched.
     """
+    users = User.objects.all() if include_donors else User.objects.exclude(kind=AccountKind.DONOR)
     return with_membership(
-        User.objects.select_related("profile", "profile__dart").prefetch_related(
-            "profile__aircraft"
-        ),
+        users.select_related("profile", "profile__dart").prefetch_related("profile__aircraft"),
         today=today,
     ).annotate(**derived_annotations())
+
+
+class CountyInFilter(django_filters.BaseInFilter, django_filters.ChoiceFilter):
+    """One or more California counties, separated by commas, each matched exactly."""
+
+
+#: The choices ``?kind=`` accepts: a donor is in no member list, so it is not one.
+LISTED_KINDS: list[tuple[str, str]] = [
+    (AccountKind.MEMBER.value, AccountKind.MEMBER.label),
+    (AccountKind.FRIEND.value, AccountKind.FRIEND.label),
+]
 
 
 class MemberAdminFilterSet(django_filters.FilterSet):
@@ -141,12 +157,16 @@ class MemberAdminFilterSet(django_filters.FilterSet):
         label="Medical",
     )
     dart = django_filters.CharFilter(method="filter_dart", label="DART (id or name)")
-    # The exact county the profile stores: a leader asking for Santa Clara County
+    kind = django_filters.ChoiceFilter(
+        choices=LISTED_KINDS, method="filter_kind", label="Member or friend"
+    )
+    # The exact counties the profile stores: a leader asking for Santa Clara County
     # must not be handed Santa Barbara's members too.
-    county = django_filters.ChoiceFilter(
+    county = CountyInFilter(
         choices=[(name, name) for name in CALIFORNIA_COUNTIES],
         field_name="profile__county",
-        label="California county",
+        lookup_expr="in",
+        label="California counties, separated by commas",
     )
     role = django_filters.ChoiceFilter(
         choices=[(slug, slug) for slug in ROLE_SLUGS], method="filter_role", label="Role"
@@ -154,13 +174,45 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     expiring_within = django_filters.NumberFilter(
         method="filter_expiring_within", label="Expiring within N days"
     )
-    is_active = django_filters.BooleanFilter(field_name="is_active", label="Account active")
+    include_inactive = django_filters.BooleanFilter(
+        method="filter_include_inactive", label="Include deactivated accounts"
+    )
 
     class Meta:
         model = User
         fields: list[str] = []
 
+    def filter_queryset(self, queryset: QuerySet[MemberRow]) -> QuerySet[MemberRow]:
+        """The rows every given filter keeps, deactivated accounts left out by default.
+
+        A deactivated account is listed only when ``include_inactive`` is true; a
+        missing, blank, or false value hides it.
+        """
+        if self.form.cleaned_data.get("include_inactive") is not True:
+            queryset = queryset.filter(is_active=True)
+        narrowed: QuerySet[MemberRow] = super().filter_queryset(queryset)
+        return narrowed
+
     # -- methods -----------------------------------------------------------
+    def filter_kind(
+        self, queryset: QuerySet[MemberRow], name: str, value: str | None
+    ) -> QuerySet[MemberRow]:
+        """Rows whose effective kind is ``value``: ``member`` or ``friend``.
+
+        The effective kind is the one worked out for today, so a member whose
+        ``friend_on`` has arrived is a friend here, and one whose change is still to
+        come is a member.  A blank value narrows nothing.
+        """
+        if not value:
+            return queryset
+        return queryset.filter(effective_kind=value)
+
+    def filter_include_inactive(
+        self, queryset: QuerySet[MemberRow], name: str, value: bool | None
+    ) -> QuerySet[MemberRow]:
+        """The queryset unchanged: :meth:`filter_queryset` reads this switch itself."""
+        return queryset
+
     def filter_search(
         self, queryset: QuerySet[MemberRow], name: str, value: str | None
     ) -> QuerySet[MemberRow]:
@@ -357,6 +409,7 @@ class MemberOrderingFilter(drf_filters.OrderingFilter):
 
 #: The query parameters the members report names in its PDF subtitle, in order.
 EXPORT_FILTER_PARAMS: tuple[str, ...] = (
+    "kind",
     "search",
     "status",
     "certificate",
@@ -365,7 +418,6 @@ EXPORT_FILTER_PARAMS: tuple[str, ...] = (
     "county",
     "role",
     "expiring_within",
-    "is_active",
     "ordering",
 )
 
@@ -374,6 +426,11 @@ def applied_filters(params: Mapping[str, str]) -> dict[str, str]:
     """The filters the caller actually supplied, for the report subtitle.
 
     Only the parameters in ``EXPORT_FILTER_PARAMS`` are looked at, in that order, and
-    only those ``params`` gives a non-empty value.
+    only those ``params`` gives a non-empty value.  Several counties read as a list,
+    ``Alameda, Marin``, rather than as the bare ``Alameda,Marin`` the URL carries.
     """
-    return given_params(params, EXPORT_FILTER_PARAMS)
+    given = given_params(params, EXPORT_FILTER_PARAMS)
+    if "county" in given:
+        counties = [county.strip() for county in given["county"].split(",")]
+        given["county"] = ", ".join(county for county in counties if county)
+    return given

@@ -43,7 +43,7 @@ def people(annual_plan: MembershipPlan) -> dict[str, User]:
     """
     today = timezone.localdate()
     plane = AircraftFactory(n_number="N55LF")
-    specs = {
+    specs: dict[str, dict[str, object]] = {
         "member": {"email": "member@lf.test", "first_name": "Mia"},
         "friend": {"email": "friend@lf.test", "first_name": "Fay", "kind": AccountKind.FRIEND},
         "pending": {
@@ -136,7 +136,11 @@ def test_each_row_carries_its_kind(
     """Every row names its stored kind."""
     response = account_admin_client.get(LIST_URL, {"search": "Quill"})
     kinds = {row["email"]: row["kind"] for row in response.json()["results"]}
-    assert kinds == {"member@lf.test": "member", "friend@lf.test": "friend", "pending@lf.test": "member"}
+    assert kinds == {
+        "member@lf.test": "member",
+        "friend@lf.test": "friend",
+        "pending@lf.test": "member",
+    }
 
 
 # -- deactivated accounts and donors on the list ----------------------------------
@@ -171,14 +175,6 @@ def test_the_list_never_lists_a_donor(
 ) -> None:
     """A donor is left out whatever the filters, deactivated accounts included."""
     assert "donor@lf.test" not in listed(account_admin_client, include_inactive="true")
-
-
-def test_a_donor_has_no_member_record(
-    account_admin_client: APIClient, people: dict[str, User]
-) -> None:
-    """``GET /admin/members/{id}`` is a 404 for a donor."""
-    response = account_admin_client.get(f"{LIST_URL}/{people['donor'].pk}")
-    assert response.status_code == 404
 
 
 def test_a_deactivated_account_keeps_its_member_record(
