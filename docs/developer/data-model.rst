@@ -2922,7 +2922,7 @@ every term passes through it whichever day it ends; the spans come from
 constraint keeps a term that sits in one stage for days from being written to
 twice (:ref:`reminders-stages`).  Lifetime members are skipped, as are
 deactivated accounts, accounts with no email address, and members whose
-unbroken coverage now runs past the term in question, which is what stops an
+unbroken coverage runs past the term in question, which is what stops an
 early renewal being nagged about the term it replaced.  See :doc:`reminders`.
 
 .. _data-model-email-log:

@@ -1363,9 +1363,9 @@ Reading the matrix:
 **Serializer switching on aircraft.**  ``GET /aircraft/{id}`` and
 ``GET /aircraft/lookup`` return the ``pilots`` array and ``updated_by`` (other
 members' names, emails, membership state, and medical currency) only to
-``dart_leader``, ``account_admin``, or ``system_admin``.  Plain members get the airplane alone.
-``GET /aircraft`` (the list) never includes it for anybody.  That is what stops
-the register from being a way around the leader-check gate.
+``dart_leader``, ``account_admin``, or ``system_admin``.  Plain members get the
+airplane alone.  ``GET /aircraft`` (the list) never includes it for anybody.
+That is what stops the register from being a way around the leader-check gate.
 
 **Restricted methods.**  ``/admin/users/{id}`` accepts ``GET`` and ``PATCH``;
 ``/admin/members/{id}``, ``/admin/darts/{id}``, and

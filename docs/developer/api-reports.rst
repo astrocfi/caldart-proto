@@ -318,11 +318,12 @@ Refusals:
 ----------------------------------------------------
 
 ``GET /reports/subscriptions/{id}`` answers the subscription as the list does.
-``PATCH /reports/subscriptions/{id}`` changes any of ``is_active``, ``filters``, ``columns``, ``formats``, ``cadence`` and
-``weekday``, checked as ``POST`` checks them; the filters and columns are
-checked only when the edit changes one of them, so a subscription whose stored
-filters the report no longer takes can still be paused.  The report and the
-recipient are fixed once set up, and other fields are ignored.  Changing the cadence or the
+``PATCH /reports/subscriptions/{id}`` changes any of ``is_active``,
+``filters``, ``columns``, ``formats``, ``cadence``, and ``weekday``, checked as
+``POST`` checks them; the filters and columns are checked only when the edit
+changes one of them, so a subscription whose stored filters the report no
+longer takes can still be paused.  The report and the recipient are fixed once
+set up, and other fields are ignored.  Changing the cadence or the
 weekday moves ``next_due_on`` to the schedule's next day after today; any other
 edit leaves it.  Resuming (``is_active: true``) a subscription whose account may
 no longer read the report is refused with **400** under ``is_active``, with the
