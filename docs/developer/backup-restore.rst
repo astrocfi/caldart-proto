@@ -305,16 +305,20 @@ is in :ref:`make-switches`.
 
 The argument may be a path or a bare file name inside ``BACKUP_DIR``.
 
-In production, stop the web unit first so nothing writes during the restore::
+In production, stop the web unit and the scheduled jobs' timers first, so
+nothing writes during the restore and no job runs against the restored
+bookkeeping before you have checked it (:ref:`backup-after-restore`)::
 
-  sudo systemctl stop caldart-web
+  sudo systemctl stop caldart-web caldart-renewals.timer caldart-reminders.timer \
+      caldart-reports.timer caldart-statements.timer
+  sudo systemctl stop caldart-backup.timer    # if you installed it
   caldart_manage db_restore /srv/caldart/backups/caldart-....sql.gz --yes
   caldart_manage migrate
-  sudo systemctl start caldart-web
 
-The ``migrate`` afterwards is deliberate: a dump taken from an older release
-restores an older schema, and ``manage.py health`` will report the pending
-migrations if you forget.
+Leave the web unit and the timers stopped: :ref:`backup-after-restore` starts
+them again once its checks pass.  The ``migrate`` is deliberate: a dump taken
+from an older release restores an older schema, and ``manage.py health`` will
+report the pending migrations if you forget.
 
 **Restoring onto a fresh machine** is the same, into an empty database:
 follow :doc:`deployment` up to its database step, restore, migrate,
@@ -416,23 +420,30 @@ bring back:
 
 A restore from an older dump rolls the scheduled jobs' bookkeeping back with
 everything else.  A renewal charged after the dump was taken looks due again,
-and the next automatic renewal run would charge the card a second time.  Stop
-the four timers before restoring and check what the jobs would do before
+and the next automatic renewal run would charge the card a second time.  That
+is why the restore above stops the timers.  Check what the jobs would do before
 starting them again::
 
-  sudo systemctl stop caldart-renewals.timer caldart-reminders.timer \
-      caldart-reports.timer caldart-statements.timer
-  # ... restore, migrate, and check as above ...
   caldart_manage run_auto_renewals --dry-run
   caldart_manage send_renewal_reminders --dry-run
-  sudo systemctl start caldart-renewals.timer caldart-reminders.timer \
-      caldart-reports.timer caldart-statements.timer
 
 Compare every charge the dry run lists with the provider's dashboard.  For a
 member the provider already charged after the dump was taken, record that
-payment by hand (``POST /admin/payments/record``, :doc:`api-finance`) and
-turn the member's automatic renewal off (:doc:`api-renewals`) before the
-timers start again, so the next run does not charge them twice.
+payment by hand against the member's plan (``POST /admin/payments/record``,
+:doc:`api-finance`), with the provider's charge id as the reference.  Recording
+it extends the member's term and moves their automatic renewal's charge date
+past the new expiry, exactly as a card checkout would, so their standing
+authority stays in place and ``run_auto_renewals --dry-run`` no longer lists
+them.  Run it again to confirm, then start the timers::
+
+  sudo systemctl start caldart-renewals.timer caldart-reminders.timer \
+      caldart-reports.timer caldart-statements.timer
+  sudo systemctl start caldart-backup.timer   # if you installed it
+
+A payment recorded by hand carries no link to the provider's charge, so a
+refund issued from the portal against it sends nothing to Stripe or PayPal.  To
+give that money back, refund the charge in the provider's dashboard, then
+record the refund in the portal against the recorded payment.
 
 
 Resetting a development database

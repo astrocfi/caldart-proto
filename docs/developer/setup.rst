@@ -63,12 +63,12 @@ First run
 
 Step by step:
 
-1. **``make setup``** runs ``uv sync`` (Python dependencies, from the committed
+1. ``make setup`` runs ``uv sync`` (Python dependencies, from the committed
    ``uv.lock``), ``npm ci`` in ``frontend/`` (Node dependencies, from
    ``package-lock.json``), and copies ``.env.example`` to ``.env`` if you do
    not already have one.  It never overwrites an existing ``.env``.
 
-2. **``make up``** starts the two containers, waits for Postgres to answer
+2. ``make up`` starts the two containers, waits for Postgres to answer
    ``pg_isready``, and creates the database named in ``DATABASE_URL`` if it
    does not exist.
 
@@ -90,7 +90,7 @@ Step by step:
    checkout on the machine shares one pair of containers.  Data lives in the
    ``caldart_pgdata`` volume and survives ``make down``.
 
-3. **``make migrate``** applies the migrations.  Each app has one initial
+3. ``make migrate`` applies the migrations.  Each app has one initial
    migration describing its tables as they are: this is a prototype with no
    installation to upgrade, so a schema change is made by editing the model and
    regenerating that migration rather than by stacking a fix-up on top of it.
@@ -106,7 +106,7 @@ Step by step:
    ``cms.0003_website_admin_permissions`` gives the ``website_admin`` group its
    editing rights.
 
-4. **``make seed``** runs ``seed_roles``, then ``seed_demo`` (demo accounts,
+4. ``make seed`` runs ``seed_roles``, then ``seed_demo`` (demo accounts,
    about forty generated members, twenty-five aircraft, two years of
    payments), then ``seed_content`` (the example Wagtail site).  All three are
    idempotent — running ``make seed`` twice changes nothing.  The day it runs,
@@ -116,13 +116,13 @@ Step by step:
    ``run_auto_renewals`` always have real work waiting (see
    :doc:`scheduled-reports` and :doc:`renewals`).
 
-5. **``make build``** compiles the frontend into ``frontend/dist`` and writes
+5. ``make build`` compiles the frontend into ``frontend/dist`` and writes
    ``frontend/dist/.vite/manifest.json``.  **This step is not optional.**  With
    ``DJANGO_VITE_DEV_MODE=false`` — the default — Django reads that manifest to
    find the hashed asset names, and every HTML page raises
    ``Cannot find src/site/main.ts ... in Vite manifest`` until it exists.
 
-6. **``make run``** starts Django on port 8000 and prints the URLs below.
+6. ``make run`` starts Django on port 8000 and prints the URLs below.
 
 .. list-table::
    :header-rows: 1
@@ -521,12 +521,12 @@ that ``{% vite_react_refresh %}`` is still the first of the three Vite tags in
 ``backend/templates/portal.html``, and that the page you are on is served from
 that template rather than a copy.
 
-**``make up`` says Postgres did not become ready.**  The container is up but
+``make up`` **says Postgres did not become ready.**  The container is up but
 not answering.  ``docker compose logs db`` will say why; a port 5432 already
 bound by a system PostgreSQL is the usual cause.
 
-**``psql: database "caldart_something" does not exist``.**  Run ``make up``,
-which creates the database named in ``DATABASE_URL``.  It is only created at
+``psql: database "caldart_something" does not exist`` **in the output.**
+Run ``make up``, which creates the database named in ``DATABASE_URL``.  It is only created at
 ``make up`` time, so a fresh ``DATABASE_URL`` needs another ``make up``.
 
 **Migrations conflict after a rebase.**  This prototype keeps no backwards

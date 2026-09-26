@@ -1078,17 +1078,17 @@ Troubleshooting
 **502 from Apache.**  gunicorn is not running or not on 8001.  ``systemctl
 status caldart-web``, then ``journalctl -u caldart-web -n 50``.
 
-**``caldart-web`` fails with ``status=226/NAMESPACE``.**  A directory named in
+``caldart-web`` **fails with** ``status=226/NAMESPACE``.  A directory named in
 ``ReadWritePaths`` does not exist.  Create ``backend/media``,
 ``backend/staticfiles``, and ``backups`` as in :ref:`step 3 <deploy-checkout>`, owned
 by ``caldart``, and start the unit again.
 
-**``git clone`` says the destination already exists and is not empty.**
+``git clone`` **says the destination already exists and is not empty.**
 Something created a directory under ``/srv/caldart`` before the clone.  Move
 it aside, clone, then create the three writable directories.
 
-**``apachectl configtest`` or ``nginx -t`` says a certificate or
-``options-ssl`` file does not exist.**  The shipped vhost went in before its
+``apachectl configtest`` **or** ``nginx -t`` **says a certificate or**
+``options-ssl`` **file does not exist.**  The shipped vhost went in before its
 files did.  Put the bootstrap host back, then run the certificate and
 options-file steps of :ref:`step 9 <deploy-web-server>` in order.
 
@@ -1098,22 +1098,22 @@ the one answering.  ``curl -I http://caldart.example.org/.well-known/acme-challe
 from another machine should reach this server and answer 404 from the
 bootstrap host; the port-80 error log names the path it looked for.
 
-**``DisallowedHost`` in the log.**  The hostname is missing from
+``DisallowedHost`` **in the log.**  The hostname is missing from
 ``ALLOWED_HOSTS``.  Add it and restart.
 
 **CSRF failures when signing in.**  ``CSRF_TRUSTED_ORIGINS`` must list the
 ``https://`` origin, and the proxy must set ``X-Forwarded-Proto``.  Both are in
 this document; check the vhost was actually reloaded.
 
-**Unstyled pages, or ``Manifest file not found``.**  ``npm run build`` did not
+**Unstyled pages, or** ``Manifest file not found``.  ``npm run build`` did not
 run, or ``collectstatic`` did not.  Run both, then restart the unit.
 
-**``/docs/`` answers 404 and the journal says the user guide has not been
+``/docs/`` **answers 404 and the journal says the user guide has not been
 built.**  The Sphinx step of :ref:`the build <deploy-build>` did not run, or
 ``USER_GUIDE_ROOT`` names a directory with no ``index.html``.  Run it, or point
 the variable at the directory it wrote to.
 
-**``ValueError: Missing staticfiles manifest entry``.**  ``collectstatic`` ran
+``ValueError: Missing staticfiles manifest entry``.  ``collectstatic`` ran
 before the frontend build.  Run them in that order and restart.
 
 **Backups fail with a permission error.**  ``BACKUP_DIR`` is outside the
@@ -1127,3 +1127,5 @@ HTTP, forever.  Fix the header rather than turning the redirect off.
 send_renewal_reminders --dry-run``; then send one for real and read
 ``journalctl -u caldart-web``.  Many providers need
 ``smtp+tls://`` on port 587 with an app password rather than the account one.
+See :doc:`email` for reading the email log's error column and checking the
+domain's SPF, DKIM, and DMARC records.
