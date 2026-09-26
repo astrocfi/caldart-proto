@@ -65,7 +65,8 @@ A user administrator looks after accounts. The role adds:
 * **Users & roles** (:doc:`admin/users`): every account, with filters, and the
   **User record** (:doc:`admin/user-record`) behind each: the roles it holds,
   activating and deactivating it, correcting its email address, and sending a
-  password reset link or a verification message.
+  password reset link or a verification message. The screen also downloads the
+  CalDART roles report as a CSV or a PDF.
 * The **CalDART roles report**: the people who hold each role other than member,
   in a section per role. An account administrator can have it emailed to a user
   administrator on a schedule (:doc:`admin/reports`).

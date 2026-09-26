@@ -3053,7 +3053,7 @@ reports
 =======
 
 A report itself is not a row: it is a spec its app declares (see :doc:`reports`),
-and the rows here name one by its slug: ``members``, ``aircraft``,
+and the rows here name one by its slug: ``members``, ``roles``, ``aircraft``,
 ``payments``, ``reconciliation``, ``contributions``, ``donors``, or ``emails``.
 
 ``SavedColumnSet``

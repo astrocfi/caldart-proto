@@ -342,6 +342,22 @@
   padding-top: var(--space-2);
 }
 
+/* A row-actions cluster with several buttons (the Subscriptions table's Edit,
+ * Send now, Pause/Resume, and Delete) wraps to two lines at desktop width,
+ * which misaligns the row height against its neighbors. Two fixes, both
+ * needed: the selector repeats `.cluster` (`.cluster.cluster--nowrap`) so its
+ * `flex-wrap: nowrap` always beats `.cluster`'s own `flex-wrap: wrap` on
+ * specificity -- the production build code-splits this rule into whichever
+ * page chunk first reaches it, so it cannot rely on `.cluster`'s rule
+ * loading first; and `white-space: nowrap` stops a squeezed column from
+ * wrapping a button's own label instead, since flex items still shrink
+ * toward their min-content width. Together the row stays one line tall and
+ * `.table-wrap` scrolls horizontally instead when the window is narrow. */
+.cluster.cluster--nowrap {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------- toasts */
 .toast-viewport {
   position: fixed;

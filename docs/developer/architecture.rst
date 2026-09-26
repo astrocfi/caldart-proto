@@ -655,11 +655,12 @@ when the caller names its heading.
 
 **Filters and reports.**  ``reports/`` holds what every report shares in the
 portal.  ``reports/definitions.ts`` declares ``REPORTS``, one
-``ReportDefinition`` per report the server registers (``members``,
-``aircraft``, ``payments``, ``reconciliation``, and ``contributions``), each
-with its label, whether its columns can be chosen, whether it takes
-``?period=``, and its ``filters``: the single list of that report's filter
-fields.  A ``FilterField`` names the query parameter it sends as its ``key``,
+``ReportDefinition`` per report the server registers (``members``, ``roles``,
+``aircraft``, ``payments``, ``reconciliation``, ``contributions``,
+``donors``, and ``emails``), each with its label, whether its columns can be
+chosen, whether it takes ``?period=``, and its ``filters``: the single list
+of that report's filter fields.  A ``FilterField`` names the query parameter
+it sends as its ``key``,
 and its ``kind`` says how it is drawn: ``search`` (a text box), ``select`` (a
 drop-down whose blank first option reads *Any*, or the field's
 ``placeholder``), ``multiselect`` (a one-line drop-down that opens a checkbox

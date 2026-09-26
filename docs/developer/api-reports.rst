@@ -402,7 +402,7 @@ Tests
    filenames and media types, and the refusals: a fixed report's columns, an
    unknown column, a refused filter and an unknown period.
 ``backend/tests/test_report_registry.py``
-   The registry's six reports by slug and, for all but the email log, the
+   The registry's eight reports by slug and, for all but the email log, the
    roles, titles, orientation and periods, and the query against its list: the
    same params give the same rows in the same order.
 ``backend/tests/test_reports.py``
