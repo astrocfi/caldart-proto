@@ -433,7 +433,10 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     , ``expired``, or ``lifetime`` each user should end up in, and the
     ``renewal_due_today_users``/``catch_up_user`` subjects (:func:`_forced_term_ends`)
     whose current term's end date is pinned rather than drawn, so a renewal is
-    always due the day the seed runs.  One payment is created per term, every term
+    always due the day the seed runs.  Pinning shifts every one of that user's
+    terms by the same amount, so a member with more than one seeded term keeps a
+    contiguous history instead of an overlapping or gapped one.  One payment is
+    created per term, every term
     is activated through the same service a real checkout uses, and lapsed terms
     are then marked expired.  ``ctx["payment_count"]`` is set to the number of
     payments, and a one-line summary is written to ``stdout`` when one is given.
@@ -455,7 +458,9 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
         starts = _term_starts(rng, target, today)
         plan = life if target == "lifetime" else annual
         if user.pk in forced_ends and len(starts) > 0 and plan.duration_days is not None:
-            starts[-1] = forced_ends[user.pk] - timedelta(days=plan.duration_days - 1)
+            forced_start = forced_ends[user.pk] - timedelta(days=plan.duration_days - 1)
+            delta = forced_start - starts[-1]
+            starts = [start + delta for start in starts]
         for index, starts_on in enumerate(starts):
             payment = _payment_for(user, plan, starts_on, index, rng, today)
             payments += 1

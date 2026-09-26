@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from datetime import timedelta
 from io import StringIO
+from itertools import pairwise
 from unittest.mock import MagicMock
 
 import pytest
@@ -24,7 +25,7 @@ from apps.members.models import MemberProfile, Membership, MembershipPlan, Membe
 from apps.members.seed import DART_SEED
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentStatus, RenewalMandate
-from apps.payments.renewals import _due_attempts, run_auto_renewals
+from apps.payments.renewals import _due_attempts, lapsed_term_to_renew, run_auto_renewals
 from apps.payments.seed import CATCH_UP_MANDATE_DAYS_AGO, HISTORY_MONTHS, MANUAL_PAYMENT_COUNT
 from apps.reports.models import ReportSubscription
 from apps.reports.services import due_subscriptions, run_scheduled_reports
@@ -282,8 +283,8 @@ def test_seed_demo_leaves_every_subscription_due_today() -> None:
     today = timezone.localdate()
     subscriptions = list(ReportSubscription.objects.all())
     assert len(subscriptions) == 3
-    assert all(row.next_due_on == today for row in subscriptions)
-    assert all(row.last_sent_at is None for row in subscriptions)
+    assert [row.next_due_on for row in subscriptions] == [today] * 3
+    assert [row.last_sent_at for row in subscriptions] == [None] * 3
 
 
 def test_seed_demo_leaves_three_subscriptions_for_the_scheduled_report_job() -> None:
@@ -303,19 +304,24 @@ def test_send_scheduled_reports_sends_every_subscription_and_every_roster() -> N
 
 
 def test_seed_demo_leaves_two_renewals_due_for_an_ordinary_charge() -> None:
-    """Two generated members hold a mandate with a scheduled attempt due today."""
+    """Two generated members hold a scheduled attempt against a term ending today."""
     _seed()
-    assert len(_due_attempts(timezone.localdate())) == 2
+    today = timezone.localdate()
+    attempts = _due_attempts(today)
+    assert [attempt.membership.ends_on for attempt in attempts] == [today, today]
 
 
 def test_seed_demo_leaves_a_catch_up_mandate_with_no_attempt() -> None:
-    """The catch-up member's mandate carries no attempt and an overdue charge date."""
+    """The catch-up member's mandate has no attempt and a term lapsed ten days back."""
     _seed()
     today = timezone.localdate()
     catch_up = RenewalMandate.objects.get(
         next_charge_on=today - timedelta(days=CATCH_UP_MANDATE_DAYS_AGO)
     )
     assert catch_up.attempts.count() == 0
+    term = lapsed_term_to_renew(catch_up.user, today)
+    assert term is not None
+    assert term.ends_on == today - timedelta(days=CATCH_UP_MANDATE_DAYS_AGO)
 
 
 def test_run_auto_renewals_charges_the_three_seeded_renewals() -> None:
@@ -324,3 +330,21 @@ def test_run_auto_renewals_charges_the_three_seeded_renewals() -> None:
     run = run_auto_renewals()
     assert run.charged == 3
     assert run.failed == 0
+
+
+def test_seed_demo_never_gives_a_member_overlapping_terms() -> None:
+    """No seeded member's terms overlap: each ends before the next one starts.
+
+    Pinning a renewal-seed subject's last term to a fixed end date must shift
+    every earlier term of theirs by the same amount, or the pinned term would
+    land inside, or short of, the one before it.
+    """
+    _seed()
+    terms_by_user: dict[int, list[Membership]] = {}
+    for term in Membership.objects.order_by("user_id", "starts_on", "id"):
+        terms_by_user.setdefault(term.user_id, []).append(term)
+    for terms in terms_by_user.values():
+        for previous, current in pairwise(terms):
+            if previous.ends_on is None:
+                continue
+            assert previous.ends_on < current.starts_on
