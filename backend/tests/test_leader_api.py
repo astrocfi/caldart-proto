@@ -411,7 +411,8 @@ def test_the_search_names_a_friend_as_a_friend(
     MemberProfileFactory(user=friend)
     api_client.force_login(dart_leader)
     [row] = api_client.get(SEARCH_URL, {"q": "Frances Lee"}).json()
-    assert (row["membership_status"], row["go_no_go"]["membership"]) == ("friend", False)
+    assert row["membership_status"] == "friend"
+    assert row["go_no_go"]["membership"] is False
 
 
 def test_a_lifetime_member_is_current_without_an_expiry(

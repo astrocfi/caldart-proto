@@ -185,7 +185,7 @@ def test_a_deactivated_account_keeps_its_member_record(
     assert response.status_code == 200
 
 
-def test_is_active_is_no_longer_a_filter(
+def test_is_active_narrows_nothing(
     account_admin_client: APIClient, people: dict[str, User]
 ) -> None:
     """``?is_active=false`` narrows nothing: ``include_inactive`` is the one switch."""
@@ -219,8 +219,8 @@ def test_the_report_reads_the_kind_selector(
 
 
 def test_the_kind_is_a_named_report_filter() -> None:
-    """``kind`` is one of the parameters the report names in its PDF subtitle."""
-    assert "kind" in EXPORT_FILTER_PARAMS
+    """``kind`` is the first parameter the report names in its PDF subtitle."""
+    assert EXPORT_FILTER_PARAMS[0] == "kind"
 
 
 def test_include_inactive_is_not_a_named_report_filter() -> None:

@@ -551,6 +551,14 @@ describe('MembersListPage for a DART leader', () => {
     );
   });
 
+  it('names a deactivated account without a link: the member check never shows one', async () => {
+    server.use(...listHandlers([makeRow({ is_active: false })]));
+    await renderList('/admin/members?include_inactive=true');
+    await screen.findByText('Ana Bracco');
+
+    expect(screen.queryByRole('link', { name: 'Ana Bracco' })).not.toBeInTheDocument();
+  });
+
   it('downloads the report with the filters the leader chose', async () => {
     server.use(...listHandlers());
     await renderList('/admin/members?county=Napa');

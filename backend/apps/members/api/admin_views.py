@@ -60,7 +60,7 @@ class MemberAdminBaseView(generics.GenericAPIView["MemberRow"]):
     ordering = ["name"]
 
     def get_queryset(self) -> QuerySet[MemberRow]:
-        """Every account, carrying the membership annotations the list reads."""
+        """Every member and friend (never a donor), with the list's annotations."""
         return member_admin_queryset()
 
 

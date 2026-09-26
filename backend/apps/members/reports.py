@@ -31,6 +31,8 @@ from apps.members.services import MembershipStatusDict, membership_payload
 from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec, apply_filterset
 
 if TYPE_CHECKING:
+    from django.db.models import QuerySet
+
     from apps.members.services import MemberRow
 
 
@@ -237,6 +239,20 @@ def member_rows(users: Iterator[MemberRow]) -> Iterator[RowContext]:
         yield _row_context(user)
 
 
+def member_report_queryset(params: Params) -> QuerySet[MemberRow]:
+    """The accounts the member report lists for ``params``, unordered.
+
+    ``params`` narrow the list's own queryset through ``MemberAdminFilterSet``, and a
+    deactivated account is left out whatever ``include_inactive`` says; donors are
+    never there, since the list leaves them out.  A filter the set refuses raises
+    DRF's ``ValidationError`` keyed by that filter.  A DART roster counts its members
+    through this same queryset, so the count its email states matches its rows.
+    """
+    return apply_filterset(MemberAdminFilterSet, params, member_admin_queryset()).filter(
+        is_active=True
+    )
+
+
 def member_report_query(params: Params) -> ReportQuery[RowContext]:
     """The members the member list shows for ``params``, in the list's order.
 
@@ -248,10 +264,9 @@ def member_report_query(params: Params) -> ReportQuery[RowContext]:
     database a chunk at a time, and the applied filters are the ones
     :func:`apps.members.filters.applied_filters` names.
     """
-    narrowed = apply_filterset(MemberAdminFilterSet, params, member_admin_queryset()).filter(
-        is_active=True
+    ordered = MemberOrderingFilter.order_queryset(
+        member_report_queryset(params), params.get("ordering", "")
     )
-    ordered = MemberOrderingFilter.order_queryset(narrowed, params.get("ordering", ""))
     return ReportQuery(
         rows=member_rows(ordered.iterator(chunk_size=200)),
         filters=applied_filters(params),

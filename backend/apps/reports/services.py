@@ -30,8 +30,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import User
 from apps.darts.models import Dart, DartContact
-from apps.members.filters import MemberAdminFilterSet, member_admin_queryset
-from apps.members.reports import MEMBER_REPORT
+from apps.members.reports import MEMBER_REPORT, member_report_queryset
 from apps.reports.models import ReportFormats, ReportSubscription
 from apps.reports.permissions import can_read_report
 from apps.reports.registry import REPORTS
@@ -43,7 +42,6 @@ from caldart.reports import (
     Report,
     ReportDocument,
     ReportFormat,
-    apply_filterset,
     build_report,
     filter_summary,
 )
@@ -437,11 +435,7 @@ def claim_due_roster(pk: int, today: date) -> Dart | None:
 
 def roster_member_count(dart: Dart) -> int:
     """How many people ``dart``'s roster lists, counted as the report selects them."""
-    return (
-        apply_filterset(MemberAdminFilterSet, roster_params(dart), member_admin_queryset())
-        .filter(is_active=True)
-        .count()
-    )
+    return member_report_queryset(roster_params(dart)).count()
 
 
 def send_roster_email(

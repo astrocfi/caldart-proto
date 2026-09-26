@@ -44,7 +44,7 @@ You type                      What you get
 ============================  ==================================================
 
 The search finds members and friends of CalDART.  A deactivated account and a
-donor, who gives through the public site and has no portal account, are never
+donor, who gives through the public site and cannot sign in to the portal, are never
 found, and never listed among the pilots of an airplane.
 
 Registrations are normalized for you: the leading ``N`` is optional and
@@ -166,7 +166,8 @@ rather than to check one person on the ramp.
   can bookmark or send to another leader.
 * **Sort** by clicking a column heading; click again to reverse it.
 * **Open** a name to see that member in the member check, with the GO / NO-GO
-  card for them.
+  card for them.  A deactivated account's name opens nothing, since the member
+  check never shows one.
 * **Download** the report with **Export CSV** or **Export PDF**.  Either file
   carries every member the filters match, not just the page on screen, and
   **Columns** chooses what goes in it — phone, certificate, medical, aircraft,

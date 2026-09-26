@@ -81,9 +81,24 @@ function ordering(value: string): { key: string; direction: SortDirection } | un
   };
 }
 
-/** Where a name in the list leads: the member record, or the member check for a leader. */
-function memberHref(row: MemberRow, isAccountAdmin: boolean): string {
-  return isAccountAdmin ? `/admin/members/${row.user_id}` : `/leader?member=${row.user_id}`;
+/**
+ * Where a name in the list leads: the member record, or the member check for a leader.
+ * The member check never shows a deactivated account, so a leader's link for one is null.
+ */
+function memberHref(row: MemberRow, isAccountAdmin: boolean): string | null {
+  if (isAccountAdmin) return `/admin/members/${row.user_id}`;
+  return row.is_active ? `/leader?member=${row.user_id}` : null;
+}
+
+function MemberName({
+  row,
+  isAccountAdmin,
+}: {
+  row: MemberRow;
+  isAccountAdmin: boolean;
+}): JSX.Element {
+  const href = memberHref(row, isAccountAdmin);
+  return href === null ? <>{row.name}</> : <Link to={href}>{row.name}</Link>;
 }
 
 /**
@@ -117,7 +132,7 @@ function memberColumns(isAccountAdmin: boolean): Column<MemberRow>[] {
       width: '22%',
       render: (row) => (
         <>
-          <Link to={memberHref(row, isAccountAdmin)}>{row.name}</Link>
+          <MemberName row={row} isAccountAdmin={isAccountAdmin} />
           {row.is_active ? null : <small className="muted"> · account deactivated</small>}
         </>
       ),

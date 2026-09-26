@@ -191,15 +191,22 @@ def test_csv_row_content(
     assert row["member_since"] == ""
 
 
-def test_the_kind_column_follows_the_status_and_is_on_by_default() -> None:
-    """The Kind column comes right after Status and is in the default report."""
+def test_the_kind_column_follows_the_status() -> None:
+    """The Kind column comes right after Status."""
     keys = [column.key for column in MEMBER_REPORT_COLUMNS]
-    column = MEMBER_REPORT_COLUMNS[keys.index("kind")]
-    assert (keys.index("kind"), column.label, column.default) == (
-        keys.index("status") + 1,
-        "Kind",
-        True,
-    )
+    assert keys.index("kind") == keys.index("status") + 1
+
+
+def test_the_kind_column_is_labeled_kind() -> None:
+    """The Kind column's header reads Kind."""
+    column = next(column for column in MEMBER_REPORT_COLUMNS if column.key == "kind")
+    assert column.label == "Kind"
+
+
+def test_the_kind_column_is_on_by_default() -> None:
+    """The Kind column is in the default report."""
+    column = next(column for column in MEMBER_REPORT_COLUMNS if column.key == "kind")
+    assert column.default is True
 
 
 def test_the_kind_cell_names_the_effective_kind(
