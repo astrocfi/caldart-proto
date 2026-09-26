@@ -63,10 +63,14 @@ Creating one
 
 #. Follow **Join** in the public site's top navigation, or go straight to
    ``/portal/join``.
-#. Fill in the first step of the wizard: your first and last name, your email
-   address, and a password.
+#. Fill in the first step of the wizard: whether you join as a member or as a
+   friend, your first and last name, your email address, and a password.
 #. Submit.  You are signed in immediately, an empty member profile is waiting
-   for you, and you hold the ``member`` role.
+   for you, and you hold the ``member`` role.  If the address already belongs
+   to a donor's account, because you once gave from it, you are not signed in
+   yet: the step says **Check your email**, and you sign in, with the password
+   you just chose, once you have opened the link in the message.  The address
+   of a deactivated account is refused, with a **Sign in to reactivate** link.
 #. Check your email.  |org| sends a **verification message** to the address you
    gave, with a link that proves the address is yours.  The wizard waits on its
    **Check your email** step until you open that link.
@@ -87,7 +91,9 @@ verification message** on the step, or on your dashboard, to get a new one.
 
 Paying for a membership term is a later step in the same wizard.  You can stop
 after creating the account and come back to pay: you will have a portal login,
-but no current membership and therefore no access to members-only content.
+but no current membership and therefore no access to members-only content.  A
+friend has no dues to pay: the same step offers a contribution, and **Not now**
+skips it.
 
 Choosing a password
 -------------------

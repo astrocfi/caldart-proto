@@ -76,6 +76,20 @@ ends.
 
 See :ref:`kinds-of-account`.
 
+Can I join without paying dues?
+-------------------------------
+
+Yes: choose **Join as a friend** on the first step of the join wizard.  A friend
+walks the same steps as a member, but the payment step is headed **Contribute to
+CalDART** and offers a contribution you may skip with **Not now**.
+
+If you once gave to CalDART as a donor, join with the same email address: the
+wizard asks you to open the link it emails there before you can sign in, and
+your gifts stay with the account.  If the address belongs to an account that was
+deactivated, the wizard offers **Sign in to reactivate** instead.
+
+See :ref:`joining`.
+
 Can I have more than one membership at once?
 --------------------------------------------
 

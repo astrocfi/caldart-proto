@@ -39,6 +39,8 @@ async function joinFromPublicSite(page: Page): Promise<void> {
  * make the profile complete.
  */
 async function register(page: Page, first: string, email: string): Promise<void> {
+  // Joining as a member is the default; a friend's walk is in `join-friend.spec.ts`.
+  await expect(page.getByRole('radio', { name: /Join as a member/ })).toBeChecked();
   await page.getByRole('textbox', { name: 'First name' }).fill(first);
   await page.getByRole('textbox', { name: 'Last name' }).fill('Okonkwo');
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);

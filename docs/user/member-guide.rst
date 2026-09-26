@@ -14,29 +14,56 @@ renewal reminder is ever sent.  :ref:`kinds-of-account` sets out what a
 member, a friend, and a donor each are.
 
 
+.. _joining:
+
 Joining
 =======
 
 Start at **Join CalDART** in the site menu, or go straight to
 ``/portal/join``.  Joining is a five-step wizard, and the progress rail at
-the top of the page always shows which step you are on.
+the top of the page always shows which step you are on.  Members and friends
+walk the same five steps; the only difference is the fourth, where a member
+pays dues and a friend may make a contribution or skip it.
 
 Step 1 — Account
 ----------------
 
-Give your first name, last name, email address and a password.  The email
-address is how you will sign in from then on, so use one you read.  The
+The step opens with the choice of how to join, above the name fields:
+
+**Join as a member**
+  "Pay annual dues now and be counted as a current member."  This is the
+  choice already made when the page opens.
+
+**Join as a friend**
+  "No dues. Support CalDART when you like, and become a member any time."
+
+Then give your first name, last name, email address and a password.  The
+email address is how you will sign in from then on, so use one you read.  The
 password must be at least eight characters and must not be one of the
 obvious ones.
 
 If you already have an account, follow **Already a member? Sign in** and the
 wizard picks up from wherever you left off.
 
+Two addresses are treated differently:
+
+* **An address you have given to CalDART before, as a donor.**  Registering it
+  does not sign you in.  The step shows **Check your email** for that address
+  instead, and your gifts stay with the account.  Open the link in the
+  message, press **Continue** on the page it opens, and sign in with the
+  password you just chose; the wizard then carries on at your profile.
+* **The address of an account that has been deactivated.**  The step refuses
+  it with "This email belongs to a deactivated account. Sign in to reactivate
+  it." and offers **Sign in to reactivate**, which opens the sign-in page with
+  the address already filled in.
+
 Step 2 — Verify your email
 --------------------------
 
 CalDART emails the address you gave a **verification message**, and the
-**Check your email** step waits until you open the link in it.  The link opens
+**Check your email** step waits until you open the link in it.  The line above
+the step's title says which you chose, for example *Step 2 of 5 · Joining as a
+friend*.  The link opens
 a page that says **Email verified**; press **Continue** and the wizard moves on
 to your profile.
 
@@ -107,18 +134,26 @@ Pay or PayPal.  Your membership is activated the moment the payment clears
 checkout in more depth, including what a failed or pending payment looks
 like.
 
+A friend's fourth step is headed **Contribute to CalDART** instead.  It offers
+no plan, only a contribution, paid the same ways.  **Not now**, under the
+payment methods, goes on to the last step without paying anything.
+
 Step 5 — Done
 -------------
 
 The last step confirms the date your membership runs to and links you to
-your dashboard and to the members-only pages you can now read.
+your dashboard and to the members-only pages you can now read.  For a friend
+it reads "You are a friend of CalDART: no dues, no expiry. Become a member any
+time." and links to the dashboard; the members-only pages are for members, so
+it does not list them.
 
 .. note::
 
    The wizard is resumable.  If you close the tab half way through, come
    back to ``/portal/join`` and you will land on the step you had reached.
    You can always go back to an earlier step; you cannot skip ahead of one
-   you have not finished.
+   you have not finished.  A friend with a complete profile has finished:
+   coming back lands on the last step, never on the contribution.
 
 
 Your dashboard
@@ -139,6 +174,11 @@ Membership
   button.  Inside 30 days of expiry, and after it, the card takes an accent
   edge and the button leads.  A life membership reads **Never expires** and is
   never asked to renew.
+
+  A friend's card is headed **You are a friend of CalDART** under the label
+  **Friend of CalDART**.  It reads "You are a friend of CalDART: no dues, no
+  expiry. Become a member any time.", never takes the accent edge, and offers
+  **Make me a member** in place of **Renew**.
 
 Finish your profile
   Shown while your profile is missing one of the details CalDART counts as
