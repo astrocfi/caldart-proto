@@ -10,13 +10,19 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Generator
+from types import SimpleNamespace
 from typing import Any, cast
 
+import httpx
 import pytest
+import respx
+import stripe
 from django.core import mail, signing
 from django.core.cache import cache
 from django.core.mail import EmailMultiAlternatives
+from django.db import connection
 from django.test import Client
+from django.test.utils import CaptureQueriesContext
 from freezegun import freeze_time
 from pytest_django import Settings
 from rest_framework.test import APIClient
@@ -36,8 +42,10 @@ from apps.payments.donations import (
     donation_token,
     donor_for,
     payment_for_token,
+    start_donation,
 )
 from apps.payments.models import CONTRIBUTION_TIERS, Payment, PaymentProvider, PaymentStatus
+from apps.payments.providers import stripe as stripe_provider
 from tests.factories import DartFactory, PaymentFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -49,6 +57,13 @@ STRIPE_CONFIRM_URL = "/api/v1/donations/stripe/confirm"
 PAYPAL_CAPTURE_URL = "/api/v1/donations/paypal/capture"
 
 DONOR_EMAIL = "pat.giver@example.test"
+
+#: What every lookup that the token does not prove answers.
+NOT_FOUND = {"detail": "No such payment."}
+
+PAYPAL_SANDBOX = "https://api-m.sandbox.paypal.com"
+PAYPAL_ORDERS_URL = f"{PAYPAL_SANDBOX}/v2/checkout/orders"
+PAYPAL_OAUTH_URL = f"{PAYPAL_SANDBOX}/v1/oauth2/token"
 
 
 def status_url(payment_id: int) -> str:
@@ -156,6 +171,26 @@ def test_donor_for_finds_an_existing_donor_whatever_the_case_of_the_address() ->
     second = donor_for(donor_fields(email=DONOR_EMAIL.upper()))
 
     assert (second.pk, User.objects.count()) == (first.pk, 1)
+
+
+def advisory_locks(captured: CaptureQueriesContext) -> list[str]:
+    """The advisory-lock statements among ``captured``, as sent to the database."""
+    return [query["sql"] for query in captured if "pg_advisory_xact_lock" in query["sql"]]
+
+
+def test_gifts_from_one_address_in_any_case_wait_on_one_lock() -> None:
+    """Two first gifts from one address are serialized, whatever the case of each.
+
+    Each call takes the same transaction-scoped advisory lock before it looks the
+    address up, so a second gift racing the first finds the donor the first made
+    instead of making another or failing on the unique address.
+    """
+    with CaptureQueriesContext(connection) as first:
+        donor_for(donor_fields(email="Rosa@Example.test"))
+    with CaptureQueriesContext(connection) as second:
+        donor_for(donor_fields(email="rosa@example.test"))
+
+    assert (len(advisory_locks(first)), advisory_locks(first)) == (1, advisory_locks(second))
 
 
 def test_donor_for_updates_the_names_and_phone_of_an_existing_donor() -> None:
@@ -370,7 +405,10 @@ def test_a_gift_above_the_ceiling_is_refused(api_client: APIClient) -> None:
     """A gift larger than the checkout accepts is refused by field."""
     response = api_client.post(CHECKOUT_URL, gift(contribution_cents=10_000_000), format="json")
 
-    assert list(response.json()) == ["contribution_cents"]
+    assert (response.status_code, response.json()) == (
+        400,
+        {"contribution_cents": ["Ensure this value is less than or equal to 9999900."]},
+    )
 
 
 def test_a_phone_that_is_not_ten_digits_is_refused(api_client: APIClient) -> None:
@@ -413,7 +451,10 @@ def test_the_checkout_enforces_csrf(csrf_client: APIClient) -> None:
     """An anonymous POST without the CSRF token is refused, as a browser's would be."""
     response = csrf_client.post(CHECKOUT_URL, gift(), format="json")
 
-    assert response.status_code == 403
+    assert (response.status_code, response.json()["detail"].startswith("CSRF Failed")) == (
+        403,
+        True,
+    )
 
 
 def test_the_checkout_accepts_a_csrf_token(
@@ -429,11 +470,14 @@ def test_the_checkout_accepts_a_csrf_token(
 def test_the_checkout_is_throttled(api_client: APIClient, settings: Settings) -> None:
     """The ``donate`` rate limits how many gifts one address starts."""
     settings.AUTH_THROTTLE_RATES = {"donate": "1/hour"}
-    api_client.post(CHECKOUT_URL, gift(), format="json")
+    with freeze_time("2026-09-25 12:00:00"):
+        api_client.post(CHECKOUT_URL, gift(), format="json")
+        response = api_client.post(CHECKOUT_URL, gift(), format="json")
 
-    response = api_client.post(CHECKOUT_URL, gift(), format="json")
-
-    assert response.status_code == 429
+    assert (response.status_code, response.json()) == (
+        429,
+        {"detail": "Request was throttled. Expected available in 3600 seconds."},
+    )
 
 
 def test_the_config_is_not_throttled(api_client: APIClient, settings: Settings) -> None:
@@ -530,7 +574,7 @@ def test_completing_without_the_right_token_is_not_found(
         format="json",
     )
 
-    assert response.status_code == 404
+    assert (response.status_code, response.json()) == (404, NOT_FOUND)
 
 
 def test_the_mock_completion_is_not_found_when_the_mock_is_off(
@@ -544,7 +588,10 @@ def test_the_mock_completion_is_not_found_when_the_mock_is_off(
         MOCK_COMPLETE_URL, {"payment_id": body["payment_id"], "token": body["token"]}, format="json"
     )
 
-    assert response.status_code == 404
+    assert (response.status_code, response.json()) == (
+        404,
+        {"detail": "The mock payment provider is disabled."},
+    )
 
 
 @pytest.mark.parametrize(
@@ -579,7 +626,122 @@ def test_a_provider_confirmation_needs_the_token(
         url, {"payment_id": body["payment_id"], "token": "forged"}, format="json"
     )
 
-    assert response.status_code == 404
+    assert (response.status_code, response.json()) == (404, NOT_FOUND)
+
+
+def pending_gift(provider: str, provider_ref: str) -> Payment:
+    """A pending $100 gift from :data:`DONOR_EMAIL` through ``provider``, already started.
+
+    The provider's own start is skipped: ``provider_ref`` is what it would have recorded.
+    """
+    payment = start_donation(donor_fields(), 10_000, provider)
+    payment.provider_ref = provider_ref
+    payment.save(update_fields=["provider_ref"])
+    return payment
+
+
+@pytest.fixture
+def stripe_intent(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """Configure Stripe and answer every intent lookup with the returned payload.
+
+    The test fills the payload in; no call reaches Stripe.
+    """
+    settings.STRIPE_SECRET_KEY = "sk_test_123"  # noqa: S105 - test fixture
+    settings.STRIPE_PUBLISHABLE_KEY = "pk_test_123"
+    payload: dict[str, Any] = {}
+
+    def retrieve(intent_id: str, *args: Any, **kwargs: Any) -> stripe.PaymentIntent:
+        return stripe.PaymentIntent.construct_from(payload, "sk_test_123")
+
+    def client() -> SimpleNamespace:
+        return SimpleNamespace(
+            v1=SimpleNamespace(payment_intents=SimpleNamespace(retrieve=retrieve))
+        )
+
+    monkeypatch.setattr(stripe_provider, "stripe_client", client)
+    return payload
+
+
+def test_a_stripe_gift_is_confirmed_with_its_token(
+    api_client: APIClient, stripe_intent: dict[str, Any]
+) -> None:
+    """A succeeded intent settles the gift, reads no membership, and mails the receipt."""
+    payment = pending_gift(PaymentProvider.STRIPE, "pi_gift")
+    stripe_intent.update(
+        {
+            "id": "pi_gift",
+            "object": "payment_intent",
+            "status": "succeeded",
+            "amount": payment.amount_cents,
+            "currency": payment.currency,
+            "metadata": {"payment_id": str(payment.pk), "user_id": str(payment.user_id)},
+            "latest_charge": {
+                "id": "ch_gift",
+                "object": "charge",
+                "payment_method_details": {"type": "card", "card": {"brand": "visa"}},
+            },
+        }
+    )
+
+    response = api_client.post(
+        STRIPE_CONFIRM_URL,
+        {
+            "payment_id": payment.pk,
+            "token": donation_token(payment),
+            "payment_intent_id": "pi_gift",
+        },
+        format="json",
+    )
+
+    assert (
+        response.status_code,
+        response.json()["status"],
+        response.json()["membership"]["status"],
+        [message.to for message in mail.outbox],
+    ) == (200, "succeeded", "none", [[DONOR_EMAIL]])
+
+
+@respx.mock
+def test_a_paypal_gift_is_captured_with_its_token(
+    api_client: APIClient, settings: Settings
+) -> None:
+    """A completed capture settles the gift, reads no membership, and mails a receipt."""
+    settings.PAYPAL_CLIENT_ID = "client-id"
+    settings.PAYPAL_CLIENT_SECRET = "client-secret"  # noqa: S105 - test fixture
+    settings.PAYPAL_ENV = "sandbox"
+    payment = pending_gift(PaymentProvider.PAYPAL, "ORDER-GIFT")
+    respx.post(PAYPAL_OAUTH_URL).mock(
+        return_value=httpx.Response(200, json={"access_token": "token", "expires_in": 3_600})
+    )
+    capture = {
+        "id": "CAPTURE-GIFT",
+        "status": "COMPLETED",
+        "custom_id": str(payment.pk),
+        "amount": {"currency_code": "USD", "value": "100.00"},
+    }
+    respx.post(f"{PAYPAL_ORDERS_URL}/ORDER-GIFT/capture").mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": "ORDER-GIFT",
+                "status": "COMPLETED",
+                "purchase_units": [{"payments": {"captures": [capture]}}],
+            },
+        )
+    )
+
+    response = api_client.post(
+        PAYPAL_CAPTURE_URL,
+        {"payment_id": payment.pk, "token": donation_token(payment), "order_id": "ORDER-GIFT"},
+        format="json",
+    )
+
+    assert (
+        response.status_code,
+        response.json()["status"],
+        response.json()["membership"]["status"],
+        [message.to for message in mail.outbox],
+    ) == (200, "succeeded", "none", [[DONOR_EMAIL]])
 
 
 def test_the_status_reads_back_with_the_token(
@@ -599,7 +761,9 @@ def test_the_status_is_not_found_without_the_token(
     """Nobody reads a gift's status without the token that started it."""
     body = give()
 
-    assert api_client.get(status_url(body["payment_id"])).status_code == 404
+    response = api_client.get(status_url(body["payment_id"]))
+
+    assert (response.status_code, response.json()) == (404, NOT_FOUND)
 
 
 def test_a_member_cannot_read_a_gift_without_its_token(
@@ -609,7 +773,9 @@ def test_a_member_cannot_read_a_gift_without_its_token(
     body = give()
     api_client.force_login(member)
 
-    assert api_client.get(status_url(body["payment_id"]), {"token": "x"}).status_code == 404
+    response = api_client.get(status_url(body["payment_id"]), {"token": "x"})
+
+    assert (response.status_code, response.json()) == (404, NOT_FOUND)
 
 
 def test_a_donation_uses_the_mock_provider_when_asked(give: Callable[..., dict[str, Any]]) -> None:

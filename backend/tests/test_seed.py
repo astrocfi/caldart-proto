@@ -114,10 +114,11 @@ def test_seed_demo_creates_the_documented_accounts() -> None:
         assert user.is_superuser is is_superuser
 
 
-def test_seed_demo_leaves_no_account_unverified() -> None:
-    """Every seeded account's address is verified, as of the moment it was created."""
+def test_seed_demo_leaves_no_account_but_a_donor_unverified() -> None:
+    """Every seeded account but a donor has its address verified as of its creation."""
     _seed()
-    assert User.objects.filter(email_verified_at__isnull=True).count() == 0
+    unverified = User.objects.filter(email_verified_at__isnull=True)
+    assert unverified.exclude(kind=AccountKind.DONOR).count() == 0
 
 
 def test_sysadmin_is_a_superuser() -> None:
@@ -426,6 +427,13 @@ def test_seed_demo_gives_no_donor_a_role_or_a_password() -> None:
     _seed()
     donors = User.objects.filter(kind=AccountKind.DONOR)
     assert {(tuple(donor.roles), donor.has_usable_password()) for donor in donors} == {((), False)}
+
+
+def test_seed_demo_leaves_every_donor_unverified() -> None:
+    """A seeded donor's address stays unverified, as a real donor's does."""
+    _seed()
+    donors = User.objects.filter(kind=AccountKind.DONOR)
+    assert donors.filter(email_verified_at__isnull=False).count() == 0
 
 
 def test_seed_demo_gives_each_donor_its_settled_gifts() -> None:
