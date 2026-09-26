@@ -14,11 +14,12 @@ one that started it is a signed token over the payment's id
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from typing import Any, TypedDict
 
 from django.core import signing
-from django.db import transaction
+from django.db import connection, transaction
 
 from apps.accounts.models import AccountKind, User
 from apps.accounts.services import create_account
@@ -37,6 +38,9 @@ DONATION_TOKEN_SALT = "payments.donation"  # noqa: S105 - a signing salt name, n
 #: How long a donation token stays good, in seconds: an hour, which is longer than any
 #: provider takes to hand a browser back.
 DONATION_TOKEN_MAX_AGE = 3_600
+
+#: What sets donor locks apart from any other advisory lock taken on the database.
+DONOR_LOCK_PERSON = b"caldart-donor"
 
 #: What an address that already signs in to the portal is told.
 HAS_ACCOUNT_MESSAGE = "An account already uses that email address. Sign in to donate."
@@ -124,11 +128,30 @@ class DonationTokenError(Exception):
         super().__init__(NO_SUCH_PAYMENT)
 
 
+def _lock_address(email: str) -> None:
+    """Hold a transaction-scoped advisory lock on ``email``, whatever its case.
+
+    ``User.email`` is unique but case-sensitive, so two first gifts from one address
+    racing each other would otherwise both miss the case-insensitive lookup: one then
+    fails on the unique address, or, typed in two cases, both make a donor.  The lock
+    makes the second wait until the first commits, and then find its donor.
+    """
+    digest = hashlib.blake2b(
+        email.lower().encode(), digest_size=8, person=DONOR_LOCK_PERSON
+    ).digest()
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT pg_advisory_xact_lock(%s)", [int.from_bytes(digest, "big", signed=True)]
+        )
+
+
 @transaction.atomic
 def donor_for(fields: DonorFields) -> User:
     """The donor account for ``fields["email"]``, found or made, with the giver's details.
 
-    The address is matched case-insensitively.  An existing donor has its names and
+    The address is matched case-insensitively, under a lock on the address held until
+    the caller's transaction ends, so two first gifts from one address arriving
+    together make one donor between them.  An existing donor has its names and
     its profile's phone replaced by what was given, and each optional profile field
     the giver filled in (a non-blank value, a DART, or a ticked box) written over the
     stored one; an optional field left blank or unticked keeps what an earlier gift
@@ -140,6 +163,7 @@ def donor_for(fields: DonorFields) -> User:
     whether their account is active or deactivated: that person gives from the portal.
     """
     email = fields["email"].strip()
+    _lock_address(email)
     user = User.objects.filter(email__iexact=email).first()
     if user is not None and user.kind != AccountKind.DONOR:
         raise HasAccountError
