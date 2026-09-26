@@ -92,19 +92,32 @@ export function useRoles(): UseQueryResult<Role[]> {
 }
 
 /**
- * Signs in against `POST /auth/login`, drops every query cached for whoever was here
- * before, and seeds the auth-me cache with the result.
+ * Posts credentials to `path`, which answers with the user it signed in; drops every
+ * query cached for whoever was here before, and seeds the auth-me cache with the result.
  */
-export function useLogin(): UseMutationResult<User, Error, LoginPayload> {
+function useCredentialsSignIn(path: string): UseMutationResult<User, Error, LoginPayload> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: LoginPayload) => api.post<User>('/auth/login', payload),
+    mutationFn: (payload: LoginPayload) => api.post<User>(path, payload),
     onSuccess: (user) => {
       // Anything cached belonged to whoever was here before.
       queryClient.clear();
       queryClient.setQueryData(AUTH_ME_KEY, user);
     },
   });
+}
+
+/** Signs in against `POST /auth/login`, starting a fresh cache for that user. */
+export function useLogin(): UseMutationResult<User, Error, LoginPayload> {
+  return useCredentialsSignIn('/auth/login');
+}
+
+/**
+ * Brings a deactivated account back through `POST /auth/reactivate`, with the same
+ * email address and password a sign-in takes, and signs it in as `useLogin` does.
+ */
+export function useReactivate(): UseMutationResult<User, Error, LoginPayload> {
+  return useCredentialsSignIn('/auth/reactivate');
 }
 
 /**

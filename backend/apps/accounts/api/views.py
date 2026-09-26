@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import AnonymousUser
+from django.db import transaction
 from django.db.models import QuerySet
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
@@ -21,6 +22,7 @@ from rest_framework.views import APIView
 from apps.accounts.api.filters import UserFilter
 from apps.accounts.api.serializers import (
     AdminUserSerializer,
+    DeactivateSerializer,
     EmailChangeSerializer,
     EmailVerifiedSerializer,
     EmailVerifySerializer,
@@ -40,7 +42,10 @@ from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import (
     change_own_email,
     confirm_email_address,
+    deactivate_own_account,
+    deactivated_account,
     is_donor,
+    reactivate_own_account,
     send_email_verification,
     send_password_reset_email,
     verify_email,
@@ -52,8 +57,10 @@ from apps.accounts.throttling import (
     PasswordResetThrottle,
     RegisterThrottle,
 )
-from apps.members.services import register_member, with_membership
+from apps.members.services import register_member, restore_terms, suspend_terms, with_membership
+from apps.payments.renewals import cancel_all_mandates
 from caldart import audit
+from caldart.exceptions import DomainError
 
 #: What every refused login says.  It names neither half of the credentials, and
 #: a deactivated account whose password was wrong is answered with it too, so a
@@ -61,7 +68,11 @@ from caldart import audit
 WRONG_CREDENTIALS_MESSAGE = "Incorrect email address or password."
 
 #: What a deactivated account is told, and only once its password has matched.
-DEACTIVATED_MESSAGE = "This account has been deactivated. Ask a CalDART administrator."
+DEACTIVATED_MESSAGE = "This account is deactivated. You can reactivate it."
+
+#: The ``code`` a refused sign-in carries for a deactivated account, which tells the
+#: portal to offer reactivation.
+DEACTIVATED_CODE = "deactivated"
 
 #: What the user administrator is told when asking to mail a donor a password or
 #: verification link: a donor cannot sign in, so neither link would lead anywhere.
@@ -161,9 +172,10 @@ class LoginView(APIView):
         Open to anonymous callers and throttled under the ``auth_login`` scope.  Wrong
         credentials are a 400 with "Incorrect email address or password."  A deactivated
         account is answered with that same 400 unless the password is correct, in which
-        case it is a 403 with "This account has been deactivated. Ask a CalDART
-        administrator." -- so only somebody who already knows the password learns that
-        the address belongs to a deactivated account.  A donor cannot sign in at all:
+        case it is a 403 ``{"detail": "This account is deactivated. You can reactivate
+        it.", "code": "deactivated"}`` -- so only somebody who already knows the password
+        learns that the address belongs to a deactivated account, and can then post the
+        same credentials to ``/auth/reactivate``.  A donor cannot sign in at all:
         whatever the password, the answer is the same 400 as wrong credentials.
         """
         serializer = LoginSerializer(data=request.data)
@@ -179,10 +191,9 @@ class LoginView(APIView):
         if user is None:
             # `authenticate` also returns None for a deactivated account, so look
             # one up; its password still has to match before we say so.
-            deactivated = User.objects.filter(email__iexact=email, is_active=False).first()
-            if deactivated is not None and deactivated.check_password(password):
+            if deactivated_account(email, password) is not None:
                 return Response(
-                    {"detail": DEACTIVATED_MESSAGE},
+                    {"detail": DEACTIVATED_MESSAGE, "code": DEACTIVATED_CODE},
                     status=status.HTTP_403_FORBIDDEN,
                 )
             return Response(
@@ -272,8 +283,9 @@ class PasswordResetView(APIView):
         """Mail a reset link to the posted ``email`` and answer 204.
 
         Open to anonymous callers and throttled under the ``auth_password_reset`` scope.
-        An unregistered or deactivated address, or a donor's, is answered 204 with no
-        mail sent, so the endpoint cannot be used to enumerate members.  An account
+        An unregistered address, or a donor's, is answered 204 with no mail sent, so the
+        endpoint cannot be used to enumerate members.  A deactivated account is mailed
+        the link, since completing the reset reactivates it.  An account
         that has never set a password is mailed the link like any other.  A malformed
         address is a 400.
         """
@@ -302,15 +314,128 @@ class PasswordResetConfirmView(APIView):
         callers and throttled under the ``auth_password_reset`` scope.  An unusable or
         spent link is a 400 under ``token``, and a password Django's validators reject a
         400 under ``new_password``.  The link was mailed to the account's address, so
-        using it also marks an unverified address verified.
+        using it also marks an unverified address verified.  A deactivated account is
+        reactivated exactly as ``/auth/reactivate`` does it -- the person proved the
+        address and chose to come back -- though nobody is signed in: the new password
+        does that.
         """
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        user.set_password(serializer.validated_data["new_password"])
-        user.save(update_fields=["password", "updated_at"])
-        confirm_email_address(user)
+        with transaction.atomic():
+            user.set_password(serializer.validated_data["new_password"])
+            user.save(update_fields=["password", "updated_at"])
+            confirm_email_address(user)
+            if not user.is_active:
+                reactivate(user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# --------------------------------------------------------------------------
+# Deactivating and reactivating your own account
+# --------------------------------------------------------------------------
+def _locked_is_active(user: User) -> bool:
+    """Lock ``user``'s row until the transaction ends, and read its stored active flag.
+
+    Two requests racing to deactivate or reactivate one account run one after the
+    other, and the second sees what the first wrote.
+    """
+    return User.objects.select_for_update().values_list("is_active", flat=True).get(pk=user.pk)
+
+
+@transaction.atomic
+def deactivate(user: User) -> None:
+    """Deactivate ``user`` at their own request, withdrawing everything that runs on.
+
+    The account is refused or deactivated by ``deactivate_own_account`` first, so a
+    refusal changes nothing; then every mandate is canceled or discarded and every
+    term with time left is suspended.  Raises the ``DomainError`` a refusal raises.
+    An account already inactive when its row is locked is left alone.
+    """
+    if not _locked_is_active(user):
+        return
+    deactivate_own_account(user)
+    cancel_all_mandates(user)
+    suspend_terms(user)
+
+
+@transaction.atomic
+def reactivate(user: User) -> bool:
+    """Bring ``user``'s deactivated account back, with any membership still running.
+
+    Kind and roles are untouched; each suspended term is active again, or expired if
+    it ran out meanwhile.  Canceled mandates stay canceled.  ``False``, changing
+    nothing, when the account is already active once its row is locked; ``True``
+    otherwise.
+    """
+    if _locked_is_active(user):
+        return False
+    reactivate_own_account(user)
+    restore_terms(user)
+    return True
+
+
+class DeactivateView(APIView):
+    """``POST /auth/deactivate`` -- deactivate your own account, 204."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=DeactivateSerializer,
+        responses={204: OpenApiResponse(description="Deactivated and signed out; no body.")},
+    )
+    def post(self, request: Request) -> Response:
+        """Deactivate the signed-in account, end the session, and answer 204.
+
+        The body carries ``current_password``; a wrong one is a 400 under that field.
+        Every automatic renewal and recurring donation is canceled (a pending one is
+        discarded), every membership term with time left is suspended, the account is
+        saved inactive, and the change is recorded as ``account.deactivate`` with
+        ``self_service=true``.  A system administrator is a 400 ``{"detail": "A system
+        administrator cannot deactivate their own account."}`` and a donor a 400 too;
+        neither changes anything.  An anonymous caller gets 401.
+        """
+        serializer = DeactivateSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        try:
+            deactivate(signed_in_user(request))
+        except DomainError as error:
+            return Response({"detail": error.message}, status=status.HTTP_400_BAD_REQUEST)
+        logout(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ReactivateView(APIView):
+    """``POST /auth/reactivate`` -- bring back a deactivated account and sign in, 200."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [LoginThrottle]
+
+    @extend_schema(request=LoginSerializer, responses={200: UserSerializer})
+    def post(self, request: Request) -> Response:
+        """Reactivate the account ``email`` and ``password`` name, sign it in, answer 200.
+
+        Open to anonymous callers and throttled under the ``auth_login`` scope, like a
+        sign-in.  Only a deactivated account whose password matches is reactivated: its
+        kind and roles are as they were, each suspended membership term is active
+        again (or expired, if it ran out meanwhile), the change is recorded as
+        ``account.activate`` with ``self_service=true``, and an unverified address is
+        mailed a verification link.  The answer is the ``user`` payload.  Anything else
+        -- a wrong password, an active account, an unknown address, a donor -- is the
+        400 "Incorrect email address or password." a sign-in gives.
+        """
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = deactivated_account(
+            serializer.validated_data["email"], serializer.validated_data["password"]
+        )
+        if user is None or not reactivate(user):
+            return Response(
+                {"detail": WRONG_CREDENTIALS_MESSAGE},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        login(request, user)
+        return Response(UserSerializer(user).data)
 
 
 # --------------------------------------------------------------------------
@@ -479,7 +604,9 @@ class AdminUserSendPasswordResetView(APIView):
                 reason=audit.REASON_DONOR_ACCOUNT,
             )
             return Response({"detail": DONOR_RESET_REFUSED}, status=status.HTTP_400_BAD_REQUEST)
-        sent = send_password_reset_email(user, request=request)
+        # A reset reactivates a deactivated account, which is the person's own choice
+        # to make: the administrator's send stays refused for one.
+        sent = user.is_active and send_password_reset_email(user, request=request)
         if not sent:
             audit.refuse(
                 audit.PASSWORD_RESET_ADMIN_SENT,

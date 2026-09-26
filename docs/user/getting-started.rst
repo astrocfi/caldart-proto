@@ -163,11 +163,34 @@ signed in.  Enter your email address and password.
 * **Incorrect email address or password** means exactly that, and does not say
   which of the two was wrong.  This is deliberate: it stops a stranger using the
   sign-in form to find out who has an account.
-* **This account has been deactivated** means an administrator has switched the
-  account off.  It appears only once you have typed the right password, so a
-  deactivated account looks no different from an unregistered one to a stranger
-  guessing.  Nothing you can type will get you in; ask a user administrator to
-  reactivate it.
+* **This account is deactivated. You can reactivate it.** means the account is
+  switched off: you deactivated it yourself (see :doc:`member-guide`), or an
+  administrator did.  It appears only once you have typed the right password, so
+  a deactivated account looks no different from an unregistered one to a stranger
+  guessing.
+
+.. _reactivating-your-account:
+
+Reactivating your account
+-------------------------
+
+Under that message the sign-in page shows a panel, **Reactivate my account**:
+"Reactivating brings back your roles and any membership that has not yet run
+out."  Press its **Reactivate my account** button and you are signed in, exactly
+as a normal sign-in would take you, with the same email address and password you
+just typed.
+
+* Your roles and your kind of account (member or friend) are as they were.
+* A membership that still had time to run when the account was deactivated
+  resumes through its original date.  One whose date passed in the meantime reads
+  as expired, and you can renew it as usual.
+* Automatic renewal and any recurring donation stay off: deactivating canceled
+  them.  Turn them on again from **Payments** if you want them.
+* If your email address was never verified, a fresh verification message is sent.
+
+A password reset reactivates a deactivated account too: request one, follow the
+link, and choose a new password; the account is active again and you sign in
+with the new password.
 
 You stay signed in on that browser until you sign out or the session expires.
 **Sign out** is in the top bar of the portal, next to your email address; it
@@ -205,7 +228,6 @@ In order of likelihood:
 #. It went to the spam folder.
 #. You typed a different address from the one on your account.  Try the other
    addresses you use.
-#. Your account is deactivated — no email is sent for a deactivated account.
 #. Your account does not exist yet, in which case you want **Join CalDART**
    rather than a password reset.
 

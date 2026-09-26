@@ -375,12 +375,19 @@ class MembershipPlan(TimestampedModel):
 
 
 class MembershipStatusChoices(models.TextChoices):
-    """The stored state of one ``Membership`` term."""
+    """The stored state of one ``Membership`` term.
+
+    ``SUSPENDED`` is a term whose holder deactivated their own account while it still
+    had time to run.  It counts for nothing -- it never covers a day and never makes
+    anybody expired -- until the account is reactivated, when it becomes ``ACTIVE``
+    again, or ``EXPIRED`` if it ran out in the meantime.
+    """
 
     NEW = "new", "New"
     ACTIVE = "active", "Active"
     EXPIRED = "expired", "Expired"
     CANCELED = "canceled", "Canceled"
+    SUSPENDED = "suspended", "Suspended"
 
 
 class MembershipState(models.TextChoices):

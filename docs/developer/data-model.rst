@@ -429,7 +429,8 @@ address and a password and nothing else.
      - both may be blank
    * - ``is_active``
      - ``BooleanField``
-     - from ``AbstractUser``; a deactivated account cannot sign in
+     - from ``AbstractUser``; a deactivated account cannot sign in until it is
+       reactivated (:ref:`api-deactivation`)
    * - ``is_staff``, ``is_superuser``
      - ``BooleanField``
      - kept in step with the ``website_admin`` / ``system_admin`` roles
@@ -779,7 +780,7 @@ and the current one is worked out rather than flagged.
      - ``NULL`` means lifetime
    * - ``status``
      - choice
-     - ``active``, ``expired``, ``canceled``
+     - ``new``, ``active``, ``expired``, ``canceled``, ``suspended``
    * - ``source``
      - choice
      - ``payment``, ``manual``, ``seed``
@@ -798,6 +799,15 @@ Ordered ``["-starts_on", "-id"]`` — newest first — with indexes on
 
 ``covers(on_date=None)`` is the row-level test: the term is ``active``, it has
 started, and either it is lifetime or it has not run out.
+
+A ``suspended`` term belongs to an account its holder deactivated
+(:ref:`api-deactivation`).  Deactivating suspends every ``active`` term that is
+lifetime or ends on or after that day — the covering term and any renewal already
+paid for — and reactivating, by the person or by an administrator ticking the
+account active again, turns each back to ``active``, or to ``expired`` if its end
+passed in the meantime.  While suspended, a term counts for nothing: it
+never covers a day and is never the past term an expired member is reported
+from, and the renewal reminders skip it.
 
 .. _membership-status:
 
@@ -827,8 +837,8 @@ The service
 ``current``
     Some active term covers ``on_date``.
 ``expired``
-    No term covers ``on_date``, but at least one term that is neither canceled
-    nor ``new`` has started.  ``expires_on`` and ``plan`` come from the most
+    No term covers ``on_date``, but at least one term that is neither canceled,
+    ``new``, nor suspended has started.  ``expires_on`` and ``plan`` come from the most
     recent such term.
 ``new``
     Nothing has ever covered them and nothing paid has started, but a term is
@@ -836,7 +846,9 @@ The service
     lapsed and has since started an unpaid term stays ``expired``, because the
     history is what this value distinguishes.
 ``none``
-    Nothing at all.  Everything else is ``None`` / ``False``.
+    Nothing at all — which is also what an account whose only terms are
+    suspended reads as while it is deactivated.  Everything else is ``None`` /
+    ``False``.
 
 Those five values are ``apps.members.models.MembershipState``, a
 ``TextChoices`` nothing stores: it is the computed answer, as against
@@ -931,7 +943,8 @@ The translation, term by term:
     ``coverage_end`` is ``NULL``.
 
 ``has_started_term`` / ``past_end`` / ``past_plan``
-    Non-canceled terms with ``starts_on <= today``, ordered by ``ends_on``
+    Terms that are neither canceled, ``new``, nor suspended with
+    ``starts_on <= today``, ordered by ``ends_on``
     descending with ``NULL`` first and then ``starts_on`` descending.  The
     first row is what ``membership_status`` reports for an expired member.
 

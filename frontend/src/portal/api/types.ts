@@ -35,7 +35,8 @@ export interface MembershipStatus {
   is_lifetime: boolean;
 }
 
-export type MembershipTermStatus = 'new' | 'active' | 'expired' | 'canceled';
+/** A `suspended` term belongs to an account its holder deactivated; it counts for nothing. */
+export type MembershipTermStatus = 'new' | 'active' | 'expired' | 'canceled' | 'suspended';
 export type MembershipSource = 'payment' | 'manual' | 'seed';
 
 export interface MembershipTerm {
@@ -118,6 +119,11 @@ export interface EmailVerifyResult {
 /** `POST /auth/email/change`: the address to move to, and the current password. */
 export interface EmailChangePayload {
   email: string;
+  current_password: string;
+}
+
+/** `POST /auth/deactivate`: the signed-in user's current password. */
+export interface DeactivatePayload {
   current_password: string;
 }
 

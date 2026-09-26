@@ -8,6 +8,7 @@ import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Page } from '@/portal/components/Page';
 import { useToast } from '@/portal/components/Toast';
+import { DeactivateCard } from './DeactivateCard';
 import { ProfileForm } from './ProfileForm';
 import { useProfile, useSaveProfile } from './api';
 import { profileToForm, saveErrorMessage } from './form';
@@ -73,6 +74,8 @@ export function ProfilePage(): JSX.Element {
       <p className="muted">
         The planes you commonly fly are kept on <Link to="/profile/aircraft">My aircraft</Link>.
       </p>
+
+      <DeactivateCard />
     </Page>
   );
 }

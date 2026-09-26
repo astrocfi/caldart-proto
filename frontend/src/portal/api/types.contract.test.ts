@@ -40,6 +40,7 @@ import type {
   ContributionRow,
   ContributionTier,
   Dart,
+  DeactivatePayload,
   EmailChangePayload,
   EmailLogEntry,
   EmailVerifyPayload,
@@ -206,6 +207,7 @@ const emailVerify: Matches<EmailVerifyPayload, Schemas['EmailVerifyRequest']> = 
 const emailVerified: Matches<EmailVerifyResult, Schemas['EmailVerified']> = true;
 const emailChange: Matches<EmailChangePayload, Schemas['EmailChangeRequest']> = true;
 const verificationSent: Matches<VerificationSentResult, Schemas['VerificationSent']> = true;
+const deactivate: Matches<DeactivatePayload, Schemas['DeactivateRequest']> = true;
 
 /* ------------------------------------------------------------- membership */
 const membershipStatus: Matches<MembershipStatus, Schemas['MembershipStatus']> = true;
@@ -367,6 +369,7 @@ const assertions: readonly true[] = [
   emailVerified,
   emailChange,
   verificationSent,
+  deactivate,
   membershipStatus,
   membershipTerm,
   membershipDetail,
@@ -497,6 +500,7 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'EmailVerified',
   'EmailChangeRequest',
   'VerificationSent',
+  'DeactivateRequest',
   'MembershipStatus',
   'MembershipTerm',
   'MembershipDetail',

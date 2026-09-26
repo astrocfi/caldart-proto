@@ -115,7 +115,7 @@ def test_login_with_the_right_password_names_the_deactivation(
     response = api_client.post(LOGIN_URL, {"email": member.email, "password": password})
 
     assert response.status_code == 403
-    assert response.json() == {"detail": DEACTIVATED_MESSAGE}
+    assert response.json() == {"detail": DEACTIVATED_MESSAGE, "code": "deactivated"}
 
 
 # --------------------------------------------------------------------------

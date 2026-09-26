@@ -31,7 +31,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from apps.accounts.models import PERSON_KINDS, AccountKind, User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
 from caldart import audit
-from caldart.exceptions import DomainValidationError
+from caldart.exceptions import DomainError, DomainValidationError
 from caldart.mail import contact_email, org_name, send_templated
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
@@ -74,6 +74,10 @@ STATUS_CHANGE_REFUSED = (
 )
 ROLE_CHANGE_REFUSED = "Only a system administrator can grant or revoke the system_admin role."
 DONOR_KIND_REFUSED = "A donor becomes a member or a friend only by registering."
+SYSTEM_ADMIN_SELF_DEACTIVATION_REFUSED = (
+    "A system administrator cannot deactivate their own account."
+)
+DONOR_SELF_DEACTIVATION_REFUSED = "A donor has no portal account to deactivate."
 
 #: What one account column carries in an edit: an address or a name, or the active flag.
 type AccountFieldValue = str | bool
@@ -567,14 +571,15 @@ def send_password_reset_email(user: User, *, request: HttpRequest | None = None)
     The subject is ``"<organization name>: reset your password"`` and the two
     bodies are ``emails/password_reset.{txt,html}``.
 
-    Inactive accounts, donors -- who cannot sign in, so have no password to reset --
-    and accounts without an address are skipped silently: the caller answers 204
-    either way so the endpoint cannot be used to discover which addresses are
-    registered.  An account that has never set a usable password is mailed the link
-    like any other, so an invited member who asks for a reset before following their
-    invitation still receives one.
+    Donors -- who cannot sign in, so have no password to reset -- and accounts
+    without an address are skipped silently: the caller answers 204 either way so
+    the endpoint cannot be used to discover which addresses are registered.  A
+    deactivated account is mailed the link like an active one, because completing a
+    reset reactivates it.  An account that has never set a usable password is mailed
+    the link like any other, so an invited member who asks for a reset before
+    following their invitation still receives one.
     """
-    if not user.is_active or not user.email or is_donor(user):
+    if not user.email or is_donor(user):
         return False
 
     context = _password_link_context(user, request=request)
@@ -809,3 +814,67 @@ def change_own_email(user: User, *, email: str) -> User:
     caller has already checked the current password and that the address is free.
     """
     return update_account(user, user, {"email": email})
+
+
+# --------------------------------------------------------------------------
+# Deactivating and reactivating your own account
+# --------------------------------------------------------------------------
+def deactivate_own_account(user: User) -> None:
+    """Clear ``user``'s active flag at their own request.
+
+    This is the only way a person deactivates themselves; :func:`update_account`
+    refuses the same change.  A system administrator -- the role, or a Django
+    superuser -- is refused with ``DomainError("A system administrator cannot
+    deactivate their own account.")``, so the site is never left without one by
+    accident, and a donor, who has no portal account, with ``DomainError("A donor has
+    no portal account to deactivate.")``; each refusal is recorded at WARNING as
+    ``account.deactivate`` with the reason ``system_admin_target`` or
+    ``donor_account``.  Otherwise the account is saved inactive and the change is
+    recorded as ``account.deactivate`` with ``self_service=true``.  The kind, the
+    roles and every record are kept.  The caller cancels the mandates, suspends the
+    membership, and ends the session.
+    """
+    if is_donor(user):
+        audit.refuse(
+            audit.ACCOUNT_DEACTIVATE, actor=user, target=user, reason=audit.REASON_DONOR_ACCOUNT
+        )
+        raise DomainError(DONOR_SELF_DEACTIVATION_REFUSED)
+    if SYSTEM_ADMIN in effective_roles(user):
+        audit.refuse(
+            audit.ACCOUNT_DEACTIVATE,
+            actor=user,
+            target=user,
+            reason=audit.REASON_SYSTEM_ADMIN_TARGET,
+        )
+        raise DomainError(SYSTEM_ADMIN_SELF_DEACTIVATION_REFUSED)
+    user.is_active = False
+    user.save(update_fields=["is_active", "updated_at"])
+    audit.record(audit.ACCOUNT_DEACTIVATE, actor=user, target=user, self_service=True)
+
+
+def deactivated_account(email: str, password: str) -> User | None:
+    """The deactivated account ``email`` names, when ``password`` is its password.
+
+    The address is compared case-insensitively.  ``None`` for an unknown address, an
+    active account, a donor's account, and a wrong password alike, so a caller can
+    say nothing that tells them apart.
+    """
+    user = User.objects.filter(email__iexact=email.strip(), is_active=False).first()
+    if user is None or is_donor(user) or not user.check_password(password):
+        return None
+    return user
+
+
+def reactivate_own_account(user: User) -> None:
+    """Set ``user``'s active flag again, the person having proved who they are.
+
+    The kind and roles are exactly as they were.  The change is recorded as
+    ``account.activate`` with ``self_service=true``, and an account whose address was
+    never verified is mailed a verification link once the transaction commits.  The
+    caller restores the membership and, where it signs the person in, does so.
+    """
+    user.is_active = True
+    user.save(update_fields=["is_active", "updated_at"])
+    audit.record(audit.ACCOUNT_ACTIVATE, actor=user, target=user, self_service=True)
+    if user.email_verified_at is None:
+        transaction.on_commit(lambda: send_email_verification(user))
