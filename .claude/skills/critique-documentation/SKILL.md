@@ -36,8 +36,8 @@ rules are in `.claude/rules/` (always loaded); the skills are in `.claude/skills
   JSDoc standards.
 - `doc-readme` (`.claude/skills/doc-readme/SKILL.md`) — `README.rst`: required sections,
   quick start, and consistency with `docs/index.rst`.
-- `doc-user-guide` (`.claude/skills/doc-user-guide/SKILL.md`) — the user guide: layout,
-  per-role chapters, required content, and the operator command reference.
+- `doc-user-guide` (`.claude/skills/doc-user-guide/SKILL.md`) — the user guide: one page per
+  screen grouped by who uses it, required content per page, and the voice rules.
 - `doc-dev-guide` (`.claude/skills/doc-dev-guide/SKILL.md`) — the developer guide: layout,
   required chapters, the entity-relationship diagram, per-subsystem prose, extension recipes,
   and the hand-written API reference.
@@ -106,21 +106,32 @@ Apply these criteria to the documentation set. Map each finding to the rule file
 
 ### 5. User guide (`doc-user-guide`)
 
-- **Layout:** `docs/user/` with a landing page holding a short introduction and captioned
-  `toctree` directives; getting started first; one chapter per role plus shared task
-  chapters; reference material (the FAQ) on its own page; cross-directory `:doc:` targets
-  absolute, intra-guide ones relative.
-- **Required content:** introduction/purpose; an overview of the workflow; getting started
-  (accounts, sign-in, passwords, roles); what administrators configure from the browser, with a
-  pointer to server configuration; screens and workflows per role with expected results;
-  examples (or links to the demo walkthrough).
-- **Role accuracy:** Each role chapter matches the permission matrix (`api-reference.rst`) and
-  `frontend/src/portal/nav.ts`. Note screens a role can reach that the guide omits, and
-  documented actions the role cannot perform.
-- **Operator commands:** For each management command and operator make target — name,
-  purpose, syntax, EVERY option with its default and environment- or make-variable
-  equivalent, whether it is destructive, a runnable example, and the format of any file it
-  reads or writes. Note options that drift from the command's `add_arguments` or the Makefile.
+- **Layout:** `docs/user/` as one reStructuredText page per screen of the portal or view of the
+  public site, grouped by who uses it: `member/` (screens every signed-in person has, and the
+  public site as a visitor sees it), `admin/` (a DART leader and the user, account, and system
+  administrators), `finance/` (the treasurer), and `website/` (the website administrator's
+  Wagtail editing screens). Each group directory holds an `index.rst` of a title, one or two
+  sentences, and a toctree, and no other prose. Root pages are `index`, `quick-start`,
+  `overview`, `roles`, and `faq`. A page's slug (its path under `docs/user/` without the
+  extension) is the **Help** button's target in `frontend/src/portal/help.ts`'s `HELP_PAGES`
+  and the `:doc:` target every other page uses to reach it.
+- **Required content per page:** self-contained for a reader who lands on it from **Help** with
+  no other context — what the screen is for, then what you see, what you can do, and what
+  happens next, closing with an "If something looks wrong" paragraph. No page exceeds 250
+  lines; a screen with several tabs or states splits across more than one page. `roles.rst`
+  names every screen a role reaches, in bold, linked to its page; `faq.rst` answers link to the
+  page that covers the question in full; `quick-start.rst` links to every page whose screen it
+  walks through.
+- **Role accuracy:** Every screen named for a role matches the permission matrix
+  (`api-reference.rst`) and `frontend/src/portal/nav.ts`. Note screens a role can reach that
+  the guide omits, and documented actions the role cannot perform.
+- **Voice:** second person, present tense; a screen name, button, or field label in bold and a
+  message the software shows in italics, both copied from the running code; no shell command,
+  environment variable, file path, HTTP status, JSON, API path, or code identifier anywhere in
+  the guide, and no link to the developer guide or `docs/demo-walkthrough.rst`
+  (`backend/tests/test_docs_user.py` enforces both); the banned-word list, the "X, not Y"
+  contrast ban outside italics or bold, serial commas, at most two em dashes and no `--` on a
+  page, and no prose line starting with a comma.
 
 ### 6. Developer guide and API reference (`doc-dev-guide`)
 
@@ -132,6 +143,10 @@ Apply these criteria to the documentation set. Map each finding to the rule file
   variable, running locally, the test suites, the lint/check/audit/docs commands, CI, upgrading
   a server, the contribution workflow); architecture and data model; subsystem chapters;
   extending; a coding-conventions pointer; the API reference.
+- **Operator commands:** For each management command and operator make target — name,
+  purpose, syntax, EVERY option with its default and environment- or make-variable
+  equivalent, whether it is destructive, a runnable example, and the format of any file it
+  reads or writes. Note options that drift from the command's `add_arguments` or the Makefile.
 - **Diagram:** The entity-relationship diagram in `data-model.rst` shows the principal models
   and relationships, matches the models, and has an ASCII equivalent.
 - **Per-subsystem prose:** Each subsystem chapter gives an overview naming its code, contracts,
@@ -202,10 +217,10 @@ so briefly under "Rules applied".
 [Sections present/missing; runnable commands; links; consistency with docs/index.rst and the metadata.]
 
 ## 5. User guide
-[Layout; required content; role accuracy; operator command coverage.]
+[Layout; required content; role accuracy; Help-page slugs; voice.]
 
 ## 6. Developer guide and API reference
-[Layout; required chapters; diagram; per-subsystem prose; extension recipes; endpoint coverage and permission matrix.]
+[Layout; required chapters; operator command coverage; diagram; per-subsystem prose; extension recipes; endpoint coverage and permission matrix.]
 
 ## 7. How-to articles
 [Structure; placement; prerequisites; steps with observed results; troubleshooting; consistency with the guides.]

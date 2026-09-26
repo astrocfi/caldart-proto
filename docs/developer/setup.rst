@@ -163,7 +163,7 @@ Sign in with any of the demo accounts, all of which use the password
    * - ``useradmin@example.org``
      - ``member``, ``user_admin``
    * - ``treasurer@example.org``
-     - ``member``, ``treasurer`` — no membership term
+     - ``member``, ``treasurer`` — a friend of CalDART, no membership term
    * - ``accountadmin@example.org``
      - ``member``, ``account_admin``
    * - ``webadmin@example.org``
