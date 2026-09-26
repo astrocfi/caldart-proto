@@ -94,9 +94,10 @@ all call it.  In order:
    ``on=<friend_on>`` (:ref:`kinds of account <account-kinds>`).  A dry run converts nobody.
 3. **Walk the five stages in order.**  For each, select the memberships whose
    ``ends_on`` falls in that stage's span (:ref:`reminders-stages`), excluding
-   canceled ones and the terms of every account stored as a friend or carrying
-   a ``friend_on`` date: a friend is never nagged to renew, and neither is a
-   member who has asked to become one.  Such a term is not a candidate at all,
+   canceled ones, suspended ones (their holder deactivated their own account;
+   see :ref:`api-deactivation`), and the terms of every account stored as a
+   friend or carrying a ``friend_on`` date: a friend is never nagged to renew,
+   and neither is a member who has asked to become one.  Such a term is not a candidate at all,
    so it appears in no skip count.  Lifetime terms have no ``ends_on`` at all,
    so they never appear.
 4. **Decide whether to send.**  A candidate is skipped, with a reason recorded
@@ -105,7 +106,9 @@ all call it.  In order:
    ``already_sent``
       a ``ReminderLog`` row already exists for this user, membership, and kind;
    ``inactive_user``
-      the account has been deactivated;
+      the account has been deactivated by an administrator, whose term is still
+      ``active`` (an account its owner deactivated holds suspended terms, which
+      are no candidates);
    ``no_email``
       the account has no email address;
    ``lifetime``

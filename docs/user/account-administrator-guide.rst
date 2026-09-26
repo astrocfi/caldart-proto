@@ -273,10 +273,20 @@ address into the confirmation box.  Two further deletions are refused outright:
   administrator's here even if the role itself was never granted.
 
 If somebody has simply left, clearing **Account is active** on the Profile tab
-is the answer: it stops them signing in and keeps the record for the accounts.
-That box is guarded like the email address, so on a record carrying a role you
-do not hold — a DART leader's, say — the save is refused; ask a system
+is the answer: it takes them out of the lists and keeps the record for the
+accounts.  That box is guarded like the email address, so on a record carrying a
+role you do not hold — a DART leader's, say — the save is refused; ask a system
 administrator, or a colleague who holds every role that account holds.
+
+Members and friends can also deactivate their own accounts from their profile
+(see :ref:`deactivating-your-account`).  That cancels their automatic renewal
+and recurring donations, and marks any membership term with time left
+*Suspended* in the history table: a suspended term counts for nothing while the
+account is deactivated.  A deactivated account is not locked for good, whoever
+deactivated it: signing in with the right password offers **Reactivate my
+account**, which switches the account back on, and a password reset does the
+same.  Reactivating turns each suspended term back to *Active*, or to *Expired*
+if its end date passed in the meantime.
 
 
 Reports
@@ -574,7 +584,7 @@ When something goes wrong
 **"Only a system administrator can delete a system administrator."**
    Deleting an administrator is deliberately harder than deleting a member.
    Ask a system administrator, or deactivate the account instead — which keeps
-   the history and locks them out just as effectively.
+   the history and takes them out of every list.
 
 **"… has N payment records, which must be kept. Deactivate the account instead."**
    The Danger zone hides the delete form for a member who has paid, so this

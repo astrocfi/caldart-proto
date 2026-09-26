@@ -216,9 +216,11 @@ case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
   that belongs to a deactivated account is answered with exactly this body
   whenever the password does not match, so a guess cannot be used to find out
   which addresses are registered.
-* **403** ``{"detail": "This account has been deactivated. Ask a CalDART
-  administrator."}`` — the password matched, but ``is_active`` is false.  Only
-  somebody who already holds the password sees this.
+* **403** ``{"detail": "This account is deactivated. You can reactivate it.",
+  "code": "deactivated"}`` — the password matched, but ``is_active`` is false.
+  Only somebody who already holds the password sees this.  The ``code`` tells the
+  portal to offer reactivation, which posts the same credentials to
+  ``POST /auth/reactivate`` (:ref:`api-deactivation`).
 
 A donor cannot sign in at all.  A donor's account holds no usable password, and
 even one that somehow does is answered with the same 400 as wrong
@@ -276,9 +278,8 @@ Statuses: **204**; **400** for either rejection above or a missing field;
 -----------------------------
 
 Mails a reset link to the address, and answers with no body **whatever
-happens**.  Whether the address is registered, belongs to a deactivated
-account, or has never been seen, the answer is identical: the endpoint must not
-be usable to enumerate members.  A malformed address is still a 400, since that
+happens**.  Whether the address is registered or has never been seen, the
+answer is identical: the endpoint must not be usable to enumerate members.  A malformed address is still a 400, since that
 is a client bug rather than an answer about the database.
 
 .. code-block:: json
@@ -286,7 +287,7 @@ is a client bug rather than an answer about the database.
    {"email": "marta.reyes@example.org"}
 
 A donor is mailed nothing, since a donor cannot sign in.  When there is an
-active account of any other kind,
+account of any other kind, active or deactivated,
 ``apps.accounts.services.send_password_reset_email`` renders ``templates/emails/password_reset.{txt,html}`` and mails a link::
 
     {SITE_URL}/portal/reset-password?uid=<urlsafe_base64(pk)>&token=<token>
@@ -316,8 +317,7 @@ body.
    {"uid": "MTI", "token": "cs2k3t-4f2a...", "new_password": "..."}
 
 Every way a link can be unusable — a mangled ``uid``, an unknown user, a
-deactivated account, a donor's account, a token that has expired or has
-already been spent — returns the same ``{"token": ["That password reset link is invalid or has
+donor's account, a token that has expired or has already been spent — returns the same ``{"token": ["That password reset link is invalid or has
 expired. Request a new one."]}``.  A weak new password is reported separately
 under ``new_password``.
 
@@ -327,9 +327,102 @@ marks an unverified address verified (``email_verified_at`` is set to now, and
 an ``account.email_verified`` audit line is written); an address already
 verified keeps its original time.
 
+A link for a deactivated account is accepted, and spending it reactivates the
+account exactly as ``POST /auth/reactivate`` does — the person proved the address
+and chose to come back — except that nobody is signed in: the portal sends them
+to ``/login`` as for any reset.
+
 Statuses: **204**; **400** for an unusable link, a weak password or a missing
 field; **429** when the ``auth_password_reset`` throttle is exhausted, which
 is the same budget the request endpoint draws on.
+
+
+.. _api-deactivation:
+
+Deactivating and reactivating your own account
+==============================================
+
+A member or a friend can switch their own account off and back on.  The user
+administrator's ``is_active`` flag (:ref:`account-edit-guard` below) stays
+the only way to deactivate somebody else, and ``update_account`` still refuses
+any caller's edit of their own flag; these two endpoints are the self-service
+path.
+
+While an account is deactivated, every membership term it held with time left is
+``suspended`` (see :doc:`data-model`).  A suspended term never covers a day and
+never counts as a past term, so an account whose only terms are suspended reads
+as ``none``; the reminder scan leaves suspended terms out altogether.
+
+``POST /auth/deactivate``
+-------------------------
+
+Deactivates the signed-in account and ends its session, answering with no body.
+
+.. code-block:: json
+
+   {"current_password": "..."}
+
+In one transaction:
+
+#. every active or paused renewal mandate — automatic renewal or recurring
+   donation — is canceled by ``payments.renewals.cancel_mandate`` with the account
+   as its own actor (a self-service ``renewal.cancel``, and the usual "automatic
+   renewal is off" email once the transaction commits), and a pending one is
+   discarded (``payments.renewals.cancel_all_mandates``);
+#. every active term that is lifetime or ends on or after today — the covering
+   term and any renewal already paid for that starts later — is set to
+   ``suspended``, each recorded as ``membership.correct`` with
+   ``status=suspended`` (``members.services.suspend_terms``);
+#. ``is_active`` is cleared and ``account.deactivate`` is recorded with
+   ``self_service=true``.
+
+The session is then logged out.  The kind, the roles, the profile and every
+payment are kept.
+
+* **400** ``{"current_password": ["That is not your current password."]}``.
+* **400** ``{"detail": "A system administrator cannot deactivate their own
+  account."}`` — the ``system_admin`` role or a Django superuser.  Recorded at
+  WARNING as ``action=account.deactivate ... reason=system_admin_target``.
+* **400** ``{"detail": "A donor has no portal account to deactivate."}``, recorded
+  with ``reason=donor_account``.  A donor cannot sign in, so this is a guard
+  rather than a path anybody takes.
+
+Statuses: **204**; **400** for any refusal above, which changes nothing;
+**401** when anonymous.
+
+``POST /auth/reactivate``
+-------------------------
+
+Brings a deactivated account back and signs it in, answering with the user
+payload.  It takes the same body as a sign-in, and shares its throttle scope,
+``auth_login``.
+
+.. code-block:: json
+
+   {"email": "marta.reyes@example.org", "password": "..."}
+
+Only an inactive account that is not a donor's, whose password matches, is
+reactivated (``accounts.services.deactivated_account``; the address is compared
+case-insensitively).  Then:
+
+#. ``is_active`` is set and ``account.activate`` is recorded with
+   ``self_service=true``; the kind and the roles are exactly as they were;
+#. each suspended term becomes ``active`` when it is lifetime or ends on or after
+   today, so the membership resumes through its original date, and ``expired``
+   when its end passed in the meantime, each recorded as ``membership.correct``
+   (``members.services.restore_terms``);
+#. an account whose address was never verified is mailed a verification link
+   once the transaction commits.
+
+Canceled mandates stay canceled.  This works for an account an administrator
+deactivated as well as one its owner deactivated.
+
+* **400** ``{"detail": "Incorrect email address or password."}`` — a wrong
+  password, an active account, an unknown address, or a donor, all answered
+  with the body a failed sign-in gives.
+
+Statuses: **200** with the user payload and a session cookie; **400** as above
+or for a missing field; **429** when the ``auth_login`` throttle is exhausted.
 
 
 Email verification
@@ -664,7 +757,9 @@ The rule, in the order it is applied:
    every field is judged only on the fields it actually moves.  Email addresses
    are compared case-insensitively after stripping, exactly as the uniqueness
    constraint compares them, and ``is_active`` as a boolean.
-#. **Nobody may deactivate their own account**, whatever roles they hold.
+#. **Nobody may deactivate their own account** through an edit, whatever roles
+   they hold; ``POST /auth/deactivate`` (:ref:`api-deactivation`) is the one
+   self-service path.
 #. **Otherwise the actor must hold every role the target holds.**  A system
    administrator holds every role, so one always passes.
 
@@ -723,14 +818,17 @@ Account ids, field names and a reason slug only: no address, and nothing else
 that identifies a person.  A refused role change reads
 ``action=account.roles ... reason=system_admin_role``, and a refused
 self-deactivation ``action=account.deactivate ... reason=self_deactivation``.
-An edit that goes through is recorded the same way at INFO.
+An edit that goes through is recorded the same way at INFO.  The self-service
+endpoints record ``action=account.deactivate actor=12 target=12
+self_service=true`` and ``action=account.activate actor=12 target=12
+self_service=true``.
 
 
 Rate limiting
 =============
 
-Login, registration, both password-reset endpoints, the email-verify endpoint,
-and the verification resend are throttled by client address.  The classes are in ``apps.accounts.throttling``; they subclass
+Login, reactivation, registration, both password-reset endpoints, the
+email-verify endpoint, and the verification resend are throttled by client address.  The classes are in ``apps.accounts.throttling``; they subclass
 ``AnonRateThrottle`` but override ``get_cache_key`` so a session does not exempt
 the caller — registration signs the new account in, so every request after the
 first would otherwise carry a cookie and go uncounted.
@@ -762,14 +860,20 @@ How the portal uses this
 
 ``src/portal/auth/useAuth.ts`` wraps the whole surface in TanStack Query hooks:
 ``useMe`` and ``useAuth`` for identity, ``useRoles`` for the catalog, and
-``useLogin``, ``useRegister``, ``useLogout``, ``usePasswordChange``,
+``useLogin``, ``useReactivate``, ``useRegister``, ``useLogout``, ``usePasswordChange``,
 ``usePasswordResetRequest``, ``usePasswordResetConfirm``, ``useEmailVerify``,
 ``useResendVerification``, and ``useEmailChange`` for the mutations.
 ``useEmailChange`` seeds ``['auth', 'me']`` with the answer, and
 ``useEmailVerify`` invalidates it, so a signed-in member's own payload says
 verified straight away.
-Login, registration, and logout all call ``queryClient.clear()`` so no screen can
-show the previous user's data.
+Login, reactivation, registration, and logout all call ``queryClient.clear()`` so
+no screen can show the previous user's data.  The sign-in page reads a 403 whose
+``code`` is ``deactivated`` as an offer: it shows a **Reactivate my account**
+panel whose button sends the same credentials through ``useReactivate`` and then
+continues as a sign-in would.  The profile page's **Deactivate my account** card
+(``features/profile/DeactivateCard.tsx``) calls ``useDeactivate`` from the
+profile feature's ``api.ts``, which clears the cache the same way, then goes to
+``/login``.
 
 ``useSignOut`` wraps ``useLogout`` for the screens that sign somebody out: it
 runs the mutation and, once the session is gone, navigates to ``/login``.  The

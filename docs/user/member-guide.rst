@@ -274,7 +274,8 @@ to it; the dashboard reminds you until you do.  Following a password reset link
 verifies the address too, since the link could only have reached you there.
 
 If your account has been deactivated, signing in with the right password tells
-you so; contact CalDART to have it reopened.
+you so and offers **Reactivate my account** (see
+:ref:`reactivating-your-account`).
 
 To sign out, press **Sign out** in the portal's top bar, beside your email
 address.  It ends the session and empties everything the portal had cached
@@ -283,6 +284,38 @@ button rather than an address, so no link and no bookmark can sign you out by
 being opened.  If you are partway through joining and the wizard says you are
 signed in as somebody else, **Use a different account** on the account step
 does the same thing and returns you to the sign-in page.
+
+
+.. _deactivating-your-account:
+
+Deactivating your account
+=========================
+
+The last card on **My profile** is **Deactivate my account**.  It says what
+happens: "You will be signed out and will not appear in any list. Your
+information and your payment history are kept. Sign in again any time to
+reactivate."  While your membership is current it adds "Your membership is
+current through YYYY/MM/DD. Deactivating ends it now; if you reactivate before
+that date, it resumes."  A life member reads that the lifetime membership resumes
+whenever they reactivate.
+
+Type your current password and press **Deactivate my account**.  Then:
+
+* automatic renewal and any recurring donation are turned off, and CalDART emails
+  you that automatic renewal is off;
+* your membership stops counting: it is set aside, not canceled, and you are
+  sent no renewal reminders;
+* you are signed out and taken to the sign-in page, which says "Your account is
+  deactivated. Sign in any time to reactivate it."
+
+Nothing is deleted.  To come back, sign in with the same email address and
+password and press **Reactivate my account** (see
+:ref:`reactivating-your-account`), or reset your password.  A membership whose
+date has not yet passed resumes through that date; automatic renewal and
+recurring donations stay off until you turn them on again.
+
+A system administrator cannot deactivate their own account; another system
+administrator has to take the role away first.
 
 
 When something goes wrong

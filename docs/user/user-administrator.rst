@@ -178,13 +178,23 @@ Things worth knowing:
 Activating and deactivating
 ---------------------------
 
-Untick **Active** and save.  A deactivated account cannot sign in — the sign-in
-page tells them the account has been deactivated — and no password reset email
-will be sent to it.  Nothing is deleted: their profile, membership history and
-payments stay exactly as they were, and ticking the box again restores access.
+Untick **Active** and save.  A deactivated account's password no longer signs
+it in, and **Send password reset** is refused for it.  Nothing is deleted: their
+profile, membership history and payments stay exactly as they were, and ticking
+the box again restores access.
 
-Deactivation is the right tool for someone who has left, or an account you
-suspect has been compromised.  Deleting members outright is an account
+The person can come back on their own, though.  Signing in with the right
+password tells them the account is deactivated and offers **Reactivate my
+account**, which switches it back on and signs them in; completing a password
+reset they asked for does the same.  They can also deactivate their own account
+from their profile (see :ref:`deactivating-your-account`), which cancels their
+automatic renewal and recurring donations and sets their membership aside until
+they return.  Unticking **Active** yourself does neither of those.
+
+Deactivation is the right tool for someone who has left.  It does not keep out
+someone who knows the password, so for an account you suspect has been
+compromised, deactivate it *and* ask the owner to reset the password once they
+are back in.  Deleting members outright is an account
 administrator's job, and it is a hard delete — see
 :doc:`account-administrator-guide`.
 
