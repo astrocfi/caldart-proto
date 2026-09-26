@@ -853,7 +853,9 @@ Rate limiting
 =============
 
 Login, reactivation, registration, both password-reset endpoints, the
-email-verify endpoint, and the verification resend are throttled by client address.  The classes are in ``apps.accounts.throttling``; they subclass
+email-verify endpoint, the verification resend, and the public donation
+checkout are throttled by client address.  The classes are in
+``apps.accounts.throttling``; they subclass
 ``AnonRateThrottle`` but override ``get_cache_key`` so a session does not exempt
 the caller — registration signs the new account in, so every request after the
 first would otherwise carry a cookie and go uncounted.
@@ -870,7 +872,12 @@ Scope                    Default                    Environment variable
 ``auth_password_reset``  10/hour                    ``AUTH_THROTTLE_PASSWORD_RESET``
 ``auth_verify``          30/hour                    ``AUTH_THROTTLE_VERIFY``
 ``auth_verify_resend``   5/hour                     ``AUTH_THROTTLE_VERIFY_RESEND``
+``donate``               10/hour                    ``AUTH_THROTTLE_DONATE``
 =======================  =========================  ===========================
+
+``donate`` guards only ``POST /donations/checkout``: the calls that finish or
+read a gift are proven instead by the signed token that checkout answers (see
+:doc:`api-payments`), so throttling them by address would gain nothing.
 
 A scope mapped to ``None`` — or missing from the dict — is inert.
 ``caldart/settings/test.py`` maps every scope to ``None`` so the suite never
