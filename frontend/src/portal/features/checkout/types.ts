@@ -1,5 +1,6 @@
 /** Shapes shared by the checkout widget and its provider panels. */
 import type { IsoDate, MandateCadence, MembershipStatus } from '@/portal/api/types';
+import type { PaymentEndpoints } from './endpoints';
 
 /** What a completed checkout hands back to the join or renew flow. */
 export interface CheckoutResult {
@@ -42,4 +43,6 @@ export interface ProviderPanelProps {
    */
   onRenewalContribution?: (detail: string) => void;
   onSuccess: (result: CheckoutResult) => void;
+  /** The calls the panel makes; the signed-in member's checkout when left out. */
+  endpoints?: PaymentEndpoints;
 }

@@ -8,7 +8,8 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 
 import { Button } from '@/portal/components/Button';
-import { checkoutRequest, completeMockPayment, createCheckout, panelErrorMessage } from './api';
+import { checkoutRequest, panelErrorMessage } from './api';
+import { PORTAL_ENDPOINTS } from './endpoints';
 import type { ProviderPanelProps } from './types';
 
 /** Succeed / Fail buttons that drive the mock payment provider directly. */
@@ -16,6 +17,7 @@ export function MockPanel({
   amountCents: _amountCents,
   onSuccess,
   onRenewalContribution,
+  endpoints = PORTAL_ENDPOINTS,
   ...fields
 }: ProviderPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +27,8 @@ export function MockPanel({
     setError(null);
     setBusy(true);
     try {
-      const checkout = await createCheckout(checkoutRequest(fields, 'mock'));
-      const result = await completeMockPayment(checkout.payment_id, outcome);
+      const checkout = await endpoints.createCheckout(checkoutRequest(fields, 'mock'));
+      const result = await endpoints.completeMock(checkout.payment_id, outcome);
       if (result.status === 'succeeded') {
         onSuccess({ paymentId: checkout.payment_id, membership: result.membership });
       } else {

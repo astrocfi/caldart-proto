@@ -766,6 +766,63 @@ export interface PaymentResult {
   membership: MembershipStatus;
 }
 
+/* ---------------------------------------------------------- public donations */
+/** One state the public donation form offers: its two-letter code and its name. */
+export interface StateChoice {
+  value: string;
+  label: string;
+}
+
+/** `GET /donations/config`: everything the public donation form offers. */
+export interface DonationsConfig {
+  providers: PaymentProvider[];
+  stripe_publishable_key: string;
+  paypal_client_id: string;
+  contribution_tiers: ContributionTier[];
+  /** The largest gift the checkout accepts, in cents. */
+  max_contribution_cents: number;
+  counties: string[];
+  darts: Pick<Dart, 'id' | 'name'>[];
+  states: StateChoice[];
+}
+
+/**
+ * `POST /donations/checkout`: who is giving, how much, and through which provider.
+ *
+ * The four names and addresses are required; the rest are the donor's profile, each
+ * left out when the giver left it blank.
+ */
+export interface DonationCheckoutRequest {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  contribution_cents: number;
+  provider: PaymentProvider;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: UsState | '';
+  postal_code?: string;
+  county?: CaliforniaCounty | '';
+  home_airport_identifier?: string;
+  home_airport_city?: string;
+  dart_id?: number | null;
+  air_care_alliance_number?: string;
+  pilot_certificate_type?: PilotCertificateType;
+  ifr_rated?: IfrRated;
+  vol_mission_pilot?: boolean;
+  vol_ground_team?: boolean;
+  vol_exercise_training?: boolean;
+  vol_member_support?: boolean;
+  vol_fundraising?: boolean;
+  vol_social_media?: boolean;
+  vol_newsletter?: boolean;
+}
+
+/** The 201 of `POST /donations/checkout`: the portal checkout's answer, plus the token. */
+export type DonationCheckoutResponse = CheckoutResponse & { token: string };
+
 /* ----------------------------------------------------------------- refunds */
 export type RefundReason = 'requested_by_member' | 'duplicate' | 'error' | 'fraudulent' | 'other';
 

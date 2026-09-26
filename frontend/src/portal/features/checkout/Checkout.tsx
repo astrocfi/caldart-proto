@@ -32,14 +32,12 @@ import { formatDate, todayIso } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { formatCents } from '@/portal/components/Money';
 import { MandateSetupTabs } from '@/portal/features/payments/MandateSetupTabs';
-import { PROVIDER_LABELS, PROVIDER_ORDER, usePaymentsConfig } from './api';
+import { PROVIDER_ORDER, usePaymentsConfig } from './api';
 import { ContributionChooser } from './ContributionChooser';
-import { MockPanel } from './MockPanel';
-import { PayPalPanel } from './PayPalPanel';
 import { PlanChooser } from './PlanChooser';
+import { ProviderTabs } from './ProviderTabs';
 import { RecurringDonationFields } from './RecurringDonationFields';
 import type { RecurringDonation } from './RecurringDonationFields';
-import { StripePanel } from './StripePanel';
 import type { CheckoutMode, CheckoutProps, ProviderPanelProps } from './types';
 import './checkout.css';
 
@@ -316,67 +314,5 @@ function SkipFooter({ onSkip }: { onSkip: (() => void) | undefined }) {
         Not now
       </Button>
     </div>
-  );
-}
-
-interface ProviderTabsProps {
-  providers: PaymentProvider[];
-  active: PaymentProvider | null;
-  onChange: (provider: PaymentProvider) => void;
-  config: { stripe_publishable_key: string; paypal_client_id: string };
-  panelProps: ProviderPanelProps;
-}
-
-function ProviderTabs({ providers, active, onChange, config, panelProps }: ProviderTabsProps) {
-  const selected = active ?? providers[0];
-  // `providers` is never empty here: the caller renders the empty state instead.
-  if (selected === undefined) return null;
-  const current: PaymentProvider = selected;
-
-  function handleKeyDown(event: React.KeyboardEvent): void {
-    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
-    event.preventDefault();
-    const step = event.key === 'ArrowRight' ? 1 : -1;
-    const index = providers.indexOf(current);
-    const next = providers[(index + step + providers.length) % providers.length];
-    if (next) onChange(next);
-  }
-
-  return (
-    <section className="checkout__pay">
-      <h3 className="eyebrow">How would you like to pay?</h3>
-      <div className="checkout__tabs" role="tablist" aria-label="Payment method">
-        {providers.map((slug) => (
-          <button
-            key={slug}
-            type="button"
-            role="tab"
-            id={`checkout-tab-${slug}`}
-            aria-selected={slug === current}
-            aria-controls={`checkout-panel-${slug}`}
-            tabIndex={slug === current ? 0 : -1}
-            className="checkout__tab"
-            onClick={() => onChange(slug)}
-            onKeyDown={handleKeyDown}
-          >
-            {PROVIDER_LABELS[slug]}
-          </button>
-        ))}
-      </div>
-
-      <div
-        role="tabpanel"
-        id={`checkout-panel-${current}`}
-        aria-labelledby={`checkout-tab-${current}`}
-      >
-        {current === 'stripe' ? (
-          <StripePanel publishableKey={config.stripe_publishable_key} {...panelProps} />
-        ) : null}
-        {current === 'paypal' ? (
-          <PayPalPanel clientId={config.paypal_client_id} {...panelProps} />
-        ) : null}
-        {current === 'mock' ? <MockPanel {...panelProps} /> : null}
-      </div>
-    </section>
   );
 }
