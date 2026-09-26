@@ -7,9 +7,11 @@ so they run whether or not the real guide has been built.
 
 from __future__ import annotations
 
+import importlib
 import logging
 from collections.abc import Iterator
 from pathlib import Path
+from types import ModuleType
 from typing import cast
 
 import pytest
@@ -175,6 +177,25 @@ def test_a_figure_asset_carries_the_type_a_browser_needs(
     response = reader.get(f"/docs/{path}")
     response.close()
     assert response.headers["Content-Type"] == content_type
+
+
+@pytest.fixture(scope="module")
+def dev_settings() -> ModuleType:
+    """Import ``caldart.settings.dev`` as a module, without switching onto it."""
+    return importlib.import_module("caldart.settings.dev")
+
+
+def test_development_allows_a_diagram_to_frame_its_own_svg(
+    dev_settings: ModuleType,
+) -> None:
+    """Development sets ``X_FRAME_OPTIONS`` to ``SAMEORIGIN``, not Django's ``DENY``.
+
+    A diagram's toolbar (:func:`test_a_figure_asset_carries_the_type_a_browser_needs`)
+    embeds its SVG in an ``object`` tag. A browser refuses to draw an ``object`` whose
+    target answers ``X-Frame-Options: DENY``, so a diagram would never appear under
+    ``make run`` if development kept that default.
+    """
+    assert dev_settings.X_FRAME_OPTIONS == "SAMEORIGIN"
 
 
 # ------------------------------------------------------------------ footer

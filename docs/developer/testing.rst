@@ -440,8 +440,8 @@ What the backend suite covers
        truth table
    * - ``test_payments_api.py``, ``…_stripe.py``, ``…_paypal.py``,
        ``…_mock_provider.py``, ``…_apple_pay.py``
-     - checkout → confirm → activation for each provider, webhook signatures
-       , amount, and currency mismatches, idempotency
+     - checkout → confirm → activation for each provider, webhook
+       signatures, amount, and currency mismatches, idempotency
    * - ``test_reminders.py``, ``test_reminders_resilience.py``,
        ``test_reminders_api.py``
      - each kind on its own offset, the five stage spans, dedupe, dry
