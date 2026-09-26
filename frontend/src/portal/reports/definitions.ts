@@ -17,6 +17,7 @@ import {
 import { KIND_LABELS } from '@/portal/features/admin-payments/labels';
 import {
   CERTIFICATE_FILTER_CHOICES,
+  KIND_FILTER_CHOICES,
   MEDICAL_FILTER_CHOICES,
   STATUS_CHOICES,
 } from '@/portal/features/admin-members/choices';
@@ -73,6 +74,7 @@ const COUNTY_OPTIONS: Option[] = CA_COUNTIES.map((county) => ({
 }));
 
 const MEMBER_FILTERS: FilterField[] = [
+  { key: 'kind', label: 'Kind', kind: 'select', placeholder: 'All', options: KIND_FILTER_CHOICES },
   {
     key: 'search',
     label: 'Search',
@@ -86,10 +88,16 @@ const MEMBER_FILTERS: FilterField[] = [
   { key: 'medical', label: 'Medical', kind: 'select', options: MEDICAL_FILTER_CHOICES },
   // The DARTs are the server's, so the page supplies them through `options`.
   { key: 'dart', label: 'DART', kind: 'select' },
-  { key: 'county', label: 'County', kind: 'select', options: COUNTY_OPTIONS },
+  // Several counties at once: a DART that covers two counties asks for both.
+  {
+    key: 'county',
+    label: 'County',
+    kind: 'multiselect',
+    options: COUNTY_OPTIONS,
+    hint: 'Hold Ctrl (or Command) to choose more than one county.',
+  },
   { key: 'role', label: 'Role', kind: 'select', options: ROLE_CHOICES },
   { key: 'expiring_within', label: 'Expiring within (days)', kind: 'number' },
-  { key: 'is_active', label: 'Active accounts only', kind: 'toggle' },
 ];
 
 const AIRCRAFT_FILTERS: FilterField[] = [

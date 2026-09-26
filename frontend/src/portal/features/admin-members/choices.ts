@@ -26,6 +26,15 @@ export const CERTIFICATE_FILTER_CHOICES: Choice<string>[] = [
   ...CERTIFICATE_TYPES.slice(2),
 ];
 
+/**
+ * The kind selector's choices.  Its blank first option, **All**, lists members
+ * and friends together; a donor is in no member list, so is never offered.
+ */
+export const KIND_FILTER_CHOICES: Choice<'member' | 'friend'>[] = [
+  { value: 'member', label: 'Members only' },
+  { value: 'friend', label: 'Friends only' },
+];
+
 /** The medical filter's own list: every class, plus "Has any medical". */
 export const MEDICAL_FILTER_CHOICES: Choice<string>[] = [
   ...MEDICAL_TYPES,

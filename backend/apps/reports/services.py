@@ -30,8 +30,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import User
 from apps.darts.models import Dart, DartContact
-from apps.members.filters import MemberAdminFilterSet, member_admin_queryset
-from apps.members.reports import MEMBER_REPORT
+from apps.members.reports import MEMBER_REPORT, member_report_queryset
 from apps.reports.models import ReportFormats, ReportSubscription
 from apps.reports.permissions import can_read_report
 from apps.reports.registry import REPORTS
@@ -43,7 +42,6 @@ from caldart.reports import (
     Report,
     ReportDocument,
     ReportFormat,
-    apply_filterset,
     build_report,
     filter_summary,
 )
@@ -64,7 +62,8 @@ ROSTER_KIND = "roster"
 #: address, on a DART whose roster went to others.
 SKIP_REASONS: tuple[str, ...] = ("not_permitted", "no_recipients", "no_email")
 
-#: The columns of a DART's roster, in the order it prints them.
+#: The columns of a DART's roster, in the order it prints them.  A roster lists the
+#: DART's active members and friends alike, so the last column says which each is.
 ROSTER_COLUMNS: tuple[str, ...] = (
     "name",
     "phone",
@@ -74,6 +73,7 @@ ROSTER_COLUMNS: tuple[str, ...] = (
     "medical_expiration",
     "aircraft",
     "expires_on",
+    "kind",
 )
 
 #: The files each ``formats`` value attaches, in attachment order.
@@ -395,7 +395,12 @@ def send_subscription_now(
 # DART rosters
 # --------------------------------------------------------------------------
 def roster_params(dart: Dart) -> Params:
-    """The members report's params for ``dart``'s roster: its members, by name."""
+    """The members report's params for ``dart``'s roster: its members, by name.
+
+    No ``kind`` is given, so the roster lists the DART's members and its friends
+    together, the Kind column telling them apart; like the report it is built from,
+    it never lists a deactivated account or a donor.
+    """
     return {"dart": str(dart.pk), "ordering": "name", "columns": ",".join(ROSTER_COLUMNS)}
 
 
@@ -429,10 +434,8 @@ def claim_due_roster(pk: int, today: date) -> Dart | None:
 
 
 def roster_member_count(dart: Dart) -> int:
-    """How many members ``dart``'s roster lists, counted as the report selects them."""
-    return apply_filterset(
-        MemberAdminFilterSet, roster_params(dart), member_admin_queryset()
-    ).count()
+    """How many people ``dart``'s roster lists, counted as the report selects them."""
+    return member_report_queryset(roster_params(dart)).count()
 
 
 def send_roster_email(

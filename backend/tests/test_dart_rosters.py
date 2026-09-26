@@ -17,12 +17,12 @@ from django.utils import timezone
 from pytest_django.fixtures import Settings
 from rest_framework.test import APIClient
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ACCOUNT_ADMIN, SYSTEM_ADMIN
 from apps.cms.models import SiteSettings
 from apps.darts.models import Dart
 from apps.mail.models import EmailLog
-from apps.reports.services import run_scheduled_reports
+from apps.reports.services import ROSTER_COLUMNS, run_scheduled_reports
 from caldart import audit
 from tests.conftest import Golden, PdfText, audit_messages, role_matrix
 from tests.factories import DartContactFactory, DartFactory, MemberProfileFactory, UserFactory
@@ -218,6 +218,33 @@ def test_the_roster_lists_the_darts_members_with_the_roster_columns(
     assert text[text.index("Name") : text.index("Name") + 6] == header
     assert "Robin Ashby" in text
     assert "Other Team" not in text
+
+
+def test_the_roster_names_each_persons_kind() -> None:
+    """The roster carries the Kind column, after the membership's expiry."""
+    assert ROSTER_COLUMNS[-1] == "kind"
+
+
+def test_the_roster_lists_friends_and_leaves_out_deactivated_accounts_and_donors(
+    mailoutbox: list[EmailMultiAlternatives], pdf_text: PdfText
+) -> None:
+    """A friend is on the roster; a deactivated account and a donor never are."""
+    dart = ticked_dart()
+    people: dict[str, dict[str, object]] = {
+        "Fay Friend": {"kind": AccountKind.FRIEND},
+        "Ian Inactive": {"is_active": False},
+        "Dee Donor": {"kind": AccountKind.DONOR},
+    }
+    for name, fields in people.items():
+        first, last = name.split()
+        MemberProfileFactory(
+            user=UserFactory(first_name=first, last_name=last, **fields), dart=dart
+        )
+
+    run_scheduled_reports(today=TODAY)
+
+    text = pdf_text(bytes(mailoutbox[0].attachments[0][1]))[0]
+    assert [name for name in people if name in text] == ["Fay Friend"]
 
 
 def test_the_subject_names_the_dart_and_the_day(mailoutbox: list[EmailMessage]) -> None:

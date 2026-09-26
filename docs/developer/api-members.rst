@@ -65,9 +65,12 @@ Endpoints
   POST   /api/v1/admin/members/{user_id}/memberships
   PATCH  /api/v1/admin/memberships/{id}
 
-``{user_id}`` is the **user's** id, not a profile id.  Everyone in the user
-table is listed: ``member`` is granted at registration, so accounts and members
-are one population, and ``?role=`` narrows it.
+``{user_id}`` is the **user's** id, not a profile id.  The list holds every
+member and every friend: a donor is never listed, and a deactivated account
+only on request (``include_inactive``).  The single record,
+``GET /admin/members/{user_id}``, answers for any account, a donor's and a
+deactivated one's included, so an administrator can reactivate an account and
+an edit to a donor is refused with its reason rather than a 404.
 
 
 ``GET /admin/members``
@@ -109,8 +112,8 @@ The member table, filtered, ordered, and paginated with the project's standard
    }
 
 The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.  ``kind`` is
-``member``, ``friend``, or ``donor``, as stored (:ref:`kinds of account <account-kinds>`); a
-friend's ``membership.status`` is always ``friend``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
+``member`` or ``friend``, as stored (:ref:`kinds of account <account-kinds>`): a donor is
+never a row.  A friend's ``membership.status`` is always ``friend``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
 somebody who has never had one.  ``profile_updated_at`` is when profile
 information was last written -- see :doc:`data-model` -- and ``null`` for a
 profile nobody has edited, or for an account with none.  An account with no
@@ -122,8 +125,8 @@ profile nobody has edited, or for an account with none.  An account with no
 Statuses:
 
 * **200** — the page of rows, empty ``results`` when nothing matches.
-* **400** — ``status``, ``certificate``, ``medical``, ``county``, or ``role`` carried a
-  value outside its choice list, or ``expiring_within`` was not a number.  The
+* **400** — ``kind``, ``status``, ``certificate``, ``medical``, ``county``, or ``role``
+  carried a value outside its choice list, or ``expiring_within`` was not a number.  The
   body is keyed on the offending parameter, for example
   ``{"status": ["Select a valid choice. bogus is not one of the available
   choices."]}``.
@@ -131,6 +134,11 @@ Statuses:
 Filters
 -------
 
+``kind``
+   ``member`` | ``friend``, matched against the effective kind worked out for
+   today: a member whose ``friend_on`` date has arrived is a ``friend``, and one
+   whose date is still to come a ``member``.  Absent or blank lists both;
+   ``donor`` and anything else is a 400, since a donor is never listed.
 ``search``
    Case-insensitive substring of the full name, the email address, either
    phone number, or the pilot certificate number.  The full name is matched as
@@ -153,9 +161,12 @@ Filters
 ``dart``
    A DART id, or a case-insensitive substring of a DART name.
 ``county``
-   One of California's 58 counties, spelled as the profile stores it
-   (``San Mateo``), matched exactly: ``Santa Clara`` never lists Santa
-   Barbara's members.  A blank value narrows nothing; anything else is a 400.
+   One or more of California's 58 counties, separated by commas
+   (``county=Alameda,Marin``), each spelled as the profile stores it
+   (``San Mateo``) and matched exactly: ``Santa Clara`` never lists Santa
+   Barbara's members.  The list holds the members of any county named.  A blank
+   value narrows nothing; a list naming any county outside California is a 400
+   naming that county.
 ``role``
    A role slug.  This matches the group actually assigned, so ``role=member``
    does not include a system administrator who lacks the ``member`` group.
@@ -166,9 +177,11 @@ Filters
    clamped to ``0..3650`` (ten years): a negative value behaves like ``0``,
    and a value past the limit like the limit, so an oversized or negative
    query string never produces a server error.
-``is_active``
-   ``true`` or ``false``.  A value that is neither — ``?is_active=maybe`` —
-   narrows nothing rather than being refused.
+``include_inactive``
+   ``true`` lists deactivated accounts beside the active ones.  Absent,
+   ``false``, or any other value leaves them out: the list shows active
+   accounts only unless asked.  The members report reads the same filters but
+   never lists a deactivated account, whatever this says.
 
 Ordering
 --------
@@ -678,9 +691,13 @@ Tests
    fixture, ordering, creation with and without a password, nested profile
    updates, the delete rules and the grant-term arithmetic.
 ``backend/tests/test_member_county.py``
-   The county filter on the list and on the membership report, the 400 for a
-   county outside California, and the ``County`` column: its place after
-   ``state``, off by default, and the cell it prints.
+   The county filter on the list and on the membership report, one county and
+   several, the 400 for a county outside California, the counties the PDF
+   subtitle prints, and the ``County`` column: its place after ``state``, off by
+   default, and the cell it prints.
+``backend/tests/test_list_filters.py``
+   The ``kind`` selector, ``include_inactive``, and the donor exclusion on the
+   list, the report, and the DART leader's member check.
 ``backend/tests/test_member_list_leaders.py``
    The DART leader on the list: the allow and deny matrix for the list, the
    whole membership in the answer, the DART filter, the report download, and

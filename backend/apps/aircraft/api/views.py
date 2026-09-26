@@ -194,10 +194,11 @@ class LeaderMemberStatusView(APIView):
     def get(self, request: Request, user_id: int) -> Response:
         """Return the pre-flight status card for the member with primary key ``user_id``.
 
-        Answers 404 when no such member exists.
+        Answers 404 when no such member exists, and for a deactivated account or a
+        donor, which the member check never shows.
         """
         user = get_object_or_404(
-            User.objects.select_related("profile", "profile__dart"), pk=user_id
+            services.checkable_people().select_related("profile", "profile__dart"), pk=user_id
         )
         return Response(LeaderStatusSerializer(services.leader_status(user)).data)
 

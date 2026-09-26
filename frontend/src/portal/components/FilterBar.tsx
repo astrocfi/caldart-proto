@@ -4,10 +4,11 @@
  * Every report's list page and the form that subscribes somebody to a report
  * draw their filters through this component, from the report's `FilterField`s
  * in `@/portal/reports/definitions`.  Every control applies itself: a select,
- * a date and a toggle as soon as they change, a text or number box once the
- * typing pauses.  There is no Apply button.  **Reset to Defaults** empties every
- * field.  A field's hint is its control's `title` rather than a line under it, so
- * every control in the bar stands the same height and they line up.
+ * a multiselect, a date and a toggle as soon as they change, a text or number
+ * box once the typing pauses.  There is no Apply button.  **Reset to Defaults**
+ * empties every field.  A field's hint is its control's `title` rather than a
+ * line under it, so the controls of a row line up.  A multiselect is a list box
+ * six rows tall, so it takes several choices without a second click.
  *
  * The bar is one `<form role="search">`.  A bar of one box applies it at once
  * when Enter is pressed, which is how a browser submits a form of one field.
@@ -39,6 +40,12 @@ const NUMBER_DIGITS = 6;
 
 /** The value a ticked toggle sends. */
 const TOGGLE_ON = 'true';
+
+/** How many rows a multiselect's list box shows before it scrolls. */
+const MULTISELECT_ROWS = 6;
+
+/** What separates the values of a multiselect in the URL and in a subscription. */
+const MULTISELECT_SEPARATOR = ',';
 
 /**
  * The bar's values with every field present, so the draft and the applied values
@@ -190,6 +197,34 @@ function FilterControl({
         />
         {field.label}
       </label>
+    );
+  }
+
+  if (field.kind === 'multiselect') {
+    const chosen = value === '' ? [] : value.split(MULTISELECT_SEPARATOR);
+    const handleMultiple = (event: ChangeEvent<HTMLSelectElement>): void => {
+      const picked = Array.from(event.target.selectedOptions, (option) => option.value);
+      handleSet(picked.join(MULTISELECT_SEPARATOR));
+    };
+    return (
+      <Field label={field.label}>
+        {(props) => (
+          <select
+            {...props}
+            multiple
+            size={MULTISELECT_ROWS}
+            title={field.hint}
+            value={chosen}
+            onChange={handleMultiple}
+          >
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
     );
   }
 

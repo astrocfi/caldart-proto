@@ -214,7 +214,12 @@ class AircraftDetailSerializer(AircraftSerializer):
 # Leader check
 # --------------------------------------------------------------------------
 class LeaderMembershipSerializer(serializers.Serializer[Any]):
-    """The membership fields of the leader status card."""
+    """The membership fields of the leader status card.
+
+    ``status`` is the computed membership state, ``friend`` among them: a friend of
+    CalDART pays no dues, so ``expires_on`` and ``plan`` are null and the card's
+    membership go/no-go is false, whatever terms the friend once held.
+    """
 
     status = serializers.ChoiceField(choices=MembershipState.choices)
     expires_on = serializers.DateField(allow_null=True)

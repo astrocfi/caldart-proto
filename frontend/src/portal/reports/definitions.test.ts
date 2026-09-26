@@ -20,6 +20,7 @@ const SLUGS: ReportSlug[] = [
  * table's sort rather than a filter.
  */
 const MEMBER_EXPORT_FILTER_PARAMS = [
+  'kind',
   'search',
   'status',
   'certificate',
@@ -28,7 +29,6 @@ const MEMBER_EXPORT_FILTER_PARAMS = [
   'county',
   'role',
   'expiring_within',
-  'is_active',
 ];
 
 /** The keys of one report's filter fields, in the order they are drawn. */
@@ -51,6 +51,29 @@ describe('REPORTS', () => {
 
   it('filters members by every export parameter', () => {
     expect([...keysOf('members')].sort()).toEqual([...MEMBER_EXPORT_FILTER_PARAMS].sort());
+  });
+
+  it('draws the member kind selector first, defaulting to All', () => {
+    const [kind] = REPORTS.members.filters;
+    expect([kind?.key, kind?.label, kind?.kind, kind?.placeholder]).toEqual([
+      'kind',
+      'Kind',
+      'select',
+      'All',
+    ]);
+  });
+
+  it('offers members only and friends only on the member kind selector', () => {
+    const kind = REPORTS.members.filters.find((field) => field.key === 'kind');
+    expect(kind?.options).toEqual([
+      { value: 'member', label: 'Members only' },
+      { value: 'friend', label: 'Friends only' },
+    ]);
+  });
+
+  it('lets the member county filter take several counties', () => {
+    const county = REPORTS.members.filters.find((field) => field.key === 'county');
+    expect(county?.kind).toBe('multiselect');
   });
 
   it('offers every California county on the member county filter', () => {

@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 from django.utils import timezone
 
+from apps.accounts.models import AccountKind
 from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER
 from apps.members.filters import (
     MemberAdminFilterSet,
@@ -30,6 +31,8 @@ from apps.members.services import MembershipStatusDict, membership_payload
 from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec, apply_filterset
 
 if TYPE_CHECKING:
+    from django.db.models import QuerySet
+
     from apps.members.services import MemberRow
 
 
@@ -58,16 +61,17 @@ class RowContext(TypedDict):
 #: the ``plan`` column ("Life") and ``status`` ("Current") say what it is.  The
 #: ``status`` cell is the :class:`~apps.members.models.MembershipState` label,
 #: never the slug, and the ``certificate`` cell abbreviates the airline
-#: transport pilot certificate to "ATP" through :data:`REPORT_CERTIFICATE_LABELS`.
-#: ``status`` gained width and ``certificate`` gave up exactly that much -- the
-#: abbreviation freed room a full "No membership" needs -- so the ten default
-#: columns still share the printable width they always have, and no seeded
-#: cell wraps (``test_no_default_member_cell_wraps_in_the_pdf``).  ``joined_on``
+#: transport pilot certificate to "ATP" through :data:`REPORT_CERTIFICATE_LABELS`,
+#: which frees the room a full "No membership" status needs.  ``kind`` is the
+#: effective kind's label, Member or Friend, so a member whose change to friend
+#: has come reads Friend.  The eleven default widths are balanced so that no
+#: seeded cell or heading wraps (``test_no_default_member_cell_wraps_in_the_pdf``).
+#: ``joined_on``
 #: is the start of the earliest term on file, and ``member_since`` the day the
 #: member says they joined -- the same date until the terms before a gap, or
 #: before an import, are missing.
 MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
-    ReportColumn("name", "Name", True, lambda ctx: ctx["user"].display_name, width=2.6),
+    ReportColumn("name", "Name", True, lambda ctx: ctx["user"].display_name, width=2.55),
     ReportColumn("email", "Email", True, lambda ctx: ctx["user"].email, width=4.4),
     ReportColumn(
         "phone",
@@ -80,6 +84,9 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
     ReportColumn(
         "status", "Status", True, lambda ctx: ctx["membership"]["status"].label, width=2.1
     ),
+    ReportColumn(
+        "kind", "Kind", True, lambda ctx: AccountKind(ctx["user"].effective_kind).label, width=1.2
+    ),
     ReportColumn("plan", "Plan", False, lambda ctx: ctx["membership"]["plan"] or "", width=2.0),
     ReportColumn(
         "expires_on", "Expires", True, lambda ctx: _iso(ctx["membership"]["expires_on"]), width=1.6
@@ -89,7 +96,7 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
         "Certificate",
         True,
         lambda ctx: _certificate_display(ctx["profile"]),
-        width=1.8,
+        width=1.75,
     ),
     ReportColumn(
         "certificate_number",
@@ -111,9 +118,9 @@ MEMBER_REPORT_COLUMNS: tuple[ReportColumn[RowContext], ...] = (
         "Medical expires",
         True,
         lambda ctx: _iso(_date(ctx["profile"], "medical_expiration")),
-        width=2.1,
+        width=2.25,
     ),
-    ReportColumn("aircraft", "Aircraft", True, lambda ctx: " ".join(ctx["aircraft"]), width=2.4),
+    ReportColumn("aircraft", "Aircraft", True, lambda ctx: " ".join(ctx["aircraft"]), width=2.35),
     ReportColumn("city", "City", False, lambda ctx: _value(ctx["profile"], "city"), width=1.6),
     ReportColumn("state", "State", False, lambda ctx: _value(ctx["profile"], "state"), width=0.8),
     ReportColumn(
@@ -232,18 +239,34 @@ def member_rows(users: Iterator[MemberRow]) -> Iterator[RowContext]:
         yield _row_context(user)
 
 
+def member_report_queryset(params: Params) -> QuerySet[MemberRow]:
+    """The accounts the member report lists for ``params``, unordered.
+
+    ``params`` narrow the list's own queryset through ``MemberAdminFilterSet``, and a
+    deactivated account is left out whatever ``include_inactive`` says; donors are
+    never there, since the list leaves them out.  A filter the set refuses raises
+    DRF's ``ValidationError`` keyed by that filter.  A DART roster counts its members
+    through this same queryset, so the count its email states matches its rows.
+    """
+    return apply_filterset(MemberAdminFilterSet, params, member_admin_queryset()).filter(
+        is_active=True
+    )
+
+
 def member_report_query(params: Params) -> ReportQuery[RowContext]:
     """The members the member list shows for ``params``, in the list's order.
 
     ``params`` are the list's own query parameters: the filters of
     ``MemberAdminFilterSet`` and ``ordering``, which ``MemberOrderingFilter`` reads the
-    same way the list does.  A filter the set refuses raises DRF's ``ValidationError``
-    keyed by that filter.  The rows are read from the database a chunk at a time, and
-    the applied filters are the ones :func:`apps.members.filters.applied_filters`
-    names.
+    same way the list does.  The report never lists a deactivated account, whatever
+    ``include_inactive`` says, and never a donor.  A filter the set refuses raises
+    DRF's ``ValidationError`` keyed by that filter.  The rows are read from the
+    database a chunk at a time, and the applied filters are the ones
+    :func:`apps.members.filters.applied_filters` names.
     """
-    narrowed = apply_filterset(MemberAdminFilterSet, params, member_admin_queryset())
-    ordered = MemberOrderingFilter.order_queryset(narrowed, params.get("ordering", ""))
+    ordered = MemberOrderingFilter.order_queryset(
+        member_report_queryset(params), params.get("ordering", "")
+    )
     return ReportQuery(
         rows=member_rows(ordered.iterator(chunk_size=200)),
         filters=applied_filters(params),

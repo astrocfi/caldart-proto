@@ -16,6 +16,10 @@
  * drives the two export links rather than the table: the screen stays scannable
  * while the CSV and the PDF carry whatever the administrator asked for.
  *
+ * The list hides deactivated accounts until **Include deactivated** is ticked.
+ * That switch is the list's own: the report never lists a deactivated account,
+ * so the export links leave it out.
+ *
  * A DART leader reads the same list and downloads the same report, but the
  * member record is the account administrator's: for a leader there is no
  * **New member** button, and a name opens the member check instead.
@@ -27,6 +31,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useDarts } from '@/portal/api/queries';
 import type { MemberRow } from '@/portal/api/types';
 import { useAuth } from '@/portal/auth/useAuth';
+import { MEMBERSHIP_STATUS_LABELS } from '@/portal/choices';
 import { Button, ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
@@ -40,13 +45,26 @@ import { useUrlFilters } from '@/portal/components/useUrlFilters';
 import { hasAnyRole } from '@/portal/nav';
 import { reportExportUrl, useReportColumns } from '@/portal/reports/api';
 import { listFilters, REPORTS } from '@/portal/reports/definitions';
-import type { FilterValues } from '@/portal/reports/types';
+import type { FilterField, FilterValues } from '@/portal/reports/types';
 import { useMembers } from './api';
 
 const PAGE_SIZE = 25;
 
-/** The filters the list draws: the members report's, less any a subscription alone offers. */
-const FILTER_FIELDS = listFilters(REPORTS.members);
+/** The list's switch for deactivated accounts, which the report never lists. */
+const INCLUDE_INACTIVE = 'include_inactive';
+
+const INCLUDE_INACTIVE_FIELD: FilterField = {
+  key: INCLUDE_INACTIVE,
+  label: 'Include deactivated',
+  kind: 'toggle',
+  hint: 'List the accounts that have been deactivated as well.',
+};
+
+/**
+ * The filters the list draws: the members report's, less any a subscription
+ * alone offers, and then the list's own Include deactivated switch.
+ */
+const FILTER_FIELDS = [...listFilters(REPORTS.members), INCLUDE_INACTIVE_FIELD];
 
 /** The table's sort, which the URL keeps beside the filters. */
 const ORDERING = 'ordering';
@@ -63,9 +81,36 @@ function ordering(value: string): { key: string; direction: SortDirection } | un
   };
 }
 
-/** Where a name in the list leads: the member record, or the member check for a leader. */
-function memberHref(row: MemberRow, isAccountAdmin: boolean): string {
-  return isAccountAdmin ? `/admin/members/${row.user_id}` : `/leader?member=${row.user_id}`;
+/**
+ * Where a name in the list leads: the member record, or the member check for a leader.
+ * The member check never shows a deactivated account, so a leader's link for one is null.
+ */
+function memberHref(row: MemberRow, isAccountAdmin: boolean): string | null {
+  if (isAccountAdmin) return `/admin/members/${row.user_id}`;
+  return row.is_active ? `/leader?member=${row.user_id}` : null;
+}
+
+function MemberName({
+  row,
+  isAccountAdmin,
+}: {
+  row: MemberRow;
+  isAccountAdmin: boolean;
+}): JSX.Element {
+  const href = memberHref(row, isAccountAdmin);
+  return href === null ? <>{row.name}</> : <Link to={href}>{row.name}</Link>;
+}
+
+/**
+ * The words beside the membership dot: the expiry date, **Never** for a lifetime
+ * member, and **Friend** for a friend, who pays no dues and so has no date.
+ */
+function ExpiryText({ row }: { row: MemberRow }): JSX.Element {
+  if (row.membership.status === 'friend') {
+    return <span className="muted">{MEMBERSHIP_STATUS_LABELS.friend}</span>;
+  }
+  if (row.membership.is_lifetime) return <>Never</>;
+  return <DateText value={row.membership.expires_on} />;
 }
 
 function memberColumns(isAccountAdmin: boolean): Column<MemberRow>[] {
@@ -87,7 +132,7 @@ function memberColumns(isAccountAdmin: boolean): Column<MemberRow>[] {
       width: '22%',
       render: (row) => (
         <>
-          <Link to={memberHref(row, isAccountAdmin)}>{row.name}</Link>
+          <MemberName row={row} isAccountAdmin={isAccountAdmin} />
           {row.is_active ? null : <small className="muted"> · account deactivated</small>}
         </>
       ),
@@ -104,8 +149,7 @@ function memberColumns(isAccountAdmin: boolean): Column<MemberRow>[] {
       width: '11rem',
       render: (row) => (
         <>
-          <MembershipDot membership={row.membership} />{' '}
-          {row.membership.is_lifetime ? 'Never' : <DateText value={row.membership.expires_on} />}
+          <MembershipDot membership={row.membership} /> <ExpiryText row={row} />
         </>
       ),
     },
@@ -142,7 +186,8 @@ export function MembersListPage(): JSX.Element {
   // touched, so it must follow a registry that is still loading.
   const [chosen, setChosen] = useState<string[] | null>(null);
   const chosenKeys = chosen ?? defaultColumnKeys(reportColumns);
-  const exportParams = { ...filters, columns: chosenKeys };
+  const { [INCLUDE_INACTIVE]: _listOnly, ...reportFilters } = filters;
+  const exportParams = { ...reportFilters, columns: chosenKeys };
 
   const handleFilterChange = (next: FilterValues) => {
     setFilters(next);
@@ -168,7 +213,7 @@ export function MembersListPage(): JSX.Element {
     <Page
       title="Members"
       eyebrow="Administration"
-      lede="Everyone with a CalDART account, with their membership, certificate, and medical currency."
+      lede="Every member and friend of CalDART, with their membership, certificate, and medical currency."
       actions={
         isAccountAdmin ? <ButtonLink to="/admin/members/new">New member</ButtonLink> : undefined
       }

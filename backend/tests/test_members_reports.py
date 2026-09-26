@@ -45,6 +45,7 @@ DOCUMENTED_COLUMNS = (
     "phone",
     "dart",
     "status",
+    "kind",
     "plan",
     "expires_on",
     "certificate",
@@ -62,13 +63,14 @@ DOCUMENTED_COLUMNS = (
 )
 
 #: The header the CSV prints when the caller chooses no columns: the labels of
-#: the ten default columns, which is what ``docs/developer/reports.rst`` shows.
+#: the eleven default columns, which is what ``docs/developer/reports.rst`` shows.
 DEFAULT_HEADER = [
     "Name",
     "Email",
     "Phone",
     "DART",
     "Status",
+    "Kind",
     "Expires",
     "Certificate",
     "Medical",
@@ -187,6 +189,38 @@ def test_csv_row_content(
     assert row["state"] == "CA"
     assert row["joined_on"] == (today - timedelta(days=30)).isoformat()
     assert row["member_since"] == ""
+
+
+def test_the_kind_column_follows_the_status() -> None:
+    """The Kind column comes right after Status."""
+    keys = [column.key for column in MEMBER_REPORT_COLUMNS]
+    assert keys.index("kind") == keys.index("status") + 1
+
+
+def test_the_kind_column_is_labeled_kind() -> None:
+    """The Kind column's header reads Kind."""
+    column = next(column for column in MEMBER_REPORT_COLUMNS if column.key == "kind")
+    assert column.label == "Kind"
+
+
+def test_the_kind_column_is_on_by_default() -> None:
+    """The Kind column is in the default report."""
+    column = next(column for column in MEMBER_REPORT_COLUMNS if column.key == "kind")
+    assert column.default is True
+
+
+def test_the_kind_cell_names_the_effective_kind(
+    account_admin_client: APIClient, reportable: dict[str, User], friend: User, today: date
+) -> None:
+    """Member for a member; Friend for a friend and for a member whose change has come."""
+    lapsed = reportable["lapsed"]
+    lapsed.friend_on = today
+    lapsed.save(update_fields=["friend_on"])
+    table = read_csv(account_admin_client.get(CSV_URL, {"columns": "email,kind,status"}))
+    kinds = {row[0]: (row[1], row[2]) for row in table[1:]}
+    assert kinds["pilot@example.test"] == ("Member", "Current")
+    assert kinds["friend@example.test"] == ("Friend", "Friend")
+    assert kinds["lapsed@example.test"] == ("Friend", "Friend")
 
 
 def test_csv_leaves_a_lifetime_expiry_blank(

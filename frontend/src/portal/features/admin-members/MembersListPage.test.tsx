@@ -448,15 +448,83 @@ describe('MembersListPage', () => {
     expect(lastMemberQuery().get('ordering')).toBe('-expires_on');
   });
 
-  it('lists only the active accounts when the toggle is ticked', async () => {
+  it('asks for deactivated accounts when Include deactivated is ticked', async () => {
     const user = userEvent.setup();
     server.use(...listHandlers());
     await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    await user.click(screen.getByRole('checkbox', { name: 'Active accounts only' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Include deactivated' }));
 
-    await waitFor(() => expect(lastMemberQuery().get('is_active')).toBe('true'));
+    await waitFor(() => expect(lastMemberQuery().get('include_inactive')).toBe('true'));
+  });
+
+  it('leaves Include deactivated off at first', async () => {
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    expect(screen.getByRole('checkbox', { name: 'Include deactivated' })).not.toBeChecked();
+  });
+
+  it('keeps Include deactivated out of the export links: the report never lists them', async () => {
+    server.use(...listHandlers());
+    await renderList('/admin/members?include_inactive=true&county=Napa');
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    expect(screen.getByRole('link', { name: /Export PDF/ })).toHaveAttribute(
+      'href',
+      '/api/v1/reports/members/export.pdf?county=Napa&columns=name%2Cemail%2Cdart',
+    );
+  });
+
+  it('draws the Kind selector first, on All', async () => {
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    const bar = screen.getByRole<HTMLFormElement>('search', { name: 'Filter members' });
+    const kind = screen.getByLabelText<HTMLSelectElement>('Kind');
+    expect([bar.elements[0], kind.selectedOptions[0]?.textContent]).toEqual([kind, 'All']);
+  });
+
+  it('lists friends only when the Kind selector asks for them', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.selectOptions(screen.getByLabelText('Kind'), 'Friends only');
+
+    await waitFor(() => expect(lastMemberQuery().get('kind')).toBe('friend'));
+  });
+
+  it('filters by several counties at once', async () => {
+    const user = userEvent.setup();
+    server.use(...listHandlers());
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    await user.selectOptions(screen.getByLabelText('County'), ['Marin', 'Alameda']);
+
+    await waitFor(() => expect(lastMemberQuery().get('county')).toBe('Alameda,Marin'));
+  });
+
+  it('says Friend in the expiry column of a friend, not a dash', async () => {
+    server.use(
+      ...listHandlers([
+        makeRow({
+          kind: 'friend',
+          membership: { status: 'friend', expires_on: null, plan: null, is_lifetime: false },
+        }),
+      ]),
+    );
+    await renderList();
+    await screen.findByRole('link', { name: 'Ana Bracco' });
+
+    const [, row] = screen.getAllByRole('row');
+    const cells = within(row as HTMLElement).getAllByRole('cell');
+    expect(cells[3]).toHaveTextContent(/^Friend Friend$/);
   });
 });
 
@@ -481,6 +549,14 @@ describe('MembersListPage for a DART leader', () => {
       'href',
       '/leader?member=1',
     );
+  });
+
+  it('names a deactivated account without a link: the member check never shows one', async () => {
+    server.use(...listHandlers([makeRow({ is_active: false })]));
+    await renderList('/admin/members?include_inactive=true');
+    await screen.findByText('Ana Bracco');
+
+    expect(screen.queryByRole('link', { name: 'Ana Bracco' })).not.toBeInTheDocument();
   });
 
   it('downloads the report with the filters the leader chose', async () => {

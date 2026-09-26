@@ -326,3 +326,85 @@ describe('FilterBar', () => {
     expect(handleChange).toHaveBeenCalledWith({ within: '45' });
   });
 });
+
+/** A bar of one multiselect over four counties, as the member list's county filter. */
+const COUNTY_FIELDS: FilterField[] = [
+  {
+    key: 'county',
+    label: 'County',
+    kind: 'multiselect',
+    options: [
+      { value: 'Alameda', label: 'Alameda' },
+      { value: 'Marin', label: 'Marin' },
+      { value: 'Napa', label: 'Napa' },
+      { value: 'Santa Clara', label: 'Santa Clara' },
+    ],
+  },
+];
+
+describe('FilterBar multiselect', () => {
+  it('draws a list box that shows six rows and takes several choices', () => {
+    render(<Harness fields={COUNTY_FIELDS} onChange={handleNothing} />);
+
+    const box = screen.getByRole('listbox', { name: 'County' });
+    expect([box.getAttribute('size'), box.hasAttribute('multiple')]).toEqual(['6', true]);
+  });
+
+  it('offers no blank option: choosing nothing means any', () => {
+    render(<Harness fields={COUNTY_FIELDS} onChange={handleNothing} />);
+
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Alameda',
+      'Marin',
+      'Napa',
+      'Santa Clara',
+    ]);
+  });
+
+  it('sends the chosen values joined with commas, in the order they are listed', async () => {
+    const handleChange = vi.fn();
+    render(<Harness fields={COUNTY_FIELDS} onChange={handleChange} />);
+
+    await userEvent.selectOptions(screen.getByLabelText('County'), ['Napa', 'Alameda']);
+
+    expect(handleChange).toHaveBeenLastCalledWith({ county: 'Alameda,Napa' });
+  });
+
+  it('selects every county a comma-separated value names', () => {
+    render(
+      <Harness
+        fields={COUNTY_FIELDS}
+        initial={{ county: 'Marin,Santa Clara' }}
+        onChange={handleNothing}
+      />,
+    );
+
+    const chosen = screen
+      .getAllByRole<HTMLOptionElement>('option')
+      .filter((option) => option.selected)
+      .map((option) => option.value);
+    expect(chosen).toEqual(['Marin', 'Santa Clara']);
+  });
+
+  it('sends an empty value once every choice is taken back', async () => {
+    const handleChange = vi.fn();
+    render(
+      <Harness fields={COUNTY_FIELDS} initial={{ county: 'Marin' }} onChange={handleChange} />,
+    );
+
+    await userEvent.deselectOptions(screen.getByLabelText('County'), 'Marin');
+
+    expect(handleChange).toHaveBeenLastCalledWith({ county: '' });
+  });
+
+  it('clears every choice on Reset to Defaults', async () => {
+    const handleChange = vi.fn();
+    render(
+      <Harness fields={COUNTY_FIELDS} initial={{ county: 'Marin,Napa' }} onChange={handleChange} />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }));
+
+    expect(handleChange).toHaveBeenLastCalledWith({ county: '' });
+  });
+});

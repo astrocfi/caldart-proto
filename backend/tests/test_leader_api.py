@@ -382,6 +382,39 @@ def test_a_member_with_no_membership_at_all_is_a_no_go(
     assert data["go_no_go"]["membership"] is False
 
 
+def test_a_friend_is_a_no_go_for_membership(
+    api_client: APIClient, dart_leader: User, friend: User, annual_plan: MembershipPlan
+) -> None:
+    """A friend's card reads ``friend``, with no plan or expiry, and is a no-go.
+
+    The friend's past term does not make them expired: a friend is never expired.
+    """
+    today = timezone.localdate()
+    MemberProfileFactory(user=friend)
+    MembershipFactory(
+        user=friend,
+        plan=annual_plan,
+        starts_on=today - timedelta(days=500),
+        ends_on=today - timedelta(days=135),
+        status=MembershipStatusChoices.EXPIRED,
+    )
+    api_client.force_login(dart_leader)
+    data = api_client.get(status_url(friend)).json()
+    assert data["membership"] == {"status": "friend", "expires_on": None, "plan": None}
+    assert data["go_no_go"]["membership"] is False
+
+
+def test_the_search_names_a_friend_as_a_friend(
+    api_client: APIClient, dart_leader: User, friend: User
+) -> None:
+    """A friend's search row carries the ``friend`` status and a membership no-go."""
+    MemberProfileFactory(user=friend)
+    api_client.force_login(dart_leader)
+    [row] = api_client.get(SEARCH_URL, {"q": "Frances Lee"}).json()
+    assert row["membership_status"] == "friend"
+    assert row["go_no_go"]["membership"] is False
+
+
 def test_a_lifetime_member_is_current_without_an_expiry(
     api_client: APIClient, dart_leader: User, life_plan: MembershipPlan
 ) -> None:

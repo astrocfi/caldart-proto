@@ -21,11 +21,14 @@ export type ReportFormat = 'csv' | 'pdf';
  *
  * - `search`: a text box, applied once the typing pauses;
  * - `select`: a drop-down whose first option is blank, meaning "any";
+ * - `multiselect`: a list box six rows tall that takes several choices, sent as
+ *   their values joined with commas in the order the box lists them; choosing
+ *   none means "any";
  * - `number`: a box that holds digits only, applied once the typing pauses;
  * - `date`: a date picker, sent as `YYYY-MM-DD`;
  * - `toggle`: a checkbox that sends `true` when ticked and nothing when not.
  */
-export type FilterKind = 'search' | 'select' | 'number' | 'date' | 'toggle';
+export type FilterKind = 'search' | 'select' | 'multiselect' | 'number' | 'date' | 'toggle';
 
 /** One choice a `select` field offers: the value sent and the words shown. */
 export type Option = Choice<string>;
@@ -36,7 +39,10 @@ export interface FilterField {
   key: string;
   label: string;
   kind: FilterKind;
-  /** A `select` field's choices; `FilterBar`'s `options` prop can supply or replace them. */
+  /**
+   * A `select` or `multiselect` field's choices; `FilterBar`'s `options` prop can
+   * supply or replace them.
+   */
   options?: readonly Option[];
   /** A text box's placeholder, or the words on a `select` field's blank first option. */
   placeholder?: string;

@@ -19,9 +19,10 @@ at ``/portal/admin/members``, **DARTs**, at ``/portal/admin/darts``,
 The member list
 ===============
 
-The list shows everyone with a CalDART account — ``member`` is granted the
-moment someone registers, so "accounts" and "members" are the same set of
-people — one row each.  DART leaders open the same list, filter it the same
+The list shows every member and every friend of CalDART, one row each.  A donor
+who has only given through the public site is never on it: donors are the
+treasurer's (see :doc:`treasurer-guide`).  Deactivated accounts are left out
+until you tick **Include deactivated**.  DART leaders open the same list, filter it the same
 way, and download the same report (see :doc:`dart-leader-guide`); the
 **New member** button and the member record behind each name are yours alone.
 
@@ -43,7 +44,8 @@ way, and download the same report (see :doc:`dart-leader-guide`); the
    current, amber in the last 30 days, red once it has run out, blue for
    somebody who has joined but not paid, and gray for somebody who has never
    been a member and for a friend of CalDART, who pays no dues and never
-   expires.  A lifetime membership reads "Never".
+   expires.  A lifetime membership reads "Never", and a friend's reads
+   "Friend".
 
 **Email**
    A ``mailto:`` link, so you can write to someone straight from the list.
@@ -71,12 +73,17 @@ as you like, under *Reports* below.
 Filtering
 ---------
 
-The filter bar sits above the table.  The dropdowns and the checkbox apply the
-moment you change them, and the table narrows as you type in **Search** or
+The filter bar sits above the table.  The dropdowns, the county list, and the
+checkbox apply the moment you change them, and the table narrows as you type in **Search** or
 **Expiring within (days)** — it follows a short pause, so it does not chase
 every keystroke.  **Expiring within (days)** takes digits only.  There is no
 Apply button.  **Reset to Defaults** empties the whole bar and leaves the sort
 alone.
+
+**Kind**
+   *All*, the default, lists members and friends together; *Members only* and
+   *Friends only* list one kind.  A member who has asked to become a friend at
+   the end of their term is a member until that day comes.
 
 **Search**
    Matches a name, an email address, either phone number or a pilot
@@ -85,10 +92,11 @@ alone.
 
 **Membership**
    *Current* (a term covers today), *Unpaid* (an account whose only term was
-   never paid for), *Expired* (a paid term has run out) or *No membership*
-   (nobody has ever granted or sold them a term).  The four between them
-   account for every account exactly once, and the member report's own
-   **Status** column prints the same four words.
+   never paid for), *Expired* (a paid term has run out), *No membership*
+   (nobody has ever granted or sold them a term), or *Friend* (a friend of
+   CalDART, whatever terms they once held).  The five between them account for
+   every account exactly once, and the member report's own **Status** column
+   prints the same five words.
 
 **Certificate** and **Medical**
    The pilot certificate and medical class on the member's profile.
@@ -102,8 +110,12 @@ alone.
    The team the member belongs to.
 
 **County**
-   The California county on the member's profile.  A member who has not given
-   one is listed only while the filter is on *Any*.
+   The California counties on the members' profiles.  The list box shows six
+   counties at a time; hold Ctrl (Command on a Mac) and click to choose more
+   than one, and the list shows the members of any county you chose.  Click a
+   chosen county with Ctrl held to take it back.  With no county chosen the
+   filter narrows nothing, and a member who has not given a county is listed
+   only then.
 
 **Role**
    People who hold a particular role.  This is the role actually assigned to
@@ -115,9 +127,11 @@ alone.
    renewed drops out of the window immediately, and lifetime members never
    appear in it.
 
-**Active accounts only**
-   Leaves out the accounts that have been deactivated, which the list
-   otherwise shows with "account deactivated" beside the name.
+**Include deactivated**
+   Off at first, so the list leaves out the accounts that have been
+   deactivated.  Tick it to list them too, each with "account deactivated"
+   beside the name.  The downloads never carry a deactivated account, ticked or
+   not.
 
 Filters combine.  "Current members of the Napa DART whose membership expires
 within 30 days" is three dropdowns and a number.
@@ -284,19 +298,22 @@ Reports
 
 **Export CSV** and **Export PDF** sit at the top right of the member list and
 export *exactly what the list is showing* — the same filters, the same order,
-every matching member and not just the page in front of you.
+every matching member and not just the page in front of you.  The one exception
+is **Include deactivated**: a report never lists a deactivated account.
 
 * **CSV** opens in a spreadsheet.  Use it for mail merges, board packs and
   anything you want to sort or total yourself.
 * **PDF** is a landscape letter table, ready to print, with the filters you
   applied printed under the title and the date and page numbers at the foot.
+  Several counties print as a list: "county: Alameda, Marin".
   It is the one to attach to minutes, because it says on its face what it is a
   list of.
 
-Both carry the same ten columns unless you ask for others: name, email, phone,
-DART, status, expiry, certificate, medical class and expiry, and aircraft.  A
-lifetime member has no expiry date, so that cell is empty and the plan column
-says *Life*.
+Both carry the same eleven columns unless you ask for others: name, email,
+phone, DART, status, kind, expiry, certificate, medical class and expiry, and
+aircraft.  **Kind** reads *Member* or *Friend*.  A lifetime member has no expiry
+date, so that cell is empty and the plan column says *Life*; a friend's is empty
+too, and their status reads *Friend*.
 
 .. _member-report-columns:
 
@@ -304,17 +321,17 @@ Choosing the columns
 --------------------
 
 **Columns**, beside the filters, opens a chooser that drives both downloads.
-Nineteen columns are on offer; the ten above are on to begin with.  The nine
+Twenty columns are on offer; the eleven above are on to begin with.  The nine
 that are off — *Plan*, *Certificate number*, *IFR*, *City*, *State*, *County*,
 *Joined* (the day the first term on file began), *Member since* (the day the
 member says they joined), and *Profile updated* (the day profile information
 was last written) — are the ones a roster or an audit wants and an everyday
 report does not.  **Reset to the default columns**, under the boxes, ticks the
-ten again.
+eleven again.
 
 The chooser feeds the downloads, not the table: the list on screen keeps its
 five columns however many you tick.  The last column cannot be unticked, since a
-report of nothing helps nobody.  The ten default columns are sized so no cell
+report of nothing helps nobody.  The eleven default columns are sized so no cell
 has to wrap on a landscape page; add enough columns and the PDF will start
 wrapping, which is the point at which the CSV is the better file.
 
@@ -488,11 +505,13 @@ DART rosters
 ------------
 
 Early each month every active DART's roster, the member report of that DART
-by name with each member's phone, email, certificate, medical, aircraft and
-expiry, goes as a PDF to each of the DART's people ticked **Roster** under
+by name with each person's phone, email, certificate, medical, aircraft,
+expiry, and kind, goes as a PDF to each of the DART's people ticked **Roster** under
 **DARTs** who has an email address.  The table lists each active DART, its
 **Recipients** (the ticked people with an address), and when its roster was
-**Last sent**.  A DART with nobody
+**Last sent**.  A roster lists the DART's members and friends alike, its
+**Kind** column saying which each one is, and never a deactivated account or
+a donor.  A DART with nobody
 ticked is sent nothing.
 
 **Send rosters now** sends every DART's roster at once, whatever the date.

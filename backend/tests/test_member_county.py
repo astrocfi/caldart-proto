@@ -1,8 +1,8 @@
 """The county filter on the member list and the members report, and the County column.
 
-``?county=`` takes one of the California counties a profile stores and matches it
-exactly; the members report reads the same filter, names it in its PDF subtitle, and
-can carry the county as a column of its own.
+``?county=`` takes one or more of the California counties a profile stores, separated
+by commas, and matches each exactly; the members report reads the same filter, names
+the counties in its PDF subtitle, and can carry the county as a column of its own.
 """
 
 from __future__ import annotations
@@ -13,13 +13,14 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.members.filters import EXPORT_FILTER_PARAMS, applied_filters
 from apps.members.reports import MEMBER_REPORT_COLUMNS
-from tests.conftest import read_csv
+from tests.conftest import PdfText, read_csv
 from tests.factories import MemberProfileFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
 LIST_URL = "/api/v1/admin/members"
 CSV_URL = "/api/v1/reports/members/export.csv"
+PDF_URL = "/api/v1/reports/members/export.pdf"
 COOK_REFUSED = {"county": ["Select a valid choice. Cook is not one of the available choices."]}
 
 
@@ -128,3 +129,50 @@ def test_the_county_column_prints_the_profile_county(
     counties = dict(table[1:])
     assert counties["sc@example.test"] == "Santa Clara"
     assert counties["none@example.test"] == ""
+
+
+# -- several counties ----------------------------------------------------------
+def test_the_list_keeps_the_members_of_several_counties(
+    account_admin_client: APIClient, county_members: dict[str, User]
+) -> None:
+    """``?county=Napa,Santa Clara`` lists the members of either county."""
+    assert listed_emails(account_admin_client, county="Napa,Santa Clara") == {
+        "napa@example.test",
+        "napa2@example.test",
+        "sc@example.test",
+    }
+
+
+def test_one_refused_county_refuses_the_list(
+    account_admin_client: APIClient, county_members: dict[str, User]
+) -> None:
+    """A list naming one county outside California is a 400 naming that county."""
+    response = account_admin_client.get(LIST_URL, {"county": "Napa,Cook"})
+    assert response.status_code == 400
+    assert response.json() == COOK_REFUSED
+
+
+def test_the_report_keeps_the_members_of_several_counties(
+    account_admin_client: APIClient, county_members: dict[str, User]
+) -> None:
+    """The members CSV reads several counties the way the list does."""
+    params = {"county": "Napa,Santa Clara", "columns": "email"}
+    table = read_csv(account_admin_client.get(CSV_URL, params))
+    assert sorted(row[0] for row in table[1:]) == [
+        "napa2@example.test",
+        "napa@example.test",
+        "sc@example.test",
+    ]
+
+
+def test_the_subtitle_joins_several_counties_with_commas() -> None:
+    """The applied filters name each county, separated by a comma and a space."""
+    assert applied_filters({"county": "Alameda,Marin"}) == {"county": "Alameda, Marin"}
+
+
+def test_the_pdf_subtitle_lists_both_counties(
+    account_admin_client: APIClient, county_members: dict[str, User], pdf_text: PdfText
+) -> None:
+    """The PDF prints both counties under its title."""
+    body = account_admin_client.get(PDF_URL, {"county": "Alameda,Marin"}).content
+    assert pdf_text(body)[0][:2] == ["CalDART membership report", "county: Alameda, Marin"]
