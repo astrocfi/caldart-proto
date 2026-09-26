@@ -16,6 +16,7 @@ from tests.factories import (
     MemberProfileFactory,
     MembershipFactory,
     PaymentFactory,
+    RenewalMandateFactory,
     UserFactory,
 )
 
@@ -145,3 +146,32 @@ def test_reports_no_refunded_payment_when_nothing_came_back(
 ) -> None:
     """``refundedPayment`` carries empty strings when the seed refunded nothing."""
     assert read_facts(capsys)["refundedPayment"]["receiptNumber"] == ""
+
+
+def test_names_an_active_mandate_whose_charge_is_still_ahead(
+    capsys: pytest.CaptureFixture[str], today: date
+) -> None:
+    """``autoRenewal.activeMandate`` skips a mandate charged today or already overdue.
+
+    A renewal spec that reads this member expects nothing to charge yet, so a
+    mandate the daily scan would already be acting on is the wrong one to hand it.
+    """
+    day = timedelta(days=1)
+    RenewalMandateFactory(next_charge_on=today - day)
+    RenewalMandateFactory(next_charge_on=today)
+    ahead = RenewalMandateFactory(next_charge_on=today + 30 * day)
+
+    facts = read_facts(capsys)["autoRenewal"]["activeMandate"]
+
+    assert facts["email"] == ahead.user.email
+
+
+def test_reports_no_active_mandate_when_every_charge_is_due_or_overdue(
+    db: None, today: date, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``autoRenewal.activeMandate`` is empty when nothing is far enough out."""
+    RenewalMandateFactory(next_charge_on=today)
+
+    facts = read_facts(capsys)["autoRenewal"]["activeMandate"]
+
+    assert facts == {"name": "", "email": "", "methodLabel": ""}

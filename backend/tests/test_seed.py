@@ -23,9 +23,11 @@ from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership, MembershipPlan, MembershipState
 from apps.members.seed import DART_SEED
 from apps.members.services import membership_status
-from apps.payments.models import Payment, PaymentStatus
-from apps.payments.seed import HISTORY_MONTHS, MANUAL_PAYMENT_COUNT
+from apps.payments.models import Payment, PaymentStatus, RenewalMandate
+from apps.payments.renewals import _due_attempts, run_auto_renewals
+from apps.payments.seed import CATCH_UP_MANDATE_DAYS_AGO, HISTORY_MONTHS, MANUAL_PAYMENT_COUNT
 from apps.reports.models import ReportSubscription
+from apps.reports.services import due_subscriptions, run_scheduled_reports
 
 User = get_user_model()
 
@@ -225,10 +227,11 @@ def test_seed_demo_creates_the_wagtail_site_root() -> None:
 
 # -- reports -------------------------------------------------------------------
 def test_seed_demo_subscribes_the_administrator_and_the_treasurer() -> None:
-    """Two subscriptions, both set up by the demo account administrator.
+    """Three subscriptions, all set up by the demo account administrator.
 
-    The membership report goes monthly as a PDF to the account administrator, and this
-    year's payments quarterly as a CSV to the treasurer.
+    The membership report goes monthly as a PDF to the account administrator, this
+    year's payments quarterly as a CSV to the treasurer, and the aircraft register
+    weekly as a CSV and a PDF to the account administrator.
     """
     _seed()
 
@@ -244,6 +247,14 @@ def test_seed_demo_subscribes_the_administrator_and_the_treasurer() -> None:
         for row in ReportSubscription.objects.order_by("report")
     ]
     assert rows == [
+        (
+            "aircraft",
+            "accountadmin@example.org",
+            {},
+            "both",
+            "weekly",
+            "accountadmin@example.org",
+        ),
         ("members", "accountadmin@example.org", {}, "pdf", "monthly", "accountadmin@example.org"),
         (
             "payments",
@@ -256,9 +267,60 @@ def test_seed_demo_subscribes_the_administrator_and_the_treasurer() -> None:
     ]
 
 
-def test_seed_demo_keeps_two_subscriptions_on_a_second_run() -> None:
-    """Running the seed again updates the two subscriptions rather than adding more."""
+def test_seed_demo_keeps_three_subscriptions_on_a_second_run() -> None:
+    """Running the seed again updates the three subscriptions rather than adding more."""
     _seed()
     _seed()
 
-    assert ReportSubscription.objects.count() == 2
+    assert ReportSubscription.objects.count() == 3
+
+
+# -- seed readiness --------------------------------------------------------
+def test_seed_demo_leaves_every_subscription_due_today() -> None:
+    """Every seeded subscription's ``next_due_on`` is the day the seed runs."""
+    _seed()
+    today = timezone.localdate()
+    subscriptions = list(ReportSubscription.objects.all())
+    assert len(subscriptions) == 3
+    assert all(row.next_due_on == today for row in subscriptions)
+    assert all(row.last_sent_at is None for row in subscriptions)
+
+
+def test_seed_demo_leaves_three_subscriptions_for_the_scheduled_report_job() -> None:
+    """``due_subscriptions`` finds every seeded subscription right after a seed."""
+    _seed()
+    assert due_subscriptions(timezone.localdate()).count() == 3
+
+
+def test_send_scheduled_reports_sends_every_subscription_and_every_roster() -> None:
+    """The daily job sends the three subscriptions and every active DART's roster."""
+    _seed()
+    run = run_scheduled_reports()
+    active_darts = Dart.objects.filter(is_active=True).count()
+    assert run.failed == 0
+    assert ReportSubscription.objects.filter(last_sent_at__isnull=False).count() == 3
+    assert Dart.objects.filter(is_active=True, roster_sent_at__isnull=False).count() == active_darts
+
+
+def test_seed_demo_leaves_two_renewals_due_for_an_ordinary_charge() -> None:
+    """Two generated members hold a mandate with a scheduled attempt due today."""
+    _seed()
+    assert len(_due_attempts(timezone.localdate())) == 2
+
+
+def test_seed_demo_leaves_a_catch_up_mandate_with_no_attempt() -> None:
+    """The catch-up member's mandate carries no attempt and an overdue charge date."""
+    _seed()
+    today = timezone.localdate()
+    catch_up = RenewalMandate.objects.get(
+        next_charge_on=today - timedelta(days=CATCH_UP_MANDATE_DAYS_AGO)
+    )
+    assert catch_up.attempts.count() == 0
+
+
+def test_run_auto_renewals_charges_the_three_seeded_renewals() -> None:
+    """The daily scan charges both due-today renewals and the catch-up one."""
+    _seed()
+    run = run_auto_renewals()
+    assert run.charged == 3
+    assert run.failed == 0
