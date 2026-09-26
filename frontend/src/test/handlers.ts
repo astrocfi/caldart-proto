@@ -135,6 +135,37 @@ export function signInDeactivated(): HttpHandler {
   );
 }
 
+/** What the kind handlers saw: each `POST /me/kind/friend` body, and each undo. */
+export interface KindSwitchCalls {
+  bodies: unknown[];
+  undos: number;
+}
+
+/**
+ * `POST` and `DELETE /me/kind/friend`, answering with `become` and `undo` (the user
+ * payloads the server returns) and recording each call in `calls`.
+ */
+export function kindSwitchHandlers({
+  become,
+  undo,
+  calls,
+}: {
+  become: User;
+  undo: User;
+  calls: KindSwitchCalls;
+}): HttpHandler[] {
+  return [
+    http.post(`${API}/me/kind/friend`, async ({ request }) => {
+      calls.bodies.push(await request.json());
+      return HttpResponse.json(become);
+    }),
+    http.delete(`${API}/me/kind/friend`, () => {
+      calls.undos += 1;
+      return HttpResponse.json(undo);
+    }),
+  ];
+}
+
 /** Convenience: make `/auth/me` answer with `user`. */
 export function signedInAs(user: User): HttpHandler {
   return http.get(`${API}/auth/me`, () => HttpResponse.json(user));

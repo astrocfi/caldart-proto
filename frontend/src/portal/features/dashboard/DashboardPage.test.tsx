@@ -478,3 +478,53 @@ describe('DashboardPage · email verification', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('DashboardPage · switching kinds', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('offers a current member Make me a friend beside Renew', async () => {
+    mount({ user: makeUser({ membership: CURRENT }), status: CURRENT });
+
+    await screen.findByRole('heading', { name: 'Your membership is current' });
+    expect(
+      card('Your membership is current').getByRole('button', { name: 'Make me a friend' }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers a lapsed member Make me a friend too', async () => {
+    mount({ user: makeUser({ membership: EXPIRED }), status: EXPIRED });
+
+    await screen.findByRole('heading', { name: 'Your membership has expired' });
+    expect(
+      card('Your membership has expired').getByRole('button', { name: 'Make me a friend' }),
+    ).toBeInTheDocument();
+  });
+
+  it('never offers a life member Make me a friend', async () => {
+    mount({ user: makeUser({ membership: LIFETIME }), status: LIFETIME });
+
+    await screen.findByRole('heading', { name: 'Lifetime member' });
+    expect(
+      card('Lifetime member').queryByRole('button', { name: 'Make me a friend' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a pending change with its day and an Undo button', async () => {
+    const user = makeUser({ membership: CURRENT, friend_on: isoIn(201) });
+    mount({ user, status: CURRENT });
+
+    await screen.findByRole('heading', { name: 'Your membership is current' });
+    const status = card('Your membership is current');
+    expect(
+      await status.findByText(`You become a friend on ${isoIn(201).replaceAll('-', '/')}.`),
+    ).toBeInTheDocument();
+    expect(status.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+  });
+});
