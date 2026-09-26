@@ -4,8 +4,9 @@ Development setup
 
 From a clean machine to a running CalDART, then the everyday commands you will
 use while working on it.  Configuration is covered separately in
-:doc:`configuration`, and what the resulting application actually does is in
-the :doc:`/demo-walkthrough`.
+:doc:`configuration`, the day-to-day work of running, debugging, and reseeding
+the pieces in :doc:`local-development`, and what the resulting application
+actually does in the :doc:`/demo-walkthrough`.
 
 Prerequisites
 =============
@@ -93,6 +94,11 @@ Step by step:
    migration describing its tables as they are: this is a prototype with no
    installation to upgrade, so a schema change is made by editing the model and
    regenerating that migration rather than by stacking a fix-up on top of it.
+   ``members`` is the one app with two schema migrations, ``0001_initial`` and
+   ``0002_initial``, which together are its initial schema: a membership points
+   at the payment that bought it while ``payments`` points back at the
+   membership plans, so Django adds the membership's foreign keys in a second
+   migration that runs after ``payments.0001_initial``.
    Three migrations carry data rather than schema.
    ``accounts.0002_seed_roles`` creates one group per role, so a migrated
    database already knows what a ``dart_leader`` is, ``cms.0002_site_root``
@@ -315,14 +321,28 @@ list, in full:
      - ``uv run pytest``
    * - ``test-frontend``
      - ``npm run test`` (vitest)
+   * - ``coverage``
+     - ``coverage-backend`` then ``coverage-frontend``; opt-in, and nothing
+       fails on the numbers
+   * - ``coverage-backend``
+     - ``pytest`` with ``pytest-cov`` over ``backend/apps`` and
+       ``backend/caldart``, a terminal summary, and an HTML report in
+       ``backend/htmlcov/``
+   * - ``coverage-frontend``
+     - ``npm run coverage`` (vitest with ``@vitest/coverage-v8``), an HTML
+       report in ``frontend/coverage/``
    * - ``e2e``
-     - ``npm run e2e`` (Playwright)
+     - Playwright against its own database (``caldart_e2e``, or ``E2E_DB``)
+       and its own server (port ``8021``, or ``E2E_PORT``), with the mock
+       payment provider and the file email backend; see :doc:`testing`
    * - ``lint``
      - ``lint-backend``, ``lint-frontend``, then ``lint-spelling``
    * - ``lint-backend``
      - ``ruff check``, ``ruff format --check`` and ``mypy backend``
    * - ``lint-frontend``
-     - ``tsc --noEmit``, ``eslint``, ``prettier --check``
+     - ``tsc --noEmit``, ``eslint``, ``prettier --check``, then
+       ``theme-contrast``, the WCAG contrast check over every theme
+       (:doc:`theming`)
    * - ``lint-spelling``
      - ``codespell`` — American spelling and common typos
    * - ``format``
@@ -352,18 +372,25 @@ list, in full:
      - ``db_restore`` — ``make restore FILE=backups/caldart-….sql.gz [YES=1]``
    * - ``reminders``
      - ``send_renewal_reminders`` — ``make reminders [TODAY=2027-01-01] [DRY_RUN=1]``
+   * - ``sandbox-check``
+     - ``payments_sandbox_check`` — the Stripe and PayPal credentials in
+       ``.env``, checked without moving money (:doc:`payments-setup`)
    * - ``docs``
      - ``guide``, then ``sphinx-build -n -W`` of the whole tree into
        ``docs/_build/html``
    * - ``guide``
      - ``sphinx-build -n -W -b dirhtml`` of ``docs/user`` alone into
        ``docs/_build/guide``, the user guide Django serves at ``/docs/``
+   * - ``read-docs``
+     - ``scripts/read-docs.sh`` — build the documentation and open it in a
+       browser
    * - ``clean``
      - remove ``docs/_build``, ``frontend/dist``, ``backend/staticfiles``, and
        ``__pycache__``
 
-Every target runs from the repository root, and every one of them honors
-``DATABASE_URL``.
+Every target runs from the repository root, and every one that touches the
+development database honors ``DATABASE_URL``; ``e2e`` alone builds its own
+database from ``E2E_DB``.
 
 .. _make-switches:
 
@@ -398,23 +425,36 @@ Beyond Django's and Wagtail's own, this project adds:
    * - ``seed_content``
      - the example Wagtail site, and the ``website_admin`` permission grant
    * - ``seed_facts``
-     - print the demo password, accounts, and plan prices as JSON, which
-       ``make e2e`` saves for the end-to-end specs (:doc:`testing`)
-   * - ``db_backup``
-     - write ``backups/caldart-<timestamp>.sql.gz``
+     - print the demo data set's facts as JSON (the password, the accounts,
+       the plan prices, and the members, payments, and mandates the specs
+       need), which ``make e2e`` saves for the end-to-end specs
+       (:doc:`testing`)
+   * - ``db_backup [--name NAME]``
+     - write ``caldart-<timestamp>.sql.gz`` into ``BACKUP_DIR``, or ``NAME``
+       instead of the generated file name
    * - ``db_restore <file> [--yes]``
      - drop the schema and replay a dump into it
    * - ``db_reset [--seed] [--noinput]``
      - drop and recreate the schema, migrate, seed roles, optionally seed data
-   * - ``health``
-     - print database connectivity, pending migrations, free disk, last backup
-   * - ``send_renewal_reminders [--dry-run] [--today=YYYY-MM-DD]``
-     - the renewal scan
+   * - ``health [--json]``
+     - print database connectivity, pending migrations, free disk, last
+       backup, version, and ``DEBUG``; ``--json`` for a monitoring check
+   * - ``send_renewal_reminders [--dry-run] [--today YYYY-MM-DD]``
+     - the renewal reminder scan (:doc:`reminders`)
+   * - ``run_auto_renewals [--dry-run] [--today YYYY-MM-DD]``
+     - send renewal notices and charge the renewals and recurring donations
+       due (:doc:`renewals`)
+   * - ``send_scheduled_reports [--dry-run] [--today YYYY-MM-DD]``
+     - send the report subscriptions and DART rosters that are due
+       (:doc:`scheduled-reports`)
+   * - ``send_year_statements [--year YEAR] [--dry-run] [--today YYYY-MM-DD]``
+     - email the previous year's contribution statements (:doc:`statements`)
    * - ``payments_sandbox_check``
      - check the configured Stripe and PayPal credentials without moving money
 
 Run any of them with ``uv run backend/manage.py <command>``.  See
-:doc:`backup-restore` and :doc:`reminders` for the operational detail.
+:doc:`backup-restore` for the data commands and the page linked beside each job
+for the scheduled ones.
 
 Payments sandbox
 =================
@@ -443,13 +483,17 @@ Five commands must be green, and CI runs all five on every pull request:
 
    $ make test     # pytest + vitest; a warning fails the run
    $ make lint     # ruff, mypy, tsc, eslint (no warnings), prettier, codespell
-   $ make check    # manage.py check, makemigrations --check, npm run build
+   $ make check    # manage.py check, makemigrations --check, spectacular,
+                   # check-deploy, npm run typecheck and npm run build
    $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors
    $ make audit    # uv audit + npm audit: known vulnerabilities
 
-``make check`` catches a model change without its migration and a frontend
-that type-checks but does not build. See
-:doc:`testing` for how the suites are organized.
+``make check`` catches a model change without its migration, a serializer
+change the portal's types have not followed (``spectacular`` writes the OpenAPI
+schema the frontend type-checks against), a production setting that fails
+Django's deployment audit (``check-deploy``, :doc:`deployment`), and a frontend
+that type-checks but does not build.  See :doc:`testing` for how the suites are
+organized.
 
 To read the documentation you just built, ``make read-docs`` builds it and
 opens ``docs/_build/html/index.html`` in your browser.  It runs
