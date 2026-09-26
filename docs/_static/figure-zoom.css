@@ -1,0 +1,95 @@
+/*
+ * Diagrams, and the toolbar and overlay figure-zoom.js adds to every figure.
+ *
+ * Graphviz draws black on a transparent ground, which vanishes against furo's
+ * dark mode, so a diagram always sits on a light panel with a hairline border,
+ * and scrolls sideways within it when it is wider than the page.
+ * Colors other than that panel come from furo's own variables, so the toolbar
+ * and the overlay follow the reader's light or dark choice.
+ */
+
+figure div.graphviz {
+  background: #ffffff;
+  border: 1px solid var(--color-background-border, #d0d0d0);
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
+/* A Graphviz SVG keeps its drawn size inside an <object>, so shrinking the
+   object would crop the drawing; a wide diagram scrolls in its panel instead. */
+figure div.graphviz object.graphviz {
+  display: block;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.figure-zoom-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0.5rem 0 0;
+  font-size: var(--font-size--small, 0.875rem);
+}
+
+.figure-zoom-toolbar button,
+.figure-zoom-close {
+  font: inherit;
+  color: var(--color-foreground-primary, #000000);
+  background: var(--color-background-secondary, #f8f9fb);
+  border: 1px solid var(--color-background-border, #d0d0d0);
+  border-radius: 0.25rem;
+  padding: 0.2rem 0.75rem;
+  cursor: pointer;
+}
+
+.figure-zoom-toolbar button:hover,
+.figure-zoom-close:hover {
+  background: var(--color-background-hover, #efeff4);
+}
+
+.figure-zoom-toolbar button:focus-visible,
+.figure-zoom-close:focus-visible,
+.figure-zoom-panel:focus-visible {
+  outline: 2px solid var(--color-brand-primary, #0a4bff);
+  outline-offset: 2px;
+}
+
+.figure-zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgb(0 0 0 / 80%);
+}
+
+.figure-zoom-overlay[hidden] {
+  display: none;
+}
+
+.figure-zoom-close {
+  align-self: flex-end;
+}
+
+.figure-zoom-panel {
+  flex: 1;
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 0.25rem;
+  padding: 1rem;
+}
+
+.figure-zoom-image {
+  display: block;
+  max-width: none;
+  margin: 0 auto;
+}
+
+html.figure-zoom-open {
+  overflow: hidden;
+}
