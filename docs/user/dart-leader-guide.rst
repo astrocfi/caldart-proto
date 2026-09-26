@@ -43,6 +43,10 @@ You type                      What you get
 ``n-172-sp``, ``172sp``       profile
 ============================  ==================================================
 
+The search finds members and friends of CalDART.  A deactivated account and a
+donor, who gives through the public site and has no portal account, are never
+found, and never listed among the pilots of an airplane.
+
 Registrations are normalized for you: the leading ``N`` is optional and
 punctuation, spaces, and case are ignored.  A search term with no digits in it
 is never treated as a registration, so looking for "Nate" finds Nate rather
@@ -62,7 +66,9 @@ Reading the status card
 **The band.**  A member is a **GO** when their membership *and* their medical
 are current — the same rule the results list applies.  When either is not, the
 band reads **NO-GO** and names the reasons — "Membership expired", "No medical
-on file" — so you know what to ask them to fix.
+on file" — so you know what to ask them to fix.  A friend of CalDART, who pays
+no dues, is always a **NO-GO** on membership, and the reason reads "Friend of
+CalDART, not a member".
 
 .. note::
 
@@ -72,7 +78,8 @@ on file" — so you know what to ask them to fix.
 
 **Membership** shows the state, the plan, and the expiry date.  A lifetime
 member shows "Life · lifetime" and never expires.  A membership counts as
-current up to and including its last day.
+current up to and including its last day.  A friend's chip reads **Friend**,
+with no plan and no date, whatever terms they once held.
 
 **Medical** shows BasicMed or the class of medical, its expiry, and whether it
 is current today.  A medical expiring today still counts as current.  "No
@@ -142,14 +149,17 @@ The member list
 ===============
 
 **Members**, under *Administration* in the portal menu
-(``/portal/admin/members``), lists every member of CalDART, not only your own
-DART's, with whether they can fly today, their DART, when their membership
-runs out, and their email address.  Use it to find people before a mission
+(``/portal/admin/members``), lists every member and friend of CalDART, not only
+your own DART's, with whether they can fly today, their DART, when their
+membership runs out (a friend's reads "Friend"), and their email address.  Use it to find people before a mission
 rather than to check one person on the ramp.
 
-* **Filter** with the bar above the table: by name or email, membership,
-  certificate, medical, DART, county, role, how soon the membership expires,
-  and active accounts only.  Each filter applies as soon as you change it; the
+* **Filter** with the bar above the table: by kind (*All*, *Members only*, or
+  *Friends only*), name or email, membership, certificate, medical, DART,
+  county, role, and how soon the membership expires.  **County** takes several
+  counties at once: hold Ctrl (Command on a Mac) as you click each.
+  Deactivated accounts are left out unless you tick **Include deactivated**,
+  and the downloads never carry them.  Each filter applies as soon as you change it; the
   text boxes follow a short pause in your typing.  **Reset to Defaults** empties
   them all.
   The filters are part of the page's address, so a filtered list is a link you

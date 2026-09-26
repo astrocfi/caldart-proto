@@ -261,9 +261,11 @@ The membership report
 list's: ``MemberAdminFilterSet`` over ``member_admin_queryset()``, ordered by
 ``MemberOrderingFilter.order_queryset``, which the list's ordering backend
 calls too — both in ``apps/members/filters.py``.  It takes every filter the
-list takes; see :doc:`api-members`.
+list takes; see :doc:`api-members`.  Like the list it never holds a donor, and
+unlike the list it never holds a deactivated account: ``member_report_query``
+keeps ``is_active`` accounts whatever ``include_inactive`` says.
 
-Columns, in order, from ``backend/apps/members/reports.py``.  The ten marked
+Columns, in order, from ``backend/apps/members/reports.py``.  The eleven marked
 "default" are the report when the caller chooses none; the rest are there to be
 asked for with ``?columns=``:
 
@@ -275,10 +277,14 @@ name                 Name                    yes     Full name, or the email add
 email                Email                   yes     Login address
 phone                Phone                   yes     Primary phone from the profile
 dart                 DART                    yes     DART name, blank when unaffiliated
-status               Status                  yes     ``Current``, ``Unpaid``, ``Expired``, or
-                                                     ``No membership`` -- the
-                                                     ``MembershipState`` choice's label,
-                                                     never its stored slug
+status               Status                  yes     ``Current``, ``Unpaid``, ``Expired``,
+                                                     ``No membership``, or ``Friend`` --
+                                                     the ``MembershipState`` choice's
+                                                     label, never its stored slug
+kind                 Kind                    yes     ``Member`` or ``Friend``: the
+                                                     effective kind for today, so a
+                                                     member whose ``friend_on`` has come
+                                                     reads ``Friend``
 plan                 Plan                    no      Plan behind that status, e.g.
                                                      ``Annual`` or ``Life``
 expires_on           Expires                 yes     End of unbroken coverage; **blank for
@@ -319,14 +325,16 @@ Three conventions are worth knowing when you read a row:
   empty cell rather than the word "None", which reads as a value in a
   spreadsheet.
 * ``status`` always prints the ``MembershipState`` choice's label -- ``Current``,
-  ``Unpaid``, ``Expired`` or ``No membership`` -- never the stored slug the
+  ``Unpaid``, ``Expired``, ``No membership`` or ``Friend`` -- never the stored slug the
   member list's ``?status=`` filter takes.  ``REPORT_CERTIFICATE_LABELS``
   overrides ``certificate`` the same way for one value: an airline transport
   pilot certificate exports as ``ATP`` rather than spelled out in full.
 
 The PDF subtitle lists the filters that were applied.  Which query parameters
-count is ``EXPORT_FILTER_PARAMS`` in ``filters.py``; ``applied_filters(params)``
-picks out the ones actually supplied, ignoring parameters left blank.
+count is ``EXPORT_FILTER_PARAMS`` in ``filters.py``, ``kind`` first and never
+``include_inactive``; ``applied_filters(params)`` picks out the ones actually
+supplied, ignoring parameters left blank, and prints several counties as a
+list: ``county=Alameda,Marin`` reads ``county: Alameda, Marin``.
 
 
 How to add a column

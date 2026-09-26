@@ -103,7 +103,11 @@ the DART's list (``DartContact``) who is ticked to receive it
 (``receives_roster``).  The roster is the membership report for the DART —
 ``{"dart": <id>, "ordering": "name"}`` — with the columns in
 ``ROSTER_COLUMNS``: name, phone, email, certificate, medical, medical expiry,
-aircraft and membership expiry, as a PDF built once per DART.
+aircraft, membership expiry and kind, as a PDF built once per DART.  No
+``kind`` filter is given, so a roster lists the DART's members and friends
+together, the Kind column telling them apart.  Like the report it is built
+from, it never lists a deactivated account or a donor, and the count the email
+body gives is counted the same way.
 
 A DART is due on any run in a month in which it has not yet been sent one:
 ``roster_sent_at`` is null, or falls before the first of the run's month.  So
