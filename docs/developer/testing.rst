@@ -469,6 +469,11 @@ What the backend suite covers
    * - ``test_membership_transitions.py``, ``test_payments_race.py``
      - a failed payment that later succeeds, a canceled term that is bought
        again, and two threads confirming one payment at once
+   * - ``test_docs_developer.py``, ``test_docs_user.py``
+     - the documentation against the code: every API route, model field,
+       settings variable, management command, make target, and systemd unit
+       on its developer page, and every user page inside the guide, in its
+       voice, and naming every email (:ref:`documentation-tests`)
 
 Running the frontend suite
 ==========================
@@ -659,7 +664,9 @@ links and save paths; the payments summary's headline tiles and its table by
 month and by year; the checkout with the Stripe and PayPal SDKs mocked; and
 the four system panels.  ``api/types.contract.test.ts`` is a different kind of
 test: it checks the portal's own types against the backend's schema rather than
-any component's behavior (:ref:`testing-api-contract`).
+any component's behavior (:ref:`testing-api-contract`).  ``help.test.ts`` also
+reads the repository: it holds the Help table to the route table and to the
+user guide's files (:ref:`documentation-tests`).
 
 .. _testing-api-contract:
 

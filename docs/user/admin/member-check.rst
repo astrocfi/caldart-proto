@@ -60,9 +60,8 @@ to another leader.
 current, with *Membership and medical are current* beside it. Otherwise it reads **NO-GO**
 and names each reason:
 
-- *Membership expired* or *No CalDART membership*. For a friend the reason says they are a
-  friend of CalDART and hold no membership: a friend pays no dues, so a friend is always a
-  NO-GO on membership.
+- *Membership expired*, *No CalDART membership*, or, for a friend, *Friend of CalDART, not
+  a member*. A friend pays no dues, so a friend is always a NO-GO on membership.
 - *Medical expired*, *No medical on file*, or *No medical expiry on file* when the member
   chose a class of medical and never entered its date.
 

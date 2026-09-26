@@ -22,9 +22,9 @@ Sphinx build requirements for all documentation in this repository. Docstring ru
   before delivering (see Section 5).
 - The site serves `docs/user/` alone, at `/docs/`, to signed-in users. `make guide` builds that
   copy from the same `conf.py` (the `guide` tag, the `dirhtml` builder), and `make docs` runs it
-  first. A reference from the user guide into the developer guide renders there as the page's
-  title in italics, so it is fine to keep; a reference into `demo-walkthrough.rst` or
-  `index.rst` is not resolvable in that build and fails it.
+  first. A user page links only to other user pages, with a relative `:doc:` target: a
+  reference into `docs/developer/`, `demo-walkthrough.rst`, or `index.rst` is not resolvable
+  in that build and fails it, and `backend/tests/test_docs_user.py` fails on it first.
 
 ## 2. Prose Conventions
 
