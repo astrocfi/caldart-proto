@@ -58,6 +58,13 @@
   max-width: 18ch;
 }
 
+/* Shown to every visitor, signed in or not, so it must never wrap and crowd
+   the sign-in/sign-out control beside it on a narrow phone. */
+.portal__help-link {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* On a phone the bar is already carrying a menu button and the wordmark;
    the member does not need to be told their own address as well. */
 @media (max-width: 40rem) {

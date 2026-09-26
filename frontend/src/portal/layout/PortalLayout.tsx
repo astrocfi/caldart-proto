@@ -8,7 +8,8 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth, useSignOut } from '../auth/useAuth';
 import { Button } from '../components/Button';
-import { guidePath } from '../guide';
+import { GUIDE_PREFIX } from '../guide';
+import { helpPath } from '../help';
 import { groupedNavItems } from '../nav';
 
 /** The portal chrome: header, role-filtered navigation, and the routed page outlet. */
@@ -56,6 +57,17 @@ export function PortalLayout(): JSX.Element {
           </Link>
 
           <div className="portal__identity">
+            {/* A plain anchor, not `Link`: the guide is outside the SPA, under a
+                path the router's `/portal` basename would otherwise prefix onto. */}
+            <a
+              href={helpPath(location.pathname)}
+              className="button button--quiet button--small portal__help-link"
+              target="_blank"
+              rel="noopener"
+              aria-label="Help for this screen"
+            >
+              Help
+            </a>
             {isAuthenticated && user ? (
               <>
                 <span className="muted portal__email">{user.email}</span>
@@ -97,7 +109,7 @@ export function PortalLayout(): JSX.Element {
             ))}
             <div className="portal__rail-footer muted">
               <p>
-                <a href={guidePath(roles)} target="_blank" rel="noopener">
+                <a href={GUIDE_PREFIX} target="_blank" rel="noopener">
                   User guide
                 </a>
               </p>

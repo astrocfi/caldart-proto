@@ -109,16 +109,15 @@ describe('PortalLayout', () => {
     expect(railLinkNames()).not.toContain('Renew');
   });
 
-  it.each<[RoleSlug[], string]>([
-    [['member'], '/docs/'],
-    [['member', 'dart_leader'], '/docs/dart-leader-guide/'],
-    [['member', 'account_admin'], '/docs/account-administrator-guide/'],
-  ])('links %s to their own page of the user guide', async (roles, href) => {
-    server.use(signedInAs(makeUser({ roles })));
+  it('links every role to the guide front page', async () => {
+    server.use(signedInAs(makeUser({ roles: ['member', 'account_admin'] })));
     renderWithProviders(tree(), { route: '/' });
 
     const rail = await screen.findByRole('navigation', { name: 'Portal sections' });
-    expect(within(rail).getByRole('link', { name: 'User guide' })).toHaveAttribute('href', href);
+    expect(within(rail).getByRole('link', { name: 'User guide' })).toHaveAttribute(
+      'href',
+      '/docs/',
+    );
   });
 
   it('opens the user guide in a new tab', async () => {
@@ -129,6 +128,37 @@ describe('PortalLayout', () => {
     const link = within(rail).getByRole('link', { name: 'User guide' });
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener');
+  });
+
+  it.each<[string, string]>([
+    ['/', '/docs/member/dashboard/'],
+    ['/profile/aircraft', '/docs/member/my-aircraft/'],
+  ])('sends the Help link on %s to %s', async (route, href) => {
+    server.use(signedInAs(makeUser()));
+    renderWithProviders(tree(), { route });
+
+    const link = await screen.findByRole('link', { name: 'Help for this screen' });
+    expect(link).toHaveAttribute('href', href);
+  });
+
+  it('opens the Help link in a new tab', async () => {
+    server.use(signedInAs(makeUser()));
+    renderWithProviders(tree(), { route: '/' });
+
+    const link = await screen.findByRole('link', { name: 'Help for this screen' });
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener');
+  });
+
+  it('offers the Help link to a visitor who is not signed in', async () => {
+    renderWithProviders(tree(), { route: '/' });
+
+    await screen.findByText('dashboard body');
+    expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Help for this screen' })).toHaveAttribute(
+      'href',
+      '/docs/member/dashboard/',
+    );
   });
 
   it.each<[RoleSlug, string[]]>([
