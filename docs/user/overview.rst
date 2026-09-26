@@ -231,7 +231,7 @@ renewal page.
 
 Every one of those emails is recorded.  Account administrators read the record
 on the portal's **Reminders** screen, so "was I ever told?" has an answer:
-:doc:`account-administrator-guide` describes it.
+:doc:`admin/index` describes it.
 
 
 Where to go next
@@ -250,14 +250,14 @@ Where to go next
    * - Understand what you were charged and find a receipt
      - :doc:`payments`
    * - Add an airplane and keep its insurance current
-     - :doc:`aircraft`
+     - :doc:`admin/aircraft-record`
    * - Check whether a member may fly for us today
-     - :doc:`dart-leader-guide`
+     - :doc:`admin/member-check`
    * - Look after accounts, roles, and membership terms
-     - :doc:`user-administrator`, :doc:`account-administrator-guide`
+     - :doc:`admin/users`, :doc:`admin/index`
    * - Look after the money: payments, refunds, reconciliation, and reports
      - :doc:`treasurer-guide`
    * - Edit the public site
      - :doc:`website-administrator-guide`
    * - Back up, restore, or check the health of the system
-     - :doc:`system-administrator-guide`
+     - :doc:`admin/system`

@@ -30,19 +30,19 @@ around, then read the guide for what you do:
    * - You are
      - Read
    * - A member
-     - :doc:`user/member-guide`, :doc:`user/payments`, :doc:`user/aircraft`
+     - :doc:`user/member-guide`, :doc:`user/payments`
    * - A DART leader
-     - :doc:`user/dart-leader-guide`
+     - :doc:`user/admin/member-check`
    * - A user administrator
-     - :doc:`user/user-administrator`
+     - :doc:`user/admin/users`
    * - A treasurer
      - :doc:`user/treasurer-guide`
    * - An account administrator
-     - :doc:`user/account-administrator-guide`
+     - :doc:`user/admin/index`
    * - A website administrator
      - :doc:`user/website-administrator-guide`
    * - A system administrator
-     - :doc:`user/system-administrator-guide`
+     - :doc:`user/admin/system`
 
 **If you build CalDART**, read the :doc:`developer/index`.
 :doc:`developer/setup` takes a clean machine to a running application;

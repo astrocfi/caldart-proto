@@ -78,7 +78,7 @@ phone number, whatever you told us in the optional section, and every gift.
 * **No sign-in, no password, no lists.**  A donor has no password and cannot
   ask for one, and appears in no member list, roster, or report of members.  The
   treasurer sees your gifts on the books, and a user administrator can correct a
-  mistyped address (see :doc:`user-administrator`).
+  mistyped address (see :doc:`admin/users`).
 
 If you later join as a member or a friend, register with the same email address
 and follow the link |org| emails there: your record, and every gift on it,

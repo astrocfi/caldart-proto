@@ -372,7 +372,7 @@ reminders, newest first, with a filter by kind.
 ``/portal/admin/reminders``
    **Reminders**, under *Administration*, guarded by ``account_admin``.  The
    log and nothing else, because starting a scan is a system administrator's
-   job.  :doc:`/user/account-administrator-guide` describes it for the people
+   job.  :doc:`/user/admin/reminders` describes it for the people
    who use it.
 
 ``/portal/system``
