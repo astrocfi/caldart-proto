@@ -24,7 +24,8 @@ Create an account
 #. On **Welcome to CalDART**, press **Go to my dashboard**.
 
 Next time, choose **Sign in** in the public site's top menu and use the same email
-address and password.
+address and password. See :doc:`member/join`, :doc:`member/verify-email`, and
+:doc:`member/sign-in`.
 
 
 Add an aircraft you fly
@@ -37,7 +38,8 @@ Add an aircraft you fly
    **N-number**, **Make**, **Model**, and the **Insurance expires** date, and press
    **Add aircraft**.
 
-Keep the insurance date current: a DART leader checks it before a mission.
+Keep the insurance date current: a DART leader checks it before a mission. See
+:doc:`member/my-aircraft`.
 
 
 Become a member or a friend, and back
@@ -59,6 +61,8 @@ To become a member again:
 #. On **Become a member**, choose **Annual** or **Life**, add a contribution if you
    like, and pay.
 
+See :doc:`member/dashboard`, :doc:`member/profile`, and :doc:`member/become-a-member`.
+
 
 Pay, renew, and give
 ====================
@@ -73,6 +77,8 @@ To renew your membership:
    are still current, the new term starts the day after your present one ends; if
    you have lapsed, it starts today.
 
+See :doc:`member/renew`.
+
 To give:
 
 #. Choose **Donate** in the menu.
@@ -82,8 +88,12 @@ To give:
 #. Pay from one of the tabs. *Thank you for your donation.* appears, and the receipt
    arrives by email.
 
+See :doc:`member/donate`.
+
 To find a receipt or a tax statement:
 
 #. Choose **Payments** in the menu.
 #. Under **Your payments**, press **Receipt** on the payment's row.
 #. Under **Contribution statements**, press the button for the year.
+
+See :doc:`member/payments`.

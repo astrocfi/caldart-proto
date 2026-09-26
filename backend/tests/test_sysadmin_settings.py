@@ -319,8 +319,22 @@ def test_nginx_is_shipped_as_the_alternative() -> None:
     """The nginx config proxies to gunicorn and forwards the original scheme."""
     config = (DEPLOY_DIR / "nginx" / "caldart.conf").read_text()
 
-    assert "proxy_pass http://127.0.0.1:8001;" in config
+    assert "proxy_pass http://caldart_app;" in config
     assert "proxy_set_header X-Forwarded-Proto $scheme;" in config
+
+
+def test_nginx_proxies_through_its_keepalive_upstream() -> None:
+    """``proxy_pass`` names the ``caldart_app`` upstream, so its keepalive pool is used.
+
+    A ``proxy_pass`` straight to ``127.0.0.1:8001`` reconnects to gunicorn on every
+    request; ``keepalive`` only pools connections when ``proxy_pass`` names the
+    upstream that declares it.
+    """
+    config = (DEPLOY_DIR / "nginx" / "caldart.conf").read_text()
+
+    assert "upstream caldart_app {" in config
+    assert "keepalive 16;" in config
+    assert "proxy_pass http://caldart_app;" in config
 
 
 def test_the_web_unit_runs_gunicorn_from_the_venv() -> None:

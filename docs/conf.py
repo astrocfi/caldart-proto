@@ -42,10 +42,11 @@ release = ""
 # ``-W``, would fail the build on any machine without Graphviz installed.
 #
 # So the extension is enabled only when ``dot`` is on PATH, and the ``graphviz``
-# build tag records the decision.  ``docs/developer/data-model.rst`` draws the
-# entity-relationship diagram inside ``.. only:: graphviz`` and keeps an ASCII
-# equivalent inside ``.. only:: not graphviz``, so both environments get a
-# diagram and neither gets a warning.  Install Graphviz for the nicer one.
+# build tag records the decision.  ``docs/developer/data-model.rst`` draws its
+# three entity-relationship diagrams inside ``.. only:: graphviz`` and keeps an
+# ASCII equivalent of each inside ``.. only:: not graphviz``, so both
+# environments get a diagram and neither gets a warning.  Install Graphviz for
+# the nicer one.
 _HAS_DOT = shutil.which("dot") is not None
 
 extensions: list[str] = ["sphinx.ext.graphviz"] if _HAS_DOT else []

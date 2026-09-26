@@ -16,6 +16,10 @@ DEBUG = env.bool("DEBUG", default=True)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 INTERNAL_IPS = ["127.0.0.1"]
 
+# Django's default, DENY, also blocks an <object> that embeds a same-origin SVG, which
+# is how the user guide draws a diagram (docs/_static/figure-zoom.js).
+X_FRAME_OPTIONS = "SAMEORIGIN"
+
 # Hashed/manifest static storage is unhelpful while iterating.
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
