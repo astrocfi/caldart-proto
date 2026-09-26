@@ -327,8 +327,10 @@ set up, and other fields are ignored.  Changing the cadence or the
 weekday moves ``next_due_on`` to the schedule's next day after today; any other
 edit leaves it.  Resuming (``is_active: true``) a subscription whose account may
 no longer read the report is refused with **400** under ``is_active``, with the
-same message as above.  ``DELETE /reports/subscriptions/{id}`` answers
-**204**.
+same message as above.  The Subscriptions screen's **Edit** form sends
+``filters``, ``columns``, ``formats``, ``cadence``, and ``weekday`` together, the
+columns as the chooser holds them (an empty list while the report's defaults
+stand).  ``DELETE /reports/subscriptions/{id}`` answers **204**.
 
 ``POST /reports/subscriptions/{id}/send``
 -----------------------------------------
