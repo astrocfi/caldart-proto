@@ -47,6 +47,7 @@ export function makeDetail(overrides: Partial<MemberDetail> = {}): MemberDetail 
     is_active: true,
     roles: ['member'],
     created_at: '2024-07-01T12:00:00Z',
+    email_verified_at: '2024-07-01T12:05:00Z',
     joined_on: '2024-07-01',
     profile_updated_at: '2026-08-11T09:14:02.100522-07:00',
     membership: CURRENT,

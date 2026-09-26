@@ -82,6 +82,12 @@ form.  The email address is also the login, so tell the person you have changed
 it.  Addresses are unique regardless of case: if another account already uses
 the address you type, the form says so and saves nothing.
 
+A changed address is marked **unverified**, and CalDART emails the person a
+verification message at the new address; the address counts as verified again
+once they open the link in it.  A change of capitalization alone is not a
+change of address and leaves the verification alone.  People can also change
+their own address, from **Change email** in the portal's menu.
+
 An address you may not move is refused for a different reason.  The email
 address is where a password reset link goes, so moving somebody's address is
 enough to take their account over, and the server allows it only when you

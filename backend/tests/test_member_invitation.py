@@ -157,6 +157,23 @@ def test_the_text_body_states_how_long_the_link_lasts(
     assert "The link can be used once and expires in 3 days." in mail.outbox[0].body
 
 
+def test_the_text_body_says_the_link_proves_the_address(
+    invitee: User, site_settings: SiteSettings
+) -> None:
+    """The text body says that using the link also confirms the address."""
+    send_password_invitation(invitee)
+    assert "Using the link also confirms that this address is yours." in mail.outbox[0].body
+
+
+def test_the_html_part_says_the_link_proves_the_address(
+    invitee: User, site_settings: SiteSettings
+) -> None:
+    """The HTML alternative says that using the link also confirms the address."""
+    send_password_invitation(invitee)
+    html = " ".join(_html_alternative(_sent(0)).split())
+    assert "Using the link also confirms that this address is yours." in html
+
+
 def test_the_text_body_gives_the_contact_address(
     invitee: User, site_settings: SiteSettings
 ) -> None:
@@ -219,6 +236,18 @@ def test_the_mailed_link_sets_the_password(
     assert invitee.check_password(GOOD_PASSWORD)
 
 
+def test_the_mailed_link_verifies_the_address(
+    api_client: APIClient, invitee: User, site_settings: SiteSettings
+) -> None:
+    """Following the invitation proves the address, so the account becomes verified."""
+    send_password_invitation(invitee)
+    uid, token = uid_and_token()
+    api_client.post(RESET_CONFIRM, {"uid": uid, "token": token, "new_password": GOOD_PASSWORD})
+
+    invitee.refresh_from_db()
+    assert invitee.email_verified is True
+
+
 # --------------------------------------------------------------------------
 # When it is sent
 # --------------------------------------------------------------------------
@@ -233,16 +262,18 @@ def test_creating_a_member_without_a_password_sends_the_invitation(
     assert mail.outbox[0].subject == f"{ORG_NAME}: set your password"
 
 
-def test_creating_a_member_with_a_password_sends_nothing(
+def test_creating_a_member_with_a_password_sends_no_invitation(
     account_admin_client: APIClient,
     site_settings: SiteSettings,
     django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
 ) -> None:
-    """Creating a member with a password given sends no invitation email."""
+    """A member created with a password is sent verification, not an invitation."""
     with django_capture_on_commit_callbacks(execute=True):
         account_admin_client.post(
             MEMBERS_URL,
             {"email": "newbie@example.test", "password": GOOD_PASSWORD},
             format="json",
         )
-    assert mail.outbox == []
+    assert [message.subject for message in mail.outbox] == [
+        f"{ORG_NAME}: verify your email address"
+    ]

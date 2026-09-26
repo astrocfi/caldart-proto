@@ -1,11 +1,12 @@
 /**
- * `/join` and `/join/:step` — the four-step join wizard.
+ * `/join` and `/join/:step` — the five-step join wizard.
  *
  * The wizard is resumable: the step comes from the URL, but the *furthest*
  * step the visitor may be on is derived from the server's view of them
- * (session, `profile_complete`, membership), so closing the tab half way
- * through and coming back lands you where you left off.  Going back is always
- * allowed; skipping ahead is not.
+ * (session, `email_verified`, `profile_complete`, membership), so closing the
+ * tab half way through and coming back lands you where you left off.  Going
+ * back is always allowed; skipping ahead is not.  The verify step has nothing to
+ * offer an address that is already verified, so the wizard passes over it.
  *
  * The one exception is a visitor coming back from a redirect-based payment
  * method: Stripe returns them to `/join/done?payment_id=…`, and at that
@@ -29,10 +30,12 @@ import { ReturnStep } from './ReturnStep';
 import { StepIndicator } from './StepIndicator';
 import { clampJoinStep, furthestJoinStep, isJoinStep, laterJoinStep, nextJoinStep } from './steps';
 import type { JoinStep } from './steps';
+import { VerifyStep } from './VerifyStep';
 import './join.css';
 
 const LEDE: Record<JoinStep, string> = {
   account: 'Membership is $45 a year, or $650 for life. It takes about three minutes.',
+  verify: 'We need to know the address is yours before you go on.',
   profile: 'Tell us how to reach you and what you fly.',
   pay: 'Card, Apple Pay, Google Pay, or PayPal. Your membership starts immediately.',
   done: 'You are a member of the California DART Network.',
@@ -83,7 +86,8 @@ export function JoinWizard(): JSX.Element {
     return <Navigate to={`/join/${furthest}`} replace />;
   }
 
-  const current = returning ? 'done' : clampJoinStep(stepParam, furthest);
+  const clamped = returning ? 'done' : clampJoinStep(stepParam, furthest);
+  const current = clamped === 'verify' && user?.email_verified === true ? 'profile' : clamped;
   if (!returning && current !== stepParam) {
     return <Navigate to={`/join/${current}`} replace />;
   }
@@ -98,6 +102,7 @@ export function JoinWizard(): JSX.Element {
     <Page title="Join CalDART" eyebrow="Membership" lede={LEDE[current]}>
       <StepIndicator current={current} />
       {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
+      {current === 'verify' ? <VerifyStep onDone={() => advance('verify')} /> : null}
       {current === 'profile' ? <ProfileStep onDone={() => advance('profile')} /> : null}
       {current === 'pay' ? <PayStep onDone={() => advance('pay')} /> : null}
       {current === 'done' ? (

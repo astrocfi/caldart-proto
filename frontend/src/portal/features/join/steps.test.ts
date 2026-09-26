@@ -6,6 +6,7 @@ import {
   clampJoinStep,
   furthestJoinStep,
   isJoinStep,
+  joinStepEyebrow,
   joinStepIndex,
   laterJoinStep,
   nextJoinStep,
@@ -28,6 +29,16 @@ const NONE: MembershipStatus = {
 describe('furthestJoinStep', () => {
   it('starts a visitor with no session at the account step', () => {
     expect(furthestJoinStep(null)).toBe('account');
+  });
+
+  it('holds a signed-in user with an unverified address at the verify step', () => {
+    expect(furthestJoinStep(makeUser({ email_verified: false, profile_complete: false }))).toBe(
+      'verify',
+    );
+  });
+
+  it('holds an unverified address at the verify step even with a complete profile', () => {
+    expect(furthestJoinStep(makeUser({ email_verified: false, membership: NONE }))).toBe('verify');
   });
 
   it('sends a signed-in member with a thin profile to the profile step', () => {
@@ -63,8 +74,9 @@ describe('clampJoinStep', () => {
 });
 
 describe('step helpers', () => {
-  it('recognizes only the four real steps', () => {
+  it('recognizes only the five real steps', () => {
     expect(isJoinStep('account')).toBe(true);
+    expect(isJoinStep('verify')).toBe(true);
     expect(isJoinStep('done')).toBe(true);
     expect(isJoinStep('elsewhere')).toBe(false);
     expect(isJoinStep(undefined)).toBe(false);
@@ -75,9 +87,18 @@ describe('step helpers', () => {
   });
 
   it('advances one step and stops at the end', () => {
-    expect(nextJoinStep('account')).toBe('profile');
+    expect(nextJoinStep('account')).toBe('verify');
+    expect(nextJoinStep('verify')).toBe('profile');
     expect(nextJoinStep('pay')).toBe('done');
     expect(nextJoinStep('done')).toBe('done');
+  });
+
+  it('orders verify between account and profile', () => {
+    expect(joinStepIndex('verify')).toBe(1);
+  });
+
+  it('numbers a step out of all five', () => {
+    expect(joinStepEyebrow('profile')).toBe('Step 3 of 5');
   });
 
   it('takes the later of two steps', () => {

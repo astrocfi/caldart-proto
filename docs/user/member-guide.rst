@@ -12,7 +12,7 @@ Joining
 =======
 
 Start at **Join CalDART** in the site menu, or go straight to
-``/portal/join``.  Joining is a four-step wizard, and the progress rail at
+``/portal/join``.  Joining is a five-step wizard, and the progress rail at
 the top of the page always shows which step you are on.
 
 Step 1 — Account
@@ -26,7 +26,26 @@ obvious ones.
 If you already have an account, follow **Already a member? Sign in** and the
 wizard picks up from wherever you left off.
 
-Step 2 — Profile
+Step 2 — Verify your email
+--------------------------
+
+CalDART emails the address you gave a **verification message**, and the
+**Check your email** step waits until you open the link in it.  The link opens
+a page that says **Email verified**; press **Continue** and the wizard moves on
+to your profile.
+
+* **Resend verification message** sends another if the first has not arrived
+  (check the spam folder first).
+* **I've clicked the link** checks again, for when you opened the link in a
+  different browser or on your phone.
+* **Use a different email address** fixes a mistyped address: the new one is
+  sent a fresh message and the wizard brings you back here.
+
+The link is good for three days.  If it has expired, **Resend verification
+message** gets you a new one.  An address you had already verified — because
+you are coming back to finish joining — skips this step.
+
+Step 3 — Profile
 ----------------
 
 Four things are required, because without them nobody can reach you during
@@ -72,7 +91,7 @@ Everything else can wait until later.  The form is in three sections:
   with: ground support, exercises and training, member support, fundraising,
   social media, newsletter.
 
-Step 3 — Pay
+Step 4 — Pay
 ------------
 
 Choose **Annual** ($45.00, one year) or **Life** ($650.00, once and never
@@ -82,7 +101,7 @@ Pay or PayPal.  Your membership is activated the moment the payment clears
 checkout in more depth, including what a failed or pending payment looks
 like.
 
-Step 4 — Done
+Step 5 — Done
 -------------
 
 The last step confirms the date your membership runs to and links you to
@@ -101,6 +120,12 @@ Your dashboard
 
 Signing in lands you on the dashboard at ``/portal/``.  Reading down the
 page:
+
+Verify your email address
+  Shown first, and only while your email address is unverified: after you
+  change it, or if you finished joining without opening the link.  It names
+  the address and offers **Resend verification message**.  It disappears once
+  you open the link in the message.  Nothing else in the portal waits on it.
 
 Membership
   A status chip — **Current**, **Expiring soon**, **Unpaid**, **Expired**, or
@@ -231,6 +256,12 @@ have forgotten it, use **Forgot your password?** and CalDART emails you a
 link to set a new one.  To change a password you still know, choose
 **Change password** in the *Membership* section of the portal menu (it is
 also at ``/portal/change-password``).
+
+To sign in with a different email address, choose **Change email** in the same
+section (``/portal/change-email``), and give the new address and your current
+password.  The new address is unverified until you open the link CalDART sends
+to it; the dashboard reminds you until you do.  Following a password reset link
+verifies the address too, since the link could only have reached you there.
 
 If your account has been deactivated, signing in with the right password tells
 you so; contact CalDART to have it reopened.

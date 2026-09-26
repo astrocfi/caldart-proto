@@ -100,6 +100,12 @@ def test_seed_demo_creates_the_documented_accounts() -> None:
         assert user.is_superuser is is_superuser
 
 
+def test_seed_demo_leaves_no_account_unverified() -> None:
+    """Every seeded account's address is verified, as of the moment it was created."""
+    _seed()
+    assert User.objects.filter(email_verified_at__isnull=True).count() == 0
+
+
 def test_sysadmin_is_a_superuser() -> None:
     """The seeded ``sysadmin@example.org`` account is a Django superuser and staff."""
     _seed()

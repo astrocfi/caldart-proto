@@ -1,5 +1,5 @@
 /**
- * Step 3 — pay.
+ * Step 4 — pay.
  *
  * The payment UI itself is `<Checkout/>` from `@/portal/features/checkout`:
  * it offers the plans, the optional contribution and the card / Apple Pay /
@@ -13,13 +13,14 @@ import type { JSX } from 'react';
 
 import { Card } from '@/portal/components/Card';
 import { refreshAfterPayment } from './refresh';
+import { joinStepEyebrow } from './steps';
 import './join.css';
 
 export interface PayStepProps {
   onDone: () => void;
 }
 
-/** Step 3 of the join wizard: collects payment through `<Checkout/>`. */
+/** Step 4 of the join wizard: collects payment through `<Checkout/>`. */
 export function PayStep({ onDone }: PayStepProps): JSX.Element {
   const queryClient = useQueryClient();
 
@@ -31,7 +32,7 @@ export function PayStep({ onDone }: PayStepProps): JSX.Element {
   }
 
   return (
-    <Card className="join-card" eyebrow="Step 3 of 4" title="Pay your dues">
+    <Card className="join-card" eyebrow={joinStepEyebrow('pay')} title="Pay your dues">
       <p className="muted">
         Membership starts the moment the payment clears. You can add a contribution on top if you
         would like to support CalDART further.

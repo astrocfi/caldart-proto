@@ -61,6 +61,8 @@ export interface User {
   is_active: boolean;
   membership: MembershipStatus;
   profile_complete: boolean;
+  /** False until the owner follows a link sent to the address they hold now. */
+  email_verified: boolean;
 }
 
 export interface LoginPayload {
@@ -91,7 +93,33 @@ export interface PasswordResetConfirmPayload {
   new_password: string;
 }
 
+/** `POST /auth/email/verify`: the token from a verification link. */
+export interface EmailVerifyPayload {
+  token: string;
+}
+
+/** `POST /auth/email/verify`: the address the link verified. */
+export interface EmailVerifyResult {
+  email: string;
+}
+
+/** `POST /auth/email/change`: the address to move to, and the current password. */
+export interface EmailChangePayload {
+  email: string;
+  current_password: string;
+}
+
+/** `POST /auth/email/resend` and `/admin/users/{id}/send-email-verification`. */
+export interface VerificationSentResult {
+  detail: string;
+}
+
 /* ------------------------------------------------------ user administration */
+/** `/admin/users`: the user payload, plus when the address was verified. */
+export interface AdminUser extends User {
+  email_verified_at: IsoDateTime | null;
+}
+
 /** The writable half of `PATCH /admin/users/{id}`. */
 export interface AdminUserPatch {
   first_name?: string;
@@ -424,6 +452,7 @@ export interface MemberDetail {
   is_active: boolean;
   roles: RoleSlug[];
   created_at: IsoDateTime;
+  email_verified_at: IsoDateTime | null;
   joined_on: IsoDate | null;
   profile_updated_at: IsoDateTime | null;
   membership: MembershipStatus;

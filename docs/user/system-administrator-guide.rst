@@ -195,8 +195,8 @@ screen:
 
 **Purpose**
    One kind of message: a renewal reminder at a given stage, a renewal notice
-   or charge, a receipt, a refund, an invitation, a password reset, a
-   scheduled report, or a DART roster.
+   or charge, a receipt, a refund, an invitation, a password reset, an email
+   verification, a scheduled report, or a DART roster.
 **Status**
    Only the messages the mail server took, or only the ones it refused.
 **From** and **To**

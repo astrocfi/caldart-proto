@@ -17,8 +17,9 @@ browser's session cookie is the credential; there is no token to store.
 authentication class configured.
 
 **CSRF.**  Every unsafe method needs an ``X-CSRFToken`` header, including the
-anonymous ones on this page: register, login, logout, and the two
-password-reset endpoints all refuse a POST that carries no token.  Call
+anonymous ones on this page: register, login, logout, the two password-reset
+endpoints, and the email-verify endpoint all refuse a POST that carries no
+token.  Call
 ``GET /api/v1/auth/csrf`` whenever you have no ``csrftoken`` cookie to echo;
 the SPA's ``api/client.ts`` does this automatically before every POST, PUT
 , PATCH, or DELETE that finds the cookie missing.
@@ -62,7 +63,8 @@ Every endpoint that returns an account returns the same object:
        "plan": "Annual",
        "is_lifetime": false
      },
-     "profile_complete": true
+     "profile_complete": true,
+     "email_verified": true
    }
 
 ``roles``
@@ -86,7 +88,15 @@ Every endpoint that returns an account returns the same object:
    ``state``, ``postal_code``, and ``pilot_certificate_type`` filled in.  False when there is
    no profile at all.  The portal uses it to decide whether to nag.
 
-The payload is read-only everywhere except ``PATCH /admin/users/{id}``.
+``email_verified``
+   True once the account's owner has followed a link sent to the address the
+   account holds now: a verification link (see `Email verification`_), or a
+   password reset or invitation link.  A new account and a changed address
+   start false.  The join wizard waits on it, and the dashboard asks for it;
+   nothing else in the portal is gated on it.
+
+The payload is read-only everywhere except ``PATCH /admin/users/{id}``, whose
+answer also carries ``email_verified_at`` (below).
 
 
 Authentication
@@ -107,6 +117,8 @@ Creates a member account, signs them in and returns the user payload.  All
 four fields are required.  In one transaction the endpoint creates the
 ``User``, grants the ``member`` role and creates an empty ``MemberProfile``, then
 calls ``django.contrib.auth.login``.  If any part fails, none of it is written.
+Once the transaction commits, the new address is mailed a verification link
+(see `Email verification`_), and the payload's ``email_verified`` is false.
 
 .. code-block:: json
 
@@ -119,7 +131,7 @@ calls ``django.contrib.auth.login``.  If any part fails, none of it is written.
     "last_name": "Reyes", "roles": ["member"], "is_active": true,
     "membership": {"status": "none", "expires_on": null, "plan": null,
                    "is_lifetime": false},
-    "profile_complete": false}
+    "profile_complete": false, "email_verified": false}
 
 Rejections, all 400:
 
@@ -154,7 +166,7 @@ case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
     "last_name": "Reyes", "roles": ["member", "dart_leader"], "is_active": true,
     "membership": {"status": "current", "expires_on": "2027-06-30",
                    "plan": "Annual", "is_lifetime": false},
-    "profile_complete": true}
+    "profile_complete": true, "email_verified": true}
 
 * **400** ``{"detail": "Incorrect email address or password."}`` — wrong
   credentials.  The message never says which half was wrong, and an address
@@ -262,10 +274,110 @@ expired. Request a new one."]}``.  A weak new password is reported separately
 under ``new_password``.
 
 The endpoint does not sign the user in; the portal sends them to ``/login``.
+The link could only have reached the owner of the address, so spending it also
+marks an unverified address verified (``email_verified_at`` is set to now, and
+an ``account.email_verified`` audit line is written); an address already
+verified keeps its original time.
 
 Statuses: **204**; **400** for an unusable link, a weak password or a missing
 field; **429** when the ``auth_password_reset`` throttle is exhausted, which
 is the same budget the request endpoint draws on.
+
+
+Email verification
+==================
+
+A new account, a member an administrator creates with a password, and every
+change of address are mailed a link that proves the address::
+
+    {SITE_URL}/portal/verify-email?token=<token>
+
+The token is ``django.core.signing.dumps({"user": <id>, "email": <address>},
+salt="accounts.email-verification")``, with the address stripped and
+lowercased.  It is checked with ``max_age=EMAIL_VERIFICATION_TIMEOUT`` seconds
+(three days by default; see :doc:`configuration`).  Because the address is
+signed into it, changing the address makes every earlier link useless, while a
+change of capitalization alone does not.
+
+``apps.accounts.services.send_email_verification`` renders
+``templates/emails/email_verification.{txt,html}`` with the subject
+``"<organization name>: verify your email address"``, and the email log
+records it under the purpose ``email_verification``.
+
+``accounts.services.update_account`` is the one hook for a change of address:
+whenever an edit really changes ``email`` — compared stripped and
+case-insensitively — it clears ``email_verified_at`` and mails the new address
+once the transaction commits.  That covers ``PATCH /admin/users/{id}``,
+``PATCH /admin/members/{user_id}``, and ``POST /auth/email/change`` alike.
+
+``POST /auth/email/verify``
+---------------------------
+
+Follows a verification link.  Open to anonymous callers, because the mail
+client may open the link in a browser that has no session.
+
+.. code-block:: json
+
+   {"token": "eyJ1c2VyIjoxMiwiZW1haWwiOiJtYXJ0YUBleGFtcGxlLm9yZyJ9:1xAG4w:..."}
+
+.. code-block:: json
+
+   {"email": "marta.reyes@example.org"}
+
+The account the token names is stamped verified and an
+``account.email_verified`` audit line is written.  Following a link a second
+time answers 200 again and changes nothing.  Every way a link can be unusable —
+a forged or mangled token, one older than the timeout, a deactivated or deleted
+account, an address the account no longer holds — returns the same
+``400 {"token": ["That verification link is invalid or has expired."]}``.
+
+Statuses: **200**; **400** for an unusable token or a missing field; **429**
+when the ``auth_verify`` throttle is exhausted.
+
+``POST /auth/email/resend``
+---------------------------
+
+Mails the signed-in account's address a fresh verification link.  No body.
+
+.. code-block:: json
+
+   {"detail": "Verification message sent to marta.reyes@example.org."}
+
+An address that is already verified is refused, and nothing is mailed::
+
+    400 {"detail": "Your email address is already verified."}
+
+Statuses: **202**; **400** for a verified address; **401** when anonymous;
+**429** when the ``auth_verify_resend`` throttle is exhausted.
+
+``POST /auth/email/change``
+---------------------------
+
+Moves the signed-in account to another address and returns the user payload,
+whose ``email_verified`` is then false.  The address is the login, so the
+current password is asked for first.
+
+.. code-block:: json
+
+   {"email": "marta@example.net", "current_password": "..."}
+
+The checks run in this order and only the first failure is reported, each a
+400 keyed on its field:
+
+* ``{"current_password": ["That is not your current password."]}``
+* ``{"email": ["That is already your email address."]}`` — compared
+  case-insensitively.
+* ``{"email": ["Another account already uses that email address."]}`` — also
+  case-insensitive.
+
+The change goes through ``accounts.services.change_own_email``, which is
+``update_account`` with the account as both actor and target: it is audited as
+``action=account.update actor=12 target=12 fields=email``, and the new address
+is mailed a verification link on commit.  The session survives, so the caller
+stays signed in.
+
+Statuses: **200**; **400** for any rejection above or a missing field;
+**401** when anonymous.
 
 
 Roles
@@ -295,7 +407,7 @@ Statuses: **200**; **401** when anonymous.
 Users admin
 ===========
 
-All four endpoints require the ``user_admin`` role.  ``system_admin`` passes
+All five endpoints require the ``user_admin`` role.  ``system_admin`` passes
 every role check, so system administrators have them too; every other role gets
 403.
 
@@ -303,6 +415,8 @@ every role check, so system administrators have them too; every other role gets
 --------------------
 
 Paginated list of user payloads, ordered by last name, first name, email.
+Each row also carries ``email_verified_at``: when the owner last proved the
+address, as an ISO datetime, or ``null`` while it is unverified.
 
 .. code-block:: json
 
@@ -316,7 +430,8 @@ Paginated list of user payloads, ordered by last name, first name, email.
         "is_active": true,
         "membership": {"status": "current", "expires_on": "2027-06-30",
                        "plan": "Annual", "is_lifetime": false},
-        "profile_complete": true}
+        "profile_complete": true, "email_verified": true,
+        "email_verified_at": "2026-09-01T10:14:02.100522-07:00"}
      ]
    }
 
@@ -368,7 +483,12 @@ is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
     "is_active": false,
     "membership": {"status": "current", "expires_on": "2027-06-30",
                    "plan": "Annual", "is_lifetime": false},
-    "profile_complete": true}
+    "profile_complete": true, "email_verified": true,
+    "email_verified_at": "2026-09-01T10:14:02.100522-07:00"}
+
+``email_verified_at`` is read-only.  A write that really changes ``email``
+clears it and mails the new address a verification link (see `Email
+verification`_); a change of capitalization alone leaves it alone.
 
 Three rules are enforced in ``AdminUserSerializer``:
 
@@ -437,6 +557,28 @@ Statuses: **200** when the mail went out; **400** for an account that is
 deactivated or holds no email address; **401** when anonymous; **403** without
 ``user_admin``; **404** for an unknown id.  This endpoint is not throttled —
 the throttles guard the anonymous routes.
+
+``POST /admin/users/{id}/send-email-verification``
+--------------------------------------------------
+
+Mails the account a fresh verification link on an administrator's behalf.  No
+body.
+
+.. code-block:: json
+
+   {"detail": "Verification message sent to marta.reyes@example.org."}
+
+Two accounts are refused, and neither is mailed::
+
+    400 {"detail": "That address is already verified."}
+    400 {"detail": "That account is deactivated, so no verification message was sent."}
+
+The send is recorded in the audit log as
+``action=email_verification.admin_sent actor=<admin> target=<id>``.
+
+Statuses: **202** when the mail went out; **400** for a verified address or a
+deactivated account; **401** when anonymous; **403** without ``user_admin``;
+**404** for an unknown id.  Not throttled.
 
 
 .. _account-edit-guard:
@@ -524,8 +666,8 @@ An edit that goes through is recorded the same way at INFO.
 Rate limiting
 =============
 
-Login, registration, and both password-reset endpoints are throttled by client
-address.  The classes are in ``apps.accounts.throttling``; they subclass
+Login, registration, both password-reset endpoints, the email-verify endpoint,
+and the verification resend are throttled by client address.  The classes are in ``apps.accounts.throttling``; they subclass
 ``AnonRateThrottle`` but override ``get_cache_key`` so a session does not exempt
 the caller — registration signs the new account in, so every request after the
 first would otherwise carry a cookie and go uncounted.
@@ -540,6 +682,8 @@ Scope                    Default                    Environment variable
 ``auth_login``           20/min                     ``AUTH_THROTTLE_LOGIN``
 ``auth_register``        10/hour                    ``AUTH_THROTTLE_REGISTER``
 ``auth_password_reset``  10/hour                    ``AUTH_THROTTLE_PASSWORD_RESET``
+``auth_verify``          30/hour                    ``AUTH_THROTTLE_VERIFY``
+``auth_verify_resend``   5/hour                     ``AUTH_THROTTLE_VERIFY_RESEND``
 =======================  =========================  ===========================
 
 A scope mapped to ``None`` — or missing from the dict — is inert.
@@ -555,8 +699,12 @@ How the portal uses this
 
 ``src/portal/auth/useAuth.ts`` wraps the whole surface in TanStack Query hooks:
 ``useMe`` and ``useAuth`` for identity, ``useRoles`` for the catalog, and
-``useLogin``, ``useRegister``, ``useLogout``, ``usePasswordChange``
-, ``usePasswordResetRequest``, and ``usePasswordResetConfirm`` for the mutations.
+``useLogin``, ``useRegister``, ``useLogout``, ``usePasswordChange``,
+``usePasswordResetRequest``, ``usePasswordResetConfirm``, ``useEmailVerify``,
+``useResendVerification``, and ``useEmailChange`` for the mutations.
+``useEmailChange`` seeds ``['auth', 'me']`` with the answer, and
+``useEmailVerify`` invalidates it, so a signed-in member's own payload says
+verified straight away.
 Login, registration, and logout all call ``queryClient.clear()`` so no screen can
 show the previous user's data.
 
@@ -598,6 +746,11 @@ Tests
 ``backend/tests/test_users_admin_api.py``
    The full role matrix on every users-admin endpoint, the search and filter
    parameters, and each business rule above.
+
+``backend/tests/test_email_verification.py``
+   The verification token and each way it is refused, the message, every path
+   that sends one, and the verify, resend, change, and administrator resend
+   endpoints.
 
 ``backend/tests/test_auth_api.py``
    The minimal surface the portal shell needs — CSRF, login, logout, me.

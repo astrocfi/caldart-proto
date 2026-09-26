@@ -839,6 +839,18 @@ reports on: the export carries every payment, while the by-period summary counts
 only the succeeded ones, so the spec counts periods over the export's
 ``succeeded`` rows and the ledger's caption over all of them.
 
+**Follow an emailed link from the mail directory.**  ``make e2e`` sends mail
+through Django's file backend (``EMAIL_URL=filemail:///<repo>/frontend/e2e/.mail``),
+so every message the server sends lands as a file in ``frontend/e2e/.mail/``,
+which the target empties at the start of each run and git ignores.
+``e2e/helpers.ts`` exports ``latestEmailTo(address)``, which waits for and returns
+the newest message addressed there with its quoted-printable bodies decoded;
+``verificationLink(text)``, which picks the first
+``/portal/verify-email?token=`` link out of it; and ``followVerificationLink(page,
+address)``, which opens that link and presses **Continue**.  Every spec that
+registers an account goes through it, because the join wizard waits at its
+verify step until the address is verified.
+
 Environment variables
 ---------------------
 

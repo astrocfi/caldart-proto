@@ -284,18 +284,20 @@ what your roles open.  Ask a user administrator to grant it; see
 Can I change my email address?
 ------------------------------
 
-Not from your own profile — the address is your sign-in, so changing it is an
-administrator action.  Ask a user administrator or an account administrator.
-Capitalization never matters: ``Marta@example.org`` and ``marta@example.org``
-are the same account.
+Yes.  Choose **Change email** in the portal's menu, type the new address and
+your current password, and press **Change email**.  You sign in with the new
+address from then on.  It is **unverified** until you open the link in the
+verification message CalDART sends to it; your dashboard says so, and can send
+the message again, until you do.  Capitalization never matters:
+``Marta@example.org`` and ``marta@example.org`` are the same account.
 
-See :doc:`user-administrator`.
+See :doc:`getting-started`.
 
 Who do I contact about a data correction?
 -----------------------------------------
 
 Anything you can see on ``/portal/profile`` you can fix yourself.  For
-everything else — your name, your email address, a membership term with the
+everything else — your name, a membership term with the
 wrong dates, a payment recorded against the wrong person, an aircraft record
 somebody else created — contact the office; an account administrator can
 correct all of it.  The contact address is in the footer of every public page.

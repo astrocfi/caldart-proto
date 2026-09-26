@@ -23,6 +23,7 @@ import type { ReportSlug } from '@/portal/reports/types';
 import type {
   AdminProfile,
   AdminProfilePayload,
+  AdminUser,
   AdminUserPatch,
   Aircraft,
   AircraftActor,
@@ -39,7 +40,10 @@ import type {
   ContributionRow,
   ContributionTier,
   Dart,
+  EmailChangePayload,
   EmailLogEntry,
+  EmailVerifyPayload,
+  EmailVerifyResult,
   EmailPurpose,
   EmailStatus,
   FinanceMember,
@@ -136,6 +140,7 @@ import type {
   StatementYears,
   TermUpdatePayload,
   User,
+  VerificationSentResult,
 } from './types';
 
 type Schemas = components['schemas'];
@@ -196,6 +201,11 @@ const passwordResetConfirm: Matches<
 const adminUserPatch: Matches<AdminUserPatch, Schemas['PatchedAdminUserRequest']> = true;
 const sendPasswordReset: Matches<SendPasswordResetResult, Schemas['SendPasswordResetResult']> =
   true;
+const adminUser: Matches<AdminUser, Schemas['AdminUser']> = true;
+const emailVerify: Matches<EmailVerifyPayload, Schemas['EmailVerifyRequest']> = true;
+const emailVerified: Matches<EmailVerifyResult, Schemas['EmailVerified']> = true;
+const emailChange: Matches<EmailChangePayload, Schemas['EmailChangeRequest']> = true;
+const verificationSent: Matches<VerificationSentResult, Schemas['VerificationSent']> = true;
 
 /* ------------------------------------------------------------- membership */
 const membershipStatus: Matches<MembershipStatus, Schemas['MembershipStatus']> = true;
@@ -311,7 +321,7 @@ const siteConfig: Matches<SiteConfig, Schemas['SiteConfig']> = true;
 
 /* ------------------------------------------------------------- pagination */
 const paginatedPayments: Matches<Paginated<Payment>, Schemas['PaginatedFinancePaymentList']> = true;
-const paginatedUsers: Matches<Paginated<User>, Schemas['PaginatedAdminUserList']> = true;
+const paginatedUsers: Matches<Paginated<AdminUser>, Schemas['PaginatedAdminUserList']> = true;
 const paginatedMembers: Matches<Paginated<MemberRow>, Schemas['PaginatedMemberListList']> = true;
 const paginatedAircraft: Matches<Paginated<Aircraft>, Schemas['PaginatedAircraftList']> = true;
 const paginatedReminders: Matches<
@@ -352,6 +362,11 @@ const assertions: readonly true[] = [
   passwordResetConfirm,
   adminUserPatch,
   sendPasswordReset,
+  adminUser,
+  emailVerify,
+  emailVerified,
+  emailChange,
+  verificationSent,
   membershipStatus,
   membershipTerm,
   membershipDetail,
@@ -477,6 +492,11 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'PasswordResetConfirmRequest',
   'PatchedAdminUserRequest',
   'SendPasswordResetResult',
+  'AdminUser',
+  'EmailVerifyRequest',
+  'EmailVerified',
+  'EmailChangeRequest',
+  'VerificationSent',
   'MembershipStatus',
   'MembershipTerm',
   'MembershipDetail',

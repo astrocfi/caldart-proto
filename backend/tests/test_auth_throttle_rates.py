@@ -30,6 +30,8 @@ RATE_VARIABLES = [
     ("AUTH_THROTTLE_LOGIN", "auth_login", "20/min"),
     ("AUTH_THROTTLE_REGISTER", "auth_register", "10/hour"),
     ("AUTH_THROTTLE_PASSWORD_RESET", "auth_password_reset", "10/hour"),
+    ("AUTH_THROTTLE_VERIFY", "auth_verify", "30/hour"),
+    ("AUTH_THROTTLE_VERIFY_RESEND", "auth_verify_resend", "5/hour"),
 ]
 
 

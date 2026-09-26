@@ -1,4 +1,4 @@
-"""Account services: account creation, the edit guard, roles, and the password email.
+"""Account services: creation, the edit guard, roles, and the account emails.
 
 The API layer validates; everything that changes state lives here so the
 management commands, the Django admin and the tests can reuse it.  A rule the
@@ -8,6 +8,11 @@ Two emails carry a password link: the reset a member asks for, and the
 invitation an administrator-created account receives.  Both render a pair of
 templates from the same context, so the link, the organization name and the
 expiry wording can never drift apart.
+
+A third email proves an address: every new account and every change of address
+is mailed a signed link to ``/portal/verify-email``, and the account counts as
+verified once the link comes back.  A password link proves the address too, so
+following one marks an unverified account verified.
 """
 
 from __future__ import annotations
@@ -16,8 +21,10 @@ from typing import TypedDict
 
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
+from django.core import signing
 from django.db import transaction
 from django.http import HttpRequest
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
@@ -25,10 +32,21 @@ from apps.accounts.models import User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
 from caldart import audit
 from caldart.exceptions import DomainValidationError
-from caldart.mail import send_templated
+from caldart.mail import contact_email, org_name, send_templated
 
 #: Where the SPA serves the reset form (``routes/auth.tsx``).
 RESET_PATH = "/portal/reset-password"
+
+#: Where the SPA serves the page that posts a verification link back.
+VERIFY_PATH = "/portal/verify-email"
+
+#: The ``django.core.signing`` salt of a verification token, so no value signed for
+#: another purpose passes for one.
+EMAIL_VERIFICATION_SALT = "accounts.email-verification"
+
+#: What every unusable verification link is told, so a caller cannot tell an
+#: expired link from a forged one or from one for an address since replaced.
+EMAIL_VERIFICATION_INVALID = "That verification link is invalid or has expired."
 
 #: The name the password emails use before a website administrator has filled
 #: in the organization name in Wagtail's site settings.
@@ -58,6 +76,14 @@ ROLE_CHANGE_REFUSED = "Only a system administrator can grant or revoke the syste
 
 #: What one account column carries in an edit: an address or a name, or the active flag.
 type AccountFieldValue = str | bool
+
+
+class EmailVerificationError(DomainValidationError):
+    """A verification token that proves nothing, reported against the ``token`` field."""
+
+    def __init__(self, message: str) -> None:
+        """Store ``message`` as the complaint about the ``token`` field."""
+        super().__init__("token", message)
 
 
 class AuditFields(TypedDict, total=False):
@@ -167,6 +193,11 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
 
     Everything the save really writes is recorded in the audit log, by field name
     and role slug: an edit that alters nothing records nothing.
+
+    An edit that really alters the email address -- compared as the unique
+    constraint compares it, so a change of case is not one -- clears
+    ``email_verified_at`` and, once the transaction commits, mails the new address a
+    verification link through :func:`send_email_verification`.
     """
     fields = _account_fields(changes)
     roles = changes.get("roles")
@@ -180,13 +211,18 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
             fields.pop(field, None)
 
     records = _change_records(target, fields, roles)
+    is_new_address = len(_altered_fields(target, fields, ("email",))) > 0
     for field in ACCOUNT_FIELDS:
         if field in fields:
             setattr(target, field, fields[field])
+    if is_new_address:
+        target.email_verified_at = None
     if roles is not None and _writes_roles(target, set(roles)):
         target.set_roles(roles)
         sync_django_flags(target)
     target.save()
+    if is_new_address:
+        transaction.on_commit(lambda: send_email_verification(target))
 
     for action, logged in records:
         audit.record(action, actor=actor, target=target, **logged)
@@ -377,13 +413,13 @@ def _alters(target: User, field: str, value: AccountFieldValue) -> bool:
     compared exactly, so a change of case is a change.
     """
     if field == "email":
-        return _normalized_email(value) != _normalized_email(target.email)
+        return normalized_email(value) != normalized_email(target.email)
     if field == "is_active":
         return bool(value) != target.is_active
     return bool(value != getattr(target, field))
 
 
-def _normalized_email(value: AccountFieldValue | None) -> str:
+def normalized_email(value: AccountFieldValue | None) -> str:
     """``value`` as the case-insensitive unique constraint sees it.
 
     Stripped and lowercased; ``None`` and an empty address both give an empty string.
@@ -519,3 +555,139 @@ def send_password_invitation(user: User, *, request: HttpRequest | None = None) 
         subject=f"{context['org_name']}: set your password",
         context=context,
     )
+
+
+# --------------------------------------------------------------------------
+# Email verification
+# --------------------------------------------------------------------------
+def make_email_verification_token(user: User) -> str:
+    """A signed token naming ``user`` and the address they hold now.
+
+    The address is signed stripped and lowercased, so a change of case keeps the
+    token good while any real change of address makes it useless.  The token carries
+    its own timestamp; :func:`verify_email` refuses it once
+    ``EMAIL_VERIFICATION_TIMEOUT`` seconds have passed.
+    """
+    payload = {"user": user.pk, "email": normalized_email(user.email)}
+    return signing.dumps(payload, salt=EMAIL_VERIFICATION_SALT)
+
+
+def build_email_verification_url(user: User) -> str:
+    """The absolute ``/portal/verify-email?token=...`` link mailed to ``user``.
+
+    Built on ``SITE_URL`` with any trailing slash dropped.
+    """
+    token = make_email_verification_token(user)
+    return f"{settings.SITE_URL.rstrip('/')}{VERIFY_PATH}?token={token}"
+
+
+def send_email_verification(user: User) -> None:
+    """Mail ``user`` a link that proves the address they hold now is theirs.
+
+    The subject is ``"<organization name>: verify your email address"`` and the two
+    bodies are ``emails/email_verification.{txt,html}``; the email log records the
+    send under the purpose ``email_verification``.  The context carries ``user``,
+    ``first_name`` (the display name when there is no first name), ``email``,
+    ``verify_url``, ``expiry_days`` (``EMAIL_VERIFICATION_TIMEOUT`` in whole days,
+    never less than one), ``site_url``, ``org_name`` and ``contact_email``.
+    """
+    name = org_name()
+    context: dict[str, object] = {
+        "user": user,
+        "first_name": user.first_name or user.display_name,
+        "email": user.email,
+        "verify_url": build_email_verification_url(user),
+        "expiry_days": max(1, settings.EMAIL_VERIFICATION_TIMEOUT // SECONDS_PER_DAY),
+        "site_url": settings.SITE_URL.rstrip("/"),
+        "org_name": name,
+        "contact_email": contact_email(),
+    }
+    send_templated(
+        to=user.email,
+        subject=f"{name}: verify your email address",
+        template="email_verification",
+        context=context,
+        user_id=user.pk,
+    )
+
+
+def verify_email(token: str) -> User:
+    """Mark the account ``token`` names as verified, and return it.
+
+    Raises ``EmailVerificationError`` with ``EMAIL_VERIFICATION_INVALID`` when the
+    token's signature does not match, when it is older than
+    ``EMAIL_VERIFICATION_TIMEOUT`` seconds, when its account no longer exists or is
+    deactivated, and when the account's address is no longer the one the token was
+    sent to.  A token for an account that is already verified succeeds without
+    changing it, so following the same link twice is harmless.
+    """
+    try:
+        payload = signing.loads(
+            token, salt=EMAIL_VERIFICATION_SALT, max_age=settings.EMAIL_VERIFICATION_TIMEOUT
+        )
+    except signing.BadSignature as exc:
+        raise EmailVerificationError(EMAIL_VERIFICATION_INVALID) from exc
+    user = _verification_target(payload)
+    if user is None:
+        raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
+    if confirm_email_address(user):
+        return user
+    # Nothing was stamped: the account was verified already, or its address changed
+    # after it was read above.  Read it again to tell the two apart.
+    user = _verification_target(payload)
+    if user is None:
+        raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
+    return user
+
+
+def _verification_target(payload: object) -> User | None:
+    """The active account a verified token's ``payload`` names at its current address.
+
+    ``None`` when the payload is not the ``{"user": <id>, "email": <address>}`` shape a
+    token carries, when no active account has that id, or when that account's address,
+    normalized, is no longer the one signed.
+    """
+    if not isinstance(payload, dict):
+        return None
+    pk = payload.get("user")
+    email = payload.get("email")
+    if not isinstance(pk, int) or not isinstance(email, str):
+        return None
+    user = User.objects.filter(pk=pk, is_active=True).first()
+    if user is None or normalized_email(user.email) != email:
+        return None
+    return user
+
+
+def confirm_email_address(user: User) -> bool:
+    """Record that ``user``'s owner has proved the address, unless that is known already.
+
+    Following a verification link and following a password link both prove it, for the
+    address ``user`` held when the caller checked the link.  The stored account is
+    stamped verified now, in one conditional update, only while it is unverified and
+    still holds that address (ignoring case); the stamp is copied onto ``user``,
+    recorded in the audit log as ``account.email_verified`` with the account as actor
+    and target, and the return is True.  An account already verified, or moved to
+    another address since ``user`` was read, is left alone and the return is False.
+    """
+    now = timezone.now()
+    stamped = User.objects.filter(
+        pk=user.pk, email__iexact=user.email, email_verified_at__isnull=True
+    ).update(email_verified_at=now, updated_at=now)
+    if stamped == 0:
+        return False
+    user.email_verified_at = now
+    user.updated_at = now
+    audit.record(audit.ACCOUNT_EMAIL_VERIFIED, actor=user, target=user)
+    return True
+
+
+def change_own_email(user: User, *, email: str) -> User:
+    """Change ``user``'s own address to ``email``, and return the account.
+
+    This is :func:`update_account` with the account as both actor and target, so the
+    change is audited as an ``account.update`` of ``email``, the address is marked
+    unverified, and the new address is mailed a verification link on commit.  The
+    caller has already checked the current password and that the address is free.
+    """
+    return update_account(user, user, {"email": email})

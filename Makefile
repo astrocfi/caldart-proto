@@ -31,6 +31,7 @@ E2E_PORT ?= 8021
 E2E_DB ?= caldart_e2e
 E2E_DATABASE_URL ?= postgres://caldart:caldart@localhost:5432/$(E2E_DB)
 E2E_LOG ?= /tmp/caldart-e2e-server.log
+E2E_MAIL_DIR := $(abspath frontend/e2e/.mail)
 
 # The end-to-end server's whole environment, spelled out rather than inherited.
 # The run has to behave the same on a laptop with a `.env` and on CI without
@@ -42,8 +43,12 @@ E2E_LOG ?= /tmp/caldart-e2e-server.log
 #                      collectstatic and whitenoise serves the bundle, exactly
 #                      as in production.  (CI sets DEBUG=false anyway; that is
 #                      how 21 of 22 specs met an empty SPA shell.)
-#   EMAIL_URL          the console backend: CI has no Mailpit, and a password
-#                      reset must not fail on a refused SMTP connection.
+#   EMAIL_URL          the file backend, writing each message into
+#                      frontend/e2e/.mail/: CI has no Mailpit, a password reset
+#                      must not fail on a refused SMTP connection, and a spec
+#                      follows a verification link by reading the file.  Four
+#                      slashes, because django-environ drops the first slash of
+#                      the path.
 #   AUTH_THROTTLE_LOGIN the specs sign in far more often in a minute than a
 #                      person ever would.
 E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
@@ -53,7 +58,7 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            ALLOWED_HOSTS='localhost,127.0.0.1,[::1]' \
            SITE_URL="http://localhost:$(E2E_PORT)" \
            CSRF_TRUSTED_ORIGINS="http://localhost:$(E2E_PORT)" \
-           EMAIL_URL=consolemail:// \
+           EMAIL_URL=filemail:///$(E2E_MAIL_DIR) \
            DJANGO_VITE_DEV_MODE=false \
            PAYMENTS_MOCK_ENABLED=true \
            AUTH_THROTTLE_LOGIN=1000/min
@@ -169,6 +174,8 @@ e2e: ## Playwright end-to-end tests (own database, own server, mock payments)
 	@# CI creates the database with psql, having no compose services to exec into.
 	@test -n "$(SKIP_CREATEDB)" \
 	  || $(MAKE) --no-print-directory createdb DATABASE_URL="$(E2E_DATABASE_URL)"
+	@# Every run starts with an empty mailbox, so a spec only ever reads its own mail.
+	rm -rf "$(E2E_MAIL_DIR)" && mkdir -p "$(E2E_MAIL_DIR)"
 	$(E2E_ENV) $(MANAGE) db_reset --seed --noinput
 	@# The specs read this instead of copying the seed's own values into a spec.
 	$(E2E_ENV) $(MANAGE) seed_facts > frontend/e2e/seed-facts.json

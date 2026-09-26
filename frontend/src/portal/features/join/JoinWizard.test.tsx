@@ -84,7 +84,7 @@ function path(): string {
   return screen.getByTestId('path').textContent ?? '';
 }
 
-/** Everything the wizard's four steps might ask for. */
+/** Everything the wizard's five steps might ask for. */
 function stubApi(user: User | null) {
   server.use(
     user
@@ -109,7 +109,23 @@ describe('<JoinWizard/> resume logic', () => {
     expect(path()).toBe('/join/account');
   });
 
-  it('resumes a signed-in member with a thin profile on step 2', async () => {
+  it('resumes a signed-in visitor with an unverified address on the verify step', async () => {
+    stubApi(makeUser({ email_verified: false, profile_complete: false, membership: NONE }));
+    renderWizard('/join');
+
+    expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
+    expect(path()).toBe('/join/verify');
+  });
+
+  it('skips the verify step for an address that is already verified', async () => {
+    stubApi(makeUser({ profile_complete: false, membership: NONE }));
+    renderWizard('/join/verify');
+
+    expect(await screen.findByRole('heading', { name: 'About you' })).toBeInTheDocument();
+    expect(path()).toBe('/join/profile');
+  });
+
+  it('resumes a signed-in member with a thin profile on the profile step', async () => {
     stubApi(makeUser({ profile_complete: false, membership: NONE }));
     renderWizard('/join');
 
@@ -117,7 +133,7 @@ describe('<JoinWizard/> resume logic', () => {
     expect(path()).toBe('/join/profile');
   });
 
-  it('resumes a complete profile without a membership on step 3', async () => {
+  it('resumes a complete profile without a membership on the pay step', async () => {
     stubApi(makeUser({ profile_complete: true, membership: NONE }));
     renderWizard('/join');
 
@@ -125,7 +141,7 @@ describe('<JoinWizard/> resume logic', () => {
     expect(path()).toBe('/join/pay');
   });
 
-  it('resumes a paid-up member on step 4', async () => {
+  it('resumes a paid-up member on the done step', async () => {
     stubApi(makeUser());
     renderWizard('/join');
 
@@ -164,18 +180,19 @@ describe('<JoinWizard/> progress', () => {
     renderWizard('/join/account');
 
     const steps = await screen.findByRole('list', { name: 'Join progress' });
-    const [account, profile] = Array.from(steps.querySelectorAll('li'));
+    const [account, verify] = Array.from(steps.querySelectorAll('li'));
     expect(account).toHaveAttribute('data-state', 'current');
     expect(account).toHaveAttribute('aria-current', 'step');
-    expect(profile).toHaveAttribute('data-state', 'todo');
+    expect(verify).toHaveAttribute('data-state', 'todo');
   });
 
-  it('names all four steps', async () => {
+  it('names all five steps', async () => {
     renderWizard('/join/account');
 
     const steps = await screen.findByRole('list', { name: 'Join progress' });
     expect(Array.from(steps.querySelectorAll('li')).map((li) => li.textContent)).toEqual([
       'Account',
+      'Verify',
       'Profile',
       'Pay',
       'Done',
@@ -193,7 +210,7 @@ describe('<JoinWizard/> step progression', () => {
     );
   });
 
-  it('registers an account and moves on to the profile step', async () => {
+  it('registers an account and asks for the address to be verified', async () => {
     let registered: unknown = null;
     let user: User | null = null;
     server.use(
@@ -203,7 +220,7 @@ describe('<JoinWizard/> step progression', () => {
       http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
       http.post(`${API}/auth/register`, async ({ request }) => {
         registered = await request.json();
-        user = makeUser({ profile_complete: false, membership: NONE });
+        user = makeUser({ email_verified: false, profile_complete: false, membership: NONE });
         return HttpResponse.json(user, { status: 201 });
       }),
     );
@@ -217,14 +234,31 @@ describe('<JoinWizard/> step progression', () => {
     await userEvent.type(screen.getByLabelText(/^Password/), 'a-good-password');
     await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
 
-    expect(await screen.findByRole('heading', { name: 'About you' })).toBeInTheDocument();
-    expect(path()).toBe('/join/profile');
+    expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
+    expect(path()).toBe('/join/verify');
     expect(registered).toEqual({
       first_name: 'Marta',
       last_name: 'Reyes',
       email: 'marta@example.org',
       password: 'a-good-password',
     });
+  });
+
+  it('moves on to the profile step once the address is verified', async () => {
+    let user = makeUser({ email_verified: false, profile_complete: false, membership: NONE });
+    server.use(
+      http.get(`${API}/auth/me`, () => HttpResponse.json(user)),
+      http.get(`${API}/me/profile`, () => HttpResponse.json(makeProfile({ phone: '' }))),
+    );
+
+    renderWizard('/join/verify');
+
+    await screen.findByRole('heading', { name: 'Check your email' });
+    user = { ...user, email_verified: true };
+    await userEvent.click(screen.getByRole('button', { name: "I've clicked the link" }));
+
+    expect(await screen.findByRole('heading', { name: 'About you' })).toBeInTheDocument();
+    expect(path()).toBe('/join/profile');
   });
 
   it('shows what the register endpoint rejected', async () => {
@@ -334,7 +368,7 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
 
     renderWizard(RETURN);
 
-    // Step 4 arrives only once the payment has settled.
+    // Step 5 arrives only once the payment has settled.
     expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
     expect(confirmed).toEqual({ payment_id: 42, payment_intent_id: 'pi_1' });
     // …and the payment reference is spent, so a refresh cannot replay it.

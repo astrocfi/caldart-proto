@@ -89,6 +89,9 @@ class User(AbstractUser):
 
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
+    #: When the account's owner last proved the address is theirs, by following a
+    #: verification or password link sent to it; ``None`` while it is unverified.
+    email_verified_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: ClassVar[list[str]] = []
@@ -134,6 +137,11 @@ class User(AbstractUser):
     def display_name(self) -> str:
         """The full name, or the email address when neither name is filled in."""
         return self.get_full_name() or self.email
+
+    @property
+    def email_verified(self) -> bool:
+        """True once the owner has proved the current address is theirs."""
+        return self.email_verified_at is not None
 
     # -- roles ------------------------------------------------------------
     @property

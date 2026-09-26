@@ -10,6 +10,7 @@ import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { EMAIL_MESSAGE, isEmailAddress, maskEmail } from '@/portal/masks';
+import { joinStepEyebrow } from './steps';
 import './join.css';
 
 export interface AccountStepProps {
@@ -29,7 +30,11 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
 
   if (isAuthenticated && user) {
     return (
-      <Card className="join-card join-card--narrow" eyebrow="Step 1 of 4" title="Your account">
+      <Card
+        className="join-card join-card--narrow"
+        eyebrow={joinStepEyebrow('account')}
+        title="Your account"
+      >
         <p>
           You are signed in as <strong>{user.email}</strong>.
         </p>
@@ -67,7 +72,11 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
   }
 
   return (
-    <Card className="join-card join-card--narrow" eyebrow="Step 1 of 4" title="Create your account">
+    <Card
+      className="join-card join-card--narrow"
+      eyebrow={joinStepEyebrow('account')}
+      title="Create your account"
+    >
       <form onSubmit={handleSubmit} noValidate>
         <Field label="First name" required error={fieldErrors.first_name ?? null}>
           {(props) => (

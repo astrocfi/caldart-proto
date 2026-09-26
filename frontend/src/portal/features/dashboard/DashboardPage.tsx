@@ -10,6 +10,7 @@ import { DateText } from '@/portal/components/DateText';
 import { EmptyState } from '@/portal/components/EmptyState';
 import { Money } from '@/portal/components/Money';
 import { Page } from '@/portal/components/Page';
+import { ResendVerificationButton } from '@/portal/components/ResendVerificationButton';
 import { MembershipChip, PaymentChip, membershipTone } from '@/portal/components/StatusChip';
 import { automaticCardTitle, automaticKindLabel } from '@/portal/features/payments/labels';
 import { useMembership, useMyPayments } from '@/portal/features/profile/api';
@@ -22,9 +23,10 @@ const RECENT_PAYMENTS = 5;
 /**
  * `/` — the member's home.
  *
- * Reading order is the order things matter: is my membership current, is my
- * profile usable, what can I read, what have I paid.  The renewal call to
- * action moves to the top and takes an accent edge inside 30 days.
+ * Reading order is the order things matter: is my address verified, is my
+ * membership current, is my profile usable, what can I read, what have I paid.
+ * The renewal call to action moves to the top and takes an accent edge inside
+ * 30 days.  An unverified address gates nothing; the card only asks.
  */
 export function DashboardPage(): JSX.Element {
   const { user, roles } = useAuth();
@@ -50,6 +52,20 @@ export function DashboardPage(): JSX.Element {
     <Page title={greeting} eyebrow="Member portal">
       <div className="grid">
         <div className="col-text stack-loose">
+          {user && !user.email_verified ? (
+            <Card
+              className="dashboard__nudge"
+              eyebrow="Your account"
+              title="Verify your email address"
+              footer={<ResendVerificationButton />}
+            >
+              <p>
+                Your email address, {user.email}, is unverified until you click the link in the
+                verification message we sent it.
+              </p>
+            </Card>
+          ) : null}
+
           <Card
             className={urgent ? 'dashboard__card--urgent' : undefined}
             eyebrow="Membership"

@@ -310,6 +310,10 @@ link is ``build_reset_url``'s, so the portal posts it
 back to ``/auth/password/reset/confirm`` unchanged (:doc:`api-auth`).  The mail
 is queued with ``transaction.on_commit``, so a failed create never sends one —
 and a test has to use ``django_capture_on_commit_callbacks`` to see it.
+Following the invitation's link proves the address, so it also marks the account
+verified.  With a ``password`` no invitation is sent; the address is mailed a
+verification link instead, on commit in the same way (see the email
+verification section of :doc:`api-auth`).
 
 Statuses:
 
@@ -326,7 +330,9 @@ Statuses:
 
 The whole record: the account, its roles, the computed membership, the profile
 *including* ``notes`` and ``how_heard``, every membership term newest first,
-and every payment newest first.
+and every payment newest first.  ``email_verified_at`` is when the member last
+proved the address by following a verification, reset, or invitation link sent
+to it, and ``null`` while it is unverified.
 
 .. code-block:: json
 
@@ -339,6 +345,7 @@ and every payment newest first.
      "is_active": true,
      "roles": ["member"],
      "created_at": "2024-07-01T16:04:11.318204-07:00",
+     "email_verified_at": "2024-07-01T16:09:52.004117-07:00",
      "joined_on": "2024-07-01",
      "profile_updated_at": "2026-08-11T09:14:02.100522-07:00",
      "membership": {
@@ -469,6 +476,10 @@ when the record already has one.
 alongside the rest of the profile.  A request that only flips ``is_active``
 leaves the stamp alone, and so does one for a target with no profile row to
 stamp.
+
+A write that really changes ``email`` — compared stripped and
+case-insensitively — clears ``email_verified_at`` and, once it commits, mails
+the new address a verification link.
 
 ``email`` and ``is_active`` go through the same account-edit guard as
 ``PATCH /admin/users/{id}`` — see :ref:`account-edit-guard`.  An account

@@ -15,10 +15,11 @@ For members
 Joining
 -------
 
-Joining is a four-step wizard — account, profile, pay, done.  From **Join** on
-the public site, or ``/portal/join`` directly, you create an account and fill
-in your profile, and the third step is where the money is.  This page is about
-that third step; the other three are in :doc:`member-guide`.
+Joining is a five-step wizard — account, verify, profile, pay, done.  From
+**Join** on the public site, or ``/portal/join`` directly, you create an
+account, verify its email address, and fill in your profile, and the fourth step
+is where the money is.  This page is about that fourth step; the others are in
+:doc:`member-guide`.
 
 **1. Choose a membership.**  |org| offers two:
 

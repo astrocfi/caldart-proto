@@ -131,8 +131,8 @@ Core
 Authentication rate limits
 ==========================
 
-Three anonymous endpoints are throttled per client address, counted as
-described below.  Each takes a DRF rate as ``<count>/<period>``, where the
+Five groups of auth endpoints are throttled per client address, signed in or
+not, counted as described below.  Each takes a DRF rate as ``<count>/<period>``, where the
 period is ``second``, ``minute``, ``hour``, or ``day`` (or their initials).
 Setting one to an empty value turns that throttle **off**.  A value that is
 neither empty nor a readable rate — ``AUTH_THROTTLE_LOGIN=lots``, say —
@@ -140,7 +140,7 @@ raises ``ImproperlyConfigured`` naming the variable, so a typo stops start-up
 rather than turning the endpoint into a 500 on every request.  Exceeding a
 rate is a **429**.
 
-``caldart.settings.test`` ignores the environment and maps all three scopes to
+``caldart.settings.test`` ignores the environment and maps every scope to
 ``None`` in Python, so no test races a shared counter.
 
 ``AUTH_THROTTLE_LOGIN``
@@ -163,6 +163,20 @@ rate is a **429**.
 
    :Development: ``10/hour``
    :Production: ``10/hour``
+
+``AUTH_THROTTLE_VERIFY``
+   ``POST /auth/email/verify``, which follows a verification link.  Open to
+   anonymous callers, so the rate is what keeps a token from being guessed.
+
+   :Development: ``30/hour``
+   :Production: ``30/hour``
+
+``AUTH_THROTTLE_VERIFY_RESEND``
+   ``POST /auth/email/resend``, which mails the signed-in account a fresh
+   verification link.  Kept low because every request sends an email.
+
+   :Development: ``5/hour``
+   :Production: ``5/hour``
 
 The rates land in the ``AUTH_THROTTLE_RATES`` setting, one key per scope, and
 are read by ``apps.accounts.throttling``.  A scope mapped to ``None``, mapped
@@ -194,6 +208,19 @@ after about a thousand requests, so an attacker would otherwise get a fresh
 budget from every worker.  ``manage.py createcachetable`` creates the table and
 is part of both the first deploy and every upgrade; see :doc:`deployment`.
 Development and tests keep the local-memory cache.
+
+
+Email verification
+==================
+
+``EMAIL_VERIFICATION_TIMEOUT``
+   How long a verification link stays usable, in seconds.  The link carries
+   the account and the address it was sent to, signed with ``SECRET_KEY``, so
+   changing the address also retires every earlier link.  The verification
+   message states the lifetime in whole days.
+
+   :Development: ``259200`` (three days)
+   :Production: ``259200``
 
 
 Email

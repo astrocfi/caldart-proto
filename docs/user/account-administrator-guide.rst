@@ -134,8 +134,11 @@ required; everything else can be filled in later, by you or by the member.
 
 Leave the password box empty unless you have a particular reason not to.  The
 account is then created with no usable password and the new member is emailed
-a link to choose one for themselves.  If you do type a password, no email is
-sent and you have to tell them what it is.
+a link to choose one for themselves.  Using that link also verifies their email
+address, since only the owner of the address could have received it.  If you do
+type a password, you have to tell them what it is, and the new member is emailed
+a verification message instead: their address stays **unverified** until they
+open the link in it.
 
 Either way the account is granted the ``member`` role and an empty profile is
 created.  Creating a member does **not** give them a membership: grant a term,
