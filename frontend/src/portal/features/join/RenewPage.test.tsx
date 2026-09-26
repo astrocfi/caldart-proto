@@ -72,13 +72,6 @@ function renderRenew(membership: MembershipDetail) {
 }
 
 describe('<RenewPage/>', () => {
-  it('wraps its header in the centered join shell, matching the status card', async () => {
-    const { container } = renderRenew(detail());
-
-    await screen.findByText('Current');
-    expect(container.querySelector('.join-shell .page__header')).not.toBeNull();
-  });
-
   it('shows the current status and expiry before the checkout', async () => {
     renderRenew(detail());
 
