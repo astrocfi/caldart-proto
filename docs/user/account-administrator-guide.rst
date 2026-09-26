@@ -243,7 +243,8 @@ Leave the start date blank and the term starts itself correctly:
 * a **lifetime** plan has no end date at all.
 
 Granting a term to a friend makes them a member, exactly as paying for one
-does.
+does.  Granting one to a deactivated account creates it *Suspended*: it
+becomes active on its own once the account is reactivated.
 
 Fill the start date in only when you are recording something that happened on
 a particular day — a check that arrived last month, say.
