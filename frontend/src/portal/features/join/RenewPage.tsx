@@ -43,47 +43,49 @@ export function RenewPage(): JSX.Element {
   }
 
   return (
-    <Page
-      title={isLifetime ? 'Contribute to CalDART' : 'Renew your membership'}
-      eyebrow="Membership"
-      lede={
-        isLifetime
-          ? 'As a life member you have nothing to renew. A contribution keeps the DARTs flying.'
-          : 'A renewal starts the day after your current term ends, so there is no penalty for renewing early.'
-      }
-    >
-      <Card eyebrow="Now" title="Where you stand" className="join-card">
-        {membership.isPending ? (
-          <p className="muted" role="status">
-            Checking your membership…
-          </p>
-        ) : status ? (
-          <div className="renew__status">
-            <MembershipChip membership={status} />
-            {status.is_lifetime ? (
-              <p>You are a life member. Thank you.</p>
-            ) : status.expires_on ? (
-              <p>
-                {status.status === 'current' ? 'Expires ' : 'Expired '}
-                <DateText value={status.expires_on} />
-                {days !== null && status.status === 'current' ? (
-                  <span className="muted">
-                    {' '}
-                    · {days} day{days === 1 ? '' : 's'} to go
-                  </span>
-                ) : null}
-              </p>
-            ) : (
-              <p>You have never held a CalDART membership.</p>
-            )}
-            {status.plan && !status.is_lifetime ? (
-              <p className="muted">{status.plan} membership</p>
-            ) : null}
-          </div>
-        ) : null}
-      </Card>
+    <div className="join-shell">
+      <Page
+        title={isLifetime ? 'Contribute to CalDART' : 'Renew your membership'}
+        eyebrow="Membership"
+        lede={
+          isLifetime
+            ? 'As a life member you have nothing to renew. A contribution keeps the DARTs flying.'
+            : 'A renewal starts the day after your current term ends, so there is no penalty for renewing early.'
+        }
+      >
+        <Card eyebrow="Now" title="Where you stand" className="join-card">
+          {membership.isPending ? (
+            <p className="muted" role="status">
+              Checking your membership…
+            </p>
+          ) : status ? (
+            <div className="renew__status">
+              <MembershipChip membership={status} />
+              {status.is_lifetime ? (
+                <p>You are a life member. Thank you.</p>
+              ) : status.expires_on ? (
+                <p>
+                  {status.status === 'current' ? 'Expires ' : 'Expired '}
+                  <DateText value={status.expires_on} />
+                  {days !== null && status.status === 'current' ? (
+                    <span className="muted">
+                      {' '}
+                      · {days} day{days === 1 ? '' : 's'} to go
+                    </span>
+                  ) : null}
+                </p>
+              ) : (
+                <p>You have never held a CalDART membership.</p>
+              )}
+              {status.plan && !status.is_lifetime ? (
+                <p className="muted">{status.plan} membership</p>
+              ) : null}
+            </div>
+          ) : null}
+        </Card>
 
-      <Checkout mode={isLifetime ? 'contribute' : 'renew'} onSuccess={handleSuccess} />
-    </Page>
+        <Checkout mode={isLifetime ? 'contribute' : 'renew'} onSuccess={handleSuccess} />
+      </Page>
+    </div>
   );
 }

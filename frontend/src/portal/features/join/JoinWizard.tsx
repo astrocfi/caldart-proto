@@ -66,11 +66,13 @@ export function JoinWizard(): JSX.Element {
 
   if (isLoading) {
     return (
-      <Page title="Join CalDART" eyebrow="Membership">
-        <p className="muted" role="status">
-          Loading…
-        </p>
-      </Page>
+      <div className="join-shell">
+        <Page title="Join CalDART" eyebrow="Membership">
+          <p className="muted" role="status">
+            Loading…
+          </p>
+        </Page>
+      </div>
     );
   }
 
@@ -99,19 +101,21 @@ export function JoinWizard(): JSX.Element {
   }
 
   return (
-    <Page title="Join CalDART" eyebrow="Membership" lede={LEDE[current]}>
-      <StepIndicator current={current} />
-      {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
-      {current === 'verify' ? <VerifyStep onDone={() => advance('verify')} /> : null}
-      {current === 'profile' ? <ProfileStep onDone={() => advance('profile')} /> : null}
-      {current === 'pay' ? <PayStep onDone={() => advance('pay')} /> : null}
-      {current === 'done' ? (
-        returning ? (
-          <ReturnStep onSettled={handleReturnSettled} />
-        ) : (
-          <DoneStep />
-        )
-      ) : null}
-    </Page>
+    <div className="join-shell">
+      <Page title="Join CalDART" eyebrow="Membership" lede={LEDE[current]}>
+        <StepIndicator current={current} />
+        {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
+        {current === 'verify' ? <VerifyStep onDone={() => advance('verify')} /> : null}
+        {current === 'profile' ? <ProfileStep onDone={() => advance('profile')} /> : null}
+        {current === 'pay' ? <PayStep onDone={() => advance('pay')} /> : null}
+        {current === 'done' ? (
+          returning ? (
+            <ReturnStep onSettled={handleReturnSettled} />
+          ) : (
+            <DoneStep />
+          )
+        ) : null}
+      </Page>
+    </div>
   );
 }

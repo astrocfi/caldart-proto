@@ -54,6 +54,21 @@
   border-color: var(--color-accent);
 }
 
+/* `.join-shell` wraps the join wizard's and the renew page's `<Page>`. Their
+ * header and step list otherwise span the whole frame while `.join-card`
+ * below sits centered at 46rem, so on a wide window they look flush left
+ * above a centered card; capping them to the card's own width lines the two
+ * up instead. */
+.join-shell .page__header {
+  max-width: 46rem;
+  margin-inline: auto;
+}
+
+.join-shell .join-steps {
+  max-width: 46rem;
+  margin-inline: auto;
+}
+
 /* Outweighs `.portal__main .card` (portal.css), which caps every card at the
  * portal's working width, so a join card keeps its own narrower width. */
 .portal__main .card.join-card {
