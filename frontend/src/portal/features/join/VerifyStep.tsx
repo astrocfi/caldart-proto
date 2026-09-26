@@ -7,7 +7,7 @@ import { useMe } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { ResendVerificationButton } from '@/portal/components/ResendVerificationButton';
-import { joinStepEyebrow } from './steps';
+import { joinStepEyebrow, joiningAs } from './steps';
 import './join.css';
 
 const NOT_YET = 'Not verified yet. Open the link in the message we sent, then try again.';
@@ -21,7 +21,8 @@ export interface VerifyStepProps {
  *
  * The link opens `/verify-email` in whatever tab the mail client picks, so this step
  * cannot see it being followed; "I've clicked the link" asks `/auth/me` again and
- * moves on only once the server says the address is verified.
+ * moves on only once the server says the address is verified.  The eyebrow names
+ * the kind of account the visitor chose on the account step.
  */
 export function VerifyStep({ onDone: handleDone }: VerifyStepProps): JSX.Element {
   const me = useMe();
@@ -43,7 +44,7 @@ export function VerifyStep({ onDone: handleDone }: VerifyStepProps): JSX.Element
   return (
     <Card
       className="join-card join-card--narrow"
-      eyebrow={joinStepEyebrow('verify')}
+      eyebrow={joinStepEyebrow('verify', joiningAs(me.data ?? null))}
       title="Check your email"
     >
       <p>

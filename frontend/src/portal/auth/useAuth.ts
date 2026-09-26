@@ -128,8 +128,7 @@ export function isVerificationSent(result: RegisterResult): result is Verificati
 export function useRegister(): UseMutationResult<RegisterResult, Error, RegisterPayload> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: RegisterPayload) =>
-      api.post<RegisterResult>('/auth/register', payload),
+    mutationFn: (payload: RegisterPayload) => api.post<RegisterResult>('/auth/register', payload),
     onSuccess: (result) => {
       if (isVerificationSent(result)) return;
       queryClient.clear();

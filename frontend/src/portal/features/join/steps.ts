@@ -69,6 +69,14 @@ export function furthestJoinStep(user: User | null): JoinStep {
   return 'done';
 }
 
+/**
+ * The kind of account the wizard is walking `user` through: a friend when their
+ * membership reads as a friend's, a member otherwise (and for nobody at all).
+ */
+export function joiningAs(user: User | null): PersonKind {
+  return user?.membership.status === 'friend' ? 'friend' : 'member';
+}
+
 /** Later of two steps — used to hold ground while `/auth/me` catches up. */
 export function laterJoinStep(a: JoinStep, b: JoinStep): JoinStep {
   return joinStepIndex(a) >= joinStepIndex(b) ? a : b;

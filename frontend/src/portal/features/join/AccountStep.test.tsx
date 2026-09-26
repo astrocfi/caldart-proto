@@ -98,9 +98,7 @@ describe('<AccountStep/>', () => {
       await screen.findByText('Pay annual dues now and be counted as a current member.'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'No dues. Support CalDART when you like, and become a member any time.',
-      ),
+      screen.getByText('No dues. Support CalDART when you like, and become a member any time.'),
     ).toBeInTheDocument();
   });
 

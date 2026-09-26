@@ -13,6 +13,10 @@
  * moment the server still says they owe us the fee.  Clamping would send them
  * to `/join/pay` and throw the payment reference away, so the wizard holds the
  * `done` step and lets `<ReturnStep/>` settle the payment first.
+ *
+ * A friend walks the same five steps, but owes no dues: their pay step offers a
+ * contribution they may skip, and a friend with a complete profile resumes on the
+ * done step rather than being held at paying.
  */
 import { useCallback, useState } from 'react';
 import type { JSX } from 'react';
@@ -28,7 +32,14 @@ import { ProfileStep } from './ProfileStep';
 import { refreshAfterPayment } from './refresh';
 import { ReturnStep } from './ReturnStep';
 import { StepIndicator } from './StepIndicator';
-import { clampJoinStep, furthestJoinStep, isJoinStep, laterJoinStep, nextJoinStep } from './steps';
+import {
+  clampJoinStep,
+  furthestJoinStep,
+  isJoinStep,
+  joiningAs,
+  laterJoinStep,
+  nextJoinStep,
+} from './steps';
 import type { JoinStep } from './steps';
 import { VerifyStep } from './VerifyStep';
 import './join.css';
@@ -39,6 +50,12 @@ const LEDE: Record<JoinStep, string> = {
   profile: 'Tell us how to reach you and what you fly.',
   pay: 'Card, Apple Pay, Google Pay, or PayPal. Your membership starts immediately.',
   done: 'You are a member of the California DART Network.',
+};
+
+/** Where a friend's walk through the wizard reads differently from a member's. */
+const FRIEND_LEDE: Partial<Record<JoinStep, string>> = {
+  pay: 'Card, Apple Pay, Google Pay, or PayPal. Any amount helps, and none is required.',
+  done: 'You are a friend of the California DART Network.',
 };
 
 /** Renders the join wizard step named by the URL, redirecting to a valid one. */
@@ -94,6 +111,8 @@ export function JoinWizard(): JSX.Element {
     return <Navigate to={`/join/${current}`} replace />;
   }
 
+  const lede = (joiningAs(user) === 'friend' ? FRIEND_LEDE[current] : undefined) ?? LEDE[current];
+
   function advance(from: JoinStep) {
     const next = nextJoinStep(from);
     setReached((seen) => laterJoinStep(seen, next));
@@ -102,7 +121,7 @@ export function JoinWizard(): JSX.Element {
 
   return (
     <div className="join-shell">
-      <Page title="Join CalDART" eyebrow="Membership" lede={LEDE[current]}>
+      <Page title="Join CalDART" eyebrow="Membership" lede={lede}>
         <StepIndicator current={current} />
         {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
         {current === 'verify' ? <VerifyStep onDone={() => advance('verify')} /> : null}

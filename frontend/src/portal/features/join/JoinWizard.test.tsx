@@ -419,3 +419,126 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
     expect(path()).toBe('/join/account');
   });
 });
+
+describe('<JoinWizard/> for a friend', () => {
+  const FRIEND: MembershipStatus = { ...NONE, status: 'friend' };
+  const FRIEND_DETAIL: MembershipDetail = { ...FRIEND, history: [] };
+
+  /** The pay step's config with a tier to give, since a friend's checkout has no plan. */
+  const GIVING_CONFIG: PaymentsConfig = {
+    ...PAYMENTS_CONFIG,
+    contribution_tiers: [
+      { label: 'No contribution', cents: 0 },
+      { label: 'Participating', cents: 2000 },
+    ],
+  };
+
+  function makeFriend(overrides: Partial<User> = {}): User {
+    return makeUser({ kind: 'friend', membership: FRIEND, ...overrides });
+  }
+
+  function stubFriendApi(user: User): void {
+    stubApi(user);
+    server.use(
+      http.get(`${API}/me/membership`, () => HttpResponse.json(FRIEND_DETAIL)),
+      http.get(`${API}/payments/config`, () => HttpResponse.json(GIVING_CONFIG)),
+    );
+  }
+
+  it('names the kind on the verify step', async () => {
+    stubFriendApi(makeFriend({ email_verified: false, profile_complete: false }));
+    renderWizard('/join');
+
+    await screen.findByRole('heading', { name: 'Check your email' });
+    expect(screen.getByText('Step 2 of 5 · Joining as a friend')).toBeInTheDocument();
+  });
+
+  it('names a member on the verify step too', async () => {
+    stubApi(makeUser({ email_verified: false, profile_complete: false, membership: NONE }));
+    renderWizard('/join');
+
+    await screen.findByRole('heading', { name: 'Check your email' });
+    expect(screen.getByText('Step 2 of 5 · Joining as a member')).toBeInTheDocument();
+  });
+
+  it('asks a friend for a contribution on the way through from the profile', async () => {
+    stubFriendApi(makeFriend({ profile_complete: false }));
+    server.use(http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+    renderWizard('/join');
+
+    await screen.findByRole('heading', { name: 'About you' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Contribute to CalDART' }),
+    ).toBeInTheDocument();
+    expect(path()).toBe('/join/pay');
+    // A friend's checkout sells no plan.
+    expect(await screen.findByRole('radio', { name: /Participating/ })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Annual/ })).not.toBeInTheDocument();
+  });
+
+  it('lets a friend go on without giving', async () => {
+    stubFriendApi(makeFriend({ profile_complete: false }));
+    server.use(http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+    renderWizard('/join');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Not now' }));
+
+    expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
+    expect(path()).toBe('/join/done');
+  });
+
+  it('moves on to done once the contribution is paid', async () => {
+    stubFriendApi(makeFriend({ profile_complete: false }));
+    server.use(
+      http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())),
+      http.post(`${API}/payments/checkout`, () =>
+        HttpResponse.json({ payment_id: 5, provider: 'mock', client: {} }, { status: 201 }),
+      ),
+      http.post(`${API}/payments/mock/complete`, () =>
+        HttpResponse.json({ status: 'succeeded', membership: FRIEND }),
+      ),
+    );
+    renderWizard('/join');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
+    await userEvent.click(await screen.findByRole('radio', { name: /Participating/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Succeed' }));
+
+    expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
+    expect(path()).toBe('/join/done');
+  });
+
+  it('resumes a friend with a complete profile on the done step, not the pay step', async () => {
+    stubFriendApi(makeFriend());
+    renderWizard('/join');
+
+    expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
+    expect(path()).toBe('/join/done');
+  });
+
+  it('tells a friend what being one means on the done step', async () => {
+    stubFriendApi(makeFriend());
+    renderWizard('/join/done');
+
+    expect(
+      await screen.findByText(
+        'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Friend')).toBeInTheDocument();
+    // Members-only pages are for members; the wizard does not offer them to a friend.
+    expect(screen.queryByRole('link', { name: 'Ops manual' })).not.toBeInTheDocument();
+  });
+
+  it('says a friend is joining as one in the lede', async () => {
+    stubFriendApi(makeFriend());
+    renderWizard('/join/done');
+
+    expect(
+      await screen.findByText('You are a friend of the California DART Network.'),
+    ).toBeInTheDocument();
+  });
+});
