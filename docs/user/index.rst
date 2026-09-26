@@ -35,6 +35,15 @@ before a flight, and administering accounts, content, and the system itself.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Screens
+
+   member/index
+   admin/index
+   finance/index
+   website/index
+
+.. toctree::
+   :maxdepth: 1
    :caption: Reference
 
    faq
