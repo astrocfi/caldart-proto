@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from django.core.management import call_command
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
 from apps.members.models import MembershipPlan
 from apps.payments.models import PaymentStatus
@@ -18,6 +18,7 @@ from tests.factories import (
     PaymentFactory,
     RenewalMandateFactory,
     UserFactory,
+    expire_membership,
 )
 
 pytestmark = pytest.mark.django_db
@@ -90,14 +91,50 @@ def test_names_a_member_for_each_leader_check_case(
     )
     MembershipFactory(user=lapsed_cover, plan=annual_plan, starts_on=today - day)
 
+    # Somebody who never joined, and a friend, come first by name and are not lapsed.
+    MemberProfileFactory(
+        user=UserFactory(email="never@example.test", first_name="Ada", last_name="Ames")
+    )
+    MemberProfileFactory(
+        user=UserFactory(
+            email="pal@example.test", first_name="Bo", last_name="Bell", kind=AccountKind.FRIEND
+        )
+    )
     lapsed_member = UserFactory(email="lapsed@example.test", first_name="Eli", last_name="West")
     MemberProfileFactory(user=lapsed_member)
+    expire_membership(lapsed_member, annual_plan)
 
     facts = read_facts(capsys)["leaderCheck"]
 
     assert facts["insuredPilot"] == {"name": "Ivy North", "nNumber": "N111AA"}
     assert facts["lapsedInsurance"] == {"name": "Ola South", "nNumber": "N222BB"}
     assert facts["expiredMember"]["name"] == "Eli West"
+
+
+def test_an_insured_pilot_holds_no_policy_inside_the_warning_window(
+    capsys: pytest.CaptureFixture[str], annual_plan: MembershipPlan, today: date
+) -> None:
+    """``insuredPilot`` skips a member one of whose policies runs out within 30 days.
+
+    The portal calls such a policy "Expiring soon" rather than "Insured", which is
+    not the card the spec is looking for.
+    """
+    day = timedelta(days=1)
+    soon = UserFactory(email="soon@example.test", first_name="Al", last_name="Able")
+    MemberProfileFactory(user=soon).aircraft.add(
+        AircraftFactory(n_number="N444DD", insurance_expiration=today + 200 * day),
+        AircraftFactory(n_number="N555EE", insurance_expiration=today + 10 * day),
+    )
+    MembershipFactory(user=soon, plan=annual_plan, starts_on=today - day)
+    steady = UserFactory(email="steady@example.test", first_name="Bea", last_name="Best")
+    MemberProfileFactory(user=steady).aircraft.add(
+        AircraftFactory(n_number="N666FF", insurance_expiration=today + 200 * day)
+    )
+    MembershipFactory(user=steady, plan=annual_plan, starts_on=today - day)
+
+    facts = read_facts(capsys)["leaderCheck"]
+
+    assert facts["insuredPilot"] == {"name": "Bea Best", "nNumber": "N666FF"}
 
 
 def test_a_plane_with_no_policy_on_file_is_not_a_lapsed_policy(

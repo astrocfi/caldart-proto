@@ -368,7 +368,11 @@ def _manual_payments(ctx: dict[str, Any]) -> int:
     rng = ctx["rng"]
     today = ctx["today"]
     treasurer = ctx["demo_users"]["treasurer"]
-    payers = rng.sample(ctx["users"], MANUAL_PAYMENT_COUNT)
+    # The demo friend's one gift is their own (:func:`_seed_friend_contribution`).
+    friend: User = ctx["demo_users"]["friend"]
+    payers = rng.sample(
+        [user for user in ctx["users"] if user.pk != friend.pk], MANUAL_PAYMENT_COUNT
+    )
 
     for index, payer in enumerate(payers):
         amount = MANUAL_AMOUNTS_CENTS[index % len(MANUAL_AMOUNTS_CENTS)]

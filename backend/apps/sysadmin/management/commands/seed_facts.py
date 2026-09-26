@@ -10,6 +10,7 @@ drifts when the seed changes.
 from __future__ import annotations
 
 import json
+from datetime import timedelta
 from typing import Any
 
 from django.core.management.base import BaseCommand
@@ -41,25 +42,44 @@ def _has_lapsed_insurance(aircraft: Aircraft) -> bool:
     return not aircraft.insurance_is_current
 
 
-def _subject(*, insured: bool | None, current_member: bool) -> dict[str, str]:
+#: How many days ahead the portal starts warning that a policy runs out, which is
+#: ``EXPIRING_WINDOW_DAYS`` in ``frontend/src/portal/components/StatusChip.tsx``.
+#: An insured pilot's policies all run past it, so the card says "Insured".
+INSURANCE_WARNING_DAYS = 30
+
+
+def _is_comfortably_insured(aircraft: Aircraft) -> bool:
+    """True when ``aircraft``'s insurance runs past the portal's warning window."""
+    expires_on = aircraft.insurance_expiration
+    if expires_on is None:
+        return False
+    return expires_on > timezone.localdate() + timedelta(days=INSURANCE_WARNING_DAYS)
+
+
+def _subject(*, insured: bool | None, status: MembershipState) -> dict[str, str]:
     """A seeded member the leader check can be demonstrated on.
 
-    ``insured`` picks somebody who lists an aircraft whose insurance is current
-    (``True``) or carries an expiration date that has passed (``False``), or
-    anybody at all (``None``);
-    ``current_member`` picks somebody whose membership is current or is not.
+    ``status`` is the membership state the member must be in.  ``insured`` picks
+    somebody whose medical is current and whose every listed aircraft is insured
+    past the portal's warning window (``True``), so the card is a GO showing
+    nothing but insured airplanes; somebody who lists an aircraft whose expiration
+    date has passed (``False``); or anybody at all (``None``).
     Returns ``{"name", "nNumber"}``, with an empty ``nNumber`` when the member
     lists no aircraft, and empty strings when nobody in the seed fits -- the
     specs then fail on the name they were given, which says what is missing.
     """
     for user in User.objects.filter(profile__isnull=False).select_related("profile"):
-        is_current = membership_status(user)["status"] == MembershipState.CURRENT
-        if is_current is not current_member:
+        if membership_status(user)["status"] != status:
             continue
-        for aircraft in user.profile.aircraft.all():
+        listed = list(user.profile.aircraft.all())
+        if insured and not user.profile.medical_is_current:
+            continue
+        if insured and not all(_is_comfortably_insured(aircraft) for aircraft in listed):
+            continue
+        for aircraft in listed:
             if insured is None:
                 return {"name": user.display_name, "nNumber": aircraft.n_number}
-            matches = aircraft.insurance_is_current if insured else _has_lapsed_insurance(aircraft)
+            matches = insured or _has_lapsed_insurance(aircraft)
             if matches:
                 return {"name": user.display_name, "nNumber": aircraft.n_number}
         if insured is None:
@@ -179,9 +199,9 @@ def seed_facts() -> dict[str, Any]:
             plan.slug: plan.price_cents for plan in MembershipPlan.objects.order_by("slug")
         },
         "leaderCheck": {
-            "insuredPilot": _subject(insured=True, current_member=True),
-            "lapsedInsurance": _subject(insured=False, current_member=True),
-            "expiredMember": _subject(insured=None, current_member=False),
+            "insuredPilot": _subject(insured=True, status=MembershipState.CURRENT),
+            "lapsedInsurance": _subject(insured=False, status=MembershipState.CURRENT),
+            "expiredMember": _subject(insured=None, status=MembershipState.EXPIRED),
         },
         "manualPaymentCount": Payment.objects.filter(provider=PaymentProvider.MANUAL).count(),
         "refundedPayment": _refunded_payment_member(),

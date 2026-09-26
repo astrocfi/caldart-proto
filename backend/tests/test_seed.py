@@ -23,7 +23,7 @@ from apps.aircraft.models import Aircraft
 from apps.cms.models import SiteSettings
 from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership, MembershipPlan, MembershipState
-from apps.members.seed import DART_SEED
+from apps.members.seed import DART_SEED, EMPTY_DART
 from apps.members.services import membership_status
 from apps.payments.models import Payment, PaymentStatus, RenewalMandate
 from apps.payments.renewals import _due_attempts, lapsed_term_to_renew, run_auto_renewals
@@ -38,7 +38,7 @@ SEEDED_FRIEND_GIFTS = 1
 
 #: The payments ``seed_demo`` creates from its fixed random seed: one per term,
 #: plus the ones recorded by hand and the demo friend's gift, all succeeded.
-SEEDED_PAYMENTS = 65 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS
+SEEDED_PAYMENTS = 54 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS
 
 #: How many of them the seed refunds: two in full and four contributions, which
 #: leaves the first two ``refunded`` and the other four ``partially_refunded``.
@@ -140,9 +140,9 @@ def test_seed_demo_covers_every_membership_status() -> None:
     """The seed produces users in every membership status, including a lifetime member."""
     _seed()
     counts = Counter(membership_status(u)["status"] for u in User.objects.all())
-    assert counts[MembershipState.CURRENT] == 32
-    assert counts[MembershipState.EXPIRED] == 8
-    assert counts[MembershipState.NONE] == 4
+    assert counts[MembershipState.CURRENT] == 33
+    assert counts[MembershipState.EXPIRED] == 5
+    assert counts[MembershipState.NONE] == 6
     assert counts[MembershipState.FRIEND] == 5
     lifetime = [u for u in User.objects.all() if membership_status(u)["is_lifetime"]]
     assert len(lifetime) == 6
@@ -159,11 +159,11 @@ def test_seed_demo_has_expiring_and_mixed_medicals() -> None:
         for u in User.objects.all()
         if (e := membership_status(u)["expires_on"]) and today <= e <= soon
     ]
-    assert len(expiring) == 5
+    assert len(expiring) == 7
 
     profiles = MemberProfile.objects.exclude(medical_type="none")
-    assert sum(1 for p in profiles if not p.medical_is_current) == 11
-    assert sum(1 for p in profiles if p.medical_is_current) == 32
+    assert sum(1 for p in profiles if not p.medical_is_current) == 13
+    assert sum(1 for p in profiles if p.medical_is_current) == 33
     assert {p.pilot_certificate_type for p in MemberProfile.objects.all()} == {
         "none",
         "student",
@@ -181,7 +181,7 @@ def test_seed_demo_payments_are_mixed_and_span_two_years() -> None:
     providers = set(Payment.objects.values_list("provider", flat=True))
     assert providers == {"stripe", "paypal", "manual"}
     with_contribution = Payment.objects.filter(contribution_cents__gt=0).count()
-    assert with_contribution == 25 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS
+    assert with_contribution == 19 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS
     months = Payment.objects.dates("created_at", "month")
     oldest, newest = min(months), max(months)
     span = (newest.year - oldest.year) * 12 + newest.month - oldest.month
@@ -390,3 +390,9 @@ def test_seed_demo_leaves_one_member_waiting_to_become_a_friend() -> None:
     assert status["status"] == MembershipState.CURRENT
     assert status["expires_on"] is not None
     assert pending.friend_on == status["expires_on"] + timedelta(days=1)
+
+
+def test_seed_demo_leaves_the_empty_dart_with_nobody_on_it() -> None:
+    """Nobody's profile names ``EMPTY_DART``, so deleting it unaffiliates nobody."""
+    _seed()
+    assert MemberProfile.objects.filter(dart__name=EMPTY_DART).count() == 0
