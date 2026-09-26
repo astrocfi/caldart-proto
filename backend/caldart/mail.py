@@ -129,7 +129,10 @@ def _record(
 
     A blank ``to_name`` with a ``user_id`` is filled in from that account's current
     ``display_name`` before the row is written, so the log keeps the name the
-    recipient had at send time even after the account is later renamed.
+    recipient had at send time even after the account is later renamed.  Whatever
+    name results is cut to fit ``EmailLog.to_name``: a first and last name can
+    together run past that limit, and the row must still be written rather than
+    raise past a mail server that already took the message.
     """
     # Inline: apps.mail sits above every project module, so importing it here is
     # what keeps reading caldart.mail from pulling an app in.
@@ -140,6 +143,10 @@ def _record(
         account = get_user_model().objects.filter(pk=user_id).first()
         if account is not None:
             name = account.display_name
+
+    max_length = EmailLog._meta.get_field("to_name").max_length
+    if max_length is not None:
+        name = name[:max_length]
 
     EmailLog.objects.create(
         to_email=to,

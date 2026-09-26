@@ -5,7 +5,7 @@ went, so a report or a search can show who a message was for even when the
 recipient holds no account -- a DART contact, most often.  ``caldart.mail._record``
 fills it in from the linked account's ``display_name`` when a caller names only
 ``user_id``, and :attr:`~apps.mail.models.EmailLog.recipient_name` falls back the
-same way for a row written before the field existed.  These tests drive the funnel
+same way for a row whose ``to_name`` is blank.  These tests drive the funnel
 directly for that storage behavior, then the two senders that pass their own name
 explicitly: the DART roster (the contact's own name) and a report subscription
 (the recipient account's display name, or nothing for a bare address).  ``GET
@@ -73,6 +73,29 @@ def test_a_caller_with_no_name_but_an_account_gets_its_display_name_stored(
     assert EmailLog.objects.get().to_name == "Marta Reyes"
 
 
+def test_a_long_display_name_is_truncated_to_the_fields_max_length(email_template: str) -> None:
+    """A first and last name that together run past 200 characters are cut to fit.
+
+    A 150-character first name plus a space plus a 150-character last name is 301
+    characters, past ``EmailLog.to_name``'s 200-character limit; the row must still
+    be written rather than raise once the mail server has already taken the message.
+    """
+    first_name = "A" * 150
+    last_name = "B" * 150
+    member = UserFactory(email="long-name@example.org", first_name=first_name, last_name=last_name)
+
+    send_templated(
+        to=member.email,
+        subject="CalDART: hello",
+        template=email_template,
+        user_id=member.pk,
+    )
+
+    row = EmailLog.objects.get()
+    assert len(row.to_name) == 200
+    assert row.to_name == f"{first_name} {last_name}"[:200]
+
+
 def test_a_caller_with_no_name_and_no_account_stores_a_blank_name(email_template: str) -> None:
     """A message to a bare address with no account behind it stores no name at all."""
     send_templated(to="stranger@example.org", subject="CalDART: hello", template=email_template)
@@ -84,7 +107,7 @@ def test_a_caller_with_no_name_and_no_account_stores_a_blank_name(email_template
 # recipient_name
 # --------------------------------------------------------------------------
 def test_recipient_name_falls_back_to_the_accounts_display_name_when_blank() -> None:
-    """A row written before ``to_name`` existed reads by the linked account's name."""
+    """A row whose ``to_name`` is blank reads by the linked account's own name."""
     member = UserFactory(first_name="Marta", last_name="Reyes")
     row = EmailLogFactory(user=member, to_name="")
 
