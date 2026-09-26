@@ -302,12 +302,12 @@ function renderEdit(
   handleDone = vi.fn(),
 ) {
   server.use(
-    ...subscriptionHandlers({ reports: REPORTS, subscriptions: [subscription] }),
-    http.get(`${API}/reports/members/columns`, () => HttpResponse.json(MEMBER_COLUMNS)),
     http.patch(`${API}/reports/subscriptions/${subscription.id}`, async ({ request }) => {
       bodies.push(await request.json());
       return HttpResponse.json(subscription);
     }),
+    ...subscriptionHandlers({ reports: REPORTS, subscriptions: [subscription] }),
+    http.get(`${API}/reports/members/columns`, () => HttpResponse.json(MEMBER_COLUMNS)),
   );
   renderWithProviders(<SubscriptionForm subscription={subscription} onDone={handleDone} />);
   return handleDone;

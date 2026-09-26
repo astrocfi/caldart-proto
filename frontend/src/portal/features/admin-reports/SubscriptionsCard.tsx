@@ -1,7 +1,10 @@
 /**
  * The Subscriptions card of `/admin/reports`: every report CalDART emails on a
- * schedule, with a button to send one now, pause or resume it, or delete it,
- * and the form that sets up another.
+ * schedule, with a button to edit one, send it now, pause or resume it, or
+ * delete it, and the form that sets up another.
+ *
+ * One form is open at a time: **New subscription** opens it above the table
+ * and **Edit** opens it under the table for that row, each closing the other.
  */
 import { useState } from 'react';
 import type { JSX } from 'react';
@@ -41,14 +44,17 @@ export function sendNotice(result: ReportRunResult, recipient: string): string {
   return `Not sent to ${recipient}: the report could not be built or the mail server refused it.`;
 }
 
+/** Which subscription form is open: a new one, or the edit of one subscription. */
+type OpenForm = { mode: 'new' } | { mode: 'edit'; id: number } | null;
+
 /** An error's message for the status line, or `fallback` when it carries none. */
 function errorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-/** The subscriptions table, its row actions, and the form behind New subscription. */
+/** The subscriptions table, its row actions, and the form behind New subscription and Edit. */
 export function SubscriptionsCard(): JSX.Element {
-  const [isAdding, setIsAdding] = useState(false);
+  const [openForm, setOpenForm] = useState<OpenForm>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const list = useSubscriptions();
@@ -85,11 +91,18 @@ export function SubscriptionsCard(): JSX.Element {
 
   const handleAdd = (): void => {
     setNotice(null);
-    setIsAdding(true);
+    setOpenForm({ mode: 'new' });
+  };
+
+  const handleEdit = (row: ReportSubscription): void => {
+    setNotice(null);
+    setOpenForm((open) =>
+      open?.mode === 'edit' && open.id === row.id ? null : { mode: 'edit', id: row.id },
+    );
   };
 
   const handleFormDone = (): void => {
-    setIsAdding(false);
+    setOpenForm(null);
   };
 
   const columns: Column<ReportSubscription>[] = [
@@ -138,6 +151,9 @@ export function SubscriptionsCard(): JSX.Element {
       header: '',
       render: (row) => (
         <span className="cluster">
+          <Button variant="quiet" small disabled={isBusy} onClick={() => handleEdit(row)}>
+            Edit
+          </Button>
           <Button variant="quiet" small disabled={isBusy} onClick={() => handleSend(row)}>
             Send now
           </Button>
@@ -155,16 +171,18 @@ export function SubscriptionsCard(): JSX.Element {
   ];
 
   const rows = list.data ?? [];
+  const editing =
+    openForm?.mode === 'edit' ? rows.find((subscription) => subscription.id === openForm.id) : null;
 
   return (
     <Card eyebrow="By email" title="Subscriptions">
       <p className="muted">
-        Each subscription emails one report, filtered and with the columns chosen when it was set
-        up, to one address on its schedule. <strong>Send now</strong> sends it at once without
-        moving its next date.
+        Each subscription emails one report, filtered and with the columns chosen for it, to one
+        address on its schedule. <strong>Edit</strong> changes its filters, columns, formats, and
+        schedule; <strong>Send now</strong> sends it at once without moving its next date.
       </p>
 
-      {isAdding ? (
+      {openForm?.mode === 'new' ? (
         <SubscriptionForm onDone={handleFormDone} />
       ) : (
         <Button onClick={handleAdd}>New subscription</Button>
@@ -180,6 +198,10 @@ export function SubscriptionsCard(): JSX.Element {
         emptyTitle="No reports are sent by email yet"
         isLoading={list.isLoading}
       />
+
+      {editing === null || editing === undefined ? null : (
+        <SubscriptionForm key={editing.id} subscription={editing} onDone={handleFormDone} />
+      )}
 
       {list.isError ? (
         <p className="field__error" role="alert">
