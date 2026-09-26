@@ -54,6 +54,12 @@ A ``period`` among the filters (``this_month``, ``last_month``, ``this_year``,
 subscription that says ``last_month`` always carries the month before the one it
 is sent in.
 
+The demo seed sets every subscription's ``next_due_on`` to the day it runs, so
+the daily job always has three ready to send: the membership report monthly to
+the account administrator, this year's payments quarterly to the treasurer, and
+the aircraft register weekly, also to the account administrator, and every
+DART roster, whose ``roster_sent_at`` the seed leaves unset, is due as well.
+
 Who may receive a report
 ------------------------
 

@@ -343,8 +343,16 @@ second:
 
    $ make reminders TODAY=2027-01-01 DRY_RUN=1
 
+The Renewals panel runs the automatic-renewal scan: the seed leaves two
+members with an ordinary renewal due today and one with a catch-up renewal
+overdue, so a dry run there reports three charges and a real run makes them.
+
 See :doc:`user/system-administrator-guide` and
 :doc:`developer/reminders`.
+
+The seed also leaves three report subscriptions and every DART's roster due
+the day it runs, so ``uv run backend/manage.py send_scheduled_reports`` always
+has real mail to send; see :doc:`developer/scheduled-reports`.
 
 When you are finished, stop Django with :kbd:`Ctrl-C`.  Leave the containers
 running, or stop them with ``make down`` — the data survives in the

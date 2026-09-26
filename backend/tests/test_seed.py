@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from datetime import timedelta
 from io import StringIO
+from itertools import pairwise
 from unittest.mock import MagicMock
 
 import pytest
@@ -23,9 +24,11 @@ from apps.darts.models import Dart
 from apps.members.models import MemberProfile, Membership, MembershipPlan, MembershipState
 from apps.members.seed import DART_SEED
 from apps.members.services import membership_status
-from apps.payments.models import Payment, PaymentStatus
-from apps.payments.seed import HISTORY_MONTHS, MANUAL_PAYMENT_COUNT
+from apps.payments.models import Payment, PaymentStatus, RenewalMandate
+from apps.payments.renewals import _due_attempts, lapsed_term_to_renew, run_auto_renewals
+from apps.payments.seed import CATCH_UP_MANDATE_DAYS_AGO, HISTORY_MONTHS, MANUAL_PAYMENT_COUNT
 from apps.reports.models import ReportSubscription
+from apps.reports.services import due_subscriptions, run_scheduled_reports
 
 User = get_user_model()
 
@@ -225,10 +228,11 @@ def test_seed_demo_creates_the_wagtail_site_root() -> None:
 
 # -- reports -------------------------------------------------------------------
 def test_seed_demo_subscribes_the_administrator_and_the_treasurer() -> None:
-    """Two subscriptions, both set up by the demo account administrator.
+    """Three subscriptions, all set up by the demo account administrator.
 
-    The membership report goes monthly as a PDF to the account administrator, and this
-    year's payments quarterly as a CSV to the treasurer.
+    The membership report goes monthly as a PDF to the account administrator, this
+    year's payments quarterly as a CSV to the treasurer, and the aircraft register
+    weekly as a CSV and a PDF to the account administrator.
     """
     _seed()
 
@@ -244,6 +248,14 @@ def test_seed_demo_subscribes_the_administrator_and_the_treasurer() -> None:
         for row in ReportSubscription.objects.order_by("report")
     ]
     assert rows == [
+        (
+            "aircraft",
+            "accountadmin@example.org",
+            {},
+            "both",
+            "weekly",
+            "accountadmin@example.org",
+        ),
         ("members", "accountadmin@example.org", {}, "pdf", "monthly", "accountadmin@example.org"),
         (
             "payments",
@@ -256,9 +268,83 @@ def test_seed_demo_subscribes_the_administrator_and_the_treasurer() -> None:
     ]
 
 
-def test_seed_demo_keeps_two_subscriptions_on_a_second_run() -> None:
-    """Running the seed again updates the two subscriptions rather than adding more."""
+def test_seed_demo_keeps_three_subscriptions_on_a_second_run() -> None:
+    """Running the seed again updates the three subscriptions rather than adding more."""
     _seed()
     _seed()
 
-    assert ReportSubscription.objects.count() == 2
+    assert ReportSubscription.objects.count() == 3
+
+
+# -- seed readiness --------------------------------------------------------
+def test_seed_demo_leaves_every_subscription_due_today() -> None:
+    """Every seeded subscription's ``next_due_on`` is the day the seed runs."""
+    _seed()
+    today = timezone.localdate()
+    subscriptions = list(ReportSubscription.objects.all())
+    assert len(subscriptions) == 3
+    assert [row.next_due_on for row in subscriptions] == [today] * 3
+    assert [row.last_sent_at for row in subscriptions] == [None] * 3
+
+
+def test_seed_demo_leaves_three_subscriptions_for_the_scheduled_report_job() -> None:
+    """``due_subscriptions`` finds every seeded subscription right after a seed."""
+    _seed()
+    assert due_subscriptions(timezone.localdate()).count() == 3
+
+
+def test_send_scheduled_reports_sends_every_subscription_and_every_roster() -> None:
+    """The daily job sends the three subscriptions and every active DART's roster."""
+    _seed()
+    run = run_scheduled_reports()
+    active_darts = Dart.objects.filter(is_active=True).count()
+    assert run.failed == 0
+    assert ReportSubscription.objects.filter(last_sent_at__isnull=False).count() == 3
+    assert Dart.objects.filter(is_active=True, roster_sent_at__isnull=False).count() == active_darts
+
+
+def test_seed_demo_leaves_two_renewals_due_for_an_ordinary_charge() -> None:
+    """Two generated members hold a scheduled attempt against a term ending today."""
+    _seed()
+    today = timezone.localdate()
+    attempts = _due_attempts(today)
+    assert [attempt.membership.ends_on for attempt in attempts] == [today, today]
+
+
+def test_seed_demo_leaves_a_catch_up_mandate_with_no_attempt() -> None:
+    """The catch-up member's mandate has no attempt and a term lapsed ten days back."""
+    _seed()
+    today = timezone.localdate()
+    catch_up = RenewalMandate.objects.get(
+        next_charge_on=today - timedelta(days=CATCH_UP_MANDATE_DAYS_AGO)
+    )
+    assert catch_up.attempts.count() == 0
+    term = lapsed_term_to_renew(catch_up.user, today)
+    assert term is not None
+    assert term.ends_on == today - timedelta(days=CATCH_UP_MANDATE_DAYS_AGO)
+
+
+def test_run_auto_renewals_charges_the_three_seeded_renewals() -> None:
+    """The daily scan charges both due-today renewals and the catch-up one."""
+    _seed()
+    run = run_auto_renewals()
+    assert run.charged == 3
+    assert run.failed == 0
+
+
+def test_seed_demo_never_gives_a_member_overlapping_terms() -> None:
+    """No seeded member's terms overlap: each ends before the next one starts.
+
+    Pinning a renewal-seed subject's last term to a fixed end date must shift
+    every earlier term of theirs by the same amount, or the pinned term would
+    land inside, or short of, the one before it.
+    """
+    _seed()
+    terms_by_user: dict[int, list[Membership]] = {}
+    for term in Membership.objects.order_by("user_id", "starts_on", "id"):
+        terms_by_user.setdefault(term.user_id, []).append(term)
+    for terms in terms_by_user.values():
+        for previous, current in pairwise(terms):
+            if previous.ends_on is None:
+                continue
+            assert previous.ends_on < current.starts_on
