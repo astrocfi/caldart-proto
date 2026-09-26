@@ -2,7 +2,10 @@
 
 Also decides each seeded user's *membership target* -- the status their history
 should end up in -- which ``apps.payments.seed`` turns into real payments and
-terms through ``members.services.activate_term``.
+terms through ``members.services.activate_term``.  It also picks which
+generated members ``apps.payments.seed`` pins to a renewal due the day the
+seed runs, so the scheduled-report and renewal jobs always have real work
+waiting.
 """
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ from django.core.management.base import OutputWrapper
 from django.utils.text import slugify
 from faker import Faker
 
+from apps.accounts.models import User
 from apps.darts.models import Dart, DartContact
 from apps.members.models import (
     RATING_VALUES,
@@ -116,6 +120,11 @@ MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
     ("lifetime", 4),
     ("none", 4),
 )
+
+#: How many generated "expiring" members ``apps.payments.seed`` ends exactly
+#: today, so an ordinary automatic renewal and its scheduled attempt are ready
+#: for the daily scan to charge the day the seed runs.
+RENEWAL_DUE_TODAY_COUNT = 2
 
 
 #: The seed behind the generated contact names, so the example teams read the
@@ -334,14 +343,37 @@ def _assign_targets(rng: random.Random, ctx: dict[str, Any]) -> dict[int, str]:
     return targets
 
 
+def _renewal_seed_subjects(
+    generated_users: list[User], targets: dict[int, str]
+) -> tuple[list[User], User | None]:
+    """The generated members whose term dates the payments seed pins to a renewal.
+
+    Two members targeted ``expiring`` are returned for the payments seed to end
+    exactly today, so an ordinary automatic renewal is due; one member targeted
+    ``expired`` is returned for it to end further back, so its mandate takes the
+    catch-up path instead.  Both are read off ``generated_users`` in order, so
+    the choice is the same on every run of the same day.  The second answer is
+    ``None`` only if the weighted draw left no ``expired`` member, though the
+    fixed random seed always leaves several.
+    """
+    expiring = [user for user in generated_users if targets.get(user.pk) == "expiring"]
+    expired = [user for user in generated_users if targets.get(user.pk) == "expired"]
+    due_today = expiring[:RENEWAL_DUE_TODAY_COUNT]
+    catch_up = expired[0] if len(expired) > 0 else None
+    return due_today, catch_up
+
+
 def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
     """Seed the DARTs, the plans and one profile per user, and return ``ctx``.
 
     Reads ``rng``, ``faker``, ``today``, and ``users`` from ``ctx`` and adds
     ``darts``, ``plans`` (keyed by slug), ``profiles`` and ``membership_targets``
-    for the seeds that run after this one.  A user who already has a profile has
-    it overwritten, so re-seeding leaves one profile per account.  ``stdout``, when
-    given, gets a one-line count.
+    for the seeds that run after this one, plus ``renewal_due_today_users`` and
+    ``catch_up_user`` (:func:`_renewal_seed_subjects`), which the payments seed
+    reads to pin two members' term to expire today and one further member's to
+    a lapsed catch-up.  A user who already has a profile has it overwritten, so
+    re-seeding leaves one profile per account.  ``stdout``, when given, gets a
+    one-line count.
     """
     rng = ctx["rng"]
     faker = ctx["faker"]
@@ -379,7 +411,11 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
         profiles.append(profile)
 
     ctx["profiles"] = profiles
-    ctx["membership_targets"] = _assign_targets(rng, ctx)
+    targets = _assign_targets(rng, ctx)
+    ctx["membership_targets"] = targets
+    due_today, catch_up = _renewal_seed_subjects(ctx["generated_users"], targets)
+    ctx["renewal_due_today_users"] = due_today
+    ctx["catch_up_user"] = catch_up
 
     if stdout is not None:
         stdout.write(f"  members: {len(darts)} DARTs, {len(plans)} plans, {len(profiles)} profiles")

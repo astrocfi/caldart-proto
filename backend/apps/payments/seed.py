@@ -16,7 +16,11 @@ outstanding rows.
 
 A dozen members also have a standing automatic-renewal authority, one of them
 paused after a charge and its retries were all refused, so every state the
-renewals screens show is on screen with no clicking.
+renewals screens show is on screen with no clicking.  Two of the active ones
+are pinned to a term ending today, with the scheduled attempt the daily scan
+would already have noticed two weeks out, and one more is pinned to a term
+that lapsed ten days ago with no attempt yet, so the daily renewal job always
+has an ordinary charge and a catch-up one waiting the day the seed runs.
 """
 
 from __future__ import annotations
@@ -57,6 +61,7 @@ from apps.payments.refunds import apply_refund_totals
 from apps.payments.renewals import (
     NOTICE_DAYS,
     RETRY_OFFSETS,
+    term_to_renew,
 )
 
 #: How far back the payment history runs.
@@ -79,9 +84,17 @@ RECONCILED_LAG_DAYS = 5
 #: How many members hold a standing automatic-renewal authority: ten active, one
 #: paused after every retry was refused, and one the member turned off.  The
 #: account administrator's contribution-only authority is seeded on top of these.
+#: Among the active ones, ``ctx["renewal_due_today_users"]`` and
+#: ``ctx["catch_up_user"]`` (:func:`apps.members.seed._renewal_seed_subjects`)
+#: are pinned to a renewal already due; the rest spread across the coming year.
 ACTIVE_MANDATES = 10
 PAUSED_MANDATES = 1
 CANCELED_MANDATES = 1
+
+#: How many days before today the catch-up mandate's stored charge date falls:
+#: well inside ``apps.payments.renewals.CATCH_UP_DAYS``, so the daily scan
+#: renews it instead of pausing the mandate.
+CATCH_UP_MANDATE_DAYS_AGO = 10
 
 #: What the account administrator's standing contribution charges each year.
 CONTRIBUTION_MANDATE_CENTS = 5_000
@@ -397,21 +410,40 @@ def _reconcile_settled_payments(ctx: dict[str, Any]) -> int:
     return matched
 
 
+def _forced_term_ends(ctx: dict[str, Any], today: dt.date) -> dict[int, dt.date]:
+    """The end date the payments seed pins each renewal-seed subject's term to.
+
+    Reads ``renewal_due_today_users`` and ``catch_up_user`` from ``ctx``
+    (:func:`apps.members.seed._renewal_seed_subjects`): each due-today user maps
+    to ``today``, and the catch-up user, if there is one, to
+    :data:`CATCH_UP_MANDATE_DAYS_AGO` days back.  Keyed by user id.
+    """
+    forced = {user.pk: today for user in ctx["renewal_due_today_users"]}
+    catch_up_user: User | None = ctx["catch_up_user"]
+    if catch_up_user is not None:
+        forced[catch_up_user.pk] = today - timedelta(days=CATCH_UP_MANDATE_DAYS_AGO)
+    return forced
+
+
 def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
     """Seed each user's payments and terms, and return the shared seed context.
 
     ``ctx`` carries the seed run's ``rng``, ``today``, ``plans``, and ``users``, plus
     the ``membership_targets`` that say which of ``none``, ``current``, ``expiring``
-    , ``expired``, or ``lifetime`` each user should end up in.  One payment is created
-    per term, every term is activated through the same service a real checkout uses,
-    and lapsed terms are then marked expired.  ``ctx["payment_count"]`` is set to the
-    number of payments, and a one-line summary is written to ``stdout`` when one is
-    given.  Running it twice over the same database changes nothing.
+    , ``expired``, or ``lifetime`` each user should end up in, and the
+    ``renewal_due_today_users``/``catch_up_user`` subjects (:func:`_forced_term_ends`)
+    whose current term's end date is pinned rather than drawn, so a renewal is
+    always due the day the seed runs.  One payment is created per term, every term
+    is activated through the same service a real checkout uses, and lapsed terms
+    are then marked expired.  ``ctx["payment_count"]`` is set to the number of
+    payments, and a one-line summary is written to ``stdout`` when one is given.
+    Running it twice over the same database changes nothing.
     """
     rng = ctx["rng"]
     today = ctx["today"]
     plans = ctx["plans"]
     targets: dict[int, str] = ctx["membership_targets"]
+    forced_ends = _forced_term_ends(ctx, today)
 
     annual = plans["annual"]
     life = plans["life"]
@@ -422,6 +454,8 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
         target = targets.get(user.pk, "none")
         starts = _term_starts(rng, target, today)
         plan = life if target == "lifetime" else annual
+        if user.pk in forced_ends and len(starts) > 0 and plan.duration_days is not None:
+            starts[-1] = forced_ends[user.pk] - timedelta(days=plan.duration_days - 1)
         for index, starts_on in enumerate(starts):
             payment = _payment_for(user, plan, starts_on, index, rng, today)
             payments += 1
@@ -500,23 +534,115 @@ def _mandate_candidates(users: list[User], today: dt.date) -> list[tuple[User, M
     return sorted(found, key=lambda pair: (pair[1].ends_on or today, pair[0].pk))
 
 
+def _mock_succeeding_card() -> dict[str, Any]:
+    """The saved-method fields of a mock mandate whose charges always succeed."""
+    return {
+        "provider": MandateProvider.MOCK,
+        "customer_ref": "",
+        "method_ref": "mock",
+        "method_brand": "visa",
+        "method_last4": "4242",
+        "method_exp_month": 12,
+        "method_exp_year": 2030,
+        "method_label": "Test card ending 4242, expires 12/2030",
+    }
+
+
+def _seed_due_today_mandates(users: list[User], plan: MembershipPlan, today: dt.date) -> int:
+    """Give each of ``users`` an active mandate whose ordinary charge is due today.
+
+    Each member's own current term ends today (:func:`_forced_term_ends`), so
+    the mandate already carries the ``RenewalAttempt`` the daily scan would have
+    written and noticed when the charge entered its notice window two weeks
+    ago; the scan then finds it waiting rather than writing a fresh one.  The
+    card is the mock provider's own, which always succeeds.  Returns how many
+    mandates it left behind, whether created now or found from an earlier run
+    today; a user with no term ending today after all is skipped.
+    """
+    written = 0
+    for user in users:
+        term = term_to_renew(user, today)
+        if term is None:
+            continue
+        mandate, created = RenewalMandate.objects.get_or_create(
+            user=user,
+            defaults={
+                "plan": plan,
+                "contribution_cents": 0,
+                "next_charge_on": today,
+                "status": MandateStatus.ACTIVE,
+                **_mock_succeeding_card(),
+            },
+        )
+        written += 1
+        if created:
+            RenewalAttempt.objects.create(
+                mandate=mandate,
+                membership=term,
+                scheduled_on=today,
+                noticed_at=timezone.now() - timedelta(days=NOTICE_DAYS),
+            )
+    return written
+
+
+def _seed_catch_up_mandate(user: User, plan: MembershipPlan, today: dt.date) -> int:
+    """Give ``user`` an active mandate whose stored charge date is already past.
+
+    The member's own term lapsed :data:`CATCH_UP_MANDATE_DAYS_AGO` days ago
+    (:func:`_forced_term_ends`) with no attempt against it yet, so the daily
+    scan takes the catch-up path rather than the ordinary notice-then-charge
+    one.  The card is the mock provider's own, which always succeeds.  Returns
+    ``1``, whether the mandate was created now or found from an earlier run today.
+    """
+    RenewalMandate.objects.get_or_create(
+        user=user,
+        defaults={
+            "plan": plan,
+            "contribution_cents": 0,
+            "next_charge_on": today - timedelta(days=CATCH_UP_MANDATE_DAYS_AGO),
+            "status": MandateStatus.ACTIVE,
+            **_mock_succeeding_card(),
+        },
+    )
+    return 1
+
+
 def _seed_mandates(ctx: dict[str, Any]) -> int:
     """Create the demo mandates and their attempts, and return how many there are.
 
-    Ten members renew automatically, one is paused after a charge and all three
-    of its retries were refused, and one turned automatic renewal off.  The
-    account administrator, a life member, holds a contribution-only authority on
-    top of those.  Each active mandate whose charge falls inside the notice
-    window already carries a scheduled attempt with its warning sent, which is
-    what the daily scan would have left behind.  Running it twice over the same
-    database changes nothing.
+    Ten members renew automatically.  Two of them (``ctx["renewal_due_today_users"]``)
+    have a term ending today and a renewal already due; one more
+    (``ctx["catch_up_user"]``), if the seed named one, has no term left to renew
+    and a stored charge date :data:`CATCH_UP_MANDATE_DAYS_AGO` days back, so the
+    scan takes the catch-up path instead (:func:`_seed_due_today_mandates`,
+    :func:`_seed_catch_up_mandate`).  The remaining active mandates are spread
+    across the coming year as before, one is paused after a charge and all
+    three of its retries were refused, and one turned automatic renewal off.
+    The account administrator, a life member, holds a contribution-only
+    authority on top of those.  Each spread active mandate whose charge falls
+    inside the notice window already carries a scheduled attempt with its
+    warning sent, which is what the daily scan would have left behind.  Running
+    it twice over the same database changes nothing.
     """
     rng: random.Random = ctx["rng"]
     today: dt.date = ctx["today"]
     annual: MembershipPlan = ctx["plans"]["annual"]
+    due_today_users: list[User] = ctx["renewal_due_today_users"]
+    catch_up_user: User | None = ctx["catch_up_user"]
 
-    wanted = ACTIVE_MANDATES + PAUSED_MANDATES + CANCELED_MANDATES
-    eligible = _mandate_candidates(ctx["users"], today)
+    written = _seed_due_today_mandates(due_today_users, annual, today)
+    if catch_up_user is not None:
+        written += _seed_catch_up_mandate(catch_up_user, annual, today)
+
+    # The renewal-seed subjects are handled above, on their own pinned dates;
+    # excluding them here keeps the spread's step selection from landing a
+    # second, generic mandate on one of them.
+    pinned = {user.pk for user in due_today_users}
+    if catch_up_user is not None:
+        pinned.add(catch_up_user.pk)
+    generic_active = ACTIVE_MANDATES - len(due_today_users) - (0 if catch_up_user is None else 1)
+    wanted = generic_active + PAUSED_MANDATES + CANCELED_MANDATES
+    eligible = _mandate_candidates([user for user in ctx["users"] if user.pk not in pinned], today)
     # Evenly spaced through the expiry order, so the seeded charge dates spread
     # across the coming year instead of bunching in the next fortnight.
     step = max(len(eligible) // wanted, 1)
@@ -525,7 +651,7 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
     for index, (user, term) in enumerate(candidates):
         contribution = _contribution(rng)
         fields = _card(index)
-        if index == ACTIVE_MANDATES:
+        if index == generic_active:
             fields |= {
                 "provider": MandateProvider.MOCK,
                 "customer_ref": "",
@@ -538,7 +664,7 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
                 "status": MandateStatus.PAUSED,
                 "failure_count": len(RETRY_OFFSETS) + 1,
             }
-        elif index == ACTIVE_MANDATES + PAUSED_MANDATES:
+        elif index == generic_active + PAUSED_MANDATES:
             fields |= {
                 "status": MandateStatus.CANCELED,
                 "canceled_at": timezone.now() - timedelta(days=rng.randint(10, 90)),
@@ -563,7 +689,7 @@ def _seed_mandates(ctx: dict[str, Any]) -> int:
         elif mandate.status == MandateStatus.ACTIVE:
             _seed_scheduled_attempt(mandate, term, today)
 
-    return len(candidates) + _seed_contribution_mandate(ctx)
+    return written + len(candidates) + _seed_contribution_mandate(ctx)
 
 
 def _seed_contribution_mandate(ctx: dict[str, Any]) -> int:
@@ -583,14 +709,7 @@ def _seed_contribution_mandate(ctx: dict[str, Any]) -> int:
             "contribution_cents": CONTRIBUTION_MANDATE_CENTS,
             "next_charge_on": today + timedelta(days=CONTRIBUTION_MANDATE_DUE_DAYS),
             "status": MandateStatus.ACTIVE,
-            "provider": MandateProvider.MOCK,
-            "customer_ref": "",
-            "method_ref": "mock",
-            "method_brand": "visa",
-            "method_last4": "4242",
-            "method_exp_month": 12,
-            "method_exp_year": 2030,
-            "method_label": "Test card ending 4242, expires 12/2030",
+            **_mock_succeeding_card(),
         },
     )
     return 1
