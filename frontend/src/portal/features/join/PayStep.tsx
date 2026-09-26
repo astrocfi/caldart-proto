@@ -19,11 +19,14 @@ import { joinStepEyebrow, joiningAs } from './steps';
 import './join.css';
 
 export interface PayStepProps {
+  /** Called when a payment settles, before `onDone`; skipping does not call it. */
+  onPaid: () => void;
+  /** Called to move on, after a payment or a friend's **Not now**. */
   onDone: () => void;
 }
 
 /** Step 4 of the join wizard: dues through `<Checkout/>`, or a friend's contribution. */
-export function PayStep({ onDone: handleDone }: PayStepProps): JSX.Element {
+export function PayStep({ onPaid: handlePaid, onDone: handleDone }: PayStepProps): JSX.Element {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -31,6 +34,7 @@ export function PayStep({ onDone: handleDone }: PayStepProps): JSX.Element {
     // Membership, payment history, and `profile_complete`/`membership` on the
     // user payload have all just moved.
     refreshAfterPayment(queryClient);
+    handlePaid();
     handleDone();
   }
 

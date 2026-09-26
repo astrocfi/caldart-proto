@@ -42,6 +42,8 @@ async function registerAsFriend(page: Page, first: string, email: string): Promi
 test('a visitor joins as a friend and skips the contribution', async ({ page }) => {
   await registerAsFriend(page, 'Freya', uniqueEmail('friend'));
 
+  // Wait for the payment options, so the click lands on the loaded form's button.
+  await expect(page.getByRole('radio', { name: /Participating/ })).toBeVisible();
   await page.getByRole('button', { name: 'Not now' }).click();
 
   await expect(page).toHaveURL(/\/portal\/join\/done/);
@@ -49,6 +51,8 @@ test('a visitor joins as a friend and skips the contribution', async ({ page }) 
   await expect(
     page.getByText('You are a friend of CalDART: no dues, no expiry. Become a member any time.'),
   ).toBeVisible();
+  // Nothing was paid, so no receipt is promised.
+  await expect(page.getByText(/receipt/)).toHaveCount(0);
 
   // The dashboard agrees, and offers membership rather than a renewal.
   await page.getByRole('link', { name: 'Go to my dashboard' }).click();
@@ -62,6 +66,8 @@ test('a visitor joins as a friend and skips the contribution', async ({ page }) 
     '/portal/membership/join',
   );
   await expect(card.getByRole('link', { name: /Renew/ })).toHaveCount(0);
+  // The members-only pages would answer a friend with the wall, so none are offered.
+  await expect(page.getByRole('heading', { name: 'Member content' })).toHaveCount(0);
 });
 
 test('a friend contributes on the way through the wizard', async ({ page }) => {
@@ -74,6 +80,7 @@ test('a friend contributes on the way through the wizard', async ({ page }) => {
   await expect(page).toHaveURL(/\/portal\/join\/done/);
   await expect(page.getByRole('heading', { name: 'Welcome to CalDART' })).toBeVisible();
   await expect(page.getByText('Friend', { exact: true })).toBeVisible();
+  await expect(page.getByText(/A receipt is on its way to your inbox/)).toBeVisible();
 });
 
 test('coming back to the wizard, a friend lands on done rather than paying', async ({ page }) => {

@@ -39,6 +39,9 @@ const NONE: MembershipStatus = {
   is_lifetime: false,
 };
 
+/** The done step's sentence about the receipt a payment in this visit sent. */
+const RECEIPT = /A receipt is on its way to your inbox/;
+
 const CURRENT_DETAIL: MembershipDetail = { ...CURRENT, history: [] };
 
 /** Enough of `GET /payments/config` for the pay step to render its one tab. */
@@ -358,6 +361,14 @@ describe('<JoinWizard/> step progression', () => {
       '/members/ops-manual/',
     );
   });
+
+  it('promises no receipt to a member who did not pay in this visit', async () => {
+    stubApi(makeUser());
+    renderWizard('/join/done');
+
+    await screen.findByRole('heading', { name: 'Welcome to CalDART' });
+    expect(screen.queryByText(RECEIPT)).not.toBeInTheDocument();
+  });
 });
 
 describe('<JoinWizard/> returning from a redirect payment', () => {
@@ -385,6 +396,7 @@ describe('<JoinWizard/> returning from a redirect payment', () => {
     // Step 5 arrives only once the payment has settled.
     expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
     expect(confirmed).toEqual({ payment_id: 42, payment_intent_id: 'pi_1' });
+    expect(await screen.findByText(RECEIPT)).toBeInTheDocument();
     // …and the payment reference is spent, so a refresh cannot replay it.
     await waitFor(() => expect(path()).toBe('/join/done'));
   });
@@ -484,10 +496,26 @@ describe('<JoinWizard/> for a friend', () => {
     renderWizard('/join');
 
     await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Not now' }));
+    await screen.findByRole('radio', { name: /Participating/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
 
     expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
     expect(path()).toBe('/join/done');
+  });
+
+  it('promises no receipt to a friend who gave nothing', async () => {
+    stubFriendApi(makeFriend({ profile_complete: false }));
+    server.use(http.put(`${API}/me/profile`, () => HttpResponse.json(makeProfile())));
+    renderWizard('/join');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
+    await screen.findByRole('radio', { name: /Participating/ });
+    await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
+
+    await screen.findByText(
+      'You are a friend of CalDART: no dues, no expiry. Become a member any time.',
+    );
+    expect(screen.queryByText(/receipt/)).not.toBeInTheDocument();
   });
 
   it('moves on to done once the contribution is paid', async () => {
@@ -509,6 +537,7 @@ describe('<JoinWizard/> for a friend', () => {
 
     expect(await screen.findByRole('heading', { name: 'Welcome to CalDART' })).toBeInTheDocument();
     expect(path()).toBe('/join/done');
+    expect(await screen.findByText(RECEIPT)).toBeInTheDocument();
   });
 
   it('resumes a friend with a complete profile on the done step, not the pay step', async () => {

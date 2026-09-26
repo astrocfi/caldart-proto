@@ -145,7 +145,9 @@ The last step confirms the date your membership runs to and links you to
 your dashboard and to the members-only pages you can now read.  For a friend
 it reads "You are a friend of CalDART: no dues, no expiry. Become a member any
 time." and links to the dashboard; the members-only pages are for members, so
-it does not list them.
+it does not list them.  When you paid on the step before, it also says a
+receipt is on its way to your inbox; a friend who chose **Not now** is
+promised none.
 
 .. note::
 
@@ -189,7 +191,9 @@ Member content
   The members-only pages you are entitled to read, straight from the site's
   own page tree.  The card shows an empty state both when CalDART has
   published none and when your membership has lapsed, so if it is empty and
-  you expected pages, check your membership status first.
+  you expected pages, check your membership status first.  A friend does not
+  see this card, since those pages are for members, unless a staff role lets
+  them read the pages anyway.
 
 Recent payments
   Whether automatic renewal is on, and your last five payments: date, plan,

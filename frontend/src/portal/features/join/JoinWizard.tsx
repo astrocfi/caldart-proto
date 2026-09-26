@@ -71,11 +71,16 @@ export function JoinWizard(): JSX.Element {
   // Set once a redirect return has been confirmed, so the wizard stops holding
   // the `done` step open on the payment's behalf.
   const [returnSettled, setReturnSettled] = useState(false);
+  // Set once a payment settles in this visit: only then is a receipt on its way,
+  // since the done step is also where a friend who skipped, or an established
+  // member who signed in, lands.
+  const [hasPaid, setHasPaid] = useState(false);
 
   const handleReturnSettled = useCallback(() => {
     refreshAfterPayment(queryClient);
     setReached('done');
     setReturnSettled(true);
+    setHasPaid(true);
     // The provider's query string has done its job; drop it so a refresh does
     // not confirm the same payment twice.
     void navigate('/join/done', { replace: true });
@@ -126,12 +131,14 @@ export function JoinWizard(): JSX.Element {
         {current === 'account' ? <AccountStep onDone={() => advance('account')} /> : null}
         {current === 'verify' ? <VerifyStep onDone={() => advance('verify')} /> : null}
         {current === 'profile' ? <ProfileStep onDone={() => advance('profile')} /> : null}
-        {current === 'pay' ? <PayStep onDone={() => advance('pay')} /> : null}
+        {current === 'pay' ? (
+          <PayStep onPaid={() => setHasPaid(true)} onDone={() => advance('pay')} />
+        ) : null}
         {current === 'done' ? (
           returning ? (
             <ReturnStep onSettled={handleReturnSettled} />
           ) : (
-            <DoneStep />
+            <DoneStep hasPaid={hasPaid} />
           )
         ) : null}
       </Page>

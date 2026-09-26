@@ -2,7 +2,9 @@
  * Step 5 — you are in: status card and the two places to go next.
  *
  * A member also sees the members-only pages they can now read.  A friend sees what
- * being a friend means instead, since those pages are for members.
+ * being a friend means instead, since those pages are for members.  The receipt is
+ * mentioned only after a payment in this visit: a friend who skipped paying, or a
+ * member who signed in and was sent here, has none coming.
  */
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
@@ -17,8 +19,13 @@ import { useMembership } from '@/portal/features/profile/api';
 import { joinStepEyebrow } from './steps';
 import './join.css';
 
+export interface DoneStepProps {
+  /** True when a payment settled in this visit, so a receipt is on its way. */
+  hasPaid: boolean;
+}
+
 /** Step 5 of the join wizard: membership status and links to members-only pages. */
-export function DoneStep(): JSX.Element {
+export function DoneStep({ hasPaid }: DoneStepProps): JSX.Element {
   const membership = useMembership();
   const siteConfig = useSiteConfig();
   const membersPages = siteConfig.data?.members_pages ?? [];
@@ -59,11 +66,12 @@ export function DoneStep(): JSX.Element {
             ) : (
               <p>Your membership is not active yet.</p>
             )}
-            <p className="muted">
-              {isFriend ? 'If you made a contribution, a receipt' : 'A receipt'} is on its way to
-              your inbox, with the PDF attached. You can download it again at any time from{' '}
-              <Link to="/payments">Payments</Link>.
-            </p>
+            {hasPaid ? (
+              <p className="muted">
+                A receipt is on its way to your inbox, with the PDF attached. You can download it
+                again at any time from <Link to="/payments">Payments</Link>.
+              </p>
+            ) : null}
           </div>
         ) : null}
       </Card>
