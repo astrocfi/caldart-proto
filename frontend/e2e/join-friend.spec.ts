@@ -53,12 +53,15 @@ test('a visitor joins as a friend and skips the contribution', async ({ page }) 
   // The dashboard agrees, and offers membership rather than a renewal.
   await page.getByRole('link', { name: 'Go to my dashboard' }).click();
   await expect(page).toHaveURL(/\/portal\/?$/);
-  await expect(page.getByRole('heading', { name: 'You are a friend of CalDART' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Make me a member' })).toHaveAttribute(
+  const card = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'You are a friend of CalDART' }) });
+  await expect(card).toBeVisible();
+  await expect(card.getByRole('link', { name: 'Make me a member' })).toHaveAttribute(
     'href',
     '/portal/membership/join',
   );
-  await expect(page.getByRole('link', { name: /Renew/ })).toHaveCount(0);
+  await expect(card.getByRole('link', { name: /Renew/ })).toHaveCount(0);
 });
 
 test('a friend contributes on the way through the wizard', async ({ page }) => {
