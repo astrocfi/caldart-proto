@@ -23,9 +23,9 @@ Layout
     wagtail_hooks.py     the members-only guard on document downloads
     context_processors.py   site_settings / theme / nav for every template
     seed.py              site root + settings row (called by seed_demo)
+    seed_content_data.py the example site's copy, as page specs
     api/views.py         GET /api/v1/site/config
     management/commands/seed_content.py    the example site
-    management/commands/seed_content_data.py  its copy, as page specs
   backend/templates/
     base.html            the public shell: panel, masthead, nav bar, footer
     404.html, 500.html

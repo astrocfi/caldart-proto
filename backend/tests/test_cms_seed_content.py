@@ -12,7 +12,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from wagtail.models import Page
 
-from apps.cms.management.commands import seed_content_data as content
+from apps.cms import seed_content_data as content
 
 #: Every test here runs `seed_content`, which builds the whole example site.
 from apps.cms.models import (
