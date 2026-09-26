@@ -17,7 +17,8 @@ const INVALID_LINK = 'That verification link is invalid or has expired.';
  * It posts the token as soon as it loads, signed in or not, since the mail client
  * may open the link in a browser that has no session.  Continuing goes on with the
  * join wizard when the visitor still has a profile to fill in, to the dashboard
- * when they are signed in otherwise, and to the sign-in page when they are not.
+ * when they are signed in otherwise, and to the sign-in page, then the join wizard,
+ * when they are not.
  */
 export function VerifyEmailPage(): JSX.Element {
   const [params] = useSearchParams();
@@ -52,15 +53,20 @@ export function VerifyEmailPage(): JSX.Element {
     <AuthShell title="Email verified">
       <p>{verify.data.email} is verified.</p>
       <div className="auth__actions">
-        <ButtonLink to={continueTo(user)}>Continue</ButtonLink>
+        <ButtonLink to={continueTo(user, verify.data.email)}>Continue</ButtonLink>
       </div>
     </AuthShell>
   );
 }
 
-/** Where `Continue` goes: the join wizard, the dashboard, or the sign-in page. */
-function continueTo(user: User | null): string {
-  if (user === null) return '/login?next=/';
+/**
+ * Where `Continue` goes: the join wizard, the dashboard, or the sign-in page with the
+ * verified address filled in.  Signing in from there goes on to the join wizard, which
+ * resumes wherever the account stands, so a donor who registered, and so had no
+ * session until now, goes on to the profile step.
+ */
+function continueTo(user: User | null, email: string): string {
+  if (user === null) return `/login?next=/join&email=${encodeURIComponent(email)}`;
   return user.profile_complete ? '/' : '/join';
 }
 
