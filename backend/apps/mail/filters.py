@@ -18,8 +18,8 @@ class EmailLogFilterSet(django_filters.FilterSet):
     ``purpose`` is an exact template name; one no row carries matches nothing.
     ``status`` is ``sent`` or ``failed``, and anything else is refused.  ``from`` and
     ``to`` are ``YYYY-MM-DD`` and compare with the local date part of ``sent_at``,
-    inclusively.  ``q`` matches the address written to and the recipient account's
-    first and last name, case-insensitively.
+    inclusively.  ``q`` matches the address written to, the name recorded at send
+    time, and the recipient account's first and last name, case-insensitively.
     """
 
     purpose = django_filters.CharFilter()
@@ -35,6 +35,7 @@ class EmailLogFilterSet(django_filters.FilterSet):
         """Narrow ``queryset`` to rows whose address or recipient name holds ``value``."""
         return queryset.filter(
             Q(to_email__icontains=value)
+            | Q(to_name__icontains=value)
             | Q(user__first_name__icontains=value)
             | Q(user__last_name__icontains=value)
         )

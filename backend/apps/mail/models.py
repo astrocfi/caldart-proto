@@ -29,13 +29,16 @@ class EmailLog(TimestampedModel):
     ``password_reset`` and the rest -- so a row says what kind of message it
     was without reading the subject.  ``user`` is the account the email
     concerned, and is null for a message sent to an address with no account and
-    for one whose account has since been deleted.  ``error`` carries the
-    exception class of a refusal and is blank on a successful send;
-    ``attachments`` lists the filenames that rode along, comma-separated, and
-    is blank when none did.
+    for one whose account has since been deleted.  ``to_name`` is the
+    recipient's name as it was at send time -- a DART contact's name, or an
+    account holder's display name -- and is blank for a message sent to a bare
+    address nobody named.  ``error`` carries the exception class of a refusal
+    and is blank on a successful send; ``attachments`` lists the filenames
+    that rode along, comma-separated, and is blank when none did.
     """
 
     to_email = models.EmailField()
+    to_name = models.CharField(max_length=200, blank=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -62,3 +65,14 @@ class EmailLog(TimestampedModel):
     def __str__(self) -> str:
         """Return ``"<purpose> to <address> on <sent_at date> (<status>)"``."""
         return f"{self.purpose} to {self.to_email} on {self.sent_at:%Y-%m-%d} ({self.status})"
+
+    @property
+    def recipient_name(self) -> str:
+        """The name to show for this row: ``to_name``, or the account's own name.
+
+        Falls back to the linked account's ``display_name`` for a row written before
+        ``to_name`` existed, and to ``""`` when neither names anybody.
+        """
+        if self.to_name:
+            return self.to_name
+        return self.user.display_name if self.user is not None else ""

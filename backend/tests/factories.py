@@ -332,10 +332,13 @@ class ReminderLogFactory(ModelFactory[ReminderLog]):
 class EmailLogFactory(ModelFactory[EmailLog]):
     """Builds a sent ``reminder_t30`` email log row addressed to its own ``user``.
 
-    ``user`` defaults to a new account and ``to_email`` to that account's address, so a
-    row always names somebody; pass ``user=None`` for a message sent to an address with
-    no account behind it.  Pass ``status=EmailStatus.FAILED`` with an ``error`` to record
-    a send the mail server refused.
+    ``user`` defaults to a new account and ``to_email`` and ``to_name`` to that
+    account's own address and display name, so a row always names somebody; pass
+    ``user=None`` for a message sent to an address with no account behind it.  Pass
+    ``to_name=""`` with a ``user`` to build a row written before the field existed,
+    which falls back to the account's own name when read.  Pass
+    ``status=EmailStatus.FAILED`` with an ``error`` to record a send the mail server
+    refused.
     """
 
     class Meta:
@@ -345,6 +348,7 @@ class EmailLogFactory(ModelFactory[EmailLog]):
     to_email = factory.LazyAttribute(
         lambda o: o.user.email if o.user is not None else "nobody@example.test"
     )
+    to_name = factory.LazyAttribute(lambda o: o.user.display_name if o.user is not None else "")
     purpose = "reminder_t30"
     subject = "CalDART: your membership expires in 30 days"
     sent_at = factory.LazyFunction(timezone.now)

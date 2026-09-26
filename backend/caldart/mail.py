@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -51,6 +52,7 @@ def send_templated(
     attachments: Sequence[Attachment] = (),
     purpose: str | None = None,
     user_id: int | None = None,
+    to_name: str = "",
 ) -> EmailMultiAlternatives:
     """Render ``emails/<template>.{txt,html}`` and send them to one address.
 
@@ -64,6 +66,10 @@ def send_templated(
     was for and defaults to ``template``, which is the right answer wherever one
     template is one kind of message; ``user_id`` is the primary key of the account
     the email concerned, and is left null for an address with no account behind it.
+    ``to_name`` is the recipient's name at send time, such as a DART contact's
+    name; a caller that leaves it blank while naming ``user_id`` has the account's
+    own ``display_name`` recorded instead, so an account-linked row always carries
+    the name it had when the email went.
 
     The sent message is returned, so a caller can record what went out.  A mail
     server that refuses the message is logged as a failed send, carrying the
@@ -94,6 +100,7 @@ def send_templated(
             user_id=user_id,
             attachments=filenames,
             error=type(exc).__name__,
+            to_name=to_name,
         )
         raise
     _record(
@@ -103,6 +110,7 @@ def send_templated(
         user_id=user_id,
         attachments=filenames,
         error="",
+        to_name=to_name,
     )
     return message
 
@@ -115,14 +123,27 @@ def _record(
     user_id: int | None,
     attachments: str,
     error: str,
+    to_name: str = "",
 ) -> None:
-    """Write one email log row.  A blank ``error`` records a send that went out."""
+    """Write one email log row.  A blank ``error`` records a send that went out.
+
+    A blank ``to_name`` with a ``user_id`` is filled in from that account's current
+    ``display_name`` before the row is written, so the log keeps the name the
+    recipient had at send time even after the account is later renamed.
+    """
     # Inline: apps.mail sits above every project module, so importing it here is
     # what keeps reading caldart.mail from pulling an app in.
     from apps.mail.models import EmailLog, EmailStatus
 
+    name = to_name
+    if not name and user_id is not None:
+        account = get_user_model().objects.filter(pk=user_id).first()
+        if account is not None:
+            name = account.display_name
+
     EmailLog.objects.create(
         to_email=to,
+        to_name=name,
         user_id=user_id,
         purpose=purpose,
         subject=subject,
