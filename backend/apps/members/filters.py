@@ -33,7 +33,7 @@ from rest_framework import filters as drf_filters
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ROLE_SLUGS
 from apps.members.models import (
     CALIFORNIA_COUNTIES,
@@ -73,7 +73,7 @@ def derived_annotations() -> dict[str, Concat | Case]:
     """What this list needs on top of the membership annotations.
 
     ``full_name`` serves ``?search=``; ``effective_expiry`` is built on
-    ``covers_today``, ``coverage_end``, and ``past_end`` and serves
+    ``effective_kind``, ``covers_today``, ``coverage_end``, and ``past_end`` and serves
     ``?ordering=expires_on``; ``pilot_rank`` is what the Pilot column shows, as
     a number to sort on.  Splat the result into ``QuerySet.annotate`` on a
     queryset that already carries the membership annotations.
@@ -82,9 +82,11 @@ def derived_annotations() -> dict[str, Concat | Case]:
     return {
         "full_name": Concat(F("first_name"), Value(" "), F("last_name"), output_field=CharField()),
         # The date the list sorts on: the end of current coverage, else the
-        # date the last term ran out.  NULL for lifetime and never-a-member,
-        # which ``MemberOrderingFilter`` keeps at the end of the page.
+        # date the last term ran out.  NULL for a friend, lifetime, and
+        # never-a-member, which ``MemberOrderingFilter`` keeps at the end of the
+        # page: a friend's row shows no date, whatever terms it holds.
         "effective_expiry": Case(
+            When(effective_kind=AccountKind.FRIEND, then=None),
             When(covers_today=True, then=F("coverage_end")),
             default=F("past_end"),
             output_field=DateField(),
@@ -215,21 +217,23 @@ class MemberAdminFilterSet(django_filters.FilterSet):
     ) -> QuerySet[MemberRow]:
         """Rows whose computed membership status is ``value``.
 
-        ``current`` is a term covering today, ``expired`` a paid term that has
-        started and run out, ``new`` an account whose only term is unpaid, and
-        ``none`` an account with no term at all.  Anything else leaves the
+        ``friend`` is an account whose effective kind is friend, whatever its terms;
+        among the rest, ``current`` is a term covering today, ``expired`` a paid term
+        that has started and run out, ``new`` an account whose only term is unpaid,
+        and ``none`` an account with no term at all.  Anything else leaves the
         queryset alone.
         """
+        if value == MembershipState.FRIEND:
+            return queryset.filter(effective_kind=AccountKind.FRIEND)
+        members = queryset.exclude(effective_kind=AccountKind.FRIEND)
         if value == MembershipState.CURRENT:
-            return queryset.filter(covers_today=True)
+            return members.filter(covers_today=True)
         if value == MembershipState.EXPIRED:
-            return queryset.filter(covers_today=False, has_started_term=True)
+            return members.filter(covers_today=False, has_started_term=True)
         if value == MembershipState.NEW:
-            return queryset.filter(covers_today=False, has_started_term=False, has_unpaid_term=True)
+            return members.filter(covers_today=False, has_started_term=False, has_unpaid_term=True)
         if value == MembershipState.NONE:
-            return queryset.filter(
-                covers_today=False, has_started_term=False, has_unpaid_term=False
-            )
+            return members.filter(covers_today=False, has_started_term=False, has_unpaid_term=False)
         return queryset
 
     def filter_dart(
@@ -267,14 +271,14 @@ class MemberAdminFilterSet(django_filters.FilterSet):
 
         ``value`` is clamped to ``0..MAX_EXPIRING_WINDOW_DAYS`` before use, so a
         negative or absurdly large window never raises ``OverflowError``.  A
-        missing value leaves the queryset alone, and a lifetime member is never
-        listed: there is no date to compare.
+        missing value leaves the queryset alone, and neither a lifetime member nor
+        a friend is ever listed: neither has a date to compare.
         """
         if value is None:
             return queryset
         window = min(max(int(value), 0), MAX_EXPIRING_WINDOW_DAYS)
         cutoff = timezone.localdate() + timedelta(days=window)
-        return queryset.filter(
+        return queryset.exclude(effective_kind=AccountKind.FRIEND).filter(
             covers_today=True, coverage_end__isnull=False, coverage_end__lte=cutoff
         )
 

@@ -5,16 +5,18 @@ from __future__ import annotations
 import django_filters
 from django.contrib.auth import get_user_model
 
+from apps.accounts.models import AccountKind
 from apps.accounts.roles import ROLE_SLUGS
 
 User = get_user_model()
 
 
 class UserFilter(django_filters.FilterSet):
-    """``?role=&is_active=`` on ``GET /admin/users``.
+    """``?role=&is_active=&kind=`` on ``GET /admin/users``.
 
     ``role`` matches the Django ``Group`` a role is stored as, so an unknown
-    slug is a 400 rather than an empty page.
+    slug is a 400 rather than an empty page.  ``kind`` matches the stored kind --
+    ``member``, ``friend``, or ``donor`` -- and an unknown one is a 400 too.
     """
 
     role = django_filters.ChoiceFilter(
@@ -23,7 +25,8 @@ class UserFilter(django_filters.FilterSet):
         label="Role slug",
     )
     is_active = django_filters.BooleanFilter(field_name="is_active")
+    kind = django_filters.ChoiceFilter(choices=AccountKind.choices, label="Kind of account")
 
     class Meta:
         model = User
-        fields = ["role", "is_active"]
+        fields = ["role", "is_active", "kind"]

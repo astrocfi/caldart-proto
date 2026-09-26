@@ -2,7 +2,14 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import type { MembershipStatus } from '../api/types';
-import { CurrencyChip, MembershipChip, StatusChip, daysUntil, membershipTone } from './StatusChip';
+import {
+  CurrencyChip,
+  MembershipChip,
+  MembershipDot,
+  StatusChip,
+  daysUntil,
+  membershipTone,
+} from './StatusChip';
 
 const TODAY = new Date(2026, 5, 15); // 15 June 2026, local time
 
@@ -117,5 +124,23 @@ describe('CurrencyChip', () => {
 
     rerender(<CurrencyChip isCurrent={false} missing />);
     expect(screen.getByText('Not on file')).toHaveClass('chip--neutral');
+  });
+});
+
+describe('a friend of CalDART', () => {
+  const FRIEND = membership({ status: 'friend', expires_on: null, plan: null });
+
+  it('takes the quiet tone of no membership, never current or expired', () => {
+    expect(membershipTone(FRIEND, TODAY)).toBe('none');
+  });
+
+  it('reads Friend on the chip, in the neutral color', () => {
+    render(<MembershipChip membership={FRIEND} today={TODAY} />);
+    expect(screen.getByText('Friend')).toHaveClass('chip--neutral');
+  });
+
+  it('reads Friend on the dot', () => {
+    render(<MembershipDot membership={FRIEND} today={TODAY} />);
+    expect(screen.getByTitle('Friend')).toHaveAttribute('data-tone', 'none');
   });
 });

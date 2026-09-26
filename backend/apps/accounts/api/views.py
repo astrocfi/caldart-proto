@@ -34,12 +34,13 @@ from apps.accounts.api.serializers import (
     UserSerializer,
     VerificationSentSerializer,
 )
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.accounts.permissions import IsUserAdmin
 from apps.accounts.roles import ROLE_DESCRIPTIONS
 from apps.accounts.services import (
     change_own_email,
     confirm_email_address,
+    is_donor,
     send_email_verification,
     send_password_reset_email,
     verify_email,
@@ -61,6 +62,11 @@ WRONG_CREDENTIALS_MESSAGE = "Incorrect email address or password."
 
 #: What a deactivated account is told, and only once its password has matched.
 DEACTIVATED_MESSAGE = "This account has been deactivated. Ask a CalDART administrator."
+
+#: What the user administrator is told when asking to mail a donor a password or
+#: verification link: a donor cannot sign in, so neither link would lead anywhere.
+DONOR_RESET_REFUSED = "A donor cannot sign in, so no reset email was sent."
+DONOR_VERIFICATION_REFUSED = "A donor cannot sign in, so no verification message was sent."
 
 
 def signed_in_user(request: Request) -> User:
@@ -98,24 +104,46 @@ class CsrfView(APIView):
 
 
 class RegisterView(APIView):
-    """``POST /auth/register`` -- create a member account and sign them in."""
+    """``POST /auth/register`` -- create a member's or friend's account and sign it in."""
 
     permission_classes = [AllowAny]
     throttle_classes = [RegisterThrottle]
 
-    @extend_schema(request=RegisterSerializer, responses={201: UserSerializer})
+    @extend_schema(
+        request=RegisterSerializer,
+        responses={201: UserSerializer, 202: VerificationSentSerializer},
+    )
     def post(self, request: Request) -> Response:
-        """Create a member account from the posted fields, sign it in, and answer 201.
+        """Create an account from the posted fields, sign it in, and answer 201.
 
-        The body carries ``email``, ``password``, ``first_name``, and ``last_name``; the
-        response is the ``user`` payload, with ``email_verified`` false.  Once the account
-        is committed its address is mailed a verification link.  Open to anonymous
-        callers and throttled under the ``auth_register`` scope.  A taken address or a
-        password Django's validators reject is a 400 naming the field.
+        The body carries ``email``, ``password``, ``first_name``, ``last_name``, and
+        ``kind`` (``member``, the default, or ``friend``); the response is the ``user``
+        payload, with ``email_verified`` false.  Once the account is committed its
+        address is mailed a verification link.  Open to anonymous callers and throttled
+        under the ``auth_register`` scope.
+
+        An active donor's address signs nobody in: the answer is a 202 ``{"detail":
+        "Verification message sent to <address>."}``, and following the link mailed
+        there upgrades the donor in place, keeping its gifts, after which the password
+        given here signs in.  A deactivated account's address is a 400 ``{"email":
+        [...], "code": "deactivated"}``; any other taken address, or a password
+        Django's validators reject, is a 400 naming the field.
         """
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = register_member(**serializer.validated_data)
+        data = dict(serializer.validated_data)
+        user = register_member(
+            email=data["email"],
+            password=data["password"],
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            kind=AccountKind(data["kind"]),
+        )
+        if is_donor(user):
+            return Response(
+                {"detail": f"Verification message sent to {user.email}."},
+                status=status.HTTP_202_ACCEPTED,
+            )
         login(request, user)
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
@@ -135,13 +163,19 @@ class LoginView(APIView):
         account is answered with that same 400 unless the password is correct, in which
         case it is a 403 with "This account has been deactivated. Ask a CalDART
         administrator." -- so only somebody who already knows the password learns that
-        the address belongs to a deactivated account.
+        the address belongs to a deactivated account.  A donor cannot sign in at all:
+        whatever the password, the answer is the same 400 as wrong credentials.
         """
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
         user = authenticate(request, username=email, password=password)
+        if user is not None and is_donor(user):
+            return Response(
+                {"detail": WRONG_CREDENTIALS_MESSAGE},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if user is None:
             # `authenticate` also returns None for a deactivated account, so look
             # one up; its password still has to match before we say so.
@@ -238,9 +272,10 @@ class PasswordResetView(APIView):
         """Mail a reset link to the posted ``email`` and answer 204.
 
         Open to anonymous callers and throttled under the ``auth_password_reset`` scope.
-        An unregistered or deactivated address is answered 204 with no mail sent, so the
-        endpoint cannot be used to enumerate members.  An account that has never set a
-        password is mailed the link like any other.  A malformed address is a 400.
+        An unregistered or deactivated address, or a donor's, is answered 204 with no
+        mail sent, so the endpoint cannot be used to enumerate members.  An account
+        that has never set a password is mailed the link like any other.  A malformed
+        address is a 400.
         """
         serializer = PasswordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -391,7 +426,7 @@ def admin_user_queryset() -> QuerySet[User]:
 
 
 class AdminUserListView(generics.ListAPIView[User]):
-    """``GET /admin/users?search=&role=&is_active=`` -- paginated ``[user]``."""
+    """``GET /admin/users?search=&role=&is_active=&kind=`` -- paginated ``[user]``."""
 
     permission_classes = [IsUserAdmin]
     serializer_class = AdminUserSerializer
@@ -430,11 +465,20 @@ class AdminUserSendPasswordResetView(APIView):
         Restricted to ``user_admin``, and to ``system_admin`` by implication; anyone
         else gets 403 and an unknown ``pk`` gets 404.  An account with nobody to mail --
         a deactivated one, or one with no email address -- is a 400 with "That account
-        is deactivated, so no reset email was sent."  Both the send and the refusal are
-        recorded in the audit log.
+        is deactivated, so no reset email was sent."  A donor, who cannot sign in, is a
+        400 with "A donor cannot sign in, so no reset email was sent."  Both the send and
+        the refusals are recorded in the audit log.
         """
         actor = signed_in_user(request)
         user = generics.get_object_or_404(User, pk=pk)
+        if is_donor(user):
+            audit.refuse(
+                audit.PASSWORD_RESET_ADMIN_SENT,
+                actor=actor,
+                target=user,
+                reason=audit.REASON_DONOR_ACCOUNT,
+            )
+            return Response({"detail": DONOR_RESET_REFUSED}, status=status.HTTP_400_BAD_REQUEST)
         sent = send_password_reset_email(user, request=request)
         if not sent:
             audit.refuse(
@@ -466,10 +510,16 @@ class AdminUserSendEmailVerificationView(APIView):
         audit log as ``email_verification.admin_sent``.  An address that is already
         verified is a 400 with "That address is already verified.", and a deactivated
         account, whose link could never be used, a 400 with "That account is
-        deactivated, so no verification message was sent."; neither mails anything.
+        deactivated, so no verification message was sent."; a donor, who cannot sign
+        in, a 400 with "A donor cannot sign in, so no verification message was sent.";
+        none of them mails anything.
         """
         actor = signed_in_user(request)
         user = generics.get_object_or_404(User, pk=pk)
+        if is_donor(user):
+            return Response(
+                {"detail": DONOR_VERIFICATION_REFUSED}, status=status.HTTP_400_BAD_REQUEST
+            )
         if user.email_verified:
             return Response(
                 {"detail": "That address is already verified."},

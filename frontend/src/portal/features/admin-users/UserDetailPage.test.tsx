@@ -251,4 +251,42 @@ describe('UserDetailPage', () => {
 
     expect(await screen.findByText('Verified')).toHaveTextContent('Verified 2024/07/01');
   });
+
+  describe('for a donor', () => {
+    const DONOR = makeAdminUser({
+      id: 9,
+      email: 'gil@example.org',
+      first_name: 'Gil',
+      last_name: 'Ivers',
+      roles: [],
+      kind: 'donor',
+      email_verified_at: null,
+    });
+
+    it('says the account is a donor', async () => {
+      stubDetail({ target: DONOR });
+      renderDetail(String(DONOR.id));
+      await screen.findByRole('heading', { name: 'Gil Ivers' });
+
+      expect(screen.getByText('Donor')).toBeInTheDocument();
+    });
+
+    it('offers no password reset', async () => {
+      stubDetail({ target: DONOR });
+      renderDetail(String(DONOR.id));
+      await screen.findByRole('heading', { name: 'Gil Ivers' });
+
+      expect(
+        screen.queryByRole('button', { name: /send password reset/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('offers no verification message', async () => {
+      stubDetail({ target: DONOR });
+      renderDetail(String(DONOR.id));
+      await screen.findByRole('heading', { name: 'Gil Ivers' });
+
+      expect(screen.queryByRole('button', { name: /verification/i })).not.toBeInTheDocument();
+    });
+  });
 });

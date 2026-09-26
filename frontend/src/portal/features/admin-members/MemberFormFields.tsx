@@ -14,7 +14,13 @@
  */
 import type { JSX, ReactNode } from 'react';
 
-import type { AdminProfile, AdminProfilePayload } from '@/portal/api/types';
+import type {
+  AccountKind,
+  AdminProfile,
+  AdminProfilePayload,
+  PersonKind,
+} from '@/portal/api/types';
+import { ACCOUNT_KIND_LABELS } from '@/portal/choices';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { maskEmail } from '@/portal/masks';
@@ -25,6 +31,19 @@ export interface AccountDraft {
   last_name: string;
   password: string;
   is_active: boolean;
+  /** A donor's kind is shown elsewhere and never edited here. */
+  kind: AccountKind;
+}
+
+/** The kinds an administrator may choose between: never a donor. */
+const PERSON_KINDS: PersonKind[] = ['member', 'friend'];
+
+/**
+ * The `kind` a member write should carry for `draft`: the chosen kind, or nothing
+ * for a donor, whose kind an administrator never changes.
+ */
+export function kindPayload(draft: AccountDraft): { kind?: PersonKind } {
+  return draft.kind === 'donor' ? {} : { kind: draft.kind };
 }
 
 /** The two fields only an administrator sees. */
@@ -35,9 +54,16 @@ export interface AdminOnlyDraft {
 
 export const EMPTY_ADMIN_ONLY: AdminOnlyDraft = { notes: '', how_heard: '' };
 
-/** A blank account draft for the "New member" form, active by default. */
+/** A blank account draft for the "New member" form: an active member by default. */
 export function emptyAccountDraft(): AccountDraft {
-  return { email: '', first_name: '', last_name: '', password: '', is_active: true };
+  return {
+    email: '',
+    first_name: '',
+    last_name: '',
+    password: '',
+    is_active: true,
+    kind: 'member',
+  };
 }
 
 /** The admin-only draft for a member's profile, or a blank one when there is none yet. */
@@ -68,7 +94,10 @@ export interface AccountFieldsProps {
   emailHint?: ReactNode;
 }
 
-/** The account fieldset: email, name, and optionally a password and active switch. */
+/**
+ * The account fieldset: email, name, the kind of account (member or friend; a
+ * donor's is left alone), and optionally a password and active switch.
+ */
 export function AccountFields({
   value,
   onChange,
@@ -122,6 +151,29 @@ export function AccountFields({
             )}
           </Field>
         </div>
+        {value.kind === 'donor' ? null : (
+          <div className="col-half">
+            <Field
+              label="Kind of account"
+              error={errors.kind}
+              hint="A friend pays no dues and is never current or expired."
+            >
+              {(props) => (
+                <select
+                  {...props}
+                  value={value.kind}
+                  onChange={(event) => set('kind', event.target.value as PersonKind)}
+                >
+                  {PERSON_KINDS.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {ACCOUNT_KIND_LABELS[kind]}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+          </div>
+        )}
         {withPassword ? (
           <div className="col-half">
             <Field

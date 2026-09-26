@@ -4,6 +4,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { api } from '@/portal/api/client';
 import type {
+  AccountKind,
   AdminUser,
   AdminUserPatch,
   Paginated,
@@ -19,6 +20,8 @@ export interface AdminUserFilters {
   role?: RoleSlug | '';
   /** `''` means "any"; the API takes a real boolean. */
   is_active?: 'true' | 'false' | '';
+  /** `''` means any kind of account. */
+  kind?: AccountKind | '';
   page?: number;
 }
 
@@ -48,6 +51,7 @@ export function useAdminUsers(filters: AdminUserFilters): UseQueryResult<Paginat
           search: filters.search,
           role: filters.role,
           is_active: filters.is_active,
+          kind: filters.kind,
           page: filters.page && filters.page > 1 ? filters.page : undefined,
         },
       }),

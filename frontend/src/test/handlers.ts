@@ -57,6 +57,8 @@ export function makeUser(overrides: Partial<User> = {}): User {
     membership: CURRENT_MEMBERSHIP,
     profile_complete: true,
     email_verified: true,
+    kind: 'member',
+    friend_on: null,
     ...overrides,
   };
 }

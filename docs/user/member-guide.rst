@@ -7,6 +7,12 @@ your profile and aircraft up to date, and finding the members-only parts of
 the site.  Everything here happens in the **member portal** at
 ``/portal/``, which works the same on a phone as on a laptop.
 
+It is the guide for friends of CalDART too.  A friend has the same portal —
+profile, aircraft, payments, and dashboard — but pays no dues, so a friend's
+membership reads **Friend** rather than a date, nothing expires, and no
+renewal reminder is ever sent.  :ref:`kinds-of-account` sets out what a
+member, a friend, and a donor each are.
+
 
 Joining
 =======
@@ -246,6 +252,10 @@ or lapsed gets you the wall rather than the page.
 If your membership has lapsed, opening one shows a short page explaining
 why, with links to sign in, join, or renew.  Renewing restores access
 immediately.
+
+A friend of CalDART is shown the same wall, with the sentence "Friends of
+CalDART can read this page by becoming a member." and a **Make me a member**
+button.  Paying for a plan makes a friend a member, and the page opens.
 
 
 Signing in and passwords

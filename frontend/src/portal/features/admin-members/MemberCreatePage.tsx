@@ -21,6 +21,7 @@ import {
   EMPTY_ADMIN_ONLY,
   adminProfilePayload,
   emptyAccountDraft,
+  kindPayload,
 } from './MemberFormFields';
 import { useCreateMember } from './api';
 import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
@@ -58,6 +59,7 @@ export function MemberCreatePage(): JSX.Element {
         first_name: account.first_name,
         last_name: account.last_name,
         ...(account.password ? { password: account.password } : {}),
+        ...kindPayload(account),
         profile: adminProfilePayload(formToPatch(profile), adminOnly),
       },
       {

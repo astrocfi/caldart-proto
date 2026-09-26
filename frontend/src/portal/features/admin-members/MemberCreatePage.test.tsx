@@ -75,6 +75,29 @@ describe('MemberCreatePage', () => {
     expect(profile.dart_id).toBeNull();
   });
 
+  it('creates a member unless told otherwise', async () => {
+    const user = userEvent.setup();
+    server.use(...createHandlers());
+    renderCreate();
+
+    await user.type(screen.getByLabelText(/Email address/), 'plain@example.org');
+    await user.click(screen.getByRole('button', { name: 'Create member' }));
+
+    await waitFor(() => expect(posted?.kind).toBe('member'));
+  });
+
+  it('creates a friend when the kind says so', async () => {
+    const user = userEvent.setup();
+    server.use(...createHandlers());
+    renderCreate();
+
+    await user.type(screen.getByLabelText(/Email address/), 'pal@example.org');
+    await user.selectOptions(screen.getByLabelText('Kind of account'), 'friend');
+    await user.click(screen.getByRole('button', { name: 'Create member' }));
+
+    await waitFor(() => expect(posted?.kind).toBe('friend'));
+  });
+
   it('omits the password when the box is left blank', async () => {
     const user = userEvent.setup();
     server.use(...createHandlers());

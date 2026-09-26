@@ -55,14 +55,26 @@ before, in the last week, once your membership has run out, and once about a
 month after that.  Each one links straight to the renewal screen.  You get each
 reminder whichever day you joined — if your term is 23 days from running out
 when CalDART first has it, the one-month reminder goes that day and the
-last-week one follows.  Life members are never reminded, because there is
-nothing to renew.
+last-week one follows.  Life members and friends are never reminded, because
+there is nothing to renew.
 
 Reminders go to the email address on your account, which is also the address
 you sign in with.  If they are not arriving, check your spam folder first, then
 that the address is right at ``/portal/profile``.
 
 See :doc:`member-guide`.
+
+What is a friend?
+-----------------
+
+A friend of CalDART has an account and the member portal but pays no dues.
+Friends are never current and never expired, are never sent a renewal
+reminder, and can give to CalDART whenever they like.  Members-only pages stay
+closed to a friend; paying for a plan makes a friend a member.  A member who
+becomes a friend while a term is still running stays a member until that term
+ends.
+
+See :ref:`kinds-of-account`.
 
 Can I have more than one membership at once?
 --------------------------------------------

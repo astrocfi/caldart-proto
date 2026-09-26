@@ -115,13 +115,18 @@ to action, chosen by ``members_wall_state``:
                  and join.
 ``expired``      A signed-in member whose term has run out.  Offers renew,
                  and names the expiry date.
+``friend``       A signed-in friend of CalDART (:ref:`kinds of account <account-kinds>`).
+                 Says "Friends of CalDART can read this page by becoming a
+                 member." and offers **Make me a member**, a link to
+                 ``/portal/membership/join``.
 ``none``         A signed-in account with no membership at all.  Offers
                  join.
 ===============  =========================================================
 
 Who gets through is ``User.can_access_members_content`` (:doc:`data-model`): a current
 membership, *or* any role beyond plain ``member``.  A DART leader with no
-membership of their own can still read the handbooks.
+membership of their own can still read the handbooks, and so can a friend who
+holds a staff role; a friend with only the ``member`` role gets the wall.
 
 Wagtail's native page privacy still applies on top of this; the two are
 independent.

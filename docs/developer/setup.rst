@@ -150,6 +150,8 @@ Sign in with any of the demo accounts, all of which use the password
      - ``member`` — membership current
    * - ``expired@example.org``
      - ``member`` — membership expired
+   * - ``friend@example.org``
+     - ``member`` — a friend of CalDART, no dues
    * - ``leader@example.org``
      - ``member``, ``dart_leader``
    * - ``useradmin@example.org``

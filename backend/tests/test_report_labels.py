@@ -41,17 +41,18 @@ def row_by_email(table: list[list[str]], email: str) -> list[str]:
     return next(row for row in table[1:] if row[0] == email)
 
 
-def test_membership_state_choices_are_the_four_report_words() -> None:
-    """The four ``MembershipState`` labels, in order.
+def test_membership_state_choices_are_the_five_report_words() -> None:
+    """The five ``MembershipState`` labels, in order.
 
     The report, the member list's status filter, and the portal's status select all
-    read their labels from here, so this is the one place the four words live.
+    read their labels from here, so this is the one place the five words live.
     """
     assert MembershipState.choices == [
         ("current", "Current"),
         ("new", "Unpaid"),
         ("expired", "Expired"),
         ("none", "No membership"),
+        ("friend", "Friend"),
     ]
 
 

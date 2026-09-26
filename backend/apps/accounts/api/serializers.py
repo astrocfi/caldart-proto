@@ -8,12 +8,14 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from drf_spectacular.utils import extend_schema_field
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.exceptions import APIException
 
-from apps.accounts.models import User
+from apps.accounts.models import PERSON_KIND_CHOICES, AccountKind, User
 from apps.accounts.roles import ROLE_SLUGS
 from apps.accounts.services import (
     AccountChanges,
+    is_donor,
     normalized_email,
     update_account,
     user_from_uid,
@@ -42,6 +44,8 @@ class UserSerializer(serializers.ModelSerializer[User]):
             "membership",
             "profile_complete",
             "email_verified",
+            "kind",
+            "friend_on",
         ]
         read_only_fields = fields
 
@@ -113,26 +117,52 @@ class LoginSerializer(serializers.Serializer[None]):
     password = serializers.CharField(style={"input_type": "password"}, trim_whitespace=False)
 
 
+class DeactivatedAccountError(APIException):
+    """A registration for an address a deactivated account holds.
+
+    Rendered as 400 ``{"email": [<sentence>], "code": "deactivated"}``: the ``code``
+    tells the portal to offer a sign-in, where the account can be reactivated.
+    """
+
+    status_code = status.HTTP_400_BAD_REQUEST
+    MESSAGE = "This email belongs to a deactivated account. Sign in to reactivate it."
+
+    def __init__(self) -> None:
+        """Build the error with its fixed body."""
+        super().__init__({"email": [self.MESSAGE], "code": "deactivated"})
+
+
 class RegisterSerializer(serializers.Serializer[None]):
-    """``POST /auth/register``: the four fields a self-service signup supplies."""
+    """``POST /auth/register``: the fields a self-service signup supplies."""
 
     email = serializers.EmailField()
     password = PasswordField()
     first_name = serializers.CharField(max_length=150)
     last_name = serializers.CharField(max_length=150)
+    kind = serializers.ChoiceField(
+        choices=PERSON_KIND_CHOICES, default=AccountKind.MEMBER.value, required=False
+    )
 
     def validate_email(self, value: str) -> str:
-        """The address, stripped, provided no account already uses it.
+        """The address, stripped, provided no active member or friend already uses it.
 
-        Rejects a taken address, compared case-insensitively, with "An account already
-        uses that email address. Sign in, or reset your password."
+        An address belonging to an active donor passes: registering upgrades the
+        donor in place.  An address belonging to a deactivated account, of any kind,
+        raises ``DeactivatedAccountError``.  Any other taken address, compared
+        case-insensitively, is rejected with "An account already uses that email
+        address. Sign in, or reset your password."
         """
         value = value.strip()
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError(
-                "An account already uses that email address. Sign in, or reset your password."
-            )
-        return value
+        existing = User.objects.filter(email__iexact=value).first()
+        if existing is None:
+            return value
+        if not existing.is_active:
+            raise DeactivatedAccountError
+        if is_donor(existing):
+            return value
+        raise serializers.ValidationError(
+            "An account already uses that email address. Sign in, or reset your password."
+        )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """``attrs`` unchanged, once the password passes Django's validators.
@@ -197,13 +227,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer[None]):
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """``attrs`` with the account the link names added under ``user``.
 
-        An unreadable or unknown ``uid``, an inactive account, and a ``token`` the
-        default generator refuses all raise ``serializers.ValidationError`` under the
-        ``token`` key carrying ``INVALID_LINK``, so a caller cannot tell them apart.  A
-        password Django's validators reject is raised under ``new_password``.
+        An unreadable or unknown ``uid``, an inactive account, a donor's account (a
+        donor cannot hold a password), and a ``token`` the default generator refuses
+        all raise ``serializers.ValidationError`` under the ``token`` key carrying
+        ``INVALID_LINK``, so a caller cannot tell them apart.  A password Django's
+        validators reject is raised under ``new_password``.
         """
         user = user_from_uid(attrs["uid"])
-        if user is None or not user.is_active:
+        if user is None or not user.is_active or is_donor(user):
             raise serializers.ValidationError({"token": [self.INVALID_LINK]})
         if not default_token_generator.check_token(user, attrs["token"]):
             raise serializers.ValidationError({"token": [self.INVALID_LINK]})
@@ -302,7 +333,9 @@ class AdminUserSerializer(UserSerializer):
         fields = [*UserSerializer.Meta.fields, "email_verified_at"]
         # `membership`, `profile_complete`, `email_verified`, `email_verified_at`,
         # and `roles` are declared fields, so only the model columns need listing here.
-        read_only_fields = ["id"]
+        # The kind is the account administrator's to change, never the user
+        # administrator's.
+        read_only_fields = ["id", "kind", "friend_on"]
         extra_kwargs = {
             "email": {"required": False},
             "first_name": {"required": False},

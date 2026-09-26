@@ -19,6 +19,7 @@ import {
   AdminOnlyFields,
   adminOnlyDraft,
   adminProfilePayload,
+  kindPayload,
 } from './MemberFormFields';
 import type { AccountDraft } from './MemberFormFields';
 import { useUpdateMember } from './api';
@@ -31,6 +32,7 @@ function accountDraftFrom(member: MemberDetail): AccountDraft {
     last_name: member.last_name,
     password: '',
     is_active: member.is_active,
+    kind: member.kind,
   };
 }
 
@@ -56,6 +58,8 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
         first_name: account.first_name,
         last_name: account.last_name,
         is_active: account.is_active,
+        // An unchanged kind is left out: resending it would cancel a pending conversion.
+        ...(account.kind === member.kind ? {} : kindPayload(account)),
         profile: adminProfilePayload(formToPatch(profile), adminOnly),
       },
       { onSuccess: () => toast.show('Member saved.', 'success') },

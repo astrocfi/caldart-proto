@@ -18,7 +18,7 @@ from django.core.management.base import OutputWrapper
 from django.utils.text import slugify
 from faker import Faker
 
-from apps.accounts.models import User
+from apps.accounts.models import AccountKind, User
 from apps.darts.models import Dart, DartContact
 from apps.members.models import (
     RATING_VALUES,
@@ -50,6 +50,11 @@ DARTS: tuple[tuple[str, str], ...] = (
     ("Santa Rosa", "STS"),
     ("Watsonville", "WVI"),
 )
+
+
+#: The one DART the seed puts nobody on, so the demo can show a team being
+#: deleted without unaffiliating anybody.  It keeps its public page.
+EMPTY_DART = "San Carlos"
 
 
 class PlanSpec(TypedDict):
@@ -119,6 +124,7 @@ MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
     ("expired", 8),
     ("lifetime", 4),
     ("none", 4),
+    ("friend", 5),
 )
 
 #: How many generated "expiring" members ``apps.payments.seed`` ends exactly
@@ -233,7 +239,8 @@ def _profile_defaults(
     number, ratings, hours, and a flight review, and roughly a quarter of pilots
     are given a medical that expired before ``today`` so the leader checks have
     something to fail on.  The DART is drawn from ``darts`` and supplies the
-    member's home airport, while ``towns`` supplies the two town names.
+    member's home airport -- never :data:`EMPTY_DART`, which the seed leaves with
+    nobody on it -- while ``towns`` supplies the two town names.
     ``certificate`` forces the pilot
     certificate, which the caller uses to make sure every kind appears at least
     once however the draw falls.
@@ -275,7 +282,7 @@ def _profile_defaults(
         pool = list(RATING_VALUES)
         ratings = rng.sample(pool, k=rng.choices([0, 1, 2, 3], weights=[35, 35, 20, 10])[0])
 
-    dart = rng.choice(darts)
+    dart = rng.choice([candidate for candidate in darts if candidate.name != EMPTY_DART])
     return {
         "phone": faker.numerify("###-###-####"),
         "phone_alt": faker.numerify("###-###-####") if rng.random() < 0.3 else "",
@@ -327,6 +334,7 @@ def _assign_targets(rng: random.Random, ctx: dict[str, Any]) -> dict[int, str]:
     demo = ctx["demo_users"]
     targets[demo["member"].pk] = "current"
     targets[demo["expired"].pk] = "expired"
+    targets[demo["friend"].pk] = "friend"
     targets[demo["leader"].pk] = "current"
     targets[demo["useradmin"].pk] = "current"
     targets[demo["accountadmin"].pk] = "lifetime"
@@ -341,6 +349,18 @@ def _assign_targets(rng: random.Random, ctx: dict[str, Any]) -> dict[int, str]:
     for index, user in enumerate(ctx["generated_users"]):
         targets[user.pk] = pool[index % len(pool)]
     return targets
+
+
+def _mark_friends(users: list[User], targets: dict[int, str]) -> None:
+    """Store every user whose target is ``friend`` as a friend of CalDART.
+
+    A friend holds no terms, which the payments seed sees from the same target.
+    """
+    for user in users:
+        if targets.get(user.pk) == "friend":
+            user.kind = AccountKind.FRIEND
+            user.friend_on = None
+            user.save(update_fields=["kind", "friend_on", "updated_at"])
 
 
 def _renewal_seed_subjects(
@@ -413,6 +433,7 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     ctx["profiles"] = profiles
     targets = _assign_targets(rng, ctx)
     ctx["membership_targets"] = targets
+    _mark_friends(ctx["users"], targets)
     due_today, catch_up = _renewal_seed_subjects(ctx["generated_users"], targets)
     ctx["renewal_due_today_users"] = due_today
     ctx["catch_up_user"] = catch_up

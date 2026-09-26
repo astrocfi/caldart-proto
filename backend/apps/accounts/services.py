@@ -28,7 +28,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-from apps.accounts.models import User
+from apps.accounts.models import PERSON_KINDS, AccountKind, User
 from apps.accounts.roles import MEMBER, ROLE_SLUGS, SYSTEM_ADMIN, WEBSITE_ADMIN
 from caldart import audit
 from caldart.exceptions import DomainValidationError
@@ -73,6 +73,7 @@ STATUS_CHANGE_REFUSED = (
     "You cannot activate or deactivate an account that holds roles you do not hold."
 )
 ROLE_CHANGE_REFUSED = "Only a system administrator can grant or revoke the system_admin role."
+DONOR_KIND_REFUSED = "A donor becomes a member or a friend only by registering."
 
 #: What one account column carries in an edit: an address or a name, or the active flag.
 type AccountFieldValue = str | bool
@@ -102,7 +103,8 @@ class AccountChanges(TypedDict, total=False):
     """What :func:`update_account` may be asked to change.  Every key is optional.
 
     ``roles`` is the complete list the account should end up holding, in any
-    order; the other keys are the account columns, written as given.
+    order; ``kind`` the kind of person the account should belong to; the other keys
+    are the account columns, written as given.
     """
 
     email: str
@@ -110,6 +112,7 @@ class AccountChanges(TypedDict, total=False):
     last_name: str
     is_active: bool
     roles: list[str]
+    kind: AccountKind
 
 
 # --------------------------------------------------------------------------
@@ -117,23 +120,54 @@ class AccountChanges(TypedDict, total=False):
 # --------------------------------------------------------------------------
 @transaction.atomic
 def create_account(
-    *, email: str, password: str = "", first_name: str = "", last_name: str = ""
+    *,
+    email: str,
+    password: str = "",
+    first_name: str = "",
+    last_name: str = "",
+    kind: AccountKind = AccountKind.MEMBER,
 ) -> User:
-    """Create an account holding the ``member`` role, and return it.
+    """Create an account of ``kind``, and return it.
 
-    Every account on the site is at least a member, so the role is not a
-    parameter.  Without a password the account holds an unusable one and can
-    only be opened by following an invitation or reset link.  The names are
-    stored stripped.
+    A member or a friend holds the ``member`` role, which is what lets them into the
+    portal; a donor holds no role at all.  Without a password the account holds an
+    unusable one and can only be opened by following an invitation or reset link --
+    which a donor is never sent.  The names are stored stripped.
     """
     user = User.objects.create_user(
         email=email,
         password=password or None,
         first_name=first_name.strip(),
         last_name=last_name.strip(),
+        kind=kind,
     )
-    user.add_role(MEMBER)
+    if kind != AccountKind.DONOR:
+        user.add_role(MEMBER)
     return user
+
+
+def is_donor(user: User) -> bool:
+    """True when ``user`` is a donor, who cannot sign in or hold a password."""
+    return user.kind == AccountKind.DONOR
+
+
+def set_kind(user: User, kind: AccountKind, *, actor: User | str = audit.COMMAND_ACTOR) -> bool:
+    """Make ``user`` a ``kind`` at once, clearing any pending ``friend_on`` date.
+
+    Saves the two columns and records ``account.kind`` with ``to=<kind>`` in the audit
+    log under ``actor`` (``command`` by default).  Returns True when the stored kind
+    really changed; a user already of that kind with nothing pending is left alone,
+    records nothing, and returns False.
+    """
+    if user.kind == kind and user.friend_on is None:
+        return False
+    is_new_kind = user.kind != kind
+    user.kind = kind
+    user.friend_on = None
+    user.save(update_fields=["kind", "friend_on", "updated_at"])
+    if is_new_kind:
+        audit.record(audit.ACCOUNT_KIND, actor=actor, target=user, to=kind.value)
+    return is_new_kind
 
 
 # --------------------------------------------------------------------------
@@ -180,6 +214,8 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
 
     #. nobody may deactivate their own account;
     #. only a system administrator may grant or revoke ``system_admin``;
+    #. a donor's kind is never changed by hand ("A donor becomes a member or a
+       friend only by registering.", against ``kind``);
     #. an account holding roles the actor does not hold has an untouchable email
        address and active flag -- see :func:`check_account_edit`.
 
@@ -194,6 +230,11 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
     Everything the save really writes is recorded in the audit log, by field name
     and role slug: an edit that alters nothing records nothing.
 
+    A ``kind`` other than the stored one goes through :func:`set_kind`: the account
+    becomes that kind at once, any pending ``friend_on`` date is cleared, and the
+    change is recorded as ``account.kind`` under the actor.  A ``kind`` equal to the
+    stored one is no change: a pending ``friend_on`` stays as it is.
+
     An edit that really alters the email address -- compared as the unique
     constraint compares it, so a change of case is not one -- clears
     ``email_verified_at`` and, once the transaction commits, mails the new address a
@@ -205,6 +246,10 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
     _refuse_self_deactivation(actor, target, _protected_changes(target, fields))
     if roles is not None:
         roles = _checked_roles(actor, target, roles)
+    kind = changes.get("kind")
+    if kind is not None and is_donor(target):
+        audit.refuse(audit.ACCOUNT_KIND, actor=actor, target=target, reason=audit.REASON_DONOR_KIND)
+        raise DomainValidationError("kind", DONOR_KIND_REFUSED)
     check_account_edit(actor, target, fields)
     if not may_edit_protected_fields(actor, target):
         for field in PROTECTED_ACCOUNT_FIELDS:
@@ -221,6 +266,8 @@ def update_account(actor: User, target: User, changes: AccountChanges) -> User:
         target.set_roles(roles)
         sync_django_flags(target)
     target.save()
+    if kind is not None and kind != target.kind:
+        set_kind(target, kind, actor=actor)
     if is_new_address:
         transaction.on_commit(lambda: send_email_verification(target))
 
@@ -520,13 +567,14 @@ def send_password_reset_email(user: User, *, request: HttpRequest | None = None)
     The subject is ``"<organization name>: reset your password"`` and the two
     bodies are ``emails/password_reset.{txt,html}``.
 
-    Inactive accounts and accounts without an address are skipped silently: the
-    caller answers 204 either way so the endpoint cannot be used to discover
-    which addresses are registered.  An account that has never set a usable
-    password is mailed the link like any other, so an invited member who asks
-    for a reset before following their invitation still receives one.
+    Inactive accounts, donors -- who cannot sign in, so have no password to reset --
+    and accounts without an address are skipped silently: the caller answers 204
+    either way so the endpoint cannot be used to discover which addresses are
+    registered.  An account that has never set a usable password is mailed the link
+    like any other, so an invited member who asks for a reset before following their
+    invitation still receives one.
     """
-    if not user.is_active or not user.email:
+    if not user.is_active or not user.email or is_donor(user):
         return False
 
     context = _password_link_context(user, request=request)
@@ -546,8 +594,11 @@ def send_password_invitation(user: User, *, request: HttpRequest | None = None) 
     an unusable one until the invitation is followed.  The subject is
     ``"<organization name>: set your password"`` and the two bodies are
     ``emails/member_invitation.{txt,html}``.  The link is the ordinary reset
-    link, so ``/auth/password/reset/confirm`` accepts it unchanged.
+    link, so ``/auth/password/reset/confirm`` accepts it unchanged.  A donor, who
+    cannot sign in, is sent nothing.
     """
+    if is_donor(user):
+        return
     context = _password_link_context(user, request=request)
     _send_password_link_email(
         user,
@@ -560,28 +611,45 @@ def send_password_invitation(user: User, *, request: HttpRequest | None = None) 
 # --------------------------------------------------------------------------
 # Email verification
 # --------------------------------------------------------------------------
-def make_email_verification_token(user: User) -> str:
+class DonorUpgrade(TypedDict):
+    """What a registration with a donor's address asks the donor's account to become.
+
+    ``kind`` is ``member`` or ``friend``; the names are the ones the form gave,
+    stripped.  It travels inside the verification link, so nothing is written to the
+    donor's account until whoever registered proves the address is theirs.
+    """
+
+    first_name: str
+    last_name: str
+    kind: str
+
+
+def make_email_verification_token(user: User, *, upgrade: DonorUpgrade | None = None) -> str:
     """A signed token naming ``user`` and the address they hold now.
 
     The address is signed stripped and lowercased, so a change of case keeps the
     token good while any real change of address makes it useless.  The token carries
     its own timestamp; :func:`verify_email` refuses it once
-    ``EMAIL_VERIFICATION_TIMEOUT`` seconds have passed.
+    ``EMAIL_VERIFICATION_TIMEOUT`` seconds have passed.  A donor's token also carries
+    the ``upgrade`` its registration asked for, which :func:`verify_email` applies.
     """
-    payload = {"user": user.pk, "email": normalized_email(user.email)}
+    payload: dict[str, object] = {"user": user.pk, "email": normalized_email(user.email)}
+    if upgrade is not None:
+        payload["upgrade"] = dict(upgrade)
     return signing.dumps(payload, salt=EMAIL_VERIFICATION_SALT)
 
 
-def build_email_verification_url(user: User) -> str:
+def build_email_verification_url(user: User, *, upgrade: DonorUpgrade | None = None) -> str:
     """The absolute ``/portal/verify-email?token=...`` link mailed to ``user``.
 
-    Built on ``SITE_URL`` with any trailing slash dropped.
+    Built on ``SITE_URL`` with any trailing slash dropped; ``upgrade`` is signed into
+    the token as :func:`make_email_verification_token` describes.
     """
-    token = make_email_verification_token(user)
+    token = make_email_verification_token(user, upgrade=upgrade)
     return f"{settings.SITE_URL.rstrip('/')}{VERIFY_PATH}?token={token}"
 
 
-def send_email_verification(user: User) -> None:
+def send_email_verification(user: User, *, upgrade: DonorUpgrade | None = None) -> None:
     """Mail ``user`` a link that proves the address they hold now is theirs.
 
     The subject is ``"<organization name>: verify your email address"`` and the two
@@ -589,14 +657,18 @@ def send_email_verification(user: User) -> None:
     send under the purpose ``email_verification``.  The context carries ``user``,
     ``first_name`` (the display name when there is no first name), ``email``,
     ``verify_url``, ``expiry_days`` (``EMAIL_VERIFICATION_TIMEOUT`` in whole days,
-    never less than one), ``site_url``, ``org_name`` and ``contact_email``.
+    never less than one), ``site_url``, ``org_name`` and ``contact_email``.  A donor,
+    who cannot sign in, is sent nothing -- unless ``upgrade`` is given, when the link
+    carries the registration that asked for it (:func:`verify_email` applies it).
     """
+    if is_donor(user) and upgrade is None:
+        return
     name = org_name()
     context: dict[str, object] = {
         "user": user,
         "first_name": user.first_name or user.display_name,
         "email": user.email,
-        "verify_url": build_email_verification_url(user),
+        "verify_url": build_email_verification_url(user, upgrade=upgrade),
         "expiry_days": max(1, settings.EMAIL_VERIFICATION_TIMEOUT // SECONDS_PER_DAY),
         "site_url": settings.SITE_URL.rstrip("/"),
         "org_name": name,
@@ -611,6 +683,7 @@ def send_email_verification(user: User) -> None:
     )
 
 
+@transaction.atomic
 def verify_email(token: str) -> User:
     """Mark the account ``token`` names as verified, and return it.
 
@@ -620,6 +693,11 @@ def verify_email(token: str) -> User:
     deactivated, and when the account's address is no longer the one the token was
     sent to.  A token for an account that is already verified succeeds without
     changing it, so following the same link twice is harmless.
+
+    A token for a donor completes the registration that mailed it: the account takes
+    the names and the kind the form gave and the ``member`` role (see
+    :func:`upgrade_donor`), then is verified, so it can sign in with the password
+    chosen then.  A donor's token that carries no upgrade is refused as invalid.
     """
     try:
         payload = signing.loads(
@@ -630,6 +708,11 @@ def verify_email(token: str) -> User:
     user = _verification_target(payload)
     if user is None:
         raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
+    if is_donor(user):
+        upgrade = _donor_upgrade(payload)
+        if upgrade is None:
+            raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
+        upgrade_donor(user, upgrade)
     if confirm_email_address(user):
         return user
     # Nothing was stamped: the account was verified already, or its address changed
@@ -638,6 +721,41 @@ def verify_email(token: str) -> User:
     if user is None:
         raise EmailVerificationError(EMAIL_VERIFICATION_INVALID)
     return user
+
+
+def upgrade_donor(donor: User, upgrade: DonorUpgrade) -> None:
+    """Turn ``donor`` into the member or friend ``upgrade`` names, keeping its gifts.
+
+    The names are replaced by the upgrade's, the account gains the ``member`` role,
+    and the kind is set through :func:`set_kind` with the account as its own actor,
+    which records ``account.kind``.  The password was written when the person
+    registered; the caller proves the address.
+    """
+    donor.first_name = upgrade["first_name"]
+    donor.last_name = upgrade["last_name"]
+    donor.save(update_fields=["first_name", "last_name", "updated_at"])
+    donor.add_role(MEMBER)
+    set_kind(donor, AccountKind(upgrade["kind"]), actor=donor)
+
+
+def _donor_upgrade(payload: dict[str, object]) -> DonorUpgrade | None:
+    """The ``upgrade`` a verified token's ``payload`` carries, or ``None``.
+
+    ``None`` when there is none, or when it is not the shape
+    :func:`make_email_verification_token` signs: two string names and a kind a
+    person may choose.
+    """
+    upgrade = payload.get("upgrade")
+    if not isinstance(upgrade, dict):
+        return None
+    first_name = upgrade.get("first_name")
+    last_name = upgrade.get("last_name")
+    kind = upgrade.get("kind")
+    if not isinstance(first_name, str) or not isinstance(last_name, str):
+        return None
+    if kind not in {person_kind.value for person_kind in PERSON_KINDS}:
+        return None
+    return {"first_name": first_name, "last_name": last_name, "kind": str(kind)}
 
 
 def _verification_target(payload: object) -> User | None:

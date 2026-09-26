@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 
-import type { RoleSlug, User } from '@/portal/api/types';
+import type { AccountKind, RoleSlug, User } from '@/portal/api/types';
 import { useRoles } from '@/portal/auth/useAuth';
-import { roleLabel } from '@/portal/choices';
+import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import type { Column } from '@/portal/components/DataTable';
 import { DataTable } from '@/portal/components/DataTable';
@@ -49,6 +49,11 @@ const columns: Column<User>[] = [
       ),
   },
   {
+    key: 'kind',
+    header: 'Kind',
+    render: (user) => ACCOUNT_KIND_LABELS[user.kind],
+  },
+  {
     key: 'membership',
     header: 'Membership',
     render: (user) => <MembershipChip membership={user.membership} />,
@@ -70,14 +75,15 @@ export function UsersListPage(): JSX.Element {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<RoleSlug | ''>('');
   const [isActive, setIsActive] = useState<'true' | 'false' | ''>('');
+  const [kind, setKind] = useState<AccountKind | ''>('');
   const [page, setPage] = useState(1);
 
   const debouncedSearch = useDebounced(search);
   const roles = useRoles();
-  const query = useAdminUsers({ search: debouncedSearch, role, is_active: isActive, page });
+  const query = useAdminUsers({ search: debouncedSearch, role, is_active: isActive, kind, page });
 
   // Any change to the filters puts us back on the first page.
-  useEffect(() => setPage(1), [debouncedSearch, role, isActive]);
+  useEffect(() => setPage(1), [debouncedSearch, role, isActive, kind]);
 
   const rows = query.data?.results ?? [];
   const count = query.data?.count ?? 0;
@@ -108,6 +114,23 @@ export function UsersListPage(): JSX.Element {
             <option value="">Active and deactivated</option>
             <option value="true">Active only</option>
             <option value="false">Deactivated only</option>
+          </select>
+        )}
+      </Field>
+      <Field label="Kind of account">
+        {(props) => (
+          <select
+            {...props}
+            name="kind"
+            value={kind}
+            onChange={(event) => setKind(event.target.value as AccountKind | '')}
+          >
+            <option value="">Every kind</option>
+            {(Object.keys(ACCOUNT_KIND_LABELS) as AccountKind[]).map((value) => (
+              <option key={value} value={value}>
+                {ACCOUNT_KIND_LABELS[value]}
+              </option>
+            ))}
           </select>
         )}
       </Field>
