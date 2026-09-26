@@ -47,8 +47,8 @@ export function VerifyStep({ onDone: handleDone }: VerifyStepProps): JSX.Element
       title="Check your email"
     >
       <p>
-        We sent a verification message to {email}. Click the link in it to continue setting up
-        your account.
+        We sent a verification message to {email}. Click the link in it to continue setting up your
+        account.
       </p>
       {notice !== null ? (
         <p className="field__error" role="alert">

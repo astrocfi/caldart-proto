@@ -81,8 +81,8 @@ function VerifyFailed({ message }: { message: string }): JSX.Element {
           {message}
         </p>
         <p>
-          <Link to="/login">Sign in</Link> and use Resend verification message on your dashboard
-          to get a new one.
+          <Link to="/login">Sign in</Link> and use Resend verification message on your dashboard to
+          get a new one.
         </p>
       </Card>
     </Page>

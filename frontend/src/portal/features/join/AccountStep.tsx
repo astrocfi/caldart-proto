@@ -30,7 +30,11 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
 
   if (isAuthenticated && user) {
     return (
-      <Card className="join-card join-card--narrow" eyebrow={joinStepEyebrow('account')} title="Your account">
+      <Card
+        className="join-card join-card--narrow"
+        eyebrow={joinStepEyebrow('account')}
+        title="Your account"
+      >
         <p>
           You are signed in as <strong>{user.email}</strong>.
         </p>
@@ -68,7 +72,11 @@ export function AccountStep({ onDone: handleDone }: AccountStepProps): JSX.Eleme
   }
 
   return (
-    <Card className="join-card join-card--narrow" eyebrow={joinStepEyebrow('account')} title="Create your account">
+    <Card
+      className="join-card join-card--narrow"
+      eyebrow={joinStepEyebrow('account')}
+      title="Create your account"
+    >
       <form onSubmit={handleSubmit} noValidate>
         <Field label="First name" required error={fieldErrors.first_name ?? null}>
           {(props) => (

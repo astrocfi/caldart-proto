@@ -44,7 +44,9 @@ describe('<VerifyStep/>', () => {
     );
     renderWithProviders(<VerifyStep onDone={() => undefined} />);
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Resend verification message' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Resend verification message' }),
+    );
 
     expect(await screen.findByText('Verification message sent to new@example.org.')).toBeVisible();
     expect(resent).toBe(true);
