@@ -53,7 +53,10 @@ Meaning
 
 The table is followed by the model's constraints, indexes, and ordering, each
 under the name the migration gives it, and then by the rules the code keeps
-that the database does not.
+that the database does not.  Those lists name what a model declares in its
+``Meta``.  Django adds the rest under generated names: an index on every
+foreign-key column, one on ``EmailLog.purpose`` (a ``SlugField``), and a
+unique index for every field marked unique in its table.
 
 .. _data-model-diagrams:
 
