@@ -461,6 +461,19 @@ def test_completing_a_mock_gift_succeeds(
     assert (response.status_code, response.json()["status"]) == (200, "succeeded")
 
 
+def test_a_completed_gift_reads_no_membership(
+    api_client: APIClient, give: Callable[..., dict[str, Any]]
+) -> None:
+    """A donor holds no membership, so the answer's ``membership`` reads ``none``."""
+    body = give()
+
+    response = api_client.post(
+        MOCK_COMPLETE_URL, {"payment_id": body["payment_id"], "token": body["token"]}, format="json"
+    )
+
+    assert response.json()["membership"]["status"] == "none"
+
+
 def test_a_completed_gift_emails_the_donor_a_receipt(
     api_client: APIClient, give: Callable[..., dict[str, Any]]
 ) -> None:
