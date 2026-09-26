@@ -30,8 +30,8 @@ The translation, term by term:
     so "earliest boundary" and "end of the walk" are the same date.  NULL means
     the chain reaches a lifetime term (or that nothing covers today).
 ``past_end`` / ``past_plan``
-    The most recent non-canceled term that has started, which
-    ``membership_status`` reports for an expired member.
+    The most recent term that has started and is neither canceled, unpaid, nor
+    suspended, which ``membership_status`` reports for an expired member.
 
 ``effective_kind``
     :func:`kind_annotation`, the SQL statement of :func:`account_kind`.  A row
@@ -415,6 +415,16 @@ def convert_due_friends(today: date | None = None) -> int:
     return converted
 
 
+#: The term states that never make anybody expired: a canceled term counts for
+#: nothing, an unpaid one never covered anybody, and a suspended one belongs to an
+#: account its holder deactivated.
+NOT_PAST_STATUSES = (
+    MembershipStatusChoices.CANCELED,
+    MembershipStatusChoices.NEW,
+    MembershipStatusChoices.SUSPENDED,
+)
+
+
 def _friend_membership() -> MembershipStatusDict:
     """The status of a friend: ``friend``, with no expiry, no plan, and never lifetime."""
     return {
@@ -519,6 +529,10 @@ def membership_status(
     ``expires_on`` is the end of the member's unbroken coverage, so a renewal
     bought today shows next year's date immediately, and is ``None`` for a
     lifetime term.  ``plan`` is the name of the plan behind the term reported.
+
+    A canceled or a suspended term counts for nothing: it never covers a day and
+    never makes anybody expired, so an account whose only terms are suspended reads
+    as ``none`` while it is deactivated.
     """
     on_date = on_date or timezone.localdate()
 
@@ -538,7 +552,7 @@ def membership_status(
 
     past = (
         user.memberships.select_related("plan")
-        .exclude(status__in=(MembershipStatusChoices.CANCELED, MembershipStatusChoices.NEW))
+        .exclude(status__in=NOT_PAST_STATUSES)
         .filter(starts_on__lte=on_date)
         .order_by("-ends_on", "-starts_on")
         .first()
@@ -595,9 +609,9 @@ def membership_annotations(today: date | None = None) -> dict[str, Exists | Subq
 
     lifetime = active.filter(user=OuterRef("pk"), ends_on__isnull=True).order_by("starts_on")
 
-    started = Membership.objects.exclude(
-        status__in=(MembershipStatusChoices.CANCELED, MembershipStatusChoices.NEW)
-    ).filter(user=OuterRef("pk"), starts_on__lte=today)
+    started = Membership.objects.exclude(status__in=NOT_PAST_STATUSES).filter(
+        user=OuterRef("pk"), starts_on__lte=today
+    )
     past = started.order_by(F("ends_on").desc(nulls_first=True), "-starts_on")
 
     unpaid = Membership.objects.filter(
@@ -822,6 +836,58 @@ def cancel_term(term: Membership, *, actor: User | None = None, note: str = "") 
         status=MembershipStatusChoices.CANCELED.value,
     )
     return term
+
+
+@transaction.atomic
+def suspend_terms(user: User, *, today: date | None = None) -> list[Membership]:
+    """Suspend every active term of ``user``'s that has not yet run out, and return them.
+
+    That is the term covering ``today`` (defaulting to the current local date), a
+    lifetime term, and any renewal already paid for that starts later: everything the
+    member would lose by leaving.  A term that has run out, and one canceled or
+    unpaid, is left alone.  Each suspension is recorded as ``membership.correct`` with
+    ``status=suspended``, the account itself as the actor.  Called when a person
+    deactivates their own account; :func:`restore_terms` undoes it.
+    """
+    today = today or timezone.localdate()
+    terms = list(
+        user.memberships.filter(status=MembershipStatusChoices.ACTIVE)
+        .filter(Q(ends_on__isnull=True) | Q(ends_on__gte=today))
+        .order_by("starts_on", "id")
+    )
+    for held in terms:
+        _set_term_status(held, MembershipStatusChoices.SUSPENDED, actor=user)
+    return terms
+
+
+@transaction.atomic
+def restore_terms(user: User, *, today: date | None = None) -> list[Membership]:
+    """Bring back every suspended term of ``user``'s, and return them.
+
+    A term that is lifetime or ends on or after ``today`` (defaulting to the current
+    local date) is ``active`` again, so a membership resumes through its old date; one
+    that ran out while the account was deactivated is ``expired``.  Each change is
+    recorded as ``membership.correct`` with the new status, the account itself as the
+    actor.  Called when a person reactivates their own account.
+    """
+    today = today or timezone.localdate()
+    terms = list(
+        user.memberships.filter(status=MembershipStatusChoices.SUSPENDED).order_by(
+            "starts_on", "id"
+        )
+    )
+    for held in terms:
+        running = held.ends_on is None or held.ends_on >= today
+        status = MembershipStatusChoices.ACTIVE if running else MembershipStatusChoices.EXPIRED
+        _set_term_status(held, status, actor=user)
+    return terms
+
+
+def _set_term_status(term: Membership, status: MembershipStatusChoices, *, actor: User) -> None:
+    """Save ``term`` with ``status``, recorded as ``membership.correct`` by ``actor``."""
+    term.status = status
+    term.save(update_fields=["status", "updated_at"])
+    audit.record(audit.MEMBERSHIP_CORRECT, actor=actor, target=term, status=status.value)
 
 
 def stamp_member_since(user: User, joined_on: date) -> None:

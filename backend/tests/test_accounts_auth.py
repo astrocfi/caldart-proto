@@ -253,15 +253,13 @@ def test_password_reset_is_204_for_an_unknown_address(api_client: APIClient) -> 
     assert mail.outbox == []
 
 
-def test_password_reset_sends_nothing_to_a_deactivated_account(
-    api_client: APIClient, member: User
-) -> None:
-    """A reset request for a deactivated account sends no email."""
+def test_password_reset_mails_a_deactivated_account(api_client: APIClient, member: User) -> None:
+    """A deactivated account is mailed the link: completing the reset reactivates it."""
     member.is_active = False
     member.save(update_fields=["is_active"])
     response = api_client.post(RESET_URL, {"email": member.email})
     assert response.status_code == 204
-    assert mail.outbox == []
+    assert [message.to for message in mail.outbox] == [[member.email]]
 
 
 def test_password_reset_validates_the_address(api_client: APIClient) -> None:
@@ -379,10 +377,10 @@ def test_password_reset_confirm_rejects_a_weak_password(
     assert member.check_password(password)
 
 
-def test_password_reset_confirm_rejects_a_deactivated_account(
+def test_password_reset_confirm_reactivates_a_deactivated_account(
     api_client: APIClient, member: User
 ) -> None:
-    """A confirmation for an account deactivated after the email was sent is refused."""
+    """A confirmation for an account deactivated after the email was sent revives it."""
     api_client.post(RESET_URL, {"email": member.email})
     uid, token = reset_link_from_outbox()
     member.is_active = False
@@ -391,7 +389,9 @@ def test_password_reset_confirm_rejects_a_deactivated_account(
     response = api_client.post(
         RESET_CONFIRM_URL, {"uid": uid, "token": token, "new_password": GOOD_PASSWORD}
     )
-    assert response.status_code == 400
+    assert response.status_code == 204
+    member.refresh_from_db()
+    assert member.is_active is True
 
 
 # --------------------------------------------------------------------------

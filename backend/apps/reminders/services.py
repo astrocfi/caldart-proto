@@ -310,17 +310,17 @@ def _candidates(kind: str, today: date) -> QuerySet[Membership]:
     The span comes from :func:`stage_span`, so every term running out in that
     part of the calendar is a candidate rather than only the ones landing on an
     exact date.  The ``ReminderLog`` constraint keeps a member who sits in one
-    stage for days from being written to twice.  Canceled terms are left out,
-    and lifetime terms have no ``ends_on`` and so never appear here.  A friend is
-    never nagged to renew, and neither is a member who has asked to become one, so
-    the terms of an account stored as a friend or carrying a ``friend_on`` date are
-    left out too.
+    stage for days from being written to twice.  Canceled terms are left out, and
+    so are suspended ones, whose holder deactivated their own account; lifetime
+    terms have no ``ends_on`` and so never appear here.  A friend is never nagged
+    to renew, and neither is a member who has asked to become one, so the terms of
+    an account stored as a friend or carrying a ``friend_on`` date are left out too.
     """
     earliest, latest = stage_span(kind, today)
     return (
         Membership.objects.select_related("user", "plan")
         .filter(ends_on__gte=earliest, ends_on__lte=latest)
-        .exclude(status=MembershipStatusChoices.CANCELED)
+        .exclude(status__in=(MembershipStatusChoices.CANCELED, MembershipStatusChoices.SUSPENDED))
         .exclude(user__kind=AccountKind.FRIEND)
         .exclude(user__friend_on__isnull=False)
         .order_by("user_id", "id")

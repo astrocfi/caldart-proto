@@ -598,6 +598,14 @@
       "name"
     ]
   },
+  "DeactivateRequest": {
+    "properties": {
+      "current_password": "string"
+    },
+    "required": [
+      "current_password"
+    ]
+  },
   "EmailChangeRequest": {
     "properties": {
       "current_password": "string",
@@ -1219,7 +1227,8 @@
       "new",
       "active",
       "expired",
-      "canceled"
+      "canceled",
+      "suspended"
     ]
   },
   "MockCheckoutResponse": {

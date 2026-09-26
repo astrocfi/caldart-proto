@@ -282,6 +282,19 @@ def test_deactivated_users_are_skipped(
     assert mailoutbox == []
 
 
+def test_a_suspended_term_is_left_out_altogether(
+    annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
+) -> None:
+    """A term suspended when its holder deactivated is no candidate, so counts nowhere."""
+    _user, membership = make_member(annual_plan, ends_on_for(ReminderKind.T7), is_active=False)
+    membership.status = MembershipStatusChoices.SUSPENDED
+    membership.save(update_fields=["status"])
+
+    run = send_renewal_reminders(today=TODAY)
+
+    assert (run.sent, run.skipped_by_reason) == (0, {})
+
+
 def test_a_user_without_an_email_address_is_skipped(
     annual_plan: MembershipPlan, mailoutbox: list[EmailMessage]
 ) -> None:

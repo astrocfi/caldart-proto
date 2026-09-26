@@ -630,6 +630,23 @@ def discard_pending_mandate(user: User) -> None:
     RenewalMandate.objects.filter(user=user, status=MandateStatus.PENDING).delete()
 
 
+def cancel_all_mandates(user: User) -> None:
+    """Withdraw every standing authority ``user`` has given CalDART to charge them.
+
+    Each active or paused mandate is canceled through :func:`cancel_mandate` with the
+    account itself as the actor, so it is recorded as a self-service
+    ``renewal.cancel`` and the member is told; a pending one is thrown away by
+    :func:`discard_pending_mandate`.  A mandate already canceled is left as it is.
+    Called when a person deactivates their own account.
+    """
+    standing = RenewalMandate.objects.filter(user=user).exclude(
+        status__in=(MandateStatus.CANCELED, MandateStatus.PENDING)
+    )
+    for mandate in standing:
+        cancel_mandate(mandate, actor=user)
+    discard_pending_mandate(user)
+
+
 def activate_pending_mandate(payment: Payment) -> RenewalMandate | None:
     """Activate the mandate a succeeded checkout was asked to save, if any.
 

@@ -181,21 +181,28 @@ class RegisterSerializer(serializers.Serializer[None]):
         return attrs
 
 
-class PasswordChangeSerializer(serializers.Serializer[None]):
-    """``POST /auth/password/change``: the current password and the one to replace it."""
+class CurrentPasswordSerializer(serializers.Serializer[None]):
+    """A request the signed-in user confirms with their current password."""
 
     current_password = PasswordField()
-    new_password = PasswordField()
+
+    WRONG_PASSWORD = "That is not your current password."  # noqa: S105 - an error message
 
     def validate_current_password(self, value: str) -> str:
         """``value`` unchanged when it really is the signed-in user's password.
 
         Rejects anything else with "That is not your current password."
         """
-        user = self.context["request"].user
+        user: User = self.context["request"].user
         if not user.check_password(value):
-            raise serializers.ValidationError("That is not your current password.")
+            raise serializers.ValidationError(self.WRONG_PASSWORD)
         return value
+
+
+class PasswordChangeSerializer(CurrentPasswordSerializer):
+    """``POST /auth/password/change``: the current password and the one to replace it."""
+
+    new_password = PasswordField()
 
     def validate_new_password(self, value: str) -> str:
         """``value`` unchanged when Django's password validators accept it.
@@ -205,6 +212,10 @@ class PasswordChangeSerializer(serializers.Serializer[None]):
         """
         password: str = run_password_validators(value, user=self.context["request"].user)
         return password
+
+
+class DeactivateSerializer(CurrentPasswordSerializer):
+    """``POST /auth/deactivate``: the signed-in user's current password alone."""
 
 
 class PasswordResetSerializer(serializers.Serializer[None]):
@@ -227,14 +238,15 @@ class PasswordResetConfirmSerializer(serializers.Serializer[None]):
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """``attrs`` with the account the link names added under ``user``.
 
-        An unreadable or unknown ``uid``, an inactive account, a donor's account (a
-        donor cannot hold a password), and a ``token`` the default generator refuses
-        all raise ``serializers.ValidationError`` under the ``token`` key carrying
-        ``INVALID_LINK``, so a caller cannot tell them apart.  A password Django's
+        An unreadable or unknown ``uid``, a donor's account (a donor cannot hold a
+        password), and a ``token`` the default generator refuses all raise
+        ``serializers.ValidationError`` under the ``token`` key carrying
+        ``INVALID_LINK``, so a caller cannot tell them apart.  A deactivated account's
+        link is accepted: completing the reset reactivates it.  A password Django's
         validators reject is raised under ``new_password``.
         """
         user = user_from_uid(attrs["uid"])
-        if user is None or not user.is_active or is_donor(user):
+        if user is None or is_donor(user):
             raise serializers.ValidationError({"token": [self.INVALID_LINK]})
         if not default_token_generator.check_token(user, attrs["token"]):
             raise serializers.ValidationError({"token": [self.INVALID_LINK]})

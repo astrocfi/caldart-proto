@@ -23,6 +23,8 @@ urlpatterns = [
     path("auth/email/verify", views.EmailVerifyView.as_view(), name="email-verify"),
     path("auth/email/resend", views.EmailVerifyResendView.as_view(), name="email-resend"),
     path("auth/email/change", views.EmailChangeView.as_view(), name="email-change"),
+    path("auth/deactivate", views.DeactivateView.as_view(), name="deactivate"),
+    path("auth/reactivate", views.ReactivateView.as_view(), name="reactivate"),
     # -- users admin ------------------------------------------------------
     path("admin/users", views.AdminUserListView.as_view(), name="admin-user-list"),
     path("admin/users/<int:pk>", views.AdminUserDetailView.as_view(), name="admin-user-detail"),

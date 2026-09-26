@@ -96,7 +96,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('starts_on', models.DateField()),
                 ('ends_on', models.DateField(blank=True, help_text='Blank means lifetime.', null=True)),
-                ('status', models.CharField(choices=[('new', 'New'), ('active', 'Active'), ('expired', 'Expired'), ('canceled', 'Canceled')], default='active', max_length=12)),
+                ('status', models.CharField(choices=[('new', 'New'), ('active', 'Active'), ('expired', 'Expired'), ('canceled', 'Canceled'), ('suspended', 'Suspended')], default='active', max_length=12)),
                 ('source', models.CharField(choices=[('payment', 'Payment'), ('manual', 'Manual grant'), ('seed', 'Seed data')], default='payment', max_length=12)),
                 ('note', models.CharField(blank=True, max_length=255)),
                 ('granted_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='memberships_granted', to=settings.AUTH_USER_MODEL)),
