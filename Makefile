@@ -49,10 +49,11 @@ E2E_MAIL_DIR := $(abspath frontend/e2e/.mail)
 #                      follows a verification link by reading the file.  Four
 #                      slashes, because django-environ drops the first slash of
 #                      the path.
-#   AUTH_THROTTLE_*    the specs sign in, register, and follow verification
-#                      links far more often in an hour than a person ever
-#                      would; every anonymous rate is lifted, since one run
-#                      registers more than ten accounts from one address.
+#   AUTH_THROTTLE_*    the specs sign in, register, follow verification links
+#                      and give on the donation page far more often in an hour
+#                      than a person ever would; every anonymous rate is
+#                      lifted, since one run registers more than ten accounts
+#                      from one address.
 E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            DATABASE_URL="$(E2E_DATABASE_URL)" \
            SECRET_KEY=e2e-insecure-secret-key \
@@ -67,7 +68,8 @@ E2E_ENV := DJANGO_SETTINGS_MODULE=caldart.settings.dev \
            AUTH_THROTTLE_REGISTER=1000/min \
            AUTH_THROTTLE_PASSWORD_RESET=1000/min \
            AUTH_THROTTLE_VERIFY=1000/min \
-           AUTH_THROTTLE_VERIFY_RESEND=1000/min
+           AUTH_THROTTLE_VERIFY_RESEND=1000/min \
+           AUTH_THROTTLE_DONATE=1000/min
 
 .PHONY: help setup up down wait-db createdb migrate makemigrations seed reset run \
         dev-frontend build test test-backend test-frontend coverage coverage-backend \
