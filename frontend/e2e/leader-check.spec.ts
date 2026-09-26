@@ -172,7 +172,9 @@ test('a leader filters the member list by county and downloads the PDF', async (
   await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'New member' })).toHaveCount(0);
 
-  await page.getByLabel('County').selectOption(county);
+  await page.getByLabel('County').click();
+  await page.getByRole('group', { name: 'County' }).getByRole('checkbox', { name: county }).check();
+  await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/[?&]county=/);
   expect(new URL(page.url()).searchParams.get('county')).toBe(county);
   const self = page.getByRole('link', { name: `${me.first_name} ${me.last_name}` });

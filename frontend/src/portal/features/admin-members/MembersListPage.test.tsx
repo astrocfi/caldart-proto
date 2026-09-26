@@ -419,7 +419,8 @@ describe('MembersListPage', () => {
     await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    await user.selectOptions(screen.getByLabelText('County'), 'Napa');
+    await user.click(screen.getByLabelText('County'));
+    await user.click(screen.getByRole('checkbox', { name: 'Napa' }));
 
     await waitFor(() => expect(lastMemberQuery().get('county')).toBe('Napa'));
     expect(screen.getByTestId('location-search')).toHaveTextContent('county=Napa');
@@ -505,7 +506,9 @@ describe('MembersListPage', () => {
     await renderList();
     await screen.findByRole('link', { name: 'Ana Bracco' });
 
-    await user.selectOptions(screen.getByLabelText('County'), ['Marin', 'Alameda']);
+    await user.click(screen.getByLabelText('County'));
+    await user.click(screen.getByRole('checkbox', { name: 'Marin' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Alameda' }));
 
     await waitFor(() => expect(lastMemberQuery().get('county')).toBe('Alameda,Marin'));
   });

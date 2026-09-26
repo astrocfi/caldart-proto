@@ -343,17 +343,19 @@ const COUNTY_FIELDS: FilterField[] = [
 ];
 
 describe('FilterBar multiselect', () => {
-  it('draws a list box that shows six rows and takes several choices', () => {
+  it('draws a shut one-line box that reads Any while no county is chosen', () => {
     render(<Harness fields={COUNTY_FIELDS} onChange={handleNothing} />);
 
-    const box = screen.getByRole('listbox', { name: 'County' });
-    expect([box.getAttribute('size'), box.hasAttribute('multiple')]).toEqual(['6', true]);
+    const box = screen.getByLabelText('County');
+    expect([box.textContent, screen.queryByRole('checkbox')]).toEqual(['Any', null]);
   });
 
-  it('offers no blank option: choosing nothing means any', () => {
+  it('opens a checkbox per county, with no blank choice: ticking none means any', async () => {
     render(<Harness fields={COUNTY_FIELDS} onChange={handleNothing} />);
 
-    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+    await userEvent.click(screen.getByLabelText('County'));
+
+    expect(screen.getAllByRole('checkbox').map((box) => box.getAttribute('value'))).toEqual([
       'Alameda',
       'Marin',
       'Napa',
@@ -361,16 +363,18 @@ describe('FilterBar multiselect', () => {
     ]);
   });
 
-  it('sends the chosen values joined with commas, in the order they are listed', async () => {
+  it('sends the ticked values joined with commas, in the order they are listed', async () => {
     const handleChange = vi.fn();
     render(<Harness fields={COUNTY_FIELDS} onChange={handleChange} />);
 
-    await userEvent.selectOptions(screen.getByLabelText('County'), ['Napa', 'Alameda']);
+    await userEvent.click(screen.getByLabelText('County'));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Napa' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Alameda' }));
 
     expect(handleChange).toHaveBeenLastCalledWith({ county: 'Alameda,Napa' });
   });
 
-  it('selects every county a comma-separated value names', () => {
+  it('ticks every county a comma-separated value names', async () => {
     render(
       <Harness
         fields={COUNTY_FIELDS}
@@ -379,20 +383,47 @@ describe('FilterBar multiselect', () => {
       />,
     );
 
+    await userEvent.click(screen.getByLabelText('County'));
+
     const chosen = screen
-      .getAllByRole<HTMLOptionElement>('option')
-      .filter((option) => option.selected)
-      .map((option) => option.value);
+      .getAllByRole<HTMLInputElement>('checkbox')
+      .filter((box) => box.checked)
+      .map((box) => box.value);
     expect(chosen).toEqual(['Marin', 'Santa Clara']);
   });
 
-  it('sends an empty value once every choice is taken back', async () => {
+  it('names the chosen counties on the shut box', () => {
+    render(
+      <Harness
+        fields={COUNTY_FIELDS}
+        initial={{ county: 'Marin,Santa Clara' }}
+        onChange={handleNothing}
+      />,
+    );
+
+    expect(screen.getByLabelText('County')).toHaveTextContent('Marin, Santa Clara');
+  });
+
+  it('sends an empty value once the last county is unticked', async () => {
     const handleChange = vi.fn();
     render(
       <Harness fields={COUNTY_FIELDS} initial={{ county: 'Marin' }} onChange={handleChange} />,
     );
 
-    await userEvent.deselectOptions(screen.getByLabelText('County'), 'Marin');
+    await userEvent.click(screen.getByLabelText('County'));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Marin' }));
+
+    expect(handleChange).toHaveBeenLastCalledWith({ county: '' });
+  });
+
+  it('sends an empty value when Clear takes every county back', async () => {
+    const handleChange = vi.fn();
+    render(
+      <Harness fields={COUNTY_FIELDS} initial={{ county: 'Marin,Napa' }} onChange={handleChange} />,
+    );
+
+    await userEvent.click(screen.getByLabelText('County'));
+    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
 
     expect(handleChange).toHaveBeenLastCalledWith({ county: '' });
   });

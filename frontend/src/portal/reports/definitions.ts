@@ -94,7 +94,7 @@ const MEMBER_FILTERS: FilterField[] = [
     label: 'County',
     kind: 'multiselect',
     options: COUNTY_OPTIONS,
-    hint: 'Hold Ctrl (or Command) to choose more than one county.',
+    hint: 'Tick as many counties as you like.',
   },
   { key: 'role', label: 'Role', kind: 'select', options: ROLE_CHOICES },
   { key: 'expiring_within', label: 'Expiring within (days)', kind: 'number' },
@@ -246,7 +246,7 @@ const DONOR_FILTERS: FilterField[] = [
     label: 'County',
     kind: 'multiselect',
     options: COUNTY_OPTIONS,
-    hint: 'Hold Ctrl (or Command) to choose more than one county.',
+    hint: 'Tick as many counties as you like.',
   },
   // The DARTs are the server's, so the page supplies them through `options`.
   { key: 'dart', label: 'DART', kind: 'select', placeholder: 'Any DART' },
