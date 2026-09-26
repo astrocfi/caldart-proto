@@ -17,8 +17,10 @@ from django.utils import timezone
 from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from rest_framework.test import APIClient
 
+from apps.accounts.api.views import deactivate as deactivate_account
+from apps.accounts.api.views import reactivate as reactivate_account
 from apps.accounts.models import AccountKind, User
-from apps.accounts.services import create_account, make_reset_token
+from apps.accounts.services import make_reset_token
 from apps.members.models import (
     Membership,
     MembershipPlan,
@@ -37,6 +39,7 @@ REACTIVATE_URL = "/api/v1/auth/reactivate"
 
 WRONG_CREDENTIALS = {"detail": "Incorrect email address or password."}
 SYSTEM_ADMIN_REFUSED = {"detail": "A system administrator cannot deactivate their own account."}
+DONOR_REFUSED = {"detail": "A donor has no portal account to deactivate."}
 
 type OnCommit = DjangoCaptureOnCommitCallbacks
 
@@ -167,12 +170,35 @@ def test_a_refused_system_administrator_stays_active(
     assert system_admin.is_active is True
 
 
-def test_a_donor_cannot_deactivate(api_client: APIClient) -> None:
-    """A donor holds no password and no portal account, so is refused."""
-    donor = create_account(email="giver@example.test", kind=AccountKind.DONOR)
-    api_client.force_login(donor)
-    response = api_client.post(DEACTIVATE_URL, {"current_password": "anything"}, format="json")
-    assert response.status_code == 400
+@pytest.fixture
+def donor(api_client: APIClient) -> User:
+    """A donor, somehow holding the usual password, signed in on ``api_client``."""
+    giver: User = UserFactory(email="giver@example.test", kind=AccountKind.DONOR)
+    api_client.force_login(giver)
+    return giver
+
+
+def test_a_donor_cannot_deactivate(api_client: APIClient, donor: User, password: str) -> None:
+    """A donor has no portal account, so is refused with a sentence."""
+    response = api_client.post(DEACTIVATE_URL, {"current_password": password}, format="json")
+    assert (response.status_code, response.json()) == (400, DONOR_REFUSED)
+
+
+def test_a_refused_donor_stays_active(api_client: APIClient, donor: User, password: str) -> None:
+    """The refusal leaves the donor's account as it was."""
+    deactivate(api_client, password)
+    donor.refresh_from_db()
+    assert donor.is_active is True
+
+
+def test_a_refused_donor_is_recorded(
+    api_client: APIClient, donor: User, password: str, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """The refusal is written to the audit log with the ``donor_account`` reason."""
+    deactivate(api_client, password)
+    assert audit_messages(audit_log) == [
+        f"action=account.deactivate actor={donor.pk} target={donor.pk} reason=donor_account"
+    ]
 
 
 def test_deactivating_is_recorded_as_self_service(
@@ -620,3 +646,81 @@ def test_the_administrator_still_cannot_mail_a_deactivated_account_a_reset(
     api_client.force_login(user_admin)
     response = api_client.post(f"/api/v1/admin/users/{member.pk}/send-password-reset")
     assert (response.status_code, mailoutbox) == (400, [])
+
+
+def test_reactivating_an_active_account_changes_nothing(
+    member: User, annual_plan: MembershipPlan, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """A second, concurrent reactivation finds the account active and does nothing."""
+    suspended(member, annual_plan, ends_on=timezone.localdate() + timedelta(days=30))
+    assert (reactivate_account(member), audit_messages(audit_log)) == (False, [])
+
+
+def test_deactivating_an_inactive_account_changes_nothing(
+    member: User, annual_plan: MembershipPlan, audit_log: pytest.LogCaptureFixture
+) -> None:
+    """A second, concurrent deactivation finds the account inactive and does nothing."""
+    covering = term(deactivated(member), annual_plan, starts=-30, ends=200)
+    deactivate_account(member)
+    covering.refresh_from_db()
+    assert (covering.status, audit_messages(audit_log)) == (MembershipStatusChoices.ACTIVE, [])
+
+
+# --------------------------------------------------------------------------
+# An administrator reactivating the account
+# --------------------------------------------------------------------------
+USERS_URL = "/api/v1/admin/users"
+MEMBERS_URL = "/api/v1/admin/members"
+
+
+@pytest.mark.parametrize("base_url", [USERS_URL, MEMBERS_URL], ids=["users", "members"])
+@pytest.mark.parametrize(
+    ("days_left", "expected"),
+    [(100, MembershipStatusChoices.ACTIVE), (-1, MembershipStatusChoices.EXPIRED)],
+    ids=["running", "run-out"],
+)
+def test_an_administrator_reactivating_restores_a_suspended_term(
+    api_client: APIClient,
+    system_admin: User,
+    member: User,
+    annual_plan: MembershipPlan,
+    base_url: str,
+    days_left: int,
+    expected: str,
+) -> None:
+    """Ticking Account is active again brings the membership back, or lets it expire."""
+    ends_on = timezone.localdate() + timedelta(days=days_left)
+    held = suspended(deactivated(member), annual_plan, ends_on=ends_on)
+    api_client.force_login(system_admin)
+    response = api_client.patch(f"{base_url}/{member.pk}", {"is_active": True}, format="json")
+    held.refresh_from_db()
+    assert (response.status_code, held.status) == (200, expected)
+
+
+def test_an_administrator_reactivating_is_recorded_under_the_administrator(
+    api_client: APIClient,
+    system_admin: User,
+    member: User,
+    annual_plan: MembershipPlan,
+    audit_log: pytest.LogCaptureFixture,
+) -> None:
+    """The restored term's ``membership.correct`` names the administrator."""
+    ends_on = timezone.localdate() + timedelta(days=30)
+    held = suspended(deactivated(member), annual_plan, ends_on=ends_on)
+    api_client.force_login(system_admin)
+    api_client.patch(f"{USERS_URL}/{member.pk}", {"is_active": True}, format="json")
+    assert (
+        f"action=membership.correct actor={system_admin.pk} target={held.pk} status=active"
+        in audit_messages(audit_log)
+    )
+
+
+def test_an_administrator_edit_of_an_active_account_restores_nothing(
+    api_client: APIClient, system_admin: User, member: User, annual_plan: MembershipPlan
+) -> None:
+    """Only the change from inactive to active brings a suspended term back."""
+    held = suspended(member, annual_plan, ends_on=timezone.localdate() + timedelta(days=30))
+    api_client.force_login(system_admin)
+    api_client.patch(f"{USERS_URL}/{member.pk}", {"is_active": True}, format="json")
+    held.refresh_from_db()
+    assert held.status == MembershipStatusChoices.SUSPENDED
