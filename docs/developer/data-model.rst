@@ -1345,6 +1345,9 @@ system said to whom, which is what ``GET /system/emails`` reads
      - Meaning
    * - ``to_email``
      - the address written to
+   * - ``to_name``
+     - the recipient's name as it was at send time, blank for a bare address
+       nobody named
    * - ``user``
      - FK ``User``, ``SET_NULL``, nullable: the account the email concerned,
        null for an address with no account behind it
@@ -1372,6 +1375,17 @@ repeating; this is the record of the message.
 A reminder's own ``ReminderLog`` row is deleted by hand when the send fails,
 so the reminder stays due, but the send itself leaves a ``failed`` row here
 regardless -- the same as any other refused email.
+
+``caldart.mail.send_templated`` takes an optional ``to_name`` and writes it as
+given -- the DART roster sender passes the ticked contact's own name, for a
+recipient who may hold no account at all.  A caller that names an account
+(``user_id``) but no ``to_name`` has the account's ``display_name`` written in
+instead, so the row keeps the name its recipient had at send time even after
+the account is later renamed.  ``EmailLog.recipient_name`` reads ``to_name``,
+falling back to the linked account's own ``display_name`` for a row written
+before the field existed, and to ``""`` when neither names anybody; it is what
+``GET /system/emails``' ``user_name`` (:ref:`api-email-log`) and the email log
+report's ``Name`` column read.
 
 .. _data-model-reports:
 

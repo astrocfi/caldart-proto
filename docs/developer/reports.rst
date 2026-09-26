@@ -541,8 +541,9 @@ purpose       Purpose     yes     The purpose's label from
                                   ``apps/mail/purposes.py``, or the template
                                   name when no label names it
 to_email      To          yes     The address written to
-user_name     Name        yes     The recipient account's name; blank for an
-                                  address with no account behind it
+user_name     Name        yes     The recipient's name as it was at send time,
+                                  such as a DART contact's own name; blank when
+                                  nobody was named
 subject       Subject     yes     The subject line
 status        Status      yes     ``Sent`` or ``Failed``
 error         Error       no      The exception class of a refused send
