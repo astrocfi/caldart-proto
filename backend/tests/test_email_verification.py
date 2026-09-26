@@ -4,7 +4,7 @@ A new account, a member an administrator creates with a password, and every
 change of address are mailed a link to ``/portal/verify-email``.  The link signs
 the account and the address it was sent to, so a later change of address makes
 every earlier link useless.  ``docs/developer/api-auth.rst`` describes the
-endpoints and ``docs/user/getting-started.rst`` what a member sees.
+endpoints and ``docs/user/member/verify-email.rst`` what a member sees.
 """
 
 from __future__ import annotations

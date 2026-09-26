@@ -210,7 +210,7 @@ paid charge must never reach ``mark_succeeded``.
 
 **Documentation to change:** :doc:`payments-setup` (the provider list and the
 go-live checklist), :doc:`api-payments` (the confirm and webhook endpoints),
-:doc:`configuration` (the settings) and :doc:`/user/payments` if a member sees
+:doc:`configuration` (the settings) and :doc:`/user/member/payments` if a member sees
 a new way to pay.
 
 

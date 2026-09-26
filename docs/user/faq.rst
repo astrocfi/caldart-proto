@@ -2,364 +2,208 @@
 FAQ
 ===
 
-Short answers to the questions the office actually gets.  Each one points at
-the page that covers it properly.
+Short answers to the questions the office hears most. Each points at the page that
+covers it in full.
+
 
 Membership
 ==========
 
 When does my membership expire?
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sign in and look at the dashboard at ``/portal/``.  The status card at the top
-says **Current**, **Expired**, or **No membership**, and a current one shows the
-date it runs out.  ``/portal/profile`` and the **Renew** screen show the same
-date.
+Sign in and look at your dashboard. The membership card shows a chip and the date
+your membership runs to. An Annual term runs 365 days counting the day it starts, so
+a term that starts on 2026/03/01 ends on 2027/02/28. A life membership reads **Never
+expires**. See :doc:`member/dashboard`.
 
-An **Annual** term runs 365 days including the day it starts, so a term bought
-on 1 March ends on 28 February the following year — not 1 March.  A **Life**
-membership has no expiry date at all and the card says *Lifetime*.
+I renewed early. Why does it still show my old date?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See :doc:`member-guide`.
-
-I renewed early — why does it still say my old date?
-----------------------------------------------------
-
-It should not.  A renewal bought while you are still current starts the day
-after your present term ends, and the dashboard adds the two together and shows
-you the *end of your unbroken cover* — next year's date, straight away.
-
-If you are seeing the old date, reload the page.  If it persists, your renewal
-payment may not have completed; check ``/portal/`` for the payment in your
-recent history, and see :doc:`payments`.
+It should show the new one straight away, because a renewal bought while you are
+current starts the day after your present term ends. Reload the page. If the old
+date stays, look under **Recent payments** on your dashboard for the payment. See
+:doc:`member/renew`.
 
 What happens if I let my membership lapse?
-------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Your account stays exactly as it is.  You keep your sign-in, your profile, your
-aircraft and your history; nothing is deleted.  What you lose is access to
-members-only pages, and a DART leader checking you before a flight sees
-**NO-GO** on membership.
-
-Renew at ``/portal/renew`` and you are current again the moment the payment
-clears.  A new term after a lapse starts **today**, not on the day the old one
-ended — you do not pay for the gap, and you do not get it back either.
-
-See :doc:`member-guide`.
+Your account stays as it is: your sign-in, profile, aircraft, and history are kept.
+You lose the members-only pages, and a DART leader's check shows your membership as
+lapsed. Renew and you are current again the moment the payment clears; the new term
+starts that day. See :doc:`member/renew`.
 
 Will you remind me?
--------------------
+~~~~~~~~~~~~~~~~~~~
 
-Yes, by email, five times: about two months before expiry, about a month
-before, in the last week, once your membership has run out, and once about a
-month after that.  Each one links straight to the renewal screen.  You get each
-reminder whichever day you joined — if your term is 23 days from running out
-when CalDART first has it, the one-month reminder goes that day and the
-last-week one follows.  Life members and friends are never reminded, because
-there is nothing to renew.
+Yes, by email, five times: about two months before, about a month before, in the
+last week, once it has run out, and about a month after. Life members and friends
+are never reminded, and neither is anybody whose automatic renewal covers the term.
+See :doc:`member/renew`.
 
-Reminders go to the email address on your account, which is also the address
-you sign in with.  If they are not arriving, check your spam folder first, then
-that the address is right at ``/portal/profile``.
+What is a friend of CalDART?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See :doc:`member-guide`.
-
-What is a friend?
------------------
-
-A friend of CalDART has an account and the member portal but pays no dues.
-Friends are never current and never expired, are never sent a renewal
-reminder, and can give to CalDART whenever they like.  Members-only pages stay
-closed to a friend; paying for a plan makes a friend a member.  A member who
-becomes a friend while a term is still running stays a member until that term
-ends.
-
-See :ref:`kinds-of-account`.
+Somebody with an account and the member portal who pays no dues. Nothing expires,
+no reminder is sent, and members-only pages stay closed. A friend can give whenever
+they like, and becomes a member by paying for a plan. See :doc:`overview`.
 
 Can I join without paying dues?
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes: choose **Join as a friend** on the first step of the join wizard.  A friend
-walks the same steps as a member, but the payment step is headed **Contribute to
-CalDART** and offers a contribution you may skip with **Not now**.
-
-If you once gave to CalDART as a donor, join with the same email address: the
-wizard asks you to open the link it emails there before you can sign in, and
-your gifts stay with the account.  If the address belongs to an account that was
-deactivated, the wizard offers **Sign in to reactivate** instead.
-
-See :ref:`joining`.
+Yes. Choose **Join as a friend** on the first step of the join wizard. The payment
+step then offers a contribution you may skip with **Not now**. See
+:doc:`member/join`.
 
 How do I stop being a member but keep supporting CalDART?
----------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Press **Make me a friend** on your dashboard or on **My profile**.  A membership
-that is still current runs to its end and you become a friend the day after;
-otherwise you become one at once.  Automatic renewal is turned off, and if it also
-gave a contribution you can keep that gift going as a yearly recurring donation.
-Until the day comes, **Undo** keeps you a member.  A life member stays a member.
+Press **Make me a friend** on your dashboard or on **My profile**. A current
+membership runs to its end first. Automatic renewal is turned off, and a
+contribution it carried can carry on as a yearly recurring donation. To become a
+member again, press **Make me a member**. See :doc:`member/profile` and
+:doc:`member/become-a-member`.
 
-To become a member again, press **Make me a member** and pay for a plan.
-
-See :ref:`becoming-a-friend`.
-
-Can I have more than one membership at once?
---------------------------------------------
-
-You can buy a term while another is running — that is what renewing early is —
-and they chain end to end rather than overlapping.  Buying a Life membership
-while an Annual term is running simply makes you a life member; the Annual term
-becomes irrelevant.
-
-See :doc:`payments`.
 
 Paying
 ======
 
 Which payment methods are accepted?
------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-That depends on what the organization has configured, and the checkout only
-shows what is actually available.  In full it offers:
-
-- **Card**, through Stripe.
-- **Apple Pay** and **Google Pay**, which appear automatically in the Stripe
-  panel when your device and browser support them.
-- **Link**, Stripe's saved-details service, if you use it.
-- **PayPal**.
-
-On a demonstration or test deployment with no payment keys you will instead see
-a single **Test payment** panel with *Succeed* and *Fail* buttons.  Nothing is
-charged and no card details are collected.  See :doc:`payments`.
+Card, Apple Pay, and Google Pay through Stripe, and PayPal. The checkout shows only
+the methods this site accepts. See :doc:`member/join`.
 
 Can my membership renew itself?
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes.  Tick **Renew automatically each year** at the checkout, or turn it on from
-**Payments** in the portal menu, where **First charge on** opens on the day your
-membership runs out and takes any day from today on.  On that day CalDART charges
-the saved card or PayPal account for that year's dues plus whatever contribution
-you asked to renew alongside them, and your coverage carries straight on.  A later
-day leaves you lapsed until the charge comes round; an earlier one renews you
-before the term you hold has run out.
+Yes. Tick **Renew automatically each year** when you pay, or press **Turn on** on
+the **Automatic renewal** card of **Payments**. You get an email fourteen days
+before every charge, and you can turn it off at any time. See
+:doc:`member/payments`.
 
-You get an email fourteen days before every charge saying the amount, the date
-and which method will be used, and you can turn it off at any time from the same
-screen.  The card there always names the day of the next charge and what it
-comes to, and **Change** moves the day as well as the contribution.
+I am a life member. Can I still give every year?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See :doc:`payments`.
-
-I am a life member — can I still give every year?
---------------------------------------------------
-
-Yes.  A life membership never expires, so there is nothing to renew, but you can
-set up a recurring donation: the same amount monthly, quarterly, or yearly.  On
-the **Donate** screen choose the amount, tick **Make this a recurring donation**,
-and choose how often and the day of the first charge.  The Payments screen then
-shows it on the **Recurring donation** card.  Every email about it says
-"recurring donation"; none of them says your membership is being renewed,
-because it is not.
-
-The **Renew** screen offers a life member the same thing: it is headed
-**Contribute to CalDART**, and the form under it takes a contribution with no
-plan to buy, with the same **Make this a recurring donation** box.
-
-See :doc:`payments`.
+Yes. On **Donate**, choose the amount and tick **Make this a recurring donation**.
+See :doc:`member/donate`.
 
 How do I change the card on file?
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If your membership renews itself, or you give on a schedule, **Payments** in the
-portal menu shows the card or PayPal account on file; turn the authority off and
-set it up again to save a different one.  Otherwise there is no card on file at
-all: CalDART stores a payment method only when you ask it to renew your
-membership or to take a recurring donation, and otherwise you enter your details
-afresh each time you pay.
-
-See :doc:`payments`.
+Turn the automatic renewal or recurring donation off on **Payments** and set it up
+again with the new card. CalDART keeps a card only for those two. See
+:doc:`member/payments`.
 
 How do I stop being charged automatically?
-------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Payments** in the portal menu, then **Turn off** on the **Automatic renewal**
-card, or on the **Recurring donation** card for a gift on a schedule.  It takes
-effect immediately: nothing further is charged and the saved
-payment method is dropped.  Your membership is untouched and runs to the end of
-the term you have already paid for, and the ordinary renewal reminders resume.
-If you would rather someone did it for you, ask the office.
-
-See :doc:`payments`.
-
-Can I add a donation?
----------------------
-
-Yes.  The checkout offers contribution tiers — Participating $20, Bronze $100,
-Silver $300, Gold $1,000, Diamond $3,000, Platinum $10,000 — plus an *Other
-amount* box and a *No thank you*.  The contribution is added to the membership
-fee in one payment and is recorded separately, so the organization can tell
-dues from donations.
-
-See :doc:`payments`.
+On **Payments**, press **Turn off** on the **Automatic renewal** or **Recurring
+donation** card, then **Yes, turn it off**. Nothing further is charged, and your
+membership runs to the end of the term you paid for. See :doc:`member/payments`.
 
 Do I get a receipt?
--------------------
+~~~~~~~~~~~~~~~~~~~
 
-Yes.  CalDART emails one the moment the payment clears, with a PDF attached,
-whichever way you paid — card, PayPal, or a check somebody entered for you.
-The PDF carries the organization's address and EIN, a receipt number, the date
-and what you bought, and a contribution on it carries the 501(c)(3) wording.
-Every receipt can be downloaded again from **Payments** in the portal.
-
-See :doc:`payments`.
+Yes. CalDART emails one, with a PDF attached, the moment a payment clears, and every
+receipt can be downloaded again from **Payments**. See :doc:`member/payments`.
 
 Can I get a statement of my contributions for my taxes?
---------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes.  **Payments** in the portal offers one button per calendar year you
-contributed in, and the statement lists every contribution that year, anything
-refunded, and the total, with the wording a tax return needs.  A year you paid
-dues and gave nothing has no statement: dues are not a gift.
-
-See :doc:`payments`.
+Yes. CalDART emails one each January for the year before, and **Payments** offers a
+button for each year you gave in. A year of dues alone has none. See
+:doc:`member/payments`.
 
 My payment failed. Was I charged?
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-No.  A membership term is only created when the payment provider confirms the
-money moved, and a failed attempt leaves a record with the status *failed* and
-nothing else.  Try again, or try a different method; if a charge appears on
-your statement without a matching membership, contact the office and quote the
-date.
-
-See :doc:`payments`.
+No. A failed payment moves no money and makes no term. Try again, or try another
+method. See :doc:`member/join`.
 
 Can I get a refund?
--------------------
+~~~~~~~~~~~~~~~~~~~
 
-Ask the office.  There is no self-service refund, but a treasurer or an
-account administrator can issue one from CalDART, in part or in full: a
-contribution on its own, say, while your membership stands.  You are emailed
-when it goes through, with the amount and whether your membership ended with
-it, and the money goes back to the card or account you paid with — your bank
-decides how quickly it appears, usually a few working days.
+Ask the office. A treasurer or an account administrator can refund a payment in full
+or in part, and you are emailed when it goes through. See :doc:`member/payments`.
 
-See :doc:`payments`.
 
 Profile and aircraft
 ====================
 
 Why is my medical showing as expired?
--------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Because the **expiration date** on your profile has passed, or because you set
-a medical class without entering a date.  CalDART does not calculate your
-medical's expiry from anything; it reads the date you typed.  BasicMed and
-class medicals are treated identically in this respect.
-
-Update it at ``/portal/profile``, in the *Aviation* section.  A medical class
-requires an expiry date — the form will not save one without the other.
-
-See :doc:`member-guide`.
+The **Medical expires** date on your profile has passed. CalDART reads the date you
+typed; it works nothing out for you. Update it on **My profile**. See
+:doc:`member/profile`.
 
 Why is an aircraft's insurance showing as expired?
---------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For the same reason: the ``insurance expiration`` on the aircraft record has
-passed, or there is no policy on file at all.  Those are different states — the
-card distinguishes them — but both fail the currency check.
+The insurance expiry on the aircraft's record has passed, or there is none on file.
+If you added the airplane, correct it with **Edit** on **My aircraft**; otherwise ask
+an account administrator. See :doc:`member/my-aircraft`.
 
-Anyone may add an airplane to the register, and the member who added a record
-may keep it up to date.  If somebody else added the one you fly, ask an account
-administrator to correct it.  See :doc:`admin/aircraft-record`.
+Somebody already added the airplane I fly. Should I add another?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Somebody else already added the airplane I fly. Should I add another?
----------------------------------------------------------------------
+No. There is one register for everybody. Search for the airplane and attach the
+record that is there. See :doc:`member/my-aircraft`.
 
-No.  There is one register, shared by everybody, and one record per airframe.
-Attach the existing record to your profile — that is what "planes commonly
-flown" means — and an insurance renewal entered once is then right for all of
-you.  The register normalizes registrations, so ``N12345``, ``n-12345``, and
-``12345`` all find the same airplane and a duplicate cannot be created by
-typing it differently.
 
-See :doc:`admin/aircraft-record`.
-
-Access and sign-in
-==================
-
-Why can I not see a members-only page?
---------------------------------------
-
-Most often because your membership has lapsed.  The wall you hit says which it
-is and offers the right way out — sign in, renew (naming the date you ran out),
-or join.
-
-You get through if your membership is current, **or** if you hold any role
-beyond plain ``member`` — a DART leader or an administrator reads members-only
-pages whatever their own membership is doing.
-
-See :doc:`member-guide`.
+Signing in and access
+=====================
 
 I have forgotten my password
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use **Forgot your password?** on the sign-in screen.  You will get an email
-with a link that lets you set a new one; the link is single-use and expires.
-The message is the same whether or not the address is registered, so it
-cannot be used to find out who is a member.
-
-If nothing arrives, check spam, then confirm you are using the address the
-account was created with.  A user administrator can send the reset for you.
-
-See :doc:`member-guide`.
-
-A menu entry I expect is missing, or I get "403 — you do not have access"
--------------------------------------------------------------------------
-
-You are missing the role, not doing something wrong.  The portal only shows
-what your roles open.  Ask a user administrator to grant it; see
-:doc:`admin/users`.
+Use **Forgot your password?** under the **Sign in** button. The link in the email
+works once and lasts three days. See :doc:`member/forgot-password`.
 
 Can I change my email address?
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes.  Choose **Change email** in the portal's menu, type the new address and
-your current password, and press **Change email**.  You sign in with the new
-address from then on.  It is **unverified** until you open the link in the
-verification message CalDART sends to it; your dashboard says so, and can send
-the message again, until you do.  Capitalization never matters:
-``Marta@example.org`` and ``marta@example.org`` are the same account.
+Yes, on **Change email**, with your current password. You sign in with the new
+address from then on. See :doc:`member/change-email`.
 
-See :doc:`getting-started`.
+Why can I not see a members-only page?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You are signed out, your membership has lapsed, or you are a friend. The wall says
+which and offers the way through. See :doc:`member/members-only-content`.
+
+A menu entry I expect is missing, or a screen says Not allowed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You lack the role for it. A user administrator can grant it. See :doc:`roles` and
+:doc:`admin/index`.
 
 Can I close my account?
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
-You can deactivate it yourself: **Deactivate my account** at the foot of **My
-profile**, confirmed with your current password.  You are signed out and cannot
-sign in again until you reactivate, and automatic renewal and any recurring
-donation are turned off.  Nothing is deleted, and your payment history is kept.
+You can deactivate it with **Deactivate my account** at the foot of **My profile**.
+Nothing is deleted, and you can reactivate by signing in again. See
+:doc:`member/profile`.
 
-To come back, sign in with the same address and password and press **Reactivate
-my account**, or reset your password.  A membership that still had time to run
-resumes through its original date.  A system administrator cannot deactivate
-their own account.
 
-See :ref:`deactivating-your-account`.
+For leaders and administrators
+==============================
 
-Who do I contact about a data correction?
------------------------------------------
+How do I check a member before a mission?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Anything you can see on ``/portal/profile`` you can fix yourself.  For
-everything else — your name, a membership term with the
-wrong dates, a payment recorded against the wrong person, an aircraft record
-somebody else created — contact the office; an account administrator can
-correct all of it.  The contact address is in the footer of every public page.
+Use **Member check**, which a DART leader and an account administrator have. See
+:doc:`admin/index`.
 
-For the record, an administrator can see your profile including the internal
-notes field, your membership history and your payment history.  They cannot see
-your password: it is stored only as a hash, and nobody can read it or tell it
-to you.
+Who corrects my name, a membership date, or a payment?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See :doc:`admin/index`.
+Anything on **My profile** you can fix yourself. For the rest, contact the office,
+at the address in the footer of every public page; an account administrator or the
+treasurer can correct it. See :doc:`admin/index` and :doc:`finance/index`.
+
+How do I change a page on the public site?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A website administrator edits the pages. See :doc:`website/index`.

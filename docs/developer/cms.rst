@@ -126,7 +126,7 @@ take their endpoints as a prop (``PaymentEndpoints``) so the page's calls go to
 ``/donations/`` with the token rather than to ``/payments/``.  Once a gift has gone
 through it replaces itself with the receipt sentence and un-hides the thanks.
 The endpoints are in :ref:`api-public-donations`; what a giver sees is in
-:doc:`/user/donations`.
+:doc:`/user/member/public-website`.
 
 The members-only wall
 =====================

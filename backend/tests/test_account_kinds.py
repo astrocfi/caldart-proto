@@ -2,7 +2,7 @@
 
 A member pays dues; a friend is a person with a portal account and no dues, who
 is never current and never expired; a donor gives through the public site and
-cannot sign in.  ``docs/user/getting-started.rst`` says what each kind of person
+cannot sign in.  ``docs/user/overview.rst`` says what each kind of person
 can do, and ``docs/developer/data-model.rst`` how the kind is stored and worked out.
 """
 

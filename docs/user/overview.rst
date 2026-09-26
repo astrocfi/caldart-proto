@@ -2,262 +2,226 @@
 Overview
 ========
 
-CalDART is one website with two halves.  The **public site** — the home page,
-the Disaster Airlift Response Team (DART) directory, the news and the contact
-page — is open to anybody with the address.  The **member portal** at
-``/portal/`` is where you sign in, and what it shows you depends on the roles
-your account holds: members keep their own details current, DART leaders check
-whether somebody is fit to fly, and administrators look after accounts, money
-, content, and the server.
+CalDART's website has two halves. The **public site** is the home page, the
+directory of DARTs (Disaster Airlift Response Teams, local groups of volunteer
+pilots and ground crew at one airport), the news, the events, and the contact and
+donation pages. Anybody can read it. The **member portal** is where you sign in,
+and what it shows you depends on the roles your account holds: members keep their
+own details current, DART leaders check whether somebody is fit to fly, and
+administrators look after accounts, money, the website, and the system.
 
-Almost everything else in this guide is a chapter about one of those jobs.
-This page is the shape of the whole thing: how a membership begins, how it
-ends, and what the site does about it in between.  Read
-:doc:`getting-started` next for signing in and finding your way around.
+This page is the shape of the whole thing: the three kinds of people the site knows,
+what a membership is and how it runs its course, and the roles. :doc:`quick-start`
+walks through the first things you will do, and :doc:`member/index` describes every
+screen you will use.
 
 
-The membership lifecycle
-========================
+Members, friends, and donors
+============================
 
-A membership is made of **terms**.  A term is one plan bought (or granted by an
-administrator) with a start date and an end date, and your membership is
-current whenever a term covers today.  Buying the Annual plan a second time
-does not replace the first term; it adds another one after it.
+Every account belongs to one of three kinds of person.
 
-Not everybody with an account is a member.  A **friend of CalDART** has an
-account and a portal like a member's, but pays no dues: a friend is never
-current, never expired, and never reminded to renew, and becomes a member by
-paying for a plan.  :doc:`getting-started` sets out the three kinds of people
-the site knows -- members, friends, and donors.
+**Member**
+  Pays dues each year, or once for a Life plan. A member's membership is current,
+  expiring soon, or expired, and CalDART sends renewal reminders as the end of a
+  term comes near. A member can add a contribution to any payment.
+
+**Friend**
+  A friend of CalDART has the same portal as a member (the profile, the aircraft,
+  the payments, and the dashboard) but pays no dues. Nothing expires, no renewal
+  reminder is ever sent, and members-only pages stay closed. A friend can give
+  whenever they like, and becomes a member by paying for a plan. A member can
+  become a friend, and a friend a member, from the portal.
+
+**Donor**
+  Somebody who gave to CalDART from the public donation page without joining.
+  CalDART keeps the gifts and the receipts, but a donor has no password, cannot
+  sign in, and appears in no member list. A donor who later joins, with the same
+  email address, keeps every gift.
+
+Members and friends sign in to the same portal. A donor does not.
+
+
+What membership means
+=====================
+
+A membership is made of **terms**. A term is one plan bought, or granted by an
+administrator, with a start date and an end date. You are current whenever a term
+covers today, up to and including its last day. An Annual term runs 365 days. A Life
+term has no end date and never runs out.
+
+Buying a plan a second time does not replace the first term; it adds another after
+it. So renewing early never loses you days: the new term starts the day after your
+present one ends. Renewing after you lapse starts the new term today.
+
+A current membership opens the members-only pages of the public site, and it is the
+first thing a DART leader checks before letting you fly a mission.
 
 .. only:: graphviz
 
    .. graphviz::
-      :caption: The life of a membership.  A **solid box** is one of the
-                states the site computes for you: ``none``, ``current``,
-                ``expired``, and ``friend``.  A **dashed box** is not a state of
-                its own —
-                *Expiring soon* is the portal's warning inside *Current*, and
-                *Life member* is a current term with no end date.  The boxes at
-                the bottom are the five renewal emails, in the order they are
-                sent; every one of them links straight to the renewal page.
-      :alt: State diagram of a CalDART membership from visitor to expired
+      :caption: The life of a membership. A solid box is a state CalDART works out
+                for you. A dashed box is a warning or a special case inside one:
+                *Expiring soon* is still current, and *Life member* is a current
+                term with no end date. The boxes at the foot are the five renewal
+                emails, in the order they are sent.
+      :alt: The states of a CalDART membership, from visitor to expired, drawn top to bottom
 
       digraph member_lifecycle {
-          rankdir=LR;
+          rankdir=TB;
           bgcolor="transparent";
-          node [shape=box, style="rounded", fontname="Helvetica", fontsize=10];
-          edge [fontname="Helvetica", fontsize=9];
+          nodesep=0.35;
+          ranksep=0.45;
+          node [shape=box, style="rounded", fontname="Helvetica", fontsize=12];
+          edge [fontname="Helvetica", fontsize=11];
 
-          Visitor [label="Visitor\l  no account yet\l", style="rounded,dashed"];
-          NoMembership [label="No membership\l  account and profile,\l  no term has started\l"];
-          Current [label="Current\l  a term covers today\l  members-only content opens\l"];
-          Expiring [label="Expiring soon\l  current, 30 days or fewer left\l", style="rounded,dashed"];
-          Expired [label="Expired\l  the last term has run out\l  members-only content closes\l"];
-          Life [label="Life member\l  a term with no end date\l  never expires, never reminded\l", style="rounded,dashed"];
-          Friend [label="Friend\l  no dues, no expiry\l  members-only content closed\l"];
+          Visitor [label="Visitor\nno account yet", style="rounded,dashed"];
+          NoMembership [label="No membership\naccount and profile,\nno term has started"];
+          Friend [label="Friend\nno dues, no expiry"];
+          Current [label="Current\na term covers today"];
+          Life [label="Life member\nnever expires", style="rounded,dashed"];
+          Expiring [label="Expiring soon\n30 days or fewer left", style="rounded,dashed"];
+          Expired [label="Expired\nthe last term ran out"];
 
-          Visitor -> NoMembership [label="join wizard:\lname, email, password,\lthen the profile"];
-          NoMembership -> Current [label="the payment clears, or an\ladministrator grants a term"];
-          Current -> Expiring [label="30 days left", style=dashed];
-          Expiring -> Expired [label="the end date passes"];
-          Expiring -> Current [label="renew early: the term starts\lthe day after this one ends"];
-          Expired -> Current [label="renew: the term starts today"];
-          Current -> Life [label="buy the Life plan"];
-          NoMembership -> Life [label="buy the Life plan"];
-          Visitor -> Friend [label="join wizard,\las a friend"];
-          Friend -> Current [label="pay for a plan, or an\ladministrator grants a term"];
-          Current -> Friend [label="becomes a friend:\lfrom the day after\lthe term ends\l", style=dashed];
-          Expired -> Friend [label="becomes a friend:\lat once"];
+          Visitor -> NoMembership [label=" join as a member"];
+          Visitor -> Friend [label=" join as a friend"];
+          NoMembership -> Current [label=" payment clears, or\n an administrator\n grants a term"];
+          Friend -> Current [label=" pays for a plan"];
+          Current -> Life [label=" buys the Life plan"];
+          Current -> Expiring [label=" 30 days left", style=dashed];
+          Expiring -> Expired [label=" end date passes"];
+          Expiring -> Current [label=" renews early"];
+          Expired -> Current [label=" renews"];
+          Current -> Friend [label=" becomes a friend,\n from the day after\n the term ends", style=dashed, constraint=false];
+          Expired -> Friend [label=" becomes a friend", constraint=false];
 
           subgraph cluster_reminders {
-              label="Renewal email, sent once per term and stage";
+              label="Renewal emails, one per term and stage";
               fontname="Helvetica";
-              fontsize=9;
+              fontsize=11;
               style=dashed;
               color="gray";
-              node [shape=box, style="rounded", fontsize=9];
-              edge [color="gray50"];
-
+              node [fontsize=11];
               T60 [label="31 to 60 days before"];
               T30 [label="8 to 30 days before"];
               T7 [label="1 to 7 days before"];
-              TEnd [label="the day it ends,\lor up to 6 days after\l"];
+              TEnd [label="the day it ends,\nor up to 6 days after"];
               TPost [label="30 to 60 days after"];
-
               T60 -> T30 -> T7 -> TEnd -> TPost;
           }
 
-          TEnd -> Expired [style=dotted, label="still current that day;\lExpired the next morning\l"];
+          Expired -> T60 [style=invis];
       }
 
 .. only:: not graphviz
 
-   Install Graphviz and rebuild for a drawn version of this diagram.  The
-   drawing and the text below describe the same states and the same moves
-   between them.
+   Install Graphviz and rebuild for a drawn version of this diagram. The drawing and
+   the text below describe the same states and the same moves between them.
 
    .. code-block:: text
 
-      Visitor  ---- join wizard: name, email, password, then the profile ---.
-      (no account yet)                                                      |
-                                                                            v
-                                                              .---------------------.
-        .------- buy the Life plan ---------------------------|   No membership     |
-        |                                                     |   account and       |
-        |                                                     |   profile, no term  |
-        |                                                     |   has started       |
-        |                                                     '---------------------'
-        |                                                                |
-        |                                    the payment clears, or an   |
-        |                                    administrator grants a term |
-        v                                                                v
-      .------------------------.                             .---------------------.
-      |  Life member           |<---- buy the Life plan ------|   Current           |
-      |  a term with no end    |                             |   a term covers     |
-      |  date; never expires,  |                             |   today; members-   |
-      |  never reminded        |                             |   only content opens|
-      '------------------------'                             '---------------------'
-                                                                   |         ^
-                                                    30 days left   |         |
-                                                                   v         |
-                                                      .-------------------.  |
-                                                      | Expiring soon     |--'
-                                                      | current, 30 days  |  renew early:
-                                                      | or fewer left     |  the term starts
-                                                      '-------------------'  the day after
-                                                                   |         this one ends
-                                              the end date passes  |
-                                                                   v
-                                                      .-------------------.
-                                                      | Expired           |
-                                                      | the last term has |---.
-                                                      | run out; members- |   |
-                                                      | only content      |   | renew: the
-                                                      | closes            |<--' term starts
-                                                      '-------------------'    today
+      Visitor (no account yet)
+        |                         \
+        | join as a member         \ join as a friend
+        v                           v
+      No membership               Friend (no dues, no expiry)
+        |                           |
+        | payment clears, or an     | pays for a plan
+        | administrator grants one  |
+        v                           v
+      Current (a term covers today) <=====================.
+        |            \                                     |
+        | 30 days     \ buys the Life plan                 |
+        | left         v                                   |
+        |            Life member (never expires)           |
+        v                                                  |
+      Expiring soon (still current) ==== renews early ====>|
+        |                                                  |
+        | end date passes                                  |
+        v                                                  |
+      Expired (the last term ran out) ===== renews =======>'
 
-      Renewal email, sent once per term and stage, each linking to the
-      renewal page:
+      A member who becomes a friend while current stays current until the term
+      ends and is a friend from the next day. An expired member who becomes a
+      friend is one at once.
 
-        31 to 60 days before  ->  8 to 30 days before  ->
-        1 to 7 days before  ->  the day it ends, or up to 6 days after
-        (you are still current on the end date itself; the term becomes
-        Expired the next morning)  ->  30 to 60 days after
+      Renewal emails, one per term and stage, each linking to the renewal page:
 
-      "Expiring soon" and "Life member" are drawn dashed above because neither
-      is a state of its own: the first is the portal's warning inside Current,
-      and the second is a current term with no end date.
+        31 to 60 days before
+        8 to 30 days before
+        1 to 7 days before
+        the day it ends, or up to 6 days after
+        30 to 60 days after
 
-      Friends sit beside the whole lifecycle:
-
-      Visitor  ---- join wizard, as a friend ---->  .---------------------.
-                                                    | Friend              |
-      Current  ---- becomes a friend: from the ---> | no dues, no expiry; |
-                    day after the term ends         | members-only        |
-      Expired  ---- becomes a friend: at once ----> | content closed      |
-                                                    '---------------------'
-                                                               |
-                                 pay for a plan, or an         |
-                                 administrator grants a term   v
-                                                            Current
-
-
-What each state means
----------------------
+What each state means:
 
 **No membership**
-  You have an account and can sign in, but no term has ever started.  The
-  portal works; members-only pages do not.  This is where you land if you stop
-  the join wizard before paying.
+  You have an account and can sign in, but no term has started. The portal works;
+  members-only pages do not. You land here if you stop the join wizard before
+  paying.
 
 **Current**
-  A term covers today, which includes its own end date: you are current up to
-  and including the last day of the term.  Members-only pages open, your
-  dashboard shows a **Current** chip and the date your membership runs to, and
-  the membership half of a DART leader's check passes.
+  A term covers today. Members-only pages open, and the membership half of a DART
+  leader's check passes.
 
 **Expiring soon**
-  Still current, with 30 days or fewer to run.  The portal turns the dashboard
-  chip to **Expiring soon** and gives the **Renew** button the lead.  Nothing
-  is taken away.
+  Still current, with 30 days or fewer to run. The dashboard warns you and puts the
+  **Renew** button first. Nothing is taken away.
 
 **Expired**
-  A term started and ran out — the day after its end date is the first day it
-  no longer counts — and no other term covers today.  You can still
-  sign in, see your own profile and renew; members-only pages show the wall
-  instead of the page.
+  Your last term ran out, and no other covers today. The day after the end date is
+  the first day it no longer counts. You can still sign in, see your profile, and
+  renew; members-only pages show a wall.
 
 **Life member**
-  A Life term has no end date, so it never runs out.  You are never asked to
-  renew and never sent a reminder.
+  A Life term never runs out, so you are never asked to renew or sent a reminder.
 
 **Friend**
-  You are a friend of CalDART: you pay no dues, so nothing expires and nothing
-  is sent to remind you.  The portal works, and you can give to CalDART
-  whenever you like; members-only pages show the wall, which offers to make you
-  a member.  Terms you held as a member stay in your history but no longer
-  count.  Paying for a plan, or an administrator granting you a term, makes you
-  a member again.  A member who becomes a friend while a term is running stays
-  current until the term they paid for runs out, and is a friend from the day
-  after.
-
-Renewing never loses you days.  If you renew while you are current, the new
-term starts **the day after** your present one ends, and your dashboard shows
-the later date straight away.  If you renew after lapsing, the new term starts
-today.  :doc:`member-guide` walks through the screen itself.
+  No dues, so nothing expires and nothing reminds you. Terms you held as a member
+  stay in your history but no longer count.
 
 
-What the site does about expiry
--------------------------------
+What CalDART does about expiry
+==============================
 
-A nightly scan does three things: it marks terms whose end date has passed as
-expired, it makes a friend of every member whose day to become one has come,
-and it sends the renewal emails.  There are five, each covering a
-stretch of the calendar rather than a single day: one two months before your
-term ends, one a month before, one in the last week, one once it has run out,
-and one a month later.  Because each is a stretch, you reach every one of them
-whichever day you joined — a membership bought three weeks before it expires
-still brings the last two.
-
-Each email is sent once per term, so a scan that runs twice in a day does not
-mail you twice, and renewing stops the rest of the series.  Life members,
-accounts that have been deactivated, and members whose automatic renewal is
-covering the term are never sent these, and neither are friends or members
-who are due to become one.  Automatic renewal has its own emails
-that cover the same ground, described in :doc:`payments`; if automatic
-renewal stops, the ordinary reminders resume.  Every email links to the
-renewal page.
-
-Every one of those emails is recorded.  Account administrators read the record
-on the portal's **Reminders** screen, so "was I ever told?" has an answer:
-:doc:`admin/index` describes it.
+Each night CalDART marks terms whose end date has passed as expired, makes a friend
+of every member whose day to become one has come, and sends the renewal reminders.
+There are five, each covering a stretch of the calendar, so you receive every one
+whichever day you joined. Each is sent once per term, and renewing stops the rest.
+Life members, friends, deactivated accounts, and members whose automatic renewal
+covers the term are not sent them. :doc:`member/renew` lists the subject lines.
 
 
-Where to go next
-================
+The roles
+=========
 
-.. list-table::
-   :header-rows: 1
-   :widths: 40 60
+Every account holds one or more roles, and the portal's menu shows only the screens
+your roles open. :doc:`roles` lists every screen each one reaches.
 
-   * - You want to
-     - Read
-   * - Sign in, or get back in without your password
-     - :doc:`getting-started`
-   * - Join, renew, or keep your profile current
-     - :doc:`member-guide`
-   * - Understand what you were charged and find a receipt
-     - :doc:`payments`
-   * - Add an airplane and keep its insurance current
-     - :doc:`admin/aircraft-record`
-   * - Check whether a member may fly for us today
-     - :doc:`admin/member-check`
-   * - Look after accounts, roles, and membership terms
-     - :doc:`admin/users`, :doc:`admin/index`
-   * - Look after the money: payments, refunds, reconciliation, and reports
-     - :doc:`finance/index`
-   * - Edit the public site
-     - :doc:`website/index`
-   * - Back up, restore, or check the health of the system
-     - :doc:`admin/system`
+**Member**
+  Every member and friend holds it. It opens your own dashboard, profile, aircraft,
+  payments, donations, and renewal.
+
+**DART leader**
+  Checks, before a mission, whether a member is current to fly: membership, medical,
+  pilot certificate, and aircraft insurance. Reads the member list and downloads it.
+
+**User administrator**
+  Looks after accounts: who holds which role, activating and deactivating, and
+  password reset links.
+
+**Treasurer**
+  Looks after the money: every payment, refunds, automatic renewals, reconciliation
+  against the bank, donors, and the financial reports.
+
+**Account administrator**
+  Looks after the membership records: members, their terms, the aircraft register,
+  the DARTs, the reminder log, and the reports and rosters sent by email. Can check
+  members as a DART leader does.
+
+**Website administrator**
+  Writes and publishes the public site's pages, news, and events.
+
+**System administrator**
+  Can do everything above, and looks after the system itself: health, backups, and
+  the jobs that run each night.

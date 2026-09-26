@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test';
 
 import { DEMO, DEMO_PASSWORD, signIn } from './helpers';
 
-test("the menu's guide link opens the member guide in a new tab", async ({ page }) => {
+test("the menu's guide link opens the user guide in a new tab", async ({ page }) => {
   await signIn(page, DEMO.member);
   const [guide] = await Promise.all([
     page.waitForEvent('popup'),
@@ -16,8 +16,8 @@ test("the menu's guide link opens the member guide in a new tab", async ({ page 
       .getByRole('link', { name: 'User guide' })
       .click(),
   ]);
-  await expect(guide).toHaveURL(/\/docs\/member-guide\/$/);
-  await expect(guide.getByRole('heading', { name: 'Member guide', level: 1 })).toBeVisible();
+  await expect(guide).toHaveURL(/\/docs\/$/);
+  await expect(guide.getByRole('heading', { name: 'User guide', level: 1 })).toBeVisible();
   // The portal stays where the member left it.
   await expect(page).toHaveURL(/\/portal$/);
 });
