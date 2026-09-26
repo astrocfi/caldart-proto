@@ -209,9 +209,14 @@ place.  Django's ``LOGIN_URL`` is ``/portal/login``.
 anyone signed in; a visitor who is not is sent to the portal's login page with
 the guide page as ``next``, and the login page hands them back to the guide
 with a full-page navigation, since the guide lives outside the SPA.  The
-portal's menu links each user to the page for their role, and the public site's
-footer links to the guide's front page.  The developer guide is not published;
-a reference into it from the user guide renders as the page's title.
+portal's top bar carries a **Help** link, shown whether or not anyone is
+signed in, that opens the guide page for the screen the visitor is on:
+``help.ts`` maps every route pattern to a guide slug in ``HELP_PAGES``, in
+match order, and ``helpPath`` returns the first match's page, or the guide's
+front page for a route with none.  The rail's **User guide** link and the
+public site's footer link both open that front page.  The developer guide is
+not published; a reference into it from the user guide renders as the page's
+title.
 
 **The API.**  ``caldart/api_urls.py`` includes every app's ``api/urls.py``
 under ``/api/v1/``, and each app spells out its own paths, so adding an
