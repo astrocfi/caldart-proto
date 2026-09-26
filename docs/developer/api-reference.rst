@@ -421,8 +421,8 @@ rules govern every gate in the matrix below:
 
 Views declare their gates with the permission classes in
 ``apps/accounts/permissions.py``.  ``HasRole(slug)`` and ``HasAnyRole(*slugs)``
-are factories that return a DRF permission class; ``IsUserAdmin``
-, ``IsAccountAdmin``, ``IsFinance``, and ``IsSystemAdmin`` are ready-made ones,
+are factories that return a DRF permission class; ``IsUserAdmin``,
+``IsAccountAdmin``, ``IsFinance``, and ``IsSystemAdmin`` are ready-made ones,
 and ``HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)`` guards the leader check and
 ``GET /admin/members``, whose ``POST`` stays ``IsAccountAdmin``.
 ``IsFinance`` is ``HasAnyRole(TREASURER, ACCOUNT_ADMIN)`` and guards every
@@ -1361,10 +1361,9 @@ Reading the matrix:
     finance roles, so a non-owner without one gets **403**.
 
 **Serializer switching on aircraft.**  ``GET /aircraft/{id}`` and
-``GET /aircraft/lookup`` return the ``pilots`` array and ``updated_by`` — other
-members' names,
-emails, membership state and medical currency — only to ``dart_leader``
-, ``account_admin``, or ``system_admin``.  Plain members get the airplane alone.
+``GET /aircraft/lookup`` return the ``pilots`` array and ``updated_by`` (other
+members' names, emails, membership state, and medical currency) only to
+``dart_leader``, ``account_admin``, or ``system_admin``.  Plain members get the airplane alone.
 ``GET /aircraft`` (the list) never includes it for anybody.  That is what stops
 the register from being a way around the leader-check gate.
 
