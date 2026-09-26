@@ -15,9 +15,13 @@ const TONE_CLASS: Record<StatusTone, string> = {
 
 // The `current`, `new`, `expired` and `none` tones read the same four words as
 // the member report and the member list's status filter; `expiring` is a tone
-// of its own, with no membership-state code behind it.
+// of its own, with no membership-state code behind it.  A friend shares the
+// quiet `none` tone -- never current, never expired -- but is called a friend.
 const TONE_LABEL: Record<StatusTone, string> = {
-  ...MEMBERSHIP_STATUS_LABELS,
+  current: MEMBERSHIP_STATUS_LABELS.current,
+  new: MEMBERSHIP_STATUS_LABELS.new,
+  expired: MEMBERSHIP_STATUS_LABELS.expired,
+  none: MEMBERSHIP_STATUS_LABELS.none,
   expiring: 'Expiring soon',
 };
 
@@ -33,12 +37,12 @@ export function daysUntil(iso: string | null, today: Date = new Date()): number 
   return Math.round((target.getTime() - start.getTime()) / 86_400_000);
 }
 
-/** Map a membership payload onto one of the four chip tones. */
+/** Map a membership payload onto one of the chip tones. */
 export function membershipTone(
   membership: Pick<MembershipStatus, 'status' | 'expires_on' | 'is_lifetime'>,
   today: Date = new Date(),
 ): StatusTone {
-  if (membership.status === 'none') return 'none';
+  if (membership.status === 'friend' || membership.status === 'none') return 'none';
   if (membership.status === 'new') return 'new';
   if (membership.status === 'expired') return 'expired';
   if (membership.is_lifetime) return 'current';
@@ -76,6 +80,9 @@ export function MembershipChip({ membership, today }: MembershipChipProps): JSX.
     // to answer the question the other tones answer -- when does it run out.
     return <StatusChip tone="current" label="Never expires" />;
   }
+  if (membership.status === 'friend') {
+    return <StatusChip tone={tone} label={MEMBERSHIP_STATUS_LABELS.friend} />;
+  }
   return <StatusChip tone={tone} title={membership.expires_on ?? undefined} />;
 }
 
@@ -105,9 +112,17 @@ export interface MembershipDotProps {
 /** The membership's tone as a dot: green current, amber expiring, red expired. */
 export function MembershipDot({ membership, today }: MembershipDotProps): JSX.Element {
   const tone = membershipTone(membership, today);
-  const label =
-    membership.is_lifetime && membership.status === 'current' ? 'Never expires' : TONE_LABEL[tone];
-  return <StatusDot tone={tone} label={label} />;
+  return <StatusDot tone={tone} label={membershipDotLabel(membership, tone)} />;
+}
+
+/** What a membership dot is read out as: the chip's own word for the same state. */
+function membershipDotLabel(
+  membership: Pick<MembershipStatus, 'status' | 'is_lifetime'>,
+  tone: StatusTone,
+): string {
+  if (membership.is_lifetime && membership.status === 'current') return 'Never expires';
+  if (membership.status === 'friend') return MEMBERSHIP_STATUS_LABELS.friend;
+  return TONE_LABEL[tone];
 }
 
 /**

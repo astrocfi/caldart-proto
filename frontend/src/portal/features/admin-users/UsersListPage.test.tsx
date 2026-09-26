@@ -35,6 +35,16 @@ const PRIYA = makeUser({
   is_active: false,
 });
 
+const GIL = makeUser({
+  id: 3,
+  email: 'gil@example.org',
+  first_name: 'Gil',
+  last_name: 'Ivers',
+  roles: [],
+  membership: NO_MEMBERSHIP,
+  kind: 'donor',
+});
+
 /** Records every `/admin/users` query the page issues, and answers from `rows`. */
 function stubList(rows: User[] = [MARTA, PRIYA]) {
   const seen: URLSearchParams[] = [];
@@ -46,11 +56,13 @@ function stubList(rows: User[] = [MARTA, PRIYA]) {
       seen.push(url.searchParams);
       const role = url.searchParams.get('role');
       const isActive = url.searchParams.get('is_active');
+      const kind = url.searchParams.get('kind');
       const search = (url.searchParams.get('search') ?? '').toLowerCase();
       const results = rows.filter(
         (row) =>
           (!role || row.roles.includes(role as User['roles'][number])) &&
           (!isActive || String(row.is_active) === isActive) &&
+          (!kind || row.kind === kind) &&
           (!search ||
             `${row.first_name} ${row.last_name} ${row.email}`.toLowerCase().includes(search)),
       );
@@ -130,6 +142,28 @@ describe('UsersListPage', () => {
     await waitFor(() => expect(seen.at(-1)?.get('is_active')).toBe('false'));
     expect(await screen.findByRole('link', { name: 'Priya Raman' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Marta Reyes' })).not.toBeInTheDocument();
+  });
+
+  it('names the kind of each account', async () => {
+    stubList([MARTA, GIL]);
+    renderWithProviders(<UsersListPage />);
+
+    const gilRow = (await screen.findByRole('link', { name: 'Gil Ivers' })).closest('tr')!;
+    expect(within(gilRow).getByText('Donor')).toBeInTheDocument();
+  });
+
+  it('filters by kind of account', async () => {
+    const seen = stubList([MARTA, GIL]);
+    renderWithProviders(<UsersListPage />);
+    await screen.findByRole('link', { name: 'Marta Reyes' });
+
+    await userEvent.selectOptions(screen.getByLabelText(/kind of account/i), 'donor');
+
+    await waitFor(() => expect(seen.at(-1)?.get('kind')).toBe('donor'));
+    await waitFor(() =>
+      expect(screen.queryByRole('link', { name: 'Marta Reyes' })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('link', { name: 'Gil Ivers' })).toBeInTheDocument();
   });
 
   it('shows an empty state when nothing matches', async () => {

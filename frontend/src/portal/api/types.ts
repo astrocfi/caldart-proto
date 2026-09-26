@@ -26,7 +26,7 @@ export interface Role {
 }
 
 /* -------------------------------------------------------------- membership */
-export type MembershipState = 'current' | 'new' | 'expired' | 'none';
+export type MembershipState = 'current' | 'new' | 'expired' | 'none' | 'friend';
 
 export interface MembershipStatus {
   status: MembershipState;
@@ -52,6 +52,12 @@ export interface MembershipDetail extends MembershipStatus {
 }
 
 /* -------------------------------------------------------------------- auth */
+/** The kind of person an account belongs to: a member pays dues, a friend does not. */
+export type AccountKind = 'member' | 'friend' | 'donor';
+
+/** The kinds a person may choose, or an administrator set: never a donor. */
+export type PersonKind = Exclude<AccountKind, 'donor'>;
+
 export interface User {
   id: number;
   email: string;
@@ -63,6 +69,10 @@ export interface User {
   profile_complete: boolean;
   /** False until the owner follows a link sent to the address they hold now. */
   email_verified: boolean;
+  /** The kind as stored; a member with a `friend_on` date still reads `member` until then. */
+  kind: AccountKind;
+  /** The day a member who asked to become a friend becomes one, or null. */
+  friend_on: IsoDate | null;
 }
 
 export interface LoginPayload {
@@ -75,6 +85,8 @@ export interface RegisterPayload {
   password: string;
   first_name: string;
   last_name: string;
+  /** `member` when left out. */
+  kind?: PersonKind;
 }
 
 export interface PasswordChangePayload {
@@ -397,6 +409,7 @@ export interface MemberRow {
   phone: string;
   dart: string | null;
   is_active: boolean;
+  kind: AccountKind;
   membership: MembershipStatus;
   pilot_certificate_type: PilotCertificateType;
   medical_type: MedicalType;
@@ -450,6 +463,7 @@ export interface MemberDetail {
   last_name: string;
   name: string;
   is_active: boolean;
+  kind: AccountKind;
   roles: RoleSlug[];
   created_at: IsoDateTime;
   email_verified_at: IsoDateTime | null;
@@ -475,6 +489,8 @@ export interface MemberCreatePayload {
   first_name?: string;
   last_name?: string;
   password?: string;
+  /** `member` when left out; an administrator never creates a donor. */
+  kind?: PersonKind;
   profile?: AdminProfilePayload;
 }
 
@@ -484,6 +500,8 @@ export interface MemberUpdatePayload {
   first_name?: string;
   last_name?: string;
   is_active?: boolean;
+  /** Makes the account that kind at once; refused for a donor. */
+  kind?: PersonKind;
   profile?: AdminProfilePayload;
 }
 

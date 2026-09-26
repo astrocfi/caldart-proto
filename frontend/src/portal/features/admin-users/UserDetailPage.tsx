@@ -5,7 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 
 import type { AdminUser, RoleSlug } from '@/portal/api/types';
 import { useAuth, useRoles } from '@/portal/auth/useAuth';
-import { roleLabel } from '@/portal/choices';
+import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmailVerifiedText } from '@/portal/components/EmailVerifiedText';
@@ -91,6 +91,9 @@ export function UserDetailPage(): JSX.Element {
   }
 
   const isSelf = me?.id === user.id;
+  // A donor cannot sign in, so neither a password nor a verification link would
+  // lead anywhere.
+  const isDonor = user.kind === 'donor';
 
   const toggleRole = (slug: RoleSlug, checked: boolean) => {
     setForm((current) =>
@@ -114,11 +117,18 @@ export function UserDetailPage(): JSX.Element {
     >
       <Card eyebrow="Membership" title="Where this account stands">
         <div className="cluster">
+          <span className="chip chip--neutral">{ACCOUNT_KIND_LABELS[user.kind]}</span>
           <MembershipChip membership={user.membership} />
           <span className="muted">
             {user.profile_complete ? 'Profile complete' : 'Profile incomplete'}
           </span>
         </div>
+        {isDonor ? (
+          <p className="muted">
+            A donor gave through the public site and cannot sign in. Fix the email address here if a
+            receipt went astray.
+          </p>
+        ) : null}
       </Card>
 
       <Card title="Account">
@@ -182,7 +192,7 @@ export function UserDetailPage(): JSX.Element {
               />
             )}
           </Field>
-          {user.email_verified ? null : (
+          {user.email_verified || isDonor ? null : (
             <div className="cluster">
               <ResendVerificationButton
                 variant="secondary"
@@ -255,29 +265,31 @@ export function UserDetailPage(): JSX.Element {
         </form>
       </Card>
 
-      <Card
-        title="Password"
-        footer={
-          <Button
-            variant="secondary"
-            disabled={sendReset.isPending || !user.is_active}
-            onClick={() =>
-              sendReset.mutate(undefined, {
-                onSuccess: (result) => toast.show(result.detail, 'success'),
-                onError: (error) => toast.show(error.message, 'error'),
-              })
-            }
-          >
-            {sendReset.isPending ? 'Sending…' : 'Send password reset'}
-          </Button>
-        }
-      >
-        <p className="muted">
-          {user.is_active
-            ? 'Emails a one-time link so they can choose a new password. You never see it.'
-            : 'Reactivate the account before sending a reset link.'}
-        </p>
-      </Card>
+      {isDonor ? null : (
+        <Card
+          title="Password"
+          footer={
+            <Button
+              variant="secondary"
+              disabled={sendReset.isPending || !user.is_active}
+              onClick={() =>
+                sendReset.mutate(undefined, {
+                  onSuccess: (result) => toast.show(result.detail, 'success'),
+                  onError: (error) => toast.show(error.message, 'error'),
+                })
+              }
+            >
+              {sendReset.isPending ? 'Sending…' : 'Send password reset'}
+            </Button>
+          }
+        >
+          <p className="muted">
+            {user.is_active
+              ? 'Emails a one-time link so they can choose a new password. You never see it.'
+              : 'Reactivate the account before sending a reset link.'}
+          </p>
+        </Card>
+      )}
     </Page>
   );
 }

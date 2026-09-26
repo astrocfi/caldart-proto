@@ -21,6 +21,7 @@ const MEMBERSHIP_TONE: Record<MembershipState, StatusTone> = {
   new: 'new',
   expired: 'expired',
   none: 'none',
+  friend: 'none',
 };
 
 /** Why the member is a no-go, in the order a leader would say them out loud. */

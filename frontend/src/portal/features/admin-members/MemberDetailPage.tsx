@@ -10,7 +10,7 @@ import type { JSX } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import type { MemberDetail } from '@/portal/api/types';
-import { roleLabel } from '@/portal/choices';
+import { ACCOUNT_KIND_LABELS, roleLabel } from '@/portal/choices';
 import { ButtonLink } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { DateText } from '@/portal/components/DateText';
@@ -136,6 +136,9 @@ function MemberHeader({ member }: { member: MemberDetail }) {
             </>
           )}
         </span>
+        {member.kind === 'donor' ? (
+          <span className="chip chip--neutral">{ACCOUNT_KIND_LABELS.donor}</span>
+        ) : null}
         {member.is_active ? null : <span className="chip chip--bad">Account deactivated</span>}
       </div>
       <p className="muted">

@@ -12,6 +12,7 @@
  * rather than records; `labelFor` turns one into a lookup.
  */
 import type {
+  AccountKind,
   CaliforniaCounty,
   IfrRated,
   MedicalType,
@@ -227,7 +228,7 @@ export const ROLE_CHOICES: Choice<RoleSlug>[] = (Object.keys(ROLE_LABELS) as Rol
 /**
  * What each computed membership state is called wherever a person reads it:
  * the member list's status filter, the member report, the DART leader's
- * status card, and the member's own status chip all show one of these four
+ * status card, and the member's own status chip all show one of these five
  * words for one and the same account.
  */
 export const MEMBERSHIP_STATUS_LABELS: Record<MembershipState, string> = {
@@ -235,6 +236,14 @@ export const MEMBERSHIP_STATUS_LABELS: Record<MembershipState, string> = {
   new: 'Unpaid',
   expired: 'Expired',
   none: 'No membership',
+  friend: 'Friend',
+};
+
+/** What each kind of account is called: a member pays dues, a friend does not. */
+export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
+  member: 'Member',
+  friend: 'Friend',
+  donor: 'Donor',
 };
 
 /**
