@@ -176,6 +176,8 @@ def send_receipt(payment: Payment) -> bool:
         "provider_label": provider_label(payment),
         "payments_url": payments_url(),
         "site_url": settings.SITE_URL.rstrip("/"),
+        # The template leaves the portal link out for a donor, who cannot sign in.
+        "user": payment.user,
     }
     try:
         send_templated(
