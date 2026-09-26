@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { useAuth, useLogin } from '@/portal/auth/useAuth';
+import { ApiError } from '@/portal/api/client';
+import { useAuth, useLogin, useReactivate } from '@/portal/auth/useAuth';
 import { Button } from '@/portal/components/Button';
+import { Card } from '@/portal/components/Card';
 import { Field } from '@/portal/components/Field';
 import { isGuidePath, openGuide } from '@/portal/guide';
 import { MaskedInput } from '@/portal/components/MaskedInput';
@@ -11,6 +13,16 @@ import { maskEmail } from '@/portal/masks';
 import { EMAIL_MESSAGE, isEmailAddress } from '@/portal/masks';
 import { AuthShell } from './AuthShell';
 import { FormAlert, fieldError } from './form';
+
+/** The `code` a sign-in refusal carries when the account is deactivated. */
+const DEACTIVATED_CODE = 'deactivated';
+
+/** True when `error` is the refusal of a deactivated account whose password matched. */
+function isDeactivated(error: unknown): error is ApiError {
+  if (!(error instanceof ApiError) || error.status !== 403) return false;
+  const body = error.body as Record<string, unknown> | null;
+  return body?.code === DEACTIVATED_CODE;
+}
 
 /** Only same-site paths are followed, so `?next=` cannot bounce off-site. */
 export function safeNext(raw: string | null): string {
@@ -22,6 +34,9 @@ export function safeNext(raw: string | null): string {
 /**
  * `/login` — email + password, honoring `?next=`.
  *
+ * A deactivated account whose password matched is offered reactivation: the same
+ * credentials go to `POST /auth/reactivate`, which signs the person in.
+ *
  * `next` is a portal route, except when it names a page of the user guide:
  * Django sends a signed-out reader here with the guide page as `next`, and the
  * guide lives outside the SPA, so that one is a full-page navigation.
@@ -30,6 +45,7 @@ export function LoginPage(): JSX.Element {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const login = useLogin();
+  const reactivate = useReactivate();
   const { isAuthenticated, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,6 +60,14 @@ export function LoginPage(): JSX.Element {
   }, [isSignedIn, isGuide, next]);
 
   if (isSignedIn) return isGuide ? <></> : <Navigate to={next} replace />;
+
+  const handleSignedIn = () => {
+    if (isGuide) {
+      openGuide(next);
+      return;
+    }
+    void navigate(next, { replace: true });
+  };
 
   return (
     <AuthShell
@@ -64,18 +88,8 @@ export function LoginPage(): JSX.Element {
             return;
           }
           setEmailError(null);
-          login.mutate(
-            { email, password },
-            {
-              onSuccess: () => {
-                if (isGuide) {
-                  openGuide(next);
-                  return;
-                }
-                void navigate(next, { replace: true });
-              },
-            },
-          );
+          reactivate.reset();
+          login.mutate({ email, password }, { onSuccess: handleSignedIn });
         }}
       >
         <Field
@@ -110,7 +124,7 @@ export function LoginPage(): JSX.Element {
           )}
         </Field>
 
-        <FormAlert error={login.error} handled={['email', 'password']} />
+        <FormAlert error={login.error} handled={['email', 'password', 'code']} />
 
         <div className="auth__actions">
           <Button type="submit" disabled={login.isPending}>
@@ -119,6 +133,20 @@ export function LoginPage(): JSX.Element {
           <Link to="/forgot-password">Forgot your password?</Link>
         </div>
       </form>
+
+      {isDeactivated(login.error) ? (
+        <Card title="Reactivate my account">
+          <p>{login.error.message}</p>
+          <p>Reactivating brings back your roles and any membership that has not yet run out.</p>
+          <FormAlert error={reactivate.error} />
+          <Button
+            disabled={reactivate.isPending}
+            onClick={() => reactivate.mutate({ email, password }, { onSuccess: handleSignedIn })}
+          >
+            {reactivate.isPending ? 'Reactivating…' : 'Reactivate my account'}
+          </Button>
+        </Card>
+      ) : null}
     </AuthShell>
   );
 }

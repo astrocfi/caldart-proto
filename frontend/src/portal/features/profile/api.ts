@@ -13,6 +13,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import { api } from '@/portal/api/client';
 import type {
   AttachedAircraft,
+  DeactivatePayload,
   MembershipDetail,
   PaymentSummary,
   Profile,
@@ -77,5 +78,22 @@ export function useDetachAircraft(): UseMutationResult<null, Error, number> {
   return useMutation({
     mutationFn: (aircraftId: number) => api.delete<null>(`/me/profile/aircraft/${aircraftId}`),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: PROFILE_KEY }),
+  });
+}
+
+/**
+ * Deactivates the signed-in member's own account through `POST /auth/deactivate`.
+ *
+ * The server ends the session, so on success every cached query is dropped and the
+ * auth-me cache reads signed out.
+ */
+export function useDeactivate(): UseMutationResult<null, Error, DeactivatePayload> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: DeactivatePayload) => api.post<null>('/auth/deactivate', payload),
+    onSuccess: () => {
+      queryClient.clear();
+      queryClient.setQueryData(AUTH_ME_KEY, null);
+    },
   });
 }

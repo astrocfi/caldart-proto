@@ -4,7 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { API, makeUser } from '@test/handlers';
+import { API, DEACTIVATED_LOGIN, makeUser, signInDeactivated } from '@test/handlers';
 import { makeTestQueryClient, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
@@ -226,5 +226,78 @@ describe('LoginPage layout', () => {
 
     const join = await screen.findByRole('link', { name: 'Join CalDART' });
     expect(join.closest('.auth__footer')).not.toBeNull();
+  });
+});
+
+describe('LoginPage reactivation', () => {
+  async function signInToDeactivated() {
+    await userEvent.type(await screen.findByLabelText(/email address/i), 'marta@example.org');
+    await userEvent.type(screen.getByLabelText(/password/i), 'correct-horse');
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  }
+
+  it('offers reactivation to a deactivated account whose password matched', async () => {
+    server.use(signInDeactivated());
+    renderLogin();
+    await signInToDeactivated();
+
+    expect(
+      await screen.findByText(
+        'Reactivating brings back your roles and any membership that has not yet run out.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the server sentence and never the bare code', async () => {
+    server.use(signInDeactivated());
+    renderLogin();
+    await signInToDeactivated();
+
+    expect(await screen.findByText(DEACTIVATED_LOGIN.detail)).toBeInTheDocument();
+    expect(screen.queryByText('deactivated')).not.toBeInTheDocument();
+  });
+
+  it('posts the same credentials to reactivate and continues as a sign-in', async () => {
+    let posted: unknown = null;
+    server.use(
+      signInDeactivated(),
+      http.post(`${API}/auth/reactivate`, async ({ request }) => {
+        posted = await request.json();
+        return HttpResponse.json(makeUser());
+      }),
+    );
+    renderLogin('/login?next=%2Fprofile');
+    await signInToDeactivated();
+    await userEvent.click(await screen.findByRole('button', { name: 'Reactivate my account' }));
+
+    await screen.findByRole('heading', { name: 'My profile' });
+    expect(posted).toEqual({ email: 'marta@example.org', password: 'correct-horse' });
+  });
+
+  it('shows why a reactivation was refused', async () => {
+    server.use(
+      signInDeactivated(),
+      http.post(`${API}/auth/reactivate`, () =>
+        HttpResponse.json({ detail: 'Incorrect email address or password.' }, { status: 400 }),
+      ),
+    );
+    renderLogin();
+    await signInToDeactivated();
+    await userEvent.click(await screen.findByRole('button', { name: 'Reactivate my account' }));
+
+    expect(await screen.findByText('Incorrect email address or password.')).toBeInTheDocument();
+  });
+
+  it('offers no reactivation for an ordinary wrong password', async () => {
+    server.use(
+      http.post(`${API}/auth/login`, () =>
+        HttpResponse.json({ detail: 'Incorrect email address or password.' }, { status: 400 }),
+      ),
+    );
+    renderLogin();
+    await signInToDeactivated();
+
+    await screen.findByText('Incorrect email address or password.');
+    expect(screen.queryByRole('button', { name: 'Reactivate my account' })).not.toBeInTheDocument();
   });
 });

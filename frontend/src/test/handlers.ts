@@ -119,6 +119,19 @@ export const handlers = [
   ),
 ];
 
+/** What `POST /auth/login` answers for a deactivated account whose password matched. */
+export const DEACTIVATED_LOGIN = {
+  detail: 'This account is deactivated. You can reactivate it.',
+  code: 'deactivated',
+} as const;
+
+/** Make `POST /auth/login` refuse as it does a deactivated account with the right password. */
+export function signInDeactivated(): HttpHandler {
+  return http.post(`${API}/auth/login`, () =>
+    HttpResponse.json(DEACTIVATED_LOGIN, { status: 403 }),
+  );
+}
+
 /** Convenience: make `/auth/me` answer with `user`. */
 export function signedInAs(user: User): HttpHandler {
   return http.get(`${API}/auth/me`, () => HttpResponse.json(user));
