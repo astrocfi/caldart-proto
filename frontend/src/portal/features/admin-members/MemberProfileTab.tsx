@@ -10,6 +10,7 @@ import { useDarts } from '@/portal/api/queries';
 import type { MemberDetail } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
+import { DateText } from '@/portal/components/DateText';
 import { useToast } from '@/portal/components/Toast';
 import { ProfileFieldsets } from '@/portal/features/profile/ProfileFieldsets';
 import { EMPTY_PROFILE_FORM, formToPatch, profileToForm } from '@/portal/features/profile/form';
@@ -76,6 +77,18 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
           errors={errors.account}
           withActive
         />
+        {/* AccountFields (shared with "New member") renders the email input as its
+            first field, so this reads as sitting under it without forking that
+            component just to interleave a line between two of its fields. */}
+        <p className="field__hint">
+          {member.email_verified_at ? (
+            <>
+              Verified <DateText value={member.email_verified_at} />
+            </>
+          ) : (
+            'Unverified'
+          )}
+        </p>
         <ProfileFieldsets
           value={profile}
           onChange={(next) => setProfile(next)}
