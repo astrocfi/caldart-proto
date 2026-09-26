@@ -13,7 +13,7 @@ from apps.aircraft.reports import AIRCRAFT_REPORT
 from apps.mail.reports import EMAIL_LOG_REPORT
 from apps.members.reports import MEMBER_REPORT
 from apps.payments.reconciliation import RECONCILIATION_REPORT
-from apps.payments.reports import CONTRIBUTION_REPORT, PAYMENT_REPORT
+from apps.payments.reports import CONTRIBUTION_REPORT, DONOR_REPORT, PAYMENT_REPORT
 from caldart.reports import Report
 
 #: The reports, by slug, in the order the portal lists them.
@@ -25,6 +25,7 @@ REPORTS: dict[str, Report] = {
         PAYMENT_REPORT,
         RECONCILIATION_REPORT,
         CONTRIBUTION_REPORT,
+        DONOR_REPORT,
         EMAIL_LOG_REPORT,
     )
 }

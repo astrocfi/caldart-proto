@@ -69,6 +69,7 @@ NO_ROLE_DENIED_GETS = [
     "/api/v1/reports/subscriptions",
     "/api/v1/reports/rosters",
     "/api/v1/admin/payments",
+    "/api/v1/admin/payments/donors",
     "/api/v1/admin/reminders/log",
     "/api/v1/system/emails",
     "/api/v1/system/emails/purposes",
@@ -433,6 +434,9 @@ def test_treasurer_reaches_the_finance_reports(treasurer_client: APIClient) -> N
         "/api/v1/reports/payments/export.csv",
         "/api/v1/reports/reconciliation/export.pdf",
         "/api/v1/reports/contributions/columns",
+        "/api/v1/reports/donors/export.csv",
+        "/api/v1/reports/donors/columns",
+        "/api/v1/admin/payments/donors",
     ],
 )
 def test_treasurer_downloads_the_money_reports(treasurer_client: APIClient, url: str) -> None:

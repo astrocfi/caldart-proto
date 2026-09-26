@@ -24,7 +24,13 @@ from apps.members.models import MembershipPlan
 from apps.members.reports import MEMBER_REPORT, RowContext
 from apps.payments.models import Payment, PaymentProvider, PaymentStatus
 from apps.payments.reconciliation import RECONCILIATION_REPORT, ReconciliationRow
-from apps.payments.reports import CONTRIBUTION_REPORT, PAYMENT_REPORT, ContributionRow
+from apps.payments.reports import (
+    CONTRIBUTION_REPORT,
+    DONOR_REPORT,
+    PAYMENT_REPORT,
+    ContributionRow,
+    DonorRow,
+)
 from apps.reports.permissions import can_read_report
 from apps.reports.registry import REPORTS, report_or_404
 from caldart.reports import Params, ReportSpec
@@ -40,20 +46,22 @@ DAY = date(2026, 9, 25)
 # --------------------------------------------------------------------------
 # The registry
 # --------------------------------------------------------------------------
-def test_the_registry_holds_the_six_reports_by_slug() -> None:
-    """Members, aircraft, payments, reconciliation, contributions and emails, by slug."""
+def test_the_registry_holds_the_seven_reports_by_slug() -> None:
+    """Members, aircraft, payments, reconciliation, contributions, donors, and emails."""
     assert list(REPORTS) == [
         "members",
         "aircraft",
         "payments",
         "reconciliation",
         "contributions",
+        "donors",
         "emails",
     ]
 
 
 @pytest.mark.parametrize(
-    "slug", ["members", "aircraft", "payments", "reconciliation", "contributions", "emails"]
+    "slug",
+    ["members", "aircraft", "payments", "reconciliation", "contributions", "donors", "emails"],
 )
 def test_each_report_is_filed_under_its_own_slug(slug: str) -> None:
     """The key a report is registered under is the slug it declares."""
@@ -79,6 +87,7 @@ def test_report_or_404_refuses_an_unknown_slug() -> None:
         ("payments", (TREASURER, ACCOUNT_ADMIN)),
         ("reconciliation", (TREASURER, ACCOUNT_ADMIN)),
         ("contributions", (TREASURER, ACCOUNT_ADMIN)),
+        ("donors", (TREASURER,)),
     ],
 )
 def test_each_report_names_the_roles_that_may_read_it(slug: str, roles: tuple[str, ...]) -> None:
@@ -94,6 +103,7 @@ def test_each_report_names_the_roles_that_may_read_it(slug: str, roles: tuple[st
         ("payments", (True, True, True)),
         ("reconciliation", (False, False, False)),
         ("contributions", (False, False, True)),
+        ("donors", (True, True, True)),
     ],
 )
 def test_each_report_declares_its_columns_orientation_and_periods(
@@ -112,6 +122,7 @@ def test_each_report_declares_its_columns_orientation_and_periods(
         ("payments", "CalDART payments", "caldart-payments"),
         ("reconciliation", "CalDART reconciliation", "caldart-reconciliation"),
         ("contributions", "CalDART contributions", "caldart-contributions"),
+        ("donors", "Donors", "caldart-donors"),
     ],
 )
 def test_each_report_carries_its_title_and_file_name(slug: str, title: str, stem: str) -> None:
@@ -128,6 +139,7 @@ def test_each_report_carries_its_title_and_file_name(slug: str, title: str, stem
         ("payments", {TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN}),
         ("reconciliation", {TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN}),
         ("contributions", {TREASURER, ACCOUNT_ADMIN, SYSTEM_ADMIN}),
+        ("donors", {TREASURER, SYSTEM_ADMIN}),
     ],
 )
 def test_can_read_report_admits_the_report_roles_and_the_system_administrator(
@@ -344,6 +356,37 @@ def test_the_contributions_report_names_the_year_even_by_default(today: date) ->
     assert CONTRIBUTION_REPORT.query({}).filters == {"year": str(today.year)}
 
 
+def test_the_donors_report_answers_the_rows_the_screen_answers(
+    treasurer_client: APIClient,
+) -> None:
+    """The donors report and ``GET /admin/payments/donors`` agree row for row."""
+    giver = UserFactory(
+        email="giver@example.test",
+        first_name="Gil",
+        last_name="Giver",
+        kind="donor",
+    )
+    PaymentFactory(
+        user=giver,
+        plan=None,
+        status=PaymentStatus.SUCCEEDED,
+        contribution_cents=2500,
+        plan_amount_cents=0,
+        amount_cents=2500,
+    )
+    expected = treasurer_client.get("/api/v1/admin/payments/donors").json()
+    rows: list[DonorRow] = list(DONOR_REPORT.query({}).rows)
+    actual = [
+        {
+            **row,
+            "first_gift": row["first_gift"].isoformat() if row["first_gift"] else None,
+            "last_gift": row["last_gift"].isoformat() if row["last_gift"] else None,
+        }
+        for row in rows
+    ]
+    assert actual == expected
+
+
 # --------------------------------------------------------------------------
 # Periods
 # --------------------------------------------------------------------------
@@ -354,18 +397,22 @@ def test_the_contributions_report_names_the_year_even_by_default(today: date) ->
         (PAYMENT_REPORT, "this_year", {"from": "2026-01-01", "to": "2026-12-31"}),
         (CONTRIBUTION_REPORT, "last_year", {"year": "2025"}),
         (CONTRIBUTION_REPORT, "this_month", {"year": "2026"}),
+        (DONOR_REPORT, "last_month", {"from": "2026-08-01", "to": "2026-08-31"}),
     ],
     ids=[
         "payments-last-month",
         "payments-this-year",
         "contributions-last-year",
         "contributions-now",
+        "donors-last-month",
     ],
 )
 def test_a_dated_report_resolves_a_period_into_its_own_params(
-    spec: ReportSpec[Payment] | ReportSpec[ContributionRow], period: str, expected: dict[str, str]
+    spec: ReportSpec[Payment] | ReportSpec[ContributionRow] | ReportSpec[DonorRow],
+    period: str,
+    expected: dict[str, str],
 ) -> None:
-    """Payments take a date range and contributions a year; ``period`` is dropped."""
+    """Payments and donors take a date range, contributions a year; ``period`` drops."""
     assert spec.resolve({"period": period, "columns": "total"}, DAY) == {
         "columns": "total",
         **expected,

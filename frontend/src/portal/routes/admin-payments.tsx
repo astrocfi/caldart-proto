@@ -64,4 +64,16 @@ export const adminPaymentsRoutes: RouteObject[] = [
       },
     ],
   },
+  {
+    // The treasurer's own: an account administrator does not reach it.
+    element: <RequireRole roles={['treasurer']} />,
+    children: [
+      {
+        path: 'admin/payments/donors',
+        lazy: async () => ({
+          Component: (await import('../features/admin-payments/DonorsPage')).DonorsPage,
+        }),
+      },
+    ],
+  },
 ];

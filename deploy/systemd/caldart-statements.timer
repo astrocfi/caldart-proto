@@ -1,0 +1,33 @@
+# Yearly trigger for the CalDART contribution statements.
+#
+# Deploy path: /srv/caldart. Enable with:
+#   sudo systemctl enable --now caldart-statements.timer
+# Inspect with:
+#   systemctl list-timers caldart-statements.timer
+
+[Unit]
+Description=Send the CalDART contribution statements yearly on January 15th
+Documentation=file:///srv/caldart/docs/developer/deployment.rst
+
+[Timer]
+Unit=caldart-statements.service
+
+# 06:45 on January 15th every year, in the system timezone -- well after the
+# other three daily jobs, and late enough into the new year that every
+# provider has settled the prior December's payments.
+OnCalendar=*-01-15 06:45:00
+
+# If the machine was off or suspended at the trigger, run as soon as it comes
+# back rather than waiting a whole year.
+Persistent=true
+
+# Statements are date-driven, not time-critical to the second; letting systemd
+# coalesce the wakeup is cheaper.
+AccuracySec=1min
+
+# Spread the start over five minutes so the run does not land at the same
+# instant as every other job on the host.
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

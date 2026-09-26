@@ -86,6 +86,7 @@ RENEWAL_ENABLE = "renewal.enable"
 RENEWAL_CANCEL = "renewal.cancel"
 RENEWAL_CHANGE = "renewal.change"
 RENEWALS_RUN = "renewals.run"
+STATEMENTS_RUN = "statements.run"
 
 # -- why an attempt was turned away -----------------------------------------
 REASON_SELF_DEACTIVATION = "self_deactivation"

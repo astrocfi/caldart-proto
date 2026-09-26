@@ -530,6 +530,33 @@ class RenewalAttempt(TimestampedModel):
         return f"{self.mandate.user} \u00b7 {self.scheduled_on.isoformat()} ({self.outcome})"
 
 
+class YearStatement(TimestampedModel):
+    """A record that CalDART emailed one account its contribution statement for a year.
+
+    Written only once the email has gone, so a rerun of
+    ``apps.payments.statements.send_year_statements`` never sends the same account
+    the same year's statement twice.  Unique on ``(user, year)``.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="year_statements",
+    )
+    year = models.PositiveSmallIntegerField()
+    sent_at = models.DateTimeField(help_text="When the statement email went out.")
+
+    class Meta:
+        ordering = ["-year", "user_id"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "year"], name="year_statement_unique"),
+        ]
+
+    def __str__(self) -> str:
+        """The member and the year, e.g. ``Marta Reyes 2026``."""
+        return f"{self.user} {self.year}"
+
+
 def payment_deletion_refusal(user: User) -> str | None:
     """The reason ``user`` cannot be deleted, or ``None`` when nothing stops it.
 

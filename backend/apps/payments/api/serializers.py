@@ -38,7 +38,7 @@ from apps.payments.renewals import (
     mandate_kind,
     renewal_amount_cents,
 )
-from apps.payments.reports import ContributionRow, PeriodSummary
+from apps.payments.reports import FIRST_REPORTABLE_YEAR, ContributionRow, DonorRow, PeriodSummary
 from caldart.runs import RunActionSerializer
 
 
@@ -866,6 +866,56 @@ class ContributionRowSerializer(serializers.Serializer[ContributionRow]):
     contribution_cents = serializers.IntegerField()
     refunded_cents = serializers.IntegerField()
     net_contribution_cents = serializers.IntegerField()
+
+
+class DonorRowSerializer(serializers.Serializer[DonorRow]):
+    """One row of ``GET /admin/payments/donors``."""
+
+    user_id = serializers.IntegerField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    phone = serializers.CharField()
+    city = serializers.CharField()
+    state = serializers.CharField()
+    county = serializers.CharField()
+    dart = serializers.CharField()
+    first_gift = serializers.DateField(allow_null=True)
+    last_gift = serializers.DateField(allow_null=True)
+    gifts = serializers.IntegerField()
+    given_cents = serializers.IntegerField()
+    refunded_cents = serializers.IntegerField()
+    net_cents = serializers.IntegerField()
+    active = serializers.BooleanField()
+
+
+class StatementsRunRequestSerializer(serializers.Serializer[dict[str, Any]]):
+    """``POST /system/statements/run`` body: ``dry_run`` and an optional ``year``.
+
+    A ``year`` outside :data:`~apps.payments.reports.FIRST_REPORTABLE_YEAR` to
+    nine thousand is a 400, the same range
+    :class:`~apps.payments.reports.ContributionQuerySerializer` enforces:
+    anything further out is a typo rather than a real calendar year, and
+    Django cannot build a date from one anyway.
+    """
+
+    dry_run = serializers.BooleanField(default=False)
+    year = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        min_value=FIRST_REPORTABLE_YEAR,
+        max_value=9_000,
+    )
+
+
+class StatementsRunResultSerializer(serializers.Serializer[dict[str, Any]]):
+    """The counts one year-end statement run reports, and who they were about."""
+
+    year = serializers.IntegerField()
+    sent = serializers.IntegerField()
+    skipped = serializers.IntegerField()
+    failed = serializers.IntegerField()
+    actions = RunActionSerializer(many=True)
 
 
 class LedgerMemberSerializer(serializers.Serializer[dict[str, Any]]):

@@ -9,6 +9,7 @@ app_name = "sysadmin"
 urlpatterns = [
     path("system/health", views.HealthView.as_view(), name="health"),
     path("system/renewals/run", views.RenewalRunView.as_view(), name="renewals-run"),
+    path("system/statements/run", views.StatementsRunView.as_view(), name="statements-run"),
     path("system/backups", views.BackupListCreateView.as_view(), name="backups"),
     # ``path:`` rather than ``str:`` on purpose: a traversal attempt should
     # reach the view and be rejected there, not fall through to a 404 from the

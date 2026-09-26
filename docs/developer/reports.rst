@@ -3,7 +3,7 @@ Reports
 =======
 
 CalDART exports data as CSV, for a spreadsheet, and as PDF, for a board pack.
-There are six reports, and every one of them is built by the same code: each
+There are seven reports, and every one of them is built by the same code: each
 app declares what its report is — its columns, who may read it, and the query
 that finds its rows — as a ``ReportSpec``, and ``build_report`` in
 ``backend/caldart/reports.py`` turns any spec into either file.  The endpoints
@@ -39,13 +39,17 @@ documents them.
      - Contributions list
      - ``apps/payments/reports.py``
      - ``treasurer``, ``account_admin``
+   * - ``donors``
+     - Donors
+     - ``apps/payments/reports.py``
+     - ``treasurer``
    * - ``emails``
      - Email log
      - ``apps/mail/reports.py``
      - ``system_admin``
 
 A ``system_admin`` and a Django superuser read every report.
-``apps/reports/registry.py`` gathers the six specs into ``REPORTS``, keyed by
+``apps/reports/registry.py`` gathers the seven specs into ``REPORTS``, keyed by
 slug, and ``apps/reports/permissions.py`` decides who may read one with
 ``can_read_report(user, spec)``, which is ``user_has_any_role`` over the spec's
 roles.
@@ -464,7 +468,7 @@ PDF subtitle names every one given a value, from ``EXPORT_FILTER_PARAMS`` in
 The payments reports
 ====================
 
-Three reports come out of ``backend/apps/payments/``, all of them for the
+Four reports come out of ``backend/apps/payments/``, all of them for the
 finance roles, with the tables they download documented in :doc:`api-finance`.
 
 The payment list
@@ -518,6 +522,28 @@ the year-end acknowledgments go out from.  The year is ``?year=``, the year a
 names it.  A payment falls in the year of its ``paid_date``, so a check received in
 December and keyed in January counts in the year it arrived, the same year the
 period summary puts it in.
+
+The donors report
+------------------
+
+``donors``, for ``treasurer`` alone — the one report in the list an account
+administrator does not read, since a donor's giving is money the treasurer
+tracks rather than a member record.  ``donor_rows`` in
+``backend/apps/payments/reports.py`` answers one row per account of kind
+``donor`` with at least one settled contribution in the range: how many gifts,
+the first and the last, what was given, what came back, the net, and the
+account's contact details and DART.  ``county``, ``dart``, ``refunded`` and
+``active`` are off by default; the everyday view is who gave, how much, and
+when.
+
+The filters are ``search`` (a name or address), ``county`` (several at once,
+comma-separated, the same as the member list's), ``dart`` (by id or by a
+fragment of its name), ``min_cents`` and ``max_cents`` (bounding a donor's
+total giving over the range, not any one gift), and ``?period=``, which
+resolves to ``from``/``to`` exactly as the payments report's does.
+``GET /admin/payments/donors`` answers the same rows on screen, for the
+Donors tab of the finance area (:doc:`api-finance`); the CSV and PDF downloads
+are the same query.
 
 The period summary
 ------------------

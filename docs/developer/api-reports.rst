@@ -5,8 +5,8 @@ API: reports
 ============
 
 Every report the portal downloads — the membership report, the aircraft
-register, the payment list, the reconciliation table, the contributions list
-and the email log — is served by the same three endpoints under ``/api/v1/reports/``, from
+register, the payment list, the reconciliation table, the contributions list,
+the donors report and the email log — is served by the same three endpoints under ``/api/v1/reports/``, from
 ``apps.reports``.  A report is named by its **slug** in the URL; the reports,
 their columns and the code that builds them are described in :doc:`reports`.
 The same app keeps each account's saved sets of a report's columns
@@ -52,6 +52,11 @@ superuser read every one:
      - CalDART contributions
      - ``treasurer``, ``account_admin``
      - fixed
+     - yes
+   * - ``donors``
+     - Donors
+     - ``treasurer``
+     - chosen
      - yes
    * - ``emails``
      - CalDART email log
@@ -114,7 +119,7 @@ Parameter          Effect
 The report's       Exactly the filters the report's own list takes, applied the
 filters            same way: :doc:`api-members` for ``members``,
                    :doc:`api-aircraft` for ``aircraft``, :doc:`api-finance`
-                   for the three money reports, and :doc:`api-system` for
+                   for the four money reports, and :doc:`api-system` for
                    ``emails``.  A value the list refuses is
                    refused here with the same **400**, keyed by the parameter.
 ``ordering``       The list's own ordering, with the list's own rules: the
@@ -129,10 +134,10 @@ filters            same way: :doc:`api-members` for ``members``,
                    ``{"columns": ["This report's columns are fixed."]}``.
 ``period``         ``this_month``, ``last_month``, ``this_year`` or
                    ``last_year``, counted from the day the report is built.  The
-                   payments report turns it into ``from`` and ``to`` (the first
-                   and last day of the period), the contributions report into
-                   ``year``; either way the period wins over those parameters.
-                   Any other value is
+                   payments and donors reports turn it into ``from`` and ``to``
+                   (the first and last day of the period), the contributions
+                   report into ``year``; either way the period wins over those
+                   parameters.  Any other value is
                    ``{"period": ["Unknown period '<value>'."]}``.  A report
                    without periods ignores the parameter.
 =================  ============================================================
@@ -141,7 +146,8 @@ filters            same way: :doc:`api-members` for ``members``,
 
 The file is named ``<stem>-<YYYY-MM-DD>.<csv|pdf>``, dated the day it was built:
 ``caldart-members``, ``caldart-aircraft``, ``caldart-payments``,
-``caldart-reconciliation``, ``caldart-contributions`` or ``caldart-emails``.
+``caldart-reconciliation``, ``caldart-contributions``, ``caldart-donors`` or
+``caldart-emails``.
 
 Statuses:
 

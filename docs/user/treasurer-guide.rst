@@ -27,7 +27,10 @@ A tab bar sits at the top of every finance screen:
 * **Renewals** — the automatic renewals and recurring donations people have set up, and
   the charges against them;
 * **Reconciliation** — the period table built for a bank statement;
-* **Contributions** — the year-end acknowledgment list.
+* **Contributions** — the year-end acknowledgment list;
+* **Donors** — everyone who has given through the public donation page, and
+  what each of them has given.  This one tab is yours alone: an account
+  administrator, who reads every other one, does not see it.
 
 Opening one payment, one member's ledger or the form that records a check
 leaves the bar in place, with **Payments** marked, so you always know where in
@@ -89,8 +92,8 @@ Each filter applies as soon as you set it; a typed one applies once you pause.
 **Reset to Defaults** empties them all.  The filters, the sort order, and the page you are
 on are kept in the page's address, so a filtered list can be bookmarked or sent
 to another treasurer, and the browser's back button steps back through the
-filters you applied.  The Overview, Reconciliation, and Contributions tabs keep
-their filters in the address the same way.
+filters you applied.  The Overview, Reconciliation, Contributions, and Donors
+tabs keep their filters in the address the same way.
 
 Click a column heading to sort by it; sorting and paging apply to the whole
 report, not just the page on screen.
@@ -222,6 +225,32 @@ tell |org|; a user administrator corrects a mistyped address from the donor's
 account (:doc:`user-administrator`).  The public page refuses an address that
 already belongs to a member or a friend, and sends that person to sign in and
 give from the portal, so their gifts stay on their own record.
+
+Donors and their giving
+========================
+
+A **donor** gives through the public donation page without ever creating a
+portal account: |org| keeps a record of them, with no password and no way to
+sign in, so their gifts can be receipted and reported.  Donors appear nowhere
+in the member list, the member report, a roster, or the leader's member check
+-- the **Donors** tab is the one place you read them.
+
+One row per donor, over the date range or period you choose: name, email,
+phone, city, how many gifts, when the first and the last arrived, what they
+gave, and the difference once anything refunded is taken off.  **Search**
+matches a name or an address; **County** takes several counties at once, the
+same way the member list's does; **DART** narrows to one team; **At least** /
+**At most** bound the total given, in whole dollars.  County, DART, the
+refunded amount, and whether the account is active are off by default --
+turn them on from the column chooser when a mailing list or an audit needs
+them. Export it as a CSV for a mailing list, or as a PDF for the board.
+
+A donor's giving also counts toward the year-end contribution statement every
+active account is sent, the same one a member downloads from their own
+Payments screen; the sender itself is a system administrator's job, described
+in :doc:`system-administrator-guide`.  A donor's account can be found and its
+address fixed by a user administrator, who sees it flagged **Donor** on the
+account (:doc:`user-administrator`).
 
 A member's ledger
 =================

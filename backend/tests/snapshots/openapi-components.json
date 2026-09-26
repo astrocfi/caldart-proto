@@ -714,6 +714,42 @@
       "stripe_publishable_key"
     ]
   },
+  "DonorRow": {
+    "properties": {
+      "active": "boolean",
+      "city": "string",
+      "county": "string",
+      "dart": "string",
+      "email": "string(email)",
+      "first_gift": "string(date)|null",
+      "gifts": "integer",
+      "given_cents": "integer",
+      "last_gift": "string(date)|null",
+      "name": "string",
+      "net_cents": "integer",
+      "phone": "string",
+      "refunded_cents": "integer",
+      "state": "string",
+      "user_id": "integer"
+    },
+    "required": [
+      "active",
+      "city",
+      "county",
+      "dart",
+      "email",
+      "first_gift",
+      "gifts",
+      "given_cents",
+      "last_gift",
+      "name",
+      "net_cents",
+      "phone",
+      "refunded_cents",
+      "state",
+      "user_id"
+    ]
+  },
   "EmailChangeRequest": {
     "properties": {
       "current_password": "string",
@@ -2445,6 +2481,7 @@
       "payments",
       "reconciliation",
       "contributions",
+      "donors",
       "emails"
     ]
   },
@@ -2716,6 +2753,29 @@
     },
     "required": [
       "years"
+    ]
+  },
+  "StatementsRunRequestRequest": {
+    "properties": {
+      "dry_run": "boolean",
+      "year": "integer|null"
+    },
+    "required": []
+  },
+  "StatementsRunResult": {
+    "properties": {
+      "actions": "array<ref:RunAction>",
+      "failed": "integer",
+      "sent": "integer",
+      "skipped": "integer",
+      "year": "integer"
+    },
+    "required": [
+      "actions",
+      "failed",
+      "sent",
+      "skipped",
+      "year"
     ]
   },
   "StripeCheckoutClient": {

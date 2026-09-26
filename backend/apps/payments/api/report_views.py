@@ -28,11 +28,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.accounts.permissions import IsFinance
+from apps.accounts.permissions import HasRole, IsFinance
+from apps.accounts.roles import TREASURER
 from apps.members.services import membership_status
 from apps.payments import reconciliation, reports
 from apps.payments.api.serializers import (
     ContributionRowSerializer,
+    DonorRowSerializer,
     FinanceMemberSerializer,
     FinancePaymentDetailSerializer,
     FinancePaymentSerializer,
@@ -172,6 +174,32 @@ class AdminContributionsView(ContributionBaseView):
         """
         rows = self.rows(self.year(request))
         serializer = ContributionRowSerializer(rows, many=True)  # type: ignore[arg-type]
+        return Response(serializer.data)
+
+
+class AdminDonorsView(APIView):
+    """``GET /admin/payments/donors`` -- the donors report's rows, on screen.
+
+    A treasurer's own screen: unlike the rest of the finance area, an account
+    administrator does not reach it, since a donor's giving is money the
+    treasurer tracks rather than a member record the account administrator
+    manages.
+    """
+
+    permission_classes = [IsAuthenticated, HasRole(TREASURER)]
+
+    @extend_schema(responses={200: DonorRowSerializer(many=True)})
+    def get(self, request: Request) -> Response:
+        """200 with one row per donor who gave in the range asked for.
+
+        The query string is the donors report's own: ``search``, ``county``
+        (comma-separated), ``dart`` (id or a fragment of its name),
+        ``min_cents``, ``max_cents``, ``from`` and ``to``.  400 for a parameter
+        the report will not act on, 403 without the treasurer role.
+        """
+        query = reports.validated_donor_query(request.query_params)
+        rows = reports.donor_rows(query.to_filters())
+        serializer = DonorRowSerializer(rows, many=True)  # type: ignore[arg-type]
         return Response(serializer.data)
 
 

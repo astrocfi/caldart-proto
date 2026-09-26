@@ -11,6 +11,7 @@ const SLUGS: ReportSlug[] = [
   'payments',
   'reconciliation',
   'contributions',
+  'donors',
   'emails',
 ];
 
@@ -116,6 +117,29 @@ describe('REPORTS', () => {
     expect(keysOf('contributions')).toEqual(['year', 'period']);
   });
 
+  it('filters donors by date, search, county, DART, amount, and period', () => {
+    expect(keysOf('donors')).toEqual([
+      'from',
+      'to',
+      'search',
+      'county',
+      'dart',
+      'min_cents',
+      'max_cents',
+      'period',
+    ]);
+  });
+
+  it('lets the donors county filter take several counties', () => {
+    const county = REPORTS.donors.filters.find((field) => field.key === 'county');
+    expect(county?.kind).toBe('multiselect');
+  });
+
+  it('types and shows the donor amounts in dollars', () => {
+    const amounts = REPORTS.donors.filters.filter((field) => field.isDollars === true);
+    expect(amounts.map((field) => field.key)).toEqual(['min_cents', 'max_cents']);
+  });
+
   it('filters the email log by purpose, status, date range and search', () => {
     expect(keysOf('emails')).toEqual(['purpose', 'status', 'from', 'to', 'q']);
   });
@@ -125,12 +149,17 @@ describe('REPORTS', () => {
       'members',
       'aircraft',
       'payments',
+      'donors',
       'emails',
     ]);
   });
 
-  it('takes a period only on the payments and contributions reports', () => {
-    expect(SLUGS.filter((slug) => REPORTS[slug].periods)).toEqual(['payments', 'contributions']);
+  it('takes a period on the payments, contributions, and donors reports', () => {
+    expect(SLUGS.filter((slug) => REPORTS[slug].periods)).toEqual([
+      'payments',
+      'contributions',
+      'donors',
+    ]);
   });
 
   it.each(SLUGS)('offers a period on %s exactly when the report takes one', (slug) => {

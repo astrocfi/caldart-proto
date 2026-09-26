@@ -23,6 +23,7 @@ import type {
   ReminderRunResult,
   RenewalRunResult,
   ReportRunResult,
+  StatementsRunResult,
 } from '@/portal/api/types';
 import { ROSTERS_KEY, SUBSCRIPTIONS_KEY } from '@/portal/reports/api';
 import type { FilterValues } from '@/portal/reports/types';
@@ -137,6 +138,34 @@ export function useRunScheduledReports(): UseMutationResult<ReportRunResult, unk
       if (dryRun) return;
       void queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
       void queryClient.invalidateQueries({ queryKey: ROSTERS_KEY });
+      void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
+    },
+  });
+}
+
+/** What a statements run is asked for: the year, and whether it is a rehearsal. */
+export interface StatementsRunOptions {
+  year: number;
+  dryRun: boolean;
+}
+
+/**
+ * Runs the year-end statement sender (or a rehearsal) via `POST /system/statements/run`.
+ *
+ * A real run writes `YearStatement` rows and sends mail, so the email log is
+ * read again; a dry run changes nothing.
+ */
+export function useRunStatements(): UseMutationResult<
+  StatementsRunResult,
+  unknown,
+  StatementsRunOptions
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ year, dryRun }: StatementsRunOptions) =>
+      api.post<StatementsRunResult>('/system/statements/run', { year, dry_run: dryRun }),
+    onSuccess: (_result, { dryRun }) => {
+      if (dryRun) return;
       void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
     },
   });

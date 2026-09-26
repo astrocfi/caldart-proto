@@ -3,6 +3,7 @@ import type { HttpHandler } from 'msw';
 
 import type {
   AdminUser,
+  DonorRow,
   MembershipStatus,
   Payment,
   PaymentPeriodSummary,
@@ -74,6 +75,28 @@ export function makeAdminUser(overrides: Partial<AdminUser> = {}): AdminUser {
     ...makeUser(userOverrides),
     email_verified: email_verified_at !== null,
     email_verified_at,
+  };
+}
+
+/** Build a `GET /admin/payments/donors` row without repeating every field in each test. */
+export function makeDonorRow(overrides: Partial<DonorRow> = {}): DonorRow {
+  return {
+    user_id: 1,
+    name: 'Dana Doe',
+    email: 'dana@example.org',
+    phone: '415-555-0100',
+    city: 'Concord',
+    state: 'CA',
+    county: 'Contra Costa',
+    dart: '',
+    first_gift: '2026-01-10',
+    last_gift: '2026-01-10',
+    gifts: 1,
+    given_cents: 5000,
+    refunded_cents: 0,
+    net_cents: 5000,
+    active: true,
+    ...overrides,
   };
 }
 

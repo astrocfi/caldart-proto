@@ -8,6 +8,7 @@ command line deliberately; it is not something to do from a browser tab.
 from __future__ import annotations
 
 from django.http import FileResponse
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
@@ -20,8 +21,11 @@ from apps.accounts.permissions import IsSystemAdmin
 from apps.payments.api.serializers import (
     RenewalRunRequestSerializer,
     RenewalRunResultSerializer,
+    StatementsRunRequestSerializer,
+    StatementsRunResultSerializer,
 )
 from apps.payments.renewals import run_auto_renewals
+from apps.payments.statements import send_year_statements
 from apps.sysadmin import services
 from apps.sysadmin.api.serializers import BackupSerializer, HealthSerializer
 from caldart import audit
@@ -172,3 +176,30 @@ class RenewalRunView(APIView):
         payload.is_valid(raise_exception=True)
         run = run_auto_renewals(dry_run=payload.validated_data["dry_run"], actor=_actor(request))
         return Response(RenewalRunResultSerializer(run.as_dict()).data)
+
+
+class StatementsRunView(APIView):
+    """``POST /system/statements/run`` -- run the year-end statement sender now."""
+
+    permission_classes = [IsSystemAdmin]
+
+    @extend_schema(
+        request=StatementsRunRequestSerializer, responses={200: StatementsRunResultSerializer}
+    )
+    def post(self, request: Request) -> Response:
+        """Run the sender and return its counts with status 200.
+
+        The body takes ``dry_run``, defaulting to ``False``, and ``year``,
+        defaulting to the calendar year before today.  A dry run writes and
+        emails nothing and reports the accounts a live run would reach.  The
+        answer is ``{year, sent, skipped, failed, actions}``, where ``actions``
+        names every account the run emailed -- or, in a rehearsal, would have --
+        and the caller is recorded as the actor on the ``statements.run`` audit
+        record.
+        """
+        payload = StatementsRunRequestSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = payload.validated_data
+        year = data["year"] if data["year"] is not None else timezone.localdate().year - 1
+        run = send_year_statements(year, dry_run=data["dry_run"], actor=_actor(request))
+        return Response(StatementsRunResultSerializer(run.as_dict()).data)

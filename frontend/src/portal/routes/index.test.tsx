@@ -90,6 +90,9 @@ vi.mock('../features/admin-payments/ReconciliationPage', () => ({
 vi.mock('../features/admin-payments/ContributionsPage', () => ({
   ContributionsPage: pageStub('Contributions'),
 }));
+vi.mock('../features/admin-payments/DonorsPage', () => ({
+  DonorsPage: pageStub('Donors'),
+}));
 vi.mock('../features/admin-reminders/AdminRemindersPage', () => ({
   AdminRemindersPage: pageStub('Reminders'),
 }));
@@ -215,6 +218,11 @@ const GUARDED_PATHS: GuardedPath[] = [
     path: '/admin/payments/contributions',
     heading: 'Contributions',
     allowed: ['account_admin', 'treasurer', 'system_admin'],
+  },
+  {
+    path: '/admin/payments/donors',
+    heading: 'Donors',
+    allowed: ['treasurer', 'system_admin'],
   },
   {
     path: '/admin/payments/record',

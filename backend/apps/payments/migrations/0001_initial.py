@@ -144,4 +144,22 @@ class Migration(migrations.Migration):
             model_name='renewalattempt',
             constraint=models.UniqueConstraint(condition=models.Q(('outcome', 'scheduled')), fields=('mandate',), name='renewal_attempt_one_scheduled_per_mandate'),
         ),
+        migrations.CreateModel(
+            name='YearStatement',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('year', models.PositiveSmallIntegerField()),
+                ('sent_at', models.DateTimeField(help_text='When the statement email went out.')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='year_statements', to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'ordering': ['-year', 'user_id'],
+            },
+        ),
+        migrations.AddConstraint(
+            model_name='yearstatement',
+            constraint=models.UniqueConstraint(fields=('user', 'year'), name='year_statement_unique'),
+        ),
     ]
