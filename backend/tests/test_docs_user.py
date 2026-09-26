@@ -52,9 +52,9 @@ BANNED_WORDS = (
     "crucial",
 )
 
-EM_DASH = "—"
+EM_DASH = "\u2014"
 
-#: The contrast construction: "X, not Y", "X — not Y", and "X rather than Y".
+#: The contrast construction: "X, not Y", "X \u2014 not Y", and "X rather than Y".
 CONTRAST_PATTERNS = (r",\s+not\s", EM_DASH + r"\s*not\s", r"\brather than\b")
 
 #: The most em dashes one page may carry.
