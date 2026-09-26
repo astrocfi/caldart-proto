@@ -64,8 +64,27 @@ until you sort it otherwise.
 **Account status**
    *Active and deactivated* (the default), *Active only* or *Deactivated only*.
 
-Each row shows the person's roles, their membership status chip, and whether the
-account is active.  Click their name to open the record.
+**Kind of account**
+   *Every kind* (the default), *Member*, *Friend* or *Donor*: see
+   :ref:`kinds-of-account`.
+
+Each row shows the person's roles, the kind of account, their membership status
+chip, and whether the account is active.  Click their name to open the record.
+
+Donor accounts
+--------------
+
+A donor gave through the public site without joining.  The account keeps the
+gifts and receipts, but holds no password and no role, and cannot sign in.
+Donors appear nowhere but here and in the treasurer's reports, so this list is
+where you find one — filter by *Donor* — when a receipt went to a mistyped
+address and the email needs correcting.
+
+A donor's record says **Donor** at the top.  It offers no **Send password
+reset** and no **Resend verification message**, because neither link would
+lead anywhere, and the server refuses both if asked directly.  The kind itself
+is not yours to change: a donor becomes a member or a friend by registering
+with the same email address, which keeps the account and its gifts.
 
 
 Changing what someone may do

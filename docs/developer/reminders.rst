@@ -88,11 +88,18 @@ all call it.  In order:
 1. **Expire lapsed terms.**  Every ``Membership`` that is still ``active`` with
    an ``ends_on`` in the past is flipped to ``expired``.  This runs first so
    that the ``post30`` stage is honestly labeled.
-2. **Walk the five stages in order.**  For each, select the memberships whose
+2. **Convert due friends.**  ``members.services.convert_due_friends`` stores
+   every member whose ``friend_on`` is today or earlier as a friend, clears the
+   date, and audits each as ``account.kind`` with ``to=friend`` and
+   ``on=<friend_on>`` (:ref:`kinds of account <account-kinds>`).  A dry run converts nobody.
+3. **Walk the five stages in order.**  For each, select the memberships whose
    ``ends_on`` falls in that stage's span (:ref:`reminders-stages`), excluding
-   canceled ones.  Lifetime terms have no ``ends_on`` at all, so they never
-   appear.
-3. **Decide whether to send.**  A candidate is skipped, with a reason recorded
+   canceled ones and the terms of every account stored as a friend or carrying
+   a ``friend_on`` date: a friend is never nagged to renew, and neither is a
+   member who has asked to become one.  Such a term is not a candidate at all,
+   so it appears in no skip count.  Lifetime terms have no ``ends_on`` at all,
+   so they never appear.
+4. **Decide whether to send.**  A candidate is skipped, with a reason recorded
    in the summary, when:
 
    ``already_sent``
@@ -114,7 +121,7 @@ all call it.  In order:
       means ``membership_status(user)["expires_on"]`` no longer equals this
       term's ``ends_on``; for ``post30`` it means the member is current again.
 
-4. **Log, then send.**  The ``ReminderLog`` row is written and committed
+5. **Log, then send.**  The ``ReminderLog`` row is written and committed
    before the send is attempted.  A unique constraint on
    ``(user, membership, kind)`` means that if two runs race, the loser's
    insert fails immediately rather than sending a duplicate.

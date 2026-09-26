@@ -52,6 +52,9 @@ The demo accounts all use the password ``caldart-demo``:
    * - ``expired@example.org``
      - Owen Delgado
      - ``member``; membership expired
+   * - ``friend@example.org``
+     - Frances Lee
+     - ``member``; a friend of CalDART, no dues
    * - ``leader@example.org``
      - Priya Raman
      - ``member``, ``dart_leader``; current

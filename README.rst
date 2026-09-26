@@ -89,6 +89,7 @@ Email                          Roles
 =============================  ====================================
 member@example.org             member (current membership)
 expired@example.org            member (expired membership)
+friend@example.org             member (a friend of CalDART: no dues)
 leader@example.org             member, dart_leader
 useradmin@example.org          member, user_admin
 treasurer@example.org          member, treasurer
@@ -97,7 +98,7 @@ webadmin@example.org           member, website_admin
 sysadmin@example.org           member, system_admin (superuser)
 =============================  ====================================
 
-Plus about 40 generated members with mixed membership, certificate, and
+Plus about 40 generated members and friends with mixed membership, certificate, and
 medical states, 25 aircraft with varied insurance currency, and two years of
 payment history.
 

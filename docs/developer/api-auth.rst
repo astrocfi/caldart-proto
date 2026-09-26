@@ -64,7 +64,9 @@ Every endpoint that returns an account returns the same object:
        "is_lifetime": false
      },
      "profile_complete": true,
-     "email_verified": true
+     "email_verified": true,
+     "kind": "member",
+     "friend_on": null
    }
 
 ``roles``
@@ -74,7 +76,9 @@ Every endpoint that returns an account returns the same object:
    slug, so adding a role later is a data change.
 
 ``membership``
-   The membership summary from ``apps.members.services``.  ``expires_on`` is
+   The membership summary from ``apps.members.services``.  ``status`` is one of
+   ``current``, ``new``, ``expired``, ``none``, and ``friend``; a friend's is
+   always ``friend``, with ``expires_on`` and ``plan`` null.  ``expires_on`` is
    the end of the member's *unbroken* coverage, so an early renewal shows next
    year's date immediately, and it is ``null`` for a lifetime membership.
    A single-user endpoint such as ``/auth/me`` calls ``membership_status``,
@@ -95,6 +99,15 @@ Every endpoint that returns an account returns the same object:
    start false.  The join wizard waits on it, and the dashboard asks for it;
    nothing else in the portal is gated on it.
 
+``kind``
+   ``member``, ``friend``, or ``donor``, as stored (:ref:`kinds of account <account-kinds>`).  A
+   member with a pending ``friend_on`` still reads ``member`` here until the
+   day comes; ``membership.status`` already reads ``friend`` from that day.
+
+``friend_on``
+   The date a member who asked to become a friend becomes one, or ``null``.
+   Read-only on every endpoint here.
+
 The payload is read-only everywhere except ``PATCH /admin/users/{id}``, whose
 answer also carries ``email_verified_at`` (below).
 
@@ -113,31 +126,49 @@ Statuses: **204**, for anybody.
 ``POST /auth/register``
 -----------------------
 
-Creates a member account, signs them in and returns the user payload.  All
-four fields are required.  In one transaction the endpoint creates the
-``User``, grants the ``member`` role and creates an empty ``MemberProfile``, then
-calls ``django.contrib.auth.login``.  If any part fails, none of it is written.
-Once the transaction commits, the new address is mailed a verification link
-(see `Email verification`_), and the payload's ``email_verified`` is false.
+Creates a member's or a friend's account, signs it in and returns the user
+payload.  ``email``, ``password``, ``first_name``, and ``last_name`` are
+required; ``kind`` is ``member`` (the default) or ``friend``.  In one transaction
+the endpoint creates the ``User`` of that kind, grants the ``member`` role and
+creates an empty ``MemberProfile``, then calls ``django.contrib.auth.login``.  If
+any part fails, none of it is written.  Once the transaction commits, the new
+address is mailed a verification link (see `Email verification`_), and the
+payload's ``email_verified`` is false.
 
 .. code-block:: json
 
    {"email": "marta.reyes@example.org", "password": "...",
-    "first_name": "Marta", "last_name": "Reyes"}
+    "first_name": "Marta", "last_name": "Reyes", "kind": "friend"}
 
 .. code-block:: json
 
    {"id": 12, "email": "marta.reyes@example.org", "first_name": "Marta",
     "last_name": "Reyes", "roles": ["member"], "is_active": true,
-    "membership": {"status": "none", "expires_on": null, "plan": null,
+    "membership": {"status": "friend", "expires_on": null, "plan": null,
                    "is_lifetime": false},
-    "profile_complete": false, "email_verified": false}
+    "profile_complete": false, "email_verified": false, "kind": "friend",
+    "friend_on": null}
+
+**A donor's address upgrades the donor.**  When the address belongs to an
+active donor (:ref:`kinds of account <account-kinds>`), no second account is made: the donor's
+account takes the password, the names, and the ``kind`` posted, gains the
+``member`` role and a profile, has ``email_verified_at`` cleared, and is mailed
+the verification message.  The donations already on the account stay on it,
+and the answer carries the donor's own ``id``.  The change of kind is audited
+as ``account.kind``.
 
 Rejections, all 400:
 
+``{"email": ["This email belongs to a deactivated account. Sign in to reactivate it."], "code": "deactivated"}``
+   The address belongs to a deactivated account, of any kind.  ``code`` lets
+   the portal offer a sign-in instead of a second account.
+
 ``{"email": [...]}``
-   The address is already in use.  The check is case-insensitive, so
-   ``A@example.org`` collides with ``a@example.org``.
+   The address is already in use by an active member or friend.  The check is
+   case-insensitive, so ``A@example.org`` collides with ``a@example.org``.
+
+``{"kind": [...]}``
+   A kind other than ``member`` or ``friend``: nobody registers as a donor.
 
 ``{"password": [...]}``
    One of ``AUTH_PASSWORD_VALIDATORS`` refused it.  The validators run against
@@ -145,7 +176,7 @@ Rejections, all 400:
    address is refused.
 
 ``{"<field>": ["This field is required."]}``
-   A field was missing.  All four are mandatory.
+   A field was missing.  All four of the account's fields are mandatory.
 
 Statuses: **201** with the user payload; **400** for any rejection above;
 **429** when the ``auth_register`` throttle is exhausted.
@@ -176,6 +207,10 @@ case-insensitive (``UserManager.get_by_natural_key`` uses ``email__iexact``).
 * **403** ``{"detail": "This account has been deactivated. Ask a CalDART
   administrator."}`` — the password matched, but ``is_active`` is false.  Only
   somebody who already holds the password sees this.
+
+A donor cannot sign in at all.  A donor's account holds no usable password, and
+even one that somehow does is answered with the same 400 as wrong
+credentials.
 
 Statuses: **200** with the user payload and a session cookie; **400** for a
 missing field or wrong credentials; **403** for a deactivated account whose
@@ -238,8 +273,9 @@ is a client bug rather than an answer about the database.
 
    {"email": "marta.reyes@example.org"}
 
-When there is an active account, ``apps.accounts.services.send_password_reset_email``
-renders ``templates/emails/password_reset.{txt,html}`` and mails a link::
+A donor is mailed nothing, since a donor cannot sign in.  When there is an
+active account of any other kind,
+``apps.accounts.services.send_password_reset_email`` renders ``templates/emails/password_reset.{txt,html}`` and mails a link::
 
     {SITE_URL}/portal/reset-password?uid=<urlsafe_base64(pk)>&token=<token>
 
@@ -268,8 +304,8 @@ body.
    {"uid": "MTI", "token": "cs2k3t-4f2a...", "new_password": "..."}
 
 Every way a link can be unusable — a mangled ``uid``, an unknown user, a
-deactivated account, a token that has expired or has already been spent —
-returns the same ``{"token": ["That password reset link is invalid or has
+deactivated account, a donor's account, a token that has expired or has
+already been spent — returns the same ``{"token": ["That password reset link is invalid or has
 expired. Request a new one."]}``.  A weak new password is reported separately
 under ``new_password``.
 
@@ -393,7 +429,7 @@ will not be many more.
 .. code-block:: json
 
    [{"slug": "member",
-     "description": "Own profile, own payments and membership, join and renew, and members-only content while the membership is current."},
+     "description": "A member or a friend with a portal account."},
     {"slug": "dart_leader",
      "description": "Look up any member and see membership, medical, certificate, and aircraft insurance currency."}]
 
@@ -430,7 +466,8 @@ address, as an ISO datetime, or ``null`` while it is unverified.
         "is_active": true,
         "membership": {"status": "current", "expires_on": "2027-06-30",
                        "plan": "Annual", "is_lifetime": false},
-        "profile_complete": true, "email_verified": true,
+        "profile_complete": true, "email_verified": true, "kind": "member",
+        "friend_on": null,
         "email_verified_at": "2026-09-01T10:14:02.100522-07:00"}
      ]
    }
@@ -442,6 +479,9 @@ Parameter          Effect
                    Terms are ANDed, so ``Ada Lovelace`` matches one person.
 ``role``           One role slug.  An unknown slug is a 400, not an empty page.
 ``is_active``      ``true`` / ``false``.
+``kind``           ``member``, ``friend``, or ``donor``, as stored.  An
+                   unknown kind is a 400.  This list is where a donor's
+                   account is found; donors appear in no member list.
 ``ordering``       One of ``last_name``, ``first_name``, ``email``,
                    ``is_active``, ``created_at``; prefix with ``-`` to reverse.
                    Unlike ``role``, an unrecognized field is *ignored* rather
@@ -451,7 +491,7 @@ Parameter          Effect
 ``page_size``
 =================  ============================================================
 
-Statuses: **200**; **400** for an unknown ``role`` slug; **401** when
+Statuses: **200**; **400** for an unknown ``role`` slug or ``kind``; **401** when
 anonymous; **403** without ``user_admin``; **404** for a ``page`` past the
 end.
 
@@ -483,10 +523,13 @@ is ``DELETE /admin/members/{user_id}``, behind ``account_admin`` — see
     "is_active": false,
     "membership": {"status": "current", "expires_on": "2027-06-30",
                    "plan": "Annual", "is_lifetime": false},
-    "profile_complete": true, "email_verified": true,
+    "profile_complete": true, "email_verified": true, "kind": "member",
+    "friend_on": null,
     "email_verified_at": "2026-09-01T10:14:02.100522-07:00"}
 
-``email_verified_at`` is read-only.  A write that really changes ``email``
+``email_verified_at``, ``kind`` and ``friend_on`` are read-only here: the kind
+is the account administrator's to change (:doc:`api-members`), never the user
+administrator's.  A write that really changes ``email``
 clears it and mails the new address a verification link (see `Email
 verification`_); a change of capitalization alone leaves it alone.
 
@@ -548,14 +591,18 @@ An account with nobody to mail is refused::
 
 Two accounts have nobody to mail: a deactivated one, and one that holds no
 email address.  Both are refused with that one sentence, so a caller who sees
-it on an active account should check the address on the member record.
+it on an active account should check the address on the member record.  A
+donor, who cannot sign in, is refused with a sentence of its own::
+
+    400 {"detail": "A donor cannot sign in, so no reset email was sent."}
 
 Both the send and the refusal are recorded in the audit log
 (:ref:`deploy-audit-log`).
 
 Statuses: **200** when the mail went out; **400** for an account that is
-deactivated or holds no email address; **401** when anonymous; **403** without
-``user_admin``; **404** for an unknown id.  This endpoint is not throttled —
+deactivated, holds no email address, or is a donor's; **401** when anonymous;
+**403** without ``user_admin``; **404** for an unknown id.  This endpoint is not
+throttled —
 the throttles guard the anonymous routes.
 
 ``POST /admin/users/{id}/send-email-verification``
@@ -568,16 +615,17 @@ body.
 
    {"detail": "Verification message sent to marta.reyes@example.org."}
 
-Two accounts are refused, and neither is mailed::
+Three accounts are refused, and none is mailed::
 
+    400 {"detail": "A donor cannot sign in, so no verification message was sent."}
     400 {"detail": "That address is already verified."}
     400 {"detail": "That account is deactivated, so no verification message was sent."}
 
 The send is recorded in the audit log as
 ``action=email_verification.admin_sent actor=<admin> target=<id>``.
 
-Statuses: **202** when the mail went out; **400** for a verified address or a
-deactivated account; **401** when anonymous; **403** without ``user_admin``;
+Statuses: **202** when the mail went out; **400** for a donor, a verified
+address, or a deactivated account; **401** when anonymous; **403** without ``user_admin``;
 **404** for an unknown id.  Not throttled.
 
 
@@ -758,3 +806,8 @@ Tests
 ``backend/tests/test_account_services.py``
    ``accounts.services`` on its own: creating an account, and each edit rule
    both allowed and refused, down to the field the refusal names.
+
+``backend/tests/test_account_kinds.py``
+   Members, friends, and donors: the effective kind in Python and SQL, the
+   ``friend`` state, kind at registration and the donor upgrade, the
+   deactivated refusal, and every way a donor is kept from signing in.

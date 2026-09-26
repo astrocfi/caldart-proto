@@ -90,6 +90,7 @@ The member table, filtered, ordered, and paginated with the project's standard
          "phone": "415-555-0100",
          "dart": "Palo Alto",
          "is_active": true,
+         "kind": "member",
          "membership": {
            "status": "current",
            "expires_on": "2027-05-23",
@@ -107,8 +108,9 @@ The member table, filtered, ordered, and paginated with the project's standard
      ]
    }
 
-The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.
-``joined_on`` is the start of the earliest membership term, or ``null`` for
+The row is ``MemberRow`` in ``frontend/src/portal/api/types.ts``.  ``kind`` is
+``member``, ``friend``, or ``donor``, as stored (:ref:`kinds of account <account-kinds>`); a
+friend's ``membership.status`` is always ``friend``.  ``joined_on`` is the start of the earliest membership term, or ``null`` for
 somebody who has never had one.  ``profile_updated_at`` is when profile
 information was last written -- see :doc:`data-model` -- and ``null`` for a
 profile nobody has edited, or for an account with none.  An account with no
@@ -134,8 +136,10 @@ Filters
    phone number, or the pilot certificate number.  The full name is matched as
    one string, so ``Ana Bracco`` works.
 ``status``
-   ``current`` | ``new`` | ``expired`` | ``none``.  The four partition the
-   table.  ``new`` is a member whose only term is unpaid.
+   ``current`` | ``new`` | ``expired`` | ``none`` | ``friend``.  The five
+   partition the table.  ``new`` is a member whose only term is unpaid;
+   ``friend`` is every account whose effective kind is friend, whatever its
+   terms, and no other status lists one.
 ``certificate``
    A ``pilot_certificate_type`` value: ``none``, ``student``, ``sport``,
    ``recreational``, ``private``, ``commercial``, ``atp``; or ``licensed``,
@@ -239,6 +243,11 @@ states the same rules as correlated subqueries on the user queryset:
    covers today.
 ``joined_on``
    The earliest term's ``starts_on``.
+``effective_kind``
+   ``friend`` when the stored ``kind`` is ``friend`` or ``friend_on`` has
+   arrived, the stored kind otherwise.  A ``friend`` row reads as ``friend``
+   before any term annotation is looked at, and is what ``?status=friend``
+   filters on.
 
 ``member_admin_queryset`` hangs those on the user table through
 ``members.services.with_membership`` and adds the two the list needs of its
@@ -266,9 +275,10 @@ drives each of them at three rows and at twenty and pins the count, which is
 the same at both.
 
 Two implementations of one rule can drift, so
-``backend/tests/test_members_admin_status.py`` builds fourteen histories —
+``backend/tests/test_members_admin_status.py`` builds twenty histories —
 early renewals, three-term chains, gaps, overlaps, cancellations, a lifetime
-plan bought to follow an annual one, a term ending exactly today — and asserts
+plan bought to follow an annual one, a term ending exactly today, friends with
+lapsed and live terms, conversions to friend due and still ahead — and asserts
 the SQL and the service agree on every one.  **Change one and you must change
 the other**; that test is what tells you.
 
@@ -286,11 +296,14 @@ member record ``GET /admin/members/{user_id}`` returns.
      "first_name": "Nova",
      "last_name": "Ito",
      "password": "optional",
+     "kind": "member",
      "profile": {"phone": "408-555-0199", "dart_id": 3, "ratings": ["instrument"]}
    }
 
 Only ``email`` is required — an administrator records what they were told,
 which on the day somebody joins at an airshow may be no more than a name.
+``kind`` is ``member`` (the default) or ``friend``; an administrator never
+creates a donor, and ``donor`` is a 400 on ``kind``.
 
 ``profile`` is ``AdminProfileSerializer``, which extends the ``/me/profile``
 serializer: the same fields (``dart`` reads nested and is written as
@@ -298,7 +311,8 @@ serializer: the same fields (``dart`` reads nested and is written as
 expiry date whenever a medical class is given, a number whenever a certificate
 is — plus ``notes`` and ``how_heard``, and nothing mandatory.
 
-The user is granted the ``member`` role and given an empty ``MemberProfile``
+The user, of the kind posted, is granted the ``member`` role and given an empty
+``MemberProfile``
 populated from ``profile``.  With no ``password`` the account gets an unusable
 password and ``apps.accounts.services.send_password_invitation`` emails an
 invitation whose subject is ``<organization name>: set your password``.  It
@@ -343,6 +357,7 @@ to it, and ``null`` while it is unverified.
      "last_name": "Bracco",
      "name": "Ana Bracco",
      "is_active": true,
+     "kind": "member",
      "roles": ["member"],
      "created_at": "2024-07-01T16:04:11.318204-07:00",
      "email_verified_at": "2024-07-01T16:09:52.004117-07:00",
@@ -462,9 +477,17 @@ however few fields the request carried.
      "profile": {"medical_type": "basicmed", "notes": "Moved to BasicMed."}
    }
 
-The body takes ``email``, ``first_name``, ``last_name``, ``is_active``, and a
-partial ``profile`` object.  A profile is created if the account somehow has
-none.  ``PUT`` is not offered.
+The body takes ``email``, ``first_name``, ``last_name``, ``is_active``,
+``kind``, and a partial ``profile`` object.  A profile is created if the account
+somehow has none.  ``PUT`` is not offered.
+
+``kind`` is ``member`` or ``friend``, and makes the account that kind at once
+through ``accounts.services.set_kind``: any pending ``friend_on`` is cleared,
+and a real change of kind is audited as ``account.kind`` with ``to=<kind>``
+under the administrator.  A donor's kind is never changed by hand — a donor
+becomes a member or a friend only by registering — so ``kind`` on a donor's
+record is a **400** ``{"kind": ["A donor becomes a member or a friend only by
+registering."]}``, and ``donor`` is not a value the field takes.
 
 The nested profile serializer is bound to the stored row before validation, so
 a partial update is judged against the whole profile: sending only
@@ -497,8 +520,8 @@ Statuses:
 
 * **200** — the updated record, in the detail shape above.
 * **400** — an email address another account already holds, a profile rule the
-  nested serializer refused, or an edit the account-edit guard refused.
-  Nothing is written.
+  nested serializer refused, an edit the account-edit guard refused, or a
+  ``kind`` for a donor.  Nothing is written.
 * **404** — no account has that id.
 * **405** — the request used ``PUT``.
 
@@ -559,6 +582,8 @@ member record — and records the grant in the audit log.
 ``starts_on`` and ``note`` are optional.  The term is created through
 ``members.services.activate_term`` with ``source="manual"`` and ``granted_by``
 set to the caller, so a manual grant is placed by the same rule a payment is.
+A grant to a friend makes them a member, audited as ``account.kind`` under the
+caller.
 
 With no ``starts_on``, that rule reads the largest ``ends_on`` across the
 member's **active** terms — terms whose stored status is ``expired`` or

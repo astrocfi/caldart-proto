@@ -24,6 +24,38 @@ capitalization does not matter: ``Marta.Reyes@example.org`` and
 address, so if the site tells you the address is already taken, you already have
 an account — reset the password rather than making a second one.
 
+.. _kinds-of-account:
+
+Members, friends, and donors
+----------------------------
+
+Every account belongs to one of three kinds of person:
+
+**Member**
+  Pays annual dues when joining and is expected to keep paying, or buys a Life
+  plan.  A member's membership is current, expiring, or expired, and the site
+  sends renewal reminders as the end of a term approaches.  A member can add a
+  contribution to any payment.
+
+**Friend**
+  A friend of |org| has the same portal as a member — the profile, the
+  payments, the dashboard — but pays no dues.  A friend is never current, never
+  expired, and never reminded to renew, and members-only pages stay closed.  A
+  friend can give whenever they like, and becomes a member by paying for a plan.
+  A member who becomes a friend while a term is still running stays a current
+  member until that term ends, and is a friend from the next day.
+
+**Donor**
+  Somebody who gave to |org| without joining.  A donor's account holds the
+  gifts and the receipts, but no password and no role: a donor cannot sign in,
+  cannot ask for a password reset, and appears in no member list.  A donor who
+  later joins, as a member or a friend, registers with the same email address:
+  the account is kept, gifts and all, and gains the password chosen at
+  registration.
+
+Members and friends both hold the ``member`` role, which is what opens the
+portal to them.
+
 Creating one
 ------------
 
@@ -73,13 +105,14 @@ What you can do is set by your roles
 ------------------------------------
 
 Every account holds one or more **roles**, and the portal's menu shows only the
-sections your roles open.  Everyone starts with ``member``; a user administrator
-grants the rest.
+sections your roles open.  Every member and friend starts with ``member``; a
+user administrator grants the rest.  A donor holds no role at all.
 
 ===================  ==================================================
 Role                 What it adds
 ===================  ==================================================
-``member``           Your own profile, payments, and membership; renew;
+``member``           A member or a friend with a portal account: your own
+                     profile, payments, and membership; renew;
                      members-only content while your membership is
                      current.
 ``dart_leader``      A Disaster Airlift Response Team (DART) member: look

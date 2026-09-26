@@ -71,7 +71,7 @@ Domain schema
           PayPal [label="PayPalProvider\l  slug = paypal\l"];
           Mock [label="MockProvider\l  slug = mock\l"];
 
-          User [label="accounts.User\l  email (unique, ci)\l  first_name, last_name\l  is_active, is_superuser\l  email_verified_at\l  roles: derived from groups\l"];
+          User [label="accounts.User\l  email (unique, ci)\l  first_name, last_name\l  is_active, is_superuser\l  email_verified_at\l  kind, friend_on\l  roles: derived from groups\l"];
           Group [label="auth.Group\l  name = role slug\l"];
           Profile [label="members.MemberProfile\l  phone, address_line1, city,\l  state, postal_code\l  aviation, volunteer, admin notes\l"];
           Dart [label="darts.Dart\l  name (unique), airport_identifiers\l  website_url, is_active\l  roster_sent_at\l"];
@@ -189,7 +189,8 @@ Domain schema
       --------------------------
       accounts.User           email (unique, case-insensitive), first_name,
                               last_name, is_active, is_superuser,
-                              email_verified_at; roles is derived from groups
+                              email_verified_at, kind, friend_on; roles is
+                              derived from groups
       auth.Group              name = role slug
       members.MemberProfile   phone, address_line1, city, state, postal_code,
                               the aviation and volunteer fields, admin notes
@@ -439,6 +440,14 @@ address and a password and nothing else.
      - ``DateTimeField``, null
      - when the owner last proved the address by following a verification or
        password link sent to it; null while the address is unverified
+   * - ``kind``
+     - ``CharField(8)``, choices ``AccountKind``
+     - ``member`` (the default), ``friend``, or ``donor`` — the kind of person
+       the account belongs to, as stored; see *Kinds of account* below
+   * - ``friend_on``
+     - ``DateField``, null
+     - the day a member who asked to become a friend becomes one; null when no
+       change is pending
 
 **Invariants.**
 
@@ -456,6 +465,39 @@ address and a password and nothing else.
 - Default ordering is ``["last_name", "first_name", "email"]``, with a matching
   index.
 
+.. _account-kinds:
+
+**Kinds of account.**  ``apps.accounts.models.AccountKind`` is a
+``TextChoices`` of three values:
+
+``member``
+    Pays dues and is expected to keep paying, or holds a lifetime term.
+``friend``
+    Holds a portal account and pays no dues.  A friend's membership state is
+    always ``friend`` — never current, never expired — and a friend is never
+    sent a renewal reminder.
+``donor``
+    Gave through the public site without joining.  A donor holds an unusable
+    password and no role, so cannot sign in; login answers the generic
+    wrong-credentials refusal, and the password-reset, invitation and
+    verification emails are never sent to one.  ``PasswordResetConfirmSerializer``
+    refuses a donor's reset link as it refuses a forged one.
+
+``PERSON_KINDS`` (``member`` and ``friend``) are the kinds registration and an
+administrator may choose; nobody is made a donor by hand, and a donor changes
+kind only by registering, which upgrades the account in place.
+
+The **effective kind** adds the pending change: ``members.services.account_kind(user,
+today)`` is ``friend`` when ``kind`` is ``friend`` or ``friend_on`` is on or before
+``today``, and ``kind`` otherwise.  ``kind_annotation(today)`` is the same rule as a
+``Case`` expression, and ``membership_annotations`` carries it as
+``effective_kind``.  ``convert_due_friends(today)`` writes the due conversions
+down (``kind = friend``, ``friend_on = null``, audit ``account.kind``); the daily
+reminder run calls it.  ``accounts.services.set_kind`` is the one way a kind is
+written by hand — by an administrator's edit, a registration that upgrades a
+donor, or ``activate_term`` making a friend a member — and it always clears
+``friend_on``.
+
 **Derived properties.**
 
 ``roles``
@@ -472,7 +514,8 @@ address and a password and nothing else.
     :ref:`membership-status` below.
 ``can_access_members_content``
     ``True`` when the user is a superuser, **or** their membership is current,
-    **or** they hold any role other than plain ``member``.  This is the gate
+    **or** they hold any role other than plain ``member``.  A friend is never
+    current, so a friend without a staff role is refused.  This is the gate
     the CMS members-only wall and ``GET /site/config`` both use.  A DART leader
     whose own membership has lapsed still reads members-only pages.
 ``display_name``
@@ -495,8 +538,9 @@ descriptions live in ``apps/accounts/roles.py``:
    * - Slug
      - Grants
    * - ``member``
-     - own profile, own payments and membership, join and renew, and
-       members-only content while the membership is current
+     - a member or a friend with a portal account: own profile, own payments
+       and membership, join and renew, and members-only content while the
+       membership is current
    * - ``dart_leader``
      - \+ look up any member and see membership, medical, certificate, and
        aircraft insurance currency; read the full member list, filterable by
@@ -521,9 +565,10 @@ descriptions live in ``apps/accounts/roles.py``:
 
 Rules:
 
-- ``member`` is granted at registration, so "members" and "accounts" are the
-  same population.  The account administrator's member list is every ``User``
-  row, narrowed by ``?role=``.
+- ``member`` is granted at registration, to members and friends alike; a donor
+  holds no role at all (``accounts.services.create_account`` decides by kind).
+  The account administrator's member list is every ``User`` row, narrowed by
+  ``?role=``.
 - Roles are additive; ``ROLE_SLUGS`` is ordered least to most privileged, and
   that order is what ``GET /roles`` and ``User.roles`` return.
 - ``system_admin`` passes every role check in the API, as does any Django
@@ -765,12 +810,17 @@ The service
 ``apps.members.services.membership_status(user, on_date=None)`` returns::
 
     {
-        "status": "current" | "new" | "expired" | "none",
-        "expires_on": date | None,     # None for lifetime
+        "status": "current" | "new" | "expired" | "none" | "friend",
+        "expires_on": date | None,     # None for lifetime and for a friend
         "plan": str | None,
         "is_lifetime": bool,
     }
 
+``friend``
+    The account's effective kind on ``on_date`` is friend (see
+    :ref:`kinds of account <account-kinds>`).  Decided before any term is looked at, so a friend's
+    past terms — or a live one — never make them current or expired.
+    ``expires_on`` and ``plan`` are ``None`` and ``is_lifetime`` is ``False``.
 ``current``
     Some active term covers ``on_date``.
 ``expired``
@@ -785,13 +835,13 @@ The service
 ``none``
     Nothing at all.  Everything else is ``None`` / ``False``.
 
-Those four values are ``apps.members.models.MembershipState``, a
+Those five values are ``apps.members.models.MembershipState``, a
 ``TextChoices`` nothing stores: it is the computed answer, as against
 ``MembershipStatusChoices``, which is the state written on a term.  Every
 serializer that offers the status, the ``?status=`` filter on the member list
 and the payload builders take their values from it, so the backend spells them
 in exactly one place.  The portal's ``MembershipState`` union, in
-``frontend/src/portal/api/types.ts``, is the same four values.
+``frontend/src/portal/api/types.ts``, is the same five values.
 
 The subtlety is ``expires_on`` for a current member.  Renewing early creates a
 term that starts the day *after* the present one ends, and the member is
@@ -822,6 +872,11 @@ outside the seed.  It is wrapped in ``transaction.atomic`` and:
    lifetime plan.  A 365-day term bought today therefore ends 364 days from
    today, inclusive of both ends.
 4. Creates the row with ``status="active"``.
+5. Makes the account a member: a friend becomes one, and a member with a
+   pending ``friend_on`` keeps being one, the date cleared
+   (``accounts.services.set_kind``, audited ``account.kind`` when the kind
+   really changes).  Paying dues, or an administrator's grant, is what
+   membership is.  A donor's kind is left alone.
 
 ``expire_lapsed_memberships(on_date=None)`` flips ``active`` terms whose
 ``ends_on`` has passed to ``expired`` and returns how many it changed.  The
@@ -881,6 +936,13 @@ The translation, term by term:
     The earliest ``starts_on`` across all of the user's terms, canceled ones
     included.
 
+``effective_kind``
+    ``kind_annotation(today)``: ``friend`` when ``kind`` is ``friend`` or
+    ``friend_on <= today``, else ``kind``.  ``membership_payload`` answers
+    ``friend`` from it before reading any term annotation, and the member
+    list's ``?status=`` filter puts every effective friend under ``friend`` and
+    under no other status.
+
 ``with_membership(queryset, today=None)`` hangs the lot on any ``User``
 queryset, and ``today`` is read when it is called, so a queryset built inside a
 view answers for the day of the request rather than the day the process
@@ -911,10 +973,11 @@ The account administrator's list adds two annotations of its own, in
 .. important::
 
    Two implementations of one rule drift.  ``backend/tests/
-   test_members_admin_status.py`` builds fourteen deliberately awkward
+   test_members_admin_status.py`` builds twenty deliberately awkward
    histories — early renewals, three-term chains, gaps, overlaps,
    cancellations, a lifetime plan bought to follow an annual one, a term ending
-   exactly today — and asserts the service and the SQL agree on every one.  If
+   exactly today, friends with lapsed and live terms, and conversions to friend
+   due today and still ahead — and asserts the service and the SQL agree on every one.  If
    you change either, change both and add a history to that file.
 
 aircraft

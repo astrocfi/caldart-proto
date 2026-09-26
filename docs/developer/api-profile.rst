@@ -317,11 +317,17 @@ full term history, newest first.
      ]
    }
 
-``status`` is ``current``, ``new``, ``expired``, or ``none``.  ``expires_on`` is the
-end of the member's *unbroken* coverage, so a renewal bought today shows
-next year's date immediately; it is ``null`` for a lifetime membership.  A
-member who has never held a term gets ``status: "none"`` and an empty
-``history`` rather than a 404.
+``status`` is ``current``, ``new``, ``expired``, ``none``, or ``friend``.
+``expires_on`` is the end of the member's *unbroken* coverage, so a renewal
+bought today shows next year's date immediately; it is ``null`` for a lifetime
+membership.  A member who has never held a term gets ``status: "none"`` and an
+empty ``history`` rather than a 404.
+
+A friend of CalDART (:ref:`kinds of account <account-kinds>`) gets ``status: "friend"`` with
+``expires_on`` and ``plan`` null and ``is_lifetime`` false, whatever terms they
+held as a member; those terms are still listed in ``history``.  So does a member
+whose ``friend_on`` date has arrived, before the nightly run writes the change
+down.
 
 Statuses:
 

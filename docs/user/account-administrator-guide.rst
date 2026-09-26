@@ -42,7 +42,8 @@ way, and download the same report (see :doc:`dart-leader-guide`); the
    A colored dot and the expiry date.  The dot is green while the membership is
    current, amber in the last 30 days, red once it has run out, blue for
    somebody who has joined but not paid, and gray for somebody who has never
-   been a member.  A lifetime membership reads "Never".
+   been a member and for a friend of CalDART, who pays no dues and never
+   expires.  A lifetime membership reads "Never".
 
 **Email**
    A ``mailto:`` link, so you can write to someone straight from the list.
@@ -128,7 +129,9 @@ Adding a member
 **New member** opens a form in two halves.  Only the email address is
 required; everything else can be filled in later, by you or by the member.
 
-* **Account** — email address, first and last name, and an optional password.
+* **Account** — email address, first and last name, the **Kind of account**
+  (*Member*, the default, or *Friend*: see :ref:`kinds-of-account`), and an
+  optional password.
 * **Profile** — contact details, aviation details (DART, certificate, medical,
   ratings, hours), volunteer interests, and the administrator-only fields.
 
@@ -142,7 +145,7 @@ open the link in it.
 
 Either way the account is granted the ``member`` role and an empty profile is
 created.  Creating a member does **not** give them a membership: grant a term,
-or let them pay online.
+or let them pay online.  A friend needs neither: a friend pays no dues.
 
 
 The member record
@@ -166,6 +169,12 @@ Profile
 
 The same fields as the new-member form, plus:
 
+* **Kind of account** — *Member* or *Friend*.  Saving a change of kind makes it
+  at once: a member made a friend reads **Friend** from that moment, whatever
+  their terms say, and any change to friend the member had pending for the end
+  of a term is dropped.  A donor's record has no such field and carries a
+  **Donor** chip in its summary strip instead: a donor becomes a member or a
+  friend only by registering, and the server refuses the change otherwise.
 * **Account is active** — clearing it stops the member signing in without
   deleting anything.
 * **How they heard about CalDART** and **Administrator notes** — visible only
@@ -218,6 +227,9 @@ Leave the start date blank and the term starts itself correctly:
   months, not twelve;
 * a **lapsed** member's, or a new member's, starts today;
 * a **lifetime** plan has no end date at all.
+
+Granting a term to a friend makes them a member, exactly as paying for one
+does.
 
 Fill the start date in only when you are recording something that happened on
 a particular day — a check that arrived last month, say.

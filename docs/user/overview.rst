@@ -24,12 +24,19 @@ administrator) with a start date and an end date, and your membership is
 current whenever a term covers today.  Buying the Annual plan a second time
 does not replace the first term; it adds another one after it.
 
+Not everybody with an account is a member.  A **friend of CalDART** has an
+account and a portal like a member's, but pays no dues: a friend is never
+current, never expired, and never reminded to renew, and becomes a member by
+paying for a plan.  :doc:`getting-started` sets out the three kinds of people
+the site knows -- members, friends, and donors.
+
 .. only:: graphviz
 
    .. graphviz::
-      :caption: The life of a membership.  A **solid box** is one of the three
-                states the site computes for you: ``none``, ``current``, and
-                ``expired``.  A **dashed box** is not a state of its own —
+      :caption: The life of a membership.  A **solid box** is one of the
+                states the site computes for you: ``none``, ``current``,
+                ``expired``, and ``friend``.  A **dashed box** is not a state of
+                its own —
                 *Expiring soon* is the portal's warning inside *Current*, and
                 *Life member* is a current term with no end date.  The boxes at
                 the bottom are the five renewal emails, in the order they are
@@ -48,6 +55,7 @@ does not replace the first term; it adds another one after it.
           Expiring [label="Expiring soon\l  current, 30 days or fewer left\l", style="rounded,dashed"];
           Expired [label="Expired\l  the last term has run out\l  members-only content closes\l"];
           Life [label="Life member\l  a term with no end date\l  never expires, never reminded\l", style="rounded,dashed"];
+          Friend [label="Friend\l  no dues, no expiry\l  members-only content closed\l"];
 
           Visitor -> NoMembership [label="join wizard:\lname, email, password,\lthen the profile"];
           NoMembership -> Current [label="the payment clears, or an\ladministrator grants a term"];
@@ -57,6 +65,10 @@ does not replace the first term; it adds another one after it.
           Expired -> Current [label="renew: the term starts today"];
           Current -> Life [label="buy the Life plan"];
           NoMembership -> Life [label="buy the Life plan"];
+          Visitor -> Friend [label="join wizard,\las a friend"];
+          Friend -> Current [label="pay for a plan, or an\ladministrator grants a term"];
+          Current -> Friend [label="becomes a friend:\lfrom the day after\lthe term ends\l", style=dashed];
+          Expired -> Friend [label="becomes a friend:\lat once"];
 
           subgraph cluster_reminders {
               label="Renewal email, sent once per term and stage";
@@ -137,6 +149,19 @@ does not replace the first term; it adds another one after it.
       is a state of its own: the first is the portal's warning inside Current,
       and the second is a current term with no end date.
 
+      Friends sit beside the whole lifecycle:
+
+      Visitor  ---- join wizard, as a friend ---->  .---------------------.
+                                                    | Friend              |
+      Current  ---- becomes a friend: from the ---> | no dues, no expiry; |
+                    day after the term ends         | members-only        |
+      Expired  ---- becomes a friend: at once ----> | content closed      |
+                                                    '---------------------'
+                                                               |
+                                 pay for a plan, or an         |
+                                 administrator grants a term   v
+                                                            Current
+
 
 What each state means
 ---------------------
@@ -167,6 +192,16 @@ What each state means
   A Life term has no end date, so it never runs out.  You are never asked to
   renew and never sent a reminder.
 
+**Friend**
+  You are a friend of CalDART: you pay no dues, so nothing expires and nothing
+  is sent to remind you.  The portal works, and you can give to CalDART
+  whenever you like; members-only pages show the wall, which offers to make you
+  a member.  Terms you held as a member stay in your history but no longer
+  count.  Paying for a plan, or an administrator granting you a term, makes you
+  a member again.  A member who becomes a friend while a term is running stays
+  current until the term they paid for runs out, and is a friend from the day
+  after.
+
 Renewing never loses you days.  If you renew while you are current, the new
 term starts **the day after** your present one ends, and your dashboard shows
 the later date straight away.  If you renew after lapsing, the new term starts
@@ -176,8 +211,9 @@ today.  :doc:`member-guide` walks through the screen itself.
 What the site does about expiry
 -------------------------------
 
-A nightly scan does two things: it marks terms whose end date has passed as
-expired, and it sends the renewal emails.  There are five, each covering a
+A nightly scan does three things: it marks terms whose end date has passed as
+expired, it makes a friend of every member whose day to become one has come,
+and it sends the renewal emails.  There are five, each covering a
 stretch of the calendar rather than a single day: one two months before your
 term ends, one a month before, one in the last week, one once it has run out,
 and one a month later.  Because each is a stretch, you reach every one of them
@@ -187,7 +223,8 @@ still brings the last two.
 Each email is sent once per term, so a scan that runs twice in a day does not
 mail you twice, and renewing stops the rest of the series.  Life members,
 accounts that have been deactivated, and members whose automatic renewal is
-covering the term are never sent these: automatic renewal has its own emails
+covering the term are never sent these, and neither are friends or members
+who are due to become one.  Automatic renewal has its own emails
 that cover the same ground, described in :doc:`payments`; if automatic
 renewal stops, the ordinary reminders resume.  Every email links to the
 renewal page.
