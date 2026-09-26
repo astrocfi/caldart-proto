@@ -11,6 +11,7 @@ copy refuses to start instead of serving with a guessed value.
 from __future__ import annotations
 
 import importlib
+import re
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -31,6 +32,17 @@ from tests.test_sysadmin_settings import (
 DOTENV_PATH = REPO_ROOT / ".env"
 PRODUCTION_TEMPLATE = DEPLOY_DIR / "caldart.env.example"
 WEB_UNIT = DEPLOY_DIR / "systemd" / "caldart-web.service"
+PRODUCTION_SETTINGS = [
+    REPO_ROOT / "backend" / "caldart" / "settings" / name for name in ("base.py", "prod.py")
+]
+
+#: A variable read through django-environ (``env("X")``, ``env.int("X")``, ...) or
+#: through the throttle-rate helper (``_throttle_rate("X", ...)``).
+SETTINGS_VARIABLE = re.compile(r'\b(?:env(?:\.[a-z_]+)?|_throttle_rate)\(\s*"([A-Z][A-Z0-9_]*)"')
+
+#: Variables the production settings read that the template leaves out on purpose:
+#: the mock payment switches, which must never be set on a production box.
+TEMPLATE_OMITS = {"PAYMENTS_MOCK_ENABLED", "PAYMENTS_MOCK_ENABLED_IN_PRODUCTION"}
 
 #: The key ``base.py`` defaults to and ``.env.example`` ships.  It is published
 #: in the repository, so a box still running it can have its sessions and
@@ -250,6 +262,25 @@ def test_an_unedited_production_template_refuses_to_start(
 
     with pytest.raises(ImproperlyConfigured, match="SECRET_KEY"):
         import_prod()
+
+
+def test_the_production_template_names_every_variable_the_settings_read() -> None:
+    """Every variable ``base.py`` and ``prod.py`` read appears in the template.
+
+    A variable may be set or commented out; only the mock payment switches are left
+    out entirely.
+    """
+    read = {
+        name for path in PRODUCTION_SETTINGS for name in SETTINGS_VARIABLE.findall(path.read_text())
+    }
+    template = PRODUCTION_TEMPLATE.read_text()
+    missing = sorted(
+        name
+        for name in read - TEMPLATE_OMITS
+        if re.search(rf"^#?{name}=", template, re.MULTILINE) is None
+    )
+
+    assert missing == []
 
 
 def test_the_web_unit_installs_the_production_template() -> None:
