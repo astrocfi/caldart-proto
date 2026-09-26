@@ -63,6 +63,38 @@ describe('safeNext', () => {
   });
 });
 
+describe('LoginPage · a prefilled address', () => {
+  it('fills the address in from the email parameter', async () => {
+    renderLogin('/login?email=marta%40example.org');
+
+    expect(await screen.findByLabelText(/email address/i)).toHaveValue('marta@example.org');
+  });
+
+  it('signs in with the prefilled address', async () => {
+    let posted: unknown = null;
+    server.use(
+      http.post(`${API}/auth/login`, async ({ request }) => {
+        posted = await request.json();
+        return HttpResponse.json(makeUser());
+      }),
+    );
+
+    renderLogin('/login?email=marta%40example.org');
+    await userEvent.type(await screen.findByLabelText(/password/i), 'correct-horse');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() =>
+      expect(posted).toEqual({ email: 'marta@example.org', password: 'correct-horse' }),
+    );
+  });
+
+  it('leaves the address empty without the parameter', async () => {
+    renderLogin();
+
+    expect(await screen.findByLabelText(/email address/i)).toHaveValue('');
+  });
+});
+
 describe('LoginPage', () => {
   it('signs in and lands on the dashboard', async () => {
     const user = makeUser();

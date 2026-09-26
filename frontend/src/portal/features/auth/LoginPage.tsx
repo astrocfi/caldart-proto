@@ -20,7 +20,8 @@ export function safeNext(raw: string | null): string {
 }
 
 /**
- * `/login` — email + password, honoring `?next=`.
+ * `/login` — email + password, honoring `?next=`, with the address prefilled from
+ * `?email=` when it is given.
  *
  * `next` is a portal route, except when it names a page of the user guide:
  * Django sends a signed-out reader here with the guide page as `next`, and the
@@ -31,7 +32,8 @@ export function LoginPage(): JSX.Element {
   const navigate = useNavigate();
   const login = useLogin();
   const { isAuthenticated, isLoading } = useAuth();
-  const [email, setEmail] = useState('');
+  // `?email=` prefills the address, for a link from somewhere that already knows it.
+  const [email, setEmail] = useState(() => params.get('email') ?? '');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
 
