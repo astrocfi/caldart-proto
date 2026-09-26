@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { CA_COUNTIES } from '@/portal/choices';
+import { CA_COUNTIES, ROLE_LABELS } from '@/portal/choices';
 import { listFilters, PERIOD_OPTIONS, REPORTS } from './definitions';
 import type { ReportSlug } from './types';
 
 /** Every report in the server's registry. */
 const SLUGS: ReportSlug[] = [
   'members',
+  'roles',
   'aircraft',
   'payments',
   'reconciliation',
@@ -82,6 +83,45 @@ describe('REPORTS', () => {
     expect(county?.options?.map((option) => option.value)).toEqual([...CA_COUNTIES]);
   });
 
+  it('filters the roles report by search, role, and kind', () => {
+    expect(keysOf('roles')).toEqual(['search', 'role', 'kind']);
+  });
+
+  it('searches the roles report by name or email', () => {
+    const [search] = REPORTS.roles.filters;
+    expect([search?.kind, search?.placeholder]).toEqual(['search', 'Name or email']);
+  });
+
+  it('offers the six staff roles on the roles report, every role by default', () => {
+    const role = REPORTS.roles.filters.find((field) => field.key === 'role');
+    expect([role?.placeholder, role?.options?.map((option) => option.label)]).toEqual([
+      'Every role',
+      [
+        ROLE_LABELS.dart_leader,
+        ROLE_LABELS.user_admin,
+        ROLE_LABELS.treasurer,
+        ROLE_LABELS.account_admin,
+        ROLE_LABELS.website_admin,
+        ROLE_LABELS.system_admin,
+      ],
+    ]);
+  });
+
+  it('offers member and friend on the roles report kind, any kind by default', () => {
+    const kind = REPORTS.roles.filters.find((field) => field.key === 'kind');
+    expect([kind?.placeholder, kind?.options]).toEqual([
+      'Any kind',
+      [
+        { value: 'member', label: 'Member' },
+        { value: 'friend', label: 'Friend' },
+      ],
+    ]);
+  });
+
+  it('labels the roles report Roles', () => {
+    expect(REPORTS.roles.label).toBe('Roles');
+  });
+
   it('filters aircraft by the register’s own filters', () => {
     expect(keysOf('aircraft')).toEqual([
       'search',
@@ -144,9 +184,10 @@ describe('REPORTS', () => {
     expect(keysOf('emails')).toEqual(['purpose', 'status', 'from', 'to', 'q']);
   });
 
-  it('lets the columns be chosen on the wide reports and the email log', () => {
+  it('lets the columns be chosen on the wide reports, the roles report, and the email log', () => {
     expect(SLUGS.filter((slug) => REPORTS[slug].choosable)).toEqual([
       'members',
+      'roles',
       'aircraft',
       'payments',
       'donors',

@@ -1,4 +1,4 @@
-"""The column registries behind the member and aircraft reports.
+"""The column registries behind the member, roles, and aircraft reports.
 
 Two things are proved here.  ``?columns=`` picks the cells of both formats of
 both reports; and the default columns are sized so that no cell of a seeded row
@@ -22,6 +22,7 @@ from rest_framework.test import APIClient
 
 from apps.aircraft.reports import AIRCRAFT_REPORT, AIRCRAFT_REPORT_COLUMNS
 from apps.members.reports import MEMBER_REPORT, MEMBER_REPORT_COLUMNS
+from apps.members.roles_report import ROLES_REPORT, ROLES_REPORT_COLUMNS
 from caldart.reports import (
     CELL_PADDING,
     CELL_STYLE,
@@ -144,6 +145,27 @@ def test_no_default_member_cell_wraps_in_the_pdf(seeded: None) -> None:
         if not fits(cell, column.width, total)
     ]
     assert too_wide == []
+
+
+@pytest.mark.slow
+def test_no_default_roles_cell_wraps_in_the_pdf(seeded: None) -> None:
+    """Every default cell of every seeded staff account fits its column on one line."""
+    columns = select_columns(ROLES_REPORT_COLUMNS, None)
+    assert wrapped_headers(columns) == []
+    total = sum(column.width for column in columns)
+    rows = ROLES_REPORT.table({}, fmt="pdf", today=timezone.localdate()).rows
+    too_wide = [
+        (column.key, cell)
+        for row in rows
+        for column, cell in zip(columns, row, strict=True)
+        if not fits(cell, column.width, total)
+    ]
+    assert too_wide == []
+
+
+def test_every_roles_column_is_labeled_for_a_reader() -> None:
+    """No roles column falls back to its key: every label is written for a person."""
+    assert [column.label for column in ROLES_REPORT_COLUMNS if "_" in column.label] == []
 
 
 @pytest.mark.slow

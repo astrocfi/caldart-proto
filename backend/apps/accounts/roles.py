@@ -48,3 +48,17 @@ ROLE_SLUGS: tuple[str, ...] = tuple(ROLE_DESCRIPTIONS)
 #: Roles that mean "this person is staff of some kind", i.e. everything except
 #: the plain ``member`` role.  Used by ``can_access_members_content``.
 STAFF_ROLE_SLUGS: tuple[str, ...] = tuple(s for s in ROLE_SLUGS if s != MEMBER)
+
+#: Ordered slug -> the role's name as every screen and report prints it.
+ROLE_LABELS: dict[str, str] = {
+    MEMBER: "Member",
+    DART_LEADER: "DART leader",
+    USER_ADMIN: "User administrator",
+    TREASURER: "Treasurer",
+    ACCOUNT_ADMIN: "Account administrator",
+    WEBSITE_ADMIN: "Website administrator",
+    SYSTEM_ADMIN: "System administrator",
+}
+
+#: The labels of the staff roles, every role but ``member``, in privilege order.
+STAFF_ROLE_LABELS: dict[str, str] = {slug: ROLE_LABELS[slug] for slug in STAFF_ROLE_SLUGS}

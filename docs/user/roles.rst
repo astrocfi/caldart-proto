@@ -66,6 +66,9 @@ A user administrator looks after accounts. The role adds:
   **User record** (:doc:`admin/user-record`) behind each: the roles it holds,
   activating and deactivating it, correcting its email address, and sending a
   password reset link or a verification message.
+* The **CalDART roles report**: the people who hold each role other than member,
+  in a section per role. An account administrator can have it emailed to a user
+  administrator on a schedule (:doc:`admin/reports`).
 
 A user administrator cannot grant or take away the system administrator role.
 
@@ -104,8 +107,8 @@ An account administrator looks after the membership records. The role adds:
 * **Payments**: the finance area as the treasurer sees it, without **Donors**
   (:doc:`finance/index`).
 * **Reminders** (:doc:`admin/reminders`): every renewal reminder CalDART has sent.
-* **Reports** (:doc:`admin/reports`): reports by email, and sending each DART its
-  roster.
+* **Reports** (:doc:`admin/reports`): reports by email, the CalDART roles report
+  among them, and sending each DART its roster.
 * **Member check** and **Aircraft check** (:doc:`admin/member-check`,
   :doc:`admin/aircraft-check`), as a DART leader has them.
 

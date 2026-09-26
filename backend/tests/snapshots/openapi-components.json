@@ -2475,6 +2475,7 @@
   "ReportEnum": {
     "enum": [
       "members",
+      "roles",
       "aircraft",
       "payments",
       "reconciliation",

@@ -11,7 +11,14 @@ import type { Choice } from '@/portal/choices';
 
 /** The slug of every report the server's registry holds. */
 export type ReportSlug =
-  'members' | 'aircraft' | 'payments' | 'reconciliation' | 'contributions' | 'donors' | 'emails';
+  | 'members'
+  | 'roles'
+  | 'aircraft'
+  | 'payments'
+  | 'reconciliation'
+  | 'contributions'
+  | 'donors'
+  | 'emails';
 
 /** A download's format, which is also the extension of the file it names. */
 export type ReportFormat = 'csv' | 'pdf';
