@@ -30,7 +30,9 @@
 # that file (every block, when none serves HTTPS), keeping a copy of the file
 # from before the first insertion at FILE.caldart.bak; a file that carries the
 # line already is left alone.  Without one it prints the line and where it
-# goes.  Either way it then checks the configuration and reloads the server.
+# goes.  Either way it then checks the configuration and reloads the server;
+# when the check fails it takes out the line this run inserted, so the existing
+# site's vhost is as it was, and stops.
 #
 # It refuses to run while both apache2 and nginx are active.
 #
@@ -68,6 +70,8 @@ readonly ATTACH_BACKUP_SUFFIX=.caldart.bak
 
 # Set once this run has written the bootstrap host, so a dry run removes it too.
 BOOTSTRAP_WRITTEN=no
+# Set once this run has inserted the include line, so a failed check takes it out.
+INCLUDE_INSERTED=no
 
 # The bootstrap host's file, for the web server in use.
 bootstrap_site() {
@@ -113,11 +117,23 @@ bootstrap_config() {
 # need not leave it running (a policy-rc.d can forbid that), nor need the
 # operator.
 reload_web_server() {
+    check_web_server_config
+    restart_web_server
+}
+
+# Check the configuration of the web server in use.
+check_web_server_config() {
     if [[ "$CALDART_WEB_SERVER" == apache ]]; then
         run apachectl configtest
-        run systemctl reload-or-restart apache2
     else
         run nginx -t
+    fi
+}
+
+restart_web_server() {
+    if [[ "$CALDART_WEB_SERVER" == apache ]]; then
+        run systemctl reload-or-restart apache2
+    else
         run systemctl reload-or-restart nginx
     fi
 }
@@ -246,8 +262,12 @@ include_line() {
 
 # The numbers of the lines of vhost file $1 that close a block to include the
 # snippet in: every Apache <VirtualHost> or nginx server block that terminates
-# TLS, or every such block when none does.  Nginx blocks are found by counting
-# braces outside comments, so a block must not open and close on one line.
+# TLS, or every such block when none does.  A block terminates TLS when it
+# names a certificate, turns TLS on, or listens on port 443: certbot's Apache
+# vhost gets its SSLEngine from an included options file, so SSLEngine alone
+# would miss it and put the line in the plain-HTTP block too.  Nginx blocks are
+# found by counting braces outside comments, so a block must not open and
+# close on one line.
 closing_lines() {
     # The $ signs below are awk's, not the shell's.
     # shellcheck disable=SC2016
@@ -263,9 +283,12 @@ closing_lines() {
             sub(/#.*/, "", text)
         }
         server == "apache" {
-            if (text ~ /^[ \t]*<VirtualHost[ \t>]/) { inside = 1; has_tls = 0 }
-            else if (inside && tolower(text) ~ /^[ \t]*sslengine[ \t]+on/) has_tls = 1
-            else if (inside && text ~ /^[ \t]*<\/VirtualHost>/) finish(NR)
+            text = tolower(text)
+            if (text ~ /^[ \t]*<virtualhost[ \t>]/) {
+                inside = 1; has_tls = (text ~ /:443([ \t>]|$)/)
+            }
+            else if (inside && text ~ /^[ \t]*(sslengine[ \t]+on|sslcertificatefile[ \t])/) has_tls = 1
+            else if (inside && text ~ /^[ \t]*<\/virtualhost>/) finish(NR)
             next
         }
         {
@@ -273,6 +296,8 @@ closing_lines() {
                 inside = 1; has_tls = 0; outer = depth
             }
             if (inside && text ~ /(^|[ \t;])listen[ \t][^;]*[ \t]ssl([ \t;]|$)/) has_tls = 1
+            if (inside && text ~ /(^|[ \t;])listen[ \t]+([^;]*[ \t:])?443([ \t;]|$)/) has_tls = 1
+            if (inside && text ~ /(^|[ \t;])ssl_certificate[ \t]/) has_tls = 1
             depth += gsub(/\{/, "{", text) - gsub(/\}/, "}", text)
             if (inside && depth == outer) finish(NR)
         }
@@ -315,6 +340,22 @@ attach_include() {
         run cp -p "$file" "$file$ATTACH_BACKUP_SUFFIX"
     fi
     run sed -i --follow-symlinks "${expressions[@]}" "$file"
+    INCLUDE_INSERTED=yes
+}
+
+# Check the configuration with the snippet in place.  When the check fails and
+# this run inserted the include line into the vhost file $1, take the line out
+# again (the file carried none before this run, or nothing would have been
+# inserted), so the existing site keeps a configuration that passes its check,
+# then stop.
+check_or_detach() {
+    local file=$1 include
+    check_web_server_config && return 0
+    [[ "$INCLUDE_INSERTED" == yes ]] ||
+        die "web-server step: the configuration check failed with the snippet in place"
+    include="$(include_line)"
+    run sed -i --follow-symlinks "\#^[[:space:]]*${include//./\\.}[[:space:]]*\$#d" "$file"
+    die "web-server step: the configuration check failed with the snippet included; $file is back as it was before this run"
 }
 
 # Print the include line and where it goes, for an operator adding it by hand.
@@ -364,7 +405,8 @@ install_snippet() {
     else
         print_include_instructions
     fi
-    reload_web_server
+    check_or_detach "$CALDART_ATTACH_TO"
+    restart_web_server
 }
 
 install_renewal_hook() {

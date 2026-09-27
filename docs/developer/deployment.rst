@@ -1124,6 +1124,11 @@ site.  One command installs it::
           --tls existing --attach-to /etc/apache2/sites-available/paloaltodart.conf \
           --email local --admin-email you@example.org
 
+``--attach-to`` names the file that holds the site's ``<VirtualHost *:443>``
+block; on a site set up with certbot's Apache plugin that is
+``<name>-le-ssl.conf`` (here ``paloaltodart-le-ssl.conf``), since certbot
+leaves only the plain-HTTP redirect in ``<name>.conf``.
+
 ``--tls existing`` says a web server on this machine already serves the
 hostname over HTTPS.  The installer then obtains no certificate, installs no
 certbot package, and writes no vhost of its own: the existing site's
@@ -1131,7 +1136,9 @@ certificate is the one browsers see, and the hop from its web server to
 gunicorn stays on loopback.  ``--url-prefix`` is the path, written as the
 settings read ``URL_PREFIX``: one leading and one trailing slash are optional,
 and each segment is letters, digits, ``.``, ``_``, ``~``, or ``-``.  Without
-it the site takes the whole of the existing host.  ``--email local`` sends
+it the site takes the whole of the existing host; on nginx that snippet holds
+``location ^~ /``, so the existing server block must have no ``location /`` of
+its own, or ``nginx -t`` refuses the pair and the step puts the vhost back.  ``--email local`` sends
 mail through the postfix the machine already runs (:ref:`email-local-postfix`).
 
 **The snippet.**  Step 9 writes one file for the web server the record names,
@@ -1155,7 +1162,8 @@ checks that); serves ``/caldart-proto/media/`` off disk with the same headers
 as the full vhost; and proxies everything else under ``/caldart-proto/`` to
 gunicorn on ``127.0.0.1:8001`` with the ``Host`` header preserved,
 ``X-Forwarded-Proto: https``, ``X-Forwarded-Port: 443``, and any inbound
-``X-Forwarded-Ssl`` dropped.  The proxy strips the prefix, and Django puts it
+``X-Forwarded-Ssl`` or ``X-Forwarded-Protocol`` dropped (gunicorn reads both as
+the scheme too).  The proxy strips the prefix, and Django puts it
 back on every URL it writes, because ``URL_PREFIX`` sets ``FORCE_SCRIPT_NAME``
 (:doc:`configuration`).  The nginx snippet uses ``^~`` locations, so a
 regular-expression location of the existing site (``location ~ \.php$``, say)
@@ -1170,13 +1178,20 @@ line inside its HTTPS block::
 
 ``--attach-to FILE`` names the file that holds that block.  The step inserts
 the line before the closing ``</VirtualHost>`` or ``}`` of every block in the
-file that terminates TLS (``SSLEngine on``, or a ``listen`` with ``ssl``), or
-of every block when none does, indented one level deeper than the closing
-line.  It keeps the file as it was before the first insertion at
+file that terminates TLS, or of every block when none does, indented one
+level deeper than the closing line.  An Apache block terminates TLS when its
+``<VirtualHost>`` line names port 443 or it holds ``SSLEngine on`` or an
+``SSLCertificateFile``; an nginx block, when a ``listen`` names port 443 or
+``ssl``, or it holds an ``ssl_certificate``.  The plain-HTTP block that
+redirects to HTTPS never gets the line: the snippet tells Django every request
+arrived over HTTPS, so a plain-HTTP request proxied from there would pass for a
+secure one.  It keeps the file as it was before the first insertion at
 ``FILE.caldart.bak``, leaves a file that already carries the line alone, and
 edits the file a symbolic link points at rather than replacing the link.  Then
 it runs ``apachectl configtest`` or ``nginx -t`` and ``systemctl
-reload-or-restart``.  Without ``--attach-to`` it writes the snippet, prints the
+reload-or-restart``.  When the check fails, the step takes the line it inserted
+back out, so the existing site's vhost is as it was before the run and still
+passes its check, and stops saying so.  Without ``--attach-to`` it writes the snippet, prints the
 line and where it goes, and reloads; the checks then fail, since the site does
 not answer under the prefix until the line is in place, and a second run of
 ``sudo deploy/steps/check.sh`` passes once it is.

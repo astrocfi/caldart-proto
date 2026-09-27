@@ -1371,6 +1371,55 @@ NGINX_SITE_ATTACHED: Final = NGINX_SITE.replace(
     "        root /var/www/html;\n    }\n    include snippets/caldart.conf;\n}\n",
 )
 
+#: An Apache site as certbot leaves it: a ``:80`` host that redirects with mod_alias,
+#: and a ``:443`` host whose ``SSLEngine`` comes from certbot's options include.
+APACHE_CERTBOT_SITE: Final = """\
+<VirtualHost *:80>
+    ServerName caldart.test
+    Redirect permanent / https://caldart.test/
+</VirtualHost>
+<IfModule mod_ssl.c>
+<virtualhost *:443>
+    ServerName caldart.test
+    DocumentRoot /var/www/html
+    SSLCertificateFile /etc/letsencrypt/live/caldart.test/fullchain.pem
+    Include /etc/letsencrypt/options-ssl-apache.conf
+</virtualhost>
+</IfModule>
+"""
+
+#: ``APACHE_CERTBOT_SITE`` with the snippet included in its ``:443`` host only.
+APACHE_CERTBOT_SITE_ATTACHED: Final = APACHE_CERTBOT_SITE.replace(
+    "    Include /etc/letsencrypt/options-ssl-apache.conf\n",
+    "    Include /etc/letsencrypt/options-ssl-apache.conf\n"
+    "    Include conf-available/caldart.conf\n",
+)
+
+#: An nginx site whose HTTPS server listens on 443 without ``ssl`` on the ``listen``.
+NGINX_CERTIFICATE_SITE: Final = """\
+server {
+    listen 80;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443;
+    ssl_certificate /etc/ssl/site.pem;
+}
+"""
+
+#: ``NGINX_CERTIFICATE_SITE`` with the snippet included in its HTTPS server only.
+NGINX_CERTIFICATE_SITE_ATTACHED: Final = NGINX_CERTIFICATE_SITE.replace(
+    "    ssl_certificate /etc/ssl/site.pem;\n}\n",
+    "    ssl_certificate /etc/ssl/site.pem;\n    include snippets/caldart.conf;\n}\n",
+)
+
+#: A shell function that stands in for a configuration check that fails.
+FAILING_CHECK: Final = {
+    "apache": "apachectl() { echo 'Syntax error' >&2; return 1; }",
+    "nginx": "nginx() { echo 'duplicate location' >&2; return 1; }",
+}
+
 
 def _render_snippet(root: Path, source: str, prefix: str) -> str:
     """What ``render_snippet`` writes from ``source`` for ``prefix`` under ``/srv/x``."""
@@ -1384,13 +1433,15 @@ def _render_snippet(root: Path, source: str, prefix: str) -> str:
     return dest.read_text()
 
 
-def _attach(root: Path, web_server: str, vhost: Path) -> subprocess.CompletedProcess[str]:
-    """Run the web-server step's ``attach_include`` for real on ``vhost``."""
+def _attach(
+    root: Path, web_server: str, vhost: Path, *, then: str = ""
+) -> subprocess.CompletedProcess[str]:
+    """Run ``attach_include`` from the web-server step on ``vhost``, then ``then``."""
     return subprocess.run(  # noqa: S603 - fixed argv, BASH is a resolved path
         [
             BASH,
             "-c",
-            'set -euo pipefail; source "$1"; CALDART_WEB_SERVER=$2; attach_include "$3"',
+            'set -euo pipefail; source "$1"; CALDART_WEB_SERVER=$2; attach_include "$3"; ' + then,
             "bash",
             str(root / "deploy" / "steps" / "web-server.sh"),
             web_server,
@@ -1616,6 +1667,74 @@ def test_the_include_goes_in_the_https_block(
 
 
 @pytest.mark.parametrize(
+    ("web_server", "site", "attached"),
+    [
+        ("apache", APACHE_CERTBOT_SITE, APACHE_CERTBOT_SITE_ATTACHED),
+        ("nginx", NGINX_CERTIFICATE_SITE, NGINX_CERTIFICATE_SITE_ATTACHED),
+    ],
+    ids=["apache-certbot", "nginx-ssl-certificate"],
+)
+def test_a_block_with_a_certificate_counts_as_https(
+    web_server: str, site: str, attached: str, root: Path, tmp_path: Path
+) -> None:
+    """A certificate or port 443 marks HTTPS; the plain-HTTP block gets no include."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(site)
+    result = _attach(root, web_server, vhost)
+    assert result.returncode == 0, result.stderr
+    assert vhost.read_text() == attached
+
+
+@pytest.mark.parametrize(
+    ("web_server", "site"),
+    [("apache", APACHE_SITE), ("nginx", NGINX_SITE)],
+    ids=["apache", "nginx"],
+)
+def test_a_failed_check_puts_the_vhost_back(
+    web_server: str, site: str, root: Path, tmp_path: Path
+) -> None:
+    """When the configuration check fails, the include this run inserted is taken out."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(site)
+    _attach(root, web_server, vhost, then=f'{FAILING_CHECK[web_server]}; check_or_detach "$3"')
+    assert vhost.read_text() == site
+
+
+@pytest.mark.parametrize("web_server", ["apache", "nginx"])
+def test_a_failed_check_says_the_vhost_was_put_back(
+    web_server: str, root: Path, tmp_path: Path
+) -> None:
+    """The step stops naming itself and the vhost it restored."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE if web_server == "apache" else NGINX_SITE)
+    result = _attach(
+        root, web_server, vhost, then=f'{FAILING_CHECK[web_server]}; check_or_detach "$3"'
+    )
+    assert _errors(result) == [
+        "error: web-server step: the configuration check failed with the snippet included; "
+        f"{vhost} is back as it was before this run"
+    ]
+
+
+def test_a_failed_check_leaves_an_earlier_include_alone(root: Path, tmp_path: Path) -> None:
+    """A vhost that carried the include before this run keeps it: nothing was inserted."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE_ATTACHED)
+    _attach(root, "apache", vhost, then=f'{FAILING_CHECK["apache"]}; check_or_detach "$3"')
+    assert vhost.read_text() == APACHE_SITE_ATTACHED
+
+
+def test_a_failed_check_without_an_insertion_names_the_step(root: Path, tmp_path: Path) -> None:
+    """With nothing to put back, the step stops saying the check failed."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE_ATTACHED)
+    result = _attach(root, "apache", vhost, then=f'{FAILING_CHECK["apache"]}; check_or_detach "$3"')
+    assert _errors(result) == [
+        "error: web-server step: the configuration check failed with the snippet in place"
+    ]
+
+
+@pytest.mark.parametrize(
     ("web_server", "site"),
     [
         ("apache", "<VirtualHost *:80>\n    ServerName a.test\n</VirtualHost>\n"),
@@ -1724,6 +1843,22 @@ def test_the_snippet_leaves_no_placeholder(web_server: str, root: Path) -> None:
     """Every ``__PREFIX__`` and ``/opt/caldart`` is replaced as the snippet is copied."""
     rendered = _render_snippet(root, SNIPPETS[web_server][0], PREFIX)
     assert [word for word in ("__PREFIX__", "/opt/caldart") if word in rendered] == []
+
+
+@pytest.mark.parametrize(
+    ("web_server", "fragment"),
+    [
+        ("apache", "RequestHeader unset X-Forwarded-Ssl"),
+        ("apache", "RequestHeader unset X-Forwarded-Protocol"),
+        ("nginx", 'proxy_set_header X-Forwarded-Ssl   "";'),
+        ("nginx", 'proxy_set_header X-Forwarded-Protocol "";'),
+    ],
+)
+def test_the_snippet_drops_the_other_scheme_headers(
+    web_server: str, fragment: str, root: Path
+) -> None:
+    """A client's own scheme headers never reach gunicorn to contradict the proxy's."""
+    assert fragment in _render_snippet(root, SNIPPETS[web_server][0], PREFIX)
 
 
 def test_the_apache_snippet_sends_the_scheme(root: Path) -> None:
