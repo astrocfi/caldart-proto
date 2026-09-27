@@ -12,9 +12,9 @@
 #
 # The values that describe the box are kept in /etc/caldart/install.conf, so a
 # later run needs no flags and a flag given later updates the record.
-# --email-url, --from-email, --admin-email, and --seed-content are used by the
-# run that writes the environment file or creates the administrator, and are
-# not recorded.
+# --email-url, --email, --from-email, --admin-email, and --seed-content are
+# used by the run that writes the environment file or creates the
+# administrator, and are not recorded.
 #
 # Usage:
 #   sudo deploy/install.sh [options]
@@ -26,7 +26,12 @@
 #   --tls certbot|self-signed  how the certificate is obtained (default certbot)
 #   --certbot-email ADDRESS    the Let's Encrypt account address; required with certbot
 #   --certbot-staging          use Let's Encrypt's staging directory
-#   --email-url URL            EMAIL_URL; required while no environment file exists
+#   --db-port PORT             the host port Postgres listens on, 1024-65535 (default 5432);
+#                              must match DATABASE_URL once the environment file exists
+#   --email-url URL            EMAIL_URL; this or --email local is required while no
+#                              environment file exists
+#   --email local              send mail through the postfix on this machine
+#                              (EMAIL_URL=smtp://localhost:25) instead of --email-url
 #   --from-email ADDRESS       DEFAULT_FROM_EMAIL (default CalDART <noreply@HOST>)
 #   --admin-email ADDRESS      create the first administrator with this address
 #   --seed-content             load the example pages
@@ -91,8 +96,16 @@ parse_flags() {
                 shift
                 ;;
             --certbot-staging) RECORD_FLAGS[CALDART_CERTBOT_STAGING]=yes ;;
+            --db-port)
+                RECORD_FLAGS[CALDART_DB_PORT]="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
             --email-url)
                 EMAIL_URL="$(option_value "$1" "${2:-}")"
+                shift
+                ;;
+            --email)
+                EMAIL_MODE="$(option_value "$1" "${2:-}")"
                 shift
                 ;;
             --from-email)
@@ -138,8 +151,11 @@ validate() {
         self-signed) ;;
         *) usage_error "--tls must be certbot or self-signed, not $CALDART_TLS" ;;
     esac
+    validate_db_port "$CALDART_DB_PORT"
+    validate_db_port_matches_env_file
+    validate_email_flags
     if [[ -z "$EMAIL_URL" && ! -f "$ENV_FILE" ]]; then
-        usage_error "--email-url is required until $ENV_FILE exists"
+        usage_error "--email-url or --email local is required until $ENV_FILE exists"
     fi
 }
 

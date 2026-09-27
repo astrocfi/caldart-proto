@@ -41,6 +41,7 @@ ENTRY_POINTS: Final = (
     "upgrade.sh",
     "uninstall.sh",
     "manage.sh",
+    "compose.sh",
     "steps/packages.sh",
     "steps/user.sh",
     "steps/postgres.sh",
@@ -144,12 +145,50 @@ def _position(commands: list[str], fragment: str) -> int:
     pytest.fail(f"no command contains {fragment!r}")
 
 
+def _machine_path(
+    tmp_path: Path, *, listening: tuple[int, ...] = (), container: bool = False
+) -> str:
+    """A ``PATH`` whose ``ss`` and ``docker`` describe a machine, ahead of the real one.
+
+    ``ss`` reports a listener on each port in ``listening`` and nothing else, and
+    ``docker container inspect`` finds the CalDART database container only when
+    ``container`` is true, so no test depends on what the machine running it has.
+    """
+    shims = tmp_path / "machine"
+    shims.mkdir(exist_ok=True)
+    ports = " ".join(str(port) for port in listening)
+    (shims / "ss").write_text(
+        "#!/bin/sh\n"
+        f"for port in {ports}; do\n"
+        '    case "$*" in *":$port") echo "LISTEN 0 4096 127.0.0.1:$port 0.0.0.0:*" ;; esac\n'
+        "done\n"
+    )
+    (shims / "docker").write_text(f"#!/bin/sh\nexit {0 if container else 1}\n")
+    for shim in shims.iterdir():
+        shim.chmod(0o755)
+    return f"{shims}:{os.environ['PATH']}"
+
+
 def _install_dry_run(
-    root: Path, etc: Path, tmp_path: Path, *extra: str
+    root: Path,
+    etc: Path,
+    tmp_path: Path,
+    *extra: str,
+    listening: tuple[int, ...] = (),
+    container: bool = False,
+    flags: tuple[str, ...] = FIRST_INSTALL,
 ) -> subprocess.CompletedProcess[str]:
-    """The dry run of a first ``install.sh`` on Ubuntu, plus the ``extra`` flags."""
-    env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")))
-    return _run(root / "deploy" / "install.sh", "--dry-run", *FIRST_INSTALL, *extra, env=env)
+    """The dry run of a first ``install.sh`` on Ubuntu, plus the ``extra`` flags.
+
+    ``listening`` and ``container`` describe the machine (see ``_machine_path``), and
+    ``flags`` replaces the first-install flags the ``extra`` ones follow.
+    """
+    env = _env(
+        etc,
+        CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")),
+        PATH=_machine_path(tmp_path, listening=listening, container=container),
+    )
+    return _run(root / "deploy" / "install.sh", "--dry-run", *flags, *extra, env=env)
 
 
 def _variables(env_file: Path) -> dict[str, str]:
@@ -165,10 +204,10 @@ def _configure(root: Path, etc: Path, *args: str, **extra: str) -> subprocess.Co
 
 
 def _render_vhost(root: Path, vhost: str, www: str, tls: str) -> str:
-    """What ``render_vhost`` writes for ``caldart.test`` under the root ``/opt/x``."""
+    """What ``render_vhost`` writes for ``caldart.test`` under the root ``/srv/x``."""
     dest = root / "rendered"
     source = DEPLOY_DIR / vhost
-    _source_lib(root, f'ROOT=/opt/x; render_vhost "{source}" "{dest}" caldart.test {www} {tls}')
+    _source_lib(root, f'ROOT=/srv/x; render_vhost "{source}" "{dest}" caldart.test {www} {tls}')
     return dest.read_text()
 
 
@@ -215,7 +254,11 @@ def test_every_entry_point_answers_help_from_its_header(script: str, etc: Path) 
     assert f"Usage:\n  sudo deploy/{script}" in result.stdout
 
 
-@pytest.mark.parametrize("script", [name for name in ENTRY_POINTS if name != "manage.sh"])
+#: The scripts that hand everything after their own flags to another program.
+PASS_THROUGH: Final = ("manage.sh", "compose.sh")
+
+
+@pytest.mark.parametrize("script", [name for name in ENTRY_POINTS if name not in PASS_THROUGH])
 def test_an_unknown_flag_is_a_usage_error(script: str, etc: Path) -> None:
     """A flag the script does not know exits 2 with an ``error:`` line on stderr."""
     result = _run(DEPLOY_DIR / script, "--nonsense", env=_env(etc))
@@ -377,9 +420,8 @@ def test_a_first_install_names_the_flag_it_is_missing(
 ) -> None:
     """With no record and no environment file, a missing flag exits 2 naming it."""
     index = FIRST_INSTALL.index(flag)
-    args = [*FIRST_INSTALL[:index], *FIRST_INSTALL[index + 2 :]]
-    env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")))
-    result = _run(root / "deploy" / "install.sh", "--dry-run", *args, env=env)
+    args = (*FIRST_INSTALL[:index], *FIRST_INSTALL[index + 2 :])
+    result = _install_dry_run(root, etc, tmp_path, flags=args)
     assert result.returncode == 2
     assert flag in result.stderr
 
@@ -422,8 +464,7 @@ def test_the_install_record_supplies_the_flags(root: Path, etc: Path, tmp_path: 
         "CALDART_TLS=self-signed\n"
     )
     (etc / "caldart.env").write_text("SECRET_KEY=x\n")
-    env = _env(etc, CALDART_OS_RELEASE=str(_os_release(tmp_path, "ubuntu")))
-    result = _run(root / "deploy" / "install.sh", "--dry-run", env=env)
+    result = _install_dry_run(root, etc, tmp_path, flags=())
     assert "/etc/nginx/sites-available/caldart" in result.stdout
 
 
@@ -433,6 +474,259 @@ def test_the_dry_run_prints_the_record_it_would_write(
     """The install record is written through ``install`` like every other file."""
     commands = _commands(_install_dry_run(root, etc, tmp_path))
     assert f"install -m 0644 -o root -g root /dev/stdin {etc}/install.conf" in commands
+
+
+# -- the database port --------------------------------------------------------------
+
+
+def test_the_compose_file_publishes_the_configurable_port() -> None:
+    """``docker-compose.yml`` publishes ``CALDART_DB_PORT`` on loopback, default 5432."""
+    compose = (REPO_ROOT / "docker-compose.yml").read_text()
+    assert '"127.0.0.1:${CALDART_DB_PORT:-5432}:5432"' in compose
+
+
+def test_postgres_starts_on_5432_by_default(root: Path, etc: Path, tmp_path: Path) -> None:
+    """Without ``--db-port`` the database is published on port 5432."""
+    result = _install_dry_run(root, etc, tmp_path)
+    assert "==> Starting Postgres on 127.0.0.1:5432" in result.stdout.splitlines()
+
+
+def test_db_port_moves_postgres(root: Path, etc: Path, tmp_path: Path) -> None:
+    """``--db-port 5433`` publishes the database on port 5433."""
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", "5433")
+    assert "==> Starting Postgres on 127.0.0.1:5433" in result.stdout.splitlines()
+
+
+@pytest.mark.parametrize("port", ["1023", "65536", "5433x", "05433", "-1"])
+def test_a_db_port_out_of_range_is_a_usage_error(
+    port: str, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """``--db-port`` takes an integer from 1024 to 65535 and nothing else."""
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", port)
+    assert _errors(result) == [
+        f"error: --db-port must be a port number from 1024 to 65535, not {port}"
+    ]
+
+
+def test_a_db_port_out_of_range_exits_2(root: Path, etc: Path, tmp_path: Path) -> None:
+    """A malformed ``--db-port`` is a usage error, not a failure."""
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", "80")
+    assert result.returncode == 2
+
+
+def test_the_install_record_keeps_the_db_port(root: Path) -> None:
+    """``install.conf`` records ``CALDART_DB_PORT`` beside the other values."""
+    result = _source_lib(root, "ROOT=/r; CALDART_DB_PORT=5433; write_file() { cat; }; write_record")
+    assert "CALDART_DB_PORT=5433" in result.stdout.splitlines()
+
+
+def test_the_recorded_db_port_reaches_docker_compose(root: Path) -> None:
+    """``load_record`` exports ``CALDART_DB_PORT``, so ``docker compose`` sees it."""
+    (root / "install.conf").write_text("CALDART_DB_PORT=5433\n")
+    result = _source_lib(root, "load_record; bash -c 'printf %s \"$CALDART_DB_PORT\"'")
+    assert result.stdout == "5433"
+
+
+def test_a_taken_port_stops_the_first_postgres_start(root: Path, etc: Path, tmp_path: Path) -> None:
+    """With no CalDART container yet, a listener on the port stops the install."""
+    result = _install_dry_run(root, etc, tmp_path, listening=(5432,))
+    assert _errors(result) == [
+        "error: port 5432 is already in use on this machine; "
+        "run install.sh --db-port PORT to put CalDART's Postgres on another port"
+    ]
+
+
+def test_a_taken_port_fails_the_install(root: Path, etc: Path, tmp_path: Path) -> None:
+    """The taken-port refusal is a failure, exit 1."""
+    result = _install_dry_run(root, etc, tmp_path, listening=(5432,))
+    assert result.returncode == 1
+
+
+def test_another_port_avoids_the_taken_one(root: Path, etc: Path, tmp_path: Path) -> None:
+    """A Postgres already on 5432 is left alone when ``--db-port`` names another port."""
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", "5433", listening=(5432,))
+    assert result.returncode == 0, result.stderr
+
+
+def test_an_existing_container_skips_the_port_check(root: Path, etc: Path, tmp_path: Path) -> None:
+    """A later run finds its own container on the port and carries on."""
+    result = _install_dry_run(root, etc, tmp_path, listening=(5432,), container=True)
+    assert result.returncode == 0, result.stderr
+
+
+def _installed_on_5432(etc: Path) -> None:
+    """Write the record and environment file of a box with Postgres on 5432."""
+    (etc / "install.conf").write_text(
+        "CALDART_HOSTNAME=caldart.test\nCALDART_TLS=self-signed\nCALDART_DB_PORT=5432\n"
+    )
+    (etc / "caldart.env").write_text(
+        "SECRET_KEY=x\nDATABASE_URL=postgres://caldart:pw@localhost:5432/caldart\n"
+    )
+
+
+def test_a_db_port_that_disagrees_with_database_url_is_refused(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Moving the port on an installed box names ``DATABASE_URL`` first."""
+    _installed_on_5432(etc)
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", "5433", container=True, flags=())
+    assert _errors(result) == [
+        f"error: --db-port 5433 differs from the port in DATABASE_URL in {etc}/caldart.env "
+        "(5432); edit DATABASE_URL to use port 5433 first, then run install.sh again"
+    ]
+
+
+def test_a_db_port_that_disagrees_with_database_url_exits_2(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The refusal is a usage error, not a failure."""
+    _installed_on_5432(etc)
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", "5433", container=True, flags=())
+    assert result.returncode == 2
+
+
+def test_a_db_port_that_matches_database_url_carries_on(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Once ``DATABASE_URL`` names the new port, the run moves the container."""
+    _installed_on_5432(etc)
+    env_file = etc / "caldart.env"
+    env_file.write_text(env_file.read_text().replace(":5432/", ":5433/"))
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", "5433", container=True, flags=())
+    assert "==> Starting Postgres on 127.0.0.1:5433" in result.stdout.splitlines()
+
+
+def test_configure_writes_the_recorded_db_port(root: Path, etc: Path) -> None:
+    """``DATABASE_URL`` connects to the port the install record names."""
+    (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_DB_PORT=5433\n")
+    _configure(root, etc, "--email-url", "smtp://x:25")
+    assert _variables(etc / "caldart.env")["DATABASE_URL"].endswith("@localhost:5433/caldart")
+
+
+def test_configure_writes_5432_by_default(env_file: Path) -> None:
+    """With no port recorded, ``DATABASE_URL`` connects to port 5432."""
+    assert _variables(env_file)["DATABASE_URL"].endswith("@localhost:5432/caldart")
+
+
+# -- compose.sh ---------------------------------------------------------------------
+
+
+def test_compose_runs_with_the_recorded_port(root: Path, etc: Path) -> None:
+    """``compose.sh`` hands its arguments to ``docker compose`` with the recorded port."""
+    (etc / "install.conf").write_text("CALDART_DB_PORT=5433\n")
+    result = _run(root / "deploy" / "compose.sh", "--dry-run", "ps", "db", env=_env(etc))
+    assert _commands(result) == [f"cd {root}", "env CALDART_DB_PORT=5433 docker compose ps db"]
+
+
+def test_compose_defaults_to_5432(root: Path, etc: Path) -> None:
+    """With no install record, ``compose.sh`` uses port 5432."""
+    result = _run(root / "deploy" / "compose.sh", "--dry-run", "logs", "-f", "db", env=_env(etc))
+    assert _commands(result)[-1] == "env CALDART_DB_PORT=5432 docker compose logs -f db"
+
+
+def test_compose_without_a_command_is_a_usage_error(etc: Path) -> None:
+    """``compose.sh`` needs the ``docker compose`` command to run."""
+    result = _run(DEPLOY_DIR / "compose.sh", "--dry-run", env=_env(etc))
+    assert result.returncode == 2
+    assert _errors(result) == ["error: name the docker compose command to run"]
+
+
+# -- mail through a local postfix -------------------------------------------------------
+
+#: The first-install flags with ``--email local`` in place of ``--email-url``.
+LOCAL_MAIL_INSTALL: Final = (
+    "--hostname",
+    "caldart.test",
+    "--certbot-email",
+    "ops@caldart.test",
+    "--email",
+    "local",
+)
+
+#: The note ``configure.sh`` prints when ``--email local`` finds nothing on port 25.
+PORT_25_NOTE: Final = (
+    "Nothing listens on port 25 on this machine: mail fails until postfix is "
+    "installed and listening on localhost."
+)
+
+
+def test_email_local_notes_an_empty_port_25(root: Path, etc: Path, tmp_path: Path) -> None:
+    """``--email local`` with nothing on port 25 prints the note and carries on."""
+    result = _install_dry_run(root, etc, tmp_path, flags=LOCAL_MAIL_INSTALL)
+    assert PORT_25_NOTE in result.stderr.splitlines()
+
+
+def test_email_local_with_nothing_on_port_25_still_installs(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The port 25 note is not an error: the dry run exits 0."""
+    result = _install_dry_run(root, etc, tmp_path, flags=LOCAL_MAIL_INSTALL)
+    assert result.returncode == 0, result.stderr
+
+
+def test_email_local_with_postfix_listening_prints_no_note(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With something on port 25 the install says nothing about mail."""
+    result = _install_dry_run(root, etc, tmp_path, flags=LOCAL_MAIL_INSTALL, listening=(25,))
+    assert PORT_25_NOTE not in result.stderr.splitlines()
+
+
+def test_email_local_and_email_url_together_are_a_usage_error(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """``--email local`` and ``--email-url`` are alternatives: both exits 2."""
+    result = _install_dry_run(root, etc, tmp_path, "--email", "local")
+    assert result.returncode == 2
+    assert _errors(result) == ["error: give --email local or --email-url, not both"]
+
+
+def test_email_takes_only_local(root: Path, etc: Path, tmp_path: Path) -> None:
+    """``--email`` accepts the one value ``local``."""
+    result = _install_dry_run(root, etc, tmp_path, "--email", "smtp")
+    assert _errors(result) == ["error: --email takes only local, not smtp"]
+
+
+def test_a_first_install_without_mail_names_both_flags(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """With neither mail flag and no environment file, the error names both."""
+    result = _install_dry_run(root, etc, tmp_path, flags=LOCAL_MAIL_INSTALL[:4])
+    assert _errors(result) == [
+        f"error: --email-url or --email local is required until {etc}/caldart.env exists"
+    ]
+
+
+def test_configure_email_local_relays_through_localhost(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """``--email local`` writes ``EMAIL_URL=smtp://localhost:25``."""
+    _configure(
+        root,
+        etc,
+        "--hostname",
+        "caldart.test",
+        "--email",
+        "local",
+        PATH=_machine_path(tmp_path, listening=(25,)),
+    )
+    assert _variables(etc / "caldart.env")["EMAIL_URL"] == "smtp://localhost:25"
+
+
+def test_configure_reports_an_ignored_email_local(
+    env_file: Path, root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Once the file exists, ``--email local`` is ignored and the step says so."""
+    result = _configure(root, etc, "--email", "local", PATH=_machine_path(tmp_path))
+    assert "--email local is ignored" in result.stdout
+
+
+def test_bootstrap_passes_the_port_and_mail_flags_through(tmp_path: Path) -> None:
+    """``--db-port`` and ``--email`` take values that reach ``install.sh``."""
+    result = _bootstrap_dry_run(tmp_path, "--db-port", "5433", "--email", "local")
+    assert _commands(result)[-1] == (
+        f"bash {tmp_path}/srv/deploy/install.sh --dry-run --db-port 5433 --email local"
+    )
 
 
 # -- packages.sh --------------------------------------------------------------------
@@ -764,20 +1058,32 @@ def test_configure_writes_a_file_the_deployment_checks_accept(env_file: Path) ->
 
 @pytest.mark.parametrize("source", [*(f"systemd/{unit}" for unit in UNITS), *VHOSTS])
 def test_render_file_moves_every_path_to_the_deploy_root(source: str, root: Path) -> None:
-    """``render_file`` replaces ``/srv/caldart`` with the root as it copies a file."""
+    """``render_file`` replaces ``/opt/caldart`` with the root as it copies a file."""
     dest = root / "rendered"
-    _source_lib(root, f'ROOT=/opt/x; render_file "{DEPLOY_DIR / source}" "{dest}"')
-    assert "/srv/caldart" not in dest.read_text()
+    _source_lib(root, f'ROOT=/srv/x; render_file "{DEPLOY_DIR / source}" "{dest}"')
+    assert "/opt/caldart" not in dest.read_text()
+
+
+@pytest.mark.parametrize("source", [*(f"systemd/{unit}" for unit in UNITS), *VHOSTS])
+def test_every_shipped_file_names_the_opt_root(source: str) -> None:
+    """The units and the vhosts name ``/opt/caldart``, the default deploy root."""
+    assert "/opt/caldart" in (DEPLOY_DIR / source).read_text()
+
+
+def test_bootstrap_clones_into_the_opt_root(etc: Path) -> None:
+    """``bootstrap.sh`` clones into ``/opt/caldart`` unless ``CALDART_ROOT`` says not."""
+    result = _run(DEPLOY_DIR / "bootstrap.sh", "--help", env=_env(etc))
+    assert "CALDART_ROOT   the deploy root to clone into (default /opt/caldart)" in result.stdout
 
 
 @pytest.mark.parametrize(
     "source", [f"systemd/{unit}" for unit in UNITS if unit.endswith("service")]
 )
 def test_render_file_writes_the_deploy_root(source: str, root: Path) -> None:
-    """A rendered service names the root in place of ``/srv/caldart``."""
+    """A rendered service names the root in place of ``/opt/caldart``."""
     dest = root / "rendered"
-    _source_lib(root, f'ROOT=/opt/x; render_file "{DEPLOY_DIR / source}" "{dest}"')
-    assert "/opt/x/.venv/bin/" in dest.read_text()
+    _source_lib(root, f'ROOT=/srv/x; render_file "{DEPLOY_DIR / source}" "{dest}"')
+    assert "/srv/x/.venv/bin/" in dest.read_text()
 
 
 @pytest.mark.parametrize("vhost", VHOSTS)
@@ -816,11 +1122,11 @@ def test_the_template_sets_the_backup_retention() -> None:
 
 
 def test_gunicorn_finds_the_project_from_its_own_location() -> None:
-    """``gunicorn.conf.py`` computes ``chdir`` from its own path, not ``/srv/caldart``."""
-    config: dict[str, object] = {"__file__": "/opt/x/deploy/gunicorn.conf.py"}
+    """``gunicorn.conf.py`` computes ``chdir`` from its own path, not ``/opt/caldart``."""
+    config: dict[str, object] = {"__file__": "/srv/x/deploy/gunicorn.conf.py"}
     source = (DEPLOY_DIR / "gunicorn.conf.py").read_text()
     exec(compile(source, "gunicorn.conf.py", "exec"), config)  # noqa: S102 - our own config file
-    assert config["chdir"] == "/opt/x/backend"
+    assert config["chdir"] == "/srv/x/backend"
 
 
 # -- manage.sh, upgrade.sh, uninstall.sh --------------------------------------------

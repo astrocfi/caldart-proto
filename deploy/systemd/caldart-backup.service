@@ -1,6 +1,6 @@
 # CalDART nightly database backup.
 #
-# Deploy path: /srv/caldart. Triggered by caldart-backup.timer, which runs it
+# Deploy path: /opt/caldart. Triggered by caldart-backup.timer, which runs it
 # daily at 03:30; it is a oneshot, so it is not enabled directly.
 # deploy/steps/timers.sh installs it and enables the timer, and
 # docs/developer/backup-restore.rst describes what it keeps.
@@ -11,7 +11,7 @@
 
 [Unit]
 Description=CalDART database backup
-Documentation=file:///srv/caldart/docs/developer/backup-restore.rst
+Documentation=file:///opt/caldart/docs/developer/backup-restore.rst
 # Needs the database.
 After=network.target docker.service
 Wants=network-online.target
@@ -25,7 +25,7 @@ Group=caldart
 # group and no wider.
 UMask=0027
 
-WorkingDirectory=/srv/caldart/backend
+WorkingDirectory=/opt/caldart/backend
 
 # Same configuration as the web service: DATABASE_URL, BACKUP_DIR,
 # DB_BACKUP_VIA_DOCKER and BACKUP_RETENTION_DAYS are the ones this unit uses.
@@ -37,7 +37,7 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 
 # Writes BACKUP_DIR/caldart-<timestamp>.sql.gz with the local pg_dump
 # (DB_BACKUP_VIA_DOCKER=false).
-ExecStart=/srv/caldart/.venv/bin/python /srv/caldart/backend/manage.py db_backup
+ExecStart=/opt/caldart/.venv/bin/python /opt/caldart/backend/manage.py db_backup
 
 # Nothing rotates dumps, so the same run drops the generated ones older than
 # BACKUP_RETENTION_DAYS.  systemd expands both variables from the environment
@@ -77,7 +77,7 @@ AmbientCapabilities=
 
 # ReadWritePaths expands no variables: it has to name whatever BACKUP_DIR
 # points at, or ProtectSystem=strict fails the dump with a permission error.
-ReadWritePaths=/srv/caldart/backups
+ReadWritePaths=/opt/caldart/backups
 
 [Install]
 # Present so "systemctl enable caldart-backup.service" is not an error, but

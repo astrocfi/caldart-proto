@@ -989,7 +989,7 @@ systemd runs as it does on a server, and drives the scripts of
 1. ``deploy/bootstrap.sh --repo /mnt/caldart --hostname caldart.test --tls
    self-signed --web-server <server> --email-url smtp://localhost:25
    --admin-email admin@caldart.test``, which clones the checkout into
-   ``/srv/caldart`` and installs it: the packages, Postgres in Docker, the
+   ``/opt/caldart`` and installs it: the packages, Postgres in Docker, the
    build, the database, gunicorn, the web server, the timers, a first backup,
    and the checks, which the install passes only when every unit is active and
    the site answers ``200`` over HTTPS;
@@ -1002,7 +1002,7 @@ systemd runs as it does on a server, and drives the scripts of
 4. ``deploy/install.sh`` with no flags, which must read everything from the
    install record and leave the environment file and the install record
    byte-identical, checked with ``sha256sum`` before and after;
-5. ``deploy/uninstall.sh --yes --purge``, after which neither ``/srv/caldart``
+5. ``deploy/uninstall.sh --yes --purge``, after which neither ``/opt/caldart``
    nor ``/etc/caldart`` may exist.
 
 Any step that fails stops the run, and the target exits non-zero.  At the end
