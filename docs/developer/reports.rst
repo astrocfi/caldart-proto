@@ -29,7 +29,7 @@ documents them.
      - ``user_admin``, ``account_admin``
    * - ``verification``
      - Verification
-     - ``apps/members/verification_report.py``
+     - ``apps/aircraft/verification_report.py``
      - ``verifier``, ``dart_leader``, ``user_admin``, ``account_admin``
    * - ``aircraft``
      - Aircraft register
@@ -458,8 +458,9 @@ The verification report
 ``user_admin``, and ``account_admin``, the tuple ``VERIFY_ROLES`` in
 ``apps/accounts/roles.py``), titled "CalDART verification report" and saved as
 ``caldart-verification-<YYYY-MM-DD>``.  ``VERIFICATION_REPORT`` in
-``backend/apps/members/verification_report.py`` declares it; it sits in the members
-app, above the aircraft app, because it lists both people and aircraft.  An item
+``backend/apps/aircraft/verification_report.py`` declares it; it sits in the aircraft
+app, which sits above the members app and already decides who the leader's member
+check can find, because it lists both people and aircraft.  An item
 is verified when its ``<item>_verified_at`` column is set; the columns are in
 :doc:`data-model`.
 

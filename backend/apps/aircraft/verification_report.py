@@ -6,7 +6,8 @@ aircraft in service.  Each row names the item's holder, what is on file, when th
 was last written, and whether, by whom, and on which day the item was verified.  The
 house style lives in ``caldart.reports``; this module decides which rows the report
 holds, how its two filters narrow them, and what each cell prints.  It lives in the
-members app, above the aircraft app, because it lists both people and aircraft.
+aircraft app, which sits above the members app and already decides who the leader's
+member check can find, because it lists both people and aircraft.
 """
 
 from __future__ import annotations
@@ -14,22 +15,17 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import TYPE_CHECKING
 
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.accounts.models import User
 from apps.accounts.roles import VERIFY_ROLES
 from apps.aircraft.models import Aircraft
 from apps.aircraft.services import checkable_people
 from apps.members.models import MedicalType, MemberProfile, PhotoIdType, PilotCertificateType
 from caldart.reports import Params, ReportColumn, ReportQuery, ReportSpec
-
-if TYPE_CHECKING:
-    from django.db.models import QuerySet
-
-    from apps.accounts.models import User
 
 #: The section each person's item is listed under, keyed by the item's slug.
 PERSON_SECTIONS: dict[str, str] = {
@@ -60,7 +56,7 @@ ALL = "all"
 STATUSES: tuple[str, ...] = (UNVERIFIED, VERIFIED, ALL)
 
 #: What joins the parts of a Details cell.
-DETAIL_SEPARATOR = " · "
+DETAIL_SEPARATOR = " \u00b7 "
 
 
 @dataclass(frozen=True)
@@ -112,13 +108,13 @@ def _expires(day: date | None) -> str:
 
 
 def certificate_details(profile: MemberProfile) -> str:
-    """The certificate's type and number: ``Private · 1234567``, or the type alone."""
+    """The certificate's type and number joined by a middle dot, or the type alone."""
     label = PilotCertificateType(profile.pilot_certificate_type).label
     return _details(label, profile.certificate_number)
 
 
 def medical_details(profile: MemberProfile) -> str:
-    """The medical and its expiration: ``Third class · expires 2027/03/01``.
+    """The medical and ``expires 2027/03/01``, joined by a middle dot.
 
     A medical with no expiration on file, such as ``None``, reads its type alone.
     """
@@ -132,7 +128,7 @@ def photo_id_details(profile: MemberProfile) -> str:
 
 
 def insurance_details(aircraft: Aircraft) -> str:
-    """The carrier and expiration, ``Avemco · expires 2027/03/01``; blank for neither."""
+    """The carrier and ``expires 2027/03/01``, joined by a middle dot, or blank."""
     return _details(aircraft.insurance_carrier, _expires(aircraft.insurance_expiration))
 
 

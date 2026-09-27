@@ -26,13 +26,13 @@ from apps.accounts.roles import (
     VERIFY_ROLES,
 )
 from apps.aircraft.models import Aircraft
-from apps.darts.models import Dart
-from apps.members.models import MedicalType, MemberProfile, PhotoIdType, PilotCertificateType
-from apps.members.verification_report import (
+from apps.aircraft.verification_report import (
     VERIFICATION_REPORT,
     VERIFICATION_REPORT_COLUMNS,
     VerificationRow,
 )
+from apps.darts.models import Dart
+from apps.members.models import MedicalType, MemberProfile, PhotoIdType, PilotCertificateType
 from apps.reports.registry import REPORTS
 from caldart.reports import Params, select_columns
 from tests.conftest import PdfText, read_csv, role_matrix
@@ -270,11 +270,11 @@ def test_aircraft_are_ordered_by_n_number() -> None:
 # Cells
 # --------------------------------------------------------------------------
 def test_a_certificate_reads_its_type_and_number() -> None:
-    """DART, *Private · 1234567*, no update yet, and not verified."""
+    """DART, *Private \u00b7 1234567*, no update yet, and not verified."""
     person(pilot_certificate_type=PilotCertificateType.PRIVATE, certificate_number="1234567")
     assert cells("Pilot certificates", "Pat Doe") == [
         "Palo Alto",
-        "Private · 1234567",
+        "Private \u00b7 1234567",
         "",
         "No",
         "",
@@ -289,9 +289,9 @@ def test_a_certificate_with_no_number_reads_its_type_alone() -> None:
 
 
 def test_a_medical_reads_its_class_and_expiration() -> None:
-    """*Third class · expires 2027/03/01*."""
+    """*Third class \u00b7 expires 2027/03/01*."""
     person(medical_type=MedicalType.THIRD, medical_expiration=date(2027, 3, 1))
-    assert cells("Medicals", "Pat Doe")[1] == "Third class · expires 2027/03/01"
+    assert cells("Medicals", "Pat Doe")[1] == "Third class \u00b7 expires 2027/03/01"
 
 
 def test_no_medical_reads_none() -> None:
@@ -307,7 +307,7 @@ def test_a_photo_id_reads_its_kind() -> None:
 
 
 def test_insurance_reads_the_owner_the_carrier_and_the_expiration() -> None:
-    """The DART column carries the owner; the details *Avemco · expires 2027/03/01*."""
+    """The DART column carries the owner; the details the carrier and the expiration."""
     AircraftFactory(
         n_number="N123AB",
         owner_name="Sky Club",
@@ -316,7 +316,7 @@ def test_insurance_reads_the_owner_the_carrier_and_the_expiration() -> None:
     )
     assert cells("Aircraft insurance", "N123AB")[:2] == [
         "Sky Club",
-        "Avemco · expires 2027/03/01",
+        "Avemco \u00b7 expires 2027/03/01",
     ]
 
 

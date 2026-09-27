@@ -10,10 +10,10 @@ from __future__ import annotations
 from django.http import Http404
 
 from apps.aircraft.reports import AIRCRAFT_REPORT
+from apps.aircraft.verification_report import VERIFICATION_REPORT
 from apps.mail.reports import EMAIL_LOG_REPORT
 from apps.members.reports import MEMBER_REPORT
 from apps.members.roles_report import ROLES_REPORT
-from apps.members.verification_report import VERIFICATION_REPORT
 from apps.payments.reconciliation import RECONCILIATION_REPORT
 from apps.payments.reports import CONTRIBUTION_REPORT, DONOR_REPORT, PAYMENT_REPORT
 from caldart.reports import Report
