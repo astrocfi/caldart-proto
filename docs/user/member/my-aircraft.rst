@@ -66,11 +66,13 @@ yourself.*), and you do not have to search first. It opens **Add an aircraft to 
 register**:
 
 * **N-number** (required). The box writes the N and takes digits first, then at
-  most two letters, so 172sp becomes N172SP.
-* **Find the aircraft type**: type the make, the model, or a designator, for example
-  cessna 172, c172, or skyhawk.
-* **Aircraft type** (required): pick the type from the list the search fills. The make
-  and model come from the type, so one type always reads the same way.
+  most two letters, so 172sp becomes N172SP. **Look up** beside it, or leaving the
+  box, asks the FAA registry about the registration: see :ref:`look-up-registry`.
+* **Aircraft type** (required): type the make, the model, or a designator, for example
+  cessna 172, c172, or skyhawk, and pick the type from the list under the box. Each
+  entry reads as its make and model, with its seats after it. Picking from the list
+  is the only way to set the type, so one type always reads the same way, however it
+  was typed. A search that finds nothing says *No aircraft type matches that.*
 * **Year**, four digits.
 * **Owner**: the person, club, or FBO that owns it.
 * **Insurance carrier**.
@@ -80,19 +82,34 @@ register**:
 Press **Add aircraft**. The airplane joins the register and your list at once.
 **Cancel** closes the form.
 
+.. _look-up-registry:
+
+Looking an airplane up in the FAA registry
+------------------------------------------
+
+Every US airplane is in the FAA's aircraft registry, and CalDART keeps a copy of it,
+refreshed every night. Type the N-number and press **Look up**; leaving the box with a
+whole registration does the same. When the registry has the airplane, the form fills in
+its aircraft type, year, seats, and owner, and the line under the box reads, for
+example, *From the FAA registry as of 2026/09/20*, the day of the copy. Check what it
+filled and correct anything that is out of date. When the registry has no such
+registration, the line reads *Not in the FAA registry* and nothing changes. If the
+registry cannot be reached, no line appears; fill the form in by hand.
+
 
 Editing an airplane
 ===================
 
 Press **Edit** beside an airplane. For one you added yourself, the form opens with
-every detail: **N-number**, **Year**, **Aircraft type**, and **Seats**; **Owner
-type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**; and
-**Carrier**, **Policy number**, **Liability per occurrence**, **Liability per
-person**, **Hull**, and **Insurance expires**. Money is in whole dollars, and the
-commas write themselves. To change the type, search in **Find the aircraft type** and pick
-it from **Aircraft type**. Press **Save
-aircraft**; *N12345 updated.* appears. Saving a change to any insurance detail clears
-the insurance's verification, and the mark reads **Not yet verified** until a DART
+every detail: **N-number** with **Look up**, **Year**, **Aircraft type**, and
+**Seats**; **Owner type** (Individual, FBO, or Flying club), **Owner name**, and
+**Owner contact**; and **Carrier**, **Policy number**, **Liability per occurrence**,
+**Liability per person**, **Hull**, and **Insurance expires**. Money is in whole
+dollars, and the commas write themselves. To change the type, type in **Aircraft
+type** and pick the new one from the list. Picking a type with **Seats** empty fills
+in its seats. A **Look up** asks the registry again. Press **Save aircraft**;
+*N12345 updated.* appears. Saving a change to any insurance detail clears the
+insurance's verification, and the mark reads **Not yet verified** until a DART
 leader or a verifier checks the new policy.
 
 For an airplane somebody else added, **Edit** shows **Someone else added this
@@ -112,10 +129,12 @@ an airplane from the register.
 If something looks wrong
 ========================
 
-*An aircraft with this N-number is already on file.* means the register has it
-already. Search for it and attach that record. *Use a US registration like N172SP:
-N, then digits, then at most two letters.* means the N-number cannot be a US
-registration. *Enter an amount of $0 or more.* means a money box holds something
-that is not an amount. If the insurance chip says **Not on file** and the airplane
-is insured, the record has no expiry date: add it if you added the airplane, or ask
-an account administrator.
+*Pick the aircraft type from the list.* means the **Aircraft type** box holds typing
+that was never picked from the list. If the list has no entry for your airplane, ask
+an account administrator to add its type. *An aircraft with this N-number is already
+on file.* means the register has it already. Search for it and attach that record.
+*Use a US registration like N172SP: N, then digits, then at most two letters.* means
+the N-number cannot be a US registration. *Enter an amount of $0 or more.* means a
+money box holds something that is not an amount. If the insurance chip says **Not on
+file** and the airplane is insured, the record has no expiry date: add it if you
+added the airplane, or ask an account administrator.

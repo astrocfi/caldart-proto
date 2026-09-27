@@ -128,7 +128,8 @@ An account administrator looks after the membership records. The role adds:
   and each member's record (:doc:`admin/member-record`): the profile, the
   membership terms, granting a term by hand, and deleting a member.
 * **Aircraft** (the **Aircraft register**; :doc:`admin/aircraft-register`) and
-  each aircraft's record (:doc:`admin/aircraft-record`).
+  each aircraft's record (:doc:`admin/aircraft-record`), and **Add a type** on any
+  aircraft form, for an aircraft type the FAA has never registered.
 * **DARTs** (:doc:`admin/darts`): the teams, their airports, and their leaders.
 * **Payments**: the finance area as the treasurer sees it, without **Donors**
   (:doc:`finance/index`).
@@ -160,9 +161,9 @@ System administrator
 A system administrator holds every role above and can do everything they can. The
 role adds:
 
-* **System** (:doc:`admin/system`): the site's health, database backups, the four
+* **System** (:doc:`admin/system`): the site's health, database backups, the five
   jobs that run on a timer (renewal reminders, automatic renewals, scheduled
-  reports, and year-end contribution statements) with a way to run each now, and
-  the log of every email CalDART has sent.
+  reports, year-end contribution statements, and the FAA registry import) with a
+  way to run each now, and the log of every email CalDART has sent.
 
 A system administrator cannot deactivate their own account.

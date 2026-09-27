@@ -2,10 +2,11 @@
 System
 ======
 
-**System** shows how the server is doing, the database backups it holds, and the four jobs
+**System** shows how the server is doing, the database backups it holds, and the five jobs
 it runs on a schedule: the renewal reminders, the scheduled reports, the automatic renewals,
-and the year-end statements. It also holds the email log, the record of every email CalDART
-has tried to send. Only a system administrator sees it, under **System** in the menu.
+the year-end statements, and the FAA registry import. It also holds the email log, the
+record of every email CalDART has tried to send. Only a system administrator sees it, under
+**System** in the menu.
 
 A system administrator can do everything any other role can do. Keep the role to the one or
 two people who run the site, and give everyone else the narrower role that fits their job on
@@ -13,8 +14,9 @@ the :doc:`user-record`. Anything that has to happen on the server itself, such a
 an upgrade, restoring a backup, or changing the settings, is a job for the person who
 installed the site.
 
-The page has seven panels, top to bottom: **Health**, **Backups**, **Renewal reminders**,
-**Email log**, **Scheduled reports**, **Automatic renewals**, and **Year-end statements**.
+The page has eight panels, top to bottom: **Health**, **Backups**, **Renewal reminders**,
+**Email log**, **Scheduled reports**, **Automatic renewals**, **Year-end statements**, and
+**FAA registry import**.
 
 
 Health
@@ -211,6 +213,20 @@ The table names each *Statement*, the account and its address, and the year's to
 it twice for a year sends nothing twice.
 
 
+FAA registry import
+===================
+
+Every night at 04:30 CalDART copies the FAA's aircraft registry: the list of aircraft types
+members pick from, and the registrations **Look up** reads on the aircraft forms. The line
+under the panel's text reads *Imported 312 types and 204 registrations on 2026/09/20*,
+adding, for example, *folded 2 hand-added types* when types an account administrator added
+by hand have since been registered by the FAA and were merged into its entries. A failed
+import reads *Failed:* and the reason; before the first one, *No import has run yet.* There
+is no dry run, because the import changes nothing but the copy. **Run now** starts one at
+once; it reads *Running since* and the time, and the button waits, until the import ends a
+few minutes later. A press while one runs says *An import is already running.*
+
+
 Routine
 =======
 
@@ -226,7 +242,7 @@ If **Create backup** fails, the message under it comes from the server; pass it 
 runs the server, since nothing half written is left behind. If a job's emails or charges stop
 happening (no reminders on :doc:`reminders` for days, no scheduled reports, no automatic
 renewals taken, or no statements in January), the timer that starts that job each morning
-may have stopped: each of the four jobs has its own, and the person who runs the server can
+may have stopped: each of the five jobs has its own, and the person who runs the server can
 check it. Meanwhile **Run now** does the same work by hand. A reminder run that skips everyone
 is normal on most days, because members were written to the first morning they reached each
 stage. A run that sends nothing when you expected mail usually still has its **Dry run** box

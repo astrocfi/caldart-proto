@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeAircraftType } from '@test/fixtures/profile';
+import { makeRegistryStatus } from '@test/fixtures/registry';
 import { API } from '@test/handlers';
 import { renderRoutes, renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -337,6 +338,26 @@ describe('AircraftRegisterPage', () => {
     expect(screen.getByText('26–40 of 40')).toBeInTheDocument();
   });
 
+  it('says in its header which day the FAA registry was imported', async () => {
+    server.use(columnsReturn(), listReturns([], [], 0));
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+    expect(await screen.findByText('Registry as of 2026/09/20')).toBeInTheDocument();
+  });
+
+  it('says so in its header when the FAA registry has never been imported', async () => {
+    server.use(
+      columnsReturn(),
+      listReturns([], [], 0),
+      http.get(`${API}/aircraft/registry`, () =>
+        HttpResponse.json(makeRegistryStatus({ as_of: null, last: null })),
+      ),
+    );
+
+    renderWithProviders(<AircraftRegisterPage />, { route: '/admin/aircraft' });
+    expect(await screen.findByText('Registry not imported yet')).toBeInTheDocument();
+  });
+
   it('shows an empty state when nothing matches', async () => {
     const seen: URLSearchParams[] = [];
     server.use(columnsReturn(), listReturns([], seen, 0));
@@ -365,11 +386,8 @@ describe('AircraftRegisterPage', () => {
 
     const form = screen.getByRole('group', { name: 'Aircraft' });
     await user.type(within(form).getByLabelText(/^N-number/), 'n4321q');
-    await user.type(within(form).getByLabelText(/^Find the aircraft type/), 'sr22');
-    await user.selectOptions(
-      within(form).getByLabelText(/^Aircraft type/),
-      await within(form).findByRole('option', { name: /^Cirrus SR22/ }),
-    );
+    await user.type(within(form).getByRole('combobox', { name: /^Aircraft type/ }), 'sr22');
+    await user.click(await within(form).findByRole('option', { name: /^Cirrus SR22/ }));
     await user.click(screen.getByRole('button', { name: 'Add aircraft' }));
 
     await waitFor(() => expect(posted).toMatchObject({ n_number: 'N4321Q', type_id: 3 }));
@@ -393,11 +411,8 @@ describe('AircraftRegisterPage', () => {
 
     const form = screen.getByRole('group', { name: 'Aircraft' });
     await user.type(within(form).getByLabelText(/^N-number/), 'n172sp');
-    await user.type(within(form).getByLabelText(/^Find the aircraft type/), '172S');
-    await user.selectOptions(
-      within(form).getByLabelText(/^Aircraft type/),
-      await within(form).findByRole('option', { name: /^Cessna 172S/ }),
-    );
+    await user.type(within(form).getByRole('combobox', { name: /^Aircraft type/ }), '172S');
+    await user.click(await within(form).findByRole('option', { name: /^Cessna 172S/ }));
     await user.click(screen.getByRole('button', { name: 'Add aircraft' }));
 
     expect(await screen.findByText(/already on file/)).toBeInTheDocument();

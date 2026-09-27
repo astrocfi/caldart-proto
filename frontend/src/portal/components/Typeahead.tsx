@@ -44,6 +44,8 @@ export interface TypeaheadProps<T> {
   itemKey: (item: T) => string;
   /** An item's text in the list. */
   itemLabel: (item: T) => string;
+  /** Optional detail printed after the label in the muted face, such as a count. */
+  itemMeta?: (item: T) => string;
   /** The fewest characters worth asking about; three unless given. */
   minLength?: number;
   name?: string;
@@ -71,6 +73,7 @@ export function Typeahead<T>({
   useSuggestions,
   itemKey,
   itemLabel,
+  itemMeta,
   minLength = TYPEAHEAD_MIN_LENGTH,
   onBlur,
   ...input
@@ -171,6 +174,12 @@ export function Typeahead<T>({
               }}
             >
               {itemLabel(item)}
+              {itemMeta === undefined ? null : (
+                <>
+                  {' '}
+                  <span className="typeahead__meta">{itemMeta(item)}</span>
+                </>
+              )}
             </li>
           ))}
         </ul>

@@ -42,7 +42,7 @@ describe('SystemPage', () => {
     vi.useRealTimers();
   });
 
-  it('shows the seven panels', async () => {
+  it('shows the eight panels', async () => {
     server.use(...systemHandlers());
     renderWithProviders(<SystemPage />);
 
@@ -54,9 +54,17 @@ describe('SystemPage', () => {
     expect(screen.getByRole('heading', { name: 'Scheduled reports' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Automatic renewals' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Year-end statements' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'FAA registry import' })).toBeInTheDocument();
   });
 
-  it('puts the year-end statements last, after automatic renewals', async () => {
+  it('counts the FAA registry import among the five scheduled jobs', async () => {
+    server.use(...systemHandlers());
+    renderWithProviders(<SystemPage />);
+
+    expect(await screen.findByText(/the five jobs it runs on a schedule/)).toBeInTheDocument();
+  });
+
+  it('puts the FAA registry import last, after the year-end statements', async () => {
     server.use(...systemHandlers());
     renderWithProviders(<SystemPage />);
 
@@ -72,6 +80,7 @@ describe('SystemPage', () => {
       'Scheduled reports',
       'Automatic renewals',
       'Year-end statements',
+      'FAA registry import',
     ]);
   });
 

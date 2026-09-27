@@ -22,6 +22,11 @@ airplane can be in the register only once.
 What you see
 ============
 
+The header, beside **New aircraft**, says how fresh CalDART's copy of the FAA aircraft
+registry is, such as *Registry as of 2026/09/20*: the day of the last successful import,
+which runs every night. Until the first import it reads *Registry not imported yet*.
+**Look up** on the aircraft forms and the list of aircraft types both come from that copy.
+
 The caption over the table counts the airplanes your filters match, such as *57 aircraft*.
 The table shows 25 at a time, with **← Previous** and **Next →** and a count such as
 *1–25 of 57* under it when there are more.
@@ -31,7 +36,7 @@ The table shows 25 at a time, with **← Previous** and **Next →** and a count
    service carries an **Out of service** chip; the register lists it all the same.
 
 **Make** and **Model**
-   As the record has them.
+   The record's aircraft type, as the list of aircraft types spells it.
 
 **Owner**
    The owner's name, then Individual, FBO, or Flying club.
@@ -80,10 +85,32 @@ Adding an airplane
 
 **New aircraft**, at the top right, opens **Add an aircraft** above the table, and the
 button reads **Close** while the form is open. The form is the one on the
-:doc:`aircraft-record`. Only the N-number and the aircraft type are required; the type is
-picked from the list **Find the aircraft type** fills. Press **Add
-aircraft**. The message reads that the airplane was *added to the register*, and its record
-opens.
+:doc:`aircraft-record`. Only the N-number and the aircraft type are required. Type the
+N-number and press **Look up** to fill the type, year, seats, and owner from the FAA
+registry, then check them. Press **Add aircraft**. The message reads that the airplane was
+*added to the register*, and its record opens.
+
+
+Adding an aircraft type
+=======================
+
+The aircraft types are the FAA's list of every type ever registered in the United States,
+foreign-built ones such as the Aeropro Eurofox included, so the type of almost any airplane
+is already there. When a search in **Aircraft type** finds nothing, the box says *No
+aircraft type matches that.*, and you, unlike a member, also see **Add a type**. Try the
+make alone, or a designator such as c172, first. **Add a type** is for a type the FAA has
+never registered:
+
+#. Press **Add a type**. A small form opens under the box.
+#. Fill in **Make** and **Model** (both required), and **Seats** and **Engines** if you know
+   them.
+#. Press **Add type**, or Enter. The type is added to the list and picked at once.
+   **Cancel** closes the small form.
+
+CalDART tidies the names the way it tidies the FAA's, so *CESSNA* becomes *Cessna*. If the
+type is listed already, *That aircraft type is already listed.* appears under **Model**:
+search for it instead. When the FAA later registers the same make and model, the nightly
+import folds your entry into the FAA's, and every airplane of that type follows.
 
 
 Downloading the register

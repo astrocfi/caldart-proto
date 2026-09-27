@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { aircraftQuery } from './api';
-import { matchType, suggestTypes } from './catalog';
 import { makeAircraftType } from '@test/fixtures/profile';
 import {
   N_NUMBER_MESSAGE,
@@ -93,27 +92,6 @@ describe('money conversion', () => {
     expect(formatDollars('1,000,000')).toBe('1,000,000');
     expect(formatDollars('')).toBe('');
     expect(formatDollars('about a million')).toBe('about a million');
-  });
-});
-
-describe('the type catalog', () => {
-  it('suggests a type from a few letters of its name', () => {
-    const models = suggestTypes('Mal').map((type) => type.model);
-    expect(models).toContain('PA-46 Malibu');
-  });
-
-  it('suggests from the ICAO designator too', () => {
-    expect(suggestTypes('C172').map((type) => type.model)).toContain('172 Skyhawk');
-  });
-
-  it('says nothing until there is something to go on', () => {
-    expect(suggestTypes('M')).toEqual([]);
-  });
-
-  it('matches a model exactly, so the make can fill itself in', () => {
-    expect(matchType('PA-46 Malibu')?.make).toBe('Piper');
-    expect(matchType('  sr22 ')?.make).toBe('Cirrus');
-    expect(matchType('Mal')).toBeNull();
   });
 });
 

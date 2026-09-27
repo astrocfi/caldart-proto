@@ -12,6 +12,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import { API_BASE, api } from '@/portal/api/client';
+import { REGISTRY_KEY } from '@/portal/api/queries';
 import type {
   Backup,
   EmailLogEntry,
@@ -23,6 +24,7 @@ import type {
   ReminderRunResult,
   RenewalRunResult,
   ReportRunResult,
+  RegistryImport,
   StatementsRunResult,
 } from '@/portal/api/types';
 import { ROSTERS_KEY, SUBSCRIPTIONS_KEY } from '@/portal/reports/api';
@@ -168,6 +170,20 @@ export function useRunStatements(): UseMutationResult<
       if (dryRun) return;
       void queryClient.invalidateQueries({ queryKey: ['system', 'emails'] });
     },
+  });
+}
+
+/**
+ * Starts the FAA registry import via `POST /admin/system/registry-import`.  The
+ * server answers at once with the import row, before the import finishes, so the
+ * registry's state is read again and follows the import while it runs.  A second
+ * press while one runs is refused with a 409.
+ */
+export function useRunRegistryImport(): UseMutationResult<RegistryImport, unknown, void> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<RegistryImport>('/admin/system/registry-import'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: REGISTRY_KEY }),
   });
 }
 

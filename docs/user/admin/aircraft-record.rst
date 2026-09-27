@@ -27,11 +27,16 @@ the date of the last change and the account behind it. A record nobody has chang
 was loaded gives the date alone. The form has four parts.
 
 **Aircraft**
-   **N-number**, **Year**, **Find the aircraft type**, **Aircraft type**, and **Seats**.
-   The N-number is a US registration: the box writes the N, then takes digits first and at
-   most two letters, never I or O. The aircraft type is picked from a list: type the make,
-   the model, or a designator (cessna 172, c172, skyhawk) in **Find the aircraft type**,
-   then choose the type in **Aircraft type**. The make and model come from the type.
+   **N-number** with **Look up**, **Year**, **Aircraft type**, and **Seats**. The N-number
+   is a US registration: the box writes the N, then takes digits first and at most two
+   letters, never I or O. **Look up**, or leaving the box with a changed registration, asks
+   the FAA registry and fills the type, year, seats, owner name, and owner type; the line
+   under the box reads *From the FAA registry as of* the day of CalDART's copy, or *Not in
+   the FAA registry*. The aircraft type is picked from a list: type the make, the model, or
+   a designator (cessna 172, c172, skyhawk) in **Aircraft type** and pick the entry, which
+   shows its seats. The make and model come from the type, and picking one with **Seats**
+   empty fills in its seats. A type the list lacks can be added with **Add a type**, as the
+   :doc:`aircraft-register` describes.
 
 **Owner**
    **Owner type** (Individual, FBO, or Flying club), **Owner name**, and **Owner contact**,
@@ -102,11 +107,12 @@ If something looks wrong
 ========================
 
 *An aircraft with this N-number is already on file.* means another record already holds that
-registration; open it from the register and delete whichever record is the duplicate.
-*Enter an amount of $0 or more.* means a money box holds a negative number or something that
-is not a number; type dollars, and a leading $ and commas are fine. *Use a US registration
-like N172SP: N, then digits, then at most two letters.* means the N-number does not follow
-the US pattern. **No insurance on file** means the record has no expiry date, which is
-different from an expired policy; enter the carrier, the limits, and the expiry before a
-DART leader relies on the airplane. *No such aircraft* means the record has been deleted;
-use **Back to the register**.
+registration; open it from the register and delete whichever record is the duplicate. *Pick
+the aircraft type from the list.* means the **Aircraft type** box holds typing that was never
+picked from the list. *Enter an amount of $0 or more.* means a money box holds a negative
+number or something that is not a number; type dollars, and a leading $ and commas are fine.
+*Use a US registration like N172SP: N, then digits, then at most two letters.* means the
+N-number does not follow the US pattern. **No insurance on file** means the record has no
+expiry date, which is different from an expired policy; enter the carrier, the limits, and
+the expiry before a DART leader relies on the airplane. *No such aircraft* means the record
+has been deleted; use **Back to the register**.

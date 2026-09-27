@@ -15,9 +15,12 @@ import type {
   AircraftDetail,
   AircraftPatch,
   AircraftType,
+  AircraftTypeCreatePayload,
   OwnerType,
   Paginated,
+  Registration,
 } from '@/portal/api/types';
+import { normalizeNNumber } from './insurance';
 
 export type InsuranceState = 'current' | 'expired' | 'missing';
 
@@ -137,6 +140,49 @@ export function useAircraftTypes(term: string): UseQueryResult<AircraftType[]> {
     enabled: term.trim().length > 0,
     placeholderData: keepPreviousData,
   });
+}
+
+/**
+ * Adds an aircraft type the FAA has never registered, via `POST /aircraft/types`
+ * (account administrators only).  The type searches are dropped afterwards, so
+ * the new entry is found at once.
+ */
+export function useCreateAircraftType(): UseMutationResult<
+  AircraftType,
+  Error,
+  AircraftTypeCreatePayload
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AircraftTypeCreatePayload) =>
+      api.post<AircraftType>('/aircraft/types', payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [AIRCRAFT_KEY, 'types'] }),
+  });
+}
+
+/** What a Look up of one N-number learned from the registry. */
+export type RegistryLookup =
+  { status: 'found'; registration: Registration } | { status: 'missing' } | { status: 'failed' };
+
+/**
+ * Looks `nNumber` up in the FAA registry via `GET /aircraft/registry/{n_number}`,
+ * after writing it in its one form (`n-739ta` asks for `N739TA`).
+ *
+ * @returns `found` with the registration, `missing` when the registry has no such
+ *   registration (a 404), or `failed` for any other answer or a dropped request,
+ *   which the form shows nothing for.
+ */
+export async function lookupRegistration(nNumber: string): Promise<RegistryLookup> {
+  const registration = encodeURIComponent(normalizeNNumber(nNumber));
+  try {
+    return {
+      status: 'found',
+      registration: await api.get<Registration>(`/aircraft/registry/${registration}`),
+    };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return { status: 'missing' };
+    return { status: 'failed' };
+  }
 }
 
 function useInvalidateAircraft() {

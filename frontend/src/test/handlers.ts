@@ -33,6 +33,7 @@ import type {
 } from '@/portal/api/types';
 import type { ReportSlug } from '../portal/reports/types';
 import { TEST_AIRCRAFT_TYPES, makeAircraftType, makeProfile } from './fixtures/profile';
+import { makeRegistryStatus } from './fixtures/registry';
 
 export const API = '/api/v1';
 
@@ -156,6 +157,17 @@ export const handlers = [
     );
     return HttpResponse.json(found);
   }),
+  // The register's header and the System screen read the registry's state as
+  // they mount: by default, one successful import and none running.
+  http.get(`${API}/aircraft/registry`, () => HttpResponse.json(makeRegistryStatus())),
+  // A Look up on the aircraft form asks this; by default the registry has no such
+  // registration, which leaves the form alone.
+  http.get(`${API}/aircraft/registry/:nNumber`, ({ params }) =>
+    HttpResponse.json(
+      { detail: `No registration for ${String(params.nNumber)} in the registry.` },
+      { status: 404 },
+    ),
+  ),
   // The email log panel reads this as `/portal/system` mounts, so a suite that
   // is not about the log does not have to declare one.
   http.get(`${API}/system/emails`, () =>
