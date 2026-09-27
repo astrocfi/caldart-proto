@@ -1,9 +1,10 @@
 """The verification endpoints, who may call them, and what the reads show.
 
-``PUT /leader/members/{user_id}/verification`` and ``PUT /leader/aircraft/{id}/verification``
-are open to the four verifying roles and a system administrator.  The status card, the
-search rows, the aircraft record, and the profile each carry the verified state, and
-the search still costs a fixed number of queries.  The contract is
+``PUT /leader/members/{user_id}/verification`` and
+``PUT /leader/aircraft/{id}/verification`` are open to the four verifying roles and a
+system administrator.  The status card, the search rows, the aircraft record, and the
+profile each carry the verified state, and the search still costs a fixed number of
+queries.  The contract is
 ``docs/developer/api-aircraft.rst`` and ``docs/developer/api-profile.rst``.
 """
 
@@ -14,6 +15,7 @@ from datetime import date, datetime, timedelta
 import pytest
 from django.utils import timezone
 from pytest_django.fixtures import DjangoAssertNumQueries
+from rest_framework import serializers
 from rest_framework.test import APIClient
 
 from apps.accounts.models import AccountKind, User
@@ -62,6 +64,11 @@ def aircraft_verification_url(aircraft: Aircraft) -> str:
 def status_url(user: User) -> str:
     """``/leader/members/{user_id}/status`` for ``user``."""
     return f"/api/v1/leader/members/{user.pk}/status"
+
+
+def rendered(moment: datetime) -> str:
+    """``moment`` as the API renders a timestamp."""
+    return str(serializers.DateTimeField().to_representation(moment))
 
 
 def stamps(by: User, *slugs: str) -> dict[str, object]:
@@ -215,7 +222,7 @@ def test_the_card_names_who_verified_and_when(
     assert response.json()["medical"]["verification"] == {
         "verified": True,
         "verified_by": dart_leader.display_name,
-        "verified_at": timezone.localtime(timezone.now()).isoformat(),
+        "verified_at": rendered(timezone.now()),
     }
 
 
@@ -278,9 +285,7 @@ def test_a_medical_needs_an_expiration_on_the_merged_record(
     }
 
 
-def test_a_refused_body_writes_nothing(
-    leader_client: APIClient, pilot: User
-) -> None:
+def test_a_refused_body_writes_nothing(leader_client: APIClient, pilot: User) -> None:
     """A refusal leaves every item unverified and the fields as they were."""
     leader_client.put(
         member_verification_url(pilot),
@@ -303,7 +308,7 @@ def test_verifying_the_insurance_answers_the_aircraft_record(
     assert response.json()["insurance_verification"] == {
         "verified": True,
         "verified_by": dart_leader.display_name,
-        "verified_at": timezone.localtime(timezone.now()).isoformat(),
+        "verified_at": rendered(timezone.now()),
     }
 
 
@@ -388,7 +393,7 @@ def test_the_card_carries_the_photo_id(
         "verification": {
             "verified": True,
             "verified_by": "Dana Holt",
-            "verified_at": timezone.localtime(STAMPED_AT).isoformat(),
+            "verified_at": rendered(STAMPED_AT),
         },
     }
 
@@ -478,7 +483,7 @@ def test_the_register_carries_the_insurance_verification(
     assert body["insurance_verification"] == {
         "verified": True,
         "verified_by": "Dana Holt",
-        "verified_at": timezone.localtime(STAMPED_AT).isoformat(),
+        "verified_at": rendered(STAMPED_AT),
     }
 
 
@@ -532,9 +537,7 @@ def test_a_member_writes_their_photo_id_type(api_client: APIClient, pilot: User)
     assert response.json()["photo_id_type"] == "military_id"
 
 
-def test_a_member_cannot_write_their_own_verification(
-    api_client: APIClient, pilot: User
-) -> None:
+def test_a_member_cannot_write_their_own_verification(api_client: APIClient, pilot: User) -> None:
     """``verification`` is read-only: sending it verifies nothing."""
     api_client.force_login(pilot)
     api_client.patch(

@@ -18,18 +18,26 @@ from django.utils import timezone
 
 from apps.accounts.models import AccountKind
 from apps.accounts.models import User as UserModel
+from apps.accounts.roles import VERIFIER
+from apps.aircraft import verification
 from apps.aircraft.models import (
     Aircraft,
     AircraftChange,
     AircraftChangeKind,
     normalize_n_number,
 )
-from apps.members.models import MembershipState
+from apps.members.models import MemberProfile, MembershipState, PhotoIdType
 from apps.members.services import (
     membership_of,
     membership_payload,
     membership_status,
     with_membership,
+)
+from apps.members.verification import (
+    VerificationState,
+    is_fully_verified,
+    item_state,
+    verification_state,
 )
 from caldart import audit, events
 from caldart.phone import normalize_phone
@@ -107,8 +115,12 @@ def record_updated(aircraft: Aircraft, *, actor: UserModel, fields: list[str]) -
     ``fields`` is :func:`changed_fields`, worked out before the save.  Writes the
     ``updated`` history row and the ``aircraft.update`` audit record naming them, and,
     when any column moved, raises the ``aircraft_changed`` event with the aircraft,
-    those column names and ``actor``; an edit that moved nothing raises nothing.
+    those column names and ``actor``; an edit that moved nothing raises nothing.  When
+    an insurance field moved, a verified insurance is cleared
+    (:func:`apps.aircraft.verification.clear_stale_insurance`) and no
+    ``verification_changed`` is raised: ``aircraft_changed`` already tells of the edit.
     """
+    verification.clear_stale_insurance(aircraft, fields)
     record_change(aircraft, actor=actor, kind=AircraftChangeKind.UPDATED, fields=fields)
     audit.record(audit.AIRCRAFT_UPDATE, actor=actor, target=aircraft, fields=fields)
     if len(fields) > 0:
@@ -201,10 +213,10 @@ def search_result(user: UserModel) -> dict[str, Any]:
     """One row of ``GET /leader/search``.
 
     The row answers go/no-go on its own, by exactly the rule the status card
-    uses: ``go_no_go`` is a current membership and a current medical, so a
-    leader reads the list and only opens the card for the detail.  Everything
-    comes from the row the search already fetched, so a result costs no query of
-    its own.
+    uses: ``go_no_go`` is a current membership, a current medical, and whether the
+    pilot certificate, medical, and photo ID are all verified, so a leader reads the
+    list and only opens the card for the detail.  Everything comes from the row the
+    search already fetched, so a result costs no query of its own.
     """
     profile = getattr(user, "profile", None)
     dart = profile.dart if profile is not None else None
@@ -219,6 +231,7 @@ def search_result(user: UserModel) -> dict[str, Any]:
         "go_no_go": {
             "membership": status == MembershipState.CURRENT,
             "medical": medical_ok,
+            "verified": is_fully_verified(profile),
         },
     }
 
@@ -226,8 +239,12 @@ def search_result(user: UserModel) -> dict[str, Any]:
 def leader_status(user: UserModel) -> dict[str, Any]:
     """The status card for one member.
 
-    ``go_no_go`` is deliberately two plain booleans: a leader is entitled to
-    see *why* a member is a no-go, not just that they are.
+    ``go_no_go`` is deliberately plain booleans: a leader is entitled to see *why*
+    a member is a no-go, not just that they are.  ``verified`` among them is true when
+    the pilot certificate, the medical, and the photo ID are all verified; each of the
+    three carries its own ``verification``.  ``is_verifier`` says whether the member
+    holds the verifier role.  An account with no profile has nothing verified and a
+    photo ID of ``not_provided``.
     """
     profile = getattr(user, "profile", None)
     status = membership_status(user)
@@ -250,15 +267,33 @@ def leader_status(user: UserModel) -> dict[str, Any]:
             "number": profile.certificate_number if profile is not None else "",
             "ifr_rated": profile.ifr_rated if profile is not None else "na",
             "ratings": list(profile.ratings or []) if profile is not None else [],
+            "verification": _item_state(profile, "certificate"),
         },
         "medical": {
             "type": profile.medical_type if profile is not None else "none",
             "expiration": profile.medical_expiration if profile is not None else None,
             "is_current": medical_ok,
+            "verification": _item_state(profile, "medical"),
         },
+        "photo_id": {
+            "type": profile.photo_id_type if profile is not None else PhotoIdType.NOT_PROVIDED,
+            "verification": _item_state(profile, "photo_id"),
+        },
+        "is_verifier": VERIFIER in user.roles,
         "aircraft": list(profile.aircraft.all()) if profile is not None else [],
-        "go_no_go": {"membership": membership_ok, "medical": medical_ok},
+        "go_no_go": {
+            "membership": membership_ok,
+            "medical": medical_ok,
+            "verified": is_fully_verified(profile),
+        },
     }
+
+
+def _item_state(profile: MemberProfile | None, slug: str) -> VerificationState:
+    """The item ``slug``'s state on ``profile``, unverified when there is no profile."""
+    if profile is None:
+        return verification_state(None, None)
+    return item_state(profile, slug)
 
 
 def aircraft_pilots(aircraft: Aircraft) -> list[dict[str, Any]]:

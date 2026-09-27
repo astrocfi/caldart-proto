@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, cast
 
 from drf_spectacular.utils import extend_schema_field
@@ -17,12 +18,21 @@ from apps.aircraft.models import (
     AircraftChangeKind,
     normalize_n_number,
 )
+from apps.aircraft.verification import INSURANCE_FIELDS
 from apps.members.models import (
     RATING_VALUES,
     IfrRated,
     MedicalType,
     MembershipState,
+    PhotoIdType,
     PilotCertificateType,
+)
+from apps.members.verification import (
+    ITEM_CHOICES,
+    ITEM_LABELS,
+    VerificationState,
+    document_errors,
+    verification_state,
 )
 
 NEGATIVE_MONEY_MESSAGE = "Enter an amount of $0 or more."
@@ -61,11 +71,28 @@ class NNumberField(serializers.CharField):
         return normalized
 
 
+# --------------------------------------------------------------------------
+# Verification
+# --------------------------------------------------------------------------
+class VerificationSerializer(serializers.Serializer[VerificationState]):
+    """One verified item's state: whether it is verified, by whom, and when.
+
+    ``verified_by`` is the verifier's display name and ``verified_at`` the moment; both
+    are ``null`` while the item is unverified, and ``verified_by`` is ``null`` too once
+    the verifying account is deleted.
+    """
+
+    verified = serializers.BooleanField()
+    verified_by = serializers.CharField(allow_null=True)
+    verified_at = serializers.DateTimeField(allow_null=True)
+
+
 class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
     """The short form embedded in profiles, leader cards and pickers."""
 
     insurance_is_current = serializers.BooleanField(read_only=True)
     insurance_summary = serializers.CharField(read_only=True)
+    insurance_verified = serializers.BooleanField(source="insurance_is_verified", read_only=True)
 
     class Meta:
         model = Aircraft
@@ -77,6 +104,7 @@ class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
             "insurance_is_current",
             "insurance_expiration",
             "insurance_summary",
+            "insurance_verified",
         ]
         read_only_fields = fields
 
@@ -109,6 +137,7 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
     )
     insurance_is_current = serializers.BooleanField(read_only=True)
     insurance_summary = serializers.CharField(read_only=True)
+    insurance_verification = serializers.SerializerMethodField()
 
     class Meta:
         model = Aircraft
@@ -130,6 +159,7 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
             "insurance_expiration",
             "insurance_is_current",
             "insurance_summary",
+            "insurance_verification",
             "notes",
             "created_by",
             "updated_at",
@@ -142,6 +172,28 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
             "insurance_is_current",
             "insurance_summary",
         ]
+
+    @extend_schema_field(VerificationSerializer)
+    def get_insurance_verification(self, obj: Aircraft) -> VerificationState:
+        """Whether ``obj``'s insurance is verified, by whom, and when."""
+        state = verification_state(obj.insurance_verified_at, obj.insurance_verified_by)
+        return cast("VerificationState", VerificationSerializer(state).data)
+
+
+class InsuranceVerificationSerializer(AircraftSerializer):
+    """``PUT /leader/aircraft/{id}/verification``: the insurance fields and the verdict.
+
+    The six insurance fields are optional and validated as the register validates them
+    (money in integer cents, ``>= 0``); one given is written, one omitted is left as it
+    is.  ``verified`` is required: whether the insurance ends verified.  No other
+    register field is accepted.
+    """
+
+    verified = serializers.BooleanField()
+
+    class Meta(AircraftSerializer.Meta):
+        fields = [*INSURANCE_FIELDS, "verified"]
+        read_only_fields: list[str] = []
 
 
 class AircraftPilotSerializer(serializers.Serializer[Any]):
@@ -227,27 +279,41 @@ class LeaderMembershipSerializer(serializers.Serializer[Any]):
 
 
 class LeaderCertificateSerializer(serializers.Serializer[Any]):
-    """The pilot certificate fields of the leader status card."""
+    """The pilot certificate fields of the status card, and their verification."""
 
     type = serializers.ChoiceField(choices=PilotCertificateType.choices)
     number = serializers.CharField(allow_blank=True)
     ifr_rated = serializers.ChoiceField(choices=IfrRated.choices)
     ratings = serializers.ListField(child=serializers.ChoiceField(choices=RATING_VALUES))
+    verification = VerificationSerializer()
 
 
 class LeaderMedicalSerializer(serializers.Serializer[Any]):
-    """The medical certificate fields of the leader status card."""
+    """The medical certificate fields of the status card, and their verification."""
 
     type = serializers.ChoiceField(choices=MedicalType.choices)
     expiration = serializers.DateField(allow_null=True)
     is_current = serializers.BooleanField()
+    verification = VerificationSerializer()
+
+
+class LeaderPhotoIdSerializer(serializers.Serializer[Any]):
+    """The kind of photo ID on file, and its verification; nothing else is recorded."""
+
+    type = serializers.ChoiceField(choices=PhotoIdType.choices)
+    verification = VerificationSerializer()
 
 
 class LeaderGoNoGoSerializer(serializers.Serializer[Any]):
-    """The two go/no-go booleans, so a leader sees why, not just whether."""
+    """The go/no-go booleans, so a leader sees why, not just whether.
+
+    ``verified`` is true when the pilot certificate, the medical, and the photo ID are
+    all verified.
+    """
 
     membership = serializers.BooleanField()
     medical = serializers.BooleanField()
+    verified = serializers.BooleanField()
 
 
 class LeaderSearchResultSerializer(serializers.Serializer[Any]):
@@ -275,5 +341,67 @@ class LeaderStatusSerializer(serializers.Serializer[Any]):
     membership = LeaderMembershipSerializer()
     certificate = LeaderCertificateSerializer()
     medical = LeaderMedicalSerializer()
+    photo_id = LeaderPhotoIdSerializer()
+    is_verifier = serializers.BooleanField()
     aircraft = AircraftSummarySerializer(many=True)
     go_no_go = LeaderGoNoGoSerializer()
+
+
+@extend_schema_field(serializers.ChoiceField(choices=ITEM_CHOICES))
+class ItemSlugField(serializers.CharField):
+    """One item slug.  The schema lists the catalog; the serializer refuses any other."""
+
+
+class MemberVerificationSerializer(serializers.Serializer[Any]):
+    """``PUT /leader/members/{user_id}/verification``: the covered fields and the items.
+
+    Each field is optional: one given is written, one omitted is left as it is.
+    ``verified`` is required and lists the slugs of the items that end verified; an
+    item left out ends unverified, and a slug outside the catalog is refused with
+    ``Unknown item '<slug>'.``  The profile form's two rules hold on the record the
+    write would leave (see :func:`apps.members.verification.document_errors`), judged
+    against the profile passed in the ``profile`` context key (``None`` for an account
+    with no profile).
+    """
+
+    pilot_certificate_type = serializers.ChoiceField(
+        choices=PilotCertificateType.choices, required=False
+    )
+    certificate_number = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    medical_type = serializers.ChoiceField(choices=MedicalType.choices, required=False)
+    medical_expiration = serializers.DateField(required=False, allow_null=True)
+    photo_id_type = serializers.ChoiceField(choices=PhotoIdType.choices, required=False)
+    verified = serializers.ListField(child=ItemSlugField(), allow_empty=True)
+
+    def validate_verified(self, value: list[str]) -> list[str]:
+        """Refuse a slug that names no item; return the slugs without repeats."""
+        for slug in value:
+            if slug not in ITEM_LABELS:
+                raise serializers.ValidationError(f"Unknown item '{slug}'.")
+        return list(dict.fromkeys(value))
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Apply the profile form's two document rules to the merged record."""
+        profile = self.context.get("profile")
+
+        def merged(name: str, default: object) -> object:
+            if name in attrs:
+                return attrs[name]
+            return getattr(profile, name) if profile is not None else default
+
+        expiration = merged("medical_expiration", None)
+        errors = document_errors(
+            certificate_type=str(merged("pilot_certificate_type", PilotCertificateType.NONE)),
+            certificate_number=str(merged("certificate_number", "")),
+            medical_type=str(merged("medical_type", MedicalType.NONE)),
+            medical_expiration=expiration if isinstance(expiration, date) else None,
+        )
+        if len(errors) > 0:
+            raise serializers.ValidationError(errors)
+        return attrs
+
+
+class VerifierGrantSerializer(serializers.Serializer[Any]):
+    """``PUT /leader/members/{user_id}/verifier``: whether the member holds the role."""
+
+    verifier = serializers.BooleanField()

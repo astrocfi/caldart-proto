@@ -266,6 +266,8 @@ SPECTACULAR_SETTINGS = {
         "MembershipTermStatusEnum": "apps.members.models.MembershipStatusChoices.choices",
         "PilotCertificateTypeEnum": "apps.members.models.PilotCertificateType.choices",
         "MedicalTypeEnum": "apps.members.models.MedicalType.choices",
+        "PhotoIdTypeEnum": "apps.members.models.PhotoIdType.choices",
+        "VerificationItemEnum": "apps.members.verification.ITEM_CHOICES",
         "RolesEnum": "apps.accounts.roles.ROLE_SLUGS",
         "ReminderKindEnum": "apps.reminders.models.ReminderKind.choices",
         "NavKindEnum": "apps.cms.api.serializers.NAV_KINDS",

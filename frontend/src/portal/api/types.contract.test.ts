@@ -56,6 +56,8 @@ import type {
   GrantTermPayload,
   Health,
   IfrRated,
+  InsuranceVerificationPayload,
+  LeaderPhotoId,
   LeaderSearchResult,
   LeaderStatus,
   LedgerMember,
@@ -73,6 +75,7 @@ import type {
   MemberRow,
   MemberTerm,
   MemberUpdatePayload,
+  MemberVerificationPayload,
   MembersPage,
   MembershipDetail,
   MembershipSource,
@@ -116,8 +119,10 @@ import type {
   RenewalSetupResponse,
   PilotCertificateType,
   Plan,
+  PhotoIdType,
   Profile,
   ProfilePatch,
+  ProfileVerification,
   Rating,
   ReceiptSend,
   ReconciliationRow,
@@ -150,7 +155,10 @@ import type {
   StatementYears,
   TermUpdatePayload,
   User,
+  Verification,
+  VerificationItem,
   VerificationSentResult,
+  VerifierGrantPayload,
 } from './types';
 
 type Schemas = components['schemas'];
@@ -326,6 +334,20 @@ const runAction: Matches<RunAction, Schemas['RunAction']> = true;
 const leaderSearch: Matches<LeaderSearchResult, Schemas['LeaderSearchResult']> = true;
 const leaderStatus: Matches<LeaderStatus, Schemas['LeaderStatus']> = true;
 
+/* ----------------------------------------------------------- verification */
+const photoIdType: Matches<PhotoIdType, Schemas['PhotoIdTypeEnum']> = true;
+const verificationItem: Matches<VerificationItem, Schemas['VerificationItemEnum']> = true;
+const verification: Matches<Verification, Schemas['Verification']> = true;
+const profileVerification: Matches<ProfileVerification, Schemas['ProfileVerification']> = true;
+const leaderPhotoId: Matches<LeaderPhotoId, Schemas['LeaderPhotoId']> = true;
+const memberVerification: Matches<MemberVerificationPayload, Schemas['MemberVerificationRequest']> =
+  true;
+const insuranceVerification: Matches<
+  InsuranceVerificationPayload,
+  Schemas['InsuranceVerificationRequest']
+> = true;
+const verifierGrant: Matches<VerifierGrantPayload, Schemas['VerifierGrantRequest']> = true;
+
 /* -------------------------------------------------------------- email log */
 const emailLog: Matches<EmailLogEntry, Schemas['EmailLog']> = true;
 const emailPurpose: Matches<EmailPurpose, Schemas['EmailPurpose']> = true;
@@ -486,6 +508,14 @@ const assertions: readonly true[] = [
   runAction,
   leaderSearch,
   leaderStatus,
+  photoIdType,
+  verificationItem,
+  verification,
+  profileVerification,
+  leaderPhotoId,
+  memberVerification,
+  insuranceVerification,
+  verifierGrant,
   emailLog,
   emailPurpose,
   reminderLog,
@@ -626,6 +656,14 @@ const MAPPED_COMPONENTS: readonly (keyof Schemas)[] = [
   'RunAction',
   'LeaderSearchResult',
   'LeaderStatus',
+  'PhotoIdTypeEnum',
+  'VerificationItemEnum',
+  'Verification',
+  'ProfileVerification',
+  'LeaderPhotoId',
+  'MemberVerificationRequest',
+  'InsuranceVerificationRequest',
+  'VerifierGrantRequest',
   'EmailLog',
   'EmailPurpose',
   'ReminderLog',

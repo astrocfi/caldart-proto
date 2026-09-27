@@ -142,6 +142,7 @@ def test_get_profile_returns_the_documented_shape(
             "insurance_is_current": True,
             "insurance_expiration": aircraft.insurance_expiration.isoformat(),
             "insurance_summary": aircraft.insurance_summary,
+            "insurance_verified": False,
         }
     ]
 

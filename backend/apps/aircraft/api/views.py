@@ -19,16 +19,20 @@ if TYPE_CHECKING:
     from rest_framework.request import Request
     from rest_framework.serializers import BaseSerializer
 
-from apps.accounts.permissions import HasAnyRole, IsAccountAdmin, user_has_any_role
-from apps.accounts.roles import ACCOUNT_ADMIN, DART_LEADER
+from apps.accounts.permissions import HasAnyRole, IsAccountAdmin, IsVerifier, user_has_any_role
+from apps.accounts.roles import DART_LEADER, USER_ADMIN, VERIFY_ROLES
+from apps.accounts.services import set_verifier
 from apps.aircraft import services
 from apps.aircraft.api.permissions import AircraftPermission
 from apps.aircraft.api.serializers import (
     AircraftChangeSerializer,
     AircraftDetailSerializer,
     AircraftSerializer,
+    InsuranceVerificationSerializer,
     LeaderSearchResultSerializer,
     LeaderStatusSerializer,
+    MemberVerificationSerializer,
+    VerifierGrantSerializer,
 )
 from apps.aircraft.filters import (
     DEFAULT_ORDERING,
@@ -37,23 +41,30 @@ from apps.aircraft.filters import (
     NullsLastOrderingFilter,
 )
 from apps.aircraft.models import Aircraft, AircraftChange, normalize_n_number
+from apps.aircraft.verification import verify_insurance
 from apps.members.api.actors import acting_user
+from apps.members.models import MemberProfile
+from apps.members.verification import verify_member
 
 User = get_user_model()
 
-#: The leader check is for leaders, and for the administrators who support
+#: The member check and the aircraft check are for every role that verifies: the
+#: verifier, the DART leader, and the user and account administrators who support
 #: them; ``system_admin`` passes through ``user_has_any_role``.
-IsLeader = HasAnyRole(DART_LEADER, ACCOUNT_ADMIN)
+IsLeader = HasAnyRole(*VERIFY_ROLES)
 
-#: Roles that may see who flies an aircraft.
-PILOT_ROLES: tuple[str, ...] = (DART_LEADER, ACCOUNT_ADMIN)
+#: Roles that may see who flies an aircraft: the same roles the checks open to.
+PILOT_ROLES: tuple[str, ...] = VERIFY_ROLES
+
+#: Roles that may grant or revoke the verifier role from the member check.
+CanGrantVerifier = HasAnyRole(DART_LEADER, USER_ADMIN)
 
 
 def aircraft_serializer_for(request: Request) -> type[AircraftSerializer]:
     """The register record, with ``pilots`` only for callers entitled to it.
 
     ``pilots`` carries other members' email addresses, membership state and
-    medical currency -- exactly what the leader check gates behind ``dart_leader``.
+    medical currency -- exactly what the leader check gates behind the verifying roles.
     Returning it from the register to every signed-in member would walk
     straight around that gate, so plain members get the aircraft alone.
     """
@@ -63,9 +74,12 @@ def aircraft_serializer_for(request: Request) -> type[AircraftSerializer]:
 
 
 class AircraftQuerysetMixin(generics.GenericAPIView[Aircraft]):
-    """The register, filtered and ordered identically everywhere."""
+    """The register, filtered and ordered identically everywhere.
 
-    queryset = Aircraft.objects.all()
+    The insurance verifier is joined, so naming who verified each row costs no query.
+    """
+
+    queryset = Aircraft.objects.select_related("insurance_verified_by")
     filter_backends = [DjangoFilterBackend, NullsLastOrderingFilter]
     filterset_class = AircraftFilter
     ordering_fields = ORDERING_FIELDS
@@ -100,7 +114,7 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
     def get_serializer_class(self) -> type[AircraftSerializer]:
         """Return the serializer ``aircraft_serializer_for`` picks for this request.
 
-        A DART leader or account admin gets ``AircraftDetailSerializer``, whose payload
+        A holder of a verifying role gets ``AircraftDetailSerializer``, whose payload
         includes ``pilots``; every other signed-in member gets ``AircraftSerializer``,
         the same record without that field.
         """
@@ -213,4 +227,80 @@ class LeaderAircraftView(APIView):
         if not n_number:
             return Response({"n_number": "Enter a registration, for example N12345."}, status=400)
         aircraft = get_object_or_404(Aircraft, n_number=n_number)
+        return Response(AircraftDetailSerializer(aircraft).data)
+
+
+def _status_card(user_id: int) -> Response:
+    """The status card for the checkable person ``user_id``, fetched afresh."""
+    user = get_object_or_404(
+        services.checkable_people().select_related("profile", "profile__dart"), pk=user_id
+    )
+    return Response(LeaderStatusSerializer(services.leader_status(user)).data)
+
+
+class LeaderMemberVerificationView(APIView):
+    """``PUT /leader/members/{user_id}/verification`` -- verify a member's documents."""
+
+    permission_classes = [IsVerifier]
+
+    @extend_schema(request=MemberVerificationSerializer, responses={200: LeaderStatusSerializer})
+    def put(self, request: Request, user_id: int) -> Response:
+        """Write the covered fields and the verified items, and return the status card.
+
+        Answers 404 for anyone the member check never shows (an unknown id, a donor, a
+        deactivated account), and 400 for a body the serializer refuses.  The write goes
+        through :func:`apps.members.verification.verify_member` under the caller.
+        """
+        target = get_object_or_404(services.checkable_people(), pk=user_id)
+        profile = MemberProfile.objects.filter(user=target).first()
+        serializer = MemberVerificationSerializer(data=request.data, context={"profile": profile})
+        serializer.is_valid(raise_exception=True)
+        changes = dict(serializer.validated_data)
+        verified = changes.pop("verified")
+        verify_member(acting_user(request), target, changes=changes, verified=verified)
+        return _status_card(user_id)
+
+
+class LeaderMemberVerifierView(APIView):
+    """``PUT /leader/members/{user_id}/verifier`` -- grant or revoke the verifier role."""
+
+    permission_classes = [CanGrantVerifier]
+
+    @extend_schema(request=VerifierGrantSerializer, responses={200: LeaderStatusSerializer})
+    def put(self, request: Request, user_id: int) -> Response:
+        """Give the member the verifier role, or take it away, and return the status card.
+
+        Answers 404 for anyone the member check never shows, and 400 when ``verifier``
+        is missing or not a boolean.  The role list is written through
+        :func:`apps.accounts.services.set_verifier` under the caller.
+        """
+        target = get_object_or_404(services.checkable_people(), pk=user_id)
+        serializer = VerifierGrantSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        set_verifier(acting_user(request), target, wanted=serializer.validated_data["verifier"])
+        return _status_card(user_id)
+
+
+class LeaderAircraftVerificationView(APIView):
+    """``PUT /leader/aircraft/{id}/verification`` -- verify an aircraft's insurance."""
+
+    permission_classes = [IsVerifier]
+
+    @extend_schema(
+        request=InsuranceVerificationSerializer, responses={200: AircraftDetailSerializer}
+    )
+    def put(self, request: Request, pk: int) -> Response:
+        """Write the insurance fields and the verdict, and return the aircraft record.
+
+        Answers 404 when no aircraft has that id, and 400 for a body the serializer
+        refuses.  The write goes through
+        :func:`apps.aircraft.verification.verify_insurance` under the caller.
+        """
+        aircraft = get_object_or_404(Aircraft, pk=pk)
+        serializer = InsuranceVerificationSerializer(aircraft, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        changes = dict(serializer.validated_data)
+        verified = bool(changes.pop("verified"))
+        verify_insurance(aircraft, actor=acting_user(request), changes=changes, verified=verified)
+        aircraft.refresh_from_db()
         return Response(AircraftDetailSerializer(aircraft).data)

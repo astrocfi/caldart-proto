@@ -36,6 +36,7 @@ const PICKED: Aircraft = {
   insurance_is_current: false,
   insurance_expiration: null,
   insurance_summary: 'No insurance on file',
+  insurance_verification: { verified: false, verified_by: null, verified_at: null },
   updated_at: '2026-09-01T12:00:00Z',
   notes: '',
   created_by: null,

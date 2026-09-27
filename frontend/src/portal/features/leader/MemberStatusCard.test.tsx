@@ -16,6 +16,7 @@ function makeAircraft(overrides: Partial<AircraftSummary> = {}): AircraftSummary
     insurance_is_current: true,
     insurance_expiration: '2027-03-01',
     insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
+    insurance_verified: false,
     ...overrides,
   };
 }
@@ -27,10 +28,26 @@ function makeStatus(overrides: Partial<LeaderStatus> = {}): LeaderStatus {
     phone: '650-555-0100',
     dart: 'Palo Alto',
     membership: { status: 'current', expires_on: '2027-06-30', plan: 'Annual' },
-    certificate: { type: 'private', number: '3181234', ifr_rated: 'yes', ratings: ['instrument'] },
-    medical: { type: 'third', expiration: '2026-12-01', is_current: true },
+    certificate: {
+      type: 'private',
+      number: '3181234',
+      ifr_rated: 'yes',
+      ratings: ['instrument'],
+      verification: { verified: false, verified_by: null, verified_at: null },
+    },
+    medical: {
+      type: 'third',
+      expiration: '2026-12-01',
+      is_current: true,
+      verification: { verified: false, verified_by: null, verified_at: null },
+    },
+    photo_id: {
+      type: 'passport',
+      verification: { verified: false, verified_by: null, verified_at: null },
+    },
+    is_verifier: false,
     aircraft: [makeAircraft()],
-    go_no_go: { membership: true, medical: true },
+    go_no_go: { membership: true, medical: true, verified: true },
     ...overrides,
   };
 }
@@ -44,8 +61,13 @@ describe('isGo / noGoReasons', () => {
   ])('membership=%s medical=%s -> go=%s', (membership, medical, expectedGo, expectedReasons) => {
     const status = makeStatus({
       membership: { status: membership ? 'current' : 'expired', expires_on: null, plan: 'Annual' },
-      medical: { type: 'third', expiration: '2020-01-01', is_current: medical },
-      go_no_go: { membership, medical },
+      medical: {
+        type: 'third',
+        expiration: '2020-01-01',
+        is_current: medical,
+        verification: { verified: false, verified_by: null, verified_at: null },
+      },
+      go_no_go: { membership, medical, verified: true },
     });
     expect(isGo(status)).toBe(expectedGo);
     expect(noGoReasons(status)).toEqual(expectedReasons);
@@ -54,23 +76,33 @@ describe('isGo / noGoReasons', () => {
   it('says a friend is a friend of CalDART, not a member', () => {
     const status = makeStatus({
       membership: { status: 'friend', expires_on: null, plan: null },
-      go_no_go: { membership: false, medical: true },
+      go_no_go: { membership: false, medical: true, verified: true },
     });
     expect(noGoReasons(status)).toEqual(['Friend of CalDART, not a member']);
   });
 
   it('does not call a medical expired when no expiry was ever entered', () => {
     const status = makeStatus({
-      medical: { type: 'third', expiration: null, is_current: false },
-      go_no_go: { membership: true, medical: false },
+      medical: {
+        type: 'third',
+        expiration: null,
+        is_current: false,
+        verification: { verified: false, verified_by: null, verified_at: null },
+      },
+      go_no_go: { membership: true, medical: false, verified: true },
     });
     expect(noGoReasons(status)).toEqual(['No medical expiry on file']);
   });
 
   it('says "no medical on file" when none was ever entered', () => {
     const status = makeStatus({
-      medical: { type: 'none', expiration: null, is_current: false },
-      go_no_go: { membership: true, medical: false },
+      medical: {
+        type: 'none',
+        expiration: null,
+        is_current: false,
+        verification: { verified: false, verified_by: null, verified_at: null },
+      },
+      go_no_go: { membership: true, medical: false, verified: true },
     });
     expect(noGoReasons(status)).toEqual(['No medical on file']);
   });
@@ -88,8 +120,13 @@ describe('MemberStatusCard', () => {
       <MemberStatusCard
         status={makeStatus({
           membership: { status: 'expired', expires_on: '2026-01-31', plan: 'Annual' },
-          medical: { type: 'third', expiration: '2026-02-01', is_current: false },
-          go_no_go: { membership: false, medical: false },
+          medical: {
+            type: 'third',
+            expiration: '2026-02-01',
+            is_current: false,
+            verification: { verified: false, verified_by: null, verified_at: null },
+          },
+          go_no_go: { membership: false, medical: false, verified: true },
         })}
         today={TODAY}
       />,
@@ -123,7 +160,7 @@ describe('MemberStatusCard', () => {
       <MemberStatusCard
         status={makeStatus({
           membership: { status: 'friend', expires_on: null, plan: null },
-          go_no_go: { membership: false, medical: true },
+          go_no_go: { membership: false, medical: true, verified: true },
         })}
         today={TODAY}
       />,

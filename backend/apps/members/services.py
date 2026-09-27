@@ -80,6 +80,7 @@ from apps.accounts.services import (
     set_kind,
     update_account,
 )
+from apps.members import verification
 from apps.members.labels import NAME_FIELDS, changed_field_labels
 from apps.members.models import (
     MemberProfile,
@@ -265,7 +266,8 @@ def update_member(
     an edit that makes a deactivated account active brings back its suspended terms.
     ``profile`` is written over the member's profile row, creating it if the account
     somehow has none.  Both halves are written together, so a refused account edit
-    leaves the profile alone.
+    leaves the profile alone.  A profile write that moves a field a verified item covers
+    clears that item (:func:`apps.members.verification.clear_stale`) in the same save.
 
     :func:`touch_profile` stamps the profile whenever the request carries
     ``profile``, or an account ``email``, ``first_name`` or ``last_name`` --
@@ -285,6 +287,7 @@ def update_member(
     if profile is not None:
         row, _ = MemberProfile.objects.get_or_create(user=target)
         changed += changed_field_labels(row, profile)
+        verification.clear_stale(row, profile)
         for field, value in profile.items():
             setattr(row, field, value)
         row.save()

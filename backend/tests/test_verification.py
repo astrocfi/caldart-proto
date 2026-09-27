@@ -291,9 +291,7 @@ def test_verify_member_stamps_each_item_with_the_actor(
     """Every item named is stamped with the verifier."""
     MemberProfileFactory(user=member)
     profile = verify_member(dart_leader, member, changes={}, verified=list(PERSON_ITEMS))
-    assert [getattr(profile, f"{slug}_verified_by") for slug in PERSON_ITEMS] == [
-        dart_leader
-    ] * 3
+    assert [getattr(profile, f"{slug}_verified_by") for slug in PERSON_ITEMS] == [dart_leader] * 3
 
 
 def test_verify_member_stamps_each_item_with_the_time(
@@ -328,9 +326,7 @@ def test_verify_member_writes_the_changes(
     dart_leader: User, member: User, verified_profile: MemberProfile
 ) -> None:
     """The fields in ``changes`` are written to the profile."""
-    verify_member(
-        dart_leader, member, changes={"photo_id_type": PhotoIdType.STATE_ID}, verified=[]
-    )
+    verify_member(dart_leader, member, changes={"photo_id_type": PhotoIdType.STATE_ID}, verified=[])
     verified_profile.refresh_from_db()
     assert verified_profile.photo_id_type == PhotoIdType.STATE_ID
 
@@ -510,8 +506,7 @@ def test_verify_insurance_records_the_audit_line(
     """``aircraft.verify`` names the aircraft and whether the insurance is verified."""
     verify_insurance(aircraft, actor=dart_leader, changes={}, verified=True)
     assert audit_messages(audit_log)[-1] == (
-        f"action={audit.AIRCRAFT_VERIFY} actor={dart_leader.pk} target={aircraft.pk} "
-        "verified=true"
+        f"action={audit.AIRCRAFT_VERIFY} actor={dart_leader.pk} target={aircraft.pk} verified=true"
     )
 
 

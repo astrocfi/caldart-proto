@@ -30,7 +30,9 @@ def verifier_url(user: User) -> str:
 @pytest.fixture
 def pilot(db: None) -> User:
     """A plain member with a profile, holding no verifier role."""
-    user = UserFactory(email="pilot@example.test", first_name="Ana", last_name="Bracco")
+    user = UserFactory(
+        email="pilot@example.test", first_name="Ana", last_name="Bracco", roles=[MEMBER]
+    )
     MemberProfileFactory(user=user)
     return user
 
@@ -95,7 +97,7 @@ def test_set_verifier_that_changes_nothing_writes_nothing(
 
 
 # --------------------------------------------------------------------------
-# PUT /leader/members/{user_id}/verifier
+# The grant endpoint
 # --------------------------------------------------------------------------
 @pytest.mark.parametrize(("slug", "allowed"), role_matrix(DART_LEADER, USER_ADMIN, SYSTEM_ADMIN))
 def test_verifier_grant_role_matrix(
@@ -105,7 +107,7 @@ def test_verifier_grant_role_matrix(
     slug: str,
     allowed: bool,
 ) -> None:
-    """Only a DART leader, a user administrator, or a system administrator may grant it."""
+    """Only a DART leader, a user administrator, or a system administrator grants it."""
     api_client.force_login(all_role_users[slug])
     response = api_client.put(verifier_url(pilot), {"verifier": True}, format="json")
     assert response.status_code == (200 if allowed else 403)

@@ -24,6 +24,7 @@ function makeDetail(overrides: Partial<AircraftDetail> = {}): AircraftDetail {
     insurance_is_current: true,
     insurance_expiration: '2027-03-01',
     insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
+    insurance_verification: { verified: false, verified_by: null, verified_at: null },
     updated_at: '2026-09-01T12:00:00Z',
     year: 2008,
     owner_type: 'club',

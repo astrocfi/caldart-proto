@@ -29,7 +29,7 @@ const MARTA: LeaderSearchResult = {
   email: 'marta@example.org',
   dart: 'Palo Alto',
   membership_status: 'current',
-  go_no_go: { membership: true, medical: true },
+  go_no_go: { membership: true, medical: true, verified: true },
 };
 
 const STATUS: LeaderStatus = {
@@ -38,10 +38,26 @@ const STATUS: LeaderStatus = {
   phone: '650-555-0100',
   dart: 'Palo Alto',
   membership: { status: 'current', expires_on: '2027-06-30', plan: 'Annual' },
-  certificate: { type: 'private', number: '3181234', ifr_rated: 'yes', ratings: ['instrument'] },
-  medical: { type: 'third', expiration: '2027-12-01', is_current: true },
+  certificate: {
+    type: 'private',
+    number: '3181234',
+    ifr_rated: 'yes',
+    ratings: ['instrument'],
+    verification: { verified: false, verified_by: null, verified_at: null },
+  },
+  medical: {
+    type: 'third',
+    expiration: '2027-12-01',
+    is_current: true,
+    verification: { verified: false, verified_by: null, verified_at: null },
+  },
+  photo_id: {
+    type: 'passport',
+    verification: { verified: false, verified_by: null, verified_at: null },
+  },
+  is_verifier: false,
   aircraft: [],
-  go_no_go: { membership: true, medical: true },
+  go_no_go: { membership: true, medical: true, verified: true },
 };
 
 function searchReturns(results: LeaderSearchResult[], onQuery?: (q: string) => void) {
@@ -110,7 +126,7 @@ describe('LeaderSearchPage', () => {
           user_id: 8,
           name: 'Owen Delgado',
           membership_status: 'expired',
-          go_no_go: { membership: false, medical: false },
+          go_no_go: { membership: false, medical: false, verified: true },
         },
       ]),
     );
