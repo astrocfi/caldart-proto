@@ -384,6 +384,43 @@ def test_equally_similar_and_registered_types_lead_by_name() -> None:
     assert _leading("cesna") == "Cessna 150"
 
 
+def test_a_bare_make_name_leads_with_the_makers_most_registered_model() -> None:
+    """A short model resembling the query by chance must not outrank a popular one.
+
+    Full-name trigram similarity alone favors a short, unrelated-looking model such
+    as ``Cessna AW`` over ``Cessna 172S`` for the query ``cesna``, since the shorter
+    string shares a larger fraction of its trigrams; comparing the make alone as well
+    finds both equally close to ``Cessna``, so the more registered one leads.
+    """
+    AircraftTypeFactory(make="Cessna", model="AW")
+    popular = AircraftTypeFactory(make="Cessna", model="172S")
+    Registration.objects.create(n_number="N172AB", type=popular)
+    assert _leading("cesna") == "Cessna 172S"
+
+
+def test_two_types_with_the_same_display_name_collapse_into_one() -> None:
+    """Two FAA codes sharing a display make and model list as the more registered one."""
+    AircraftType.objects.create(
+        faa_code="T900001", faa_make="CESSNA", faa_model="172S", make="Cessna", model="172S"
+    )
+    popular = AircraftType.objects.create(
+        faa_code="T900002", faa_make="CESSNA", faa_model="172S", make="Cessna", model="172S"
+    )
+    Registration.objects.create(n_number="N172AB", type=popular)
+    assert [entry.pk for entry in search_types("cessna 172s")] == [popular.pk]
+
+
+def test_a_single_digit_does_not_trigger_the_digit_fallback(
+    vocabulary: dict[str, AircraftType],
+) -> None:
+    """One digit is too little to narrow the fallback, so it never runs.
+
+    ``PA-28-181`` and ``172S`` both hold a ``1``; without the minimum, ``zq1`` would
+    list one of them despite resembling neither the make nor the model.
+    """
+    assert search_types("zq1") == []
+
+
 def test_a_nonsense_query_finds_nothing(vocabulary: dict[str, AircraftType]) -> None:
     """A query resembling no type answers an empty list."""
     assert search_types("zzqx") == []

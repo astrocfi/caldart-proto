@@ -152,6 +152,25 @@ def test_role_matrix_for_run_now(
     assert api_client.post(RUN_URL).status_code == (202 if allowed else 403)
 
 
+def test_a_launch_failure_closes_the_row_instead_of_leaving_it_stuck(
+    monkeypatch: pytest.MonkeyPatch, system_admin: User
+) -> None:
+    """A ``Popen`` failure closes the row as failed at once, not after 30 minutes."""
+
+    def fail(run: RegistryImport) -> None:
+        raise OSError("no such file or directory")
+
+    monkeypatch.setattr(registry, "launch_import", fail)
+    with pytest.raises(OSError, match="no such file or directory"):
+        registry.start_import(system_admin)
+    run = RegistryImport.objects.get()
+    assert (run.ok, run.error, run.finished_at is not None) == (
+        False,
+        registry.COULD_NOT_START,
+        True,
+    )
+
+
 def test_the_launcher_starts_the_command_in_its_own_session(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

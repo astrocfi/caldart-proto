@@ -107,8 +107,9 @@ zip or a directory holding the two files, as a path or a ``file://`` URL.
 Without it the command reads ``FAA_REGISTRY_URL`` (:doc:`configuration`).  The
 fixture and the real download go through the same code path.
 
-``import_registry(source)`` in ``apps/aircraft/registry.py`` does the work, in
-one transaction, in this order:
+``import_registry(source)`` in ``apps/aircraft/registry.py`` opens the source
+first -- downloading it, when it names a URL, before anything else runs -- and
+only then, in one transaction, does the work in this order:
 
 1. **The aircraft types.**  Each reference row is upserted by ``faa_code``,
    refreshing the FAA names, the display names, seats, and engines.  A type is
@@ -133,6 +134,13 @@ shows.  The log carries counts and never a registrant's name.
 The whole registry — some 94,000 types and 317,000 registrations — imports in
 well under a minute once the file is down.
 
+Whichever way an import starts — the nightly timer or Run now — it takes the
+same Postgres advisory lock and checks whether one is already running before
+writing its ``RegistryImport`` row, so the two can never overlap.  Whichever
+gets there first runs; the other fails the same way, with the timer's own
+attempt reported through the command's ``CommandError`` rather than the 409
+Run now answers.
+
 Run now
 -------
 
@@ -147,7 +155,14 @@ fills in the row it was given rather than creating one.  The screen polls
 While one import is running, a second press is refused.  An import that has not
 finished within ``REGISTRY_IMPORT_STALE_MINUTES`` (30 by default) is taken to
 have died — restarting the web service stops it — and the next press closes it
-as failed, with the error *Did not finish.*, and starts another.
+as failed, with the error *Did not finish.*, and starts another.  When the
+subprocess itself cannot be started at all, the row is closed the same way at
+once, with the error *Could not start the import.*, rather than sitting
+unfinished until the stale timeout.  The launched process is a child of the web
+service, not of the request: it is never waited on, so if it dies without
+finishing its own row — a crash, or the service restarting under it — the row
+is left exactly as an import that ran past the stale limit would leave it, and
+the stale rule is what notices it.
 
 
 Display names
@@ -202,15 +217,28 @@ and stripped, and the answer lists, each type once and at most ten:
 
 1. the type an alias names exactly, the alias compared as typed and with its
    spaces removed (``sr 22`` finds what ``sr22`` names);
-2. the types whose ``make || ' ' || model`` has a trigram similarity to the
-   query above 0.2 (the ``pg_trgm`` extension, over the GIN index the aircraft
-   migration builds), most similar first; of equally similar types, the one more
-   registrations name comes first, then by make and model;
-3. when the query holds digits, the types whose model contains them.
+2. the types whose ``make || ' ' || model``, or whose ``make`` alone, has a
+   trigram similarity to the query above 0.2 (the ``pg_trgm`` extension, the
+   greater of the two, over the GIN index the aircraft migration builds), most
+   similar first; of equally similar types, the one more registrations name
+   comes first, then by make and model.  Comparing the make alone as well as
+   the full name is what lets a bare manufacturer name lead with that maker's
+   most registered model: full-name similarity alone can favor a short,
+   unrelated model over the popular one it should find, since the shorter
+   string shares a larger fraction of its trigrams with the query;
+3. when the query holds at least two digits, the types whose model contains
+   them, run together as typed.  One digit is too little to narrow anything,
+   so it never runs the fallback.
+
+Two types with the same display make and model — the registry holds a few, one
+``faa_code`` for an active production run and another for a superseded one —
+collapse into the one with more registrations, so the picker never lists one
+name twice; the type the search does not keep is still reachable through the
+registration lookup, whose type comes from the registration's own ``faa_code``.
 
 So ``cesna 172``, ``CESSNA 172``, ``c172``, and ``skyhawk`` all lead with the
-Cessna 172, a bare ``cesna`` or ``Cessna`` leads with whichever of the Cessnas it
-resembles most is the most registered, and ``eurofox`` finds the Aeropro Eurofox.
+Cessna 172, a bare ``cesna`` or ``piper`` leads with that maker's most
+registered model, and ``eurofox`` finds the Aeropro Eurofox.
 
 
 Hand-added types
@@ -221,7 +249,9 @@ owner has registered yet — cannot be picked from the registry's vocabulary.  A
 account administrator adds one from the type picker's **Add a type**, which
 calls ``POST /aircraft/types`` (:doc:`api-aircraft`): the names are normalized
 as the registry's are, the type is marked ``is_custom``, and its code is
-``CUSTOM-<id>``.  A make and model already listed is refused.
+``CUSTOM-<id>``.  A make and model already listed is refused, and so is a name
+that normalizes to nothing — a corporate suffix alone, such as ``Inc.``, or bare
+punctuation.
 
 When the FAA later lists a type with the same display make and model, compared
 case-insensitively, the next import **folds** the hand-added type into the FAA's

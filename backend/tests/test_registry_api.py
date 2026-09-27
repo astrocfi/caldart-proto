@@ -131,6 +131,18 @@ def test_a_type_already_listed_is_refused(
     )
 
 
+@pytest.mark.parametrize("make", ["Inc.", "."])
+def test_a_make_that_normalizes_to_blank_is_refused(
+    account_admin_client: APIClient, make: str
+) -> None:
+    """A corporate suffix or bare punctuation alone is refused under ``make``."""
+    response = account_admin_client.post(TYPES_URL, {"make": make, "model": "CH 750"})
+    assert (response.status_code, response.json()) == (
+        400,
+        {"make": ["Enter a name, not only a corporate suffix or punctuation."]},
+    )
+
+
 @pytest.mark.parametrize("missing", ["make", "model"])
 def test_make_and_model_are_required(account_admin_client: APIClient, missing: str) -> None:
     """Both names are needed."""

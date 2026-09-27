@@ -457,11 +457,13 @@ authenticated user.  This is what the aircraft forms search to pick a type.
 
 ``search_types()`` in ``apps/aircraft/types.py`` answers it: first the type an
 alias names exactly (``c172``, ``skyhawk``), then the types whose
-``make || ' ' || model`` is similar to ``q`` by trigram (most similar first,
-then the one more aircraft are registered as, then by name), then, when ``q``
-holds digits, the types whose model contains them.  So ``cesna 172``,
-``CESSNA``, ``cesna``, ``c172``, and ``skyhawk`` all lead with the Cessna 172.
-:doc:`aircraft-registry` describes the rule in full.
+``make || ' ' || model``, or whose ``make`` alone, is similar to ``q`` by
+trigram (most similar first, then the one more aircraft are registered as,
+then by name), then, when ``q`` holds at least two digits, the types whose
+model contains them.  Two types with the same display make and model collapse
+into the one with more registrations.  So ``cesna 172``, ``CESSNA``, ``cesna``,
+``c172``, and ``skyhawk`` all lead with the Cessna 172.  :doc:`aircraft-registry`
+describes the rule in full.
 
 Statuses:
 
@@ -494,8 +496,11 @@ the nightly import folds the hand-added type into the FAA's entry
 Statuses:
 
 * **201** — the type added.
-* **400** — ``make`` or ``model`` missing or blank, a number out of range, or a
-  make and model already listed (compared case-insensitively, after the
+* **400** — ``make`` or ``model`` missing or blank, a number out of range, a
+  name that normalizes to nothing (a corporate suffix alone, or bare
+  punctuation) answered under that field
+  ``{"make": ["Enter a name, not only a corporate suffix or punctuation."]}``,
+  or a make and model already listed (compared case-insensitively, after the
   normalization above), answered
   ``{"model": ["That aircraft type is already listed."]}``.
 * **403** — the caller does not hold ``account_admin``.

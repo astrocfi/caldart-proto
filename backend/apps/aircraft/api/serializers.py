@@ -113,6 +113,10 @@ class AircraftTypeSerializer(serializers.ModelSerializer[AircraftType]):
 #: What adding a type the vocabulary already holds is answered with.
 DUPLICATE_TYPE_MESSAGE = "That aircraft type is already listed."
 
+#: What a name left blank by normalization -- a corporate suffix alone (``INC``), or
+#: only punctuation (``.``) -- is answered with.
+BLANK_NAME_MESSAGE = "Enter a name, not only a corporate suffix or punctuation."
+
 
 class AircraftTypeCreateSerializer(serializers.Serializer[AircraftType]):
     """``POST /aircraft/types``: a type the FAA has never registered, added by hand.
@@ -121,10 +125,17 @@ class AircraftTypeCreateSerializer(serializers.Serializer[AircraftType]):
     would be: ``make`` through ``display_make`` and ``model`` through
     ``display_model`` of its upper-cased form (``cessna aircraft co`` is ``Cessna``,
     ``t-51`` is ``T-51``).  ``seats`` (at least 1) and ``engines`` (at least 0) are
-    optional.  A make and model the vocabulary already holds, compared
-    case-insensitively after that normalization, is refused under ``model`` with
-    :data:`DUPLICATE_TYPE_MESSAGE`.  ``create`` saves an ``is_custom`` type coded
-    ``CUSTOM-<id>``, its FAA spellings the upper-cased names as given.
+    optional.  A name that normalizes to nothing -- ``display_make`` drops every word
+    of a make that is only a corporate suffix or punctuation, such as ``INC`` or a bare
+    ``.`` -- is refused under that field with :data:`BLANK_NAME_MESSAGE`.  A make and
+    model the vocabulary already holds, compared case-insensitively after that
+    normalization, is refused under ``model`` with :data:`DUPLICATE_TYPE_MESSAGE`.
+    ``create`` saves an ``is_custom`` type coded ``CUSTOM-<id>``, its FAA spellings the
+    upper-cased names as given.  The duplicate check reads the vocabulary and the save
+    that follows are not atomic, so two requests adding the same type at once could
+    both pass it and both save; the prototype accepts that rare race rather than
+    locking every write against it, since a genuine duplicate is easy to notice and
+    fold away by hand.
     """
 
     make = serializers.CharField(max_length=120)
@@ -133,11 +144,18 @@ class AircraftTypeCreateSerializer(serializers.Serializer[AircraftType]):
     engines = serializers.IntegerField(min_value=0, max_value=99, required=False, allow_null=True)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Normalize the names and refuse a make and model already listed."""
+        """Normalize the names, refuse a blank one, and refuse one already listed."""
         faa_make = " ".join(str(attrs["make"]).upper().split())
         faa_model = " ".join(str(attrs["model"]).upper().split())
         make = display_make(faa_make, faa_model)
         model = display_model(faa_model)
+        errors: dict[str, list[str]] = {}
+        if not make:
+            errors["make"] = [BLANK_NAME_MESSAGE]
+        if not model:
+            errors["model"] = [BLANK_NAME_MESSAGE]
+        if errors:
+            raise serializers.ValidationError(errors)
         if AircraftType.objects.filter(make__iexact=make, model__iexact=model).exists():
             raise serializers.ValidationError({"model": [DUPLICATE_TYPE_MESSAGE]})
         return {

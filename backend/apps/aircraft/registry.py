@@ -90,6 +90,9 @@ DID_NOT_FINISH = "Did not finish."
 #: The answer to a second Run now while one import is under way.
 ALREADY_RUNNING = "An import is already running."
 
+#: The error a Run now row is closed with when the subprocess itself fails to start.
+COULD_NOT_START = "Could not start the import."
+
 #: Sets the registry import's advisory lock apart from every other one on the database.
 IMPORT_LOCK_KEY = 318_000_318
 
@@ -340,24 +343,27 @@ def import_registry(
 ) -> RegistryImport:
     """Import the registry at ``source`` and return the ``RegistryImport`` row for it.
 
-    ``run`` is the row to fill in (the one the System screen wrote), else one is
-    created.  Its ``source`` is set to ``source``.  Everything the import writes commits
-    together: the aircraft types from the reference file, upserted by ``faa_code`` and
-    never deleted; the hand-added types the FAA now lists, folded into the FAA's entry;
-    unless ``types_only``, the registrations from the master file, upserted by N-number
-    in batches of :data:`BATCH_SIZE`, with every registration the file no longer holds
-    deleted; and the aliases.  On success the row is finished, ``ok``, and carries the
-    counts.  On any failure nothing is written, the row is finished, not ``ok``, with
-    the error, and the exception is raised again.
+    ``run`` is the row to fill in (the one the System screen wrote); without it, one is
+    created under the same advisory lock :func:`start_import` takes, refusing with
+    :class:`ImportAlreadyRunningError` while another import runs, so the nightly timer
+    and Run now can never overlap.  Its ``source`` is set to ``source``.  The source is
+    opened -- downloaded first when it names an ``http`` or ``https`` URL -- before
+    anything commits, so a slow download holds no transaction open; the write phase
+    that follows commits together: the aircraft types from the reference file,
+    upserted by ``faa_code`` and never deleted; the hand-added types the FAA now lists,
+    folded into the FAA's entry; unless ``types_only``, the registrations from the
+    master file, upserted by N-number in batches of :data:`BATCH_SIZE`, with every
+    registration the file no longer holds deleted; and the aliases.  On success the row
+    is finished, ``ok``, and carries the counts.  On any failure nothing is written,
+    the row is finished, not ``ok``, with the error, and the exception is raised again.
     """
     if run is None:
-        run = RegistryImport.objects.create(source=source)
+        run = _claim_unattended_run(source)
     else:
         run.source = source
         run.save(update_fields=["source"])
     try:
-        with transaction.atomic():
-            counts = _import(source, types_only=types_only)
+        counts = _import(source, types_only=types_only)
     except Exception as exc:
         run.ok = False
         run.error = str(exc) or type(exc).__name__
@@ -378,9 +384,31 @@ def import_registry(
     return run
 
 
+def _claim_unattended_run(source: str) -> RegistryImport:
+    """Create the run row for a call with no ``run`` of its own, from ``source``.
+
+    Guards the path :func:`start_import` does not: a call with no pre-written row, as
+    the nightly timer makes through ``manage.py import_faa_registry`` without
+    ``--import-id``.  Takes the same advisory lock :func:`start_import` takes before
+    checking :func:`is_running`, so the timer and a Run now press can never both start
+    an import at once; raises :class:`ImportAlreadyRunningError` when one already runs.
+    """
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [IMPORT_LOCK_KEY])
+        if is_running():
+            raise ImportAlreadyRunningError(ALREADY_RUNNING)
+        return RegistryImport.objects.create(source=source)
+
+
 def _import(source: str, *, types_only: bool) -> ImportCounts:
-    """Read ``source``; write the types, the fold, the registrations, and the aliases."""
-    with _opened_source(source) as open_file:
+    """Open ``source``, then write the types, the fold, the registrations, and aliases.
+
+    The source opens first -- performing the download for a URL source -- and only the
+    writes that follow run inside a transaction, so a slow or failed download never
+    holds one open.
+    """
+    with _opened_source(source) as open_file, transaction.atomic():
         with open_file(REFERENCE_FILE) as stream:
             types_written = _write_types(read_types(stream))
         folded = _fold_custom_types()
@@ -388,7 +416,7 @@ def _import(source: str, *, types_only: bool) -> ImportCounts:
         if not types_only:
             with open_file(MASTER_FILE) as stream:
                 registrations_written = _write_registrations(read_registrations(stream))
-    write_aliases()
+        write_aliases()
     return ImportCounts(types_written, registrations_written, folded)
 
 
@@ -534,7 +562,10 @@ def start_import(actor: User) -> RegistryImport:
     :class:`ImportAlreadyRunningError` while another import is running; an unfinished
     import older than ``REGISTRY_IMPORT_STALE_MINUTES`` is closed as failed with the
     error :data:`DID_NOT_FINISH` instead, and a fresh one starts.  Two presses at once
-    are serialized by an advisory lock, so only one of them starts an import.
+    are serialized by an advisory lock, so only one of them starts an import.  When
+    ``launch_import`` itself fails to start the subprocess (an ``OSError``), the row is
+    closed at once as failed with :data:`COULD_NOT_START` instead of sitting unfinished
+    until the stale timeout, and the exception is raised again.
     """
     with transaction.atomic():
         with connection.cursor() as cursor:
@@ -545,7 +576,15 @@ def start_import(actor: User) -> RegistryImport:
             ok=False, error=DID_NOT_FINISH, finished_at=timezone.now()
         )
         run = RegistryImport.objects.create(source=settings.FAA_REGISTRY_URL, started_by=actor)
-    launch_import(run)
+    try:
+        launch_import(run)
+    except OSError:
+        run.ok = False
+        run.error = COULD_NOT_START
+        run.finished_at = timezone.now()
+        run.save(update_fields=["ok", "error", "finished_at"])
+        log.error("Registry import %s could not start: %s", run.pk, COULD_NOT_START)
+        raise
     return run
 
 
@@ -553,7 +592,12 @@ def launch_import(run: RegistryImport) -> None:
     """Start ``manage.py import_faa_registry --import-id <run>`` and return at once.
 
     The command runs in its own session under the server's Python, so it outlives the
-    request, and writes to the server's own output.
+    request, and writes to the server's own output.  The child is never waited on: it
+    is a child of the web service, not of the request, so it dies if the service
+    restarts mid-import, and either way its own exit is not reaped here.  When it
+    finishes normally, or is killed, the row it was given is the only trace of it; the
+    stale rule (:data:`DID_NOT_FINISH`) is what notices a child that never finishes.
+    Raises ``OSError`` when the subprocess itself cannot be started.
     """
     manage = Path(settings.BASE_DIR) / "manage.py"
     subprocess.Popen(  # noqa: S603 - the server's own Python running the project's manage.py
