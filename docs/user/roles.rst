@@ -110,6 +110,8 @@ An account administrator looks after the membership records. The role adds:
 * **Reminders** (:doc:`admin/reminders`): every renewal reminder CalDART has sent.
 * **Reports** (:doc:`admin/reports`): reports by email, the CalDART roles report
   among them, and sending each DART its roster.
+* **Notifications** (:doc:`admin/notifications`): who hears about what by email,
+  from a sign-up to a refund.
 * **Member check** and **Aircraft check** (:doc:`admin/member-check`,
   :doc:`admin/aircraft-check`), as a DART leader has them.
 

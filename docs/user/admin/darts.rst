@@ -100,6 +100,10 @@ Early each month every active team's roster goes by email to each person ticked 
 The subject is the team's name, the word *roster*, and the date. The :doc:`reports` screen
 lists the rosters, shows when each was last sent, and can send them all at once.
 
+Each person ticked **Roster** also hears of every sign-up that chooses the team: the email
+names the new member or friend and links to their record. The :doc:`notifications` page
+describes it under *Notification: Sign-up*.
+
 A team's own page on the public website is kept by a website administrator. The **DART**
 field on that page is what ties the two together.
 
