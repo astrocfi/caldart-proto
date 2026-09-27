@@ -19,6 +19,7 @@ from apps.accounts.roles import (
     SYSTEM_ADMIN,
     TREASURER,
     USER_ADMIN,
+    VERIFIER,
     WEBSITE_ADMIN,
 )
 
@@ -30,6 +31,7 @@ DEMO_ACCOUNTS: tuple[tuple[str, str, str, str, tuple[str, ...], bool], ...] = (
     ("expired", "expired@example.org", "Owen", "Delgado", (MEMBER,), False),
     ("friend", "friend@example.org", "Frances", "Lee", (MEMBER,), False),
     ("leader", "leader@example.org", "Priya", "Raman", (MEMBER, DART_LEADER), False),
+    ("verifier", "verifier@example.org", "Tomas", "Vega", (MEMBER, VERIFIER), False),
     ("useradmin", "useradmin@example.org", "Nina", "Kowalski", (MEMBER, USER_ADMIN), False),
     ("treasurer", "treasurer@example.org", "Lucia", "Ferreira", (MEMBER, TREASURER), False),
     (
@@ -57,6 +59,12 @@ DEMO_KINDS: dict[str, AccountKind] = {
     "friend": AccountKind.FRIEND,
     "treasurer": AccountKind.FRIEND,
 }
+
+#: The demo accounts whose profile the seed writes from fixed values rather than from
+#: the shared random draws, keyed as in ``DEMO_ACCOUNTS``.  They are left out of
+#: ``users``, so adding one never moves the names, profiles, aircraft, and payments
+#: every other account is dealt.  ``apps.members.seed`` gives each its profile.
+FIXED_DEMO_KEYS: tuple[str, ...] = ("verifier",)
 
 #: How many synthetic members to generate on top of the named demo accounts.
 GENERATED_MEMBER_COUNT = 40
@@ -113,9 +121,11 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     """Create the named demo accounts plus ``GENERATED_MEMBER_COUNT`` members.
 
     Reads ``faker`` from ``ctx`` to invent the generated members' names, and adds
-    ``demo_users`` (keyed by the short name in ``DEMO_ACCOUNTS``), ``generated_users``
-    and ``users``, the two lists joined.  Returns the same ``ctx``, which it mutated in
-    place.  When ``stdout`` is given, one summary line is written to it.
+    ``demo_users`` (keyed by the short name in ``DEMO_ACCOUNTS``), ``generated_users``,
+    ``users`` (the demo accounts but those in :data:`FIXED_DEMO_KEYS`, then the
+    generated ones) and ``fixed_users`` (those left out).  Returns the same ``ctx``,
+    which it mutated in place.  When ``stdout`` is given, one summary line is written
+    to it.
     """
     faker = ctx["faker"]
 
@@ -140,7 +150,9 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
 
     ctx["demo_users"] = demo
     ctx["generated_users"] = generated
-    ctx["users"] = [*demo.values(), *generated]
+    drawn = [user for key, user in demo.items() if key not in FIXED_DEMO_KEYS]
+    ctx["users"] = [*drawn, *generated]
+    ctx["fixed_users"] = [demo[key] for key in FIXED_DEMO_KEYS]
 
     if stdout is not None:
         stdout.write(f"  accounts: {len(demo)} demo + {len(generated)} generated")

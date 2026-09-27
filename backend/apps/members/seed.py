@@ -15,6 +15,7 @@ from datetime import date, timedelta
 from typing import Any, TypedDict
 
 from django.core.management.base import OutputWrapper
+from django.utils import timezone
 from django.utils.text import slugify
 from faker import Faker
 
@@ -26,8 +27,10 @@ from apps.members.models import (
     MedicalType,
     MemberProfile,
     MembershipPlan,
+    PhotoIdType,
     PilotCertificateType,
 )
+from apps.members.verification import ITEMS
 
 #: The DARTs to seed.
 #: Every DART, with the airports it flies from.
@@ -133,6 +136,63 @@ MEMBERSHIP_TARGETS: tuple[tuple[str, int], ...] = (
 #: today, so an ordinary automatic renewal and its scheduled attempt are ready
 #: for the daily scan to charge the day the seed runs.
 RENEWAL_DUE_TODAY_COUNT = 2
+
+
+#: The seed behind each profile's photo ID, drawn from a generator of its own so the
+#: draw moves nothing else the seed generates.
+PHOTO_ID_SEED = 20260926
+
+#: The photo IDs a member shows, and their weights; *Not provided* is rare.
+MEMBER_PHOTO_IDS: tuple[tuple[PhotoIdType, int], ...] = (
+    (PhotoIdType.DRIVERS_LICENSE, 60),
+    (PhotoIdType.PASSPORT, 15),
+    (PhotoIdType.STATE_ID, 10),
+    (PhotoIdType.MILITARY_ID, 5),
+    (PhotoIdType.OTHER, 5),
+    (PhotoIdType.NOT_PROVIDED, 5),
+)
+
+#: How often a friend shows a photo ID at all; the rest are *Not provided*.
+FRIEND_PHOTO_ID_SHARE = 0.2
+
+#: Of every ten seeded members, the positions (counting from zero, in seeding order)
+#: whose documents the seeded DART leader has not verified; the other seven are.  The
+#: demo member is first, so always verified.
+UNVERIFIED_POSITIONS = frozenset({3, 6, 9})
+
+
+#: How many days past the day the seed runs the medical on the fixed profile of every
+#: account in ``apps.accounts.seed.FIXED_DEMO_KEYS`` is good for.
+FIXED_MEDICAL_DAYS = 400
+
+
+def _fixed_profile(darts: list[Dart], towns: Faker, today: date) -> dict[str, Any]:
+    """The fixed profile of a demo account left out of the shared random draws.
+
+    A private pilot with a third-class medical good for :data:`FIXED_MEDICAL_DAYS`, a
+    driver's license, and the first DART in :data:`DARTS` as home.  Its two towns are
+    the next two from ``towns``, the generator every seeded profile's towns come from.
+    """
+    dart = darts[0]
+    return {
+        "phone": "408-555-0142",
+        "address_line1": "42 Hangar Row",
+        "city": towns.city(),
+        "state": "CA",
+        "postal_code": "94508",
+        "county": "Napa",
+        "home_airport_identifier": dart.home_airport,
+        "home_airport_city": towns.city(),
+        "dart": dart,
+        "pilot_certificate_type": PilotCertificateType.PRIVATE,
+        "certificate_number": "4207311",
+        "ifr_rated": IfrRated.YES,
+        "ratings": ["asel", "instrument"],
+        "medical_type": MedicalType.THIRD,
+        "medical_expiration": today + timedelta(days=FIXED_MEDICAL_DAYS),
+        "photo_id_type": PhotoIdType.DRIVERS_LICENSE,
+        "vol_ground_team": True,
+    }
 
 
 #: The seed behind the generated contact names, so the example teams read the
@@ -385,6 +445,36 @@ def _renewal_seed_subjects(
     return due_today, catch_up
 
 
+def _seed_photo_ids_and_verification(profiles: list[MemberProfile], leader: User | None) -> None:
+    """Record each profile's photo ID, and verify about seven in ten members' documents.
+
+    A member shows a document drawn from :data:`MEMBER_PHOTO_IDS`; a friend shows one
+    only :data:`FRIEND_PHOTO_ID_SHARE` of the time.  The draw comes from its own
+    generator seeded with :data:`PHOTO_ID_SEED`, so it is the same on every run.
+    Every member outside :data:`UNVERIFIED_POSITIONS` has all three items verified by
+    ``leader`` as of now; every other profile has none, so re-seeding leaves the same
+    state however the previous run ended.  With no ``leader``, nothing is verified.
+    """
+    rng = random.Random(PHOTO_ID_SEED)  # noqa: S311 - demo data, not security-sensitive
+    kinds = [kind for kind, _ in MEMBER_PHOTO_IDS]
+    weights = [weight for _, weight in MEMBER_PHOTO_IDS]
+    now = timezone.now()
+    position = 0
+    for profile in profiles:
+        is_member = profile.user.kind == AccountKind.MEMBER
+        shows = is_member or rng.random() < FRIEND_PHOTO_ID_SHARE
+        profile.photo_id_type = (
+            rng.choices(kinds, weights=weights)[0] if shows else PhotoIdType.NOT_PROVIDED
+        )
+        is_verified = is_member and leader is not None and position % 10 not in UNVERIFIED_POSITIONS
+        if is_member:
+            position += 1
+        for item in ITEMS:
+            setattr(profile, f"{item.slug}_verified_at", now if is_verified else None)
+            setattr(profile, f"{item.slug}_verified_by", leader if is_verified else None)
+        profile.save()
+
+
 def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, Any]:
     """Seed the DARTs, the plans and one profile per user, and return ``ctx``.
 
@@ -394,7 +484,11 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
     ``catch_up_user`` (:func:`_renewal_seed_subjects`), which the payments seed
     reads to pin two members' term to expire today and one further member's to
     a lapsed catch-up.  A user who already has a profile has it overwritten, so
-    re-seeding leaves one profile per account.  ``stdout``, when given, gets a
+    re-seeding leaves one profile per account.  Each profile gets a photo ID, and the
+    seeded DART leader (``demo_users["leader"]``) verifies about seven in ten members'
+    documents (:func:`_seed_photo_ids_and_verification`).  Each of ``fixed_users``
+    (when present) is given :func:`_fixed_profile`, which draws from neither ``rng``
+    nor ``faker`` and is not among ``profiles``.  ``stdout``, when given, gets a
     one-line count.
     """
     rng = ctx["rng"]
@@ -434,10 +528,16 @@ def run(ctx: dict[str, Any], stdout: OutputWrapper | None = None) -> dict[str, A
             profile.save()
         profiles.append(profile)
 
+    for user in ctx.get("fixed_users", []):
+        MemberProfile.objects.update_or_create(
+            user=user, defaults=_fixed_profile(darts, towns, today)
+        )
+
     ctx["profiles"] = profiles
     targets = _assign_targets(rng, ctx)
     ctx["membership_targets"] = targets
     _mark_friends(ctx["users"], targets)
+    _seed_photo_ids_and_verification(profiles, ctx.get("demo_users", {}).get("leader"))
     due_today, catch_up = _renewal_seed_subjects(ctx["generated_users"], targets)
     ctx["renewal_due_today_users"] = due_today
     ctx["catch_up_user"] = catch_up

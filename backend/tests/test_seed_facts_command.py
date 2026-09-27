@@ -6,10 +6,12 @@ from typing import Any
 
 import pytest
 from django.core.management import call_command
+from django.utils import timezone
 
 from apps.accounts.models import AccountKind, User
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
 from apps.members.models import MembershipPlan
+from apps.members.verification import ITEMS
 from apps.payments.models import PaymentStatus
 from tests.factories import (
     AircraftFactory,
@@ -22,6 +24,13 @@ from tests.factories import (
 )
 
 pytestmark = pytest.mark.django_db
+
+#: The columns that mark all three of a person's items verified: an insured pilot is
+#: only a GO when they are.
+VERIFIED_PROFILE: dict[str, Any] = {f"{item.slug}_verified_at": timezone.now() for item in ITEMS}
+
+#: The column that marks an aircraft's insurance verified.
+VERIFIED_INSURANCE: dict[str, Any] = {"insurance_verified_at": timezone.now()}
 
 
 def read_facts(capsys: pytest.CaptureFixture[str]) -> dict[str, Any]:
@@ -80,8 +89,10 @@ def test_names_a_member_for_each_leader_check_case(
     """``leaderCheck`` finds an insured pilot, a lapsed policy and a lapsed member."""
     day = timedelta(days=1)
     insured = UserFactory(email="insured@example.test", first_name="Ivy", last_name="North")
-    MemberProfileFactory(user=insured).aircraft.add(
-        AircraftFactory(n_number="N111AA", insurance_expiration=today + 200 * day)
+    MemberProfileFactory(user=insured, **VERIFIED_PROFILE).aircraft.add(
+        AircraftFactory(
+            n_number="N111AA", insurance_expiration=today + 200 * day, **VERIFIED_INSURANCE
+        )
     )
     MembershipFactory(user=insured, plan=annual_plan, starts_on=today - day)
 
@@ -121,14 +132,20 @@ def test_an_insured_pilot_holds_no_policy_inside_the_warning_window(
     """
     day = timedelta(days=1)
     soon = UserFactory(email="soon@example.test", first_name="Al", last_name="Able")
-    MemberProfileFactory(user=soon).aircraft.add(
-        AircraftFactory(n_number="N444DD", insurance_expiration=today + 200 * day),
-        AircraftFactory(n_number="N555EE", insurance_expiration=today + 10 * day),
+    MemberProfileFactory(user=soon, **VERIFIED_PROFILE).aircraft.add(
+        AircraftFactory(
+            n_number="N444DD", insurance_expiration=today + 200 * day, **VERIFIED_INSURANCE
+        ),
+        AircraftFactory(
+            n_number="N555EE", insurance_expiration=today + 10 * day, **VERIFIED_INSURANCE
+        ),
     )
     MembershipFactory(user=soon, plan=annual_plan, starts_on=today - day)
     steady = UserFactory(email="steady@example.test", first_name="Bea", last_name="Best")
-    MemberProfileFactory(user=steady).aircraft.add(
-        AircraftFactory(n_number="N666FF", insurance_expiration=today + 200 * day)
+    MemberProfileFactory(user=steady, **VERIFIED_PROFILE).aircraft.add(
+        AircraftFactory(
+            n_number="N666FF", insurance_expiration=today + 200 * day, **VERIFIED_INSURANCE
+        )
     )
     MembershipFactory(user=steady, plan=annual_plan, starts_on=today - day)
 
@@ -212,3 +229,41 @@ def test_reports_no_active_mandate_when_every_charge_is_due_or_overdue(
     facts = read_facts(capsys)["autoRenewal"]["activeMandate"]
 
     assert facts == {"name": "", "email": "", "methodLabel": ""}
+
+
+def test_an_insured_pilot_is_verified_on_every_count(
+    capsys: pytest.CaptureFixture[str], annual_plan: MembershipPlan, today: date
+) -> None:
+    """``insuredPilot`` skips a member whose documents or airplane are not verified."""
+    day = timedelta(days=1)
+    for email, first, profile_stamps, insurance_stamps in (
+        ("papers@example.test", "Al", {}, VERIFIED_INSURANCE),
+        ("plane@example.test", "Bo", VERIFIED_PROFILE, {}),
+        ("both@example.test", "Cy", VERIFIED_PROFILE, VERIFIED_INSURANCE),
+    ):
+        user = UserFactory(email=email, first_name=first, last_name="Able")
+        MemberProfileFactory(user=user, **profile_stamps).aircraft.add(
+            AircraftFactory(insurance_expiration=today + 200 * day, **insurance_stamps)
+        )
+        MembershipFactory(user=user, plan=annual_plan, starts_on=today - day)
+
+    facts = read_facts(capsys)["leaderCheck"]
+
+    assert facts["insuredPilot"]["name"] == "Cy Able"
+
+
+def test_names_a_current_pilot_with_nothing_verified(
+    capsys: pytest.CaptureFixture[str], annual_plan: MembershipPlan, today: date
+) -> None:
+    """``unverifiedPilot`` is current, medically current, and has nothing verified."""
+    day = timedelta(days=1)
+    verified = UserFactory(email="done@example.test", first_name="Ann", last_name="Adams")
+    MemberProfileFactory(user=verified, **VERIFIED_PROFILE)
+    MembershipFactory(user=verified, plan=annual_plan, starts_on=today - day)
+    pending = UserFactory(email="pending@example.test", first_name="Ben", last_name="Brown")
+    MemberProfileFactory(user=pending)
+    MembershipFactory(user=pending, plan=annual_plan, starts_on=today - day)
+
+    facts = read_facts(capsys)["leaderCheck"]
+
+    assert facts["unverifiedPilot"] == {"name": "Ben Brown"}
