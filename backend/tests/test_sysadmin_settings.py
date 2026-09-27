@@ -311,7 +311,7 @@ def test_apache_proxies_to_gunicorn_and_sets_the_scheme_header() -> None:
 
     assert "ProxyPass / http://127.0.0.1:8001/" in normalized
     assert 'RequestHeader set X-Forwarded-Proto "https"' in config
-    assert "Alias /media/ /srv/caldart/backend/media/" in config
+    assert "Alias /media/ /opt/caldart/backend/media/" in config
     assert "certbot" in config
 
 
@@ -342,7 +342,7 @@ def test_the_web_unit_runs_gunicorn_from_the_venv() -> None:
     unit = (DEPLOY_DIR / "systemd" / "caldart-web.service").read_text()
 
     assert "EnvironmentFile=/etc/caldart/caldart.env" in unit
-    assert "ExecStart=/srv/caldart/.venv/bin/gunicorn" in unit
+    assert "ExecStart=/opt/caldart/.venv/bin/gunicorn" in unit
     assert "Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod" in unit
     assert "User=caldart" in unit
 
