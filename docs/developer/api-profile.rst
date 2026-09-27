@@ -605,7 +605,7 @@ Module                                                      Holds
                                                             ``undo_become_friend``
 ``backend/apps/payments/renewals.py``                       ``switch_to_friend``,
                                                             ``keep_renewal_contribution``
-``backend/apps/members/addresses.py``                        the Geoapify client and
+``backend/apps/members/addresses.py``                       the Geoapify client and
                                                             the county mapping
 ``backend/apps/members/api/address_views.py``               the suggestion view and
                                                             its serializers
