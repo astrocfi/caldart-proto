@@ -9,8 +9,9 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics, status
+from rest_framework.exceptions import NotFound
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -22,17 +23,20 @@ if TYPE_CHECKING:
 from apps.accounts.permissions import HasAnyRole, IsAccountAdmin, IsVerifier, user_has_any_role
 from apps.accounts.roles import DART_LEADER, USER_ADMIN, VERIFY_ROLES
 from apps.accounts.services import set_verifier
-from apps.aircraft import services
+from apps.aircraft import registry, services
 from apps.aircraft.api.permissions import AircraftPermission
 from apps.aircraft.api.serializers import (
     AircraftChangeSerializer,
     AircraftDetailSerializer,
     AircraftSerializer,
+    AircraftTypeCreateSerializer,
     AircraftTypeSerializer,
     InsuranceVerificationSerializer,
     LeaderSearchResultSerializer,
     LeaderStatusSerializer,
     MemberVerificationSerializer,
+    RegistrationSerializer,
+    RegistryStatusSerializer,
     VerifierGrantSerializer,
 )
 from apps.aircraft.filters import (
@@ -41,7 +45,13 @@ from apps.aircraft.filters import (
     AircraftFilter,
     NullsLastOrderingFilter,
 )
-from apps.aircraft.models import Aircraft, AircraftChange, normalize_n_number
+from apps.aircraft.models import (
+    Aircraft,
+    AircraftChange,
+    Registration,
+    RegistryImport,
+    normalize_n_number,
+)
 from apps.aircraft.types import search_types
 from apps.aircraft.verification import verify_insurance
 from apps.members.api.actors import acting_user
@@ -186,9 +196,17 @@ class AircraftLookupView(APIView):
 
 
 class AircraftTypeSearchView(APIView):
-    """``GET /aircraft/types?q=`` -- the aircraft types matching ``q``, best first."""
+    """``GET /aircraft/types?q=`` (any member) and ``POST /aircraft/types`` (admin).
 
-    permission_classes = [IsAuthenticated]
+    ``GET`` answers the aircraft types matching ``q``, best first; ``POST`` adds a type
+    the FAA has never registered.
+    """
+
+    def get_permissions(self) -> list[BasePermission]:
+        """Any signed-in user may search; only an account administrator may add."""
+        if self.request.method == "POST":
+            return [IsAccountAdmin()]
+        return [IsAuthenticated()]
 
     @extend_schema(
         parameters=[
@@ -203,6 +221,56 @@ class AircraftTypeSearchView(APIView):
         """
         found = search_types(request.query_params.get("q", ""))
         return Response(AircraftTypeSerializer(found, many=True).data)
+
+    @extend_schema(request=AircraftTypeCreateSerializer, responses={201: AircraftTypeSerializer})
+    def post(self, request: Request) -> Response:
+        """Add a custom aircraft type and return it with status 201.
+
+        Answers 400 for a body ``AircraftTypeCreateSerializer`` refuses, a make and
+        model already listed among them.
+        """
+        serializer = AircraftTypeCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        created = serializer.save()
+        return Response(AircraftTypeSerializer(created).data, status=status.HTTP_201_CREATED)
+
+
+class RegistryStatusView(APIView):
+    """``GET /aircraft/registry`` -- the date the registry is as of, and the last run."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: RegistryStatusSerializer})
+    def get(self, request: Request) -> Response:
+        """Return ``{as_of, running, last}`` for the FAA registry import."""
+        payload = {
+            "as_of": registry.as_of(),
+            "running": registry.is_running(),
+            "last": RegistryImport.objects.order_by("-started_at", "-id").first(),
+        }
+        return Response(RegistryStatusSerializer(payload).data)
+
+
+class RegistrationLookupView(APIView):
+    """``GET /aircraft/registry/{n_number}`` -- one N-number in the FAA registry."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: RegistrationSerializer})
+    def get(self, request: Request, n_number: str) -> Response:
+        """Return the registration for the normalized ``n_number``.
+
+        Answers 400 when ``n_number`` normalizes to nothing, and 404 with
+        ``No registration for <N-number> in the registry.`` when the registry does not
+        hold it.
+        """
+        normalized = normalize_n_number(n_number)
+        if not normalized:
+            return Response({"n_number": "Enter a registration, for example N12345."}, status=400)
+        found = Registration.objects.select_related("type").filter(n_number=normalized).first()
+        if found is None:
+            raise NotFound(f"No registration for {normalized} in the registry.")
+        return Response(RegistrationSerializer(found).data)
 
 
 # --------------------------------------------------------------------------

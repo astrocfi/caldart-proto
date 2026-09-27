@@ -18,7 +18,13 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.accounts.seed import DEMO_ACCOUNTS, DEMO_PASSWORD
-from apps.aircraft.models import Aircraft
+from apps.aircraft.models import (
+    Aircraft,
+    RegistrantType,
+    Registration,
+    RegistrationStatus,
+)
+from apps.aircraft.registry import as_of
 from apps.members.models import MembershipPlan, MembershipState
 from apps.members.services import membership_status
 from apps.members.verification import is_fully_verified, verified_items
@@ -198,6 +204,39 @@ def _refunded_payment_member() -> dict[str, str]:
     }
 
 
+#: The registrant types :func:`_registry` prefers for the known registration: a company
+#: rather than a private person, when the registry holds one.
+COMPANY_REGISTRANTS = (RegistrantType.CORPORATION, RegistrantType.LLC)
+
+
+def _registry() -> dict[str, Any]:
+    """A registration the end-to-end lookup can find, and the date the registry is as of.
+
+    ``knownNNumber`` is the first valid registration, by N-number, that carries a year
+    and is on no register record, preferring one a corporation or an LLC holds;
+    ``knownType``, ``knownYear``, and ``knownOwner`` are its type (``<make> <model>``),
+    year, and registrant, which is what a lookup on it answers.  ``asOf`` is the local
+    day the newest successful import finished, written ``YYYY/MM/DD`` as the screens
+    print it.  Each is empty (``knownYear`` ``null``) when the registry holds nothing
+    that fits.
+    """
+    candidates = (
+        Registration.objects.filter(status=RegistrationStatus.VALID, year__isnull=False)
+        .exclude(n_number__in=Aircraft.objects.values("n_number"))
+        .select_related("type")
+        .order_by("n_number")
+    )
+    known = candidates.filter(registrant_type__in=COMPANY_REGISTRANTS).first() or candidates.first()
+    finished = as_of()
+    return {
+        "knownNNumber": "" if known is None else known.n_number,
+        "knownType": "" if known is None else str(known.type),
+        "knownYear": None if known is None else known.year,
+        "knownOwner": "" if known is None else known.registrant_name,
+        "asOf": "" if finished is None else timezone.localtime(finished).strftime("%Y/%m/%d"),
+    }
+
+
 def seed_facts() -> dict[str, Any]:
     """Return the demo data set's facts, ready to serialize as JSON.
 
@@ -217,7 +256,9 @@ def seed_facts() -> dict[str, Any]:
     renewal was paused after every retry was refused, and one life member whose
     standing authority charges a contribution alone.  ``refundedPayment`` names a
     member whose payment was refunded in part, and the receipt number that payment
-    carries, which is how a finance spec finds it in the list.
+    carries, which is how a finance spec finds it in the list.  ``registry`` names a
+    registration on no register record, for the lookup spec, and the date the registry
+    is as of (see :func:`_registry`).
     """
     return {
         "demoPassword": DEMO_PASSWORD,
@@ -238,6 +279,7 @@ def seed_facts() -> dict[str, Any]:
             "pausedMandate": _paused_renewal_member(),
             "contributionMandate": _contribution_mandate_member(),
         },
+        "registry": _registry(),
     }
 
 

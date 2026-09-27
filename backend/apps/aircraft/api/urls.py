@@ -11,6 +11,13 @@ urlpatterns = [
     path("aircraft", views.AircraftListCreateView.as_view(), name="list"),
     path("aircraft/lookup", views.AircraftLookupView.as_view(), name="lookup"),
     path("aircraft/types", views.AircraftTypeSearchView.as_view(), name="types"),
+    # -- the FAA registry -------------------------------------------------
+    path("aircraft/registry", views.RegistryStatusView.as_view(), name="registry"),
+    path(
+        "aircraft/registry/<str:n_number>",
+        views.RegistrationLookupView.as_view(),
+        name="registry-lookup",
+    ),
     path("aircraft/<int:pk>", views.AircraftDetailView.as_view(), name="detail"),
     path("aircraft/<int:pk>/changes", views.AircraftChangesView.as_view(), name="changes"),
     # -- leader check -----------------------------------------------------

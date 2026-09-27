@@ -210,11 +210,37 @@ def test_a_registry_import_outlives_the_account_that_started_it(member: User) ->
         ("FOO AIRCRAFT CORP", "Foo Aircraft"),
         ("BAR AVIATION INC.", "Bar Aviation"),
         ("QUUX AEROSPACE S R O", "Quux Aerospace"),
+        ("AEROPRO CZ S R O", "Aeropro"),
+        ("MOONEY AIRCRAFT CORP.", "Mooney"),
+        ("GRUMMAN AMERICAN AVN. CORP.", "Grumman American"),
+        ("ROBINSON HELICOPTER COMPANY", "Robinson"),
+        ("DEHAVILLAND", "de Havilland"),
+        ("COSTRUZIONI AERONAUTICHE TECNA", "Tecnam"),
+        ("PIPISTREL D O O", "Pipistrel"),
     ],
 )
 def test_display_make_gives_one_name_per_manufacturer(faa_make: str, expected: str) -> None:
     """Every FAA spelling of a maker reads as one name; an unknown one is tidied."""
     assert display_make(faa_make) == expected
+
+
+@pytest.mark.parametrize(
+    ("faa_model", "expected"),
+    [
+        ("172S", "Cessna"),
+        ("T206H", "Cessna"),
+        ("525C", "Cessna"),
+        ("G36", "Beechcraft"),
+        ("G58", "Beechcraft"),
+        ("B200GT", "Beechcraft"),
+        ("B300", "Beechcraft"),
+        ("C90GTI", "Beechcraft"),
+        ("3000 (AT-6C)", "Beechcraft"),
+    ],
+)
+def test_textron_aviation_reads_as_the_maker_of_the_model(faa_model: str, expected: str) -> None:
+    """``TEXTRON AVIATION INC`` builds Cessnas and Beechcrafts; the model says which."""
+    assert display_make("TEXTRON AVIATION INC", faa_model) == expected
 
 
 @pytest.mark.parametrize(
@@ -241,7 +267,7 @@ def test_display_model_keeps_designators_and_title_cases_names(
 
 
 @pytest.mark.parametrize("airframe", AIRFRAMES, ids=lambda airframe: airframe[0])
-def test_every_seeded_manufacturer_has_a_make_name(airframe: tuple[str, str, int]) -> None:
+def test_every_seeded_manufacturer_has_a_make_name(airframe: tuple[str, str]) -> None:
     """Each manufacturer the seed flies is one of the names ``MAKE_NAMES`` gives."""
     assert airframe[0] in set(MAKE_NAMES.values())
 
@@ -341,6 +367,21 @@ def test_a_search_never_repeats_a_type(vocabulary: dict[str, AircraftType]) -> N
 def test_a_search_answers_at_most_the_limit(vocabulary: dict[str, AircraftType]) -> None:
     """``limit`` caps the answer."""
     assert len(search_types("cessna", limit=1)) == 1
+
+
+def test_equally_similar_types_lead_with_the_most_registered() -> None:
+    """Of two types a query resembles equally, the more registered one leads."""
+    AircraftTypeFactory(make="Cessna", model="150")
+    popular = AircraftTypeFactory(make="Cessna", model="172")
+    Registration.objects.create(n_number="N172AB", type=popular)
+    assert _leading("cesna") == "Cessna 172"
+
+
+def test_equally_similar_and_registered_types_lead_by_name() -> None:
+    """With nothing else to tell them apart, types list by make and model."""
+    AircraftTypeFactory(make="Cessna", model="172")
+    AircraftTypeFactory(make="Cessna", model="150")
+    assert _leading("cesna") == "Cessna 150"
 
 
 def test_a_nonsense_query_finds_nothing(vocabulary: dict[str, AircraftType]) -> None:

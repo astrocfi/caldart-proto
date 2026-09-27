@@ -1,0 +1,32 @@
+# Daily trigger for the CalDART FAA registry import.
+#
+# Deploy path: /srv/caldart. Enable with:
+#   sudo systemctl enable --now caldart-registry.timer
+# Inspect with:
+#   systemctl list-timers caldart-registry.timer
+
+[Unit]
+Description=Import the FAA registry into CalDART daily at 04:30
+Documentation=file:///srv/caldart/docs/developer/deployment.rst
+
+[Timer]
+Unit=caldart-registry.service
+
+# 04:30 every day, in the system timezone -- after the FAA publishes the
+# night's copy, and well before the reports, renewals, and reminders jobs.
+OnCalendar=*-*-* 04:30:00
+
+# If the machine was off or suspended at the trigger, run as soon as it comes
+# back rather than waiting a whole day.
+Persistent=true
+
+# The registry changes once a night; letting systemd coalesce the wakeup is
+# cheaper.
+AccuracySec=1min
+
+# Spread the start over five minutes so the run does not land at the same
+# instant as every other job on the host.
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

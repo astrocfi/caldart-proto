@@ -2,38 +2,40 @@
 
 from __future__ import annotations
 
-import random
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.aircraft.models import Aircraft, AircraftType, OwnerType
+from apps.aircraft.models import Aircraft, OwnerType, Registration, RegistrationStatus
+from apps.aircraft.registry import FIXTURE_DIR, import_registry
 
 if TYPE_CHECKING:
     from io import TextIOBase
 
 AIRCRAFT_COUNT = 25
 
-#: (make, model, typical seats): the display names of the aircraft types the seeded
-#: aircraft are drawn from.
-AIRFRAMES: tuple[tuple[str, str, int], ...] = (
-    ("Cessna", "172S Skyhawk", 4),
-    ("Cessna", "182T Skylane", 4),
-    ("Cessna", "206H Stationair", 6),
-    ("Cessna", "210 Centurion", 6),
-    ("Piper", "PA-28-181 Archer", 4),
-    ("Piper", "PA-32 Cherokee Six", 6),
-    ("Piper", "PA-46 Malibu", 6),
-    ("Beechcraft", "A36 Bonanza", 6),
-    ("Beechcraft", "B58 Baron", 6),
-    ("Mooney", "M20J", 4),
-    ("Cirrus", "SR20", 4),
-    ("Cirrus", "SR22", 4),
-    ("Diamond", "DA40 NG", 4),
-    ("Grumman American", "AA-5 Tiger", 4),
-    ("Maule", "M-7-235", 4),
+#: (make, model): the display names of the aircraft types the seeded aircraft fly,
+#: each an entry of the registry fixture.  The n-th aircraft (counting from zero) flies
+#: the entry at position n modulo their number, so every one of them is flown.
+AIRFRAMES: tuple[tuple[str, str], ...] = (
+    ("Cessna", "172S"),
+    ("Cessna", "182T"),
+    ("Cessna", "206H"),
+    ("Cessna", "210"),
+    ("Piper", "PA-28-181"),
+    ("Piper", "PA-32-300"),
+    ("Piper", "PA-46-310P"),
+    ("Beechcraft", "A36"),
+    ("Beechcraft", "58"),
+    ("Mooney", "M20J"),
+    ("Cirrus", "SR20"),
+    ("Cirrus", "SR22"),
+    ("Diamond", "DA 40"),
+    ("Grumman American", "AA-5"),
+    ("Maule", "M-7-235"),
+    ("Aeropro", "Eurofox"),
 )
 
 CARRIERS: tuple[str, ...] = (
@@ -59,42 +61,34 @@ INSURANCE_MIX: tuple[tuple[str, int], ...] = (
 UNVERIFIED_POSITIONS = frozenset({2, 5, 8})
 
 
-#: The FAA never issues I or O in a registration suffix.
-SUFFIX_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+def _seed_registrations() -> list[Registration]:
+    """One registration from the fixture for each of the :data:`AIRCRAFT_COUNT` aircraft.
 
-
-def _n_number(rng: random.Random) -> str:
-    """A plausible, unique-ish US registration."""
-    style = rng.random()
-    if style < 0.6:
-        suffix = rng.choice(SUFFIX_LETTERS) + rng.choice(SUFFIX_LETTERS)
-        return f"N{rng.randint(100, 999)}{suffix}"
-    if style < 0.85:
-        return f"N{rng.randint(1000, 9999)}{rng.choice(SUFFIX_LETTERS)}"
-    return f"N{rng.randint(10000, 99999)}"
-
-
-def _seed_types() -> list[AircraftType]:
-    """Create or refresh one aircraft type for each entry of :data:`AIRFRAMES`.
-
-    The n-th entry (counting from one) is the type with FAA code ``SEED-<n>``, its FAA
-    make and model the display names upper-cased.  Returns the types in
-    :data:`AIRFRAMES` order.
+    The n-th is the first valid registration, by N-number, of the n-th aircraft's
+    :data:`AIRFRAMES` entry that carries a year and has not been taken already.
+    Raises ``LookupError`` naming the entry when the fixture has too few.
     """
-    return [
-        AircraftType.objects.update_or_create(
-            faa_code=f"SEED-{position}",
-            defaults={
-                "faa_make": make.upper(),
-                "faa_model": model.upper(),
-                "make": make,
-                "model": model,
-                "seats": seats,
-                "engines": 1,
-            },
-        )[0]
-        for position, (make, model, seats) in enumerate(AIRFRAMES, start=1)
-    ]
+    taken: set[str] = set()
+    chosen: list[Registration] = []
+    for position in range(AIRCRAFT_COUNT):
+        make, model = AIRFRAMES[position % len(AIRFRAMES)]
+        registration = (
+            Registration.objects.filter(
+                type__make=make,
+                type__model=model,
+                status=RegistrationStatus.VALID,
+                year__isnull=False,
+            )
+            .exclude(n_number__in=taken)
+            .select_related("type")
+            .order_by("n_number")
+            .first()
+        )
+        if registration is None:
+            raise LookupError(f"The registry fixture has too few registrations of {make} {model}.")
+        taken.add(registration.n_number)
+        chosen.append(registration)
+    return chosen
 
 
 def _seed_verification(aircraft: list[Aircraft], leader: User | None) -> None:
@@ -113,9 +107,12 @@ def _seed_verification(aircraft: list[Aircraft], leader: User | None) -> None:
 
 
 def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]:
-    """Create the aircraft register and attach airframes to pilot profiles.
+    """Import the registry fixture, create the aircraft register, and attach airframes.
 
-    Each aircraft is given one of the aircraft types made from :data:`AIRFRAMES`.
+    The registry is imported from ``apps/aircraft/fixtures/faa`` through
+    :func:`apps.aircraft.registry.import_registry`, and each aircraft takes its
+    N-number, type, and year from one of its registrations (see
+    :func:`_seed_registrations`), so a registry lookup on a seeded aircraft answers.
     Reads ``rng``, ``faker``, and ``today`` from ``ctx``, and ``profiles`` when present.
     Adds the created ``Aircraft`` list to ``ctx`` under ``aircraft`` and returns
     ``ctx``. Writes a one-line summary to ``stdout`` when given.  The seeded DART
@@ -131,18 +128,9 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
     for label, weight in INSURANCE_MIX:
         mix.extend([label] * weight)
 
-    types = _seed_types()
+    import_registry(str(FIXTURE_DIR))
     created: list[Aircraft] = []
-    seen: set[str] = set()
-    attempts = 0
-    while len(created) < AIRCRAFT_COUNT and attempts < AIRCRAFT_COUNT * 10:
-        attempts += 1
-        n_number = _n_number(rng)
-        if n_number in seen:
-            continue
-        seen.add(n_number)
-
-        aircraft_type = rng.choice(types)
+    for registration in _seed_registrations():
         insurance = mix[len(created) % len(mix)]
         if insurance == "current":
             expiration = today + timedelta(days=rng.randint(45, 700))
@@ -167,16 +155,16 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
         per_person = rng.choice([100_000, 100_000, 200_000]) * 100
 
         aircraft, _ = Aircraft.objects.update_or_create(
-            n_number=n_number,
+            n_number=registration.n_number,
             defaults={
-                "type": aircraft_type,
-                "year": rng.randint(1968, 2024),
+                "type": registration.type,
+                "year": registration.year,
                 "owner_type": owner_type,
                 "owner_name": owner_name,
                 "owner_contact": faker.email()
                 if rng.random() < 0.6
                 else faker.numerify("###-###-####"),
-                "seats": aircraft_type.seats,
+                "seats": registration.type.seats,
                 "insurance_carrier": rng.choice(CARRIERS) if expiration else "",
                 "insurance_policy_number": (faker.numerify("AV-########") if expiration else ""),
                 "insurance_liability_per_occurrence_cents": per_occurrence if expiration else 0,
@@ -195,10 +183,11 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
 
     _seed_verification(created, ctx.get("demo_users", {}).get("leader"))
 
-    # Attach aircraft to the pilots who fly them.
+    # Attach aircraft to the pilots who fly them: at most two each, which is as many
+    # registrations as the member report's Aircraft column holds on one line.
     pilot_profiles = [p for p in profiles if p.pilot_certificate_type != "none"]
     for profile in pilot_profiles:
-        wanted = rng.choices([0, 1, 1, 2, 3], weights=[15, 40, 20, 18, 7])[0]
+        wanted = rng.choices([0, 1, 2], weights=[15, 60, 25])[0]
         if not wanted:
             continue
         chosen = rng.sample(created, k=min(wanted, len(created)))

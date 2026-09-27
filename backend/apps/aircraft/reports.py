@@ -63,8 +63,8 @@ def _money(aircraft: Aircraft, field: str) -> Money | None:
 #: than assumed.
 AIRCRAFT_REPORT_COLUMNS: tuple[ReportColumn[Aircraft], ...] = (
     ReportColumn("n_number", "N-number", True, lambda row: row.n_number, width=2.0),
-    ReportColumn("make", "Make", True, lambda row: row.make, width=2.2),
-    ReportColumn("model", "Model", True, lambda row: row.model, width=4.2),
+    ReportColumn("make", "Make", True, lambda row: row.make, width=3.0),
+    ReportColumn("model", "Model", True, lambda row: row.model, width=3.4),
     ReportColumn("owner_name", "Owner", True, lambda row: row.owner_name, width=6.8),
     ReportColumn(
         "owner_type",

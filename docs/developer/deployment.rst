@@ -9,9 +9,9 @@ the alternative and is called out where the two differ.
 
 Every path below assumes the deploy root ``/srv/caldart``.  If you use
 another, change it in every file under ``deploy/`` that names it, which is all
-thirteen of them: ``deploy/gunicorn.conf.py``, ``deploy/apache/caldart.conf``,
-``deploy/nginx/caldart.conf``, ``deploy/caldart.env.example``, and the five
-services and four timers under ``deploy/systemd/`` (a timer names the path
+fifteen of them: ``deploy/gunicorn.conf.py``, ``deploy/apache/caldart.conf``,
+``deploy/nginx/caldart.conf``, ``deploy/caldart.env.example``, and the six
+services and five timers under ``deploy/systemd/`` (a timer names the path
 only in its ``Documentation=`` line).  ``grep -rn /srv/caldart deploy/`` finds
 every occurrence.
 
@@ -63,7 +63,7 @@ What you are deploying
               Django [label="Django 6 + Wagtail 8\l  caldart.settings.prod\l  /static/ via whitenoise\l"];
               Postgres [label="Postgres in Docker :5432\l  compose service db\l"];
               Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to\l  the web server\l", shape=folder, style=""];
-              Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all five services\l", shape=note, style=""];
+              Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all six services\l", shape=note, style=""];
 
               Apache -> Gunicorn [label="HTTP 127.0.0.1:8001\lX-Forwarded-Proto: https\l"];
               Gunicorn -> Django [label="WSGI\lcaldart.wsgi:application\l", arrowhead=none];
@@ -80,16 +80,17 @@ What you are deploying
       }
 
    .. graphviz::
-      :caption: The same server's four scheduled jobs.  Each timer starts its
+      :caption: The same server's five scheduled jobs.  Each timer starts its
                 service, which runs one management command and exits.  A
                 **solid arrow** is the job reading and writing the database; a
                 **dashed arrow** is an outbound call.  Every job service reads
                 its settings from the same environment file as
-                ``caldart-web.service``, so the server runs five services in
+                ``caldart-web.service``, so the server runs six services in
                 all.
-      :alt: The four CalDART timers and their services, each writing to
-            Postgres and sending mail, with the renewals job also charging
-            through Stripe and PayPal
+      :alt: The five CalDART timers and their services, each writing to
+            Postgres; four send mail, the renewals job also charges through
+            Stripe and PayPal, and the registry job downloads the FAA
+            registry
 
       digraph caldart_jobs {
           rankdir=LR;
@@ -104,16 +105,20 @@ What you are deploying
           Renewals [label="caldart-renewals.timer\l  daily 06:30 ->\l  caldart-renewals.service\l  manage.py run_auto_renewals\l"];
           Reminders [label="caldart-reminders.timer\l  daily 07:00 ->\l  caldart-reminders.service\l  manage.py send_renewal_reminders\l"];
           Statements [label="caldart-statements.timer\l  yearly Jan 15, 06:45 ->\l  caldart-statements.service\l  manage.py send_year_statements\l"];
+          Registry [label="caldart-registry.timer\l  daily 04:30 ->\l  caldart-registry.service\l  manage.py import_faa_registry\l"];
+          Faa [label="registry.faa.gov\l  ReleasableAircraft.zip\l"];
           Stripe [label="Stripe and PayPal\l  off-session charges\l"];
           Postgres [label="Postgres in Docker :5432\l"];
           Smtp [label="SMTP server\l  from EMAIL_URL\l"];
 
-          {rank=same; Stripe; Postgres; Smtp;}
-          {rank=same; Reports; Renewals; Reminders; Statements;}
-          Stripe -> Postgres -> Smtp [style=invis];
-          Reports -> Renewals -> Reminders -> Statements [style=invis];
+          {rank=same; Faa; Stripe; Postgres; Smtp;}
+          {rank=same; Registry; Reports; Renewals; Reminders; Statements;}
+          Faa -> Stripe -> Postgres -> Smtp [style=invis];
+          Registry -> Reports -> Renewals -> Reminders -> Statements [style=invis];
 
-          Env -> {Reports Renewals Reminders Statements} [style=dashed, arrowhead=none];
+          Env -> {Registry Reports Renewals Reminders Statements} [style=dashed, arrowhead=none];
+          Registry -> Faa [style=dashed];
+          Registry -> Postgres;
           Renewals -> Stripe [style=dashed];
           Reports -> Postgres;
           Renewals -> Postgres;
@@ -144,7 +149,13 @@ What you are deploying
       Stripe / PayPal webhooks arrive                 |
       through Apache like any other request           v
                                                 Postgres in Docker :5432
-      caldart-reports.timer, daily 06:00              ^
+      caldart-registry.timer, daily 04:30             ^
+        -> caldart-registry.service                   |
+           manage.py import_faa_registry -------------|
+           -> registry.faa.gov, for the FAA's         |
+              Releasable Aircraft Database            |
+                                                      |
+      caldart-reports.timer, daily 06:00              |
         -> caldart-reports.service                    |
            manage.py send_scheduled_reports ----------|
            -> the SMTP server, for the report         |
@@ -167,19 +178,20 @@ What you are deploying
            manage.py send_year_statements ------------'
            -> the SMTP server, for the contribution statements
 
-   Apache, gunicorn, Postgres, and the four timers run on one Linux server with
-   the deploy root ``/srv/caldart``, and all five services (``caldart-web`` and
-   the four job services) read their settings from ``/etc/caldart/caldart.env``
+   Apache, gunicorn, Postgres, and the five timers run on one Linux server with
+   the deploy root ``/srv/caldart``, and all six services (``caldart-web`` and
+   the five job services) read their settings from ``/etc/caldart/caldart.env``
    (``root:caldart``, mode ``0640``).  Django calls out to ``api.stripe.com``
    and ``api-m.paypal.com`` during a checkout, and to the same SMTP server for
    password resets and invitations.  ``nginx`` (``deploy/nginx/caldart.conf``)
    takes Apache's place unchanged when you deploy it instead.
 
 Three things run continuously: the Docker Postgres container, the
-``caldart-web`` gunicorn unit, and Apache.  Four jobs run on a schedule: the
-``caldart-reports`` timer daily at 06:00, the ``caldart-renewals`` timer daily
-at 06:30, the ``caldart-reminders`` timer daily at 07:00, and the
-``caldart-statements`` timer yearly at 06:45 on January 15th.
+``caldart-web`` gunicorn unit, and Apache.  Five jobs run on a schedule: the
+``caldart-registry`` timer daily at 04:30, the ``caldart-reports`` timer daily
+at 06:00, the ``caldart-renewals`` timer daily at 06:30, the
+``caldart-reminders`` timer daily at 07:00, and the ``caldart-statements`` timer
+yearly at 06:45 on January 15th.
 
 The application is a **Django 6** project with Wagtail 8 on top, and step 6
 installs it with ``uv sync --frozen``, so the box runs the exact versions
@@ -848,7 +860,37 @@ needs the database and the SMTP server, from the same
 :doc:`statements` for who is sent one, and when.
 
 
-14. Backups
+.. _deploy-registry:
+
+14. The FAA registry
+====================
+
+::
+
+  sudo cp deploy/systemd/caldart-registry.service \
+          deploy/systemd/caldart-registry.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now caldart-registry.timer
+  sudo systemctl start caldart-registry.service
+  systemctl list-timers caldart-registry.timer
+
+Daily at 04:30, with catch-up if the machine was off: every run replaces the
+registry with the FAA's current copy, so a late one costs nothing.  It downloads
+the FAA's Releasable Aircraft Database (about 70 MB) from ``FAA_REGISTRY_URL``
+into the unit's private ``/tmp`` and imports the aircraft types and the
+registrations, which takes well under a minute once the file is down; it needs
+the database and an outbound HTTPS connection to ``registry.faa.gov``.  The
+``systemctl start`` above runs the first import straight away, so the aircraft
+type picker has its vocabulary before anybody opens it.  A system administrator
+can also start an import from the System screen (**Run now** on the *FAA
+registry import* row); that import runs as a child of ``caldart-web``, so
+restarting the web service while one is under way stops it, and the next press
+after ``REGISTRY_IMPORT_STALE_MINUTES`` records it as *Did not finish.* and
+starts another.  See :doc:`aircraft-registry` for what the import reads and
+writes.
+
+
+15. Backups
 ===========
 
 Take one now and schedule them::
@@ -864,7 +906,7 @@ Checking it worked
 ::
 
   systemctl status caldart-web caldart-reminders.timer caldart-renewals.timer \
-      caldart-reports.timer caldart-statements.timer
+      caldart-reports.timer caldart-statements.timer caldart-registry.timer
   sudo docker compose ps
   curl -sI https://caldart.example.org/ | head -1
   caldart_manage health --json
@@ -961,6 +1003,9 @@ Reminder runs                ``journalctl -u caldart-reminders -n 50``
 Renewal runs                 ``journalctl -u caldart-renewals -n 50``
 Scheduled report runs        ``journalctl -u caldart-reports -n 50``
 Year-end statement runs      ``journalctl -u caldart-statements -n 50``
+FAA registry imports         ``journalctl -u caldart-registry -n 50``; an
+                             import started with **Run now** logs to
+                             ``journalctl -u caldart-web``
 Apache :443 access / error   ``/var/log/apache2/caldart-{access,error}.log``
 Apache :80 access / error    ``/var/log/apache2/caldart-http-{access,error}.log``
                              — the redirect vhost, and therefore where a
@@ -991,6 +1036,7 @@ The lines go to the journal with everything else, so a filter picks them out::
   journalctl -u caldart-renewals | grep 'action=renewals.run'
   journalctl -u caldart-reports | grep 'action=reports.run'
   journalctl -u caldart-statements | grep 'action=statements.run'
+  journalctl -u caldart-web | grep 'action=system.registry_import'
 
 Each line is ``key=value`` pairs in a fixed order::
 
@@ -1047,6 +1093,8 @@ Action                        Fields beyond actor and target
                               DART), then ``dry_run``, ``sent``, ``skipped``,
                               ``failed``; one line per **Send now**, and per
                               DART when the rosters are sent by hand
+``system.registry_import``    -- (the target is the ``RegistryImport`` row);
+                              one line per **Run now** on the System screen
 ============================= ===============================================
 
 An account edit is recorded only when it really alters the record.  The admin
@@ -1059,8 +1107,9 @@ names the columns that moved, and ``fields=-`` when none did.
 A privileged attempt a rule turns away is logged at WARNING under the same
 action, with a ``reason`` slug saying which rule refused it: ``self_deactivation``,
 ``roles_not_held``, ``system_admin_role``, ``self_delete``,
-``system_admin_target``, ``has_payments``, ``inactive_account``, or
-``no_such_backup``.
+``system_admin_target``, ``has_payments``, ``inactive_account``,
+``no_such_backup``, or ``import_running`` (a **Run now** pressed while an
+import is under way).
 
 A record carries ids, counts, flags, and slugs and nothing else.  Email
 addresses, names, passwords, tokens, and database contents are not values the

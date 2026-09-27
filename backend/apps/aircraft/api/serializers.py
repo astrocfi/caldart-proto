@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 from typing import Any, cast
+from uuid import uuid4
 
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -17,8 +18,13 @@ from apps.aircraft.models import (
     AircraftChange,
     AircraftChangeKind,
     AircraftType,
+    RegistrantType,
+    Registration,
+    RegistrationStatus,
+    RegistryImport,
     normalize_n_number,
 )
+from apps.aircraft.naming import display_make, display_model
 from apps.aircraft.verification import INSURANCE_FIELDS
 from apps.members.models import (
     RATING_VALUES,
@@ -102,6 +108,114 @@ class AircraftTypeSerializer(serializers.ModelSerializer[AircraftType]):
         model = AircraftType
         fields = ["id", "make", "model", "seats", "engines", "is_custom"]
         read_only_fields = fields
+
+
+#: What adding a type the vocabulary already holds is answered with.
+DUPLICATE_TYPE_MESSAGE = "That aircraft type is already listed."
+
+
+class AircraftTypeCreateSerializer(serializers.Serializer[AircraftType]):
+    """``POST /aircraft/types``: a type the FAA has never registered, added by hand.
+
+    ``make`` and ``model`` are required and written as display names, as the registry's
+    would be: ``make`` through ``display_make`` and ``model`` through
+    ``display_model`` of its upper-cased form (``cessna aircraft co`` is ``Cessna``,
+    ``t-51`` is ``T-51``).  ``seats`` (at least 1) and ``engines`` (at least 0) are
+    optional.  A make and model the vocabulary already holds, compared
+    case-insensitively after that normalization, is refused under ``model`` with
+    :data:`DUPLICATE_TYPE_MESSAGE`.  ``create`` saves an ``is_custom`` type coded
+    ``CUSTOM-<id>``, its FAA spellings the upper-cased names as given.
+    """
+
+    make = serializers.CharField(max_length=120)
+    model = serializers.CharField(max_length=60)
+    seats = serializers.IntegerField(min_value=1, max_value=999, required=False, allow_null=True)
+    engines = serializers.IntegerField(min_value=0, max_value=99, required=False, allow_null=True)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Normalize the names and refuse a make and model already listed."""
+        faa_make = " ".join(str(attrs["make"]).upper().split())
+        faa_model = " ".join(str(attrs["model"]).upper().split())
+        make = display_make(faa_make, faa_model)
+        model = display_model(faa_model)
+        if AircraftType.objects.filter(make__iexact=make, model__iexact=model).exists():
+            raise serializers.ValidationError({"model": [DUPLICATE_TYPE_MESSAGE]})
+        return {
+            **attrs,
+            "faa_make": faa_make,
+            "faa_model": faa_model,
+            "make": make,
+            "model": model,
+        }
+
+    def create(self, validated_data: dict[str, Any]) -> AircraftType:
+        """Save the custom type, then code it ``CUSTOM-<id>`` once its id is known."""
+        created = AircraftType.objects.create(
+            faa_code=f"CUSTOM-{uuid4().hex[:9]}",
+            is_custom=True,
+            **validated_data,
+        )
+        created.faa_code = f"CUSTOM-{created.pk}"
+        created.save(update_fields=["faa_code"])
+        return created
+
+
+class RegistrationSerializer(serializers.ModelSerializer[Registration]):
+    """``GET /aircraft/registry/{n_number}``: one N-number as the registry holds it."""
+
+    type = AircraftTypeSerializer(read_only=True)
+    registrant_type = serializers.ChoiceField(choices=RegistrantType.choices, read_only=True)
+    status = serializers.ChoiceField(choices=RegistrationStatus.choices, read_only=True)
+
+    class Meta:
+        model = Registration
+        fields = [
+            "n_number",
+            "type",
+            "year",
+            "registrant_name",
+            "registrant_type",
+            "status",
+            "certificate_issued_on",
+            "expires_on",
+            "imported_at",
+        ]
+        read_only_fields = fields
+
+
+class RegistryImportSerializer(serializers.ModelSerializer[RegistryImport]):
+    """One run of the registry import: when, from where, how it ended, and its counts.
+
+    ``finished_at`` is null while the run is under way; ``error`` is blank unless the
+    run failed.
+    """
+
+    class Meta:
+        model = RegistryImport
+        fields = [
+            "started_at",
+            "finished_at",
+            "ok",
+            "error",
+            "types_written",
+            "registrations_written",
+            "types_folded",
+            "source",
+        ]
+        read_only_fields = fields
+
+
+class RegistryStatusSerializer(serializers.Serializer[dict[str, Any]]):
+    """``GET /aircraft/registry``: the date the registry is as of, and the last run.
+
+    ``as_of`` is when the newest successful import finished (null before one has);
+    ``running`` whether an import is under way; ``last`` the newest import of any
+    outcome, or null.
+    """
+
+    as_of = serializers.DateTimeField(allow_null=True)
+    running = serializers.BooleanField()
+    last = RegistryImportSerializer(allow_null=True)
 
 
 class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
