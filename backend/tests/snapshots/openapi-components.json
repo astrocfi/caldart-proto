@@ -2617,6 +2617,7 @@
     "enum": [
       "members",
       "roles",
+      "verification",
       "aircraft",
       "payments",
       "reconciliation",

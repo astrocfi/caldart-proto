@@ -54,13 +54,21 @@ Setting one up
 **New subscription** opens the form:
 
 #. **Report** offers the reports you may read: the membership report, the roles report,
-   the aircraft register, the payments, the reconciliation, and the contributions for an
-   account administrator; the payments, the reconciliation, the contributions, and the
+   the verification report, the aircraft register, the payments, the reconciliation, and
+   the contributions for an account administrator; the payments, the reconciliation, the contributions, and the
    donors for the treasurer; and every one of them plus the email log for a system
    administrator. The roles report lists the people who hold each role other than member,
    in a section per role that says *Nobody holds this role.* when it is empty; it filters
    by name or email, by role, and by kind, and it can go to a user administrator as well
-   as an account administrator. Choosing a report draws the same filters its own screen
+   as an account administrator. The verification report lists what a verifier checks, in
+   four sections: *Pilot certificates*, *Medicals*, *Photo IDs*, and *Aircraft insurance*,
+   each saying *Nothing to show.* when it is empty. Each row names the member (or the
+   aircraft's N-number), their DART (or the aircraft's owner), what is on file, when it
+   was last updated, and whether, by whom, and on which day it was verified. Its
+   **Status** filter lists the items not yet verified when left blank, or the
+   **Verified** ones, or **All** of them, and its **DART** filter keeps one DART's people
+   and the aircraft they fly. It can go to a verifier, a DART leader, a user
+   administrator, or an account administrator. Choosing a report draws the same filters its own screen
    has. The payments, contributions, and donors reports add **Period**: **This month**,
    **Last month**, **This year**, or **Last year**, worked out on the day each email goes,
    so a monthly subscription for **Last month** always carries the month before the one it

@@ -121,6 +121,22 @@ const ROLE_FILTERS: FilterField[] = [
   },
 ];
 
+const VERIFICATION_FILTERS: FilterField[] = [
+  // Blank is the server's own default, the items not yet verified.
+  {
+    key: 'status',
+    label: 'Status',
+    kind: 'select',
+    placeholder: 'Not verified',
+    options: [
+      { value: 'verified', label: 'Verified' },
+      { value: 'all', label: 'All' },
+    ],
+  },
+  // The DARTs are the server's, so the page supplies them through `options`.
+  { key: 'dart', label: 'DART', kind: 'select', placeholder: 'Any DART' },
+];
+
 const AIRCRAFT_FILTERS: FilterField[] = [
   { key: 'search', label: 'Search', kind: 'search', hint: 'N-number, make, model, or owner.' },
   { key: 'make', label: 'Make', kind: 'search' },
@@ -307,6 +323,13 @@ export const REPORTS: Readonly<Record<ReportSlug, ReportDefinition>> = {
     slug: 'roles',
     label: 'Roles',
     filters: ROLE_FILTERS,
+    choosable: true,
+    periods: false,
+  },
+  verification: {
+    slug: 'verification',
+    label: 'Verification',
+    filters: VERIFICATION_FILTERS,
     choosable: true,
     periods: false,
   },

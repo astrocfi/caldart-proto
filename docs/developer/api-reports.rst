@@ -5,7 +5,7 @@ API: reports
 ============
 
 Every report the portal downloads — the membership report, the roles report, the
-aircraft register, the payment list, the reconciliation table, the contributions list,
+verification report, the aircraft register, the payment list, the reconciliation table, the contributions list,
 the donors report and the email log — is served by the same three endpoints under ``/api/v1/reports/``, from
 ``apps.reports``.  A report is named by its **slug** in the URL; the reports,
 their columns and the code that builds them are described in :doc:`reports`.
@@ -36,6 +36,11 @@ superuser read every one:
    * - ``roles``
      - CalDART roles report
      - ``user_admin``, ``account_admin``
+     - chosen
+     - no
+   * - ``verification``
+     - CalDART verification report
+     - ``verifier``, ``dart_leader``, ``user_admin``, ``account_admin``
      - chosen
      - no
    * - ``aircraft``
@@ -127,6 +132,9 @@ filters            same way: :doc:`api-members` for ``members``,
                    for the four money reports, and :doc:`api-system` for
                    ``emails``.  A value the list refuses is
                    refused here with the same **400**, keyed by the parameter.
+                   The verification report, which no list backs, reads its
+                   own ``status`` and ``dart``
+                   (:ref:`reports-verification`).
 ``ordering``       The list's own ordering, with the list's own rules: the
                    payments report refuses an unknown field as the payment list
                    does, and the other reports ignore one.
@@ -151,8 +159,8 @@ filters            same way: :doc:`api-members` for ``members``,
 
 The file is named ``<stem>-<YYYY-MM-DD>.<csv|pdf>``, dated the day it was built:
 ``caldart-members``, ``caldart-aircraft``, ``caldart-payments``,
-``caldart-reconciliation``, ``caldart-contributions``, ``caldart-donors`` or
-``caldart-emails``.
+``caldart-verification``, ``caldart-reconciliation``, ``caldart-contributions``,
+``caldart-donors`` or ``caldart-emails``.
 
 Statuses:
 
@@ -396,13 +404,18 @@ Tests
    The email log report: its columns and their cells, each filter and the date
    range against the rows downloaded, the order, the refusals, the file name,
    and the ``system_admin``-only role matrix.
+``backend/tests/test_verification_report.py``
+   The verification report: its four sections and who is listed in each, the
+   cells, the ``status`` and ``dart`` filters and the refused status, the file
+   name, the sections in the PDF, the role matrix, and who a subscription may
+   send it to.
 ``backend/tests/test_report_endpoints.py``
    The report list for every role, the role matrix on every report's columns
    and both formats, the 404 for an unknown report and format, the dated
    filenames and media types, and the refusals: a fixed report's columns, an
    unknown column, a refused filter and an unknown period.
 ``backend/tests/test_report_registry.py``
-   The registry's eight reports by slug and, for all but the email log, the
+   The registry's nine reports by slug and, for all but the email log, the
    roles, titles, orientation and periods, and the query against its list: the
    same params give the same rows in the same order.
 ``backend/tests/test_reports.py``

@@ -10,6 +10,7 @@ from __future__ import annotations
 from django.http import Http404
 
 from apps.aircraft.reports import AIRCRAFT_REPORT
+from apps.aircraft.verification_report import VERIFICATION_REPORT
 from apps.mail.reports import EMAIL_LOG_REPORT
 from apps.members.reports import MEMBER_REPORT
 from apps.members.roles_report import ROLES_REPORT
@@ -23,6 +24,7 @@ REPORTS: dict[str, Report] = {
     for spec in (
         MEMBER_REPORT,
         ROLES_REPORT,
+        VERIFICATION_REPORT,
         AIRCRAFT_REPORT,
         PAYMENT_REPORT,
         RECONCILIATION_REPORT,

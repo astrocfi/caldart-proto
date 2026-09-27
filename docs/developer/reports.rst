@@ -3,7 +3,7 @@ Reports
 =======
 
 CalDART exports data as CSV, for a spreadsheet, and as PDF, for a board pack.
-There are eight reports, and every one of them is built by the same code: each
+There are nine reports, and every one of them is built by the same code: each
 app declares what its report is — its columns, who may read it, and the query
 that finds its rows — as a ``ReportSpec``, and ``build_report`` in
 ``backend/caldart/reports.py`` turns any spec into either file.  The endpoints
@@ -27,6 +27,10 @@ documents them.
      - Roles
      - ``apps/members/roles_report.py``
      - ``user_admin``, ``account_admin``
+   * - ``verification``
+     - Verification
+     - ``apps/aircraft/verification_report.py``
+     - ``verifier``, ``dart_leader``, ``user_admin``, ``account_admin``
    * - ``aircraft``
      - Aircraft register
      - ``apps/aircraft/reports.py``
@@ -53,7 +57,7 @@ documents them.
      - ``system_admin``
 
 A ``system_admin`` and a Django superuser read every report.
-``apps/reports/registry.py`` gathers the eight specs into ``REPORTS``, keyed by
+``apps/reports/registry.py`` gathers the nine specs into ``REPORTS``, keyed by
 slug, and ``apps/reports/permissions.py`` decides who may read one with
 ``can_read_report(user, spec)``, which is ``user_has_any_role`` over the spec's
 roles.
@@ -65,9 +69,9 @@ filter and ordering code its list runs — the member list's filter set and
 ordering, the register's, the payment list's query serializer, the email log's filter set — so the same
 query string gives the same rows, in the same order, on the screen and in the
 file.  ``?ordering=`` is honored with the list's own rules, and nothing is
-paginated.  The roles report, which no list backs, is the exception: it reads its
-own search, role, and kind filters (see :ref:`reports-roles`), lists active
-accounts only, and is always in name order.
+paginated.  The roles report and the verification report, which no list backs,
+are the exceptions: each reads its own filters (see :ref:`reports-roles` and
+:ref:`reports-verification`), lists active accounts only, and has a fixed order.
 
 
 The engine
@@ -443,6 +447,75 @@ home_airport  Home airport   no      Home airport identifier from the profile
 
 An account with no profile leaves the phone, DART, city, county, and airport
 cells blank.  ``backend/tests/test_roles_report.py`` covers the report.
+
+
+.. _reports-verification:
+
+The verification report
+=======================
+
+``verification``, for the verifying roles (``verifier``, ``dart_leader``,
+``user_admin``, and ``account_admin``, the tuple ``VERIFY_ROLES`` in
+``apps/accounts/roles.py``), titled "CalDART verification report" and saved as
+``caldart-verification-<YYYY-MM-DD>``.  ``VERIFICATION_REPORT`` in
+``backend/apps/aircraft/verification_report.py`` declares it; it sits in the aircraft
+app, which sits above the members app and already decides who the leader's member
+check can find, because it lists both people and aircraft.  An item
+is verified when its ``<item>_verified_at`` column is set; the columns are in
+:doc:`data-model`.
+
+It is sectioned, one section per kind of item, always in this order and each drawn
+even when empty, with the line "Nothing to show." under an empty one:
+
+``Pilot certificates``, ``Medicals``, ``Photo IDs``
+   One row per checkable person with a profile, in each of the three: every active
+   member and friend (``checkable_people()`` in ``apps/aircraft/services.py``).  A
+   donor, a deactivated account, and an account with no profile are never listed.
+   The rows are ordered by last name, first name, then address.
+``Aircraft insurance``
+   One row per aircraft in service (``is_active``), in N-number order.  An aircraft
+   out of service is never listed.
+
+Two filters narrow the rows:
+
+``status``
+   ``unverified`` (the default, also when blank) keeps the items not yet verified,
+   ``verified`` the verified ones, and ``all`` every item.  Any other value is
+   refused with a 400,
+   ``{"status": ["Select a valid choice. <value> is not one of the available choices."]}``.
+``dart``
+   A DART's id, or part of its name matched case-insensitively, as the membership
+   report reads ``dart``.  It keeps that DART's people and the aircraft that at
+   least one pilot on that DART flies, each aircraft once.
+
+The PDF subtitle always names the status, since it has a default, and then the
+DART when one is given.  Any other parameter is ignored, apart from ``columns``.
+Every column is a default; in order:
+
+============= ============== ======= =============================================
+Key           Label          Default Contents
+============= ============== ======= =============================================
+section       Section        yes     The section's title, so the CSV keeps the
+                                     grouping
+name          Name           yes     The person's full name (or address), or the
+                                     aircraft's N-number
+dart          DART           yes     The person's DART, or the aircraft's owner
+details       Details        yes     What is on file: ``Private · 1234567``,
+                                     ``Third class · expires 2027/03/01``,
+                                     ``Passport``, ``Avemco · expires 2027/03/01``;
+                                     a blank part is left out
+updated       Updated        yes     ``YYYY/MM/DD`` of the profile's
+                                     ``profile_updated_at`` or the aircraft's
+                                     ``updated_at``; blank for a profile nobody has
+                                     written
+verified      Verified       yes     ``Yes`` or ``No``
+verified_by   Verified by    yes     The verifier's name, blank when unverified or
+                                     when the verifier's account is gone
+verified_on   Verified on    yes     ``YYYY/MM/DD`` of the verification, in local
+                                     time
+============= ============== ======= =============================================
+
+``backend/tests/test_verification_report.py`` covers the report.
 
 
 How to add a column
