@@ -761,7 +761,7 @@ challenge directory, enable it, and check the syntax::
   EOF
   sudo a2ensite caldart-acme
   sudo apachectl configtest
-  sudo systemctl reload apache2
+  sudo systemctl reload-or-restart apache2
 
 **The certificate.**  certbot writes a token under ``/var/www/certbot``, the
 certificate authority fetches it over port 80, and the certificate lands in
@@ -794,10 +794,12 @@ and the deploy root written in, and check the syntax before reloading::
       | sudo install -m 0644 /dev/stdin /etc/apache2/sites-available/caldart.conf
   sudo a2ensite caldart
   sudo apachectl configtest
-  sudo systemctl reload apache2
+  sudo systemctl reload-or-restart apache2
 
 ``$ROOT`` is the deploy root and ``$HOST`` the hostname; the dry run of the
-step prints the command with the real values.  Under ``--no-www`` a third
+step prints the command with the real values.  ``reload-or-restart`` rather
+than ``reload``, because it also starts a web server that is stopped, where a
+plain reload fails.  Under ``--no-www`` a third
 expression drops the ``ServerAlias`` line.
 
 The vhost:
@@ -856,7 +858,7 @@ port 80; it can stay, because a request for the CalDART hostname matches the
   EOF
   sudo ln -sfn /etc/nginx/sites-available/caldart-acme /etc/nginx/sites-enabled/caldart-acme
   sudo nginx -t
-  sudo systemctl reload nginx
+  sudo systemctl reload-or-restart nginx
 
 **The certificate.**  Exactly as for Apache::
 
@@ -882,7 +884,7 @@ both files are there::
       | sudo install -m 0644 /dev/stdin /etc/nginx/sites-available/caldart
   sudo ln -sfn /etc/nginx/sites-available/caldart /etc/nginx/sites-enabled/caldart
   sudo nginx -t
-  sudo systemctl reload nginx
+  sudo systemctl reload-or-restart nginx
 
 The file turns HTTP/2 on with ``http2 on;``, a directive nginx has had since
 1.25.1; Debian 13 ships 1.26.  Ubuntu 24.04 ships 1.24, where ``nginx -t``
