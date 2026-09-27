@@ -200,7 +200,7 @@ Backing up the media files
 ==========================
 
 A database dump carries every row and none of the uploaded files.  Those live
-under ``backend/media/`` (``/srv/caldart/backend/media`` in production), in
+under ``backend/media/`` (``/opt/caldart/backend/media`` in production), in
 three directories Wagtail writes:
 
 ``original_images/``
@@ -214,21 +214,21 @@ three directories Wagtail writes:
 Back up the whole directory, alongside each dump.  ``rsync`` keeps a mirror
 on another machine up to date and copies only what changed::
 
-  sudo rsync -a --delete /srv/caldart/backend/media/ backup-host:/backups/caldart/media/
+  sudo rsync -a --delete /opt/caldart/backend/media/ backup-host:/backups/caldart/media/
 
 A ``tar`` archive is a point-in-time copy to keep beside the dump of the same
 moment.  Write it outside ``BACKUP_DIR``: the backup list and the health panel
 read every ``*.sql.gz`` there, and nothing else belongs in it::
 
   sudo tar -czf /root/caldart-media-$(date +%Y%m%d-%H%M%S).tar.gz \
-      -C /srv/caldart/backend media
+      -C /opt/caldart/backend media
 
 The files are as sensitive as the dump: the members-only documents are in
 them.  To put an archive back, unpack it over the checkout and give the files
 back to the service user::
 
-  sudo tar -xzf /root/caldart-media-20260601-033000.tar.gz -C /srv/caldart/backend
-  sudo chown -R caldart:caldart /srv/caldart/backend/media
+  sudo tar -xzf /root/caldart-media-20260601-033000.tar.gz -C /opt/caldart/backend
+  sudo chown -R caldart:caldart /opt/caldart/backend/media
 
 
 Downloading a backup
@@ -272,7 +272,7 @@ bookkeeping before you have checked it (:ref:`backup-after-restore`)::
 
   sudo systemctl stop caldart-web caldart-renewals.timer caldart-reminders.timer \
       caldart-reports.timer caldart-statements.timer caldart-backup.timer
-  sudo deploy/manage.sh db_restore /srv/caldart/backups/caldart-....sql.gz --yes
+  sudo deploy/manage.sh db_restore /opt/caldart/backups/caldart-....sql.gz --yes
   sudo deploy/manage.sh migrate
 
 Leave the web unit and the timers stopped: :ref:`backup-after-restore` starts
@@ -325,11 +325,11 @@ line wins over ``.env``::
 
 On a server, the environment file wins over anything ``deploy/manage.sh``
 could set, so replay the dump with ``psql`` inside the container instead.  Run it
-from ``/srv/caldart``::
+from ``/opt/caldart``::
 
-  sudo docker compose exec -T db createdb -U caldart caldart_rehearsal
-  sudo zcat /srv/caldart/backups/caldart-20260601-033000.sql.gz \
-      | sudo docker compose exec -T db psql -U caldart -d caldart_rehearsal \
+  sudo deploy/compose.sh exec -T db createdb -U caldart caldart_rehearsal
+  sudo zcat /opt/caldart/backups/caldart-20260601-033000.sql.gz \
+      | sudo deploy/compose.sh exec -T db psql -U caldart -d caldart_rehearsal \
             -v ON_ERROR_STOP=1 -q
 
 ``ON_ERROR_STOP`` makes the first failing statement stop the replay with an

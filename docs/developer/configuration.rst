@@ -332,7 +332,9 @@ Email
       http://localhost:8025 catches everything and delivers nothing.
    :Production: **required**,
       ``smtp+tls://user:password@smtp.example.org:587``.  Many providers want
-      an app password rather than the account password.
+      an app password rather than the account password.  ``smtp://localhost:25``
+      hands mail to the machine's own postfix instead
+      (:ref:`email-local-postfix`).
 
 ``DEFAULT_FROM_EMAIL``
    The ``From`` on every message, and ``SERVER_EMAIL`` for error mail.
@@ -463,7 +465,7 @@ Backups
    is also the filesystem ``/system/health`` measures free space on.
 
    :Development: ``backups`` — gitignored.
-   :Production: ``/srv/caldart/backups``, owned by the service user and listed
+   :Production: ``/opt/caldart/backups``, owned by the service user and listed
       in ``ReadWritePaths`` in ``caldart-web.service``.
 
 ``DB_BACKUP_VIA_DOCKER``

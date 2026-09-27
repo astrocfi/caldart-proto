@@ -79,7 +79,9 @@ relay it is an SMTP URL:
 
 ``smtp+tls://`` starts TLS on the submission port, 587, which is what most
 providers expect; ``smtp+ssl://`` speaks TLS from the first byte, usually on
-port 465; plain ``smtp://`` sends in the clear and is for Mailpit only.  The
+port 465; plain ``smtp://`` sends in the clear and is for a server on the
+same machine only: Mailpit in development, or the machine's own postfix
+(`A local postfix`_).  The
 credentials are percent-encoded, so the ``@`` in a user name that is an email
 address becomes ``%40``.  ``EMAIL_TIMEOUT`` (default 20 seconds) bounds each
 conversation with the relay, so a relay that stops answering holds up one
@@ -89,6 +91,45 @@ Use a relay that is allowed to send for the domain in ``DEFAULT_FROM_EMAIL``:
 the organization's own mail provider, or a transactional service such as
 Amazon SES, Postmark, or Mailgun.  A home ISP's server, or a personal mailbox
 signing in as itself, delivers to few inboxes.
+
+.. _email-local-postfix:
+
+A local postfix
+---------------
+
+A server that already runs a mail server, such as the machine that serves the
+organization's website, can hand mail to its own postfix instead of a remote
+relay.  The URL is plain SMTP to the loopback port, with no credentials:
+
+.. code-block:: text
+
+   smtp://localhost:25
+
+``deploy/install.sh --email local`` writes exactly that as ``EMAIL_URL``
+(:doc:`deployment`).  The installer installs no mail server, and when nothing
+listens on port 25 it says so in a note, since mail fails until postfix is
+installed and listening on localhost.  Postfix accepts mail from localhost for
+any destination in its default configuration (``mynetworks`` holds the
+loopback addresses), so nothing needs to authenticate.
+
+Postfix then delivers the message itself, so the domain's records must name
+this machine rather than a relay's:
+
+* ``DEFAULT_FROM_EMAIL`` on a domain whose SPF record names this host (its
+  ``a:`` or ``ip4:``/``ip6:`` entry), and DKIM signing set up in postfix
+  (``opendkim``, for instance) if the domain's DMARC expects it; or
+* postfix set up as a satellite system that forwards everything to the
+  organization's relay, with ``relayhost = [smtp.example.org]:587`` and that
+  relay's credentials in ``main.cf``, so the SPF and DKIM that already cover
+  the relay cover this mail too.
+
+Check the path end to end with Django's own command::
+
+  sudo deploy/manage.sh sendtestemail you@example.org
+
+and read ``journalctl -u postfix`` (or ``/var/log/mail.log``) for the
+message's ``status=sent``, then its ``Authentication-Results`` as
+`What the domain needs`_ describes.
 
 The sender address
 ------------------
@@ -279,7 +320,9 @@ and that ``docker compose ps`` shows the ``mailpit`` container up.
 ``EMAIL_URL`` (many providers need an app password); ``SMTPSenderRefused``
 is a ``DEFAULT_FROM_EMAIL`` the relay will not send as; ``TimeoutError`` or
 ``ConnectionRefusedError`` is the wrong host or port, or a firewall between
-the server and the relay.  ``journalctl -u caldart-web`` has the full
+the server and the relay; with ``smtp://localhost:25`` it means postfix is not
+running or not listening on localhost (``ss -ltn 'sport = :25'`` shows what
+is).  ``journalctl -u caldart-web`` has the full
 message.
 
 **The log says Sent, but the member saw nothing.**  Ask them to look in spam.
