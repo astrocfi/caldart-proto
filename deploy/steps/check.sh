@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 11 - the checks, and the summary.
+# CalDART install step - the checks, and the summary.
 #
 # Checks that caldart-web and the six timers are active, that the compose db
 # service is healthy, that the site answers 200 over HTTPS on this machine for

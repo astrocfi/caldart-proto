@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 10 - a backup now.
+# CalDART install step - a backup now.
 #
 # Takes one database dump through deploy/manage.sh db_backup, so a fresh
 # install has a dump before the nightly timer first runs.

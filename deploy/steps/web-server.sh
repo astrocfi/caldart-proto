@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 8 - the web server and the certificate.
+# CalDART install step - the web server and the certificate.
 #
 # For the web server the install record names (Apache or nginx; the other
 # one's configuration is never touched), in the only order that works, since

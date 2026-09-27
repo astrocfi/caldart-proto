@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 3 - Postgres in Docker.
+# CalDART install step - Postgres in Docker.
 #
 # Starts the compose "db" service from the repository's docker-compose.yml (the
 # database alone; Mailpit is a development container and never starts on a

@@ -19,7 +19,7 @@ and gzips its output as it arrives (:ref:`backup-streaming`) into
 a dump you want to find again by hand::
 
   uv run backend/manage.py db_backup --name before-the-schema-change.sql.gz
-  caldart_manage db_backup --name before-the-schema-change.sql.gz    # production
+  sudo deploy/manage.sh db_backup --name before-the-schema-change.sql.gz   # production
 
 Keep the ``.sql.gz`` ending whatever you call it.  The download endpoint only
 serves names matching ``^[A-Za-z0-9][A-Za-z0-9._-]*\.sql\.gz$``, and
@@ -99,10 +99,9 @@ Development::
 
   make backup
 
-Production, through the ``caldart_manage`` function defined in
-:ref:`deploy-manage-commands`::
+Production, through ``deploy/manage.sh`` (:ref:`deploy-manage-commands`)::
 
-  caldart_manage db_backup
+  sudo deploy/manage.sh db_backup
 
 Or from a browser: ``/portal/system`` → **Backups** → **Create backup**.  Three
 endpoints back that panel, all ``system_admin`` only:
@@ -122,90 +121,35 @@ There is deliberately no restore endpoint.
 Scheduling
 ----------
 
-There is no backup timer in ``deploy/`` — retention policy is a site decision.
-The simplest version is a oneshot service and a timer of your own, modeled on
-``caldart-reminders.service`` and ``caldart-reminders.timer``.
+Two shipped units take a dump every night: ``deploy/systemd/caldart-backup.timer``
+starts ``caldart-backup.service`` daily at 03:30, and ``deploy/steps/timers.sh``
+installs and enables both with the rest of the scheduled jobs
+(:doc:`deployment`).  ``Persistent=true`` takes the missed backup when the
+machine comes back rather than skipping the night.  Check on it, or take one at
+once::
 
-``/etc/systemd/system/caldart-backup.service``:
-
-.. code-block:: ini
-
-   [Unit]
-   Description=CalDART database backup
-   Documentation=file:///srv/caldart/docs/developer/backup-restore.rst
-   After=network.target docker.service
-
-   [Service]
-   Type=oneshot
-
-   User=caldart
-   Group=caldart
-   UMask=0027
-
-   WorkingDirectory=/srv/caldart/backend
-   EnvironmentFile=/etc/caldart/caldart.env
-   Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
-
-   ExecStart=/srv/caldart/.venv/bin/python /srv/caldart/backend/manage.py db_backup
-
-   # Nothing rotates dumps, so the same run drops the ones over 30 days old.
-   # systemd expands ${BACKUP_DIR} from the environment file, so the prune reads
-   # the directory the dump just wrote to.
-   ExecStart=/usr/bin/find ${BACKUP_DIR} -name caldart-*.sql.gz -mtime +30 -delete
-
-   # pg_dump on a large database is not quick.
-   TimeoutStartSec=3600
-
-   NoNewPrivileges=true
-   PrivateTmp=true
-   ProtectHome=true
-   ProtectSystem=strict
-   ProtectKernelTunables=true
-   ProtectKernelModules=true
-   ProtectControlGroups=true
-   RestrictSUIDSGID=true
-   RestrictRealtime=true
-   LockPersonality=true
-   SystemCallArchitectures=native
-   SystemCallFilter=@system-service
-   RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-   CapabilityBoundingSet=
-
-   ReadWritePaths=/srv/caldart/backups
-
-It has no ``[Install]`` section: the timer is what pulls it in, and
-``systemctl start caldart-backup.service`` is what runs one by hand.
-
-``/etc/systemd/system/caldart-backup.timer``:
-
-.. code-block:: ini
-
-   [Unit]
-   Description=Take a CalDART database backup daily at 03:30
-   Documentation=file:///srv/caldart/docs/developer/backup-restore.rst
-
-   [Timer]
-   Unit=caldart-backup.service
-   OnCalendar=*-*-* 03:30:00
-   Persistent=true
-   AccuracySec=1min
-   RandomizedDelaySec=5min
-
-   [Install]
-   WantedBy=timers.target
-
-``Persistent=true`` takes the missed backup when the machine comes back rather
-than skipping the night.  Install both, then enable the timer::
-
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now caldart-backup.timer
   systemctl list-timers caldart-backup.timer
-  sudo systemctl start caldart-backup.service    # take one right away
+  sudo systemctl start caldart-backup.service
   journalctl -u caldart-backup -n 20
 
-Five details to keep in step with the rest of the deployment.  ``BACKUP_DIR``
-has to be an absolute path in ``/etc/caldart/caldart.env`` — the production
-template sets ``/srv/caldart/backups`` — because the prune hands the value
+The service runs as ``caldart`` with ``UMask=0027`` and the same hardening as
+the web unit, reads ``/etc/caldart/caldart.env``, and has two ``ExecStart``
+lines.  The first runs ``manage.py db_backup``.  The second prunes: nothing
+else rotates dumps, so the same run deletes the generated ones older than
+``BACKUP_RETENTION_DAYS``::
+
+  ExecStart=/usr/bin/find ${BACKUP_DIR} -name 'caldart-*.sql.gz' -mtime +${BACKUP_RETENTION_DAYS} -delete
+
+systemd expands both variables from the environment file, whose production
+template keeps dumps for 30 days (``BACKUP_RETENTION_DAYS=30``,
+:doc:`configuration`); change the number there and the next run prunes by it,
+with no ``daemon-reload``.  The prune matches only the generated
+``caldart-<timestamp>.sql.gz`` names, so a dump you gave your own ``--name`` is
+left alone.
+
+Four details to keep in step with the rest of the deployment.  ``BACKUP_DIR``
+has to be an absolute path in ``/etc/caldart/caldart.env`` (the installer
+writes the deploy root's ``backups``), because the prune hands the value
 straight to ``find``, which resolves a relative path against
 ``WorkingDirectory`` while Django resolves it against the repository root.
 ``ReadWritePaths`` expands no variables, so it is the one line that spells the
@@ -213,11 +157,10 @@ directory out by hand: it has to name whatever ``BACKUP_DIR`` points at, or
 ``ProtectSystem=strict`` fails the dump with a permission error.  A
 ``Type=oneshot`` unit runs its ``ExecStart`` lines in order and fails if either
 exits non-zero, so a prune that cannot find its directory reports a failed
-backup even when the dump itself worked.  The prune matches only the generated
-``caldart-<timestamp>.sql.gz`` names, so a dump you gave your own ``--name`` is
-left alone.  And the unit expects a local ``pg_dump`` with
-``DB_BACKUP_VIA_DOCKER=false``; going through ``docker compose`` instead needs
-the ``caldart`` user in the ``docker`` group.
+backup even when the dump itself worked.  And the unit expects a local
+``pg_dump`` with ``DB_BACKUP_VIA_DOCKER=false``, which is what the installer
+writes; going through ``docker compose`` instead needs the ``caldart`` user in
+the ``docker`` group.
 
 A dump on the same disk as the database is not a backup.  Copy them somewhere
 else — another host, object storage, an external disk — as a second step,
@@ -310,10 +253,9 @@ nothing writes during the restore and no job runs against the restored
 bookkeeping before you have checked it (:ref:`backup-after-restore`)::
 
   sudo systemctl stop caldart-web caldart-renewals.timer caldart-reminders.timer \
-      caldart-reports.timer caldart-statements.timer
-  sudo systemctl stop caldart-backup.timer    # if you installed it
-  caldart_manage db_restore /srv/caldart/backups/caldart-....sql.gz --yes
-  caldart_manage migrate
+      caldart-reports.timer caldart-statements.timer caldart-backup.timer
+  sudo deploy/manage.sh db_restore /srv/caldart/backups/caldart-....sql.gz --yes
+  sudo deploy/manage.sh migrate
 
 Leave the web unit and the timers stopped: :ref:`backup-after-restore` starts
 them again once its checks pass.  The ``migrate`` is deliberate: a dump taken
@@ -357,8 +299,8 @@ line wins over ``.env``::
   DATABASE_URL=postgres://caldart:caldart@localhost:5432/caldart_rehearsal \
       uv run backend/manage.py db_restore backups/caldart-20260601-033000.sql.gz --yes
 
-On a server, the environment file wins over anything ``caldart_manage`` could
-set, so replay the dump with ``psql`` inside the container instead.  Run it
+On a server, the environment file wins over anything ``deploy/manage.sh``
+could set, so replay the dump with ``psql`` inside the container instead.  Run it
 from ``/srv/caldart``::
 
   sudo docker compose exec -T db createdb -U caldart caldart_rehearsal
@@ -406,7 +348,7 @@ After a restore
 Before the site takes traffic again, check that it is the site you meant to
 bring back:
 
-1. ``caldart_manage health`` says ``db`` is ``ok`` and ``pending_migrations``
+1. ``sudo deploy/manage.sh health`` says ``db`` is ``ok`` and ``pending_migrations``
    is ``0``.  A number above zero means the ``migrate`` step was skipped.
 2. The row counts above match what you expected of a dump from that moment.
 3. ``systemctl start caldart-web``, then ``journalctl -u caldart-web -n 50``
@@ -424,8 +366,8 @@ and the next automatic renewal run would charge the card a second time.  That
 is why the restore above stops the timers.  Check what the jobs would do before
 starting them again::
 
-  caldart_manage run_auto_renewals --dry-run
-  caldart_manage send_renewal_reminders --dry-run
+  sudo deploy/manage.sh run_auto_renewals --dry-run
+  sudo deploy/manage.sh send_renewal_reminders --dry-run
 
 Compare every charge the dry run lists with the provider's dashboard.  For a
 member the provider already charged after the dump was taken, record that
@@ -437,8 +379,7 @@ authority stays in place and ``run_auto_renewals --dry-run`` no longer lists
 them.  Run it again to confirm, then start the timers::
 
   sudo systemctl start caldart-renewals.timer caldart-reminders.timer \
-      caldart-reports.timer caldart-statements.timer
-  sudo systemctl start caldart-backup.timer   # if you installed it
+      caldart-reports.timer caldart-statements.timer caldart-backup.timer
 
 A payment recorded by hand carries no link to the provider's charge, so a
 refund issued from the portal against it sends nothing to Stripe or PayPal.  To

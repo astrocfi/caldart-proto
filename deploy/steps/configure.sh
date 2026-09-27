@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 4 - the environment file.
+# CalDART install step - the environment file.
 #
 # Writes /etc/caldart/caldart.env once, root:caldart, mode 0640, from the
 # production template deploy/caldart.env.example.  The five variables the

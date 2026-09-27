@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 2 - the service user and its directories.
+# CalDART install step - the service user and its directories.
 #
 # Creates the "caldart" system user when it is missing, with the deploy root as
 # its home and no login shell; /etc/caldart, root-owned and readable by the

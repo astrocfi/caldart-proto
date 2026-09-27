@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 6 - the database and the static files.
+# CalDART install step - the database and the static files.
 #
 # Through deploy/manage.sh: applies the migrations, creates the cache table,
 # creates the roles, and collects the static files.  With --seed-content it

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 9 - the scheduled jobs.
+# CalDART install step - the scheduled jobs.
 #
 # Installs the six service and timer pairs under deploy/systemd/ (the FAA
 # registry import, the scheduled reports, the automatic renewals, the renewal

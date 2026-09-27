@@ -475,6 +475,16 @@ Backups
       ``postgresql-client``.
    :Production: ``false``, with ``postgresql-client`` installed.
 
+``BACKUP_RETENTION_DAYS``
+   Read by ``deploy/systemd/caldart-backup.service``, not by Django: after each
+   nightly dump the unit deletes the generated ``caldart-*.sql.gz`` files in
+   ``BACKUP_DIR`` older than this many days.  systemd expands it from the
+   environment file, so a changed value applies from the next run
+   (:doc:`backup-restore`).
+
+   :Development: unused; nothing prunes a development ``backups/``.
+   :Production: ``30``, as the template and the installer write it.
+
 
 Production hardening
 ====================

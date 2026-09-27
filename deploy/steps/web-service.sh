@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 7 - gunicorn under systemd.
+# CalDART install step - gunicorn under systemd.
 #
 # Installs caldart-web.service into /etc/systemd/system with the deploy root
 # written in, enables it, and restarts it: a restart starts a stopped unit and

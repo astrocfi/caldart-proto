@@ -56,12 +56,15 @@ usage_error() {
 }
 
 print_help() {
-    local line
+    local line started=no
     while IFS= read -r line; do
         case "$line" in
             '#!'*) continue ;;
-            '#') printf '\n' ;;
-            '# '*) printf '%s\n' "${line#'# '}" ;;
+            '#') [[ "$started" == no ]] || printf '\n' ;;
+            '# '*)
+                started=yes
+                printf '%s\n' "${line#'# '}"
+                ;;
             *) return 0 ;;
         esac
     done <"$1"

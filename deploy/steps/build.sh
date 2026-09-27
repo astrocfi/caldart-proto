@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 5 - the build.
+# CalDART install step - the build.
 #
 # From the deploy root: installs the exact Python packages uv.lock pins into
 # .venv (without the development tools, with the Sphinx toolchain), with any

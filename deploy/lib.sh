@@ -96,12 +96,15 @@ usage_error() {
 # Print the header comment of the script at $1: every line after the shebang
 # up to the first line that is not a comment, without its leading "# ".
 print_help() {
-    local line
+    local line started=no
     while IFS= read -r line; do
         case "$line" in
             '#!'*) continue ;;
-            '#') printf '\n' ;;
-            '# '*) printf '%s\n' "${line#'# '}" ;;
+            '#') [[ "$started" == no ]] || printf '\n' ;;
+            '# '*)
+                started=yes
+                printf '%s\n' "${line#'# '}"
+                ;;
             *) return 0 ;;
         esac
     done <"$1"

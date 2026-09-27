@@ -110,7 +110,7 @@ Everyday commands:
 
    $ make test      # pytest + vitest
    $ make e2e       # Playwright, end to end (see below)
-   $ make lint      # ruff + mypy + tsc + eslint + prettier + codespell
+   $ make lint      # ruff + mypy + shellcheck + tsc + eslint + prettier + codespell
    $ make check     # system checks, migrations, deployment checks, build
    $ make docs      # Sphinx, nitpicky, warnings are errors
    $ make guide     # the user guide alone, as the site serves it at /docs/
@@ -121,6 +121,26 @@ Everyday commands:
 
 The Make targets table in ``docs/developer/setup.rst`` lists every target in
 full.
+
+
+On a server
+===========
+
+One command installs the site on a Debian 13 or Ubuntu 24.04 server whose DNS
+already points at it: Postgres in Docker, gunicorn under systemd, Apache (or
+nginx) with a Let's Encrypt certificate, the scheduled jobs, and a first
+backup.
+
+.. code-block:: console
+
+   $ curl -fsSL https://raw.githubusercontent.com/astrocfi/caldart-proto/main/deploy/bootstrap.sh \
+       | sudo bash -s -- --hostname caldart.example.org --certbot-email ops@example.org \
+           --email-url smtp+tls://user:password@smtp.example.org:587 \
+           --admin-email you@example.org
+
+``sudo /srv/caldart/deploy/upgrade.sh`` upgrades it later.  The Deployment page
+of the developer guide, ``docs/developer/deployment.rst``, describes every flag
+and every step the scripts run.
 
 
 End-to-end tests
@@ -160,7 +180,8 @@ the gates every pull request must pass:
 .. code-block:: console
 
    $ make test     # pytest + vitest; a warning fails the run
-   $ make lint     # ruff, mypy, tsc, eslint (no warnings), prettier, codespell
+   $ make lint     # ruff, mypy, shellcheck, tsc, eslint (no warnings), prettier,
+                   # codespell
    $ make check    # system checks, migrations, deployment checks, build
    $ make docs     # sphinx-build -n -W: nitpicky, warnings are errors
    $ make audit    # uv audit + npm audit: known vulnerabilities

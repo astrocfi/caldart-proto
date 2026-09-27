@@ -145,9 +145,9 @@ Check what the world sees with ``dig`` (``dnsutils`` on Debian and Ubuntu):
 
 Then send a real message and read how it arrived.  Django's own
 ``sendtestemail`` command sends a one-line test through the configured mailer
-(on a server, through ``caldart_manage`` from :ref:`deploy-manage-commands`)::
+(on a server, through ``deploy/manage.sh`` from :ref:`deploy-manage-commands`)::
 
-  caldart_manage sendtestemail you@your-own-mailbox.example
+  sudo deploy/manage.sh sendtestemail you@your-own-mailbox.example
 
 Open it in a mailbox you control, show the original message, and read the
 ``Authentication-Results`` header: it should say ``spf=pass``,

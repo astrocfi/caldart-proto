@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# CalDART install step 1 - operating system packages.
+# CalDART install step - operating system packages.
 #
 # Installs what the server needs from the distribution's own archive: git, curl,
 # the Postgres client, Docker and its Compose v2 plugin, the web server named in
