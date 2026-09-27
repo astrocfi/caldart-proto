@@ -11,6 +11,7 @@ export type DemoAccount =
   | 'member'
   | 'expired'
   | 'leader'
+  | 'verifier'
   | 'useradmin'
   | 'treasurer'
   | 'accountadmin'
@@ -22,6 +23,7 @@ const DEMO_ACCOUNT_KEYS: readonly DemoAccount[] = [
   'member',
   'expired',
   'leader',
+  'verifier',
   'useradmin',
   'treasurer',
   'accountadmin',
@@ -65,11 +67,14 @@ export interface SeedFacts {
   /** Membership plan slug to its price in cents. */
   planPricesCents: Record<PlanSlug, number>;
   /**
-   * Three members the leader check reads differently.  They come from the seed
-   * rather than being typed into a spec, which drifts the moment the demo data
-   * is generated a little differently.
+   * Four members the leader check reads differently: an insured pilot verified on
+   * every count, one whose airplane's insurance has lapsed, one whose membership
+   * has, and a current pilot with a current medical whose certificate, medical, and
+   * photo ID nobody has verified (`unverifiedPilot`, who lists no aircraft).  They
+   * come from the seed rather than being typed into a spec, which drifts the moment
+   * the demo data is generated a little differently.
    */
-  leaderCheck: Record<'insuredPilot' | 'lapsedInsurance' | 'expiredMember', LeaderSubject>;
+  leaderCheck: Record<LeaderSubjectKey, LeaderSubject>;
   /** How many payments the seed recorded by hand, which the finance list filters to. */
   manualPaymentCount: number;
   /** A member whose payment came back in part, for the refund assertions. */
@@ -78,7 +83,15 @@ export interface SeedFacts {
   contributionMandate: ContributionMandateMember;
 }
 
-const LEADER_SUBJECT_KEYS = ['insuredPilot', 'lapsedInsurance', 'expiredMember'] as const;
+const LEADER_SUBJECT_KEYS = [
+  'insuredPilot',
+  'lapsedInsurance',
+  'expiredMember',
+  'unverifiedPilot',
+] as const;
+
+/** The keys `seed_facts` gives the members the leader check reads differently. */
+type LeaderSubjectKey = (typeof LEADER_SUBJECT_KEYS)[number];
 
 const FACTS_PATH = resolve(dirname(fileURLToPath(import.meta.url)), 'seed-facts.json');
 
