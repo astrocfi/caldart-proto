@@ -77,6 +77,16 @@ SEEDED_PAYMENTS = 54 + MANUAL_PAYMENT_COUNT + SEEDED_FRIEND_GIFTS + SEEDED_DONOR
 SEEDED_FULL_REFUNDS = 2
 SEEDED_PARTIAL_REFUNDS = 4
 
+#: Of every generated and fixed member account, how many the seeded DART leader
+#: verifies: seven of every ten member positions are verified (``UNVERIFIED_POSITIONS``
+#: in ``apps.members.seed`` names the other three), and friends and donors never
+#: advance the position count, so this counts every member the seed makes.
+SEEDED_VERIFIED_MEMBERS = 31
+
+#: Of the seeded aircraft register, how many the seed leaves with verified insurance,
+#: by the same seven-in-ten rule.
+SEEDED_VERIFIED_AIRCRAFT = 18
+
 #: Every test here runs `seed_demo`, which seeds the whole demo data set.
 pytestmark = [pytest.mark.django_db, pytest.mark.slow]
 
@@ -590,7 +600,7 @@ def test_seed_demo_verifies_about_seven_in_ten_members() -> None:
     verified = [profile for profile in members if len(verified_items(profile)) == 3]
     unverified = [profile for profile in members if len(verified_items(profile)) == 0]
     assert len(verified) + len(unverified) == members.count()
-    assert 0.6 <= len(verified) / members.count() <= 0.8
+    assert len(verified) == SEEDED_VERIFIED_MEMBERS
 
 
 def test_seed_demo_stamps_every_verification_with_the_leader() -> None:
@@ -619,7 +629,7 @@ def test_seed_demo_verifies_about_seven_in_ten_aircraft() -> None:
     """Most of the register's insurance is verified; the rest is not."""
     _seed()
     verified = Aircraft.objects.filter(insurance_verified_at__isnull=False).count()
-    assert 0.6 <= verified / Aircraft.objects.count() <= 0.8
+    assert verified == SEEDED_VERIFIED_AIRCRAFT
 
 
 def test_seed_demo_records_a_photo_id_for_members_and_friends() -> None:
