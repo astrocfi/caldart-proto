@@ -1,10 +1,9 @@
-/** The aircraft form's Look up on the N-number and its aircraft type picker. */
-import { act, screen, waitFor, within } from '@testing-library/react';
+/** The aircraft form's N-number typeahead over the FAA registry and its aircraft type picker. */
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { makeAircraftType } from '@test/fixtures/profile';
 import { makeRegistration } from '@test/fixtures/registry';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
@@ -34,19 +33,36 @@ function renderForm(initial: AircraftFormValues = emptyAircraftValues()) {
   return { user, submitted };
 }
 
-/** Answer a Look up of `N739TA` with the fixture registration, recording each one asked. */
-function registryAnswers(asked: string[] = []) {
-  return http.get(`${API}/aircraft/registry/:nNumber`, ({ params }) => {
-    asked.push(String(params.nNumber));
-    return HttpResponse.json(makeRegistration());
+/** Answer the N-number typeahead with `found`, recording each prefix asked about. */
+function registryAnswers(asked: string[] = [], found = [makeRegistration()]) {
+  return http.get(`${API}/aircraft/registrations`, ({ request }) => {
+    asked.push(new URL(request.url).searchParams.get('q') ?? '');
+    return HttpResponse.json(found);
   });
 }
 
 function nNumberBox(): HTMLElement {
-  return screen.getByLabelText(/^N-number/);
+  return screen.getByRole('combobox', { name: /^N-number/ });
 }
 
-describe('<AircraftForm/> Look up', () => {
+/** Type `text` into the N-number box and settle the typeahead's debounce. */
+async function typeNNumber(user: ReturnType<typeof setupUser>, text: string): Promise<void> {
+  await user.type(nNumberBox(), text);
+  await act(() => vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS));
+}
+
+/** The values of the boxes a registration fills, in the order the form shows them. */
+function filledBoxes(): string[] {
+  return [
+    screen.getByRole('combobox', { name: /^Aircraft type/ }),
+    screen.getByLabelText('Year'),
+    screen.getByLabelText('Seats'),
+    screen.getByLabelText('Owner name'),
+    screen.getByLabelText('Owner type'),
+  ].map((box) => (box as HTMLInputElement | HTMLSelectElement).value);
+}
+
+describe('<AircraftForm/> N-number typeahead', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
   });
@@ -55,136 +71,98 @@ describe('<AircraftForm/> Look up', () => {
     vi.useRealTimers();
   });
 
-  it('fills the airframe and its owner from the registry', async () => {
+  it('asks the registry for the registrations starting with what was typed', async () => {
+    const asked: string[] = [];
+    server.use(registryAnswers(asked));
+    const { user } = renderForm();
+    await typeNNumber(user, '739');
+    await screen.findByRole('listbox', { name: 'FAA registrations' });
+    expect(asked.at(-1)).toBe('N739');
+  });
+
+  it('lists each registration with its type, year, and registrant', async () => {
     server.use(registryAnswers());
     const { user } = renderForm();
-    await user.type(nNumberBox(), '739ta');
-    await user.click(screen.getByRole('button', { name: 'Look up' }));
-    await screen.findByText(/From the FAA registry/);
-    const boxes = [
-      screen.getByRole('combobox', { name: /^Aircraft type/ }),
-      screen.getByLabelText('Year'),
-      screen.getByLabelText('Seats'),
-      screen.getByLabelText('Owner name'),
-      screen.getByLabelText('Owner type'),
-    ] as (HTMLInputElement | HTMLSelectElement)[];
-    expect(boxes.map((box) => box.value)).toEqual([
-      'Cessna 172S',
-      '2004',
-      '4',
-      'PALO ALTO FLYING CLUB',
-      'fbo',
-    ]);
+    await typeNNumber(user, '739');
+    const option = await screen.findByRole('option', { name: /^N739TA/ });
+    expect(option).toHaveTextContent('N739TA Cessna 172S 2004 PALO ALTO FLYING CLUB');
+  });
+
+  it('keeps the N-number mask on what is typed', async () => {
+    server.use(registryAnswers());
+    const { user } = renderForm();
+    await user.type(nNumberBox(), 'n-739ta');
+    expect(nNumberBox()).toHaveValue('N739TA');
+  });
+
+  it('fills the airframe and its owner from the registration picked', async () => {
+    server.use(registryAnswers());
+    const { user } = renderForm();
+    await typeNNumber(user, '739');
+    await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
+    expect(filledBoxes()).toEqual(['Cessna 172S', '2004', '4', 'PALO ALTO FLYING CLUB', 'fbo']);
+  });
+
+  it('sets the box to the N-number picked', async () => {
+    server.use(registryAnswers());
+    const { user } = renderForm();
+    await typeNNumber(user, '739');
+    await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
+    expect(nNumberBox()).toHaveValue('N739TA');
+  });
+
+  it('picks with the arrow keys and Enter', async () => {
+    server.use(
+      registryAnswers(
+        [],
+        [makeRegistration(), makeRegistration({ n_number: 'N739TB', year: 1981 })],
+      ),
+    );
+    const { user } = renderForm();
+    await typeNNumber(user, '739');
+    await screen.findByRole('listbox', { name: 'FAA registrations' });
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+    expect(screen.getByLabelText('Year')).toHaveValue('1981');
+  });
+
+  it('shuts the list on Escape without filling anything', async () => {
+    server.use(registryAnswers());
+    const { user } = renderForm();
+    await typeNNumber(user, '739');
+    await screen.findByRole('listbox', { name: 'FAA registrations' });
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox', { name: 'FAA registrations' })).toBeNull();
   });
 
   it('says which day of the registry the details come from', async () => {
     server.use(registryAnswers());
     const { user } = renderForm();
-    await user.type(nNumberBox(), '739ta');
-    await user.click(screen.getByRole('button', { name: 'Look up' }));
-    expect(await screen.findByText('From the FAA registry as of 2026/09/20')).toBeVisible();
-  });
-
-  it('says so when the registry has no such registration, and leaves the form alone', async () => {
-    server.use(
-      http.get(`${API}/aircraft/registry/:nNumber`, () =>
-        HttpResponse.json({ detail: 'No registration for N1 in the registry.' }, { status: 404 }),
-      ),
-    );
-    const { user } = renderForm({ ...emptyAircraftValues(), year: '1999' });
-    await user.type(nNumberBox(), '1');
-    await user.click(screen.getByRole('button', { name: 'Look up' }));
-    expect(await screen.findByText('Not in the FAA registry')).toBeVisible();
-    expect(screen.getByLabelText('Year')).toHaveValue('1999');
-  });
-
-  it('shows nothing when the lookup fails', async () => {
-    let asked = 0;
-    server.use(
-      http.get(`${API}/aircraft/registry/:nNumber`, () => {
-        asked += 1;
-        return HttpResponse.error();
-      }),
-    );
-    const { user } = renderForm();
-    await user.type(nNumberBox(), '739ta');
-    await user.tab();
-    await waitFor(() => expect(asked).toBe(1));
-    await act(() => vi.advanceTimersByTimeAsync(50));
-    expect(screen.queryByText(/FAA registry/)).toBeNull();
-  });
-
-  it('looks up a registration when the N-number box is left', async () => {
-    const asked: string[] = [];
-    server.use(registryAnswers(asked));
-    const { user } = renderForm();
-    await user.type(nNumberBox(), '739ta');
-    await user.tab();
-    await screen.findByText(/From the FAA registry/);
-    expect(asked).toEqual(['N739TA']);
-  });
-
-  it('leaves a box holding no registration without asking', async () => {
-    const asked: string[] = [];
-    server.use(registryAnswers(asked));
-    const { user } = renderForm();
-    await user.type(nNumberBox(), 'N');
-    await user.tab();
-    await act(() => vi.advanceTimersByTimeAsync(50));
-    expect(asked).toEqual([]);
-  });
-
-  it("does not look up the record's own registration again as the box is passed through", async () => {
-    const asked: string[] = [];
-    server.use(registryAnswers(asked));
-    const { user } = renderForm({
-      ...emptyAircraftValues('N739TA'),
-      type: makeAircraftType(),
-    });
-    await user.click(nNumberBox());
-    await user.tab();
-    await act(() => vi.advanceTimersByTimeAsync(50));
-    expect(asked).toEqual([]);
+    await typeNNumber(user, '739');
+    await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
+    expect(screen.getByText('From the FAA registry as of 2026/09/20')).toBeVisible();
   });
 
   it('forgets what the registry said once the N-number changes', async () => {
     server.use(registryAnswers());
     const { user } = renderForm();
-    await user.type(nNumberBox(), '739ta');
-    await user.click(screen.getByRole('button', { name: 'Look up' }));
-    await screen.findByText(/From the FAA registry/);
+    await typeNNumber(user, '739');
+    await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
     await user.type(nNumberBox(), '{Backspace}');
     expect(screen.queryByText(/From the FAA registry/)).toBeNull();
   });
 
-  it('drops an answer that arrives after the N-number changed', async () => {
-    let release: () => void = () => undefined;
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    let asked = 0;
-    server.use(
-      http.get(`${API}/aircraft/registry/:nNumber`, async () => {
-        asked += 1;
-        await held;
-        return HttpResponse.json(makeRegistration());
-      }),
-    );
-    const { user } = renderForm();
-    await user.type(nNumberBox(), '739ta');
+  it('leaves the form alone while nothing is picked', async () => {
+    server.use(registryAnswers());
+    const { user } = renderForm({ ...emptyAircraftValues(), year: '1999' });
+    await typeNNumber(user, '739ta');
+    await screen.findByRole('option', { name: /^N739TA/ });
     await user.tab();
-    await waitFor(() => expect(asked).toBe(1));
-    await user.clear(nNumberBox());
-    await user.type(nNumberBox(), '456cd');
-    release();
-    await act(() => vi.advanceTimersByTimeAsync(50));
-    const boxes = [
-      screen.getByRole('combobox', { name: /^Aircraft type/ }),
-      screen.getByLabelText('Year'),
-      screen.getByLabelText('Owner name'),
-      screen.queryByText(/FAA registry/)?.textContent ?? '',
-    ].map((box) => (typeof box === 'string' ? box : (box as HTMLInputElement).value));
-    expect(boxes).toEqual(['', '', '', '']);
+    expect(screen.getByLabelText('Year')).toHaveValue('1999');
+  });
+
+  it('offers no Look up button', () => {
+    renderForm();
+    expect(screen.queryByRole('button', { name: 'Look up' })).toBeNull();
   });
 });
 

@@ -164,8 +164,10 @@ export const handlers = [
   // The register's header and the System screen read the registry's state as
   // they mount: by default, one successful import and none running.
   http.get(`${API}/aircraft/registry`, () => HttpResponse.json(makeRegistryStatus())),
-  // A Look up on the aircraft form asks this; by default the registry has no such
-  // registration, which leaves the form alone.
+  // The N-number typeahead on the aircraft form asks this as the box is typed into;
+  // by default no registration starts with what was typed, so no list opens.
+  http.get(`${API}/aircraft/registrations`, () => HttpResponse.json([])),
+  // One registration by its N-number; by default the registry has no such registration.
   http.get(`${API}/aircraft/registry/:nNumber`, ({ params }) =>
     HttpResponse.json(
       { detail: `No registration for ${String(params.nNumber)} in the registry.` },

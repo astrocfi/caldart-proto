@@ -327,25 +327,57 @@ describe('AircraftPicker', () => {
     expect(posted).toMatchObject({ n_number: 'N4321Q', type_id: 3 });
   });
 
-  it('fills a new aircraft from the FAA registry with Look up', async () => {
+  it('fills a new aircraft from the registration picked in the N-number box', async () => {
     const user = setupUser();
     server.use(
       ...searchOnly([]),
-      http.get(`${API}/aircraft/registry/N739TA`, () => HttpResponse.json(makeRegistration())),
+      http.get(`${API}/aircraft/registrations`, () => HttpResponse.json([makeRegistration()])),
     );
 
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
-    await search(user, /Search the aircraft register/i, 'n739ta');
+    await search(user, /Search the aircraft register/i, 'n739');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
-    await user.click(screen.getByRole('button', { name: 'Look up' }));
+    await search(user, /^N-number/, 't');
+    await user.click(await screen.findByRole('option', { name: /^N739TA/ }));
 
-    await screen.findByText('From the FAA registry as of 2026/09/20');
     const boxes = [
       screen.getByRole('combobox', { name: /^Aircraft type/ }),
       screen.getByLabelText('Year'),
-      screen.getByLabelText('Owner'),
+      screen.getByLabelText('Owner name'),
     ] as HTMLInputElement[];
     expect(boxes.map((box) => box.value)).toEqual(['Cessna 172S', '2004', 'PALO ALTO FLYING CLUB']);
+  });
+
+  it('adds an aircraft with every field the record has', async () => {
+    const user = setupUser();
+    server.use(...searchOnly([]));
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+    await user.click(screen.getByRole('button', { name: /Add a new aircraft/i }));
+
+    const labels = [
+      'Seats',
+      'Owner type',
+      'Owner name',
+      'Owner contact',
+      'Carrier',
+      'Policy number',
+      'Liability per occurrence',
+      'Liability per person',
+      'Hull',
+      'Insurance expires',
+    ];
+    expect(labels.filter((label) => screen.queryByLabelText(label) === null)).toEqual([]);
+  });
+
+  it("keeps the administrator's own fields off a member's add form", async () => {
+    const user = setupUser();
+    server.use(...searchOnly([]));
+
+    renderWithProviders(<AircraftPicker onSelect={() => {}} />);
+    await user.click(screen.getByRole('button', { name: /Add a new aircraft/i }));
+
+    expect(screen.queryByLabelText('In service')).toBeNull();
   });
 
   it('will not submit without an aircraft type', async () => {

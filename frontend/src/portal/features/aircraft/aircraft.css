@@ -61,6 +61,7 @@
   font-size: var(--text-sm);
 }
 
+/* The add form under the picker, set off from the search above it. */
 .aircraft-new {
   margin-top: var(--space-5);
   padding-top: var(--space-4);
@@ -70,18 +71,6 @@
 .aircraft-new__title {
   font-size: var(--text-lg);
   margin: 0 0 var(--space-4);
-}
-
-.aircraft-new__pair {
-  display: grid;
-  gap: 0 var(--space-4);
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 34rem) {
-  .aircraft-new__pair {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
 /* ------------------------------------------------------------- register */
@@ -159,24 +148,13 @@
 }
 
 /* --------------------------------------------------- registry and types */
-/* The N-number box with Look up beside it, and the line saying what it found. */
-.aircraft-lookup__row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.aircraft-lookup__row input {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.aircraft-lookup__note {
+/* The line under the N-number box naming the registry's date after a pick. */
+.aircraft-nnumber__note {
   margin: calc(-1 * var(--space-2)) 0 var(--space-3);
   font-size: var(--text-sm);
 }
 
-.aircraft-lookup__note:empty {
+.aircraft-nnumber__note:empty {
   display: none;
 }
 
