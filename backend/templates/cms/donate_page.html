@@ -23,7 +23,7 @@
     <div class="box__body">
       {% if page.intro %}<div class="lede richtext">{{ page.intro|richtext }}</div>{% endif %}
       <div class="richtext donate__thanks" data-donate-thanks hidden>{{ page.thanks|richtext }}</div>
-      <div id="donate-app" data-config-url="/api/v1/donations/config" data-return-url="{{ page.url }}"></div>
+      <div id="donate-app" data-config-url="{% url 'api:payments:donation-config' %}" data-return-url="{{ page.url }}"></div>
       <noscript>
         <p>The donation form needs JavaScript. To give another way, write to us at the address on the contact page.</p>
       </noscript>

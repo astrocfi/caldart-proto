@@ -66,8 +66,9 @@ SUITE_URL_PREFIX: str = django_settings.URL_PREFIX
 
 SETTINGS_DIR = Path(__file__).resolve().parents[1] / "caldart" / "settings"
 
-#: A root-relative URL in an ``href``, ``src`` or ``action`` attribute.
-ROOT_RELATIVE_URL = re.compile(r'(?:href|src|action)="(/[^"]*)"')
+#: A root-relative URL in an ``href``, ``src`` or ``action`` attribute, or in a
+#: ``data-*-url`` attribute a script fetches or navigates to.
+ROOT_RELATIVE_URL = re.compile(r'(?:href|src|action|data-[a-z-]*url)="(/[^"]*)"')
 
 #: A production environment that satisfies every required variable of ``prod.py``.
 PRODUCTION_ENV = {
@@ -83,7 +84,7 @@ CLEARED_ENV = ["URL_PREFIX", "SITE_URL", "CSRF_TRUSTED_ORIGINS"]
 
 
 def unprefixed_links(body: str) -> list[str]:
-    """Each root-relative ``href``, ``src`` or ``action`` in ``body`` off the prefix."""
+    """Each root-relative link or ``data-*-url`` in ``body`` that is off the prefix."""
     return [url for url in ROOT_RELATIVE_URL.findall(body) if not url.startswith(f"{PREFIX}/")]
 
 
@@ -446,6 +447,20 @@ def test_the_home_page_writes_every_link_under_the_prefix(
     body = client.get("/").content.decode()
 
     assert unprefixed_links(body) == []
+
+
+def test_the_donate_page_writes_every_link_under_the_prefix(
+    client: Client, home_page: HomePage, site_settings: SiteSettings, prefixed: str
+) -> None:
+    """The donation form fetches its config, and returns the browser, under the prefix."""
+    page = DonatePage(title="Donate", slug="donate", intro="<p>Every gift flies.</p>")
+    home_page.add_child(instance=page)
+    page.save_revision().publish()
+
+    body = client.get("/donate/").content.decode()
+
+    assert unprefixed_links(body) == []
+    assert f'data-config-url="{PREFIX}/api/v1/donations/config"' in body
 
 
 def test_the_home_pages_blank_buttons_fall_back_under_the_prefix(
