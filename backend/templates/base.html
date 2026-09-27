@@ -11,8 +11,12 @@
   Rendered without a request (Django's 500 handler) this degrades to the
   logo, an empty menu, and the default theme — which is exactly what an
   error page needs.
+
+  Every link is written with `{% url %}`, so it carries the prefix the site is
+  served under even on that error page.  `data-url-prefix` hands the same prefix
+  (`url_prefix`, from the context processor) to the site's script.
 {% endcomment %}
-<html lang="en" data-theme="{{ theme|default:'duty' }}"{% if can_preview_theme %} data-theme-preview="allowed"{% endif %}>
+<html lang="en" data-url-prefix="{{ url_prefix }}" data-theme="{{ theme|default:'duty' }}"{% if can_preview_theme %} data-theme-preview="allowed"{% endif %}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -35,7 +39,7 @@
 
     <div class="panel">
       <header class="masthead">
-        <a class="masthead__brand" href="/">
+        <a class="masthead__brand" href="{% url 'wagtail_serve' '' %}">
           <img
             class="masthead__logo"
             src="{% static 'img/caldart-logo.png' %}"
@@ -88,10 +92,11 @@
             Signed in, the portal link *is* the greeting: one entry, which says
             who you are and takes you to your own record.
           {% endcomment %}
+          {% url 'portal' '' as portal_home %}
           {% for item in nav %}{% if item.kind == "portal" %}
             <li{% if item.children %} class="navbar__has-menu"{% endif %}>
               <a href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>
-                {% if user.is_authenticated and item.url == "/portal/" %}
+                {% if user.is_authenticated and item.url == portal_home %}
                   Welcome, {% firstof user.first_name user.email %}
                 {% else %}
                   {{ item.title }}
@@ -128,7 +133,7 @@
             {% if site_settings.contact_email %}
               <p><a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></p>
             {% endif %}
-            <p><a href="/docs/" target="_blank" rel="noopener">User guide</a></p>
+            <p><a href="{% url 'user-guide' '' %}" target="_blank" rel="noopener">User guide</a></p>
           </div>
 
           <div>

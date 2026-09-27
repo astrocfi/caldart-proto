@@ -24,8 +24,8 @@
           and administrators. Sign in to read it.
         </p>
         <p class="cluster">
-          <a class="button" href="/portal/login?next={{ request.path|urlencode }}">Sign in</a>
-          <a class="button button--secondary" href="/portal/join">Join CalDART</a>
+          <a class="button" href="{% url 'portal' 'login' %}?next={{ request.path|urlencode }}">Sign in</a>
+          <a class="button button--secondary" href="{% url 'portal' 'join' %}">Join CalDART</a>
         </p>
 
       {% elif wall_state == "expired" %}
@@ -35,8 +35,8 @@
           page is closed for now. Renewing takes a minute and reopens it immediately.
         </p>
         <p class="cluster">
-          <a class="button" href="/portal/renew">Renew my membership</a>
-          <a class="button button--secondary" href="/portal/">Member portal</a>
+          <a class="button" href="{% url 'portal' 'renew' %}">Renew my membership</a>
+          <a class="button button--secondary" href="{% url 'portal' '' %}">Member portal</a>
         </p>
 
       {% elif wall_state == "friend" %}
@@ -44,8 +44,8 @@
           Friends of CalDART can read this page by becoming a member.
         </p>
         <p class="cluster">
-          <a class="button" href="/portal/membership/join">Make me a member</a>
-          <a class="button button--secondary" href="/portal/">Member portal</a>
+          <a class="button" href="{% url 'portal' 'membership/join' %}">Make me a member</a>
+          <a class="button button--secondary" href="{% url 'portal' '' %}">Member portal</a>
         </p>
 
       {% endif %}

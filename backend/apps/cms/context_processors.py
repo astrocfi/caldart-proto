@@ -3,15 +3,19 @@
 ``nav`` is a plain list of dicts so ``templates/base.html`` never has to know
 how the menu is assembled: Home, the live top-level pages flagged *show in
 menus* with their children, then the members-only pages and the portal link.
+``url_prefix`` is the path the site is served under, which both HTML shells
+hand to their scripts as ``data-url-prefix``.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypedDict
 
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet
 from django.http import HttpRequest
+from django.urls import reverse
 from wagtail.models import Page, Site
 
 from apps.accounts.models import User
@@ -49,6 +53,7 @@ class SiteChrome(TypedDict):
     theme: str
     nav: list[NavEntry]
     can_preview_theme: bool
+    url_prefix: str
 
 
 def site_chrome(request: HttpRequest) -> SiteChrome:
@@ -58,7 +63,8 @@ def site_chrome(request: HttpRequest) -> SiteChrome:
     created the site.  ``theme`` falls back to ``duty`` when the row is missing
     or its theme is blank.  ``nav`` is the same list ``build_nav`` returns, and
     ``can_preview_theme`` says whether the reader may override the theme with
-    ``?theme=``.
+    ``?theme=``.  ``url_prefix`` is the ``URL_PREFIX`` setting: ``/caldart-proto`` for
+    a site served under that path, or empty for one at the root of its host.
     """
     from apps.cms.models import DEFAULT_THEME, get_site_settings
 
@@ -69,6 +75,7 @@ def site_chrome(request: HttpRequest) -> SiteChrome:
         "theme": (settings_obj.theme if settings_obj else DEFAULT_THEME) or DEFAULT_THEME,
         "nav": build_nav(request),
         "can_preview_theme": can_preview_theme(getattr(request, "user", None)),
+        "url_prefix": settings.URL_PREFIX,
     }
 
 
@@ -117,9 +124,10 @@ def build_nav(request: HttpRequest) -> list[NavEntry]:
     ``kind="page"``, each carrying its own in-menu children as ``children`` for a
     drop-down.  A page behind the members-only wall is moved to the end as
     ``kind="portal"``, beside the portal link itself, which is the member portal
-    for a signed-in reader and Sign in for everybody else.  An entry is ``active``
-    when the request path starts with its URL, and the home entry only when the
-    path is exactly ``/``.
+    for a signed-in reader and Sign in for everybody else.  Every URL carries the
+    prefix the site is served under.  An entry is ``active`` when the request path
+    starts with its URL, and the home entry only when the path is exactly the home
+    page's.
     """
     pages: list[NavEntry] = []
     members_only: list[NavEntry] = []
@@ -133,10 +141,11 @@ def build_nav(request: HttpRequest) -> list[NavEntry]:
         }
         (members_only if entry["kind"] == "portal" else pages).append(entry)
 
+    home_url = reverse("wagtail_serve", args=("",))
     home: NavEntry = {
         "title": "Home",
-        "url": "/",
-        "active": request.path == "/",
+        "url": home_url,
+        "active": request.path == home_url,
         "kind": "page",
         "children": [],
     }
@@ -147,7 +156,7 @@ def build_nav(request: HttpRequest) -> list[NavEntry]:
     entries.append(
         {
             "title": PORTAL_TITLE if signed_in else "Sign in",
-            "url": "/portal/" if signed_in else "/portal/login",
+            "url": reverse("portal", kwargs={"path": "" if signed_in else "login"}),
             "active": False,
             "kind": "portal",
             "children": [],
@@ -157,6 +166,6 @@ def build_nav(request: HttpRequest) -> list[NavEntry]:
     path = request.path
     for entry in entries:
         url = entry["url"]
-        if url and url != "/" and path.startswith(url):
+        if url and url != home_url and path.startswith(url):
             entry["active"] = True
     return entries
