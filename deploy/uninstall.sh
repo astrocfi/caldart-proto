@@ -4,7 +4,10 @@
 #
 # Stops and disables caldart-web and the six timers, removes their unit files,
 # removes the vhost and any bootstrap host from the web server the install
-# record names and reloads it, and removes the certbot renewal hook.  With
+# record names, and, behind an existing site, the snippet and the line that
+# includes it (from the attached vhost file, or from every file under the web
+# server's sites-available that carries it), leaving the rest of that file as
+# it is; then reloads the server and removes the certbot renewal hook.  With
 # --purge it also removes /etc/caldart (the environment file and the install
 # record), the Postgres container and its caldart_pgdata volume, and the deploy
 # root itself.  Each removal prints what it removed; anything already absent is
@@ -31,6 +34,12 @@ readonly APACHE_ENABLED=/etc/apache2/sites-enabled
 readonly NGINX_SITES=/etc/nginx/sites-available
 readonly NGINX_ENABLED=/etc/nginx/sites-enabled
 readonly RENEWAL_HOOK="$LETSENCRYPT_DIR/renewal-hooks/deploy/reload-web-server"
+# What the existing TLS mode writes, and the include line, as a sed address.
+readonly APACHE_SNIPPET=/etc/apache2/conf-available/caldart.conf
+readonly APACHE_INCLUDE_ADDRESS='\#^[[:space:]]*Include conf-available/caldart\.conf[[:space:]]*$#'
+readonly NGINX_SNIPPET=/etc/nginx/snippets/caldart.conf
+readonly NGINX_UPSTREAM=/etc/nginx/conf.d/caldart-upstream.conf
+readonly NGINX_INCLUDE_ADDRESS='\#^[[:space:]]*include snippets/caldart\.conf;[[:space:]]*$#'
 
 CONFIRMED=no
 PURGE=no
@@ -75,8 +84,43 @@ remove_units() {
     run systemctl daemon-reload
 }
 
+# The files that include the snippet: the attached vhost when the record names
+# one, or every file in sites-available that carries the line.
+files_including_snippet() {
+    local address=$1 sites=$2 pattern
+    # The sed address without its delimiters is the grep pattern.
+    pattern=${address#\\#}
+    pattern=${pattern%#}
+    if [[ -n "$CALDART_ATTACH_TO" ]]; then
+        [[ -f "$CALDART_ATTACH_TO" ]] && grep -qE "$pattern" "$CALDART_ATTACH_TO" &&
+            printf '%s\n' "$CALDART_ATTACH_TO"
+        return 0
+    fi
+    [[ -d "$sites" ]] || return 0
+    grep -rlE "$pattern" "$sites" || true
+}
+
+# Take the include line out of every file that carries it, then the snippet.
+remove_snippet() {
+    local address sites files=() file
+    if [[ "$CALDART_WEB_SERVER" == apache ]]; then
+        address=$APACHE_INCLUDE_ADDRESS sites=$APACHE_SITES
+    else
+        address=$NGINX_INCLUDE_ADDRESS sites=$NGINX_SITES
+    fi
+    mapfile -t files < <(files_including_snippet "$address" "$sites")
+    for file in "${files[@]}"; do
+        run sed -i -e "${address}d" "$file"
+        is_dry_run || printf 'removed the include line from %s\n' "$file"
+    done
+    remove "$APACHE_SNIPPET"
+    remove "$NGINX_SNIPPET"
+    remove "$NGINX_UPSTREAM"
+}
+
 remove_vhost() {
     log "Removing the $CALDART_WEB_SERVER vhost"
+    remove_snippet
     if [[ "$CALDART_WEB_SERVER" == apache ]]; then
         local site
         for site in caldart caldart-acme; do

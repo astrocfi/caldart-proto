@@ -4,8 +4,9 @@
 #
 # Checks that caldart-web and the six timers are active, that the compose db
 # service is healthy, that the site answers 200 over HTTPS on this machine for
-# / and /portal/login, and that manage.py health reports DEBUG off and no
-# pending migration.  Every miss is an error naming the check, and any miss
+# / and /portal/login under the URL prefix, that the portal script the sign-in
+# page names answers 200 too (so the static files resolve under the prefix),
+# and that manage.py health reports DEBUG off and no pending migration.  Every miss is an error naming the check, and any miss
 # fails the step.  Then prints the summary: the site's address, the
 # environment file, the administrator's one-time link when one was created,
 # the Stripe, PayPal, and Geoapify settings the environment file still leaves
@@ -25,7 +26,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
 source "$ROOT/deploy/lib.sh"
 
+# The pages the site must serve, under the URL prefix.
 readonly SITE_PATHS=(/ /portal/login)
+# The sign-in page, whose shell names the portal's script.
+readonly LOGIN_PATH=/portal/login
 # The settings a site takes payments and suggests addresses with, left for the
 # operator to fill in.
 readonly OPTIONAL_KEYS_PATTERN='^(STRIPE_[A-Z_]*|PAYPAL_[A-Z_]*|GEOAPIFY_API_KEY)=$'
@@ -49,9 +53,23 @@ fail_check() {
     FAILURES=$((FAILURES + 1))
 }
 
+# The HTTP status of the site's path $1 (a path under the URL prefix, or with
+# $2 set to raw, a path from the root of the host), asked of this machine.
 site_status() {
+    local path=$1
+    [[ "${2:-}" == raw ]] || path="$CALDART_URL_PREFIX$path"
     curl -sk -o /dev/null -w '%{http_code}' --resolve "$CALDART_HOSTNAME:443:127.0.0.1" \
-        "https://$CALDART_HOSTNAME$1"
+        "https://$CALDART_HOSTNAME$path"
+}
+
+# The path of the first script under the static URL that the sign-in page names,
+# or nothing when the page names none.  The static URL carries the prefix, as
+# Django writes it.
+portal_bundle() {
+    curl -sk --resolve "$CALDART_HOSTNAME:443:127.0.0.1" \
+        "https://$CALDART_HOSTNAME$CALDART_URL_PREFIX$LOGIN_PATH" |
+        grep -o "src=\"$CALDART_URL_PREFIX/static/[^\"]*\.js\"" | head -n 1 |
+        sed -e 's/^src="//' -e 's/"$//'
 }
 
 print_dry_run_checks() {
@@ -61,13 +79,16 @@ print_dry_run_checks() {
     done
     run docker compose ps --format '{{.Health}}' db
     for path in "${SITE_PATHS[@]}"; do
-        run curl -sk --resolve "$CALDART_HOSTNAME:443:127.0.0.1" "https://$CALDART_HOSTNAME$path"
+        run curl -sk --resolve "$CALDART_HOSTNAME:443:127.0.0.1" \
+            "https://$CALDART_HOSTNAME$CALDART_URL_PREFIX$path"
     done
+    run curl -sk --resolve "$CALDART_HOSTNAME:443:127.0.0.1" \
+        "https://$CALDART_HOSTNAME$CALDART_URL_PREFIX/static/<the bundle the sign-in page names>"
     "$ROOT/deploy/manage.sh" health --json
 }
 
 run_checks() {
-    local unit path status health problems
+    local unit path status health problems bundle
     for unit in "$WEB_UNIT.service" "${JOB_UNITS[@]/%/.timer}"; do
         systemctl is-active --quiet "$unit" || fail_check "$unit is not active"
     done
@@ -75,8 +96,17 @@ run_checks() {
     [[ "$status" == healthy ]] || fail_check "the compose db service is not healthy (${status:-not running})"
     for path in "${SITE_PATHS[@]}"; do
         status="$(site_status "$path" || true)"
-        [[ "$status" == 200 ]] || fail_check "https://$CALDART_HOSTNAME$path answered ${status:-nothing}, not 200"
+        [[ "$status" == 200 ]] ||
+            fail_check "https://$CALDART_HOSTNAME$CALDART_URL_PREFIX$path answered ${status:-nothing}, not 200"
     done
+    bundle="$(portal_bundle || true)"
+    if [[ -z "$bundle" ]]; then
+        fail_check "the sign-in page names no script under $CALDART_URL_PREFIX/static/"
+    else
+        status="$(site_status "$bundle" raw || true)"
+        [[ "$status" == 200 ]] ||
+            fail_check "the portal script https://$CALDART_HOSTNAME$bundle answered ${status:-nothing}, not 200"
+    fi
     if health="$("$ROOT/deploy/manage.sh" health --json)"; then
         problems="$(printf '%s' "$health" | python3 -c "$HEALTH_CHECK" 2>&1 || printf 'unreadable report')"
         [[ -z "$problems" ]] || fail_check "manage.py health: $problems"
@@ -90,7 +120,7 @@ print_summary() {
     if [[ -r "$ENV_FILE" ]]; then
         mapfile -t empty < <(grep -E "$OPTIONAL_KEYS_PATTERN" "$ENV_FILE" | cut -d= -f1)
     fi
-    printf '\nCalDART is running at https://%s/\n' "$CALDART_HOSTNAME"
+    printf '\nCalDART is running at %s/\n' "$(site_url)"
     printf 'Settings: %s (edit with sudoedit, then systemctl restart caldart-web)\n' "$ENV_FILE"
     if [[ -n "$ADMIN_LINK" ]]; then
         printf "Set the administrator's password at: %s\n" "$ADMIN_LINK"

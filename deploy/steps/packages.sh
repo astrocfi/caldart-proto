@@ -4,11 +4,15 @@
 #
 # Installs what the server needs from the distribution's own archive: git, curl,
 # the Postgres client, Docker and its Compose v2 plugin, the web server named in
-# the install record with certbot and certbot's plugin for it, Node 22 from
-# NodeSource when the installed Node is missing or older, and uv into
+# the install record with certbot and certbot's plugin for it (no certbot with
+# the existing TLS mode, where the existing site holds the certificate), Node 22
+# from NodeSource when the installed Node is missing or older, and uv into
 # /usr/local/bin when it is missing.  Then starts Docker.  Debian and Ubuntu are
 # supported; Debian's Compose v2 package is docker-compose, Ubuntu's is
-# docker-compose-v2.
+# docker-compose-v2.  A Docker already installed is left as it is: docker.io is
+# skipped when docker --version works, and the Compose package too when docker
+# compose version works, so a Docker from Docker's own repository (docker-ce),
+# which docker.io would conflict with, is never replaced.
 #
 # Usage:
 #   sudo deploy/steps/packages.sh [--dry-run]
@@ -26,7 +30,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=deploy/lib.sh
 source "$ROOT/deploy/lib.sh"
 
-readonly BASE_PACKAGES=(git curl ca-certificates openssl postgresql-client docker.io)
+readonly BASE_PACKAGES=(git curl ca-certificates openssl postgresql-client)
+readonly DOCKER_PACKAGE=docker.io
 readonly NODE_MAJOR=22
 # pipefail, so a download that fails fails the step instead of piping nothing
 # into a shell that exits 0.
@@ -58,13 +63,26 @@ compose_package() {
     esac
 }
 
-# The web server and the certbot packages for it.
+# The web server and, unless the existing site holds the certificate, the
+# certbot packages for it.
 web_server_packages() {
+    local server plugin
     case "$CALDART_WEB_SERVER" in
-        apache) printf '%s\n' apache2 certbot python3-certbot-apache ;;
-        nginx) printf '%s\n' nginx certbot python3-certbot-nginx ;;
+        apache) server=apache2 plugin=python3-certbot-apache ;;
+        nginx) server=nginx plugin=python3-certbot-nginx ;;
         *) die "unknown web server $CALDART_WEB_SERVER in $RECORD_FILE" ;;
     esac
+    printf '%s\n' "$server"
+    if [[ "$CALDART_TLS" != existing ]]; then
+        printf '%s\n' certbot "$plugin"
+    fi
+}
+
+# The Docker packages this machine still needs: the engine unless docker runs,
+# and the Compose v2 plugin unless docker compose runs.
+docker_packages() {
+    docker --version >/dev/null 2>&1 || printf '%s\n' "$DOCKER_PACKAGE"
+    docker compose version >/dev/null 2>&1 || compose_package
 }
 
 # True when node is missing or older than the build needs.
@@ -81,13 +99,16 @@ apt_install() {
 }
 
 packages_step() {
-    local compose web=()
-    compose="$(compose_package)"
+    local docker=() web=()
+    # compose_package refuses an unsupported distribution even when the
+    # machine's Docker needs nothing from the archive.
+    compose_package >/dev/null
+    mapfile -t docker < <(docker_packages)
     mapfile -t web < <(web_server_packages)
 
     log "Installing the operating system packages"
     run env DEBIAN_FRONTEND=noninteractive apt-get update
-    apt_install "${BASE_PACKAGES[@]}" "$compose" "${web[@]}"
+    apt_install "${BASE_PACKAGES[@]}" "${docker[@]}" "${web[@]}"
 
     if needs_node; then
         log "Installing Node ${NODE_MAJOR} from NodeSource"

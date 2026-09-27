@@ -31,7 +31,7 @@ readonly DEFAULT_REPO=https://github.com/astrocfi/caldart-proto.git
 readonly DEFAULT_REF=main
 readonly DEPLOY_ROOT="${CALDART_ROOT:-/opt/caldart}"
 # The install options that take a value, so their values are passed through too.
-readonly VALUE_OPTIONS=" --hostname --web-server --tls --certbot-email --db-port --email-url --email --from-email --admin-email "
+readonly VALUE_OPTIONS=" --hostname --web-server --tls --certbot-email --db-port --url-prefix --attach-to --email-url --email --from-email --admin-email "
 
 REPO="$DEFAULT_REPO"
 REF="$DEFAULT_REF"

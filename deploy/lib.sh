@@ -3,8 +3,8 @@
 # CalDART - functions every installer script shares.
 #
 # Sourced, never run: logging, the dry run, the root check, the install record,
-# and copying files out of deploy/ with the deploy root and the hostname
-# written in.  docs/developer/deployment.rst describes the scripts that use it.
+# and copying files out of deploy/ with the deploy root, the hostname, and the
+# URL prefix written in.  docs/developer/deployment.rst describes the scripts that use it.
 #
 # Usage:
 #   source "$ROOT/deploy/lib.sh"
@@ -30,6 +30,9 @@ CALDART_LIB_LOADED=1
 readonly SHIPPED_ROOT=/opt/caldart
 # The hostname every shipped vhost names, replaced by the real one.
 readonly SHIPPED_HOSTNAME=caldart.example.org
+# The URL prefix every shipped snippet names, replaced by the real one (or by
+# nothing, for a site at the root of its host).
+readonly SHIPPED_PREFIX=__PREFIX__
 readonly DEFAULT_ETC=/etc/caldart
 readonly SYSTEMD_DIR=/etc/systemd/system
 readonly SERVICE_USER=caldart
@@ -53,6 +56,8 @@ readonly RECORD_KEYS=(
     CALDART_CERTBOT_EMAIL
     CALDART_CERTBOT_STAGING
     CALDART_DB_PORT
+    CALDART_URL_PREFIX
+    CALDART_ATTACH_TO
 )
 # Random bytes behind the generated database password.
 readonly DB_PASSWORD_BYTES=32
@@ -67,6 +72,9 @@ readonly MAX_DB_PORT=65535
 readonly PORT_PATTERN='^[1-9][0-9]{0,4}$'
 # The mail relay --email local stands for: the postfix on this machine.
 readonly LOCAL_EMAIL_URL=smtp://localhost:25
+# One segment of a URL prefix, as the settings read URL_PREFIX: the characters a
+# path segment carries unescaped.  The segments . and .. are refused as well.
+readonly PREFIX_SEGMENT_PATTERN='^[A-Za-z0-9._~-]+$'
 
 ETC_DIR="${CALDART_ETC:-$DEFAULT_ETC}"
 ENV_FILE="$ETC_DIR/caldart.env"
@@ -81,6 +89,11 @@ CALDART_WEB_SERVER="${CALDART_WEB_SERVER:-apache}"
 CALDART_TLS="${CALDART_TLS:-certbot}"
 CALDART_CERTBOT_EMAIL="${CALDART_CERTBOT_EMAIL:-}"
 CALDART_CERTBOT_STAGING="${CALDART_CERTBOT_STAGING:-no}"
+# The path the site is served under on a host another site owns, such as
+# /caldart-proto, or empty at the root of its host; and the existing site's vhost
+# file the existing TLS mode includes the snippet in, or empty.
+CALDART_URL_PREFIX="${CALDART_URL_PREFIX:-}"
+CALDART_ATTACH_TO="${CALDART_ATTACH_TO:-}"
 # Exported, so every docker compose a script runs publishes the recorded port:
 # docker-compose.yml reads it, and a compose command without it would move the
 # container back to the default.  load_record keeps the export as it assigns.
@@ -355,6 +368,58 @@ validate_db_port_matches_env_file() {
     usage_error "--db-port $CALDART_DB_PORT differs from the port in DATABASE_URL in $ENV_FILE ($current); edit DATABASE_URL to use port $CALDART_DB_PORT first, then run install.sh again"
 }
 
+# Print the URL prefix $1 as /segment[/segment...], or nothing for none: one
+# leading and one trailing slash are optional, as they are to the settings.
+# Fails, printing nothing, for an empty segment, a . or .. segment, or any
+# character a segment may not carry.
+normalize_url_prefix() {
+    local value=${1#/} segment segments=()
+    value=${value%/}
+    [[ -n "$value" ]] || return 0
+    [[ "$value" != /* && "$value" != */ && "$value" != *//* ]] || return 1
+    IFS=/ read -r -a segments <<<"$value"
+    for segment in "${segments[@]}"; do
+        [[ "$segment" =~ $PREFIX_SEGMENT_PATTERN && "$segment" != . && "$segment" != .. ]] ||
+            return 1
+    done
+    # read stops at a newline, which no segment may carry.
+    [[ "$(IFS=/; printf '%s' "${segments[*]}")" == "$value" ]] || return 1
+    printf '/%s\n' "$value"
+}
+
+# Replace CALDART_URL_PREFIX with its normalized form, or stop with a usage error.
+validate_url_prefix() {
+    local normalized
+    normalized="$(normalize_url_prefix "$CALDART_URL_PREFIX")" ||
+        usage_error "--url-prefix must be a path such as /caldart-proto, not $CALDART_URL_PREFIX"
+    CALDART_URL_PREFIX=$normalized
+}
+
+# Print the URL prefix the environment file serves under, normalized, when the
+# file is readable: the value of URL_PREFIX, or nothing when that line is
+# missing or commented out.  Fails when the file is missing or unreadable.
+env_file_url_prefix() {
+    [[ -r "$ENV_FILE" ]] || return 1
+    local value
+    value="$(sed -n 's/^URL_PREFIX=//p' "$ENV_FILE" | tail -n 1)"
+    normalize_url_prefix "$value" || printf '%s\n' "$value"
+}
+
+# Stop with a usage error when the environment file serves under another prefix
+# than CALDART_URL_PREFIX.  The install leaves an existing file alone, so moving
+# the snippet without the file would leave Django writing links to the old path.
+validate_url_prefix_matches_env_file() {
+    local current
+    current="$(env_file_url_prefix)" || return 0
+    [[ "$current" == "$CALDART_URL_PREFIX" ]] && return 0
+    usage_error "the URL prefix ${CALDART_URL_PREFIX:-(none)} differs from URL_PREFIX in $ENV_FILE (${current:-none}); set URL_PREFIX and the path of SITE_URL there to match first, then run install.sh again"
+}
+
+# The site's public address, no trailing slash: SITE_URL.
+site_url() {
+    printf 'https://%s%s\n' "$CALDART_HOSTNAME" "$CALDART_URL_PREFIX"
+}
+
 # True when something on this machine listens on TCP port $1.  Without ss
 # there is no telling, and the answer is no.
 port_in_use() {
@@ -430,4 +495,13 @@ render_vhost() {
     fi
     args+=(-e "s/${shipped}/${hostname}/g")
     render_file "$source" "$dest" "${args[@]}"
+}
+
+# Copy the snippet $1 to $2 with the recorded hostname and URL prefix written in.
+render_snippet() {
+    local source=$1 dest=$2
+    local shipped="${SHIPPED_HOSTNAME//./\\.}"
+    render_file "$source" "$dest" \
+        -e "s#${SHIPPED_PREFIX}#${CALDART_URL_PREFIX}#g" \
+        -e "s/${shipped}/${CALDART_HOSTNAME}/g"
 }

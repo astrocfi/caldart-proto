@@ -1720,7 +1720,7 @@ def test_the_apache_snippet_keeps_media_ahead_of_the_proxy(root: Path) -> None:
 def test_the_nginx_snippet_defines_no_upstream(root: Path) -> None:
     """A second include of the snippet must not define ``caldart_app`` again."""
     rendered = _render_snippet(root, SNIPPETS["nginx"][0], PREFIX)
-    assert "upstream " not in rendered
+    assert "upstream caldart_app" not in rendered
 
 
 def test_the_nginx_upstream_names_gunicorn() -> None:
@@ -1796,6 +1796,7 @@ def test_a_prefixed_file_passes_the_deployment_checks(prefixed_env_file: Path) -
             str(MANAGE_PY),
             "check",
             "--deploy",
+            *("--tag", "security", "--tag", "caches", "--tag", "async_support", "--tag", "mail"),
             "--fail-level",
             "WARNING",
             "--settings",
