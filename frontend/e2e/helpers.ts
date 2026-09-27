@@ -58,6 +58,22 @@ export interface ContributionMandateMember {
   email: string;
 }
 
+/**
+ * A registration the FAA registry fixture holds and the aircraft register does not,
+ * and what a Look up on it answers.
+ */
+export interface RegistryFacts {
+  /** The N-number, with its leading N, e.g. `N10131`. */
+  knownNNumber: string;
+  /** Its aircraft type as the screens print it: make, then model. */
+  knownType: string;
+  knownYear: number;
+  /** The registrant's name, which a Look up writes into the owner's name. */
+  knownOwner: string;
+  /** The day the newest successful import finished, as `YYYY/MM/DD`. */
+  asOf: string;
+}
+
 /** What `manage.py seed_facts` reports about the seeded database. */
 export interface SeedFacts {
   /** The password every seeded demo account shares. */
@@ -81,6 +97,8 @@ export interface SeedFacts {
   refundedPayment: RefundedPayment;
   /** The life member whose standing authority charges a contribution alone. */
   contributionMandate: ContributionMandateMember;
+  /** A registration for the Look up on the aircraft forms, and the registry's date. */
+  registry: RegistryFacts;
 }
 
 const LEADER_SUBJECT_KEYS = [
@@ -200,6 +218,30 @@ function checkedSeedFacts(parsed: unknown): SeedFacts {
     email: contributionText('email'),
   };
 
+  const rawRegistry = objectField(root, 'registry');
+  const registryText = (field: Exclude<keyof RegistryFacts, 'knownYear'>): string => {
+    const value = rawRegistry[field];
+    if (typeof value !== 'string' || value.length === 0) {
+      rejectFacts(
+        `\`registry.${field}\` is missing: the registry holds no registration to look up`,
+      );
+    }
+    return value;
+  };
+  const knownYear = rawRegistry.knownYear;
+  if (typeof knownYear !== 'number' || !Number.isInteger(knownYear)) {
+    rejectFacts(
+      '`registry.knownYear` is not a year: the registry holds no registration to look up',
+    );
+  }
+  const registry: RegistryFacts = {
+    knownNNumber: registryText('knownNNumber'),
+    knownType: registryText('knownType'),
+    knownYear,
+    knownOwner: registryText('knownOwner'),
+    asOf: registryText('asOf'),
+  };
+
   return {
     demoPassword,
     accounts: Object.fromEntries(accountEntries) as Record<DemoAccount, string>,
@@ -208,6 +250,7 @@ function checkedSeedFacts(parsed: unknown): SeedFacts {
     manualPaymentCount,
     refundedPayment,
     contributionMandate,
+    registry,
   };
 }
 
