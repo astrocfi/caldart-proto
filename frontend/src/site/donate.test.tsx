@@ -1,9 +1,27 @@
 import { HttpResponse, http } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import type * as ReactDOMClient from 'react-dom/client';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { waitFor } from '@testing-library/react';
 
 import { clearUrlPrefix, stampUrlPrefix } from '@test/render';
 import { server } from '@test/server';
+
+// The config request the mounted form makes keeps retrying after the 503 below, so an
+// unmounted-but-not-torn-down root goes on firing it into whichever test runs next.
+// Wrapping `createRoot` lets `afterEach` unmount every root the page created.
+const mountedRoots: ReactDOMClient.Root[] = [];
+
+vi.mock('react-dom/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof ReactDOMClient>();
+  return {
+    ...actual,
+    createRoot: (...args: Parameters<typeof actual.createRoot>) => {
+      const root = actual.createRoot(...args);
+      mountedRoots.push(root);
+      return root;
+    },
+  };
+});
 
 /** Serve the donation config at any base and record each path it was asked for. */
 function recordConfigRequests(): string[] {
@@ -19,6 +37,7 @@ function recordConfigRequests(): string[] {
 
 describe('the donation page script', () => {
   afterEach(() => {
+    mountedRoots.splice(0).forEach((root) => root.unmount());
     document.body.innerHTML = '';
     clearUrlPrefix();
   });
