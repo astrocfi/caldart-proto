@@ -418,6 +418,12 @@ to it, and ``null`` while it is unverified.
        "medical_is_current": true,
        "flight_review_date": null,
        "total_hours": 750,
+       "photo_id_type": "passport",
+       "verification": {
+         "certificate": {"verified": false, "verified_by": null, "verified_at": null},
+         "medical": {"verified": false, "verified_by": null, "verified_at": null},
+         "photo_id": {"verified": false, "verified_by": null, "verified_at": null}
+       },
        "aircraft": [
          {
            "id": 7,
@@ -426,7 +432,8 @@ to it, and ``null`` while it is unverified.
            "model": "172S Skyhawk",
            "insurance_is_current": true,
            "insurance_expiration": "2027-03-01",
-           "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01"
+           "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
+           "insurance_verified": false
          }
        ],
        "vol_ground_team": false,
@@ -472,6 +479,8 @@ to it, and ``null`` while it is unverified.
    }
 
 ``profile`` is ``null`` for an account that has no ``MemberProfile`` row.
+Its ``photo_id_type`` and read-only ``verification`` are the ones
+``GET /me/profile`` describes (:doc:`api-profile`).
 Datetimes are rendered in the server's configured ``TIME_ZONE``, so they carry
 an offset rather than a trailing ``Z``.
 ``source`` is ``payment``, ``manual``, or ``seed``; ``granted_by`` is the
@@ -517,6 +526,10 @@ The nested profile serializer is bound to the stored row before validation, so
 a partial update is judged against the whole profile: sending only
 ``medical_type`` does not trip the "a medical class needs an expiry date" rule
 when the record already has one.
+
+A ``profile`` that moves a field a verified item covers clears that item, as a
+member's own edit does (:doc:`verification`); ``verification`` itself is
+read-only here too, and an item is verified only through the member check.
 
 ``profile_updated_at`` is stamped when the body carries ``profile``, or an
 ``email``, ``first_name`` or ``last_name`` -- the fields a member record shows

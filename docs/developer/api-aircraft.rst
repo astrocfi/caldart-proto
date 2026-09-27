@@ -79,6 +79,11 @@ The register, open to any authenticated user, paginated with ``?page=`` and
          "insurance_expiration": "2027-03-01",
          "insurance_is_current": true,
          "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
+         "insurance_verification": {
+           "verified": true,
+           "verified_by": "Priya Raman",
+           "verified_at": "2026-09-20T10:04:11.512000-07:00"
+         },
          "notes": "",
          "created_by": 7,
          "updated_at": "2026-09-20T17:04:11.512Z",
@@ -89,7 +94,12 @@ The register, open to any authenticated user, paginated with ``?page=`` and
 
 ``insurance_is_current`` and ``insurance_summary`` are model properties, not
 columns: the summary reads ``No insurance on file`` when neither a liability
-figure nor an expiry date is recorded.  ``created_by`` is the id of the member
+figure nor an expiry date is recorded.  ``insurance_verification`` says whether
+an authority has checked the insurance against the policy: ``verified``, the
+display name of the account that verified it, and when, both ``null`` while it
+is unverified (:doc:`verification`).  Verified insurance whose expiry passes
+stays verified; currency and verification are two separate facts.  The
+verifier is joined to the page's query, so naming one costs nothing per row.  ``created_by`` is the id of the member
 who added the record, or ``null`` for an airframe the seed created.
 ``updated_at`` is when the record was last written, by anybody.
 
@@ -175,8 +185,9 @@ Statuses:
 ``GET /aircraft/{id}``
 ----------------------
 
-One register record, open to any authenticated user.  For a ``dart_leader``,
-``account_admin``, or ``system_admin`` the response also carries ``pilots``:
+One register record, open to any authenticated user.  For a holder of a
+verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
+``account_admin``) or a ``system_admin`` the response also carries ``pilots``:
 
 .. code-block:: json
 
@@ -198,6 +209,11 @@ One register record, open to any authenticated user.  For a ``dart_leader``,
      "insurance_expiration": "2027-03-01",
      "insurance_is_current": true,
      "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
+     "insurance_verification": {
+       "verified": false,
+       "verified_by": null,
+       "verified_at": null
+     },
      "notes": "",
      "created_by": 7,
      "updated_at": "2026-09-20T17:04:11.512Z",
@@ -224,8 +240,8 @@ or ``null`` for one nobody has written since the seed created it.
 
 Both keys are **absent** for anyone else.  ``pilots`` is other members' email
 addresses, membership state and medical currency, and ``updated_by`` names
-another member — exactly what the leader check below keeps to DART leaders and
-account administrators — so serving them
+another member — exactly what the leader check below keeps to the verifying
+roles — so serving them
 from the register to every
 signed-in member would walk around that gate.  ``aircraft_serializer_for()``
 in ``views.py`` picks the serializer per request, and the same rule applies to
@@ -296,6 +312,14 @@ Statuses:
 
 Changes only the fields the body names, under the same object rules and with
 the same response shape as ``PUT``.
+
+A ``PUT`` or ``PATCH`` that moves any insurance field — ``insurance_carrier``,
+``insurance_policy_number``, the three money fields, or
+``insurance_expiration`` — clears a verified insurance in the same transaction,
+whoever writes it; one that moves no insurance field, or resends one at its
+stored value, leaves the verification alone.  The clearing raises no event of
+its own: ``aircraft_changed`` already names the columns
+(:doc:`notification-events`).
 
 .. code-block:: json
 
@@ -400,8 +424,13 @@ with ``"; "``.  The endpoints, ``?columns=`` and the refusals are in
 Leader check
 ============
 
-All three endpoints require ``dart_leader``, ``account_admin``, or
-``system_admin``; a signed-in member without one of those gets **403**.
+Every endpoint here but ``PUT /leader/members/{user_id}/verifier`` is open to
+the verifying roles — ``verifier``, ``dart_leader``, ``user_admin``, and
+``account_admin`` — and to ``system_admin`` (``IsLeader`` and ``IsVerifier``, both
+``HasAnyRole(*VERIFY_ROLES)``); a signed-in member without one of those gets
+**403**.  The verifier role is granted from here by a DART leader or a user
+administrator.  What verification means, which fields each item covers, and
+when an item is cleared are in :doc:`verification`.
 
 ``GET /leader/search?q=``
 -------------------------
@@ -427,7 +456,7 @@ normalizes to ``NATE`` and matches every US registration on file.
        "email": "ana@example.org",
        "dart": "Palo Alto",
        "membership_status": "current",
-       "go_no_go": {"membership": true, "medical": true}
+       "go_no_go": {"membership": true, "medical": true, "verified": true}
      }
    ]
 
@@ -437,7 +466,9 @@ normalizes to ``NATE`` and matches every US registration on file.
 
 ``go_no_go`` is computed by the same rule the status card uses, so a leader
 reads the verdict off the list and opens the card for the detail rather than
-for the answer.  A member with no profile row is a no-go on both counts.
+for the answer: ``verified`` is true when the pilot certificate, the medical,
+and the photo ID are all verified.  A member with no profile row is a no-go on
+every count.
 
 Every field comes from the row the search already fetched: the membership
 summary rides along as annotations (see :ref:`membership-status-sql`) and the
@@ -470,13 +501,28 @@ The pre-flight status card for one member.
        "type": "private",
        "number": "3181234",
        "ifr_rated": "yes",
-       "ratings": ["instrument"]
+       "ratings": ["instrument"],
+       "verification": {
+         "verified": true,
+         "verified_by": "Priya Raman",
+         "verified_at": "2026-09-20T10:04:11.512000-07:00"
+       }
      },
      "medical": {
        "type": "third",
        "expiration": "2026-12-01",
-       "is_current": true
+       "is_current": true,
+       "verification": {
+         "verified": true,
+         "verified_by": "Priya Raman",
+         "verified_at": "2026-09-20T10:04:11.512000-07:00"
+       }
      },
+     "photo_id": {
+       "type": "drivers_license",
+       "verification": {"verified": false, "verified_by": null, "verified_at": null}
+     },
+     "is_verifier": false,
      "aircraft": [
        {
          "id": 7,
@@ -485,22 +531,34 @@ The pre-flight status card for one member.
          "model": "172S Skyhawk",
          "insurance_is_current": true,
          "insurance_expiration": "2027-03-01",
-         "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01"
+         "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
+         "insurance_verified": true
        }
      ],
-     "go_no_go": {"membership": true, "medical": true}
+     "go_no_go": {"membership": true, "medical": true, "verified": false}
    }
 
-``go_no_go`` is deliberately two booleans rather than one verdict: a leader is
-entitled to see *why* a member is a no-go.  The overall verdict is their
-conjunction, and the portal renders it as the GO / NO-GO band.  Insurance is
+``go_no_go`` is deliberately separate booleans rather than one verdict: a leader
+is entitled to see *why* a member is a no-go.  ``verified`` is true when the
+pilot certificate, the medical, and the photo ID are all verified; each of the
+three carries its own ``verification`` (``{verified, verified_by,
+verified_at}``), so the card says which one is missing.  A verified medical
+whose expiration passes stays verified: ``is_current`` and ``verification`` are
+two separate facts.  The overall verdict is the conjunction of the three
+booleans, and the portal renders it as the GO / NO-GO band.  ``photo_id``
+carries only the kind of document (``not_provided``, ``drivers_license``,
+``passport``, ``state_id``, ``military_id``, or ``other``); nothing else about
+it is recorded.  ``is_verifier`` says whether the member holds the verifier
+role.  Each airplane's ``insurance_verified`` says whether its insurance is
+verified.  Insurance is
 reported per airplane and never folded into ``go_no_go``, because a member
 may be current in one airplane and not another.
 
 A user with no ``MemberProfile`` — an account created by a user administrator
 before the member has filled anything in — is handled rather than 500ing:
-empty phone, ``dart: null``, certificate ``none``, medical ``none``, no
-aircraft, and ``go_no_go.medical`` false.  ``membership`` is unaffected,
+empty phone, ``dart: null``, certificate ``none``, medical ``none``, photo ID
+``not_provided``, nothing verified, no aircraft, and ``go_no_go.medical`` and
+``go_no_go.verified`` false.  ``membership`` is unaffected,
 because it is computed from the account's membership terms and a profile plays
 no part in it: a member with a current term and no profile reads ``status:
 "current"`` and ``go_no_go.membership`` true.
@@ -508,7 +566,90 @@ no part in it: a member with a current term and no profile reads ``status:
 Statuses:
 
 * **200** — the card above.
-* **404** — no account has that ``user_id``.
+* **404** — no account has that ``user_id``, or it is a donor or deactivated.
+
+``PUT /leader/members/{user_id}/verification``
+----------------------------------------------
+
+Writes a member's covered fields and the verified state of all three items in
+one request, so a verifier who checks three documents sends one save and the
+office hears of it once.
+
+.. code-block:: json
+
+   {
+     "medical_expiration": "2028-03-31",
+     "photo_id_type": "passport",
+     "verified": ["certificate", "medical", "photo_id"]
+   }
+
+``pilot_certificate_type``, ``certificate_number``, ``medical_type``,
+``medical_expiration``, and ``photo_id_type`` are each optional: a given value is
+written and an omitted one is left alone.  ``verified`` is required and lists the
+items that should be verified after the save — ``certificate``, ``medical``,
+``photo_id`` — and an item left out ends unverified.  The write goes through
+``apps.members.verification.verify_member``:
+
+#. the fields go through ``members.services.update_member`` under the caller,
+   which raises ``profile_changed`` and clears every verified item whose fields
+   moved; a body with no field leaves the profile, and ``profile_updated_at``,
+   alone;
+#. each listed item not yet verified is stamped with the time and the caller,
+   and one already verified keeps its stamp, so re-verifying names whoever
+   verified it first;
+#. the audit log records ``member.verify`` with ``verified`` (the items stamped)
+   and ``cleared`` (the items verified before and not after), by slug;
+#. when either list is not empty, ``verification_changed`` is raised once, with
+   ``user``, ``verified`` and ``cleared`` as item labels, and ``actor``
+   (:doc:`notification-events`).  A save that changes no item's state raises
+   nothing.
+
+A change and its re-verification may come together: a new
+``medical_expiration`` with ``medical`` in ``verified`` clears the medical and
+stamps it again under the caller.  Self-verification is allowed; nothing
+compares the caller with the member.  The profile is created if the account has
+none.
+
+The profile form's two rules hold, judged on the record the write would leave:
+``certificate_number`` is required once the certificate is not ``none`` and
+``medical_expiration`` once the medical is not ``none``, with the same
+sentences :ref:`profile-validation` gives.  A slug outside the three is refused
+under ``verified``:
+
+.. code-block:: json
+
+   {"verified": ["Unknown item 'hours'."]}
+
+Statuses:
+
+* **200** — the status card, in the ``GET .../status`` shape above.
+* **400** — ``verified`` missing, an unknown item, a choice outside its list, or
+  a profile rule refused.  Nothing is written.
+* **404** — no account has that ``user_id``, or it is a donor or deactivated.
+
+``PUT /leader/members/{user_id}/verifier``
+------------------------------------------
+
+Grants or revokes the verifier role, for a ``dart_leader``, a ``user_admin``,
+or a ``system_admin`` — not a ``verifier`` or an ``account_admin``.
+
+.. code-block:: json
+
+   {"verifier": true}
+
+``accounts.services.set_verifier`` rebuilds the member's role list with
+``verifier`` added or removed and writes it through
+``accounts.services.update_account``, so the change is audited as
+``account.roles`` and raised as ``roles_changed``, the member's other roles are
+kept, and a list that changes nothing writes nothing.  A user administrator can
+grant the role from ``PATCH /admin/users/{id}`` too (:doc:`api-auth`).
+
+Statuses:
+
+* **200** — the status card, whose ``is_verifier`` reads the result.
+* **400** — ``verifier`` missing or not a boolean.
+* **403** — the caller holds none of the three roles.
+* **404** — no account has that ``user_id``, or it is a donor or deactivated.
 
 ``GET /leader/aircraft?n_number=``
 ----------------------------------
@@ -523,6 +664,41 @@ Statuses:
 * **400** — ``n_number`` missing or normalizing to nothing, answered
   ``{"n_number": "Enter a registration, for example N12345."}``.
 * **404** — the register has never seen that registration.
+
+``PUT /leader/aircraft/{id}/verification``
+------------------------------------------
+
+Writes an aircraft's insurance fields and whether its insurance is verified.
+
+.. code-block:: json
+
+   {"insurance_expiration": "2028-03-01", "verified": true}
+
+The six insurance fields — ``insurance_carrier``, ``insurance_policy_number``,
+``insurance_liability_per_occurrence_cents``,
+``insurance_liability_per_person_cents``, ``insurance_hull_cents``, and
+``insurance_expiration`` — are each optional and validated as ``POST /aircraft``
+validates them (integer cents, ``>= 0``); a given value is written and an
+omitted one is left alone.  Any other register field in the body is ignored.
+``verified`` is required.  The write goes through
+``apps.aircraft.verification.verify_insurance``: the fields are saved and
+``aircraft.services.record_updated`` records the write under the caller (the
+history row, ``aircraft.update``, ``aircraft_changed`` when a column moved, and
+the clearing of a verification the change made stale); then the insurance is
+stamped with the time and the caller when ``verified`` is true and it is not
+yet verified (verified insurance keeps its stamp), or cleared when ``verified``
+is false.  The audit log records ``aircraft.verify`` with ``verified``, and
+``verification_changed`` is raised once, with ``aircraft``, ``verified`` and
+``cleared`` as item labels and ``actor``, when the insurance was stamped or
+cleared; a save that changes nothing raises nothing.
+
+Statuses:
+
+* **200** — the record, in the ``GET /aircraft/{id}`` shape with ``pilots``.
+* **400** — ``verified`` missing, or a field the register's validation refuses,
+  such as ``{"insurance_hull_cents": ["Enter an amount of $0 or more."]}``.
+  Nothing is written.
+* **404** — no aircraft has that id.
 
 
 Where the code lives
@@ -539,6 +715,9 @@ File                                   Contents
                                        event, :doc:`notification-events`),
                                        leader search, status card, insurance
                                        querysets
+``apps/aircraft/verification.py``      ``INSURANCE_FIELDS``,
+                                       ``clear_stale_insurance``,
+                                       ``verify_insurance``
 ``apps/aircraft/reports.py``           The aircraft report: columns, query
 ``apps/aircraft/api/serializers.py``   ``NNumberField`` and the API shapes
 ``apps/aircraft/filters.py``           ``AircraftFilter``,
@@ -552,5 +731,7 @@ normalization, every filter), ``test_aircraft_history.py`` (the change rows the
 register's writes leave and the history endpoint),
 ``test_aircraft_exports.py`` (the aircraft report: CSV content, PDF
 validity, subtitle), ``test_leader_api.py`` (search, the membership ×
-medical × insurance truth table), and ``test_aircraft_models.py`` from the
+medical × insurance truth table), ``test_verification.py``,
+``test_verification_api.py``, and ``test_verifier_role.py`` (verification:
+see :doc:`verification`), and ``test_aircraft_models.py`` from the
 foundation.

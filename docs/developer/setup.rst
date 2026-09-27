@@ -162,6 +162,8 @@ Sign in with any of the demo accounts, all of which use the password
      - ``member`` — a friend of CalDART, no dues
    * - ``leader@example.org``
      - ``member``, ``dart_leader``
+   * - ``verifier@example.org``
+     - ``member``, ``verifier`` — no membership term, so a friend of CalDART
    * - ``useradmin@example.org``
      - ``member``, ``user_admin``
    * - ``treasurer@example.org``
@@ -174,7 +176,13 @@ Sign in with any of the demo accounts, all of which use the password
      - ``member``, ``system_admin``, Django superuser
 
 The list, the names attached to it and the password all live in
-``backend/apps/accounts/seed.py``.
+``backend/apps/accounts/seed.py``.  The seeded DART leader has verified the
+pilot certificate, medical, and photo ID of about seven in ten members, the
+demo member among them, and the insurance of about seven in ten aircraft; the
+rest are unverified, so the member check and the aircraft check show both
+states (see :doc:`verification`).  The verifier's profile is written from
+fixed values rather than the seed's random draws, so the rest of the demo
+data is the same with or without that account.
 
 Smoke test
 ==========
