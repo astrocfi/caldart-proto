@@ -6,7 +6,9 @@ Something an administrator wants to hear about (somebody signs up, a
 membership runs out, a refund goes back) is an **event**.  The service that
 makes the change raises the event once, at the point the change has
 definitively happened, and never needs to know who listens.  This page lists
-every event: where it is raised, and what it carries.
+every event: where it is raised, and what it carries.  See :doc:`notifications`
+for how an event reaches a subscribed address: the recipient rule, sending, and
+the data behind the screen.
 
 How an event is raised
 ======================
@@ -68,8 +70,8 @@ Membership
      - ``members.services.create_member``
      - ``user``, ``actor``
    * - ``became_friend``
-     - ``members.services.become_friend`` when the account is a friend at once
-       (``how="chose"``); ``members.services.convert_due_friends`` for each account
+     - ``members.lifecycle.become_friend`` when the account is a friend at once
+       (``how="chose"``); ``members.lifecycle.convert_due_friends`` for each account
        it converts (``how="lapsed"``); ``accounts.services.update_account`` when an
        administrator sets the kind to friend (``how="administrator"``)
      - ``user``, ``how``
@@ -89,7 +91,7 @@ Membership
        calls
      - ``user``, ``term``, ``actor``
    * - ``membership_expired``
-     - ``members.services.expire_lapsed_memberships``, once per account whose terms
+     - ``members.lifecycle.expire_lapsed_memberships``, once per account whose terms
        it flipped and that no other term still covers
      - ``user``; ``term``, the flipped term that ended last
 

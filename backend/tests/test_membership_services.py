@@ -10,13 +10,14 @@ from django.contrib.auth.models import AnonymousUser
 from freezegun import freeze_time
 
 from apps.accounts.models import User
+from apps.members.lifecycle import expire_lapsed_memberships
 from apps.members.models import (
     Membership,
     MembershipPlan,
     MembershipSource,
     MembershipStatusChoices,
 )
-from apps.members.services import activate_term, expire_lapsed_memberships, membership_status
+from apps.members.services import activate_term, membership_status
 from tests.factories import MembershipFactory, PaymentFactory
 
 pytestmark = pytest.mark.django_db

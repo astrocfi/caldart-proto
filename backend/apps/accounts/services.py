@@ -746,7 +746,10 @@ def verify_email(token: str) -> User:
     ``EMAIL_VERIFICATION_TIMEOUT`` seconds, when its account no longer exists or is
     deactivated, and when the account's address is no longer the one the token was
     sent to.  A token for an account that is already verified succeeds without
-    changing it, so following the same link twice is harmless.
+    changing it, so following the same link twice is harmless, including two clicks
+    of the same link at once: the account row is locked while it is read
+    (:func:`_verification_target`), so the second caller waits for the first to
+    finish and then sees what it left, rather than upgrading a donor twice.
 
     A token for a donor completes the registration that mailed it: the account takes
     the names and the kind the form gave and the ``member`` role (see
@@ -827,7 +830,10 @@ def _verification_target(payload: object) -> User | None:
 
     ``None`` when the payload is not the ``{"user": <id>, "email": <address>}`` shape a
     token carries, when no active account has that id, or when that account's address,
-    normalized, is no longer the one signed.
+    normalized, is no longer the one signed.  Locks the row with ``select_for_update``,
+    so two clicks of the same link at once serialize here: the second waits for the
+    first's transaction to commit, then reads the account as the first left it, rather
+    than the donor or the unverified address both callers saw when they started.
     """
     if not isinstance(payload, dict):
         return None
@@ -835,7 +841,7 @@ def _verification_target(payload: object) -> User | None:
     email = payload.get("email")
     if not isinstance(pk, int) or not isinstance(email, str):
         return None
-    user = User.objects.filter(pk=pk, is_active=True).first()
+    user = User.objects.select_for_update().filter(pk=pk, is_active=True).first()
     if user is None or normalized_email(user.email) != email:
         return None
     return user

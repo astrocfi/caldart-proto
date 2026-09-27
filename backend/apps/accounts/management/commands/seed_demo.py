@@ -19,6 +19,7 @@ from faker import Faker
 
 from apps.accounts.management.commands.seed_roles import seed_roles
 from apps.accounts.models import AccountKind, User
+from apps.notifications.dispatch import suspended
 
 #: Seed modules in dependency order.
 SEED_APPS: tuple[str, ...] = (
@@ -59,6 +60,13 @@ class Command(BaseCommand):
         rather than duplicating them.  Every seeded account but a donor ends up with a
         verified address, stamped as verified when the account was created; a donor's
         stays unverified, as a real donor's does.
+
+        A seeder calls the same services a real change would, which raise the same
+        notification events -- an already-lapsed term, a friend switch -- so the
+        whole run happens with the notification dispatcher unsubscribed
+        (:func:`apps.notifications.dispatch.suspended`).  Without that, the
+        subscriptions the seed creates would be in place by the time this
+        transaction commits, and every deferred send would go out.
         """
         seed = options["seed"]
         faker = Faker("en_US")
@@ -77,16 +85,18 @@ class Command(BaseCommand):
         }
 
         self.stdout.write("Seeding demo data:")
-        seed_roles()
+        with suspended():
+            seed_roles()
 
-        for dotted in SEED_APPS:
-            module = import_module(f"{dotted}.seed")
-            module.run(ctx, self.stdout)
+            for dotted in SEED_APPS:
+                module = import_module(f"{dotted}.seed")
+                module.run(ctx, self.stdout)
 
-        # The demo addresses are made up, so no verification link could ever reach
-        # them; the demo starts with every account already proved, but a donor's.
-        User.objects.filter(email_verified_at__isnull=True).exclude(kind=AccountKind.DONOR).update(
-            email_verified_at=F("created_at")
-        )
+            # The demo addresses are made up, so no verification link could ever
+            # reach them; the demo starts with every account already proved, but a
+            # donor's.
+            User.objects.filter(
+                email_verified_at__isnull=True,
+            ).exclude(kind=AccountKind.DONOR).update(email_verified_at=F("created_at"))
 
         self.stdout.write(self.style.SUCCESS("Demo data ready. Password: caldart-demo"))

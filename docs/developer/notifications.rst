@@ -15,7 +15,8 @@ event; the notifications app, listening, builds the email at once and sends it
 when the service's transaction commits.  The code is in
 ``backend/apps/notifications/``, the template pair is ``notification`` in
 ``backend/templates/emails/``, and the endpoints are in
-:doc:`api-notifications`.
+:doc:`api-notifications`.  See :doc:`notification-events` for the catalog of
+every event: where it is raised, and what its email carries.
 
 
 Raising an event

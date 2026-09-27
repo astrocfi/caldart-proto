@@ -87,11 +87,11 @@ all call it.  In order:
 
 1. **Expire lapsed terms.**  Every ``Membership`` that is still ``active`` with
    an ``ends_on`` in the past is flipped to ``expired``
-   (``members.services.expire_lapsed_memberships``), and each account left with
+   (``members.lifecycle.expire_lapsed_memberships``), and each account left with
    no current term raises the ``membership_expired`` event
    (:doc:`notification-events`).  This runs first so
    that the ``post30`` stage is honestly labeled.
-2. **Convert due friends.**  ``members.services.convert_due_friends`` stores
+2. **Convert due friends.**  ``members.lifecycle.convert_due_friends`` stores
    every member whose ``friend_on`` is today or earlier as a friend, clears the
    date, and audits each as ``account.kind`` with ``to=friend`` and
    ``on=<friend_on>`` (:ref:`kinds of account <account-kinds>`), raising the

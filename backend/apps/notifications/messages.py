@@ -13,19 +13,17 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 
 from django.conf import settings
-from django.utils import timezone
 
 from apps.accounts.models import AccountKind, User
 from apps.accounts.roles import ROLE_LABELS
 from apps.aircraft.models import Aircraft
 from apps.darts.models import Dart
-from apps.members.models import MemberProfile, Membership, MembershipStatusChoices
+from apps.members.models import MemberProfile, Membership
 from apps.members.services import account_kind
-from apps.payments.models import MandateStatus, Payment, PaymentKind, RenewalMandate
-from apps.payments.renewals import RETRY_OFFSETS
+from apps.payments.models import Payment, PaymentKind, RenewalMandate
 from caldart.mail import org_name
 from caldart.reports import money_label
 
@@ -330,25 +328,26 @@ def _auto_renewal_off(payload: Mapping[str, object]) -> Built:
     )
 
 
-def _next_try(mandate: RenewalMandate) -> str:
-    """When a declined charge is tried again, as the retry schedule places it.
+def _next_try(mandate: RenewalMandate, next_on: date | None) -> str:
+    """When a declined charge is tried again, or that none is left, from ``next_on``.
 
-    The retries fall :data:`~apps.payments.renewals.RETRY_OFFSETS` days after the
-    decline; once they are spent the mandate is paused and no try is left.
+    ``next_on`` is the day the retry run scheduled the next attempt for, or ``None``
+    once the mandate's retries are spent and it is paused; the caller names the day,
+    so this never recomputes it from today's date.
     """
-    if mandate.status == MandateStatus.PAUSED or mandate.failure_count > len(RETRY_OFFSETS):
+    if next_on is None:
         return f"None: automatic {_mandate_kind(mandate)} is paused"
-    offset = RETRY_OFFSETS[max(mandate.failure_count, 1) - 1]
-    return _slash(timezone.localdate() + timedelta(days=offset))
+    return _slash(next_on)
 
 
 def _auto_renewal_declined(payload: Mapping[str, object]) -> Built:
     """``auto_renewal_declined``: a charge the provider refused, and the next try."""
     mandate = _required(payload, "mandate", RenewalMandate)
     reason = _required(payload, "reason", str)
+    next_on = _optional(payload, "next_on", date)
     return (
         f"{mandate.user.display_name}'s automatic {_mandate_kind(mandate)} was declined",
-        [("Reason", reason), ("Next try", _next_try(mandate))],
+        [("Reason", reason), ("Next try", _next_try(mandate, next_on))],
         _member_link(mandate.user),
     )
 
@@ -379,18 +378,16 @@ def _payment_recorded(payload: Mapping[str, object]) -> Built:
 
 
 def _payment_refunded(payload: Mapping[str, object]) -> Built:
-    """``payment_refunded``: money given back, by whom, and a term it canceled."""
+    """``payment_refunded``: money given back, by whom, and whether it canceled a term."""
     payment = _required(payload, "payment", Payment)
     refund_cents = _required(payload, "refund_cents", int)
     actor = _optional(payload, "actor", User)
+    term_canceled = payload.get("term_canceled") is True
     lines: list[Line] = [
         ("Of", money_label(payment.amount_cents)),
         ("By", DASHBOARD_ACTOR if actor is None else actor.display_name),
     ]
-    canceled = Membership.objects.filter(
-        payment=payment, status=MembershipStatusChoices.CANCELED
-    ).exists()
-    if canceled:
+    if term_canceled:
         lines.append(("Membership canceled", "Yes"))
     return (
         f"{money_label(refund_cents)} refunded to {payment.user.display_name}",

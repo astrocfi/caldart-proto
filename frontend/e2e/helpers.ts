@@ -288,22 +288,46 @@ function decodeQuotedPrintable(text: string): string {
   return Buffer.from(bytes).toString('utf8');
 }
 
-/** Every message file addressed to `address`, decoded, newest first. */
-function messagesTo(address: string): string[] {
+interface MessageFile {
+  path: string;
+  name: string;
+}
+
+/** Every message file in the mail directory, newest first, none read yet. */
+function sortedMessageFiles(): MessageFile[] {
   if (!existsSync(MAIL_DIR)) return [];
-  const header = `to: ${address}`.toLowerCase();
   return readdirSync(MAIL_DIR)
     .map((name) => ({ path: resolve(MAIL_DIR, name), name }))
     .map((file) => ({ ...file, mtime: statSync(file.path).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime || b.name.localeCompare(a.name))
+    .sort((a, b) => b.mtime - a.mtime || b.name.localeCompare(a.name));
+}
+
+/** True when message file `raw` is addressed to `address`. */
+function isAddressedTo(raw: string, address: string): boolean {
+  const header = `to: ${address}`.toLowerCase();
+  return raw.split(/\r?\n/).some((line) => line.toLowerCase() === header);
+}
+
+/** Every message file addressed to `address`, decoded, newest first. */
+function messagesTo(address: string): string[] {
+  return sortedMessageFiles()
     .map((file) => readFileSync(file.path, 'utf8'))
-    .filter((raw) => raw.split(/\r?\n/).some((line) => line.toLowerCase() === header))
+    .filter((raw) => isAddressedTo(raw, address))
     .map(decodeQuotedPrintable);
 }
 
-/** The newest message file addressed to `address`, decoded, or null when there is none. */
+/**
+ * The newest message file addressed to `address`, decoded, or null when there is none.
+ *
+ * Reads files newest first and stops at the first match, rather than decoding every
+ * message in the directory to find the one that matters.
+ */
 function newestMessageTo(address: string): string | null {
-  return messagesTo(address)[0] ?? null;
+  for (const file of sortedMessageFiles()) {
+    const raw = readFileSync(file.path, 'utf8');
+    if (isAddressedTo(raw, address)) return decodeQuotedPrintable(raw);
+  }
+  return null;
 }
 
 /**

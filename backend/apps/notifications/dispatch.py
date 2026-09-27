@@ -13,7 +13,8 @@ raised the event.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
@@ -23,6 +24,7 @@ from apps.notifications.events import EVENTS
 from apps.notifications.messages import Message, build_message
 from apps.notifications.models import NotificationSubscription
 from apps.notifications.services import recipient_may_receive, refresh_recipient
+from caldart import events
 from caldart.mail import contact_email, org_name, send_templated
 
 log = logging.getLogger(__name__)
@@ -69,6 +71,23 @@ def handle(slug: str, payload: Mapping[str, object]) -> None:
         log.exception("notification not built: event=%s", slug)
         return
     transaction.on_commit(lambda: send(slug, message, extra), robust=True)
+
+
+@contextmanager
+def suspended() -> Iterator[None]:
+    """Stop the dispatcher from hearing events for the length of the block.
+
+    Seeding raises the same events a real change would -- an already-lapsed term,
+    a friend switch -- and would otherwise mail whatever subscriptions exist by the
+    time its transaction commits, which includes the ones the seed itself just
+    created.  ``seed_demo`` runs inside this to seed without mailing anybody.
+    :func:`handle` is resubscribed once the block ends, even if it raised.
+    """
+    events.unsubscribe(handle)
+    try:
+        yield
+    finally:
+        events.subscribe(handle)
 
 
 def roster_recipients(dart: object) -> list[Recipient]:

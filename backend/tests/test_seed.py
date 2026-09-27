@@ -11,9 +11,11 @@ from unittest.mock import MagicMock
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.core.mail import EmailMessage
 from django.core.management import call_command
 from django.utils import timezone
 from faker import Faker
+from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
 from wagtail.models import Site
 
 from apps.accounts.models import AccountKind
@@ -524,3 +526,33 @@ def test_seed_demo_keeps_two_notification_subscriptions_on_a_second_run() -> Non
     _seed()
 
     assert NotificationSubscription.objects.count() == 2
+
+
+def test_seed_demo_mails_nobody(
+    mailoutbox: list[EmailMessage],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """Seeding raises events but mails nobody, whatever subscriptions it creates.
+
+    Seeding raises events a real change would -- an already-lapsed term, a friend
+    switch -- and would otherwise mail whatever subscriptions exist by the time
+    its transaction commits, which includes the two the seed itself just created.
+    It runs with the notification dispatcher unsubscribed to prevent that.
+    """
+    with django_capture_on_commit_callbacks(execute=True):
+        _seed()
+
+    assert mailoutbox == []
+
+
+def test_seed_demo_mails_nobody_on_a_second_run(
+    mailoutbox: list[EmailMessage],
+    django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks,
+) -> None:
+    """A second run touches the same accounts again, with the same result: nothing."""
+    _seed()
+
+    with django_capture_on_commit_callbacks(execute=True):
+        _seed()
+
+    assert mailoutbox == []

@@ -26,12 +26,9 @@ from django.template.defaultfilters import pluralize
 from django.utils import timezone
 
 from apps.accounts.models import AccountKind, User
+from apps.members.lifecycle import convert_due_friends, expire_lapsed_memberships
 from apps.members.models import Membership, MembershipState, MembershipStatusChoices
-from apps.members.services import (
-    convert_due_friends,
-    expire_lapsed_memberships,
-    membership_status,
-)
+from apps.members.services import membership_status
 from apps.payments.models import MandateStatus, RenewalMandate, RenewalOutcome
 from apps.reminders.models import REMINDER_OFFSETS, ReminderKind, ReminderLog
 from caldart import audit
@@ -338,7 +335,7 @@ def send_renewal_reminders(
 
     Flips memberships whose ``ends_on`` has passed to ``expired`` and writes down
     every conversion to friend whose day has come
-    (:func:`~apps.members.services.convert_due_friends`) first, so the ``post30``
+    (:func:`~apps.members.lifecycle.convert_due_friends`) first, so the ``post30``
     stage is honestly labeled, then walks the five stages in order,
     each covering the span of expiry dates :func:`stage_span` gives it.  A
     member is in at most one stage on any day, and gets each stage once.  A dry

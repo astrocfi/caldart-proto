@@ -116,7 +116,7 @@ Membership
    An account administrator grants a term on the :doc:`member-record`. It gives the plan and
    the date it runs to.
 *Notification: Membership expired*
-   A membership runs out and the person becomes a friend until they renew.
+   A membership runs out.
 
 Money
 ~~~~~
