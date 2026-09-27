@@ -90,6 +90,21 @@ describe('visibleNavItems', () => {
     expect(paths.indexOf('/admin/reports')).toBe(paths.indexOf('/admin/reminders') + 1);
   });
 
+  it('gives account_admin the notifications screen, straight after the reports screen', () => {
+    const administration = groupedNavItems(['member', 'account_admin']).find(
+      (bucket) => bucket.group === 'Administration',
+    );
+    const paths = administration?.items.map((item) => item.to) ?? [];
+    expect(paths.indexOf('/admin/notifications')).toBe(paths.indexOf('/admin/reports') + 1);
+  });
+
+  it.each([['treasurer'], ['user_admin'], ['dart_leader']] as const)(
+    'keeps the notifications screen away from %s',
+    (role) => {
+      expect(labels(['member', role])).not.toContain('Notifications');
+    },
+  );
+
   it('gives a treasurer the reports screen', () => {
     expect(labels(['member', 'treasurer'])).toContain('Reports');
   });

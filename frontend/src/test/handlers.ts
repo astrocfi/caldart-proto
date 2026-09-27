@@ -17,6 +17,11 @@ import type {
   SavedColumnSetWrite,
   User,
 } from '../portal/api/types';
+import type {
+  NotificationEvent,
+  NotificationSubscription,
+  NotificationSubscriptionCreate,
+} from '../portal/features/admin-notifications/types';
 import type { ReportSlug } from '../portal/reports/types';
 
 export const API = '/api/v1';
@@ -350,6 +355,236 @@ export function makeSubscription(overrides: Partial<ReportSubscription> = {}): R
     created_by_name: 'Ada Admin',
     last_sent_at: null,
     next_due_on: '2026-10-01',
+    ...overrides,
+  };
+}
+
+/** Who may receive each category's events, as the server's catalog names them. */
+const MEMBERSHIP_ROLES: NotificationEvent['roles'] = ['account_admin', 'user_admin'];
+const MONEY_ROLES: NotificationEvent['roles'] = ['treasurer', 'account_admin'];
+const ACCOUNT_ROLES: NotificationEvent['roles'] = ['user_admin', 'account_admin'];
+
+/** One catalog entry, in the order its fields are listed. */
+function notificationEvent(
+  slug: string,
+  label: string,
+  category: NotificationEvent['category'],
+  description: string,
+  roles: NotificationEvent['roles'],
+): NotificationEvent {
+  return { slug, label, category, description, roles };
+}
+
+/** The server's catalog of notification events, in its order, as `GET /notifications/events` lists it. */
+export const NOTIFICATION_EVENTS: NotificationEvent[] = [
+  notificationEvent(
+    'signed_up',
+    'Sign-up',
+    'Membership',
+    'Somebody registered on the site.',
+    MEMBERSHIP_ROLES,
+  ),
+  notificationEvent(
+    'member_added',
+    'Member added by an administrator',
+    'Membership',
+    'An administrator created a member or friend by hand.',
+    MEMBERSHIP_ROLES,
+  ),
+  notificationEvent(
+    'became_friend',
+    'Member became a friend',
+    'Membership',
+    'A member became a friend.',
+    MEMBERSHIP_ROLES,
+  ),
+  notificationEvent(
+    'became_member',
+    'Friend became a member',
+    'Membership',
+    'A friend became a member.',
+    MEMBERSHIP_ROLES,
+  ),
+  notificationEvent(
+    'membership_paid',
+    'Membership paid',
+    'Membership',
+    'A payment started a term.',
+    MEMBERSHIP_ROLES,
+  ),
+  notificationEvent(
+    'membership_granted',
+    'Membership granted by an administrator',
+    'Membership',
+    'An administrator granted a membership.',
+    MEMBERSHIP_ROLES,
+  ),
+  notificationEvent(
+    'membership_expired',
+    'Membership expired',
+    'Membership',
+    'A membership ran out.',
+    MEMBERSHIP_ROLES,
+  ),
+  notificationEvent(
+    'auto_renewal_on',
+    'Automatic payment turned on',
+    'Money',
+    'Somebody set up an automatic payment.',
+    MONEY_ROLES,
+  ),
+  notificationEvent(
+    'auto_renewal_off',
+    'Automatic payment turned off',
+    'Money',
+    'An automatic payment was turned off.',
+    MONEY_ROLES,
+  ),
+  notificationEvent(
+    'auto_renewal_declined',
+    'Automatic payment declined',
+    'Money',
+    'An automatic charge was declined.',
+    MONEY_ROLES,
+  ),
+  notificationEvent(
+    'donation_received',
+    'Donation received',
+    'Money',
+    'A gift arrived.',
+    MONEY_ROLES,
+  ),
+  notificationEvent(
+    'payment_recorded',
+    'Payment recorded by hand',
+    'Money',
+    'The treasurer recorded a payment.',
+    MONEY_ROLES,
+  ),
+  notificationEvent(
+    'payment_refunded',
+    'Payment refunded',
+    'Money',
+    'A payment was refunded.',
+    MONEY_ROLES,
+  ),
+  notificationEvent(
+    'account_deactivated',
+    'Account deactivated',
+    'Accounts',
+    'An account was deactivated.',
+    ACCOUNT_ROLES,
+  ),
+  notificationEvent(
+    'account_reactivated',
+    'Account reactivated',
+    'Accounts',
+    'A deactivated account was brought back.',
+    ACCOUNT_ROLES,
+  ),
+  notificationEvent(
+    'roles_changed',
+    'Roles changed',
+    'Accounts',
+    'A role was granted or taken away.',
+    ACCOUNT_ROLES,
+  ),
+  notificationEvent(
+    'email_changed',
+    'Email address changed',
+    'Accounts',
+    'Somebody changed their address.',
+    ACCOUNT_ROLES,
+  ),
+  notificationEvent(
+    'profile_changed',
+    'Profile changed',
+    'Accounts',
+    'A profile was edited.',
+    ACCOUNT_ROLES,
+  ),
+  notificationEvent('aircraft_added', 'Aircraft added', 'Aircraft', 'An aircraft was added.', [
+    'account_admin',
+  ]),
+  notificationEvent(
+    'aircraft_changed',
+    'Aircraft changed',
+    'Aircraft',
+    "An aircraft's details changed.",
+    ['account_admin'],
+  ),
+  notificationEvent(
+    'aircraft_removed',
+    'Aircraft removed',
+    'Aircraft',
+    'An aircraft was taken off a list.',
+    ['account_admin'],
+  ),
+];
+
+/** What the `/admin/notifications` screen reads as it mounts. */
+export interface NotificationsStub {
+  events?: NotificationEvent[];
+  subscriptions?: NotificationSubscription[];
+}
+
+/**
+ * Handlers for the notifications screen, answering with whatever the caller
+ * passes.  They keep the subscriptions in a store: a `POST` adds one bound to
+ * no account, a `PATCH` merges its body into the one it names, and a `DELETE`
+ * drops it, so the list read after each shows the change.
+ */
+export function notificationHandlers({
+  events = NOTIFICATION_EVENTS,
+  subscriptions = [],
+}: NotificationsStub = {}): HttpHandler[] {
+  let store = [...subscriptions];
+  const url = `${API}/notifications/subscriptions`;
+  return [
+    http.get(`${API}/notifications/events`, () => HttpResponse.json(events)),
+    http.get(url, () => HttpResponse.json(store)),
+    http.post(url, async ({ request }) => {
+      const body = (await request.json()) as NotificationSubscriptionCreate;
+      const created = makeNotificationSubscription({
+        id: Math.max(0, ...store.map((subscription) => subscription.id)) + 1,
+        recipient_user: null,
+        recipient_name: '',
+        recipient_email: body.recipient_email,
+        events: body.events,
+      });
+      store = [...store, created];
+      return HttpResponse.json(created, { status: 201 });
+    }),
+    http.patch(`${url}/:id`, async ({ params, request }) => {
+      const id = Number(params.id);
+      const current = store.find((subscription) => subscription.id === id);
+      if (current === undefined) return new HttpResponse(null, { status: 404 });
+      const patch = (await request.json()) as Partial<NotificationSubscription>;
+      const changed = { ...current, ...patch };
+      store = store.map((subscription) => (subscription.id === id ? changed : subscription));
+      return HttpResponse.json(changed);
+    }),
+    http.delete(`${url}/:id`, ({ params }) => {
+      store = store.filter((subscription) => subscription.id !== Number(params.id));
+      return new HttpResponse(null, { status: 204 });
+    }),
+  ];
+}
+
+/** Build a `NotificationSubscription` payload without repeating every field in each test. */
+export function makeNotificationSubscription(
+  overrides: Partial<NotificationSubscription> = {},
+): NotificationSubscription {
+  return {
+    id: 1,
+    recipient_user: 7,
+    recipient_name: 'Ada Admin',
+    recipient_email: 'ada@example.org',
+    events: ['signed_up', 'became_member'],
+    is_active: true,
+    created_by_name: 'Ada Admin',
+    created_at: '2026-09-20T18:00:00Z',
+    updated_at: '2026-09-20T18:00:00Z',
     ...overrides,
   };
 }

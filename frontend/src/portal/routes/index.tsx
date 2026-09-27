@@ -23,6 +23,7 @@ import { NotFound } from './not-found';
 import { adminAircraftRoutes } from './admin-aircraft';
 import { adminDartsRoutes } from './admin-darts';
 import { adminMembersRoutes } from './admin-members';
+import { adminNotificationsRoutes } from './admin-notifications';
 import { adminPaymentsRoutes } from './admin-payments';
 import { adminRemindersRoutes } from './admin-reminders';
 import { adminReportsRoutes } from './admin-reports';
@@ -55,6 +56,7 @@ export const privateRoutes: RouteObject[] = [
   ...adminPaymentsRoutes,
   ...adminRemindersRoutes,
   ...adminReportsRoutes,
+  ...adminNotificationsRoutes,
   ...adminUsersRoutes,
   ...systemRoutes,
 ];

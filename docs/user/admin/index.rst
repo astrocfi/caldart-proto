@@ -17,6 +17,7 @@ The screens a DART leader, an account administrator, a user administrator, or a 
    darts
    reminders
    reports
+   notifications
    users
    user-record
    system

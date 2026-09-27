@@ -319,6 +319,14 @@ report, a domain module, can read it.
     ``send_scheduled_reports`` command (:doc:`scheduled-reports`); endpoint
     ``/system/reports/run``.  It gathers reports from the apps below it, so it
     sits beside ``reminders``.
+``notifications``
+    Who hears about what: the catalog of events (``events.py``), the
+    ``NotificationSubscription`` rows that subscribe an address to some of them,
+    and the handler that emails each subscribed address when a lower app raises
+    an event through ``caldart.events.emit``.  Endpoints under
+    ``/notifications/``; the portal's *Notifications* screen at
+    ``/admin/notifications`` is the account administrator's.  It reads the apps
+    below it, so it sits beside ``reports``.
 ``cms``
     The Wagtail page types, the StreamField blocks, ``SiteSettings``, the
     members-only wall, the ``site_chrome`` context processor and the
@@ -601,8 +609,8 @@ the files they test, and an ``index.ts`` of what the route files use:
 ``aircraft``            the aircraft picker, form, and insurance and service
                         chips that the profile, leader, and admin screens reuse
 ``leader``              the DART leader's member check and aircraft check
-``admin-*``             the members, aircraft, payments, reminder-log, and users
-                        screens
+``admin-*``             the members, aircraft, DARTs, payments, reminder-log,
+                        reports, notifications, and users screens
 ``system``              the System page: health, backups, and reminders
 ======================  ======================================================
 
