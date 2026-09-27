@@ -26,7 +26,8 @@
 #   --tls certbot|self-signed  how the certificate is obtained (default certbot)
 #   --certbot-email ADDRESS    the Let's Encrypt account address; required with certbot
 #   --certbot-staging          use Let's Encrypt's staging directory
-#   --db-port PORT             the host port Postgres listens on, 1024-65535 (default 5432)
+#   --db-port PORT             the host port Postgres listens on, 1024-65535 (default 5432);
+#                              must match DATABASE_URL once the environment file exists
 #   --email-url URL            EMAIL_URL; this or --email local is required while no
 #                              environment file exists
 #   --email local              send mail through the postfix on this machine
@@ -151,6 +152,7 @@ validate() {
         *) usage_error "--tls must be certbot or self-signed, not $CALDART_TLS" ;;
     esac
     validate_db_port "$CALDART_DB_PORT"
+    validate_db_port_matches_env_file
     validate_email_flags
     if [[ -z "$EMAIL_URL" && ! -f "$ENV_FILE" ]]; then
         usage_error "--email-url or --email local is required until $ENV_FILE exists"

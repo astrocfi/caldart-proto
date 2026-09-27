@@ -554,6 +554,48 @@ def test_an_existing_container_skips_the_port_check(root: Path, etc: Path, tmp_p
     assert result.returncode == 0, result.stderr
 
 
+def _installed_on_5432(etc: Path) -> None:
+    """Write the record and environment file of a box with Postgres on 5432."""
+    (etc / "install.conf").write_text(
+        "CALDART_HOSTNAME=caldart.test\nCALDART_TLS=self-signed\nCALDART_DB_PORT=5432\n"
+    )
+    (etc / "caldart.env").write_text(
+        "SECRET_KEY=x\nDATABASE_URL=postgres://caldart:pw@localhost:5432/caldart\n"
+    )
+
+
+def test_a_db_port_that_disagrees_with_database_url_is_refused(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Moving the port on an installed box names ``DATABASE_URL`` first."""
+    _installed_on_5432(etc)
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", "5433", container=True, flags=())
+    assert _errors(result) == [
+        f"error: --db-port 5433 differs from the port in DATABASE_URL in {etc}/caldart.env "
+        "(5432); edit DATABASE_URL to use port 5433 first, then run install.sh again"
+    ]
+
+
+def test_a_db_port_that_disagrees_with_database_url_exits_2(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """The refusal is a usage error, not a failure."""
+    _installed_on_5432(etc)
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", "5433", container=True, flags=())
+    assert result.returncode == 2
+
+
+def test_a_db_port_that_matches_database_url_carries_on(
+    root: Path, etc: Path, tmp_path: Path
+) -> None:
+    """Once ``DATABASE_URL`` names the new port, the run moves the container."""
+    _installed_on_5432(etc)
+    env_file = etc / "caldart.env"
+    env_file.write_text(env_file.read_text().replace(":5432/", ":5433/"))
+    result = _install_dry_run(root, etc, tmp_path, "--db-port", "5433", container=True, flags=())
+    assert "==> Starting Postgres on 127.0.0.1:5433" in result.stdout.splitlines()
+
+
 def test_configure_writes_the_recorded_db_port(root: Path, etc: Path) -> None:
     """``DATABASE_URL`` connects to the port the install record names."""
     (etc / "install.conf").write_text("CALDART_HOSTNAME=caldart.test\nCALDART_DB_PORT=5433\n")

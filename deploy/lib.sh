@@ -329,6 +329,32 @@ validate_db_port() {
     usage_error "--db-port must be a port number from $MIN_DB_PORT to $MAX_DB_PORT, not $1"
 }
 
+# The port DATABASE_URL in the environment file connects to: the port it names,
+# 5432 when it names none, and nothing when the file or the line is missing or
+# unreadable.
+env_file_db_port() {
+    [[ -r "$ENV_FILE" ]] || return 0
+    local url
+    url="$(sed -n 's/^DATABASE_URL=//p' "$ENV_FILE" | tail -n 1)"
+    [[ -n "$url" ]] || return 0
+    if [[ "$url" =~ @[^/@]*:([0-9]+)(/|$) ]]; then
+        printf '%s\n' "${BASH_REMATCH[1]}"
+    else
+        printf '%s\n' "$DEFAULT_DB_PORT"
+    fi
+}
+
+# Stop with a usage error when the environment file's DATABASE_URL connects to
+# another port than CALDART_DB_PORT.  The install leaves an existing file alone,
+# so moving the container without the file would leave the site connecting to a
+# port nothing serves.
+validate_db_port_matches_env_file() {
+    local current
+    current="$(env_file_db_port)"
+    [[ -z "$current" || "$current" == "$CALDART_DB_PORT" ]] && return 0
+    usage_error "--db-port $CALDART_DB_PORT differs from the port in DATABASE_URL in $ENV_FILE ($current); edit DATABASE_URL to use port $CALDART_DB_PORT first, then run install.sh again"
+}
+
 # True when something on this machine listens on TCP port $1.  Without ss
 # there is no telling, and the answer is no.
 port_in_use() {

@@ -201,7 +201,7 @@ What you are deploying
               Apache [label="Apache 2.4 :80 and :443\l  deploy/apache/caldart.conf\l  terminates TLS (certbot)\l  :80 -> :443, except ACME\l  ProxyTimeout 60\l"];
               Gunicorn [label="gunicorn 127.0.0.1:8001\l  caldart-web.service\l  deploy/gunicorn.conf.py\l  2 x CPU + 1 workers, max 12\l  timeout 60, preload\l"];
               Django [label="Django 6 + Wagtail 8\l  caldart.settings.prod\l  /static/ via whitenoise\l"];
-              Postgres [label="Postgres in Docker :5432\l  compose service db\l"];
+              Postgres [label="Postgres in Docker\l  :CALDART_DB_PORT, 5432 by default\l  compose service db\l"];
               Media [label="backend/media/\l  Wagtail uploads;\l  documents/ denied to\l  the web server\l", shape=folder, style=""];
               Env [label="/etc/caldart/caldart.env\l  root:caldart 0640\l  EnvironmentFile for\l  all seven services\l", shape=note, style=""];
 
@@ -250,7 +250,7 @@ What you are deploying
           Dumps [label="backups/\l  BACKUP_DIR, kept for\l  BACKUP_RETENTION_DAYS\l", shape=folder, style=""];
           Faa [label="registry.faa.gov\l  ReleasableAircraft.zip\l"];
           Stripe [label="Stripe and PayPal\l  off-session charges\l"];
-          Postgres [label="Postgres in Docker :5432\l"];
+          Postgres [label="Postgres in Docker\l  :CALDART_DB_PORT, 5432 by default\l"];
           Smtp [label="SMTP server\l  from EMAIL_URL\l"];
 
           {rank=same; Dumps; Faa; Stripe; Postgres; Smtp;}
@@ -292,7 +292,8 @@ What you are deploying
                                                 /static/ via whitenoise
       Stripe / PayPal webhooks arrive                 |
       through Apache like any other request           v
-                                                Postgres in Docker :5432
+                                                Postgres in Docker
+                                                :CALDART_DB_PORT, 5432 by default
       caldart-backup.timer, daily 03:30               ^
         -> caldart-backup.service                     |
            manage.py db_backup -----------------------|
@@ -541,7 +542,26 @@ The step above stops before it creates the container when the port is taken,
 so a clash is reported rather than half-installed.  A Docker that is already
 installed is left as it is: the packages step installs ``docker.io`` and the
 Compose plugin through ``apt-get``, which does nothing for a package already
-there, and the containers other projects run keep running.
+there, and the containers other projects run keep running.  The exception is a
+Docker installed from Docker's own apt repository (``docker-ce`` and
+``containerd.io``): ``docker.io`` conflicts with those packages, and ``apt-get``
+may remove them to install it.  On such a machine, run ``apt-get install
+--simulate docker.io`` before the installer and read what it would remove.
+
+**Moving the port on an installed box.**  The install leaves an existing
+environment file alone, so ``--db-port`` alone would move the container while
+``DATABASE_URL`` still named the old port.  The installer refuses that before
+it changes anything::
+
+  error: --db-port 5433 differs from the port in DATABASE_URL in /etc/caldart/caldart.env (5432); edit DATABASE_URL to use port 5433 first, then run install.sh again
+
+Check that nothing listens on the new port (``ss -ltn "sport = :5433"``
+prints only its header), since the step's own check runs only before the
+container exists.  Then change the port in ``DATABASE_URL`` in
+``/etc/caldart/caldart.env`` and run the installer with the flag; it recreates
+the container on the new port, records it, and restarts ``caldart-web``::
+
+  sudo deploy/install.sh --db-port 5433
 
 
 5. Configuration (``steps/configure.sh``)
