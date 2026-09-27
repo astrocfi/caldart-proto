@@ -1,5 +1,6 @@
 """Make a ``HomePage`` the Wagtail site root and drop the stock welcome page."""
 
+from django.conf import settings
 from django.db import migrations
 
 
@@ -39,9 +40,9 @@ def create_site_root(apps, schema_editor):
                 "relief supplies, personnel and information move when roads do not."
             ),
             primary_cta_label="Join CalDART",
-            primary_cta_url="/portal/join",
+            primary_cta_url=f"{settings.URL_PREFIX}/portal/join",
             secondary_cta_label="About us",
-            secondary_cta_url="/about/",
+            secondary_cta_url=f"{settings.URL_PREFIX}/about/",
         )
         root.numchild = Page.objects.filter(depth=2).count()
         root.save(update_fields=["numchild"])

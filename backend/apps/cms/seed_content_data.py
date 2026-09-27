@@ -7,6 +7,10 @@ any website administrator can replace it from ``/admin/``.
 
 The copy lives here rather than in the command so that changing a sentence never
 touches the code that builds the tree.
+
+Every link into the site is written with :func:`~apps.cms.models.site_path`, so it
+carries the ``URL_PREFIX`` the site is served under when the module is imported, and
+the seeded pages link correctly under that prefix.
 """
 
 from __future__ import annotations
@@ -14,7 +18,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from apps.cms.models import MEMBERS_ONLY_COLLECTION_NAME
+from apps.cms.models import MEMBERS_ONLY_COLLECTION_NAME, site_path
 
 
 @dataclass(frozen=True)
@@ -107,7 +111,7 @@ HERO_IMAGE_CAPTION = "Food aid meets the ramp at Reid-Hillview (KRHV). Photo: Ca
 
 URGENT_CTA_LABEL = "Request air support"
 PRIMARY_CTA_LABEL = "Join CalDART"
-PRIMARY_CTA_URL = "/portal/join"
+PRIMARY_CTA_URL = site_path("/portal/join")
 SECONDARY_CTA_LABEL = "Find your DART"
 
 MISSION = (
@@ -219,7 +223,7 @@ ABOUT = PageSpec(
             "of contact for agencies that want to work with general aviation "
             "volunteers.</p>"
         ),
-        cta("Find your DART", "/about/darts/", "secondary"),
+        cta("Find your DART", site_path("/about/darts/"), "secondary"),
     ),
 )
 
@@ -282,7 +286,7 @@ HOW_IT_WORKS = PageSpec(
                 )
             )
         ),
-        cta("Join CalDART", "/portal/join", "primary", "Annual membership is $45."),
+        cta("Join CalDART", site_path("/portal/join"), "primary", "Annual membership is $45."),
     ),
 )
 
@@ -363,7 +367,7 @@ HISTORY = PageSpec(
             "been aircraft; it is volunteers willing to do the unglamorous organizing "
             "work between disasters.</p>"
         ),
-        cta("Join CalDART", "/portal/join", "primary", "Annual membership is $45."),
+        cta("Join CalDART", site_path("/portal/join"), "primary", "Annual membership is $45."),
     ),
 )
 
@@ -390,7 +394,7 @@ DART_INDEX = PageSpec(
             "to start one. Get in touch and a board member will send you the organizing "
             "handbook and introduce you to a nearby leader who has done it.</p>"
         ),
-        cta("Contact us", "/contact/", "secondary"),
+        cta("Contact us", site_path("/contact/"), "secondary"),
     ),
 )
 
@@ -434,7 +438,7 @@ DART_PAGE_BODY: tuple[BlockSpec, ...] = (
         "<li>Ground volunteers for manifests, loading, and radios</li>"
         "<li>Amateur radio operators</li></ul>"
     ),
-    cta("Join this DART", "/portal/join", "primary"),
+    cta("Join this DART", site_path("/portal/join"), "primary"),
 )
 
 DIRECTORS_ROWS: tuple[tuple[str, str], ...] = (
@@ -742,7 +746,7 @@ JOIN = PageSpec(
         ),
         cta(
             "Start your membership",
-            "/portal/join",
+            site_path("/portal/join"),
             "primary",
             "$45 annual or $650 life \u00b7 card, Apple Pay, Google Pay, or PayPal",
         ),
@@ -783,7 +787,8 @@ DONATE = DonatePageSpec(
         "<h3>Contribution levels</h3>"
         f"{definition_list(CONTRIBUTION_TIERS)}"
         "<p>Members and friends can also give from the "
-        '<a href="/portal/donate">Donate screen</a> in the portal, where a gift can repeat '
+        f'<a href="{site_path("/portal/donate")}">Donate screen</a> in the portal, where a '
+        "gift can repeat "
         "monthly, quarterly, or yearly, or add a contribution to their dues when they join "
         "or renew \u2014 one payment, one receipt.</p>"
         "<h3>Other ways to give</h3>"
@@ -869,7 +874,7 @@ SPONSORS = PageSpec(
             "acknowledged on this page and in the newsletter; it buys no influence over "
             "who we fly for.</p>"
         ),
-        cta("Talk to us about sponsorship", "/contact/", "secondary"),
+        cta("Talk to us about sponsorship", site_path("/contact/"), "secondary"),
     ),
 )
 
@@ -895,7 +900,7 @@ CONTACT = PageSpec(
             "<p>Membership questions \u2014 renewals, receipts, a change of address \u2014 are "
             "fastest through the member portal.</p>"
         ),
-        cta("Open the member portal", "/portal/", "quiet"),
+        cta("Open the member portal", site_path("/portal/"), "quiet"),
     ),
 )
 
@@ -946,7 +951,7 @@ MEMBERS_ONLY = PageSpec(
             "these before dispatching you, and a lapsed date is the most common reason a "
             "willing member sits out a mission.</p>"
         ),
-        cta("Check my profile", "/portal/profile", "secondary"),
+        cta("Check my profile", site_path("/portal/profile"), "secondary"),
     ),
 )
 
@@ -1003,7 +1008,7 @@ SITE_SETTINGS: dict[str, str] = {
     "duty_phone": "(408) 713-0646",
     "mailing_address": "CalDART\nPO Box 606\nSan Martin, CA 95046",
     "ein": "83-1407209",
-    "donate_url": "/donate/",
+    "donate_url": site_path("/donate/"),
     "facebook_url": "https://www.facebook.com/example-caldart",
     "twitter_url": "https://x.com/example_caldart",
 }
