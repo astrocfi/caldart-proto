@@ -860,6 +860,14 @@ not (see :ref:`api-csrf-bootstrap`).
      - ✓
      - ✓
      - the FAA registration for an N-number
+   * - ``GET /aircraft/registrations``
+     - ·
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+     - the FAA registrations starting with ``q``
    * - ``GET /aircraft/{id}``
      - ·
      - ✓

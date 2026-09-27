@@ -5,15 +5,15 @@ The aircraft registry
 Every aircraft on the register points at one **aircraft type**, a make and a
 model picked from a fixed vocabulary rather than typed, so a Cessna 172 reads
 the same way on every screen, report, and email whoever entered it and however
-they spelled it.  The vocabulary, and the answer to a lookup by N-number, come
-from **the registry**: the FAA's Releasable Aircraft Database, a free nightly
+they spelled it.  The vocabulary, and the registrations the aircraft form's
+N-number box offers, come from **the registry**: the FAA's Releasable Aircraft Database, a free nightly
 download of the whole US civil register.  Every type ever registered in the
 United States has an entry in it, foreign-built ones such as the Aeropro Eurofox
 included.
 
 This page covers the data, the import that loads it, how an FAA name becomes a
-display name, the aliases and the search built on them, the hand-added types,
-and the fixture the demo data, the tests, and the end-to-end run load.  The
+display name, the aliases and the search built on them, the N-number search, the
+hand-added types, and the fixture the demo data, the tests, and the end-to-end run load.  The
 endpoints are in :doc:`api-aircraft` and :doc:`api-system`, the tables in
 :doc:`data-model`, and the timer in :doc:`deployment`.
 
@@ -261,6 +261,40 @@ registration lookup, whose type comes from the registration's own ``faa_code``.
 So ``cesna 172``, ``CESSNA 172``, ``c172``, and ``skyhawk`` all lead with the
 Cessna 172, a bare ``cesna`` or ``piper`` leads with that maker's most
 registered model, and ``eurofox`` finds the Aeropro Eurofox.
+
+
+The N-number search
+===================
+
+The aircraft form's N-number box is a typeahead over the registrations.  As an
+N-number is typed, the box keeps the N-number mask on it (``N``, up to five
+digits, then up to two letters), and once the typing settles, for the same
+debounce wait as the address box, asks ``GET /aircraft/registrations?q=``
+(:doc:`api-aircraft`) with what it holds.  The answer, at most eight
+registrations whose N-number starts with it in N-number order, is listed under
+the box, one row per registration: the N-number, then the aircraft type, the
+year, and the registrant in the muted face.  The arrow keys, Enter, and Escape
+work as they do in the address and aircraft type boxes.
+
+Picking a row writes its N-number into the box and fills the form through
+``withRegistration`` in ``features/aircraft/registry.ts``: the aircraft type, the
+year, the seats (from the type), the owner name (the registrant), and the owner
+type the registrant maps to — an individual or co-owners are an individual, a
+partnership a flying club, and a company an FBO; a government or unknown
+registrant leaves the owner type be.  Anything the registration leaves blank
+keeps what the form held.  The line under the box then reads *From the FAA
+registry as of* the day of the import that wrote the row, and clears as soon as
+the box changes again.  Typing a registration the registry does not hold leaves
+the form alone, so an aircraft the FAA has never registered is added exactly as
+any other.
+
+The search normalizes ``q`` with ``normalize_n_number`` and matches with
+``n_number__startswith``, a ``LIKE 'N17%'`` query.  Under the database's
+collation a plain B-tree index cannot serve a ``LIKE`` prefix, so the
+registrations carry a second index on ``n_number``,
+``aircraft_registration_prefix``, built with the ``varchar_pattern_ops`` operator
+class, which compares character by character and can.  The search reads a
+handful of index entries whatever the size of the registry.
 
 
 Hand-added types

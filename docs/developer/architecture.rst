@@ -634,7 +634,7 @@ the files they test, and an ``index.ts`` of what the route files use:
                         screens share with it, and *My aircraft*
 ``aircraft``            the aircraft picker, form, and insurance and service
                         chips that the profile, leader, and admin screens reuse;
-                        the form's N-number **Look up** against the FAA
+                        the form's N-number typeahead over the FAA
                         registry, the aircraft type typeahead with **Add a
                         type**, and the registry state the register and the
                         System page read
