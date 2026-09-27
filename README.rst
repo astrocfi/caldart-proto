@@ -138,7 +138,7 @@ backup.
            --email-url smtp+tls://user:password@smtp.example.org:587 \
            --admin-email you@example.org
 
-``sudo /srv/caldart/deploy/upgrade.sh`` upgrades it later.  The Deployment page
+``sudo /opt/caldart/deploy/upgrade.sh`` upgrades it later.  The Deployment page
 of the developer guide, ``docs/developer/deployment.rst``, describes every flag
 and every step the scripts run.
 

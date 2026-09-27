@@ -1,8 +1,8 @@
 # CalDART application server -- gunicorn behind Apache or nginx.
 #
-# Deploy path: /srv/caldart  -- a checkout of this repository, owned by root
+# Deploy path: /opt/caldart  -- a checkout of this repository, owned by root
 # and readable by the "caldart" service user, with the uv-managed virtualenv at
-# /srv/caldart/.venv and the Django project at /srv/caldart/backend.
+# /opt/caldart/.venv and the Django project at /opt/caldart/backend.
 #
 # Installed by deploy/steps/web-service.sh, which renders this file with the
 # deploy root written in, enables it, and restarts it -- see
@@ -14,7 +14,7 @@
 
 [Unit]
 Description=CalDART web application (gunicorn)
-Documentation=file:///srv/caldart/docs/developer/deployment.rst
+Documentation=file:///opt/caldart/docs/developer/deployment.rst
 # Postgres runs in Docker (compose service "db"); the socket must be up first.
 After=network.target docker.service
 Wants=network-online.target
@@ -29,7 +29,7 @@ Group=caldart
 UMask=0027
 
 # manage.py, media/ and staticfiles/ resolve relative to the Django project.
-WorkingDirectory=/srv/caldart/backend
+WorkingDirectory=/opt/caldart/backend
 
 # Secrets and per-host configuration, from deploy/caldart.env.example.
 # Root-owned, mode 0640, group caldart. Holds DATABASE_URL, SECRET_KEY, DEBUG,
@@ -42,7 +42,7 @@ Environment=DJANGO_SETTINGS_MODULE=caldart.settings.prod
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 
-ExecStart=/srv/caldart/.venv/bin/gunicorn --config /srv/caldart/deploy/gunicorn.conf.py
+ExecStart=/opt/caldart/.venv/bin/gunicorn --config /opt/caldart/deploy/gunicorn.conf.py
 ExecReload=/bin/kill -s HUP $MAINPID
 
 # Finish in-flight requests, then exit; matches graceful_timeout in
@@ -83,14 +83,14 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 CapabilityBoundingSet=
 AmbientCapabilities=
 
-# ProtectSystem=strict mounts everything read-only, including /srv/caldart, so
+# ProtectSystem=strict mounts everything read-only, including /opt/caldart, so
 # the code cannot rewrite itself. These three are the only writable paths:
 #   media/        Wagtail image and document uploads
 #   staticfiles/  collectstatic output served by whitenoise
 #   backups/      pg_dump output from manage.py db_backup (BACKUP_DIR)
-ReadWritePaths=/srv/caldart/backend/media
-ReadWritePaths=/srv/caldart/backend/staticfiles
-ReadWritePaths=/srv/caldart/backups
+ReadWritePaths=/opt/caldart/backend/media
+ReadWritePaths=/opt/caldart/backend/staticfiles
+ReadWritePaths=/opt/caldart/backups
 
 [Install]
 WantedBy=multi-user.target

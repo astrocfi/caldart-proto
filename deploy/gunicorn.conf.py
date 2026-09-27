@@ -1,12 +1,12 @@
 """Gunicorn configuration for the CalDART application server.
 
-The deploy root defaults to ``/srv/caldart`` -- a checkout of this repository with
-its ``uv``-managed virtualenv at ``/srv/caldart/.venv`` -- but this file is read in
+The deploy root defaults to ``/opt/caldart`` -- a checkout of this repository with
+its ``uv``-managed virtualenv at ``/opt/caldart/.venv`` -- but this file is read in
 place and finds the checkout from its own location, so a checkout anywhere else
 works unchanged.  Loaded by the systemd unit in
 ``deploy/systemd/caldart-web.service``::
 
-    /srv/caldart/.venv/bin/gunicorn --config /srv/caldart/deploy/gunicorn.conf.py
+    /opt/caldart/.venv/bin/gunicorn --config /opt/caldart/deploy/gunicorn.conf.py
 
 Gunicorn listens on loopback only; Apache (``deploy/apache/caldart.conf``) or
 nginx (``deploy/nginx/caldart.conf``) terminates TLS and proxies to it.

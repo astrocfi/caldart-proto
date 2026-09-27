@@ -1,12 +1,12 @@
 # Daily trigger for the CalDART scheduled reports.
 #
-# Deploy path: /srv/caldart. deploy/steps/timers.sh installs and enables it.
+# Deploy path: /opt/caldart. deploy/steps/timers.sh installs and enables it.
 # Inspect with:
 #   systemctl list-timers caldart-reports.timer
 
 [Unit]
 Description=Send the CalDART scheduled reports daily at 06:00
-Documentation=file:///srv/caldart/docs/developer/deployment.rst
+Documentation=file:///opt/caldart/docs/developer/deployment.rst
 
 [Timer]
 Unit=caldart-reports.service

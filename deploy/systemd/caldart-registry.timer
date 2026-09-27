@@ -1,12 +1,12 @@
 # Daily trigger for the CalDART FAA registry import.
 #
-# Deploy path: /srv/caldart. deploy/steps/timers.sh installs and enables it.
+# Deploy path: /opt/caldart. deploy/steps/timers.sh installs and enables it.
 # Inspect with:
 #   systemctl list-timers caldart-registry.timer
 
 [Unit]
 Description=Import the FAA registry into CalDART daily at 04:30
-Documentation=file:///srv/caldart/docs/developer/deployment.rst
+Documentation=file:///opt/caldart/docs/developer/deployment.rst
 
 [Timer]
 Unit=caldart-registry.service

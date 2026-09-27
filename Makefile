@@ -299,16 +299,16 @@ rehearse-deploy: ## Rehearse the server install in a throwaway systemd container
 	  inside systemctl start caldart-backup.service caldart-reports.service \
 	    caldart-renewals.service caldart-reminders.service caldart-statements.service; \
 	  echo "==> Rehearsing an upgrade that changes nothing"; \
-	  inside /srv/caldart/deploy/upgrade.sh; \
+	  inside /opt/caldart/deploy/upgrade.sh; \
 	  echo "==> Rehearsing a second install with no flags"; \
 	  before=$$(inside sha256sum /etc/caldart/caldart.env /etc/caldart/install.conf); \
-	  inside /srv/caldart/deploy/install.sh; \
+	  inside /opt/caldart/deploy/install.sh; \
 	  after=$$(inside sha256sum /etc/caldart/caldart.env /etc/caldart/install.conf); \
 	  [ "$$before" = "$$after" ] \
 	    || { echo "error: a no-flag install changed the environment file or the install record" >&2; exit 1; }; \
 	  echo "==> Rehearsing the uninstall"; \
-	  inside /srv/caldart/deploy/uninstall.sh --yes --purge; \
-	  inside test ! -e /srv/caldart; \
+	  inside /opt/caldart/deploy/uninstall.sh --yes --purge; \
+	  inside test ! -e /opt/caldart; \
 	  inside test ! -e /etc/caldart; \
 	  echo "==> The rehearsal on $(REHEARSE_WEB_SERVER) passed"
 
