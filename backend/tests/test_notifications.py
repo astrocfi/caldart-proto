@@ -700,6 +700,89 @@ def test_an_aircraft_with_no_owner_on_file_is_named_alone(boss: User) -> None:
     assert message.headline == "N9Z added"
 
 
+# -- verification_changed ----------------------------------------------------------
+def test_verification_changed_when_items_were_only_verified(pat: User, boss: User) -> None:
+    """The headline names the items verified; the lines list both kinds and who."""
+    message = build_message(
+        "verification_changed",
+        {
+            "user": pat,
+            "actor": boss,
+            "verified": ["Pilot certificate", "Medical", "Photo ID"],
+            "cleared": [],
+        },
+    )
+
+    assert (message.headline, message.lines, message.link) == (
+        "Lee Boss verified Pat Quill's pilot certificate, medical, and photo ID",
+        (
+            ("Verified", "Pilot certificate, Medical, Photo ID"),
+            ("Cleared", "None"),
+            ("By", "Lee Boss"),
+        ),
+        member_link(pat),
+    )
+
+
+def test_verification_changed_when_items_were_only_cleared(pat: User, boss: User) -> None:
+    """Two cleared items read joined with *and*."""
+    message = build_message(
+        "verification_changed",
+        {"user": pat, "actor": boss, "verified": [], "cleared": ["Medical", "Photo ID"]},
+    )
+
+    assert (message.headline, message.lines) == (
+        "Lee Boss cleared the verification of Pat Quill's medical and photo ID",
+        (("Verified", "None"), ("Cleared", "Medical, Photo ID"), ("By", "Lee Boss")),
+    )
+
+
+def test_verification_changed_when_items_were_verified_and_cleared(pat: User, boss: User) -> None:
+    """A save that did both says the verification of the details changed."""
+    message = build_message(
+        "verification_changed",
+        {"user": pat, "actor": boss, "verified": ["Medical"], "cleared": ["Pilot certificate"]},
+    )
+
+    assert message.headline == "Lee Boss changed the verification of Pat Quill's details"
+
+
+def test_verification_changed_for_an_aircraft_s_insurance(boss: User) -> None:
+    """An aircraft is named by its N-number and its email opens the aircraft record."""
+    aircraft = AircraftFactory(n_number="N123AB")
+
+    message = build_message(
+        "verification_changed",
+        {"aircraft": aircraft, "actor": boss, "verified": ["Insurance"], "cleared": []},
+    )
+
+    assert (message.headline, message.lines, message.link) == (
+        "Lee Boss verified N123AB's insurance",
+        (("Verified", "Insurance"), ("Cleared", "None"), ("By", "Lee Boss")),
+        f"{SITE}/admin/aircraft/{aircraft.pk}",
+    )
+
+
+def test_verification_cleared_for_an_aircraft_s_insurance(boss: User) -> None:
+    """Clearing the insurance says so of the N-number."""
+    aircraft = AircraftFactory(n_number="N123AB")
+
+    message = build_message(
+        "verification_changed",
+        {"aircraft": aircraft, "actor": boss, "verified": [], "cleared": ["Insurance"]},
+    )
+
+    assert message.headline == "Lee Boss cleared the verification of N123AB's insurance"
+
+
+def test_verification_changed_needs_a_person_or_an_aircraft(boss: User) -> None:
+    """A payload naming neither a user nor an aircraft fails loudly, naming ``user``."""
+    with pytest.raises(TypeError, match="'user'"):
+        build_message(
+            "verification_changed", {"actor": boss, "verified": ["Medical"], "cleared": []}
+        )
+
+
 def test_a_payload_missing_its_object_raises_type_error() -> None:
     """A hook that raised an event without the objects it needs fails loudly."""
     with pytest.raises(TypeError, match="'user'"):

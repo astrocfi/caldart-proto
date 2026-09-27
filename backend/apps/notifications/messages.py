@@ -166,6 +166,18 @@ def _aircraft_field_label(name: str) -> str:
     return label[:1].upper() + label[1:]
 
 
+def _in_a_sentence(label: str) -> str:
+    """An item's label as it reads mid-sentence: ``Photo ID`` reads ``photo ID``."""
+    return label[:1].lower() + label[1:]
+
+
+def _series(words: list[str]) -> str:
+    """``words`` as a sentence lists them, with a serial comma: ``a, b, and c``."""
+    if len(words) <= 2:
+        return " and ".join(words)
+    return f"{', '.join(words[:-1])}, and {words[-1]}"
+
+
 def _mandate_kind(mandate: RenewalMandate) -> str:
     """``renewal`` for a mandate that renews a plan, ``donation`` for a recurring gift."""
     return "renewal" if mandate.plan is not None else "donation"
@@ -449,6 +461,40 @@ def _profile_changed(payload: Mapping[str, object]) -> Built:
     )
 
 
+def _verification_changed(payload: Mapping[str, object]) -> Built:
+    """``verification_changed``: which items a verifier verified and cleared.
+
+    The payload names the ``actor``, the labels of the items ``verified`` and
+    ``cleared``, and either the ``aircraft`` whose insurance it was or, failing that,
+    the ``user`` whose certificate, medical, or photo ID it was.  The headline says
+    the items were verified, or cleared, or otherwise (both, or neither) that the
+    verification of the person's or the aircraft's details changed.
+    """
+    actor = _required(payload, "actor", User)
+    verified = _words(payload, "verified")
+    cleared = _words(payload, "cleared")
+    aircraft = _optional(payload, "aircraft", Aircraft)
+    if aircraft is not None:
+        owner, link = aircraft.n_number, _portal(f"/admin/aircraft/{aircraft.pk}")
+    else:
+        user = _required(payload, "user", User)
+        owner, link = user.display_name, _member_link(user)
+    if verified and not cleared:
+        items = _series([_in_a_sentence(label) for label in verified])
+        headline = f"{actor.display_name} verified {owner}'s {items}"
+    elif cleared and not verified:
+        items = _series([_in_a_sentence(label) for label in cleared])
+        headline = f"{actor.display_name} cleared the verification of {owner}'s {items}"
+    else:
+        headline = f"{actor.display_name} changed the verification of {owner}'s details"
+    lines: list[Line] = [
+        ("Verified", _labels(verified)),
+        ("Cleared", _labels(cleared)),
+        ("By", actor.display_name),
+    ]
+    return headline, lines, link
+
+
 def _aircraft_event(verb: str) -> Callable[[Mapping[str, object]], Built]:
     """The builder of ``aircraft_<verb>``: which aircraft, what changed, and by whom.
 
@@ -500,6 +546,7 @@ _BUILDERS: dict[str, Callable[[Mapping[str, object]], Built]] = {
     "roles_changed": _roles_changed,
     "email_changed": _email_changed,
     "profile_changed": _profile_changed,
+    "verification_changed": _verification_changed,
     "aircraft_added": _aircraft_event("added"),
     "aircraft_changed": _aircraft_event("changed"),
     "aircraft_removed": _aircraft_event("removed"),
