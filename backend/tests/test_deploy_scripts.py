@@ -1572,7 +1572,10 @@ def test_the_owner_one_liner_inserts_the_include(root: Path, etc: Path, tmp_path
     commands = _commands(
         _install_dry_run(root, etc, tmp_path, "--attach-to", str(vhost), flags=EXISTING_INSTALL)
     )
-    assert f"sed -i -e '10i\\    Include conf-available/caldart.conf' {vhost}" in commands
+    assert (
+        f"sed -i --follow-symlinks -e '10i\\    Include conf-available/caldart.conf' {vhost}"
+        in commands
+    )
 
 
 def test_the_owner_one_liner_keeps_a_copy(root: Path, etc: Path, tmp_path: Path) -> None:
@@ -1652,6 +1655,26 @@ def test_attaching_keeps_the_original_beside_it(
     _attach(root, web_server, vhost)
     _attach(root, web_server, vhost)
     assert (tmp_path / "site.conf.caldart.bak").read_text() == site
+
+
+def test_attaching_through_a_symlink_keeps_the_link(root: Path, tmp_path: Path) -> None:
+    """An ``--attach-to`` in ``sites-enabled`` edits the file the link points at."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE)
+    link = tmp_path / "enabled.conf"
+    link.symlink_to(vhost)
+    _attach(root, "apache", link)
+    assert link.is_symlink()
+
+
+def test_attaching_through_a_symlink_edits_its_target(root: Path, tmp_path: Path) -> None:
+    """The include line lands in the vhost the link points at."""
+    vhost = tmp_path / "site.conf"
+    vhost.write_text(APACHE_SITE)
+    link = tmp_path / "enabled.conf"
+    link.symlink_to(vhost)
+    _attach(root, "apache", link)
+    assert vhost.read_text() == APACHE_SITE_ATTACHED
 
 
 @pytest.mark.parametrize(
@@ -1891,8 +1914,9 @@ def test_uninstall_takes_the_include_line_out(root: Path, etc: Path, tmp_path: P
     (etc / "install.conf").write_text(f"CALDART_TLS=existing\nCALDART_ATTACH_TO={vhost}\n")
     result = _run(root / "deploy" / "uninstall.sh", "--yes", "--dry-run", env=_env(etc))
     assert (
-        f"sed -i -e '\\#^[[:space:]]*Include conf-available/caldart\\.conf[[:space:]]*$#d' "
-        f"{vhost}" in _commands(result)
+        "sed -i --follow-symlinks -e "
+        f"'\\#^[[:space:]]*Include conf-available/caldart\\.conf[[:space:]]*$#d' {vhost}"
+        in _commands(result)
     )
 
 

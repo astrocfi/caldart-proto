@@ -110,7 +110,7 @@ remove_snippet() {
     fi
     mapfile -t files < <(files_including_snippet "$address" "$sites")
     for file in "${files[@]}"; do
-        run sed -i -e "${address}d" "$file"
+        run sed -i --follow-symlinks -e "${address}d" "$file"
         is_dry_run || printf 'removed the include line from %s\n' "$file"
     done
     remove "$APACHE_SNIPPET"

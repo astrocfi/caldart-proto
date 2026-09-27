@@ -314,7 +314,7 @@ attach_include() {
     if [[ ! -e "$file$ATTACH_BACKUP_SUFFIX" ]]; then
         run cp -p "$file" "$file$ATTACH_BACKUP_SUFFIX"
     fi
-    run sed -i "${expressions[@]}" "$file"
+    run sed -i --follow-symlinks "${expressions[@]}" "$file"
 }
 
 # Print the include line and where it goes, for an operator adding it by hand.
