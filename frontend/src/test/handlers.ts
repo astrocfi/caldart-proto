@@ -5,6 +5,9 @@ import type {
   AdminUser,
   DonorRow,
   MembershipStatus,
+  NotificationEvent,
+  NotificationSubscription,
+  NotificationSubscriptionCreate,
   Payment,
   PaymentPeriodSummary,
   Plan,
@@ -17,11 +20,6 @@ import type {
   SavedColumnSetWrite,
   User,
 } from '../portal/api/types';
-import type {
-  NotificationEvent,
-  NotificationSubscription,
-  NotificationSubscriptionCreate,
-} from '../portal/features/admin-notifications/types';
 import type { ReportSlug } from '../portal/reports/types';
 
 export const API = '/api/v1';

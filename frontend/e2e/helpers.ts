@@ -288,21 +288,33 @@ function decodeQuotedPrintable(text: string): string {
   return Buffer.from(bytes).toString('utf8');
 }
 
-/** The newest message file addressed to `address`, decoded, or null when there is none. */
-function newestMessageTo(address: string): string | null {
-  if (!existsSync(MAIL_DIR)) return null;
-  const names = readdirSync(MAIL_DIR);
+/** Every message file addressed to `address`, decoded, newest first. */
+function messagesTo(address: string): string[] {
+  if (!existsSync(MAIL_DIR)) return [];
   const header = `to: ${address}`.toLowerCase();
-  const newestFirst = names
+  return readdirSync(MAIL_DIR)
     .map((name) => ({ path: resolve(MAIL_DIR, name), name }))
     .map((file) => ({ ...file, mtime: statSync(file.path).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime || b.name.localeCompare(a.name));
-  for (const file of newestFirst) {
-    const raw = readFileSync(file.path, 'utf8');
-    const isToAddress = raw.split(/\r?\n/).some((line) => line.toLowerCase() === header);
-    if (isToAddress) return decodeQuotedPrintable(raw);
-  }
-  return null;
+    .sort((a, b) => b.mtime - a.mtime || b.name.localeCompare(a.name))
+    .map((file) => readFileSync(file.path, 'utf8'))
+    .filter((raw) => raw.split(/\r?\n/).some((line) => line.toLowerCase() === header))
+    .map(decodeQuotedPrintable);
+}
+
+/** The newest message file addressed to `address`, decoded, or null when there is none. */
+function newestMessageTo(address: string): string | null {
+  return messagesTo(address)[0] ?? null;
+}
+
+/**
+ * How many emails have been sent to `address` so far in this run.
+ *
+ * A message is written before the response to the request that sent it, so a
+ * count read once that response has landed is final for that request: compare
+ * one taken before with one taken after to prove a request sent nothing.
+ */
+export function emailCountTo(address: string): number {
+  return messagesTo(address).length;
 }
 
 /**

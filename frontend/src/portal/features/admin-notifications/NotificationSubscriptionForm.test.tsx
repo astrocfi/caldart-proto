@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { NotificationSubscription } from '@/portal/api/types';
 import { API, makeNotificationSubscription, notificationHandlers } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { NotificationSubscriptionForm } from './NotificationSubscriptionForm';
-import type { NotificationSubscription } from './types';
 
 const SUBSCRIPTIONS_URL = `${API}/notifications/subscriptions`;
 

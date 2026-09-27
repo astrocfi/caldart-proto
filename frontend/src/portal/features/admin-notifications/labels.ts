@@ -1,5 +1,8 @@
 /** The words the notifications screen shows for a subscription and the event catalog. */
-import type { NotificationCategory, NotificationEvent, NotificationSubscription } from './types';
+import type { NotificationEvent, NotificationSubscription } from '@/portal/api/types';
+
+/** The headings the screen groups the events under, as the catalog names them. */
+export type NotificationCategory = 'Membership' | 'Money' | 'Accounts' | 'Aircraft';
 
 /** The categories, in the order the form groups the events under them. */
 export const CATEGORIES: readonly NotificationCategory[] = [

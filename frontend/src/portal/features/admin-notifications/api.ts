@@ -11,7 +11,7 @@ import type {
   NotificationSubscription,
   NotificationSubscriptionCreate,
   NotificationSubscriptionPatch,
-} from './types';
+} from '@/portal/api/types';
 
 export const NOTIFICATION_EVENTS_KEY = ['notifications', 'events'] as const;
 export const NOTIFICATION_SUBSCRIPTIONS_KEY = ['notifications', 'subscriptions'] as const;

@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { NotificationSubscription } from '@/portal/api/types';
 import { API, makeNotificationSubscription, notificationHandlers } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
 import { NotificationSubscriptionsCard } from './NotificationSubscriptionsCard';
-import type { NotificationSubscription } from './types';
 
 const ADA = makeNotificationSubscription({ id: 1, events: ['signed_up', 'became_member'] });
 

@@ -615,10 +615,10 @@ the files they test, and an ``index.ts`` of what the route files use:
 ======================  ======================================================
 
 Shared code sits outside ``features/``: ``components/`` holds the primitives
-every screen uses (``Page``, ``Card``, ``Field``, ``Button``, ``IconButton``,
-``DeleteButton``, ``StatusChip``, ``DataTable``, ``PanelButton``, ``ColumnChooser``,
-``FilterBar``, ``RunActionsTable``, ``Money``, ``DateText``, ``EmptyState``, and
-``Toast``), and ``choices.ts`` holds the one set of labels for certificate,
+every screen uses (``Page``, ``Card``, ``Field``, ``FixedValue``, ``Button``,
+``IconButton``, ``DeleteButton``, ``StatusChip``, ``DataTable``, ``PanelButton``,
+``ColumnChooser``, ``FilterBar``, ``RunActionsTable``, ``Money``, ``DateText``,
+``EmptyState``, and ``Toast``), and ``choices.ts`` holds the one set of labels for certificate,
 medical, IFR, rating, and role codes, and the list of California counties.
 ``components/icons.tsx`` holds the inline SVG icons -- ``TrashcanIcon``,
 ``ArrowUpIcon``, and ``ArrowDownIcon`` -- each ``aria-hidden``, drawn in

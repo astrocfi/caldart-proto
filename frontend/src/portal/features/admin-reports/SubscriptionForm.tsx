@@ -14,7 +14,7 @@
  * account holds must be confirmed with a checkbox that appears once the server
  * has asked for it.
  */
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent, JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
@@ -24,6 +24,7 @@ import { Button } from '@/portal/components/Button';
 import { ColumnChooser, defaultColumnKeys } from '@/portal/components/ColumnChooser';
 import { Field } from '@/portal/components/Field';
 import { FilterBar } from '@/portal/components/FilterBar';
+import { FixedValue } from '@/portal/components/FixedValue';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import { useEmailPurposes } from '@/portal/features/system/api';
 import {
@@ -359,24 +360,6 @@ export function SubscriptionForm({
         </div>
       </form>
     </section>
-  );
-}
-
-interface FixedValueProps {
-  label: string;
-  value: string;
-}
-
-/** A labeled value the form shows but does not let anyone change. */
-function FixedValue({ label, value }: FixedValueProps): JSX.Element {
-  const id = useId();
-  return (
-    <div className="field" role="group" aria-labelledby={id}>
-      <span className="field__label" id={id}>
-        {label}
-      </span>
-      <span>{value}</span>
-    </div>
   );
 }
 

@@ -4,9 +4,9 @@
  */
 import type { JSX } from 'react';
 
+import type { NotificationEvent } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { groupEvents } from './labels';
-import type { NotificationEvent } from './types';
 
 import './admin-notifications.css';
 

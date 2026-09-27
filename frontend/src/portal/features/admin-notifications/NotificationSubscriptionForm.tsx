@@ -9,11 +9,13 @@
  * must be confirmed with a checkbox that appears once the server has asked for
  * it.
  */
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent, JSX } from 'react';
 
+import type { NotificationSubscription } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
+import { FixedValue } from '@/portal/components/FixedValue';
 import { FormAlert, fieldError } from '@/portal/features/auth/form';
 import {
   useCreateNotificationSubscription,
@@ -22,7 +24,6 @@ import {
 } from './api';
 import { EventPicker } from './EventPicker';
 import { recipientLabel } from './labels';
-import type { NotificationSubscription } from './types';
 
 /** The fields a new subscription shows errors for itself. */
 const CREATE_HANDLED_FIELDS = ['recipient_email', 'events', 'confirmed'];
@@ -153,23 +154,5 @@ export function NotificationSubscriptionForm({
         </div>
       </form>
     </section>
-  );
-}
-
-interface FixedValueProps {
-  label: string;
-  value: string;
-}
-
-/** A labeled value the form shows but does not let anyone change. */
-function FixedValue({ label, value }: FixedValueProps): JSX.Element {
-  const id = useId();
-  return (
-    <div className="field" role="group" aria-labelledby={id}>
-      <span className="field__label" id={id}>
-        {label}
-      </span>
-      <span>{value}</span>
-    </div>
   );
 }
