@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -28,6 +28,7 @@ from apps.aircraft.api.serializers import (
     AircraftChangeSerializer,
     AircraftDetailSerializer,
     AircraftSerializer,
+    AircraftTypeSerializer,
     InsuranceVerificationSerializer,
     LeaderSearchResultSerializer,
     LeaderStatusSerializer,
@@ -41,6 +42,7 @@ from apps.aircraft.filters import (
     NullsLastOrderingFilter,
 )
 from apps.aircraft.models import Aircraft, AircraftChange, normalize_n_number
+from apps.aircraft.types import search_types
 from apps.aircraft.verification import verify_insurance
 from apps.members.api.actors import acting_user
 from apps.members.models import MemberProfile
@@ -76,10 +78,11 @@ def aircraft_serializer_for(request: Request) -> type[AircraftSerializer]:
 class AircraftQuerysetMixin(generics.GenericAPIView[Aircraft]):
     """The register, filtered and ordered identically everywhere.
 
-    The insurance verifier is joined, so naming who verified each row costs no query.
+    The insurance verifier and the aircraft type are joined, so naming who verified each
+    row, and its make and model, costs no query.
     """
 
-    queryset = Aircraft.objects.select_related("insurance_verified_by")
+    queryset = Aircraft.objects.select_related("insurance_verified_by", "type")
     filter_backends = [DjangoFilterBackend, NullsLastOrderingFilter]
     filterset_class = AircraftFilter
     ordering_fields = ORDERING_FIELDS
@@ -108,7 +111,7 @@ class AircraftListCreateView(AircraftQuerysetMixin, generics.ListCreateAPIView[A
 class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
     """``GET/PATCH/DELETE /aircraft/{id}`` with the register's object rules."""
 
-    queryset = Aircraft.objects.all()
+    queryset = Aircraft.objects.select_related("type")
     permission_classes = [AircraftPermission]
 
     def get_serializer_class(self) -> type[AircraftSerializer]:
@@ -177,9 +180,29 @@ class AircraftLookupView(APIView):
         n_number = normalize_n_number(request.query_params.get("n_number", ""))
         if not n_number:
             return Response({"n_number": "Enter a registration, for example N12345."}, status=400)
-        aircraft = get_object_or_404(Aircraft, n_number=n_number)
+        aircraft = get_object_or_404(Aircraft.objects.select_related("type"), n_number=n_number)
         serializer_class = aircraft_serializer_for(request)
         return Response(serializer_class(aircraft).data)
+
+
+class AircraftTypeSearchView(APIView):
+    """``GET /aircraft/types?q=`` -- the aircraft types matching ``q``, best first."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("q", str, description="What was typed: a name, a designator.")
+        ],
+        responses={200: AircraftTypeSerializer(many=True)},
+    )
+    def get(self, request: Request) -> Response:
+        """Return up to ten aircraft types ``search_types`` finds for ``q``.
+
+        A missing or blank ``q`` answers an empty list.
+        """
+        found = search_types(request.query_params.get("q", ""))
+        return Response(AircraftTypeSerializer(found, many=True).data)
 
 
 # --------------------------------------------------------------------------
@@ -231,7 +254,7 @@ class LeaderAircraftView(APIView):
         n_number = normalize_n_number(request.query_params.get("n_number", ""))
         if not n_number:
             return Response({"n_number": "Enter a registration, for example N12345."}, status=400)
-        aircraft = get_object_or_404(Aircraft, n_number=n_number)
+        aircraft = get_object_or_404(Aircraft.objects.select_related("type"), n_number=n_number)
         return Response(AircraftDetailSerializer(aircraft).data)
 
 

@@ -16,6 +16,7 @@ from apps.aircraft.models import (
     Aircraft,
     AircraftChange,
     AircraftChangeKind,
+    AircraftType,
     normalize_n_number,
 )
 from apps.aircraft.verification import INSURANCE_FIELDS
@@ -36,6 +37,9 @@ from apps.members.verification import (
 )
 
 NEGATIVE_MONEY_MESSAGE = "Enter an amount of $0 or more."
+
+#: What a write without a usable aircraft type is answered with.
+TYPE_MESSAGE = "Pick the aircraft type from the list."
 
 
 def _actor_payload(user: User | None) -> dict[str, Any] | None:
@@ -87,9 +91,28 @@ class VerificationSerializer(serializers.Serializer[VerificationState]):
     verified_at = serializers.DateTimeField(allow_null=True)
 
 
-class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
-    """The short form embedded in profiles, leader cards and pickers."""
+class AircraftTypeSerializer(serializers.ModelSerializer[AircraftType]):
+    """One aircraft type: its display make and model, seats, engines, and whether custom.
 
+    ``seats`` and ``engines`` are null when the registry does not say; ``is_custom`` is
+    true for a type an account administrator added by hand.
+    """
+
+    class Meta:
+        model = AircraftType
+        fields = ["id", "make", "model", "seats", "engines", "is_custom"]
+        read_only_fields = fields
+
+
+class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
+    """The short form embedded in profiles, leader cards and pickers.
+
+    ``make`` and ``model`` are the display names of the aircraft's ``type``.
+    """
+
+    make = serializers.CharField(read_only=True)
+    model = serializers.CharField(read_only=True)
+    type = AircraftTypeSerializer(read_only=True)
     insurance_is_current = serializers.BooleanField(read_only=True)
     insurance_summary = serializers.CharField(read_only=True)
     insurance_verified = serializers.BooleanField(source="insurance_is_verified", read_only=True)
@@ -101,6 +124,7 @@ class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
             "n_number",
             "make",
             "model",
+            "type",
             "insurance_is_current",
             "insurance_expiration",
             "insurance_summary",
@@ -110,7 +134,13 @@ class AircraftSummarySerializer(serializers.ModelSerializer[Aircraft]):
 
 
 class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
-    """The full record.  ``created_by`` is set by the view."""
+    """The full record.  ``created_by`` is set by the view.
+
+    The aircraft type is written as ``type_id``, the id of an ``AircraftType`` (required
+    on create, refused with :data:`TYPE_MESSAGE` when missing, null, or unknown), and read
+    back as the nested ``type`` with its display ``make`` and ``model`` beside it; neither
+    ``make`` nor ``model`` is written.
+    """
 
     n_number = NNumberField(
         max_length=12,
@@ -121,8 +151,20 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
             )
         ],
     )
-    make = serializers.CharField(max_length=60, allow_blank=False)
-    model = serializers.CharField(max_length=60, allow_blank=False)
+    make = serializers.CharField(read_only=True)
+    model = serializers.CharField(read_only=True)
+    type = AircraftTypeSerializer(read_only=True)
+    type_id = serializers.PrimaryKeyRelatedField(
+        source="type",
+        queryset=AircraftType.objects.all(),
+        write_only=True,
+        error_messages={
+            "required": TYPE_MESSAGE,
+            "null": TYPE_MESSAGE,
+            "does_not_exist": TYPE_MESSAGE,
+            "incorrect_type": TYPE_MESSAGE,
+        },
+    )
     insurance_liability_per_occurrence_cents = serializers.IntegerField(
         min_value=0, required=False, error_messages={"min_value": NEGATIVE_MONEY_MESSAGE}
     )
@@ -146,6 +188,8 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
             "n_number",
             "make",
             "model",
+            "type",
+            "type_id",
             "year",
             "owner_type",
             "owner_name",
@@ -167,6 +211,9 @@ class AircraftSerializer(serializers.ModelSerializer[Aircraft]):
         ]
         read_only_fields = [
             "id",
+            "make",
+            "model",
+            "type",
             "created_by",
             "updated_at",
             "insurance_is_current",

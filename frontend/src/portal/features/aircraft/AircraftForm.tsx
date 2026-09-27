@@ -2,16 +2,16 @@
  * The full aircraft record, in four sections: the airframe, its owner, its
  * insurance and the administrator's own notes.
  */
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import type { JSX } from 'react';
 
-import type { AircraftPatch } from '@/portal/api/types';
+import type { AircraftPatch, AircraftType } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { maskDigits, maskDollars, maskNNumber } from '@/portal/masks';
+import { AircraftTypeSelect } from './AircraftTypeSelect';
 import './aircraft.css';
-import { matchType, suggestTypes } from './catalog';
 import type { AircraftFormValues } from './form';
 import { OWNER_TYPES, OWNER_TYPE_LABELS, aircraftPayload, validateAircraft } from './form';
 
@@ -37,7 +37,6 @@ export function AircraftForm({
   onCancel: handleCancel,
   withAdminFields = false,
 }: AircraftFormProps): JSX.Element {
-  const modelListId = useId();
   const [values, setValues] = useState<AircraftFormValues>(initial);
   // The fields that have been typed in and left; a complaint appears when the
   // typist moves on from a field rather than when they try to save.
@@ -58,23 +57,7 @@ export function AircraftForm({
     setValues((current) => ({ ...current, [key]: value }));
   };
 
-  const suggestions = suggestTypes(values.model);
-
-  /**
-   * Take what was typed, and fill the make in when it names one known type.
-   *
-   * Picking "PA-46 Malibu" from the list should not then need "Piper" typed
-   * beside it; typing a model nobody has heard of is still allowed, and an
-   * already-typed make is never overwritten.
-   */
-  const handleModel = (typed: string): void => {
-    const known = matchType(typed);
-    setValues((current) => ({
-      ...current,
-      model: typed,
-      make: known && !current.make.trim() ? known.make : current.make,
-    }));
-  };
+  const handleType = (type: AircraftType | null): void => set('type', type);
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
@@ -120,36 +103,12 @@ export function AircraftForm({
               />
             )}
           </Field>
-          <Field label="Make" required error={shown.make}>
-            {(field) => (
-              <input
-                {...field}
-                value={values.make}
-                onChange={(event) => set('make', event.target.value)}
-                onBlur={handleBlur('make')}
-              />
-            )}
-          </Field>
-          <Field label="Model" required error={shown.model} hint="Start typing: Mal, 172, RV-7">
-            {(field) => (
-              <>
-                <input
-                  {...field}
-                  list={modelListId}
-                  value={values.model}
-                  onChange={(event) => handleModel(event.target.value)}
-                  onBlur={handleBlur('model')}
-                />
-                <datalist id={modelListId}>
-                  {suggestions.map((type) => (
-                    <option key={type.designator + type.model} value={type.model}>
-                      {type.make} · {type.designator}
-                    </option>
-                  ))}
-                </datalist>
-              </>
-            )}
-          </Field>
+          <AircraftTypeSelect
+            value={values.type}
+            onChange={handleType}
+            onBlur={handleBlur('type_id')}
+            error={shown.type_id}
+          />
           <Field label="Seats" error={shown.seats}>
             {(field) => (
               <MaskedInput

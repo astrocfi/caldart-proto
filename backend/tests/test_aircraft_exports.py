@@ -271,6 +271,8 @@ def test_the_export_subtitle_covers_every_filter_the_list_applies() -> None:
     assert EXPORT_FILTER_PARAMS == (
         "search",
         "make",
+        "model",
+        "type",
         "owner_type",
         "insurance",
         "expiring_within",

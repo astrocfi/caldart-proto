@@ -5,13 +5,13 @@
  * edit form render different subsets of the same fields, so they share the
  * conversion between form strings and the API's integer cents.
  */
-import type { Aircraft, AircraftPatch, OwnerType } from '@/portal/api/types';
+import type { Aircraft, AircraftPatch, AircraftType, OwnerType } from '@/portal/api/types';
 import { centsToDollars, dollarsToCents, normalizeNNumber } from './insurance';
 
 export interface AircraftFormValues {
   n_number: string;
-  make: string;
-  model: string;
+  /** The aircraft type picked from the list, or null until one is. */
+  type: AircraftType | null;
   year: string;
   owner_type: OwnerType;
   owner_name: string;
@@ -39,8 +39,7 @@ export const OWNER_TYPES: OwnerType[] = ['individual', 'fbo', 'club'];
 export function emptyAircraftValues(nNumber = ''): AircraftFormValues {
   return {
     n_number: nNumber,
-    make: '',
-    model: '',
+    type: null,
     year: '',
     owner_type: 'individual',
     owner_name: '',
@@ -61,8 +60,7 @@ export function emptyAircraftValues(nNumber = ''): AircraftFormValues {
 export function aircraftToValues(aircraft: Aircraft): AircraftFormValues {
   return {
     n_number: aircraft.n_number,
-    make: aircraft.make,
-    model: aircraft.model,
+    type: aircraft.type,
     year: aircraft.year === null ? '' : String(aircraft.year),
     owner_type: aircraft.owner_type,
     owner_name: aircraft.owner_name,
@@ -90,6 +88,8 @@ export const MONEY_ERROR = 'Enter an amount of $0 or more.';
  */
 export const N_NUMBER_RE = /^N[1-9][0-9]{0,3}[A-HJ-NP-Z]{0,2}$|^N[1-9][0-9]{0,4}$/;
 
+export const TYPE_MESSAGE = 'Pick the aircraft type from the list.';
+
 export const N_NUMBER_MESSAGE =
   'Use a US registration like N172SP: N, then digits, then at most two letters.';
 
@@ -102,8 +102,7 @@ export function validateAircraft(values: AircraftFormValues): Record<string, str
   } else if (!N_NUMBER_RE.test(registration)) {
     errors.n_number = N_NUMBER_MESSAGE;
   }
-  if (!values.make.trim()) errors.make = 'Enter the make, for example Cessna.';
-  if (!values.model.trim()) errors.model = 'Enter the model, for example 172S Skyhawk.';
+  if (values.type === null) errors.type_id = TYPE_MESSAGE;
   for (const field of MONEY_FIELDS) {
     const raw = values[field];
     if (raw.trim() && dollarsToCents(raw) === null) errors[field] = MONEY_ERROR;
@@ -120,12 +119,14 @@ function optionalNumber(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/** Form values as the JSON body `POST /aircraft` and `PATCH` expect. */
+/**
+ * Form values as the JSON body `POST /aircraft` and `PATCH` expect.  The type
+ * goes as `type_id`, left out while none is picked.
+ */
 export function aircraftPayload(values: AircraftFormValues): AircraftPatch {
   return {
     n_number: normalizeNNumber(values.n_number),
-    make: values.make.trim(),
-    model: values.model.trim(),
+    ...(values.type === null ? {} : { type_id: values.type.id }),
     year: optionalNumber(values.year),
     owner_type: values.owner_type,
     owner_name: values.owner_name.trim(),

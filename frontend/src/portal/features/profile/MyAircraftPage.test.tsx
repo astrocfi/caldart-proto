@@ -10,7 +10,7 @@ import type { AircraftPickerProps } from '@/portal/features/aircraft';
 
 import type { Aircraft } from '@/portal/api/types';
 import { MyAircraftPage } from './MyAircraftPage';
-import { TEST_AIRCRAFT, makeProfile } from '@test/fixtures/profile';
+import { TEST_AIRCRAFT, makeAircraftType, makeProfile } from '@test/fixtures/profile';
 
 /**
  * `<AircraftPicker/>` has its own tests, and driving it means a debounced
@@ -23,6 +23,7 @@ const PICKED: Aircraft = {
   n_number: 'N54321',
   make: 'Piper',
   model: 'Archer',
+  type: makeAircraftType({ id: 4, make: 'Piper', model: 'Archer' }),
   year: null,
   owner_type: 'individual',
   owner_name: '',
@@ -216,6 +217,7 @@ describe('<MyAircraftPage/> editing', () => {
       n_number: TEST_AIRCRAFT.n_number,
       make: TEST_AIRCRAFT.make,
       model: TEST_AIRCRAFT.model,
+      type: TEST_AIRCRAFT.type,
       insurance_expiration: TEST_AIRCRAFT.insurance_expiration,
       insurance_is_current: TEST_AIRCRAFT.insurance_is_current,
       insurance_summary: TEST_AIRCRAFT.insurance_summary,

@@ -280,7 +280,7 @@ def leader_status(user: UserModel) -> dict[str, Any]:
             "verification": _item_state(profile, "photo_id"),
         },
         "is_verifier": VERIFIER in user.roles,
-        "aircraft": list(profile.aircraft.all()) if profile is not None else [],
+        "aircraft": list(profile.aircraft.select_related("type")) if profile is not None else [],
         "go_no_go": {
             "membership": membership_ok,
             "medical": medical_ok,

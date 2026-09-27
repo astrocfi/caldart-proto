@@ -80,7 +80,8 @@ Adding an airplane
 
 **New aircraft**, at the top right, opens **Add an aircraft** above the table, and the
 button reads **Close** while the form is open. The form is the one on the
-:doc:`aircraft-record`. Only the N-number, make, and model are required. Press **Add
+:doc:`aircraft-record`. Only the N-number and the aircraft type are required; the type is
+picked from the list **Find the aircraft type** fills. Press **Add
 aircraft**. The message reads that the airplane was *added to the register*, and its record
 opens.
 

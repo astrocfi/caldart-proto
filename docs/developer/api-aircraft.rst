@@ -66,6 +66,14 @@ The register, open to any authenticated user, paginated with ``?page=`` and
          "n_number": "N172SP",
          "make": "Cessna",
          "model": "172S Skyhawk",
+         "type": {
+           "id": 3,
+           "make": "Cessna",
+           "model": "172S Skyhawk",
+           "seats": 4,
+           "engines": 1,
+           "is_custom": false
+         },
          "year": 2008,
          "owner_type": "club",
          "owner_name": "Palo Alto Flying Club",
@@ -92,6 +100,13 @@ The register, open to any authenticated user, paginated with ``?page=`` and
      ]
    }
 
+``type`` is the aircraft's entry in the aircraft types (:doc:`data-model`):
+its id, display make and model, ``seats`` and ``engines`` (``null`` when the
+registry does not say), and ``is_custom``, true for a type an account
+administrator added by hand.  ``make`` and ``model`` repeat the type's display
+names, so every screen that prints them reads one spelling.  The type is
+joined to the page's query, so it costs nothing per row.
+
 ``insurance_is_current`` and ``insurance_summary`` are model properties, not
 columns: the summary reads ``No insurance on file`` when neither a liability
 figure nor an expiry date is recorded.  ``insurance_verification`` says whether
@@ -106,10 +121,12 @@ who added the record, or ``null`` for an airframe the seed created.
 ===================  ============================================================
 Parameter            Meaning
 ===================  ============================================================
-``search``           ``icontains`` over ``n_number``, ``make``, ``model``, and
-                     ``owner_name``, plus the normalized form of the term
-                     against ``n_number``
-``make``             ``icontains`` on ``make``
+``search``           ``icontains`` over ``n_number``, the type's ``make`` and
+                     ``model``, and ``owner_name``, plus the normalized form
+                     of the term against ``n_number``
+``make``             ``icontains`` on the type's ``make``
+``model``            ``icontains`` on the type's ``model``
+``type``             The id of one aircraft type
 ``owner_type``       ``individual`` | ``fbo`` | ``club``
 ``insurance``        ``current`` (expiry ≥ today) | ``expired`` (expiry <
                      today) | ``missing`` (no expiry recorded)
@@ -125,7 +142,9 @@ Parameter            Meaning
                      offered as one to fly
 ``ordering``         ``n_number``, ``make``, ``model``, ``owner_name``,
                      ``insurance_expiration``; prefix ``-`` to reverse.
-                     Defaults to ``n_number``
+                     ``make`` and ``model`` sort on the type's
+                     (``type__make``, ``type__model``).  Defaults to
+                     ``n_number``
 ===================  ============================================================
 
 Ordering goes through ``NullsLastOrderingFilter``, which does two things.
@@ -154,8 +173,7 @@ register is filled in by the members who fly the airplanes.
 
    {
      "n_number": "n-172sp",
-     "make": "Cessna",
-     "model": "172S Skyhawk",
+     "type_id": 3,
      "year": 2008,
      "owner_type": "club",
      "owner_name": "Palo Alto Flying Club",
@@ -168,15 +186,18 @@ register is filled in by the members who fly the airplanes.
 
 ``created_by`` and ``updated_by`` are taken from the session and cannot be set
 by the client, and ``updated_at`` is the clock's.
-``n_number`` is required and stored normalized, ``make`` and ``model`` are
-required and may not be blank, the three money fields are integer cents and
-must be ``>= 0``, and everything else is optional.
+``n_number`` is required and stored normalized.  ``type_id`` is required: the
+id of an entry of the aircraft types, which ``GET /aircraft/types`` finds.
+``make``, ``model``, and ``type`` are read-only and a body naming them changes
+nothing.  The three money fields are integer cents and must be ``>= 0``, and
+everything else is optional.
 
 Statuses:
 
 * **201** — the stored record, in the row shape above.
-* **400** — a missing or blank ``n_number``, ``make``, or ``model``; a
-  registration that normalizes to nothing, refused with ``{"n_number": ["Enter
+* **400** — a missing or blank ``n_number``; a missing, ``null``, or unknown
+  ``type_id``, refused with ``{"type_id": ["Pick the aircraft type from the
+  list."]}``; a registration that normalizes to nothing, refused with ``{"n_number": ["Enter
   a registration, for example N12345."]}``; a registration already on file,
   refused with ``{"n_number": ["An aircraft with this N-number is already on
   file."]}``; or a negative money field, refused with ``Enter an amount of $0
@@ -196,6 +217,14 @@ verifying role (``verifier``, ``dart_leader``, ``user_admin``, or
      "n_number": "N172SP",
      "make": "Cessna",
      "model": "172S Skyhawk",
+     "type": {
+       "id": 3,
+       "make": "Cessna",
+       "model": "172S Skyhawk",
+       "seats": 4,
+       "engines": 1,
+       "is_custom": false
+     },
      "year": 2008,
      "owner_type": "club",
      "owner_name": "Palo Alto Flying Club",
@@ -283,8 +312,7 @@ delete.
 ----------------------
 
 Replaces the record.  Every required field must be present: a ``PUT`` without
-``n_number``, ``make``, and ``model`` is refused rather than merged into the
-stored row, and the optional fields it leaves out keep the values they have.
+``n_number`` and ``type_id`` is refused rather than merged into the stored row, and the optional fields it leaves out keep the values they have.
 The response is the record in the same shape ``GET /aircraft/{id}`` returns,
 ``pilots`` included when the caller is entitled to it.
 
@@ -292,8 +320,7 @@ The response is the record in the same shape ``GET /aircraft/{id}`` returns,
 
    {
      "n_number": "N172SP",
-     "make": "Cessna",
-     "model": "172S Skyhawk",
+     "type_id": 3,
      "insurance_carrier": "Avemco",
      "insurance_expiration": "2028-03-01"
    }
@@ -301,7 +328,7 @@ The response is the record in the same shape ``GET /aircraft/{id}`` returns,
 Statuses:
 
 * **200** — the updated record.
-* **400** — a missing ``n_number``, ``make``, or ``model``, or any of the
+* **400** — a missing ``n_number`` or ``type_id``, or any of the
   validation refusals ``POST /aircraft`` lists.  The uniqueness check skips
   the record being edited, so resending its own registration is not a clash.
 * **403** — the caller neither created the record nor holds ``account_admin``.
@@ -407,6 +434,37 @@ Statuses:
 * **400** — ``n_number`` missing or normalizing to nothing, answered
   ``{"n_number": "Enter a registration, for example N12345."}``.
 * **404** — the register has never seen that registration.
+
+``GET /aircraft/types?q=``
+--------------------------
+
+The aircraft types matching ``q``, best first, at most ten, open to any
+authenticated user.  This is what the aircraft forms search to pick a type.
+
+.. code-block:: json
+
+   [
+     {
+       "id": 3,
+       "make": "Cessna",
+       "model": "172S",
+       "seats": 4,
+       "engines": 1,
+       "is_custom": false
+     }
+   ]
+
+``search_types()`` in ``apps/aircraft/types.py`` answers it: first the type an
+alias names exactly (``c172``, ``skyhawk``), then the types whose
+``make || ' ' || model`` is similar to ``q`` by trigram, then, when ``q``
+holds digits, the types whose model contains them.  So ``cesna 172``,
+``CESSNA``, ``c172``, and ``skyhawk`` all lead with the Cessna 172.
+:doc:`data-model` describes the rule in full.
+
+Statuses:
+
+* **200** — the array above; ``[]`` when ``q`` is missing or blank, or nothing
+  resembles it.
 
 
 The aircraft report
@@ -529,6 +587,14 @@ The pre-flight status card for one member.
          "n_number": "N172SP",
          "make": "Cessna",
          "model": "172S Skyhawk",
+         "type": {
+           "id": 3,
+           "make": "Cessna",
+           "model": "172S Skyhawk",
+           "seats": 4,
+           "engines": 1,
+           "is_custom": false
+         },
          "insurance_is_current": true,
          "insurance_expiration": "2027-03-01",
          "insurance_summary": "$1,000,000 / $100,000 · exp 2027-03-01",
@@ -708,7 +774,15 @@ Where the code lives
 File                                   Contents
 =====================================  ======================================
 ``apps/aircraft/models.py``            ``Aircraft``, ``AircraftChange``,
+                                       ``AircraftType``,
+                                       ``AircraftTypeAlias``,
+                                       ``Registration``,
+                                       ``RegistryImport``,
                                        ``normalize_n_number``
+``apps/aircraft/naming.py``            ``display_make``, ``display_model``,
+                                       ``MAKE_NAMES``
+``apps/aircraft/aliases.py``           ``ALIASES``, ``write_aliases``
+``apps/aircraft/types.py``             ``search_types``
 ``apps/aircraft/services.py``          ``record_change``, ``changed_fields``,
                                        ``record_added``, ``record_updated``,
                                        ``delete_aircraft`` (each raising its
@@ -727,7 +801,8 @@ File                                   Contents
 =====================================  ======================================
 
 Tests: ``backend/tests/test_aircraft_api.py`` (CRUD, permissions,
-normalization, every filter), ``test_aircraft_history.py`` (the change rows the
+normalization, every filter), ``test_aircraft_types.py`` (the aircraft types,
+their display names, aliases, and search), ``test_aircraft_history.py`` (the change rows the
 register's writes leave and the history endpoint),
 ``test_aircraft_exports.py`` (the aircraft report: CSV content, PDF
 validity, subtitle), ``test_leader_api.py`` (search, the membership ×

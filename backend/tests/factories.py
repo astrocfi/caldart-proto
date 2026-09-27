@@ -15,7 +15,13 @@ from wagtail.models import Page, Site
 
 from apps.accounts.models import AccountKind
 from apps.accounts.roles import MEMBER
-from apps.aircraft.models import Aircraft, AircraftChange, AircraftChangeKind, OwnerType
+from apps.aircraft.models import (
+    Aircraft,
+    AircraftChange,
+    AircraftChangeKind,
+    AircraftType,
+    OwnerType,
+)
 from apps.cms.models import (
     ContactPage,
     DartIndexPage,
@@ -158,16 +164,47 @@ class DartContactFactory(ModelFactory[DartContact]):
     receives_roster = False
 
 
+class AircraftTypeFactory(ModelFactory[AircraftType]):
+    """Builds an ``AircraftType``, reusing an existing row with the same make and model.
+
+    The FAA spellings default to the display names upper-cased, and the FAA code to a
+    unique ``T<n>``.
+    """
+
+    class Meta:
+        model = AircraftType
+        django_get_or_create = ["make", "model"]
+
+    faa_code = factory.Sequence(lambda n: f"T{n:06d}")
+    make = "Cessna"
+    model = "182T"
+    faa_make = factory.LazyAttribute(lambda o: o.make.upper())
+    faa_model = factory.LazyAttribute(lambda o: o.model.upper())
+    seats = 4
+    engines = 1
+
+
 class AircraftFactory(ModelFactory[Aircraft]):
-    """Builds an ``Aircraft``, reusing an existing row with the same N-number."""
+    """Builds an ``Aircraft``, reusing an existing row with the same N-number.
+
+    ``make`` and ``model`` name the aircraft type, which is found or created through
+    ``AircraftTypeFactory``; pass ``type`` instead to use a type already in hand.
+    """
 
     class Meta:
         model = Aircraft
         django_get_or_create = ["n_number"]
 
+    class Params:
+        make = "Cessna"
+        model = "182T Skylane"
+
     n_number = factory.Sequence(lambda n: f"N{5000 + n}X")
-    make = "Cessna"
-    model = "182T Skylane"
+    type = factory.SubFactory(
+        AircraftTypeFactory,
+        make=factory.SelfAttribute("..make"),
+        model=factory.SelfAttribute("..model"),
+    )
     year = 2008
     owner_type = OwnerType.INDIVIDUAL
     owner_name = factory.Faker("name")

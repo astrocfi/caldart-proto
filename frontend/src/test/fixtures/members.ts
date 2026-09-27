@@ -1,6 +1,7 @@
 /** Test fixtures for the members-admin screens. */
 import type { AdminProfile, MemberDetail, MemberRow, MembershipStatus } from '@/portal/api/types';
 import { NONE_VERIFIED } from '../handlers';
+import { makeAircraftType } from './profile';
 
 export const CURRENT: MembershipStatus = {
   status: 'current',
@@ -73,6 +74,7 @@ const PROFILE: AdminProfile = {
       n_number: 'N172SP',
       make: 'Cessna',
       model: '172S',
+      type: makeAircraftType({ id: 1, model: '172S' }),
       insurance_is_current: true,
       insurance_expiration: '2027-03-01',
       insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',

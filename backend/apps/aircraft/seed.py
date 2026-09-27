@@ -9,14 +9,15 @@ from typing import TYPE_CHECKING, Any
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.aircraft.models import Aircraft, OwnerType
+from apps.aircraft.models import Aircraft, AircraftType, OwnerType
 
 if TYPE_CHECKING:
     from io import TextIOBase
 
 AIRCRAFT_COUNT = 25
 
-#: (make, model, typical seats)
+#: (make, model, typical seats): the display names of the aircraft types the seeded
+#: aircraft are drawn from.
 AIRFRAMES: tuple[tuple[str, str, int], ...] = (
     ("Cessna", "172S Skyhawk", 4),
     ("Cessna", "182T Skylane", 4),
@@ -31,7 +32,7 @@ AIRFRAMES: tuple[tuple[str, str, int], ...] = (
     ("Cirrus", "SR20", 4),
     ("Cirrus", "SR22", 4),
     ("Diamond", "DA40 NG", 4),
-    ("Grumman", "AA-5 Tiger", 4),
+    ("Grumman American", "AA-5 Tiger", 4),
     ("Maule", "M-7-235", 4),
 )
 
@@ -73,6 +74,29 @@ def _n_number(rng: random.Random) -> str:
     return f"N{rng.randint(10000, 99999)}"
 
 
+def _seed_types() -> list[AircraftType]:
+    """Create or refresh one aircraft type for each entry of :data:`AIRFRAMES`.
+
+    The n-th entry (counting from one) is the type with FAA code ``SEED-<n>``, its FAA
+    make and model the display names upper-cased.  Returns the types in
+    :data:`AIRFRAMES` order.
+    """
+    return [
+        AircraftType.objects.update_or_create(
+            faa_code=f"SEED-{position}",
+            defaults={
+                "faa_make": make.upper(),
+                "faa_model": model.upper(),
+                "make": make,
+                "model": model,
+                "seats": seats,
+                "engines": 1,
+            },
+        )[0]
+        for position, (make, model, seats) in enumerate(AIRFRAMES, start=1)
+    ]
+
+
 def _seed_verification(aircraft: list[Aircraft], leader: User | None) -> None:
     """Verify, as ``leader``, the insurance of every aircraft outside the gaps.
 
@@ -91,6 +115,7 @@ def _seed_verification(aircraft: list[Aircraft], leader: User | None) -> None:
 def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]:
     """Create the aircraft register and attach airframes to pilot profiles.
 
+    Each aircraft is given one of the aircraft types made from :data:`AIRFRAMES`.
     Reads ``rng``, ``faker``, and ``today`` from ``ctx``, and ``profiles`` when present.
     Adds the created ``Aircraft`` list to ``ctx`` under ``aircraft`` and returns
     ``ctx``. Writes a one-line summary to ``stdout`` when given.  The seeded DART
@@ -106,6 +131,7 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
     for label, weight in INSURANCE_MIX:
         mix.extend([label] * weight)
 
+    types = _seed_types()
     created: list[Aircraft] = []
     seen: set[str] = set()
     attempts = 0
@@ -116,7 +142,7 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
             continue
         seen.add(n_number)
 
-        make, model, seats = rng.choice(AIRFRAMES)
+        aircraft_type = rng.choice(types)
         insurance = mix[len(created) % len(mix)]
         if insurance == "current":
             expiration = today + timedelta(days=rng.randint(45, 700))
@@ -143,15 +169,14 @@ def run(ctx: dict[str, Any], stdout: TextIOBase | None = None) -> dict[str, Any]
         aircraft, _ = Aircraft.objects.update_or_create(
             n_number=n_number,
             defaults={
-                "make": make,
-                "model": model,
+                "type": aircraft_type,
                 "year": rng.randint(1968, 2024),
                 "owner_type": owner_type,
                 "owner_name": owner_name,
                 "owner_contact": faker.email()
                 if rng.random() < 0.6
                 else faker.numerify("###-###-####"),
-                "seats": seats,
+                "seats": aircraft_type.seats,
                 "insurance_carrier": rng.choice(CARRIERS) if expiration else "",
                 "insurance_policy_number": (faker.numerify("AV-########") if expiration else ""),
                 "insurance_liability_per_occurrence_cents": per_occurrence if expiration else 0,

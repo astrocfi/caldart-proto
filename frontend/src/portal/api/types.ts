@@ -610,11 +610,28 @@ export interface TermUpdatePayload {
 /* ---------------------------------------------------------------- aircraft */
 export type OwnerType = 'individual' | 'fbo' | 'club';
 
+/**
+ * One entry of the aircraft types, from `GET /aircraft/types?q=`.
+ *
+ * `seats` and `engines` are null when the registry does not say; `is_custom`
+ * marks a type an account administrator added by hand.
+ */
+export interface AircraftType {
+  id: number;
+  make: string;
+  model: string;
+  seats: number | null;
+  engines: number | null;
+  is_custom: boolean;
+}
+
+/** `make` and `model` are the display names of `type`, repeated for convenience. */
 export interface AircraftSummary {
   id: number;
   n_number: string;
   make: string;
   model: string;
+  type: AircraftType;
   insurance_is_current: boolean;
   insurance_expiration: IsoDate | null;
   insurance_summary: string;
@@ -641,10 +658,17 @@ export interface Aircraft extends Omit<AircraftSummary, 'insurance_verified'> {
   is_active: boolean;
 }
 
+/**
+ * The write body of `POST /aircraft` and `PATCH /aircraft/{id}`.  The type is
+ * written as `type_id`; `make`, `model`, and `type` are read-only.
+ */
 export type AircraftPatch = Partial<
   Omit<
     Aircraft,
     | 'id'
+    | 'make'
+    | 'model'
+    | 'type'
     | 'insurance_is_current'
     | 'insurance_summary'
     | 'insurance_verified'
@@ -652,7 +676,7 @@ export type AircraftPatch = Partial<
     | 'created_by'
     | 'updated_at'
     | 'n_number'
-  > & { n_number: string }
+  > & { n_number: string; type_id: number }
 >;
 
 /** A member who lists an aircraft among the planes they commonly fly. */

@@ -9,7 +9,7 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 
 import { ApiError } from '@/portal/api/client';
-import type { Aircraft } from '@/portal/api/types';
+import type { Aircraft, AircraftType } from '@/portal/api/types';
 import { Button } from '@/portal/components/Button';
 import { Card } from '@/portal/components/Card';
 import { EmptyState } from '@/portal/components/EmptyState';
@@ -17,6 +17,7 @@ import { Field } from '@/portal/components/Field';
 import { MaskedInput } from '@/portal/components/MaskedInput';
 import { useDebounced } from '@/portal/components/useDebounced';
 import { maskDigits, maskNNumber } from '@/portal/masks';
+import { AircraftTypeSelect } from './AircraftTypeSelect';
 import './aircraft.css';
 import { InsuranceChip } from './InsuranceChip';
 import { ServiceChip } from './ServiceChip';
@@ -179,6 +180,8 @@ function NewAircraftForm({
     setValues((current) => ({ ...current, [key]: value }));
   };
 
+  const handleType = (type: AircraftType | null): void => set('type', type);
+
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     const found = validateAircraft(values);
@@ -210,26 +213,7 @@ function NewAircraftForm({
       </Field>
 
       <div className="aircraft-new__pair">
-        <Field label="Make" required error={errors.make}>
-          {(field) => (
-            <input
-              {...field}
-              value={values.make}
-              placeholder="Cessna"
-              onChange={(event) => set('make', event.target.value)}
-            />
-          )}
-        </Field>
-        <Field label="Model" required error={errors.model}>
-          {(field) => (
-            <input
-              {...field}
-              value={values.model}
-              placeholder="172S Skyhawk"
-              onChange={(event) => set('model', event.target.value)}
-            />
-          )}
-        </Field>
+        <AircraftTypeSelect value={values.type} onChange={handleType} error={errors.type_id} />
       </div>
 
       <div className="aircraft-new__pair">

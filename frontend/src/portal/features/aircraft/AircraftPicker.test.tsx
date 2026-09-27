@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { makeAircraftType } from '@test/fixtures/profile';
 import { API } from '@test/handlers';
 import { renderWithProviders } from '@test/render';
 import { server } from '@test/server';
@@ -27,6 +28,7 @@ function makeAircraft(overrides: Partial<Aircraft> = {}): Aircraft {
     n_number: 'N172SP',
     make: 'Cessna',
     model: '172S Skyhawk',
+    type: makeAircraftType({ id: 1, model: '172S Skyhawk' }),
     insurance_is_current: true,
     insurance_expiration: '2027-03-01',
     insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',
@@ -314,17 +316,20 @@ describe('AircraftPicker', () => {
     await search(user, /Search the aircraft register/i, 'n4321q');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
 
-    await user.type(screen.getByLabelText(/^Make/), 'Cirrus');
-    await user.type(screen.getByLabelText(/^Model/), 'SR22');
+    await search(user, /^Find the aircraft type/, 'sr22');
+    await user.selectOptions(
+      screen.getByLabelText(/^Aircraft type/),
+      await screen.findByRole('option', { name: /^Cirrus SR22/ }),
+    );
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
     await waitFor(() =>
       expect(handleSelect).toHaveBeenCalledWith(expect.objectContaining(created)),
     );
-    expect(posted).toMatchObject({ n_number: 'N4321Q', make: 'Cirrus', model: 'SR22' });
+    expect(posted).toMatchObject({ n_number: 'N4321Q', type_id: 3 });
   });
 
-  it('will not submit without a make and model', async () => {
+  it('will not submit without an aircraft type', async () => {
     const user = setupUser();
     const post = vi.fn();
     server.use(
@@ -340,8 +345,7 @@ describe('AircraftPicker', () => {
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
-    expect(await screen.findByText(/Enter the make/i)).toBeInTheDocument();
-    expect(screen.getByText(/Enter the model/i)).toBeInTheDocument();
+    expect(await screen.findByText('Pick the aircraft type from the list.')).toBeInTheDocument();
     expect(post).not.toHaveBeenCalled();
   });
 
@@ -360,8 +364,11 @@ describe('AircraftPicker', () => {
     renderWithProviders(<AircraftPicker onSelect={() => {}} />);
     await search(user, /Search the aircraft register/i, 'n172sp');
     await user.click(await screen.findByRole('button', { name: /Add a new aircraft/i }));
-    await user.type(screen.getByLabelText(/^Make/), 'Cessna');
-    await user.type(screen.getByLabelText(/^Model/), '172S');
+    await search(user, /^Find the aircraft type/, '172S');
+    await user.selectOptions(
+      screen.getByLabelText(/^Aircraft type/),
+      await screen.findByRole('option', { name: /^Cessna 172S/ }),
+    );
     await user.click(screen.getByRole('button', { name: /^Add aircraft$/ }));
 
     expect(await screen.findByText(/already on file/i)).toBeInTheDocument();

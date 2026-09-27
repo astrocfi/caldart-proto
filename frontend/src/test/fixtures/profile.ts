@@ -1,5 +1,5 @@
 /** Test data for the profile, join, and dashboard suites.  Not shipped. */
-import type { AircraftSummary, Dart, Profile } from '@/portal/api/types';
+import type { AircraftSummary, AircraftType, Dart, Profile } from '@/portal/api/types';
 
 export const TEST_DARTS: Dart[] = [
   {
@@ -18,11 +18,33 @@ export const TEST_DARTS: Dart[] = [
   },
 ];
 
+/** The aircraft types the default `GET /aircraft/types` handler searches. */
+export const TEST_AIRCRAFT_TYPES: AircraftType[] = [
+  { id: 1, make: 'Cessna', model: '172S', seats: 4, engines: 1, is_custom: false },
+  { id: 2, make: 'Cessna', model: '182T Skylane', seats: 4, engines: 1, is_custom: false },
+  { id: 3, make: 'Cirrus', model: 'SR22', seats: 4, engines: 1, is_custom: false },
+  { id: 4, make: 'Piper', model: 'PA-28-181 Archer', seats: 4, engines: 1, is_custom: false },
+];
+
+/** An aircraft type, the Cessna 182T Skylane unless `overrides` say otherwise. */
+export function makeAircraftType(overrides: Partial<AircraftType> = {}): AircraftType {
+  return {
+    id: 2,
+    make: 'Cessna',
+    model: '182T Skylane',
+    seats: 4,
+    engines: 1,
+    is_custom: false,
+    ...overrides,
+  };
+}
+
 export const TEST_AIRCRAFT: AircraftSummary = {
   id: 7,
   n_number: 'N12345',
   make: 'Cessna',
   model: '182T Skylane',
+  type: makeAircraftType(),
   insurance_is_current: true,
   insurance_expiration: '2027-03-01',
   insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',

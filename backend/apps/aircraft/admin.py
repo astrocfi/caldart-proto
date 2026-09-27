@@ -3,7 +3,7 @@
 from django.contrib import admin
 from django.http import HttpRequest
 
-from apps.aircraft.models import Aircraft, AircraftChange
+from apps.aircraft.models import Aircraft, AircraftChange, AircraftType
 
 
 @admin.register(Aircraft)
@@ -24,9 +24,10 @@ class AircraftAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
         "insurance_expiration",
         "insurance_is_current",
     ]
-    list_filter = ["owner_type", "is_active", "make"]
-    search_fields = ["n_number", "make", "model", "owner_name", "insurance_carrier"]
-    autocomplete_fields = ["created_by", "updated_by"]
+    list_filter = ["owner_type", "is_active", "type__make"]
+    list_select_related = ["type"]
+    search_fields = ["n_number", "type__make", "type__model", "owner_name", "insurance_carrier"]
+    autocomplete_fields = ["type", "created_by", "updated_by"]
     readonly_fields = ["created_at", "updated_at", "insurance_summary"]
     ordering = ["n_number"]
 
@@ -34,6 +35,19 @@ class AircraftAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     def insurance_is_current(self, obj: Aircraft) -> bool:
         """Return whether ``obj`` has a non-expired insurance expiration date."""
         return obj.insurance_is_current
+
+
+@admin.register(AircraftType)
+# The same django-stubs caveat as above: ModelAdmin is not subscriptable at
+# admin-autodiscovery time.
+class AircraftTypeAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    """The aircraft types an aircraft is picked from."""
+
+    list_display = ["make", "model", "faa_code", "seats", "engines", "is_custom"]
+    list_filter = ["is_custom"]
+    search_fields = ["make", "model", "faa_make", "faa_model", "faa_code"]
+    readonly_fields = ["created_at"]
+    ordering = ["make", "model"]
 
 
 @admin.register(AircraftChange)

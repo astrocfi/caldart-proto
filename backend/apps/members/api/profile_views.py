@@ -46,10 +46,15 @@ def get_or_create_profile(user: User) -> MemberProfile:
 
     Registration creates one, but a member imported or seeded
     without one must still be able to fill it in.  The row comes back with its
-    DART and aircraft already fetched, so serializing it costs no more queries.
+    DART, aircraft, and the aircraft's types already fetched, so serializing it costs no
+    more queries.
     """
     MemberProfile.objects.get_or_create(user=user)
-    return MemberProfile.objects.select_related("dart").prefetch_related("aircraft").get(user=user)
+    return (
+        MemberProfile.objects.select_related("dart")
+        .prefetch_related("aircraft__type")
+        .get(user=user)
+    )
 
 
 class MyProfileView(RetrieveUpdateAPIView[MemberProfile]):
@@ -150,7 +155,11 @@ class MyProfileAircraftDetailView(APIView):
 
 def _attached(profile: MemberProfile) -> dict[str, Any]:
     """The aircraft list the client should show, under the key ``aircraft``."""
-    return {"aircraft": AircraftSummarySerializer(profile.aircraft.all(), many=True).data}
+    return {
+        "aircraft": AircraftSummarySerializer(
+            profile.aircraft.select_related("type"), many=True
+        ).data
+    }
 
 
 class PlanListView(ListAPIView[MembershipPlan]):

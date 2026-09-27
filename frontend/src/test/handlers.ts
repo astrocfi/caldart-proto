@@ -32,7 +32,7 @@ import type {
   VerifierGrantPayload,
 } from '@/portal/api/types';
 import type { ReportSlug } from '../portal/reports/types';
-import { makeProfile } from './fixtures/profile';
+import { TEST_AIRCRAFT_TYPES, makeAircraftType, makeProfile } from './fixtures/profile';
 
 export const API = '/api/v1';
 
@@ -147,6 +147,15 @@ export const handlers = [
   // The aircraft record reads its history as it mounts.  An empty history keeps
   // a suite that is not about the history from having to declare one.
   http.get(`${API}/aircraft/:id/changes`, () => HttpResponse.json([])),
+  // The aircraft type picker searches this; the default answers the fixture
+  // types whose make and model contain what was typed.
+  http.get(`${API}/aircraft/types`, ({ request }) => {
+    const typed = (new URL(request.url).searchParams.get('q') ?? '').trim().toLowerCase();
+    const found = TEST_AIRCRAFT_TYPES.filter(
+      (type) => typed !== '' && `${type.make} ${type.model}`.toLowerCase().includes(typed),
+    );
+    return HttpResponse.json(found);
+  }),
   // The email log panel reads this as `/portal/system` mounts, so a suite that
   // is not about the log does not have to declare one.
   http.get(`${API}/system/emails`, () =>
@@ -647,6 +656,7 @@ export function makeVerifiedAircraftSummary(
     n_number: 'N172SP',
     make: 'Cessna',
     model: '172S Skyhawk',
+    type: makeAircraftType({ id: 1, model: '172S Skyhawk' }),
     insurance_is_current: true,
     insurance_expiration: '2027-03-01',
     insurance_summary: '$1,000,000 / $100,000 · exp 2027-03-01',

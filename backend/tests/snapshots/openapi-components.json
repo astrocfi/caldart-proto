@@ -218,6 +218,7 @@
       "owner_name": "string",
       "owner_type": "ref:OwnerTypeEnum",
       "seats": "integer|null",
+      "type": "ref:AircraftType",
       "updated_at": "string(date-time)",
       "year": "integer|null"
     },
@@ -230,6 +231,7 @@
       "make",
       "model",
       "n_number",
+      "type",
       "updated_at"
     ]
   },
@@ -296,6 +298,7 @@
       "owner_type": "ref:OwnerTypeEnum",
       "pilots": "array<ref:AircraftPilot>",
       "seats": "integer|null",
+      "type": "ref:AircraftType",
       "updated_at": "string(date-time)",
       "updated_by": "ref:AircraftActor|null",
       "year": "integer|null"
@@ -310,6 +313,7 @@
       "model",
       "n_number",
       "pilots",
+      "type",
       "updated_at",
       "updated_by"
     ]
@@ -339,20 +343,18 @@
       "insurance_liability_per_person_cents": "integer",
       "insurance_policy_number": "string",
       "is_active": "boolean",
-      "make": "string",
-      "model": "string",
       "n_number": "string",
       "notes": "string",
       "owner_contact": "string",
       "owner_name": "string",
       "owner_type": "ref:OwnerTypeEnum",
       "seats": "integer|null",
+      "type_id": "integer",
       "year": "integer|null"
     },
     "required": [
-      "make",
-      "model",
-      "n_number"
+      "n_number",
+      "type_id"
     ]
   },
   "AircraftSummary": {
@@ -364,7 +366,8 @@
       "insurance_verified": "boolean",
       "make": "string",
       "model": "string",
-      "n_number": "string"
+      "n_number": "string",
+      "type": "ref:AircraftType"
     },
     "required": [
       "id",
@@ -374,7 +377,26 @@
       "insurance_verified",
       "make",
       "model",
-      "n_number"
+      "n_number",
+      "type"
+    ]
+  },
+  "AircraftType": {
+    "properties": {
+      "engines": "integer|null",
+      "id": "integer",
+      "is_custom": "boolean",
+      "make": "string",
+      "model": "string",
+      "seats": "integer|null"
+    },
+    "required": [
+      "engines",
+      "id",
+      "is_custom",
+      "make",
+      "model",
+      "seats"
     ]
   },
   "AttachedAircraft": {
@@ -1794,14 +1816,13 @@
       "insurance_liability_per_person_cents": "integer",
       "insurance_policy_number": "string",
       "is_active": "boolean",
-      "make": "string",
-      "model": "string",
       "n_number": "string",
       "notes": "string",
       "owner_contact": "string",
       "owner_name": "string",
       "owner_type": "ref:OwnerTypeEnum",
       "seats": "integer|null",
+      "type_id": "integer",
       "year": "integer|null"
     },
     "required": []
