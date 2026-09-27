@@ -22,7 +22,9 @@ function makeAdminProfile(overrides: Partial<AdminProfile> = {}): AdminProfile {
 
 describe('MemberVerificationCard', () => {
   it('lists each item with what the record holds and its mark', () => {
-    renderWithProviders(<MemberVerificationCard userId={7} profile={makeAdminProfile()} />);
+    renderWithProviders(
+      <MemberVerificationCard userId={7} profile={makeAdminProfile()} checkable />,
+    );
     const rows = screen.getAllByRole('listitem');
     expect(rows.map((row) => row.textContent)).toEqual([
       'Pilot certificatePrivate · 3141592Verified by Dana Leader on 2026/05/01',
@@ -36,6 +38,7 @@ describe('MemberVerificationCard', () => {
       <MemberVerificationCard
         userId={7}
         profile={makeAdminProfile({ verification: NONE_VERIFIED })}
+        checkable
       />,
     );
     const rows = screen.getAllByRole('listitem');
@@ -43,7 +46,17 @@ describe('MemberVerificationCard', () => {
   });
 
   it('offers no Verify to a reader without a verifying role', () => {
-    renderWithProviders(<MemberVerificationCard userId={7} profile={makeAdminProfile()} />);
+    renderWithProviders(
+      <MemberVerificationCard userId={7} profile={makeAdminProfile()} checkable />,
+    );
+    expect(screen.queryByRole('button', { name: 'Verify' })).not.toBeInTheDocument();
+  });
+
+  it('offers no Verify for a member the endpoint would refuse with a 404', () => {
+    server.use(signedInAs(makeUser({ roles: ['member', 'account_admin'] })));
+    renderWithProviders(
+      <MemberVerificationCard userId={7} profile={makeAdminProfile()} checkable={false} />,
+    );
     expect(screen.queryByRole('button', { name: 'Verify' })).not.toBeInTheDocument();
   });
 
@@ -59,6 +72,7 @@ describe('MemberVerificationCard', () => {
       <MemberVerificationCard
         userId={7}
         profile={makeAdminProfile({ verification: NONE_VERIFIED })}
+        checkable
         onSaved={handleSaved}
       />,
     );

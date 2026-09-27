@@ -10,6 +10,7 @@ verifying role reads it, and a subscription can send it to any of them.
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from typing import TYPE_CHECKING
 
 import pytest
 from django.utils import timezone
@@ -37,6 +38,12 @@ from apps.reports.registry import REPORTS
 from caldart.reports import Params, select_columns
 from tests.conftest import PdfText, read_csv, role_matrix
 from tests.factories import AircraftFactory, DartFactory, MemberProfileFactory, UserFactory
+
+if TYPE_CHECKING:
+    # rest_framework.test.APIClient.post() is typed to return this class, but it
+    # exists only in the stub: rest_framework monkey-patches Django's test response
+    # at runtime rather than defining a real subclass.
+    from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
 
 pytestmark = pytest.mark.django_db
 
@@ -284,8 +291,8 @@ def test_a_certificate_reads_its_type_and_number() -> None:
 
 def test_a_certificate_with_no_number_reads_its_type_alone() -> None:
     """An empty certificate number leaves the type on its own."""
-    person(pilot_certificate_type=PilotCertificateType.NONE, certificate_number="")
-    assert cells("Pilot certificates", "Pat Doe")[1] == "None"
+    person(pilot_certificate_type=PilotCertificateType.PRIVATE, certificate_number="")
+    assert cells("Pilot certificates", "Pat Doe")[1] == "Private"
 
 
 def test_a_medical_reads_its_class_and_expiration() -> None:
@@ -509,9 +516,9 @@ def test_the_pdf_says_so_under_an_empty_section(
     assert strings[2:4] == ["Pilot certificates", "Nothing to show."]
 
 
-def subscribe(client: APIClient, recipient: User) -> int:
-    """Subscribe ``recipient`` to the monthly verification PDF; the response's status."""
-    response = client.post(
+def subscribe(client: APIClient, recipient: User) -> ApiResponse:
+    """Subscribe ``recipient`` to the monthly verification PDF; the response."""
+    return client.post(
         SUBSCRIPTIONS_URL,
         {
             "report": "verification",
@@ -524,18 +531,23 @@ def subscribe(client: APIClient, recipient: User) -> int:
         },
         format="json",
     )
-    return response.status_code
 
 
 def test_the_report_can_be_sent_to_a_verifier(
     account_admin_client: APIClient, verifier: User
 ) -> None:
     """A verifier reads the report, so a subscription for one is set up."""
-    assert subscribe(account_admin_client, verifier) == 201
+    assert subscribe(account_admin_client, verifier).status_code == 201
 
 
 def test_the_report_cannot_be_sent_to_a_treasurer(
     account_admin_client: APIClient, treasurer: User
 ) -> None:
     """A treasurer holds no verifying role, so sending the report to one is refused."""
-    assert subscribe(account_admin_client, treasurer) == 400
+    response = subscribe(account_admin_client, treasurer)
+    assert response.status_code == 400
+    assert response.json() == {
+        "recipient_email": [
+            f"{treasurer.display_name} does not hold a role that may read this report."
+        ]
+    }

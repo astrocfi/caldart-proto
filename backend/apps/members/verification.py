@@ -28,7 +28,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.members import services
 from apps.members.models import MedicalType, MemberProfile, PilotCertificateType
 from caldart import audit, events
 
@@ -194,8 +193,17 @@ def verify_member(
     slug.  When either list is not empty, ``verification_changed`` is raised once with
     ``user``, ``verified`` and ``cleared`` as item labels, and ``actor``; a save that
     changes no item's state raises nothing.  Returns the saved profile.
+
+    Locks the profile row with ``select_for_update`` before reading it, so a save
+    racing this one -- the member's own edit, or another verifier's -- waits for this
+    transaction to finish rather than acting on a value this call is about to move.
     """
-    profile, _ = MemberProfile.objects.get_or_create(user=target)
+    # Imported here, not at module level: `apps.members.services` imports this module
+    # for `clear_stale`, so a top-level import back would be circular.
+    from apps.members import services
+
+    MemberProfile.objects.get_or_create(user=target)
+    profile = MemberProfile.objects.select_for_update().get(user=target)
     before = verified_items(profile)
     if len(changes) > 0:
         services.update_member(actor, target, profile=dict(changes))

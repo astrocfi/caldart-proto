@@ -3,7 +3,8 @@
  * verifier role.
  *
  * Every screen that shows a verified state reads it from a query this module refreshes:
- * the member check's status card, the member record, and the aircraft register.
+ * the member check's status card, the member record, the member's own profile, and the
+ * aircraft register.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ import { AUTH_ME_KEY } from '@/portal/auth/useAuth';
 import { MEMBERS_KEY } from '@/portal/features/admin-members/api';
 import { AIRCRAFT_KEY } from '@/portal/features/aircraft/api';
 import { LEADER_KEY } from '@/portal/features/leader/api';
+import { PROFILE_KEY } from '@/portal/features/profile/api';
 import type {
   InsuranceVerificationPayload,
   MemberVerificationPayload,
@@ -34,21 +36,32 @@ function useStatusSaved(userId: number): (status: LeaderStatus) => void {
 /**
  * Writes a person's certificate, medical, and photo ID fields and the verified state of
  * each item in one request, via `PUT /leader/members/{userId}/verification`.
+ *
+ * Also invalidates the `/me/profile` query: a verifier may be verifying themselves, and
+ * self-verification is allowed.
  */
 export function useVerifyMember(
   userId: number,
 ): UseMutationResult<LeaderStatus, Error, MemberVerificationPayload> {
+  const queryClient = useQueryClient();
   const handleSaved = useStatusSaved(userId);
   return useMutation({
     mutationFn: (payload: MemberVerificationPayload) =>
       api.put<LeaderStatus>(`/leader/members/${userId}/verification`, payload),
-    onSuccess: handleSaved,
+    onSuccess: (status) => {
+      handleSaved(status);
+      void queryClient.invalidateQueries({ queryKey: PROFILE_KEY });
+    },
   });
 }
 
 /**
  * Writes an aircraft's insurance fields and whether the insurance is verified, via
  * `PUT /leader/aircraft/{aircraftId}/verification`.
+ *
+ * Also invalidates the `/me/profile` query, whose **My aircraft** rows show the
+ * insurance chip and mark, and the member-record queries, whose aircraft list links to
+ * this record.
  */
 export function useVerifyInsurance(
   aircraftId: number,
@@ -60,6 +73,8 @@ export function useVerifyInsurance(
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [LEADER_KEY] });
       void queryClient.invalidateQueries({ queryKey: [AIRCRAFT_KEY] });
+      void queryClient.invalidateQueries({ queryKey: PROFILE_KEY });
+      void queryClient.invalidateQueries({ queryKey: MEMBERS_KEY });
     },
   });
 }

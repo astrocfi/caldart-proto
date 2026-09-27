@@ -51,7 +51,10 @@ export function MemberVerificationPanel({
   onSaved,
   onClose: handleClose,
 }: MemberVerificationPanelProps): JSX.Element {
-  const [draft, setDraft] = useState(initial);
+  // Freezes the opening draft so a refetch while the panel is open -- the status
+  // card's own query, invalidated by another save -- cannot resend stale values
+  // into an edit already in progress here.
+  const [draft, setDraft] = useState(() => initial);
   const verify = useVerifyMember(userId);
   const toast = useToast();
   const errors = saveErrors(verify.error, FORM_FIELDS);

@@ -49,6 +49,10 @@ export function AircraftRecordPage(): JSX.Element {
   const remove = useDeleteAircraft(aircraftId);
   const [confirming, setConfirming] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  // Bumped only when the insurance panel saves, so the Details form starts again
+  // from the corrected record; an unrelated write (someone else's edit, a
+  // background refetch) must not discard whatever the admin is mid-typing there.
+  const [formResetKey, setFormResetKey] = useState(0);
   const canVerify = useCanVerify();
 
   if (knownId && record.isPending) {
@@ -148,7 +152,11 @@ export function AircraftRecordPage(): JSX.Element {
       }
     >
       {verifying ? (
-        <InsuranceVerificationPanel aircraft={aircraft} onClose={() => setVerifying(false)} />
+        <InsuranceVerificationPanel
+          aircraft={aircraft}
+          onSaved={() => setFormResetKey((key) => key + 1)}
+          onClose={() => setVerifying(false)}
+        />
       ) : null}
 
       <Card
@@ -156,9 +164,11 @@ export function AircraftRecordPage(): JSX.Element {
         title="Details"
       >
         <AircraftForm
-          // A verification save may correct the insurance, so a written record
-          // starts the form again from what the register now holds.
-          key={`${aircraft.id}-${aircraft.updated_at}`}
+          // A verification save may correct the insurance, so it starts the form
+          // again from what the register now holds; any other write to the
+          // record -- someone else's edit, a background refetch -- must not
+          // discard an edit in progress here.
+          key={`${aircraft.id}-${formResetKey}`}
           initial={aircraftToValues(aircraft)}
           submitLabel="Save changes"
           pending={update.isPending}

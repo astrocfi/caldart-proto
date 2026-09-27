@@ -70,8 +70,9 @@ ordering, the register's, the payment list's query serializer, the email log's f
 query string gives the same rows, in the same order, on the screen and in the
 file.  ``?ordering=`` is honored with the list's own rules, and nothing is
 paginated.  The roles report and the verification report, which no list backs,
-are the exceptions: each reads its own filters (see :ref:`reports-roles` and
-:ref:`reports-verification`), lists active accounts only, and has a fixed order.
+are the exceptions: each reads its own filters and has a fixed order.  The roles
+report (:ref:`reports-roles`) lists active accounts only; the verification report
+(:ref:`reports-verification`) lists checkable people and active aircraft.
 
 
 The engine

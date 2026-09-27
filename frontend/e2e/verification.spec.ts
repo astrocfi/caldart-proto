@@ -10,6 +10,10 @@
  * verifies is the verifier who checks the airplane and the member who edits the
  * medical.  It writes to the seeded pilot and to one airplane, so it runs at
  * desktop size only.
+ *
+ * Isolation rests on nothing else in the suite reading `SEED.leaderCheck.unverifiedPilot`,
+ * the airplane this spec picks from the register, or the account administrator's mail
+ * count: another spec touching any of those would race this one.
  */
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';

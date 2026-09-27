@@ -70,9 +70,9 @@ export interface SeedFacts {
    * Four members the leader check reads differently: an insured pilot verified on
    * every count, one whose airplane's insurance has lapsed, one whose membership
    * has, and a current pilot with a current medical whose certificate, medical, and
-   * photo ID nobody has verified (`unverifiedPilot`, who lists no aircraft).  They
-   * come from the seed rather than being typed into a spec, which drifts the moment
-   * the demo data is generated a little differently.
+   * photo ID nobody has verified (`unverifiedPilot`).  They come from the seed
+   * rather than being typed into a spec, which drifts the moment the demo data is
+   * generated a little differently.
    */
   leaderCheck: Record<LeaderSubjectKey, LeaderSubject>;
   /** How many payments the seed recorded by hand, which the finance list filters to. */

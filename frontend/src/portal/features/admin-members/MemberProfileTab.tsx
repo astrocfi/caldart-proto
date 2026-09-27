@@ -84,7 +84,12 @@ export function MemberProfileTab({ member }: { member: MemberDetail }): JSX.Elem
   return (
     <>
       {verified !== null ? (
-        <MemberVerificationCard userId={member.id} profile={verified} onSaved={handleVerified} />
+        <MemberVerificationCard
+          userId={member.id}
+          profile={verified}
+          checkable={member.is_active && member.kind !== 'donor'}
+          onSaved={handleVerified}
+        />
       ) : null}
       <Card>
         <form onSubmit={handleSubmit} noValidate>

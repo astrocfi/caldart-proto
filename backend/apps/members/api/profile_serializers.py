@@ -11,7 +11,7 @@ import re
 from datetime import date
 from typing import Any, cast
 
-from django.db import models
+from django.db import models, transaction
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -355,6 +355,7 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         return attrs
 
     # -- write -------------------------------------------------------------
+    @transaction.atomic
     def update(self, instance: MemberProfile, validated_data: dict[str, Any]) -> MemberProfile:
         """``PUT`` really replaces: anything left out goes back to its default.
 
@@ -381,7 +382,13 @@ class ProfileSerializer(serializers.ModelSerializer[MemberProfile]):
         A write that changes a field a verified item covers clears that item in the
         same save (:func:`apps.members.verification.clear_stale`); the member's own
         edit raises no ``verification_changed``, only the ``profile_changed`` above.
+
+        Locks the profile row with ``select_for_update`` before reading its stored
+        values, so a save racing this one -- a verifier stamping an item on the same
+        record -- waits for this transaction to finish rather than being read here as
+        though it had not happened.
         """
+        instance = MemberProfile.objects.select_for_update().get(pk=instance.pk)
         if not self.partial:
             for name, field in self.fields.items():
                 if field.read_only:

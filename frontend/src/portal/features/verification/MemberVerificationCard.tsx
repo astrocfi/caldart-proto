@@ -38,6 +38,12 @@ function itemDetail(item: VerificationItem, profile: AdminProfile): string {
 export interface MemberVerificationCardProps {
   userId: number;
   profile: AdminProfile;
+  /**
+   * Whether the verification endpoint accepts this member: `checkable_people()`
+   * refuses a deactivated account or a donor with a 404, so **Verify** is hidden for
+   * one rather than opening a panel whose save can only fail.
+   */
+  checkable: boolean;
   /** Called with the saved status card, so the page can take up any corrected field. */
   onSaved?: (status: LeaderStatus) => void;
 }
@@ -46,9 +52,10 @@ export interface MemberVerificationCardProps {
 export function MemberVerificationCard({
   userId,
   profile,
+  checkable,
   onSaved: handleSaved,
 }: MemberVerificationCardProps): JSX.Element {
-  const canVerify = useCanVerify();
+  const canVerify = useCanVerify() && checkable;
   const [verifying, setVerifying] = useState(false);
 
   if (verifying) {

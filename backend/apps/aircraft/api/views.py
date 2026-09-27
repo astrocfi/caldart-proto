@@ -124,13 +124,18 @@ class AircraftDetailView(generics.RetrieveUpdateDestroyAPIView[Aircraft]):
     def perform_update(self, serializer: BaseSerializer[Aircraft]) -> None:
         """Save the edit, then record who made it and which columns moved.
 
-        The field list is worked out before the save, while ``serializer.instance``
-        still carries the stored values (a model serializer assigns the validated
-        attributes during ``save()``), so a form that resends every field it shows
-        names only the ones whose value actually changed.  The edit and its history
-        row commit together, so no write can leave the trail behind.
+        The row is re-read with ``select_for_update`` before anything else, so a save
+        racing this one -- a verifier stamping the insurance on the same record --
+        waits for this transaction to finish rather than being read here as though it
+        had not happened.  The field list is worked out before the save, against that
+        locked read (a model serializer assigns the validated attributes during
+        ``save()``), so a form that resends every field it shows names only the ones
+        whose value actually changed.  The edit and its history row commit together,
+        so no write can leave the trail behind.
         """
         instance = cast("Aircraft", serializer.instance)
+        instance = Aircraft.objects.select_for_update().get(pk=instance.pk)
+        serializer.instance = instance
         fields = services.changed_fields(instance, dict(serializer.validated_data))
         actor = acting_user(self.request)
         aircraft = serializer.save()
